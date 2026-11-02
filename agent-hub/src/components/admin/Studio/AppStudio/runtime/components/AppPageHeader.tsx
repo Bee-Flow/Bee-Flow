@@ -8,6 +8,7 @@ import { spaceSteps } from '../styleResolver';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
+import TagChips, { hasTags } from './TagChips';
 
 /**
  * App Studio runtime — 'page_header' (container). Spec: server/appStudio/componentSpecs.js.
@@ -41,6 +42,11 @@ import type { NodeProps } from './appNode.types';
  * both it and the subtitle carry `title=` — clipped text a pointer can recover
  * is a different thing from clipped text that is simply gone.
  */
+
+/** The raw bound value of `tagsFrom` (array or text); TagChips parses it. */
+function boundRaw(binding: BindingInput, deps: Parameters<typeof resolveBinding>[1]) {
+    return binding ? resolveBinding(binding, deps).value : null;
+}
 
 /** A bound value that is worth showing: a non-empty scalar. */
 function boundText(binding: BindingInput, deps: Parameters<typeof resolveBinding>[1]) {
@@ -83,6 +89,7 @@ interface PageHeaderProps {
     subtitle?: string | null;
     titleFrom?: BindingInput;
     subtitleFrom?: BindingInput;
+    tagsFrom?: BindingInput;
     icon?: string | null;
     showDivider?: boolean;
     look?: string;
@@ -93,6 +100,7 @@ interface HeaderParts {
     icon: string | null;
     title: string;
     subtitle: string | null;
+    tags?: unknown;
     gap?: number;
     kids: ReactNode[];
 }
@@ -110,7 +118,7 @@ function IconBadge({ icon, size = 'h-9 w-9' }: { icon: string | null; size?: str
 }
 
 /** look 'hero' — a tall, centered, primary-gradient opening with breathing room. */
-function HeroHeader({ icon, title, subtitle, gap, kids }: HeaderParts) {
+function HeroHeader({ icon, title, subtitle, tags, gap, kids }: HeaderParts) {
     return (
         <header
             className="w-full min-w-0 app-pageheader--hero"
@@ -122,6 +130,7 @@ function HeroHeader({ icon, title, subtitle, gap, kids }: HeaderParts) {
                 <IconBadge icon={icon} size="h-11 w-11" />
                 <div className="min-w-0">
                     <h1 className="text-3xl font-semibold break-words text-[var(--text-primary)]">{title}</h1>
+                    <TagChips value={tags} className="mt-2 justify-center" />
                     {subtitle ? (
                         <p className="text-base mt-1.5 break-words text-[var(--text-secondary)]">{subtitle}</p>
                     ) : null}
@@ -141,7 +150,7 @@ function HeroHeader({ icon, title, subtitle, gap, kids }: HeaderParts) {
 }
 
 /** look 'split' — title left, subtitle right-aligned and muted, hairline below. */
-function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }: HeaderParts & { showDivider: boolean }) {
+function SplitHeader({ icon, title, subtitle, tags, gap, kids, showDivider }: HeaderParts & { showDivider: boolean }) {
     return (
         <header
             className="w-full min-w-0 app-pageheader--split"
@@ -151,6 +160,7 @@ function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }: HeaderPa
             <div className="flex flex-wrap items-start" style={{ gap: spaceSteps(gap) }}>
                 <IconBadge icon={icon} />
                 <h1 className="text-xl font-semibold truncate min-w-0 basis-48 grow text-[var(--text-primary)]" title={title}>{title}</h1>
+                <TagChips value={tags} className="mt-1" />
                 {subtitle ? (
                     <p className="text-sm mt-0.5 text-right line-clamp-2 min-w-0 [color:var(--text-muted)]! max-w-[45%]" title={subtitle}>{subtitle}</p>
                 ) : null}
@@ -174,7 +184,7 @@ function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }: HeaderPa
 export default function AppPageHeader({ node, children }: NodeProps<PageHeaderProps>) {
     const { t } = useTranslation();
     const {
-        title = t('studio_apps_runtime.page_header.title', 'Page title'), subtitle = null, titleFrom = null, subtitleFrom = null,
+        title = t('studio_apps_runtime.page_header.title', 'Page title'), subtitle = null, titleFrom = null, subtitleFrom = null, tagsFrom = null,
         icon = null, showDivider = true,
     } = node.props || {};
     const { actionState, dataState, scope } = useRuntime();
@@ -183,18 +193,20 @@ export default function AppPageHeader({ node, children }: NodeProps<PageHeaderPr
     // editor canvas and for the moment before data arrives.
     const shownTitle = boundText(titleFrom, deps) ?? title;
     const shownSubtitle = boundText(subtitleFrom, deps) ?? subtitle;
+    const shownTags = boundRaw(tagsFrom, deps);
     const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     const kids = React.Children.toArray(children);
     const look = node.props?.look;
 
     if (look === 'hero') {
-        return <HeroHeader icon={icon} title={shownTitle} subtitle={shownSubtitle} gap={gap} kids={kids} />;
+        return <HeroHeader icon={icon} title={shownTitle} subtitle={shownSubtitle} tags={shownTags} gap={gap} kids={kids} />;
     }
     if (look === 'split') {
-        return <SplitHeader icon={icon} title={shownTitle} subtitle={shownSubtitle} gap={gap} kids={kids} showDivider={showDivider} />;
+        return <SplitHeader icon={icon} title={shownTitle} subtitle={shownSubtitle} tags={shownTags} gap={gap} kids={kids} showDivider={showDivider} />;
     }
 
     const banner = look === 'banner';
+    const titleEl = <h1 className="text-xl font-semibold truncate text-[var(--text-primary)]" title={shownTitle}>{shownTitle}</h1>;
     return (
         <header
             className={`w-full min-w-0${banner ? ' app-pageheader--banner' : ''}`}
@@ -212,7 +224,12 @@ export default function AppPageHeader({ node, children }: NodeProps<PageHeaderPr
                     </span>
                 ) : null}
                 <div className={TITLE_FLOOR}>
-                    <h1 className="text-xl font-semibold truncate text-[var(--text-primary)]" title={shownTitle}>{shownTitle}</h1>
+                    {hasTags(shownTags) ? (
+                        <div className="flex items-center gap-2 min-w-0">
+                            {titleEl}
+                            <TagChips value={shownTags} className="shrink-0" />
+                        </div>
+                    ) : titleEl}
                     {shownSubtitle ? (
                         <p className={SUBTITLE_CLAMP} title={shownSubtitle} style={{ color: 'var(--text-secondary)' }}>{shownSubtitle}</p>
                     ) : null}

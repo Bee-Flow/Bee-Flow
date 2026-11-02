@@ -3,7 +3,6 @@ import { clampZoom } from '../pdfCompare/pdfCompareMath';
 /** How the page width follows the pane: fill its width, fit the whole page in it, or a fixed multiple of fill-width. */
 export type FitMode = 'width' | 'page' | 'custom';
 
-export const ROTATIONS = [0, 90, 180, 270] as const;
 export const FALLBACK_ASPECT = 1.414;
 
 export const nextRotation = (r: number): number => (r + 90) % 360;

@@ -164,7 +164,13 @@ function isSheetOf(drawingKey, cadKey) {
     const long = String(drawingKey || '');
     const short = String(cadKey || '');
     if (!short || long.length <= short.length || !long.startsWith(short)) return false;
-    return (short.match(/\d/g) || []).length >= SHEET_MIN_DIGITS && SHEET_SUFFIX.test(long.slice(short.length));
+    let digits = 0;
+    for (const ch of short) if (ch >= '0' && ch <= '9') digits += 1;
+    const suffix = long.slice(short.length);
+    // A file-name tail of at most a dozen characters against an anchored pattern
+    // with no nested repetition: linear, nothing to backtrack on.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
+    return digits >= SHEET_MIN_DIGITS && suffix.length <= 12 && SHEET_SUFFIX.test(suffix);
 }
 
 /**

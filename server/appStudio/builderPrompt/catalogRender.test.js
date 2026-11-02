@@ -206,8 +206,12 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * 53_000 → 54_500 (Studio documents in apps, measured 2026-10-26): three
  * component types (document_viewer, document_compare, input_document) and the
  * copy_document step took the catalog to 54_074. ~430 headroom.
+ *
+ * 54_500 → 55_000 (chips and the own PDF viewer, measured 2026-11-02):
+ * page_header.tagsFrom, list.tagsKey and file_preview viewer/textLayer, each
+ * description already cut to one clause, took the catalog to 54_571. ~430 headroom.
  */
-const CATALOG_CHAR_CEILING = 54_500;
+const CATALOG_CHAR_CEILING = 55_000;
 
 test('renderCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCatalogText();
@@ -504,8 +508,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-10-21, the pdf_compare component type joined the catalog — 52_446 chars.
 // 2026-10-26, document_viewer, document_compare, input_document and the
 // copy_document step joined the catalog — 54_074 chars.
-// 2026-11-02, file_preview got viewer/textLayer props — 54_470 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '95466c1ef7928c4e1d974a5e5d86c77e887cb1c5e86fbc90eda9ce4f3372da72';
+// 2026-11-02, page_header.tagsFrom and list.tagsKey (mail categories as chips) — 54_476 chars.
+// 2026-11-02, file_preview got viewer/textLayer props — 54_571 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'f7c090503b31dafe20b19b8869bf6cda93479612f480a85422a29d475fdb7636';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

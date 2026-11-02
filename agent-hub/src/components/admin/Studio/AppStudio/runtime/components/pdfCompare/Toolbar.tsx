@@ -5,7 +5,7 @@ import { clampPage, MAX_ZOOM, MIN_ZOOM, stepZoom } from './pdfCompareMath';
 
 export type Mode = 'side' | 'swipe' | 'diff';
 
-export const BTN = 'inline-flex h-7 min-w-7 shrink-0 items-center justify-center gap-1 rounded px-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:hover:bg-transparent aria-pressed:bg-[var(--bg-tertiary)] aria-pressed:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--app-accent,#2563eb)]';
+const BTN = 'inline-flex h-7 min-w-7 shrink-0 items-center justify-center gap-1 rounded px-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:hover:bg-transparent aria-pressed:bg-[var(--bg-tertiary)] aria-pressed:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--app-accent,#2563eb)]';
 const ICON = 'h-4 w-4';
 
 export function ToolButton({ label, onClick, pressed, disabled, children }: { label: string; onClick: () => void; pressed?: boolean; disabled?: boolean; children: ReactNode }) {

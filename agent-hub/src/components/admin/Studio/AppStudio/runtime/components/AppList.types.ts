@@ -20,6 +20,7 @@ export interface ListProps {
     metaKey?: string | null;
     timestampKey?: string | null;
     badgeKey?: string | null;
+    tagsKey?: string | null;
     badgeToneMap?: PeekGroupLabel[];
     unreadKey?: string | null;
     badgePlacement?: string;
