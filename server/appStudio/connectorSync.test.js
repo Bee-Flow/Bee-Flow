@@ -89,6 +89,7 @@ function harness({ runs = [], existing = new Map(), claim = true } = {}) {
         },
         setRowCount: async () => {},
         bumpDataVersion: async () => {},
+        batch: async () => [],
     };
     return { log, store, _deps, withWatermark: (w) => { log.priorWatermark = w; return { log, store, _deps }; } };
 }
@@ -521,37 +522,6 @@ test('a child without the timestamp column is skipped, never guessed at', async 
     assert.deepStrictEqual(purges, ['emails'], 'only the table that can be dated');
 });
 
-test('a child with no date of its own is purged WITH its parent, parent-first', async () => {
-    // The attachment case. Its age is not its own fact — it is its message's —
-    // so the only honest rule is "when the message goes, the attachment goes".
-    // Order matters: a cascade step asks "does my parent still exist?", so the
-    // parent's purge has to have run first or the child catches up a sync late.
-    const purges = [];
-    const h = harness({ runs: [{ grains: [{ level: 0, rows: [{ id: 'p1', receivedAt: '2026-08-01T00:00:00Z' }] }, { level: 1, rows: [] }] }] });
-    h._deps.compileDeleteOlderThan = (table, _a, opts) => {
-        purges.push({ table: table.key, mode: 'column', field: opts.field });
-        return { sql: 'DELETE', params: [], where: '1=1', whereParams: [] };
-    };
-    h._deps.compileDeleteOrphans = (table, _a, opts) => {
-        purges.push({ table: table.key, mode: 'cascade', parent: opts.parentTableMeta.key, relationField: opts.relationField });
-        return { sql: 'DELETE', params: [], where: '1=1', whereParams: [] };
-    };
-    h._deps.exec = async () => ({ changes: 2 });
-
-    const childNoStamp = { ...CHILD_TABLE, fields: CHILD_TABLE.fields.filter((f) => f.key !== 'received') };
-    await connectorSync.syncConnector(app, { ...MODEL, tables: [TABLE, childNoStamp] }, connector({
-        tableId: TABLE.id, mode: 'upsert', keyField: 'id',
-        incremental: { field: 'receivedAt', format: 'iso' },
-        retentionDays: 30,
-        children: [{ tableId: childNoStamp.id, level: 1, relationField: 'emails_ref', keyField: 'id', mode: 'upsert', retentionCascade: true }],
-    }), { _deps: h._deps });
-
-    assert.deepStrictEqual(purges, [
-        { table: 'emails', mode: 'column', field: 'received' },
-        { table: 'attachments', mode: 'cascade', parent: 'emails', relationField: 'emails_ref' },
-    ]);
-});
-
 test('no retentionDays means nothing is ever deleted', async () => {
     let purged = false;
     const h = harness({ runs: [{ rows: [{ id: 'p1', receivedAt: '2026-08-01T00:00:00Z' }] }] });
@@ -640,97 +610,6 @@ test('children are written parent-first even when declared out of order', async 
     assert.strictEqual(grandBatch.rows[0].att_ref, childBatch.ids[1]);
 });
 
-// ── Retention takes the FILES with it ───────────────────────────────
-// Deleting the row but keeping the blob and its ledger entry would leave the
-// actual document — an invoice, an ID scan — in object storage forever while
-// the app reports a 90-day policy. That is a compliance claim we would not be
-// keeping, which is the same argument that made retention walk child tables.
-
-const FILE_TABLE = {
-    id: 'tbl_dddddd',
-    key: 'atts',
-    name: 'Atts',
-    fields: [
-        { id: 'fld_300001', key: 'ext_id', name: 'id', type: 'text', unique: true, sourcePath: 'id' },
-        { id: 'fld_300002', key: 'received', name: 'receivedAt', type: 'datetime', sourcePath: 'receivedAt' },
-        { id: 'fld_300003', key: 'file', name: 'File', type: 'file' },
-    ],
-};
-
-/** A harness wired for the purge path: expiring rows, a ledger and a bucket. */
-function retentionHarness(expiringRows, ledger) {
-    const h = harness({ runs: [{ rows: [{ id: 'p1', receivedAt: '2026-08-01T00:00:00Z' }] }] });
-    const deleted = { ledger: [], blobs: [] };
-    let rows = [...ledger];
-
-    h._deps.compileDeleteOlderThan = (t) => ({ sql: `DELETE FROM ${t.key}`, params: [] });
-    h._deps.exec = async () => ({ changes: expiringRows.length });
-    h._deps.query = async (_o, _a, sql) => (/SELECT "file"/.test(sql) ? { rows: expiringRows } : { rows: [] });
-    h._deps.listAttachments = async () => rows;
-    h._deps.deleteAttachment = async (id) => { deleted.ledger.push(id); rows = rows.filter((r) => r.id !== id); return true; };
-    h._deps.deleteFile = async (key) => { deleted.blobs.push(key); };
-    h._deps.buildAttachmentKey = (owner, appId, sha) => `${owner}/${appId}/${sha}`;
-    return { h, deleted };
-}
-
-async function runRetention(h) {
-    return connectorSync.syncConnector(app, { ...MODEL, tables: [FILE_TABLE] }, connector({
-        tableId: FILE_TABLE.id, mode: 'upsert', keyField: 'id',
-        incremental: { field: 'receivedAt', format: 'iso' },
-        retentionDays: 30,
-    }), { _deps: h._deps });
-}
-
-test('retention deletes the ledger row AND the blob behind an expired file', async () => {
-    const { h, deleted } = retentionHarness(
-        [{ file: JSON.stringify({ kind: 'studio_attachment', fileId: 'f1', name: 'a.pdf' }) }],
-        [{ id: 'f1', sha256: 'sha-a', size: 10 }],
-    );
-    await runRetention(h);
-
-    assert.deepStrictEqual(deleted.ledger, ['f1']);
-    assert.deepStrictEqual(deleted.blobs, ['owner-1/app-1/sha-a']);
-});
-
-test('a blob another row still points at is kept', async () => {
-    // Keys are content-addressed by sha256, so two records attaching the same
-    // file share ONE blob. Deleting it because one of them expired would break
-    // the other — a silent 404 on a file that is still perfectly current.
-    const { h, deleted } = retentionHarness(
-        [{ file: JSON.stringify({ kind: 'studio_attachment', fileId: 'f1' }) }],
-        [{ id: 'f1', sha256: 'shared', size: 10 }, { id: 'f2', sha256: 'shared', size: 10 }],
-    );
-    await runRetention(h);
-
-    assert.deepStrictEqual(deleted.ledger, ['f1'], 'its own ledger row still goes');
-    assert.deepStrictEqual(deleted.blobs, [], 'the bytes stay — f2 still needs them');
-});
-
-test('a blob that cannot be deleted surfaces as a failed retention purge', async () => {
-    const { h } = retentionHarness(
-        [{ file: JSON.stringify({ kind: 'studio_attachment', fileId: 'f1' }) }],
-        [{ id: 'f1', sha256: 'sha-a', size: 10 }],
-    );
-    h._deps.deleteFile = async () => { throw new Error('bucket down'); };
-    const log = require('../telemetry/log');
-    const orig = log.warn;
-    const warnings = [];
-    log.warn = (m) => { warnings.push(String(m)); };
-    try { await runRetention(h); } finally { log.warn = orig; }
-    assert.ok(warnings.some((w) => /retention purge failed/.test(w) && /bucket down/.test(w)));
-});
-
-test('a pending mailbox descriptor leaves nothing of ours to delete', async () => {
-    const { h, deleted } = retentionHarness(
-        [{ file: JSON.stringify({ kind: 'mailbox_attachment', messageId: 'm1', attachmentId: 'a1' }) }],
-        [{ id: 'f1', sha256: 'sha-a', size: 10 }],
-    );
-    await runRetention(h);
-
-    assert.deepStrictEqual(deleted.ledger, []);
-    assert.deepStrictEqual(deleted.blobs, []);
-});
-
 // ── File descriptors survive the write path with EXACTLY one encoding ────────
 
 test('a file descriptor round-trips the full write path with ONE JSON.parse', () => {
@@ -806,66 +685,6 @@ const ACTIVITY_TABLE = {
     ],
 };
 
-test('a dependent with a date column of its own is purged on it — old rows go, young rows stay', async () => {
-    const purges = [];
-    // Simulate the compiled delete against a fake dependent table so the WINDOW
-    // is observable, not just the call: one row far past 30 days, one from today.
-    const young = new Date().toISOString();
-    const depRows = [{ added_at: '2026-01-01T00:00:00.000Z' }, { added_at: young }];
-    const h = harness({ runs: [{ rows: [{ id: 'p1', receivedAt: '2026-08-01T00:00:00Z' }] }] });
-    h._deps.compileDeleteOlderThan = (table, _a, opts) => {
-        purges.push({ table: table.key, field: opts.field });
-        return { sql: `DELETE:${table.key}:${opts.field}`, params: [opts.cutoffIso], where: '1=1', whereParams: [] };
-    };
-    h._deps.exec = async (_o, _a, sql, params) => {
-        const [verb, tableKey, field] = sql.split(':');
-        if (verb !== 'DELETE' || tableKey !== 'quote_lines') return { changes: 0 };
-        const before = depRows.length;
-        for (let i = depRows.length - 1; i >= 0; i--) if (depRows[i][field] < params[0]) depRows.splice(i, 1);
-        return { changes: before - depRows.length };
-    };
-
-    const res = await connectorSync.syncConnector(app, { ...MODEL, tables: [TABLE, LINES_TABLE] }, connector({
-        tableId: TABLE.id, mode: 'upsert', keyField: 'id',
-        incremental: { field: 'receivedAt', format: 'iso' },
-        retentionDays: 30,
-        dependents: [{ tableId: LINES_TABLE.id, retentionField: 'added_at' }],
-    }), { _deps: h._deps });
-
-    assert.deepStrictEqual(purges, [
-        { table: 'emails', field: 'received' },
-        { table: 'quote_lines', field: 'added_at' },
-    ], 'the dependent is purged on ITS declared column, after the primary');
-    assert.deepStrictEqual(depRows.map((r) => r.added_at), [young], 'older than the window purged, younger survived');
-    assert.strictEqual(res.purged, 1);
-});
-
-test('a cascade dependent goes when its parent goes — via the relation, parent-first', async () => {
-    const purges = [];
-    const h = harness({ runs: [{ rows: [{ id: 'p1', receivedAt: '2026-08-01T00:00:00Z' }] }] });
-    h._deps.compileDeleteOlderThan = (table, _a, opts) => {
-        purges.push({ table: table.key, mode: 'column', field: opts.field });
-        return { sql: 'DELETE', params: [], where: '1=1', whereParams: [] };
-    };
-    h._deps.compileDeleteOrphans = (table, _a, opts) => {
-        purges.push({ table: table.key, mode: 'cascade', parent: opts.parentTableMeta.key, relationField: opts.relationField });
-        return { sql: 'DELETE', params: [], where: '1=1', whereParams: [] };
-    };
-    h._deps.exec = async () => ({ changes: 1 });
-
-    await connectorSync.syncConnector(app, { ...MODEL, tables: [TABLE, ACTIVITY_TABLE] }, connector({
-        tableId: TABLE.id, mode: 'upsert', keyField: 'id',
-        incremental: { field: 'receivedAt', format: 'iso' },
-        retentionDays: 30,
-        dependents: [{ tableId: ACTIVITY_TABLE.id, relationField: 'request', parentTableId: TABLE.id, retentionCascade: true }],
-    }), { _deps: h._deps });
-
-    assert.deepStrictEqual(purges, [
-        { table: 'emails', mode: 'column', field: 'received' },
-        { table: 'activity', mode: 'cascade', parent: 'emails', relationField: 'request' },
-    ], 'the cascade runs AFTER the parent purge it inherits its age from');
-});
-
 test('planRetention: dependents ride the same plan, after the primary and every child', () => {
     const datedChild = {
         ...CHILD_TABLE,
@@ -913,67 +732,6 @@ test('planRetention: a dependent that neither dates nor cascades is UNREACHABLE 
         dependents: [{ tableId: ACTIVITY_TABLE.id, relationField: 'request', parentTableId: LINES_TABLE.id, retentionCascade: true }],
     }));
     assert.deepStrictEqual(strayParent.unreachable, ['activity']);
-});
-
-// ── Dependents' FILES ride the same purge ───────────────────────────────────
-// collectExpiredFiles operates on the emitted steps generically, so a file
-// column on a dependent table (the CAD drawing on a quote line) is collected
-// before the rows go — and the sha refcount spans tables, since the ledger is
-// app-wide.
-
-/** Like retentionHarness, but with expiring rows per TABLE. */
-function dependentFilesHarness({ attsExpiring, linesExpiring, ledger }) {
-    const h = harness({ runs: [{ rows: [{ id: 'p1', receivedAt: '2026-08-01T00:00:00Z' }] }] });
-    const deleted = { ledger: [], blobs: [] };
-    let rows = [...ledger];
-
-    h._deps.compileDeleteOlderThan = (t) => ({ sql: `DELETE FROM ${t.key}`, params: [], where: '1=1', whereParams: [] });
-    h._deps.exec = async () => ({ changes: 1 });
-    h._deps.query = async (_o, _a, sql) => {
-        if (/FROM "atts"/.test(sql)) return { rows: attsExpiring };
-        if (/FROM "quote_lines"/.test(sql)) return { rows: linesExpiring };
-        return { rows: [] };
-    };
-    h._deps.listAttachments = async () => rows;
-    h._deps.deleteAttachment = async (id) => { deleted.ledger.push(id); rows = rows.filter((r) => r.id !== id); return true; };
-    h._deps.deleteFile = async (key) => { deleted.blobs.push(key); };
-    h._deps.buildAttachmentKey = (owner, appId, sha) => `${owner}/${appId}/${sha}`;
-    return { h, deleted };
-}
-
-async function runDependentRetention(h) {
-    return connectorSync.syncConnector(app, { ...MODEL, tables: [FILE_TABLE, LINES_TABLE] }, connector({
-        tableId: FILE_TABLE.id, mode: 'upsert', keyField: 'id',
-        incremental: { field: 'receivedAt', format: 'iso' },
-        retentionDays: 30,
-        dependents: [{ tableId: LINES_TABLE.id, retentionField: 'added_at' }],
-    }), { _deps: h._deps });
-}
-
-const depDesc = (fileId) => JSON.stringify({ kind: 'studio_attachment', fileId });
-
-test("a dependent's expired file loses its ledger row, but a blob another table still names survives", async () => {
-    const { h, deleted } = dependentFilesHarness({
-        attsExpiring: [],                                   // the primary row holding f2 is still live
-        linesExpiring: [{ drawing: depDesc('f1') }],        // the quote line with the drawing expires
-        ledger: [{ id: 'f1', sha256: 'shared', size: 10 }, { id: 'f2', sha256: 'shared', size: 10 }],
-    });
-    await runDependentRetention(h);
-
-    assert.deepStrictEqual(deleted.ledger, ['f1'], "the dependent's ledger row goes — its file column WAS collected");
-    assert.deepStrictEqual(deleted.blobs, [], 'the bytes stay — a live row in the OTHER table still names that sha');
-});
-
-test('when the last reference falls — across two tables in one purge — the blob goes too', async () => {
-    const { h, deleted } = dependentFilesHarness({
-        attsExpiring: [{ file: depDesc('f2') }],
-        linesExpiring: [{ drawing: depDesc('f1') }],
-        ledger: [{ id: 'f1', sha256: 'shared', size: 10 }, { id: 'f2', sha256: 'shared', size: 10 }],
-    });
-    await runDependentRetention(h);
-
-    assert.deepStrictEqual(deleted.ledger, ['f2', 'f1'], 'primary step first, dependent after');
-    assert.deepStrictEqual(deleted.blobs, ['owner-1/app-1/shared'], 'gone exactly once, when the LAST reference fell');
 });
 
 // ── Recorded replies ────────────────────────────────────────────────

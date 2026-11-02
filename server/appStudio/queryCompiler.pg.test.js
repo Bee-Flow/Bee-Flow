@@ -356,6 +356,14 @@ test('pg: compileDeleteOlderThan / compileDeleteOrphans execute (tx-rolled-back 
         const orphans = qc.compileDeleteOrphans(TASKS, ALLOW, { relationField: 'project', parentTableMeta: PROJECTS });
         const r2 = await run(orphans.sql, orphans.params);
         assert.ok(r2.affectedRows >= 2, 'NULL-relation rows sweep as orphans');
+        // Child-first retention: the doomed predicate (parent's nested in), the kept count and the guarded DELETE.
+        const doomed = qc.compileDoomedUnderParent(TASKS, ALLOW, {
+            relationField: 'project', parentTableMeta: PROJECTS, parentDoomed: { where: ALLOW.where, params: ALLOW.params },
+        });
+        const rd = qc.compileRetentionDelete(TASKS, ALLOW, { doomed, referrers: [{ tableMeta: TASKS, field: 'project' }] });
+        const kept = await run(rd.keptSql, rd.keptParams);
+        assert.ok(kept.rows[0] && 'kept' in kept.rows[0] && 'r0' in kept.rows[0], 'the kept count runs');
+        await run(rd.sql, rd.params);
         const all = qc.compileDeleteAll(TASKS, MINE);
         await run(all.sql, all.params);
     } finally {

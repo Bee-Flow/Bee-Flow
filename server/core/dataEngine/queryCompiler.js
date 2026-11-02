@@ -73,7 +73,7 @@ const { resolveDialect } = require('./engineFlag');
 const { dateBucketSql } = require('./dateBuckets');
 const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_GROUP_BY, MAX_AGGREGATES, ALIAS_RE, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit } = require('./queryCompilerBase');
 const { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById } = require('./queryCompilerWrite');
-const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans } = require('./queryCompilerMaintenance');
+const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete } = require('./queryCompilerMaintenance');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Table + field resolution ────────────────────────────────────────
@@ -361,7 +361,7 @@ module.exports = {
     compileDeleteAll,
     compileDeleteOlderThan,
     compileSelectOlderThan,
-    compileDeleteOrphans,
+    compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete,
     encodeCursor,
     decodeCursor,
     // Exported so a route clamps with the compiler's own rule, not a copy.

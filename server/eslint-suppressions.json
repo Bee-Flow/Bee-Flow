@@ -447,7 +447,7 @@
   },
   "appStudio/connectorSync.js": {
     "complexity": {
-      "count": 4
+      "count": 3
     },
     "max-lines-per-function": {
       "count": 1
