@@ -367,4 +367,5 @@ export default {
     "studio_apps_runtime.view_menu.settings": "Table view settings",
     "studio_apps_runtime.view_menu.title": "How this table is shown",
     "studio_apps_runtime.view_menu.view": "View",
+    "studio_apps_runtime.connector.sample": "Preview: the real account and the last check show here once the app runs.",
 };

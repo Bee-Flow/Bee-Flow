@@ -424,6 +424,37 @@ test('a personal mailbox reports no address — we do not open a connection to f
     assert.strictEqual(card.provider, 'gmail');
 });
 
+test('an Outlook shared mailbox that has synced reports Outlook, its address and the last sync', async () => {
+    const OUTLOOK = {
+        id: 'conn_out01', kind: 'mailbox', name: 'Info', provider: 'outlook', integrationId: 'outlook',
+        mode: 'shared', address: 'info@shop.test', runAs: 'viewer',
+        sync: { tableId: 'tbl_x', mode: 'upsert', keyField: 'thread_key', schedule: { everyMinutes: 2 } },
+    };
+    const app = makeApp({ connectorsList: [OUTLOOK] });
+    memberRoles.set(`${app.id}:sales-1`, 'verkoper');
+    syncStatesFor = () => ([{ connectorId: 'conn_out01', status: 'ok', lastRunAt: '2026-08-07T10:00:00.000Z', nextRunAt: null, lastError: null }]);
+    const r = await dispatch({ url: `/${app.id}/runtime/connectors/status`, user: 'sales-1', orgIds: [ORG] });
+    const card = r.body.connectors.find((c) => c.id === 'conn_out01');
+    assert.strictEqual(card.provider, 'outlook');
+    assert.strictEqual(card.integrationId, 'outlook');
+    assert.strictEqual(card.address, 'info@shop.test');
+    assert.strictEqual(card.lastRunAt, '2026-08-07T10:00:00.000Z');
+    assert.strictEqual(card.hasError, false);
+});
+
+test('a mailbox without provider falls back to its integrationId; never synced has no lastRunAt', async () => {
+    const app = makeApp({ connectorsList: [{ ...MAIL_CONNECTOR, id: 'conn_mail02', provider: undefined, integrationId: 'outlook' }, MAIL_CONNECTOR] });
+    memberRoles.set(`${app.id}:sales-1`, 'verkoper');
+    syncStatesFor = () => [];
+    const r = await dispatch({ url: `/${app.id}/runtime/connectors/status`, user: 'sales-1', orgIds: [ORG] });
+    const fallback = r.body.connectors.find((c) => c.id === 'conn_mail02');
+    assert.strictEqual(fallback.provider, 'outlook');
+    const gmail = r.body.connectors.find((c) => c.id === 'conn_mail01');
+    assert.strictEqual(gmail.provider, 'gmail');
+    assert.strictEqual(gmail.address, null);
+    assert.strictEqual(gmail.lastRunAt, null);
+});
+
 test('runtime refresh refuses a connector with no scheduled sync', async () => {
     const app = makeApp();
     memberRoles.set(`${app.id}:sales-1`, 'verkoper');
