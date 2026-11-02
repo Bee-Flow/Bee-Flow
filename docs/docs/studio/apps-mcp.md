@@ -55,7 +55,8 @@ single `POST` with JSON-RPC and does not open an SSE stream.
 
 The same tools the in-product builder agent uses — `app_upsert_table`,
 `app_seed_records`, `app_add_screen`, `app_add_components`, `app_set_action`,
-`app_bind_action`, `app_dry_run`, `app_screenshot`, `app_finalize` and the rest —
+`app_bind_action`, `app_set_mailbox_hook` (run an action for each new mail, see
+[Mailbox apps](./mailbox-apps.md)), `app_dry_run`, `app_screenshot`, `app_finalize` and the rest —
 plus three entry points:
 
 | Tool | Purpose |

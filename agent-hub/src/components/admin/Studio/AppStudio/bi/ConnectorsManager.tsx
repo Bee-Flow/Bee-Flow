@@ -9,6 +9,7 @@ import { KindChooser } from './connectors/ConnectorFields';
 import ConnectorList from './connectors/ConnectorList';
 import { groupConnectors, newConnectorId } from './connectors/connectorModel';
 import type { Connector } from './connectors/connectorModel';
+import type { HookAction } from './connectors/mailboxHook';
 import useIntegrationCatalogJs from './useIntegrationCatalog';
 import useTranslation from '@/hooks/useTranslation';
 import { useEditorChrome } from '../editor/EditorChromeContext';
@@ -63,6 +64,8 @@ export interface ConnectorsManagerProps {
     onCreateTable?: CreateTables;
     saved?: boolean;
     onSave?: (() => unknown) | null;
+    /** The app's actions (definition.actions). */
+    actions?: Record<string, HookAction> | null;
 }
 
 interface PickerSelection {
@@ -92,7 +95,7 @@ function PickPrompt({ onPick, disabled }: { onPick: () => void; disabled?: boole
 }
 
 export default function ConnectorsManager({
-    connectors, onChange, disabled = false, appId = null, tables = [], onCreateTable, saved = true, onSave = null,
+    connectors, onChange, disabled = false, appId = null, tables = [], onCreateTable, saved = true, onSave = null, actions = null,
 }: ConnectorsManagerProps) {
     const { t } = useTranslation();
     const list = useMemo(() => (Array.isArray(connectors) ? connectors : []), [connectors]);
@@ -173,6 +176,7 @@ export default function ConnectorsManager({
                         saved={saved}
                         onSave={onSave}
                         catalog={catalog}
+                        actions={actions}
                     />
                 ) : <PickPrompt onPick={() => setPicking(true)} disabled={disabled} />}
             </div>
