@@ -1,15 +1,24 @@
 ---
-description: Build (and optionally push) the dev Docker images to GHCR
+description: Build the dev Docker images on GitHub Actions (never locally) and report the run
 ---
 
-Build the Bee Flow dev images. Steps:
+Build Bee Flow dev images with the `Build & Push to GHCR` workflow
+(`.github/workflows/build-push-ghcr.yml`). Images are never built on this machine: no
+`npm run build:dev`, `scripts/build-images.sh` or `docker build`.
 
-1. Work from the repo root (`Bee-Flow-AI/` in the Windows wrapper layout; in a cloud session the
-   repo is already the working directory).
-2. Run `npm run build:dev` (wraps `scripts/build-images.sh build dev`, tags `:dev`).
-3. If the user asked to also push, run `npm run push:dev` afterwards.
-4. Report which services were rebuilt and any build failures. Do NOT touch prod tags
-   (`build:prd` / `push:prd`) unless the user explicitly says so — those are behind a
-   confirmation on purpose.
+1. Pick the ref: the branch the user names, else the branch of the work at hand. A push to `main`
+   already builds `:dev` for every changed service, so on `main` say so and stop unless the user
+   still wants a manual run.
+2. Make sure that ref is on GitHub (`git ls-remote origin <ref>`). If it is not, ask before
+   pushing: a push is the user's call.
+3. Start the run:
+   `gh workflow run build-push-ghcr.yml --ref <ref> -f channel=dev -f services=<list>`
+   `services` is `all` or a comma-separated list of `server,agent-hub,guard,classify,pwt-runner`
+   (the workflow default is `server,agent-hub`). Build only what the change touches.
+4. Find the run (`gh run list --workflow build-push-ghcr.yml --branch <ref> --limit 1`) and follow
+   it in the background (`gh run watch <id> --exit-status`). Report the run URL, then the result
+   per service and the `:dev-sha-<sha>` tags it pushed.
+5. Never use `channel=prod` here: a prod build is a release step and needs the user's explicit
+   ask.
 
 Extra args from the user: $ARGUMENTS
