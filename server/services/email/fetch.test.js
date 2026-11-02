@@ -19,6 +19,7 @@ let gmailListResult = { data: { messages: [] } };
 let gmailGetResult = {};
 let graphResult = { value: [] };
 let graphError = null;
+let graphHandler = null;
 
 stub('./providerClients', {
     gmailClientFromTokens: async () => ({
@@ -37,6 +38,7 @@ stub('./providerClients', {
     }),
     graphFetchFromTokens: async (_t, _r, path) => {
         graphPaths.push(path);
+        if (graphHandler) return graphHandler(path);
         if (graphError) throw graphError;
         return graphResult;
     },
@@ -53,6 +55,7 @@ test.beforeEach(() => {
     gmailListResult = { data: { messages: [] } };
     graphResult = { value: [] };
     graphError = null;
+    graphHandler = null;
 });
 
 // ── Query building ───────────────────────────────────────────────────────────
@@ -330,8 +333,36 @@ test('graph getMessage only asks for threading headers when told to', async () =
 test('graph attachment list asks for contentId and maps it to content_id', async () => {
     graphResult = { value: [{ id: 'a1', name: 'logo.png', contentType: 'image/png', size: 5, isInline: true, contentId: 'logo123@acme' }, { id: 'a2', name: 'b.pdf', size: 1 }] };
     const out = await fetchLayer.listAttachmentMeta({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, messageId: 'AAMk-1' });
-    assert.match(graphPaths[0], /\$select=[^&]*contentId/);
+    assert.match(graphPaths[0], /\$select=[^&]*microsoft\.graph\.fileAttachment\/contentId/);
+    assert.doesNotMatch(graphPaths[0], /[,=]contentId(,|$)/);
+    assert.doesNotMatch(graphPaths[0], /contentBytes/);
+    assert.strictEqual(graphPaths.length, 1);
     assert.deepStrictEqual(out.map((a) => a.content_id), ['logo123@acme', null]);
+});
+
+test('graph attachment list: a 400 on contentId retries once without it, rows still come back', async () => {
+    const rows = { value: [{ id: 'a1', name: 'b.pdf', contentType: 'application/pdf', size: 3 }] };
+    graphHandler = (path) => {
+        if (path.includes('contentId')) {
+            throw Object.assign(new Error("Graph API 400: Could not find a property named 'contentId'"), { status: 400 });
+        }
+        return rows;
+    };
+    const out = await fetchLayer.listAttachmentMeta({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, messageId: 'AAMk-1' });
+    assert.strictEqual(graphPaths.length, 2);
+    assert.doesNotMatch(graphPaths[1], /contentId|contentBytes/);
+    assert.deepStrictEqual(out, [{
+        provider_attachment_id: 'a1', filename: 'b.pdf', mime_type: 'application/pdf', size: 3, is_inline: false, content_id: null,
+    }]);
+});
+
+test('graph attachment list: other Graph errors are not swallowed by the retry', async () => {
+    graphError = Object.assign(new Error('Graph API 403: denied'), { status: 403 });
+    await assert.rejects(
+        () => fetchLayer.listAttachmentMeta({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, messageId: 'AAMk-1' }),
+        (err) => err.status === 403,
+    );
+    assert.strictEqual(graphPaths.length, 1);
 });
 
 test('graph attachment bytes: no $select, which Graph refuses for contentBytes on the base type', async () => {

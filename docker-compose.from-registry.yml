@@ -408,9 +408,11 @@ services:
     restart: unless-stopped
     # /healthz is answered by nginx itself (never proxied), so this stays
     # green even when the backend is down. The image is nginx:alpine, which
-    # ships busybox wget.
+    # ships busybox wget. 127.0.0.1, not localhost: inside the container
+    # localhost resolves to ::1 first and nginx only listens on IPv4, so the
+    # check failed while the container served fine.
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost/healthz" ]
+      test: [ "CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz" ]
       interval: 30s
       timeout: 5s
       retries: 3

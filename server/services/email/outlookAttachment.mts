@@ -17,7 +17,7 @@ export type Relocate = { threadKey?: string | null; name?: string | null; size?:
 
 type GraphGet = (path: string) => Promise<Record<string, unknown>>;
 type GraphAttachment = Record<string, unknown> & {
-    id?: string; name?: string; size?: number; isInline?: boolean; contentType?: string; contentBytes?: string; '@odata.type'?: string;
+    id?: string; name?: string; size?: number; isInline?: boolean; contentType?: string; contentBytes?: string; contentId?: string; '@odata.type'?: string;
 };
 
 const THREAD_PREFIX = 'outlook:';
@@ -67,4 +67,28 @@ export async function fetchOutlookAttachment(graph: GraphGet, { base, messageId,
         if (!moved) throw err;
         return moved;
     }
+}
+
+// contentId lives on microsoft.graph.fileAttachment, not on the base attachment
+// type: a bare `contentId` is a 400. Never contentBytes in a list.
+const LIST_SELECT_BASE = 'id,name,contentType,size,isInline';
+const LIST_SELECT = `${LIST_SELECT_BASE},microsoft.graph.fileAttachment/contentId`;
+
+/**
+ * The attachment metadata of one message, contentId included where Graph has
+ * one. If Graph ever refuses the type cast (400), the list is read once more
+ * without it: an inline image must never cost the whole attachment list.
+ */
+export async function listOutlookAttachments(graph: GraphGet, { base, messageId }: {
+    base: string; messageId: string;
+}): Promise<GraphAttachment[]> {
+    const path = `${base}/messages/${encodeURIComponent(messageId)}/attachments?$select=`;
+    let res;
+    try {
+        res = await graph(path + LIST_SELECT);
+    } catch (err) {
+        if ((err as { status?: number })?.status !== 400) throw err;
+        res = await graph(path + LIST_SELECT_BASE);
+    }
+    return (Array.isArray(res.value) ? res.value : []) as GraphAttachment[];
 }
