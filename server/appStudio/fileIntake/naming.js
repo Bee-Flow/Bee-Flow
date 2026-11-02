@@ -146,6 +146,34 @@ function containsPrefix(a, b) {
 }
 
 /**
+ * Tier-3 sheet number: the drawing's name is the CAD file's name plus nothing
+ * but a sheet number — "3906852-1" beside "3906852", "-01", "-sheet-2". A
+ * seven-digit part number never clears containsPrefix's eight characters, so
+ * this asks for something narrower instead: the suffix is a sheet number and
+ * the CAD name holds at least five digits. Directional (the drawing carries
+ * the sheet), and on canonical keys, so separators already read as '-'.
+ * pairing.js pairs on it only when the sheet number is the only one in sight.
+ */
+const SHEET_SUFFIX = /^[-_ ]?(?:blad|sheet|sht)?[-_ ]?\d{1,2}$/i;
+const SHEET_MIN_DIGITS = 5;
+/**
+ * @param {string} drawingKey
+ * @param {string} cadKey
+ */
+function isSheetOf(drawingKey, cadKey) {
+    const long = String(drawingKey || '');
+    const short = String(cadKey || '');
+    if (!short || long.length <= short.length || !long.startsWith(short)) return false;
+    let digits = 0;
+    for (const ch of short) if (ch >= '0' && ch <= '9') digits += 1;
+    const suffix = long.slice(short.length);
+    // A file-name tail of at most a dozen characters against an anchored pattern
+    // with no nested repetition: linear, nothing to backtrack on.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
+    return digits >= SHEET_MIN_DIGITS && suffix.length <= 12 && SHEET_SUFFIX.test(suffix);
+}
+
+/**
  * Do two canonical base names belong to the same part-number family?
  *
  * A shared leading run of six characters or more. Long enough that
@@ -283,6 +311,7 @@ module.exports = {
     looksLikePartNumber,
     partNameForFolder,
     containsPrefix,
+    isSheetOf,
     sharesNumberFamily,
     cadPreference,
     cadPreferenceWith,

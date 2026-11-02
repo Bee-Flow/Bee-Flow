@@ -14,6 +14,7 @@ import { descriptorKey, firstDescriptor, friendlyError, materializeEntry, type F
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 import { logger } from '@/utils/logger';
+import PdfViewer from './pdfViewer/PdfViewer';
 
 export { firstDescriptor };
 
@@ -134,12 +135,15 @@ interface FilePreviewProps {
     source?: BindingInput;
     emptyText?: string;
     allowDownload?: boolean;
+    viewer?: 'browser' | 'app';
+    textLayer?: boolean;
 }
 
 /** What the preview is showing right now. */
 interface PreviewState {
     status: 'idle' | 'loading' | 'ready' | 'error';
     url: string | null;
+    blob?: Blob | null;
     downloadUrl?: string | null;
     mime: string | null;
     name: string | null;
@@ -151,7 +155,7 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
     const { t } = useTranslation();
     const { mode, actionState, dataState, scope } = useRuntime();
     const { appId } = useDataContext();
-    const { emptyText = t('studio_apps_runtime.file_preview.empty', 'No document selected.'), allowDownload = true } = node.props || {};
+    const { emptyText = t('studio_apps_runtime.file_preview.empty', 'No document selected.'), allowDownload = true, viewer = 'browser', textLayer = false } = node.props || {};
     const { value } = resolveBinding(node.props?.source, { actionState, dataState, scope });
 
     const descriptor = firstDescriptor(value);
@@ -240,6 +244,7 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                 setState({
                     status: 'ready',
                     url,
+                    blob,
                     downloadUrl,
                     mime: rendered ? 'image/png' : ((entry && typeof entry === 'object' && entry.mime) || blob.type || 'application/octet-stream'),
                     name: entryName(entry),
@@ -284,6 +289,19 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
     // Anything we cannot vouch for is a link, never inline.
     if (!isPdf && !isImage) {
         return shell(<DownloadCard name={state.name ?? ''} url={state.url ?? ''} allowDownload={allowDownload} />);
+    }
+
+    if (isPdf && viewer === 'app' && state.blob && !state.rendered) {
+        return shell(
+            <PdfViewer
+                blob={state.blob}
+                name={state.name || t('studio_apps_runtime.file_preview.document', 'Document')}
+                downloadUrl={allowDownload ? (state.downloadUrl || state.url) : null}
+                textLayer={textLayer}
+                boxed={boxed}
+                fallback={<DownloadCard name={state.name ?? ''} url={state.url ?? ''} allowDownload={allowDownload} />}
+            />,
+        );
     }
 
     return shell(

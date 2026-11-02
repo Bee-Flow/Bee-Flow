@@ -35,6 +35,7 @@
 const configStore = require('../../stores/configStore');
 const { extractTextFromPDFWithStats } = require('./pdfExtractor');
 const { renderPdfPagesToImages } = require('./pdfToImages');
+const { addDrawingCrops } = require('./drawingCrops.mts');
 const { extractCad } = require('../cad/cadMetadata');
 const { isCadMime } = require('../cad/cadTypes');
 // Hoisted DELIBERATELY. Neither renderer may be required inside the try/catch
@@ -181,19 +182,18 @@ async function extractPdf(buffer, att, opts) {
     const baseMeta = { numPages, pageCharCounts, totalChars: text.length };
 
     // documentMode 'images': skip the sufficient-text early return AND the
-    // Azure/Mistral OCR tiers and rasterise straight away. A vector technical
-    // drawing has a DENSE text layer, so the insufficient-text trigger never
-    // fires and the model never sees the geometry — this mode exists for
-    // exactly that. The pdfjs text still rides along so the caller can inline
-    // the title-block text alongside the pictures. Needs a vision model — if
-    // the model can't see, fall back to the normal text path below.
+    // Azure/Mistral OCR tiers and rasterise straight away. A vector drawing has
+    // a DENSE text layer, so the insufficient-text trigger never fires. The
+    // pdfjs text rides along, after a legend of the crop labels (drawingCrops.mts).
+    // Needs a vision model, else the normal text path below.
     if (documentMode === 'images' && opts.modelSupportsVision) {
         const rendered = await renderPdfPagesToImages(buffer, { filename: att.name, targetLongEdge: VISION_TARGET_LONG_EDGE });
         if (rendered && rendered.images.length) {
+            const crops = await addDrawingCrops({ buffer, images: rendered.images, totalPages: rendered.totalPages, pageCharCounts, maxImages: opts.maxImages, filename: att.name });
             return {
                 kind: 'images',
-                images: rendered.images,
-                text,
+                images: crops.images,
+                text: crops.legend ? `${crops.legend}\n\n${text}` : text,
                 source: 'vision-forced',
                 meta: { ...baseMeta, renderedPages: rendered.images.length, truncated: rendered.truncated },
             };
@@ -344,7 +344,7 @@ function stripControlChars(s) {
 // ─── Public API ─────────────────────────────────────────────
 /**
  * @param {{ name: string, type: string, content: string }} att
- * @param {{ modelSupportsVision?: boolean, documentMode?: 'auto'|'text'|'images' }} [opts]
+ * @param {{ modelSupportsVision?: boolean, documentMode?: 'auto'|'text'|'images', maxImages?: number }} [opts]
  *   documentMode (PDFs only): 'images' forces page rendering for a vision
  *   model even when the text layer is dense (technical drawings); 'text'
  *   never rasterises; 'auto' (default) keeps the existing ladder.

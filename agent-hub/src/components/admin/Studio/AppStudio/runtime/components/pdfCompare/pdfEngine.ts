@@ -43,20 +43,38 @@ export async function openPdf(data: ArrayBuffer): Promise<PdfDocHandle> {
         async getPage(n: number): Promise<PdfPageHandle> {
             const page = await doc.getPage(n);
             const base = page.getViewport({ scale: 1 });
+            // The viewport that makes the page `cssWidth` wide after turning it `rotation` degrees more.
+            const turned = (cssWidth: number, rotation: number) => {
+                const quarter = rotation % 180 !== 0;
+                const turnedWidth = quarter ? base.height : base.width;
+                return page.getViewport({ scale: cssWidth / turnedWidth, rotation: (page.rotate + rotation) % 360 });
+            };
             return {
                 width: base.width,
                 height: base.height,
-                render(canvas, { cssWidth, dpr }): RenderJob {
-                    const scale = (cssWidth * dpr) / base.width;
-                    const viewport = page.getViewport({ scale });
+                render(canvas, { cssWidth, dpr, rotation = 0 }): RenderJob {
+                    const viewport = turned(cssWidth * dpr, rotation);
                     canvas.width = Math.max(1, Math.floor(viewport.width));
                     canvas.height = Math.max(1, Math.floor(viewport.height));
                     canvas.style.width = `${cssWidth}px`;
-                    canvas.style.height = `${Math.round((cssWidth * base.height) / base.width)}px`;
+                    canvas.style.height = `${Math.round(turned(cssWidth, rotation).height)}px`;
                     const job = page.render({ canvas, viewport });
                     return {
                         promise: job.promise.then(() => undefined),
                         cancel: () => job.cancel(),
+                    };
+                },
+                renderText(container, { cssWidth, rotation = 0 }): RenderJob {
+                    const viewport = turned(cssWidth, rotation);
+                    // pdf.js sizes the text spans from this factor (CSS px per PDF point).
+                    container.style.setProperty('--total-scale-factor', String(viewport.scale));
+                    container.style.setProperty('--scale-round-x', '1px');
+                    container.style.setProperty('--scale-round-y', '1px');
+                    container.replaceChildren();
+                    const layer = new pdfjs.TextLayer({ textContentSource: page.streamTextContent(), container, viewport });
+                    return {
+                        promise: layer.render().then(() => undefined),
+                        cancel: () => layer.cancel(),
                     };
                 },
             };

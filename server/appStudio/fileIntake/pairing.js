@@ -6,7 +6,7 @@
 
 'use strict';
 const {
-    baseNameOf, canonicalBaseOf, operationOf, partKeyOf, partNameForFolder, containsPrefix, cadPreferenceWith,
+    baseNameOf, canonicalBaseOf, operationOf, partKeyOf, partNameForFolder, containsPrefix, isSheetOf, cadPreferenceWith,
 } = require('./naming');
 
 // Which CountCustom-style outputs writeTo.mapping may name. Mirrors
@@ -158,8 +158,14 @@ function pairFiles(files, step) {
             loneDrawings.push({ key: g.key, drawing, used: false, meta });
         }
     }
+    // A sheet number pairs only when it is the ONLY one: '12345-1.pdf' beside
+    // '12345.stp' AND '12345-2.stp' says the numbers name variants, and two
+    // numbered drawings of one CAD file are a choice nobody should make quietly.
+    const loneKeys = [...loneCads, ...loneDrawings].map((x) => x.key);
+    const soleSheetOf = (/** @type {string} */ dKey, /** @type {string} */ cKey) =>
+        isSheetOf(dKey, cKey) && loneKeys.filter((k) => isSheetOf(k, cKey)).length === 1;
     for (const d of loneDrawings) {
-        const hits = loneCads.filter((c) => !c.used && containsPrefix(d.key, c.key));
+        const hits = loneCads.filter((c) => !c.used && (containsPrefix(d.key, c.key) || soleSheetOf(d.key, c.key)));
         if (hits.length === 1) {
             hits[0].used = true;
             d.used = true;
