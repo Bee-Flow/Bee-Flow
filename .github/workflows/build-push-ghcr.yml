@@ -188,8 +188,14 @@ jobs:
       # tree (main moved after the PR's last run, a direct push) finds
       # nothing and runs CI as before. The run must be ci.yml, a
       # pull_request from this repository, and green; the artifact alone
-      # proves nothing. A prod release always runs the full suite. Any API
-      # failure answers false, never true.
+      # proves nothing. Any API failure answers false, never true.
+      # A prod release does not take a PR verdict: a PR run is path-filtered,
+      # and the full suite is what catches a change one filter missed. It takes
+      # only a green FULL run (a manual run of ci.yml, ci-full-tree-<tree>; the
+      # full-ci job below starts one after every push to main) on this tree from
+      # main, at most 7 days old. Otherwise the ci call runs the full suite, as
+      # before. The time-bound gates (release-security, the container gate with
+      # its dated reviews, a11y, the smoke run) run on every release regardless.
       - id: verified
         env:
           GH_TOKEN: ${{ github.token }}
@@ -198,22 +204,31 @@ jobs:
         run: |
           VERIFIED=false
           TREE=$(git rev-parse 'HEAD^{tree}')
-          if [[ "$RELEASE_PROD" != "true" ]]; then
-            RUNS=$(gh api "repos/$REPO/actions/artifacts?name=ci-tested-tree-$TREE&per_page=50" \
-                     --jq '.artifacts[].workflow_run.id' 2>/dev/null | sort -u || true)
-            for RUN in $RUNS; do
-              META=$(gh api "repos/$REPO/actions/runs/$RUN" \
-                       --jq '[.path, .event, .conclusion, .head_repository.full_name, .html_url] | @tsv' 2>/dev/null || true)
-              IFS=$'\t' read -r WF EVENT CONCLUSION HEAD_REPO URL <<< "$META"
-              if [[ "$WF" == ".github/workflows/ci.yml" && "$EVENT" == "pull_request" \
-                    && "$CONCLUSION" == "success" && "$HEAD_REPO" == "$REPO" ]]; then
-                VERIFIED=true
-                echo "::notice::CI already passed on tree $TREE in $URL; skipping the ci call."
-                break
-              fi
-            done
+          if [[ "$RELEASE_PROD" == "true" ]]; then
+            ARTIFACT="ci-full-tree-$TREE"; WANT_EVENT=workflow_dispatch; KIND="full run"
+          else
+            ARTIFACT="ci-tested-tree-$TREE"; WANT_EVENT=pull_request; KIND="PR run"
           fi
-          [[ "$VERIFIED" == "true" ]] || echo "No green PR run of ci.yml for tree $TREE; the ci call runs."
+          NOT_BEFORE=$(date -u -d '7 days ago' +%s)
+          RUNS=$(gh api "repos/$REPO/actions/artifacts?name=$ARTIFACT&per_page=50" \
+                   --jq '.artifacts[].workflow_run.id' 2>/dev/null | sort -u || true)
+          for RUN in $RUNS; do
+            META=$(gh api "repos/$REPO/actions/runs/$RUN" \
+                     --jq '[.path, .event, .status, .conclusion, .head_repository.full_name, .head_branch, .run_started_at, .html_url] | @tsv' 2>/dev/null || true)
+            IFS=$'\t' read -r WF EVENT STATUS CONCLUSION HEAD_REPO BRANCH STARTED URL <<< "$META"
+            [[ "$WF" == ".github/workflows/ci.yml" && "$EVENT" == "$WANT_EVENT" && "$HEAD_REPO" == "$REPO" ]] || continue
+            if [[ "$RELEASE_PROD" == "true" ]]; then
+              [[ "$BRANCH" == "main" ]] || continue
+              [[ -n "$STARTED" && "$(date -u -d "$STARTED" +%s 2>/dev/null || echo 0)" -ge "$NOT_BEFORE" ]] || continue
+              [[ "$STATUS" == "completed" ]] || echo "::notice::A full CI run on tree $TREE is still running ($URL); this release runs the suite itself."
+            fi
+            if [[ "$CONCLUSION" == "success" ]]; then
+              VERIFIED=true
+              echo "::notice::CI ($KIND) already passed on tree $TREE in $URL; skipping the ci call."
+              break
+            fi
+          done
+          [[ "$VERIFIED" == "true" ]] || echo "No green $KIND of ci.yml for tree $TREE; the ci call runs."
           echo "ci_verified=$VERIFIED" >> "$GITHUB_OUTPUT"
       - id: csv
         env:
@@ -262,6 +277,28 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+
+  # A full, unfiltered ci.yml run on main after every push, in the background:
+  # nothing here waits for it. A later prod release of the same tree reuses
+  # its green verdict (ci-full-tree-<tree>, see `verified` above) instead of
+  # spending ~12 min on the same suites again. A workflow_dispatch is the one
+  # event GITHUB_TOKEN may start a run with.
+  full-ci:
+    needs: changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Only a shortcut for a later release: if it cannot start, that release
+    # runs the suite itself, so it never turns this build red.
+    continue-on-error: true
+    permissions:
+      actions: write
+    steps:
+      - name: Start a full CI run on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: gh workflow run ci.yml --repo "$REPO" --ref main
 
   # A previously green PR tree cannot replace current release security checks.
   release-security:

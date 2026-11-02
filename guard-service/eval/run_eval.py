@@ -31,6 +31,15 @@ from .leak import evaluate_leak
 from .matcher import SpanTuple
 from .metrics import evaluate, format_summary
 from .schema import Record, load_jsonl
+from .shards import (
+    add_shard_args,
+    build_doc,
+    measurement as shard_measurement,
+    merge_files,
+    pick_shard,
+    write_doc,
+)
+from .timing import print_timing, timing_summary
 
 _CORPUS_DIR = os.path.join(os.path.dirname(__file__), "corpus")
 _CORPUS_FILES = ("short.jsonl", "large.jsonl", "negatives.jsonl")
@@ -282,42 +291,8 @@ def predict_in_process(  # noqa: PLR0913
             f"the configuration it claims to."
         )
 
-    meta["timing_ms"] = _timing_summary(times, records)
+    meta["timing_ms"] = timing_summary(times, records)
     return preds, degraded, meta
-
-
-def _timing_summary(times: list[float], records: Sequence[Record]) -> dict:
-    """Percentiles + sustained throughput. Percentiles via stdlib only."""
-    if not times:
-        return {}
-    import statistics
-
-    ordered = sorted(times)
-
-    def pct(p: float) -> float:
-        idx = min(len(ordered) - 1, int(round(p / 100 * (len(ordered) - 1))))
-        return round(ordered[idx], 1)
-
-    total_ms = sum(times)
-    total_chars = sum(len(r.text) for r in records)
-    return {
-        "n": len(times),
-        "p50": pct(50),
-        "p90": pct(90),
-        "p95": pct(95),
-        "p99": pct(99),
-        "max": round(ordered[-1], 1),
-        "mean": round(statistics.fmean(times), 1),
-        "total_ms": round(total_ms, 1),
-        "chars_per_sec": round(total_chars / (total_ms / 1000.0), 1)
-        if total_ms
-        else 0.0,
-        # A cache hit returns in ~0.3ms; real inference is 100ms+. A nonzero
-        # count here means a stale Redis result is being benchmarked, not the
-        # model. Only reachable via --endpoint, but reported everywhere so the
-        # check is never silently skipped.
-        "suspected_cache_hits": sum(1 for t in times if t < 5.0),
-    }
 
 
 def predict_endpoint(
@@ -363,7 +338,7 @@ def predict_endpoint(
     meta = {
         "endpoint": url,
         "observed_tier_mode": sorted(observed),
-        "timing_ms": _timing_summary(times, records),
+        "timing_ms": timing_summary(times, records),
         "timing_includes_network": True,
     }
     return preds, degraded, meta
@@ -643,6 +618,7 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
         "--tier off run: under model-only there is no second "
         "tier to scope to.",
     )
+    add_shard_args(ap)
     args = ap.parse_args()
 
     records = load_corpus(split=args.split, subset=args.subset)
@@ -652,6 +628,7 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
             file=sys.stderr,
         )
         return 2
+    shard, to_score = pick_shard(args, records, _bucket)
 
     # --regex-only is the historical spelling of --tier regex; keep it working.
     # --tier gliner is the historical spelling of --tier off.
@@ -683,23 +660,27 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
             }
         thresholds = {k: float(v) for k, v in raw.items()}
 
+    measurement = shard_measurement(args, tier, label_groups, thresholds)
     run_meta: dict = {}
-    if tier == "regex":
+    if args.preds_in:
+        preds, degraded, run_meta = merge_files(args.preds_in, records, measurement)
+        gate_tier = "regex" if tier == "regex" else args.gate_tier
+    elif tier == "regex":
         _regions = (
             [r.strip() for r in args.regions.split(",") if r.strip()]
             if args.regions
             else None
         )
-        preds, degraded = predict_regex_only(records, regions=_regions)
+        preds, degraded = predict_regex_only(to_score, regions=_regions)
         gate_tier = "regex"
     elif args.endpoint:
         preds, degraded, run_meta = predict_endpoint(
-            records, args.endpoint, args.api_key, args.threshold
+            to_score, args.endpoint, args.api_key, args.threshold
         )
         gate_tier = args.gate_tier
     else:
         preds, degraded, run_meta = predict_in_process(
-            records,
+            to_score,
             args.threshold,
             tier=tier,
             label_groups=label_groups,
@@ -707,6 +688,16 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
             thresholds=thresholds,
         )
         gate_tier = args.gate_tier
+
+    if args.preds_out:
+        write_doc(
+            args.preds_out,
+            build_doc(measurement, shard, run_meta, to_score, preds, degraded),
+        )
+        print(
+            f"wrote {len(to_score)}/{len(records)} records ({shard}) to {args.preds_out}"
+        )
+        return 0
 
     report = evaluate(
         records,
@@ -750,23 +741,8 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
     with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2, sort_keys=True)
     print(format_summary(report))
-    t = report.get("meta", {}).get("timing_ms") or {}
-    if args.timing and t:
-        n_groups = report["meta"].get("n_label_groups", "?")
-        print(f"\ntiming ({t.get('n', 0)} records, {n_groups} label groups)")
-        print(
-            f"  p50={t.get('p50')}ms  p90={t.get('p90')}ms  "
-            f"p95={t.get('p95')}ms  p99={t.get('p99')}ms  max={t.get('max')}ms"
-        )
-        print(
-            f"  total={t.get('total_ms')}ms  "
-            f"throughput={t.get('chars_per_sec', 0):,.0f} chars/sec"
-        )
-        if t.get("suspected_cache_hits"):
-            print(
-                f"  !! {t['suspected_cache_hits']} record(s) returned in <5ms - "
-                f"likely served from the Redis cache, not measured inference"
-            )
+    if args.timing:
+        print_timing(report)
     print(f"\nwrote {args.out}")
 
     if args.baseline:
