@@ -52,7 +52,8 @@ function meetingText(note) {
  * What the asker may read of the documents, notebooks, meeting notes and tasks a message tags, as
  * `{ kind, name, text }`. Reading goes through the same stores (and so the
  * same access rules) as opening the item; one the asker cannot read, or that
- * failed to load, is left out.
+ * failed to load, is left out. A document, notebook or meeting note counts only when it is filed in
+ * this project (an item of another project, or none, is left out; no project loads none of them).
  * @param {Array<{ kind: string, id: string }>|null|undefined} refs
  * @param {{ userId: string, project?: { id: string, organizationId?: string|null }|null }} who
  * @param {{ documents?: typeof import('../stores/documentStore'), notebooks?: typeof import('../stores/notebookStore'),
@@ -71,14 +72,14 @@ async function loadTaggedItems(refs, { userId, project }, deps = {}) {
         try {
             if (ref.kind === 'document') {
                 const doc = await documents().getDocument(ref.id, { userId });
-                if (doc) items.push({ id: ref.id, kind: 'document', name: doc.name, text: htmlToText(doc.bodyHtml) });
+                if (doc && doc.projectId === project?.id && project?.id) items.push({ id: ref.id, kind: 'document', name: doc.name, text: htmlToText(doc.bodyHtml) });
             } else if (ref.kind === 'meeting') {
-                // Read as the asker; a note filed in the project is readable by every member (transcriptionStore's project fallback).
+                // Read as the asker, and only when filed in THIS project; a note filed in the project is readable by every member (transcriptionStore's project fallback).
                 const note = await meetings().getTranscription(ref.id, userId, {});
-                if (note) items.push({ id: ref.id, kind: 'meeting', name: note.title, text: meetingText(note) });
+                if (note && note.projectId === project?.id && project?.id) items.push({ id: ref.id, kind: 'meeting', name: note.title, text: meetingText(note) });
             } else if (ref.kind === 'notebook') {
                 const nb = await notebooks().getNotebook(ref.id, userId);
-                if (nb) items.push({ id: ref.id, kind: 'notebook', name: nb.name, text: nb.documentMd || htmlToText(nb.documentContent) });
+                if (nb && nb.projectId === project?.id && project?.id) items.push({ id: ref.id, kind: 'notebook', name: nb.name, text: nb.documentMd || htmlToText(nb.documentContent) });
             } else if (ref.kind === 'task' && project?.id) {
                 const task = await tasks().getTask(project.id, ref.id);
                 if (task) {
