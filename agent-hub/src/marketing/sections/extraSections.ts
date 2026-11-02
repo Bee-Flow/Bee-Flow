@@ -15,6 +15,7 @@ const Tour = lazySection(() => import('./Tour'));
 // integration logos) or their own stylesheet: own chunks, off the public entry.
 const Integrations = lazySection(() => import('./Integrations'));
 const CustomerSupport = lazySection(() => import('./CustomerSupport'));
+const FormBlock = lazySection(() => import('./FormBlock'));
 const FeatureDemo = lazySection(() => import('./FeatureDemo'));
 const GitHubStats = lazySection(() => import('./GitHubStats'));
 const ReleaseNotes = lazySection(() => import('./ReleaseNotes'));
@@ -38,6 +39,7 @@ export const EXTRA_SECTIONS = {
     tour: Tour,
     integrations: Integrations,
     'customer-support': CustomerSupport,
+    form: FormBlock,
     'feature-demo': FeatureDemo,
     'github-stats': GitHubStats,
     'release-notes': ReleaseNotes,

@@ -25,7 +25,6 @@ import CTA          from './sections/CTA';
 import CtaBanner    from './sections/CtaBanner';
 import LiveComponent from './sections/LiveComponent';
 import Pricing      from './sections/PricingSection';
-import FormBlock from './sections/FormBlock';
 import Testimonials from './sections/Testimonials';
 import Faq          from './sections/Faq';
 import TrustBand    from './sections/TrustBand';
@@ -108,7 +107,6 @@ export const SECTION_REGISTRY = {
     'cta-banner': CtaBanner,
     'live-component': LiveComponent,
     pricing: Pricing,
-    form: FormBlock,
     testimonials: Testimonials,
     faq: Faq,
     'trust-band': TrustBand,
