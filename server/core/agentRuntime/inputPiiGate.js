@@ -76,9 +76,11 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
             applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx }, d);
         }
     } catch (piiError) {
-        // The mode validateInputForPii applies (org, then global, then the
-        // fail_closed default), so a failure before it gave a verdict blocks too.
-        out.moderationViolation = piiBlockFromError(piiError, { onEvent, eventCtx, failureMode: orgShield?.piiFailureMode || globalFailureMode || 'fail_closed', logEvent: d.logGuardrailEvent });
+        // With a shield, the mode validateInputForPii applies (org, then global,
+        // then the fail_closed default), so a failure before it gave a verdict
+        // blocks too. Without one there is no policy to apply.
+        const failureMode = orgShield ? (orgShield.piiFailureMode || globalFailureMode || 'fail_closed') : null;
+        out.moderationViolation = piiBlockFromError(piiError, { onEvent, eventCtx, failureMode, logEvent: d.logGuardrailEvent });
     }
     return out;
 }

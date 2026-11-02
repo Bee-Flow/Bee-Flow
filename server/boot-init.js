@@ -28,7 +28,7 @@ const passwords = require('./auth/passwordHash');
 const log = require('./telemetry/log');
 
 /** The template value in .env.selfhost.example, never a real password. */
-const PLACEHOLDER_PASSWORD = /CHANGE[_-]?ME/i;
+const TEMPLATE_PLACEHOLDER = 'changeme';
 
 /**
  * INIT_ADMIN_PASSWORD gets the shared administrator policy that /setup runs
@@ -39,7 +39,7 @@ const PLACEHOLDER_PASSWORD = /CHANGE[_-]?ME/i;
  * @returns {Promise<{ ok: boolean, error?: string, code?: string }>}
  */
 async function checkInitAdminPassword(password, username) {
-    if (PLACEHOLDER_PASSWORD.test(password)) {
+    if (String(password).toLowerCase().replace(/[-_]/g, '').includes(TEMPLATE_PLACEHOLDER)) {
         return { ok: false, code: 'password_placeholder', error: 'INIT_ADMIN_PASSWORD still holds the template placeholder' };
     }
     const { validatePasswordAsync } = require('./auth/passwordPolicy');

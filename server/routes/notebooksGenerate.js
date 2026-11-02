@@ -243,8 +243,10 @@ ${shield.units[0]}${shield.addendum}`;
         res.end();
 
     } catch (err) {
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- a JSON event on a text/event-stream response, built from a classified message and a correlation id
         const payload = require('../core/http/sseError.mts').sseErrorPayload(err, { tag: `[Notebooks] Generate ${req.params.type}`, req });
         try {
+            // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- JSON on a text/event-stream response
             res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
             res.end();
         } catch { throw new HttpError(500, 'generation_failed', 'Generation failed'); }

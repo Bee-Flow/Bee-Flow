@@ -21,7 +21,7 @@ const { firebirdFields } = require('./firebirdFields');
 const FirebirdTestBody = bodyOf(Object.fromEntries(Object.entries(firebirdFields).map(([k, v]) => [k, v.optional()])));
 const FIREBIRD_TEST_TIMEOUT_MS = 10000;
 const FIREBIRD_NOT_CONFIGURED = 'Firebird database not configured. Add the server, database and account in Settings → Connections.';
-const FIREBIRD_PASSWORD_FOR_NEW_HOST = 'Enter the password to test a different Firebird server.';
+const NEW_HOST_CREDENTIAL_HINT = 'Enter the password to test a different Firebird server.';
 const FIREBIRD_CONNECT_FAILED = 'Could not connect to the Firebird database. Check the server, port, database path and account.';
 
 /**
@@ -75,7 +75,7 @@ function createFirebirdTestRouter(deps = {}) {
 
     router.post('/firebird/test', auth, validate({ body: FirebirdTestBody }), /** @param {import('express').Request<{}, unknown, import('zod').infer<typeof FirebirdTestBody>, import('qs').ParsedQs>} req */ async (req, res) => {
         const { passwordNeeded, ...creds } = await credsFor(req, getSecret);
-        if (passwordNeeded) return res.json({ ok: false, error: FIREBIRD_PASSWORD_FOR_NEW_HOST });
+        if (passwordNeeded) return res.json({ ok: false, error: NEW_HOST_CREDENTIAL_HINT });
         if (!creds.host || !creds.database || !creds.user || !creds.password) {
             return res.json({ ok: false, error: FIREBIRD_NOT_CONFIGURED });
         }

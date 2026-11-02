@@ -121,13 +121,13 @@ export interface HealthResult {
  * distinguishes "wrong URL" from "right URL, not logged in" — which a 401 from
  * any other endpoint would not.
  */
-export async function checkHealth(url: string, timeoutMs = 8000, headers: Record<string, string> = {}): Promise<HealthResult> {
+export async function checkHealth(url: string, timeoutMs = 8000): Promise<HealthResult> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
         const res = await fetch(`${url}/api/health`, {
             signal: controller.signal,
-            headers: { ...headers, Accept: 'application/json' },
+            headers: { Accept: 'application/json' },
         });
         if (!res.ok) return { ok: false, error: `Server answered HTTP ${res.status}` };
         const body = (await res.json()) as { status?: string; appVersion?: string };

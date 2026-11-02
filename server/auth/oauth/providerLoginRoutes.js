@@ -110,6 +110,7 @@ router.get('/login/:provider', async (req, res) => {
         // holds the link action, not on the site root.
         const linkReturnTo = `${returnTo}${LINK_RETURN_PATH}`;
         req.session.returnTo = linkReturnTo;
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target is the configured client base plus a fixed path; the error is one of ssoLinkFlow's fixed codes
         const linkError = startLink(req.session, provider);
         if (linkError) return res.redirect(`${linkReturnTo}?error=${linkError}`);
     } else {

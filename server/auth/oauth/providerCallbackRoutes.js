@@ -317,8 +317,8 @@ router.get('/callback/:provider', async (req, res) => {
         }
 
         if (linkUserId) {
-            const linked = await completeLink({ session: req.session, linkUserId, provider, subject: user.subject });
             // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- returnTo comes from the session (see above); the error is one of ssoLinkFlow's fixed codes
+            const linked = await completeLink({ session: req.session, linkUserId, provider, subject: user.subject });
             return req.session.save(() => res.redirect('error' in linked
                 ? `${returnTo}?error=${linked.error}`
                 : `${returnTo}?linked=${encodeURIComponent(provider)}`));

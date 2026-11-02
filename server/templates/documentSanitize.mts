@@ -10,7 +10,17 @@
  */
 
 import { createRequire } from 'node:module';
-import type { DOMPurify } from 'dompurify';
+
+/**
+ * The part of the DOMPurify instance this module uses. Declared here instead of
+ * imported from 'dompurify', so type-checking a consumer of this file does not
+ * need the server's node_modules (agent-hub's typecheck reaches it).
+ */
+interface DOMPurify {
+    sanitize(dirty: string, config: Record<string, unknown>): unknown;
+    addHook(entryPoint: 'afterSanitizeAttributes', hook: (node: Element) => void): void;
+    removeHook(entryPoint: 'afterSanitizeAttributes'): unknown;
+}
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -24,8 +34,8 @@ function getPurify(): DOMPurify {
 }
 
 /**
- * Tags that have no business in a printed document and are load-bearing for an
- * attacker: anything that executes, embeds, navigates or collects. `style` is
+ * Tags that have no business in a printed document: anything that executes,
+ * embeds, navigates or collects. `style` is
  * forbidden in the BODY too — the stylesheet has its own slot, and a <style>
  * smuggled into the markup is how you would reach the rules below.
  */
