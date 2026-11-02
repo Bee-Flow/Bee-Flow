@@ -167,6 +167,8 @@ function attachmentRow(meta, message, index, connector) {
             connectorId: connector.id,
             messageId: message.provider_message_id,
             attachmentId: meta.provider_attachment_id,
+            // Finds the attachment again once Outlook moved its message (outlookAttachment.mts).
+            threadKey: message.thread_key,
             name: meta.filename,
             mime: meta.mime_type,
             size: meta.size,

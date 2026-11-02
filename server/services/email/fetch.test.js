@@ -277,6 +277,23 @@ test('graph list: a query switches to $search and drops $filter', async () => {
     assert.ok(!path.includes('$filter'));
 });
 
+test('graph list: label: terms become a categories filter next to the date, not a $search', async () => {
+    await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: SHARED, query: 'label:daniel OR label:kees', since: '2026-08-01T00:00:00Z' });
+    const qs = decodeURIComponent(graphPaths[0].split('?')[1]);
+    assert.ok(!qs.includes('$search'));
+    assert.match(qs, /\$filter=receivedDateTime ge 2026-07-31T23:58:00\.000Z and categories\/any\(c:c eq 'daniel' or c eq 'kees'\)/);
+});
+
+test('graph list: with text next to a label, the label filters the $search results here', async () => {
+    graphResult = { value: [
+        { ...GRAPH_MSG, id: 'with', categories: ['Daniel'] },
+        { ...GRAPH_MSG, id: 'without', categories: [] },
+    ] };
+    const out = await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: SHARED, query: 'label:daniel offerte' });
+    assert.match(decodeURIComponent(graphPaths[0]), /\$search="offerte"/);
+    assert.deepStrictEqual(out.messages.map((m) => m.provider_message_id), ['with']);
+});
+
 test('graph list follows @odata.nextLink verbatim', async () => {
     graphResult = { value: [], '@odata.nextLink': 'https://graph.microsoft.com/v1.0/me/messages?$skiptoken=abc' };
     const first = await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL });

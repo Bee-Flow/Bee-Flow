@@ -404,3 +404,16 @@ test('an archive past the platform ceiling is still refused', async () => {
     await assert.rejects(promise, (e) => e.status === 413);
     assert.strictEqual(calls.fetches, 0);
 });
+
+test('the read carries what finds the file again after Outlook moved its message', async () => {
+    let seen = null;
+    const capture = async (args) => { seen = args.relocate; return { buffer: PDF, mimeType: 'application/pdf', filename: 'invoice.pdf' }; };
+    state.rows = [{ id: 'rec_1', thread_key: 'outlook:conv-1', file: pending() }];
+    await run({ getAttachmentBytes: capture }).promise;
+    assert.strictEqual(seen.threadKey, 'outlook:conv-1', 'from the row when the descriptor predates threadKey');
+    assert.strictEqual(seen.name, 'invoice.pdf');
+
+    state.rows = [{ id: 'rec_1', thread_key: 'outlook:row', file: pending({ threadKey: 'outlook:descriptor' }) }];
+    await run({ getAttachmentBytes: capture }).promise;
+    assert.strictEqual(seen.threadKey, 'outlook:descriptor');
+});
