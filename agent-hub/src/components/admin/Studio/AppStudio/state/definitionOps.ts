@@ -99,7 +99,7 @@ export function subtreeIds(node: AppNode) {
 // action was removed, and eventText put the raw identifier in a sentence. An event
 // that silently disappears is exactly what the Logic tab must exclude, so the list
 // is now complete.
-export const NODE_EVENTS = ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided'];
+export const NODE_EVENTS = ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided', 'onAttachmentClick'];
 
 /** Wire (or clear, with null) a node's event to an action id. */
 export function setNodeEvent(def: AppDefinition, nodeId: string, event: string, actionIdOrNull: string | null) {

@@ -269,6 +269,28 @@ test('an inline image is not an attachment', async () => {
     assert.strictEqual(calls.fetches, 0);
 });
 
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(32)]);
+
+test('inline: true redeems an inline raster image, and keeps the inline flag in the relocate hint', async () => {
+    state.rows = [{ id: 'rec_1', file: pending({ isInline: true, mime: 'image/png', name: 'logo.png', size: PNG.length }) }];
+    let seen;
+    const d = deps({ getAttachmentBytes: async (args) => { seen = args.relocate; return { buffer: PNG, mimeType: 'image/png', filename: 'logo.png' }; } });
+    const out = await mailboxAttachments.materializeAttachment(APP, MODEL, { attachmentId: 'a1', viewer: VIEWER, inline: true, deps: d.deps });
+    assert.strictEqual(out.kind, 'studio_attachment');
+    assert.strictEqual(seen.inline, true);
+});
+
+test('inline: true still refuses an inline svg and an inline non-image', async () => {
+    for (const mime of ['image/svg+xml', 'application/pdf']) {
+        state.rows = [{ id: 'rec_1', file: pending({ isInline: true, mime }) }];
+        const d = deps();
+        await assert.rejects(
+            mailboxAttachments.materializeAttachment(APP, MODEL, { attachmentId: 'a1', viewer: VIEWER, inline: true, deps: d.deps }),
+            (e) => e.status === 415, mime);
+        assert.strictEqual(d.calls.fetches, 0);
+    }
+});
+
 test('a quarantined stored file is refused rather than served', async () => {
     const { promise } = run();
     const first = await promise;

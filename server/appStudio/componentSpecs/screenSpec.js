@@ -41,7 +41,8 @@ const SCREEN_SPEC = {
 // offered on text fields: that would run an action on every keystroke. It is
 // what makes a triage bar — pick a status, it saves — instead of a row of
 // dropdowns behind a Save button.
-const EVENT_NAMES = ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided'];
+// onAttachmentClick (message_thread) fires with { item: <the attachment row> }.
+const EVENT_NAMES = ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided', 'onAttachmentClick'];
 
 // Shared with the editor (server/shared/appDefinition/sectionStyle.mjs); the
 // reason `height` is not among the defaults is written there.

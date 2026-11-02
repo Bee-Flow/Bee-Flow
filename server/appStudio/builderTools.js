@@ -61,6 +61,7 @@ const { boundPlanArtifact, applyProposePlan, applyMarkPhase, PLAN_LIMITS } = req
 const { applyListTemplates, applyApplyTemplate, applySaveAsTemplate, isFreshDraft } = require('./builderTools/templateTools');
 const { applyFinalize, persistDraft } = require('./builderTools/persistence');
 const { applyLinkDatatable } = require('./builderTools/linkTools');
+const { applySetMailboxHook } = require('./builderTools/mailboxHookTool');
 const { noteRepeatedRejection, isRepeat } = require('../core/llm/toolCallHygiene');
 const { applyPatchOps } = require('../automation/builderTools/suggestedPatch');
 
@@ -74,7 +75,7 @@ const MUTATING_TOOLS = new Set([
     'app_set_action', 'app_remove_action', 'app_bind_action',
     'app_upsert_table', 'app_link_datatable', 'app_remove_table', 'app_set_roles',
     'app_seed_records', 'app_upsert_dataset', 'app_set_variables',
-    'app_set_public_access',
+    'app_set_public_access', 'app_set_mailbox_hook',
 ]);
 
 // The subset of MUTATING_TOOLS that mutates the DATA side (model / rows /
@@ -82,7 +83,7 @@ const MUTATING_TOOLS = new Set([
 // `data_model` SSE event so the editor's table/dataset/role caches refresh.
 const DATA_MODEL_TOOLS = new Set([
     'app_upsert_table', 'app_link_datatable', 'app_remove_table', 'app_set_roles',
-    'app_seed_records', 'app_upsert_dataset',
+    'app_seed_records', 'app_upsert_dataset', 'app_set_mailbox_hook',
 ]);
 
 // ── Dispatcher ───────────────────────────────────────────────────────
@@ -159,6 +160,7 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         case 'app_link_datatable':    return applyLinkDatatable(draftWrap, args);
         case 'app_remove_table':      return applyRemoveTable(draftWrap, args);
         case 'app_set_roles':         return applySetRoles(draftWrap, args);
+        case 'app_set_mailbox_hook':  return applySetMailboxHook(draftWrap, args);
         case 'app_set_variables':     return applySetVariables(draftWrap, args);
         case 'app_set_public_access': return applySetPublicAccess(draftWrap, args);
         case 'app_seed_records':      return applySeedRecords(draftWrap, args);

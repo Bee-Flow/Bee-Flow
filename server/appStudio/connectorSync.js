@@ -88,7 +88,7 @@ function syncError(status, message, code) {
  * rather than two that drift.
  */
 const { nextRunFor: coreNextRunFor } = require('../core/scheduling/nextRun');
-const { bestEffort } = require('../utils/bestEffort');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 const { existingKeyMap, OWNER_FILTER } = require('./connectorSyncKeys');
 
 /**
@@ -257,6 +257,7 @@ function defaultDeps() {
         deleteAttachment: (/** @type {Parameters<typeof import('../stores/studioAppDataStore').deleteAttachment>} */ ...a) => require('../stores/studioAppDataStore').deleteAttachment(...a),
         deleteFile: (/** @type {Parameters<typeof import('../stores/storageStore').deleteFile>} */ ...a) => require('../stores/storageStore').deleteFile(...a),
         buildAttachmentKey: (/** @type {Parameters<typeof import('../stores/storageStore').buildStudioAppAttachmentKey>} */ ...a) => require('../stores/storageStore').buildStudioAppAttachmentKey(...a),
+        runNewRecordHook: (/** @type {Parameters<typeof import('./mailboxNewRecordHook.mts').runNewRecordHook>} */ ...a) => require('./mailboxNewRecordHook.mts').runNewRecordHook(...a),
         adoptRecordedReplies: (/** @type {Parameters<typeof import('./mailboxRecordedReplies.mts').adoptRecordedReplies>} */ ...a) => require('./mailboxRecordedReplies.mts').adoptRecordedReplies(...a),
     };
 }
@@ -347,7 +348,9 @@ function ownerViewer(app) {
  * on a value instead would mean guessing which column is the parent's key and
  * hoping the expanded element didn't shadow it.
  *
- * @returns {Promise<{ inserted, updated, recordIdByRowIndex: (string|null)[] }>}
+ * `newRecords` are the rows this call INSERTED ({ id, values }); the mailbox hook acts on them.
+ *
+ * @returns {Promise<{ inserted, updated, recordIdByRowIndex: (string|null)[], newRecords: { id: string, values: object }[] }>}
  */
 async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, viewer, deps, relation = null } = {}) {
     const effectiveMode = mode === 'replace' ? 'replace' : (keyPath ? 'upsert' : 'replace');
@@ -378,7 +381,7 @@ async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, vi
             ids.forEach((id, i) => { recordIdByRowIndex[i] = id; });
             await deps.setRowCount(app.id, table.key, inserted, app.userId).catch((e) => bestEffort('appStudio/connectorSync:writeGrain', e));
         }
-        return { inserted, updated, recordIdByRowIndex };
+        return { inserted, updated, recordIdByRowIndex, newRecords: [] };
     }
 
     const keyField = table.fields.find((f) => f.sourcePath === keyPath)
@@ -406,6 +409,8 @@ async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, vi
     const existing = await existingKeyMap(app, table, keyField.key, [...seenInBatch.keys()], deps);
     const toInsert = [];
     const toUpdate = [];
+    /** @type {{ id: string, values: object }[]} */
+    const newRecords = [];
     for (const entry of mapped) {
         const recordId = entry.key === null ? null : existing.get(entry.key);
         if (recordId) toUpdate.push({ ...entry, recordId });
@@ -419,7 +424,11 @@ async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, vi
     if (toInsert.length) {
         const ids = await deps.writeRecordBatch(app, model, table, toInsert.map((e) => e.values), { viewer });
         inserted = ids.length;
-        toInsert.forEach((e, i) => { if (ids[i]) recordIdByRowIndex[e.rowIndex] = ids[i]; });
+        toInsert.forEach((e, i) => {
+            if (!ids[i]) return;
+            recordIdByRowIndex[e.rowIndex] = ids[i];
+            newRecords.push({ id: ids[i], values: e.values });
+        });
     }
     // A duplicate key inside the batch points at the row that actually got written.
     for (const [rowIndex, id] of recordIdByRowIndex.entries()) {
@@ -433,7 +442,60 @@ async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, vi
         }
     }
 
-    return { inserted, updated, recordIdByRowIndex };
+    return { inserted, updated, recordIdByRowIndex, newRecords };
+}
+
+/** The retention purge of one sync. Returns how many rows it deleted. */
+async function purgePastRetention(app, model, connector, deps) {
+    // Retention purge. Runs AFTER a successful write so a failed pull can
+    // never be the thing that deletes history. `retentionDays` is required
+    // on a mailbox connector precisely because this exists — a retention
+    // setting that deleted nothing would be a compliance claim we don't keep.
+    let purged = 0;
+    const plan = planRetention(model, connector);
+    if (plan.days) {
+        const cutoff = new Date(Date.now() - plan.days * 24 * 60 * 60 * 1000).toISOString();
+        // A table the plan cannot reach is a compliance gap, not a detail.
+        // Saving the connector is supposed to refuse this outright — if one
+        // slips through (a table edited after the connector was saved) it
+        // gets said out loud rather than warned about once per run.
+        if (plan.unreachable.length) {
+            log.error(`[ConnectorSync] RETENTION GAP on ${app.id}/${connector.id}: ${plan.unreachable.join(', ')} keep data past ${plan.days} days`);
+        }
+
+        // Parent-first: `steps` is ordered by grain, so a cascade child runs
+        // after the parent rows it inherits its age from are already gone.
+        for (const step of plan.steps) {
+            try {
+                const del = step.mode === 'cascade'
+                    ? deps.compileDeleteOrphans(step.table, OWNER_FILTER, {
+                        relationField: step.relationField,
+                        parentTableMeta: step.parentTable,
+                        sweepNull: step.sweepNull,
+                    })
+                    : deps.compileDeleteOlderThan(step.table, OWNER_FILTER, { field: step.column, cutoffIso: cutoff });
+
+                // Collect the FILES those rows point at before the rows go —
+                // afterwards there is nothing left to find them by. Deleting
+                // the row but keeping the blob and the ledger entry would
+                // leave the actual document (an invoice, an ID scan) in
+                // storage forever while the app reports a 90-day policy.
+                const doomedFiles = await collectExpiredFiles(app, step.table, del.where, del.whereParams, deps);
+
+                const res = await deps.exec(app.userId, app.id, del.sql, del.params);
+                purged += res?.changes || 0;
+
+                if (doomedFiles.length) await purgeAttachments(app, doomedFiles, deps);
+            } catch (e) {
+                // Retention is a background hygiene pass; failing it must not
+                // fail the sync that just succeeded.
+                log.warn(`[ConnectorSync] retention purge failed on ${app.id}/${connector.id} (${step.table.key}): ${e.message}`);
+            }
+        }
+        if (purged) log.info(`[ConnectorSync] purged ${purged} row(s) past retention on ${app.id}/${connector.id}`);
+    }
+
+    return purged;
 }
 
 /**
@@ -521,6 +583,8 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
         });
         let inserted = primary.inserted;
         let updated = primary.updated;
+        // What this run inserted, for the mailbox hook (mailboxNewRecordHook.mts): conversations, messages.
+        const news = { thread: connector.groupIntoThreads ? primary.newRecords : [], message: connector.groupIntoThreads ? [] : primary.newRecords };
 
         // Child tables: one per chain step that expanded. Written AFTER the
         // parent so each child row can carry the parent's real record id — the
@@ -554,59 +618,13 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
                 relation: { field: child.relationField, parentIds },
             });
             recordIdsByLevel[child.level] = res.recordIdByRowIndex;
+            if (connector.groupIntoThreads && child.level === 1) news.message = res.newRecords;
             inserted += res.inserted;
             updated += res.updated;
             childResults.push({ tableId: child.tableId, table: childTable.key, inserted: res.inserted, updated: res.updated });
         }
 
-        // Retention purge. Runs AFTER a successful write so a failed pull can
-        // never be the thing that deletes history. `retentionDays` is required
-        // on a mailbox connector precisely because this exists — a retention
-        // setting that deleted nothing would be a compliance claim we don't keep.
-        let purged = 0;
-        const plan = planRetention(model, connector);
-        if (plan.days) {
-            const cutoff = new Date(Date.now() - plan.days * 24 * 60 * 60 * 1000).toISOString();
-            // A table the plan cannot reach is a compliance gap, not a detail.
-            // Saving the connector is supposed to refuse this outright — if one
-            // slips through (a table edited after the connector was saved) it
-            // gets said out loud rather than warned about once per run.
-            if (plan.unreachable.length) {
-                log.error(`[ConnectorSync] RETENTION GAP on ${app.id}/${connector.id}: ${plan.unreachable.join(', ')} keep data past ${plan.days} days`);
-            }
-
-            // Parent-first: `steps` is ordered by grain, so a cascade child runs
-            // after the parent rows it inherits its age from are already gone.
-            for (const step of plan.steps) {
-                try {
-                    const del = step.mode === 'cascade'
-                        ? deps.compileDeleteOrphans(step.table, OWNER_FILTER, {
-                            relationField: step.relationField,
-                            parentTableMeta: step.parentTable,
-                            sweepNull: step.sweepNull,
-                        })
-                        : deps.compileDeleteOlderThan(step.table, OWNER_FILTER, { field: step.column, cutoffIso: cutoff });
-
-                    // Collect the FILES those rows point at before the rows go —
-                    // afterwards there is nothing left to find them by. Deleting
-                    // the row but keeping the blob and the ledger entry would
-                    // leave the actual document (an invoice, an ID scan) in
-                    // storage forever while the app reports a 90-day policy.
-                    const doomedFiles = await collectExpiredFiles(app, step.table, del.where, del.whereParams, deps);
-
-                    const res = await deps.exec(app.userId, app.id, del.sql, del.params);
-                    purged += res?.changes || 0;
-
-                    if (doomedFiles.length) await purgeAttachments(app, doomedFiles, deps);
-                } catch (e) {
-                    // Retention is a background hygiene pass; failing it must not
-                    // fail the sync that just succeeded.
-                    log.warn(`[ConnectorSync] retention purge failed on ${app.id}/${connector.id} (${step.table.key}): ${e.message}`);
-                }
-            }
-            if (purged) log.info(`[ConnectorSync] purged ${purged} row(s) past retention on ${app.id}/${connector.id}`);
-        }
-
+        const purged = await purgePastRetention(app, model, connector, deps);
         const watermark = incremental?.field ? highWatermark(rows, incremental.field, priorWatermark) : null;
         // A successful run clears the error streak, so the cadence returns to
         // normal immediately rather than staying backed off.
@@ -615,9 +633,15 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
             status: 'ok', watermark, rowsWritten: inserted + updated, nextRunAt, error: null, consecutiveErrors: 0,
         });
 
+        // After the claim is released (a slow model call must not hold the connector); the sync succeeded whatever it does.
+        const hook = connector.kind === 'mailbox' && connector.onNewRecord
+            ? await deps.runNewRecordHook(app, model, connector, news).catch((e) => fallback('appStudio/connectorSync:runNewRecordHook', e, null))
+            : null;
+
         return {
             inserted, updated, skipped, rows: rows.length, rowsWritten: inserted + updated,
             ...(purged ? { purged } : {}),
+            ...(hook ? { hook } : {}),
             watermark, nextRunAt, reason,
             durationMs: Date.now() - started,
             ...(childResults.length ? { children: childResults } : {}),

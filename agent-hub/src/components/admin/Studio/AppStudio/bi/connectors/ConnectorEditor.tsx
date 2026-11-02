@@ -5,6 +5,7 @@ import { INPUT, LABEL, availableFieldsOf, chainSuggestionsOf, connectorProblem, 
 import type { Connector, InspectResult, IntegrationCatalog } from './connectorModel';
 import { AppToolFields, RestFields } from './KindFields';
 import MailboxFields from './MailboxFields';
+import type { HookAction } from './mailboxHook';
 import TestPanel from './TestPanel';
 import useTranslation from '@/hooks/useTranslation';
 import Disclosure from '@/components/shared/Disclosure';
@@ -26,6 +27,8 @@ export interface ConnectorEditorProps {
     saved?: boolean;
     onSave?: (() => unknown) | null;
     catalog: IntegrationCatalog;
+    /** The app's actions (definition.actions), for a mailbox's "when new mail arrives". */
+    actions?: Record<string, HookAction> | null;
 }
 
 /** The three ways the editor writes a connector back. */
@@ -121,7 +124,7 @@ function RawFields({ connector, set, setOpt, disabled }: { connector: Connector;
  * action first → whose connection → should it fill a table → does it work →
  * the raw escape hatches.
  */
-export default function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreateTable, saved, onSave, catalog }: ConnectorEditorProps) {
+export default function ConnectorEditor({ connector, onChange, disabled, appId, tables, onCreateTable, saved, onSave, catalog, actions }: ConnectorEditorProps) {
     const { t } = useTranslation();
     const { set, setOpt, patch } = connectorWriters(connector, onChange);
 
@@ -153,7 +156,7 @@ export default function ConnectorEditor({ connector, onChange, disabled, appId, 
             ) : null}
 
             {connector.kind === 'mailbox' ? (
-                <MailboxFields connector={connector} setOpt={setOpt} patch={patch} disabled={disabled} appId={appId} saved={saved} />
+                <MailboxFields connector={connector} setOpt={setOpt} patch={patch} disabled={disabled} appId={appId} saved={saved} actions={actions} />
             ) : null}
 
             {connector.kind === 'rest' ? <RestFields connector={connector} setOpt={setOpt} disabled={disabled} /> : null}

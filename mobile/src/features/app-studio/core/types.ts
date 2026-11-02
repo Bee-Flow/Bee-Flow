@@ -16,7 +16,8 @@ export type NodeEvent =
     | 'onRowSelect'
     | 'onCardMove'
     | 'onChange'
-    | 'onDecided';
+    | 'onDecided'
+    | 'onAttachmentClick';
 
 export interface ValidationRule {
     kind: string;
@@ -40,6 +41,7 @@ export interface AppNode {
     onCardMove?: string | null;
     onChange?: string | null;
     onDecided?: string | null;
+    onAttachmentClick?: string | null;
     visibleWhen?: string | null;
     enabledWhen?: string | null;
     readOnly?: boolean | string | null;

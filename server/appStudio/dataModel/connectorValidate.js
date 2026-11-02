@@ -468,6 +468,9 @@ function validateMailboxConnector(c, where, errors) {
             errors.push(`${where}.${flag} must be true or false`);
         }
     }
+    // The hook that runs an app action for each new row. Only its shape is checked
+    // here; the action lives in the definition, which the app validator reads.
+    errors.push(...require('../mailboxHookPolicy.mts').onNewRecordErrors(c.onNewRecord, c, where));
     if (c.runAs !== undefined && c.runAs !== 'owner' && c.runAs !== 'viewer') {
         errors.push(`${where}.runAs must be 'owner' or 'viewer'`);
     }

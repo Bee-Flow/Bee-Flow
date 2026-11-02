@@ -15,6 +15,7 @@ import Modal from '@/components/shared/Modal';
 import toast from '@/components/shared/Toast';
 import ConnectorsManagerJs from '../bi/ConnectorsManager';
 import useAppTables from '../bi/useAppTables';
+import type { HookAction } from '../bi/connectors/mailboxHook';
 import type { AppAction, AppDefinition } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';
 import { collectIds, findScreen, insertNode } from '../state/definitionOps';
@@ -214,6 +215,7 @@ export default function TablesManager(props: TablesManagerProps) {
                         disabled={saving}
                         appId={appId}
                         tables={tables}
+                        actions={props.definition?.actions as Record<string, HookAction> | undefined}
                         onCreateTable={data.createTableForConnector}
                         // /inspect, /sync and "Test it" all read the LAST SAVED
                         // model. Rather than going grey until the draft is clean,

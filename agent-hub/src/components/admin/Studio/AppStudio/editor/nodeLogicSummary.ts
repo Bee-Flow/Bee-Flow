@@ -93,6 +93,7 @@ export function eventText(t: TranslateFn, event: string): string {
         // The slot of approval_list. The key already stood in both dictionaries and was read only by ActionsSection;
         // without this arm the `default` below put the raw identifier "onDecided" into a sentence that a builder reads.
         case 'onDecided': return t('app_studio.inspector.when_decided', 'When a decision is made');
+        case 'onAttachmentClick': return t('app_studio.inspector.when_attachment_clicked', 'When an attachment is clicked');
         // A slot added to NODE_EVENTS and not to this switch. The raw name is
         // wrong but it is at least the truth; silence would hide the wiring.
         default: return event;

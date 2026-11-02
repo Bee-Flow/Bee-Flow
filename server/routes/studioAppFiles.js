@@ -107,8 +107,7 @@ const FileParams = z.object({ id: appIdParam, fileId: fileIdParam }).strict();
 
 const RECORD_TEXT = 'recordId is the id of the record the file belongs to: text of at most 200 characters, sent once.';
 const FIELD_TEXT = 'fieldKey is the key of the file field: text of at most 100 characters, sent once.';
-// The text fields beside the file. The one client (AppInputFile) sends
-// neither; the ledger's record link and field key are both optional.
+// The text fields beside the file; the one client (AppInputFile) sends neither, both are optional.
 const UploadFields = partOf({
     recordId: worded(RECORD_TEXT).max(200, RECORD_TEXT).optional(),
     fieldKey: worded(FIELD_TEXT).max(100, FIELD_TEXT).optional(),
@@ -123,6 +122,7 @@ const MaterializeBody = partOf({
     // Both only narrow the probe; the row is found under the viewer's own access.
     tableId: worded(TABLE_NARROW_TEXT).max(200, TABLE_NARROW_TEXT).nullish(),
     recordId: worded(RECORD_NARROW_TEXT).max(200, RECORD_NARROW_TEXT).nullish(),
+    inline: z.boolean({ error: 'inline is true or false: true also opens an inline image (a png, jpeg, gif or webp shown inside the mail).' }).optional(),
 });
 
 // ── Audience helper (collapse Sets/null to a plain array) ───────────
@@ -509,7 +509,7 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
         // found server-side under the viewer's own read access (a pending
         // descriptor is written before its row has an id, so the client cannot
         // name it — and trusting a client-named record would be worse anyway).
-        const { attachmentId, tableId, recordId } = req.body;
+        const { attachmentId, tableId, recordId, inline } = req.body;
 
         const { model, role } = await viewerRoleFor(req, app);
         if (!model) return res.status(404).json({ error: 'Not found' });
@@ -517,7 +517,7 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
         const descriptor = await mailboxAttachments.materializeAttachment(app, model, {
             attachmentId,
             tableId: tableId ?? undefined,
-            recordId: recordId ?? undefined,
+            recordId: recordId ?? undefined, inline: inline === true,
             viewer: {
                 id: req.session.user.id,
                 // The owner writes as the owner; anyone else keeps their role so

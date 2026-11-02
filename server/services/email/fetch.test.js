@@ -172,7 +172,20 @@ test('gmail attachments are read out of the payload tree', () => {
         mime_type: 'application/pdf',
         size: 1234,
         is_inline: false,
+        content_id: null,
     });
+});
+
+test('gmail attachments carry the Content-ID without its angle brackets', () => {
+    const payload = { parts: [
+        { filename: 'logo.png', mimeType: 'image/png', body: { attachmentId: 'a1', size: 5 },
+            headers: [{ name: 'Content-Disposition', value: 'inline; filename="logo.png"' }, { name: 'Content-ID', value: '<logo123@acme>' }] },
+        { filename: 'x.png', mimeType: 'image/png', body: { attachmentId: 'a2', size: 5 }, headers: [{ name: 'content-id', value: '<>' }] },
+    ] };
+    const atts = fetchLayer._gmailAttachments(payload);
+    assert.strictEqual(atts[0].content_id, 'logo123@acme');
+    assert.strictEqual(atts[0].is_inline, true);
+    assert.strictEqual(atts[1].content_id, null);
 });
 
 const GRAPH_MSG = {
@@ -312,6 +325,13 @@ test('graph getMessage only asks for threading headers when told to', async () =
     graphPaths = [];
     await fetchLayer.getMessage({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, id: 'AAMk-1', includeHeaders: true });
     assert.ok(graphPaths[0].includes('internetMessageHeaders'));
+});
+
+test('graph attachment list asks for contentId and maps it to content_id', async () => {
+    graphResult = { value: [{ id: 'a1', name: 'logo.png', contentType: 'image/png', size: 5, isInline: true, contentId: 'logo123@acme' }, { id: 'a2', name: 'b.pdf', size: 1 }] };
+    const out = await fetchLayer.listAttachmentMeta({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, messageId: 'AAMk-1' });
+    assert.match(graphPaths[0], /\$select=[^&]*contentId/);
+    assert.deepStrictEqual(out.map((a) => a.content_id), ['logo123@acme', null]);
 });
 
 test('graph attachment bytes: no $select, which Graph refuses for contentBytes on the base type', async () => {

@@ -5,6 +5,7 @@
 const { LIMITS, THEME_SPEC, DESIGN_SPEC, VARIABLE_TYPES } = require('../componentSpecs');
 const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('../dataModel');
 const { MAX_SEED_RECORDS } = require('./schemaFragments');
+const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_2 = [
@@ -307,6 +308,22 @@ const TOOL_SCHEMAS_PART_2 = [
             name: 'app_list_connectors',
             description: "List the app's external connectors — owner-authored data sources (a platform tool, an automation, or an allow-listed REST endpoint) that a viewer can run to pull live rows. Read-only, NO arguments. Returns each connector's id (conn_…), kind, name and declared viewer params — never its pinned args, url or credentials. Wire one into a component's data prop with a { kind:\"connector\", connectorId, params? } binding (params values are literals or { kind:\"formula\", expr }). You can only WIRE connectors that already exist — you never author connectors or credentials (the app owner sets those up in the Connectors tab).",
             parameters: { type: 'object', properties: {} },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'app_set_mailbox_hook',
+            description: "Make a mailbox connector run one of the app's actions for every NEW row after a sync: each new conversation (target \"thread\", needs a connector that groups into threads) or each new message that came IN (target \"inbound_message\"). It runs on the server as the app owner with { item: <the new row> } in scope, so e.g. an ai_generate step can summarise the mail and an update_record step file the result, without anyone pressing a button. The action may only hold steps that run unattended: create_record, update_record, ai_generate, ai_extract, kb_query, dataset_query, file_intake, generate_file, fill_document, generate_presentation, redact_pdf, plus condition/switch around them. send_email is NEVER allowed (nothing may mail by itself); a refused action comes back with what to change. Create the action with app_set_action first. Pass actionId null to switch the hook off. Only rows that arrive after the next sync are processed; there are caps per sync and per minute. Needs an existing mailbox connector (app_list_connectors); the owner sets those up.",
+            parameters: {
+                type: 'object',
+                properties: {
+                    connectorId: { type: 'string', description: 'The mailbox connector (conn_…) from app_list_connectors.' },
+                    actionId: { type: ['string', 'null'], description: 'The action (act_…) to run per new row, or null to switch the hook off.' },
+                    target: { type: 'string', enum: [...HOOK_TARGETS], description: '"thread": every new conversation. "inbound_message": every new message that came in (not the ones the team sent). Required when actionId is set.' },
+                },
+                required: ['connectorId', 'actionId'],
+            },
         },
     },
     {

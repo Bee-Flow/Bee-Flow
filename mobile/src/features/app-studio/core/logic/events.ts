@@ -25,6 +25,7 @@ export function eventText(t: Translate, event: string): string {
         case 'onCardMove': return t('app_studio.inspector.when_card_moved', 'When a card is moved');
         case 'onChange': return t('app_studio.inspector.when_changed', 'When it changes');
         case 'onDecided': return t('app_studio.inspector.when_decided', 'When a decision is made');
+        case 'onAttachmentClick': return t('app_studio.inspector.when_attachment_clicked', 'When an attachment is clicked');
         default: return event;
     }
 }

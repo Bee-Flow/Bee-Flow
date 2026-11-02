@@ -96,6 +96,9 @@ credentials), behind an SSRF guard that blocks private/internal addresses. The A
 *wire* an existing connector into the app, but it never authors credentials — you set
 those up yourself.
 
+A **mailbox** connector (Gmail or Outlook) fills conversation, message and attachment tables and can run an
+action for each new mail; see [Mailbox apps](./mailbox-apps.md).
+
 ## Mailbox replies as drafts
 
 A **send e-mail** step normally sends the reply at once. Set its `mode` to `"draft"`

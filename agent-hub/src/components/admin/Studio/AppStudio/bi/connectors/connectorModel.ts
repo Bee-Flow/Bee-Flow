@@ -41,6 +41,9 @@ export interface Connector {
     address?: string;
     folder?: string;
     query?: string;
+    groupIntoThreads?: boolean;
+    /** Mailbox only: the app action run for each new conversation or incoming message. */
+    onNewRecord?: { actionId?: string; target?: string } | null;
     sync?: SyncBlock | null;
     [key: string]: unknown;
 }

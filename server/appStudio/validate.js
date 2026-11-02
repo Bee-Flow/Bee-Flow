@@ -63,6 +63,7 @@ const {
     collectReferencedActions,
 } = require('./validate/nodes');
 const { checkDesignAndNav, checkPublicAccess } = require('./validate/designChecks');
+const { checkMailboxHooks } = require('./validate/mailboxHookCheck');
 const { validateAction, DATASET_QUERY_OUTPUTS } = require('./validate/actions');
 
 const ID_HINT = 'Ids must match <prefix>_<4-12 lowercase alphanumerics> with prefix scr/sec/cmp/act. Use newId() from componentSpecs.';
@@ -188,9 +189,8 @@ function buildTableSources(dataModel) {
     return map;
 }
 
-// opts.dataModel.connectors → a Set of connector ids (data-model mode only;
-// null when opts.dataModel was not supplied, so connector refs are warned not
-// errored). A null/malformed model yields an EMPTY set — every ref is unknown.
+// opts.dataModel.connectors → a Set of connector ids (data-model mode only; null when opts.dataModel was not
+// supplied, so connector refs are warned not errored). A null/malformed model yields an EMPTY set — every ref is unknown.
 function buildConnectorIds(dataModel) {
     if (dataModel === undefined) return null;
     const set = new Set();
@@ -201,9 +201,8 @@ function buildConnectorIds(dataModel) {
     return set;
 }
 
-// The subset that can actually send mail. A send_email step pointed at a REST
-// connector would validate against dataConnectors and then fail at runtime with
-// nothing an author could act on.
+// The subset that can actually send mail. A send_email step pointed at a REST connector would validate
+// against dataConnectors and then fail at runtime with nothing an author could act on.
 function buildMailboxConnectorIds(dataModel) {
     if (dataModel === undefined) return null;
     const set = new Set();
@@ -587,6 +586,7 @@ function validateAppDefinition(def, opts = {}) {
     walkScreens(screens, ctx);
 
     checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, ctx);
+    checkMailboxHooks(opts.dataModel, actionsObj, pushE);
 
     if (isObject(def.publicAccess)) checkPublicAccess(def, pushE, pushW);
 
