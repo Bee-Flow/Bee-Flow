@@ -562,11 +562,7 @@
         "server"
       ],
       "reviewedAt": "2026-11-02",
-      "expires": "2027-02-02",
-      "debianTracker": {
-        "source": "sqlite3",
-        "release": "trixie"
-      },
+      "expires": "2026-12-02",
       "requiredUser": "node",
       "id": "CVE-2026-119373",
       "packages": [
@@ -575,7 +571,7 @@
       "versions": [
         "3.46.1-7+deb13u2"
       ],
-      "reason": "Debian reports no fixed trixie build; the system SQLite library is only a dependency of util-linux lastlog2.",
+      "reason": "Debian has not yet triaged this CVE for trixie (no fixed build, no no-dsa decision); the system SQLite library is only a dependency of util-linux lastlog2. Short expiry: revisit when Debian triages it.",
       "reachability": "In the server image libsqlite3-0 is pulled in only by liblastlog2-2; the only binaries linked against it are /usr/bin/lslogins and liblastlog2, which the server never runs. The application uses better-sqlite3 with its own bundled SQLite and the image has no Python. The default process is UID 1000.",
       "references": [
         "https://security-tracker.debian.org/tracker/CVE-2026-119373"
