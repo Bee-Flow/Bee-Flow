@@ -5,14 +5,14 @@ import { walkPath } from '../resolveBinding';
 import { fetchFileBlob, firstDescriptor, type FileEntry } from './fileLoading';
 
 /** Content ids a mail body points at with `src="cid:…"`, normalised. */
-export function referencedContentIds(html: unknown): Set<string> {
+function referencedContentIds(html: unknown): Set<string> {
     const ids = new Set<string>();
     if (typeof html !== 'string') return ids;
     for (const m of html.matchAll(/\bsrc\s*=\s*["']\s*cid:([^"']*)["']/gi)) ids.add(normalizeContentId(m[1]));
     return ids;
 }
 
-export interface InlineImageJob { cid: string; entry: FileEntry }
+interface InlineImageJob { cid: string; entry: FileEntry }
 
 interface Args {
     html: unknown;

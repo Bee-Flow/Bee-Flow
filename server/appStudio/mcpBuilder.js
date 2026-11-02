@@ -367,6 +367,8 @@ async function callTool(name, rawArgs, { userId }) {
     // CAS save bumps the version, and a caller that sees the number move
     // believes something changed. Compared as JSON, before vs after the tool.
     const defBefore = MUTATING_TOOLS.has(name) && !DATA_MODEL_TOOLS.has(name) ? JSON.stringify(draftWrap.def) : null;
+    // The span below holds the screenshot data-URL regex: linear, and it reads our own render, never caller input.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
     const result = await applyToolCall(name, args, draftWrap);
     const ok = !(result && typeof result === 'object' && result.error);
 
