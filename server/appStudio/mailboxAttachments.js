@@ -313,8 +313,8 @@ async function materializeAttachment(app, model, {
         tokens: identity.tokens,
         onRefresh: identity.onRefresh,
         mailbox: identity.mailbox,
-        messageId: descriptor.messageId,
-        attachmentId: descriptor.attachmentId,
+        messageId: descriptor.messageId, attachmentId: descriptor.attachmentId,
+        relocate: { threadKey: descriptor.threadKey || row.thread_key, name: descriptor.name, size: descriptor.size },
         maxBytes: ceiling,
     }).catch((err) => { throw providerFailure(err, identity.provider); });
     if (!buffer || !buffer.length) throw httpError(422, 'That attachment came back empty');
@@ -553,6 +553,6 @@ module.exports = {
 
 /**
  * A `file` column's descriptor, pending (`mailbox_attachment`) or redeemed (`studio_attachment`).
- * @typedef {{ kind?: string, fileId?: string, connectorId?: string, messageId?: string, attachmentId?: string, name?: string, mime?: string, size?: number, isInline?: boolean, [k: string]: unknown }} AttachmentDescriptor
+ * @typedef {{ kind?: string, fileId?: string, connectorId?: string, messageId?: string, attachmentId?: string, threadKey?: string, name?: string, mime?: string, size?: number, isInline?: boolean, [k: string]: unknown }} AttachmentDescriptor
  * @typedef {{ tables?: import('./actionExecutor/shared').DataTable[], connectors?: Array<{ id?: string, provider?: 'gmail'|'outlook', runAs?: string, mode?: string, address?: string, displayName?: string }> }} MailboxModel
  */

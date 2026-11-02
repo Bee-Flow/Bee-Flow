@@ -394,6 +394,7 @@ test('an attachment row carries a PENDING descriptor, never bytes', async () => 
         connectorId: 'conn_ab12',
         messageId: 'a',
         attachmentId: 'att-a',
+        threadKey: 'gmail:th-a',
         name: 'bon.pdf',
         mime: 'application/pdf',
         size: 10,

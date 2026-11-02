@@ -27,6 +27,7 @@ const {
     parseDisplayName,
 } = require('./parse');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
+const { fetchOutlookAttachment } = require('./outlookAttachment.mts');
 const crypto = require('crypto');
 
 /**
@@ -385,7 +386,7 @@ async function listThreadMessages({ provider, tokens, onRefresh, mailbox = {}, t
  *
  * @returns {Promise<{ buffer: Buffer, mimeType: string, filename: string }>}
  */
-async function getAttachmentBytes({ provider, tokens, onRefresh, mailbox = {}, messageId, attachmentId, maxBytes = 10 * 1024 * 1024 }) {
+async function getAttachmentBytes({ provider, tokens, onRefresh, mailbox = {}, messageId, attachmentId, maxBytes = 10 * 1024 * 1024, relocate = null }) {
     const tooBig = (n) => {
         /** @type {Error & { status?: number, actualBytes?: number }} */ const e = new Error(`Attachment is larger than the ${Math.round(maxBytes / 1024 / 1024)}MB limit`);
         e.status = 413;
@@ -412,10 +413,9 @@ async function getAttachmentBytes({ provider, tokens, onRefresh, mailbox = {}, m
     if (provider === 'outlook') {
         // graphBase, not a hardcoded /me: a delegated shared mailbox is exactly
         // the case where attachments matter, and /me would silently read the
-        // agent's own mailbox instead. No $select: Graph refuses contentBytes
-        // on the base `attachment` type (it is fileAttachment's own property).
-        const att = await graphFetchFromTokens(tokens, onRefresh,
-            `${graphBase(mailbox)}/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`);
+        // agent's own mailbox instead. `relocate` finds a message that moved folder.
+        const att = await fetchOutlookAttachment((path) => graphFetchFromTokens(tokens, onRefresh, path),
+            { base: graphBase(mailbox), messageId, attachmentId, hint: relocate });
         // Item and reference attachments (a forwarded mail, a OneDrive link)
         // carry no contentBytes at all — refusing them by type beats handing a
         // caller an empty buffer.
