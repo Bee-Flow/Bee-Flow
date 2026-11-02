@@ -27,7 +27,7 @@ const {
     parseDisplayName,
 } = require('./parse');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
-const { fetchOutlookAttachment } = require('./outlookAttachment.mts');
+const { fetchOutlookAttachment, listOutlookAttachments } = require('./outlookAttachment.mts');
 const { outlookListQuery, matchesLabelGroups } = require('./outlookQuery.mts');
 const crypto = require('crypto');
 
@@ -330,9 +330,9 @@ async function listAttachmentMeta({ provider, tokens, onRefresh, mailbox = {}, m
         return gmailAttachments(full.data.payload);
     }
     if (provider === 'outlook') {
-        const res = await graphFetchFromTokens(tokens, onRefresh,
-            `${graphBase(mailbox)}/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,isInline,contentId`);
-        return (res.value || []).map((a) => ({
+        const rows = await listOutlookAttachments((path) => graphFetchFromTokens(tokens, onRefresh, path),
+            { base: graphBase(mailbox), messageId });
+        return rows.map((a) => ({
             provider_attachment_id: a.id,
             filename: a.name || 'bijlage',
             mime_type: a.contentType || 'application/octet-stream',
