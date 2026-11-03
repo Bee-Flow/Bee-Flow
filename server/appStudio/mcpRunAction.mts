@@ -33,13 +33,13 @@ export { resetRunWindows, takeRunBudget, trimValue };
 
 const nodeRequire = createRequire(import.meta.url);
 
-type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown };
+type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown; definitionVersion?: number | null };
 type StepResult = { ok: boolean; result?: unknown; error?: string };
 
 export type StepStatus = 'ok' | 'skipped' | 'refused' | 'error';
 export type StepReport = { path: string; kind: string; status: StepStatus; result?: unknown; error?: string };
 export type RunReport = {
-    ok: boolean; dryRun: boolean; actionId: string; steps: StepReport[]; vars?: unknown;
+    ok: boolean; dryRun: boolean; actionId: string; definitionVersion?: number; steps: StepReport[]; vars?: unknown;
     stopped?: string; truncated?: boolean; notes: string[];
 };
 export type RunOutcome = RunReport | { error: string; _fixHint?: string };
@@ -299,6 +299,8 @@ export async function runAction(args: unknown, userId: string, deps: RunDeps = d
     const out: RunReport = {
         ok: !run.failed && !(run.stopped && run.truncated),
         dryRun, actionId, steps: run.reports,
+        // The saved version the run read, read fresh from the store: compare it with app_set_action's `version`.
+        ...(typeof app.definitionVersion === 'number' ? { definitionVersion: app.definitionVersion } : {}),
         vars: trimValue(run.vars),
         notes: [...run.notes, ...(dryRun ? ['dryRun: nothing was written or sent. AI steps ran and cost the owner\'s AI budget like a click.'] : [])],
     };

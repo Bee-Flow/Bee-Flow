@@ -549,7 +549,7 @@ class GoogleProvider extends BaseProvider {
         // fileData only accepts File API / YouTube URIs, so our own storage URLs
         // have to be turned into inlineData bytes first (see core/imageInline.js).
         const { systemInstruction, contents } = this.normalizeMessages(await inlineInternalImages(messages));
-        const config = this._buildGenerateConfig(model, options);
+        const config = /** @type {Record<string, any>} */ ({ ...this._buildGenerateConfig(model, options), abortSignal: options.signal }); // the caller's optional AbortSignal
 
         log.info(`[${this.name || 'Google'}] SDK chat for model:`, model);
 

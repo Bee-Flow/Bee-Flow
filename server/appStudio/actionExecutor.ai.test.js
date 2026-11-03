@@ -10,6 +10,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { Readable } = require('node:stream');
+const { PDFDocument, StandardFonts } = require('pdf-lib');
 
 function stub(path, exports) {
     const filename = require.resolve(path);
@@ -17,6 +19,8 @@ function stub(path, exports) {
 }
 
 // ── Record-write plumbing stubs (mirror actionExecutor.test.js) ──────────────
+const blobs = new Map();       // sha256 -> Buffer (the stored attachments)
+const ledger = new Map();      // fileId -> { sha256, mimeType }
 const execCalls = [];
 const batchCalls = [];
 const queryCalls = [];
@@ -38,12 +42,32 @@ stub('../stores/studioAppDataStore', {
     bumpRowCount: async () => ({}),
     getRowCounts: async () => ({}),
     getMemberRole: async () => null,
-    getAttachment: async () => null,
+    getAttachment: async (id) => (ledger.has(id) ? { id, scanned: true, quarantined: false, ...ledger.get(id) } : null),
 });
-stub('../stores/storageStore', { buildStudioAppAttachmentKey: (o, a, s) => `studio-apps/${o}/${a}/attachments/${s}` });
+stub('../stores/storageStore', {
+    buildStudioAppAttachmentKey: (o, a, s) => `studio-apps/${o}/${a}/attachments/${s}`,
+    streamFile: async (key) => ({ stream: Readable.from([blobs.get(key.split('/').pop())]) }),
+});
 stub('../utils/tempDownloadUrl', { generateTempDownloadUrl: () => 'https://host/tmp' });
 stub('../stores/automationStore', { getAutomation: async () => null, getRunSteps: async () => [] });
 stub('../core/automationRunner', { executeAutomation: async () => ({ id: 'r', status: 'success' }) });
+
+// The mailbox: xml and mail are read as text (real converter), anything else is refused.
+const { inlineTextDescriptor } = require('./mailTextAttachment.mts');
+const XML_BYTES = Buffer.from('<Order><No>PO-2026-0001</No></Order>');
+const EML_BYTES = Buffer.from('From: buyer@example.com\r\nSubject: Original order\r\nContent-Type: text/plain\r\n\r\nPlease deliver 5 units.\r\n');
+stub('./mailboxAttachments', {
+    materializeAttachment: async (app, model, { attachmentId }) => {
+        if (attachmentId === 'x1') return inlineTextDescriptor(XML_BYTES, { name: 'PurchaseOrder 123.xml', mime: 'application/xml' });
+        if (attachmentId === 'e1') return inlineTextDescriptor(EML_BYTES, { name: 'Forwarded order.eml', mime: 'message/rfc822' });
+        const err = new Error('That file type is not supported');
+        err.status = 415;
+        throw err;
+    },
+});
+
+// The real extractDocuments (stores above are stubbed) for the tests that read documents for real.
+const realAiRuntime = require('./aiRuntime');
 
 // ── aiRuntime stub (controllable per test) ───────────────────────────────────
 const calls = { resolveOwnerModel: [], extractDocuments: [], groundWithKB: [], runStructured: [], runText: [] };
@@ -54,10 +78,16 @@ const aiState = {
     text: 'a concise summary',
     chunks: [{ title: 'Handbook', content: 'policy body', score: 0.91, source_uri: '' }],
     docBlocks: [{ type: 'text', text: '[invoice.pdf — extracted]\nINVOICE ACME 10' }],
+    realDocs: false,
 };
 stub('./aiRuntime', {
     resolveOwnerModel: async (app, tier) => { calls.resolveOwnerModel.push({ tier }); return aiState.model; },
-    extractDocuments: async (app, descriptors, opts) => { calls.extractDocuments.push({ descriptors, opts }); return aiState.docBlocks; },
+    extractDocuments: async (app, descriptors, opts) => {
+        calls.extractDocuments.push({ descriptors, opts });
+        if (aiState.realDocs) return realAiRuntime.extractDocuments(app, descriptors, opts);
+        if (opts && opts.report) opts.report.read += descriptors.length;
+        return aiState.docBlocks;
+    },
     groundWithKB: async (app, args) => { calls.groundWithKB.push(args); return { context: '', chunks: aiState.chunks }; },
     runStructured: async (app, model, args) => {
         calls.runStructured.push(args);
@@ -111,6 +141,7 @@ test.beforeEach(() => {
     batchThrows = null;
     for (const k of Object.keys(calls)) calls[k].length = 0;
     aiState.structured = { rows: [{ vendor: 'ACME', amount: 10 }, { vendor: 'Globex', amount: 20 }] };
+    aiState.realDocs = false;
 });
 
 // The params of the i-th INSERT compiled into the single writeTo transaction.
@@ -745,4 +776,97 @@ test('ai_generate: the genome tool is built over the clicking person\'s own file
     }
     assert.deepStrictEqual(others, { bob: 'false Dataset not found', [OWNER]: 'false Dataset not found' });
     assert.strictEqual(calls.runText.length, 0, 'no model call was handed her genome');
+});
+
+// ── attachments that cannot all be read ─────────────────────────────────────
+
+async function pdf(text) {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    // Enough text for the extractor to trust the text layer (a few words reads as a scan).
+    for (let i = 0; i < 30; i++) page.drawText(`${text} number ${i}: purchase order line with quantity and price`, { x: 30, y: 780 - i * 22, size: 11, font });
+    return Buffer.from(await doc.save());
+}
+
+function addFile(id, buffer, mimeType) {
+    const sha256 = `sha_${id}`;
+    blobs.set(sha256, buffer);
+    ledger.set(id, { sha256, mimeType });
+    return { kind: 'studio_attachment', fileId: id, name: id, mime: mimeType };
+}
+const pending = (attachmentId, name, mime) => ({ kind: 'mailbox_attachment', attachmentId, messageId: 'm1', connectorId: 'c1', name, mime });
+
+function step(descriptors, extra = {}) {
+    return {
+        kind: 'ai_generate', prompt: 'Summarise the order', output: 'text', resultVar: 'out',
+        attachments: { kind: 'static', value: descriptors }, ...extra,
+    };
+}
+
+const textOf = (user) => (Array.isArray(user) ? user.map((b) => b.text || '').join('\n') : String(user));
+
+test('a mixed bag: pdf, octet-stream pdf, xml and mail are read; the unreadable ones are noted', async () => {
+    calls.runText.length = 0;
+    aiState.realDocs = true;
+    const descriptors = [
+        { ...addFile('f_pdf', await pdf('Alpha order line'), 'application/pdf'), name: 'real.pdf' },
+        { ...addFile('f_oct', await pdf('Bravo order line'), 'application/octet-stream'), name: 'Order_PO-2026-0001.pdf' },
+        pending('x1', 'PurchaseOrder 123.xml', 'application/xml'),
+        pending('e1', 'Forwarded order.eml', 'message/rfc822'),
+        pending('z1', 'tool.exe', 'application/x-msdownload'),
+        { ...addFile('f_exe', Buffer.from('MZ\u0000\u0000binary'), 'application/x-msdownload'), name: 'setup.exe' },
+    ];
+    const r = await actionExecutor.executeDataStep(app, model, step(descriptors), ctx());
+    assert.strictEqual(r.ok, true, r.error);
+    const sent = textOf(calls.runText[0].user);
+    assert.match(sent, /Alpha order line/);
+    assert.match(sent, /Bravo order line/, 'the octet-stream pdf was read AS a pdf');
+    assert.match(sent, /PO-2026-0001/, 'xml as text');
+    assert.match(sent, /Please deliver 5 units/, 'the mail body as text');
+    assert.match(sent, /Subject: Original order/);
+
+    assert.strictEqual(r.notes.length, 2, r.notes.join('\n'));
+    assert.ok(r.notes.some((n) => /^skipped: tool\.exe \(application\/x-msdownload\): That file type is not supported/.test(n)));
+    assert.ok(r.notes.some((n) => /^skipped: setup\.exe /.test(n)));
+    assert.deepStrictEqual(r.result.notes, r.notes);
+});
+
+test('nothing skipped means no notes key', async () => {
+    aiState.realDocs = true;
+    const r = await actionExecutor.executeDataStep(app, model, step([pending('x1', 'PurchaseOrder 123.xml', 'application/xml')]), ctx());
+    assert.strictEqual(r.ok, true, r.error);
+    assert.strictEqual('notes' in r, false);
+});
+
+test('nothing readable and nothing else to work on: the step fails with the real reason', async () => {
+    aiState.realDocs = true;
+    const r = await actionExecutor.executeDataStep(app, model, step([
+        pending('z1', 'tool.exe', 'application/x-msdownload'),
+        pending('z2', 'archive.7z', 'application/x-7z-compressed'),
+    ]), ctx());
+    assert.strictEqual(r.ok, false);
+    assert.notStrictEqual(r.error, 'Step failed');
+    assert.match(r.error, /^None of the 2 attachments could be read: tool\.exe \(application\/x-msdownload\): That file type is not supported; archive\.7z/);
+});
+
+test('nothing readable but the step has other context: it still runs, with the notes', async () => {
+    calls.runText.length = 0;
+    aiState.realDocs = true;
+    const r = await actionExecutor.executeDataStep(app, model, step(
+        [pending('z1', 'tool.exe', 'application/x-msdownload')],
+        { contextSources: [{ label: 'Note', source: { kind: 'static', value: 'Customer is waiting' } }] },
+    ), ctx());
+    assert.strictEqual(r.ok, true, r.error);
+    assert.strictEqual(r.notes.length, 1);
+});
+
+test('ai_extract: all unreadable fails with the real reason too', async () => {
+    aiState.realDocs = true;
+    const r = await actionExecutor.executeDataStep(app, model, {
+        kind: 'ai_extract', schema: [{ name: 'orderNo', type: 'string' }],
+        source: { kind: 'static', value: [pending('z1', 'tool.exe', 'application/x-msdownload')] },
+    }, ctx());
+    assert.strictEqual(r.ok, false);
+    assert.match(r.error, /^None of the 1 attachment could be read: tool\.exe/);
 });
