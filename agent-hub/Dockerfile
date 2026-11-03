@@ -111,7 +111,11 @@ COPY --from=build /app/dist/assets/*.map /
 
 # Production stage
 FROM nginx:alpine@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417
-RUN apk upgrade --no-cache
+# OS_PATCH_DATE (YYYY-MM-DD) is the cache key of the OS upgrade: the pinned base digest
+# and this instruction never change, so without it a cached layer would keep serving
+# packages with fixed CVEs. CI passes the build date, so the layer is refreshed daily.
+ARG OS_PATCH_DATE=""
+RUN echo "os patch ${OS_PATCH_DATE}" && apk upgrade --no-cache
 
 # Copy built assets and strip sourcemaps so they are never served to clients.
 COPY --from=build /app/dist /usr/share/nginx/html

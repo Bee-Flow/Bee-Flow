@@ -334,6 +334,7 @@ function Build-One {
         "server" {
             # DB-IP Lite edition month for the Dockerfile's `geo` stage (cache key).
             $extra += @("--build-arg", "GEO_DB_MONTH=$((Get-Date).ToUniversalTime().ToString('yyyy-MM'))")
+            $extra += @("--build-arg", "OS_PATCH_DATE=$((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd'))")
             # Same context staging and build stamp as CI (build-push-ghcr.yml, job
             # `server`): the App Studio runtime bundle and the SBOM, which is
             # stamped with the very sha baked in as APP_BUILD_SHA.
@@ -345,6 +346,7 @@ function Build-One {
         }
         "agent-hub" {
             $extra += @("--build-arg", "VITE_BUILD_SHA=$(Get-GitSha)")
+            $extra += @("--build-arg", "OS_PATCH_DATE=$((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd'))")
             $extra += @("--build-arg", "BUILDKIT_INLINE_CACHE=1")
             if ($env:FAST_DEV -eq "1") {
                 if ($Env -eq "prd") { throw "FAST_DEV=1 skips the Nextcloud embed build; refusing to produce a prd agent-hub image. Unset FAST_DEV and rebuild." }
@@ -359,6 +361,9 @@ function Build-One {
                 try { npm run -s typecheck } finally { Pop-Location }
                 if ($LASTEXITCODE -ne 0) { throw "agent-hub typecheck failed; refusing to build a prd agent-hub image." }
             }
+        }
+        "guard" {
+            $extra += @("--build-arg", "OS_PATCH_DATE=$((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd'))")
         }
         "license-server" {
             # Private source, checked out beside this repo (see $LicenseServerSrc

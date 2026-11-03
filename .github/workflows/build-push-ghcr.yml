@@ -90,8 +90,13 @@ jobs:
       release_dev:  ${{ steps.flags.outputs.release_dev }}
       # Comma-separated service keys built this run (used for the empty-prod guard below).
       built_csv: ${{ steps.csv.outputs.built_csv }}
+      # UTC build date, resolved once per run: the cache key of every image's OS
+      # upgrade layer (ARG OS_PATCH_DATE), so it is refreshed at most once a day.
+      os_patch_date: ${{ steps.osdate.outputs.date }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: osdate
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
       # Resolve the release channel once, so all build jobs tag consistently.
       #   manual channel=prod (main only) → production (:latest/:prod/:sha)
       #   everything else (push, or manual channel=dev) → dev (:dev/:dev-sha-*)
@@ -476,6 +481,7 @@ jobs:
             APP_BUILD_SHA=${{ github.sha }}
             APP_VERSION=${{ steps.appver.outputs.version }}
             GEO_DB_MONTH=${{ steps.geo.outputs.month }}
+            OS_PATCH_DATE=${{ needs.changes.outputs.os_patch_date }}
           cache-from: type=gha,scope=server
           cache-to:   type=gha,scope=server,mode=max
 
@@ -541,6 +547,7 @@ jobs:
             VITE_OPENOBSERVE_SERVICE=agent-hub
             VITE_OPENOBSERVE_ENV=production
             VITE_OPENOBSERVE_REPLAY_SAMPLE_RATE=0
+            OS_PATCH_DATE=${{ needs.changes.outputs.os_patch_date }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=agent-hub
@@ -571,6 +578,7 @@ jobs:
             VITE_OPENOBSERVE_SERVICE=agent-hub
             VITE_OPENOBSERVE_ENV=production
             VITE_OPENOBSERVE_REPLAY_SAMPLE_RATE=0
+            OS_PATCH_DATE=${{ needs.changes.outputs.os_patch_date }}
           cache-from: type=gha,scope=agent-hub
           push: false
       - name: Upload sourcemaps artifact
@@ -633,6 +641,7 @@ jobs:
           # ARG sits after `COPY . .`, so the model layers stay cached.
           build-args: |
             GUARD_BUILD_ID=${{ github.sha }}
+            OS_PATCH_DATE=${{ needs.changes.outputs.os_patch_date }}
           # Registry cache, not the Actions cache: the baked model + ONNX layer
           # is 3.6 GB, over a third of the repository's one 10 GB Actions pool,
           # and every guard export evicted the npm and server caches. Stored
@@ -699,6 +708,7 @@ jobs:
           # model layers stay cached.
           build-args: |
             CLASSIFY_BUILD_ID=${{ github.sha }}
+            OS_PATCH_DATE=${{ needs.changes.outputs.os_patch_date }}
           # Registry cache, for the guard's reason: the torch + baked-model
           # layers would take a large bite of the repository's one 10 GB
           # Actions cache pool and evict the npm and server caches.

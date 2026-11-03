@@ -134,7 +134,12 @@ WORKDIR /app
 # archive extractor. The CLI is pinned so a cached layer cannot keep an older
 # build: 29.9.2 is built with Go 1.26.10, which fixes the net/http and
 # crypto/tls advisories of 1.26.8. Health checks use Node's built-in HTTP client.
-RUN apt-get update \
+# OS_PATCH_DATE (YYYY-MM-DD) is the cache key of the OS upgrade: the pinned base digest
+# and this instruction never change, so without it a cached layer would keep serving
+# packages with fixed CVEs. CI passes the build date, so the layer is refreshed daily.
+ARG OS_PATCH_DATE=""
+RUN echo "os patch ${OS_PATCH_DATE}" \
+    && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
     && install -m 0755 -d /etc/apt/keyrings \
