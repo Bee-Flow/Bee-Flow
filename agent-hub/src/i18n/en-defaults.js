@@ -34213,7 +34213,7 @@ const EN_DEFAULTS = {
     "studio_apps_bi.connectors.kind_rest_label": "Another system via its web address",
     "studio_apps_bi.connectors.kind_rest_tag": "Web address",
     "studio_apps_bi.connectors.mail_matching": "Only mail matching (optional)",
-    "studio_apps_bi.connectors.mail_matching_hint": "A search keeps the table to the mail you actually want. label:a label:b takes mail with both labels, label:a OR label:b mail with either (in Outlook a label is a category). Leave it empty to take everything in the folder.",
+    "studio_apps_bi.connectors.mail_matching_hint": "A search keeps the table to the mail you actually want. label:a label:b takes mail with both labels, label:a OR label:b mail with either, label:\"name with spaces\" a label with a space (in Outlook a label is a category). Leave it empty to take everything in the folder.",
     "studio_apps_bi.connectors.mail_provider": "Mail provider",
     "studio_apps_bi.connectors.mailbox_mine": "Mine (the account I signed in with)",
     "studio_apps_bi.connectors.mailbox_shared": "A shared mailbox",

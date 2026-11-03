@@ -447,8 +447,12 @@ function validateMailboxConnector(c, where, errors) {
             errors.push(`${where}.query must be a string`);
         } else if (c.query.length > MAX_MAILBOX_QUERY_LEN) {
             errors.push(`${where}.query exceeds ${MAX_MAILBOX_QUERY_LEN} chars`);
-        } else if (c.query.includes('"') || [...c.query].some((ch) => ch.codePointAt(0) < 32)) {
-            errors.push(`${where}.query may not contain quotes or control characters`);
+        } else if ([...c.query].some((ch) => (ch.codePointAt(0) ?? 0) < 32)) {
+            errors.push(`${where}.query may not contain control characters`);
+        } else if ((c.query.split('"').length - 1) % 2 !== 0) {
+            // Quotes come in pairs, around a label with a space (label:"Daniel B",
+            // outlookQuery.mts) or a search phrase; an odd one is a typo.
+            errors.push(`${where}.query has an unpaired quote`);
         }
     }
     if (c.lookbackDays !== undefined) {
