@@ -178,8 +178,10 @@ services:
     container_name: beeflow-agent-hub-dev
     working_dir: /app
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5176"
+    # Loopback-only, like the API port above (CLIENT_BIND_HOST=0.0.0.0 to open
+    # the dev SPA to other devices on the network; the API stays on loopback).
     ports:
-      - "5176:5176"
+      - "${CLIENT_BIND_HOST:-127.0.0.1}:5176:5176"
     environment:
       - VITE_API_URL=http://localhost:3001
     volumes:
@@ -214,7 +216,7 @@ services:
     container_name: beeflow-license-server-dev
     command: sh -c "node scripts/seed-dev.js || true; node index.js"
     ports:
-      - "4400:4400"
+      - "127.0.0.1:4400:4400"
     environment:
       - NODE_ENV=development
       - PORT=4400
@@ -270,7 +272,7 @@ services:
     container_name: beeflow-umami-dev
     profiles: [analytics]
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - DATABASE_TYPE=postgresql
       - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/umami

@@ -191,6 +191,8 @@ function New-EnvFile {
               "MONITORING_DATABASE_URL=$DbBase/$PgDbMonitoring`n"
     $contents = $contents.TrimEnd() + "`n" + $extras
 
+    # Windows: no POSIX mode bits. The file inherits the ACL of this folder
+    # (the user's own checkout); keep the checkout out of shared locations.
     Set-Content -Path $EnvFile -Value $contents -NoNewline
     Write-Ok ".env created with a freshly generated SESSION_SECRET"
 }
