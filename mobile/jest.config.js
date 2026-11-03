@@ -42,9 +42,12 @@ const PRESET_BABEL = jestExpoPreset.transform['\\.[jt]sx?$'];
 // dependency it is) through an override.
 const [BABEL_JEST, BABEL_OPTIONS] = PRESET_BABEL;
 const TS_PLUGIN = require.resolve('@babel/plugin-transform-typescript', { paths: [path.dirname(require.resolve('babel-preset-expo'))] });
+// Unconditional, not an `overrides` entry with a RegExp `test`: jest hands the
+// transform options to its workers as JSON, where a RegExp becomes `{}` and
+// Babel refuses it. This transform only ever receives `.mts` files anyway.
 const MTS_BABEL = [BABEL_JEST, {
     ...BABEL_OPTIONS,
-    overrides: [{ test: /\.mts$/, plugins: [[TS_PLUGIN, { isTSX: false, allowNamespaces: true }]] }],
+    plugins: [...(BABEL_OPTIONS.plugins || []), [TS_PLUGIN, { isTSX: false, allowNamespaces: true }]],
 }];
 
 module.exports = {
