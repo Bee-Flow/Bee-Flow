@@ -86,6 +86,7 @@ module.exports = {
     listDueSyncs: connectorSync.listDueSyncs,
     deleteSyncState: connectorSync.deleteSyncState,
     reconcileSyncStates: connectorSync.reconcileSyncStates,
+    resetSyncStates: connectorSync.resetSyncStates,
     SYNC_STALE_MS: connectorSync.SYNC_STALE_MS,
     // Outbound e-mail ledger
     logEmailSend: connectorSync.logEmailSend,

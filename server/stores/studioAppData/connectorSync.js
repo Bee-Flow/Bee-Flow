@@ -223,6 +223,31 @@ async function reconcileSyncStates(appId, ownerId, syncedConnectorIds = []) {
     return { seeded, removed };
 }
 
+/**
+ * Make the next sync of these connectors a FIRST run that refills from the lookback window:
+ * the watermark and `last_run_at` are cleared and the run is due now. The connector stays
+ * scheduled (the row is kept or created, never deleted) and a run that is in flight keeps its
+ * claim. Used after the app's tables were emptied. Returns how many connectors were reset.
+ * @param {string} appId
+ * @param {string} ownerId
+ * @param {string[]} connectorIds
+ */
+async function resetSyncStates(appId, ownerId, connectorIds = []) {
+    await initDB();
+    const ids = [...new Set((connectorIds || []).filter((id) => typeof id === 'string' && id))];
+    for (const connectorId of ids) {
+        await run(
+            `INSERT INTO studio_app_connector_sync (app_id, connector_id, owner_user_id, status, next_run_at)
+             VALUES ($1, $2, $3, 'idle', NOW())
+             ON CONFLICT (app_id, connector_id) DO UPDATE
+                SET watermark = NULL, last_run_at = NULL, next_run_at = NOW(), rows_written = 0,
+                    last_error = NULL, consecutive_errors = 0, updated_at = NOW()`,
+            [appId, connectorId, ownerId],
+        );
+    }
+    return ids.length;
+}
+
 module.exports = {
     getSyncState,
     listSyncStates,
@@ -231,6 +256,7 @@ module.exports = {
     listDueSyncs,
     deleteSyncState,
     reconcileSyncStates,
+    resetSyncStates,
     SYNC_STALE_MS,
     logEmailSend,
     listEmailSends,

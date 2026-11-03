@@ -6,6 +6,7 @@
  * behaviour unchanged.
  */
 
+const studioAppDataStore = require('../../stores/studioAppDataStore');
 const rlsGateway = require('../../appStudio/rlsGateway');
 const actionExecutor = require('../../appStudio/actionExecutor');
 const dataReadRunner = require('../../appStudio/dataReadRunner');
@@ -23,12 +24,17 @@ async function listTables(req, res) {
     try {
         const ctx = await resolveDataContext(req, res);
         if (!ctx) return;
+        // The stored count per table key (a cache the writes keep); a table never counted shows 0.
+        // Owner only: it counts every row, and a role that reads only its own rows must not learn
+        // how many others there are.
+        const counts = ctx.role === 'owner' ? ((await studioAppDataStore.getRowCounts(ctx.app.id, ctx.app.userId)) || {}) : null;
         const tables = [];
         for (const t of ctx.model.tables) {
             if (!rlsGateway.canRead(t, ctx.role)) continue;
             const flags = await linkedTableFlags(ctx, t);
             if (flags === LINK_REFUSED) continue;
-            tables.push({ ...publicTable(t), .../** @type {{ linked: boolean, readOnly: boolean } | null} */ (flags) });
+            const rowCount = counts ? { rowCount: Math.max(0, Number(counts[t.key]) || 0) } : {};
+            tables.push({ ...publicTable(t), ...rowCount, .../** @type {{ linked: boolean, readOnly: boolean } | null} */ (flags) });
         }
         res.json({ tables });
     } catch (err) { handleErr(res, err, 'tables'); }

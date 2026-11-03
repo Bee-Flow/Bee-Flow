@@ -1,6 +1,8 @@
 import { Loader2 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { ComponentType, Dispatch } from 'react';
+import EmptyTablesDialog from './EmptyTablesDialog';
+import type { EmptyTablesResult } from './recordsApi';
 import RowsTabJs from './RowsTab';
 import TableDetail, { NoTableSelected } from './TableDetail';
 import { ManagerTabBar, PeopleTab, TableList } from './TablesManagerParts';
@@ -57,6 +59,10 @@ export interface TablesManagerProps {
     inline?: boolean;
     onClose?: () => void;
     appId: string;
+    /** The app's name: what the owner types to confirm "empty tables". */
+    appName?: string;
+    /** May this viewer delete all rows (owner/editor)? Defaults to yes: the data model itself is owner-only. */
+    canEmpty?: boolean;
     definition: AppDefinition | null;
     screenId: string | null;
     onCommit?: (definition: AppDefinition) => void;
@@ -134,9 +140,18 @@ function Spinner({ label }: { label: string }) {
     );
 }
 
+function emptiedMessage(t: TranslateFn, r: EmptyTablesResult): string {
+    const rows = r.emptied.reduce((sum, e) => sum + (e.rows || 0), 0);
+    return t('studio_apps_tables.empty.done', 'Tables emptied: {rows} rows and {files} files deleted, {connectors} connectors reset.', { rows, files: r.files, connectors: r.connectorsReset });
+}
+
 export default function TablesManager(props: TablesManagerProps) {
-    const { open, onClose, appId } = props;
+    const { open, onClose, appId, appName = '', canEmpty = true } = props;
     const { t } = useTranslation();
+    // null = dialog closed; { ids: null } = every table.
+    const [emptyTarget, setEmptyTarget] = useState<{ ids: string[] | null } | null>(null);
+    // Bumped after rows were deleted so an open Rows tab reloads.
+    const [rowsEpoch, setRowsEpoch] = useState(0);
     const { tables: savedTables, refetch: refetchSaved } = useAppTables(appId) as { tables: ModelTable[]; refetch: () => unknown };
     const data = useDataModel(appId, open, t, refetchSaved);
     const { model, tables, loading, saving, dirty, selectedId, setSelectedId, activeTab, setActiveTab, save } = data;
@@ -173,7 +188,7 @@ export default function TablesManager(props: TablesManagerProps) {
     const generate = (kind: 'form' | 'grid') => generateOnScreen(kind, { ...props, t, data, selected, savedById });
 
     const designer = activeTab === 'rows' && selectedSaved ? (
-        <RowsTab key={selectedSaved.id} appId={appId} table={selectedSaved} tables={savedTables} fieldsUnsaved={fieldsUnsaved} />
+        <RowsTab key={`${selectedSaved.id}:${rowsEpoch}`} appId={appId} table={selectedSaved} tables={savedTables} fieldsUnsaved={fieldsUnsaved} />
     ) : selected ? (
         <TableDetail table={selected} tables={tables} savedTable={savedById.get(selected.id) || null} onChange={data.renameSelected}
             isSaved={savedIds.has(selected.id)} source={selectedSource} onGenerate={generate} onSave={save} saving={saving} dirty={dirty} />
@@ -227,13 +242,32 @@ export default function TablesManager(props: TablesManagerProps) {
                 ) : (
                 <div className="flex gap-4 min-h-[22rem]">
                     <TableList tables={tables} selectedId={selectedId} savedIds={savedIds} onSelect={setSelectedId}
-                        onDelete={data.setConfirmDeleteId} onAdd={data.addTable} />
+                        onDelete={data.setConfirmDeleteId} onAdd={data.addTable}
+                        onEmpty={canEmpty ? (id) => setEmptyTarget({ ids: [id] }) : undefined}
+                        onEmptyAll={canEmpty ? () => setEmptyTarget({ ids: null }) : undefined} />
                     {/* Designer + generators, or the selected table's rows */}
                     <div className="min-w-0 flex-1">{designer}</div>
                 </div>
                 )}
               </>
             )}
+
+            {canEmpty ? (
+                <EmptyTablesDialog
+                    open={!!emptyTarget}
+                    appId={appId}
+                    appName={appName}
+                    tables={savedTables || []}
+                    tableIds={emptyTarget?.ids ?? null}
+                    onClose={() => setEmptyTarget(null)}
+                    onDone={(result) => {
+                        setEmptyTarget(null);
+                        setRowsEpoch((n) => n + 1);
+                        void refetchSaved();
+                        toast.success(emptiedMessage(t, result));
+                    }}
+                />
+            ) : null}
 
             <ConfirmDialog
                 open={!!data.confirmDeleteId}

@@ -1,4 +1,4 @@
-import { Link2, Plug, Plus, Rows3, Share2, Table2, Trash2, UserRound } from 'lucide-react';
+import { Eraser, Link2, Plug, Plus, Rows3, Share2, Table2, Trash2, UserRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { tableSourceOf } from './tablesManagerModel';
 import type { ModelTable, TableSource } from './tablesManagerModel';
@@ -101,10 +101,13 @@ interface TableListProps {
     onSelect: (id: string) => void;
     onDelete: (id: string) => void;
     onAdd: () => void;
+    /** Present only for someone who may start clean: empty one table / all of them. */
+    onEmpty?: (id: string) => void;
+    onEmptyAll?: () => void;
 }
 
 /** One table in the list, with its kind's icon, badge and delete button. */
-function TableListRow({ tbl, selected, isSaved, onSelect, onDelete }: { tbl: ModelTable; selected: boolean; isSaved: boolean; onSelect: () => void; onDelete: () => void }) {
+function TableListRow({ tbl, selected, isSaved, onSelect, onDelete, onEmpty }: { tbl: ModelTable; selected: boolean; isSaved: boolean; onSelect: () => void; onDelete: () => void; onEmpty?: () => void }) {
     const { t } = useTranslation();
     // The kind decides the icon, the label and — for a linked table — the
     // row's accessible name. A table with its own storage keeps exactly the
@@ -140,6 +143,17 @@ function TableListRow({ tbl, selected, isSaved, onSelect, onDelete }: { tbl: Mod
                     <span className="ml-auto text-[9px] uppercase tracking-wide text-[var(--accent-primary)]">{t('studio_apps_tables.manager.new_badge', 'New')}</span>
                 ) : null}
             </button>
+            {onEmpty && isSaved && !src ? (
+                <button
+                    type="button"
+                    aria-label={t('studio_apps_tables.empty.empty_named', 'Empty {name}', { name })}
+                    title={t('studio_apps_tables.empty.empty_named', 'Empty {name}', { name })}
+                    onClick={onEmpty}
+                    className="p-1 rounded opacity-60 hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--bg-card-hover)] transition-opacity text-[var(--text-secondary)]"
+                >
+                    <Eraser className="h-3.5 w-3.5" />
+                </button>
+            ) : null}
             <button
                 type="button"
                 aria-label={t('studio_apps_tables.manager.delete_named', 'Delete {name}', { name })}
@@ -157,7 +171,7 @@ function TableListRow({ tbl, selected, isSaved, onSelect, onDelete }: { tbl: Mod
 }
 
 /** The app's tables, left of the designer. */
-export function TableList({ tables, selectedId, savedIds, onSelect, onDelete, onAdd }: TableListProps) {
+export function TableList({ tables, selectedId, savedIds, onSelect, onDelete, onAdd, onEmpty, onEmptyAll }: TableListProps) {
     const { t } = useTranslation();
     return (
         <div className="w-56 shrink-0 border-r pr-3 flex flex-col gap-1 border-[var(--border-default)]">
@@ -167,7 +181,7 @@ export function TableList({ tables, selectedId, savedIds, onSelect, onDelete, on
                 </p>
             ) : tables.map((tbl) => (
                 <TableListRow key={tbl.id} tbl={tbl} selected={tbl.id === selectedId} isSaved={savedIds.has(tbl.id)}
-                    onSelect={() => onSelect(tbl.id)} onDelete={() => onDelete(tbl.id)} />
+                    onSelect={() => onSelect(tbl.id)} onDelete={() => onDelete(tbl.id)} onEmpty={onEmpty ? () => onEmpty(tbl.id) : undefined} />
             ))}
             <button
                 type="button"
@@ -177,6 +191,16 @@ export function TableList({ tables, selectedId, savedIds, onSelect, onDelete, on
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('studio_apps_tables.manager.new_table', 'New table')}
             </button>
+            {onEmptyAll && tables.some((tbl) => savedIds.has(tbl.id)) ? (
+                <button
+                    type="button"
+                    onClick={onEmptyAll}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-[var(--error)] hover:bg-[var(--bg-card-hover)]"
+                >
+                    <Eraser className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t('studio_apps_tables.empty.empty_all', 'Empty all tables')}
+                </button>
+            ) : null}
         </div>
     );
 }

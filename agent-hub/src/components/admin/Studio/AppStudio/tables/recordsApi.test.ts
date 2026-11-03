@@ -61,3 +61,18 @@ describe('recordsApi', () => {
         });
     });
 });
+
+describe('emptyAppTables', () => {
+    it('posts without tableIds for all tables, with them for a chosen set', async () => {
+        const { emptyAppTables } = await import('./recordsApi');
+        asMock(authFetch).mockResolvedValue(reply(200, { emptied: [], skipped: [], connectorsReset: 0, files: 0 }));
+        await emptyAppTables('app1');
+        await emptyAppTables('app1', ['tbl_a']);
+
+        const [url, options] = asMock(authFetch).mock.calls[0];
+        expect(url).toBe('/api/studio-apps/app1/data/empty');
+        expect(options.method).toBe('POST');
+        expect(JSON.parse(options.body)).toEqual({});
+        expect(JSON.parse(asMock(authFetch).mock.calls[1][1].body)).toEqual({ tableIds: ['tbl_a'] });
+    });
+});

@@ -5773,6 +5773,9 @@
     "POST /api/studio-apps/:id/data/connectors/:connectorId/verify": {
       "gate": "auth"
     },
+    "POST /api/studio-apps/:id/data/empty": {
+      "gate": "auth"
+    },
     "POST /api/studio-apps/:id/data/query": {
       "gate": "auth"
     },

@@ -91,3 +91,25 @@ export function deleteRecord(appId: string, tableId: string, recordId: string) {
     return request(`${recordsUrl(appId, tableId)}/${enc(recordId)}`, { method: 'DELETE' });
 }
 
+
+/** What "empty the tables" reports back. */
+export interface EmptyTablesResult {
+    emptied: Array<{ tableId: string; key: string; rows: number }>;
+    skipped: Array<{ tableId: string; key: string; reason: string }>;
+    connectorsReset: number;
+    files: number;
+}
+
+/**
+ * Delete ALL rows (and their files) of the app's tables, keeping the tables.
+ * Omit `tableIds` for every table. A table that another, non-emptied table
+ * still points at answers 409 `code:'referenced_by'` (or `relation_cycle`) with
+ * `err.body.tables = [{ tableId, key, referencedBy: [tableKey] }]`.
+ */
+export function emptyAppTables(appId: string, tableIds?: string[]): Promise<EmptyTablesResult> {
+    return request(`${API_BASE}/api/studio-apps/${enc(appId)}/data/empty`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify(tableIds ? { tableIds } : {}),
+    }) as Promise<EmptyTablesResult>;
+}

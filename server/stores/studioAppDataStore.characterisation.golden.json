@@ -37,6 +37,7 @@
   "listDueSyncs": "function",
   "deleteSyncState": "function",
   "reconcileSyncStates": "function",
+  "resetSyncStates": "function",
   "SYNC_STALE_MS": "number",
   "logEmailSend": "function",
   "listEmailSends": "function",
@@ -1849,6 +1850,20 @@
     "sql": "DELETE FROM studio_app_connector_sync WHERE app_id = $1",
     "params": [
      "app-1"
+    ]
+   }
+  ]
+ },
+ "resetSyncStates": {
+  "value": 1,
+  "trace": [
+   {
+    "ch": "run",
+    "sql": "INSERT INTO studio_app_connector_sync (app_id, connector_id, owner_user_id, status, next_run_at) VALUES ($1, $2, $3, 'idle', NOW()) ON CONFLICT (app_id, connector_id) DO UPDATE SET watermark = NULL, last_run_at = NULL, next_run_at = NOW(), rows_written = 0, last_error = NULL, consecutive_errors = 0, updated_at = NOW()",
+    "params": [
+     "app-1",
+     "con-1",
+     "u1"
     ]
    }
   ]

@@ -22,6 +22,7 @@
  *   POST   /:id/data/query                            — saved dataset OR inline aggregate descriptor
  *   POST   /:id/data/batch                            — many reads, one request (per-read statuses)
  *   GET/PUT /:id/schema                               — owner-only data model (with rowFilter validation)
+ *   POST   /:id/data/empty                            — owner-only: delete all rows, keep the tables
  *   GET/POST/DELETE /:id/members                      — owner-only role assignment
  *
  * ── SECURITY MODEL (mirrors studioAppsRun.js) ───────────────────────
@@ -43,7 +44,7 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
+const { z, worded, idList, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
 // The runtime's own request shapes, shared with the public app routes.
 const R = require('./studio/appRuntimeSchemas');
 
@@ -73,6 +74,10 @@ const SchemaBody = bodyOf({
     model: z.record(z.string(), z.unknown(), { error: typeError({ required: 'model (object) is required', invalid: 'model (object) is required' }) }),
     expectedVersion: wholeNumber('expectedVersion is the version you loaded.').nullish(),
 }, 'A data model');
+const EmptyBody = bodyOf({
+    // Ids of model tables; omitted or empty means every table the app owns.
+    tableIds: idList('tableIds is a list of table ids.').optional(),
+}, 'Emptying the data');
 const MemberBody = bodyOf({
     userId: worded('userId is required').max(200, 'userId is an id.'),
     roleKey: worded('roleKey is the key of a role.').max(100, 'roleKey is the key of a role.').optional(),
@@ -89,6 +94,7 @@ const {
 const Records = require('./studio/appDataRecords');
 const Query = require('./studio/appDataQuery');
 const Admin = require('./studio/appDataAdmin');
+const Empty = require('./studio/appDataEmpty');
 
 // ── Tables and records ──────────────────────────────────────────────
 
@@ -113,6 +119,7 @@ router.put('/:id/datasets/:datasetId', requireAuth, writeLimiter, requireJson, j
 router.delete('/:id/datasets/:datasetId', requireAuth, writeLimiter, Admin.deleteDataset);
 router.get('/:id/schema', requireAuth, Admin.getSchema);
 router.put('/:id/schema', requireAuth, jsonBody, bodySizeGuard, validate({ body: SchemaBody }), Admin.putSchema);
+router.post('/:id/data/empty', requireAuth, writeLimiter, requireJson, jsonBody, bodySizeGuard, validate({ body: EmptyBody }), Empty.emptyData);
 router.get('/:id/members', requireAuth, Admin.listMembers);
 router.post('/:id/members', requireAuth, jsonBody, bodySizeGuard, validate({ body: MemberBody }), Admin.addMember);
 router.delete('/:id/members/:userId', requireAuth, Admin.removeMember);

@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-75 routes, 39 with a request schema. Back to the [endpoint reference](../reference.md).
+76 routes, 40 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -286,6 +286,16 @@ No request schema.
 **Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
+
+### `POST /api/studio-apps/:id/data/empty`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `tableIds` | array of string |  | max items 200 |
 
 ### `GET /api/studio-apps/:id/data/export`
 
