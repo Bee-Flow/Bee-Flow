@@ -102,6 +102,11 @@ RUN if [ -n "$GUARD_DISCLOSURE_MODEL" ]; then \
 # layer (and only the cheap ones after it, not the model export above) is
 # rebuilt once a day. The upgrade runs BEFORE the hardening, which must see
 # the final packages (an upgraded util-linux would bring mount back).
+# torch pulls in setuptools 78.1.0 on Python 3.12, which carries its own CVE
+# plus vendored copies of wheel 0.45.1 and jaraco.context 5.3.0 that have
+# theirs. 84.0.0 (the version classify-service ships) vendors the fixed ones.
+# It is installed here, the last moment pip exists, so the model export above
+# keeps its cache.
 ARG OS_PATCH_DATE=""
 RUN echo "os patch ${OS_PATCH_DATE}" && apt-get update && apt-get upgrade -y \
     && apt-mark manual libgomp1 \
@@ -110,6 +115,7 @@ RUN echo "os patch ${OS_PATCH_DATE}" && apt-get update && apt-get upgrade -y \
     && rm -f /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/infocmp \
     && find /usr -type f -path '*/Archive/Tar*' -delete \
     && find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
+    && python -m pip install --no-cache-dir setuptools==84.0.0 \
     && python -m pip uninstall -y pip
 
 COPY . .

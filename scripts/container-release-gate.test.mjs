@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { inspectContainer, debianStillUnfixed } from './container-release-gate.mjs';
 const image = `ghcr.io/bee-flow/guard@sha256:${'a'.repeat(64)}`;
-const report = { SchemaVersion: 2, ArtifactName: image, Results: [{ Vulnerabilities: [{ Severity: 'HIGH', VulnerabilityID: 'CVE-2026-1', PkgName: 'mount' }] }] };
+const report = { SchemaVersion: 2, ArtifactName: image, Results: [{ Vulnerabilities: [{ Severity: 'HIGH', VulnerabilityID: 'CVE-2026-1', PkgName: 'mount', InstalledVersion: '2.41.5' }] }] };
 const entry = { id: 'CVE-2026-1', images: ['guard'], packages: ['mount'], debianTracker: { source: 'util-linux', release: 'trixie' },
     expires: '2099-01-01', reviewedAt: '2026-10-28', reason: 'No fixed trixie build', reachability: 'mount is removed from the image' };
 const tracker = trixie => ({ 'util-linux': { 'CVE-2026-1': { releases: { trixie } } } });
@@ -11,12 +11,12 @@ const noDsa = { status: 'open', urgency: 'not yet assigned', nodsa: 'Minor issue
 test('a Debian-tracked exception holds while trixie has no fix and no DSA', () => {
     for (const trixie of [noDsa, { status: 'open', nodsa: 'Minor issue; wait for upstream', nodsa_reason: 'postponed' }, { status: 'open', nodsa_reason: 'ignored' }]) {
         assert.equal(debianStillUnfixed(tracker(trixie), entry), true);
-        assert.deepEqual(inspectContainer(report, image, [entry], undefined, { debianTracker: tracker(trixie) }), { total: 1, unreviewed: 0, fixedUpstream: [] });
+        assert.deepEqual(inspectContainer(report, image, [entry], undefined, { debianTracker: tracker(trixie) }), { total: 1, unreviewed: 0, fixedUpstream: [], open: [] });
     }
 });
 test('a Debian fix or a planned DSA ends the exception before its expiry date', () => {
     for (const trixie of [{ status: 'resolved', fixed_version: '2.41.6-0+deb13u1' }, { ...noDsa, fixed_version: '2.41.6-0+deb13u1' }, { status: 'open', urgency: 'high' }]) {
-        assert.deepEqual(inspectContainer(report, image, [entry], undefined, { debianTracker: tracker(trixie) }), { total: 1, unreviewed: 1, fixedUpstream: ['CVE-2026-1'] });
+        assert.deepEqual(inspectContainer(report, image, [entry], undefined, { debianTracker: tracker(trixie) }), { total: 1, unreviewed: 1, fixedUpstream: ['CVE-2026-1'], open: ['CVE-2026-1 mount 2.41.5'] });
     }
 });
 test('without tracker data, or for a CVE the tracker does not know, a tracked exception does not hold', () => {
