@@ -11,6 +11,8 @@
  * summarised by the server into `canDecide`, so the client never has to
  * reimplement quorum rules it could get wrong.
  */
+import type { FillField } from '@/features/forms';
+
 export interface Approval {
     id: string;
     automationId: string | null;
@@ -28,6 +30,13 @@ export interface Approval {
     decidedAt: string | null;
     expiresAt: string | null;
     createdAt: string;
+    /**
+     * A test or dry run's approval (the sandbox seat): the person who started
+     * the run decides it alone, and nobody else was asked. False on an older server.
+     */
+    isTest: boolean;
+    /** The answers approving asks for (the snapshot's form fields); empty when it asks none. */
+    fields: FillField[];
 }
 
 export interface ApprovalDetail {

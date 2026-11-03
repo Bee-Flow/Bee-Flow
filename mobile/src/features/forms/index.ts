@@ -17,3 +17,10 @@ export { useFormRecents, useForms, useRememberFormOpened } from './hooks/queries
 export { recentForms } from './model/recents';
 export { formFillPath, formPagePath } from './model/formPage';
 export type { FormSummary } from './model/types';
+
+// One form page's controls, for another feature that asks a form's questions:
+// an approval that asks for answers (features/approvals) shows them the way a
+// form page does. Its field shapes are the same formTriggerContract fields.
+export { FormRenderer, type FormRendererProps } from './components/fill/FormRenderer';
+export { readFillFields } from './api/fillReaders';
+export type { Answers, FillField } from './model/fillTypes';

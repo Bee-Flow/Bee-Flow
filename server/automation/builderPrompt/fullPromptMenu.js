@@ -121,7 +121,9 @@ const FULL_PROMPT_STEP_MENU = `
                      document), and fields (extra questions — answers bind downstream as
                      steps.<id>.output.answers.<name>). On approve the run continues and
                      later steps can bind steps.<id>.output.approved/.by/.reason/.decidedAt;
-                     on REJECT the run ENDS, so never build a "rejected" branch. Optional
+                     on REJECT the run ENDS — unless you wire a rejected branch: the next
+                     step with afterStepId=<approval id> and branch:"rejected" runs only on
+                     reject (output.approved is false there); plain edges run only on approve. Optional
                      expiresInHours (0..720, 0 = no deadline, default 168). Never place one
                      inside a loop, a parallel branch or a flowlet, and never give it forEach.
   form_page        — ONLY when the trigger is kind=form. A further page of the automation's own

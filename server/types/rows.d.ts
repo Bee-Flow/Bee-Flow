@@ -318,6 +318,7 @@ declare namespace DbRow {
         attachments: Json | null;
         automation_id: string | null;
         automation_title: string;
+        configured_routing: Json | null;
         context: Json | null;
         created_at: Date;
         decided_at: Date | null;
@@ -335,6 +336,7 @@ declare namespace DbRow {
         final_approver_group_id: string | null;
         final_approver_user_id: string | null;
         id: string;
+        is_test: boolean | null;
         on_decided: Json | null;
         organization_id: string | null;
         owner_id: string;
@@ -347,6 +349,7 @@ declare namespace DbRow {
         requested_by: string | null;
         root_run_id: string | null;
         run_id: string | null;
+        sandbox_user_id: string | null;
         source: string;
         stage: string | null;
         stage_entered_at: Date | null;
@@ -450,7 +453,10 @@ declare namespace DbRow {
         audience: string;
         automation_id: string;
         created_at: Date;
+        expires_at: Date | null;
         id: string;
+        is_test: boolean;
+        issued_by_user_id: string | null;
         last_seen_at: Date | null;
         shared_groups: Json;
         shared_user_ids: Json;
@@ -474,6 +480,7 @@ declare namespace DbRow {
         expires_at: Date;
         form_page_id: string;
         id: string;
+        is_test: boolean;
         pending_attempts: number;
         pending_lease_until: Date | null;
         pending_work: Json | null;
@@ -604,6 +611,7 @@ declare namespace DbRow {
         pii_token_map: Json | null;
         root_run_id: string | null;
         root_step_id: string | null;
+        run_profile: Json | null;
         started_at: Date | null;
         started_by_user_id: string | null;
         status: string;

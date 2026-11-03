@@ -27,6 +27,8 @@ const execution = require('./execution');
 const { resolveTriggerPayload } = execution;
 const { automationForRun } = require('./definitionForRun');
 const { runTriggerOnly } = require('./partialTriggerRun');
+// How a root partial run enters: which trigger, and with which payload (RM-8).
+const { replayedTriggerPayload, enteredTriggerOf, rootReaching } = require('./partialRunEntry.mts');
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
 const { bestEffort } = require('../../utils/bestEffort');
 
@@ -126,7 +128,7 @@ function _referencesLoopVar(steps) {
  * user clicked, and so the root partial-run seeding keeps ignoring it (it filters
  * out rows that carry a parent).
  */
-async function runPartialInLoopBody(automation, { chain, prefix, localId, body }, { mode = 'only', triggerKind = 'manual', triggerPayload = null, startedByUserId = null, seed = seedOptions() } = {}) {
+async function runPartialInLoopBody(automation, { chain, prefix, localId, body }, { mode = 'only', triggerKind = 'manual', triggerPayload = null, startedByUserId = null, seed = seedOptions(), onRunCreated = null } = {}) {
     const def = automation.definition || {};
     const rootStepIds = new Set((def.steps || []).map(s => s?.id).filter(Boolean));
     const bodyStepIds = new Set(body.map(s => s?.id).filter(Boolean));
@@ -215,6 +217,9 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
         replayState,
         loopVars,
         stepRecord: { prefix, parentStepId: prefix.slice(0, -1), suppress: false },
+        // Profile scope; no stop bound (a resume has no synthetic definition).
+        partial: { mode, targetStepId: localId, scope: /** @type {'loop'} */ ('loop') },
+        onRunCreated,
     };
     if (mode === 'only') {
         opts.onlyStepId = localId;
@@ -230,7 +235,8 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
         throw new Error(`runPartial: unknown mode "${mode}" (expected 'only', 'from' or 'upTo')`);
     }
 
-    const plan = seed.seedRunId
+    // Always planned (RM-9); 'upTo' runs the steps before the target on purpose.
+    const plan = mode !== 'upTo'
         ? planPartialExecution({ trigger: syntheticAutomation.definition.trigger, steps: body, edges: syntheticAutomation.definition.edges, layers: def.layers }, { targetId: localId, mode: /** @type {'only'|'from'} */ (mode), replayState })
         : null;
     return executePartial(syntheticAutomation, opts, { seed, plan, staleFrom, seedRun: runsWindow?.[0] });
@@ -261,7 +267,7 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
  * own bare ids, so the inspector finds the target step record by its id.
  * @param {string} stepId
  */
-async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode = 'only', triggerKind = 'manual', triggerPayload = null, recordPrefix = '', startedByUserId = null, seed = seedOptions() } = {}) {
+async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode = 'only', triggerKind = 'manual', triggerPayload = null, recordPrefix = '', startedByUserId = null, seed = seedOptions(), onRunCreated = null } = {}) {
     const def = automation.definition || {};
     const isLayerTrigger = layer.trigger?.id === stepId;
     const layerStepIds = new Set((layer.steps || []).map(s => s?.id).filter(Boolean));
@@ -393,6 +399,9 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
         // run writes) instead of the layer's bare ids, so the row matches the
         // node id the canvas asked to run. Null keeps the drill-in behaviour.
         stepRecord: recordPrefix ? { prefix: recordPrefix, parentStepId: recordPrefix.slice(0, -1), suppress: false } : null,
+        // Profile scope; no stop bound (a resume has no synthetic definition).
+        partial: { mode, targetStepId: stepId, scope: /** @type {'layer'} */ ('layer') },
+        onRunCreated,
     };
     // "From the flowlet input" → run the whole layer downstream of its trigger.
     if (isLayerTrigger && mode === 'from') {
@@ -415,7 +424,8 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
         throw new Error(`runPartial: unknown mode "${mode}" (expected 'only', 'from' or 'upTo')`);
     }
 
-    const plan = seed.seedRunId
+    // Always planned (RM-9), except where everything before the target runs on purpose.
+    const plan = mode !== 'upTo' && !(isLayerTrigger && mode === 'from')
         ? planPartialExecution({ trigger: layer.trigger, steps: layer.steps, edges: layer.edges, layers: def.layers }, { targetId: stepId, mode: /** @type {'only'|'from'} */ (mode), replayState })
         : null;
     return executePartial(syntheticAutomation, opts, { seed, plan, staleFrom: opts.replayState ? staleFrom : null, seedRun: runsWindow?.[0] });
@@ -444,33 +454,6 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
  * replay. With no prior run, runs from a fresh state.
  */
 /**
- * Which trigger node reaches `stepId` through the root edges — the primary
- * (returned as null, the runner's "enter at the primary") when it does, else
- * the first ADDITIONAL trigger that does. A step only wired from a secondary
- * trigger would be seeded from the primary, whose walk never reaches it, so
- * "Run up to here" on it would execute nothing.
- * @param {string} stepId
- */
-function rootReaching(def, stepId) {
-    const edges = Array.isArray(def.edges) ? def.edges : [];
-    const reaches = (fromId) => {
-        const seen = new Set([fromId]);
-        const queue = [fromId];
-        while (queue.length) {
-            const cur = queue.shift();
-            if (cur === stepId) return true;
-            for (const e of edges) {
-                if (e && e.from === cur && !seen.has(e.to)) { seen.add(e.to); queue.push(e.to); }
-            }
-        }
-        return false;
-    };
-    if (!def.trigger?.id || reaches(def.trigger.id)) return null;
-    const extra = (Array.isArray(def.triggers) ? def.triggers : []).find(t => t?.id && reaches(t.id));
-    return extra ? extra.id : null;
-}
-
-/**
  * The automation a partial run works on. Unmanaged: the row as given (a partial
  * run is a builder's test of the working copy, decided by executeAutomation).
  * Managed by a Solution stage (D17): its live copy with the live settings,
@@ -492,11 +475,13 @@ async function forPartialRun(automation, triggerKind) {
 // lets steps the run has no output for execute live; `confirmSideEffects` is the
 // caller's yes to executing steps that send or write; `planOnly` returns
 // `{ rerunPlan }` and executes nothing. The result of an executed seeded run
-// carries `rerunPlan` too.
+// carries `rerunPlan` too. Without a seed run, `confirmSideEffects` is the yes to
+// prerequisites that send or write and would run live (RM-9).
+// `onRunCreated` goes to the run this starts (the trigger-only paths have none).
 /**
  * @param {string} stepId
  */
-async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'manual', triggerPayload = null, rootStepId = null, startedByUserId = null, seedRunId = null, allowLiveUpstream = false, confirmSideEffects = false, planOnly = false } = {}) {
+async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'manual', triggerPayload = null, rootStepId = null, startedByUserId = null, seedRunId = null, allowLiveUpstream = false, confirmSideEffects = false, planOnly = false, onRunCreated = null } = {}) {
     if (!stepId) throw new Error('runPartial: stepId is required');
     const seed = seedOptions({ seedRunId, allowLiveUpstream, confirmSideEffects, planOnly }, mode);
     automation = await forPartialRun(automation, triggerKind);
@@ -520,7 +505,7 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
         // '<loopId>/<stepId>', and they are not nodes of the root DAG.
         const inLoop = findStepInLoopBody(def, stepId);
         if (inLoop) {
-            return runPartialInLoopBody(automation, inLoop, { mode, triggerKind, triggerPayload, startedByUserId, seed });
+            return runPartialInLoopBody(automation, inLoop, { mode, triggerKind, triggerPayload, startedByUserId, seed, onRunCreated });
         }
         // The step may live inside a flowlet/layer — those aren't nodes of the
         // root DAG either, so run the layer's own sub-graph with this step as
@@ -538,7 +523,7 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
             recordPrefix = stepId.slice(0, stepId.lastIndexOf('/') + 1);
         }
         if (inLayer) {
-            return runPartialInLayer(automation, inLayer, layerTargetId, { mode, triggerKind, triggerPayload, recordPrefix, startedByUserId, seed });
+            return runPartialInLayer(automation, inLayer, layerTargetId, { mode, triggerKind, triggerPayload, recordPrefix, startedByUserId, seed, onRunCreated });
         }
         throw new Error(`runPartial: step ${stepId} not found in definition`);
     }
@@ -548,7 +533,8 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
     // actually run. Pinned steps still short-circuit to their pin inside
     // dispatchStep, so pinning is how you keep one from re-running.
     if (mode === 'upTo') {
-        const opts = { triggerKind, triggerPayload, mode: 'live', rootStepId: root, startedByUserId };
+        // `partial`: the profile keeps the bound across a pause on the way (RM-1).
+        const opts = { triggerKind, triggerPayload, mode: 'live', rootStepId: root, startedByUserId, partial: { mode: /** @type {'upTo'} */ ('upTo'), targetStepId: stepId, scope: /** @type {'root'} */ ('root') }, onRunCreated };
         // Stopping "after the trigger" is the whole flow's first step and has
         // no meaning as a partial run; treat it as the trigger-only case.
         if (!isTrigger) opts.untilStepId = stepId;
@@ -589,10 +575,10 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
         }
     }
 
+    const replayed = replayedTriggerPayload({ triggerPayload, seedRunId: seed.seedRunId, runsWindow, enteredTrigger: enteredTriggerOf(def, root) });
     const opts = {
         triggerKind,
-        // The inputs of the chosen run include what started it.
-        triggerPayload: triggerPayload ?? (seed.seedRunId ? runsWindow?.[0]?.triggerPayload ?? null : null),
+        triggerPayload: replayed.payload,
         mode: 'live',
         // Lineage points at the most recent prior run (the replay window is
         // wider, but parentage stays single-parent).
@@ -600,6 +586,9 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
         replayState,
         rootStepId: root,
         startedByUserId,
+        // Profile scope: 'only' keeps its target as the stop bound across a pause (RM-1, F3).
+        partial: { mode: /** @type {PartialMode} */ (mode), targetStepId: isTrigger ? null : stepId, scope: /** @type {'root'} */ ('root') },
+        onRunCreated,
     };
     // "From trigger" → run the whole automation downstream of the trigger.
     // Treating it as a normal run (no fromStepId/onlyStepId) is the cleanest
@@ -614,10 +603,9 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
         throw new Error(`runPartial: unknown mode "${mode}" (expected 'only' or 'from')`);
     }
 
-    const plan = seed.seedRunId
-        ? planPartialExecution(def, { targetId: stepId, mode, rootStepId: root, replayState })
-        : null;
-    return executePartial(automation, opts, { seed, plan, staleFrom, seedRun: runsWindow?.[0] });
+    // Always planned and enforced (RM-9, partialRunPlan.executePartial).
+    const plan = planPartialExecution(def, { targetId: stepId, mode: /** @type {'only'|'from'} */ (mode), rootStepId: root, replayState });
+    return executePartial(automation, opts, { seed, plan, staleFrom, seedRun: runsWindow?.[0], replaySource: replayed.source });
 }
 
 /**

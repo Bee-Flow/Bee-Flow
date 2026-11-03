@@ -19,12 +19,16 @@
  * execIntegrationAction's sideEffect gate: GET/HEAD execute for real so the
  * builder preview shows the actual response shape; POST/PUT/PATCH/DELETE are
  * synthesized so a preview can never cause a real external side effect.
+ * The synthesized answer is not an empty string (RM-7): it has the SHAPE of
+ * the last real answer this step gave (keys and types, sample values), or
+ * `{}`, so a parse_json behind it does not go red on a step that works live
+ * (the dry-run honesty rule, ./execCode.js header).
  */
 
 'use strict';
 
 const { interpolateTemplate, interpolateJsonBody } = require('../automationModel/bind');
-const { withStepQuery, parseStepUrl, shieldPart, joinShieldedUrl } = require('./httpQuery');
+const { withStepQuery, shieldPart, joinShieldedUrl } = require('./httpQuery');
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 const { isPrivateHost, guardOutbound } = require('./outboundGuard');
 // Feature C — http_request credential injection (see httpAuth.js).
@@ -40,6 +44,8 @@ const safety = require('./safety');
 const { captureCall: captured } = require('../http/captureCall');
 const { bestEffort } = require('../../utils/bestEffort');
 const { noteRunWarning } = require('./runWarnings');
+// The dry-run answer and URL check (RM-7) live there.
+const { dryRunHttpOutput, dryRunPlaceholder, checkedUrl, checkDryRunUrl } = require('./httpDryRun');
 
 /**
  * Whether a step's `blockPrivateTargets: false` takes effect on this server.
@@ -80,11 +86,6 @@ function buildHttpRequest(step, runState) {
         && typeof step.auth.connectionId === 'string' && step.auth.connectionId)
         ? step.auth.connectionId : null;
     return { url, method, headers, isWrite, body, authConnectionId };
-}
-
-/** The shape every synthesized dry-run answer of this step has. */
-function dryRunHttpOutput(extra = {}) {
-    return { status: 200, ok: true, headers: {}, body: '', data: null, _dryRun: true, ...extra };
 }
 
 /**
@@ -244,15 +245,15 @@ async function execHttpRequest(step, ctx, runState, mode) {
 
     // Dry-run: writes stay synthesized as before; with a credential attached,
     // reads are synthesized too — a dry-run must NEVER decrypt or transmit a
-    // stored credential.
+    // stored credential. The answer has the last real answer's shape (RM-7).
+    // The URL is checked first: a static check with no side effect, so a dry
+    // run refuses a bad URL exactly as live (./execCode.js header), unless the
+    // URL is built from data the dry run simulated.
     if (mode === 'dry_run' && (req.isWrite || req.authConnectionId)) {
-        return { output: dryRunHttpOutput(), dryRunSynthesised: true };
+        checkDryRunUrl(step, ctx, runState, req.url);
+        return { output: await dryRunPlaceholder(step, ctx), dryRunSynthesised: true };
     }
-
-    const parsedUrl = parseStepUrl(req.url);
-    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        throw new Error(`http_request: unsupported URL scheme "${parsedUrl.protocol}" — only http/https are allowed.`);
-    }
+    const parsedUrl = checkedUrl(req.url);
 
     // Default true. The step's opt-out counts only on a server that allows it.
     const blockPrivateTargets = step.blockPrivateTargets !== false || !privateTargetsAllowed();
@@ -320,6 +321,6 @@ module.exports = { execHttpRequest };
  * @typedef {ReturnType<typeof import('./runContext').buildRunContext>} HttpCtx
  * @typedef {import('./runDagRecord').DagRunState & { [MASK_VALUES]?: string[] }} HttpRunState
  * @typedef {ReturnType<typeof buildHttpRequest>} HttpReq
- * @typedef {ReturnType<typeof parseStepUrl>} ParsedUrl
+ * @typedef {ReturnType<typeof import('./httpQuery').parseStepUrl>} ParsedUrl
  * @typedef {Awaited<ReturnType<typeof guardOutbound>>} Guarded
  */

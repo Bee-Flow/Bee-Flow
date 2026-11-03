@@ -22,7 +22,7 @@ function makeLeafRunner(deps, dispatchStep) {
     const e = deps.engine;
     const { execFlatten } = deps;
     return async function runStepLeaf(step, ctx_, state_, mode_) {
-        preflightBlankInputs(step, state_, mode_);
+        preflightBlankInputs(step, state_, mode_, ctx_);
         switch (step.type) {
             case 'integration_action': return e.execIntegrationAction(step, ctx_, state_, mode_);
             case 'ai_step':            return e.execAiStep(step, ctx_, state_, mode_);

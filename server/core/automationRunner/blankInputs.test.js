@@ -152,9 +152,11 @@ test('only a step that ran blocks: not_run joins and optional trigger keys stay 
     await passes({ type: 'notification', id: 'n', title: 't', body: 'hi {{loop.item.nickname}}' });
 });
 
-test('a dry run is never stopped', async () => {
-    await passes({ type: 'notification', id: 'n', title: 't', body: BAD }, 'dry_run');
-    await passes({ type: 'datatable', id: 'd', op: 'add_row', datatableId: 't', values: { Name: { kind: 'expr', value: 'steps.ev.output.event.summary' } } }, 'dry_run');
+// RM-5: a dry run checks like a live run when the data is real; only a hole
+// in data the dry run simulated is let through (blankInputs.dryRun.test.js).
+test('a dry run is stopped on real data, as live', async () => {
+    await blocked({ type: 'notification', id: 'n', title: 't', body: BAD }, 'dry_run');
+    await blocked({ type: 'datatable', id: 'd', op: 'add_row', datatableId: 't', values: { Name: { kind: 'expr', value: 'steps.ev.output.event.summary' } } }, 'dry_run');
 });
 
 test('a failed preflight leaves its misses in the step log', async () => {

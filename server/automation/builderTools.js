@@ -175,8 +175,8 @@ for (const t of TOOL_SCHEMAS) {
 for (const t of TOOL_SCHEMAS) {
     const b = t.function?.parameters?.properties?.branch;
     if (!b || !Array.isArray(b.enum)) continue;
-    if (!b.enum.includes('error')) b.enum.push('error');
-    b.description = `${b.description || ''} Pass "error" to wire this step onto afterStepId's on_error branch instead (runs only when that step fails after retries; bind the failure via steps.<afterStepId>.error.message).`.trim();
+    for (const v of ['error', 'rejected']) if (!b.enum.includes(v)) b.enum.push(v);   // 'rejected': an approval's branch (edgeLabels.mts)
+    b.description = `${b.description || ''} Pass "error" to wire this step onto afterStepId's on_error branch instead (runs only when that step fails after retries; bind the failure via steps.<afterStepId>.error.message). Pass "rejected" when afterStepId is an approval to start its rejected branch (runs only when the approver rejects; steps.<afterStepId>.output.approved is false there).`.trim();
 }
 
 // Mutators where id confusion actually happens: they change the topology
@@ -509,9 +509,17 @@ function rejectionLadder(name, args, result, draftWrap, { patched = false } = {}
  */
 async function dryRunHint(s, draftWrap, { readFullOutput = null } = {}) {
     const stored = await resolveStoredOutput(s.output, { readFullOutput });
-    const { out, note: storedNote, partial } = stored;
+    const { note: storedNote, partial } = stored;
     let note = storedNote;
+    // An approval's routing preview (`_preview`) is for the author, not a field
+    // a step can bind: it stays out of the shape and the keys.
+    const { withoutPreview, simulatedPauseNote } = require('./testing/dryRunWarnings.mts');
+    const out = withoutPreview(stored.out);
     const isObj = out && typeof out === 'object' && !Array.isArray(out);
+    // Nobody answered: say so, so the model does not rebind steps against an
+    // approval nobody was asked about, or a page nobody filled in.
+    const simulated = simulatedPauseNote(out);
+    if (simulated) note = [note, simulated].filter(Boolean).join('; ');
     const shapeCache = require('./shapeCache');
     const shape = out !== undefined && out !== null && typeof out === 'object' ? shapeCache.shapeHintOf(out) : null;
     if (out !== undefined && draftWrap && draftWrap.def) {

@@ -52,7 +52,7 @@ describe('normalizeDefinition', () => {
 });
 
 describe('branchEdges', () => {
-    const handles = [null, undefined, '', 'then', 'else', 'on_error', 'case:vip', 'case:default', 'out', 42];
+    const handles = [null, undefined, '', 'then', 'else', 'on_error', 'on_rejected', 'approved', 'case:vip', 'case:default', 'out', 42];
     it.each(handles.map((h) => [String(h), h] as const))('branchFromHandle(%s)', (_l, h) => {
         expect(edgesPort.branchFromHandle(h)).toEqual(webEdges.branchFromHandle(h));
     });

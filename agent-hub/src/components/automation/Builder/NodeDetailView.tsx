@@ -1,5 +1,6 @@
-import React, { type ComponentProps, useCallback, useMemo, useRef, useState } from 'react';
-import ApprovalActionBar from './approvals/ApprovalActionBar';
+import React, { type ComponentProps, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { runPhase } from './runs/runPhase';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { buildStepLabelMap } from './flow/displayHelpers';
 import { isRouteStep } from './flow/routeModel';
 import { FormDensityContext, resolveMode, type FormDensity, type FormMode } from './flow/settings/formDensity';
@@ -25,7 +26,7 @@ import useNdvPanels from './useNdvPanels';
 import useNodeDetailData from './useNodeDetailData';
 import { useTranslation } from '@/hooks/useTranslation';
 import { walkPath } from '@/utils/bindingHelpers';
-import type { RunStepRow, PlacedStep, BlockCatalogEntry, TriggerAutomation, Group, UpstreamDefinition, UpstreamNode, ModelTierConfig, Validation, ToolCatalog, NextSuggestion, FocusedField, ApprovalDecl, NodeDetailViewProps } from './NodeDetailView.types';
+import type { RunStepRow, PlacedStep, BlockCatalogEntry, TriggerAutomation, Group, UpstreamDefinition, UpstreamNode, ModelTierConfig, Validation, ToolCatalog, NextSuggestion, FocusedField, NodeDetailViewProps } from './NodeDetailView.types';
 
 /**
  * Node Detail View (NDV): the focused editor for a single step, at two
@@ -47,8 +48,12 @@ import type { RunStepRow, PlacedStep, BlockCatalogEntry, TriggerAutomation, Grou
 const QUICK_H = 'clamp(300px, 42vh, 520px)';
 const QUICK_H_STACKED = 'clamp(420px, 55vh, 680px)';
 
+const PausedApprovalBar = lazyWithI18n(() => import('./approvals/PausedApprovalBar')); // lazy: only needed while a run waits here
+
 export default function NodeDetailView({
     step, runStep, runSteps = [], definition, rootDefinition = null, blocksCatalog = [], onSaveStep,
+    // The run the canvas follows, and the way to hand it a run to follow (the approval bar).
+    followedRun = null, onFollowRun = null,
     // (base, from, to) => number|undefined. The shell's edit (BuildTab.onRenameBinding).
     onRenameBinding = null,
     // (stepId, step) => boolean|undefined. The shell's edit (BuildTab.onInsertStepBefore).
@@ -258,14 +263,8 @@ export default function NodeDetailView({
                     onClose={onClose}
                 />
 
-                {runStep?.status === 'awaiting_approval' && (runStep?.runId as string | undefined) && (
-                    <ApprovalActionBar
-                        runId={runStep.runId as string}
-                        stepId={step?.id}
-                        // The run's rendered question first; the raw prompt is the fallback.
-                        prompt={(runStep?.output as { prompt?: unknown } | null | undefined)?.prompt || step?.prompt}
-                        fields={Array.isArray((step?.approval as ApprovalDecl | undefined)?.fields) ? (step.approval as ApprovalDecl).fields : null}
-                    />
+                {runPhase(followedRun).phase === 'paused_approval' && ( /* only while the run waits on THIS step; the bar reads the approval's snapshot */
+                    <Suspense fallback={null}><PausedApprovalBar run={followedRun} stepId={step?.id} runStep={runStep} onFollowRun={onFollowRun} /></Suspense>
                 )}
 
                 {/* Quick density: the settings and the output side by side when

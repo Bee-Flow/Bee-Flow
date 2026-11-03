@@ -1,7 +1,7 @@
 import { rowLayoutPositions } from './arrange';
 import { rowBands, rowIndexById, type BandItem } from './rowBands';
 import { toolLayoutHeights } from './aiToolNodes';
-import { edgeKey as defEdgeKey } from './branchEdges';
+import { approvalEdgeRouting, edgeKey as defEdgeKey } from './branchEdges';
 import { isFinitePos } from './dagreLayout';
 import { summariseEdgeData } from './dataSummary';
 import { buildStepLabelMap } from './displayHelpers';
@@ -20,7 +20,7 @@ export type { LayoutCatalog } from './layout.types';
  * them labels every handle it renders, so for these the edge's own chip is the
  * second copy of a name the canvas already shows.
  */
-const PORT_LABELLED_TYPES = new Set<string | undefined>(['condition', 'guard', 'switch', 'loop']);
+const PORT_LABELLED_TYPES = new Set<string | undefined>(['condition', 'guard', 'switch', 'loop', 'approval']);
 // The Condition's two shapes whose ports carry names an edge chip could cover.
 const NAMED_PORT_TYPES = new Set<string | undefined>(['condition', 'switch']);
 
@@ -263,6 +263,7 @@ export function buildLayout(def: DiagramDefinition, { runByStep, issuesByStep, o
                 kind = 'on_error';
                 sourceHandle = typeById.get(e.from) === 'loop' ? 'on_error' : undefined;
             }
+            else if (typeById.get(e.from) === 'approval') ({ kind, sourceHandle } = approvalEdgeRouting(e));
             else if (typeById.get(e.from) === 'loop') {
                 // A Loop step's remaining outgoing edge is its "Done"
                 // port. Map it there regardless of label — today's saved

@@ -275,6 +275,11 @@ describe('the skip matrix', () => {
         no_service_email: 'no_work',
         no_owner_email: 'no_work',
         not_sent: 'no_work',
+        // Amber — a dry run that could not do what a live run would (a refusal
+        // live, or input the dry run made up itself).
+        would_fail_live: 'no_work',
+        synthetic_input: 'no_work',
+        synthetic_source: 'no_work',
         // Its own status, not a skip at all in the UI.
         pinned: 'pinned',
     };

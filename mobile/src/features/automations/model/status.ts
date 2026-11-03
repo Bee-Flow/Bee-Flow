@@ -24,6 +24,7 @@
  */
 
 import type { TranslateFn } from '@/core/i18n';
+import { runPhase, type RunPhaseInput } from '@/shared/runs/runPhase';
 import type { IconName } from '@/shared/ui';
 
 import type { AutomationRunStep, RunStatus } from './types';
@@ -94,7 +95,9 @@ export function statusToken(status: RunStatus | null | undefined): StatusToken {
     const idle = TOKENS.idle as StatusToken;
     if (!status) return idle;
     const lower = String(status).toLowerCase();
-    // Server-side aliases, same three the web table maps.
+    // Server-side aliases, same three the web table maps. `awaiting_confirm`
+    // is the legacy first-run confirmation: no run reaches it any more, a row
+    // from before still reads as one more decision (runPhase says the same).
     if (lower === 'failed') return TOKENS.error as StatusToken;
     if (lower === 'awaiting_confirm') return TOKENS.awaiting_approval as StatusToken;
     if (lower === 'paused_breakpoint') return TOKENS.paused as StatusToken;
@@ -106,9 +109,18 @@ export function statusLabel(t: TranslateFn, token: StatusToken): string {
     return t(token.labelKey, token.labelEn);
 }
 
-/** True for a run that has not settled — drives polling and the live region. */
+/** True for a run that has not settled — drives polling and the live region. A pause is live too. */
 export function isLiveStatus(status: RunStatus | null | undefined): boolean {
     return statusToken(status).live;
+}
+
+/**
+ * True while a run is doing work (running or queued), not paused and not over:
+ * what the run actions and the line over the flow branch on, read through the
+ * web's runPhase (@/shared/runs/runPhase) rather than a status word.
+ */
+export function isMovingRun(run: RunPhaseInput | null | undefined): boolean {
+    return runPhase(run).phase === 'running';
 }
 
 // ── Skips: which grey, which amber ──────────────────────────────────
@@ -147,6 +159,10 @@ export const SKIP_REASONS: Readonly<Record<string, SkipGroup>> = Object.freeze({
     no_service_email: 'no_work',
     no_owner_email: 'no_work',
     not_sent: 'no_work',
+    // Dry runs: a check that would fail live, or input the dry run made up itself.
+    would_fail_live: 'no_work',
+    synthetic_input: 'no_work',
+    synthetic_source: 'no_work',
     pinned: 'pinned',
 });
 

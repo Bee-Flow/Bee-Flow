@@ -29,6 +29,7 @@ let ensureThrows = false;
 let scopeCalls = [];
 
 let audienceWrites = [];
+let testPage = null;
 let groupsOf = {};
 let orgGroups = ['g-fin', 'g-sales'];
 let orgUsers = { user1: 'org1', pat: 'org1', sam: 'org1', out: 'org2' };
@@ -67,6 +68,7 @@ mock(path.join(SERVER, 'stores/automationStore'), {
     updateAutomation: async (id, updates) => { AUTOMATIONS[id] = { ...AUTOMATIONS[id], ...updates }; return AUTOMATIONS[id]; },
     createAutomation: async (opts) => { const row = { id: 'new1', ...opts }; AUTOMATIONS[row.id] = row; return row; },
     listFormPagesForOrg: async (orgId, userId) => { scopeCalls.push({ orgId, userId }); return ORG_FORMS; },
+    getTestFormPage: async () => testPage,
     ensureFormPage: async (automationId, triggerStepId) => {
         if (ensureThrows) throw new Error('db is down');
         ensured.push({ automationId, triggerStepId });
@@ -314,6 +316,30 @@ test('PUT /forms/:id/audience: owner only, validated against the organisation, w
     await audienceHandler(req({ audience: 'org' }), res);
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(res.body.audience, { mode: 'org', groups: [], users: [] });
+});
+
+test('GET /forms/:id: an editor learns the changes not live, the versions and the test link; a reader does not', async () => {
+    ORG_FORMS = [formRow()];
+    AUTOMATIONS = { auto1: { id: 'auto1', userId: 'user1', pendingChanges: 2, liveVersion: 3, version: 5, definition: formRow().definition } };
+    testPage = { id: 'd'.repeat(48), automationId: 'auto1', isTest: true, issuedByUserId: 'user1', expiresAt: '2026-11-17T00:00:00Z', createdAt: 'x', audience: 'restricted', sharedGroups: [], sharedUserIds: ['user1'] };
+    const detail = findHandler(crudRouter, 'get', '/forms/:automationId');
+    const req = (user) => ({ ...reqFor(user), params: { automationId: 'auto1' } });
+
+    let res = makeRes();
+    await detail(req(), res);
+    assert.strictEqual(res.statusCode, 200);
+    const f = res.body.form;
+    assert.strictEqual(f.pendingChanges, 2);
+    assert.strictEqual(f.liveVersion, 3);
+    assert.strictEqual(f.version, 5);
+    assert.strictEqual(f.testLink.url, `/f/${'d'.repeat(48)}`);
+    assert.deepStrictEqual(f.testLink.audience, { mode: 'restricted', groups: [], users: ['user1'] });
+
+    res = makeRes();
+    await detail(req({ id: 'pat', organizationId: 'org1' }), res);
+    assert.strictEqual(res.statusCode, 200);
+    for (const key of ['pendingChanges', 'liveVersion', 'testLink', 'definition']) assert.ok(!(key in res.body.form), `${key} is an editor's`);
+    testPage = null;
 });
 
 test('shows one entry per form when an automation has duplicate page rows', async () => {

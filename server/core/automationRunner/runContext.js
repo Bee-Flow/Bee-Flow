@@ -16,11 +16,22 @@ const log = require('../../telemetry/log');
 const { writeRunOutcome, withLastOutput } = require('./runFinalize');
 const { bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * True when a trigger payload carries nothing: absent, not an object, or no
+ * key other than the underscore meta keys.
+ * @param {unknown} payload
+ */
+function isEmptyPayload(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return true;
+    return !Object.keys(payload).some((k) => !k.startsWith('_'));
+}
+
 /** The `ctx` of one run (container steps shallow-copy it). */
 function buildRunContext({
     automation, runOrgId, isResume, session, run, tokenVault, runPolicy, stepRecord,
     effectiveMode, onlyStepId, fromStepId, emitLifecycle, enteredTrigger,
     identity: { runUserGroupIds, runUserOrgRole, runUserHomeOrgId, runIdentityError },
+    profile = null,
 }) {
     const ctx = {
         userId: automation.userId,
@@ -113,18 +124,26 @@ function buildRunContext({
         // Keyed off the trigger the run ENTERED through: a dry run of a
         // secondary app-event trigger under a manual primary must synthesize
         // too, or it would dispatch its fake ids live.
+        // A form trigger entered with no answers (no payload, no pinned
+        // sample: run.triggerPayload holds the resolved one) hands blanks to
+        // every trigger.output.* read, so those reads synthesise too (RM-4).
         triggerSynthetic: effectiveMode === 'dry_run'
-            && ['app_event', 'webhook'].includes(enteredTrigger?.kind || ''),
+            && (['app_event', 'webhook'].includes(enteredTrigger?.kind || '')
+                || (enteredTrigger?.kind === 'form' && isEmptyPayload(run.triggerPayload))),
         // Theme a form_page step inherits when it declares none of its own, so
         // page 2 of a form looks like page 1 without the author restyling it.
         // Read from the trigger the run actually entered through (rootStepId),
         // falling back to the primary trigger.
         formBaseTheme: enteredTrigger?.form?.theme || null,
+        // The run's profile (automationModel/runProfile.mts): what kind of run
+        // this is and what it may do (pauses, approver seat, notifications,
+        // answers sink). Decided once in executeAutomation; read-only here.
+        profile,
     };
     return ctx;
 }
 
-/** Record the step a resumed leg continues from (live runs only). */
+/** Record the step a resumed leg continues from (live and dry runs). */
 async function recordResumeBoundary(deps, { skipUntilStepId, replayState, effectiveMode, automation, run, runState }) {
     const { automationStore } = deps;
     const { secretValuesFor } = deps.engine;
@@ -136,7 +155,9 @@ async function recordResumeBoundary(deps, { skipUntilStepId, replayState, effect
     // and a SECOND pause later in the same flow would resume with page one's
     // answers already lost. Recording it up-front (not after the DAG settles)
     // also means a crash mid-resume still leaves the audit trail intact.
-    if (skipUntilStepId && replayState && replayState[skipUntilStepId] && effectiveMode === 'live') {
+    // A dry run that paused for real (the builder answered it) resumes as a dry
+    // run, and its second pause needs the first answer just the same.
+    if (skipUntilStepId && replayState && replayState[skipUntilStepId] && (effectiveMode === 'live' || effectiveMode === 'dry_run')) {
         const boundary = replayState[skipUntilStepId];
         const node = (automation.definition?.steps || []).find(s => s?.id === skipUntilStepId);
         const now = new Date().toISOString();
@@ -207,7 +228,7 @@ async function guardTriggerPayload(deps, { triggerPayload, triggerKind, ctx, run
     return { blocked: false, row: null };
 }
 
-module.exports = { buildRunContext, recordResumeBoundary, guardTriggerPayload };
+module.exports = { buildRunContext, recordResumeBoundary, guardTriggerPayload, isEmptyPayload };
 
 /**
  * @typedef {import('./runSetup').RunAutomation} RunAutomation

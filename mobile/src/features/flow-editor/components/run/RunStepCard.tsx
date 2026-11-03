@@ -12,7 +12,7 @@ import { Pressable, View, type ViewStyle } from 'react-native';
 
 import { useTranslation, type TranslateFn } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import { formatDuration, StatusIcon } from '@/features/automations';
+import { formatDuration, simulatedPauseText, StatusIcon } from '@/features/automations';
 import { humanizeToolName, nodeTypeLabel } from '@/features/flow-editor/model';
 import { Badge, Button, Text } from '@/shared/ui';
 
@@ -34,11 +34,19 @@ const makeStyles = (theme: Theme) => ({
     name: { flex: 1 } satisfies ViewStyle,
 });
 
+/** A pause the dry run did not take is "Simulated"; any other synthesised output is sample data. */
+function sampleBadge(reason: SampleReason, t: TranslateFn): string {
+    if (reason === 'auto_approved' || reason === 'form_blank') return t('mobile.runs.simulated.badge', 'Simulated');
+    return t('automations.dry_run_panel.sample_data', 'Sample data');
+}
+
 function sampleHint(reason: SampleReason, t: TranslateFn): string {
     if (reason === 'live_failed') return t('mobile.flow.run.sample_failed', 'The live read failed, so a sample shape was used for this preview.');
     if (reason === 'live_empty') return t('mobile.flow.run.sample_empty', 'The live read returned nothing, so a sample shape was used for this preview.');
     if (reason === 'not_connected') return t('mobile.flow.run.sample_not_connected', 'The app is not connected here, so a sample shape was used for this preview.');
     if (reason === 'simulated_upstream') return t('mobile.flow.run.sample_simulated', 'This reads something an earlier step only simulates, so a sample shape was used for this preview.');
+    if (reason === 'auto_approved') return simulatedPauseText('approval', t);
+    if (reason === 'form_blank') return simulatedPauseText('form', t);
     return t('mobile.flow.run.sample_synth', 'Synthesized preview — sample data, not a live result.');
 }
 
@@ -99,7 +107,7 @@ export function RunStepCard({ row, onOpenStep }: { row: RunRowModel; onOpenStep:
                         </Text>
                     ) : null}
                 </Pressable>
-                {row.sample ? <Badge label={t('automations.dry_run_panel.sample_data', 'Sample data')} tone="warning" /> : null}
+                {row.sample ? <Badge label={sampleBadge(row.sample, t)} tone="warning" /> : null}
             </View>
             {row.sample ? (
                 <Text variant="caption" tone="tertiary">

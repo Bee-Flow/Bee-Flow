@@ -15,9 +15,12 @@
  */
 // @typecheck
 const automationStore = require('../../stores/automationStore');
-require('../../stores/notificationStore');
+const notificationStore = require('../../stores/notificationStore');
 const { firstStageKey, stageByKey, collectParticipants } = require('../automationModel/approvalStages');
-const { approvalPath } = require('../../utils/appPaths');
+// The seat an approval goes to (configured, or the tester's sandbox seat), pure.
+const routingRules = require('./approvalRouting.mts');
+const { approvalPath, automationRunStepPath } = require('../../utils/appPaths');
+const { profileOfRun } = require('../automationModel/runProfile.mts');
 const log = require('../../telemetry/log');
 // Notify, dispatch and hook calls go to automation/ (a feature) through a port.
 const { runnerPort } = require('./featurePorts');
@@ -31,6 +34,8 @@ const {
     panelRecipientIds,
 } = require('./approvalSeats');
 const { bestEffort } = require('../../utils/bestEffort');
+const { approvalClocks } = routingRules;
+const ROUTING_DEPS = { validateStages, validatePanel, validateAssignee, firstStageKey, stageByKey, collectParticipants };
 
 /**
  * Resolve the org this approval belongs to. Stamped once at creation and
@@ -80,71 +85,21 @@ async function snapshotAttachments(run, attachmentFileIds, expiresAt) {
 }
 
 /**
- * Hours-from-now → timestamps, with one rule: a clock that would fire AFTER
- * the deadline is dropped — reminding someone about an approval that already
- * expired is worse than silence.
- */
-function approvalClocks({ remindAfterHours = null, escalateAfterHours = null, expiresAt = null }, now = Date.now()) {
-    const deadline = expiresAt ? new Date(expiresAt).getTime() : null;
-    const at = (hours) => {
-        const h = Number(hours);
-        if (!Number.isFinite(h) || h < 1) return null;
-        const t = now + Math.min(Math.round(h), 720) * 3_600_000;
-        if (deadline && t >= deadline) return null;
-        return new Date(t).toISOString();
-    };
-    return { remindAt: at(remindAfterHours), escalateAt: at(escalateAfterHours) };
-}
-
-/**
  * The finalize hook: create the durable approval row for a freshly paused
- * run and return it (or null — never throws).
+ * run and return it (or null — never throws). The run's profile picks the
+ * seat (./approvalRouting.mts): the configured approvers for a production
+ * run, the tester alone for a test or dry run. A test row sends no
+ * approval.requested event, webhook, feed entry or Talk card.
  */
 async function createApprovalOnPause({ automation, run, err }) {
     try {
         const orgId = await resolveOrgId(automation);
-        // The chain is the authority when the step has one. renderApprovalExtras
-        // already resolved it against the paused run — names interpolated,
-        // conditions decided — so all that is left here is the org gate the
-        // single assignee has always passed through.
-        const stages = await validateStages(err.stages || null, orgId, automation.userId);
-        const firstKey = stages ? firstStageKey(stages) : null;
-        const firstStage = firstKey ? stageByKey(stages, firstKey) : null;
-
-        // Panel-era columns. With a chain they become MIRRORS of whichever
-        // stage is waiting (advanceApprovalStage re-points them as the chain
-        // moves), so every pre-stages reader — the request bell, the expiry
-        // announcement — still addresses the right people. Without a chain
-        // they are the record itself, exactly as before.
-        let approvers = stages
-            ? firstStage.approvers
-            : await validatePanel(err.approvers || null, orgId);
-        // With a panel, the single assignee is moot; without one, unchanged.
-        let assignee = approvers ? null : await validateAssignee(err.assignee || null, orgId);
-        const finalApprover = stages ? null : await validateAssignee(err.finalApprover || null, orgId);
-        // Pre-chain rows only: a final sign-off needs stage machinery, so a
-        // single approver plus a final approver became a one-seat 'first'
-        // panel. desugarApprovalStages now expresses that as two real stages,
-        // so this branch is only reachable for definitions that never went
-        // through it.
-        if (finalApprover && !approvers) {
-            approvers = [assignee || { userId: automation.userId }];
-            assignee = null;
-        }
+        const profile = profileOfRun(run);
+        const sandbox = routingRules.isSandboxSeat(profile);
+        const seats = await routingRules.seatColumns(ROUTING_DEPS, profile, err, orgId, automation.userId);
         const attachments = await snapshotAttachments(run, err.attachmentFileIds, err.expiresAt || null);
-        const clocks = approvalClocks({
-            remindAfterHours: err.remindAfterHours,
-            escalateAfterHours: err.escalateAfterHours,
-            expiresAt: err.expiresAt || null,
-        });
-        // The escalation target passes the same org gate as the assignee —
-        // silently escalating to a stranger would leak the approval outright.
-        const escalateTo = clocks.escalateAt ? await validateAssignee(err.escalateTo || null, orgId) : null;
-
         // Frozen at INSERT: which Solution this decision was made inside.
-        const { projectStamp } = runnerPort('approvals');
-        const project = await projectStamp(automation.projectId);
-
+        const project = await runnerPort('approvals').projectStamp(automation.projectId);
         const approval = await automationStore.createApproval({
             organizationId: orgId,
             automationId: automation.id,
@@ -154,8 +109,6 @@ async function createApprovalOnPause({ automation, run, err }) {
             rootRunId: run.rootRunId || run.id,
             stepId: err.stepId,
             ownerId: automation.userId,
-            assigneeUserId: assignee?.userId || null,
-            assigneeGroupId: assignee?.groupId || null,
             prompt: err.prompt || '',
             detailsMd: err.detailsMd || null,
             fields: err.fields || null,
@@ -165,37 +118,41 @@ async function createApprovalOnPause({ automation, run, err }) {
             // (_studioAppId), so "this app's approvals" catches run-sourced
             // rows too — the app that asked can list what it is waiting on.
             studioAppId: run.triggerPayload?._studioAppId || null,
-            remindAt: clocks.remindAt,
-            // Panels use the final approver as their takeover mechanism, so
-            // escalation only applies to single-assignee rows.
-            escalateAt: (!approvers && escalateTo) ? clocks.escalateAt : null,
-            escalateToUserId: !approvers ? (escalateTo?.userId || null) : null,
-            escalateToGroupId: !approvers ? (escalateTo?.groupId || null) : null,
-            approvers,
-            approvalRule: stages
-                ? (firstStage.rule || 'all')
-                : (approvers ? (['all', 'first', 'quorum'].includes(err.rule) ? err.rule : 'all') : null),
-            quorumCount: stages
-                ? (Number.isFinite(firstStage.quorum) ? firstStage.quorum : null)
-                : (approvers && err.rule === 'quorum'
-                    ? Math.min(Math.max(Math.round(Number(err.quorum)) || 1, 1), approvers.length)
-                    : null),
-            finalApproverUserId: finalApprover?.userId || null,
-            finalApproverGroupId: finalApprover?.groupId || null,
-            stages,
-            stageParticipants: stages ? collectParticipants(stages) : null,
-            stageKey: firstKey,
+            ...seats,
         });
         if (approval) {
             await automationStore.appendApprovalAudit({
                 approvalId: approval.id, runId: run.id, stepId: err.stepId,
-                decidedBy: null, decision: 'requested', source: 'runner',
+                decidedBy: null, decision: 'requested', source: sandbox ? 'test' : 'runner',
             }).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:createApprovalOnPause', e));
-            runnerPort('approvals').dispatchApprovalRequested(approval);
+            if (!sandbox) runnerPort('approvals').dispatchApprovalRequested(approval);
         }
         return approval;
     } catch (e) {
         log.warn(`[ApprovalLifecycle] could not create approval row for run ${run.id}: ${/** @type {Error} */ (e).message}`);
+        return null;
+    }
+}
+
+/**
+ * A live test run paused at an approval: one "Test:" bell to the tester,
+ * linking to the paused step in the builder (approvalRouting.testerBell).
+ * Never the configured approvers, never a policy channel; a dry run sends
+ * nothing. Returns the tester's id, or null. Never throws.
+ * @param {{ automation: { id: string, userId: string, title?: string | null }, run: { id: string } & import('../automationModel/runProfile.mts').ProfileRow,
+ *   stepId: string, prompt?: string, approval?: { sandboxUserId?: string | null } | null }} p
+ */
+async function notifyTesterApprovalNeeded({ automation, run, stepId, prompt = '', approval = null }) {
+    const bell = routingRules.testerBell({
+        profile: profileOfRun(run), automationTitle: automation.title, ownerId: automation.userId,
+        prompt, sandboxUserId: approval?.sandboxUserId || null,
+    });
+    if (!bell) return null;
+    try {
+        await notificationStore.createNotification({ ...bell, link: automationRunStepPath(automation.id, run.id, stepId) });
+        return bell.userId;
+    } catch (e) {
+        log.warn(`[ApprovalLifecycle] test approval bell failed for run ${run.id}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -468,6 +425,7 @@ async function expireOverdueAppApprovals() {
 
 module.exports = {
     createApprovalOnPause,
+    notifyTesterApprovalNeeded,
     reminderRecipientIds,
     sendApprovalReminder,
     approvalNotificationTargets,

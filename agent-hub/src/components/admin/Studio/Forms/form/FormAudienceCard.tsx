@@ -33,13 +33,23 @@ interface Audience {
     users: string[];
 }
 
+/** The PUT body; the answer carries the audience as the server stored it. */
+type AudienceSave = (body: { audience: string; sharedGroups: string[]; sharedUserIds: string[] }) => Promise<unknown>;
+
 interface FormAudienceCardProps {
     form: FormDetail;
     canEdit: boolean;
     onChanged?: () => void;
+    /**
+     * Another audience than the form's own (the test link's, TestLinkCard):
+     * where it is written, and the card's title, test id and radio group.
+     */
+    save?: AudienceSave | null;
+    title?: string;
+    testId?: string;
 }
 
-export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudienceCardProps) {
+export default function FormAudienceCard({ form, canEdit, onChanged, save = null, title, testId = 'form-audience' }: FormAudienceCardProps) {
     const { t } = useTranslation();
     const api = useAutomationApi();
     const directory = useOrgDirectory(canEdit);
@@ -63,7 +73,8 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
         setBusy(true);
         setError(null);
         try {
-            const res = await api.setFormAudience(form.automationId, { audience: next.mode, sharedGroups: next.groups, sharedUserIds: next.users });
+            const body = { audience: next.mode, sharedGroups: next.groups, sharedUserIds: next.users };
+            const res = await (save ? save(body) : api.setFormAudience(form.automationId, body));
             const saved = (res as { audience?: Partial<Audience>; } | null | undefined)?.audience || next;
             setAudience({ mode: saved.mode || next.mode, groups: saved.groups || next.groups, users: saved.users || next.users });
             if (onChanged) onChanged();
@@ -107,11 +118,12 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
     ];
     const options = granteeType === 'user' ? users.filter(u => !audience.users.includes(u.id)) : groups.filter(g => !audience.groups.includes(g.id));
     const restricted = audience.mode === 'restricted';
+    const heading = title || t('forms.share.audience_title', 'Who can fill it in');
 
     return (
-        <DashCard title={t('forms.share.audience_title', 'Who can fill it in')} testId="form-audience">
+        <DashCard title={heading} testId={testId}>
             <fieldset disabled={!canEdit || busy} className="space-y-2">
-                <legend className="sr-only">{t('forms.share.audience_title', 'Who can fill it in')}</legend>
+                <legend className="sr-only">{heading}</legend>
                 <div className="overflow-hidden" style={CARD}>
                     <AudienceRow
                         icon={<Lock className="w-4 h-4" aria-hidden="true" />}
@@ -120,7 +132,8 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
                         checked={restricted}
                         onSelect={() => choose('restricted')}
                         disabled={!canEdit || busy}
-                        testId="form-audience-restricted"
+                        testId={`${testId}-restricted`}
+                        group={testId}
                     />
                     <AudienceRow
                         icon={<Users className="w-4 h-4" aria-hidden="true" />}
@@ -129,21 +142,22 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
                         checked={!restricted}
                         onSelect={() => choose('org')}
                         disabled={!canEdit || busy}
-                        testId="form-audience-org"
+                        testId={`${testId}-org`}
+                        group={testId}
                         last
                     />
                 </div>
             </fieldset>
 
             {restricted && (
-                <div className="mt-3 overflow-hidden" style={CARD} data-testid="form-audience-list">
+                <div className="mt-3 overflow-hidden" style={CARD} data-testid={`${testId}-list`}>
                     {rows.length === 0 && (
                         <p className="px-4 py-3 text-xs [color:var(--text-tertiary)]! [border-bottom:1px_solid_var(--border-default)]">
                             {t('forms.share.audience_empty', 'Nobody yet — only you can open the form. Add the people or groups it is for.')}
                         </p>
                     )}
                     {rows.map(r => (
-                        <div key={`${r.type}:${r.id}`} className="grid items-center gap-3 px-4 py-2.5 [grid-template-columns:minmax(0,1fr)_32px] [border-bottom:1px_solid_var(--border-default)]" data-testid="form-audience-row">
+                        <div key={`${r.type}:${r.id}`} className="grid items-center gap-3 px-4 py-2.5 [grid-template-columns:minmax(0,1fr)_32px] [border-bottom:1px_solid_var(--border-default)]" data-testid={`${testId}-row`}>
                             <span className="flex items-center gap-2.5 min-w-0">
                                 <Avatar name={nameOf(r.type, r.id)} group={r.type === 'group'} />
                                 <span className="min-w-0">
@@ -164,7 +178,7 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
                     ))}
                     {canEdit && !adding && (
                         <button type="button" onClick={() => setAdding(true)} disabled={busy}
-                            className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!" data-testid="form-audience-add-open">
+                            className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!" data-testid={`${testId}-add-open`}>
                             <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             {t('forms.share.audience_add', 'Add a person or group')}
                         </button>
@@ -177,13 +191,13 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
                                 <option value="group">{t('forms.share.audience_group_short', 'A group')}</option>
                             </select>
                             <select value={granteeId} onChange={(e) => setGranteeId(e.target.value)}
-                                aria-label={t('forms.share.audience_who', 'Who')} className={`${SELECT} flex-1 min-w-[10rem]`} style={CONTROL} data-testid="form-audience-pick">
+                                aria-label={t('forms.share.audience_who', 'Who')} className={`${SELECT} flex-1 min-w-[10rem]`} style={CONTROL} data-testid={`${testId}-pick`}>
                                 <option value="">{granteeType === 'user' ? t('forms.share.audience_pick_person', 'Pick someone…') : t('forms.share.audience_pick_group', 'Pick a group…')}</option>
                                 {options.map(o => <option key={o.id} value={o.id}>{(o.name || o.email || o.id) as string}</option>)}
                             </select>
                             <button type="button" onClick={add} disabled={busy || !granteeId}
                                 className="px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                                style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }} data-testid="form-audience-add">
+                                style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }} data-testid={`${testId}-add`}>
                                 {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
                                 {t('forms.share.audience_add_confirm', 'Add')}
                             </button>
@@ -219,6 +233,7 @@ function Avatar({ name, group = false }: AvatarProps) {
 }
 
 interface AudienceRowProps {
+    group: string;
     icon: React.JSX.Element;
     title: string;
     description: string;
@@ -229,10 +244,10 @@ interface AudienceRowProps {
     last?: boolean;
 }
 
-function AudienceRow({ icon, title, description, checked, onSelect, disabled = false, testId, last = false }: AudienceRowProps) {
+function AudienceRow({ group, icon, title, description, checked, onSelect, disabled = false, testId, last = false }: AudienceRowProps) {
     return (
         <label className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'cursor-default' : 'cursor-pointer'} ${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`} data-testid={testId}>
-            <input type="radio" name="form-audience" checked={checked} onChange={onSelect} disabled={disabled} className="mt-1 shrink-0" />
+            <input type="radio" name={group} checked={checked} onChange={onSelect} disabled={disabled} className="mt-1 shrink-0" />
             <span className={`mt-0.5 shrink-0 ${checked ? '[color:var(--accent-primary)]' : '[color:var(--text-tertiary)]'}`}>{icon}</span>
             <span className="min-w-0">
                 <span className="block text-sm font-medium text-[var(--text-primary)]">{title}</span>

@@ -8,6 +8,7 @@
 
 import { api } from '@/core/api/client';
 import { field, nullable, pick } from '@/core/api/contract';
+import { readRunDecisionResult, type RunDecisionResult } from '@/features/automations';
 import { withId } from '@/shared/lib/withId';
 
 import { readApproval, readApprovalDetail } from './readers';
@@ -58,20 +59,25 @@ export async function getApproval(id: string, signal?: AbortSignal): Promise<App
 }
 
 /**
- * Decide an approval by its own id.
+ * Decide an approval by its own id, and what came of it.
  *
  * Distinct from `decideRunStep`: this route resolves panel seats, stage chains
  * and quorum server-side, so it is the only correct way to decide anything
- * that is not a plain single-assignee run pause.
+ * that is not a plain single-assignee run pause. On a panel or a stage chain
+ * the answer is a vote (`kind: 'vote'`) and the approval still waits.
+ * `answers` go with an approve when the approval asks for fields; the server
+ * checks them against its snapshot.
  */
 export async function decideApproval(
     id: string,
     decision: ApprovalDecision,
     reason?: string,
-): Promise<void> {
-    await api.post(
+    answers?: Record<string, unknown>,
+): Promise<RunDecisionResult> {
+    const res = await api.post<unknown>(
         `${path(id)}/decide`,
-        { decision, ...(reason ? { reason } : {}) },
+        { decision, ...(reason ? { reason } : {}), ...(answers ? { answers } : {}) },
         { retry: false },
     );
+    return readRunDecisionResult(res, decision);
 }

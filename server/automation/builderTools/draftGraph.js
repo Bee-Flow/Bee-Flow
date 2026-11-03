@@ -6,6 +6,7 @@
  */
 
 const crypto = require('crypto');
+const { ON_REJECTED_LABEL, ON_REJECTED_SOURCE_TYPES } = require('../../core/automationModel/edgeLabels.mts');
 
 function newId(prefix = 's') { return `${prefix}_${crypto.randomBytes(3).toString('hex')}`; }
 
@@ -47,15 +48,14 @@ function lastStepId(def) {
  * `branch` override; switches use `caseName`. Non-branching predecessors get
  * a plain `{from, to}` edge — identical to the previous behaviour.
  *
- * §WS4: `branch:'error'` labels the edge 'on_error' regardless of the
- * predecessor type — the runner only follows it when the source step
- * exhausts its retries and fails. Validation enforces which step types may
- * carry an error branch (edge.error_label_invalid / _unlikely).
+ * §WS4: `branch:'error'` → 'on_error', `branch:'rejected'` → 'on_rejected', whatever the
+ * predecessor: the runner follows it only when that step fails after its retries / that
+ * approval is rejected; validation enforces the legal sources (edge.*_label_invalid).
  */
 function branchEdgeFor(draft, fromId, toId, { branch, caseName } = {}) {
     const edge = { from: fromId, to: toId };
-    if (branch === 'error') {
-        edge.label = 'on_error';
+    if (branch === 'error' || branch === 'rejected') {
+        edge.label = branch === 'error' ? 'on_error' : ON_REJECTED_LABEL;
         return edge;
     }
     const pred = (draft.steps || []).find(s => s.id === fromId);
@@ -272,8 +272,8 @@ function reconcileOutgoingEdges(graph, oldStep, newStep) {
     const dropIdx = new Set();
     for (const e of out) {
         const lbl = e.label;
-        if (lbl === 'on_error') {
-            if (ERROR_BRANCH_FORBIDDEN_SOURCES.has(newStep.type)) dropIdx.add(e);
+        if (lbl === 'on_error' || lbl === ON_REJECTED_LABEL) {   // a rejected branch exists only on an approval
+            if (lbl === 'on_error' ? ERROR_BRANCH_FORBIDDEN_SOURCES.has(newStep.type) : !ON_REJECTED_SOURCE_TYPES.has(newStep.type)) dropIdx.add(e);
             continue;
         }
         const isBranchLabel = lbl === 'then' || lbl === 'else' || (typeof lbl === 'string' && lbl.startsWith('case:'));
@@ -287,7 +287,7 @@ function reconcileOutgoingEdges(graph, oldStep, newStep) {
     if (dropIdx.size) graph.edges = graph.edges.filter(e => !dropIdx.has(e));
     const notes = [];
     if (stripped.length) notes.push(`Stripped now-invalid branch labels on outgoing edges: ${stripped.join(', ')}.`);
-    if (dropIdx.size) notes.push(`Dropped on_error edge(s) — a ${newStep.type} step cannot carry one.`);
+    if (dropIdx.size) notes.push(`Dropped ${[...new Set([...dropIdx].map(e => e.label))].join('/')} edge(s) — a ${newStep.type} step cannot carry one.`);
     const unlabelled = (graph.edges || []).some(e => e.from === id && !e.label);
     if (!wasBranching && nowBranching && unlabelled) {
         notes.push(`This step is now branching (${newStep.type}) but its outgoing edge(s) are unlabelled — set branch targets so they don't dead-end (re-wire with builder_add_* branch/caseName, or builder_remove_step + re-add).`);
@@ -365,8 +365,8 @@ function moveStepAfter(graph, stepId, { afterStepId, branch, caseName } = {}) {
     // ── Detach ──
     const incoming = edges.filter(e => e && e.to === stepId);
     const outgoing = edges.filter(e => e && e.from === stepId);
-    const travels = new Set(branching ? outgoing : outgoing.filter(e => e.label === 'on_error'));
-    const successors = branching ? [] : outgoing.filter(e => e.label !== 'on_error').map(e => e.to);
+    const travels = new Set(branching ? outgoing : outgoing.filter(e => e.label === 'on_error' || e.label === ON_REJECTED_LABEL));
+    const successors = branching ? [] : outgoing.filter(e => e.label !== 'on_error' && e.label !== ON_REJECTED_LABEL).map(e => e.to);
     const kept = edges.filter(e => e && e.to !== stepId && (e.from !== stepId || travels.has(e)));
     const bridged = [];
     const droppedHandlers = [];

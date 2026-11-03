@@ -7,7 +7,6 @@
     "automations.canvas.run_view": "Run bekijken",
     "automations.canvas.run_dismiss": "Melding over de mislukte run sluiten",
     "automations.canvas.run_show": "Ga naar stap",
-    "automations.canvas.run_waiting_form": "wacht op formulier",
     "automations.canvas.open_form": "Formulier openen",
     "automations.canvas.open_form_new_tab": "Openen in een nieuw tabblad"
 }

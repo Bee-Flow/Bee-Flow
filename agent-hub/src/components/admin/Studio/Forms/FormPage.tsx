@@ -1,6 +1,7 @@
 import { BarChart3, ClipboardList, ExternalLink, Link2, ListChecks, Loader2, Settings2, Share2, Workflow } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AnswersDashboard from './answers/AnswersDashboard';
+import PendingChanges from './form/PendingChanges';
 import QuestionsTab from './form/QuestionsTab';
 import SettingsTab from './form/SettingsTab';
 import ShareTab from './form/ShareTab';
@@ -127,15 +128,16 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
                 backLabel={t('forms.page.back', 'All forms')}
                 statusChip={chipLabel}
                 primary={path ? (
-                    <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium" style={PRIMARY_ACTION_STYLE} title={t('forms.studio.copy_link', 'Copy the link')} data-testid="form-page-copy">
-                        <Link2 className="w-3.5 h-3.5" aria-hidden="true" />{t('forms.page.open_form', 'Open the form')}
+                    <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium" style={PRIMARY_ACTION_STYLE} data-testid="form-page-copy">
+                        <Link2 className="w-3.5 h-3.5" aria-hidden="true" />{t('forms.studio.copy_link', 'Copy the link')}
                     </button>
                 ) : null}
                 extras={(
                     <>
+                        {mine && <PendingChanges detail={detail} disabled={detailState.readOnly} onPublished={async () => { await reload({ keepDraft: true }); if (onChanged) onChanged(); }} />}
                         {path && (
-                            <a href={`${origin}${path}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]" title={t('forms.page.open_new_tab', 'Open in a new tab')}>
-                                <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                            <a href={`${origin}${path}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]" title={t('forms.page.open_new_tab', 'Open in a new tab')} data-testid="form-page-open">
+                                <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />{t('forms.page.open_form', 'Open the form')}
                             </a>
                         )}
                         {mine && (

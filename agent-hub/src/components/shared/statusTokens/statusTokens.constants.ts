@@ -42,6 +42,12 @@ export const SKIP_REASONS: Readonly<Record<string, SkipGroup>> = Object.freeze({
     no_service_email: 'no_work',
     no_owner_email: 'no_work',
     not_sent: 'no_work',
+    // Dry runs (execCode.js, execIntegrationAction.js, execNotification.js,
+    // parseJsonSource.js): a check that would fail live, or a step whose
+    // input the dry run made up itself. Amber: the step did not do its work.
+    would_fail_live: 'no_work',
+    synthetic_input: 'no_work',
+    synthetic_source: 'no_work',
     // execution.js — recorded as its own status by runDag, never as 'skipped'.
     pinned: 'pinned',
 });

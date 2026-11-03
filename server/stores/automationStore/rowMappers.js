@@ -171,6 +171,10 @@ function rowToRun(r) {
         // 'caller' when the run used the starter's own connections (fixed at its
         // start; automation/callerRunVisibility.js reads it). Null otherwise.
         connectionsMode: r.connections_mode ?? null,
+        // The run's profile as stored (core/automationModel/runProfile.mts), NULL
+        // on a row from before the column. Read it through profileOfRun(run),
+        // which derives a legacy row's profile from mode / isTest / triggerKind.
+        profile: fromJsonb(r.run_profile) ?? null,
     };
 }
 

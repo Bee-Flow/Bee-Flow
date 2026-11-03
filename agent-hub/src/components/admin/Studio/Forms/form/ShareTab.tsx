@@ -2,6 +2,7 @@ import { Table2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import FormAudienceCard from './FormAudienceCard';
 import PublicLinkCard from './PublicLinkCard';
+import TestLinkCard from './TestLinkCard';
 import type { FormDetail } from './useFormDetail';
 import { useTranslation } from '@/hooks/useTranslation';
 import DashCard from '@/components/shared/dashboard/DashCard';
@@ -13,7 +14,8 @@ import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 const LINK_BTN = 'inline-flex items-center gap-1.5 text-xs underline-offset-2 hover:underline';
 
 /**
- * Share: the link, WHO CAN FILL IT IN (the form's audience — people and
+ * Share: the link, the TEST LINK (editors: the working copy for the people
+ * chosen, before the form is live), WHO CAN FILL IT IN (the form's audience — people and
  * groups of the organisation, or the whole organisation; never outside it),
  * and WHO SEES THE ANSWERS — which is the answers table's own sharing,
  * reused whole. Sharing the table is what shares the dashboard.
@@ -43,6 +45,7 @@ export default function ShareTab({ detail, canEdit, onNavigate, onChanged }: Sha
     return (
         <div className="space-y-4" data-testid="form-share">
             <PublicLinkCard form={detail} canEdit={canEdit} onChanged={onChanged} />
+            <TestLinkCard form={detail} canEdit={canEdit} onChanged={onChanged} />
             {(detail?.audience as object | undefined) && <FormAudienceCard form={detail} canEdit={canEdit} onChanged={onChanged} />}
             <DashCard
                 title={t('forms.share.answers_title', 'Who can see the answers')}

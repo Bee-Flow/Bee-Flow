@@ -3,10 +3,10 @@ import { API_BASE, authFetch } from '../utils/helpers';
 import { readEventStream } from '../utils/sseStream';
 import type { HttpConnection } from './useAutomationApi.types';
 import { logger } from '../utils/logger';
-import { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler } from './useAutomationApi.types2';
+import { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type RunStartBody, type PartialRunBody, type RunFormBody, type RunRespond, type FormTestBody } from './useAutomationApi.types2';
 import { errorBody, safeText, buildRunQuery, buildAutomationListQuery, buildFacetQuery } from './useAutomationApi.helpers';
 export { errorBody, safeText } from './useAutomationApi.helpers';
-export { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler,  } from './useAutomationApi.types2';
+export { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type RunStartBody, type PartialRunBody, type RunFormBody, type RunRespond, type RunStartReply, type FormTestBody } from './useAutomationApi.types2';
 /**
  * REST helpers for the automation builder. Thin wrapper over authFetch so
  * components don't have to repeat the URL prefix and JSON handshake.
@@ -45,11 +45,12 @@ export default function useAutomationApi() {
             // that only gets a sentence has to match on prose to tell that
             // apart from "this plan does not include automations" — which is how
             // an ownership refusal ends up on screen as a billing problem.
-            const { message, code, details, managed } = await errorBody(r);
+            const { message, code, details, refusal, managed } = await errorBody(r);
             const err: AutomationApiError = new Error(message || `${method} ${path} failed`);
             err.status = r.status;
             if (code) err.code = code;
             if (details) err.details = details;
+            if (refusal) err.refusal = refusal;
             if (managed) err.managed = managed;
             throw err;
         }
@@ -113,8 +114,14 @@ export default function useAutomationApi() {
         // `trigger.output === {}` and every step mapping off the trigger
         // resolved to undefined. BuilderShell now passes the trigger node's own
         // saved sample (BFSF-408).
-        run: <T = unknown>(id: string, body?: unknown) => send<T>('POST', `/${id}/run`, body || {}),
-        dryRun: <T = unknown>(id: string, body?: unknown) => send<T>('POST', `/${id}/dry-run`, body || {}),
+        // `respond: 'created'` (RunStartBody) answers 202 { runId } at once; the
+        // builder follows every run it starts by that id.
+        run: <T = unknown>(id: string, body?: RunStartBody) => send<T>('POST', `/${id}/run`, body || {}),
+        dryRun: <T = unknown>(id: string, body?: RunStartBody) => send<T>('POST', `/${id}/dry-run`, body || {}),
+        // The form test overlay's page one: answers, uploads and picks go through the form's own submission path.
+        formTest: <T = unknown>(id: string, body: FormTestBody) => send<T>('POST', `/${id}/form-test`, body),
+        // "Execute step": one step, the step and what follows, or the flow up to it.
+        executeStep: <T = unknown>(id: string, stepId: string, body: PartialRunBody) => send<T>('POST', `/${id}/steps/${encodeURIComponent(stepId)}/run`, body),
         diagnoseTrigger: (id: string) => send('POST', `/${id}/diagnose-trigger`),
         // Executions list — cursor-paginated + filterable. Returns
         // { runs, nextCursor }. listStepRuns is the same route (a Step's runs
@@ -187,7 +194,9 @@ export default function useAutomationApi() {
         // controller (cross-pod safe).
         retryRun: (id: string, runId: string) => send('POST', `/${id}/runs/${runId}/retry`),
         cancelRun: (runId: string) => send('POST', `/runs/${runId}/cancel`),
-        approveStep: (runId: string, decision: string, reason?: string, answers?: unknown) => send('POST', `/runs/${runId}/approve-step`, { decision, reason, answers }),
+        approveStep: (runId: string, decision: string, reason?: string, answers?: unknown, opts: { respond?: RunRespond } = {}) => send('POST', `/runs/${runId}/approve-step`, { decision, reason, answers, ...(opts.respond ? { respond: opts.respond } : {}) }),
+        // Answer the form page a run waits on; the continuation is a child run.
+        continueForm: <T = unknown>(runId: string, body: RunFormBody) => send<T>('POST', `/runs/${encodeURIComponent(runId)}/form`, body),
         // ── Approvals section (durable decision records) ──────────────
         listApprovals: (params: ApprovalQuery = {}) => {
             const q = new URLSearchParams();

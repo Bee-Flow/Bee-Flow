@@ -252,7 +252,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_approval: {
-        description: 'Append a step that PAUSES the run until a person approves. prompt = what the approver reads (template — quote the thing: {{steps.x.output.total}}). assignee = {userId} or {groupId}; omit = the owner decides. On approve the run continues (steps.<id>.output.approved/by/reason); on reject it ENDS — never wire a rejected branch. Never with forEach.',
+        description: 'Append a step that PAUSES the run until a person approves. prompt = what the approver reads (template — quote the thing: {{steps.x.output.total}}). assignee = {userId} or {groupId}; omit = the owner decides. On approve the run continues (steps.<id>.output.approved/by/reason); on reject it ENDS unless a step is added after it with branch:"rejected" (runs only on reject). Never with forEach.',
         props: {
             prompt: { description: 'The question the approver sees; template string.' },
             expiresInHours: { description: '0..720; 0 = no deadline; default 168.' },

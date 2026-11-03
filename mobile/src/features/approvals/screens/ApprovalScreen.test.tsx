@@ -4,7 +4,7 @@
  * did not — and never as the client's "HTTP 500" placeholder.
  */
 
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, userEvent } from '@testing-library/react-native';
 import React from 'react';
 
 import { ApiError, api } from '@/core/api/client';
@@ -68,5 +68,43 @@ describe('ApprovalScreen', () => {
         (api.post as jest.Mock).mockRejectedValueOnce(new ApiError('This approval was already decided.', { status: 409 }));
         await approve();
         expect(await screen.findByText('This approval was already decided.')).toBeTruthy();
+    });
+});
+
+/**
+ * An approval that asks for answers (WI-13): the sheet asks them with a form
+ * page's controls and Approve sends them; a run screen opens it at once with
+ * `?decide=approve`. What came of it is said from the server's answer.
+ */
+describe('ApprovalScreen with answers', () => {
+    const ASKING = {
+        ...DETAIL,
+        approval: { ...DETAIL.approval, isTest: true, fields: [{ name: 'amount', type: 'number', label: 'Amount', required: true }] },
+    };
+
+    it('opens the decide sheet at once, asks the answers and sends them with the approve', async () => {
+        (api.get as jest.Mock).mockResolvedValue(ASKING);
+        (api.post as jest.Mock).mockResolvedValueOnce({ accepted: true, pending: true, runId: 'r2', approval: {} });
+        await renderScreen(<ApprovalScreen id="ap1" initialDecision="approve" />);
+        expect(await screen.findByText('Your answers')).toBeTruthy();
+        expect(screen.getAllByTestId('approval-test-chip').length).toBeGreaterThan(0);
+        const user = userEvent.setup();
+        // Required: Approve without the answer does not leave the phone.
+        await user.press(screen.getByTestId('fill-submit'));
+        expect(api.post).not.toHaveBeenCalled();
+        await fireEvent.changeText(screen.getByTestId('fill-amount'), '12');
+        await user.press(screen.getByTestId('fill-submit'));
+        expect(api.post).toHaveBeenCalledWith(
+            '/api/automation/approvals/ap1/decide',
+            { decision: 'approve', answers: expect.objectContaining({ amount: '12' }) },
+            { retry: false },
+        );
+        expect(await screen.findByText('Approved. The run continues.')).toBeTruthy();
+    });
+
+    it('says a vote is a vote', async () => {
+        (api.post as jest.Mock).mockResolvedValueOnce({ accepted: true, decision: 'vote_recorded', stage: 'final' });
+        await approve();
+        expect(await screen.findByText('Your vote is recorded. It now waits for the final approver.')).toBeTruthy();
     });
 });

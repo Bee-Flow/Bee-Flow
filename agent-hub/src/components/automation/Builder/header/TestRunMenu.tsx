@@ -8,6 +8,8 @@ export interface RunTriggerOption { id: string; label: string; kind?: string }
 
 interface TestRunMenuProps {
     busy?: boolean;
+    /** A run is starting or going, or the form overlay is open: nothing new starts until it is over (RUN-12). */
+    runBlocked?: boolean;
     onDryRun?: ((from: string | null) => void) | null;
     onRunLive?: ((from: string | null) => void) | null;
     /** false when the server says this caller may not start a run: "Run live" stays, disabled, with the reason. */
@@ -20,13 +22,14 @@ interface TestRunMenuProps {
 const ITEM = 'w-full text-left px-3 py-2 text-[13px] hover:bg-[var(--bg-secondary)] transition flex items-start gap-2';
 
 /**
- * "Test" (artboard 5a): an outline split button. The button itself is a
- * dry-run of the working copy, the safe default; Run live and the "Start
- * from" choice of a multi-trigger automation sit behind the chevron, one
- * deliberate step further away. Both handlers get the chosen trigger id
- * (null = the primary), so the shell sends that trigger's own sample.
+ * "Test" (artboard 5a): an outline split button. The button itself is a dry
+ * run of the working copy (nothing is sent), the safe default; Run live (a
+ * test run with real actions) and the "Start from" choice of a multi-trigger
+ * automation sit behind the chevron, one deliberate step further away. Both
+ * handlers get the chosen trigger id (null = the primary), so the shell sends
+ * that trigger's own sample. While a run is going both wait (`runBlocked`).
  */
-export default function TestRunMenu({ busy = false, onDryRun, onRunLive, canRunLive = true, triggers = [], primaryLabel = 'Primary trigger' }: TestRunMenuProps) {
+export default function TestRunMenu({ busy = false, runBlocked = false, onDryRun, onRunLive, canRunLive = true, triggers = [], primaryLabel = 'Primary trigger' }: TestRunMenuProps) {
     const { t } = useTranslation();
     const { open, setOpen, ref } = useDismiss();
     const [fromId, setFromId] = useState<string | null>(null);
@@ -35,9 +38,12 @@ export default function TestRunMenu({ busy = false, onDryRun, onRunLive, canRunL
     const fromLabel = from ? triggers.find(tr => tr.id === from)?.label ?? null : null;
     const hasMenu = typeof onRunLive === 'function' || triggers.length > 0;
 
-    const testTitle = fromLabel
-        ? t('automations.header.test_from_title', 'Test from "{label}": no real actions, a safe preview', { label: fromLabel })
-        : t('automations.header.test_title', 'Test the working copy: no real actions, a safe preview');
+    const disabled = busy || runBlocked;
+    const testTitle = runBlocked
+        ? t('automation_testing.header.run_blocked', 'A run is going. Wait for it, or stop it first.')
+        : fromLabel
+            ? t('automation_testing.header.dry_run_from_title', 'Dry run from "{label}": nothing is sent', { label: fromLabel })
+            : t('automation_testing.header.dry_run_title', 'Dry run of the working copy: nothing is sent');
     const pick = (fn?: ((f: string | null) => void) | null) => { setOpen(false); fn?.(from); };
 
     return (
@@ -46,7 +52,7 @@ export default function TestRunMenu({ busy = false, onDryRun, onRunLive, canRunL
                 <button
                     type="button"
                     onClick={() => onDryRun?.(from)}
-                    disabled={busy}
+                    disabled={disabled}
                     aria-label={t('automations.header.test', 'Test')}
                     title={testTitle}
                     className={`flex items-center gap-1.5 pl-3 ${hasMenu ? 'pr-2.5' : 'pr-3'} hover:bg-[var(--bg-tertiary)] transition disabled:opacity-50`}
@@ -65,7 +71,7 @@ export default function TestRunMenu({ busy = false, onDryRun, onRunLive, canRunL
                         <button
                             type="button"
                             onClick={() => setOpen(o => !o)}
-                            disabled={busy}
+                            disabled={disabled}
                             aria-haspopup="menu"
                             aria-expanded={open}
                             aria-label={t('automations.header.more_ways_to_run', 'More ways to run')}
@@ -82,8 +88,8 @@ export default function TestRunMenu({ busy = false, onDryRun, onRunLive, canRunL
                     <button type="button" role="menuitem" onClick={() => pick(onDryRun)} className={ITEM}>
                         <Eye size={14} className="mt-0.5 shrink-0 text-[var(--text-secondary)]" />
                         <span className="min-w-0">
-                            <span className="block text-[var(--text-primary)]">{t('automations.header.dry_run', 'Dry-run (preview)')}</span>
-                            <span className="block text-[11px] text-[var(--text-tertiary)]">{t('automations.header.dry_run_hint', 'No real actions, a safe preview')}</span>
+                            <span className="block text-[var(--text-primary)]">{t('automation_testing.header.dry_run', 'Dry run (nothing sent)')}</span>
+                            <span className="block text-[11px] text-[var(--text-tertiary)]">{t('automation_testing.header.dry_run_hint', 'Writes are simulated; forms and approvals wait for you')}</span>
                         </span>
                     </button>
                     {typeof onRunLive === 'function' && (
@@ -97,8 +103,8 @@ export default function TestRunMenu({ busy = false, onDryRun, onRunLive, canRunL
                         >
                             <Play size={14} className="mt-0.5 shrink-0 text-[var(--accent-primary)]" />
                             <span className="min-w-0">
-                                <span className="block text-[var(--text-primary)]">{t('automations.header.run_live', 'Run live')}</span>
-                                <span className="block text-[11px] text-[var(--text-tertiary)]">{canRunLive ? t('automations.header.run_live_hint', 'Executes every step for real') : viewOnlyRunHint(t)}</span>
+                                <span className="block text-[var(--text-primary)]">{t('automation_testing.header.run_live', 'Run live (test, real actions)')}</span>
+                                <span className="block text-[11px] text-[var(--text-tertiary)]">{canRunLive ? t('automation_testing.header.run_live_hint', 'Every step acts for real; approvals go to you') : viewOnlyRunHint(t)}</span>
                             </span>
                         </button>
                     )}

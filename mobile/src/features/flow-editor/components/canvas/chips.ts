@@ -22,6 +22,7 @@ const TONE: Readonly<Record<string, ChipTone>> = {
     pii_found: 'else',
     default: 'default',
     on_error: 'error',
+    on_rejected: 'error',
     unrouted: 'unrouted',
 };
 
@@ -44,6 +45,8 @@ export function chipWords(kind: string, t: TranslateFn): string {
             return t('automations.privacy_editors.clean', 'clean');
         case 'on_error':
             return t('automations.canvas.loop_port_on_error', 'On error');
+        case 'on_rejected':
+            return t('automation_editor.approval_port_rejected', 'On rejected');
         case 'unrouted':
             return t('mobile.flow.canvas.never_runs', 'never runs');
         default:

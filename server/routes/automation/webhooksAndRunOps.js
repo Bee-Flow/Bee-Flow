@@ -30,7 +30,9 @@ const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_
 const {
     TriggerStepBody, ApproveStepBody, ApproveRunBody, CancelRunBody, FormPickBody, AgentInvokeBody, FullOutputQuery, RunFormBody,
 } = require('./runOpsSchemas');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { fallback } = require('../../utils/bestEffort');
+const { startCapped, pendingRunBody } = require('../../core/automationRunner/startCapped.mts');
+const { pendingFormPage, formJourneyExtras, refusePublicJourney, finaliseContinuedRun, closeFormWait, addRunViewFacts } = require('./runPauseOps.mts');
 
 
 router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TriggerStepBody>, import('qs').ParsedQs>} */ req, res) => {
@@ -190,6 +192,7 @@ router.get('/runs/:id', async (req, res) => {
         const pending = await automationStore.getPendingApprovalIdsForRuns([run.journeyRunId || run.id]).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#2', e, null));
         run.approvalId = pending?.get(run.journeyRunId || run.id) || null;
     }
+    await addRunViewFacts(req.session, run);
     res.json({ run: { ...redactRunForViewer(run, req.session.user.id), canStart: (await automationAccess.canStartById(run.automationId, req.session.user.id, req.session)) === true } });
 });
 
@@ -363,7 +366,7 @@ router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), as
         return res.status(409).json({ error: 'Run has no recorded awaiting step' });
     }
 
-    const { decision, reason, answers } = req.body;
+    const { decision, reason, answers, respond } = req.body;
     const approvalService = require('../../automation/approvalService');
     const automation = await automationStore.getAutomation(original.automationId).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#6', e, null));
     // Runs paused before the approvals table existed have no row yet —
@@ -379,6 +382,7 @@ router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), as
         reason,
         answers,
         source: 'builder',
+        respond,
     });
     return res.status(code).json(body);
 });
@@ -400,35 +404,6 @@ router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), as
 // form surface: there is no token, no session, no CSRF and no anonymous path —
 // the caller is a signed-in owner acting on their own run.
 
-/** The rendered page a run is paused on, read off the awaiting step's row. */
-async function pendingFormPage(run) {
-    if (!run || run.status !== 'awaiting_form' || !run.awaitingStepId) return null;
-    const steps = await automationStore.getRunSteps(run.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:pendingFormPage', e, []));
-    const row = steps.find(st => st.stepId === run.awaitingStepId && st.status === 'awaiting_form');
-    // The runner records the page AS RENDERED — labels interpolated against the
-    // run that produced them. Reading it back is what makes the builder's
-    // overlay show the same words the visitor would see, without this route
-    // having to re-run an interpolator over a half-finished run.
-    const form = row?.output?.form;
-    return form ? { stepId: run.awaitingStepId, form } : null;
-}
-
-/**
- * Close out the run that was just continued.
- *
- * resumeFromStep starts a CHILD run and leaves the parent in 'awaiting_form'
- * forever; the reaper would later flip a page the author actually ANSWERED to a
- * "FormExpired" error. Same shape as formPublic's finaliseResumedParent, minus
- * the session — a builder test has no journey row to re-point.
- */
-async function finaliseContinuedRun(parentRunId, child) {
-    await automationStore.updateRun(parentRunId, {
-        status: 'success',
-        summary: `Continued from the form — see run ${child.id}`,
-        finishedAt: new Date().toISOString(),
-    }).catch((e) => bestEffort('routes/automation/webhooksAndRunOps:finaliseContinuedRun', e));
-}
-
 /**
  * Is this run's automation paused on a form page, and if so, which one?
  *
@@ -447,6 +422,7 @@ router.get('/runs/:runId/form', async (req, res) => {
         runId: run.id,
         status: run.status,
         ...(pending ? { waiting: true, stepId: pending.stepId, form: pending.form } : { waiting: false }),
+        ...await formJourneyExtras(req.session, run),
     });
 });
 
@@ -472,6 +448,7 @@ router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody
     }
     const pending = await pendingFormPage(run);
     if (!pending) return res.status(409).json({ error: 'Run has no form page to answer' });
+    await refusePublicJourney(run);
     const wanted = req.body.stepId || '';
     if (wanted && wanted !== pending.stepId) {
         return res.status(409).json({ error: 'That page has already been answered — reload the run.' });
@@ -496,8 +473,21 @@ router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody
     }
 
     const runner = require('../../core/automationRunner');
-    const child = await runner.resumeFromStep(run.id, pending.stepId, { decision: { ...values }, userId });
-    if (child?.id) await finaliseContinuedRun(run.id, child);
+    // The parent is closed the moment the child exists, not when it ends: an
+    // answer that continues past the response cap must not leave it waiting.
+    let finalised = false;
+    const finalise = async (/** @type {{ id?: string } | null | undefined} */ child) => {
+        if (finalised || !child?.id) return;
+        finalised = true;
+        await finaliseContinuedRun(run, /** @type {{ id: string }} */ (child));
+    };
+    const outcome = await startCapped((onRunCreated) => runner.resumeFromStep(run.id, pending.stepId, {
+        decision: { ...values }, userId,
+        onRunCreated: async (child) => { onRunCreated(child); await finalise(child); },
+    }), { respond: req.body.respond, label: 'automation/runs/form' });
+    if (outcome.kind === 'pending') return res.status(202).json(pendingRunBody(outcome.runId));
+    const child = outcome.run;
+    await finalise(child);
     const steps = child?.id ? await automationStore.getRunSteps(child.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#7', e, [])) : [];
     return res.json({ accepted: true, run: redactRunForViewer(child, userId), steps: redactStepsForViewer(child, steps, userId) });
 });
@@ -564,8 +554,14 @@ router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (/**
     const original = await resolveActionableRun(req.params.runId);
     if (!original) return res.status(404).json({ error: 'Not found' });
     if (!await runAccess(req, res, original, 'act')) return;
-    if (!['queued', 'running', 'awaiting_approval'].includes(original.status)) {
+    if (!['queued', 'running', 'awaiting_approval', 'awaiting_form'].includes(original.status)) {
         return res.status(409).json({ error: `Run is in ${original.status} state and cannot be cancelled` });
+    }
+    // A run paused on a form page has nothing executing either: closing it
+    // is the cancel (pauses F6, run-watch F9).
+    if (original.status === 'awaiting_form') {
+        const closed = await closeFormWait(original);
+        return res.status(202).json({ accepted: true, run: redactRunForViewer(closed, userId) });
     }
     // A run paused on an approval has no executing pod to honour a cancel
     // flag — withdrawing IS the cancel: it closes the pending approval row

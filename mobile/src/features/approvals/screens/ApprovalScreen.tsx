@@ -12,6 +12,11 @@
  * stage chains, quorum rules and votes-already-cast are resolved in
  * approvalService, and a client that second-guessed them would eventually show
  * an Approve button to someone whose seat was already spent.
+ *
+ * What came of a decision is said from the server's answer: on a panel or a
+ * stage chain it is a vote and the approval still waits. An approval that
+ * asks for answers asks them in the decide sheet; a run screen sends such an
+ * approval here with `?decide=approve`, which opens that sheet at once.
  */
 
 import { Stack } from 'expo-router';
@@ -19,6 +24,8 @@ import React, { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
 import { useTranslation } from '@/core/i18n';
+import { decisionOutcome } from '@/features/automations';
+import type { Answers } from '@/features/forms';
 import { QueryScreen, type DetailQuery } from '@/shared/patterns';
 import { ScreenHeader, useToast } from '@/shared/ui';
 
@@ -29,7 +36,20 @@ import { useDecideApproval } from '../hooks/mutations';
 import { useApproval } from '../hooks/queries';
 import type { ApprovalDecision, ApprovalDetail } from '../model/types';
 
-export function ApprovalScreen({ id }: { id: string }) {
+/**
+ * Open the decide sheet once, when the approval can be decided and the caller
+ * asked for it (`?decide=approve`). Set while rendering, the way React stores
+ * what an earlier render saw, so the sheet opens in the same pass.
+ */
+function useInitialDecision(detail: ApprovalDetail | null | undefined, initial: ApprovalDecision | null, open: (d: ApprovalDecision) => void) {
+    const [done, setDone] = useState(false);
+    if (initial && !done && detail?.approval.status === 'pending' && detail.canDecide) {
+        setDone(true);
+        open(initial);
+    }
+}
+
+export function ApprovalScreen({ id, initialDecision = null }: { id: string; initialDecision?: ApprovalDecision | null }) {
     const t = useTranslation();
     const { toast } = useToast();
     /** Set to the decision being confirmed — rejection asks for a reason. */
@@ -37,17 +57,18 @@ export function ApprovalScreen({ id }: { id: string }) {
     const [reason, setReason] = useState('');
 
     const query = useApproval(id);
+    useInitialDecision(query.data, initialDecision, setConfirming);
     const decide = useDecideApproval(id, {
-        onSuccess: ({ decision }) => {
+        onSuccess: (_vars, result) => {
             setConfirming(null);
             setReason('');
-            toast(
-                decision === 'approve' ? t('approvals.verb_approved', 'Approved') : t('approvals.verb_rejected', 'Rejected'),
-                'success',
-            );
+            const outcome = decisionOutcome(result, t);
+            toast(outcome.text, outcome.tone);
         },
         onError: (err: Error) => toast(describeError(err).message, 'error'),
     });
+    const confirm = (decision: ApprovalDecision, answers?: Answers) =>
+        decide.mutateAsync({ decision, reason: reason.trim() || undefined, ...(answers ? { answers } : {}) }).then(() => undefined);
 
     const detailQuery: DetailQuery<ApprovalDetail> = {
         data: query.data ?? undefined,
@@ -85,8 +106,9 @@ export function ApprovalScreen({ id }: { id: string }) {
                         reason={reason}
                         onReasonChange={setReason}
                         submitting={decide.isPending}
-                        onConfirm={(decision) => decide.mutate({ decision, reason: reason.trim() || undefined })}
+                        onConfirm={(decision, answers) => (answers ? confirm(decision, answers) : void confirm(decision).catch(() => undefined))}
                         onClose={() => setConfirming(null)}
+                        fields={detail.approval.status === 'pending' ? detail.approval.fields : []}
                     />
                 </>
             )}

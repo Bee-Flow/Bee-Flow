@@ -4,6 +4,22 @@
  * ctx.http). The sandbox itself is automation/'s (isolated-vm), reached
  * through ./featurePorts.js; every call the code makes leaves through the
  * same guard and ledger as any other outbound step (./outboundGuard.js).
+ *
+ * ── THE DRY-RUN HONESTY RULE (the other executors refer to this block) ──
+ * A dry run performs every check that has no side effect exactly as a live
+ * run would, and never records a refusal as success. What a live run would
+ * refuse is, in a dry run:
+ *   - an ERROR row, when the cause is the automation itself (a syntax error,
+ *     a blocked pattern, a missing required parameter, a binding that reads a
+ *     field of REAL upstream data that is not there, a tool the owner may not
+ *     use); or
+ *   - an AMBER skip with skippedReason 'would_fail_live', when the cause is
+ *     the environment the rehearsal runs in (a sandbox that is not installed
+ *     here, an app that is not connected) — the author cannot fix that in the
+ *     definition, but must not read the row as green either.
+ * Only data the dry run itself made up (a simulated write's sample, a
+ * synthetic trigger) is exempt: a miss on that is the rehearsal's own
+ * artefact, not a prediction of the live run.
  */
 
 'use strict';
@@ -12,6 +28,7 @@ const { resolveInputs } = require('../automationModel/bind');
 const { shieldPart, joinShieldedUrl } = require('./httpQuery');
 const { runnerPort } = require('./featurePorts');
 const { prepareCodeRun } = require('./codeStepGuard');
+const { blockingFindings } = require('../automationModel/codeSafety');
 const { isPrivateHost, guardOutbound } = require('./outboundGuard');
 // Read as a module (not destructured) so a test that swaps
 // shared.stepInputsSynthetic reaches this call.
@@ -26,16 +43,55 @@ const { fallback } = require('../../utils/bestEffort');
 const sandbox = () => runnerPort('codeSandbox');
 
 /**
- * A dry run that cannot run the code at all.
- *
- * Reached only when the sandbox is missing or the platform/org gates are shut
- * — i.e. when a LIVE run of this step would refuse too. A rehearsal must not
- * be the thing that tells an author their org has code steps switched off, so
- * it reports a skip rather than raising the refusal a live run raises.
+ * A dry run that cannot run the code at all because the SANDBOX is not
+ * installed on this server: an environmental cause (see the rule in the
+ * header), so an amber 'would_fail_live' row, never a green one. A refusal
+ * of the code itself (syntax, a blocked pattern, a missing parameter) is not
+ * this: that throws in a dry run exactly as it does live.
  * @param {string} why
  */
 function codeStepSkipped(why) {
-    return { output: { _dryRun: true, skipped: `code-step skipped in dry-run: ${why}` } };
+    return {
+        output: { _dryRun: true, skipped: `code-step skipped in dry-run: ${why}; a live run would fail here` },
+        skippedReason: 'would_fail_live',
+    };
+}
+
+/**
+ * True when the guard refused on the declared PARAMETERS (a required value
+ * missing, a value of the wrong type), not on the code itself: the code
+ * parsed and holds no blocking finding.
+ * @param {{ analysis: CodeAnalysis }} guard
+ */
+function isParamRefusal(guard) {
+    return !!(guard.analysis && guard.analysis.ok && blockingFindings(guard.analysis).length === 0);
+}
+
+/**
+ * A parameter refusal on inputs a dry run synthesised upstream: the
+ * rehearsal's own artefact, labelled and amber, never green and never red.
+ * @param {string} why
+ */
+function syntheticParamSkip(why) {
+    return {
+        output: { _dryRun: true, _dryRunSyntheticInputs: true, skipped: `code-step not run in dry-run: ${why} (the input comes from simulated data)` },
+        skippedReason: 'synthetic_input',
+    };
+}
+
+/**
+ * The guard's refusal, in either mode. A refusal is a check with no side
+ * effect: a rehearsal refuses exactly as a live run does (header rule), so
+ * the typo is a red row now, not on the next live run. The one exemption is a
+ * parameter refusal on inputs the dry run made up itself. Returns that skip,
+ * or null when there is no refusal; throws otherwise.
+ * @param {{ refusal: string|null, analysis: CodeAnalysis }} guard
+ * @param {boolean} syntheticInputs
+ */
+function refusalOf(guard, syntheticInputs) {
+    if (!guard.refusal) return null;
+    if (syntheticInputs && isParamRefusal(guard)) return syntheticParamSkip(guard.refusal);
+    throw new Error(guard.refusal);
 }
 
 /**
@@ -245,15 +301,13 @@ async function execCode(step, ctx, runState, mode) {
     // The code's own rules: BLOCK findings stop it, declared parameters get
     // their defaults and types, ctx.http keeps to the host list (codeStepGuard.js).
     const guard = prepareCodeRun(step, resolveInputs(step.inputs || {}, runState, { allowSecrets: false, listAs: 'json' }));
-    if (guard.refusal) {
-        if (rehearsal) return codeStepSkipped(guard.refusal);
-        throw new Error(guard.refusal);
-    }
-    const inputs = guard.inputs;
     // Whether anything this code is about to read was invented upstream. Asked
     // BEFORE the run, because the answer is about the data going in, and used
     // only to label the rehearsal's output — see the note where it is attached.
     const syntheticInputs = rehearsal && shared.stepInputsSynthetic(step, runState, ctx);
+    const refused = refusalOf(guard, syntheticInputs);
+    if (refused) return refused;
+    const inputs = guard.inputs;
     refuseDeclaredSecrets(step);
     const allowedTools = await allowedCodeTools(step, ctx);
 
@@ -322,4 +376,5 @@ module.exports = { execCode };
  * @typedef {{ orgId?: string, userId?: string, runId?: string, rootRunId?: string, nextcloudUrl?: string,
  *   callerOnly?: { userId: string }|null, userOrgIds?: string[], allowedToolNames?: Set<string>,
  *   triggerSynthetic?: boolean }} CodeCtx
+ * @typedef {{ ok?: boolean, findings?: Array<{ severity?: string }> }} CodeAnalysis  what codeSafety's analyzeCode reports, as far as the refusal split reads it
  */

@@ -23,6 +23,8 @@ import {
     readAutomation,
     readAutomationCounts,
     readRun,
+    readRunDecisionResult,
+    readRunPendingApproval,
     readRunStep,
     readRunTriggerResult,
     readSchedulePreview,
@@ -36,6 +38,8 @@ import type {
     AutomationRun,
     AutomationRunStep,
     AutomationSaveResult,
+    RunDecisionResult,
+    RunPendingApproval,
     RunTriggerResult,
     SchedulePreview,
 } from '../model/types';
@@ -163,9 +167,11 @@ export async function retryRun(automationId: string, runId: string): Promise<Run
 }
 
 /**
- * Ask a run to stop. Answers 202 — the runner honours it at the next
- * between-steps check, so cancel latency is one step, and the caller has to
- * keep watching rather than assume it stopped.
+ * Ask a run to stop. Answers 202. A running run stops at the next
+ * between-steps check, so the caller keeps watching rather than assume it
+ * stopped; a run waiting for approval is withdrawn and one waiting on a form
+ * page is closed, both at once. An older server refuses a form wait with a
+ * 409, which reaches the caller as an ApiError carrying the server's sentence.
  */
 export async function cancelRun(runId: string): Promise<AutomationRun | null> {
     const res = await api.post<unknown>(`${runPath(runId)}/cancel`, {}, { retry: false });
@@ -173,21 +179,45 @@ export async function cancelRun(runId: string): Promise<AutomationRun | null> {
 }
 
 /**
- * Approve or reject the step an `awaiting_approval` run is paused on.
+ * Approve or reject the step an `awaiting_approval` run is paused on, and
+ * what came of it (model/types.ts RunDecisionResult): on a panel or a stage
+ * chain the caller's answer is a vote and the run keeps waiting.
  *
- * Run-keyed, so it serves only a plain single-assignee run pause; anything
- * with panels, stages or quorum is decided by approval id (features/approvals).
+ * `answers` are for an approval that asks for fields: the server checks them
+ * against the approval's snapshot and refuses a missing required one with a
+ * 400. The screens send an approval with fields to the approvals screen,
+ * which asks for them, rather than post without.
  */
 export async function decideRunStep(
     runId: string,
     decision: 'approve' | 'reject',
-    reason?: string,
-): Promise<void> {
-    await api.post(
+    { reason, answers }: { reason?: string; answers?: Record<string, unknown> } = {},
+): Promise<RunDecisionResult> {
+    const res = await api.post<unknown>(
         `${runPath(runId)}/approve-step`,
-        { decision, ...(reason ? { reason } : {}) },
+        { decision, ...(reason ? { reason } : {}), ...(answers ? { answers } : {}) },
         { retry: false },
     );
+    return readRunDecisionResult(res, decision);
+}
+
+/**
+ * The legacy first-run confirmation (`awaiting_confirm`): POST /runs/:id/approve.
+ * No run reaches that status any more; a row from before keeps a way out.
+ */
+export async function decideFirstRun(runId: string, decision: 'approve' | 'reject'): Promise<RunDecisionResult> {
+    const res = await api.post<unknown>(`${runPath(runId)}/approve`, { decision }, { retry: false });
+    return readRunDecisionResult(res, decision);
+}
+
+/**
+ * The approval a paused run waits on, from GET /runs/:runId/form: its prompt,
+ * the fields of its snapshot, and whether this caller may decide it. Null when
+ * the run waits on nothing, and from an older server that does not say.
+ */
+export async function getRunPendingApproval(runId: string, signal?: AbortSignal): Promise<RunPendingApproval | null> {
+    const res = await api.get<unknown>(`${runPath(runId)}/form`, { signal });
+    return readRunPendingApproval(pick(res, 'pendingApproval'));
 }
 
 export async function listRuns(

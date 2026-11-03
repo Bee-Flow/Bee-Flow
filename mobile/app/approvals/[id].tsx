@@ -10,6 +10,8 @@ import React from 'react';
 import { ApprovalScreen } from '@/features/approvals';
 
 export default function ApprovalRoute() {
-    const { id } = useLocalSearchParams<{ id: string }>();
-    return <ApprovalScreen id={id} />;
+    // `?decide=approve`: a run screen sent an approval that asks for answers
+    // here, so the decide sheet opens at once (features/automations useRunDecision).
+    const { id, decide } = useLocalSearchParams<{ id: string; decide?: string }>();
+    return <ApprovalScreen id={id} initialDecision={decide === 'approve' || decide === 'reject' ? decide : null} />;
 }

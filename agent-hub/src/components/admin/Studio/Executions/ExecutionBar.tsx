@@ -5,6 +5,7 @@ import { enteredTriggerLabel, errorClassLabel, runTitle, triggerLabel, type RunD
 import { formatDuration, formatRelative, formatExpiry } from '../AutomationsStudio/historyUtils';
 import { RunStatusBadge, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
 import type { RunLogRow } from './runLogSentence';
+import { isWaitingRun, stopDiscards } from './runStop';
 import { logger } from '@/utils/logger';
 import { mayStartRun, runStartRefusal, viewOnlyRunHint } from '@/api/queries/automation/runAccess';
 
@@ -12,6 +13,8 @@ import { mayStartRun, runStartRefusal, viewOnlyRunHint } from '@/api/queries/aut
 export type ExecutionRun = RunLogRow & {
     rootRunId?: string | null;
     awaitingStepExpiresAt?: string | null;
+    /** How the run runs (GET /runs/:id); a legacy row has none. */
+    profile?: { kind?: string | null } | null;
 };
 
 /**
@@ -40,6 +43,10 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
 
     const isError = run?.status === 'error';
     const isRunning = run?.status === 'running' || run?.status === 'queued';
+    // Paused on a form page or an approval: nothing executes, but it can be
+    // closed without an answer (a waiting TEST run is discarded).
+    const isWaiting = isWaitingRun(run);
+    const discards = stopDiscards(run);
     const isAwaiting = run?.status === 'awaiting_approval' || run?.status === 'awaiting_confirm';
     const isDry = run?.mode === 'dry_run';
     const classNote = errorClassLabel(run?.errorClass, t);
@@ -164,8 +171,16 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
                                 {t('studio_misc.runbar.run_again', 'Run it again')}
                             </BarButton>
                         )}
-                        {isRunning && onCancel && (
-                            <BarButton onClick={() => act('cancel', onCancel)} pending={pending === 'cancel'} icon={<Ban size={14} />} tone="danger">{t('studio_misc.runbar.stop', 'Stop it')}</BarButton>
+                        {(isRunning || isWaiting) && onCancel && (
+                            <BarButton
+                                onClick={() => act('cancel', onCancel)}
+                                pending={pending === 'cancel'}
+                                icon={<Ban size={14} />}
+                                tone="danger"
+                                title={isWaiting ? t('automations.runs.stop_waiting_title', 'Closes this run without an answer. Nothing after the pause runs.') : undefined}
+                            >
+                                {discards ? t('automations.runs.discard_test_run', 'Discard this test run') : t('studio_misc.runbar.stop', 'Stop it')}
+                            </BarButton>
                         )}
                         {/* Step-level approvals (awaiting_approval) decide in
                             the panel below the bar — it shows the question,

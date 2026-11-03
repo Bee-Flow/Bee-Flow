@@ -64,6 +64,9 @@ async function renderForm(req, res) {
         // The client stamps this into the submission so the server can tell
         // "filled in by a person" from "posted the instant the page loaded".
         issuedAt: Date.now(),
+        // A test link (formTestPageStore.mts): the page shows a Test banner, and
+        // every submission is a test run of the working copy.
+        ...(found.test ? { test: true } : {}),
     });
 }
 
@@ -90,6 +93,22 @@ async function uploadFile(req, res) {
     }
     // Only forms that actually declare a file field accept uploads.
     const declaredFields = pending ? normalizeFields(pending.form) : formTriggerFields(found.definition);
+    return storeUpload(req, res, found, declaredFields);
+}
+
+/**
+ * One file for a form's file question, after the caller's own gate: sized
+ * against the question, under the form's quota, scanned, and recorded in the
+ * upload ledger against the page (`found.token`), so only a submission through
+ * that same page can claim it. Shared with the builder's form test
+ * (routes/automation/formTest.js), whose files then read exactly like a
+ * visitor's.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ token: string, automation: { id: string, userId: string } }} found
+ * @param {Array<Record<string, any>>} declaredFields  the page's normalised fields
+ */
+async function storeUpload(req, res, found, declaredFields) {
     const fileFields = declaredFields.filter(f => f.type === 'file');
     if (fileFields.length === 0) return res.status(400).json({ error: 'This form does not accept files' });
 
@@ -189,4 +208,4 @@ function register(router) {
     router.post('/form/:token/pick', ipLimiter, pickLimiter, contentLengthGuard, friendly(searchPick, 'pick_failed', 'That app could not be searched'));
 }
 
-module.exports = { register, UPLOAD_QUOTA_WINDOW_MS, UPLOAD_QUOTA_FILES, UPLOAD_QUOTA_BYTES };
+module.exports = { register, storeUpload, UPLOAD_QUOTA_WINDOW_MS, UPLOAD_QUOTA_FILES, UPLOAD_QUOTA_BYTES };

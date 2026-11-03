@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { shouldAutoOpenFormOverlay, dismissKey, awaitingFormStepId } from './formOverlayAutoOpen';
+import { shouldAutoOpenFormOverlay, dismissKey, runDismissKey, recordDismissal, awaitingFormStepId } from './formOverlayAutoOpen';
 
 const base = {
     liveFromBuilder: true, runId: 'r1', awaitingStepId: 'fp_2', overlayOpen: false,
@@ -26,6 +26,19 @@ describe('shouldAutoOpenFormOverlay', () => {
         expect(shouldAutoOpenFormOverlay({ ...base, dismissed })).toBe(false);
         expect(shouldAutoOpenFormOverlay({ ...base, dismissed, awaitingStepId: 'fp_3' })).toBe(true);
         expect(shouldAutoOpenFormOverlay({ ...base, dismissed, runId: 'r2' })).toBe(true);
+    });
+    it('stays closed on every page of a run the user closed while it was still going (RUN-11)', () => {
+        const dismissed = new Set([runDismissKey('r1')]);
+        expect(shouldAutoOpenFormOverlay({ ...base, dismissed })).toBe(false);
+        expect(shouldAutoOpenFormOverlay({ ...base, dismissed, awaitingStepId: 'fp_3' })).toBe(false);
+        expect(shouldAutoOpenFormOverlay({ ...base, dismissed, runId: 'r2' })).toBe(true);
+    });
+    it('records the page on screen and every run that was still going', () => {
+        const dismissed = new Set<string>();
+        recordDismissal(dismissed, { runId: 'r1', stepId: 'fp_2', runIds: ['r1', 'r2'] });
+        expect([...dismissed].sort()).toEqual(['r1:*', 'r1:fp_2', 'r2:*']);
+        recordDismissal(dismissed, { runId: null, stepId: null, runIds: null });
+        expect(dismissed.size).toBe(3);
     });
 });
 

@@ -168,3 +168,21 @@ export function testDurationMs(state: TestRunState): number | null {
     const end = Date.parse(state.finishedAt || '');
     return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : null;
 }
+
+const WAITING_ROW = new Set(['awaiting_form', 'awaiting_approval']);
+
+/**
+ * A paused test run that was stopped (Stop / Discard on the line over the
+ * flow): the run row the server answered, and the step that waited closed as
+ * the server closes it, so the line and the cards stop saying "waiting".
+ */
+export function settleStoppedRun(state: TestRunState, run: AutomationRun | null, now: number): TestRunState {
+    const stopped: AutomationRun | null = run ?? (state.run ? { ...state.run, status: 'cancelled' } : null);
+    return {
+        ...state,
+        pending: false,
+        finishedAt: new Date(now).toISOString(),
+        run: stopped,
+        rows: state.rows.map((r) => (WAITING_ROW.has(String(r.status)) ? { ...r, status: 'cancelled' } : r)),
+    };
+}

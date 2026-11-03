@@ -67,6 +67,12 @@ test('meta keys of a dry run and the full-output reference are ignored at any de
     assert.deepStrictEqual(await diff(a, b), []);
 });
 
+test('a pause preview and the missing-scenario flag are meta keys too', async () => {
+    const a = { x: 1, _preview: { warnings: ['auto-approved'] }, inner: { _scenarioMissing: true, v: 1 } };
+    const b = { x: 1, inner: { v: 1 } };
+    assert.deepStrictEqual(await diff(a, b), []);
+});
+
 test('ignorePaths skips an exact path and everything below it, nothing else', async () => {
     const a = { id: 'a', meta: { at: 1, who: 'x' }, list: [{ t: 1 }], metadata: 1 };
     const b = { id: 'b', meta: { at: 2, who: 'y' }, list: [{ t: 2 }], metadata: 2 };

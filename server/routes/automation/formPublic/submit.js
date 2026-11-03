@@ -8,15 +8,14 @@
 
 const automationStore = require('../../../stores/automationStore');
 const { verifyCsrf } = require('../../../auth/publicShareToken');
-const { formTriggerFields, normalizeFields, coerceSubmission } = require('../../../automation/formTriggerContract');
+const { normalizeFields, coerceSubmission } = require('../../../automation/formTriggerContract');
 // The answers table a form may collect into (never in the visitor's way —
 // every call below swallows its own errors).
 const formAnswers = () => require('../../../automation/formAnswers').write;
-const { collectEnabled } = require('../../../automation/formAnswers/derive');
 const { describeClaimedUpload } = require('../../../automation/formUploadText');
 const formQueue = require('../../../automation/formQueue');
+const { acceptSubmission, queueSubmission, profileForFound } = require('../../../automation/formSubmission.mts');
 const { privateHeaders, loadForm, loadSession, pendingPageFor, PUBLIC_FORMS_ENABLED } = require('./access');
-const { assertFormStartAllowed } = require('../../../automation/formCallerNotice');
 const { ipLimiter, tokenLimiter, sessionLimiter, contentLengthGuard } = require('./limits');
 const { resolvePicks } = require('./picks');
 const { friendly } = require('./friendly');
@@ -63,74 +62,23 @@ async function submitForm(req, res) {
         if (!fresh) return res.status(200).json({ accepted: true, duplicate: true });
     }
 
-    const fields = formTriggerFields(found.definition);
-    const { values, files, picks, errors } = coerceSubmission(fields, body);
-    if (errors.length) return res.status(400).json({ error: 'Some answers need attention', fields: errors });
-
-    // Claim every referenced upload — atomically, so a replayed submission
-    // cannot re-attach the same file, and a file uploaded through another
-    // form cannot be attached to this one.
-    for (const { field, fileId } of files) {
-        const claimed = await automationStore.claimFormUpload(fileId, found.token);
-        if (!claimed) {
-            return res.status(400).json({ error: 'Some answers need attention', fields: [{ field, message: 'That file is no longer available — please attach it again.' }] });
-        }
-        // The descriptor carries the file's TEXT as well as its receipt, so
-        // an ai_step can bind trigger.output.<field>.text and actually read
-        // the workbook the visitor attached. Never throws — an unreadable
-        // attachment yields `textError` and the run still starts.
-        values[field] = await describeClaimedUpload(claimed);
-    }
-
-    // Records picked from an app the FILLER can reach — the transcript, the
-    // email, the meeting note the question asked for.
-    await resolvePicks(picks, values, req);
-
-    await automationStore.touchFormPage(found.token).catch((e) => bestEffort('routes/automation/formPublic/submit:submitForm', e));
-
-    // The signed-in submitter — every caller is one while PUBLIC_FORMS is
-    // off; null is what an anonymous visitor will read as once it is on.
-    const submitterId = req.session?.user?.id || null;
-    // A public form is a system start; only a members-only form has its submitter as the starter.
-    await assertFormStartAllowed({ automation: found.automation, submitterId: PUBLIC_FORMS_ENABLED ? null : submitterId, store: automationStore });
-
-    // The answers TABLE gets its row first, before the run is even queued,
-    // so the owner sees the submission whatever the run does. `null` when the form does
-    // not collect, or when the table refused — the submission still
-    // proceeds, the owner sees why on the Form page.
-    const answers = collectEnabled(found.definition)
-        ? await formAnswers().recordSubmission({ automation: found.automation, definition: found.definition, values, submitterId })
-        : null;
-
-    // Metadata rides on trigger.headers, never inside trigger.output — a
-    // field called `submitted_at` must not be shadowed by ours. The answers
-    // row id rides here too, so every later page of the journey (which
-    // resumes with these same headers) finds its row.
-    const triggerHeaders = {
-        submitted_at: new Date().toISOString(),
-        form_page_id: found.token,
-        user_agent: String(req.get('user-agent') || '').slice(0, 300),
-        ...(answers ? { answers_row_id: answers.rowId, answers_datatable_id: answers.datatableId } : {}),
-    };
-
-    // Every submission gets a session, even for a single-page form: it is
-    // how the browser learns whether the automation paused for another page,
-    // finished with a summary, or failed. Stored BEFORE the run starts so
-    // the poll has something to point at while the queue drains.
-    const rootStepId = found.page.triggerStepId || null;
-    const session = await automationStore.createFormSession(found.token, found.automation.id, {
-        rootStepId, triggerHeaders,
-    });
+    // Page one's handling (coerce, uploads, picks, the caller notice, the
+    // answers row, the headers, the session) is the same for a real visitor,
+    // a test link and the builder (automation/formSubmission.mts); a test
+    // link's row (found.test) makes it a test run of the working copy.
+    const accepted = await acceptSubmission(found, body, {
+        userId: req.session?.user?.id || null,
+        userAgent: String(req.get('user-agent') || ''),
+        readPicks: (picks, values) => resolvePicks(picks, values, req),
+        publicForm: PUBLIC_FORMS_ENABLED,
+    }, profileForFound(found));
+    if (!accepted.ok) return res.status(accepted.status).json(accepted.body);
 
     // Persisted on the session BEFORE the 202, then queued: the visitor is
     // told "received" only once a restart can no longer lose it. The run
     // itself (and its onRunCreated/onRunFinished wiring) is built by
     // formQueue from the session row and this payload alone.
-    await formQueue.accept({
-        automation: found.automation,
-        session,
-        work: { kind: 'submit', payload: { ...values }, submitterId, publicForm: PUBLIC_FORMS_ENABLED },
-    }, res, { sessionId: session.id });
+    await queueSubmission(found, accepted, res);
     return undefined;
 }
 
@@ -224,7 +172,8 @@ async function answerPage(req, res) {
         await formQueue.accept({
             automation: found.automation,
             session,
-            work: { kind: 'resume', parentRunId: run.id, stepId, values: { ...values }, submitterId },
+            // isTest: a test link's journey stays a test when the sweep recovers it.
+            work: { kind: 'resume', parentRunId: run.id, stepId, values: { ...values }, submitterId, ...(session.isTest ? { isTest: true } : {}) },
         }, res);
     } catch (e) {
         // Not persisted, so not queued: the answer was never accepted, and

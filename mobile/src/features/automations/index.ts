@@ -28,14 +28,16 @@ export {
 export { createAutomation, deleteAutomation, getAutomationUsage, readCreateResult } from './api/lifecycle';
 export { issueDetailsOf, readIssues } from './api/issues';
 export { automationKeys } from './api/keys';
-export { readAutomation, readRun, readRunStep } from './api/readers';
-export { useActiveRuns, useAutomations, useRecentRuns, useSchedulePreview } from './hooks/queries';
+export { readAutomation, readRun, readRunDecisionResult, readRunStep } from './api/readers';
+export { useActiveRuns, useAutomations, useRecentRuns, useRun, useSchedulePreview } from './hooks/queries';
 export { useCancelRun, useRunListsRefresh, type MutationHandlers } from './hooks/mutations';
 export { useAutomationUsage, useCreateAutomation, useDeleteAutomation } from './hooks/lifecycle';
 export { useRunStream } from './hooks/useRunStream';
 
 export { mayStartRun, VIEW_ONLY_RUN_HINT } from './model/runAccess';
-export { isLiveStatus, statusLabel, statusToken } from './model/status';
+export { isLiveStatus, isMovingRun, statusLabel, statusToken } from './model/status';
+export { decisionOutcome, type DecisionOutcome } from './model/decisionOutcome';
+export { simulatedPauseOf, simulatedPauseText, type SimulatedPause } from './model/simulatedPause';
 export { absoluteTime, formatDuration } from './model/time';
 export { errorClassText, errorClassWords, triggerText, triggerWords, type Words } from './model/runWords';
 export { describeTrigger, triggerIcon } from './model/trigger';
@@ -56,6 +58,7 @@ export type {
     AutomationUsageRow,
     CreateAutomationBody,
     CreateAutomationResult,
+    RunDecisionResult,
     RunEvent,
     RunStatus,
     RunTriggerResult,

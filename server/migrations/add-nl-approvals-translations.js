@@ -145,7 +145,30 @@ const NL_TRANSLATIONS = {
     'automations.builder.approval_stage_budget': '{used} van {max} beoordelaars gebruikt in de hele keten',
     'automations.builder.approval_stage_budget_full': 'De keten zit vol bij {max} beoordelaars — verwijder er één voordat je een nieuwe toevoegt.',
     'automations.builder.approval_final_stage_name': 'Eindakkoord',
+
+    // A test or dry run's approval (2026-11): the tester decides alone, and the
+    // card says where the request would go in production.
+    'approvals.test_decision': 'Testbeslissing: je beslist voor elke beoordelaar.',
+    'approvals.test_in_production': 'In productie gaat dit naar {route}.',
+    'approvals.test_route_stage_n': 'Fase {n}',
+    'approvals.test_route_stage_skipped': '{name} (overgeslagen)',
+    'approvals.test_route_panel': 'een panel van {n}',
+    'approvals.test_route_group': 'een groep',
+    'approvals.test_route_person': 'één beoordelaar',
+    'approvals.test_route_owner': 'de eigenaar van de automatisering',
+    'approvals.test_route_final': 'daarna een eindakkoord',
 };
+
+/**
+ * Keys whose Dutch IS the English string, so they are not seeded: a seeded
+ * copy cannot be told apart from an untranslated one and would hide a later
+ * rewording of the English. "Test" is the Dutch word too; `{name} ({n})` has
+ * no words at all.
+ */
+const SAME_AS_ENGLISH = [
+    'approvals.test_chip',
+    'approvals.test_route_stage',
+];
 
 async function up() {
     const languageStore = require('../stores/languageStore');
@@ -158,7 +181,7 @@ async function up() {
     return { added };
 }
 
-module.exports = { up, NL_TRANSLATIONS };
+module.exports = { up, NL_TRANSLATIONS, SAME_AS_ENGLISH };
 
 if (require.main === module) {
     up().then(({ added }) => {

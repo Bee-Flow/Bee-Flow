@@ -1,16 +1,20 @@
-/** Approve or reject the step a paused run is waiting on. */
+/**
+ * Approve or reject the step a paused run is waiting on. The decision goes
+ * through useRunDecision: an approval that asks for answers opens the
+ * approvals screen, and a panel vote is told as a vote.
+ */
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { describeError } from '@/core/api/errors';
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { InlineMarkdown } from '@/shared/markdown';
-import { Button, Card, Text, useToast } from '@/shared/ui';
+import { runPhase } from '@/shared/runs/runPhase';
+import { Badge, Button, Card, Text } from '@/shared/ui';
 
 import { StatusIcon } from './StatusPill';
-import { useDecideRunStep } from '../hooks/mutations';
+import { useRunDecision } from '../hooks/useRunDecision';
 import { absoluteTime } from '../model/time';
 import type { AutomationRun } from '../model/types';
 
@@ -25,19 +29,17 @@ const makeStyles = (theme: Theme) =>
 
 export function AwaitingApprovalCard({ run, onDecided }: { run: AutomationRun; onDecided: () => void }) {
     const styles = useThemedStyles(makeStyles);
-    const { toast } = useToast();
     const t = useTranslation();
-    const mutation = useDecideRunStep(run.id, onDecided, {
-        onError: (error) => toast(describeError(error).message, 'error'),
-    });
+    const decision = useRunDecision(run, onDecided);
 
     return (
         <Card>
             <View style={styles.body}>
                 <View style={styles.heading}>
                     <StatusIcon status={run.status} />
+                    {runPhase(run).isTest ? <Badge label={t('mobile.runs.test_marker', 'Test')} tone="ai" /> : null}
                     <Text variant="subheading" style={styles.title}>
-                        {t('mobile.automations.approval.waiting', 'Waiting for your decision')}
+                        {t('automations.canvas.run_waiting_decision', 'Waiting for your decision')}
                     </Text>
                 </View>
                 <InlineMarkdown
@@ -58,15 +60,16 @@ export function AwaitingApprovalCard({ run, onDecided }: { run: AutomationRun; o
                 <View style={styles.actions}>
                     <Button
                         label={t('approvals.approve', 'Approve')}
-                        onPress={() => mutation.mutate('approve')}
-                        loading={mutation.isPending}
+                        onPress={() => decision.decide('approve')}
+                        loading={decision.pending}
+                        disabled={decision.checking}
                         style={styles.action}
                     />
                     <Button
                         label={t('approvals.reject', 'Reject')}
                         variant="danger"
-                        onPress={() => mutation.mutate('reject')}
-                        disabled={mutation.isPending}
+                        onPress={() => decision.decide('reject')}
+                        disabled={decision.pending}
                         style={styles.action}
                     />
                 </View>

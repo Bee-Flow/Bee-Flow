@@ -6,8 +6,9 @@
  *
  * A golden is a finished, successful run somebody marked as "this is what
  * right looks like" (routes/automation/goldens.js). Replaying it feeds the
- * automation the same trigger payload and the same form answers the saved run
- * had (formAnswers.answersFromJourney), runs it in dry-run mode (side effects
+ * automation the same trigger payload, the same form answers
+ * (formAnswers.answersFromJourney) and the same approval decisions and approver
+ * answers (approvalAnswers.mts) the saved run had, runs it in dry-run mode (side effects
  * simulated, reads live), and diffs the two journeys (runCompare.js). The
  * verdict lands on the golden as its `last_replay`:
  *
@@ -91,6 +92,7 @@ async function resolveEntry(runEntry, automation, goldenRun) {
  * @property {{ setGoldenReplay: (id: string, state: Record<string, unknown>) => unknown }} testingStore
  * @property {typeof import('../../core/automationRunner').executeAutomation} executeAutomation
  * @property {typeof import('./formAnswers').answersFromJourney} answersFromJourney
+ * @property {typeof import('./approvalAnswers.mts').approvalAnswersFromJourney} approvalAnswersFromJourney
  * @property {{ entryDefinitionOf: typeof import('../../core/automationRunner/entryPoint').entryDefinitionOf, resolveTriggerStepId: typeof import('../../core/automationRunner/entryPoint').resolveTriggerStepId }} runEntry
  * @property {typeof import('./runCompare').compareRuns} compareRuns
  * @property {{ warn: (msg: string) => void }} log
@@ -114,6 +116,10 @@ async function replayOne(golden, input, deps) {
         const steps = await store.getRunStepsForChain(goldenRun.id);
         const definition = (await store.getVersionDefinition(goldenRun.automationId, goldenRun.version)) || automation.definition;
         const answers = deps.answersFromJourney({ definition, rootRun: goldenRun, steps });
+        // The approver's decision and answers too: without them every step
+        // that binds steps.<approval>.output.answers differed for no real
+        // reason (tests-and-docs F12).
+        const approvals = deps.approvalAnswersFromJourney({ definition, steps });
         const rootStepId = await resolveEntry(deps.runEntry, automation, goldenRun);
 
         const replay = await deps.executeAutomation(automation, {
@@ -122,7 +128,7 @@ async function replayOne(golden, input, deps) {
             triggerPayload: goldenRun.triggerPayload ?? null,
             rootStepId,
             startedByUserId: userId,
-            harness: { source: { kind: 'golden', id: golden.id }, formAnswers: { pages: answers.pages }, aiAnswers },
+            harness: { source: { kind: 'golden', id: golden.id }, formAnswers: { pages: answers.pages }, approvals, aiAnswers },
         });
         replayRunId = replay.id;
         const replayLegs = (await store.getRunsInChain(replay.id).catch(() => [replay])) || [replay];
@@ -158,6 +164,7 @@ async function replayGoldens(input, overrides = {}) {
         },
         executeAutomation: overrides.executeAutomation || ((/** @type {Parameters<typeof import('../../core/automationRunner').executeAutomation>} */ ...a) => require('../../core/automationRunner').executeAutomation(...a)),
         answersFromJourney: overrides.answersFromJourney || ((/** @type {Parameters<typeof import('./formAnswers').answersFromJourney>[0]} */ input) => require('./formAnswers').answersFromJourney(input)),
+        approvalAnswersFromJourney: overrides.approvalAnswersFromJourney || ((/** @type {Parameters<typeof import('./approvalAnswers.mts').approvalAnswersFromJourney>[0]} */ input) => require('./approvalAnswers.mts').approvalAnswersFromJourney(input)),
         runEntry: overrides.runEntry || {
             entryDefinitionOf: (/** @type {Parameters<typeof import('../../core/automationRunner/entryPoint').entryDefinitionOf>} */ ...a) => require('../../core/automationRunner/entryPoint').entryDefinitionOf(...a),
             resolveTriggerStepId: (/** @type {Parameters<typeof import('../../core/automationRunner/entryPoint').resolveTriggerStepId>} */ ...a) => require('../../core/automationRunner/entryPoint').resolveTriggerStepId(...a),

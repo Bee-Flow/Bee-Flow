@@ -5,7 +5,7 @@ import { useBannerMark } from './useFailedRunBanner';
 
 const failure = (over: Partial<RunFocus> = {}): RunFocus => ({
     stepId: 's2', label: 'Code', done: 1, total: 3, state: 'error',
-    startedAt: '2026-10-15T10:00:00.000Z', awaitingForm: false, ...over,
+    startedAt: '2026-10-15T10:00:00.000Z', awaitingForm: false, awaitingApproval: false, pausedAt: null, ...over,
 });
 const def = (code: string) => ({ trigger: { id: 't' }, steps: [{ id: 's2', code }] });
 

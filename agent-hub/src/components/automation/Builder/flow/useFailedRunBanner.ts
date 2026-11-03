@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import { computeRunFocus } from './runFocus';
 import type { FocusDefinition, RunFocus } from './runFocus';
 import type { RunRow } from './diagramPaneTypes';
+import type { RunPause } from './runPause';
 
 /** Which run the banner talks about, as the host knows it (the run row, not the merged step rows). */
 export interface RunIdentity {
@@ -12,6 +13,8 @@ export interface RunIdentity {
     startedAt: string | null;
     /** Open this run in Runs. Absent where the host has no Runs to open. */
     onOpen?: ((runId: string) => void) | null;
+    /** Whose run it is and what may be done while it waits (flow/runPause.ts). Absent where the host does not know. */
+    pause?: RunPause | null;
 }
 
 interface BannerMark {

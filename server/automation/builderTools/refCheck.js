@@ -159,6 +159,8 @@ function ownOutputShape(step, graph, draftWrap, depth) {
             return depth >= MAX_REF_DEPTH ? ANY : flattenOutputShape(step, graph, draftWrap, depth);
         case 'code':
             return codeOutputShape(step);
+        case 'approval':
+            return require('./approvalOutputShape').approvalOutputShape(step);
         default:
             return require('./tableOutputShapes').tableStepOutputShape(step) || ANY;   // the table steps
     }
@@ -263,7 +265,8 @@ function stepOutputShape(graph, step, draftWrap, depth = 0) {
         ? fanoutShape(step, graph, draftWrap, depth)
         : ownOutputShape(step, graph, draftWrap, depth);
     const seen = draftWrap && draftWrap._stepShapes ? draftWrap._stepShapes[step.id] : null;
-    if (seen && seen.sig === stepSignature(step) && seen.shape) {
+    // An approval's keys come from its output contract alone (approvalOutputShape.js).
+    if (seen && seen.sig === stepSignature(step) && seen.shape && step.type !== 'approval') {
         shape = shape.t === 'any' ? seen.shape : S.merge(shape, seen.shape);
     }
     return shape;

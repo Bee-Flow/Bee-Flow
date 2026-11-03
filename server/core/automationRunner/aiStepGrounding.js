@@ -12,6 +12,7 @@
 
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { noteRunWarning } = require('./runWarnings');
 
 // ── Knowledge Base grounding (BFSF-410) ─────────────────────────────────────
 //
@@ -50,12 +51,12 @@ const MAX_AI_STEP_KB_IDS = 10;   // mirrors appStudio/aiRuntime.MAX_KB_IDS
  * the list must not fail the whole step, and it must never silently be
  * searched either.
  */
-async function resolveAllowedKnowledgeBaseIds(kbIds, ctx) {
+async function resolveAllowedKnowledgeBaseIds(kbIds, ctx, deps = null) {
     const list = Array.isArray(kbIds)
         ? [...new Set(kbIds.filter((id) => typeof id === 'string' && id))].slice(0, MAX_AI_STEP_KB_IDS)
         : [];
     if (!list.length) return [];
-    const { filterKbIdsForUser } = require('../kb/kbVisibility');
+    const { filterKbIdsForUser } = deps && deps.kbVisibility ? deps.kbVisibility() : require('../kb/kbVisibility');
     return filterKbIdsForUser(list, {
         userId: ctx.userId,
         // Always a Set. `canUserAccessKB` reads a null as super-admin, and a
@@ -117,14 +118,16 @@ async function groundAiStepWithMemory(step, ctx, promptText, deps) {
  * Search this step's grounded knowledge bases and return a context block to
  * inject into the system prompt (empty when nothing qualifies).
  *
- * Dry-run SKIPS the search entirely — no permission lookups, no live call —
- * mirroring execIntegrationAction's dry-run special-casing: a builder preview
- * must never pay for (or depend on) a real retrieval. Never throws: a broken
- * search stack degrades to "no grounding" rather than failing the step.
- * @param {string} mode
+ * A dry run SEARCHES TOO (RM-6). The search is a read, like the read tools
+ * a dry run already executes live, and the model is called for real in a dry
+ * run anyway: without the material it answers a different question, and a
+ * switch behind it takes a branch the live run never would (the dry-run
+ * honesty rule, ./execCode.js header). Never throws: a broken search stack
+ * degrades to "no grounding" rather than failing the step, and says so with
+ * `unavailable: true` so a dry run can label its answer (execAi).
+ * @param {string} _mode  kept for the callers; the search runs in every mode
  */
-async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null, deps) {
-    if (mode === 'dry_run') return { context: '', chunks: [] };
+async function groundAiStepWithKB(step, ctx, query, _mode, kbIds = null, deps) {
     // The list comes from the caller. On an agent step that is the UNION of the bases
     // of the step and those of the agent (aiStepAgent.knowledgeBaseIdsForStep), and that
     // whole union goes through the same per-asker filter below. Otherwise an automation
@@ -133,7 +136,7 @@ async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null, deps) {
     const ids = Array.isArray(kbIds) ? kbIds : (Array.isArray(step.knowledgeBaseIds) ? step.knowledgeBaseIds : []);
     if (!ids.length) return { context: '', chunks: [] };
     try {
-        const allowedKbIds = await resolveAllowedKnowledgeBaseIds(ids, ctx);
+        const allowedKbIds = await resolveAllowedKnowledgeBaseIds(ids, ctx, deps);
         if (!allowedKbIds.length) return { context: '', chunks: [] };
         const { quickKBSearch } = deps.knowledgeSearch();
         const chunks = await quickKBSearch(ctx.userId, allowedKbIds, query, { topK: AI_STEP_KB_TOP_K });
@@ -142,7 +145,7 @@ async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null, deps) {
         return { context, chunks };
     } catch (e) {
         log.warn(`[AutomationRunner] ai_step ${step.id}: KB grounding failed (${/** @type {Error} */ (e).message}) — continuing without it`);
-        return { context: '', chunks: [] };
+        return { context: '', chunks: [], unavailable: true };
     }
 }
 
@@ -205,6 +208,59 @@ async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null
     }
 }
 
+/**
+ * Knowledge base, personal memory and skill grounding for the system prompt
+ * of one AI step (execAi), with `kbUnavailable` when the step names bases but
+ * the search could not run.
+ * @param {{ step: GroundingStep, ctx: GroundingCtx, mode: string, promptText: string,
+ *   agent: { agentBinding: unknown, knowledgeBaseIdsForStep: (step: unknown, binding: unknown) => string[],
+ *     skillGrants: { kbIds: string[] }, skillCtx: { loaded?: boolean, skills?: unknown } } }} call
+ * @param {GroundingDeps} deps
+ */
+async function groundAiStep({ step, ctx, mode, promptText, agent }, deps) {
+    const { agentBinding, knowledgeBaseIdsForStep, skillGrants, skillCtx } = agent;
+    // Knowledge Base grounding — one search keyed off ctx.userId/ctx.orgId
+    // (never an app-level owner: an automation has none), queried with this
+    // step's own interpolated prompt. See groundAiStepWithKB above.
+    const kbIdsForStep = [...new Set([...knowledgeBaseIdsForStep(step, agentBinding), ...skillGrants.kbIds])];
+    const kbGround = await groundAiStepWithKB(step, ctx, promptText, mode, kbIdsForStep, deps);
+    const kbBlock = kbGround.context ? `\n\nReference material:\n${kbGround.context}` : '';
+    // Personal memory grounding (step.useMemory) — the automation OWNER's
+    // user_memories, keyed off ctx.userId like the KB search above. Rides in
+    // the same slot as the KB block so the safety tail still closes the prompt.
+    const memoryBlock = await groundAiStepWithMemory(step, ctx, promptText, deps);
+    // Skills — the step's own first (leading), then the agent's.
+    const skillGround = await groundAiStepWithSkills(step, ctx, agentBinding, skillCtx.loaded ? skillCtx.skills : null, deps);
+    return {
+        kbBlock, memoryBlock, skillGround, skillBlock: skillGround.systemPromptAddendum || '',
+        // The step names bases but the search could not run: the answer was
+        // made without the material a live run would (probably) have had.
+        kbUnavailable: !!kbGround.unavailable,
+    };
+}
+
+/**
+ * A dry-run answer the model gave WITHOUT the knowledge it was meant to read
+ * (RM-6): labelled `_dryRunNoKnowledge` (when the answer is a record), flagged
+ * synthesised and named in the run's warnings (always, so a plain-text answer
+ * is labelled too), so it never silently decides a branch the live run would
+ * decide otherwise.
+ * @template {{ output?: unknown }} R
+ * @param {R} result
+ * @param {{ id?: string }} step
+ * @param {{ _templateWarnings?: unknown }} runState
+ */
+function markNoKnowledge(result, step, runState) {
+    noteRunWarning(runState, `${step.id}: the knowledge base search was unavailable in this dry run, so the AI answer was made without its reference material; a live run may answer differently.`);
+    const out = result.output;
+    return {
+        ...result,
+        output: out && typeof out === 'object' && !Array.isArray(out) ? { ...out, _dryRunNoKnowledge: true } : out,
+        dryRunSynthesised: true,
+        dryRunFallback: 'no_knowledge',
+    };
+}
+
 module.exports = {
     AI_STEP_KB_TOP_K,
     MAX_AI_STEP_KB_IDS,
@@ -212,6 +268,8 @@ module.exports = {
     groundAiStepWithMemory,
     groundAiStepWithKB,
     groundAiStepWithSkills,
+    groundAiStep,
+    markNoKnowledge,
 };
 
 /**
@@ -223,7 +281,8 @@ module.exports = {
  *   scrubMemoryContext: () => typeof import('../memory/scrubMemoryContext'),
  *   knowledgeSearch: () => typeof import('../agentRuntime/knowledgeSearch'),
  *   aiStepAgent: () => typeof import('./aiStepAgent'),
- *   skillInjection: () => typeof import('../tools/skillInjection') }} GroundingDeps
+ *   skillInjection: () => typeof import('../tools/skillInjection'),
+ *   kbVisibility?: () => Pick<typeof import('../kb/kbVisibility'), 'filterKbIdsForUser'> }} GroundingDeps
  * @typedef {import('./aiStepAgent').AgentAiStep & { id?: string, useMemory?: unknown, prompt?: string }} GroundingStep
  * @typedef {{ userId?: string, orgId?: string|null, userGroupIds?: string[], automationId?: string|null,
  *   orgShield?: { enabled?: boolean } | null }} GroundingCtx

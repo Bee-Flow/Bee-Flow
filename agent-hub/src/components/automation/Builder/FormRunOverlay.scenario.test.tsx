@@ -31,7 +31,7 @@ let calls: Call[] = [];
 let createResult: { status: number; body: unknown };
 
 function renderOverlay() {
-    const onStartRun = vi.fn(async () => ({ run: { id: 'run1' } }));
+    const onStartRun = vi.fn(async () => ({ kind: 'started' as const, runId: 'run1' }));
     render(withQueryClient(<FormRunOverlay automationId="a1" form={FORM} onStartRun={onStartRun} onClose={vi.fn()} />));
     return onStartRun;
 }

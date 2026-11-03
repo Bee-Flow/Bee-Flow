@@ -18,6 +18,10 @@ export interface SessionPayload {
     progressNote?: string | null;
     /** The median length of this form's recent runs, in seconds. */
     typicalSeconds?: number;
+    /** A test journey (a test link's, or the builder's): on every answer, so a reload keeps the Test banner. */
+    test?: boolean;
+    /** `waiting_decision`: the visitor will get a link when the next page is ready. */
+    notify?: boolean;
 }
 
 /** The page's phase. Loose on purpose: each phase uses its own subset. */
@@ -31,6 +35,10 @@ export interface PageState {
     progress?: string[] | null;
     progressNote?: string | null;
     typicalSeconds?: number | null;
+    /** The journey is a test (sticky once a poll said so). */
+    test?: boolean;
+    /** `waiting_decision`: whether the visitor will be sent the link. */
+    notify?: boolean;
 }
 
 type SetState = (update: (s: PageState) => PageState) => void;
@@ -69,7 +77,8 @@ export function workingPatch(payload: SessionPayload | null | undefined): Partia
 }
 
 /**
- * Map a poll response onto the page's phase.
+ * Map a poll response onto the page's phase (form, waiting_decision, done,
+ * expired, working, else error).
  *
  * Every branch replaces the whole state, so `theme` is threaded through each
  * one deliberately: it is the one field that belongs to the JOURNEY rather than
@@ -77,7 +86,14 @@ export function workingPatch(payload: SessionPayload | null | undefined): Partia
  * product than the one before it. The same replacement drops `typicalSeconds`
  * on every phase but `working`: it describes a wait, not a journey.
  */
-export function applySessionState(payload: SessionPayload, setState: SetState, setSession: SetSession): void {
+export function applySessionState(payload: SessionPayload, update: SetState, setSession: SetSession): void {
+    // A test journey stays one: every phase below replaces the state, and the
+    // Test banner must survive all of them (a reload with ?s= never reads
+    // GET /form/:token, so the poll is the only one who says so).
+    const setState: SetState = (fn) => update(s => {
+        const next = fn(s);
+        return payload.test === true || s.test === true ? { ...next, test: true } : next;
+    });
     switch (payload.state) {
         case 'form':
             setState(s => ({
@@ -99,6 +115,16 @@ export function applySessionState(payload: SessionPayload, setState: SetState, s
         case 'expired':
             setSession(null);
             setState(s => ({ status: 'expired', form: null, csrf: null, issuedAt: 0, ending: null, theme: s.theme || null }));
+            break;
+        case 'waiting_decision':
+            // A person has to decide before the next page exists, which can take
+            // days. Polling stops here (the poll loop only runs while 'working')
+            // without the "taking a while" error; the session and ?s= stay, so
+            // revisiting the link (or "Check again") picks the journey up again.
+            setState(s => ({
+                status: 'waiting_decision', form: null, csrf: null, issuedAt: 0, ending: null,
+                theme: s.theme || null, notify: payload.notify === true,
+            }));
             break;
         case 'working':
             // Keep the trail the poll sent. Dropping it meant a page opened (or

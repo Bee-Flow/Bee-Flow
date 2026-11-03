@@ -13,6 +13,8 @@ import type { ApprovalVote, ApprovalStage, PanelProgressData, ApprovalProgress, 
 import { waitingStageLine, auditLine, formatSize } from './ApprovalDetail.helpers';
 import { Section, StageTimeline } from './StageTimeline';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { TestApprovalNote, TestChip } from './TestApprovalNote';
+import { decisionOutcome, decisionOutcomeText, stillPending } from './decisionOutcome';
 
 export default function ApprovalDetail({ approvalId, onBack, onDecided }: ApprovalDetailProps) {
     const { t } = useTranslation();
@@ -70,32 +72,15 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
     const decide = async (decision: string, reason: string | undefined, answers: unknown) => {
         try {
             const res = await api.decideApproval(approval.id, decision, reason, answers);
-            // A panel that has not resolved yet records a VOTE: the row stays
-            // pending, the progress updates, and nothing downstream fires.
-            if (res.decision === 'vote_recorded') {
-                // A staged row reports WHICH stage is now waiting when the
-                // chain advanced (`stage` is only set on an advance), so the
-                // person who just voted hears that their stage closed rather
-                // than "waiting for the other approvers" — there are none.
-                const staged = res.progress?.kind === 'stages';
-                const nextStage = staged && res.stage
-                    ? (res.progress.stages || []).find(s => s.key === res.stage)
-                    : null;
-                if (staged && nextStage && res.progress.position) {
-                    toast.success(t('approvals.toast_stage_passed', 'This stage is done — it has moved on to {name} (stage {n} of {m}).', {
-                        name: nextStage.name || t('approvals.stage_unnamed', 'this stage'),
-                        n: String(res.progress.position.index),
-                        m: String(res.progress.position.total),
-                    }));
-                } else {
-                    toast.success(res.stage === 'final'
-                        ? t('approvals.toast_panel_final', 'The panel approved — waiting for the final sign-off.')
-                        : t('approvals.toast_vote', 'Your vote is in — waiting for the other approvers.'));
-                }
+            // One reading of the answer for every surface that decides
+            // (decisionOutcome.ts): a vote that leaves the row pending, a
+            // stage that passed, the run continuing or stopping.
+            const outcome = decisionOutcome(res, decision);
+            toast.success(decisionOutcomeText(outcome, t));
+            if (stillPending(outcome)) {
                 api.getApproval(approval.id).then(setData).catch(() => {});
                 return;
             }
-            toast.success(decision === 'approve' ? t('approvals.toast_approved', 'Approved — the run is continuing.') : t('approvals.toast_rejected', 'Rejected — the run has stopped.'));
             const fresh = res.approval || { ...approval, status: decision === 'approve' ? 'approved' : 'rejected' };
             setData(d => ({ ...d, approval: fresh, canDecide: false }));
             onDecided?.(fresh);
@@ -113,7 +98,10 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
         <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
             <div className="flex items-center justify-between gap-2 flex-wrap">
                 <BackButton onBack={onBack} />
-                <StatusLabel status={approval.status} t={t} />
+                <span className="inline-flex items-center gap-2">
+                    {approval.isTest && <TestChip />}
+                    <StatusLabel status={approval.status} t={t} />
+                </span>
             </div>
 
             {/* The question, given the room a question deserves. What used to
@@ -121,6 +109,10 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
                 an eyebrow saying which automation asked, the ask itself as the
                 heading, and the facts that qualify it on one quiet line. */}
             <ApprovalDetailSection sourceInfo={sourceInfo} approval={approval} t={t} chain={chain} runLink={runLink} />
+
+            {/* A test approval: the tester decides for every approver; the
+                route a production run would take, as a preview. */}
+            <TestApprovalNote approval={approval} />
 
             {/* The snapshot, as prose rather than as a grey slab. Nothing is
                 dropped — FormRichText renders the same markdown it always

@@ -318,6 +318,22 @@ describe('ExecutionBar — the action buttons', () => {
         }
     });
 
+    it('offers Stop for a run waiting on a form page or an approval; a waiting test is discarded', async () => {
+        const user = userEvent.setup();
+        for (const [over, name] of [
+            [{ status: 'awaiting_form' }, /Stop it/],
+            [{ status: 'awaiting_approval' }, /Stop it/],
+            [{ status: 'awaiting_form', isTest: true }, /Discard this test run/],
+            [{ status: 'awaiting_approval', profile: { kind: 'dry' } }, /Discard this test run/],
+        ]) {
+            cleanup();
+            const onCancel = vi.fn().mockResolvedValue(undefined);
+            renderBar({ run: baseRun(over), onCancel });
+            await user.click(screen.getByRole('button', { name }));
+            expect(onCancel).toHaveBeenCalledTimes(1);
+        }
+    });
+
     it('gives awaiting_confirm a one-click Approve, passing the decision word', async () => {
         const user = userEvent.setup();
         const onApprove = vi.fn().mockResolvedValue(undefined);

@@ -213,6 +213,9 @@ describe('the skip matrix', () => {
         no_service_email: 'no_work',
         no_owner_email: 'no_work',
         not_sent: 'no_work',
+        would_fail_live: 'no_work',
+        synthetic_input: 'no_work',
+        synthetic_source: 'no_work',
         pinned: 'pinned',
     };
 

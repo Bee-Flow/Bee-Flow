@@ -3,7 +3,9 @@
  * Dry-run (the toolbar's Play), Run live (asked first: every step performs
  * its action), and, for an automation with more than one trigger, which trigger
  * the next run starts from. A form trigger with nothing saved to run on is
- * opened instead of run: a form runs when somebody fills it in.
+ * opened instead of run: a form runs when somebody fills it in. A last run
+ * that waits on a decision or a form page can be stopped here
+ * ("Discard this test run" on a test).
  */
 
 import React from 'react';
@@ -14,7 +16,7 @@ import type { FlowDefinition } from '@/features/flow-editor/model';
 import { useConfirm } from '@/shared/patterns';
 import { ActionMenu, useToast, type ActionMenuItem } from '@/shared/ui';
 
-import { bareFormEntry } from './runMenu';
+import { bareFormEntry, pausedStopLabel } from './runMenu';
 import type { TestRuns } from './useTestRuns';
 
 export function RunMenu({
@@ -51,7 +53,12 @@ export function RunMenu({
         }
         runs.runLive();
     };
+    const stopLabel = runs.stop && !runs.running ? pausedStopLabel(runs.pausedRun ?? runs.state.run, t) : null;
+    const stop: ActionMenuItem[] = stopLabel && runs.stop
+        ? [{ id: 'stop', label: stopLabel, icon: 'Square', destructive: true, onPress: runs.stop }]
+        : [];
     const items: ActionMenuItem[] = [
+        ...stop,
         {
             id: 'dry',
             label: t('automations.header.dry_run', 'Dry-run (preview)'),

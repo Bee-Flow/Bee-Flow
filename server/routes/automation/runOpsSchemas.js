@@ -3,6 +3,8 @@
 // split out of it. Every schema is `.strict()`.
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+// When to answer a request that continues a run: see runSchemas.js.
+const { Respond } = require('./runSchemas');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -46,6 +48,7 @@ const ApproveStepBody = bodyOf({
     // The answers belong to the form the approval asked for, and the form
     // contract coerces them field by field.
     answers: z.unknown().optional(),
+    respond: Respond,
 });
 
 const ApproveRunBody = bodyOf({ decision: Decision, reason: Reason });
@@ -76,6 +79,7 @@ const FullOutputQuery = z.object({
 const RunFormBody = bodyOf({
     stepId: worded('stepId is the id of the form page being answered.').trim().min(1, 'stepId is the id of the form page being answered.').optional(),
     values: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'values maps a field id to its answer.' }) }).default({}),
+    respond: Respond,
 });
 
 module.exports = {

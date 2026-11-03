@@ -14,6 +14,10 @@ const { gapsReadAfterPause } = require('./replayGaps');
 const { executeAutomation } = require('./execution');
 const { automationForRun, withWorkingSettings } = require('./definitionForRun');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+// The paused run's profile decides what the continuation is (runProfile.mts),
+// and the default decision has the one approval output shape (approvalOutput.mts).
+const { profileOfRun } = require('../automationModel/runProfile.mts');
+const { approvalOutput } = require('../automationModel/approvalOutput.mts');
 
 /**
  * Continue a paused run from its awaiting step.
@@ -36,12 +40,12 @@ const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 const PAUSED_STATUSES = new Set(['awaiting_form', 'awaiting_approval', 'awaiting_confirm']);
 
 /**
- * @param {string | null} runId
- * @param {string} fromStepId
+ * The automation a paused run continues on: the definition of the version it
+ * STARTED on. Also read by automation/approvalDecision.js, which must look at
+ * the same definition to know whether a reject has a branch to continue on.
+ * @param {{ automationId: string, version?: number | null, triggerKind?: string | null, isTest?: boolean | null }} original  the paused run row
  */
-async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null } = {}) {
-    const original = await automationStore.getRun(runId);
-    if (!original) throw new Error(`Run ${runId} not found`);
+async function automationToResume(original) {
     const stored = await automationStore.getAutomation(original.automationId);
     if (!stored) throw new Error(`Automation ${original.automationId} not found`);
     // A resumed run finishes on the definition of the version it STARTED on
@@ -59,11 +63,21 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
     // so executeAutomation runs exactly this definition. The pinned steps keep
     // the working copy's SETTINGS (notifications, run policy, app buttons):
     // those apply at once, also to a run that was waiting (definitionForRun.js).
-    const automation = {
+    return {
         ...fallback,
         definition: pinned ? withWorkingSettings(pinned, stored.definition) : fallback.definition,
         version: pinned ? original.version : fallback.version,
     };
+}
+
+/**
+ * @param {string | null} runId
+ * @param {string} fromStepId
+ */
+async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null } = {}) {
+    const original = await automationStore.getRun(runId);
+    if (!original) throw new Error(`Run ${runId} not found`);
+    const automation = await automationToResume(original);
 
     // Replay state from previously-recorded step rows so binding
     // expressions like {{steps.stepX.output.field}} resolve to what they
@@ -127,10 +141,19 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
     // Inject the synthetic decision output for the resumption-boundary step.
     if (fromStepId) {
         replayedStepState[fromStepId] = {
-            output: decision || { approved: true, resumedAt: new Date().toISOString(), by: userId },
+            output: decision || approvalOutput({ approved: true, by: userId }),
             status: 'success',
         };
     }
+
+    // The continuation is the SAME kind of run as the one that paused (a resume
+    // never changes kind): a dry run stays a dry run, so the writes after the
+    // answer stay simulated; a partial run keeps its bound, so "Execute this
+    // step" on an approval or form page stops after that step instead of running
+    // the rest of the flow live (RM-1, F3). runDag stops after a REPLAYED target
+    // too, which is what the boundary step is here. A legacy row derives the
+    // profile it ran with (live, no bound), so it resumes exactly as before.
+    const profile = profileOfRun(original);
 
     return await executeAutomation({
         ...automation,
@@ -138,7 +161,9 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
         triggerKind: original.triggerKind || 'manual',
         triggerPayload: original.triggerPayload || null,
         triggerHeaders,
-        mode: 'live',
+        mode: profile.kind === 'dry' ? 'dry_run' : 'live',
+        untilStepId: profile.stopAfterStepId,
+        profileOverride: profile,
         parentRunId: runId,
         // Continuing a pause keeps the journey the visitor started, so the
         // history shows their three-question form as ONE run instead of one row
@@ -153,7 +178,7 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
         skipUntilStepId: fromStepId,
         rootStepId: rootStepId ?? original.rootStepId ?? null,
         // A resumed test run is still a test run (the Runs tab's filter).
-        isTest: !!original.isTest,
+        isTest: !!original.isTest || profile.kind !== 'production',
         startedByUserId: original.startedByUserId || null,
         // A run that began on its starter's own connections keeps them, whatever
         // the setting says by now.
@@ -161,4 +186,4 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
     });
 }
 
-module.exports = { resumeFromStep };
+module.exports = { resumeFromStep, automationToResume };

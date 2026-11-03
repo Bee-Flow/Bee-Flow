@@ -22,8 +22,18 @@ const { bestEffort } = require('../../utils/bestEffort');
  * CONTINUES a paused one passes its parent's root, and that is what collapses a
  * multi-page form's child runs into a single row in the history.
  */
-async function createRun({ automationId, version, userId, triggerKind, triggerPayload = null, mode = 'live', parentRunId = null, rootRunId = null, rootStepId = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, connectionsMode = null }) {
+async function createRun(args) {
     await initDB();
+    return getRun(await createRunWith(run, args));
+}
+
+/**
+ * The INSERT of createRun through the given `run(sql, params)`, returning the
+ * new id (a store test drives it against an in-process Postgres).
+ * @param {(sql: string, params: unknown[]) => Promise<unknown>} runSql
+ * @param {CreateRunArgs} args
+ */
+async function createRunWith(runSql, { automationId, version, userId, triggerKind, triggerPayload = null, mode = 'live', parentRunId = null, rootRunId = null, rootStepId = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, connectionsMode = null, runProfile = null }) {
     const id = crypto.randomUUID();
     // `rootStepId` — the trigger node this run entered through (NULL = the
     // primary trigger). Persisted so a resume after a pause re-enters the SAME
@@ -31,15 +41,18 @@ async function createRun({ automationId, version, userId, triggerKind, triggerPa
     // `isTest` / `startedByUserId` / `callerAgent*` — handoff 5
     // (automation-handoff5-2026-09): a Test-button run of the working copy,
     // who pressed the button, and which agent conversation started the run.
-    await run(
+    // `runProfile` — the run's profile (core/automationModel/runProfile.mts),
+    // decided once when the run starts; a resume reads it back (profileOfRun).
+    await runSql(
         `INSERT INTO automation_runs (id, automation_id, version, user_id, trigger_kind, trigger_payload, mode, status, started_at, parent_run_id, root_run_id, root_step_id,
-                                      is_test, started_by_user_id, caller_agent_id, caller_conversation_id, connections_mode)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',NOW(),$8,COALESCE($9,$1),$10,$11,$12,$13,$14,$15)`,
+                                      is_test, started_by_user_id, caller_agent_id, caller_conversation_id, connections_mode, run_profile)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',NOW(),$8,COALESCE($9,$1),$10,$11,$12,$13,$14,$15,$16)`,
         [id, automationId, version, userId, triggerKind, triggerPayload ? JSON.stringify(triggerPayload) : null, mode, parentRunId, rootRunId, rootStepId || null,
             !!isTest, startedByUserId || null, callerAgentId || null, callerConversationId || null,
-            connectionsMode === 'caller' ? 'caller' : null],
+            connectionsMode === 'caller' ? 'caller' : null,
+            runProfile && typeof runProfile === 'object' ? JSON.stringify(runProfile) : null],
     );
-    return getRun(id);
+    return id;
 }
 
 /**
@@ -367,9 +380,13 @@ async function saveRunTokenMap(runId, tokenMap) {
     return rowCount > 0;
 }
 
-module.exports = { createRun, getRun, getRunsForAutomation, getRecentRunsForUser, listRunsForUser, listRunsForOrg, listRunsForAutomation, getRunFacetsForUser, getRunFacetsForOrg, getRunFacetsForAutomation, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects, touchRunHeartbeat, getActiveRunsForUser, updateRun, requestCancelRun, recordRunStep, recordRunStepWith, getRunSteps, getRunStepsForRuns, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunTokenMap, saveRunTokenMap, encodeRunCursor, decodeRunCursor, buildRunFilterWhere, rowToOrgRunRow, RUN_FACET_AUTOMATIONS_CAP };
+module.exports = { createRun, createRunWith, getRun, getRunsForAutomation, getRecentRunsForUser, listRunsForUser, listRunsForOrg, listRunsForAutomation, getRunFacetsForUser, getRunFacetsForOrg, getRunFacetsForAutomation, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects, touchRunHeartbeat, getActiveRunsForUser, updateRun, requestCancelRun, recordRunStep, recordRunStepWith, getRunSteps, getRunStepsForRuns, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunTokenMap, saveRunTokenMap, encodeRunCursor, decodeRunCursor, buildRunFilterWhere, rowToOrgRunRow, RUN_FACET_AUTOMATIONS_CAP };
 
 /**
+ * @typedef {{ automationId: string, version?: number | null, userId: string, triggerKind: string, triggerPayload?: unknown,
+ *   mode?: string, parentRunId?: string | null, rootRunId?: string | null, rootStepId?: string | null, isTest?: boolean,
+ *   startedByUserId?: string | null, callerAgentId?: string | null, callerConversationId?: string | null,
+ *   connectionsMode?: string | null, runProfile?: Record<string, unknown> | null }} CreateRunArgs
  * @typedef {{ user?: { userId: string }, org?: { orgId: string }, automation?: { automationId: string } }} RunScope
  * @typedef {{ status?: string | string[], triggerKind?: string | string[], mode?: string | string[],
  * automationId?: string, kind?: string, sinceTs?: string | null, untilTs?: string | null,

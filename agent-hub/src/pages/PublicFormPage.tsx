@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import useFormResultActions from './useFormResultActions';
+import { FormNotLiveView, FormWaitingDecisionView, TestLinkBanner } from './PublicFormNotices';
 import PublicFormRenderer, { FormEndingView, FormWaitingView } from '../components/forms/PublicFormRenderer';
 import useTranslation from '../hooks/useTranslation';
 import { FORM_API as API, applySessionState, fetchSession, randomNonce, readSessionFromUrl, workingPatch, writeSessionToUrl, type PageState } from './publicFormSession';
@@ -57,7 +58,7 @@ const POLL_CEILING_MS = 5 * 60 * 1000;
  * entitlement as the /api/webpages gate); without it "Save as Webpage" is not
  * offered.
  *
- * Phases: loading → form → working → form (page N) → done | error | expired.
+ * Phases: loading → form → working → [waiting_decision →] form (page N) → done | error | expired.
  */
 interface PublicFormPageProps {
     token: string | null;
@@ -86,6 +87,8 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
     }, []);
     // Bumped by "Start again" to load page one afresh.
     const [restart, setRestart] = useState(0);
+    // A test link's page (Test banner), and "not live yet" for an editor (409 form_not_live).
+    const [notice, setNotice] = useState<{ test: boolean; notLive: { automationId: string | null } | null }>({ test: false, notLive: null });
     const { t } = useTranslation();
 
     // ── Page one, or resume an in-flight session after a reload ────────────
@@ -105,7 +108,12 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
                 const r = await fetch(`${API}/${encodeURIComponent(String(token))}`, { headers: { Accept: 'application/json' } });
                 const body = await r.json().catch(() => ({}));
                 if (!alive) return;
-                if (!r.ok) { setState({ status: 'missing', form: null, csrf: null, issuedAt: 0, ending: null }); return; }
+                if (!r.ok) {
+                    setNotice({ test: false, notLive: r.status === 409 && body?.code === 'form_not_live' ? { automationId: body.automationId || null } : null });
+                    setState({ status: 'missing', form: null, csrf: null, issuedAt: 0, ending: null });
+                    return;
+                }
+                setNotice({ test: body.test === true, notLive: null });
                 setState({ status: 'form', form: body.form, csrf: body.csrf, issuedAt: body.issuedAt || Date.now(), ending: null, theme: body.form?.theme || null });
             } catch {
                 if (alive) setState({ status: 'offline', form: null, csrf: null, issuedAt: 0, ending: null });
@@ -297,6 +305,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
     return (
         <div className="min-h-screen w-full flex items-start justify-center px-4 py-10 sm:py-16 bg-[var(--bg-primary)]">
             <div className="w-full max-w-xl">
+                {(notice.test || state.test) && <TestLinkBanner />}
                 {state.status === 'loading' && (
                     <div className="flex items-center justify-center gap-2 py-24 text-sm text-[var(--text-secondary)]">
                         <Loader2 size={16} className="animate-spin" /> {t('forms.public_loading', 'Loading…')}
@@ -305,6 +314,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
                 {state.status === 'working' && (
                     <FormWaitingView theme={theme} progress={state.progress} note={state.progressNote} typicalSeconds={state.typicalSeconds} />
                 )}
+                {state.status === 'waiting_decision' && <FormWaitingDecisionView notify={state.notify === true} onCheckAgain={retry} />}
                 {state.status === 'slow' && (
                     <div className="text-center py-24">
                         <h1 className="text-lg font-semibold text-[var(--text-primary)]">{t('forms.public_slow_title', 'This is taking a while')}</h1>
@@ -318,7 +328,8 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
                         </button>
                     </div>
                 )}
-                {state.status === 'missing' && (
+                {state.status === 'missing' && notice.notLive && <FormNotLiveView automationId={notice.notLive.automationId} />}
+                {state.status === 'missing' && !notice.notLive && (
                     <div className="text-center py-24">
                         <h1 className="text-lg font-semibold text-[var(--text-primary)]">{t('forms.public_missing_title', 'This form is not available')}</h1>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">

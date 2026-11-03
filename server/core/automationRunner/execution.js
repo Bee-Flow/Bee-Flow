@@ -162,13 +162,19 @@ function acquireRunMarker(automationId, triggerKind, opts) {
     return heartbeat.acquireRunMarker(RUN_DEPS, automationId, triggerKind, opts);
 }
 
-async function executeAutomation(automation, /** @type {ExecuteOptions} */ { triggerKind = 'manual', triggerPayload = null, triggerHeaders = null, mode = 'live', confirmFirstRun: _confirmFirstRun = false, parentRunId = null, rootRunId = null, onRunCreated = null, onRunFinished = null, replayState = null, replayGaps = null, skipUntilStepId = null, onlyStepId = null, fromStepId = null, untilStepId = null, rootStepId = null, loopVars = null, stepRecord = null, schedule = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, lockedConnectionsMode = null, harness = null } = {}) {
+async function executeAutomation(automation, /** @type {ExecuteOptions} */ { triggerKind = 'manual', triggerPayload = null, triggerHeaders = null, mode = 'live', confirmFirstRun: _confirmFirstRun = false, parentRunId = null, rootRunId = null, onRunCreated = null, onRunFinished = null, replayState = null, replayGaps = null, skipUntilStepId = null, onlyStepId = null, fromStepId = null, untilStepId = null, rootStepId = null, loopVars = null, stepRecord = null, schedule = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, lockedConnectionsMode = null, harness = null, partial = null, origin = null, pausesRequested = false, profileOverride = null } = {}) {
     const startedAt = Date.now();
     // ── Live or working copy (handoff 5) ── decided once, here, for every
     // caller (runSetup.selectRunCopy). From this line on `automation` is the
-    // copy this run executes.
-    let testRun;
-    ({ automation, testRun } = await selectRunCopy(RUN_DEPS, automation, { mode, triggerKind, isTest }));
+    // copy this run executes. The run's PROFILE (automationModel/runProfile.mts)
+    // is decided in the same breath and never again: the row stores it, ctx
+    // carries it, the marker and the finalisation read it, and a resume passes
+    // it back in (`profileOverride`), so a continuation keeps its kind and its
+    // partial-run bound.
+    let testRun, profile;
+    ({ automation, testRun, profile } = await selectRunCopy(RUN_DEPS, automation, {
+        mode, triggerKind, isTest, startedByUserId, partial, origin, harness, pausesRequested, profileOverride,
+    }));
     await assertOwnerMayRun(automation, triggerKind);
     const runPolicy = resolveRunPolicy(automation.definition);
     const session = await resolveUserSession(automation.userId);
@@ -209,11 +215,13 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
         // Which trigger node the run entered through — what a resume after a
         // pause needs to re-enter the same root (resume.js).
         rootStepId: enteredTrigger?.id ?? null,
-        isTest: testRun,
+        // The Runs filter reads is_test: every run that is not production.
+        isTest: testRun || profile.kind !== 'production',
         startedByUserId,
         callerAgentId,
         callerConversationId,
         connectionsMode: callerUserId ? 'caller' : null,
+        runProfile: profile,
     });
 
     // The run row EXISTS now — which is a different moment from "this call
@@ -229,7 +237,7 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
         }
     }
 
-    const emitLifecycle = heartbeat.makeLifecycleEmitter({ run, automation, effectiveMode });
+    const emitLifecycle = heartbeat.makeLifecycleEmitter({ run, automation, effectiveMode, startedByUserId });
 
     // Register a cancellation controller for this run. The cancel endpoint
     // sets cancel_requested=TRUE in the DB and aborts this controller so
@@ -240,7 +248,9 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     // §WS2.4 concurrency guard (runHeartbeat.claimRunMarker). A RESUME is not a
     // new trigger: it continues alongside whatever holds the marker.
     const isResume = !!skipUntilStepId;
-    const claim = await heartbeat.claimRunMarker(RUN_DEPS, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle });
+    // Only a run whose profile holds the marker claims it (production): a test,
+    // partial or dry run runs alongside a live one and never owns it (RM-12).
+    const claim = await heartbeat.claimRunMarker(RUN_DEPS, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle, holdsMarker: profile.holdsMarker });
     if (claim.skipped) return claim.row;
     const ownsMarker = claim.ownsMarker;
 
@@ -257,7 +267,7 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     const identity = await resolveRunIdentity(RUN_DEPS, automation);
     const ctx = buildRunContext({
         automation, runOrgId, isResume, session, run, tokenVault, runPolicy, stepRecord,
-        effectiveMode, onlyStepId, fromStepId, emitLifecycle, enteredTrigger, identity,
+        effectiveMode, onlyStepId, fromStepId, emitLifecycle, enteredTrigger, identity, profile,
     });
 
     // runPolicy.connections = 'caller': the starter's own connections, or no run.
@@ -275,6 +285,9 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
         ctx.callerOnly = null;
     }
     ctx.startedByUserId = startedByUserId || null;
+    // The step a resumed leg continues from (null on a first leg): a form page
+    // due right after an approval waits longer, and its submitter is told.
+    ctx.resumedFromStepId = skipUntilStepId || null;
     // Test harness (golden replay, form scenario): dry runs only, null otherwise.
     ctx.testHarness = harnessFor(effectiveMode, harness);
 
@@ -291,7 +304,7 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
 
     return finalizeRun(RUN_DEPS, {
         automation, run, ctx, runState, tokenVault, startedAt, firstRunNeedsConfirm, outcome,
-        ownsMarker, schedule, rootStepId, triggerKind, effectiveMode, testRun,
+        ownsMarker, schedule, rootStepId, triggerKind, effectiveMode, testRun, profile,
         onRunFinished, emitLifecycle,
     });
 }
@@ -325,5 +338,9 @@ module.exports = { runOrgFor, isManagedAutomation, disabledPassThroughBranch, re
  *   callerConversationId?: string | null,
  *   lockedConnectionsMode?: string | null,
  *   harness?: Parameters<typeof harnessFor>[1],
+ *   partial?: import('../automationModel/runProfile.mts').PartialScope | null,
+ *   origin?: string | null,
+ *   pausesRequested?: boolean,
+ *   profileOverride?: import('../automationModel/runProfile.mts').RunProfile | null,
  * }} ExecuteOptions
  */

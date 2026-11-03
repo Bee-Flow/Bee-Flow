@@ -15,6 +15,7 @@ import type { RunLogRow } from './runLogSentence';
 import { messageOf } from '@/utils/caughtError';
 import { mayStartRun, runStartRefusal } from '@/api/queries/automation/runAccess';
 import { logger } from '@/utils/logger';
+import { isRunningRun, isWaitingRun, stopDiscards } from './runStop';
 
 /**
  * The log's columns by the list's OWN width (@container/runlog, set by
@@ -82,6 +83,12 @@ function copyRunLink(runId: string) {
 
 type MenuItem = { label: string; icon: React.ReactNode; onClick: () => void; danger?: boolean };
 
+/** "Discard this test run" for a waiting test, else "Stop it". */
+function stopLabel(t: TranslateFn, run: RunLogRow): string {
+    if (stopDiscards(run)) return t('automations.runs.discard_test_run', 'Discard this test run');
+    return t('studio_misc.runrow.stop', 'Stop it');
+}
+
 /** The ⋯ menu of one row, and the state of the action it started. */
 function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: ExecutionRowProps) {
     const { t } = useTranslation();
@@ -103,7 +110,10 @@ function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: Ex
     // approve-step answers a step-level awaiting_approval.
     const isAwaitStep = run.status === 'awaiting_approval';
     const isAwaitRun = run.status === 'awaiting_confirm';
-    const running = run.status === 'running' || run.status === 'queued';
+    const running = isRunningRun(run);
+    // A run paused on a form page or an approval has nothing executing, but it
+    // can be stopped all the same: the server closes it without an answer.
+    const waiting = isWaitingRun(run);
     // One row can stand for a whole journey (a form that paused, was answered
     // and continued in another run). The status shown is that last leg's, so
     // the actions that ACT on the status address it too.
@@ -112,7 +122,7 @@ function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: Ex
     const items: Array<MenuItem | false | ''> = [
         // Left out, like every action the reader may not take, when the server says they may not start a run.
         run.status === 'error' && mayStartRun(run) && { label: t('studio_misc.runrow.run_again', 'Run it again'), icon: <RotateCcw size={14} />, onClick: () => act(() => api.retryRun(automationId, liveId)) },
-        running && { label: t('studio_misc.runrow.stop', 'Stop it'), icon: <Ban size={14} />, onClick: () => act(() => api.cancelRun(liveId), { status: 'cancelled' }), danger: true },
+        (running || waiting) && { label: stopLabel(t, run), icon: <Ban size={14} />, onClick: () => act(() => api.cancelRun(liveId), { status: 'cancelled' }), danger: true },
         (isAwaitStep || isAwaitRun) && { label: t('studio_misc.runrow.approve', 'Approve'), icon: <Check size={14} />, onClick: () => act(() => (isAwaitRun ? api.approveRun(liveId, 'approve') : api.approveStep(liveId, 'approve'))) },
         // A STEP rejection needs a reason (server-enforced), so the menu routes
         // to the run view's decision panel. A RUN-level first-run rejection is

@@ -16,16 +16,37 @@ import type { FlowEdge } from './types';
  */
 
 /**
+ * An approval's two ports (ApprovalNode): the plain way on after an approve,
+ * and its rejected branch, which the runtime follows only on a reject
+ * (server core/automationModel/constants.js ON_REJECTED_LABEL). The approve
+ * port wires a plain edge, as a loop's "Done" does.
+ */
+export const APPROVAL_PORT_APPROVED = 'approved';
+export const APPROVAL_PORT_REJECTED = 'on_rejected';
+
+/**
+ * Which port of an approval a saved edge leaves by, and the chip word it
+ * carries (layout.ts): the rejected branch by its own port, every other edge
+ * by the plain "Approved" one.
+ */
+export function approvalEdgeRouting(e: { label?: string | null }): { kind: string | null; sourceHandle: string } {
+    const rejected = e.label === APPROVAL_PORT_REJECTED;
+    return { kind: e.label || null, sourceHandle: rejected ? APPROVAL_PORT_REJECTED : APPROVAL_PORT_APPROVED };
+}
+
+/**
  * Map a React Flow source-handle id to the edge branch fields the runtime
  * routes on: `then`/`else` for a condition, `case:<name>` (incl.
- * `case:default`) for a switch, `on_error` for a loop's error port. Plain
- * handles → no branch (unlabelled edge).
+ * `case:default`) for a switch, `on_error` for a loop's error port,
+ * `on_rejected` for an approval's rejected port. Plain handles → no branch
+ * (unlabelled edge).
  *
  * (Moved verbatim from DiagramPane, which re-exports it for back-compat.)
  */
 export function branchFromHandle(sourceHandle: string | null) {
     if (sourceHandle === 'then' || sourceHandle === 'else') return { label: sourceHandle };
     if (sourceHandle === 'on_error') return { label: 'on_error' };
+    if (sourceHandle === APPROVAL_PORT_REJECTED) return { label: APPROVAL_PORT_REJECTED };
     if (typeof sourceHandle === 'string' && sourceHandle.startsWith('case:')) {
         return { label: sourceHandle, caseName: sourceHandle.slice(5) };
     }

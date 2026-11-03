@@ -158,6 +158,62 @@ export interface AutomationRun {
      * leg — the row you opened reports THAT leg's outcome (webhooksAndRunOps.js).
      */
     journeyRunId?: string;
+    /** A test run (handoff 5). Absent on an older server. */
+    isTest?: boolean;
+    /**
+     * How the run runs (server core/automationModel/runProfile.mts). GET /runs/:id
+     * answers its view subset (kind, effects, pauses, approverSeat.kind,
+     * stopAfterStepId); a run answer may carry the stored profile. Read it
+     * through runPhase() (@/shared/runs/runPhase), never by hand.
+     */
+    profile?: RunProfileView | null;
+    /** GET /runs/:id on a run waiting for approval: may this caller decide it now. Absent = not known. */
+    canDecide?: boolean;
+    /** GET /runs/:id on a run waiting for approval: the stage and seats it waits on. */
+    waitingOn?: { stageName: string | null; seatCount: number } | null;
+    /** GET /runs/:id on a run waiting for approval: the approval's own id (the approvals screen's key). */
+    approvalId?: string | null;
+    /** GET /runs/:id on a test run: the working copy has moved past the version it runs. */
+    versionBehind?: boolean;
+}
+
+/** The run profile as a client reads it. Every field is optional: an older server sends none. */
+export interface RunProfileView {
+    kind?: 'production' | 'test' | 'dry' | string | null;
+    effects?: string | null;
+    pauses?: string | null;
+    approverSeat?: { kind?: string | null } | null;
+    stopAfterStepId?: string | null;
+}
+
+/**
+ * What POST /runs/:runId/approve-step answers (server/automation/approvalDecision.js,
+ * approvalVotes.js), as the phone tells it:
+ *
+ *   vote      a panel or stage vote was recorded; the approval still waits.
+ *             `stage` is the stage it moved to ('final' for a panel's final
+ *             approver), null when the same stage still waits for others
+ *   decided   the decision was taken and the run finished its continuation
+ *   pending   202: the continuation is still going (`runId`)
+ */
+export type RunDecisionResult =
+    | { kind: 'vote'; stage: string | null }
+    | { kind: 'decided'; decision: 'approve' | 'reject'; run: AutomationRun | null }
+    | { kind: 'pending'; decision: 'approve' | 'reject'; runId: string | null };
+
+/**
+ * The approval a run waits on, from GET /runs/:runId/form `pendingApproval`
+ * (server/automation/pausedRunFacts.mts): the SNAPSHOT's fields, so the phone
+ * knows whether approving needs answers. Null from an older server.
+ */
+export interface RunPendingApproval {
+    approvalId: string;
+    prompt: string;
+    /** The answer fields the approval asks for (formTriggerContract shapes). */
+    fields: Record<string, unknown>[];
+    canDecide: boolean;
+    waitingOn: { stageName: string | null; seatCount: number } | null;
+    isTest: boolean;
 }
 
 export interface AutomationRunStep {

@@ -10,6 +10,8 @@ const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
+// Where parse_json's source comes from, and the dry-run exit for a simulated one.
+const { resolveParseJsonSource, withSyntheticSourceSkip } = require('./parseJsonSource');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -272,39 +274,6 @@ const MAX_PARSE_JSON_AI_SOURCE_CHARS = 80_000;
 const MAX_PARSE_JSON_FIELDS = 50;
 
 /**
- * Resolve the step's source value. `sourceRef` resolves against the run
- * state with the secrets root stripped (exactly like execAiStep's
- * promptScope) so `secrets.*` can never be moved into step output. Without
- * a sourceRef, fall back to the single incoming edge's producer — scoped to
- * ctx.definition, which execCallLayer rebinds to the layer mini-definition,
- * so the lookup is correct inside layers/blocks. Loop bodies / parallel
- * branches do NOT rebind ctx.definition (their steps aren't in its edges),
- * so the fallback misses there and throws the clear error below — the
- * builder pre-fills sourceRef, making this a rare authoring-error path.
- */
-function resolveParseJsonSource(step, ctx, runState) {
-    const bind = require('../automationModel/bind');
-    if (typeof step.sourceRef === 'string' && step.sourceRef.trim()) {
-        return bind.walkPath(step.sourceRef.trim(), { ...runState, secrets: {} });
-    }
-    const def = ctx?.definition || {};
-    const triggerIds = new Set();
-    if (def.trigger?.id) triggerIds.add(def.trigger.id);
-    for (const t of (Array.isArray(def.triggers) ? def.triggers : [])) {
-        if (t?.id) triggerIds.add(t.id);
-    }
-    const incoming = (Array.isArray(def.edges) ? def.edges : [])
-        .filter(e => e && e.to === step.id && e.label !== 'on_error');
-    for (const e of incoming) {
-        const v = triggerIds.has(e.from)
-            ? runState.trigger?.output
-            : runState.steps?.[e.from]?.output;
-        if (v !== undefined) return v;
-    }
-    throw new Error('parse_json: no source — set the Source field or wire an upstream step.');
-}
-
-/**
  * Auto-parse a string source; objects/arrays pass through.
  *
  * Text is read the way a language model writes JSON, with the reader the
@@ -468,11 +437,16 @@ function applyParseJsonAiItems(structured, fields) {
 }
 
 async function execParseJson(step, ctx, runState, mode) {
-    const raw = resolveParseJsonSource(step, ctx, runState);
     const fields = normaliseParseJsonFields(step);
+    const itemsRef = typeof step.itemsRef === 'string' ? step.itemsRef.trim() : '';
+    return withSyntheticSourceSkip({ step, ctx, runState, mode, fields, itemsRef },
+        () => parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef }));
+}
+
+async function parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef }) {
+    const raw = resolveParseJsonSource(step, ctx, runState);
     const aiMode = step.mode === 'ai';
     const parsed = parseParseJsonSource(raw, { requireStructured: !aiMode });
-    const itemsRef = typeof step.itemsRef === 'string' ? step.itemsRef.trim() : '';
 
     if (!aiMode) {
         const { walkRelativePath } = require('../automationModel/bind');

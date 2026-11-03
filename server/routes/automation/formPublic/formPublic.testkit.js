@@ -23,8 +23,7 @@ function mock(absId, exports) {
     require.cache[p] = m;
 }
 
-const TOKEN = 'a'.repeat(48);
-const OTHER_TOKEN = 'b'.repeat(48);
+const TOKEN = 'a'.repeat(48), OTHER_TOKEN = 'b'.repeat(48);
 
 const FORM = {
     title: 'Contact us',
@@ -143,13 +142,15 @@ mock(path.join(SERVER, 'auth/audience'), {
 });
 
 mock(path.join(SERVER, 'stores/automationStore'), {
-    getFormPage: async (id) => (id === TOKEN ? { id: TOKEN, automationId: 'auto1', triggerStepId: null, submissions: 0 } : null),
+    // `state.pages[id]`: another row, e.g. a test link ({ isTest, expiresAt, who: its audience }).
+    getFormPage: async (id) => (id === TOKEN ? { id: TOKEN, automationId: 'auto1', triggerStepId: null, submissions: 0 } : (state.pages?.[id] || null)),
     getAutomation: async () => ({
         id: 'auto1',
         userId: 'owner1',
         isActive: state.active,
-        isDraft: false,
+        isDraft: !!state.draft,
         definition: state.definitionOverride || { trigger: { id: 'trg', type: 'trigger', kind: state.triggerKind, form: FORM } },
+        ...(state.liveDefinition ? { liveVersion: 1, liveDefinition: state.liveDefinition } : {}),
     }),
     checkAndStoreNonce: async (key) => {
         if (state.nonces.has(key)) return false;
@@ -158,7 +159,7 @@ mock(path.join(SERVER, 'stores/automationStore'), {
     },
     touchFormPage: async () => { state.touched += 1; },
     // Forms are signed-in only now; loadForm asks who the form belongs to.
-    formPageAudience: async (id) => (id === TOKEN ? state.audience : null),
+    formPageAudience: async (id) => (id === TOKEN ? state.audience : (state.pages?.[id]?.who || null)),
     formUploadUsage: async () => state.usage,
     recordFormUpload: async (pageId, row) => {
         const id = `up_${state.uploads.size + 1}`;
@@ -176,7 +177,7 @@ mock(path.join(SERVER, 'stores/automationStore'), {
         const id = `${'c'.repeat(40)}${String(state.sessions.size + 1).padStart(8, '0')}`;
         const row = {
             id, formPageId, automationId, runId: null,
-            rootStepId: opts.rootStepId ?? null, triggerHeaders: opts.triggerHeaders ?? null,
+            rootStepId: opts.rootStepId ?? null, triggerHeaders: opts.triggerHeaders ?? null, isTest: opts.isTest === true,
             expiresAt: new Date(Date.now() + 3600_000).toISOString(),
         };
         state.sessions.set(id, row);
@@ -372,8 +373,7 @@ function makeRes() {
 }
 function makeReq({ token = TOKEN, sid = null, body = {}, headers = {}, file = null, params = {}, session } = {}) {
     const h = { 'content-type': 'application/json', 'user-agent': 'test', ...headers };
-    // `params` carries the extra route parameters some endpoints take (the
-    // download route's :fileId).
+    // `params`: the extra route parameters some endpoints take (the download route's :fileId).
     return {
         params: { token, ...(sid ? { sid } : {}), ...params },
         body, file, headers: h, ip: '1.2.3.4',

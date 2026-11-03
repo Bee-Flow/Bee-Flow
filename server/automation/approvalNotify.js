@@ -64,6 +64,23 @@ function approvalPolicy(automation) {
 }
 
 /**
+ * A test approval (is_test, the sandbox seat of a test or dry run) is
+ * announced to the tester and the automation's owner only, on the bell alone
+ * (never a Talk card), and every title says it is a test. Whatever a caller
+ * resolved as recipients, nobody configured on the step hears about a test.
+ * @param {{ isTest?: boolean, sandboxUserId?: string|null, assigneeUserId?: string|null, ownerId?: string|null }} approval
+ * @param {string[]} recipientIds
+ * @param {string} title
+ */
+function testAnnouncement(approval, recipientIds, title) {
+    const allowed = new Set([approval.sandboxUserId || approval.assigneeUserId, approval.ownerId].filter(Boolean));
+    return {
+        recipientIds: (Array.isArray(recipientIds) ? recipientIds : []).filter(id => allowed.has(id)),
+        title: /^Test:/.test(title) ? title : `Test: ${title}`,
+    };
+}
+
+/**
  * Announce something about an approval to the people it concerns.
  *
  * @param {{ approval: import('./approvalRulebook').Approval, automation?: import('./approvalDelivery').ApprovalAutomation | null,
@@ -80,18 +97,20 @@ async function notifyApproval({
     title, message = '', category = 'heads_up', link = null, card = true,
 }) {
     if (!approval?.id || !title) return { bells: 0, card: null };
+    const isTest = approval.isTest === true;
+    const to = isTest ? testAnnouncement(approval, recipientIds, title) : { recipientIds, title };
     const target = link || approvalPath(approval.id);
     const policy = approvalPolicy(automation);
 
     // ── The bell, per recipient — unchanged behaviour ────────────────────
     let bells = 0;
     const seen = new Set();
-    for (const userId of Array.isArray(recipientIds) ? recipientIds : []) {
+    for (const userId of Array.isArray(to.recipientIds) ? to.recipientIds : []) {
         if (!userId || seen.has(userId)) continue;
         seen.add(userId);
         try {
             await notificationStore.createNotification({
-                userId, category, title, message, link: target,
+                userId, category, title: to.title, message, link: target,
             });
             bells += 1;
         } catch (e) {
@@ -101,7 +120,7 @@ async function notifyApproval({
 
     // ── The card, ONCE ───────────────────────────────────────────────────
     const channels = Array.isArray(policy.channels) ? policy.channels : [];
-    if (!card || !policy.enabled || !channels.some((/** @type {string} */ c) => CARD_CHANNELS.includes(c))) {
+    if (!card || isTest || !policy.enabled || !channels.some((/** @type {string} */ c) => CARD_CHANNELS.includes(c))) {
         return { bells, card: null };
     }
     try {
@@ -134,4 +153,4 @@ async function automationForApproval(approval) {
     } catch { return null; }
 }
 
-module.exports = { notifyApproval, automationForApproval, CARD_CHANNELS, _notifyTest: { approvalPolicy } };
+module.exports = { notifyApproval, automationForApproval, CARD_CHANNELS, _notifyTest: { approvalPolicy, testAnnouncement } };

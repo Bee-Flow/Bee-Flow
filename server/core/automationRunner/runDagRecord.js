@@ -17,6 +17,8 @@ const { isRunPause } = require('./execApproval');
 const { notePublicValues, publicValuesFor } = require('./publicValues');
 const { toolIdentity } = require('./toolIdentity');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
+// An approval routes on its decision (edgeLabels.mts), live and on replay.
+const { approvalRouteLabel } = require('../automationModel/edgeLabels.mts');
 
 /** Whether this walk writes run-step rows (re-read at every use, as ctx may change). */
 function isRecording(recordSteps, ctx) {
@@ -263,7 +265,9 @@ async function dispatchLiveStep(step, w) {
     // case:<name> / case:default for switch. Driven off the shared
     // BRANCHER_TYPES set so buildLinearEdges and this block can never
     // disagree about what counts as a brancher.
-    const nextLabel = (BRANCHER_TYPES.has(step.type) && dispatched.output?.branch) ? dispatched.output.branch : null;
+    // An approval routes on its decision instead (approvalRouteLabel).
+    const nextLabel = (BRANCHER_TYPES.has(step.type) && dispatched.output?.branch) ? dispatched.output.branch
+        : approvalRouteLabel(step, dispatched.output);
     return { dispatched, nextLabel, branchOutput: dispatched.output || null };
 }
 

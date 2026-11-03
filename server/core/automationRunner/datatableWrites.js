@@ -16,6 +16,8 @@
 
 const { resolveInputs } = require('../automationModel/bind');
 const { normaliseCells } = require('./datatableCells');
+const { readsSimulated } = require('./blankInputs');
+const { collectBindingPaths } = require('./shared');
 const { DATATABLE_MAX_LIMIT } = require('../automationModel/constants');
 // The storage envelope, shared with routes/datatables.js so the HTTP surface
 // and the runner cannot disagree about whether a tenant is full.
@@ -53,6 +55,23 @@ function refuseSecrets(ctx, resolvedValues) {
 }
 
 /**
+ * The cells typed to their columns; a value that cannot be its column's type
+ * fails naming the column (datatableCells.js). A dry run types them too (the
+ * dry-run honesty rule, ./execCode.js header): only a cell whose binding reads
+ * data the dry run made up itself keeps its value untyped, because a sample
+ * in a number column predicts nothing about the live run.
+ */
+function typedCells(t, values) {
+    if (t.mode !== 'dry_run') return normaliseCells(t.tableMeta, values);
+    const bindings = t.step.values || {};
+    const real = {};
+    for (const [k, v] of Object.entries(values)) {
+        if (!collectBindingPaths(bindings[k]).some((p) => readsSimulated(p, t.runState, t.ctx || {}))) real[k] = v;
+    }
+    return { ...values, ...normaliseCells(t.tableMeta, real) };
+}
+
+/**
  * The values this write may carry, or the amber skip that stops it. A cell
  * is data: a list in a `{{…}}` is stored as JSON, as it always was.
  * @returns {{ values: object, skip?: undefined } | { skip: object, values?: undefined }}
@@ -76,9 +95,9 @@ function prepareWriteValues(t) {
                 emptyOutput(op)),
         };
     }
-    // A live write carries the types of its columns (and fails naming the
-    // column when a value cannot be one); a preview keeps its synthetic cells.
-    const typed = t.mode === 'dry_run' ? resolvedValues : normaliseCells(t.tableMeta, resolvedValues);
+    // A write carries the types of its columns (and fails naming the column
+    // when a value cannot be one); a preview keeps only its synthetic cells.
+    const typed = typedCells(t, resolvedValues);
     if (op !== 'update_rows') return { values: typed };
     // An unresolved value may never overwrite a real column (refusal #5): a
     // ref that found nothing resolves to `undefined` → coerceValue → NULL, a
@@ -95,7 +114,7 @@ function prepareWriteValues(t) {
         if (v === undefined || v === '') { dropped.push(k); continue; }
         values[k] = v;
     }
-    if (t.mode !== 'dry_run') Object.assign(values, normaliseCells(t.tableMeta, values));
+    Object.assign(values, typedCells(t, values));
     if (!Object.keys(values).length) {
         return {
             skip: skipped('datatable_values_unresolved',

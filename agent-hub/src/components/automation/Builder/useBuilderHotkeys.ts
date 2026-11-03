@@ -6,6 +6,8 @@ interface Props {
     onRedo?: () => void;
     onSave?: () => void;
     onDryRun?: () => void;
+    /** A run is starting or going: Cmd/Ctrl + Enter starts nothing (RUN-12). */
+    runBlocked?: boolean;
     onEscape?: () => void;
     onAssistant?: () => void;
 }
@@ -20,8 +22,8 @@ interface Props {
  *   Cmd/Ctrl + Shift + Z  → onRedo
  *   Cmd/Ctrl + Y          → onRedo (Windows convention; ignored if Shift)
  *   Cmd/Ctrl + S          → onSave (force-flush pending debounce)
- *   Cmd/Ctrl + Enter      → onDryRun
- *   Escape                → onEscape (close inspector / modal / panel)
+ *   Cmd/Ctrl + Enter      → onDryRun (not while `runBlocked`)
+ *   Escape                → onEscape (close the form overlay / inspector / panel)
  *
  * Intentionally intercept inside text inputs too: builder undo is the
  * coalesced, draft-level history (see useAutomationDraftHistory), and one
@@ -40,6 +42,7 @@ export default function useBuilderHotkeys({
     onRedo,
     onSave,
     onDryRun,
+    runBlocked = false,
     onEscape,
     onAssistant,
 }: Props) {
@@ -85,11 +88,14 @@ export default function useBuilderHotkeys({
                 const tag = t?.tagName;
                 if (tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable) return;
                 e.preventDefault();
+                // One run at a time: a second press while one is going is
+                // swallowed, not a second run.
+                if (runBlocked) return;
                 onDryRun();
             }
         };
 
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, [enabled, onUndo, onRedo, onSave, onDryRun, onEscape, onAssistant]);
+    }, [enabled, onUndo, onRedo, onSave, onDryRun, runBlocked, onEscape, onAssistant]);
 }

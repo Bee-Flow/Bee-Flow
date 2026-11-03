@@ -15,4 +15,22 @@ describe('runIdentityOf', () => {
         expect(identity.kind).toBe('run');
         expect(identity.startedAt).toBe('2026-10-15T10:03:00.000Z');
     });
+    it('reads the run profile first: a production run is not a test, whatever its mode', () => {
+        expect(runIdentityOf({ id: 'r3', profile: { kind: 'production' }, mode: 'live' }, null).kind).toBe('run');
+        expect(runIdentityOf({ id: 'r4', profile: { kind: 'test' }, mode: 'live' }, null).kind).toBe('test');
+    });
+    it('carries what GET /runs/:id says about a wait, and the canvas actions', () => {
+        const onStop = () => {};
+        const identity = runIdentityOf({
+            id: 'r5', mode: 'dry_run', status: 'awaiting_approval', versionBehind: true, canDecide: false,
+            waitingOn: { stageName: 'Finance', seatCount: 2 },
+        }, null, { onStop });
+        expect(identity.pause).toMatchObject({
+            isTest: true, isDry: true, versionBehind: true, canDecide: false,
+            waitingOn: { stageName: 'Finance', seatCount: 2 }, onStop,
+        });
+    });
+    it('knows nothing it was not told', () => {
+        expect(runIdentityOf({ id: 'r6', mode: 'live' }, null).pause).toMatchObject({ canDecide: null, waitingOn: null, versionBehind: false });
+    });
 });

@@ -15,11 +15,11 @@
  */
 
 const { resolveInputs } = require('../automationModel/bind');
-const { failOnBlankInputs } = require('./blankInputs');
+const { failOnBlankInputs, missesThatFail } = require('./blankInputs');
 const { captureBindingMisses } = require('../automationModel/bindCapture');
 const { isSideEffect } = require('../automationModel/sideEffectMap');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
-const { runnerPort } = require('./featurePorts');
+const { runnerPort, hasRunnerPort } = require('./featurePorts');
 
 /** automation/outputSchemas' sample output for a tool, for dry runs. */
 const synthesizeDryRunOutput = (toolName, args) => runnerPort('outputSchemas').synthesizeDryRunOutput(toolName, args);
@@ -86,6 +86,30 @@ function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedI
         return { output: out, dryRunSynthesised: true, dryRunFallback: 'synthetic_input' };
     }
     return null;
+}
+
+/**
+ * A dry-run WRITE asks the same permission question a live run asks before it
+ * synthesises its answer (the dry-run honesty rule, ./execCode.js header).
+ * A step that names a built-in step type is the automation's own fault and
+ * throws, as live. Every other refusal (the app is not connected for the
+ * owner, an admin switched it off, the catalog could not be read) is about
+ * the environment: the step still hands the sample on so the rest of the
+ * preview runs, but its row is amber with skippedReason 'would_fail_live'.
+ * Returns that result, or null when the tool is permitted.
+ */
+async function dryRunWritePermission(step, ctx, inputs, deps) {
+    try {
+        await assertStepToolPermitted(step, ctx, true, deps);
+        return null;
+    } catch (err) {
+        if (hasRunnerPort('stepTypes') && runnerPort('stepTypes').isBuiltinStepType(step.tool)) throw err;
+        const message = String(/** @type {Error} */ (err)?.message ?? err);
+        const sample = synthesizeDryRunOutput(step.tool, inputs);
+        const out = sample && typeof sample === 'object' && !Array.isArray(sample) ? sample : { result: sample };
+        out.skipped = `Not simulated: a live run would fail here. ${message}`;
+        return { output: out, skippedReason: 'would_fail_live', dryRunSynthesised: true, dryRunFallback: 'not_permitted' };
+    }
 }
 
 /**
@@ -217,9 +241,15 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     const sideEffect = isSideEffect(step.tool);
     const resolved = captureBindingMisses(() => resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' }));
     let inputs = resolved.value;
-    if (mode !== 'dry_run' && sideEffect) failOnBlankInputs(step, resolved.misses);
+    // A dry run fails a write on the same holes a live run does, except a
+    // hole in data the dry run made up (./blankInputs, ./execCode.js header).
+    if (sideEffect) failOnBlankInputs(step, missesThatFail(resolved.misses, runState, ctx, mode));
     const { policy, auditBase, guardedIn } = await guardInputs(step, ctx, mode, inputs, safety);
     const { resolveIntegration } = require('../integrations/integrationToolMap');
+    if (mode === 'dry_run' && sideEffect) {
+        const refused = await dryRunWritePermission(step, ctx, inputs, deps);
+        if (refused) return refused;
+    }
     const synthesized = dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedIn, inputs, stepInputsSynthetic });
     if (synthesized) return synthesized;
     // What actually leaves the platform: placeholders, an irreversible mask, or

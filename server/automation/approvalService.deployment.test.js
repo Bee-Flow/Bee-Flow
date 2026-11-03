@@ -49,6 +49,8 @@ const APPROVAL_MIGRATIONS = [
     'approvals-stages-2026-08',
     'approvals-project-id-2026-09',
     'approvals-deployment-source-2026-10',
+    // is_test / sandbox_user_id / configured_routing (the sandbox seat).
+    'automation-run-profile-2026-11',
 ];
 
 const SO = 'so';            // the Solution owner, who requests every deploy in v1
@@ -59,9 +61,11 @@ const { swap, restore } = makeSwaps();
 const rec = { dispatches: [], feed: [], runCalls: [], bells: [] };
 
 before(async () => {
-    // The two tables the approval migrations alter but do not create.
+    // The tables the approval migrations alter but do not create.
     await pg.exec(`
         CREATE TABLE automation_runs (id TEXT PRIMARY KEY);
+        CREATE TABLE automation_form_pages (id TEXT PRIMARY KEY);
+        CREATE TABLE automation_form_sessions (id TEXT PRIMARY KEY);
         CREATE TABLE automation_approval_audit (
             id TEXT PRIMARY KEY, run_id TEXT NOT NULL, step_id TEXT, decided_by TEXT,
             decision TEXT NOT NULL, comment TEXT, source TEXT, ts TIMESTAMPTZ NOT NULL DEFAULT NOW());

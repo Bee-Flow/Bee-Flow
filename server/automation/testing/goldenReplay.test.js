@@ -58,7 +58,7 @@ test('happy path: dry run with the saved answers and the AI mode, compared with 
     assert.strictEqual(calls.answers[0].rootRun.id, 'g-run');
     assert.deepStrictEqual(calls.exec[0], {
         triggerKind: 'dry_run', mode: 'dry_run', triggerPayload: { who: 'sample' }, rootStepId: 'trig2', startedByUserId: 'u1',
-        harness: { source: { kind: 'golden', id: 'gold_1' }, formAnswers: { pages: { p1: { name: 'x' } } }, aiAnswers: 'cache' },
+        harness: { source: { kind: 'golden', id: 'gold_1' }, formAnswers: { pages: { p1: { name: 'x' } } }, approvals: {}, aiAnswers: 'cache' },
     });
     assert.strictEqual(calls.compare[0].runA.id, 'g-run');
     assert.strictEqual(calls.compare[0].runB.id, 'replay-1');

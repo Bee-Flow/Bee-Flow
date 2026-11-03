@@ -1,12 +1,12 @@
 import { Crosshair, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { enginePill, engineSegments, showsRates } from './engineLine';
 import { statusVar } from './nodeTypeColors';
-import RunBanner from './RunBanner';
+import RunBanner, { RunChip } from './RunBanner';
+import { isParked } from './runPause';
 import useTranslation from '@/hooks/useTranslation';
 import { type PlanStripProps, type EngineLineProps, type BuildBannerProps, type SouthCall, type Farewell, type CanvasSouthBarProps } from './CanvasSouthBar.types';
 import { FAREWELL_MS, SKIPPED_MS, elapsedSince, shortReason, planStrip } from './CanvasSouthBar.helpers';
-;
 
 /**
  * The canvas's south edge (design 1a/1d): ONE thing at a time, by precedence —
@@ -14,7 +14,11 @@ import { FAREWELL_MS, SKIPPED_MS, elapsedSince, shortReason, planStrip } from '.
  *   2. the build banner while the assistant is building — and for a moment
  *      after, so the ending is read rather than inferred from the silence,
  *   3. the selection bar while steps are selected,
- *   4. the gesture hint otherwise.
+ *   4. the run banner of a run that waits (on a form page or a decision),
+ *   5. the gesture hint otherwise.
+ * A waiting run executes nothing, so it does not hold the edge against the
+ * work the author is doing (RUN-06): under a build or a selection it shrinks
+ * to a chip beside that bar.
  * They used to live in separate <Panel>s and could sit on top of each other.
  *
  * The build banner is also the lock notice: it replaced the amber "AI is
@@ -153,46 +157,32 @@ function BuildBanner({ building, buildCue, farewell, endedAt, skipped, now, foll
     );
 }
 
-export default function CanvasSouthBar({
-    runFocus = null, onDismissRun = null, runIdentity = null, onShowRun = null, formUrl = null, onOpenFormOverlay = null,
-    selectedCount = 0, selectionInDrawer = false, onDeleteSelection = null, onClearSelection = null,
-    structuralEditsBlocked = false, interactive = true, editable = false,
-    buildCue = null, following = true, onFollow = null,
-}: CanvasSouthBarProps) {
-    const { t } = useTranslation();
-    const building = !!buildCue?.running;
-    const lastCall = buildCue?.lastCall || null;
+/** The frozen snapshot of the build that just ended. */
+function farewellOf(buildCue: CanvasSouthBarProps['buildCue']): Farewell {
+    return {
+        startedAt: buildCue?.startedAt || null,
+        finalizedId: buildCue?.finalizedId || null,
+        stepCount: Math.max(0, Number(buildCue?.stepCount) || 0),
+    };
+}
 
-    // The elapsed clock ticks while the banner is up (design 1d, "12m 33s").
-    // One interval for the whole bar, and only while there is something to
-    // count — a canvas at rest schedules nothing. A build counts too: "still
-    // building" and "building for two minutes" are different facts.
-    const ticking = (!!runFocus?.startedAt && runFocus.state !== 'error') || (building && !!buildCue?.startedAt);
-    const [now, setNow] = useState(() => Date.now());
-    useEffect(() => {
-        if (!ticking) return undefined;
-        const id = setInterval(() => setNow(Date.now()), 1000);
-        return () => clearInterval(id);
-    }, [ticking]);
-
-    // Two marks set WHILE RENDERING when their input flips (React's "adjust
-    // state during render": a re-render before commit, not an effect one frame
-    // later) — so the very first frame after the stream ends already reads
-    // "Built · …", and a refusal is on screen in the same frame as the call.
-    //
-    // The ending is a snapshot, not a read of the live cue: the cue keeps
-    // changing after the stream ends (a stale narration, the next turn's
-    // reset) and the line must report the build that just finished.
+/**
+ * Two marks set WHILE RENDERING when their input flips (React's "adjust
+ * state during render": a re-render before commit, not an effect one frame
+ * later) — so the very first frame after the stream ends already reads
+ * "Built · …", and a refusal is on screen in the same frame as the call.
+ *
+ * The ending is a snapshot, not a read of the live cue: the cue keeps
+ * changing after the stream ends (a stale narration, the next turn's
+ * reset) and the line must report the build that just finished.
+ */
+function useBuildMarks(building: boolean, buildCue: CanvasSouthBarProps['buildCue'], lastCall: SouthCall | null, now: number, setNow: (n: number) => void) {
     const [ending, setEnding] = useState<{ building: boolean; at: number; snapshot: Farewell | null }>({ building, at: 0, snapshot: null });
     if (ending.building !== building) {
         setEnding({
             building,
             at: Date.now(),
-            snapshot: building ? null : {
-                startedAt: buildCue?.startedAt || null,
-                finalizedId: buildCue?.finalizedId || null,
-                stepCount: Math.max(0, Number(buildCue?.stepCount) || 0),
-            },
+            snapshot: building ? null : farewellOf(buildCue),
         });
     }
     // Keyed on the call object's identity, which BuildTab keeps stable across
@@ -215,74 +205,129 @@ export default function CanvasSouthBar({
         if (!Number.isFinite(deadline)) return undefined;
         const id = setTimeout(() => setNow(Date.now()), Math.max(0, deadline - Date.now()) + 1);
         return () => clearTimeout(id);
-    }, [deadline]);
+    }, [deadline, setNow]);
 
-    if (runFocus) {
-        return (
-            <RunBanner
-                runFocus={runFocus} now={now} ticking={ticking} runIdentity={runIdentity} onDismissRun={onDismissRun}
-                onShowRun={onShowRun} formUrl={formUrl} onOpenFormOverlay={onOpenFormOverlay}
-            />
-        );
-    }
+    return { farewell, skipped, endedAt: ending.at };
+}
+
+/** The bar that holds the south edge, with the chip of a waiting run beside it. */
+function withChip(bar: ReactElement, chip: ReactElement | null): ReactElement {
+    if (!chip) return bar;
+    return <div className="flex items-center gap-2" data-testid="canvas-south-with-chip">{bar}{chip}</div>;
+}
+
+interface SelectionBarProps {
+    selectedCount: number;
+    structuralEditsBlocked: boolean;
+    onDeleteSelection: (() => void) | null;
+    onClearSelection: (() => void) | null;
+}
+
+function SelectionBar({ selectedCount, structuralEditsBlocked, onDeleteSelection, onClearSelection }: SelectionBarProps) {
+    const { t } = useTranslation();
+    return (
+        <div
+            className="flex items-center gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-[12px] [box-shadow:var(--shadow-popover)]"
+            data-testid="canvas-selection-bar"
+        >
+            <span className="font-medium text-[var(--text-primary)]">
+                {selectedCount === 1
+                    ? t('automations.canvas.selected_one', '1 step selected')
+                    : t('automations.canvas.selected_many', '{n} steps selected', { n: selectedCount })}
+            </span>
+            <span className="text-[10px] text-[var(--text-tertiary)]">
+                {selectedCount === 1
+                    ? t('automations.canvas.selected_hint_one', 'ctrl-click to add more · R D U P Del act on it')
+                    : t('automations.canvas.selected_hint_many', 'drag to move them together')}
+            </span>
+            {onDeleteSelection && (
+                <button
+                    type="button"
+                    onClick={onDeleteSelection}
+                    disabled={structuralEditsBlocked}
+                    title={t('automations.canvas_south_bar.delete_the_selected_steps_their_neighbours', 'Delete the selected steps (their neighbours reconnect)')}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition text-[var(--error)]"
+                >
+                    <Trash2 size={12} /> {t('automations.canvas.delete', 'Delete')}
+                </button>
+            )}
+            {onClearSelection && (
+                <button
+                    type="button"
+                    onClick={onClearSelection}
+                    title={t('automations.canvas_south_bar.clear_the_selection', 'Clear the selection')}
+                    aria-label={t('automations.canvas_south_bar.clear_selection', 'Clear selection')}
+                    className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition"
+                >
+                    <X size={13} />
+                </button>
+            )}
+        </div>
+    );
+}
+
+export default function CanvasSouthBar({
+    runFocus = null, onDismissRun = null, runIdentity = null, onShowRun = null, formUrl = null, onOpenFormOverlay = null,
+    selectedCount = 0, selectionInDrawer = false, onDeleteSelection = null, onClearSelection = null,
+    structuralEditsBlocked = false, interactive = true, editable = false,
+    buildCue = null, following = true, onFollow = null,
+}: CanvasSouthBarProps) {
+    const { t } = useTranslation();
+    const building = !!buildCue?.running;
+    const lastCall = buildCue?.lastCall || null;
+
+    // The elapsed clock ticks while the banner is up (design 1d, "12m 33s").
+    // One interval for the whole bar, and only while there is something to
+    // count — a canvas at rest schedules nothing. A build counts too: "still
+    // building" and "building for two minutes" are different facts.
+    // A waiting run's clock stands still (flow/runPause bannerElapsedEnd).
+    const parked = isParked(runFocus);
+    const ticking = (!!runFocus?.startedAt && runFocus.state !== 'error' && !parked) || (building && !!buildCue?.startedAt);
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        if (!ticking) return undefined;
+        const id = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(id);
+    }, [ticking]);
+
+    const { farewell, skipped, endedAt } = useBuildMarks(building, buildCue, lastCall, now, setNow);
+
+    const runBanner = runFocus ? (
+        <RunBanner
+            runFocus={runFocus} now={now} ticking={ticking} runIdentity={runIdentity} onDismissRun={onDismissRun}
+            onShowRun={onShowRun} formUrl={formUrl} onOpenFormOverlay={onOpenFormOverlay}
+        />
+    ) : null;
+    if (runFocus && !parked) return runBanner;
+    const chip = runFocus && parked ? <RunChip runFocus={runFocus} runIdentity={runIdentity} onShowRun={onShowRun} /> : null;
 
     if (building || farewell) {
-        return (
+        return withChip((
             <BuildBanner
                 building={building}
                 buildCue={buildCue}
                 farewell={farewell}
-                endedAt={ending.at}
+                endedAt={endedAt}
                 skipped={skipped}
                 now={now}
                 following={following}
                 onFollow={onFollow}
             />
-        );
+        ), chip);
     }
 
-    if (editable && selectedCount > 0) {
-        if (selectionInDrawer) return null;
-        return (
-            <div
-                className="flex items-center gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-[12px] [box-shadow:var(--shadow-popover)]"
-                data-testid="canvas-selection-bar"
-            >
-                <span className="font-medium text-[var(--text-primary)]">
-                    {selectedCount === 1
-                        ? t('automations.canvas.selected_one', '1 step selected')
-                        : t('automations.canvas.selected_many', '{n} steps selected', { n: selectedCount })}
-                </span>
-                <span className="text-[10px] text-[var(--text-tertiary)]">
-                    {selectedCount === 1
-                        ? t('automations.canvas.selected_hint_one', 'ctrl-click to add more · R D U P Del act on it')
-                        : t('automations.canvas.selected_hint_many', 'drag to move them together')}
-                </span>
-                {onDeleteSelection && (
-                    <button
-                        type="button"
-                        onClick={onDeleteSelection}
-                        disabled={structuralEditsBlocked}
-                        title={t('automations.canvas_south_bar.delete_the_selected_steps_their_neighbours', 'Delete the selected steps (their neighbours reconnect)')}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition text-[var(--error)]"
-                    >
-                        <Trash2 size={12} /> {t('automations.canvas.delete', 'Delete')}
-                    </button>
-                )}
-                {onClearSelection && (
-                    <button
-                        type="button"
-                        onClick={onClearSelection}
-                        title={t('automations.canvas_south_bar.clear_the_selection', 'Clear the selection')}
-                        aria-label={t('automations.canvas_south_bar.clear_selection', 'Clear selection')}
-                        className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition"
-                    >
-                        <X size={13} />
-                    </button>
-                )}
-            </div>
-        );
+    if (editable && selectedCount > 0 && !selectionInDrawer) {
+        return withChip((
+            <SelectionBar
+                selectedCount={selectedCount}
+                structuralEditsBlocked={structuralEditsBlocked}
+                onDeleteSelection={onDeleteSelection}
+                onClearSelection={onClearSelection}
+            />
+        ), chip);
     }
+    if (runBanner) return runBanner;
+    if (editable && selectedCount > 0) return null;
 
     if (!interactive) return null;
     return (

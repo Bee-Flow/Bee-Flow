@@ -47,6 +47,7 @@ const { bestEffort } = require('../utils/bestEffort');
  * @property {string|null} [requestedBy]
  * @property {Record<string, unknown>|null} [answers]
  * @property {Record<string, unknown>|null} [context]
+ * @property {boolean} [isTest]  a test or dry run's approval (the sandbox seat)
  */
 
 /** @param {HookApproval} approval */
@@ -95,6 +96,10 @@ function resolveTemplate(value, scope) {
  * @param {HookApproval} approval
  */
 async function runOnDecidedHook(approval) {
+    // A test approval (a dry run's above all) is a rehearsal: the decision
+    // writes no app record. Run-sourced rows carry no hook today; this keeps
+    // it that way should one ever be snapshotted onto a test row.
+    if (approval?.isTest === true) return { ran: false };
     const hook = approval?.onDecided;
     if (!hook || !approval.studioAppId || approval.status === 'pending') return { ran: false };
     const set = hook.set && typeof hook.set === 'object' ? hook.set[approval.status] : null;

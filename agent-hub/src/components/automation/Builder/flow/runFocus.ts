@@ -34,6 +34,8 @@ const DONE_STATES = ['success', 'skipped', 'pinned'];
 // A run parked on a form page. Its own status, not the run's: the row is what
 // the banner is pointing at, and it is what makes "Open the form" honest.
 const AWAITING_FORM = 'awaiting_form';
+// A run parked on an approval: somebody has to decide before anything moves.
+const AWAITING_APPROVAL = 'awaiting_approval';
 
 // The nodes that exist on the canvas right now, trigger first — the order the
 // banner counts in.
@@ -62,6 +64,9 @@ export interface RunFocus {
     state: 'running' | 'error';
     startedAt: string | null;
     awaitingForm: boolean;
+    awaitingApproval: boolean;
+    /** When the step the run waits on began: the banner's clock stops there. Null while nothing waits. */
+    pausedAt: string | null;
 }
 
 interface RunFocusParams {
@@ -93,11 +98,15 @@ export function computeRunFocus({ runSteps, runInFlight = false, definition }: R
     const rows = (runSteps || []).filter((s: FocusRow) => s?.stepId && liveIds.has(s.stepId));
 
     const running = rows.find((s: FocusRow) => s.status === 'running');
-    const waiting = rows.find((s: FocusRow) => s.status === AWAITING_FORM);
     const failed = rows.find((s: FocusRow) => s.status === 'error');
-    // A run parked on a form IS the run, and it is the state an author most
-    // wants a way out of — so it names the banner when nothing is executing.
-    const target = running || waiting || (runInFlight ? null : failed);
+    // A run parked on a form or a decision IS the run, and it is the state an
+    // author most wants a way out of — so it names the banner when nothing is
+    // executing. While the run executes again (a decision was just given, the
+    // page just answered), the row that still says "waiting" is history.
+    const waiting = runInFlight ? undefined : rows.find((s: FocusRow) => s.status === AWAITING_FORM);
+    const deciding = runInFlight ? undefined : rows.find((s: FocusRow) => s.status === AWAITING_APPROVAL);
+    const parked = waiting || deciding;
+    const target = running || parked || (runInFlight ? null : failed);
     if (!target?.stepId && !runInFlight) return null;
 
     const done = rows.filter((s: FocusRow) => DONE_STATES.includes(s.status as string)).length;
@@ -112,7 +121,7 @@ export function computeRunFocus({ runSteps, runInFlight = false, definition }: R
         label: labelOf(step, stepId),
         done,
         total: graph.length,
-        state: running || waiting ? 'running' : (failed ? 'error' : 'running'),
+        state: running || parked ? 'running' : (failed ? 'error' : 'running'),
         // When the RUN began — the earliest row's start, not this step's, so
         // the banner's clock answers "how long has this been going" (design
         // 1d, "12m 33s"). Null when no row carries one; the clock then simply
@@ -122,6 +131,8 @@ export function computeRunFocus({ runSteps, runInFlight = false, definition }: R
         // something executing, "Open the form" would point at a pause the run
         // has already moved past.
         awaitingForm: !!target && target === waiting,
+        awaitingApproval: !!target && target === deciding,
+        pausedAt: target && target === parked ? (target.startedAt || null) : null,
     };
 }
 

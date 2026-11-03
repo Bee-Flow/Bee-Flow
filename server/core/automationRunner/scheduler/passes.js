@@ -17,7 +17,7 @@
 const { pool } = require('../../../db');
 // What the passes drive in automation/, jobs/ and meeting notes: see ../featurePorts.js.
 const { runnerPort } = require('../featurePorts');
-const { reapOrphanFormUploads, reapExpiredGeneratedFiles, reapExpiredRunTables } = require('./reapers');
+const { reapOrphanFormUploads, reapExpiredTestFormPages, reapExpiredGeneratedFiles, reapExpiredRunTables } = require('./reapers');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
@@ -123,6 +123,8 @@ async function processRunRetention() {
             // the tab after picking a file). Rides this tick because it is the same
             // shape of work: bounded, idempotent, one pod.
             await reapOrphanFormUploads();
+            // Form test links past their expiry (or revoked), after the upload reap.
+            await reapExpiredTestFormPages();
             await reapExpiredGeneratedFiles();
             await reapExpiredRunTables();
             // Visitor sessions for multi-page forms. Purely a pointer row, so this

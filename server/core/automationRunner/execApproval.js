@@ -12,7 +12,17 @@ const { desugarApprovalStages } = require('../automationModel/approvalStages');
 // The form-config renderer is automation/'s, reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { resolveApprovalTtlMs } = require('./shared');
-const { pageAnswersFor } = require('./testHarness');
+const { pageAnswersFor, approvalDecisionFor } = require('./testHarness');
+const {
+    FORM_WAIT_DEFAULT_MS, FORM_WAIT_MIN_MS, FORM_WAIT_MAX_MS, FORM_WAIT_AFTER_DECISION_DEFAULT_MS,
+    resolveFormWaitMs, formWaitAfterDecisionMs, continuesFromApproval,
+} = require('./formWait.mts');
+// What a non-production pause does (pauses real / harness / synthesise), the
+// licence gate and the dry-run preview: ./dryPause.mts.
+const {
+    pauseHandlingOf, pauseExpiresAt, approvalPreview, stepLabel, assertApprovalsLicensed, attachmentPreview,
+    harnessApproval, synthesisedApproval, synthesisedPage, noteWarnings,
+} = require('./dryPause.mts');
 
 /**
  * Evaluate an authored condition against the run state. A condition that
@@ -66,6 +76,11 @@ class ApprovalRequiredError extends Error {
         this.rule = extras.rule ?? null;                   // 'all' | 'first' | 'quorum' | null
         this.quorum = extras.quorum ?? null;
         this.finalApprover = extras.finalApprover ?? null; // { userId } | { groupId } | null
+        // A dry run that pauses for real: what a live run would ask, and of
+        // whom (counts only, dryPause.mts approvalPreview); kept on the paused
+        // step row. Null outside a dry run.
+        /** @type {import('./dryPause.mts').ApprovalPreview | null} */
+        this.preview = null;
     }
 }
 
@@ -197,40 +212,28 @@ async function execApproval(step, ctx, runState, mode) {
     if (ctx.layerStack?.length) {
         throw new Error('Approval steps are not supported inside layers');
     }
-    // Approvals are an Enterprise capability, and the gate belongs HERE —
-    // before the run pauses, not after. Checking it in createApprovalOnPause
-    // would leave a run parked in awaiting_approval with no record and nobody
-    // able to list it: the worst of both outcomes. Failing the step instead
-    // stops the run with something a person can read and act on.
-    //
-    // Note what is NOT gated: an approval already pending keeps its detail
-    // page, its decide route and its withdraw route. A licence that lapses
-    // must let the work already in flight finish, never strand it.
-    if (mode !== 'dry_run') {
-        const { hasCapability } = require('../entitlements/entitlements');
-        const licensed = await hasCapability('approvals', { userId: ctx.userId, orgId: ctx.orgId, session: ctx.session });
-        if (!licensed) {
-            const err = new Error('Approvals are an Enterprise feature — this automation cannot ask for one on the current plan.');
-            Object.assign(err, { errorClass: 'license_required' });
-            throw err;
-        }
-    }
+    await assertApprovalsLicensed(ctx, mode);
     const prompt = renderApprovalPrompt(step, runState);
-    if (mode === 'dry_run') {
-        // In dry-run we synthesise auto-approve so the rest of the flow
-        // can preview without a human in the loop. The prompt is rendered
-        // here too — previewing an approval is largely about checking that
-        // the question reads correctly once its bindings resolve. Answers
-        // are an empty object so a downstream binding of output.answers.x
-        // previews as blank rather than crashing the dry run.
-        return { output: { approved: true, _dryRun: true, prompt, answers: {} } };
+    const extras = renderApprovalExtras(step, runState);
+    const handling = pauseHandlingOf(ctx, mode);
+    // Every dry-run flavour previews what a live run would ask, and of whom.
+    const preview = mode === 'dry_run'
+        ? await approvalPreview({ label: stepLabel(step), prompt, extras, attachments: attachmentPreview(step, runState), orgId: ctx.orgId })
+        : null;
+    if (preview) noteWarnings(runState, preview.warnings);
+    if (handling === 'real') {
+        // The deadline (§WS2.2) is computed here from the step config (a test
+        // or dry pause waits at most the profile's pauseTtlMs); the finalize
+        // path persists it, creates the durable approval row from the extras
+        // on this sentinel, and sends the notification with the live link.
+        const expiresAt = pauseExpiresAt(resolveApprovalTtlMs(step), ctx.profile);
+        const pause = new ApprovalRequiredError(step.id, prompt, expiresAt, extras);
+        if (preview) pause.preview = preview;
+        throw pause;
     }
-    // The deadline (§WS2.2) is computed here from the step config; the
-    // finalize path persists it, creates the durable approval row from the
-    // extras on this sentinel, and sends the notification with the live link.
-    const ttlMs = resolveApprovalTtlMs(step);
-    const expiresAt = ttlMs ? new Date(Date.now() + ttlMs).toISOString() : null;
-    throw new ApprovalRequiredError(step.id, prompt, expiresAt, renderApprovalExtras(step, runState));
+    const saved = handling === 'harness' ? approvalDecisionFor(ctx, step.id) : null;
+    if (saved) return harnessApproval(step, ctx, extras, saved, preview);
+    return synthesisedApproval(step, runState, extras, preview, handling === 'harness');
 }
 
 // ── Form page step ──────────────────────────────────────
@@ -249,16 +252,8 @@ async function execApproval(step, ctx, runState, mode) {
 // The page's text is TEMPLATED against the paused run — that is what makes
 // "show a summary of the execution" possible without a second contract.
 
-const FORM_WAIT_DEFAULT_MS = 60 * 60_000;          // 1 hour
-const FORM_WAIT_MIN_MS = 60_000;                   // 1 minute
-const FORM_WAIT_MAX_MS = 7 * 24 * 60 * 60_000;     // 7 days
-
-/** Deadline (ms from now) for a paused form step. Always finite: a visitor is waiting. */
-function resolveFormWaitMs(step) {
-    const secs = Number(step?.waitSeconds);
-    if (!Number.isFinite(secs) || secs <= 0) return FORM_WAIT_DEFAULT_MS;
-    return Math.min(FORM_WAIT_MAX_MS, Math.max(FORM_WAIT_MIN_MS, Math.round(secs) * 1000));
-}
+// How long a paused page waits (and a page due right after an approval waits
+// longer): ./formWait.mts.
 
 class FormInputRequiredError extends Error {
     constructor(stepId, form, expiresAt = null) {
@@ -362,26 +357,26 @@ async function execFormPage(step, ctx, runState, mode) {
         return { output: { shown: true, mode: 'ending', form: renderFormPage(step, runState, { baseTheme }) } };
     }
 
-    if (mode === 'dry_run') {
-        const saved = pageAnswersFor(ctx, step.id);
+    const handling = pauseHandlingOf(ctx, mode);
+    if (handling !== 'real') {
+        const saved = handling === 'harness' ? pageAnswersFor(ctx, step.id) : null;
         if (saved) return { output: scenarioPageOutput(step, renderFormPage(step, runState, { baseTheme }), saved) };
-        // Blank answers keyed by the AUTHORED field names (a multiselect or a
-        // per-item group is an empty list), so downstream bindings resolve in
-        // a preview rather than pausing a run nobody is watching.
-        return { output: { ...runnerPort('forms').emptyFormValues(step.form), _dryRun: true } };
+        return synthesisedPage(step, runState, handling === 'harness');
     }
 
     // The rendered page carries the resolved options and expanded groups. It is
     // persisted on the awaiting step row: after a restart it is the vocabulary
-    // the submit route coerces against.
+    // the submit route coerces against. A test or dry pause waits at most the
+    // profile's pauseTtlMs.
     const rendered = renderFormPage(step, runState, { baseTheme });
-    throw new FormInputRequiredError(step.id, rendered, new Date(Date.now() + resolveFormWaitMs(step)).toISOString());
+    const waitMs = resolveFormWaitMs(step, { afterDecision: continuesFromApproval(ctx) });
+    throw new FormInputRequiredError(step.id, rendered, pauseExpiresAt(waitMs, ctx.profile));
 }
 
 module.exports = {
     ApprovalRequiredError, renderApprovalPrompt, renderApprovalExtras, execApproval,
-    FORM_WAIT_DEFAULT_MS, FORM_WAIT_MIN_MS, FORM_WAIT_MAX_MS,
-    resolveFormWaitMs, FormInputRequiredError, isRunPause, execFormPage, conditionMet,
+    FORM_WAIT_DEFAULT_MS, FORM_WAIT_MIN_MS, FORM_WAIT_MAX_MS, FORM_WAIT_AFTER_DECISION_DEFAULT_MS,
+    resolveFormWaitMs, formWaitAfterDecisionMs, FormInputRequiredError, isRunPause, execFormPage, conditionMet,
 };
 
 /**
@@ -391,5 +386,7 @@ module.exports = {
  *   waitSeconds?: number|string, form?: object, approval?: Record<string, any> }} PauseStep  an approval or
  *   form_page step as the definition stores it (parsed JSON)
  * @typedef {{ userId?: string, orgId?: string, session?: object, layerStack?: unknown[], formBaseTheme?: object|null,
- *   testHarness?: NonNullable<Parameters<typeof pageAnswersFor>[0]>['testHarness'] }} PauseCtx
+ *   testHarness?: NonNullable<Parameters<typeof pageAnswersFor>[0]>['testHarness'],
+ *   profile?: import('../automationModel/runProfile.mts').RunProfile | null, resumedFromStepId?: string | null,
+ *   definition?: { edges?: Array<{ from?: string, label?: string, caseName?: string }>, steps?: Array<{ id?: string, type?: string } | null> } }} PauseCtx
  */

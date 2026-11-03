@@ -1,14 +1,24 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { BuilderStreamData } from '../builderStream';
+import type { BuilderStreamData, DryRun } from '../builderStream';
 import { rateOf } from '../builderStream';
 import type { AutomationBuilderState } from './types';
 import { markFirstEvent, questionsPlanIdOf, shallowDefinitionEqual, touchTurn } from './streamHelpers';
 
 /**
+ * The run tracker's two doors for the stream (useFollowedRun): the AI's dry
+ * run is followed by its id, and its result lands through the tracker, which
+ * is the only writer of `state.dryRun`.
+ */
+export interface StreamRunHooks {
+    follow: (runId: string, opts?: { kind?: 'full' | 'partial' | 'journey'; startedAt?: number | string | null }) => unknown;
+    adopt: (run: DryRun | null | undefined, steps?: unknown, opts?: { merge?: boolean; fromStream?: boolean }) => void;
+}
+
+/**
  * The SSE event reducer of the automation builder stream: every server event
  * folded into AutomationBuilderState (helpers in ./streamHelpers).
  */
-export function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, event: string, data: BuilderStreamData) {
+export function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, event: string, data: BuilderStreamData, runs?: StreamRunHooks) {
     switch (event) {
         case 'builder_session':
             setState(s => touchTurn(
@@ -278,25 +288,20 @@ export function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>
         case 'summary':
             setState(s => ({ ...s, summary: data.summary || '', hasSideEffects: !!data.hasSideEffects }));
             break;
-        case 'dryrun_started':
-            // The AI's dry run has a row: a 'running' stub flips
-            // liveRunInFlight on, and BuildTab's step poller follows the run on
-            // the canvas — exactly what watchActiveRun does for a manual run.
-            // The `dryrun` event below replaces the stub with the finished run.
-            setState(s => ({
-                ...s,
-                dryRun: { id: data.run?.id || data.runId, status: 'running', startedAt: data.run?.startedAt || data.startedAt || null },
-                steps: [],
-            }));
+        case 'dryrun_started': {
+            // The AI's dry run has a row: the tracker follows it by that id
+            // (a 'running' stub, then GET /runs/:id and its steps) and settles
+            // it on a pause or an end. The stream ending early, a Stop or a
+            // tool error therefore cannot leave the stub running (run-watch F6).
+            const runId = data.run?.id || data.runId;
+            if (runId && runs) void runs.follow(runId, { kind: 'full', startedAt: data.run?.startedAt || data.startedAt || null });
             break;
+        }
         case 'dryrun':
-            setState(s => {
-                // A run the canvas already followed live (the `dryrun_started`
-                // stub above carries its id) was seen as it happened; bumping
-                // the seq would make useDryRunReplay act it out a second time.
-                const followed = !!(s.dryRun?.id && s.dryRun.status === 'running' && s.dryRun.id === data.run?.id);
-                return { ...s, dryRun: data.run ?? null, steps: data.steps || [], dryRunSeq: followed ? (s.dryRunSeq || 0) : (s.dryRunSeq || 0) + 1 };
-            });
+            // The finished run and its rows. A run the canvas already followed
+            // live is not replayed (useDryRunReplay would act it out twice); one
+            // nobody followed (an older server without `dryrun_started`) is.
+            runs?.adopt(data.run ?? null, data.steps || [], { fromStream: true });
             break;
         case 'finalized':
             setState(s => ({ ...s, finalizedId: data.automationId || null }));

@@ -59,7 +59,18 @@ const nested: FlowDefinition = {
     edges: [{ from: 'trg', to: 'outer' }, { from: 'outer', to: 'right' }, { from: 'outer', to: 'below', label: 'on_error' }, { from: 'right', to: 'empty' }],
 };
 
-const CASES = Object.entries({ ...FIXTURES, ...TEMPLATES, nested }).map(([name, def]) => [name, clone(def)] as [string, FlowDefinition]);
+/** An approval with an approve path and a rejected branch: its two ports. */
+const approvalBranch: FlowDefinition = {
+    trigger: { id: 'trg', type: 'trigger', kind: 'manual', position: { x: 0, y: 0 } },
+    steps: [
+        { id: 'ap', type: 'approval', position: { x: 320, y: 0 } },
+        { id: 'yes', type: 'set', position: { x: 640, y: 0 } },
+        { id: 'no', type: 'notification', position: { x: 640, y: 150 } },
+    ],
+    edges: [{ from: 'trg', to: 'ap' }, { from: 'ap', to: 'yes' }, { from: 'ap', to: 'no', label: 'on_rejected' }],
+};
+
+const CASES = Object.entries({ ...FIXTURES, ...TEMPLATES, nested, approvalBranch }).map(([name, def]) => [name, clone(def)] as [string, FlowDefinition]);
 const EXPANSIONS: Record<string, string[]> = { loopy: ['loop_1'], nested: ['outer', 'outer/inner', 'empty'] };
 
 describe('the edge model', () => {

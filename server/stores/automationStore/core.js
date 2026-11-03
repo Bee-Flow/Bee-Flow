@@ -135,6 +135,10 @@ const MIGRATIONS = [
     'automation-caller-connections-2026-10',
     // parent_id on automation_folders: folders nest; names unique per parent.
     'automation-folder-parent-2026-10',
+    // The run profile (automation_runs.run_profile) and every column of the
+    // build-and-test journey: sandbox approvals, test-link form pages and their
+    // sessions. Additive, nullable or defaulted, no backfill.
+    'automation-run-profile-2026-11',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

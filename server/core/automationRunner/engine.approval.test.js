@@ -78,7 +78,10 @@ test('dry-run previews the rendered question too', async () => {
     const res = await execApproval(step, {}, runState(), 'dry_run');
     assert.strictEqual(res.output.approved, true);
     assert.strictEqual(res.output._dryRun, true);
-    assert.strictEqual(res.output.prompt, 'Pay 250?');
+    // The dry-run-only `prompt` output key is gone: the question reads in the
+    // preview (and on a paused step row), never as a field a step can bind.
+    assert.strictEqual(res.output.prompt, undefined);
+    assert.strictEqual(res.output._preview.prompt, 'Pay 250?');
 });
 
 test('a legacy `title` still works when there is no prompt', async () => {
@@ -203,12 +206,15 @@ test('an unlicensed org cannot pause a run on an approval — it fails the step 
     }
 });
 
-test('a dry run previews an approval without needing the licence', async () => {
+test('a dry run of an unlicensed org fails where a live run would (studio F7)', async () => {
+    // Without the licence a dry run records the error row a live run would hit,
+    // never a green auto-approval (execApproval.dryLicence.test.js covers the row).
     entitlements.hasCapability = async () => false;
     try {
-        const res = await execApproval({ id: 's1', type: 'approval', prompt: 'Ship it?' }, { userId: 'u1' }, {}, 'dry_run');
-        assert.strictEqual(res.output.approved, true);
-        assert.strictEqual(res.output._dryRun, true);
+        await assert.rejects(
+            () => execApproval({ id: 's1', type: 'approval', prompt: 'Ship it?' }, { userId: 'u1' }, {}, 'dry_run'),
+            (e) => e.errorClass === 'license_required' && /live run would fail/.test(e.message),
+        );
     } finally {
         entitlements.hasCapability = async () => true;
     }

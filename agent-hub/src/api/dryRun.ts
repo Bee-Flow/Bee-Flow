@@ -82,10 +82,6 @@ export async function awaitRunAfterDrop(
     return { run, steps: Array.isArray(js?.steps) ? js.steps : [] };
 }
 
-export function settleRunStub(d: DryRun | null): DryRun | null {
-    return d && d.status === 'running' ? { ...d, status: 'error' } : d;
-}
-
 /**
  * Replace one step's run row with an error row after a failed "Execute step".
  *

@@ -34,11 +34,19 @@ const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} m
     .int(`${name} must be a whole number.`).optional();
 
 const STEP_TEXT = 'triggerStepId is the id of a trigger on this automation.';
+const RESPOND_TEXT = 'respond is "created" or "finished".';
+/**
+ * When to answer (core/automationRunner/startCapped.mts): "created" answers
+ * 202 { runId } as soon as the run exists, so the caller follows it by id;
+ * "finished" (the default) waits for the end, up to the response cap.
+ */
+const Respond = z.enum(['created', 'finished'], { error: () => RESPOND_TEXT }).optional();
 const RUN_SHAPE = {
     // What the run ENTERS with — a form submission, an inbound message. The
     // runner reads it; this route only carries it.
     triggerPayload: z.unknown().optional(),
     triggerStepId: worded(STEP_TEXT).trim().min(1, STEP_TEXT).nullish(),
+    respond: Respond,
 };
 const RunBody = bodyOf({
     ...RUN_SHAPE,
@@ -46,6 +54,20 @@ const RunBody = bodyOf({
     // copy (unpublished changes included) and is marked is_test; without it a
     // manual run executes what is live.
     test: z.boolean({ error: typeError({ invalid: 'test is true or false.' }) }).optional(),
+});
+
+const PAUSES_TEXT = 'pauses is "real".';
+const FROM_RUN_TEXT = 'answersFromRunId is the id of a run of this automation.';
+const DryRunBody = bodyOf({
+    ...RUN_SHAPE,
+    // The web builder's Dry run: an approval or a form page pauses for the
+    // author to answer, writes stay simulated (core/automationRunner/dryPause.mts).
+    // Without it nobody is asked: approvals are auto-approved and pages
+    // answered with blanks, marked and named in the reply's run.warnings.
+    pauses: z.enum(['real'], { error: () => PAUSES_TEXT }).optional(),
+    // "Restart with my answers": play the form answers and approval decisions
+    // of an earlier run of this automation (routes/automation/dryRunAnswers.mts).
+    answersFromRunId: worded(FROM_RUN_TEXT).trim().min(1, FROM_RUN_TEXT).max(200, FROM_RUN_TEXT).optional(),
 });
 
 const SEED_TEXT = 'seedRunId is the id of a run of this automation.';
@@ -121,4 +143,4 @@ const SeenBody = z.object({
     items: z.array(worded(ITEMS_TEXT).trim().min(1, ITEMS_TEXT).max(100, ITEMS_TEXT), { error: () => ITEMS_TEXT }).max(100, ITEMS_TEXT),
 }).strict();
 
-module.exports = { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody };
+module.exports = { Respond, SeenBody, RunBody, DryRunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody };

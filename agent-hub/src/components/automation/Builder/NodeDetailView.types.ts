@@ -1,5 +1,4 @@
-import type { ComponentProps } from 'react';
-import type ApprovalActionBar from './approvals/ApprovalActionBar';
+import type { FollowedRunLike } from './approvals/PausedApprovalBar';
 import type { UpstreamNode, UpstreamDefinition } from './mapping/upstream/upstream.types';
 import type { RunStepRow } from './flow/types';
 import type { BlockCatalogEntry } from './flow/settings/actionEditors/flowletCallFields';
@@ -17,11 +16,13 @@ export interface FocusedField {
     insert?: (path: string, opts?: { raw?: boolean; }) => void;
 }
 
-export type ApprovalDecl = { fields?: ComponentProps<typeof ApprovalActionBar>['fields']; };
-
 export interface NodeDetailViewProps {
     step: UpstreamNode | null;
     runStep: RunStepRow | null;
+    /** The run the builder follows (`state.dryRun`): the approval bar shows only while it waits on this step. */
+    followedRun?: FollowedRunLike | null;
+    /** The canvas follows that run after a decision (useBuilderRuns.onFollowRun). */
+    onFollowRun?: ((runId: string) => void) | null;
     definition: UpstreamDefinition | null;
     rootDefinition?: UpstreamDefinition | null;
     blocksCatalog?: BlockCatalogEntry[];

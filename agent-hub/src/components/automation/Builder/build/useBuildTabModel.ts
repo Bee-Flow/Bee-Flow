@@ -20,11 +20,7 @@ import { layerKeysThatReach, listLayers } from '../flow/flowletScope';
 import { isInlineId, parseInlineId } from '../flow/inlineFlowlets';
 import type { PaletteLayer } from '../flow/stepPalette.types';
 import type { FlowDefinition, FlowStep } from '../flow/types';
-import useWaitingFormUrlJs from '../flow/useWaitingFormUrl';
 import { buildRealOutputMap } from '../mapping/realOutputs';
-
-// useWaitingFormUrl.js documents its id as a string; it is null before the first save.
-const useWaitingFormUrl = useWaitingFormUrlJs as (api: unknown, automationId: string | null, waiting: boolean) => string | null;
 
 /** The tool/step catalog as the server sends it (GET /automations/catalog). */
 type Catalog = Record<string, unknown> | null;
@@ -154,9 +150,6 @@ export default function useBuildTabModel(p: BuildTabProps) {
     const { highlightedStepId, onFocusStep } = useStepFocus(diagramRef, p.openNdv, p.ndvStepId, p.ndvDensity || 'full');
 
     const builderApi = useAutomationApi() as { getCatalog: () => Promise<unknown>; summariseLayer: (layer: unknown) => Promise<{ summary?: string } | null> };
-    // A run parked on a form page: the canvas's run banner offers a way
-    // straight to it (design 1d).
-    const waitingFormUrl = useWaitingFormUrl(builderApi, p.automation?.id || null, (state?.steps || []).some(row => row?.status === 'awaiting_form'));
     const { t } = useTranslation();
     const catalog = useCatalog(builderApi, p.catalogNonce || 0);
 
@@ -180,7 +173,7 @@ export default function useBuildTabModel(p: BuildTabProps) {
     const { paletteLayers, layerSummaries } = useLayerRows(rootDef, scopeKey);
     const ctx = useContextPalette();
     const smart = useSmartAddStep({ palette: ctx.palette, scopedDef, catalog, paletteLayers });
-    const run = useLiveRun({ state, pollRunProgress: p.pollRunProgress, flatDef });
+    const run = useLiveRun({ state, flatDef });
 
     const addStepAt = useAddStep({
         flatDef, inlineSidecar, inlineShift, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot,
@@ -199,7 +192,7 @@ export default function useBuildTabModel(p: BuildTabProps) {
     });
 
     return {
-        t, diagramRef, ribbonRootRef, highlightedStepId, onFocusStep, waitingFormUrl, catalog, flowlets, buildCue,
+        t, diagramRef, ribbonRootRef, highlightedStepId, onFocusStep, catalog, flowlets, buildCue,
         realOutputById, autoMapEnabled, manager, layerSummaries, ctx, smart, run, surfaces, edits, drawer,
         paletteScope, contextScope,
     };

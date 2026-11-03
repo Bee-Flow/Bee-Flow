@@ -17,11 +17,25 @@
  * automation/sideEffectMap.js): read-only steps run for real so the builder sees
  * genuine shapes, writes are simulated. Nothing is sent and nothing is written,
  * which is what makes it safe to offer in a preview.
+ *
+ * Nobody is asked either: this dry run never pauses (pauses 'synthesise',
+ * core/automationRunner/dryPause.mts). An approval is auto-approved with blank
+ * answers and a form page answered with blanks; the result's `_warnings` says
+ * so per step (automation/testing/dryRunWarnings.mts), so the model never
+ * takes a simulated approval or a blank page for ground truth.
  */
 
 'use strict';
 
 const { prepareDryRunPayload } = require('./dryRunTrigger');
+const { dryRunWarnings } = require('../testing/dryRunWarnings.mts');
+
+/**
+ * Who asked: the MCP surface (its builder session ids start with `mcp_`,
+ * automation/mcpBuilder.js) or the in-product AI builder.
+ * @param {{ builderSessionId?: string | null }} draftWrap
+ */
+const originOf = (draftWrap) => (String(draftWrap?.builderSessionId || '').startsWith('mcp_') ? 'mcp' : 'builder');
 const { bestEffort } = require('../../utils/bestEffort');
 
 function defaultDeps() {
@@ -80,16 +94,25 @@ async function applyRequestDryRun(draftWrap, args, deps) {
         ? (Array.isArray(draft.triggers) ? draft.triggers : []).find(t => t && t.id === rootStepId)
         : draft.trigger;
     const prepared = prepareDryRunPayload(rootTrigger, args?.triggerPayload);
-    const run = await d.executeAutomation(automation, { triggerKind: 'dry_run', triggerPayload: prepared.payload || null, mode: 'dry_run', rootStepId, onRunCreated, startedByUserId: draftWrap.userId || null });
+    const run = await d.executeAutomation(automation, {
+        triggerKind: 'dry_run', triggerPayload: prepared.payload || null, mode: 'dry_run', rootStepId, onRunCreated,
+        startedByUserId: draftWrap.userId || null,
+        // Headless: nobody is watching to answer a pause, so pauses synthesise.
+        origin: originOf(draftWrap), pausesRequested: false,
+    });
     const steps = await d.getRunSteps(run.id);
     const annotated = [];
     for (const s of steps) annotated.push({ ...s, _hint: await d.annotate(s, draftWrap) });
+    const warnings = [
+        ...prepared.warnings,
+        ...dryRunWarnings({ steps, definition: automation.definition, trigger: rootTrigger, triggerPayload: run?.triggerPayload ?? prepared.payload ?? null }),
+    ];
     return {
         run,
         steps: annotated,
         ...(rootTrigger?.kind === 'app_event' ? { triggerPayloadSource: prepared.source } : {}),
         ...(prepared.filterMatched !== null ? { triggerFilterMatched: prepared.filterMatched } : {}),
-        ...(prepared.warnings.length ? { _warnings: prepared.warnings } : {}),
+        ...(warnings.length ? { _warnings: warnings } : {}),
     };
 }
 

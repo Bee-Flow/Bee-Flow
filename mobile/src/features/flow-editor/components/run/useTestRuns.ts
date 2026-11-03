@@ -20,17 +20,19 @@ import { useStore } from 'zustand';
 import { describeError } from '@/core/api/errors';
 import { useTranslation, type TranslateFn } from '@/core/i18n';
 import {
-    statusLabel, statusToken, useCancelRun, useRunListsRefresh, useRunStream, type RunEvent,
- RunTriggerResult } from '@/features/automations';
+    statusLabel, statusToken, useCancelRun, useRun, useRunListsRefresh, useRunStream,
+    type AutomationRun, type RunEvent, type RunTriggerResult,
+} from '@/features/automations';
 import type { StepRunMode, StepRunResult, TestRunResult } from '@/features/flow-editor/api';
 import { useDraftState, useDryRun, useLiveRun, useStepRun } from '@/features/flow-editor/hooks';
 import type { FlowDefinition } from '@/features/flow-editor/model';
 import type { DraftStore } from '@/features/flow-editor/state';
+import { runPhase } from '@/shared/runs/runPhase';
 import { useToast } from '@/shared/ui';
 
 import { computeRunFocus, type RunFocus } from './runFocus';
 import { currentStart, runInputFor, startPoints, type StartPoint } from './runMenu';
-import { applyRunEvent, beginRun, failRun, IDLE_TEST_RUN, settleDryRun, settleStepRun, type TestRunState } from './runState';
+import { applyRunEvent, beginRun, failRun, IDLE_TEST_RUN, settleDryRun, settleStepRun, settleStoppedRun, type TestRunState } from './runState';
 import { effectiveRunByStep, type RunRowLike } from './runStatus';
 import { testRunStoreFor, updateTestRun } from './testRunStore';
 
@@ -48,8 +50,14 @@ export interface TestRuns {
     from: string | null;
     setFrom: (id: string | null) => void;
     testStep: (stepId: string, mode: StepRunMode) => void;
-    /** Cancel the run the feed reported (only once it has). */
+    /** Cancel the run the feed reported (only once it has), or the run that waits on a decision or a form page. */
     stop: (() => void) | null;
+    /**
+     * The last run as GET /runs/:id has it while it waits: its profile, and
+     * whether this person may decide (canDecide, waitingOn). Null while the
+     * run does not wait, or until it is read.
+     */
+    pausedRun: AutomationRun | null;
     /** Forget the last run: the cards go back to how they were. */
     clear: () => void;
 }
@@ -104,6 +112,26 @@ function useRunReports(flowKey: string) {
     return { report, onError, onLive, onCancelError };
 }
 
+/**
+ * The settled test run while it waits on a decision or a form page: its id
+ * (Stop / Discard cancels it) and its row as GET /runs/:id has it, which says
+ * whether this person may decide and, polled, when somebody did.
+ */
+function usePausedRun(state: TestRunState, running: boolean): { runId: string | null; run: AutomationRun | null } {
+    const own = !running && state.run?.id ? state.run : null;
+    const waits = !!own && isPausePhase(own);
+    const fresh = useRun(own?.id ?? '', { enabled: waits });
+    const run = waits ? fresh.data ?? null : null;
+    // Read on the fresh row once there is one: a pause decided elsewhere is over.
+    const stillWaits = waits && (!run || isPausePhase(run));
+    return { runId: stillWaits ? own?.id ?? null : null, run };
+}
+
+function isPausePhase(run: AutomationRun): boolean {
+    const { phase } = runPhase(run);
+    return phase === 'paused_approval' || phase === 'paused_form';
+}
+
 function startFrom(definition: FlowDefinition | null, from: string | null) {
     return { starts: startPoints(definition), from: currentStart(definition, from) };
 }
@@ -128,9 +156,15 @@ export function useTestRuns(flowKey: string, store: DraftStore): TestRuns {
         onError,
     });
     const live = useLiveRun(flowKey, { onSuccess: onLive, onError });
-    const cancel = useCancelRun(useRunListsRefresh(), { onError: onCancelError });
     const running = state.pending || dry.isPending || step.isPending || live.isPending;
-    const liveRunId = state.pending ? state.runId : null;
+    const paused = usePausedRun(state, running);
+    const cancel = useCancelRun(useRunListsRefresh(), {
+        onSuccess: (run, runId) => {
+            if (runId === paused.runId) updateTestRun(flowKey, (s) => settleStoppedRun(s, run, Date.now()));
+        },
+        onError: onCancelError,
+    });
+    const liveRunId = state.pending ? state.runId : paused.runId;
     // Every card and canvas node looks its run up here: one Map per change, not per render.
     const runByStep = useMemo(() => effectiveRunByStep(definition, state.rows), [definition, state.rows]);
 
@@ -157,6 +191,7 @@ export function useTestRuns(flowKey: string, store: DraftStore): TestRuns {
             step.mutate({ stepId, mode, ...runInputFor(definition) });
         },
         stop: liveRunId && !cancel.isPending ? () => cancel.mutate(liveRunId) : null,
+        pausedRun: paused.run,
         clear: () => updateTestRun(flowKey, () => IDLE_TEST_RUN),
     };
 }

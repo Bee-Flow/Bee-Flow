@@ -24,6 +24,29 @@ export interface ApprovalRowLike {
     context?: Record<string, unknown> | null;
     automationTitle?: string | null;
     prompt?: string | null;
+    /** A test or dry run's approval: the person who started the run decides alone. */
+    isTest?: boolean;
+    sandboxUserId?: string | null;
+    configuredRouting?: ConfiguredRouting | null;
+}
+
+/** One seat of a configured route: a person or a group, by id only. */
+interface RouteSeat {
+    userId?: string | null;
+    groupId?: string | null;
+}
+
+/**
+ * Where a TEST approval would have gone in production (the row's
+ * configured_routing, written by the server's approvalRouting.mts). Ids only:
+ * this view never turns them into names.
+ */
+interface ConfiguredRouting {
+    runKind?: 'test' | 'dry';
+    stages?: Array<{ key?: string | null; name?: string | null; skipped?: boolean; approvers?: RouteSeat[] | null }> | null;
+    approvers?: RouteSeat[] | null;
+    assignee?: RouteSeat | null;
+    finalApprover?: RouteSeat | null;
 }
 
 export const STATUS_TABS = [
@@ -174,4 +197,38 @@ export function approvalOriginText(row: ApprovalRowLike | null | undefined, t: T
     const deployment = approvalSourceInfo(row, t);
     if (deployment) return [deployment.label, deployment.text].filter(Boolean).join(' · ');
     return row?.automationTitle || t('approvals.automation', 'Automation');
+}
+
+/**
+ * "In production this goes to ..." for a test approval: the stages by name
+ * with their seat counts, or the panel's size, or a single approver / group /
+ * the owner. Never a person's name: the routing holds ids, and a count is all
+ * the tester needs to see the shape. Null when the row is not a test or has
+ * no routing.
+ */
+export function productionRouteText(row: ApprovalRowLike | null | undefined, t: TranslateFn): string | null {
+    const routing = row?.isTest ? row.configuredRouting : null;
+    if (!routing) return null;
+    const seats = (list: RouteSeat[] | null | undefined) => (Array.isArray(list) ? list.filter(Boolean).length : 0);
+    let route: string;
+    if (Array.isArray(routing.stages) && routing.stages.length) {
+        route = routing.stages.filter(Boolean).map((stage, i) => {
+            const name = stage.name || t('approvals.test_route_stage_n', 'Stage {n}', { n: String(i + 1) });
+            return stage.skipped
+                ? t('approvals.test_route_stage_skipped', '{name} (skipped)', { name })
+                : t('approvals.test_route_stage', '{name} ({n})', { name, n: String(seats(stage.approvers)) });
+        }).join(' → ');
+    } else if (seats(routing.approvers)) {
+        route = t('approvals.test_route_panel', 'a panel of {n}', { n: String(seats(routing.approvers)) });
+    } else if (routing.assignee?.groupId) {
+        route = t('approvals.test_route_group', 'a group');
+    } else if (routing.assignee?.userId) {
+        route = t('approvals.test_route_person', 'one approver');
+    } else {
+        route = t('approvals.test_route_owner', "the automation's owner");
+    }
+    if (routing.finalApprover?.userId || routing.finalApprover?.groupId) {
+        route = `${route} ${t('approvals.test_route_final', 'then a final sign-off')}`;
+    }
+    return t('approvals.test_in_production', 'In production this goes to {route}.', { route });
 }

@@ -104,6 +104,8 @@ export const NodeDetailView = NodeDetailViewJs as unknown as ComponentType<{
     step: FlowStep;
     runStep?: RunStepRow | null;
     runSteps?: RunStepRow[];
+    followedRun?: unknown;
+    onFollowRun?: unknown;
     realOutputById?: unknown;
     catalog?: unknown;
     definition?: FlowDefinition | null;

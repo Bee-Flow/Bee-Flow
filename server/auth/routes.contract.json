@@ -82,6 +82,9 @@
     "DELETE /api/automation/folders/:folderId": {
       "gate": "auth"
     },
+    "DELETE /api/automation/forms/:automationId/test-link": {
+      "gate": "auth"
+    },
     "DELETE /api/automation/runs/:runId/golden": {
       "gate": "auth"
     },
@@ -1113,6 +1116,9 @@
       "gate": "auth"
     },
     "GET /api/automation/forms/:automationId": {
+      "gate": "auth"
+    },
+    "GET /api/automation/forms/:automationId/test-link": {
       "gate": "auth"
     },
     "GET /api/automation/runs/:id": {
@@ -4265,6 +4271,12 @@
     "POST /api/automation/:id/form-scenarios/:scenarioId/dry-run": {
       "gate": "auth"
     },
+    "POST /api/automation/:id/form-test": {
+      "gate": "auth"
+    },
+    "POST /api/automation/:id/form-test/upload": {
+      "gate": "auth"
+    },
     "POST /api/automation/:id/form/:token/rotate": {
       "gate": "auth"
     },
@@ -4406,6 +4418,9 @@
       "gate": "auth"
     },
     "POST /api/automation/forms/:automationId/answers-table": {
+      "gate": "auth"
+    },
+    "POST /api/automation/forms/:automationId/test-link": {
       "gate": "auth"
     },
     "POST /api/automation/forms/ai/draft": {
@@ -6426,7 +6441,7 @@
     },
     "POST /auth/sso-encryption-setup": {
       "gate": "handler",
-      "via": "handler"
+      "via": "registry:handler"
     },
     "POST /auth/sso-encryption-unlock": {
       "gate": "handler",
@@ -6612,6 +6627,9 @@
       "gate": "auth"
     },
     "PUT /api/automation/forms/:automationId/audience": {
+      "gate": "auth"
+    },
+    "PUT /api/automation/forms/:automationId/test-link/audience": {
       "gate": "auth"
     },
     "PUT /api/branding/admin": {

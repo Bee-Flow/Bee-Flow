@@ -38,7 +38,14 @@ export function stripDryRunMeta(value: unknown): unknown {
 }
 
 /** Why an output is a sample: the live read failed, came back empty, or there was none. */
-export type SampleReason = 'live_failed' | 'live_empty' | 'not_connected' | 'simulated_upstream' | 'sample';
+export type SampleReason = 'live_failed' | 'live_empty' | 'not_connected' | 'simulated_upstream' | 'auto_approved' | 'form_blank' | 'sample';
+
+/**
+ * The fallbacks a sample can name. `auto_approved` and `form_blank` are a
+ * pause the dry run did not take (core/automationRunner/dryPause.mts): an
+ * approval it approved by itself, a form page it left blank.
+ */
+const SAMPLE_REASONS: ReadonlySet<string> = new Set(['live_failed', 'live_empty', 'not_connected', 'simulated_upstream', 'auto_approved', 'form_blank']);
 
 export interface RunRowModel {
     key: string;
@@ -65,8 +72,7 @@ function durationOf(row: AutomationRunStep): number | null {
 function sampleOf(out: Obj | null): SampleReason | null {
     if (!out?._dryRunSynthesised) return null;
     const fb = out._dryRunFallback;
-    if (fb === 'live_failed' || fb === 'live_empty' || fb === 'not_connected' || fb === 'simulated_upstream') return fb;
-    return 'sample';
+    return typeof fb === 'string' && SAMPLE_REASONS.has(fb) ? (fb as SampleReason) : 'sample';
 }
 
 function notifyOf(out: Obj | null): RunRowModel['notify'] {

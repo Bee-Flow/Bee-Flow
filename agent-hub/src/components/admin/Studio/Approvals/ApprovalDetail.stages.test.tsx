@@ -181,3 +181,37 @@ describe('ApprovalDetail — the panel rendering is untouched', () => {
         expect(screen.queryByText('Approval chain')).not.toBeInTheDocument();
     });
 });
+
+describe('ApprovalDetail — a test approval (the sandbox seat)', () => {
+    it('wears the Test chip, says the tester decides for everyone, and previews the production route', async () => {
+        renderDetail({
+            approval: {
+                id: 'apr_3', status: 'pending', prompt: 'Pay this?', automationTitle: 'Invoices',
+                createdAt: '2026-11-03T10:00:00Z', expiresAt: null, assigneeUserId: 'me',
+                isTest: true, sandboxUserId: 'me',
+                configuredRouting: {
+                    runKind: 'test',
+                    stages: [
+                        { key: 's1', name: 'Team lead', approvers: [{ userId: 'u9' }] },
+                        { key: 's2', name: 'Finance', approvers: [{ groupId: 'g1' }, { userId: 'u8' }] },
+                    ],
+                },
+            },
+            audit: [], runLink: null, canDecide: true, canWithdraw: true,
+        });
+        expect(await screen.findByTestId('approval-test-chip')).toHaveTextContent('Test');
+        expect(screen.getByText('Test decision: you decide for every approver.')).toBeInTheDocument();
+        expect(screen.getByText('In production this goes to Team lead (1) → Finance (2).')).toBeInTheDocument();
+        expect(screen.queryByText(/Approval chain/)).not.toBeInTheDocument();
+    });
+
+    it('a production approval shows neither', async () => {
+        renderDetail({
+            approval: stagedApproval(), audit: [], runLink: null,
+            canDecide: false, canWithdraw: false, votes: [], progress: STAGES_PROGRESS,
+        });
+        await screen.findByText('Approval chain');
+        expect(screen.queryByTestId('approval-test-chip')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Test decision/)).not.toBeInTheDocument();
+    });
+});

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ExecutionBar, { type ExecutionRun } from './ExecutionBar';
+import ExecutionFormAttach from './ExecutionFormAttach';
 import RunProblemBanner from './RunProblemBanner';
 import RunStepTimeline from './RunStepTimeline';
 import useRunStream from './useRunStream';
@@ -48,7 +49,9 @@ interface RunEventData {
  * (key={runId}) so live updates don't reset zoom/scroll.
  *
  * Retry/approve OPEN THE RUN THEY START (the server returns the child run)
- * instead of dumping the user back on the list to hunt for it.
+ * instead of dumping the user back on the list to hunt for it. A run waiting
+ * on a page or a decision offers "Answer this page" / "Decide", which attach
+ * the builder's form test overlay to it (ExecutionFormAttach).
  */
 interface ExecutionViewProps {
     runId: string;
@@ -92,8 +95,9 @@ export default function ExecutionView({
 
     const loadRun = useCallback(async () => {
         try {
-            const r = await api.getRun(runId) as ExecutionRun;
-            setRun(prev => ({ ...(prev || {}), ...r }));
+            // GET /runs/:id answers { run }; a bare row is read as it is.
+            const body = await api.getRun(runId) as ExecutionRun & { run?: ExecutionRun };
+            setRun(prev => ({ ...(prev || {}), ...(body?.run ?? body) }));
             setLoadError(null);
         } catch (e) {
             // Swallowing this used to leave a run view with NO bar and NO way
@@ -220,7 +224,7 @@ export default function ExecutionView({
     }
 
     return (
-        <div className="flex flex-col h-full min-h-0">
+        <div className="relative flex flex-col h-full min-h-0">
             <ExecutionBar
                 run={run}
                 definition={definition}
@@ -237,6 +241,8 @@ export default function ExecutionView({
                 </div>
             )}
             <RunProblemBanner run={run} steps={steps} />
+            {/* Answer the page or decide the approval here, in the form test overlay attached to this run. */}
+            <ExecutionFormAttach run={run} onChanged={() => { loadRun(); fetchSteps(); }} />
             {run?.status === 'awaiting_approval' && awaitingApproval && (
                 <div className="flex-shrink-0 border-b border-[var(--border-default)] overflow-y-auto max-h-[45%]">
                     {/* The SAME decision surface as the builder and the
@@ -251,8 +257,9 @@ export default function ExecutionView({
                         onResolved={async (decision: string) => {
                             if (decision === 'approve') {
                                 await Promise.all([loadRun(), fetchSteps()]);
-                                const fresh = await api.getRun(runId).catch(() => null) as ExecutionRun | null;
-                                const childId = fresh?.journeyRunId;
+                                // GET /runs/:id answers { run }; a bare row is read as it is.
+                                const body = await api.getRun(runId).catch(() => null) as (ExecutionRun & { run?: ExecutionRun }) | null;
+                                const childId = (body?.run ?? body)?.journeyRunId;
                                 if (childId && childId !== runId && onOpenAnotherRun) onOpenAnotherRun(childId);
                             } else {
                                 await Promise.all([loadRun(), fetchSteps()]);

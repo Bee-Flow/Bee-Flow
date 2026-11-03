@@ -14,6 +14,7 @@ import type { ReviewPlan } from '../chat/PlanReview';
 import type { PendingTable } from '../chat/pendingTables';
 import type { FormDef } from '@/components/forms/PublicFormRenderer.types';
 import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
+import type { FormRunClose, FormRunFollow, FormRunStart, FormTestSession } from '../formRunContract';
 
 /** One message of the builder chat: the stream hook's shape, plus the tool calls this builder adds to it. */
 export type BuilderMessage = StreamMessage & { toolCalls?: unknown[] | null };
@@ -102,14 +103,20 @@ export interface BuildTabProps {
     catalogNonce?: number;
     chatWidth: number;
     onChatResizeStart: (event: MouseEvent<HTMLElement>) => void;
-    /** The form-test overlay: `{ form, runId }` while open. */
-    formTest?: { form?: FormDef; runId?: string | null } | null;
-    onFormTestRun: (answers: Record<string, unknown>) => Promise<{ run?: { id?: string }; id?: string } | null | undefined>;
-    onCloseFormTest: (e?: MouseEvent<HTMLButtonElement>) => void;
+    /** The form-test overlay while open: page one of a trigger (`form`, with the mode Submit starts) or attached to `runId`. */
+    formTest?: FormTestSession | null;
+    /** Start a run with the overlay's answers (formRunContract.ts). */
+    onFormTestRun: FormRunStart;
+    /** The canvas follows that run by id (a continuation of the journey included). */
+    onFollowRun?: FormRunFollow;
+    /** The overlay closed; `dismissRunIds` are runs it must not reopen for by itself (formRunContract.ts). */
+    onCloseFormTest: FormRunClose;
     /** (runId) — open that form overlay attached to a run parked on a page. */
     onOpenFormOverlay?: Fn<[runId: string]>;
     /** (runId) — open that run in Runs (the failed-run banner's "View run"). */
     onOpenRun?: Fn<[runId: string]>;
+    /** (runId) — a new dry run of the working copy with that run's answers ("Restart with the current version"). */
+    onRestartWithAnswers?: Fn<[runId: string], Promise<void>>;
     state: BuilderTabState;
     automation?: { id?: string | null; [key: string]: unknown } | null;
     rootDef: FlowDefinition | null;
@@ -143,7 +150,6 @@ export interface BuildTabProps {
     onExecuteStep: (...args: never[]) => unknown;
     onRetryFromStep: (...args: never[]) => unknown;
     onStopRun?: Fn<[runId: string], unknown>;
-    pollRunProgress?: Fn<[runId: string], unknown>;
     fatalError: unknown;
     onDismissFatal: () => void;
     onDiagnose?: Fn;

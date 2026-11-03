@@ -60,6 +60,22 @@ test('two pages are kept and a skipped page is left out', () => {
     assert.strictEqual(hasAnswers(a), true);
 });
 
+test('a page a dry run answered with blanks, or that had no saved answer, is not kept', () => {
+    const definition = { trigger: { id: 'm', kind: 'manual' }, steps: [
+        page('p1', [{ name: 'name', type: 'text', label: 'Name' }]),
+        page('p2', [{ name: 'note', type: 'textarea', label: 'Note' }]),
+        page('p3', [{ name: 'extra', type: 'text', label: 'Extra' }]),
+    ] };
+    const steps = [
+        row('p1', { name: 'Ada' }),
+        row('p2', { note: '', _dryRun: true, _dryRunSynthesised: true }),
+        row('p3', { extra: '', _dryRun: true, _scenarioMissing: true }),
+    ];
+    const a = answersFromJourney({ definition, rootRun: {}, steps });
+    assert.deepStrictEqual(a.pages, { p1: { name: 'Ada' } });
+    assert.deepStrictEqual(a.skipped, []);
+});
+
 test('the last successful attempt wins; failed and awaiting rows are ignored', () => {
     const definition = { trigger: { id: 'm', kind: 'manual' }, steps: [page('p1', [{ name: 'name', type: 'text', label: 'Name' }])] };
     const steps = [
