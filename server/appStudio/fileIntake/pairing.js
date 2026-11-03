@@ -8,6 +8,7 @@
 const {
     baseNameOf, canonicalBaseOf, operationOf, partKeyOf, partNameForFolder, containsPrefix, isSheetOf, cadPreferenceWith,
 } = require('./naming');
+const { samePartByTokens } = require('./partTokens.mts');
 
 // Which CountCustom-style outputs writeTo.mapping may name. Mirrors
 // FILE_INTAKE_OUTPUTS in validate.js — the executor is lenient (unknown
@@ -171,6 +172,21 @@ function pairFiles(files, step) {
             d.used = true;
             pairs.push(mkPair(d.key, hits[0].cad, d.drawing, 'fuzzy', hits[0].meta));
         }
+    }
+    // Last tier, before "geen": the same part in different words (partTokens.mts),
+    // only when it is the ONE candidate on both sides — "x_drawing.pdf" beside
+    // "x_5mm.dxf" AND "x_8mm.dxf" stays a question for a person, and so does a CAD
+    // file that another open name (a drawing OR a sibling CAD file) also matches.
+    const openCads = loneCads.filter((c) => !c.used);
+    const openDrawings = loneDrawings.filter((d) => !d.used);
+    const openKeys = [...openCads, ...openDrawings].map((x) => x.key);
+    for (const d of openDrawings) {
+        const cads = openCads.filter((c) => samePartByTokens(d.key, c.key));
+        if (cads.length !== 1 || cads[0].used) continue;
+        if (openKeys.filter((k) => k !== cads[0].key && samePartByTokens(k, cads[0].key)).length !== 1) continue;
+        cads[0].used = true;
+        d.used = true;
+        pairs.push(mkPair(d.key, cads[0].cad, d.drawing, 'fuzzy', cads[0].meta));
     }
     for (const c of loneCads) {
         if (!c.used) pairs.push(mkPair(c.key, c.cad, null, c.ambiguous ? 'controleren' : 'geen', c.meta));
