@@ -42,6 +42,7 @@ const EXPORT_NAMES = [
     'FeatureDemoEditor',
     'RoadmapEditor',
     'CompareTableEditor',
+    'FeatureMatrixEditor',
     'GitHubStatsEditor',
     'ReleaseNotesEditor',
     'LatestPostsEditor',
@@ -58,16 +59,16 @@ const EXPORT_NAMES = [
 ];
 
 describe('editors barrel', () => {
-    it('exposes all 37 exports (28 as of the 2026-07 split + compare-table + github-stats + release-notes + blog-latest + tabs + story-header + customer-stories + product-mockup + card-carousel)', () => {
+    it('exposes all 38 exports (28 as of the 2026-07 split + compare-table + feature-matrix + github-stats + release-notes + blog-latest + tabs + story-header + customer-stories + product-mockup + card-carousel)', () => {
         const surface = Object.entries(editors);
         for (const name of EXPORT_NAMES) {
             expect(surface.find(([key]) => key === name)?.[1], `export "${name}" should be defined`).toBeDefined();
         }
     });
 
-    it('pins exactly 33 block types, each with an editor component and defaults', () => {
+    it('pins exactly 34 block types, each with an editor component and defaults', () => {
         const types = Object.keys(editors.BLOCK_CATALOGUE);
-        expect(types).toHaveLength(33);
+        expect(types).toHaveLength(34);
         for (const type of types) {
             expect(
                 typeof editors.BLOCK_EDITORS[type as keyof typeof editors.BLOCK_EDITORS]?.component,

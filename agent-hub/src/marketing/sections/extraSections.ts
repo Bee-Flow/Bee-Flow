@@ -21,6 +21,7 @@ const GitHubStats = lazySection(() => import('./GitHubStats'));
 const ReleaseNotes = lazySection(() => import('./ReleaseNotes'));
 const CustomerStories = lazySection(() => import('./CustomerStories'));
 const CompareTable = lazySection(() => import('./CompareTable'));
+const FeatureMatrix = lazySection(() => import('./FeatureMatrix'));
 const Roadmap = lazySection(() => import('./Roadmap'));
 
 /**
@@ -44,5 +45,6 @@ export const EXTRA_SECTIONS = {
     'github-stats': GitHubStats,
     'release-notes': ReleaseNotes,
     'compare-table': CompareTable,
+    'feature-matrix': FeatureMatrix,
     roadmap: Roadmap,
 };

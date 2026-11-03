@@ -22,6 +22,7 @@ import { ShowcaseEditor } from './ShowcaseEditor';
 import { FeatureDemoEditor } from './FeatureDemoEditor';
 import { RoadmapEditor } from './RoadmapEditor';
 import { CompareTableEditor } from './CompareTableEditor';
+import { FeatureMatrixEditor } from './FeatureMatrixEditor';
 import { GitHubStatsEditor } from './GitHubStatsEditor';
 import { ReleaseNotesEditor } from './ReleaseNotesEditor';
 import { TabsEditor } from './TabsEditor';
@@ -87,6 +88,7 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     'release-notes': { type: 'release-notes', label: 'Release notes',    icon: 'ScrollText',       category: 'Trust' },
     'blog-latest':   { type: 'blog-latest',   label: 'Latest posts',     icon: 'Newspaper',        category: 'Content' },
     tabs:            { type: 'tabs',          label: 'Tabs',             icon: 'Layers',         category: 'Content' },
+    'feature-matrix': { type: 'feature-matrix', label: 'Feature matrix',  icon: 'Table',            category: 'Trust' },
     'story-header':     { type: 'story-header',     label: 'Customer story header', icon: 'Quote', category: 'Trust' },
     'customer-stories': { type: 'customer-stories', label: 'Customer stories',      icon: 'Users', category: 'Trust' },
     'product-mockup': { type: 'product-mockup', label: 'Product mockup', icon: 'AppWindow',        category: 'Content' },
@@ -123,6 +125,7 @@ const RAW_BLOCK_EDITORS = {
     'release-notes': { component: ReleaseNotesEditor, label: 'Release notes',    icon: 'ScrollText' },
     'blog-latest':   { component: LatestPostsEditor,  label: 'Latest posts',     icon: 'Newspaper' },
     tabs:            { component: TabsEditor,         label: 'Tabs',             icon: 'Layers' },
+    'feature-matrix': { component: FeatureMatrixEditor, label: 'Feature matrix', icon: 'Table' },
     'story-header':     { component: StoryHeaderEditor,     label: 'Customer story header', icon: 'Quote' },
     'customer-stories': { component: CustomerStoriesEditor, label: 'Customer stories',      icon: 'Users' },
     'product-mockup': { component: ProductMockupEditor, label: 'Product mockup', icon: 'AppWindow' },

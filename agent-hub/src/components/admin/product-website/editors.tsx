@@ -45,6 +45,7 @@ export { ShowcaseEditor } from './blockEditors/ShowcaseEditor';
 export { FeatureDemoEditor } from './blockEditors/FeatureDemoEditor';
 export { RoadmapEditor } from './blockEditors/RoadmapEditor';
 export { CompareTableEditor } from './blockEditors/CompareTableEditor';
+export { FeatureMatrixEditor } from './blockEditors/FeatureMatrixEditor';
 export { GitHubStatsEditor } from './blockEditors/GitHubStatsEditor';
 export { ReleaseNotesEditor } from './blockEditors/ReleaseNotesEditor';
 export { LatestPostsEditor } from './blockEditors/LatestPostsEditor';
