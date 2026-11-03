@@ -293,6 +293,7 @@ async function listMessages({
     if (provider === 'outlook') {
         // `label:` terms become a categories filter (outlookQuery.mts); the
         // labels come back only when free text forced a $search instead.
+        // `since` is on lastModifiedDateTime (outlookQuery.mts); Gmail's `after:` is the message date, so a late label on an old mail is missed there.
         const sinceIso = since ? new Date(new Date(since).getTime() - MAILBOX_OVERLAP_MS).toISOString() : null;
         const { qs, labelGroups } = outlookListQuery({ query, sinceIso, select: includeBody ? `${GRAPH_SELECT},body` : GRAPH_SELECT, top: Math.min(max, 100) });
         // Graph hands back an absolute @odata.nextLink for the next page.

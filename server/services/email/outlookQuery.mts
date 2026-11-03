@@ -82,8 +82,13 @@ export function outlookListQuery({ query, sinceIso, select, top }: {
         // $search cannot be combined with $filter or ordered.
         params.set('$search', `"${text.replace(/"/g, '')}"`);
     } else {
-        params.set('$orderby', 'receivedDateTime desc');
-        const clauses = [sinceIso ? `receivedDateTime ge ${sinceIso}` : null, categoriesFilter(groups)].filter(Boolean);
+        // The watermark is on lastModifiedDateTime, not receivedDateTime: adding a
+        // category to an OLD message bumps lastModifiedDateTime but not the
+        // received time, and "label the requests the app should pick up" is the
+        // intended workflow. Graph requires a $orderby property to be in the
+        // $filter, in the same order; without a since the order stays by received.
+        params.set('$orderby', sinceIso ? 'lastModifiedDateTime desc' : 'receivedDateTime desc');
+        const clauses = [sinceIso ? `lastModifiedDateTime ge ${sinceIso}` : null, categoriesFilter(groups)].filter(Boolean);
         if (clauses.length) params.set('$filter', clauses.join(' and '));
     }
     // URLSearchParams writes a space as '+', which OData reads literally.

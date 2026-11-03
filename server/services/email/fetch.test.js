@@ -270,15 +270,30 @@ test('graph list: personal uses /me, shared uses /users/{address}', async () => 
     assert.match(graphPaths[0], /^\/users\/support%40acme\.nl\/mailFolders\/inbox\/messages\?/);
 });
 
-test('graph list: a watermark becomes a receivedDateTime filter with the overlap', async () => {
+test('graph list: a watermark becomes a lastModifiedDateTime filter with the overlap', async () => {
     const since = '2026-08-05T12:00:00.000Z';
     await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, since });
 
     const expected = new Date(Date.parse(since) - fetchLayer.MAILBOX_OVERLAP_MS).toISOString();
-    assert.ok(decodeURIComponent(graphPaths[0]).includes(`receivedDateTime ge ${expected}`));
+    assert.ok(decodeURIComponent(graphPaths[0]).includes(`lastModifiedDateTime ge ${expected}`));
+    assert.ok(decodeURIComponent(graphPaths[0]).includes('$orderby=lastModifiedDateTime desc'));
     // Spaces must be %20, never '+' — OData reads '+' literally and the filter
     // silently stops matching.
     assert.ok(!graphPaths[0].includes('+'), 'no + encoding in an OData query string');
+});
+
+test('graph list: an old message labelled after the previous sync comes back on the next incremental listing', async () => {
+    // Received in May, categorised in August: only the MODIFIED time moved.
+    const old = { ...GRAPH_MSG, id: 'old', receivedDateTime: '2026-05-01T10:00:00Z', lastModifiedDateTime: '2026-08-06T09:00:00Z', categories: ['Aanvraag'] };
+    graphHandler = (path) => {
+        const filter = /\$filter=([^&]*)/.exec(decodeURIComponent(path))?.[1] || '';
+        const m = /lastModifiedDateTime ge (\S+)/.exec(filter);
+        return { value: m && Date.parse(old.lastModifiedDateTime) >= Date.parse(m[1]) ? [old] : [] };
+    };
+    const { messages } = await fetchLayer.listMessages({
+        provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, query: 'label:Aanvraag', since: '2026-08-05T12:00:00.000Z',
+    });
+    assert.deepStrictEqual(messages.map((m) => [m.provider_message_id, m.labels, m.received_at]), [['old', 'Aanvraag', '2026-05-01T10:00:00Z']]);
 });
 
 test('graph list: a query switches to $search and drops $filter', async () => {
@@ -297,7 +312,7 @@ test('graph list: label: terms become a categories filter next to the date, not 
     await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: SHARED, query: 'label:daniel OR label:kees', since: '2026-08-01T00:00:00Z' });
     const qs = decodeURIComponent(graphPaths[0].split('?')[1]);
     assert.ok(!qs.includes('$search'));
-    assert.match(qs, /\$filter=receivedDateTime ge 2026-07-31T23:58:00\.000Z and categories\/any\(c:c eq 'daniel' or c eq 'kees'\)/);
+    assert.match(qs, /\$filter=lastModifiedDateTime ge 2026-07-31T23:58:00\.000Z and categories\/any\(c:c eq 'daniel' or c eq 'kees'\)/);
 });
 
 test('graph list: with text next to a label, the label filters the $search results here', async () => {

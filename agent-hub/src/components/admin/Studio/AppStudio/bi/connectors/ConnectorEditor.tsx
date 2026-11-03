@@ -156,7 +156,7 @@ export default function ConnectorEditor({ connector, onChange, disabled, appId, 
             ) : null}
 
             {connector.kind === 'mailbox' ? (
-                <MailboxFields connector={connector} setOpt={setOpt} patch={patch} disabled={disabled} appId={appId} saved={saved} actions={actions} />
+                <MailboxFields connector={connector} setOpt={setOpt} patch={patch} disabled={disabled} appId={appId} saved={saved} actions={actions} tables={tables} />
             ) : null}
 
             {connector.kind === 'rest' ? <RestFields connector={connector} setOpt={setOpt} disabled={disabled} /> : null}
