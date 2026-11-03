@@ -61,7 +61,8 @@ module.exports = {
         '^@shared/(.*)$': '<rootDir>/../agent-hub/src/shared/$1',
     },
     modulePaths: ['<rootDir>/node_modules'],
-    testMatch: ['<rootDir>/src/**/*.test.ts', '<rootDir>/src/**/*.test.tsx'],
+    // vendor/: the CommonJS port of decode-uri-component and its test (vendor/*/README.md).
+    testMatch: ['<rootDir>/src/**/*.test.ts', '<rootDir>/src/**/*.test.tsx', '<rootDir>/vendor/**/*.test.js'],
     collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.test.{ts,tsx}'],
     // `standard-navigation` is expo-router's navigation core; it ships ESM, so
     // without it here no test can import a component that calls useRouter.
