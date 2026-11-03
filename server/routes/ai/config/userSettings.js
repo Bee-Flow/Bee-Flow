@@ -45,6 +45,7 @@ const router = express.Router();
 const configStore = require('../../../stores/configStore');
 const { normalizeAfasToken } = require('../../../integrations/afasTools');
 const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NMBRS_EMAIL_RE, clearNmbrsPageCacheForUser } = require('../../../integrations/nmbrsTools');
+const NMBRS_CLIENT_ID_RE = /^[\x21-\x7E]{4,256}$/; // printable ASCII, no whitespace/CRLF
 const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
 const { firebirdFields } = require('./firebirdFields');
 const { SECRETS } = require('../../../stores/user/userSecretKeys.mts');
@@ -134,6 +135,12 @@ const UserSettingsBody = z.object({
     nmbrsEmail: shaped(NMBRS_EMAIL_RE, 'NMBRS login email is invalid.'),
     nmbrsToken: shaped(NMBRS_TOKEN_RE, 'NMBRS token is invalid — paste the API token / bearer token with no spaces.'),
     nmbrsEnv: oneOf(['', 'production', 'sandbox'], 'NMBRS environment must be production or sandbox.'),
+    // NMBRS REST: the subscription key travels in the X-Subscription-Key header and
+    // the client id / secret in the Basic header of the token call, so the shape
+    // (printable ASCII, no whitespace) is the header-injection guard.
+    nmbrsSubscriptionKey: shaped(NMBRS_TOKEN_RE, 'NMBRS subscription key is invalid — paste the key from the Nmbrs developer portal with no spaces.'),
+    nmbrsClientId: shaped(NMBRS_CLIENT_ID_RE, 'NMBRS client ID is invalid — paste the client ID of your Nmbrs app with no spaces.'),
+    nmbrsClientSecret: shaped(NMBRS_TOKEN_RE, 'NMBRS client secret is invalid — paste the client secret of your Nmbrs app with no spaces.'),
     // vPlan (read-only) — both travel in request headers (X-Api-Key /
     // X-Api-Env), so the shape check is the header-injection guard.
     vplanApiKey: shaped(VPLAN_API_KEY_RE, 'vPlan API key is invalid — paste the key from vPlan → Settings → Developers, with no spaces.'),
@@ -309,7 +316,12 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         hasSignRequestConfig: !!(await configStore.getSecret(`signrequest_subdomain_user_${userId}`)) && !!(await configStore.getSecret(`signrequest_token_user_${userId}`)),
         hasGammaKey: !!(await configStore.getSecret(`gamma_api_key_user_${userId}`)),
         hasAfasConfig: !!(await configStore.getSecret(`afas_token_user_${userId}`)) && !!(await configStore.getSecret(`afas_member_number_user_${userId}`)),
-        hasNmbrsConfig: !!(await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`)),
+        hasNmbrsConfig: (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) === 'rest'
+            ? !!(await configStore.getSecret(`nmbrs_subscription_key_user_${userId}`))
+            : !!(await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`)),
+        // REST secrets are never returned, only whether they are set.
+        hasNmbrsSubscriptionKey: !!(await configStore.getSecret(`nmbrs_subscription_key_user_${userId}`)),
+        hasNmbrsClient: !!(await configStore.getSecret(`nmbrs_client_id_user_${userId}`)) && !!(await configStore.getSecret(`nmbrs_client_secret_user_${userId}`)),
         hasVplanConfig: !!(await configStore.getSecret(`vplan_api_key_user_${userId}`)) && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`)),
         hasFirebirdConfig: !!(await configStore.getSecret(`firebird_host_user_${userId}`)) && !!(await configStore.getSecret(`firebird_database_user_${userId}`))
             && !!(await configStore.getSecret(`firebird_user_user_${userId}`)) && !!(await configStore.getSecret(`firebird_password_user_${userId}`)),

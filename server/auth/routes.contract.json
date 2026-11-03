@@ -1956,6 +1956,16 @@
     "GET /api/integrations/microsoft/status": {
       "gate": "auth"
     },
+    "GET /api/integrations/nmbrs/auth-url": {
+      "gate": "auth"
+    },
+    "GET /api/integrations/nmbrs/callback": {
+      "gate": "open",
+      "reason": "OAuth-callback, als google/callback; state is eenmalig, aan de ingelogde gebruiker gebonden en hooguit tien minuten geldig (integrations/nmbrsOAuth.mts)"
+    },
+    "GET /api/integrations/nmbrs/status": {
+      "gate": "auth"
+    },
     "GET /api/integrations/onedrive/export/:fileId": {
       "gate": "auth"
     },
@@ -4998,6 +5008,9 @@
       "via": "requireSessionUser"
     },
     "POST /api/integrations/microsoft/disconnect": {
+      "gate": "auth"
+    },
+    "POST /api/integrations/nmbrs/disconnect": {
       "gate": "auth"
     },
     "POST /api/integrations/outlook/draft": {

@@ -3,6 +3,7 @@ import ConnectionsManager from './ConnectionsManager';
 import { Microsoft365Group } from './Microsoft365Integration';
 import FirebirdIntegration from './FirebirdIntegration';
 import VplanIntegration from './VplanIntegration';
+import NMBRSIntegration from './NmbrsIntegration';
 import ScalewayBillingIntegration from './ScalewayBillingIntegration';
 import SimpleApiKeyIntegration from './SimpleApiKeyIntegration';
 import { toast } from '../../components/shared/Toast';
@@ -16,7 +17,7 @@ import OrgMcpConnections from './OrgMcpConnections';
 import type { McpServerSource } from '../../components/apps/appCatalog';
 import type { UserSettingSaveResult } from '../../hooks/useUserSettingSave';
 import type { SettingsStatuses, SettingsUser } from './shell/settingsShellTypes';
-import type { GroupLabelProps, FirefliesIntegrationProps, YouTrackIntegrationProps, SignRequestIntegrationProps, GammaIntegrationProps, AFASIntegrationProps, NMBRSIntegrationProps, GitHubIntegrationProps, NextcloudIntegrationProps, McpCredential, McpCredentialServer, McpCredentialRowsProps, IntegrationGroupProps, IntegrationsSectionProps } from './IntegrationsSection.types';
+import type { GroupLabelProps, FirefliesIntegrationProps, YouTrackIntegrationProps, SignRequestIntegrationProps, GammaIntegrationProps, AFASIntegrationProps, GitHubIntegrationProps, NextcloudIntegrationProps, McpCredential, McpCredentialServer, McpCredentialRowsProps, IntegrationGroupProps, IntegrationsSectionProps } from './IntegrationsSection.types';
 import { logger } from '../../utils/logger';
 import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
 import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationPrimitives';
@@ -216,87 +217,6 @@ const AFASIntegration = ({ hasAfasConfig, onSaved, last }: AFASIntegrationProps)
     );
 };
 
-// ── NMBRS ───────────────────────────────────────────────────────────────────
-// Read-only payroll/HR access. Supports both NMBRS APIs: SOAP (login email +
-// token) and REST (Bearer token). The subdomain is the tenant; non-secret
-// fields pre-fill from the saved config, the token is never returned.
-const NMBRSIntegration = ({ hasNmbrsConfig, apiMode: initialMode, subdomain: initialSub, email: initialEmail, env: initialEnv, onSaved, last }: NMBRSIntegrationProps) => {
-    const { t } = useTranslation();
-    const [apiMode, setApiMode] = useState(initialMode || 'soap');
-    const [subdomain, setSubdomain] = useState(initialSub || '');
-    const [email, setEmail] = useState(initialEmail || '');
-    const [token, setToken] = useState('');
-    const [env, setEnv] = useState(initialEnv || 'production');
-    const { saving, disconnecting, error, setError, save, disconnect } = useUserSettingSave(onSaved);
-    const handleSave = () => {
-        // First connect needs subdomain + token (+ login email for the SOAP API);
-        // a partial save would store a half-configured integration.
-        if (!hasNmbrsConfig && (!subdomain.trim() || !token.trim() || (apiMode === 'soap' && !email.trim()))) {
-            setError(t('integ.nmbrs_need_fields'));
-            return;
-        }
-        const body: Record<string, string> = { nmbrsApiMode: apiMode, nmbrsEnv: env };
-        if (subdomain.trim()) body.nmbrsSubdomain = subdomain.trim();
-        if (email.trim()) body.nmbrsEmail = email.trim();
-        if (token.trim()) body.nmbrsToken = token.trim();
-        save(body, { onSuccess: () => setToken('') });
-    };
-    const handleDisconnect = () => disconnect(
-        { nmbrsApiMode: '', nmbrsSubdomain: '', nmbrsEmail: '', nmbrsToken: '', nmbrsEnv: '' },
-        { onSuccess: () => { setSubdomain(''); setEmail(''); setToken(''); setApiMode('soap'); setEnv('production'); } },
-    );
-    const inputCls = "flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors";
-    const inputStyle = { background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' };
-    return (
-        <IntegrationRow
-            last={last}
-            connected={hasNmbrsConfig}
-            name="NMBRS"
-            description={hasNmbrsConfig ? t('integ.nmbrs_connected') : t('integ.nmbrs_desc')}
-            icon={<svg viewBox="0 0 24 24" fill="none" className="w-[20px] h-[20px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="#00C389" /><path d="M7 16.5v-9h1.9v1.1c.45-.8 1.3-1.3 2.4-1.3 1.05 0 1.85.42 2.3 1.2.5-.78 1.4-1.2 2.45-1.2 1.95 0 2.95 1.2 2.95 3.2v6H19v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55h-2v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55H7z" fill="white" /></svg>}
-        >
-            <div className="space-y-2">
-                <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--text-muted)]">
-                    <li>{t('integ.nmbrs_step1')}</li>
-                    <li>{t('integ.nmbrs_step2')}</li>
-                    <li>{t('integ.nmbrs_step3')}</li>
-                </ol>
-                <div className="flex gap-2">
-                    <select value={apiMode} onChange={e => setApiMode(e.target.value)} aria-label={t('integ.nmbrs_mode_label')}
-                        className="px-3 py-2 rounded-lg border outline-none text-[13px]" style={inputStyle}>
-                        <option value="soap">{t('integ.nmbrs_mode_soap')}</option>
-                        <option value="rest">{t('integ.nmbrs_mode_rest')}</option>
-                    </select>
-                    <select value={env} onChange={e => setEnv(e.target.value)} aria-label={t('integ.nmbrs_env_label')}
-                        className="px-3 py-2 rounded-lg border outline-none text-[13px]" style={inputStyle}>
-                        <option value="production">{t('integ.nmbrs_env_production')}</option>
-                        <option value="sandbox">{t('integ.nmbrs_env_sandbox')}</option>
-                    </select>
-                </div>
-                <input type="text" value={subdomain}
-                    onChange={e => setSubdomain(e.target.value.trim())}
-                    placeholder={t('integ.nmbrs_subdomain_placeholder')}
-                    aria-label={t('integ.nmbrs_subdomain_label')}
-                    className={inputCls} style={inputStyle} />
-                {apiMode === 'soap' && (
-                    <input type="email" value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        placeholder={t('integ.nmbrs_email_placeholder')}
-                        aria-label={t('integ.nmbrs_email_label')}
-                        className={inputCls} style={inputStyle} />
-                )}
-                <ApiKeyField
-                    placeholder={hasNmbrsConfig ? '••••••••••••••••' : t('integ.nmbrs_token_placeholder')}
-                    value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
-                    canSave={!!(token.trim() || subdomain.trim() || email.trim())}
-                    hint={<>{t('settings.integrations.nmbrs_help', 'NMBRS Help:')} <a href="https://support.nmbrs.nl/hc/nl/articles/360010686800-Connect-Nmbrs-with-an-API-token" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.nmbrs_link', 'Create an API token')}</a></>}
-                />
-                {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
-                {hasNmbrsConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
-            </div>
-        </IntegrationRow>
-    );
-};
 
 // ── GitHub ────────────────────────────────────────────────────────────────────
 const GitHubIntegration = ({ onSaved, last }: GitHubIntegrationProps) => {
@@ -653,7 +573,7 @@ const IntegrationsSection = ({ statuses, onSaved, user }: IntegrationsSectionPro
                 isEnabled('vplan') && ['vplan', (last: boolean): React.ReactNode => <VplanIntegration hasVplanConfig={statuses.hasVplanConfig as boolean | undefined} onSaved={() => onSaved('vplan')} last={last} />],
                 isEnabled('firebird') && ['firebird', (last: boolean): React.ReactNode => <FirebirdIntegration hasFirebirdConfig={statuses.hasFirebirdConfig as boolean | undefined} onSaved={() => onSaved('firebird')} last={last} />],
                 isEnabled('scaleway-billing') && ['scaleway-billing', (last: boolean): React.ReactNode => <ScalewayBillingIntegration hasScalewayBillingConfig={!!statuses.hasScalewayBillingConfig} onSaved={() => onSaved('scaleway-billing')} last={last} />],
-                isEnabled('nmbrs') && ['nmbrs', (last: boolean): React.ReactNode => <NMBRSIntegration hasNmbrsConfig={statuses.hasNmbrsConfig as boolean | undefined} apiMode={statuses.nmbrsApiMode as string | undefined} subdomain={statuses.nmbrsSubdomain as string | undefined} email={statuses.nmbrsEmail as string | undefined} env={statuses.nmbrsEnv as string | undefined} onSaved={() => onSaved('nmbrs')} last={last} />],
+                isEnabled('nmbrs') && ['nmbrs', (last: boolean): React.ReactNode => <NMBRSIntegration hasNmbrsConfig={statuses.hasNmbrsConfig as boolean | undefined} hasNmbrsSubscriptionKey={statuses.hasNmbrsSubscriptionKey as boolean | undefined} hasNmbrsClient={statuses.hasNmbrsClient as boolean | undefined} apiMode={statuses.nmbrsApiMode as string | undefined} subdomain={statuses.nmbrsSubdomain as string | undefined} email={statuses.nmbrsEmail as string | undefined} env={statuses.nmbrsEnv as string | undefined} onSaved={() => onSaved('nmbrs')} last={last} />],
             ]} />
 
             {/* Health — special-category data, so it gets its own group rather

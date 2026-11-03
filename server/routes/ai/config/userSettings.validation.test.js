@@ -248,6 +248,17 @@ test('the NMBRS form as the settings screen sends it is accepted and stored lowe
     assert.strictEqual(written('nmbrs_api_mode_user_u1').value, 'soap');
 });
 
+test('the NMBRS REST settings (subscription key, client id and secret) are stored; a header-breaking value is refused whole', async () => {
+    const ok = await post({ nmbrsApiMode: 'rest', nmbrsSubscriptionKey: '30d05593229f49c18856be06ebc47b24', nmbrsClientId: '7xr7NV9yqcUz*r2C$ey6', nmbrsClientSecret: 's3cr3t-s3cr3t-s3cr3t' });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.strictEqual(written('nmbrs_subscription_key_user_u1').value, '30d05593229f49c18856be06ebc47b24');
+    assert.strictEqual(written('nmbrs_client_id_user_u1').value, '7xr7NV9yqcUz*r2C$ey6');
+    touched.length = 0;
+    const bad = await post({ nmbrsApiMode: 'rest', nmbrsSubscriptionKey: 'abc\r\nX-Evil: 1 padding padding', nmbrsClientId: 'id' });
+    assert.strictEqual(bad.statusCode, 400);
+    assert.deepStrictEqual(touched, []);
+});
+
 test('changing or removing the NMBRS connection forgets the lists cached under it; other settings do not', async () => {
     clearedNmbrsCache.length = 0;
     assert.strictEqual((await post({ nmbrsToken: '' })).statusCode, 200);

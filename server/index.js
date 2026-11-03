@@ -480,6 +480,7 @@ app.use('/api/integrations/keep', requireAuthedUser, googleSessionHydration, req
 app.use('/api/storage', require('./routes/storageProxy'));
 app.use('/api/integrations/linkedin', require('./routes/integrations/linkedin'));
 app.use('/api/integrations/withings', require('./routes/integrations/withings'));
+app.use('/api/integrations/nmbrs', require('./routes/integrations/nmbrs'));
 app.use('/api/integrations/github', require('./routes/integrations/github'));
 app.use('/api/integrations/github-sync', require('./routes/integrations/githubSync'));
 app.use('/api/integrations/gamma', require('./routes/integrations/gamma'));

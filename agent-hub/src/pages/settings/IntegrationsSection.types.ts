@@ -76,6 +76,8 @@ export interface FirebirdIntegrationProps {
 
 export interface NMBRSIntegrationProps {
     hasNmbrsConfig?: boolean;
+    hasNmbrsSubscriptionKey?: boolean;
+    hasNmbrsClient?: boolean;
     apiMode?: string;
     subdomain?: string;
     email?: string;

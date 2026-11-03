@@ -66,6 +66,7 @@ const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
     ['GET /api/integrations/microsoft/callback', 'OAuth-callback, als google/callback'],
     ['GET /api/integrations/linkedin/callback', 'OAuth-callback, als google/callback'],
     ['GET /api/integrations/withings/callback', 'OAuth-callback, als google/callback'],
+    ['GET /api/integrations/nmbrs/callback', 'OAuth-callback, als google/callback; state is eenmalig, aan de ingelogde gebruiker gebonden en hooguit tien minuten geldig (integrations/nmbrsOAuth.mts)'],
 
     // ── Zelf-gescoped op sessie-inhoud (geen gate nodig om te weigeren) ──
     ['GET /api/support/csat/:threadId/done', {

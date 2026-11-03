@@ -14,7 +14,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { isTrustedOAuthOrigin } from '../../lib/oauthMessageOrigin';
 import { mutate } from '../mutate';
 
-export type OAuthProvider = 'google' | 'withings' | 'linkedin';
+export type OAuthProvider = 'google' | 'withings' | 'linkedin' | 'nmbrs';
 
 export interface OAuthStatus {
     configured: boolean;
@@ -23,6 +23,9 @@ export interface OAuthStatus {
     email?: string;
     meetScopesGranted?: boolean;
     withingsUserId?: string;
+    /** NMBRS: the address to register in the Nmbrs developer portal, and the SOAP retirement date. */
+    redirectUri?: string;
+    soapSunset?: string;
 }
 
 const NOT_CONNECTED: OAuthStatus = { configured: false, connected: false };
