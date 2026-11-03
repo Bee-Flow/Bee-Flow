@@ -14,6 +14,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const path = require('node:path');
 const { newDoc, collect } = require('../../utils/pdfKit');
 const { parseDocument } = require('./documentParser');
 
@@ -78,13 +79,20 @@ test('a BOM at the start of a CSV does not end up in the first header', async ()
 });
 
 test('a parse that runs past the deadline comes back as a failure for that file, not a stalled server', async () => {
+    // A worker that never answers, so the deadline is the only way out. Racing a real parse
+    // against a 1 ms deadline failed whenever a warm worker answered first (issue #570).
+    const pool = require('./documentParsePool');
     const saved = process.env.DOCUMENT_PARSE_TIMEOUT_MS;
-    process.env.DOCUMENT_PARSE_TIMEOUT_MS = '1';
+    process.env.DOCUMENT_PARSE_TIMEOUT_MS = '50';
+    await pool._useWorkerScript(path.join(__dirname, 'documentParseWorker.hang.fixture.js'));
     try {
-        const buffer = await pdfWith('slow enough at a one millisecond deadline');
+        const buffer = await pdfWith('a parse that never answers');
+        const started = Date.now();
         const out = await parseDocument(buffer, 'application/pdf', 'report.pdf');
         assert.match(out, /failed to parse: parsing took longer than/);
+        assert.ok(Date.now() - started < 5000, 'the deadline ended it, not a test time-out');
     } finally {
+        await pool._useWorkerScript(null);
         if (saved === undefined) delete process.env.DOCUMENT_PARSE_TIMEOUT_MS; else process.env.DOCUMENT_PARSE_TIMEOUT_MS = saved;
     }
 });
