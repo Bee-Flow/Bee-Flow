@@ -38,13 +38,17 @@ const OWNED_PREFIXES = [
 // add-nl-builder-handoff5-translations, for the same reason.
 // The nested-data mapping work (2026-10-05) did the same; its Dutch ships in
 // add-nl-builder-mapping-translations.
+// The run bar of the automation test journey (2026-11) did the same; its Dutch
+// ships in add-nl-automation-testing-translations.
 const handoff5 = require('./add-nl-builder-handoff5-translations');
 const mapping = require('./add-nl-builder-mapping-translations');
+const testing = require('./add-nl-automation-testing-translations');
 const OWNED_ELSEWHERE = new Set([
     'automations.kind.choice',
     ...Object.keys(handoff5.NL_TRANSLATIONS),
     ...handoff5.SAME_AS_ENGLISH,
     ...Object.keys(mapping.NL_TRANSLATIONS),
+    ...Object.keys(testing.NL_TRANSLATIONS),
 ]);
 
 function owned(key) {

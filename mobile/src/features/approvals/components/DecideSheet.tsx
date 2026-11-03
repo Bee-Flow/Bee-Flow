@@ -115,7 +115,7 @@ function AnswersForm({ fields, submitLabel, onSubmit }: { fields: FillField[]; s
             ) : null}
             <FormRenderer
                 form={{
-                    title: t('mobile.approvals.answers_title', 'Your answers'),
+                    title: t('automations.assistant.your_answers', 'Your answers'),
                     description: '',
                     submitLabel,
                     successMessage: '',

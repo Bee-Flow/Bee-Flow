@@ -205,6 +205,8 @@ jobs:
               # ...a re-export of this one
               - 'server/core/automationModel/refPaths.js'
               - 'server/core/automationRunner/definitionForRun.js'
+              # required by definitionForRun.js (the run's kind)
+              - 'server/core/automationModel/runProfile.mts'
               - 'server/core/http/{errors,queryStringParts}.js'
               # required by errors.js
               - 'server/shared/httpErrors.js'
@@ -237,9 +239,9 @@ jobs:
               - 'server/routes/automation/*'
               # read as text by src/features/forms/api/serverShapes.lockstep.test.ts:
               # formPublic.js's route modules, the queue that answers the 202,
-              # and the answers dashboard
+              # the submission that hands it the session id, and the answers dashboard
               - 'server/routes/automation/formPublic/{page,submit,session,results}.js'
-              - 'server/automation/{formQueue.js,formAnswers/summary.js}'
+              - 'server/automation/{formQueue.js,formSubmission.mts,formAnswers/summary.js}'
               - 'server/routes/compliance/*'
               - 'server/routes/datatables/*'
               - 'server/routes/integrations/*'

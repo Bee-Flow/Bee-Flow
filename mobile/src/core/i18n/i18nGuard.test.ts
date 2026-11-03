@@ -327,6 +327,7 @@ const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.playbooks.open_run', "forms.answers.drawer_open_run opens the run behind a form answer; this opens a playbook run"],
     ['mobile.projects.leave', "forms.page.unsaved_leave leaves an unsaved form page; this leaves a project"],
     ['mobile.recording.pause', "automations.pause pauses an automation; this pauses audio playback"],
+    ['mobile.runs.test_marker', "automations.header.test is the builder's Test button (a verb) and forms.public_test_title heads a form's test link; this marks a test run"],
     ['mobile.studio_documents.block.text', BUILDER_WORD],
     ['mobile.studio_documents.done', LOOP_PORT_DONE],
     ['mobile.studio_documents.param.text', BUILDER_WORD],

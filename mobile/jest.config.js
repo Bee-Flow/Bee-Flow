@@ -20,12 +20,14 @@ const path = require('path');
 // definition helpers (server/shared/appDefinition/*.mjs) are ESM, and server
 // modules such as fieldDiff.js and appStudio/componentSpecs/ids.js require
 // them, so they go through Babel like the vendored copy; their helper imports
-// resolve through the @babel/runtime mapper below.
-const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(?!shared/(?:expr|appDefinition)/)';
+// resolve through the @babel/runtime mapper below. A server `.mts` file (strict
+// TypeScript, e.g. automationModel/runProfile.mts, which definitionForRun.js
+// requires) is ESM with type annotations, so it goes through Babel as well.
+const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(?!shared/(?:expr|appDefinition)/)(?!.*\\.mts$)';
 
-// `.mjs` goes through the same Babel as `.ts`/`.js`: the expression engine is
-// vendored verbatim as .mjs (src/shared/expr/vendor), and the preset's
-// transform only matches `[jt]sx?`.
+// `.mjs` and `.mts` go through the same Babel as `.ts`/`.js`: the expression
+// engine is vendored verbatim as .mjs (src/shared/expr/vendor), new server code
+// is .mts, and the preset's transform only matches `[jt]sx?`.
 //
 // Differential lockstep tests require agent-hub modules and run them beside
 // their mobile port (ARCHITECTURE.md, "Sharing logic with the web app"). Those
@@ -35,13 +37,22 @@ const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|
 // node_modules are not installed here. `@shared/*` is agent-hub's Vite alias
 // for its src/shared.
 const PRESET_BABEL = jestExpoPreset.transform['\\.[jt]sx?$'];
+// babel-preset-expo strips TypeScript only from files ending in `.ts`/`.tsx`;
+// a `.mts` file gets the same TypeScript plugin (resolved from the preset, whose
+// dependency it is) through an override.
+const [BABEL_JEST, BABEL_OPTIONS] = PRESET_BABEL;
+const TS_PLUGIN = require.resolve('@babel/plugin-transform-typescript', { paths: [path.dirname(require.resolve('babel-preset-expo'))] });
+const MTS_BABEL = [BABEL_JEST, {
+    ...BABEL_OPTIONS,
+    overrides: [{ test: /\.mts$/, plugins: [[TS_PLUGIN, { isTSX: false, allowNamespaces: true }]] }],
+}];
 
 module.exports = {
     preset: 'jest-expo',
     setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
     // The default resolver plus a fence: an agent-hub file mobile executes may not import `@/…` (jest.resolver.js).
     resolver: '<rootDir>/jest.resolver.js',
-    transform: { '\\.mjs$': PRESET_BABEL },
+    transform: { '\\.mjs$': PRESET_BABEL, '\\.mts$': MTS_BABEL },
     // `@/*` mirrors the path in tsconfig.json; Metro reads tsconfig itself.
     // The Lucide line: the icon registry imports each icon's own module
     // (`lucide-react-native/icons/<name>`, metro.config.js explains why); the

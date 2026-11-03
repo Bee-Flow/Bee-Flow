@@ -39,7 +39,7 @@ export function AwaitingApprovalCard({ run, onDecided }: { run: AutomationRun; o
                     <StatusIcon status={run.status} />
                     {runPhase(run).isTest ? <Badge label={t('mobile.runs.test_marker', 'Test')} tone="ai" /> : null}
                     <Text variant="subheading" style={styles.title}>
-                        {t('mobile.automations.approval.waiting', 'Waiting for your decision')}
+                        {t('automations.canvas.run_waiting_decision', 'Waiting for your decision')}
                     </Text>
                 </View>
                 <InlineMarkdown

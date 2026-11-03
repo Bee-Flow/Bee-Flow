@@ -30,7 +30,7 @@ const DATA = require(path.join(__dirname, 'data', 'ui-complete-2026-10-nl.json')
  * knows nothing about the data file; pinning the data's hash here makes every data change a change to this
  * file. The test fails until it is updated.
  */
-const DATA_SHA256 = '1661b76582e1cb42930d554b3eeb4ba8c656a94d9f8fff8b31c8383afb7a10a3';
+const DATA_SHA256 = '6346b2ac521af98ffe47915ec160fb5a2e2dd4a5706de2996d1dd57d0d1ed6bc';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

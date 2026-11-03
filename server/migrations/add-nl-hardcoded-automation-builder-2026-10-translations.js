@@ -33,7 +33,7 @@ const DATA = require(path.join(__dirname, 'data', 'hardcoded-automation-builder-
  * install that already ran this migration. Pinning the data's hash here makes
  * every data change a change to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = '25841a26e342813c5181cc220acb598e0266f1e001340ff1066928f1e09cf762';
+const DATA_SHA256 = '29aa809ad4b65f4c0f1092ed64d8173027a42874920c155db00b762598b86a2c';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

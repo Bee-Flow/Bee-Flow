@@ -1,7 +1,7 @@
 /**
  * TEXTUAL lockstep: the routes and answer shapes the forms calls rely on,
  * read out of the server source (routes/automation/{forms,formPublic/*,
- * webhooksAndRunOps}.js, automation/formQueue.js, routes/datatables/*,
+ * webhooksAndRunOps}.js, automation/{formQueue.js,formSubmission.mts}, routes/datatables/*,
  * automation/formAnswers/summary.js). A renamed route or field fails here,
  * not as an `undefined` on somebody's phone.
  *
@@ -31,6 +31,8 @@ const formPublic = [
 ].join('\n');
 // The accepted-submission 202 is answered by the queue a submission waits in.
 const formQueue = readServer('automation/formQueue.js');
+// Page one's submission (shared by a visitor, a test link and the builder) hands the queue its session id.
+const formSubmission = readServer('automation/formSubmission.mts');
 const links = readServer('routes/automation/webhooksAndRunOps.js');
 const answersRoute = readServer('routes/datatables/answers.js');
 const rows = readServer('routes/datatables/rows.js');
@@ -51,15 +53,17 @@ function handler(src: string, registration: string, handlers: string = src): str
     const lineEnd = src.indexOf('\n', at);
     // `friendly(handlerFn, 'code', 'sentence')` (formPublic/friendly.js) wraps a named handler: look through it.
     const named = /,\s*(?:friendly\()?(?:[A-Za-z_$][\w$]*\.)?([A-Za-z_$][\w$]*)(?:,\s*'[^']*',\s*'[^']*'\))?\);\s*$/.exec(src.slice(at, lineEnd < 0 ? undefined : lineEnd));
-    if (named) {
-        src = handlers;
-        const start = src.search(new RegExp(`^(?:async )?function ${named[1]}\\(`, 'm'));
-        if (start < 0) throw new Error(`${named[1]} (the handler of ${registration}) is gone`);
-        const end = src.indexOf('\n}\n', start);
-        return src.slice(start, end < 0 ? undefined : end + 2);
-    }
+    if (named) return functionSource(handlers, named[1] as string, `the handler of ${registration}`);
     const next = src.slice(at + registration.length).search(/\n\s*router\./);
     return src.slice(at, next < 0 ? undefined : at + registration.length + next);
+}
+
+/** The source of one top-level `function name(` / `async function name(` in `src`. */
+function functionSource(src: string, name: string, role: string = 'a helper'): string {
+    const start = src.search(new RegExp(`^(?:async )?function ${name}\\(`, 'm'));
+    if (start < 0) throw new Error(`${name} (${role}) is gone`);
+    const end = src.indexOf('\n}\n', start);
+    return src.slice(start, end < 0 ? undefined : end + 2);
 }
 
 const missing = (src: string, keys: string[]) => keys.filter((k) => !new RegExp(`\\b${k}\\b`).test(src));
@@ -101,9 +105,17 @@ it('still builds every field the Form page reads', () => {
 
 it('still answers filling a form in with the shapes the phone reads', () => {
     expect(missing(handler(formPublic, "router.get('/form/:token'"), ['form', 'multiPage', 'csrf', 'issuedAt'])).toEqual([]);
-    expect(missing(handler(formPublic, "router.post('/form/:token/upload'"), ['fileId', 'filename', 'size', 'mimeType', 'sessionId', 'csrf', 'field'])).toEqual([]);
+    // The upload route checks the page and its CSRF, then hands the file to storeUpload
+    // (shared with the builder's form test), which stores it and answers the reply.
+    const upload = handler(formPublic, "router.post('/form/:token/upload'");
+    expect(upload).toContain('storeUpload(');
+    expect(missing(upload, ['sessionId', 'csrf'])).toEqual([]);
+    expect(missing(functionSource(formPublic, 'storeUpload'), ['fileId', 'filename', 'size', 'mimeType', 'field'])).toEqual([]);
     expect(missing(handler(formPublic, "router.post('/form/:token/pick'"), ['results', 'error', 'field', 'query', 'sessionId'])).toEqual([]);
-    const poll = handler(formPublic, "router.get('/form/:token/s/:sid'");
+    // The poll answers `expired` itself and the rest from sessionState (where the journey is now).
+    const pollRoute = handler(formPublic, "router.get('/form/:token/s/:sid'");
+    expect(pollRoute).toContain('sessionState(');
+    const poll = `${pollRoute}\n${functionSource(formPublic, 'sessionState')}`;
     for (const state of ['form', 'done', 'expired', 'error']) expect(poll).toContain(`state: '${state}'`);
     // The still-working answer is built in one helper beside the poll (workingResponse).
     expect(poll).toContain('workingResponse(');
@@ -111,7 +123,8 @@ it('still answers filling a form in with the shapes the phone reads', () => {
     expect(missing(poll, ['progress', 'progressNote', 'stepId', 'ending'])).toEqual([]);
     // A 202 carries the session id; the silent bot answers do not.
     expect(formQueue).toContain('res.status(202).json({ accepted: true, ...extra });');
-    expect(formPublic).toContain('{ sessionId: session.id }');
+    expect(formPublic).toContain('queueSubmission(found, accepted, res)');
+    expect(formSubmission).toContain('{ sessionId: accepted.session.id }');
     expect(formPublic).toContain("res.status(400).json({ error: 'Some answers need attention', fields: errors })");
     expect(formPublic).toContain('res.json({ notebookId: notebook.id })');
     expect(formPublic).toContain("const HONEYPOT_FIELD = 'website_url'");

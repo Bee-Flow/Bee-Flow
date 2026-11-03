@@ -298,6 +298,38 @@ const NL_TRANSLATIONS = {
     'forms.public_slow_text': 'Je antwoorden zijn ontvangen — we zijn er nog mee bezig.',
     'forms.public_slow_title': 'Dit duurt even',
     'forms.searching': 'Zoeken…',
+
+    // ── The test link, and what is not live yet (2026-11) ─────────────
+    'forms.test_link.title': 'Testlink',
+    'forms.test_link.blurb': 'Een apart adres om het formulier te proberen zoals een bezoeker het ziet, nog voordat het live is: het opent de vragen zoals ze nu zijn opgeslagen. Elke inzending is een testrun met echte gevolgen (er wordt mail verstuurd, er worden rijen geschreven); goedkeuringen gaan naar wie het heeft ingevuld, en er komt niets in de antwoorden.',
+    'forms.test_link.label': 'Adres van de testlink',
+    'forms.test_link.create': 'Testlink maken',
+    'forms.test_link.expires': 'Werkt tot {date}.',
+    'forms.test_link.no_expiry': 'Verloopt niet.',
+    'forms.test_link.audience_title': 'Wie de testlink kan openen',
+    'forms.test_link.renew_title': 'Een nieuwe testlink maken?',
+    'forms.test_link.renew_body': 'De huidige testlink werkt meteen niet meer.',
+    'forms.test_link.renew_confirm': 'Nieuwe link maken',
+    'forms.test_link.revoke': 'Testlink stoppen',
+    'forms.test_link.revoke_title': 'De testlink stoppen?',
+    'forms.test_link.revoke_body': 'Wie hem heeft, ziet vanaf nu “niet beschikbaar”. Testruns die al zijn gestart, gaan door.',
+    'forms.test_link.revoke_confirm': 'Stoppen',
+    'forms.test_link.failed': 'De testlink kon niet worden gewijzigd.',
+    'forms.share.link_not_live': 'Het formulier is nog niet live, dus de link opent voorlopig niets. Gebruik een testlink om het eerst te proberen.',
+    'forms.page.one_change_not_live': '1 wijziging niet live',
+    'forms.page.changes_not_live': '{count} wijzigingen niet live',
+    'forms.page.publish': 'Publiceren',
+    'forms.page.published': 'De wijzigingen zijn live.',
+    'forms.page.publish_failed': 'De wijzigingen konden niet worden gepubliceerd.',
+    'forms.public_test_text': 'Je hebt een testlink geopend. Dit is het formulier zoals het nu is opgeslagen; versturen start een testrun, met echte gevolgen, en er komt niets in de antwoorden.',
+    'forms.public_not_live_title': 'Dit formulier is nog niet live',
+    'forms.public_not_live_text': 'Alleen dit account ziet dit, omdat het dit formulier mag bewerken. Activeer de automatisering om het formulier voor anderen te openen, of probeer het eerst vanuit de bouwer of met een testlink (Formulieren → Delen).',
+    'forms.public_waiting_decision_title': 'Wacht op een beoordeling',
+    'forms.public_waiting_decision_text': 'Iemand moet dit eerst beoordelen. Je kunt deze pagina sluiten; we sturen je een link zodra de volgende pagina klaar is.',
+    'forms.public_waiting_decision_text_no_notify': 'Iemand moet dit eerst beoordelen. Je kunt deze pagina sluiten en later terugkomen met de link hieronder.',
+    'forms.public_waiting_decision_link': 'Deze pagina, om naar terug te keren:',
+    'forms.public_copy_link': 'Link kopiëren',
+    'forms.public_link_copied': 'Link gekopieerd',
 };
 
 /** Keys whose Dutch IS the English string (see the sibling files for why). */
@@ -307,6 +339,8 @@ const SAME_AS_ENGLISH = [
     'forms.answers.drawer_run_id',
     'forms.settings.live_title',
     'datatables.frm_tab_dashboard',
+    // "Test", the chip on a form opened from its test link.
+    'forms.public_test_title',
 ];
 
 async function up() {

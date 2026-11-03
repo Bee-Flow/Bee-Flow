@@ -21,11 +21,16 @@ const obj = (entries, { open = false, sure = true } = {}) => ({ t: 'obj', keys: 
 /** @param {{ approval?: { fields?: unknown } }} step */
 function approvalOutputShape(step) {
     const declared = isPlainObject(step?.approval) && Array.isArray(step.approval?.fields) ? step.approval.fields : [];
-    const names = declared.map((/** @type {{ name?: unknown } | null} */ f) => (isPlainObject(f) ? f.name : null)).filter((/** @type {unknown} */ n) => typeof n === 'string' && n);
+    /** @type {string[]} */
+    const names = [];
+    for (const f of /** @type {unknown[]} */ (declared)) {
+        const name = isPlainObject(f) ? /** @type {{ name?: unknown }} */ (f).name : null;
+        if (typeof name === 'string' && name) names.push(name);
+    }
     /** @type {Record<string, any>} */
     const byKey = {
         approved: { t: 'bool' }, by: { t: 'str' }, reason: { t: 'str' }, decidedAt: { t: 'str' },
-        answers: names.length ? obj(names.map((/** @type {string} */ n) => [n, ANY]), { sure: false }) : obj([], { open: true, sure: false }),
+        answers: names.length ? obj(names.map((n) => [n, ANY]), { sure: false }) : obj([], { open: true, sure: false }),
         votes: { t: 'arr', item: obj([], { open: true, sure: false }), sure: true },
     };
     return obj(Object.keys(approvalOutput()).map(k => [k, byKey[k] || ANY]));

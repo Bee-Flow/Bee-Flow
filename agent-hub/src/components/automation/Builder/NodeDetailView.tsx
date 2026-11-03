@@ -1,5 +1,6 @@
-import React, { type ComponentProps, useCallback, useMemo, useRef, useState } from 'react';
-import PausedApprovalBar from './approvals/PausedApprovalBar';
+import React, { type ComponentProps, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { runPhase } from './runs/runPhase';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { buildStepLabelMap } from './flow/displayHelpers';
 import { isRouteStep } from './flow/routeModel';
 import { FormDensityContext, resolveMode, type FormDensity, type FormMode } from './flow/settings/formDensity';
@@ -46,6 +47,8 @@ import type { RunStepRow, PlacedStep, BlockCatalogEntry, TriggerAutomation, Grou
 // a laptop. Never shorter than before, never taller than half the canvas area.
 const QUICK_H = 'clamp(300px, 42vh, 520px)';
 const QUICK_H_STACKED = 'clamp(420px, 55vh, 680px)';
+
+const PausedApprovalBar = lazyWithI18n(() => import('./approvals/PausedApprovalBar')); // lazy: only needed while a run waits here
 
 export default function NodeDetailView({
     step, runStep, runSteps = [], definition, rootDefinition = null, blocksCatalog = [], onSaveStep,
@@ -260,9 +263,9 @@ export default function NodeDetailView({
                     onClose={onClose}
                 />
 
-                {/* Only while the followed run waits on THIS step, and from the
-                    approval's snapshot, never the step as edited since. */}
-                <PausedApprovalBar run={followedRun} stepId={step?.id} runStep={runStep} onFollowRun={onFollowRun} />
+                {runPhase(followedRun).phase === 'paused_approval' && ( /* only while the run waits on THIS step; the bar reads the approval's snapshot */
+                    <Suspense fallback={null}><PausedApprovalBar run={followedRun} stepId={step?.id} runStep={runStep} onFollowRun={onFollowRun} /></Suspense>
+                )}
 
                 {/* Quick density: the settings and the output side by side when
                     the drawer is wide, stacked when it is not. */}

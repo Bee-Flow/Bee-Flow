@@ -44,16 +44,16 @@ export interface RunPause {
 
 function othersText(waitingOn: WaitingOn | null | undefined, t: TranslateFn): string {
     const n = Math.max(0, Number(waitingOn?.seatCount) || 0);
-    if (waitingOn?.stageName) return t('mobile.runs.pause.waiting_stage', 'Waiting for {stage} ({n})', { stage: waitingOn.stageName, n });
-    if (n > 1) return t('mobile.runs.pause.waiting_seats', 'Waiting for {n} approvers', { n });
-    return t('mobile.runs.pause.waiting_approver', 'Waiting for the approver');
+    if (waitingOn?.stageName) return t('automations.approval_action_bar.waiting_for_stage', 'Waiting for {stage} ({n})', { stage: waitingOn.stageName, n });
+    if (n > 1) return t('automations.approval_action_bar.waiting_for_people', 'Waiting for {n} approvers', { n });
+    return t('automations.approval_action_bar.waiting_for_approver', 'Waiting for the approver');
 }
 
 function approvalText({ canDecide, isTest, facts, step }: { canDecide: boolean | null; isTest: boolean; facts: RunPauseFacts; step: string | null }, t: TranslateFn): string {
     if (canDecide === true) {
         return isTest
-            ? t('mobile.runs.pause.your_decision_test', 'Waiting for your decision (test)')
-            : t('mobile.runs.pause.your_decision', 'Waiting for your decision');
+            ? t('automations.canvas.run_waiting_decision_test', 'Waiting for your decision (test)')
+            : t('automations.canvas.run_waiting_decision', 'Waiting for your decision');
     }
     if (canDecide === false) return othersText(facts.waitingOn, t);
     if (step) return t('mobile.runs.pause.decision_at', 'Waiting for a decision at {step}', { step });
@@ -81,7 +81,7 @@ export function runPause(facts: RunPauseFacts | null | undefined, t: TranslateFn
         text: approval ? approvalText({ canDecide, isTest, facts, step }, t) : formText(t, step),
         hint: approval ? null : t('mobile.runs.pause.form_on_web', 'Answer this page in the web builder.'),
         stopLabel: isTest
-            ? t('mobile.runs.pause.discard_test', 'Discard this test run')
+            ? t('automations.runs.discard_test_run', 'Discard this test run')
             : t('automations.run_progress_banner.stop_this_run', 'Stop this run'),
         testLabel: isTest ? t('mobile.runs.test_marker', 'Test') : null,
     };

@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import EN_DEFAULTS from '@/i18n/en-defaults';

@@ -66,7 +66,7 @@ function refused(e: unknown): boolean {
 }
 
 export class FormRunFollower {
-    private token = 0;
+    private generation = 0;
     private timer: ReturnType<typeof setTimeout> | null = null;
     private readonly timing: Required<FollowTiming>;
 
@@ -77,8 +77,8 @@ export class FormRunFollower {
     /** Follow `runId` from now on; replaces whatever was followed. */
     follow(runId: string): void {
         this.stop();
-        const token = ++this.token;
-        void this.tick(token, runId, 0);
+        const generation = ++this.generation;
+        void this.tick(generation, runId, 0);
     }
 
     /** An attached run: learn whether it is a dry run, a live test or production, then follow it. */
@@ -90,31 +90,31 @@ export class FormRunFollower {
     }
 
     stop(): void {
-        this.token += 1;
+        this.generation += 1;
         if (this.timer) clearTimeout(this.timer);
         this.timer = null;
     }
 
-    private later(token: number, runId: string, polls: number, ms: number): void {
-        this.timer = setTimeout(() => { void this.tick(token, runId, polls); }, ms);
+    private later(generation: number, runId: string, polls: number, ms: number): void {
+        this.timer = setTimeout(() => { void this.tick(generation, runId, polls); }, ms);
     }
 
-    private async tick(token: number, runId: string, polls: number): Promise<void> {
+    private async tick(generation: number, runId: string, polls: number): Promise<void> {
         let state: RunFormState | null = null;
         try {
             state = await readRunForm(runId);
         } catch (e) {
-            if (this.token !== token) return;
+            if (this.generation !== generation) return;
             if (refused(e)) { this.emit({ kind: 'slow', runId, reason: 'unreadable' }); return; }
             logger.debug('A transient read must not end the test; the next tick retries.', e);
         }
-        if (this.token !== token) return;
+        if (this.generation !== generation) return;
         const view = viewOfFormState(state, runId);
         if (view) this.emit(view);
-        if (view?.kind === 'approval') { this.later(token, view.runId, 0, this.timing.pausedMs); return; }
+        if (view?.kind === 'approval') { this.later(generation, view.runId, 0, this.timing.pausedMs); return; }
         if (view) return;
         if (polls + 1 >= this.timing.maxPolls) { this.emit({ kind: 'slow', runId, reason: 'budget' }); return; }
-        this.later(token, runId, polls + 1, this.timing.intervalMs);
+        this.later(generation, runId, polls + 1, this.timing.intervalMs);
     }
 }
 

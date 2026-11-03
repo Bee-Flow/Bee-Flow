@@ -1106,7 +1106,8 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         const partial = declSlice(runSchemas, 'PartialRunBody');
         for (const mode of ['only', 'from', 'upTo']) expect(partial).toContain(`'${mode}'`);
         expect(missingFrom(declSlice(runSchemas, 'RUN_SHAPE'), ['triggerPayload', 'triggerStepId'])).toEqual([]);
-        expect(routeSlice(runs, "router.post('/:id/dry-run'")).toContain('res.json({ run, steps })');
+        // The dry run's run carries the run-level warnings too; the phone still reads run and steps.
+        expect(routeSlice(runs, "router.post('/:id/dry-run'")).toContain('res.json({ run: { ...outcome.run, warnings }, steps })');
         expect(routeSlice(runs, "router.post('/:id/steps/:stepId/run'")).toContain('{ run, steps, stepRecord }');
     });
 

@@ -159,6 +159,10 @@ export const SKIP_REASONS: Readonly<Record<string, SkipGroup>> = Object.freeze({
     no_service_email: 'no_work',
     no_owner_email: 'no_work',
     not_sent: 'no_work',
+    // Dry runs: a check that would fail live, or input the dry run made up itself.
+    would_fail_live: 'no_work',
+    synthetic_input: 'no_work',
+    synthetic_source: 'no_work',
     pinned: 'pinned',
 });
 
