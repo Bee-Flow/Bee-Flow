@@ -12,6 +12,7 @@ const assert = require('node:assert');
 
 const dataModel = require('./dataModel');
 const connectorSync = require('./connectorSync');
+const { parseLabelQuery, outlookListQuery } = require('../services/email/outlookQuery.mts');
 
 const TABLE = {
     id: 'tbl_msgs',
@@ -124,11 +125,24 @@ test('folder is a URL segment, so traversal is refused', () => {
     assert.deepStrictEqual(errorsFor([mailbox({ folder: 'archive-2026' })]), []);
 });
 
-test('a quote in the query would break out of Graph $search="..."', () => {
-    assert.ok(errorsFor([mailbox({ query: 'x" OR 1=1 "' })]).some((e) => /may not contain quotes/.test(e)));
+test('quotes in pairs are a label with a space; an odd quote and control characters are refused', () => {
+    const q = 'label:"TEST OFFERTES" OR label:"TEST INKOOP"';
+    assert.deepStrictEqual(errorsFor([mailbox({ query: q })]), []);
+    assert.deepStrictEqual(parseLabelQuery(q).groups, [['TEST OFFERTES', 'TEST INKOOP']]);
+
+    assert.ok(errorsFor([mailbox({ query: 'label:"TEST OFFERTES' })]).some((e) => /unpaired quote/.test(e)));
+    assert.ok(errorsFor([mailbox({ query: 'label:a\nlabel:b' })]).some((e) => /control characters/.test(e)));
     assert.ok(errorsFor([mailbox({ query: 'a'.repeat(600) })]).some((e) => /query exceeds/.test(e)));
     // A normal query with spaces is perfectly fine.
     assert.deepStrictEqual(errorsFor([mailbox({ query: 'from:klant.nl has:attachment' })]), []);
+});
+
+test('a paired quote in free text still cannot break out of Graph $search="..."', () => {
+    const query = 'x" OR 1=1 "';
+    assert.deepStrictEqual(errorsFor([mailbox({ query })]), []);
+    const { qs } = outlookListQuery({ query, sinceIso: null, select: 'id', top: 10 });
+    const search = new URLSearchParams(qs).get('$search');
+    assert.match(search, /^"[^"]*"$/, 'one phrase: the quotes inside it are dropped');
 });
 
 test('an author cannot claim a sharedMode the runtime cannot deliver', () => {
