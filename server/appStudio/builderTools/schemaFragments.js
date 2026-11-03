@@ -6,6 +6,14 @@ const MAX_COMPONENTS_PER_CALL = 40; // top-level entries per app_add_components
 
 const MAX_SEED_RECORDS = 25;        // rows per app_seed_records call
 
+const MAX_UPDATE_RECORDS = 25;      // rows per app_update_records call (by id)
+
+const MAX_FILTER_UPDATE_ROWS = 200; // ceiling of `max` in the filter form of app_update_records
+
+const DEFAULT_FILTER_UPDATE_ROWS = 50;
+
+const MAX_GET_ACTIONS = 20;         // ids per app_get_action call
+
 const TEMP_ID_MAX = 25;             // tempId handle length
 
 const TEMP_ID_RX = new RegExp(`^[A-Za-z][A-Za-z0-9_]{0,${TEMP_ID_MAX - 1}}$`);
@@ -175,4 +183,4 @@ const ACTION_OBJECT_SCHEMA = { type: 'object', description: ACTION_OBJECT_DESC, 
  */
 const batchHint = (key, single) => `BATCH FORM: pass \`${key}\` — an array of up to ${MAX_BATCH_PATCHES_PER_CALL} ${single} objects applied in order — instead of the single form, and do a whole screen's worth of work in ONE call. Each entry that fails is reported at its index in \`failed\` and the others still land.`;
 
-module.exports = { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint };
+module.exports = { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, MAX_UPDATE_RECORDS, MAX_FILTER_UPDATE_ROWS, DEFAULT_FILTER_UPDATE_ROWS, MAX_GET_ACTIONS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint };

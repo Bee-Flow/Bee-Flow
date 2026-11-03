@@ -171,7 +171,7 @@ function validateAction(id, action, path, ctx) {
     }
 
     if (action.kind === 'sequence') {
-        validateActionSteps(action.steps, `${path}.steps`, 1, { n: 0, reported: false }, ctx);
+        validateActionSteps(action.steps, `${path}.steps`, 1, { n: 0, reported: false, top: action.steps }, ctx);
     }
 
     // Native AI actions (ai_extract / ai_generate / kb_query) share their field
@@ -199,7 +199,7 @@ const RESERVED_DATA_FIELDS = new Set(['tableId', 'values', 'recordId', 'automati
 /**
  * @param {string} path
  * @param {number} depth
- * @param {{ n: number; reported: boolean; }} counter
+ * @param {{ n: number; reported: boolean; top?: unknown; }} counter
  */
 function validateActionSteps(steps, path, depth, counter, ctx) {
     const { pushE } = ctx;
@@ -247,7 +247,7 @@ const RECORD_WRITE_STEP_KINDS = new Set(['create_record', 'update_record', 'dele
  * @param {string} field
  * @param {string} path
  * @param {number} depth
- * @param {{ n: number; reported: boolean; }} counter
+ * @param {{ n: number; reported: boolean; top?: unknown; }} counter
  * @param {string} [label]
  */
 function validateStepField(kind, field, fs, value, path, depth, counter, ctx, label = `Step "${kind}"`) {
@@ -633,14 +633,14 @@ function validateAiWriteToConstants(kind, value, path, ctx) {
 /**
  * @param {string} path
  * @param {number} depth
- * @param {{ n: number; reported: boolean; }} counter
+ * @param {{ n: number; reported: boolean; top?: unknown; }} counter
  */
 function validateStep(step, path, depth, counter, ctx) {
     const { pushE } = ctx;
     counter.n += 1;
     if (counter.n > LIMITS.MAX_ACTION_STEPS && !counter.reported) {
         counter.reported = true;
-        pushE({ code: 'action.too_many_steps', severity: 'error', path, message: `A sequence has more than ${LIMITS.MAX_ACTION_STEPS} steps.`, hint: 'Split the action into smaller ones.' });
+        pushE(require('../actionStepCounts').tooManyStepsIssue(path, counter.top, LIMITS.MAX_ACTION_STEPS));
     }
     if (!isObject(step)) {
         pushE({ code: 'action.step_not_object', severity: 'error', path, message: 'Each step must be an object { kind, ... }.', hint: 'Remove the malformed entry.' });

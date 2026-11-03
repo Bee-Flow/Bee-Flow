@@ -116,7 +116,9 @@ function toMcpTool(fn) {
         || fn.name === 'app_finalize'
         || fn.name === 'app_apply_template'
         || fn.name === 'app_save_as_template'
-        || fn.name === 'studio_create_app';
+        || fn.name === 'studio_create_app'
+        // Not a definition edit, but with dryRun false it writes records and makes files.
+        || fn.name === 'app_run_action';
 
     // Spread the source schema so sibling JSON Schema keys survive, then set
     // the two we own. `required` is deleted rather than left when empty: a
@@ -238,22 +240,7 @@ async function runGetGuide() {
     return { guide: buildSystemPrompt({ toolset: 'full' }) };
 }
 
-async function runListApps(userId) {
-    const studioAppStore = require('../stores/studioAppStore');
-    const rows = await studioAppStore.getStudioAppsByUser(userId);
-    return {
-        apps: (rows || []).map((a) => ({
-            appId: a.id,
-            name: a.name,
-            description: a.description || '',
-            icon: a.icon || null,
-            version: a.definitionVersion,
-            published: !!a.isPublished,
-            templateId: a.templateId || null,
-            updatedAt: a.updatedAt,
-        })),
-    };
-}
+const { runListApps } = require('./mcpListApps.mts');
 
 async function runCreateApp(userId, args) {
     const name = typeof args?.name === 'string' ? args.name.trim() : '';
@@ -349,6 +336,13 @@ async function callTool(name, rawArgs, { userId }) {
                 content: `Screenshot budget spent (${SHOT_MAX_PER_WINDOW} per ${SHOT_WINDOW_MS / 60000} minutes). Each render is a headless browser page. Keep building from app_dry_run's findings; the budget refills.`,
             },
         };
+    }
+
+    // Runs an action as the owner: its own access rule (owner only), rate limit and report. It
+    // never builds a draft, so it does not go through loadDraft/applyToolCall/persistDraft.
+    if (name === 'app_run_action') {
+        const { runAction } = require('./mcpRunAction.mts');
+        return { result: await runAction({ ...args, appId }, userId) };
     }
 
     // The checklist lives in the in-product builder chat; over MCP there is

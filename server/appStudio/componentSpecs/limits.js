@@ -43,7 +43,9 @@ const LIMITS = {
     // runtime bound is MAX_ACTION_LOOP_ITERATIONS below, which is unchanged.
     // Depth 6 matches MAX_DEPTH (component nesting) rather than inventing a
     // second number for "how deeply may things nest".
-    MAX_ACTION_STEPS: 60,              // steps in one action sequence (recursive count)
+    // 120 since 2026-11-03 (was 60): a document pipeline with a per-document loop and its
+    // progress updates sat at the old ceiling. One number for every app: there is no per-app limits mechanism.
+    MAX_ACTION_STEPS: 120,             // steps in one action sequence (recursive count)
     MAX_ACTION_DEPTH: 6,               // sequence nesting: condition/loop/switch branches
     MAX_ACTION_LOOP_ITERATIONS: 200,   // ceiling for loop.maxIterations
     MAX_DATA_GRID_COLUMNS: 20,         // data_grid columns

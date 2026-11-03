@@ -510,7 +510,8 @@ test('the validation types in the catalog are the ones the tool surface declares
 // copy_document step joined the catalog — 54_074 chars.
 // 2026-11-02, page_header.tagsFrom and list.tagsKey (mail categories as chips) — 54_476 chars.
 // 2026-11-02, file_preview got viewer/textLayer props — 54_571 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'f7c090503b31dafe20b19b8869bf6cda93479612f480a85422a29d475fdb7636';
+// 2026-11-03, MAX_ACTION_STEPS 60 -> 120 ("max 120 steps") — 54_572 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '1087e095cc81d785c241b439faeaf162024d8ec64edc216617831b4f9c55a054';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();
