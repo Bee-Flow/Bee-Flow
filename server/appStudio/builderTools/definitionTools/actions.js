@@ -21,6 +21,7 @@ const { pickClosestId } = require('../../../automation/validate/helpers');
 const { repairAction, describeActionRefusal } = require('../actionNormalise');
 const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
 const { adoptCanonical } = require('../shared');
+const { stepCountsByTopLevel } = require('../../actionStepCounts');
 const { readBatchArg, runPatchBatch, finishPatchBatch } = require('./patchBatch');
 
 function applySetAction(draftWrap, args) {
@@ -94,7 +95,11 @@ function applySetAction(draftWrap, args) {
             // wording: actionNormalise.describeActionRefusal), and the
             // mechanical fix as a patch where the validator named one.
             const described = describeActionRefusal(mine, { actionId, action, tables });
+            // Too many steps: say where they sit, per top-level step, so the agent splits the right part.
+            const tooMany = mine.some((e) => e.code === 'action.too_many_steps');
+            const stepCounts = tooMany ? stepCountsByTopLevel(next.actions?.[actionId]?.steps) : null;
             return withNotes({
+                ...(stepCounts ? { stepCounts, maxSteps: LIMITS.MAX_ACTION_STEPS } : {}),
                 error: `This action would fail validation — nothing was ${existing ? 'changed' : 'created'}. ${mine.slice(0, 5).map((e) => `${e.path.replace(`actions.${actionId}`, 'action')}: ${e.message}${e.hint ? ` ${e.hint}` : ''}`).join(' | ')}`,
                 errors: mine,
                 ...described,

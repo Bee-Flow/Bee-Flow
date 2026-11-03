@@ -28,12 +28,14 @@ const { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, TEMP_ID_MAX, TEMP_ID_RX, MAX_
 const { TOOL_SCHEMAS_PART_1 } = require('./schemasPart1');
 const { TOOL_SCHEMAS_PART_2 } = require('./schemasPart2');
 const { TOOL_SCHEMAS_PART_3 } = require('./schemasPart3');
+const { TOOL_SCHEMAS_RECORD_UPDATE } = require('./schemasRecordUpdate');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS = [
     ...TOOL_SCHEMAS_PART_1,
     ...TOOL_SCHEMAS_PART_2,
     ...TOOL_SCHEMAS_PART_3,
+    ...TOOL_SCHEMAS_RECORD_UPDATE,
 ];
 
 TOOL_SCHEMAS.push(...require('../../core/documents/documentDiscovery').schemas('app'));

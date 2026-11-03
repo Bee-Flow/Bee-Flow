@@ -57,6 +57,8 @@ const {
     automationSummaryRow, MAX_SCREENSHOTS_PER_TURN,
 } = require('./builderTools/inspectionTools');
 const { applyGetNode } = require('./builderTools/getNodeTool');
+const { applyGetAction } = require('./builderTools/getActionTool.mts');
+const { applyUpdateRecords } = require('./builderTools/updateRecordsTool.mts');
 const { boundPlanArtifact, applyProposePlan, applyMarkPhase, PLAN_LIMITS } = require('./builderTools/planTools');
 const { applyListTemplates, applyApplyTemplate, applySaveAsTemplate, isFreshDraft } = require('./builderTools/templateTools');
 const { applyFinalize, persistDraft } = require('./builderTools/persistence');
@@ -74,7 +76,7 @@ const MUTATING_TOOLS = new Set([
     'app_move_node', 'app_remove_node',
     'app_set_action', 'app_remove_action', 'app_bind_action',
     'app_upsert_table', 'app_link_datatable', 'app_remove_table', 'app_set_roles',
-    'app_seed_records', 'app_upsert_dataset', 'app_set_variables',
+    'app_seed_records', 'app_update_records', 'app_upsert_dataset', 'app_set_variables',
     'app_set_public_access', 'app_set_mailbox_hook',
 ]);
 
@@ -83,7 +85,7 @@ const MUTATING_TOOLS = new Set([
 // `data_model` SSE event so the editor's table/dataset/role caches refresh.
 const DATA_MODEL_TOOLS = new Set([
     'app_upsert_table', 'app_link_datatable', 'app_remove_table', 'app_set_roles',
-    'app_seed_records', 'app_upsert_dataset', 'app_set_mailbox_hook',
+    'app_seed_records', 'app_update_records', 'app_upsert_dataset', 'app_set_mailbox_hook',
 ]);
 
 // ── Dispatcher ───────────────────────────────────────────────────────
@@ -164,6 +166,7 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         case 'app_set_variables':     return applySetVariables(draftWrap, args);
         case 'app_set_public_access': return applySetPublicAccess(draftWrap, args);
         case 'app_seed_records':      return applySeedRecords(draftWrap, args);
+        case 'app_update_records':    return applyUpdateRecords(draftWrap, args);
         case 'app_upsert_dataset':    return applyUpsertDataset(draftWrap, args);
         case 'app_get_data_model':    return applyGetDataModel(draftWrap);
         case 'app_list_connectors':   return applyListConnectors(draftWrap);
@@ -173,6 +176,7 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         case 'app_screenshot':        return applyAppScreenshot(draftWrap, args);
         case 'app_get_draft':         return applyGetDraft(draftWrap, args);
         case 'app_get_node':          return applyGetNode(draftWrap, args);
+        case 'app_get_action':        return applyGetAction(draftWrap, args);
         case 'app_find_nodes':        return applyFindNodes(draftWrap, args);
         case 'app_inspect_catalog':   return applyInspectCatalog(args);
         case 'app_list_automations':  return applyListAutomations(draftWrap, args);

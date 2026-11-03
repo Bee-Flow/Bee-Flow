@@ -48,7 +48,7 @@ const CASES = [
     ['unknown kind', [{ kind: 'send_emial' }], {}, [`E action.step_kind_invalid @${P}[0].kind`]],
     ['unknown field', [{ kind: 'toast', message: 'hi', bogus: 1 }], {}, [`E action.step_unknown_field @${P}[0].bogus`]],
     ['client step carrying a data-mutation field', [{ kind: 'toast', message: 'hi', tableId: 'tbl_a' }], {}, [`E action.step_partition @${P}[0].tableId`]],
-    ['too many steps (reported once)', Array.from({ length: LIMITS.MAX_ACTION_STEPS + 3 }, () => ({ kind: 'toast', message: 'x' })), {}, [`E action.too_many_steps @${P}[60]`]],
+    ['too many steps (reported once)', Array.from({ length: LIMITS.MAX_ACTION_STEPS + 3 }, () => ({ kind: 'toast', message: 'x' })), {}, [`E action.too_many_steps @${P}[${LIMITS.MAX_ACTION_STEPS}]`]],
     ['nesting too deep', [(function nest(d) { return d === 0 ? { kind: 'toast', message: 'x' } : { kind: 'condition', expr: 'true', then: [nest(d - 1)] }; })(LIMITS.MAX_ACTION_DEPTH + 2)], {}, [`E action.step_too_deep @${P}[0].then[0].then[0].then[0].then[0].then[0].then`]],
     ['send_email in loop', [loopOf(mail())], {}, [`E action.send_email_in_loop @${P}[0].steps`]],
     ['send_email buried in loop condition branch', [loopOf({ kind: 'condition', expr: 'true', then: [], else: [mail()] })], {}, [`E action.send_email_in_loop @${P}[0].steps`]],

@@ -52,7 +52,7 @@ test('v2 limits are present with the contracted values', () => {
     assert.equal(LIMITS.MAX_DEPTH, 6);
     assert.equal(LIMITS.MAX_FORMULA_LEN, 2000);
     assert.equal(LIMITS.MAX_VALIDATIONS_PER_FIELD, 10);
-    assert.equal(LIMITS.MAX_ACTION_STEPS, 60);
+    assert.equal(LIMITS.MAX_ACTION_STEPS, 120);
     // Deliberately equal to MAX_DEPTH: one answer to "how deeply may things
     // nest", for components and action branches alike.
     assert.equal(LIMITS.MAX_ACTION_DEPTH, 6);

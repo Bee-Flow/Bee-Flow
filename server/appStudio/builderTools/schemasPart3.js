@@ -3,7 +3,7 @@
 // Part 3 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
 const { FIELD_TYPES } = require('../dataModel');
-const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS } = require('./schemaFragments');
+const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, MAX_GET_ACTIONS } = require('./schemaFragments');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_3 = [
@@ -16,6 +16,20 @@ const TOOL_SCHEMAS_PART_3 = [
                 type: 'object',
                 properties: {
                     ids: { type: 'array', maxItems: 40, items: { type: 'string' }, description: 'Component ids to read (cmp_…), at most 40 per call.' },
+                },
+                required: ['ids'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'app_get_action',
+            description: `Read the FULL stored definition of actions by id (read-only, never changes the app): the draft that app_set_action writes, with every nested step, prompt, schema, binding, contextSource and switch case, untruncated. app_get_draft only lists actions compactly; read the real definition before you replace one. 1-${MAX_GET_ACTIONS} ids per call. Unknown ids are listed in \`unknownIds\`, not thrown. Values that look like secrets (secret-named keys, URL credentials) come back as "[redacted]": never write that placeholder back.`,
+            parameters: {
+                type: 'object',
+                properties: {
+                    ids: { type: 'array', minItems: 1, maxItems: MAX_GET_ACTIONS, items: { type: 'string' }, description: `Action ids to read (act_…), 1-${MAX_GET_ACTIONS} per call.` },
                 },
                 required: ['ids'],
             },

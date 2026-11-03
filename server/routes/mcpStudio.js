@@ -81,6 +81,8 @@ const INSTRUCTIONS = [
     '',
     'Build order that works: tables (app_upsert_table) → seed rows (app_seed_records) → screens (app_add_screen) → sections and components (app_add_section, app_add_components) → actions (app_set_action, app_bind_action). Verify with app_dry_run and app_screenshot — actually look at the screenshot — and fix findings before app_finalize.',
     '',
+    'Changing an existing app: read an action with app_get_action before you rewrite it with app_set_action (it replaces the whole action). Fill a new field on existing rows with app_update_records (by id, or by filter with dry_run first). Test a sequence with app_run_action (owner only; dryRun is the default and never sends mail or writes rows; outside dryRun send_email only saves a draft).',
+    '',
     'Tool results carry `_hints` when the canonicalizer repaired your input and `_fixHint` when a call was rejected. Both are worth reading: they are how this API teaches its own shape.',
 ].join('\n');
 
