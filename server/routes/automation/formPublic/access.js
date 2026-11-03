@@ -24,6 +24,9 @@ const { fallback } = require('../../../utils/bestEffort');
  */
 const PUBLIC_FORMS_ENABLED = false;
 
+/** @typedef {NonNullable<Awaited<ReturnType<typeof automationStore.getAutomation>>>} StoredAutomation */
+/** @typedef {{ id?: string, kind?: string, form?: { title?: string } & Record<string, unknown> } & Record<string, unknown>} FormTrigger */
+
 // Session-id shape gate, same discipline as the token: cheap reject before any DB work.
 const SESSION_RE = /^[a-f0-9]{24,64}$/;
 
@@ -40,36 +43,107 @@ function privateHeaders(res) {
  * Resolve `:token` to { page, automation, definition } or answer and return
  * null. A closed/draft automation and an unknown token look the SAME from the
  * outside (404): the token is the credential, so probing must not distinguish
- * "wrong token" from "form paused".
+ * "wrong token" from "form paused". The one exception is a caller who may EDIT
+ * the automation: they get 409 form_not_live, because "not available" told the
+ * author nothing (studio F10). They already know the form exists.
+ *
+ * A TEST LINK's row (page.isTest, formTestPageStore.mts) is loadTestForm's.
  * @param {import('express').Request<{ token: string }>} req
  * @param {import('express').Response} res
  */
 async function loadForm(req, res) {
     const token = String(req.params.token || '');
     // Cheap shape gate before any DB work: the token is 48 hex chars.
-    if (!/^[a-f0-9]{24,64}$/.test(token)) { res.status(404).json({ error: 'Not found' }); return null; }
+    if (!/^[a-f0-9]{24,64}$/.test(token)) return notFound(res);
     const page = await automationStore.getFormPage(token);
-    if (!page) { res.status(404).json({ error: 'Not found' }); return null; }
+    if (!page) return notFound(res);
     const stored = await automationStore.getAutomation(page.automationId);
-    if (!stored || !stored.isActive || stored.isDraft) { res.status(404).json({ error: 'Not found' }); return null; }
+    if (page.isTest) return loadTestForm(req, res, token, page, stored);
+    if (!stored || !stored.isActive || stored.isDraft) {
+        if (stored && await callerMayEdit(req, stored)) {
+            res.status(409).json({
+                error: 'This form is not live yet. Activate the automation, or test it from the builder or with a test link.',
+                code: 'form_not_live', isActive: !!stored.isActive, isDraft: !!stored.isDraft, automationId: stored.id,
+            });
+            return null;
+        }
+        return notFound(res);
+    }
     // Visitors get the LIVE form (handoff 5): questions saved in the builder
     // but not yet published are not served, and the run executes the same
     // copy the page was rendered from.
     const automation = require('../../../core/automationRunner/definitionForRun').automationForRun(stored, { mode: 'live' });
-    const definition = automation.definition || {};
-    // The page row survives the author changing the trigger kind; the form
-    // simply stops existing at that point.
-    const trigger = page.triggerStepId
-        ? [definition.trigger, ...(definition.triggers || [])].find(t => t?.id === page.triggerStepId)
-        : definition.trigger;
-    if (!trigger || trigger.kind !== 'form') { res.status(404).json({ error: 'Not found' }); return null; }
+    const trigger = formTriggerOf(automation, page);
+    if (!trigger) return notFound(res);
     if (!PUBLIC_FORMS_ENABLED && !(await callerMayOpen(req, page))) {
         // 404, not 403: the same answer an unknown token gets, so probing
         // cannot tell "not yours" from "does not exist".
-        res.status(404).json({ error: 'Not found' });
-        return null;
+        return notFound(res);
     }
-    return { token, page, automation, trigger, definition: { trigger } };
+    return { token, page, automation, trigger, definition: { trigger }, test: false };
+}
+
+/**
+ * A test link (D3): the automation's WORKING copy, served to the people its
+ * own audience admits (default: the person who made it, and the owner),
+ * whether or not the automation is live. Every submission through it is a
+ * test run (automation/formSubmission.mts). Expired, revoked, not yours, or
+ * no form trigger in the working copy: the same 404 as an unknown token. The
+ * organisation stays the outer wall (callerMayOpen), and a test link is never
+ * anonymous, whatever PUBLIC_FORMS_ENABLED says.
+ * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Response} res
+ * @param {string} token
+ * @param {NonNullable<Awaited<ReturnType<typeof automationStore.getFormPage>>>} page
+ * @param {StoredAutomation | null} stored
+ */
+async function loadTestForm(req, res, token, page, stored) {
+    const expired = page.expiresAt != null && new Date(page.expiresAt).getTime() <= Date.now();
+    if (!stored || expired) return notFound(res);
+    if (!(await callerMayOpen(req, page))) return notFound(res);
+    const automation = require('../../../core/automationRunner/definitionForRun').automationForRun(stored, { mode: 'live', isTest: true });
+    const trigger = formTriggerOf(automation, page);
+    if (!trigger) return notFound(res);
+    return { token, page, automation, trigger, definition: { trigger }, test: true };
+}
+
+/**
+ * The form trigger a page row serves, or null. The page row survives the
+ * author changing the trigger kind; the form simply stops existing then.
+ * @param {{ definition?: unknown }} automation
+ * @param {{ triggerStepId?: string | null }} page
+ * @returns {FormTrigger | null}
+ */
+function formTriggerOf(automation, page) {
+    const definition = /** @type {{ trigger?: FormTrigger, triggers?: FormTrigger[] }} */ (automation.definition || {});
+    const trigger = page.triggerStepId
+        ? [definition.trigger, ...(definition.triggers || [])].find((t) => t?.id === page.triggerStepId)
+        : definition.trigger;
+    return trigger && trigger.kind === 'form' ? trigger : null;
+}
+
+/**
+ * The one "not found" of the form surface.
+ * @param {import('express').Response} res
+ * @returns {null}
+ */
+function notFound(res) {
+    res.status(404).json({ error: 'Not found' });
+    return null;
+}
+
+/**
+ * May this signed-in caller EDIT the automation behind a form (owner, org
+ * admin, edit share)? Asked only once the form is known not to be live.
+ * @param {import('express').Request} req
+ * @param {StoredAutomation} stored
+ */
+async function callerMayEdit(req, stored) {
+    const userId = req.session?.user?.id;
+    if (!userId) return false;
+    const { makeAutomationAccess, roleSatisfies } = require('../../../automation/access');
+    const access = await makeAutomationAccess().roleFor(stored, userId, { session: req.session || null });
+    return roleSatisfies(access.role, 'edit');
 }
 
 /**

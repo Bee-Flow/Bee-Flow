@@ -3008,7 +3008,7 @@
   },
   "core/automationRunner/approvalLifecycle.js": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-depth": {
       "count": 2
@@ -7526,7 +7526,7 @@
   },
   "routes/automation/formPublic/page.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "routes/automation/formPublic/session.js": {

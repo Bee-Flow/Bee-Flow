@@ -91,7 +91,10 @@ test('a value that is not its column\'s type fails naming the column, before any
 });
 
 test('a preview keeps its synthetic cells instead of failing on them', async () => {
-    const res = await runDatatableWrite(ctxFor('add_row', { qty: lit('sample') }, { mode: 'dry_run' }), stores());
+    // A cell read from a step the dry run simulated; a literal is typed in a
+    // preview as live (datatableWrites.dryRunCells.test.js).
+    const runState = { steps: { sim: { output: { qty: 'sample' }, synthesised: true } } };
+    const res = await runDatatableWrite(ctxFor('add_row', { qty: { kind: 'ref', path: 'steps.sim.output.qty' } }, { mode: 'dry_run', runState }), stores());
     assert.strictEqual(res.output.row.qty, 'sample');
 });
 

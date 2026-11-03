@@ -13,6 +13,7 @@ import type { ApprovalVote, ApprovalStage, PanelProgressData, ApprovalProgress, 
 import { waitingStageLine, auditLine, formatSize } from './ApprovalDetail.helpers';
 import { Section, StageTimeline } from './StageTimeline';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { TestApprovalNote, TestChip } from './TestApprovalNote';
 
 export default function ApprovalDetail({ approvalId, onBack, onDecided }: ApprovalDetailProps) {
     const { t } = useTranslation();
@@ -113,7 +114,10 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
         <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
             <div className="flex items-center justify-between gap-2 flex-wrap">
                 <BackButton onBack={onBack} />
-                <StatusLabel status={approval.status} t={t} />
+                <span className="inline-flex items-center gap-2">
+                    {approval.isTest && <TestChip />}
+                    <StatusLabel status={approval.status} t={t} />
+                </span>
             </div>
 
             {/* The question, given the room a question deserves. What used to
@@ -121,6 +125,10 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
                 an eyebrow saying which automation asked, the ask itself as the
                 heading, and the facts that qualify it on one quiet line. */}
             <ApprovalDetailSection sourceInfo={sourceInfo} approval={approval} t={t} chain={chain} runLink={runLink} />
+
+            {/* A test approval: the tester decides for every approver; the
+                route a production run would take, as a preview. */}
+            <TestApprovalNote approval={approval} />
 
             {/* The snapshot, as prose rather than as a grey slab. Nothing is
                 dropped — FormRichText renders the same markdown it always

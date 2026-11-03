@@ -8,7 +8,7 @@
  * original request would have made.
  */
 
-const { lostToConcurrency, answersRefOf } = require('./formQueueShared');
+const { lostToConcurrency, answersRefOf, runKindOf } = require('./formQueueShared');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 
 /**
@@ -51,25 +51,29 @@ function createFormWork({ automationStore, runner, formAnswers }) {
     // recovered row makes is exactly the call the original request would have
     // made. `work` is what sits in pending_work:
     //
-    //   { kind: 'submit', payload, submitterId, publicForm }
-    //   { kind: 'resume', parentRunId, stepId, values, submitterId }
+    //   { kind: 'submit', payload, submitterId, publicForm, isTest?, origin?, mode? }
+    //   { kind: 'resume', parentRunId, stepId, values, submitterId, isTest? }
+    // isTest / origin / mode (automation/formSubmission.mts) become the runner's
+    // options through runKindOf; a resume keeps the profile its run started with.
 
     /**
      * A first submission: start the automation with the visitor's answers.
+     * `hooks.onRunCreated` also hears of the run the moment it exists (the
+     * builder's form test answers with its id, automation/formSubmission.mts).
      * @param {import('./formQueueShared').FormAutomation} automation
      * @param {import('./formQueueShared').FormSession} session
      * @param {import('./formQueueShared').FormWork} work
+     * @param {{ onRunCreated?: ((run: import('./formQueueShared').FormRun) => void) | null }} [hooks]
      */
-    function submitThunk(automation, session, work) {
+    function submitThunk(automation, session, work, hooks = {}) {
         const answers = answersRefOf(session);
         const submitterId = work.submitterId || null;
         return () => runner().executeAutomation(automation, {
             triggerKind: 'form',
             triggerPayload: { ...(work.payload || {}) },
             triggerHeaders: session.triggerHeaders,
-            // The signed-in submitter of a members-only form is the person a run on the
-            // caller's own connections acts for; a public form is a system start.
-            startedByUserId: work.publicForm ? null : submitterId,
+            // Who started it, and what kind of run it is (formQueueShared.runKindOf).
+            ...runKindOf(work),
             rootStepId: session.rootStepId || null,
             // Point the session at the run the MOMENT it exists, not when it
             // returns. executeAutomation resolves only once the automation has
@@ -77,6 +81,7 @@ function createFormWork({ automationStore, runner, formAnswers }) {
             // the whole first stretch — and the poll has nothing to report
             // progress from without a run to read.
             onRunCreated: async (/** @type {import('./formQueueShared').FormRun} */ r) => {
+                if (hooks.onRunCreated) hooks.onRunCreated(r);
                 await automationStore.attachFormSessionRun(session.id, r.id);
                 // FRM-08: who submitted, on the run — and the run, on the row.
                 if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch((e) => bestEffort('automation/formQueueWork:onRunCreated', e));
@@ -167,7 +172,7 @@ function createFormWork({ automationStore, runner, formAnswers }) {
         return { automationId: automation.id, sessionId: session.id, kind: work.kind, thunk };
     }
 
-    return { makeItem, stopServingPage };
+    return { makeItem, stopServingPage, submitThunk };
 }
 
 module.exports = { createFormWork };

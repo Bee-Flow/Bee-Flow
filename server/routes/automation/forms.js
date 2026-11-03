@@ -7,28 +7,13 @@ const log = require('../../telemetry/log');
 const { resolveDatatablePrincipal } = require('../../auth/datatableAccess');
 const { ensureAnswersTable } = require('../../automation/liveSideEffects');
 const automationStore = require('../../stores/automationStore');
-const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { syncDatatableUsage } = require('../../automation/datatableUsageSync');
-const { AUDIENCES, audienceAdmits, needsGroups, publicAudience } = require('../../automation/formAudience');
+const { audienceAdmits, needsGroups, publicAudience } = require('../../automation/formAudience');
+const { AudienceBody, readAudienceBody } = require('./formAudienceBody');
 const { roleSatisfies } = require('../../automation/access');
-const { orgOf, automationAccess, worded } = require('./crudContext');
-
-const AUDIENCE_TEXT = `audience is one of: ${AUDIENCES.join(', ')}.`;
-/**
- * @param {string} what
- */
-const ID_IN_LIST = (what) => worded(`Each ${what} must be a non-empty id.`).trim().min(1, `Each ${what} must be a non-empty id.`);
-const AudienceBody = z.object({
-    audience: z.enum(AUDIENCES, { error: () => AUDIENCE_TEXT }),
-    sharedGroups: z.array(ID_IN_LIST('group'), { error: typeError({ invalid: 'sharedGroups is a list of group ids.' }) })
-        .max(200, 'Too many people or groups on one form.').default([]),
-    // The route asks the directory about each id, so the same id twice is the
-    // same question twice.
-    sharedUserIds: z.array(ID_IN_LIST('person'), { error: typeError({ invalid: 'sharedUserIds is a list of user ids.' }) })
-        .max(500, 'Too many people or groups on one form.')
-        .transform((ids) => [...new Set(ids)]).prefault([]),
-}).strict();
+const { orgOf, automationAccess } = require('./crudContext');
+const { registerFormTestLinkRoutes, editorFormFacts } = require('./formTestLink');
 
 /**
  * `row → may this caller fill it in`, for a batch of page rows: the
@@ -52,35 +37,6 @@ async function admitsFor(rows, /** @type {import('express').Request} */ req) {
         }
     }
     return (row) => audienceAdmits(audienceOf(row), caller, groups);
-}
-
-/**
- * The audience a PUT may set: a mode, organisation groups that exist, and
- * people who are members of the same organisation. Anything else is the
- * caller's mistake (400), never silently dropped — a person who thinks they
- * shared a form with Finance must not find out otherwise from Finance.
- */
-async function readAudienceBody(body, orgId) {
-    /**
-     * @param {string} code
-     * @param {string} message
-     */
-    const bad = (code, message) => Object.assign(new Error(message), { status: 400, code });
-    const { audience: mode, sharedGroups: groupsRaw, sharedUserIds: usersRaw } = body;
-    if (!orgId) {
-        if (groupsRaw.length || usersRaw.length) throw bad('audience_no_org', 'Cannot share a form: this account has no organisation.');
-        return { audience: mode, sharedGroups: [], sharedUserIds: [] };
-    }
-    const { validateSharedGroupsForOrg } = require('../../auth/permissions');
-    const sharedGroups = (await validateSharedGroupsForOrg(orgId, groupsRaw)) || [];
-    const userStore = require('../../stores/userStore');
-    const sharedUserIds = [];
-    for (const id of usersRaw) {
-        const u = await userStore.getUser(id);
-        if (!u || u.organizationId !== orgId) throw bad('audience_user_unknown', `"${id}" is not a member of this organisation.`);
-        sharedUserIds.push(id);
-    }
-    return { audience: mode, sharedGroups, sharedUserIds };
 }
 
 /**
@@ -282,7 +238,9 @@ function registerFormRoutes(router) {
             pages: formAnswers.inputPagesOf(def).map(p => ({ stepId: p.stepId, label: p.label, mode: 'input', fields: normalizeFields(p.form) })),
             answers: answersFor(row, trigger, answersByAutomation),
             myRole: formAccess.role,
-            ...(mayEdit ? { definition: def, automationTitle: row.title || '' } : {}),
+            // An editor also learns what is not live yet (studio F11: pendingChanges,
+            // liveVersion, version for Publish) and the form's test link.
+            ...(mayEdit ? { definition: def, automationTitle: row.title || '', ...(await editorFormFacts(row.automationId)) } : {}),
         };
         res.json({ form });
     });
@@ -312,6 +270,9 @@ function registerFormRoutes(router) {
         if (!updated) return res.status(404).json({ error: 'Not found' });
         res.json({ audience: publicAudience(updated, { owner: true }) });
     });
+
+    // The test link: GET/POST/DELETE /forms/:automationId/test-link and its audience (formTestLink.js).
+    registerFormTestLinkRoutes(router);
 
     /**
      * POST /forms/:automationId/answers-table — make (or re-make) the answers

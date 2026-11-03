@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import { managedOf, managedRefusalOf } from '@/components/shared/managedPart';
 import type { ManagedBannerInfo } from '@/components/shared/managedPart';
+import type { FormTestLink } from '@/api/formTestLink';
 
 /** The trigger's form definition the Questions tab edits, as the builder stores it. */
 export type FormDraft = Record<string, unknown>;
@@ -28,6 +29,14 @@ export interface FormDetail {
     questions?: { collect?: boolean } | null;
     /** Present only for someone who may edit the automation (mayEdit). */
     definition?: { trigger?: { form?: FormDraft } & Record<string, unknown> } & Record<string, unknown>;
+    live?: boolean;
+    isDraft?: boolean;
+    /** Editor-only (studio F11): saved changes visitors do not get yet, and the versions Publish checks. */
+    pendingChanges?: number;
+    liveVersion?: number | null;
+    version?: number | null;
+    /** Editor-only: the working test link, or null (Studio → Forms → Share). */
+    testLink?: FormTestLink | null;
 }
 
 /**

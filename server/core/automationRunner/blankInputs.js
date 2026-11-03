@@ -100,10 +100,14 @@ function failOnBlankInputs(step, misses) {
  * wait simulated. A step whose result is flagged `dryRunSynthesised` is
  * marked `synthesised` on its runState record instead (runDagRecord).
  */
-const SIMULATED_OUTPUT_KEYS = ['_dryRun', '_dryRunSynthesised', 'wouldNotify'];
+const SIMULATED_OUTPUT_KEYS = ['_dryRun', '_dryRunSynthesised'];
 const own = (/** @type {unknown} */ o, /** @type {string} */ k) => o !== null && typeof o === 'object' && Object.prototype.hasOwnProperty.call(o, k);
 
-/** True when a run path reads the output of a step this dry run simulated. */
+/**
+ * True when a run path reads data this dry run made up: a synthetic trigger or
+ * loop item, or the output of a step it simulated. Also read by the executors
+ * that exempt such data from a check (execNotification, datatableWrites).
+ */
 function readsSimulated(path, runState, ctx) {
     if (refIsSynthetic(path, runState, ctx || {})) return true;
     const { root, second } = refHead(String(path || ''));
@@ -172,7 +176,7 @@ function preflightBlankInputs(step, runState, mode, ctx = {}) {
     failOnBlankInputs(step, failing);
 }
 
-module.exports = { failOnBlankInputs, preflightBlankInputs, missesThatFail };
+module.exports = { failOnBlankInputs, preflightBlankInputs, missesThatFail, readsSimulated };
 
 /**
  * One record of the binding log (bind.js noteMiss), as far as this pass reads it.

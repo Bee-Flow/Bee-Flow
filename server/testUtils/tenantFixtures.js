@@ -76,7 +76,13 @@ const FIXTURES = [
             if (!a) throw new Error('createAutomation answered nothing');
             return a.id;
         },
-        routes: ['GET /api/automation/:id', 'PUT /api/automation/:id', 'DELETE /api/automation/:id', 'GET /api/automation/:id/runs'],
+        routes: [
+            'GET /api/automation/:id', 'PUT /api/automation/:id', 'DELETE /api/automation/:id', 'GET /api/automation/:id/runs',
+            // The builder's form test and the form's test link: `edit` is checked before the body is read.
+            'POST /api/automation/:id/form-test', 'POST /api/automation/:id/form-test/upload',
+            'GET /api/automation/forms/:automationId/test-link', 'POST /api/automation/forms/:automationId/test-link',
+            'DELETE /api/automation/forms/:automationId/test-link', 'PUT /api/automation/forms/:automationId/test-link/audience',
+        ],
     },
     {
         kind: 'datatable',

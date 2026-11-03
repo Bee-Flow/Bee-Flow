@@ -50,6 +50,8 @@
  *   PUT    /:id/form-scenarios/:sid        rename
  *   DELETE /:id/form-scenarios/:sid        delete
  *   POST   /:id/form-scenarios/:sid/dry-run  replay the form journey as a dry run
+ *   POST   /:id/form-test              the builder's form test (page one, real submission path)
+ *   POST   /:id/form-test/upload       one file for that test
  *
  *   POST   /webhook/:slug                  PUBLIC inbound webhook (HMAC + nonce)
  *   GET    /form/:token                    PUBLIC hosted-form render config + CSRF
@@ -141,5 +143,7 @@ router.use(require('./automation/runCompare').makeRunCompareRouter());
 router.use(require('./automation/goldens').makeGoldensRouter());
 // Saved form answers that replay a form journey as a dry run (routes/automation/formScenarios.js).
 router.use(require('./automation/formScenarios').makeFormScenariosRouter());
+// The builder's form test: page one through the real submission path (routes/automation/formTest.js).
+router.use(require('./automation/formTest').makeFormTestRouter());
 
 module.exports = router;

@@ -125,7 +125,7 @@ async function groundAiStepWithMemory(step, ctx, promptText, deps) {
  * honesty rule, ./execCode.js header). Never throws: a broken search stack
  * degrades to "no grounding" rather than failing the step, and says so with
  * `unavailable: true` so a dry run can label its answer (execAi).
- * @param {string} _mode  kept for the callers; the search no longer depends on it
+ * @param {string} _mode  kept for the callers; the search runs in every mode
  */
 async function groundAiStepWithKB(step, ctx, query, _mode, kbIds = null, deps) {
     // The list comes from the caller. On an agent step that is the UNION of the bases

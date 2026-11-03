@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/automation`
 
-151 routes, 71 with a request schema. Back to the [endpoint reference](../reference.md).
+157 routes, 73 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -178,7 +178,8 @@ No request schema.
 | `triggerPayload` | any |  |  |
 | `triggerStepId` | string or null |  |  |
 | `respond` | one of `"created"`, `"finished"` |  |  |
-| `test` | boolean |  |  |
+| `pauses` | one of `"real"` |  |  |
+| `answersFromRunId` | string |  | min length 1; max length 200 |
 
 ### `POST /api/automation/:id/duplicate`
 
@@ -264,6 +265,25 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `triggerStepId` | string or null |  |  |
+
+### `POST /api/automation/:id/form-test`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `values` | object |  |  |
+| `triggerStepId` | string or null |  |  |
+| `mode` | one of `"dry"`, `"live"` |  | default `"dry"` |
+| `respond` | one of `"created"`, `"finished"` |  |  |
+
+### `POST /api/automation/:id/form-test/upload`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`, `editGate`, `uploadGuardMiddleware`
+
+No request schema.
 
 ### `DELETE /api/automation/:id/form/:token`
 
@@ -1249,6 +1269,36 @@ No request schema.
 ### `PUT /api/automation/forms/:automationId/audience`
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `audience` | one of `"org"`, `"restricted"` | yes |  |
+| `sharedGroups` | array of string |  | max items 200; default `[]` |
+| `sharedUserIds` | array of string |  | max items 500; default `[]` |
+
+### `GET /api/automation/forms/:automationId/test-link`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`, `editGate`
+
+No request schema.
+
+### `POST /api/automation/forms/:automationId/test-link`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`, `editGate`
+
+No request schema.
+
+### `DELETE /api/automation/forms/:automationId/test-link`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`, `editGate`
+
+No request schema.
+
+### `PUT /api/automation/forms/:automationId/test-link/audience`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`, `editGate`
 
 **Body**
 

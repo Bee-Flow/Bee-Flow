@@ -46,7 +46,7 @@ export type TriggerKind = (typeof TRIGGER_KINDS)[number];
 export const SECONDARY_TRIGGER_KINDS: ReadonlySet<string> = new Set(['webhook', 'app_event', 'schedule']);
 
 /** Fixed edge labels (server KNOWN_EDGE_LABELS); a switch adds `case:<name>`. */
-export const KNOWN_EDGE_LABELS = ['then', 'else', 'on_success', 'on_error'] as const;
+export const KNOWN_EDGE_LABELS = ['then', 'else', 'on_success', 'on_error', 'on_rejected'] as const;
 export type EdgeLabel = (typeof KNOWN_EDGE_LABELS)[number] | `case:${string}`;
 
 /** The canvas's edge (and note) colour swatches (server EDGE_COLOR_KEYS). */

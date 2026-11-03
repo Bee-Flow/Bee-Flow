@@ -1,14 +1,19 @@
 // @typecheck
 /**
- * The dry-run test harness: what a golden replay or a form-scenario dry run
- * hands executeAutomation so the run can answer a form page from saved answers
- * and, on request, reuse stored AI answers.
+ * The dry-run test harness: what a golden replay, a form-scenario dry run or
+ * "restart with my answers" hands executeAutomation so the run can answer a
+ * form page and decide an approval from saved answers and, on request, reuse
+ * stored AI answers.
  *
  *   harness = {
- *     source:      { kind: 'golden'|'scenario', id },
+ *     source:      { kind: 'golden'|'scenario'|'run', id },
  *     formAnswers: { pages: { [formPageStepId]: { [field]: value } } } | null,
+ *     approvals:   { [approvalStepId]: { decision: 'approve'|'reject', answers: { [field]: value } } } | null,
  *     aiAnswers:   'live' | 'cache',     (default 'live')
  *   }
+ *
+ * A step the harness has nothing for is synthesised and named in the run's
+ * warnings (scenario_missing, core/automationRunner/dryPause.mts).
  *
  * It is honoured ONLY in a dry run: executeAutomation sets ctx.testHarness to
  * this normalised, deeply frozen value when mode is 'dry_run' and to null in
@@ -20,14 +25,34 @@
 
 const { deepFreeze } = require('../../utils/deepFreeze');
 
-const SOURCE_KINDS = new Set(['golden', 'scenario']);
+const SOURCE_KINDS = new Set(['golden', 'scenario', 'run']);
+const DECISIONS = new Set(['approve', 'reject']);
 const AI_ANSWERS = new Set(['live', 'cache']);
 
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
+/** A JSON copy, so freezing it never freezes the caller's object. */
+const copyOf = (v) => JSON.parse(JSON.stringify(v));
+
+/**
+ * The approval decisions of a harness: a known decision per step, answers a plain object.
+ * @param {unknown} raw
+ * @returns {Record<string, { decision: 'approve'|'reject', answers: Record<string, any> }>|null}
+ */
+function normalizeApprovals(raw) {
+    if (!isPlainObject(raw)) return null;
+    const out = Object.create(null);
+    for (const stepId of Object.keys(raw)) {
+        const entry = raw[stepId];
+        if (!isPlainObject(entry) || !DECISIONS.has(entry.decision)) continue;
+        out[stepId] = { decision: entry.decision, answers: isPlainObject(entry.answers) ? copyOf(entry.answers) : {} };
+    }
+    return out;
+}
+
 /**
  * @param {any} harness
- * @returns {Readonly<{ source: { kind: 'golden'|'scenario', id: string|null }, formAnswers: { pages: Record<string, Record<string, any>> }|null, aiAnswers: 'live'|'cache' }>|null}
+ * @returns {Readonly<{ source: { kind: 'golden'|'scenario'|'run', id: string|null }, formAnswers: { pages: Record<string, Record<string, any>> }|null, approvals: Record<string, { decision: 'approve'|'reject', answers: Record<string, any> }>|null, aiAnswers: 'live'|'cache' }>|null}
  *   null when no harness was given
  */
 function normalizeHarness(harness) {
@@ -38,8 +63,7 @@ function normalizeHarness(harness) {
     if (pagesIn) {
         const pages = Object.create(null);
         for (const stepId of Object.keys(pagesIn)) {
-            // A copy, so freezing it never freezes the caller's object.
-            if (isPlainObject(pagesIn[stepId])) pages[stepId] = JSON.parse(JSON.stringify(pagesIn[stepId]));
+            if (isPlainObject(pagesIn[stepId])) pages[stepId] = copyOf(pagesIn[stepId]);
         }
         formAnswers = { pages };
     }
@@ -49,6 +73,7 @@ function normalizeHarness(harness) {
             id: typeof src.id === 'string' ? src.id : null,
         },
         formAnswers,
+        approvals: normalizeApprovals(harness.approvals),
         aiAnswers: AI_ANSWERS.has(harness.aiAnswers) ? harness.aiAnswers : 'live',
     });
 }
@@ -67,4 +92,13 @@ function pageAnswersFor(ctx, stepId) {
     return pages && Object.prototype.hasOwnProperty.call(pages, stepId) ? pages[stepId] : null;
 }
 
-module.exports = { normalizeHarness, harnessFor, pageAnswersFor };
+/**
+ * The saved decision for one approval step ({ decision, answers }), or null when
+ * the harness has none for it.
+ */
+function approvalDecisionFor(ctx, stepId) {
+    const approvals = ctx?.testHarness?.approvals;
+    return approvals && Object.prototype.hasOwnProperty.call(approvals, stepId) ? approvals[stepId] : null;
+}
+
+module.exports = { normalizeHarness, harnessFor, pageAnswersFor, approvalDecisionFor };

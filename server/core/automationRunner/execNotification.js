@@ -11,6 +11,8 @@ const { guardOutbound } = require('./outboundGuard');
 const safety = require('./safety');
 const { sendRunEmail, emailSkipOf } = require('./runNotifications');
 const { toolIdentity } = require('./toolIdentity');
+const { readsSimulated } = require('./blankInputs');
+const { collectBindingPaths } = require('./shared');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
 
@@ -75,6 +77,45 @@ async function sendNotificationEmail(ctx, mode, { title, body, known, guarded, t
     return { probe: sent.probe, skip: emailSkipOf(sent.value) };
 }
 
+/** True when the title or body reads data this dry run made up itself. */
+function textReadsSimulated(step, runState, ctx) {
+    const texts = [step.title, step.body].filter((v) => typeof v === 'string').map((value) => ({ kind: 'template', value }));
+    return collectBindingPaths(texts).some((p) => readsSimulated(p, runState, ctx));
+}
+
+/**
+ * A dry run sends nothing, but it checks what it would send the way a live
+ * run does (the dry-run honesty rule, ./execCode.js header). The guard hands a
+ * `block` back as `wouldBlock` in a dry run; here that becomes what live makes
+ * of it: an error row. A privacy check that could not run on this server is
+ * the environment, so an amber 'would_fail_live' row; a block on text built
+ * from data the dry run made up predicts nothing, so it is only annotated.
+ * `_dryRun` marks the output as not really delivered (blankInputs.js).
+ * @param {{ guarded: Awaited<ReturnType<typeof guardOutbound>>, known: string[], ignored: string[] }} checked
+ */
+function dryRunNotification(step, ctx, runState, checked) {
+    const { guarded, known, ignored } = checked;
+    const wouldNotify = {
+        title: guarded.payload.title, body: guarded.payload.body, channels: known,
+        ...(ignored.length ? { ignoredChannels: ignored } : {}),
+    };
+    const verdict = guarded.guarded;
+    if (!verdict || !verdict.wouldBlock) return { output: { _dryRun: true, wouldNotify } };
+    const categories = verdict.categories || [];
+    const annotated = { _dryRun: true, wouldNotify, _guardrailWouldBlock: categories };
+    if (textReadsSimulated(step, runState, ctx || {})) return { output: annotated };
+    if (categories.length && categories.every((c) => c === 'privacy_protection_unavailable')) {
+        return {
+            output: { ...annotated, skipped: 'the privacy check could not run on this server; a live run would stop here' },
+            skippedReason: 'would_fail_live',
+        };
+    }
+    throw new safety.GuardrailBlockError(
+        `Blocked by the Privacy Shield (${categories.join(', ') || 'sensitive data'}): a live run would not send this notification.`,
+        { categories, scope: 'input' },
+    );
+}
+
 /**
  * @param {string} mode
  */
@@ -82,14 +123,12 @@ async function execNotification(step, ctx, runState, mode) {
     const title = typeof step.title === 'string' ? require('../automationModel/bind').interpolateTemplate(step.title, runState) : '';
     const body = typeof step.body === 'string' ? require('../automationModel/bind').interpolateTemplate(step.body, runState) : '';
     const { known, ignored } = notificationChannels(step);
-    if (mode === 'dry_run') {
-        return { output: { wouldNotify: { title, body, channels: known, ...(ignored.length ? { ignoredChannels: ignored } : {}) } } };
-    }
 
     // ── Safety: title/body are `{{…}}`-interpolated from runState — a single
     // `{{steps.s1.output}}` emails the whole payload — and this delivery step
     // was neither scanned nor logged. Email leaves the platform; the in-app
     // bell does not, so they are guarded against different destinations.
+    // A dry run is guarded too, before it returns (dryRunNotification).
     const wantsEmail = known.includes('email');
     const wantsBell = known.includes('notification') || known.includes('inapp');
     const notifyMeta = metaFor(wantsEmail ? 'email' : 'inapp');
@@ -99,6 +138,7 @@ async function execNotification(step, ctx, runState, mode) {
         destination: wantsEmail ? 'external' : 'internal',
         integMeta: notifyMeta,
     });
+    if (mode === 'dry_run') return dryRunNotification(step, ctx, runState, { guarded: guardedNotify, known, ignored });
     const outTitle = guardedNotify.payload.title;
     const outBody = guardedNotify.payload.body;
 

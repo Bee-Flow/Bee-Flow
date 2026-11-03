@@ -152,6 +152,11 @@ const EXPECTED = [
     // Who may fill the form in: everyone in the organisation, or the people
     // and groups the owner lists. Owner only.
     'PUT /forms/:automationId/audience',
+    // The form's test link (routes/automation/formTestLink.js).
+    'GET /forms/:automationId/test-link',
+    'POST /forms/:automationId/test-link',
+    'DELETE /forms/:automationId/test-link',
+    'PUT /forms/:automationId/test-link/audience',
     'POST /forms/:automationId/answers-table',
     'GET /templates',
     'GET /templates/:id',
@@ -289,6 +294,9 @@ const EXPECTED = [
     'PUT /:id/form-scenarios/:scenarioId',
     'DELETE /:id/form-scenarios/:scenarioId',
     'POST /:id/form-scenarios/:scenarioId/dry-run',
+    // The builder's form test (routes/automation/formTest.js).
+    'POST /:id/form-test',
+    'POST /:id/form-test/upload',
 ];
 
 test('automation router loads and exposes the exact baseline route table in order', () => {

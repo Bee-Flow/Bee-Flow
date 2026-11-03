@@ -23,6 +23,7 @@ const { initDB, run, getOne, getAll } = require('./core');
 const UPLOAD_TTL_MS = 6 * 60 * 60 * 1000;
 
 const { AUDIENCES } = require('../../automation/formAudience');
+const { makeFormTestPageStore } = require('./formTestPageStore.mts');
 
 /**
  * @typedef PageRow
@@ -43,6 +44,9 @@ const { AUDIENCES } = require('../../automation/formAudience');
  * @property {unknown} [definition_json]
  * @property {unknown} [live_definition_json]
  * @property {number | null} [live_version]
+ * @property {boolean} [is_test]
+ * @property {string | null} [issued_by_user_id]
+ * @property {string | Date | null} [expires_at]
  */
 /**
  * @typedef UploadRow
@@ -70,6 +74,7 @@ const { AUDIENCES } = require('../../automation/formAudience');
  * @property {string | Date} created_at
  * @property {string | Date} updated_at
  * @property {string | Date} expires_at
+ * @property {boolean} [is_test]
  */
 
 /** @param {unknown} value */
@@ -97,6 +102,10 @@ function rowToPage(r) {
         audience: AUDIENCES.includes(r.audience) ? r.audience : 'org',
         sharedGroups: idList(r.shared_groups),
         sharedUserIds: idList(r.shared_user_ids),
+        // A test link (formTestPageStore.mts): its own audience, the working copy.
+        isTest: r.is_test === true,
+        issuedByUserId: r.is_test === true ? (r.issued_by_user_id ?? null) : null,
+        expiresAt: r.is_test === true ? (r.expires_at ?? null) : null,
     };
 }
 
@@ -151,7 +160,7 @@ async function getFormPage(id) {
 /** @param {string} automationId */
 async function getFormPagesForAutomation(automationId) {
     await initDB();
-    const rows = await getAll('SELECT * FROM automation_form_pages WHERE automation_id = $1 ORDER BY created_at', [automationId]);
+    const rows = await getAll('SELECT * FROM automation_form_pages WHERE automation_id = $1 AND is_test = FALSE ORDER BY created_at', [automationId]);
     return rows.map(rowToPage);
 }
 
@@ -161,7 +170,7 @@ async function getFormPagesForAutomation(automationId) {
  */
 async function touchFormPage(id) {
     await initDB();
-    await run(`UPDATE automation_form_pages SET last_seen_at = NOW(), submissions = submissions + 1 WHERE id = $1`, [id]);
+    await run(`UPDATE automation_form_pages SET last_seen_at = NOW(), submissions = submissions + 1 WHERE id = $1 AND is_test = FALSE`, [id]);
 }
 
 /**
@@ -193,22 +202,12 @@ async function deleteFormPage(id, automationId) {
  */
 async function listFormPagesForOrg(organizationId, userId) {
     await initDB();
-    // Scoped through COALESCE(the automation's own organisation, the OWNER's), and
-    // the COALESCE is load-bearing in BOTH directions now.
-    //
-    // When this was written nothing ever wrote automations.organization_id, so
-    // the owner's column was the only answer. Since then the create and import
-    // routes DO stamp it (routes/automation/crud.js — `const organizationId =
-    // await orgOf(req)`), which is why the second half matters: rows created
-    // before that change still have it NULL, and a query narrowed to
-    // `a.organization_id = $1` would drop every one of them without saying so.
-    // A directory that silently loses the organisation's oldest forms is worse
-    // than one that errors. Any new org-wide read over `automations` copies
-    // this JOIN rather than simplifying it.
-    //
-    // A caller with no organisation sees only their OWN forms. Matching "no org
-    // to no org" would put every orgless user on a shared install into one
-    // bucket and show them each other's links.
+    // Scoped through COALESCE(the automation's own organisation, the OWNER's):
+    // rows created before crud.js stamped automations.organization_id still have
+    // it NULL, and `a.organization_id = $1` alone would silently drop the
+    // organisation's oldest forms. Any new org-wide read over `automations`
+    // copies this JOIN. A caller with no organisation sees only their OWN forms:
+    // "no org = no org" would show every orgless user each other's links.
     const scoped = organizationId
         ? {
             where: 'COALESCE(a.organization_id, u."organizationId") = $1',
@@ -222,7 +221,7 @@ async function listFormPagesForOrg(organizationId, userId) {
            JOIN automations a ON a.id = p.automation_id
            JOIN users u ON u.id = a.user_id
           WHERE ${scoped.where}
-            AND a.deleted_at IS NULL
+            AND a.deleted_at IS NULL AND p.is_test = FALSE
           ORDER BY p.created_at DESC`,
         scoped.params,
     );
@@ -274,18 +273,12 @@ async function formPageAudience(id) {
     };
 }
 
-
 /**
- * The page for a form trigger, made if it is not there yet.
- *
- * A `form` trigger's whole purpose is a public page, so the page exists for as
- * long as the trigger does. Provisioning it lazily from the builder
- * panel that displays the link would publish the form as a side
- * effect of an author happening to open that panel, and stopped being published
- * at all once the panel was hidden.
- *
- * Minting early costs nothing: loadForm 404s while the automation is a draft or
- * inactive, so a token without a live automation opens nothing.
+ * The page for a form trigger, made if it is not there yet: the page exists for
+ * as long as the trigger does (provisioning it from a builder panel published
+ * the form as a side effect of opening that panel). Minting early costs
+ * nothing: loadForm 404s while the automation is a draft or inactive. Never a
+ * test link's row.
  * @param {string} automationId
  * @param {string | null} [triggerStepId]
  */
@@ -293,7 +286,7 @@ async function ensureFormPage(automationId, triggerStepId = null) {
     await initDB();
     const existing = await getOne(
         `SELECT * FROM automation_form_pages
-          WHERE automation_id = $1 AND trigger_step_id IS NOT DISTINCT FROM $2`,
+          WHERE automation_id = $1 AND trigger_step_id IS NOT DISTINCT FROM $2 AND is_test = FALSE`,
         [automationId, triggerStepId],
     );
     if (existing) return rowToPage(existing);
@@ -309,7 +302,7 @@ async function ensureFormPage(automationId, triggerStepId = null) {
  */
 async function rotateFormPage(id, automationId) {
     await initDB();
-    const existing = await getOne('SELECT * FROM automation_form_pages WHERE id = $1 AND automation_id = $2', [id, automationId]);
+    const existing = await getOne('SELECT * FROM automation_form_pages WHERE id = $1 AND automation_id = $2 AND is_test = FALSE', [id, automationId]);
     if (!existing) return null;
     await run(`DELETE FROM automation_form_pages WHERE id = $1`, [id]);
     // A new token, the same audience: rotating the link is not un-sharing.
@@ -449,23 +442,24 @@ function rowToSession(r) {
         createdAt: r.created_at,
         updatedAt: r.updated_at,
         expiresAt: r.expires_at,
+        isTest: r.is_test === true,   // a test link's or the builder's journey (the builder may answer its pages)
     };
 }
 
 /**
  * @param {string} formPageId
  * @param {string} automationId
- * @param {{ rootStepId?: string | null, triggerHeaders?: Record<string, unknown> | null }} [opts]
+ * @param {{ rootStepId?: string | null, triggerHeaders?: Record<string, unknown> | null, isTest?: boolean }} [opts]
  */
-async function createFormSession(formPageId, automationId, { rootStepId = null, triggerHeaders = null } = {}) {
+async function createFormSession(formPageId, automationId, { rootStepId = null, triggerHeaders = null, isTest = false } = {}) {
     await initDB();
     const id = crypto.randomBytes(24).toString('hex');
     await run(
-        `INSERT INTO automation_form_sessions (id, form_page_id, automation_id, root_step_id, trigger_headers, expires_at)
-         VALUES ($1, $2, $3, $4, $5::jsonb, NOW() + ($6::bigint * INTERVAL '1 millisecond'))`,
-        [id, formPageId, automationId, rootStepId, triggerHeaders ? JSON.stringify(triggerHeaders) : null, SESSION_TTL_MS],
+        `INSERT INTO automation_form_sessions (id, form_page_id, automation_id, root_step_id, trigger_headers, expires_at, is_test)
+         VALUES ($1, $2, $3, $4, $5::jsonb, NOW() + ($6::bigint * INTERVAL '1 millisecond'), $7)`,
+        [id, formPageId, automationId, rootStepId, triggerHeaders ? JSON.stringify(triggerHeaders) : null, SESSION_TTL_MS, isTest === true],
     );
-    return { id, formPageId, automationId, rootStepId, triggerHeaders, runId: /** @type {string | null} */ (null) };
+    return { id, formPageId, automationId, rootStepId, triggerHeaders, isTest: isTest === true, runId: /** @type {string | null} */ (null) };
 }
 
 /**
@@ -617,7 +611,13 @@ async function deleteExpiredFormSessions(limit = 500) {
     return rowCount || 0;
 }
 
+// Test links: their own rows, so the SQL lives beside (formTestPageStore.mts).
+const testPages = makeFormTestPageStore({ query: (sql, params) => run(sql, params) }, {
+    ready: initDB, toPage: (row) => rowToPage(/** @type {PageRow} */ (/** @type {unknown} */ (row))), newToken: () => crypto.randomBytes(24).toString('hex'),
+});
+
 module.exports = {
+    ...testPages,
     UPLOAD_TTL_MS,
     SESSION_TTL_MS,
     createFormSession,

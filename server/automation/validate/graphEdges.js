@@ -10,6 +10,7 @@ const {
     ON_ERROR_SOURCE_TYPES, ON_ERROR_FORBIDDEN_SOURCE_TYPES, BRANCHER_TYPES,
     TERMINAL_STEP_TYPES,
 } = require('./constants');
+const { ON_REJECTED_LABEL, ON_REJECTED_SOURCE_TYPES } = require('../../core/automationModel/edgeLabels.mts');
 const { isObject } = require('./helpers');
 
 /**
@@ -60,7 +61,15 @@ function checkEdge({ trigger, pushE, pushW }, e, at, ids, stepById) {
         // names by the switch-step block below; everything else must be
         // one of the runner's routed labels or it never fires.
         if (!KNOWN_EDGE_LABELS.has(e.label) && !e.label.startsWith('case:')) {
-            pushW({ code: 'edge.label_unknown', severity: 'warning', path: at + '.label', message: `Edge ${e.from} → ${e.to} has unknown label "${e.label}" — it will never fire.`, hint: 'Use one of: then, else, on_success, on_error, case:<switch-case-name>, or remove the label so the edge fires on success.' });
+            pushW({ code: 'edge.label_unknown', severity: 'warning', path: at + '.label', message: `Edge ${e.from} → ${e.to} has unknown label "${e.label}" — it will never fire.`, hint: 'Use one of: then, else, on_success, on_error, on_rejected (from an approval), case:<switch-case-name>, or remove the label so the edge fires on success.' });
+        }
+        // An approval's rejected branch (constants.js ON_REJECTED_LABEL): from
+        // any other step it would never fire.
+        if (e.label === ON_REJECTED_LABEL && ids.has(e.from)) {
+            const srcType = e.from === trigger.id ? 'trigger' : stepById.get(e.from)?.type;
+            if (!ON_REJECTED_SOURCE_TYPES.has(srcType)) {
+                pushE({ code: 'edge.rejected_label_invalid', severity: 'error', path: at + '.label', message: `Edge ${e.from} → ${e.to}: only an approval has a rejected branch — this edge would never fire.`, hint: 'Remove the on_rejected label (the edge then fires on success), or start the branch from an approval step.' });
+            }
         }
         if (e.label === 'on_error' && ids.has(e.from)) {
             const srcType = e.from === trigger.id ? 'trigger' : stepById.get(e.from)?.type;
@@ -131,6 +140,31 @@ function checkPiiLineColors({ graph, p, pushW }) {
     }
 }
 
+/**
+ * Per approval with a rejected branch: at most one 'on_rejected' edge (the
+ * decision picks one path), and a warning when it has no plain edge — then
+ * an approve ends the run with nothing after it.
+ */
+function checkRejectedBranches({ graph, p, pushE, pushW }, stepById) {
+    /** @type {Map<string, { rejected: number[], plain: number }>} */
+    const bySource = new Map();
+    graph.edges.forEach((e, i) => {
+        if (!isObject(e) || typeof e.from !== 'string' || stepById.get(e.from)?.type !== 'approval') return;
+        const entry = bySource.get(e.from) || { rejected: [], plain: 0 };
+        if (e.label === ON_REJECTED_LABEL) entry.rejected.push(i);
+        else if (!e.label || e.label === 'on_success') entry.plain++;
+        bySource.set(e.from, entry);
+    });
+    for (const [from, { rejected, plain }] of bySource) {
+        if (rejected.length > 1) {
+            pushE({ code: 'edge.rejected_label_duplicate', severity: 'error', path: p(`edges[${rejected[1]}]`), message: `Approval ${from} has ${rejected.length} rejected branches — it may have only one.`, hint: 'Keep one on_rejected edge and chain the other steps after its first step.' });
+        }
+        if (rejected.length && !plain) {
+            pushW({ code: 'approval.rejected_only', severity: 'warning', path: p(`edges[${rejected[0]}]`), message: `Approval ${from} continues only when it is rejected — an approve ends the run here.`, hint: 'Connect the step that should run after an approve from the approval\'s plain port, or ignore this if approving should end the run.' });
+        }
+    }
+}
+
 /** Every edge of the graph, then the PII line colours. */
 function checkEdges(ctx, ids, stepById) {
     const { graph, p } = ctx;
@@ -139,6 +173,7 @@ function checkEdges(ctx, ids, stepById) {
         const at = p(`edges[${i}]`);
         checkEdge(ctx, e, at, ids, stepById);
     }
+    checkRejectedBranches(ctx, stepById);
     // piiLineColors — the automation's PII group → colour overrides (Lines
     // panel). Same posture as edge.color: cosmetic, values must be palette
     // keys, anything else falls back to the default colour with a warning.

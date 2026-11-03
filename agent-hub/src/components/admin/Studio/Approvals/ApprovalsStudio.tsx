@@ -2,6 +2,7 @@ import { Building2, RefreshCw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import ApprovalDetail from './ApprovalDetail';
 import { approvalOriginText, approvalStatusChip, formatWhen, STATUS_TABS } from './approvalDisplay';
+import { TestChip } from './TestApprovalNote';
 import useApprovals from './useApprovals';
 import type { ApprovalListRow } from './useApprovals';
 import useTranslation from '@/hooks/useTranslation';
@@ -289,6 +290,7 @@ function ApprovalRow({ approval, onOpen, viewerId }: ApprovalRowProps) {
                 <div className="text-[13.5px] text-[var(--text-primary)] truncate">{approval.prompt || t('approvals.untitled', 'Approval requested')}</div>
                 <div className="text-[11.5px] text-[var(--text-tertiary)] truncate mt-0.5">{meta}</div>
             </div>
+            {approval.isTest && <TestChip />}
             {waitingOnMe && (
                 <span className="shrink-0 text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400 font-medium">{t('approvals.you', 'You')}</span>
             )}

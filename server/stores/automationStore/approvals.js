@@ -28,6 +28,8 @@ const crypto = require('crypto');
 const { run, getOne, getAll } = require('./core');
 const { fromJsonb } = require('./rowMappers');
 const { buildUpdate } = require('../lib/sqlBuilder');
+// Node strips the types of a .mts file on load, and require() takes an ES module.
+const { sandboxFields, sandboxParams, makeApprovalSweeps } = require('./approvalSandbox.mts');
 
 const APPROVAL_STATUSES = ['pending', 'approved', 'rejected', 'expired', 'cancelled'];
 
@@ -90,6 +92,8 @@ function rowToApproval(r) {
         decisionReason: r.decision_reason ?? null,
         decidedAt: r.decided_at ?? null,
         expiresAt: r.expires_at ?? null,
+        // The sandbox seat of a test or dry run (approvalSandbox.mts).
+        ...sandboxFields(r),
         createdAt: r.created_at,
         updatedAt: r.updated_at,
     };
@@ -124,6 +128,8 @@ async function createApproval({
     stages = null, stageParticipants = null, stageKey = null,
     // source='deployment': the solution_deployments row this gate guards.
     deploymentId = null,
+    // The sandbox seat of a test or dry run (approvalSandbox.mts).
+    isTest = false, sandboxUserId = null, configuredRouting = null,
 }) {
     const id = newApprovalId();
     const hasStages = Array.isArray(stages) && stages.length > 0;
@@ -137,11 +143,13 @@ async function createApproval({
              source, requested_by, studio_app_id, action_id, context, on_decided, remind_at, escalate_at,
              escalate_to_user_id, escalate_to_group_id,
              approvers, approval_rule, quorum_count, stage, final_approver_user_id, final_approver_group_id,
-             approval_stages, stage_participants, stage_entered_at, deployment_id)
+             approval_stages, stage_participants, stage_entered_at, deployment_id,
+             is_test, sandbox_user_id, configured_routing)
          VALUES ($1,$2,$3,$4,$34,$35,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,
                  $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,
                  $26,$27,$28,$29,$30,$31,
-                 $32,$33, CASE WHEN $32::jsonb IS NULL THEN NULL ELSE NOW() END, $36)
+                 $32,$33, CASE WHEN $32::jsonb IS NULL THEN NULL ELSE NOW() END, $36,
+                 $37,$38,$39)
          ON CONFLICT (run_id, step_id) WHERE status = 'pending' DO NOTHING`,
         [id, organizationId, automationId, automationTitle, runId, rootRunId, stepId,
          ownerId, assigneeUserId, assigneeGroupId, prompt, detailsMd,
@@ -165,7 +173,8 @@ async function createApproval({
          // column never shifts an existing placeholder index.
          projectId, projectTitle,
          // $36 — appended for the same reason.
-         deploymentId],
+         // $37-$39 — the sandbox seat; NULL on every production row.
+         deploymentId, ...sandboxParams({ isTest, sandboxUserId, configuredRouting })],
     );
     // On conflict the insert wrote nothing — hand back whichever row won.
     // App-sourced rows (run_id NULL) can never conflict: NULLs are distinct
@@ -431,40 +440,9 @@ async function expireApprovalsForRuns(runIds) {
     return rows.map(rowToApproval);
 }
 
-/**
- * Reaper: stamp due reminders. Conditional on reminder_sent_at IS NULL, so of
- * N pods sweeping concurrently exactly one gets each row back — the reminder
- * bell rings once. Fires only while pending: a decided row needs no nudge.
- */
-async function markDueApprovalReminders() {
-    const rows = await getAll(
-        `UPDATE automation_approvals
-            SET reminder_sent_at = NOW(), updated_at = NOW()
-          WHERE status = 'pending' AND remind_at IS NOT NULL
-            AND remind_at <= NOW() AND reminder_sent_at IS NULL
-          RETURNING *`,
-        [],
-    );
-    return rows.map(rowToApproval);
-}
-
-/**
- * Reaper: stamp due escalations. The stamp IS the grant — canDecide and the
- * viewer WHERE both admit escalate_to_* only once escalated_at is set. Same
- * conditional-UPDATE idempotence as the reminder pass.
- */
-async function markDueApprovalEscalations() {
-    const rows = await getAll(
-        `UPDATE automation_approvals
-            SET escalated_at = NOW(), updated_at = NOW()
-          WHERE status = 'pending' AND escalate_at IS NOT NULL
-            AND escalate_at <= NOW() AND escalated_at IS NULL
-            AND (escalate_to_user_id IS NOT NULL OR escalate_to_group_id IS NOT NULL)
-          RETURNING *`,
-        [],
-    );
-    return rows.map(rowToApproval);
-}
+// Reaper: the reminder and escalation sweeps (never on a test approval).
+const { markDueApprovalReminders, markDueApprovalEscalations } = makeApprovalSweeps(
+    { query: async (sql, params) => ({ rows: await getAll(sql, params) }) }, rowToApproval);
 
 /** Cheap guard for the per-app pending cap (public pages can request). */
 async function countPendingApprovalsForApp(studioAppId) {

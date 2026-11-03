@@ -7,6 +7,8 @@ module.exports = {
     "automation_editor.action.run_ai": "Run an AI prompt",
     "automation_editor.action.send_notification": "Send a notification",
     "automation_editor.activate": "Activate",
+    "automation_editor.approval_port_approved": "Approved",
+    "automation_editor.approval_port_rejected": "On rejected",
     "automation_editor.back_to_list": "Back to list",
     "automation_editor.deactivate": "Deactivate",
     "automation_editor.diverged_body": "Quick mode shows a single trigger and a single action. Switch to Build with AI or Expert mode to keep your loops, conditions, code steps or multi-step composition intact.",

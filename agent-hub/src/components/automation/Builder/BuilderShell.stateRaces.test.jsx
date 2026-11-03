@@ -156,23 +156,26 @@ describe('BuilderShell — state races', () => {
         expect(row.definition.steps[0].position).toEqual({ x: 500, y: 90 });
     });
 
-    it('releases the running state when the run-start request throws (BFSF-360)', async () => {
+    it('a run-start request that throws leaves nothing running (BFSF-360)', async () => {
+        // Another run of the same automation is going. It is never adopted as
+        // this one: the canvas follows only the id the server answers with.
         activeRuns = [{ automationId: 'a1', runId: 'run-x', status: 'running', startedAt: 1 }];
         await mountShell();
 
         act(() => { header.onDryRun(); });
-        // watchActiveRun discovers the queued run and shows the progress stub;
-        // this is what disables every ▶ Execute button while a run is going.
-        await waitFor(() => expect(buildTab.state.dryRun?.status).toBe('running'));
+        await waitFor(() => expect(dryRunGate).toBeTruthy());
+        expect(buildTab.state.dryRun?.status).not.toBe('running');
 
         await act(async () => {
             dryRunGate.rej(new Error('Network down'));
             for (let i = 0; i < 8; i++) await Promise.resolve();
         });
 
-        // Nothing else will ever settle this stub — no run record is coming.
-        expect(buildTab.state.dryRun.status).toBe('error');
+        // No stub was written before the server named a run, so nothing is
+        // left 'running' to disable every ▶ Execute button.
+        expect(buildTab.state.dryRun?.status).not.toBe('running');
         expect(buildTab.fatalError).toBe('Network down');
+        expect(authFetch.mock.calls.some(([url]) => url === '/api/automation/_runs/active')).toBe(false);
     });
 
     it('puts a step-inspector save into undo/redo history so Redo cannot revert it', async () => {

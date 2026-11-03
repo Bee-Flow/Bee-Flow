@@ -93,7 +93,9 @@ function danglingSpots(nodes: readonly SceneNode[], edges: readonly SceneEdge[])
     for (const n of nodes) {
         if (n.parent !== null || n.kind === 'note') continue;
         for (const p of n.ports) {
-            if (p.id === 'on_error' || used.has(`${n.key}|${p.id}`)) continue;
+            // No "+" on an error port, nor on an approval's rejected one: the
+            // phone shows a rejected branch, it does not start one.
+            if (p.id === 'on_error' || p.id === 'on_rejected' || used.has(`${n.key}|${p.id}`)) continue;
             out.push({
                 key: `add:${n.key}|${p.id}`, owner: n.key, x: n.x + n.width + ADD_GAP, y: n.y + p.dy,
                 target: { kind: 'after', sourceId: n.nodeId, handle: p.wire },

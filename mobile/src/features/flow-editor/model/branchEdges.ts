@@ -18,6 +18,8 @@ export const PORT = Object.freeze({
     then: 'then',
     else: 'else',
     onError: 'on_error',
+    /** An approval's rejected branch: followed only when the approver rejects. */
+    onRejected: 'on_rejected',
     defaultCase: 'default',
     /** `case:default` — the switch catch-all's label. */
     defaultCaseLabel: 'case:default',
@@ -26,10 +28,12 @@ export const PORT = Object.freeze({
 /**
  * A port name → the edge branch fields the runtime routes on: `then`/`else`
  * for a condition, `case:<name>` (incl. `case:default`) for a switch,
- * `on_error` for the error port. Any other port → an unlabelled edge.
+ * `on_error` for the error port, `on_rejected` for an approval's rejected
+ * port. Any other port → an unlabelled edge.
  */
 export function branchFromHandle(sourceHandle: unknown): { label?: string; caseName?: string } {
     if (sourceHandle === PORT.then || sourceHandle === PORT.else || sourceHandle === PORT.onError) return { label: sourceHandle };
+    if (sourceHandle === PORT.onRejected) return { label: sourceHandle };
     if (typeof sourceHandle === 'string' && sourceHandle.startsWith('case:')) {
         return { label: sourceHandle, caseName: sourceHandle.slice(5) };
     }

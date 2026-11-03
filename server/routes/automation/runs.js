@@ -20,7 +20,9 @@ const automationAccess = makeAutomationAccess({ store: automationStore });
 
 const { startCapped, pendingRunBody } = require('../../core/automationRunner/startCapped.mts');
 const { refuseUnpublished, sampleTriggerPayload, eventIsFor } = require('./runStart.mts');
-const { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
+const { SeenBody, RunBody, DryRunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
+const { answersFromRun } = require('./dryRunAnswers.mts');
+const { dryRunWarnings } = require('../../automation/testing/dryRunWarnings.mts');
 
 // Per-user throttle for the expensive run-trigger endpoints (each spins up a
 // full automation execution / LLM + tool calls). Keyed by session user id via
@@ -127,7 +129,22 @@ router.post('/:id/caller-notice/seen', validate({ body: SeenBody }), async (/** 
     res.json({ ok: true });
 });
 
-router.post('/:id/dry-run', runTriggerLimiter, validate({ body: RunBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof RunBody>, import('qs').ParsedQs>} */ req, res) => {
+/**
+ * A dry run of the working copy: reads run, writes are simulated.
+ *
+ *   pauses: 'real'     the web builder's Dry run: an approval or a form page
+ *                      pauses for the author (the sandbox seat decides), and
+ *                      the continuation stays a dry run (D1)
+ *   (no pauses)        mobile, API: nobody is asked; approvals auto-approve
+ *                      and pages are answered with blanks, both marked
+ *   answersFromRunId   "restart with my answers": the form answers and the
+ *                      approval decisions of that earlier run are played
+ *                      (./dryRunAnswers.mts); a step they lack is synthesised
+ *
+ * The 200 reply's `run.warnings` says what the run did without a person
+ * (automation/testing/dryRunWarnings.mts).
+ */
+router.post('/:id/dry-run', runTriggerLimiter, validate({ body: DryRunBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof DryRunBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -136,13 +153,22 @@ router.post('/:id/dry-run', runTriggerLimiter, validate({ body: RunBody }), asyn
     const runner = require('../../core/automationRunner');
     const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.body.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });
+    const fromRun = req.body.answersFromRunId ? await answersFromRun(req, res, a, req.body.answersFromRunId) : null;
+    if (req.body.answersFromRunId && !fromRun) return undefined;
+    const triggerPayload = req.body.triggerPayload ?? fromRun?.triggerPayload ?? null;
+    const pausesRequested = req.body.pauses === 'real';
     const outcome = await startCapped((onRunCreated) => runner.executeAutomation(a, {
-        triggerKind: 'dry_run', triggerPayload: req.body.triggerPayload || null, mode: 'dry_run',
+        triggerKind: 'dry_run', triggerPayload, mode: 'dry_run',
         rootStepId: entered.rootStepId, startedByUserId: userId, onRunCreated,
+        pausesRequested,
+        ...(pausesRequested ? { origin: 'builder' } : {}),
+        ...(fromRun ? { harness: fromRun.harness } : {}),
     }), { respond: req.body.respond, label: 'automation/dry-run' });
     if (outcome.kind === 'pending') return res.status(202).json(pendingRunBody(outcome.runId));
     const steps = await automationStore.getRunSteps(outcome.run.id);
-    res.json({ run: outcome.run, steps });
+    // The payload the run entered with (a pinned trigger sample included).
+    const warnings = dryRunWarnings({ steps, definition: a.definition, trigger: entered.trigger, triggerPayload: outcome.run.triggerPayload ?? triggerPayload });
+    res.json({ run: { ...outcome.run, warnings }, steps });
 });
 
 /**

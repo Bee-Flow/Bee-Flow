@@ -180,7 +180,7 @@ export default function useBuildTabModel(p: BuildTabProps) {
     const { paletteLayers, layerSummaries } = useLayerRows(rootDef, scopeKey);
     const ctx = useContextPalette();
     const smart = useSmartAddStep({ palette: ctx.palette, scopedDef, catalog, paletteLayers });
-    const run = useLiveRun({ state, pollRunProgress: p.pollRunProgress, flatDef });
+    const run = useLiveRun({ state, flatDef });
 
     const addStepAt = useAddStep({
         flatDef, inlineSidecar, inlineShift, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot,

@@ -31,7 +31,7 @@ describe('useAutomationBuilderStream — Execute step after a dropped connection
         const { result } = renderHook(() => useAutomationBuilderStream({ automationId: 'a1' }));
         let out;
         await act(async () => { out = await result.current.executeStep('s2'); });
-        expect(out).toEqual({ recovered: true });
+        expect(out).toEqual({ kind: 'recovered' });
         expect(result.current.state.error).toBeNull();
         const row = result.current.state.steps.find(s => s.stepId === 's2');
         expect(row!.status).toBe('success');

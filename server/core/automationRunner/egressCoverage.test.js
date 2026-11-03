@@ -23,10 +23,10 @@
  *   integration action        —    ✓      —         ✓          ✓
  *   ai step                   —    ✓      —         ✓          ✓
  *   http_request              ✓    ✓      ✓         ✓          ✓
- *   code step ctx.http        ✓    ✓      ✓         ✓         (skipped)
- *   code step ctx.callTool    —    ✓      —         ✓         (skipped)
- *   code step return value    —    —      —         ✓         (skipped)
- *   notification              —    ✓      —         —          —
+ *   code step ctx.http        ✓    ✓      ✓         ✓         (stubbed)
+ *   code step ctx.callTool    —    ✓      —         ✓         (stubbed)
+ *   code step return value    —    —      —         ✓         (stubbed)
+ *   notification              —    ✓      —         —          ✓ (an error, as live)
  *   parse_json (ai mode)      —    ✓      —         ✓          ✓
  *   data_extraction           —    ✓      —         ✓         (never calls)
  *
@@ -48,8 +48,9 @@
  * (a data_extraction dry run synthesises typed samples without a model call,
  * so its "dry-run block" cell is not reachable either.)
  *
- * (code steps do not run in dry-run at all — execCode returns early — so their
- * "dry-run block" cell is not reachable.)
+ * (a code step's code DOES run in a dry run, but the sandbox swaps both bridges
+ * for recording stubs that answer with fake values, so nothing is dispatched
+ * and their "dry-run block" cell is not reachable.)
  *
  * WHERE THE BYTES WENT. A ledger row is only as good as its destination, and
  * that is read off the call's own connections (core/http/egressCapture.js).
@@ -505,6 +506,23 @@ test('notification: what is delivered is what the guard returned', async () => {
     );
     assert.match(guardCalls[0].value.body, /Jan de Vries/, 'the interpolated body is what gets scanned');
     assert.match(bells[0].message, /Jan de Vries/);
+});
+
+test('notification: a dry-run block verdict is an error row, as live, and nothing is delivered', async () => {
+    // The guard runs before the dry-run return: a mail the shield blocks live
+    // must not be a green preview.
+    reset();
+    wouldBlockNext = true;
+    emailConfigured = true;
+    const st = state();
+    st.steps.s1 = { output: { name: 'Jan de Vries' }, status: 'success' };
+    await assert.rejects(
+        execNotification({ id: 'n6', type: 'notification', channels: ['email'], title: 'T', body: 'Mail aan {{steps.s1.output.name}}' }, ctx(), st, 'dry_run'),
+        (e) => e.guardrailBlocked === true,
+    );
+    assert.strictEqual(inputGuards().length, 1, 'the dry run is guarded like live');
+    assert.strictEqual(sentMail.length + bells.length, 0);
+    assert.strictEqual(egressRows.length, 0);
 });
 
 // ── the code step's two bridges ────────────────────────────────────────────

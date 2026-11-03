@@ -82,6 +82,10 @@ function matchesPort(e: FlowEdge, port: PortSpec): boolean {
 /** A label no declared port claims (an old case, a hand-written edge): its own lane. */
 function strayLane(label: string, edges: FlowEdge[]): Lane {
     const caseName = caseOf(edges[0] as FlowEdge);
+    // An approval's rejected branch, in its port's words (web ApprovalNode).
+    if (label === PORT.onRejected) {
+        return { handle: label, identity: { label }, text: { key: 'automation_editor.approval_port_rejected', fallback: 'On rejected' }, tone: 'error', edges };
+    }
     return {
         handle: label,
         identity: caseName != null ? { label, caseName } : { label },

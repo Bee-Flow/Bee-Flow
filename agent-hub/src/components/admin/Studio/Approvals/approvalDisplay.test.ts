@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { approvalOriginText, approvalSourceInfo, approvalStatusChip } from './approvalDisplay';
+import { approvalOriginText, approvalSourceInfo, approvalStatusChip, productionRouteText } from './approvalDisplay';
 
 const t = (_key: string, fallback: string) => fallback;
 
@@ -58,5 +58,39 @@ describe('approvalOriginText', () => {
 describe('approvalStatusChip is unchanged', () => {
     it('still words a pending row as Waiting', () => {
         expect(approvalStatusChip('pending').label).toBe('Waiting');
+    });
+});
+
+describe('productionRouteText: where a test approval would go in production', () => {
+    const tp = (_key: string, fallback: string, params?: Record<string, string>) =>
+        Object.entries(params || {}).reduce((out, [k, v]) => out.replace(`{${k}}`, v), fallback);
+
+    it('names the stages with their seat counts, never a person', () => {
+        const text = productionRouteText({
+            isTest: true,
+            configuredRouting: {
+                runKind: 'test',
+                stages: [
+                    { key: 'a', name: 'Team lead', approvers: [{ userId: 'u-ada' }] },
+                    { key: 'b', name: 'Finance', approvers: [{ groupId: 'g1' }, { userId: 'u2' }] },
+                    { key: 'c', name: 'Director', skipped: true, approvers: [{ userId: 'u3' }] },
+                ],
+            },
+        }, tp);
+        expect(text).toBe('In production this goes to Team lead (1) → Finance (2) → Director (skipped).');
+        expect(text).not.toContain('u-ada');
+    });
+
+    it('describes a panel, a single approver, a group and the owner', () => {
+        const route = (configuredRouting: object) => productionRouteText({ isTest: true, configuredRouting }, tp);
+        expect(route({ approvers: [{ userId: 'a' }, { userId: 'b' }, { groupId: 'g' }] })).toBe('In production this goes to a panel of 3.');
+        expect(route({ assignee: { userId: 'a' } })).toBe('In production this goes to one approver.');
+        expect(route({ assignee: { groupId: 'g' }, finalApprover: { userId: 'f' } })).toBe('In production this goes to a group then a final sign-off.');
+        expect(route({})).toBe("In production this goes to the automation's owner.");
+    });
+
+    it('says nothing for a production row', () => {
+        expect(productionRouteText({ configuredRouting: { assignee: { userId: 'a' } } }, tp)).toBeNull();
+        expect(productionRouteText({ isTest: true }, tp)).toBeNull();
     });
 });

@@ -22,10 +22,11 @@ export async function errorBody(r: Response): Promise<ErrorBody> {
         // raw objects (which would stringify to "[object Object]").
         if (j.error && Array.isArray(j.details) && j.details.length) {
             const msgs = j.details.map(detailText).filter(Boolean);
-            return { message: msgs.length ? `${j.error}: ${msgs.join('; ')}` : j.error, code, details: j.details, managed };
+            return { message: msgs.length ? `${j.error}: ${msgs.join('; ')}` : j.error, code, details: j.details, refusal: null, managed };
         }
-        return { message: j.error || JSON.stringify(j), code, details: null, managed };
-    } catch { return { message: r.statusText, code: null, details: null, managed: null }; }
+        const refusal = j.details && typeof j.details === 'object' && !Array.isArray(j.details) ? j.details as Record<string, unknown> : null;
+        return { message: j.error || JSON.stringify(j), code, details: null, refusal, managed };
+    } catch { return { message: r.statusText, code: null, details: null, refusal: null, managed: null }; }
 }
 
 export async function safeText(r: Response): Promise<string> {

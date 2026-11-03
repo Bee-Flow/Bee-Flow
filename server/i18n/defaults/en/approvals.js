@@ -96,4 +96,16 @@ module.exports = {
     "approvals.audit_stage_passed": "Stage passed",
     // A request to deploy a Solution release to Production (Solution stages).
     "approvals.source_deployment": "Deployment",
+    // A test or dry run's approval (the sandbox seat): the tester decides alone.
+    "approvals.test_chip": "Test",
+    "approvals.test_decision": "Test decision: you decide for every approver.",
+    "approvals.test_in_production": "In production this goes to {route}.",
+    "approvals.test_route_stage": "{name} ({n})",
+    "approvals.test_route_stage_n": "Stage {n}",
+    "approvals.test_route_stage_skipped": "{name} (skipped)",
+    "approvals.test_route_panel": "a panel of {n}",
+    "approvals.test_route_group": "a group",
+    "approvals.test_route_person": "one approver",
+    "approvals.test_route_owner": "the automation's owner",
+    "approvals.test_route_final": "then a final sign-off",
 };

@@ -16,6 +16,7 @@ const holidays = require('../scheduling/holidays');
 const { automationRunPath, automationRunStepPath } = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+const { profileOfRun } = require('../automationModel/runProfile.mts');
 
 /**
  * A run entered through a SECONDARY schedule advances ITS OWN row
@@ -105,6 +106,29 @@ async function notifyApprovalNeeded(deps, { automation, run, runErrorObj, approv
 }
 
 /**
+ * A run paused at an approval: who hears about it follows the run's profile
+ * (profileOfRun; a legacy row without one derives the configured seat, so it
+ * routes exactly as before).
+ *
+ *   production   the configured approvers, through the policy (above)
+ *   test         the configured approvers NEVER; one "Test:" bell to the
+ *                tester (approvalLifecycle.notifyTesterApprovalNeeded)
+ *   dry          nobody: the author is watching the canvas
+ */
+async function notifyApprovalPause(deps, end) {
+    const { automation, run, runErrorObj, approvalRow } = end;
+    const profile = profileOfRun(run);
+    const sandbox = profile.approverSeat.kind === 'tester' || approvalRow?.isTest === true;
+    if (sandbox || !profile.notify.approvers) {
+        await deps.loadApprovalLifecycle().notifyTesterApprovalNeeded({
+            automation, run, stepId: runErrorObj.stepId, prompt: runErrorObj.prompt || '', approval: approvalRow || null,
+        });
+        return;
+    }
+    await notifyApprovalNeeded(deps, end);
+}
+
+/**
  * Notifications — error path uses the sanitized message so we never leak
  * upstream API payloads or bearer tokens echoed in error bodies. Each event
  * consults the automation's notification policy (see
@@ -141,7 +165,7 @@ async function notifyRunEnd(deps, end) {
                 runId: run.id,
             });
         } else if (runStatus === 'awaiting_approval' && runErrorObj instanceof ApprovalRequiredError) {
-            await notifyApprovalNeeded(deps, end);
+            await notifyApprovalPause(deps, end);
         }
         // No notification for cancelled runs — the user initiated the cancel
         // so they already know. The run history shows the status.

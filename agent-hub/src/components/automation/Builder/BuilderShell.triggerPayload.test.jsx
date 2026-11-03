@@ -105,14 +105,16 @@ describe('BuilderShell — the trigger sample rides along with every run', () =>
     it('sends it on dry-run, on a live run, and on a single-step execute', async () => {
         await mount(defWithPin(ANSWERS));
 
+        // Every start asks for the run id at once (respond 'created'); the
+        // header's dry run pauses for real at forms and approvals (D1).
         await act(async () => { await header.onDryRun(); });
-        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ triggerPayload: ANSWERS });
+        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ triggerPayload: ANSWERS, pauses: 'real', respond: 'created' });
 
         await act(async () => { await header.onRunLive(); });
-        expect(bodyOf('/api/automation/a1/run')).toEqual({ triggerPayload: ANSWERS, test: true });
+        expect(bodyOf('/api/automation/a1/run')).toEqual({ triggerPayload: ANSWERS, test: true, respond: 'created' });
 
         await act(async () => { await buildTab.onExecuteStep('s1'); });
-        expect(bodyOf('/api/automation/a1/steps/s1/run')).toEqual({ mode: 'only', triggerPayload: ANSWERS });
+        expect(bodyOf('/api/automation/a1/steps/s1/run')).toEqual({ mode: 'only', triggerPayload: ANSWERS, respond: 'created' });
     });
 
     it('starts from a secondary trigger with THAT trigger\'s own sample and its id', async () => {
@@ -134,32 +136,32 @@ describe('BuilderShell — the trigger sample rides along with every run', () =>
         expect(header.primaryTriggerLabel).toBe('Form');
 
         await act(async () => { await header.onDryRun('trig_b'); });
-        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ triggerPayload: B_PIN, triggerStepId: 'trig_b' });
+        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ triggerPayload: B_PIN, triggerStepId: 'trig_b', pauses: 'real', respond: 'created' });
 
         await act(async () => { await header.onRunLive('trig_b'); });
-        expect(bodyOf('/api/automation/a1/run')).toEqual({ triggerPayload: B_PIN, triggerStepId: 'trig_b', test: true });
+        expect(bodyOf('/api/automation/a1/run')).toEqual({ triggerPayload: B_PIN, triggerStepId: 'trig_b', test: true, respond: 'created' });
 
         // Null (the menu's primary choice), nothing (the hotkey) and a click
         // event (the bare Dry-run button) all mean the primary trigger.
         posts = [];
         await act(async () => { await header.onDryRun(null); });
-        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ triggerPayload: ANSWERS });
+        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ triggerPayload: ANSWERS, pauses: 'real', respond: 'created' });
         posts = [];
         await act(async () => { await header.onDryRun({ type: 'click' }); });
-        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ triggerPayload: ANSWERS });
+        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ triggerPayload: ANSWERS, pauses: 'real', respond: 'created' });
     });
 
     it('sends nothing extra when the trigger has no saved sample', async () => {
         // An untouched automation must post exactly what it always did — an
         // explicit `triggerPayload: null` would read to a later maintainer as
         // "deliberately empty" rather than "never set".
-        await mount(defWithPin(undefined));
+        await mount({ ...defWithPin(undefined), trigger: { id: 'trg', type: 'trigger', kind: 'manual', label: 'Manually' } });
 
         await act(async () => { await header.onDryRun(); });
-        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({});
+        expect(bodyOf('/api/automation/a1/dry-run')).toEqual({ pauses: 'real', respond: 'created' });
 
         await act(async () => { await buildTab.onExecuteStep('s1'); });
-        expect(bodyOf('/api/automation/a1/steps/s1/run')).toEqual({ mode: 'only' });
+        expect(bodyOf('/api/automation/a1/steps/s1/run')).toEqual({ mode: 'only', respond: 'created' });
     });
 
     it('lets the caller override it — the form preview submits what was typed', async () => {
@@ -170,6 +172,6 @@ describe('BuilderShell — the trigger sample rides along with every run', () =>
         const typed = { name: 'Grace', email: 'grace@example.com' };
 
         await act(async () => { await buildTab.onExecuteStep('trg', { mode: 'only', triggerPayload: typed }); });
-        expect(bodyOf('/api/automation/a1/steps/trg/run')).toEqual({ mode: 'only', triggerPayload: typed });
+        expect(bodyOf('/api/automation/a1/steps/trg/run')).toEqual({ mode: 'only', triggerPayload: typed, respond: 'created' });
     });
 });

@@ -57,14 +57,16 @@ function createFormRecovery({ automationStore, automationForRun, clearPending, m
             return null;
         }
         // The same gate a visitor meets (loadForm): a form that is closed or gone
-        // runs nothing.
+        // runs nothing. A test link's work runs the working copy whether or not
+        // the automation is live, as its page was served (formPublic/access.js).
+        const test = work.isTest === true || session.isTest === true;
         const stored = await automationStore.getAutomation(session.automationId);
-        if (!stored || !stored.isActive || stored.isDraft) {
+        if (!stored || (!test && (!stored.isActive || stored.isDraft))) {
             await restorePage();
             await clearPending(session.id);
             return null;
         }
-        const automation = automationForRun(stored, { mode: 'live' });
+        const automation = automationForRun(stored, test ? { mode: 'live', isTest: true } : { mode: 'live' });
 
         if (work.kind === 'submit') {
             // The run already exists (the pod died after creating it): done.

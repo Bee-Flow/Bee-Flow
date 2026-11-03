@@ -135,9 +135,24 @@ function isTriggerSurface(approval) {
     return approval.source !== 'deployment';
 }
 
+/**
+ * A test approval (is_test: the sandbox seat of a test or dry run) is not an
+ * event at all: no approval.requested / approval.decided reaches a
+ * subscriber, a webhook or the project feed. A test of an automation must
+ * never set off another one, nor tell a project something happened.
+ */
+function isTestApproval(approval) {
+    return approval.isTest === true;
+}
+
+/** A row that reached a final status and is not a test: what approval.decided reports. */
+function isFinalNonTest(approval) {
+    return !!approval && approval.status !== 'pending' && !isTestApproval(approval);
+}
+
 /** A fresh pending row exists — from a paused run, an app request or a deploy gate. */
 function dispatchApprovalRequested(approval) {
-    if (!approval) return;
+    if (!approval || isTestApproval(approval)) return;
     if (!isTriggerSurface(approval)) {
         feed('approval.requested', approval, { expiresAt: approval.expiresAt || null });
         return;
@@ -156,7 +171,7 @@ function dispatchApprovalRequested(approval) {
  * decidedBy/reason/answers are the recorded facts, not the request's claim.
  */
 function dispatchApprovalDecided(approval, { votes = null } = {}) {
-    if (!approval || approval.status === 'pending') return;
+    if (!isFinalNonTest(approval)) return;
     // Emitted once, here, rather than on each of the two dispatch exits below:
     // the project feed shows THAT it was decided and by whom, and does not
     // wait on the per-seat vote evidence that only subscribers need.

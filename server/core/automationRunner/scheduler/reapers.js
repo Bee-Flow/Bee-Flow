@@ -176,6 +176,22 @@ async function reapOrphanFormUploads() {
 }
 
 /**
+ * Remove form TEST LINKS that expired or were revoked (formTestPageStore.mts).
+ * They already answer 404; this drops the rows. A row with an unclaimed upload
+ * waits for reapOrphanFormUploads (above) to delete that blob first, because
+ * the page row's cascade would otherwise drop the ledger row and strand it.
+ */
+async function reapExpiredTestFormPages() {
+    try {
+        const automationStore = require('../../../stores/automationStore');
+        const n = await automationStore.deleteExpiredTestFormPages(200);
+        if (n) log.info(`[AutomationRunner] reaped ${n} expired form test link(s)`);
+    } catch (e) {
+        log.warn('[AutomationRunner] form test-link reap failed:', /** @type {Error} */ (e).message);
+    }
+}
+
+/**
  * Delete documents a run produced once their retention window is up.
  *
  * Same order as the upload reaper and for the same reason: BLOB first, ROW
@@ -258,6 +274,7 @@ async function reapStuckTranscriptions() {
 module.exports = {
     reapStuckAutomations,
     reapOrphanFormUploads,
+    reapExpiredTestFormPages,
     reapExpiredGeneratedFiles,
     reapExpiredRunTables,
     reapStuckTranscriptions,

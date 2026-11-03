@@ -63,6 +63,9 @@ before(async () => {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         last_seen_at TIMESTAMPTZ,
         submissions BIGINT NOT NULL DEFAULT 0)`);
+    // The test-link flag of the run-profile migration (2026-11): the store's
+    // production reads skip test-link rows.
+    await pg.exec(`ALTER TABLE automation_form_pages ADD COLUMN is_test BOOLEAN NOT NULL DEFAULT FALSE`);
     await pg.query(`INSERT INTO users (id, "organizationId") VALUES ('owner', 'org1'), ('pat', 'org1'), ('sam', 'org1'), ('out', 'org2')`);
     await pg.query(`INSERT INTO automations (id, user_id, organization_id, title) VALUES ('au-old', 'owner', 'org1', 'Old'), ('au-new', 'owner', 'org1', 'New'), ('au-other', 'pat', 'org1', 'Theirs')`);
     await pg.query(`INSERT INTO automation_form_pages (id, automation_id) VALUES ('${'a'.repeat(48)}', 'au-old')`);

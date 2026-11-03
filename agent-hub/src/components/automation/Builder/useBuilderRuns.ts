@@ -1,268 +1,310 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from '../../shared/Toast';
 import { shouldAutoOpenFormOverlay, awaitingFormStepId, dismissKey } from './flow/formOverlayAutoOpen';
 import { runWithCallerNotice } from './callerNotice';
 import { acknowledgeCallerNotice, fetchCallerNotice } from '@/api/queries/automation/callerNotice';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { runStartRefusal } from '@/api/queries/automation/runAccess';
+import { GATEWAY_DROP, awaitRunAfterDrop } from '@/api/dryRun';
 import { runOutcomeToast, toastStepLabel } from './runs/runOutcomeToast';
+import { runPhase } from './runs/runPhase';
 import type { BuilderTab } from './useBuilderTabUrl';
 import type { Dispatch, SetStateAction } from 'react';
 import type useAutomationApi from '@/hooks/useAutomationApi';
+import type { AutomationApiError, RunStartBody, RunStartReply } from '@/hooks/useAutomationApi';
 import type useAutomationBuilderStream from '@/hooks/useAutomationBuilderStream';
+import type { ExecuteStepOptions, ExecuteStepResult, SideEffectStep } from '@/hooks/automationBuilder/useRunControls';
 import type useConfirm from '../../shared/useConfirm';
-import type useNdvState from './useNdvState';
-import type { FlowDefinition } from './flow/types';
+import type { FlowDefinition, FlowStep } from './flow/types';
+import type { FormRunMode, FormRunStart, FormRunStartResult, FormTestSession } from './formRunContract';
+import type { FormDef } from '../../forms/PublicFormRenderer.types';
 
-
-/** The live run's answer: a skip, a hand-off to the run history, or the finished run. */
-interface LiveRunReply {
-    skipped?: boolean;
-    pending?: boolean;
-    message?: string;
-    id?: string;
-    run?: { id?: string; status?: string };
-    steps?: unknown;
-}
+type Stream = ReturnType<typeof useAutomationBuilderStream>;
+type Confirm = ReturnType<typeof useConfirm>['confirm'];
 
 export interface UseBuilderRunsOptions {
-    api: ReturnType<typeof useAutomationApi>;
-    state: ReturnType<typeof useAutomationBuilderStream>['state'];
+    api: Pick<ReturnType<typeof useAutomationApi>, 'run' | 'dryRun'>;
+    /** The run on the canvas, its rows and the step executing now. */
+    state: Pick<Stream['state'], 'dryRun' | 'steps' | 'executingStepId'>;
     effectiveDef: FlowDefinition | null;
-    executeStep: ReturnType<typeof useAutomationBuilderStream>['executeStep'];
-    watchActiveRun: (automationId: string) => () => void;
-    setRunResult: ReturnType<typeof useAutomationBuilderStream>['setRunResult'];
-    settleRun: () => void;
-    clearDryRun: () => void;
+    executeStep: Stream['executeStep'];
+    /** Follow a run by the id the server gave it; resolves when it first pauses or ends. */
+    followRun: Stream['followRun'];
+    /** Follow a journey (or its continuation) by any of its run ids. */
+    continueRun: Stream['continueRun'];
+    setRunResult: Stream['setRunResult'];
     ensureAutomationCreated: (defForCreate?: FlowDefinition | null) => Promise<string | undefined>;
     noteManagedRefusal: (e: unknown) => boolean;
+    /** The shell's own busy flag (a start request, a save, an activate). */
+    busy: boolean;
     setBusy: (busy: boolean) => void;
     setError: Dispatch<SetStateAction<string | null>>;
-    confirm: ReturnType<typeof useConfirm>['confirm'];
+    confirm: Confirm;
     setTab: (tab: BuilderTab) => void;
-    ndvStepId: string | null;
-    openNdv: ReturnType<typeof useNdvState>['openNdv'];
+}
+
+/** Execute options as the canvas and the step editor hand them over. */
+export type ExecuteRequest = ExecuteStepOptions & { openForm?: boolean };
+
+type Trigger = FlowStep & { kind?: string; form?: unknown; pinnedOutput?: unknown };
+type ToastRun = Parameters<typeof runOutcomeToast>[1];
+
+/** A trigger id from a handler argument: the hotkey hands over nothing, the split button a click event. */
+function triggerIdArg(arg: unknown): string | null {
+    return typeof arg === 'string' && arg ? arg : null;
+}
+
+/** The primary trigger, or the trigger (primary or additional) with that id; null when `id` names no trigger. */
+function triggerById(def: FlowDefinition | null | undefined, id: string | null): Trigger | null {
+    const primary = (def?.trigger ?? null) as Trigger | null;
+    if (!id) return primary;
+    return ([primary, ...(def?.triggers || [])] as Array<Trigger | null>).find(tr => tr?.id === id) ?? null;
+}
+
+const isPrimary = (def: FlowDefinition | null | undefined, tr: Trigger | null) => !!tr && tr.id === def?.trigger?.id;
+
+/** The overlay session a form trigger opens: its declaration as it stands on screen (not the stored copy). */
+function formSessionFor(tr: Trigger | null): FormTestSession | null {
+    return tr?.kind === 'form' && tr.form ? { form: tr.form as FormDef, triggerStepId: tr.id } : null;
+}
+
+/** A form trigger nobody has filled in yet: nothing to run WITH until somebody answers the page. */
+const isBareForm = (tr: Trigger | null) => tr?.kind === 'form' && tr.pinnedOutput == null;
+
+/**
+ * What a run entered through `tr` carries (BFSF-408): that trigger's own saved
+ * sample, and its id when it is not the primary one, so the server seeds the
+ * DAG there. `{}` without a sample, so an untouched automation sends what it
+ * always did.
+ */
+function triggerInput(def: FlowDefinition | null | undefined, tr: Trigger | null): { triggerPayload?: unknown; triggerStepId?: string } {
+    const sample = tr?.pinnedOutput ?? null;
+    return {
+        ...(sample == null ? {} : { triggerPayload: sample }),
+        ...(tr && !isPrimary(def, tr) ? { triggerStepId: tr.id } : {}),
+    };
+}
+
+/** A proxy or the network gave up between the browser and the server; the run may well go on. */
+function isDrop(e: unknown): boolean {
+    const status = e && typeof e === 'object' ? (e as AutomationApiError).status : undefined;
+    return typeof status === 'number' ? GATEWAY_DROP.has(status) : e instanceof TypeError;
+}
+
+/** The steps a 409 side_effects_need_confirm names, by the labels on the canvas. */
+function sideEffectNames(def: FlowDefinition | null | undefined, steps: SideEffectStep[]): string {
+    const graph = [def?.trigger, ...(def?.triggers || []), ...(def?.steps || [])].filter(Boolean) as FlowStep[];
+    return steps.map((s) => {
+        const onCanvas = graph.find(g => g.id === s.stepId);
+        return String(onCanvas?.label || s.label || s.tool || s.stepId);
+    }).join(', ');
+}
+
+function confirmLive(confirm: Confirm, t: TranslateFn) {
+    return confirm({
+        title: t('automation_testing.run_live.confirm_title', 'Run this automation for real?'),
+        description: t('automation_testing.run_live.confirm_description', 'Every step performs its action: sending messages, writing data, and anything else in the flow. Approvals in it go to you only.'),
+        confirmLabel: t('automation_testing.run_live.confirm', 'Run it'),
+        destructive: true,
+    });
+}
+
+function confirmUpstream(confirm: Confirm, t: TranslateFn, names: string) {
+    return confirm({
+        title: t('automation_testing.execute_confirm.title', 'Run the earlier steps for real?'),
+        description: t('automation_testing.execute_confirm.description', 'No earlier run has the output of {steps}, so they run first, and they send or write outside Bee Flow. Run them for real?', { steps: names }),
+        confirmLabel: t('automation_testing.execute_confirm.confirm', 'Run them'),
+        destructive: true,
+    });
 }
 
 /**
- * Running the automation from the editor: ▶ Execute on one step, Dry-run, the
- * confirmed live run, and the form test overlay a form trigger (or a live run
- * parked on a form page) opens instead. Every run carries the trigger's saved
- * sample (BFSF-408). Split out of BuilderShell without a change in behaviour.
+ * Running the automation from the editor: ▶ Execute on one step, Dry run, the
+ * confirmed Run live, and the form test overlay a form trigger opens instead.
+ *
+ * Every start asks the server to answer as soon as the run exists (respond
+ * 'created'), and the canvas follows the run by that id (useFollowedRun); the
+ * toast comes when the run pauses or ends, worded from its phase. A start
+ * answers with what happened (declined, skipped, started with its id), never
+ * with "done".
+ *
+ * One run at a time: while a start is in flight, a step executes, the followed
+ * run is running or the form overlay is open, Dry run, Run live, the hotkey and
+ * the header menu do nothing (`runBlocked`).
  */
 export default function useBuilderRuns({
-    api, state, effectiveDef, executeStep, watchActiveRun, setRunResult, settleRun, clearDryRun,
-    ensureAutomationCreated, noteManagedRefusal, setBusy, setError, confirm, setTab, ndvStepId, openNdv,
+    api, state, effectiveDef, executeStep, followRun, continueRun, setRunResult,
+    ensureAutomationCreated, noteManagedRefusal, busy, setBusy, setError, confirm, setTab,
 }: UseBuilderRunsOptions) {
     const { t } = useTranslation();
-    // Executing a step does NOT open its editor. Hitting ▶ on the canvas is a
-    // question about DATA — "how much came out, and what goes to the next
-    // node" — and the answer now lands on the connection itself (see
-    // flow/dataSummary.js + the chip in flow/edges.jsx). Covering the canvas
-    // with a settings dialog buried exactly the thing being asked for. The
-    // Execute buttons inside the editor still work; it is already open there.
-    //
-    // One deliberate carve-out (BFSF-408, reopened): a FORM trigger with no
-    // saved sample yet has no data to run WITH — every {{trigger.output.*}}
-    // downstream resolves to undefined, so "how much came out" has no answer
-    // to land on the edge. There the visual form preview (FormBuilderFields,
-    // default-open for a testable trigger) is the thing worth surfacing, not
-    // a blank run — see the redirect in handleExecuteStep below.
-    //
-    // The trigger's saved sample, kept in a ref because the run helpers below
-    // are declared long before `effectiveDef` exists (it needs the draft, the
-    // server row and the Step seed to have been resolved first). Assigned once
-    // per render, right after that resolution.
-    // The form test overlay: `{ form, triggerStepId }` while open, null
-    // otherwise. Declared up here rather than beside its handlers because
-    // handleExecuteStep below closes over the setter, and a useCallback's
-    // dependency array is evaluated during render — a `const` declared later
-    // would be in its temporal dead zone at that moment.
-    const [formTest, setFormTest] = useState<any>(null);
-    const triggerSampleRef = useRef<unknown>(null);
-    // The id of the PRIMARY trigger when it is a bare form trigger — kind
-    // 'form', no pinnedOutput yet — else null. Same ref-assigned-in-render
-    // pattern as triggerSampleRef, and for the same reason.
-    const bareFormTriggerIdRef = useRef<string | null>(null);
-    const formDeclRef = useRef<any>(null);
-    // definition.triggers[] — the additional entry points of a multi-trigger
-    // automation, each with its own pinnedOutput. Same ref-in-render pattern.
-    const secondaryTriggersRef = useRef<NonNullable<FlowDefinition['triggers']>>([]);
-    // The body every whole-flow run is POSTed with. `{}` when there is no
-    // sample, so an untouched automation keeps sending exactly what it always did.
-    // A run started FROM a secondary trigger (the header's "Start from"
-    // choice) carries that trigger's own sample and names it, so the server
-    // seeds the DAG from that node. Anything that is not a trigger id — the
-    // hotkey and the split button hand over nothing or a click event — means
-    // the primary.
-    const runBody = useCallback((triggerStepId: string | null = null) => {
-        const from = typeof triggerStepId === 'string' && triggerStepId ? triggerStepId : null;
-        const sample = from
-            ? (secondaryTriggersRef.current.find(t => t?.id === from)?.pinnedOutput ?? null)
-            : triggerSampleRef.current;
-        return {
-            ...(sample == null ? {} : { triggerPayload: sample }),
-            ...(from ? { triggerStepId: from } : {}),
-        };
-    }, []);
+    // The form test overlay: a FormTestSession while open, null otherwise.
+    const [formTest, setFormTest] = useState<FormTestSession | null>(null);
+    // A start between the click and the server's answer. A ref, so a second
+    // press in the same tick (Cmd+Enter twice) already sees it.
+    const startingRef = useRef(false);
+    // A run started from THIS builder session: one that parks on a form page
+    // opens the overlay by itself (dry runs pause for real too, D1).
+    const startedHereRef = useRef(false);
+    const runInFlight = !!state.dryRun && runPhase(state.dryRun).phase === 'running';
+    const startBlocked = busy || !!state.executingStepId || runInFlight;
+    const runBlocked = startBlocked || !!formTest;
 
-    // Every run the editor starts carries the TRIGGER's saved sample as its
-    // `triggerPayload` (BFSF-408). Without it an automation that cannot be fired
-    // for real yet — a form nobody has submitted, an app_event with no matching
-    // message — entered with `trigger.output === {}`, so every downstream step
-    // mapping off the trigger resolved to undefined and could be neither built
-    // nor tested. `opts.triggerPayload` still wins, so the form preview's
-    // "submit these answers" can hand over what the author just typed.
-    //
-    // A BARE form trigger (kind 'form', nothing pinned/edited yet) is the one
-    // case rerouted instead of run: "hit play, nothing happens" was the
-    // reopened ticket's literal complaint, from every one of Execute's entry
-    // points (canvas hover-▶, right-click "Execute step", and the editor's own
-    // header/Output buttons — they all resolve to this same function). A run
-    // with no data would just repeat that silence, so open the trigger's own
-    // editor instead, where the visual form preview now shows by default —
-    // "hit play" and "see the form" become the same gesture. Already looking
-    // at that exact trigger's editor is a no-op here: the preview is already
-    // on screen, and re-invoking openNdv would reset an expanded FULL view
-    // back to quick. `opts.triggerPayload` is the escape hatch: the preview's
-    // own Submit button (onTestSubmit) always carries one — even `{}` for an
-    // all-optional form — and that must always execute for real.
-    const handleExecuteStep = useCallback(
-        (stepId: string, opts?: Parameters<UseBuilderRunsOptions['executeStep']>[1] & { openForm?: boolean }) => {
-            // "Test this form" in the trigger's panel asks for the page
-            // explicitly (openForm), so it opens the overlay even when a
-            // sample is pinned and Execute alone would replay that sample.
-            if (opts?.openForm && formDeclRef.current?.triggerStepId === stepId) {
-                setFormTest(formDeclRef.current);
-                return Promise.resolve();
-            }
-            if (!opts?.triggerPayload && bareFormTriggerIdRef.current && bareFormTriggerIdRef.current === stepId) {
-                // A form trigger has nothing to run WITH until somebody fills
-                // the page in, so Execute opens that page over the canvas and
-                // its Submit starts the run. This used to open the node editor
-                // and leave you to find the inline preview inside it, which is
-                // the same answer one gesture further away.
-                const t = formDeclRef.current;
-                if (t) setFormTest(t);
-                else toast.info('Add at least one question to this form first.');
-                return Promise.resolve();
-            }
-            return executeStep(stepId, { triggerPayload: triggerSampleRef.current, ...(opts || {}) });
-        },
-        [executeStep, ndvStepId, openNdv],
-    );
+    // The run row as the server answered it; the toast reads its status, profile and outcome.
+    const toastSettled = (run: unknown, steps: unknown) => {
+        const row = run as ToastRun;
+        runOutcomeToast(t, row, { stepLabel: toastStepLabel(effectiveDef, row, steps) });
+    };
 
-    // What the automation ENTERS with when you press Run / Dry-run / ▶ Execute:
-    // the primary trigger's own pinned output. That pin is either a captured
-    // run or a payload the author typed into the trigger's Output → Edit sheet
-    // (BFSF-408), and it is the ONE hand-authored payload slot — the old
-    // `definition.manualTriggerPayload` was write-only and is gone.
-    triggerSampleRef.current = effectiveDef?.trigger?.pinnedOutput ?? null;
-    secondaryTriggersRef.current = Array.isArray(effectiveDef?.triggers) ? effectiveDef.triggers : [];
-    // See handleExecuteStep above: a bare form trigger reroutes Execute to
-    // its own editor instead of running blind.
-    bareFormTriggerIdRef.current = (effectiveDef?.trigger?.kind === 'form' && triggerSampleRef.current == null)
-        ? effectiveDef.trigger.id
-        : null;
-    // What that Execute should OPEN — the declaration as it stands right now,
-    // so a question added a moment ago is on the test page.
-    formDeclRef.current = (effectiveDef?.trigger?.kind === 'form' && effectiveDef.trigger.form)
-        ? { form: effectiveDef.trigger.form, triggerStepId: effectiveDef.trigger.id }
-        : null;
+    /** The start request itself: a dry run pauses for real; a live run is a test run of the working copy. */
+    const sendStart = async (mode: FormRunMode, aid: string, body: RunStartBody): Promise<RunStartReply | null | 'declined'> => {
+        if (mode === 'dry') return api.dryRun<RunStartReply>(aid, { ...body, pauses: 'real', respond: 'created' });
+        // `test: true` runs the working copy (what is on the canvas). The first
+        // run on the caller's own connections waits for a one-time notice
+        // (callerNotice.ts); declining starts nothing.
+        const started = await runWithCallerNotice<RunStartReply>(
+            { run: (id, b) => api.run<RunStartReply>(id, b as RunStartBody), getCallerNotice: fetchCallerNotice, ackCallerNotice: acknowledgeCallerNotice },
+            aid, { ...body, test: true, respond: 'created' }, confirm, t,
+        );
+        return started.declined ? 'declined' : started.result;
+    };
 
-    const onDryRun = async (fromTrigger: string | null = null) => {
-        setBusy(true); setError(null);
-        liveFromBuilderRef.current = false;
-        let stopWatch = () => {};
-        try {
-            const aid = await ensureAutomationCreated();
-            if (!aid) { setError('Add a trigger and at least one step before running.'); return; }
-            stopWatch = watchActiveRun(aid); // live progress while it runs
-            const r = await api.dryRun<LiveRunReply>(aid, runBody(fromTrigger));
+    /** The server answered: follow the run by its id, or show a run that is already over. */
+    const startedFrom = (r: RunStartReply | null): FormRunStartResult => {
+        if (r?.skipped) {
+            const message = r.message || t('automation_testing.start.nothing_to_run', 'Nothing to run against yet.');
+            toast.info(message);
+            return { kind: 'skipped', message };
+        }
+        const runId = r?.runId || r?.run?.id;
+        if (!runId) throw new Error(t('automation_testing.start.no_run', 'The run did not start.'));
+        startedHereRef.current = true;
+        if (r?.run && runPhase(r.run).phase !== 'running') {
             setRunResult(r.run, r.steps);
-            runOutcomeToast(t, r.run, { stepLabel: toastStepLabel(effectiveDef, r.run, r.steps) });
+            toastSettled(r.run, r.steps);
+        } else {
+            void followRun(runId, { kind: 'full' }).then((settled) => { if (settled) toastSettled(settled.run, settled.steps); });
         }
-        // `watchActiveRun` may already have surfaced a 'running' progress stub
-        // by the time the request throws, and nothing else will ever settle it:
-        // no run record is coming. Left running, `liveRunInFlight` stays true
-        // and every ▶ Execute button is disabled for the rest of the session —
-        // one of the mechanisms behind BFSF-360 ("Execute does nothing").
-        catch (e: unknown) { noteManagedRefusal(e); setError((e as Error).message); settleRun(); }
-        finally { stopWatch(); setBusy(false); }
+        return { kind: 'started', runId };
     };
 
-    // Live full-flow run from the editor (the "Run live" option in the Run
-    // menu). Unlike Dry-run this performs every side-effect for real, so we
-    // gate it behind a confirm. Results land in each node's Run tab via
-    // setRunResult, exactly like the dry-run path.
-    /**
-     * The live run itself, once the payload is settled.
-     *
-     * Split out of onRunLive so the form overlay can start exactly the same
-     * run with the answers somebody just typed — the alternative was a second
-     * copy of the watch/settle/report plumbing, which is the half that has the
-     * bugs (BFSF-360).
-     */
-    const startLiveRun = async (body: Record<string, unknown>) => {
+    /** A start whose answer never came: wait for the run the click made, if there is one (run-watch F11). */
+    const recoverStart = async (aid: string, clickedAt: number): Promise<FormRunStartResult | null> => {
+        const rec = await awaitRunAfterDrop(aid, null, clickedAt);
+        if (!rec?.run?.id) return null;
+        setRunResult(rec.run, rec.steps);
+        toastSettled(rec.run, rec.steps);
+        return { kind: 'started', runId: rec.run.id };
+    };
+
+    /** Start a whole-flow run. Throws a refusal (the overlay shows it); the header callers swallow it after setError. */
+    const startRun = async (mode: FormRunMode, body: RunStartBody): Promise<FormRunStartResult> => {
+        startingRef.current = true;
         setBusy(true); setError(null);
-        liveFromBuilderRef.current = true;
-        let stopWatch = () => {};
+        const clickedAt = Date.now();
+        let aid: string | undefined;
         try {
-            const aid = await ensureAutomationCreated();
-            if (!aid) { setError('Add a trigger and at least one step before running.'); return null; }
-            stopWatch = watchActiveRun(aid); // live progress while it runs
-            // `test: true`: the editor runs what is on the canvas (the working
-            // copy). Without it the server runs the LIVE version, which on a
-            // automation with changes not yet live is not what the author sees.
-            // The first run of an automation on the caller's own connections is held
-            // for a one-time notice (callerNotice.ts); declining starts nothing.
-            const started = await runWithCallerNotice<LiveRunReply>(
-                { run: api.run<LiveRunReply>, getCallerNotice: fetchCallerNotice, ackCallerNotice: acknowledgeCallerNotice }, aid, { ...body, test: true }, confirm, t,
-            );
-            if (started.declined) { clearDryRun(); return null; }
-            const r = started.result;
-            if (r?.skipped) {
-                clearDryRun();
-                toast.success(r.message || 'Nothing to run against yet.');
-            } else if (r?.pending) {
-                // Run outlived the request window; hand off to Run history and
-                // clear the live stub so the progress banner doesn't hang.
-                clearDryRun();
-                toast.success('Run started — results will appear in Run history shortly.');
-            } else {
-                setRunResult(r.run, r.steps);
-                // A form journey is not over when the request returns — the
-                // automation may be paused on its next page, and the overlay is
-                // about to say so. Only claim completion when nothing is.
-                if (r?.run?.status !== 'awaiting_form') runOutcomeToast(t, r.run, { stepLabel: toastStepLabel(effectiveDef, r.run, r.steps) });
+            aid = await ensureAutomationCreated();
+            if (!aid) {
+                const message = t('automation_testing.start.needs_steps', 'Add a trigger and at least one step before running.');
+                setError(message);
+                return { kind: 'skipped', message };
             }
-            return r;
+            const reply = await sendStart(mode, aid, body);
+            return reply === 'declined' ? { kind: 'declined' } : startedFrom(reply);
+        } catch (e: unknown) {
+            const recovered = aid && isDrop(e) ? await recoverStart(aid, clickedAt) : null;
+            if (recovered) return recovered;
+            noteManagedRefusal(e);
+            setError((mode === 'live' && runStartRefusal(t, e)) || (e as Error).message);
+            throw e;
+        } finally {
+            startingRef.current = false;
+            setBusy(false);
         }
-        // Same as onDryRun: settle the live progress stub so a failed run-start
-        // can't strand the builder in "running" forever (BFSF-360).
-        catch (e: unknown) { noteManagedRefusal(e); setError(runStartRefusal(t, e) || (e as Error).message); settleRun(); throw e; }
-        finally { stopWatch(); setBusy(false); }
+    };
+
+    const blocked = () => runBlocked || startingRef.current;
+    const openSession = (session: FormTestSession) => { setTab('build'); setFormTest(session); };
+
+    /**
+     * Dry run from the header, the menu or Cmd+Enter. A bare form trigger has no
+     * data to run with, so its page opens over the canvas in dry mode instead
+     * (RUN-09); any other trigger runs with its own saved sample.
+     */
+    const onDryRun = async (fromTrigger: unknown = null) => {
+        if (blocked()) return;
+        const tr = triggerById(effectiveDef, triggerIdArg(fromTrigger));
+        if (isBareForm(tr)) {
+            const session = formSessionFor(tr);
+            if (session) openSession({ ...session, mode: 'dry' });
+            else toast.info(t('automation_testing.start.form_needs_question', 'Add at least one question to this form first.'));
+            return;
+        }
+        await startRun('dry', triggerInput(effectiveDef, tr)).catch(() => {});
     };
 
     /**
-     * The form a test overlay should open on, for the trigger being run.
-     *
-     * Reads the DECLARATION rather than anything saved, so the page under test
-     * is the one on screen — an author who just added a question expects to see
-     * it, not the version the server last stored.
+     * Run live (a test run with real actions), behind its confirm. A form
+     * trigger opens its page instead, already confirmed for that session, and
+     * the submit starts the live run.
      */
-    const formForTrigger = (fromTrigger: string | null = null) => {
-        const t = (typeof fromTrigger === 'string' && fromTrigger)
-            ? [effectiveDef?.trigger, ...(effectiveDef?.triggers || [])].find(x => x?.id === fromTrigger)
-            : effectiveDef?.trigger;
-        return (t?.kind === 'form' && t?.form) ? { form: t.form, triggerStepId: t.id } : null;
+    const onRunLive = async (fromTrigger: unknown = null) => {
+        if (blocked()) return;
+        if (!await confirmLive(confirm, t)) return;
+        const tr = triggerById(effectiveDef, triggerIdArg(fromTrigger));
+        const session = formSessionFor(tr);
+        if (session) { openSession({ ...session, mode: 'live', liveConfirmed: true }); return; }
+        await startRun('live', triggerInput(effectiveDef, tr)).catch(() => {});
     };
 
-    // Live-run form pages: a live run started from THIS builder that parks on a
-    // `form_page` opens the overlay attached to that run. Dry runs never do.
-    // Closing remembers `${runId}:${stepId}` so the same page does not pop up
-    // again straight away.
-    const liveFromBuilderRef = useRef(false);
+    /**
+     * The overlay's Submit on page one (formRunContract.ts). The answers ARE the
+     * trigger payload, as a real submission hands them over. 'live' asks the Run
+     * live confirm once per overlay session (RUN-04).
+     */
+    const onFormTestRun: FormRunStart = async (answers, { mode }) => {
+        if (startBlocked || startingRef.current) {
+            return { kind: 'declined', message: t('automation_testing.start.another_run', 'Another run is still going. Wait for it, or stop it first.') };
+        }
+        const session = formTest;
+        if (mode === 'live' && !session?.liveConfirmed) {
+            if (!await confirmLive(confirm, t)) return { kind: 'declined' };
+            setFormTest(f => (f ? { ...f, liveConfirmed: true } : f));
+        }
+        const tr = triggerById(effectiveDef, session?.triggerStepId || null);
+        return startRun(mode, { triggerPayload: answers, ...(tr && !isPrimary(effectiveDef, tr) ? { triggerStepId: tr.id } : {}) });
+    };
+
+    /**
+     * ▶ Execute (and Retry from here) with the trigger's data. A bare form
+     * trigger, or "Test this form" (openForm) on any form trigger, opens its page
+     * in dry mode instead. Executing a trigger runs with THAT trigger's sample
+     * and id; any other step with the primary's. When earlier steps that send or
+     * write would run first, the server asks for a yes (409
+     * side_effects_need_confirm): the confirm names them and the step runs again
+     * with confirmSideEffects.
+     */
+    const runStep = async (stepId: string, opts: ExecuteRequest = {}): Promise<ExecuteStepResult> => {
+        const { openForm, ...runOpts } = opts;
+        const tr = triggerById(effectiveDef, stepId);
+        const session = formSessionFor(tr);
+        if ((openForm && session) || (runOpts.triggerPayload == null && isBareForm(tr))) {
+            if (session) openSession({ ...session, mode: 'dry' });
+            else toast.info(t('automation_testing.start.form_needs_question', 'Add at least one question to this form first.'));
+            return null;
+        }
+        const merged: ExecuteStepOptions = { ...triggerInput(effectiveDef, tr ?? triggerById(effectiveDef, null)), ...runOpts };
+        const first = await executeStep(stepId, merged);
+        if (first?.kind !== 'needs_confirm') return first;
+        if (!await confirmUpstream(confirm, t, sideEffectNames(effectiveDef, first.steps))) return first;
+        return executeStep(stepId, { ...merged, confirmSideEffects: true });
+    };
+    const handleExecuteStep = (stepId: string, opts?: ExecuteRequest) => runStep(stepId, opts);
+    const handleRetryFromStep = (stepId: string, opts: Omit<ExecuteRequest, 'mode'> = {}) => runStep(stepId, { ...opts, mode: 'from' });
+
+    // A run started here that parks on a `form_page` opens the overlay attached
+    // to it. Closing remembers `${runId}:${stepId}` so the same page does not
+    // pop up again straight away.
     const dismissedFormPagesRef = useRef(new Set<string>());
     const awaitingStepNow = awaitingFormStepId(state.steps);
     const currentRunId = state.dryRun?.id || null;
@@ -273,7 +315,7 @@ export default function useBuilderRuns({
     const openFormOverlay = (runId: string | null | undefined) => { if (runId) setFormTest({ runId }); };
     useEffect(() => {
         if (shouldAutoOpenFormOverlay({
-            liveFromBuilder: liveFromBuilderRef.current,
+            liveFromBuilder: startedHereRef.current,
             runId: currentRunId,
             awaitingStepId: awaitingStepNow,
             overlayOpen: !!formTest,
@@ -281,37 +323,11 @@ export default function useBuilderRuns({
         })) setFormTest({ runId: currentRunId });
     }, [currentRunId, awaitingStepNow, formTest]);
 
-    /**
-     * Start the run the overlay's Submit asked for.
-     *
-     * The answers ARE the trigger payload — the same thing a real submission
-     * hands the automation — so nothing else about the run differs from pressing
-     * Run on any other trigger.
-     */
-    const onFormTestRun = async (answers: unknown) => {
-        const from = formTest?.triggerStepId || null;
-        return startLiveRun({
-            triggerPayload: answers,
-            ...(from && from !== effectiveDef?.trigger?.id ? { triggerStepId: from } : {}),
-        });
-    };
+    /** The overlay (and the approval bar in batch 3) hands the canvas a run to follow, a continuation included. */
+    const onFollowRun = (runId: string) => { if (runId) void continueRun(runId); };
 
-    const onRunLive = async (fromTrigger: string | null = null) => {
-        const ok = await confirm({
-            title: 'Run this automation for real?',
-            description: 'Every step performs its action — sending messages, writing data, and anything else in the flow.',
-            confirmLabel: 'Run it',
-            destructive: true,
-        });
-        if (!ok) return;
-        // A form trigger has no payload to run WITH: the trigger is a page a
-        // person fills in. So Run opens that page over the canvas, and the
-        // submit starts the run — "hit play" and "see the form" become one
-        // gesture instead of Run quietly doing nothing.
-        const asForm = formForTrigger(fromTrigger);
-        if (asForm) { setTab('build'); setFormTest(asForm); return; }
-        await startLiveRun(runBody(fromTrigger)).catch(() => {});
+    return {
+        formTest, handleExecuteStep, handleRetryFromStep, onDryRun, onRunLive, onFormTestRun, onFollowRun,
+        closeFormTest, openFormOverlay, runBlocked,
     };
-
-    return { formTest, handleExecuteStep, onDryRun, onRunLive, onFormTestRun, closeFormTest, openFormOverlay };
 }

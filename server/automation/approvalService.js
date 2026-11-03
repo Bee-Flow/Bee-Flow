@@ -240,15 +240,9 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
     }
 
     // Tell the people who were asked (and the owner, when an admin withdrew).
+    // A test approval was only ever the tester's: nobody else hears of it.
     try {
-        const recipients = new Set();
-        if (cancelled.assigneeUserId) recipients.add(cancelled.assigneeUserId);
-        else if (cancelled.assigneeGroupId) {
-            const { groupMemberIds } = require('../core/automationRunner/approvalLifecycle');
-            for (const id of (await groupMemberIds(cancelled.assigneeGroupId)).ids) recipients.add(id);
-        }
-        if (deciderId !== cancelled.ownerId) recipients.add(cancelled.ownerId);
-        recipients.delete(deciderId);
+        const recipients = await withdrawRecipients(cancelled, deciderId);
         // card:false — the request is gone; a card whose 👍 decides nothing
         // would be worse than no card.
         const { notifyApproval, automationForApproval } = require('./approvalNotify');
@@ -266,6 +260,30 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
     }
 
     return outcome(200, { accepted: true, approval: cancelled });
+}
+
+/**
+ * Who hears that a request was withdrawn: whoever was asked, plus the owner
+ * when somebody else withdrew it, never the person who withdrew. A test
+ * approval (the sandbox seat) tells its tester and nobody else.
+ * @param {Approval} cancelled
+ * @param {string} deciderId
+ */
+async function withdrawRecipients(cancelled, deciderId) {
+    const recipients = new Set();
+    if (cancelled.isTest) {
+        const tester = cancelled.sandboxUserId || cancelled.assigneeUserId;
+        if (tester && tester !== deciderId) recipients.add(tester);
+        return recipients;
+    }
+    if (cancelled.assigneeUserId) recipients.add(cancelled.assigneeUserId);
+    else if (cancelled.assigneeGroupId) {
+        const { groupMemberIds } = require('../core/automationRunner/approvalLifecycle');
+        for (const id of (await groupMemberIds(cancelled.assigneeGroupId)).ids) recipients.add(id);
+    }
+    if (deciderId !== cancelled.ownerId) recipients.add(cancelled.ownerId);
+    recipients.delete(deciderId);
+    return recipients;
 }
 
 const WITHDRAWN_SUMMARY = 'Approval withdrawn — the run was closed without a decision.';

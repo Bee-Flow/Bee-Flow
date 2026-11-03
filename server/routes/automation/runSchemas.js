@@ -56,6 +56,20 @@ const RunBody = bodyOf({
     test: z.boolean({ error: typeError({ invalid: 'test is true or false.' }) }).optional(),
 });
 
+const PAUSES_TEXT = 'pauses is "real".';
+const FROM_RUN_TEXT = 'answersFromRunId is the id of a run of this automation.';
+const DryRunBody = bodyOf({
+    ...RUN_SHAPE,
+    // The web builder's Dry run: an approval or a form page pauses for the
+    // author to answer, writes stay simulated (core/automationRunner/dryPause.mts).
+    // Without it nobody is asked: approvals are auto-approved and pages
+    // answered with blanks, marked and named in the reply's run.warnings.
+    pauses: z.enum(['real'], { error: () => PAUSES_TEXT }).optional(),
+    // "Restart with my answers": play the form answers and approval decisions
+    // of an earlier run of this automation (routes/automation/dryRunAnswers.mts).
+    answersFromRunId: worded(FROM_RUN_TEXT).trim().min(1, FROM_RUN_TEXT).max(200, FROM_RUN_TEXT).optional(),
+});
+
 const SEED_TEXT = 'seedRunId is the id of a run of this automation.';
 const PARTIAL_TEXT = 'mode is "only", "from" or "upTo".';
 const PartialRunBody = bodyOf({
@@ -129,4 +143,4 @@ const SeenBody = z.object({
     items: z.array(worded(ITEMS_TEXT).trim().min(1, ITEMS_TEXT).max(100, ITEMS_TEXT), { error: () => ITEMS_TEXT }).max(100, ITEMS_TEXT),
 }).strict();
 
-module.exports = { Respond, SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody };
+module.exports = { Respond, SeenBody, RunBody, DryRunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody };

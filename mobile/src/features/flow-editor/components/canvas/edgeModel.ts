@@ -16,7 +16,7 @@
 import { edgeKey, type FlowEdge } from '@/features/flow-editor/model';
 
 /** Node types that print a name at every port they draw (StepNodeBase's sourceHandles). */
-const PORT_LABELLED_TYPES: ReadonlySet<string> = new Set(['condition', 'guard', 'switch', 'loop']);
+const PORT_LABELLED_TYPES: ReadonlySet<string> = new Set(['condition', 'guard', 'switch', 'loop', 'approval']);
 
 export interface EdgeNodeInfo {
     id: string;
@@ -66,6 +66,9 @@ function routingOf(e: FlowEdge, sourceType: string | undefined): Routing {
     // on_error before the loop rule: a loop's error line is not its "Done".
     if (e.label === 'on_error') return { kind: 'on_error', sourceHandle: sourceType === 'loop' ? 'on_error' : null };
     if (sourceType === 'loop') return { kind: null, sourceHandle: 'done' };
+    // An approval's two ports (web branchEdges approvalEdgeRouting): its
+    // rejected branch, and "Approved", which every other edge leaves by.
+    if (sourceType === 'approval') return { kind: e.label || null, sourceHandle: e.label === 'on_rejected' ? 'on_rejected' : 'approved' };
     if (e.label) return { kind: e.label, sourceHandle: null };
     const brancher = sourceType === 'condition' || sourceType === 'switch' || fromGuard;
     return { kind: brancher ? 'unrouted' : null, sourceHandle: null };

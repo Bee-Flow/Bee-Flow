@@ -73,6 +73,8 @@ export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, pr
                     form={p.formTest.form}
                     runId={p.formTest.runId}
                     onStartRun={p.onFormTestRun}
+                    startMode={p.formTest.mode}
+                    onFollowRun={p.onFollowRun}
                     onClose={p.onCloseFormTest}
                 />
                 </Suspense>

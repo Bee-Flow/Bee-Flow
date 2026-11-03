@@ -38,7 +38,7 @@ const PAGE_TWO = {
 };
 
 function renderOverlay(props: Partial<ComponentProps<typeof FormRunOverlay>> = {}) {
-    const onStartRun = props.onStartRun || vi.fn(async () => ({ run: { id: 'run1' } }));
+    const onStartRun = props.onStartRun || vi.fn(async () => ({ kind: 'started' as const, runId: 'run1' }));
     const onClose = vi.fn();
     render(withQueryClient(<FormRunOverlay automationId="auto1" form={PAGE_ONE} onStartRun={onStartRun} onClose={onClose} {...props} />));
     return { onStartRun, onClose };
@@ -57,7 +57,8 @@ describe('FormRunOverlay — page one', () => {
     it('shows the declaration being edited, not something the server stored', async () => {
         renderOverlay();
         expect(screen.getByText('Vraag het')).toBeTruthy();
-        expect(screen.getByText(/runs the automation for real/)).toBeTruthy();
+        // Dry run is the default submit: nothing is sent (RUN-04).
+        expect(screen.getByText(/starts a dry run/)).toBeTruthy();
         // Page one never asks the server what to render.
         expect(get).not.toHaveBeenCalled();
     });
@@ -72,6 +73,7 @@ describe('FormRunOverlay — page one', () => {
         await waitFor(() => expect(onStartRun).toHaveBeenCalled());
         const answers = (onStartRun as Mock).mock.calls[0][0];
         expect(answers).toEqual({ naam: 'Tom' });
+        expect((onStartRun as Mock).mock.calls[0][1]).toEqual({ mode: 'dry' });
         // The honeypot is anti-bot plumbing, never an answer the next steps map against.
         expect('website_url' in answers).toBe(false);
     });
@@ -92,6 +94,29 @@ describe('FormRunOverlay — page one', () => {
         await fill('Jouw naam', 'Tom');
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(screen.getByText(/ended as error/)).toBeTruthy());
+    });
+
+    it('opened from Run live, it says so and starts a live run', async () => {
+        const user = userEvent.setup();
+        get.mockResolvedValue({ runId: 'run1', status: 'success', waiting: false });
+        const { onStartRun } = renderOverlay({ startMode: 'live' });
+        expect(screen.getByText(/runs the automation for real/)).toBeTruthy();
+        await fill('Jouw naam', 'Tom');
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await waitFor(() => expect(onStartRun).toHaveBeenCalled());
+        expect((onStartRun as Mock).mock.calls[0][1]).toEqual({ mode: 'live' });
+    });
+
+    it('a declined start goes back to the page, never to "finished" (RUN-03)', async () => {
+        const user = userEvent.setup();
+        const onStartRun = vi.fn(async () => ({ kind: 'declined' as const }));
+        renderOverlay({ onStartRun });
+        await fill('Jouw naam', 'Tom');
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await waitFor(() => expect(onStartRun).toHaveBeenCalled());
+        expect(await screen.findByRole('button', { name: 'Verstuur' })).toBeTruthy();
+        expect(screen.queryByText('The automation finished.')).toBeNull();
+        expect(get).not.toHaveBeenCalled();
     });
 
     it('surfaces a run that could not be started at all', async () => {

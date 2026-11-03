@@ -40,12 +40,12 @@ const { approvalOutput } = require('../automationModel/approvalOutput.mts');
 const PAUSED_STATUSES = new Set(['awaiting_form', 'awaiting_approval', 'awaiting_confirm']);
 
 /**
- * @param {string | null} runId
- * @param {string} fromStepId
+ * The automation a paused run continues on: the definition of the version it
+ * STARTED on. Also read by automation/approvalDecision.js, which must look at
+ * the same definition to know whether a reject has a branch to continue on.
+ * @param {{ automationId: string, version?: number | null, triggerKind?: string | null, isTest?: boolean | null }} original  the paused run row
  */
-async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null } = {}) {
-    const original = await automationStore.getRun(runId);
-    if (!original) throw new Error(`Run ${runId} not found`);
+async function automationToResume(original) {
     const stored = await automationStore.getAutomation(original.automationId);
     if (!stored) throw new Error(`Automation ${original.automationId} not found`);
     // A resumed run finishes on the definition of the version it STARTED on
@@ -63,11 +63,21 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
     // so executeAutomation runs exactly this definition. The pinned steps keep
     // the working copy's SETTINGS (notifications, run policy, app buttons):
     // those apply at once, also to a run that was waiting (definitionForRun.js).
-    const automation = {
+    return {
         ...fallback,
         definition: pinned ? withWorkingSettings(pinned, stored.definition) : fallback.definition,
         version: pinned ? original.version : fallback.version,
     };
+}
+
+/**
+ * @param {string | null} runId
+ * @param {string} fromStepId
+ */
+async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null } = {}) {
+    const original = await automationStore.getRun(runId);
+    if (!original) throw new Error(`Run ${runId} not found`);
+    const automation = await automationToResume(original);
 
     // Replay state from previously-recorded step rows so binding
     // expressions like {{steps.stepX.output.field}} resolve to what they
@@ -176,4 +186,4 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
     });
 }
 
-module.exports = { resumeFromStep };
+module.exports = { resumeFromStep, automationToResume };

@@ -47,6 +47,8 @@ export interface BuilderHeaderProps {
     onPublish?: Fn;
     onDryRun?: ((from: string | null) => void) | null;
     onRunLive?: ((from: string | null) => void) | null;
+    /** A run is starting or going (or the form overlay is open): Dry run and Run live wait for it. */
+    runBlocked?: boolean;
     triggers?: RunTriggerOption[];
     primaryTriggerLabel?: string;
     onDiagnose?: Fn;
@@ -117,7 +119,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
     const {
         title = '', triggerKind, automation = null, isActive = false, isDraft = false, canActivate = true,
         canDiagnose = false, busy = false, onBack, backLabel = null, onOpenList, onExportJson, onActivate, onDeactivate, onPublish,
-        onDryRun, onRunLive, triggers = [], primaryTriggerLabel = 'Primary trigger', onDiagnose, onRename,
+        onDryRun, onRunLive, runBlocked = false, triggers = [], primaryTriggerLabel = 'Primary trigger', onDiagnose, onRename,
         scope = null, onExitScope, onDeleteLayer, diagnoseAnchorRef, savingState = 'idle', tab = 'build', onTabChange,
         onUndo, onRedo, canUndo = false, canRedo = false, mode = 'automation', step = null, orgGroups = [],
         onPublishStep, onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory,
@@ -242,7 +244,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                                     <Stethoscope size={15} />
                                 </button>
                             )}
-                            <TestRunMenu busy={busy} onDryRun={onDryRun} onRunLive={onRunLive} canRunLive={mayStartRun(automation)} triggers={triggers} primaryLabel={primaryTriggerLabel} />
+                            <TestRunMenu busy={busy} runBlocked={runBlocked} onDryRun={onDryRun} onRunLive={onRunLive} canRunLive={mayStartRun(automation)} triggers={triggers} primaryLabel={primaryTriggerLabel} />
                             <LiveActions
                                 live={live}
                                 busy={busy}

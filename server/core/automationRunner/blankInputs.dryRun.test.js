@@ -36,6 +36,11 @@ test('a miss on a simulated answer (auto-approved approval, unsent notification)
     assert.doesNotThrow(() => preflightBlankInputs(notify('{{steps.ev.output.answers.reason}}'),
         state({ output: { approved: true, _dryRun: true, answers: {} } }), 'dry_run', {}));
     assert.doesNotThrow(() => preflightBlankInputs(notify('{{steps.ev.output.messageId}}'),
+        state({ output: { _dryRun: true, wouldNotify: { title: 't' } } }), 'dry_run', {}));
+});
+
+test('wouldNotify alone is not a marker: execNotification flags its dry-run output with _dryRun', () => {
+    assert.throws(() => preflightBlankInputs(notify('{{steps.ev.output.messageId}}'),
         state({ output: { wouldNotify: { title: 't' } } }), 'dry_run', {}));
 });
 

@@ -10,9 +10,11 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
  * the hook was split into hooks/automationBuilder/. It pins the paths the
  * focused tests next to it leave out: the remaining SSE events, the draft
  * conflict rule, the non-ok answers of the stream request, and the run
- * controls (watchActiveRun, hydrateLastRun, stopRun, retryFromStep, a failed
+ * controls (followRun, hydrateLastRun, stopRun, retryFromStep, a failed
  * execute). The returned key list is pinned too, so the hook's surface cannot
- * drift during a move.
+ * drift during a move. WI-07 changed it on purpose: watchActiveRun (which
+ * guessed the active run of the automation) is gone, followRun/continueRun
+ * follow a run by the id the server gave it.
  */
 
 const enc = new TextEncoder();
@@ -56,7 +58,7 @@ describe('useAutomationBuilderStream characterisation: stream events', () => {
             'state', 'send', 'stop', 'reset', 'hydrate', 'hydrateLastRun', 'setDraft', 'markServerConfirmed',
             'acceptExternalDraft', 'dismissExternalDraft', 'dismissProposal', 'dismissPlan', 'executeStep',
             'retryFromStep', 'stopRun', 'pollRunProgress', 'clearDryRun', 'clearError', 'setValidation',
-            'settleRun', 'setRunResult', 'watchActiveRun',
+            'settleRun', 'setRunResult', 'followRun', 'continueRun',
         ]);
         expect(result.current.state).toMatchObject({
             builderSessionId: null, automationId: null, draft: null, messages: [], running: false,
@@ -263,32 +265,33 @@ describe('useAutomationBuilderStream characterisation: request failures', () => 
 describe('useAutomationBuilderStream characterisation: run controls', () => {
     beforeEach(() => { mockedFetch.mockReset(); });
 
-    it('watchActiveRun surfaces the active run as a running stub and stops', async () => {
-        mockedFetch.mockResolvedValue(jsonResponse({ active: [{ automationId: 'other', runId: 'r0', status: 'running' }, { automationId: 'a1', runId: 'r1', status: 'queued', startedAt: 's' }] }));
+    it('followRun follows the run by its id, settles it, and never asks which run is active', async () => {
+        mockedFetch.mockImplementation(async (url: string) => {
+            if (url.endsWith('/runs/r1')) return jsonResponse({ run: { id: 'r1', status: 'success' } });
+            if (url.endsWith('/runs/r1/steps')) return jsonResponse({ steps: [{ stepId: 's1', status: 'success' }] });
+            return jsonResponse({ active: [{ automationId: 'a1', runId: 'other', status: 'running' }] });
+        });
         const { result } = renderHook(() => useAutomationBuilderStream({ automationId: 'a1' }));
-        const found = vi.fn();
-        let stop: () => void = () => {};
-        await act(async () => { stop = result.current.watchActiveRun(null, found); await flush(); });
-        expect(mockedFetch).toHaveBeenCalledWith('/api/automation/_runs/active');
-        expect(found).toHaveBeenCalledWith('r1');
-        expect(result.current.state.dryRun).toEqual({ id: 'r1', status: 'running', startedAt: 's' });
-        stop();
-        const noAid = renderHook(() => useAutomationBuilderStream());
-        expect(typeof noAid.result.current.watchActiveRun()).toBe('function');
+        let settled: unknown;
+        await act(async () => { settled = await result.current.followRun('r1', { startedAt: 's' }); });
+        expect(settled).toEqual({ run: { id: 'r1', status: 'success' }, steps: [{ stepId: 's1', status: 'success' }] });
+        expect(result.current.state.dryRun).toEqual({ id: 'r1', status: 'success' });
+        expect(mockedFetch.mock.calls.some(c => String(c[0]).includes('/_runs/active'))).toBe(false);
     });
 
-    it('hydrateLastRun restores the newest finished run once, and never over live rows', async () => {
+    it('hydrateLastRun restores my newest finished run once, and never over live rows', async () => {
         mockedFetch
             .mockResolvedValueOnce(jsonResponse({ runs: [{ id: 'r9', status: 'success' }] }))
             .mockResolvedValueOnce(jsonResponse({ steps: [{ stepId: 's1', status: 'success' }] }));
         const { result } = renderHook(() => useAutomationBuilderStream({ automationId: 'a 1' }));
         let run: unknown;
         await act(async () => { run = await result.current.hydrateLastRun(); });
-        expect(mockedFetch.mock.calls.map(c => c[0])).toEqual(['/api/automation/a%201/runs?limit=1', '/api/automation/runs/r9/steps']);
+        expect(mockedFetch.mock.calls.map(c => c[0])).toEqual(['/api/automation/a%201/runs?limit=1&startedBy=me', '/api/automation/runs/r9/steps']);
         expect(run).toEqual({ id: 'r9', status: 'success' });
         expect(result.current.state.dryRun).toEqual({ id: 'r9', status: 'success' });
         expect(result.current.state.steps).toEqual([{ stepId: 's1', status: 'success' }]);
 
+        // Rows on screen: a second restore writes nothing.
         mockedFetch.mockResolvedValueOnce(jsonResponse({ runs: [{ id: 'r10', status: 'running' }] }));
         await act(async () => { run = await result.current.hydrateLastRun(); });
         expect(run).toBeNull();
@@ -335,12 +338,12 @@ describe('useAutomationBuilderStream characterisation: run controls (2)', () => 
             { stepId: 's2', status: 'success' },
         ]);
         const runCall = mockedFetch.mock.calls.find(c => String(c[0]).includes('/steps/s1/run'))!;
-        expect(JSON.parse(String((runCall[1] as RequestInit).body))).toEqual({ mode: 'only' });
+        expect(JSON.parse(String((runCall[1] as RequestInit).body))).toEqual({ mode: 'only', respond: 'created' });
 
         mockedFetch.mockClear();
         await act(async () => { await result.current.retryFromStep('s2', { triggerPayload: { a: 1 } }); });
         const retryCall = mockedFetch.mock.calls.find(c => String(c[0]).includes('/steps/s2/run'))!;
-        expect(JSON.parse(String((retryCall[1] as RequestInit).body))).toEqual({ mode: 'from', triggerPayload: { a: 1 } });
+        expect(JSON.parse(String((retryCall[1] as RequestInit).body))).toEqual({ mode: 'from', triggerPayload: { a: 1 }, respond: 'created' });
     });
 
     it('dismissProposal / dismissPlan clear their previews; hydrate keeps the draft over a blank snapshot', () => {

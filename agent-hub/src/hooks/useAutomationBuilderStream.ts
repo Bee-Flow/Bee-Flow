@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { BuilderSnapshot, BuilderStreamData, BuilderValidation } from './builderStream';
 import { openTurn } from './builderStream';
 import { isBlankDefinition } from '../components/automation/Builder/flow/normalizeDefinition';
@@ -8,6 +8,7 @@ import type { AutomationBuilderInitial, AutomationBuilderSendOptions, Automation
 import { handle } from './automationBuilder/reducer';
 import { finalizeStreaming, questionsPlanIdOf } from './automationBuilder/streamHelpers';
 import useRunControls from './automationBuilder/useRunControls';
+import { runPhase } from '../components/automation/Builder/runs/runPhase';
 import { logger } from '../utils/logger';
 
 export type { AutomationBuilderSendOptions, AutomationBuilderInitial, AutomationBuilderState, BuilderWebSearchStatus } from './automationBuilder/types';
@@ -59,11 +60,16 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
         webSearch: null,
     });
     const abortRef = useRef<AbortController | null>(null);
-    const { watchActiveRun, executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, settleRun, hydrateLastRun, setRunResult } = useRunControls(state, setState);
+    const { executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, settleRun, hydrateLastRun, setRunResult, followRun, continueRun } = useRunControls(state, setState, { phaseOf: runPhase });
+    // The AI builder's dry run is followed by the id in `dryrun_started`, and
+    // its `dryrun` event lands through the tracker too: the stream's end,
+    // abort or error does not settle a run (run-watch F6), the tracker does.
+    const streamRuns = useMemo(() => ({ follow: followRun, adopt: setRunResult }), [followRun, setRunResult]);
 
     const reset = useCallback(() => {
-        setState(s => ({ ...s, messages: [], draft: null, summary: '', dryRun: null, steps: [], finalizedId: null, lastDone: null, error: null, validation: null, aborted: null, todos: [], toolDraft: null, dryRunSeq: 0, reviewPlan: null, reviewQuestions: null, proposal: null }));
-    }, []);
+        clearDryRun();
+        setState(s => ({ ...s, messages: [], draft: null, summary: '', finalizedId: null, lastDone: null, error: null, validation: null, aborted: null, todos: [], toolDraft: null, dryRunSeq: 0, reviewPlan: null, reviewQuestions: null, proposal: null }));
+    }, [clearDryRun]);
 
     /**
      * Rehydrate from a server-persisted builder snapshot. Called by
@@ -222,7 +228,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 return;
             }
             for await (const { event, data } of readEventStream<BuilderStreamData>(resp, { signal: ac.signal })) {
-                handle(setState, event, data);
+                handle(setState, event, data, streamRuns);
             }
         } catch (e) {
             const failure = e instanceof Error ? e : new Error(String(e));
@@ -236,7 +242,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             }
         }
         setState(s => ({ ...s, running: false, toolDraft: null, messages: finalizeStreaming(s.messages) }));
-    }, [state.builderSessionId, state.automationId, state.messages]);
+    }, [state.builderSessionId, state.automationId, state.messages, streamRuns]);
 
     /**
      * Dismiss the fatal-error banner, and nothing else (BFSF-370).
@@ -288,7 +294,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             : s));
     }, []);
 
-    return { state, send, stop, reset, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, clearError, setValidation, settleRun, setRunResult, watchActiveRun };
+    return { state, send, stop, reset, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, clearError, setValidation, settleRun, setRunResult, followRun, continueRun };
 }
 
 async function safeText(r: Response): Promise<string> {

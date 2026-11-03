@@ -53,7 +53,25 @@ function answersRefOf(session) {
     return h.answers_row_id ? { datatableId: h.answers_datatable_id || null, rowId: h.answers_row_id } : null;
 }
 
+/**
+ * The runner options of a first submission's run: who started it and what
+ * kind of run it is (automation/formSubmission.mts). The signed-in submitter of
+ * a members-only form is the person a run on the caller's own connections acts
+ * for, and a test's submitter its sandbox approval seat; a public form is a
+ * system start. A dry run pauses for real (the builder), a test run is a test
+ * link's or the builder's live test, a production submission adds nothing.
+ * @param {FormWork} work
+ * @returns {{ startedByUserId: string | null, mode?: 'dry_run', pausesRequested?: true, isTest?: true, origin?: string }}
+ */
+function runKindOf(work) {
+    const startedByUserId = work.publicForm ? null : (work.submitterId || null);
+    if (work.mode === 'dry_run') return { startedByUserId, mode: 'dry_run', pausesRequested: true, origin: work.origin || 'builder' };
+    if (work.isTest === true) return { startedByUserId, isTest: true, origin: work.origin || 'test_link' };
+    return { startedByUserId };
+}
+
 module.exports = {
+    runKindOf,
     QUEUE_DEPTH,
     RETRY_DELAYS_MS,
     CANCELLED_RE,

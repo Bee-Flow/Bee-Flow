@@ -33,7 +33,7 @@ type HeaderRow = NonNullable<BuilderHeaderProps['automation']> & StepRow & {
 /** What the shell hands over for the header; the rest is derived here. */
 export interface HeaderInputs extends Pick<BuilderHeaderProps,
     | 'busy' | 'onBack' | 'backLabel' | 'onOpenList' | 'onExportJson' | 'onActivate' | 'onDeactivate'
-    | 'onDryRun' | 'onRunLive' | 'onDiagnose' | 'onRename' | 'mode' | 'orgGroups' | 'onPublishStep'
+    | 'onDryRun' | 'onRunLive' | 'runBlocked' | 'onDiagnose' | 'onRename' | 'mode' | 'orgGroups' | 'onPublishStep'
     | 'onSetStepSharing' | 'onSetStepExpose' | 'onSetStepIcon' | 'onSetStepCategory' | 'scope'
     | 'onExitScope' | 'onDeleteLayer' | 'diagnoseAnchorRef' | 'savingState' | 'onPublish'
     | 'breadcrumbSlot' | 'triggers' | 'tab'> {
@@ -77,7 +77,7 @@ export function buildHeaderProps(i: HeaderInputs): BuilderHeaderProps {
         isActive, isDraft, statusLabel, statusBadgeClass, canActivate,
         canDiagnose: isAppEventTrigger, busy: i.busy, onBack: i.onBack, backLabel: i.backLabel, onOpenList: i.onOpenList,
         onExportJson: isStep ? null : i.onExportJson, onActivate: i.onActivate, onDeactivate: i.onDeactivate,
-        onDryRun: i.onDryRun, onRunLive: i.onRunLive, onDiagnose: i.onDiagnose, onRename: i.onRename, mode: i.mode,
+        onDryRun: i.onDryRun, onRunLive: i.onRunLive, runBlocked: i.runBlocked, onDiagnose: i.onDiagnose, onRename: i.onRename, mode: i.mode,
         onAssistant: isStep || readOnly ? null : () => i.askAssistant(), assistantOpen: i.assistantOpen && !readOnly,
         // The "Start from" choice in the run menu: every additional trigger by
         // name, plus what to call the primary one.

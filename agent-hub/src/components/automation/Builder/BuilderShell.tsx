@@ -49,7 +49,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const apiGetOne = isStep ? api.getStep : api.getAutomation;
     const apiCreateOne = isStep ? api.createStep : api.createAutomation;
     const apiUpdateOne = isStep ? api.updateStep : api.updateAutomation;
-    const { state, send, stop: stopBuild, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, retryFromStep, stopRun, pollRunProgress, setRunResult, watchActiveRun, clearDryRun, clearError, setValidation, settleRun } = useAutomationBuilderStream({ automationId });
+    const { state, send, stop: stopBuild, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, stopRun, setRunResult, followRun, continueRun, clearError, setValidation } = useAutomationBuilderStream({ automationId });
     const { serverAutomation, setServerAutomation } = useBuilderHydration({
         state, automationId, apiGetOne, unwrapRow, isStep, hydrate, hydrateLastRun, onAutomationIdResolved,
     });
@@ -212,9 +212,12 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         alwaysPlanLarge, autoSendInput, forcedTier, tierForSend, assistantContext, ndvStepId, scopeKey, seedMetadata,
         turnBaseRef, send,
     });
-    const { formTest, handleExecuteStep, onDryRun, onRunLive, onFormTestRun, closeFormTest, openFormOverlay } = useBuilderRuns({
-        api, state, effectiveDef, executeStep, watchActiveRun, setRunResult, settleRun, clearDryRun,
-        ensureAutomationCreated, noteManagedRefusal, setBusy, setError, confirm, setTab, ndvStepId, openNdv,
+    const {
+        formTest, handleExecuteStep, handleRetryFromStep, onDryRun, onRunLive, onFormTestRun, onFollowRun, closeFormTest,
+        openFormOverlay, runBlocked,
+    } = useBuilderRuns({
+        api, state, effectiveDef, executeStep, followRun, continueRun, setRunResult,
+        ensureAutomationCreated, noteManagedRefusal, busy, setBusy, setError, confirm, setTab,
     });
     const {
         aiActGate, setAiActGate, retryAfterAiAct, diagnoseAnchorRef,
@@ -250,10 +253,9 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
      * keeps Esc context-aware without a separate focus tracker.
      */
     const onEscape = useCallback(() => {
-        if (ndvStepId) {
-            closeNdv();
-        }
-    }, [ndvStepId, closeNdv]);
+        if (formTest) { closeFormTest(); return; }
+        if (ndvStepId) closeNdv();
+    }, [formTest, closeFormTest, ndvStepId, closeNdv]);
 
     useBuilderHotkeys({
         enabled: true,
@@ -261,6 +263,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         onRedo: draftHistory.redo,
         onSave: forceSaveNow,
         onDryRun,
+        runBlocked,
         onEscape,
         onAssistant: () => askAssistant(),
     });
@@ -277,7 +280,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const secondaryTriggers = useMemo(() => secondaryTriggerOptions(effectiveDef), [effectiveDef]);
     const headerProps = buildHeaderProps({
         serverAutomation, effectiveDef, isStep, readOnly, managedPart, busy, tab, setTab, draftHistory, assistantOpen, askAssistant,
-        onBack, backLabel, onOpenList, onExportJson, onActivate, onDeactivate, onDryRun, onRunLive, onDiagnose, onRename, mode,
+        onBack, backLabel, onOpenList, onExportJson, onActivate, onDeactivate, onDryRun, onRunLive, runBlocked, onDiagnose, onRename, mode,
         orgGroups, onPublishStep, onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory, scope, onExitScope,
         onDeleteLayer, diagnoseAnchorRef, savingState, onPublish, triggers: secondaryTriggers,
         breadcrumbSlot: breadcrumbSlot({ appRef, isStep, persistedAutomationId, readOnly, managedPart, managedNotDeployed }),
@@ -294,7 +297,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             }}
             build={{
                 headerProps, mode, state, user, onSend, workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge,
-                assistantContext, chatWidth, onChatResizeStart, formTest, onFormTestRun, onCloseFormTest: closeFormTest,
+                assistantContext, chatWidth, onChatResizeStart, formTest, onFormTestRun, onFollowRun, onCloseFormTest: closeFormTest,
                 onOpenFormOverlay: openFormOverlay, onOpenRun: openRunInRuns,
                 // The persisted row: the webhook trigger's node panel needs its id to list/create webhook URLs (BFSF-320).
                 automation: serverAutomation,
@@ -302,8 +305,8 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                 selectedTier: tierForSend, setSelectedTier: setTierForPicker, onApplyProposal: applyProposal, applyingProposal,
                 catalogNonce, onStopBuild: stopBuild, messagesContainerRef, messagesBodyRef, messagesEndRef, onMessagesScroll,
                 ndvStepId, ndvDensity, setNdvDensity, ndvMode, onNdvModeChange: setNdvMode, openNdv, closeNdv, stepById,
-                runStepById, onSaveStep, onVisualEdit, onExecuteStep: handleExecuteStep, onRetryFromStep: retryFromStep,
-                onStopRun: stopRun, pollRunProgress, onDismissFatal: handleDismissFatal, onDiagnose, acceptExternalDraft,
+                runStepById, onSaveStep, onVisualEdit, onExecuteStep: handleExecuteStep, onRetryFromStep: handleRetryFromStep,
+                onStopRun: stopRun, onDismissFatal: handleDismissFatal, onDiagnose, acceptExternalDraft,
                 dismissExternalDraft, onBuildLayer, onRefineLayer, layerAgentState: layerAgent.state,
             }}
             {...{ readOnly, assistantOpen, setAssistantOpen, setAssistantContext, askAssistant, error, clearReview, syncServerRow }}

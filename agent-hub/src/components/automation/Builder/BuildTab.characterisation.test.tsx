@@ -67,7 +67,7 @@ function renderTab(props: Record<string, unknown> = {}) {
         chatInput: '', setChatInput: vi.fn(), modelTiers: [], selectedTier: null, setSelectedTier: vi.fn(), user: null,
         onSend: vi.fn(), messagesContainerRef: { current: null }, messagesEndRef: { current: null },
         ndvStepId: null, openNdv: vi.fn(), closeNdv: vi.fn(), stepById: () => null, runStepById: () => null, onSaveStep: vi.fn(),
-        onExecuteStep: vi.fn(), onRetryFromStep: vi.fn(), onStopRun: vi.fn(), pollRunProgress: vi.fn(),
+        onExecuteStep: vi.fn(), onRetryFromStep: vi.fn(), onStopRun: vi.fn(),
         fatalError: null, onDismissFatal: vi.fn(),
         ...props,
     };

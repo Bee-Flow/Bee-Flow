@@ -180,7 +180,9 @@ async function handleStepFailure(deps, err, f) {
                 status: isForm ? 'awaiting_form' : 'awaiting_approval',
                 startedAt: stepStartedAt, finishedAt: new Date().toISOString(),
                 input: inputForRecord,
-                output: isForm ? { form: err.form } : { prompt: err.prompt }, error: null,
+                // A dry run that pauses for real also keeps its routing
+                // preview (execApproval.js, dryPause.mts): counts, no names.
+                output: isForm ? { form: err.form } : { prompt: err.prompt, ...(err.preview ? { _preview: err.preview } : {}) }, error: null,
                 secretValues,
                 bindingWarnings,
             });

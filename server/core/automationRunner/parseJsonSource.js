@@ -42,9 +42,11 @@ function resolveParseJsonSource(step, ctx, runState) {
     }
     const triggerIds = triggerIdsOf(ctx);
     for (const e of incomingEdges(step, ctx)) {
-        const v = triggerIds.has(e.from)
+        const from = e.from;
+        if (!from) continue;
+        const v = triggerIds.has(from)
             ? runState.trigger?.output
-            : runState.steps?.[e.from]?.output;
+            : runState.steps?.[from]?.output;
         if (v !== undefined) return v;
     }
     throw new Error('parse_json: no source — set the Source field or wire an upstream step.');
@@ -88,7 +90,7 @@ function parseJsonSourceSynthetic(step, ctx, runState) {
     if (typeof step.sourceRef === 'string' && step.sourceRef.trim()) return refIsSynthetic(step.sourceRef.trim(), runState, ctx || {});
     const triggerIds = triggerIdsOf(ctx);
     return incomingEdges(step, ctx)
-        .some((e) => (triggerIds.has(e.from) ? !!ctx?.triggerSynthetic : refIsSynthetic(`steps.${e.from}`, runState, ctx || {})));
+        .some((e) => !!e.from && (triggerIds.has(e.from) ? !!ctx?.triggerSynthetic : refIsSynthetic(`steps.${e.from}`, runState, ctx || {})));
 }
 
 /**

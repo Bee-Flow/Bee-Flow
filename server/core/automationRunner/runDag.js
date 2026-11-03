@@ -17,6 +17,7 @@ const {
 const { replayGapError } = require('./replayGaps');
 const { reachableFrom, createFanInGate, ancestorsOf, descendantsOf, createTakeNext } = require('./runDagGraph');
 const { dispatchLiveStep } = require('./runDagRecord');
+const { approvalRouteLabel } = require('../automationModel/edgeLabels.mts');
 
 /**
  * @typedef {{
@@ -141,6 +142,10 @@ function replayRoute(step, { replayedEntry, hasReplayData }, { adj, replayGaps, 
                 `${step.type} ${step.id} was replayed without a recorded branch — nothing downstream of it ran`,
             );
         }
+    } else {
+        // An approval routes on the decision it carries — on a resume that is
+        // the decision just injected — by the same rule as the live dispatch.
+        nextLabel = approvalRouteLabel(step, replayed);
     }
     return { nextLabel, branchOutput: replayed || null };
 }

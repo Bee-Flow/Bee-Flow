@@ -7,11 +7,19 @@ import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import PublicFormRenderer from '../../forms/PublicFormRenderer';
 import type { FormDef, FormFieldDef } from '../../forms/PublicFormRenderer.types';
 import { logger } from '@/utils/logger';
+import type { FormRunFollow, FormRunMode, FormRunStart } from './formRunContract';
 
 function headerTitle(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, attached: boolean, hasStep: boolean) {
     if (attached) return t('automations.form_run_overlay.live_run_title', 'Live run — this page is waiting for you');
     if (hasStep) return t('automations.form_run_overlay.next_page_title', 'Test — the next page');
     return t('automations.form_run_overlay.test_this_form', 'Test this form');
+}
+
+/** The line above the page: a paused journey, or what Submit on page one starts. */
+function pageHint(t: (key: string | undefined, fallback?: string) => string, paused: boolean, mode: FormRunMode) {
+    if (paused) return t('automations.form_run_overlay.paused_hint', 'The automation paused here and is waiting for an answer.');
+    if (mode === 'dry') return t('automation_testing.overlay.first_page_hint_dry', 'What you submit starts a dry run with these answers as the trigger: nothing is sent or written, and forms and approvals wait for you here.');
+    return t('automations.form_run_overlay.first_page_hint', 'What you submit runs the automation for real, with these answers as the trigger.');
 }
 
 /**
@@ -45,7 +53,12 @@ interface FormRunOverlayProps {
     automationId: string | null | undefined;
     form?: FormDef;
     runId?: string | null;
-    onStartRun: (answers: Record<string, unknown>) => Promise<{ run?: { id?: string }; id?: string } | null | undefined>;
+    /** Start the run page one asked for (formRunContract.ts): 'started' carries the id to follow. */
+    onStartRun: FormRunStart;
+    /** What Submit on page one starts: a dry run unless the overlay was opened from Run live. */
+    startMode?: FormRunMode;
+    /** The canvas follows a run by id; for the continuation of a journey. */
+    onFollowRun?: FormRunFollow;
     onClose: (e?: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -66,9 +79,10 @@ export default function FormRunOverlay({
     // With no `form`, the overlay starts in 'working' and follows that run, so
     // the page it is waiting on shows up here instead of in a new browser tab.
     runId: attachRunId = null,
-    // (answers) => Promise<{ run }>. Starts the live run. Owned by the shell,
-    // because that is what holds the run stream the canvas is animating.
+    // (answers, { mode }) => Promise<{ kind, runId }>. Starts the run. Owned by
+    // the shell, because that is what follows the run the canvas is showing.
     onStartRun,
+    startMode = 'dry',
     onClose,
 }: FormRunOverlayProps) {
     const { t } = useTranslation();
@@ -141,11 +155,17 @@ export default function FormRunOverlay({
         setPhase('working');
         try {
             if (!page.stepId) {
-                const out = await onStartRun(answers);
-                const id = out?.run?.id || out?.id || null;
-                setRunId(id);
-                if (!id) { setPhase('done'); return; }
-                await follow(id);
+                const out = await onStartRun(answers, { mode: startMode });
+                // Nothing started is never "finished": a no back to the page,
+                // a skip says why.
+                if (out.kind === 'declined') { setPhase('form'); return; }
+                if (out.kind !== 'started') {
+                    setPhase('error');
+                    setError(out.message || t('automation_testing.overlay.nothing_started', 'Nothing was started.'));
+                    return;
+                }
+                setRunId(out.runId);
+                await follow(out.runId);
                 return;
             }
             const out = await apiClient.post<RunFormState>(`/api/automation/runs/${encodeURIComponent(String(runId))}/form`, {
@@ -159,7 +179,7 @@ export default function FormRunOverlay({
             setPhase('error');
             setError((e as Error)?.message || t('automations.form_run_overlay.could_not_start', 'That run could not be started.'));
         }
-    }, [page.stepId, runId, onStartRun, follow, t]);
+    }, [page.stepId, runId, onStartRun, startMode, follow, t]);
 
     return (
         <div
@@ -190,9 +210,7 @@ export default function FormRunOverlay({
                             {/* Answers go through the automation for real — the
                                 overlay is a test of the flow, not of the page. */}
                             <p className="mb-3 text-[11px] text-[var(--text-tertiary)]">
-                                {page.stepId
-                                    ? t('automations.form_run_overlay.paused_hint', 'The automation paused here and is waiting for an answer.')
-                                    : t('automations.form_run_overlay.first_page_hint', 'What you submit runs the automation for real, with these answers as the trigger.')}
+                                {pageHint(t, !!page.stepId, startMode)}
                             </p>
                             <FormScenarioPicker automationId={automationId} stepId={page.stepId} onPick={setPrefill} />
                             <PublicFormRenderer
