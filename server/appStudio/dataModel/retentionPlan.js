@@ -67,10 +67,12 @@ function dependentDatedColumn(table, declared) {
 // incremental stamp names a column, so "Only fetch new mail" being off does not
 // make the retention promise unkeepable. Date types only.
 const MAILBOX_DATE_COLUMNS = ['last_message_at', 'received_at'];
+// The message grain's own date (the message table in thread mode).
+const MAILBOX_MESSAGE_DATE_COLUMNS = ['received_at'];
 
-function mailboxDateColumn(table) {
+function mailboxDateColumn(table, names = MAILBOX_DATE_COLUMNS) {
     const fields = (table && table.fields) || [];
-    for (const name of MAILBOX_DATE_COLUMNS) {
+    for (const name of names) {
         const column = retentionColumn(table, name);
         const field = column ? fields.find((f) => f && f.key === column) : null;
         if (field && (field.type === 'datetime' || field.type === 'date')) return column;
@@ -108,6 +110,12 @@ function mailboxDateColumn(table) {
  * Dependents run AFTER the primary and the children (their parent's purge must
  * have happened for a cascade to see the orphans), in declared order.
  *
+ * A MAILBOX connector keeps only the MAIL: the plan covers the message grain
+ * (dated on received_at, or the declared/stamp column) and the attachments
+ * below it (cascade). The conversation table and `sync.dependents` are app
+ * records (status, assignee, project lines, activity) and are never purged,
+ * so they are neither steps nor `unreachable`.
+ *
  * Anything else lands in `unreachable`, and a connector that promises
  * `retentionDays` with a non-empty `unreachable` must not be saved.
  *
@@ -127,17 +135,24 @@ function planRetention(model, connector) {
     const primary = byId.get(sync.tableId) || null;
     if (!primary) return { days, steps, unreachable: [String(sync.tableId ?? 'unknown table')] };
 
-    const declaredField = typeof sync.retentionField === 'string' && sync.retentionField ? sync.retentionField : null;
-    const primaryColumn = datedColumn(primary, sync.retentionField, stamp)
-        || (!declaredField && connector.kind === 'mailbox' ? mailboxDateColumn(primary) : null);
-    if (primaryColumn) steps.push({ level: 0, table: primary, mode: 'column', column: primaryColumn });
-    else unreachable.push(primary.key);
+    const isMailbox = connector.kind === 'mailbox';
+    // Thread mode: the primary table holds conversations (app records), the mail is level 1.
+    const keepPrimary = isMailbox && connector.groupIntoThreads === true;
 
-    const tableByLevel = new Map([[0, primary]]);
+    const declaredField = typeof sync.retentionField === 'string' && sync.retentionField ? sync.retentionField : null;
     // Tables this plan governs, by id — what a dependent's cascade may name as
     // its parent. A cascade to a table the plan never purges would delete
     // nothing forever, which is exactly the silence `unreachable` exists to end.
-    const governedById = new Map([[primary.id, primary]]);
+    const governedById = new Map();
+    if (!keepPrimary) {
+        const primaryColumn = datedColumn(primary, sync.retentionField, stamp)
+            || (!declaredField && isMailbox ? mailboxDateColumn(primary) : null);
+        if (primaryColumn) steps.push({ level: 0, table: primary, mode: 'column', column: primaryColumn });
+        else unreachable.push(primary.key);
+        governedById.set(primary.id, primary);
+    }
+
+    const tableByLevel = new Map([[0, primary]]);
     const children = (Array.isArray(sync.children) ? sync.children : [])
         .filter(isPlainObject)
         .slice()
@@ -149,11 +164,14 @@ function planRetention(model, connector) {
         tableByLevel.set(child.level, table);
         governedById.set(table.id, table);
 
-        const column = datedColumn(table, child.retentionField, stamp);
+        const declaredChild = typeof child.retentionField === 'string' && child.retentionField;
+        const column = datedColumn(table, child.retentionField, stamp)
+            || (isMailbox && !declaredChild ? mailboxDateColumn(table, MAILBOX_MESSAGE_DATE_COLUMNS) : null);
         if (column) { steps.push({ level: child.level, table, mode: 'column', column }); continue; }
 
         const parent = tableByLevel.get(child.parentLevel ?? 0) || null;
-        if (child.retentionCascade && parent && typeof child.relationField === 'string') {
+        // A mailbox never cascades from a table it does not purge (the conversation).
+        if (child.retentionCascade && parent && (!isMailbox || governedById.has(parent.id)) && typeof child.relationField === 'string') {
             steps.push({ level: child.level, table, mode: 'cascade', relationField: child.relationField, parentTable: parent });
             continue;
         }
@@ -164,7 +182,7 @@ function planRetention(model, connector) {
     // governs. They get levels past every child so their steps sort after the
     // rows they hang off — a cascade dependent looks for orphans, and there are
     // none until its parent's own purge has run.
-    const dependents = (Array.isArray(sync.dependents) ? sync.dependents : []).filter(isPlainObject);
+    const dependents = isMailbox ? [] : (Array.isArray(sync.dependents) ? sync.dependents : []).filter(isPlainObject);
     let dependentLevel = Math.max(0, ...children.map((c) => c.level || 0)) + 1;
     for (const dep of dependents) {
         const table = byId.get(dep.tableId);

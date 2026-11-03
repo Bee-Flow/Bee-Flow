@@ -23,7 +23,7 @@
  */
 
 import { createRequire } from 'node:module';
-import { fileIdsFromRows } from './connectorRetention.mts';
+import { fileIdsFromRows, collectFileIds } from './connectorRetention.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -219,28 +219,6 @@ export function connectorsFilling(model: Model, tableIds: Set<string>): string[]
 }
 
 /** Plan, run in one transaction, then clean up after the commit. Returns the result or a refusal. */
-const FILE_PAGE = 5000;
-
-/** Every studio-attachment id in the file columns of these tables, read in id-ordered pages. */
-async function collectFileIds(app: App, tables: Table[], query: NonNullable<EmptyDeps['query']>): Promise<string[]> {
-    const ids: string[] = [];
-    for (const table of tables) {
-        const fileFields = (table.fields || []).filter((f) => f && f.type === 'file');
-        if (!fileFields.length) continue;
-        const cols = fileFields.map((f) => qi(f.key)).join(', ');
-        const some = fileFields.map((f) => `${qi(f.key)} IS NOT NULL`).join(' OR ');
-        let after = '';
-        for (;;) {
-            const { rows = [] } = await query(app.userId, app.id,
-                `SELECT "id", ${cols} FROM ${qi(table.key)} WHERE (${some}) AND "id" > ? ORDER BY "id" LIMIT ${FILE_PAGE}`, [after]);
-            ids.push(...fileIdsFromRows(fileFields, rows));
-            if (rows.length < FILE_PAGE) break;
-            after = String(rows[rows.length - 1].id);
-        }
-    }
-    return ids;
-}
-
 export async function emptyAppData(app: App, model: Model, tableIds: string[] | undefined, deps: EmptyDeps): Promise<EmptyResult | EmptyRefusal> {
     const plan = planEmpty(model, tableIds);
     if ('status' in plan) return plan;

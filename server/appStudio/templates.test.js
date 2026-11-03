@@ -505,24 +505,13 @@ test('app-quote-intake: intake, operations and retention hold their contracts', 
         'some column maps base_name — the upsert key');
     assert.strictEqual(intake.writeTo.mapping.basisnaam, 'base_name', 'and it is basisnaam');
     assert.ok(intake.writeTo.constants.thread_key, 'rows name their conversation');
-    assert.ok(intake.writeTo.constants.toegevoegd_op, 'and carry the retention stamp');
+    assert.ok(intake.writeTo.constants.toegevoegd_op, 'and record when the line was added');
 
-    // The connector governs the lifetime of the tables it never writes: the
-    // dependents declaration is what pulls projectregels, activiteit and
-    // eindcontrole into the retention purge (the old KNOWN GAP, closed).
+    // A mailbox purge removes the mail copy only: the request, project lines,
+    // activity and final-check findings are the team's records, so the
+    // connector declares no dependents (the purge would ignore them anyway).
     const mailbox = t.dataModel.connectors.find((c) => c.kind === 'mailbox');
-    const deps = mailbox.sync.dependents;
-    assert.deepEqual(
-        deps.map((d) => d.tableId).sort(),
-        ['tbl_qiact', 'tbl_qicheck', 'tbl_qiline'].sort(),
-        'all three thread_key-linked tables are declared',
-    );
-    for (const dep of deps) {
-        const table = t.dataModel.tables.find((x) => x.id === dep.tableId);
-        const field = table.fields.find((f) => f.key === dep.retentionField);
-        assert.ok(field, `${table.key}: retentionField "${dep.retentionField}" exists`);
-        assert.strictEqual(field.type, 'datetime', `${table.key}: retentionField is a datetime column`);
-    }
+    assert.strictEqual(mailbox.sync.dependents, undefined, 'no dependents: app records stay');
 });
 
 test('app-quote-intake: reply, classification and roles hold their contracts', () => {

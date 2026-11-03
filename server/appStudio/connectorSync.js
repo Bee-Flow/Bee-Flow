@@ -384,6 +384,8 @@ async function purgePastRetention(app, model, connector, deps) {
         purged = await runRetention({
             app, model, connectorId: connector.id, steps: plan.steps, cutoffIso: cutoff, deps,
             purgeAttachments: (ids) => purgeAttachments(app, ids, deps),
+            // A mailbox purge removes the mail copy only; an app record may hold the same file.
+            protectReferencedFiles: connector.kind === 'mailbox',
         });
     }
 

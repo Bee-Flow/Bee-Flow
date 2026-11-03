@@ -54,12 +54,11 @@ const flatConnector = (sync = {}) => ({
 
 // ── planRetention ────────────────────────────────────────────────────────────
 
-test('thread mode, incremental off: the conversation table is purged on last_message_at, children cascade', () => {
+test('thread mode, incremental off: only the MESSAGES are purged, on received_at; the conversation stays', () => {
     const plan = planRetention(MODEL, threadConnector());
     assert.deepEqual(plan.unreachable, []);
     assert.deepEqual(plan.steps.map((s) => [s.table.key, s.mode, s.column ?? s.relationField]), [
-        ['threads', 'column', 'last_message_at'],
-        ['messages', 'cascade', 'ticket'],
+        ['messages', 'column', 'received_at'],
     ]);
 });
 
@@ -69,15 +68,27 @@ test('flat mode, incremental off: the message table is purged on received_at', (
     assert.deepEqual(plan.steps.map((s) => [s.table.key, s.column]), [['messages', 'received_at']]);
 });
 
-test('a declared retentionField wins over the fallback, and a wrong one is not hidden by it', () => {
-    const withExtra = model({ ...THREADS, fields: [...THREADS.fields, { id: 'fld_t00009', key: 'closed_at', name: 'Closed', type: 'datetime' }] }, MESSAGES);
-    assert.equal(planRetention(withExtra, threadConnector({ retentionField: 'closed_at' })).steps[0].column, 'closed_at');
-    assert.deepEqual(planRetention(MODEL, threadConnector({ retentionField: 'nope' })).unreachable, ['threads']);
+test('a declared retentionField wins over the fallback (flat: on the table, thread: on the message child), and a wrong one is not hidden by it', () => {
+    const withExtra = model(THREADS, { ...MESSAGES, fields: [...MESSAGES.fields, { id: 'fld_m00009', key: 'closed_at', name: 'Closed', type: 'datetime' }] });
+    const child = (extra) => ({ children: [{ tableId: MESSAGES.id, level: 1, parentLevel: 0, relationField: 'ticket', mode: 'upsert', keyField: 'provider_message_id', ...extra }] });
+    assert.equal(planRetention(withExtra, threadConnector(child({ retentionField: 'closed_at' }))).steps[0].column, 'closed_at');
+    assert.deepEqual(planRetention(MODEL, threadConnector(child({ retentionField: 'nope' }))).unreachable, ['messages']);
+    assert.equal(planRetention(withExtra, flatConnector({ retentionField: 'closed_at' })).steps[0].column, 'closed_at');
+    assert.deepEqual(planRetention(MODEL, flatConnector({ retentionField: 'nope' })).unreachable, ['messages']);
 });
 
-test('the fallback needs a date column: a text last_message_at does not count', () => {
-    const textual = model({ ...THREADS, fields: THREADS.fields.map((f) => (f.key === 'last_message_at' ? { ...f, type: 'text' } : f)) }, MESSAGES);
-    assert.deepEqual(planRetention(textual, threadConnector()).unreachable, ['threads']);
+test('the fallback needs a date column: a text received_at does not count, a conversation without any date does', () => {
+    const textual = model(THREADS, { ...MESSAGES, fields: MESSAGES.fields.map((f) => (f.key === 'received_at' ? { ...f, type: 'text' } : f)) });
+    assert.deepEqual(planRetention(textual, threadConnector()).unreachable, ['messages']);
+    const undated = model({ ...THREADS, fields: THREADS.fields.filter((f) => f.key !== 'last_message_at') }, MESSAGES);
+    assert.deepEqual(planRetention(undated, threadConnector()).unreachable, [], 'the conversation is never purged, so it needs no date');
+});
+
+test('a mailbox never purges its conversation table or its dependents', () => {
+    const lines = { id: 'tbl_line00', key: 'lines', name: 'Lines', fields: [{ id: 'fld_l00001', key: 'added_at', name: 'Added', type: 'datetime' }] };
+    const plan = planRetention(model(THREADS, MESSAGES, lines), threadConnector({ dependents: [{ tableId: lines.id, retentionField: 'added_at' }] }));
+    assert.deepEqual(plan.steps.map((s) => s.table.key), ['messages']);
+    assert.deepEqual(plan.unreachable, []);
 });
 
 test('only a MAILBOX connector falls back: any other kind without a date column stays unreachable', () => {
@@ -94,6 +105,13 @@ test('save: a thread-mode Outlook mailbox with retentionDays 365 and incremental
     assert.ok(!errors.some((e) => /retentionDays promises/.test(e)), JSON.stringify(errors));
 });
 
+test('save: a thread-mode mailbox whose conversation table has no date column is accepted; one whose message table cannot be dated is refused', () => {
+    const undated = model({ ...THREADS, fields: THREADS.fields.filter((f) => f.key !== 'last_message_at') }, MESSAGES);
+    assert.ok(!errsOf(threadConnector(), undated).some((e) => /retentionDays promises/.test(e)));
+    const noReceived = model(THREADS, { ...MESSAGES, fields: MESSAGES.fields.filter((f) => f.key !== 'received_at') });
+    assert.ok(errsOf(threadConnector(), noReceived).some((e) => /nothing would ever delete rows from messages/.test(e)));
+});
+
 test('save: a non-mailbox connector without any date column is refused exactly as before', () => {
     const plain = model({ id: 'tbl_aaaaaa', key: 'emails', name: 'Emails', fields: [{ id: 'fld_aaaaaa', key: 'subject', name: 'Subject', type: 'text' }] });
     const errors = errsOf({ id: 'conn_ab12cd', kind: 'integration_tool', name: 'Emails', tool: 'gmail_search',
@@ -103,7 +121,7 @@ test('save: a non-mailbox connector without any date column is refused exactly a
 
 // ── the purge, on a real database ────────────────────────────────────────────
 
-test('the purge deletes on last_message_at (real SQLite), the messages go with their conversation', async () => {
+test('the purge deletes expired messages on received_at (real SQLite); the conversation stays', async () => {
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
     const tableKeyById = new Map(MODEL.tables.map((t) => [t.id, t.key]));
@@ -111,8 +129,8 @@ test('the purge deletes on last_message_at (real SQLite), the messages go with t
     const young = new Date().toISOString();
     db.prepare('INSERT INTO threads (id, thread_key, last_message_at) VALUES (?,?,?)').run('c_old', 'a', '2020-01-01T00:00:00.000Z');
     db.prepare('INSERT INTO threads (id, thread_key, last_message_at) VALUES (?,?,?)').run('c_new', 'b', young);
-    db.prepare('INSERT INTO messages (id, provider_message_id, ticket) VALUES (?,?,?)').run('m_old', 'x', 'c_old');
-    db.prepare('INSERT INTO messages (id, provider_message_id, ticket) VALUES (?,?,?)').run('m_new', 'y', 'c_new');
+    db.prepare('INSERT INTO messages (id, provider_message_id, ticket, received_at) VALUES (?,?,?,?)').run('m_old', 'x', 'c_old', '2020-01-01T00:00:00.000Z');
+    db.prepare('INSERT INTO messages (id, provider_message_id, ticket, received_at) VALUES (?,?,?,?)').run('m_new', 'y', 'c_new', young);
 
     const deps = {
         runConnector: async () => ({ rows: [] }),
@@ -136,7 +154,7 @@ test('the purge deletes on last_message_at (real SQLite), the messages go with t
         buildAttachmentKey: (o, a, sha) => `${o}/${a}/${sha}`,
     };
     await connectorSync.syncConnector(app, MODEL, threadConnector({ retentionDays: 30 }), { _deps: deps });
-    assert.deepEqual(db.prepare('SELECT id FROM threads').all().map((r) => r.id), ['c_new']);
+    assert.deepEqual(db.prepare('SELECT id FROM threads ORDER BY id').all().map((r) => r.id), ['c_new', 'c_old'], 'the conversation is an app record');
     assert.deepEqual(db.prepare('SELECT id FROM messages').all().map((r) => r.id), ['m_new']);
 });
 

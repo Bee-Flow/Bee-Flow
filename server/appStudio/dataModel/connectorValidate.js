@@ -35,6 +35,7 @@ const {
     MAILBOX_THREAD_KEY_FIELD,
     MAX_MAILBOX_RETENTION_DAYS,
 } = require('./vocabulary');
+const { planOutlookQuery } = require('../../core/integrations/outlookQuery.mts');
 
 // A REST url TEMPLATE: https-only, host fixed by the owner (never templated),
 // and every {placeholder} must be a declared param. Mirrors the runtime guards
@@ -453,6 +454,9 @@ function validateMailboxConnector(c, where, errors) {
             // Quotes come in pairs, around a label with a space (label:"Daniel B",
             // outlookQuery.mts) or a search phrase; an odd one is a typo.
             errors.push(`${where}.query has an unpaired quote`);
+        } else if (c.provider === 'outlook') {
+            // The same split the sync runs: a query it cannot split is refused now.
+            try { planOutlookQuery(c.query); } catch (e) { errors.push(`${where}.query: ${e.message}`); }
         }
     }
     if (c.lookbackDays !== undefined) {

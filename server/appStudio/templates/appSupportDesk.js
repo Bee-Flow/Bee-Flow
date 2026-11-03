@@ -17,8 +17,8 @@
  * PRIVACY: the shipped connector is scoped to `label:support`. A template that
  * installed itself and immediately copied the installer's entire personal inbox
  * into an app database would be a nasty surprise; this way the desk stays empty
- * until someone deliberately labels a message. Retention is 90 days and now
- * purges the messages table too, not just the ticket roll-up.
+ * until someone deliberately labels a message. Retention is 90 days and removes
+ * only the mail copy (messages and attachments); the ticket rows stay.
  *
  * AUTHORING CONSTRAINTS THAT SHAPED THIS FILE (they are not obvious):
  *  • A binding filter formula may only read currentUser / vars / forms / screen
@@ -322,13 +322,10 @@ module.exports = {
                         {
                             tableId: 'tbl_sdmsg', level: 1, relationField: 'ticket',
                             keyField: 'provider_message_id', mode: 'upsert',
-                            // The retention promise is about the CONVERSATION:
-                            // kept for 90 days after its last message, then gone
-                            // whole. Ageing each message out on its own
-                            // `received_at` would shred a still-running ticket,
-                            // and leaving it out — as this did — meant the 90
-                            // days deleted the roll-up row while every body,
-                            // sender and signature stayed forever.
+                            // The retention promise is about the MAIL: each
+                            // message goes 90 days after its own `received_at`
+                            // (with its attachments). The ticket row (status,
+                            // assignee) is the team's record and stays.
                             retentionCascade: true,
                         },
                         {

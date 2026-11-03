@@ -26,6 +26,7 @@ const CONVERSATIONS = { id: 'tbl_conv00', key: 'conversations', name: 'Conversat
 const MESSAGES = { id: 'tbl_msg000', key: 'messages', name: 'Messages', fields: [
     { id: 'fld_m00001', key: 'ticket', name: 'Ticket', type: 'relation', relation: { table: CONVERSATIONS.id } },
     { id: 'fld_m00002', key: 'subject', name: 'Subject', type: 'text' },
+    { id: 'fld_m00003', key: 'received_at', name: 'Received', type: 'datetime' },
 ] };
 const ATTACHMENTS = { id: 'tbl_att000', key: 'attachments', name: 'Attachments', fields: [
     { id: 'fld_a00001', key: 'message', name: 'Message', type: 'relation', relation: { table: MESSAGES.id } },
@@ -77,7 +78,8 @@ function depsOver(db, extra = {}) {
         compileDoomedUnderParent: qc.compileDoomedUnderParent,
         compileRetentionDelete: qc.compileRetentionDelete,
         exec: async () => { throw new Error('the purge must go through batch'); },
-        query: async () => { throw new Error('the purge must go through batch'); },
+        // The mailbox file guard scans the file columns of every table through query.
+        query: async (_o, _a, sql, params) => ({ rows: db.prepare(sql).all(...params) }),
         batch: async (_o, _a, statements) => {
             batchCalls.push(statements);
             return db.transaction(() => statements.map((s) => {
@@ -110,43 +112,42 @@ function seed(db) {
     const young = new Date().toISOString();
     ins(db, 'conversations', { id: 'c_old', thread_key: 'a', last_message_at: OLD });
     ins(db, 'conversations', { id: 'c_new', thread_key: 'b', last_message_at: young });
-    ins(db, 'messages', { id: 'm_old1', ticket: 'c_old', subject: 'x' });
-    ins(db, 'messages', { id: 'm_old2', ticket: 'c_old', subject: 'y' });
-    ins(db, 'messages', { id: 'm_new1', ticket: 'c_new', subject: 'z' });
+    ins(db, 'messages', { id: 'm_old1', ticket: 'c_old', subject: 'x', received_at: OLD });
+    ins(db, 'messages', { id: 'm_old2', ticket: 'c_old', subject: 'y', received_at: OLD });
+    ins(db, 'messages', { id: 'm_new1', ticket: 'c_new', subject: 'z', received_at: young });
     ins(db, 'attachments', { id: 'a_old1', message: 'm_old1', file: desc('f_old1') });
     ins(db, 'attachments', { id: 'a_old2', message: 'm_old2', file: desc('f_old2') });
     ins(db, 'attachments', { id: 'a_new1', message: 'm_new1', file: desc('f_new1') });
 }
 
-test('an expired conversation goes with its messages and attachments, a young one is untouched', async () => {
+test('thread mode: expired messages and their attachments go, the conversation stays', async () => {
     const db = openDb();
     seed(db);
     const { res, logged, batchCalls } = await purge(db);
 
-    assert.deepEqual(ids(db, 'conversations'), ['c_new']);
+    assert.deepEqual(ids(db, 'conversations'), ['c_new', 'c_old'], 'the conversation is an app record, never purged');
     assert.deepEqual(ids(db, 'messages'), ['m_new1']);
     assert.deepEqual(ids(db, 'attachments'), ['a_new1']);
-    assert.equal(res.purged, 5, '1 conversation + 2 messages + 2 attachments');
+    assert.equal(res.purged, 4, '2 messages + 2 attachments');
     assert.deepEqual(logged.warn, [], 'no FOREIGN KEY failure, nothing kept');
     assert.equal(logged.error.length, 0);
     assert.equal(batchCalls.length, 1, 'one transaction');
     const deletes = batchCalls[0].filter((s) => /^DELETE/.test(s.sql)).map((s) => s.sql.match(/FROM "(\w+)"/)[1]);
-    assert.deepEqual(deletes, ['attachments', 'messages', 'conversations'], 'bottom-up');
+    assert.deepEqual(deletes, ['attachments', 'messages'], 'bottom-up, and no conversations');
 });
 
-test('a message the app itself references stays, so does its conversation; the rest expires', async () => {
+test('a message the app itself references stays; the rest expires', async () => {
     const db = openDb();
     seed(db);
     ins(db, 'notes', { id: 'n1', message: 'm_old1' });
     const { res, logged } = await purge(db);
 
-    assert.deepEqual(ids(db, 'conversations'), ['c_new', 'c_old'], 'c_old still has the referenced message');
+    assert.deepEqual(ids(db, 'conversations'), ['c_new', 'c_old']);
     assert.deepEqual(ids(db, 'messages'), ['m_new1', 'm_old1']);
     assert.deepEqual(ids(db, 'attachments'), ['a_new1'], 'its attachment is doomed and nothing points at it');
     assert.deepEqual(ids(db, 'notes'), ['n1']);
     assert.equal(res.purged, 3, 'a_old1, a_old2 and m_old2');
     assert.ok(logged.warn.some((m) => /kept 1 row\(s\) of messages.*notes\.message/.test(m)), logged.warn.join('\n'));
-    assert.ok(logged.warn.some((m) => /kept 1 row\(s\) of conversations.*messages\.ticket/.test(m)), logged.warn.join('\n'));
     assert.ok(!logged.warn.some((m) => /FOREIGN KEY|failed/.test(m)));
     assert.equal(logged.error.length, 0);
 });
@@ -189,11 +190,11 @@ test('the file of a row that stays is not collected', async () => {
 test('the whole purge is one transaction: a failing statement rolls everything back and the sync stays ok', async () => {
     const db = openDb();
     seed(db);
-    db.exec("CREATE TRIGGER boom BEFORE DELETE ON conversations BEGIN SELECT RAISE(ABORT, 'boom'); END");
+    db.exec("CREATE TRIGGER boom BEFORE DELETE ON messages BEGIN SELECT RAISE(ABORT, 'boom'); END");
     const { res, logged } = await purge(db);
 
     assert.ok(!res.purged);
-    assert.equal(ids(db, 'messages').length, 3, 'children deleted earlier in the batch came back');
+    assert.equal(ids(db, 'attachments').length, 3, 'children deleted earlier in the batch came back');
     assert.ok(logged.warn.some((m) => /retention purge failed/.test(m) && /boom/.test(m)));
 });
 
@@ -220,12 +221,12 @@ const ACTIVITY = { id: 'tbl_act000', key: 'activity', name: 'Activity', fields: 
     { id: 'fld_x00001', key: 'request', name: 'Request', type: 'relation', relation: { table: CONVERSATIONS.id } },
 ] };
 const DEP_MODEL = { ...MODEL, tables: [CONVERSATIONS, MESSAGES, ATTACHMENTS, LINES, ACTIVITY] };
-const DEP_CONNECTOR = { ...CONNECTOR, sync: { ...CONNECTOR.sync, dependents: [
+const DEP_CONNECTOR = { ...CONNECTOR, kind: 'integration_tool', tool: 'mail_search', sync: { ...CONNECTOR.sync, dependents: [
     { tableId: LINES.id, retentionField: 'added_at' },
     { tableId: ACTIVITY.id, relationField: 'request', parentTableId: CONVERSATIONS.id, retentionCascade: true },
 ] } };
 
-test('a dependent is purged on its own date, a cascade dependent goes with its conversation', async () => {
+test('a NON-mailbox connector still purges its primary table, children and dependents', async () => {
     const db = openDb(DEP_MODEL);
     seed(db);
     ins(db, 'quote_lines', { id: 'l_old', added_at: OLD, drawing: desc('f_line_old') });
@@ -289,14 +290,14 @@ test('a blob that cannot be deleted is a warning, not a failed sync, and the row
         deleteFile: async () => { throw new Error('bucket down'); },
     });
     assert.ok(logged.warn.some((m) => /retention purge failed/.test(m) && /bucket down/.test(m)));
-    assert.equal(res.purged, 5, 'the committed deletes still count');
-    assert.deepEqual(ids(db, 'conversations'), ['c_new']);
+    assert.equal(res.purged, 4, 'the committed deletes still count');
+    assert.deepEqual(ids(db, 'messages'), ['m_new1']);
 });
 
 test('a pending mailbox descriptor leaves nothing of ours to delete', async () => {
     const db = openDb();
     ins(db, 'conversations', { id: 'c_old', thread_key: 'a', last_message_at: OLD });
-    ins(db, 'messages', { id: 'm_old1', ticket: 'c_old', subject: 'x' });
+    ins(db, 'messages', { id: 'm_old1', ticket: 'c_old', subject: 'x', received_at: OLD });
     ins(db, 'attachments', { id: 'a_old1', message: 'm_old1', file: JSON.stringify({ kind: 'mailbox_attachment', messageId: 'm', attachmentId: 'a' }) });
     const deleted = [];
     await purge(db, {
@@ -305,4 +306,92 @@ test('a pending mailbox descriptor leaves nothing of ours to delete', async () =
     });
     assert.deepEqual(deleted, []);
     assert.deepEqual(ids(db, 'attachments'), []);
+});
+
+// ── A mailbox purge removes the MAIL COPY only ────────────────────────────────────────────────
+
+const PROJECT_LINES = { id: 'tbl_pln000', key: 'project_lines', name: 'Project lines', fields: [
+    { id: 'fld_p00001', key: 'added_at', name: 'Added', type: 'datetime' },
+    { id: 'fld_p00002', key: 'request', name: 'Request', type: 'relation', relation: { table: CONVERSATIONS.id } },
+    { id: 'fld_p00003', key: 'drawing', name: 'Drawing', type: 'file' },
+] };
+const MAIL_APP_MODEL = { ...MODEL, tables: [CONVERSATIONS, MESSAGES, ATTACHMENTS, PROJECT_LINES, ACTIVITY] };
+const MAIL_APP_CONNECTOR = { ...CONNECTOR, sync: { ...CONNECTOR.sync, dependents: [
+    { tableId: PROJECT_LINES.id, retentionField: 'added_at' },
+    { tableId: ACTIVITY.id, relationField: 'request', parentTableId: CONVERSATIONS.id, retentionCascade: true },
+] } };
+
+test('a mailbox keeps the conversation, the project lines and the activity; only mail and its attachments expire', async () => {
+    const db = openDb(MAIL_APP_MODEL);
+    seed(db);
+    ins(db, 'project_lines', { id: 'l_old', request: 'c_old', added_at: OLD, drawing: desc('f_line_own') });
+    ins(db, 'activity', { id: 'x_old', request: 'c_old' });
+    const purged = [];
+    const { res, logged } = await purge(db, {
+        listAttachments: async () => ['f_old1', 'f_old2', 'f_line_own'].map((id) => ({ id, sha256: `sha-${id}` })),
+        deleteAttachment: async (id) => { purged.push(id); return true; },
+    }, MAIL_APP_MODEL, MAIL_APP_CONNECTOR);
+
+    assert.deepEqual(ids(db, 'conversations'), ['c_new', 'c_old']);
+    assert.deepEqual(ids(db, 'project_lines'), ['l_old'], 'a dependent is an app record, however old');
+    assert.deepEqual(ids(db, 'activity'), ['x_old']);
+    assert.deepEqual(ids(db, 'messages'), ['m_new1']);
+    assert.deepEqual(ids(db, 'attachments'), ['a_new1']);
+    assert.deepEqual(purged.sort(), ['f_old1', 'f_old2'], 'the line\'s own file is not touched');
+    assert.equal(res.purged, 4);
+    assert.equal(logged.error.length, 0);
+});
+
+test('a file an app record also points at keeps its ledger row and blob', async () => {
+    const db = openDb(MAIL_APP_MODEL);
+    seed(db);
+    // The project line took over the SAME studio attachment as the expired mail attachment a_old1.
+    ins(db, 'project_lines', { id: 'l_old', request: 'c_old', added_at: OLD, drawing: desc('f_old1') });
+    let rows = [{ id: 'f_old1', sha256: 'shared' }, { id: 'f_old2', sha256: 'b' }];
+    const deleted = { ledger: [], blobs: [] };
+    const { logged } = await purge(db, {
+        listAttachments: async () => rows,
+        deleteAttachment: async (id) => { deleted.ledger.push(id); rows = rows.filter((r) => r.id !== id); return true; },
+        deleteFile: async (key) => { deleted.blobs.push(key); },
+    }, MAIL_APP_MODEL, MAIL_APP_CONNECTOR);
+
+    assert.deepEqual(ids(db, 'attachments'), ['a_new1'], 'the mail copy is gone');
+    assert.deepEqual(deleted.ledger, ['f_old2'], 'f_old1 stays for the project line');
+    assert.deepEqual(deleted.blobs, ['owner-1/app-1/b']);
+    assert.ok(logged.warn.some((m) => /kept 1 file\(s\).*app record/.test(m)), logged.warn.join('\n'));
+});
+
+test('when the file scan fails, nothing is deleted from the ledger', async () => {
+    const db = openDb(MAIL_APP_MODEL);
+    seed(db);
+    const deleted = [];
+    const { res, logged } = await purge(db, {
+        query: async () => { throw new Error('db busy'); },
+        listAttachments: async () => [{ id: 'f_old1', sha256: 'a' }],
+        deleteAttachment: async (id) => { deleted.push(id); return true; },
+    }, MAIL_APP_MODEL, MAIL_APP_CONNECTOR);
+
+    assert.deepEqual(deleted, []);
+    assert.equal(res.purged, 4, 'the committed deletes still count');
+    assert.ok(logged.warn.some((m) => /could not check which files/.test(m) && /db busy/.test(m)));
+});
+
+test('flat mode: the messages (level 0) expire on received_at, attachments by cascade', async () => {
+    const flatMessages = { ...MESSAGES, fields: MESSAGES.fields.filter((f) => f.key !== 'ticket') };
+    const flatAtt = { ...ATTACHMENTS };
+    const model = { ...MODEL, tables: [flatMessages, flatAtt] };
+    const connector = { id: 'conn_ab12cd', kind: 'mailbox', name: 'Inbox', sync: {
+        tableId: MESSAGES.id, mode: 'upsert', keyField: 'subject', retentionDays: 30,
+        children: [{ tableId: ATTACHMENTS.id, level: 1, parentLevel: 0, relationField: 'message', mode: 'upsert', keyField: 'file', retentionCascade: true }],
+    } };
+    const db = openDb(model);
+    ins(db, 'messages', { id: 'm_old1', subject: 'x', received_at: OLD });
+    ins(db, 'messages', { id: 'm_new1', subject: 'z', received_at: new Date().toISOString() });
+    ins(db, 'attachments', { id: 'a_old1', message: 'm_old1', file: desc('f_old1') });
+    ins(db, 'attachments', { id: 'a_new1', message: 'm_new1', file: desc('f_new1') });
+    const { res } = await purge(db, {}, model, connector);
+
+    assert.deepEqual(ids(db, 'messages'), ['m_new1']);
+    assert.deepEqual(ids(db, 'attachments'), ['a_new1']);
+    assert.equal(res.purged, 2);
 });

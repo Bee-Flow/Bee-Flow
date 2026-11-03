@@ -43,6 +43,8 @@ export type RetentionDeps = {
     compileDoomedUnderParent: (t: Table, a: Access, o: { relationField: string; parentTableMeta: Table; parentDoomed?: Where; sweepNull?: boolean }) => Where;
     compileRetentionDelete: (t: Table, a: Access, o: { doomed: Where; referrers: Referrer[] }) => RetentionDelete;
     batch: (ownerId: string, appId: string, statements: Stmt[]) => Promise<BatchResult[]>;
+    /** Paged reads of the file columns (see keepReferencedFiles); needed with protectReferencedFiles. */
+    query?: (ownerId: string, appId: string, sql: string, params: unknown[]) => Promise<{ rows?: Row[] }>;
 };
 
 type App = { id: string; userId: string };
@@ -81,6 +83,57 @@ export function fileIdsFromRows(fileFields: Array<{ key: string }>, rows: Row[] 
         }
     }
     return ids;
+}
+
+const FILE_PAGE = 5000;
+const qi = (name: string) => '"' + String(name).replace(/"/g, '""') + '"';
+
+/** Every studio-attachment id in the file columns of these tables, read in id-ordered pages. */
+export async function collectFileIds(
+    app: App, tables: Table[], query: NonNullable<RetentionDeps['query']>,
+): Promise<string[]> {
+    const ids: string[] = [];
+    for (const table of tables) {
+        const fileFields = (table.fields || []).filter((f) => f && f.type === 'file');
+        if (!fileFields.length) continue;
+        const cols = fileFields.map((f) => qi(f.key)).join(', ');
+        const some = fileFields.map((f) => `${qi(f.key)} IS NOT NULL`).join(' OR ');
+        let after = '';
+        for (;;) {
+            const { rows = [] } = await query(app.userId, app.id,
+                `SELECT "id", ${cols} FROM ${qi(table.key)} WHERE (${some}) AND "id" > ? ORDER BY "id" LIMIT ${FILE_PAGE}`, [after]);
+            ids.push(...fileIdsFromRows(fileFields, rows));
+            if (rows.length < FILE_PAGE) break;
+            after = String(rows[rows.length - 1].id);
+        }
+    }
+    return ids;
+}
+
+/**
+ * The ids of `fileIds` that no row of ANY table of the app still holds in a file column. An app
+ * record (a project line's drawing) may point at the very same studio attachment as an expired mail
+ * attachment; its ledger row belongs to that record too. Runs after the commit, so the deleted rows
+ * no longer count. When the scan cannot run nothing is deleted (a blob left over beats a broken record).
+ */
+async function keepReferencedFiles(
+    app: App, model: Model, fileIds: string[], query: RetentionDeps['query'], where: string,
+): Promise<string[]> {
+    if (!query) {
+        log.warn(`[ConnectorSync] retention on ${where}: no way to check which files app records still use, kept all ${fileIds.length}`);
+        return [];
+    }
+    let held: Set<string>;
+    try {
+        held = new Set(await collectFileIds(app, model?.tables || [], query));
+    } catch (e) {
+        log.warn(`[ConnectorSync] retention on ${where}: could not check which files app records still use, kept all ${fileIds.length}: ${(e as Error).message}`);
+        return [];
+    }
+    const free = fileIds.filter((id) => !held.has(id));
+    const kept = fileIds.length - free.length;
+    if (kept) log.warn(`[ConnectorSync] retention on ${where}: kept ${kept} file(s) of expired mail: still used by an app record`);
+    return free;
 }
 
 /** Every relation column in the model that targets this table, whichever table holds it. */
@@ -163,6 +216,8 @@ function logKept(counts: Map<string, { n: number; by: string[] }>, where: string
 export async function runRetention(opts: {
     app: App; model: Model; connectorId: string; steps: Step[]; cutoffIso: string; deps: RetentionDeps;
     purgeAttachments: (fileIds: string[]) => Promise<void>;
+    /** Mailbox: keep the ledger row of a file that a remaining row of any table still holds. */
+    protectReferencedFiles?: boolean;
 }): Promise<number> {
     const { app, model, steps, cutoffIso, deps } = opts;
     const where = `${app.id}/${opts.connectorId}`;
@@ -204,7 +259,8 @@ export async function runRetention(opts: {
     for (const f of files) {
         if (!f.ids.length) continue;
         try {
-            await opts.purgeAttachments(f.ids);
+            const ids = opts.protectReferencedFiles ? await keepReferencedFiles(app, model, f.ids, deps.query, where) : f.ids;
+            if (ids.length) await opts.purgeAttachments(ids);
         } catch (e) {
             log.warn(`[ConnectorSync] retention purge failed on ${where} (${f.table}): ${(e as Error).message}`);
         }
