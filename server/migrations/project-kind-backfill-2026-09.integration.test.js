@@ -30,7 +30,7 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
 
 const { up, SOLUTION_ICON } = require('./project-kind-backfill-2026-09');
@@ -104,7 +104,7 @@ let pg;
 const noInit = async () => {};
 
 before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await projectSchema(pg);
     await pg.exec(EVIDENCE);
 
@@ -207,7 +207,7 @@ test('a second run changes nothing', async () => {
 });
 
 test('absent tables and tables without project_id are skipped, not fatal', async () => {
-    const bare = new PGlite();
+    const bare = newPglite();
     try {
         await projectSchema(bare);
         // Only chats exist here, and an automations table from before its
@@ -229,7 +229,7 @@ test('absent tables and tables without project_id are skipped, not fatal', async
 });
 
 test('without the kind column the run fails loudly instead of recording nothing done', async () => {
-    const empty = new PGlite();
+    const empty = newPglite();
     try {
         await empty.exec('CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT, icon TEXT)');
         await assert.rejects(up({ db: facadeFor(empty), initSchema: noInit }), /projects\.kind does not exist/);

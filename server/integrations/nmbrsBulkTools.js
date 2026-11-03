@@ -1,14 +1,17 @@
 // @typecheck strict
 'use strict';
 
-// Per-company bulk reads for NMBRS (SOAP only for now): one call per company
+// Per-company bulk reads for NMBRS, over SOAP and REST: one call per company
 // instead of one per employee. Tool definitions, validation, privacy filtering
-// and execution live here; the transport (soapRequest) is injected by
-// nmbrsTools.js so there is no import cycle.
+// and execution live here; the transports (soapRequest, the REST readers) are
+// injected by nmbrsTools.js so there is no import cycle.
 //
-// Every method, parameter name, casing and order below comes from the v3 WSDLs
-// (api.nmbrs.nl/soap/v3/<Service>.asmx?WSDL). The casing differs per method
-// (CompanyID vs CompanyId) and the envelope must follow the WSDL's order.
+// SOAP: every method, parameter name, casing and order below comes from the v3
+// WSDLs (api.nmbrs.nl/soap/v3/<Service>.asmx?WSDL). The casing differs per
+// method (CompanyID vs CompanyId) and the envelope must follow the WSDL's order.
+// REST: `rest` names the per-company list under /api/companies/{id}/employees/
+// (nmbrsRest.mts cites the operation page of each). REST answers histories:
+// lease cars come without a year/period filter there.
 //
 // PRIVACY: these tools return salary, contract and personal data. Rows are
 // never logged (only the tool name and the company id). The personal-info bulk
@@ -16,6 +19,7 @@
 // contact details never reach the model.
 
 const { PAGING_PROPS, parsePaging, shapePage } = require('./nmbrsPaging');
+const { restPersonalInfoRow } = require('./nmbrsRest.mts');
 
 const COMPANY_PROP = { type: 'string', description: 'Company ID from nmbrs_list_companies.' };
 const YEAR_PROP = { type: 'integer', description: 'Calendar year, e.g. 2026.' };
@@ -32,7 +36,7 @@ function bulkTool(name, description, extra, required) {
         type: 'function',
         function: {
             name,
-            description: `${description} Read-only, SOAP API only. Paged: the result has total, hasMore and nextOffset. Payroll data is sensitive — only retrieve what was asked.`,
+            description: `${description} Read-only. Paged: the result has total, hasMore and nextOffset. Payroll data is sensitive — only retrieve what was asked.`,
             parameters: { type: 'object', properties: { companyId: COMPANY_PROP, ...extra, ...PAGING_PROPS }, required: ['companyId', ...required] },
         },
     };
@@ -40,11 +44,12 @@ function bulkTool(name, description, extra, required) {
 
 const NMBRS_BULK_TOOLS = [
     bulkTool('nmbrs_list_company_employments', 'List the employment periods of every employee of a NMBRS company, including the first start date (InitialStartDate), for anniversaries.', {}, []),
-    bulkTool('nmbrs_list_company_lease_cars', 'List the lease cars of every employee of a NMBRS company in a given year and period, for term checks.', { year: YEAR_PROP, period: PERIOD_PROP }, ['year', 'period']),
+    bulkTool('nmbrs_list_company_lease_cars', 'List the lease cars of every employee of a NMBRS company in a given year and period, for term checks (over the REST API the whole lease-car history is returned).', { year: YEAR_PROP, period: PERIOD_PROP }, ['year', 'period']),
     bulkTool('nmbrs_list_company_svw_settings', 'List the social-insurance settings (SVW) of every employee of a NMBRS company: collective agreement (CAO), influence on the obliged insurance, sector, risk group.', {}, []),
     bulkTool('nmbrs_list_company_runs', 'List the payroll runs of a NMBRS company in a given year, to choose a run.', { year: YEAR_PROP }, ['year']),
     bulkTool('nmbrs_list_company_personal_info', 'List personal, contract and salary basics of every employee of a NMBRS company in one call (name, birthday, contract dates, salary, hours). BSN, address and private contact details are left out.', {}, []),
     bulkTool('nmbrs_list_company_contracts', 'List the contract history of every employee of a NMBRS company in one call (instead of one call per employee).', {}, []),
+    bulkTool('nmbrs_list_company_salaries', 'List the salary history (up to the current period) of every employee of a NMBRS company in one call (instead of one call per employee).', {}, []),
 ];
 
 // Fields of PersonalInfoContractSalaryAddress that may reach the model.
@@ -103,14 +108,30 @@ function pickFieldsDeep(row, allowed) {
 
 // name -> SOAP call. `params` lists the envelope parameters IN WSDL ORDER:
 // [soapName, argName].
+// `rest`: the per-company list over REST ('runs' is the run list of the company).
 const BULK_SPECS = {
-    nmbrs_list_company_employments: { service: 'EmployeeService', method: 'Employment_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'employments' },
-    nmbrs_list_company_lease_cars: { service: 'EmployeeService', method: 'LeaseCar_GetAll_EmployeesByCompany', params: [['CompanyId', 'companyId'], ['Period', 'period'], ['Year', 'year']], scope: 'lease cars' },
-    nmbrs_list_company_svw_settings: { service: 'EmployeeService', method: 'SVW_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'SVW settings' },
-    nmbrs_list_company_runs: { service: 'CompanyService', method: 'Run_GetList', params: [['CompanyId', 'companyId'], ['Year', 'year']], scope: 'runs' },
-    nmbrs_list_company_personal_info: { service: 'EmployeeService', method: 'PersonalInfoContractSalaryAddress_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'employees', fields: PERSONAL_INFO_FIELDS },
-    nmbrs_list_company_contracts: { service: 'EmployeeService', method: 'Contract_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'employee contract lists' },
+    nmbrs_list_company_employments: { service: 'EmployeeService', method: 'Employment_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'employments', rest: 'employments' },
+    nmbrs_list_company_lease_cars: { service: 'EmployeeService', method: 'LeaseCar_GetAll_EmployeesByCompany', params: [['CompanyId', 'companyId'], ['Period', 'period'], ['Year', 'year']], scope: 'lease cars', rest: 'leasecars' },
+    nmbrs_list_company_svw_settings: { service: 'EmployeeService', method: 'SVW_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'SVW settings', rest: 'svwsettings' },
+    nmbrs_list_company_runs: { service: 'CompanyService', method: 'Run_GetList', params: [['CompanyId', 'companyId'], ['Year', 'year']], scope: 'runs', rest: 'runs' },
+    nmbrs_list_company_personal_info: { service: 'EmployeeService', method: 'PersonalInfoContractSalaryAddress_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'employees', fields: PERSONAL_INFO_FIELDS, rest: 'personalinfo', restProject: restPersonalInfoRow },
+    nmbrs_list_company_contracts: { service: 'EmployeeService', method: 'Contract_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'employee contract lists', rest: 'contracts' },
+    // WSDL documentation: "Get all salary, until current period."
+    nmbrs_list_company_salaries: { service: 'EmployeeService', method: 'Salary_GetAll_AllEmployeesByCompany', params: [['CompanyID', 'companyId']], scope: 'employee salary lists', rest: 'salaries' },
 };
+
+/**
+ * The REST rows of a bulk tool, through the allow-list where the tool has one.
+ * @param {Record<string, any>} spec @param {string} companyId @param {Record<string, unknown>} values
+ * @param {{ restRows?: (list: any, companyId: string, filter: Record<string, unknown>) => Promise<unknown[]>, restRuns?: (companyId: string, year: number) => Promise<unknown[]> }} deps
+ */
+async function fetchRestRows(spec, companyId, values, deps) {
+    if (!deps.restRows || !deps.restRuns) throw new Error('NMBRS REST is not available.');
+    const rows = spec.rest === 'runs'
+        ? await deps.restRuns(companyId, /** @type {number} */ (values.year))
+        : await deps.restRows(spec.rest, companyId, {});
+    return spec.restProject ? rows.map(spec.restProject) : rows;
+}
 
 /**
  * @param {string} toolName
@@ -124,7 +145,7 @@ function isBulkTool(toolName) {
  * @param {string} toolName
  * @param {Record<string, any>} args
  * @param {{ mode: string }} creds
- * @param {{ soapRequest: (creds: any, service: string, method: string, params: Record<string, unknown>) => Promise<unknown>, coerceArray: (node: unknown) => any[], validId: (v: unknown) => boolean, parseYear: (v: unknown) => number | null, parsePeriod: (v: unknown) => number | null | 'invalid', log: { info: (m: string) => void }, cachedRows?: import('./nmbrsPageCacheBinding').CachedRows }} deps
+ * @param {{ soapRequest: (creds: any, service: string, method: string, params: Record<string, unknown>) => Promise<unknown>, coerceArray: (node: unknown) => any[], validId: (v: unknown) => boolean, parseYear: (v: unknown) => number | null, parsePeriod: (v: unknown) => number | null | 'invalid', log: { info: (m: string) => void }, cachedRows?: import('./nmbrsPageCacheBinding').CachedRows, restRows?: (list: any, companyId: string, filter: Record<string, unknown>) => Promise<unknown[]>, restRuns?: (companyId: string, year: number) => Promise<unknown[]> }} deps
  */
 async function executeBulkTool(toolName, args, creds, deps) {
     const spec = /** @type {Record<string, any>} */ (BULK_SPECS)[toolName];
@@ -144,9 +165,6 @@ async function executeBulkTool(toolName, args, creds, deps) {
     }
     const paging = parsePaging(args);
     if ('error' in paging) return { error: paging.error };
-    if (creds.mode === 'rest') {
-        return { error: 'This NMBRS tool is only available over the SOAP API for now. Switch the NMBRS connection to the SOAP API to use it.' };
-    }
     deps.log.info(`[NMBRS] ${toolName} for company ${companyId} (offset ${paging.offset})`);
     /** @type {Record<string, unknown>} */
     const soapParams = {};
@@ -154,7 +172,7 @@ async function executeBulkTool(toolName, args, creds, deps) {
     // The full list is fetched once per read: page 1 (offset 0) always asks NMBRS, later pages
     // come from the short-lived cache. The allow-list runs BEFORE the cache, so it only holds
     // the fields the model may see. Every argument that changes the list is in `listArgs`.
-    const fetchRows = async () => {
+    const fetchRows = creds.mode === 'rest' ? () => fetchRestRows(spec, companyId, values, deps) : async () => {
         let fetched = deps.coerceArray(await deps.soapRequest(creds, spec.service, spec.method, soapParams));
         if (spec.fields) fetched = fetched.map((/** @type {unknown} */ r) => pickFields(r, spec.fields));
         return fetched;

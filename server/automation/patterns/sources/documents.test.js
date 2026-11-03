@@ -69,8 +69,8 @@ test('the allow-list is uploads only', () => {
 });
 
 test('an install without the column reads as no uploads', async () => {
-    const { PGlite } = require('@electric-sql/pglite');
-    const bare = pgliteDb(new PGlite());
+    const { newPglite } = require('../../../testUtils/pgliteTemplate');
+    const bare = pgliteDb(newPglite());
     try {
         await bare.pg.exec(`CREATE TABLE documents (id SERIAL PRIMARY KEY, title TEXT, source_type TEXT, created_at TIMESTAMPTZ)`);
         assert.deepStrictEqual(await collectDocumentUploads({ userId: 'u1', ...win, deps: { db: bare.db } }), []);

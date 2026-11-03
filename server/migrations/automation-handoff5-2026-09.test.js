@@ -19,9 +19,9 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 
-const pg = new PGlite();
+const pg = newPglite();
 const exec = (sql) => pg.exec(sql);
 const q = async (sql, params) => (await pg.query(sql, params)).rows;
 
@@ -164,7 +164,7 @@ const LEGACY_TEMPLATES = `
 `;
 
 async function withLegacyTemplates(rows) {
-    const db = new PGlite();
+    const db = newPglite();
     await db.exec(`${BASE_SCHEMA}\n${LEGACY_TEMPLATES}\n${rows}`);
     await up({ exec: (sql) => db.exec(sql) });
     await up({ exec: (sql) => db.exec(sql) }); // every boot replays it

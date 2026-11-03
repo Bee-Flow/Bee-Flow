@@ -135,8 +135,8 @@ test('(setup) boot pglite + build the SQLite source', async () => {
         sqliteUsable = false;
         console.warn(`better-sqlite3 unavailable: ${e.message}`);
     }
-    const { PGlite } = require('@electric-sql/pglite');
-    pg = new PGlite();
+    const { newPglite } = require('../testUtils/pgliteTemplate');
+    pg = newPglite();
     await pg.exec("SET TIME ZONE 'UTC'");
     await pg.exec(`
         CREATE TABLE studio_apps (

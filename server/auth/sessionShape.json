@@ -28,6 +28,7 @@
     "needsEncryptionSetup",
     "nextcloudTokenExpiresAt",
     "nextcloudUid",
+    "nmbrsConnect",
     "noOrganization",
     "oauthAppRedirect",
     "oauthCodeVerifier",

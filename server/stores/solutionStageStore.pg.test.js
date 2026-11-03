@@ -26,7 +26,7 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 
 const { makeProjectStore, applyProjectSchema } = require('./projectStore');
 const { makeSolutionStageStore, applySolutionStageSchema } = require('./solutionStageStore');
@@ -89,7 +89,7 @@ async function release(id, variables) {
 const status = async (id) => (await pg.query('SELECT status, error FROM solution_deployments WHERE id = $1', [id])).rows[0];
 
 before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await applyProjectSchema({ exec: (sql) => pg.exec(sql), runDdl: runDdl(pg) });
     await applySolutionStageSchema({ runDdl: runDdl(pg) });
     await pg.exec(BLUEPRINT_TABLES);

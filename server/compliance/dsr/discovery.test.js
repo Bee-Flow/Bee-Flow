@@ -411,9 +411,9 @@ test('team chat messages are counted by author, in the scanning organisation, an
 test('project participation is counted by user id in the scanning organisation, never opening content', async () => {
     // The real project DDL (and the few columns of the other tables the counts
     // name), so the shipped SQL runs where its columns exist.
-    const { PGlite } = require('@electric-sql/pglite');
+    const { newPglite } = require('../../testUtils/pgliteTemplate');
     const { applyProjectCheckSchema } = require('../projects/testSchema');
-    const pg = new PGlite();
+    const pg = newPglite();
     try {
         await applyProjectCheckSchema(pg, { versions: false });
         await pg.exec(`

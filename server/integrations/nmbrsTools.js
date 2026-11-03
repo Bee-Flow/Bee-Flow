@@ -8,8 +8,9 @@
  *   - SOAP   (legacy; Visma discontinues it 2027-03-01): AuthHeaderWithDomain
  *            with Username (login email) + Token + Domain (subdomain). Services
  *            live at https://api.nmbrs.nl/soap/v3/<Service>.asmx.
- *   - REST   (modern): OAuth2 Bearer token against https://api.nmbrsapp.com,
- *            tenant selected by the subdomain.
+ *   - REST   (modern): OAuth 2.0 (authorisation code + PKCE, nmbrsOAuth.mts)
+ *            against https://api.nmbrsapp.com/api/..., with the X-Subscription-Key
+ *            header on every call (nmbrsRest.mts cites the documentation per fact).
  *
  * The tool surface is identical regardless of backend — each handler calls a
  * backend-agnostic per-entity fetcher that branches on the configured api mode.
@@ -18,25 +19,22 @@
  * GET, and the SOAP path only emits methods in SOAP_METHODS_READONLY (all
  * *_Get*). There is no mutation code path anywhere in this module.
  *
- * Mirrors the conventions of ./afasTools.js (SSRF-guarded host building,
- * redirect rejection, timeouts, row truncation, leak-free error messages).
+ * Transport, timeouts, redirect refusal and leak-free error messages live in
+ * nmbrsTransport.mts (every call goes through the SSRF-guarded safeFetch).
  * SOAP XML is parsed with fast-xml-parser (already a dependency).
  */
 
 const configStore = require('../stores/configStore');
 const { XMLParser } = require('fast-xml-parser');
 const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
+const { nmbrsFetch, safeText, mapNmbrsError, extractNmbrsErrorMessage, soapFaultMessage } = require('./nmbrsTransport.mts');
+const rest = require('./nmbrsRest.mts');
+const { accessTokenFor, subscriptionKeyFor } = require('./nmbrsOAuth.mts');
+const { RUN_PAYSLIPS_TOOL, RUN_PAYSLIPS_TOOL_DEF, executeRunPayslips } = require('./nmbrsPayslips.mts');
 
-const REQUEST_TIMEOUT_MS = 20000;
-const MAX_ERROR_MESSAGE_CHARS = 300;
-
-// Environment → request host. Fixed maps: the env value must never reach the
-// hostname directly. NOTE: confirm the exact sandbox hostnames against current
-// NMBRS docs at deploy time — the fixed-map pattern is the SSRF guard regardless
-// of the literal strings.
+// Environment → SOAP host. A fixed map: the env value never reaches the hostname.
+// The REST API has one documented host and no sandbox host (nmbrsRest.mts).
 const SOAP_HOST = { production: 'api.nmbrs.nl', sandbox: 'api-sandbox.nmbrs.nl' };
-const REST_HOST = { production: 'api.nmbrsapp.com', sandbox: 'api-sandbox.nmbrsapp.com' };
 
 // SOAP XML namespace base. Per-service namespace is `${SOAP_NS_BASE}/${service}`
 // (also used to build the SOAPAction). This is a fixed identifier, independent
@@ -51,7 +49,7 @@ const { truncateRows, shapeList, parsePaging, shapePage } = require('./nmbrsPagi
 const { cachedRowsFor, clearNmbrsPageCacheForUser } = require('./nmbrsPageCacheBinding');
 const { validId, parseYear, parsePeriod } = require('./nmbrsArgs');
 
-const NMBRS_TOOLS = [...BASE_TOOLS, ...NMBRS_BULK_TOOLS];
+const NMBRS_TOOLS = [...BASE_TOOLS, ...NMBRS_BULK_TOOLS, RUN_PAYSLIPS_TOOL_DEF];
 
 const { SOAP_METHODS_READONLY, EMPLOYEE_TYPE_PAYROLL, EMPLOYEE_TYPE_FORMER_PAYROLL } = require('./nmbrsSoapMethods');
 
@@ -59,7 +57,6 @@ const { SOAP_METHODS_READONLY, EMPLOYEE_TYPE_PAYROLL, EMPLOYEE_TYPE_FORMER_PAYRO
 const SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i; // single DNS label, no dots/slashes
 const TOKEN_RE = /^[\x21-\x7E]{16,512}$/;                     // printable ASCII, no whitespace/CRLF
 const EMAIL_RE = /^[^\s@,;]{1,128}@[^\s@,;]{1,128}$/;
-const REST_PATH_RE = /^[A-Za-z0-9/_-]{1,200}$/;               // defence-in-depth on internally-built paths
 
 const xmlParser = new XMLParser({
     ignoreAttributes: true,
@@ -72,7 +69,7 @@ const xmlParser = new XMLParser({
 // ─── Pure helpers (exported for tests) ─────────────────────────
 
 /**
- * @typedef {NonNullable<Awaited<ReturnType<typeof getNmbrsCredentials>>>} NmbrsCreds
+ * @typedef {{ mode: 'soap' | 'rest', subdomain: string, email: string, token: string, env: string, subscriptionKey?: string }} NmbrsCreds
  * A parsed SOAP answer (fast-xml-parser, namespace prefixes removed); only the parts read here.
  * @typedef {{ Envelope?: { Body?: { Fault?: { faultstring?: string, Reason?: { Text?: string } },
  *   [element: string]: unknown } } }} SoapEnvelope
@@ -111,24 +108,6 @@ function buildSoapUrl(subdomain, service, env) {
 }
 
 /**
- * Build a REST endpoint. `path` is always assembled internally from
- * encodeURIComponent'd, validated IDs; the regex is defence-in-depth.
- * @param {string} subdomain
- * @param {string} path
- * @param {string} env
- */
-function buildRestUrl(subdomain, path, env) {
-    if (!SUBDOMAIN_RE.test(String(subdomain || '').trim())) {
-        throw new Error('Invalid NMBRS subdomain.');
-    }
-    if (!REST_PATH_RE.test(path)) {
-        throw new Error('Invalid NMBRS REST path.');
-    }
-    const host = REST_HOST[resolveEnv(env)];
-    return `https://${host}/${path}`;
-}
-
-/**
  * Coerce a parsed SOAP result node into an array of rows. NMBRS serializes a
  * list either flat under the Result element ({ Debtor: [..] }) or behind one
  * typed wrapper ({ Debtors: { Debtor: [..] } }); a single row collapses to an
@@ -161,19 +140,6 @@ function coerceArray(node) {
 }
 
 /**
- * Pull rows out of a REST JSON body (array, {data:[]}, {items:[]} or single).
- * @param {unknown[] | { data?: unknown, items?: unknown } | null} data
- * @returns {unknown[]}
- */
-function restListFrom(data) {
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.data)) return data.data;
-    if (data && Array.isArray(data.items)) return data.items;
-    if (data && typeof data === 'object') return [data];
-    return [];
-}
-
-/**
  * Navigate Envelope→Body→{method}Response→{method}Result, throwing on a SOAP
  * Fault (NMBRS may return a Fault with HTTP 200).
  * @param {SoapEnvelope} parsed
@@ -188,9 +154,7 @@ function extractSoapResult(parsed, method) {
     }
     if (body.Fault) {
         const f = body.Fault;
-        const raw = f.faultstring || (f.Reason && f.Reason.Text) || 'SOAP fault';
-        const msg = String(raw).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS);
-        throw new Error(`NMBRS rejected the request: ${msg}`);
+        throw new Error(`NMBRS rejected the request: ${soapFaultMessage(f.faultstring || (f.Reason && f.Reason.Text) || 'SOAP fault')}`);
     }
     const resp = body[`${method}Response`];
     if (resp == null) return null;
@@ -200,106 +164,7 @@ function extractSoapResult(parsed, method) {
     return resp;
 }
 
-/**
- * Extract a short, sanitized error message from a NMBRS error body. We only
- * surface a human-readable message — never the raw body, URL, or credentials.
- * @param {string} bodyText
- */
-function extractNmbrsErrorMessage(bodyText) {
-    if (!bodyText || typeof bodyText !== 'string') return null;
-    let message = null;
-    const soap = bodyText.match(/<faultstring>([\s\S]*?)<\/faultstring>/i)
-        || bodyText.match(/<Message>([\s\S]*?)<\/Message>/i);
-    if (soap) {
-        message = soap[1];
-    } else if (bodyText.trim().startsWith('{')) {
-        try {
-            const data = JSON.parse(bodyText);
-            message = data.message || data.title || (data.error && data.error.message) || null;
-        } catch (err) { fallback('integrations/nmbrsTools:extractNmbrsErrorMessage', err); /* not JSON after all */ }
-    }
-    if (!message) return null;
-    return String(message).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS) || null;
-}
-
-/** @type {Record<number, string>} */
-const STATUS_REASONS = {
-    400: 'NMBRS rejected the request (check the IDs and parameters)',
-    401: 'NMBRS credentials are invalid or the token was revoked',
-    403: 'this NMBRS account lacks rights to that data',
-    404: 'the requested NMBRS record was not found',
-    429: 'NMBRS rate limit reached — try again shortly',
-    500: 'NMBRS returned a server error',
-};
-
-/** @param {number} status @param {string} bodyText */
-function mapNmbrsError(status, bodyText) {
-    const reason = STATUS_REASONS[status] || `NMBRS returned HTTP ${status}`;
-    let detail = null;
-    try {
-        detail = extractNmbrsErrorMessage(bodyText);
-    } catch (err) { fallback('integrations/nmbrsTools:mapNmbrsError', err); /* body unreadable — keep the mapped reason */ }
-    return new Error(detail ? `${reason}: ${detail}` : reason);
-}
-
 // ─── Transport ─────────────────────────────────────────────────
-
-/**
- * @param {string} url
- * @param {{ method?: string, headers: Record<string, string>, body?: string|null }} init
- */
-async function nmbrsFetch(url, { method = 'GET', headers, body = null }) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    if (typeof timeout.unref === 'function') timeout.unref();
-    try {
-        return await fetch(url, {
-            method,
-            headers,
-            body,
-            // Credentials must never follow a redirect off the pinned host.
-            redirect: 'error',
-            signal: controller.signal,
-        });
-    } catch (err) {
-        if (err.name === 'AbortError') {
-            throw new Error(`NMBRS request timed out after ${Math.round(REQUEST_TIMEOUT_MS / 1000)}s`);
-        }
-        throw new Error('Could not reach NMBRS. Check the subdomain and environment.');
-    } finally {
-        clearTimeout(timeout);
-    }
-}
-
-/** @param {Response} response */
-async function safeText(response) {
-    try { return await response.text(); } catch { return ''; }
-}
-
-/**
- * REST request — GET only (the verb is hard-coded; no caller can change it).
- * @param {NmbrsCreds} creds
- * @param {string} path
- * @param {Record<string, string>|null} [query]
- */
-async function restRequest(creds, path, query = null) {
-    const qs = query ? `?${new URLSearchParams(query)}` : '';
-    const url = buildRestUrl(creds.subdomain, path, creds.env) + qs;
-    const response = await nmbrsFetch(url, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${creds.token}`,
-            'X-Subdomain': creds.subdomain,
-            'Accept': 'application/json',
-        },
-    });
-    if (!response.ok) throw mapNmbrsError(response.status, await safeText(response));
-    try {
-        return await response.json();
-    } catch {
-        throw new Error('NMBRS returned an unexpected non-JSON response.');
-    }
-}
 
 /**
  * @param {NmbrsCreds} creds
@@ -359,21 +224,23 @@ async function soapRequest(creds, service, method, params = {}) {
 
 // ─── Backend-agnostic entity fetchers ──────────────────────────
 // Each returns an array of rows (or a single object for get_employee). The
-// model never sees mode/service/path/method.
+// model never sees mode/service/path/method. REST paths come from nmbrsRest.mts.
+
+/** @param {NmbrsCreds} creds */
+function restCreds(creds) {
+    return { token: creds.token, subscriptionKey: creds.subscriptionKey || '' };
+}
 
 /** @param {NmbrsCreds} creds */
 async function fetchDebtors(creds) {
-    if (creds.mode === 'rest') {
-        return restListFrom(await restRequest(creds, 'debtors'));
-    }
+    if (creds.mode === 'rest') return rest.restGetAll(restCreds(creds), rest.restPaths.debtors());
     return coerceArray(await soapRequest(creds, 'DebtorService', 'List_GetAll'));
 }
 
 /** @param {NmbrsCreds} creds @param {string|null} debtorId */
 async function fetchCompanies(creds, debtorId) {
     if (creds.mode === 'rest') {
-        const path = debtorId ? `debtors/${encodeURIComponent(debtorId)}/companies` : 'companies';
-        return restListFrom(await restRequest(creds, path));
+        return rest.restGetAll(restCreds(creds), debtorId ? rest.restPaths.companiesByDebtor(debtorId) : rest.restPaths.companies());
     }
     if (debtorId) {
         return coerceArray(await soapRequest(creds, 'CompanyService', 'List_GetByDebtor', { DebtorId: debtorId }));
@@ -384,9 +251,7 @@ async function fetchCompanies(creds, debtorId) {
 /** @param {NmbrsCreds} creds @param {string} companyId @param {boolean} activeOnly */
 async function fetchEmployees(creds, companyId, activeOnly) {
     if (creds.mode === 'rest') {
-        return restListFrom(await restRequest(creds,
-            `companies/${encodeURIComponent(companyId)}/employees`,
-            activeOnly ? { active: 'true' } : null));
+        return rest.restGetAll(restCreds(creds), rest.restPaths.employees(companyId), { employeeType: rest.employeeTypes(activeOnly) });
     }
     const types = activeOnly ? [EMPLOYEE_TYPE_PAYROLL] : [EMPLOYEE_TYPE_PAYROLL, EMPLOYEE_TYPE_FORMER_PAYROLL];
     /** @type {unknown[]} */
@@ -406,74 +271,88 @@ async function fetchEmployees(creds, companyId, activeOnly) {
 
 /** @param {NmbrsCreds} creds @param {string} employeeId */
 async function fetchEmployee(creds, employeeId) {
-    if (creds.mode === 'rest') {
-        return await restRequest(creds, `employees/${encodeURIComponent(employeeId)}`);
-    }
+    if (creds.mode === 'rest') return rest.restGetOne(restCreds(creds), rest.restPaths.employee(employeeId));
     return await soapRequest(creds, 'EmployeeService', 'PersonalInfo_GetCurrent', { EmployeeId: employeeId });
 }
 
-/** @param {NmbrsCreds} creds @param {string} employeeId */
-async function fetchContracts(creds, employeeId) {
-    if (creds.mode === 'rest') {
-        return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/contracts`));
-    }
+/** @param {NmbrsCreds} creds @param {string} employeeId @param {string} companyId */
+async function fetchContracts(creds, employeeId, companyId) {
+    if (creds.mode === 'rest') return rest.companyEmployeeRows(restCreds(creds), companyId, 'contracts', { employeeId });
     return coerceArray(await soapRequest(creds, 'EmployeeService', 'Contract_GetAll', { EmployeeId: employeeId }));
 }
 
-/** @param {NmbrsCreds} creds @param {string} employeeId @param {number} year @param {number} period */
-async function fetchSalaries(creds, employeeId, year, period) {
-    if (creds.mode === 'rest') {
-        return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/salaries`, { year: String(year), period: String(period) }));
-    }
+/** @param {NmbrsCreds} creds @param {string} employeeId @param {number} year @param {number} period @param {string} companyId */
+async function fetchSalaries(creds, employeeId, year, period, companyId) {
+    // REST answers the salary history of the employee (no year/period filter documented).
+    if (creds.mode === 'rest') return rest.companyEmployeeRows(restCreds(creds), companyId, 'salaries', { employeeId });
     // Salary_GetList needs Period and Year (WSDL order: EmployeeId, Period, Year).
     return coerceArray(await soapRequest(creds, 'EmployeeService', 'Salary_GetList', { EmployeeId: employeeId, Period: period, Year: year }));
 }
 
-/** @param {NmbrsCreds} creds @param {string} employeeId @param {number} year @param {number|null} period */
-async function fetchWageComponents(creds, employeeId, year, period) {
+/**
+ * Fixed and variable wage components of one employee in one year + period. REST takes
+ * year and period together (both or neither), so both are required on either API.
+ * @param {NmbrsCreds} creds @param {string} employeeId @param {number} year @param {number} period @param {string} companyId
+ */
+async function fetchWageComponents(creds, employeeId, year, period, companyId) {
+    let fixed;
+    let variable;
     if (creds.mode === 'rest') {
-        /** @type {Record<string, string>} */
-        const query = { year: String(year) };
-        if (period) query.period = String(period);
-        return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/wagecomponents`, query));
+        const filter = { employeeId, year, period };
+        fixed = await rest.companyEmployeeRows(restCreds(creds), companyId, 'fixedWageComponents', filter);
+        variable = await rest.companyEmployeeRows(restCreds(creds), companyId, 'variablewagecomponents', filter);
+    } else {
+        /** @type {Record<string, unknown>} */
+        const params = { EmployeeId: employeeId, Period: period, Year: year };
+        fixed = coerceArray(await soapRequest(creds, 'EmployeeService', 'WageComponentFixed_Get', params));
+        variable = coerceArray(await soapRequest(creds, 'EmployeeService', 'WageComponentVar_Get', params));
     }
-    if (!period) throw new Error('A period (1-13) is required for wage components over the NMBRS SOAP API.');
-    /** @type {Record<string, unknown>} */
-    const params = { EmployeeId: employeeId, Period: period, Year: year };
-    const fixed = coerceArray(await soapRequest(creds, 'EmployeeService', 'WageComponentFixed_Get', params));
-    const variable = coerceArray(await soapRequest(creds, 'EmployeeService', 'WageComponentVar_Get', params));
     return [
-        ...fixed.map((/** @type {Record<string, unknown>} */ c) => ({ kind: 'fixed', ...c })),
-        ...variable.map((/** @type {Record<string, unknown>} */ c) => ({ kind: 'variable', ...c })),
+        ...fixed.map((c) => ({ kind: 'fixed', .../** @type {Record<string, unknown>} */ (c) })),
+        ...variable.map((c) => ({ kind: 'variable', .../** @type {Record<string, unknown>} */ (c) })),
     ];
-}
-
-/** @param {NmbrsCreds} creds @param {string} employeeId @param {number} year @param {number|null} period */
-async function fetchPayslips(creds, employeeId, year, period) {
-    if (creds.mode === 'rest') {
-        /** @type {Record<string, string>} */
-        const query = { year: String(year) };
-        if (period) query.period = String(period);
-        return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/payslips`, query));
-    }
-    // The SOAP API has no per-employee payslip call: its payslips come per
-    // company and run, as a background report. Say so instead of sending a
-    // SOAPAction Nmbrs does not recognise.
-    throw new Error('Payslips per employee are not available over the NMBRS SOAP API. Switch the NMBRS connection to the REST API to list payslips.');
 }
 
 // ─── Credentials & execution ───────────────────────────────────
 
-/** @param {string} userId */
+/**
+ * The connection of `userId`: null when it is not configured, `{ error }` when the
+ * REST connection needs the user (not connected yet, expired, revoked).
+ * @param {string} userId
+ * @returns {Promise<NmbrsCreds | { error: string } | null>}
+ */
 async function getNmbrsCredentials(userId) {
     const mode = (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) === 'rest' ? 'rest' : 'soap';
+    if (mode === 'rest') {
+        const subscriptionKey = await subscriptionKeyFor(userId);
+        if (!subscriptionKey) return null;
+        const access = await accessTokenFor(userId);
+        if ('error' in access) return { error: access.error };
+        return { mode, subdomain: '', email: '', env: 'production', token: access.token, subscriptionKey };
+    }
     const subdomain = await configStore.getSecret(`nmbrs_subdomain_user_${userId}`);
     const token = await configStore.getSecret(`nmbrs_token_user_${userId}`);
     const email = await configStore.getSecret(`nmbrs_email_user_${userId}`);
     const env = resolveEnv(await configStore.getSecret(`nmbrs_env_user_${userId}`));
-    if (!subdomain || !token) return null;
-    if (mode === 'soap' && !email) return null; // SOAP needs Username + Token + Domain
-    return { mode, subdomain: String(subdomain).trim(), token, email: email || '', env };
+    if (!subdomain || !token || !email) return null; // SOAP needs Username + Token + Domain
+    return { mode, subdomain: String(subdomain).trim(), token, email, env };
+}
+
+const BAD_EMPLOYEE = 'Invalid employeeId. Use an ID from nmbrs_list_employees.';
+const BAD_YEAR = 'Invalid year. Provide a 4-digit calendar year, e.g. 2026.';
+
+/**
+ * The employee (and, over REST, the company) of a per-employee tool. REST reads
+ * employee data per company, so it needs the companyId as well.
+ * @param {Record<string, any>} args @param {NmbrsCreds} creds
+ * @returns {{ employeeId: string, companyId: string } | { error: string }}
+ */
+function employeeArgs(args, creds) {
+    const employeeId = String(args.employeeId || '').trim();
+    if (!validId(employeeId)) return { error: BAD_EMPLOYEE };
+    const companyId = String(args.companyId || '').trim();
+    if (creds.mode === 'rest' && !validId(companyId)) return { error: 'Over the NMBRS REST API this needs the companyId too (from nmbrs_list_companies).' };
+    return { employeeId, companyId };
 }
 
 /**
@@ -484,10 +363,12 @@ async function getNmbrsCredentials(userId) {
  */
 async function executeNmbrsTool(toolName, args = {}, userId, context = {}) {
     if (!userId) return { error: 'User context required for NMBRS.' };
-    const creds = await getNmbrsCredentials(userId);
-    if (!creds) {
-        return { error: 'NMBRS not configured. Add your subdomain, token (and login email for the SOAP API) in Settings.' };
+    const found = await getNmbrsCredentials(userId);
+    if (!found) {
+        return { error: 'NMBRS not configured. Add the connection in Settings → Integrations (subdomain, login email and token for SOAP; subscription key and OAuth app for REST).' };
     }
+    if ('error' in found) return { error: found.error };
+    const creds = found;
 
     try {
         switch (toolName) {
@@ -513,50 +394,49 @@ async function executeNmbrsTool(toolName, args = {}, userId, context = {}) {
             }
             case 'nmbrs_get_employee': {
                 const employeeId = String(args.employeeId || '').trim();
-                if (!validId(employeeId)) return { error: 'Invalid employeeId. Use an ID from nmbrs_list_employees.' };
+                if (!validId(employeeId)) return { error: BAD_EMPLOYEE };
                 log.info(`[NMBRS] Getting employee ${employeeId}`);
                 const employee = await fetchEmployee(creds, employeeId);
                 return { employee: employee ? pickFieldsDeep(employee, EMPLOYEE_FIELDS) : null }; // allow-list: no BSN, address, private contacts
             }
             case 'nmbrs_list_employee_contracts': {
-                const employeeId = String(args.employeeId || '').trim();
-                if (!validId(employeeId)) return { error: 'Invalid employeeId. Use an ID from nmbrs_list_employees.' };
-                log.info(`[NMBRS] Listing contracts for employee ${employeeId}`);
-                return shapeList(await fetchContracts(creds, employeeId), 'contracts');
+                const who = employeeArgs(args, creds);
+                if ('error' in who) return { error: who.error };
+                log.info(`[NMBRS] Listing contracts for employee ${who.employeeId}`);
+                return shapeList(await fetchContracts(creds, who.employeeId, who.companyId), 'contracts');
             }
             case 'nmbrs_list_employee_salaries': {
-                const employeeId = String(args.employeeId || '').trim();
-                if (!validId(employeeId)) return { error: 'Invalid employeeId. Use an ID from nmbrs_list_employees.' };
+                const who = employeeArgs(args, creds);
+                if ('error' in who) return { error: who.error };
                 const year = parseYear(args.year);
-                if (!year) return { error: 'Invalid year. Provide a 4-digit calendar year, e.g. 2026.' };
+                if (!year) return { error: BAD_YEAR };
                 const period = parsePeriod(args.period);
                 if (!period || period === 'invalid') return { error: 'Invalid period. NMBRS needs a period (month) from 1 to 13.' };
-                log.info(`[NMBRS] Listing salaries for employee ${employeeId} (${year}/${period})`);
-                return shapeList(await fetchSalaries(creds, employeeId, year, period), 'salaries');
+                log.info(`[NMBRS] Listing salaries for employee ${who.employeeId} (${year}/${period})`);
+                return shapeList(await fetchSalaries(creds, who.employeeId, year, period, who.companyId), 'salaries');
             }
             case 'nmbrs_list_employee_wage_components': {
-                const employeeId = String(args.employeeId || '').trim();
-                if (!validId(employeeId)) return { error: 'Invalid employeeId. Use an ID from nmbrs_list_employees.' };
+                const who = employeeArgs(args, creds);
+                if ('error' in who) return { error: who.error };
                 const year = parseYear(args.year);
-                if (!year) return { error: 'Invalid year. Provide a 4-digit calendar year, e.g. 2026.' };
+                if (!year) return { error: BAD_YEAR };
                 const period = parsePeriod(args.period);
-                if (period === 'invalid') return { error: 'Invalid period. Use a number 1-13 or omit it.' };
-                log.info(`[NMBRS] Listing wage components for employee ${employeeId} (${year}${period ? `/${period}` : ''})`);
-                return shapeList(await fetchWageComponents(creds, employeeId, year, period), 'wage components');
+                if (!period || period === 'invalid') return { error: 'Invalid period. NMBRS needs a period (month) from 1 to 13.' };
+                log.info(`[NMBRS] Listing wage components for employee ${who.employeeId} (${year}/${period})`);
+                return shapeList(await fetchWageComponents(creds, who.employeeId, year, period, who.companyId), 'wage components');
             }
             case 'nmbrs_list_payslips': {
                 const employeeId = String(args.employeeId || '').trim();
-                if (!validId(employeeId)) return { error: 'Invalid employeeId. Use an ID from nmbrs_list_employees.' };
-                const year = parseYear(args.year);
-                if (!year) return { error: 'Invalid year. Provide a 4-digit calendar year, e.g. 2026.' };
-                const period = parsePeriod(args.period);
-                if (period === 'invalid') return { error: 'Invalid period. Use a number 1-13 or omit it.' };
-                log.info(`[NMBRS] Listing payslips for employee ${employeeId} (${year}${period ? `/${period}` : ''})`);
-                return shapeList(await fetchPayslips(creds, employeeId, year, period), 'payslips');
+                if (!validId(employeeId)) return { error: BAD_EMPLOYEE };
+                // Neither API has per-employee payslip summaries: SOAP has none, REST only a
+                // PDF per employee. Both have the payslips of a run, as XML.
+                return { error: `Payslips per employee are not available from NMBRS. Use ${RUN_PAYSLIPS_TOOL} with the company, the year, the run (or period) and this employeeId.` };
             }
+            case RUN_PAYSLIPS_TOOL:
+                return await executeRunPayslips(args, { creds, restCreds: creds.mode === 'rest' ? restCreds(creds) : null, soapRequest, coerceArray, log, cachedRows: cachedRowsFor(creds, userId, context.orgId) });
             default:
                 if (isBulkTool(toolName)) {
-                    return await executeBulkTool(toolName, args, creds, { soapRequest, coerceArray, validId, parseYear, parsePeriod, log, cachedRows: cachedRowsFor(creds, userId, context.orgId) });
+                    return await executeBulkTool(toolName, args, creds, { soapRequest, coerceArray, validId, parseYear, parsePeriod, log, cachedRows: cachedRowsFor(creds, userId, context.orgId), restRows: (list, companyId, filter) => rest.companyEmployeeRows(restCreds(creds), companyId, list, filter), restRuns: (companyId, year) => rest.restGetAll(restCreds(creds), rest.restPaths.runs(companyId), { year: String(year) }) });
                 }
                 return { error: `Unknown NMBRS tool: ${toolName}` };
         }
@@ -580,10 +460,8 @@ module.exports = {
     // Pure helpers exported for unit tests.
     escapeXml,
     buildSoapUrl,
-    buildRestUrl,
     buildSoapEnvelope,
     coerceArray,
-    restListFrom,
     extractSoapResult,
     truncateRows,
     extractNmbrsErrorMessage,

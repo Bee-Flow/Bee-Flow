@@ -24,7 +24,7 @@
 const { test, before } = require('node:test');
 const assert = require('node:assert');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
 
 const { up, INDEX_SQL } = require('./agent-categories-dedupe-2026-09');
@@ -135,7 +135,7 @@ async function snapshot(pg) {
 
 const noSchemaInit = async () => {};
 
-const pg = new PGlite();
+const pg = newPglite();
 let db;
 
 before(async () => {
@@ -213,7 +213,7 @@ test('a second run is a no-op', async () => {
 });
 
 test('a statement failing mid-merge rejects and rolls everything back; the retry then succeeds', async () => {
-    const pg2 = new PGlite();
+    const pg2 = newPglite();
     await seed(pg2);
     // A real Postgres error on the first DELETE, after the first agent UPDATE
     // has already run inside the transaction.
@@ -249,7 +249,7 @@ test('a failing schema init rejects instead of recording the migration as applie
 });
 
 test('a missing agent schema is a logged early return', async () => {
-    const empty = new PGlite();
+    const empty = newPglite();
     const res = await up({ db: facadeFor(empty), initSchema: noSchemaInit });
     assert.deepStrictEqual(res, { groups: 0, removed: 0, agentsMoved: 0, dryRun: false, skipped: 'schema' });
     await empty.close();

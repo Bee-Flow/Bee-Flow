@@ -23,9 +23,9 @@ const path = require('node:path');
 
 const SERVER = path.resolve(__dirname, '..');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 
 // node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
 const rawQuery = pgliteQuery(pg);

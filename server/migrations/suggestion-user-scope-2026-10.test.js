@@ -9,7 +9,7 @@
 
 const { test, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 
 const { pgliteDb } = require('../testUtils/pgliteDb');
 const { up } = require('./suggestion-user-scope-2026-10');
@@ -18,7 +18,7 @@ const scanCache = require('../stores/suggestionScanCache');
 
 const open = [];
 function fresh() {
-    const h = pgliteDb(new PGlite());
+    const h = pgliteDb(newPglite());
     open.push(h.pg);
     return h;
 }

@@ -14,11 +14,11 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { buildRunFilterWhere } = require('./runs');
 const { buildRunSearch, getJourneyStepStatuses, getVersionDefinitions, getPendingApprovalIdsForRuns } = require('./runListing');
 
-const pg = new PGlite();
+const pg = newPglite();
 const query = async (sql, params) => (await pg.query(sql, params)).rows;
 
 const RUN_LINK_ID = '0b9e2a8c-1f4d-4c55-9d4e-2f7a3c1b6e90';

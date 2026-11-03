@@ -8,9 +8,9 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 
-const pg = new PGlite();
+const pg = newPglite();
 const exec = (sql) => pg.exec(sql);
 const { up } = require('./automation-caller-connections-2026-10');
 

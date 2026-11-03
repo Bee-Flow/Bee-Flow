@@ -16,13 +16,13 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { usePglitePool } = require('../testUtils/pglitePool');
 
 // PGlite parses bigint and numeric into numbers; node-postgres — what the
 // server actually runs on — leaves both as strings. Answer like node-postgres
 // (oid 20 = int8, 1700 = numeric), or this test could not see the bug.
-const { pg, close } = usePglitePool(new PGlite({ parsers: { 20: (v) => v, 1700: (v) => v } }));
+const { pg, close } = usePglitePool(newPglite({ parsers: { 20: (v) => v, 1700: (v) => v } }));
 const usageStore = require('./usageStore');
 
 before(async () => {

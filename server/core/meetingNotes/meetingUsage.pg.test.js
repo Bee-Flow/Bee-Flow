@@ -22,14 +22,14 @@
 
 'use strict';
 
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 require('../../integrations/integrationClients'); // the injected integration clients (boot does this for the server)
 require('../../automation/runnerPorts'); // the injected trigger-bus port (boot does this for the server)
 const assert = require('node:assert');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 
 // node-postgres's `query(sql, params)` over this PGlite.
 const q = pgliteQuery(pg);
@@ -354,3 +354,6 @@ test('een query die omvalt GOOIT — "ik kon niet kijken" is geen "er stond niet
     const broken = { query: async () => { throw new Error('kb_sources is weg'); } };
     await assert.rejects(() => filedTranscriptSources(MEETING_ID, broken), /kb_sources is weg/);
 });
+
+// pglite holds the process open until it is closed.
+after(async () => { await pg.close(); });

@@ -1,5 +1,5 @@
 /**
- * The NMBRS page cache at the SOAP boundary: `global.fetch` is scripted, `configStore` is
+ * The NMBRS page cache at the SOAP boundary: the NMBRS transport is scripted, `configStore` is
  * the real store over PGlite, and the tools run through executeNmbrsTool exactly as the agent calls them.
  * The point: a full walk over a large company costs ONE SOAP call, not one per page.
  */
@@ -42,7 +42,7 @@ let respond;
 function installFetch(handler) {
     soapCalls = [];
     respond = handler;
-    global.fetch = async (url, opts) => {
+    require('./nmbrsTransport.mts').nmbrsTransport.fetch = async (url, opts) => {
         soapCalls.push({ url, body: opts.body, action: opts.headers.SOAPAction });
         const out = await respond(soapCalls.length, opts.body);
         return { ok: out.ok !== false, status: out.status || 200, text: async () => out.text, json: async () => ({}) };

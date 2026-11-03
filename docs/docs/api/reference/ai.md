@@ -1284,6 +1284,9 @@ No request schema.
 | `nmbrsEmail` | string or null |  |  |
 | `nmbrsToken` | string or null |  |  |
 | `nmbrsEnv` | string or null |  |  |
+| `nmbrsSubscriptionKey` | string or null |  |  |
+| `nmbrsClientId` | string or null |  |  |
+| `nmbrsClientSecret` | string or null |  |  |
 | `vplanApiKey` | string or null |  |  |
 | `vplanApiEnv` | string or null |  |  |
 | `firebirdHost` | string or null |  |  |

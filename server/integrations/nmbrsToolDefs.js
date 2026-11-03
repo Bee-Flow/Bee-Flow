@@ -7,6 +7,9 @@
 
 const { PAGING_PROPS } = require('./nmbrsPaging');
 
+// REST reads employee data per company, so the per-employee tools take the company too.
+const COMPANY_FOR_REST = { type: 'string', description: 'Company ID from nmbrs_list_companies. Required when the NMBRS connection uses the REST API.' };
+
 const NMBRS_TOOLS = [
     {
         type: 'function',
@@ -68,7 +71,8 @@ const NMBRS_TOOLS = [
             parameters: {
                 type: 'object',
                 properties: {
-                    employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' }
+                    employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' },
+                    companyId: COMPANY_FOR_REST
                 },
                 required: ['employeeId']
             }
@@ -78,11 +82,12 @@ const NMBRS_TOOLS = [
         type: 'function',
         function: {
             name: 'nmbrs_list_employee_salaries',
-            description: 'List the salary records of one NMBRS employee that apply in a given year and period (month): gross amount, salary type, effective date (read-only). NMBRS needs both year and period. Payroll data is sensitive — only retrieve what the user asked for.',
+            description: 'List the salary records of one NMBRS employee that apply in a given year and period (month): gross amount, salary type, effective date (read-only). NMBRS needs both year and period; over the REST API the salary history is returned. Payroll data is sensitive — only retrieve what the user asked for.',
             parameters: {
                 type: 'object',
                 properties: {
                     employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' },
+                    companyId: COMPANY_FOR_REST,
                     year: { type: 'integer', description: 'Calendar year, e.g. 2026.' },
                     period: { type: 'integer', description: 'Period/month, 1-13.' }
                 },
@@ -94,15 +99,16 @@ const NMBRS_TOOLS = [
         type: 'function',
         function: {
             name: 'nmbrs_list_employee_wage_components',
-            description: 'List fixed and variable wage components for one NMBRS employee in a given year (and a period/month: required over the NMBRS SOAP API, optional over REST). Read-only. Payroll data is sensitive — only retrieve what was asked.',
+            description: 'List fixed and variable wage components for one NMBRS employee in a given year and period (month). Read-only. Payroll data is sensitive — only retrieve what was asked.',
             parameters: {
                 type: 'object',
                 properties: {
                     employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' },
+                    companyId: COMPANY_FOR_REST,
                     year: { type: 'integer', description: 'Calendar year, e.g. 2026.' },
-                    period: { type: 'integer', description: 'Period/month, 1-13. Required over SOAP; over REST omit it for the whole year.' }
+                    period: { type: 'integer', description: 'Period/month, 1-13.' }
                 },
-                required: ['employeeId', 'year']
+                required: ['employeeId', 'year', 'period']
             }
         }
     },
@@ -110,7 +116,7 @@ const NMBRS_TOOLS = [
         type: 'function',
         function: {
             name: 'nmbrs_list_payslips',
-            description: 'List payslip / payrun summaries for one NMBRS employee in a given year (and optionally a period/month). Read-only — returns metadata and totals, not the binary PDF.',
+            description: 'Payslips of one NMBRS employee. NMBRS has no per-employee payslip summaries: this answers how to get them with nmbrs_get_company_run_payslips (company, year, run or period, and the employeeId). Read-only.',
             parameters: {
                 type: 'object',
                 properties: {

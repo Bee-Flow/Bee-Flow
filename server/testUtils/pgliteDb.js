@@ -17,7 +17,7 @@
 
 'use strict';
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('./pgliteTemplate');
 const { withTransactionVia } = require('./txFake');
 
 /** PGlite's result in node-postgres's shape (rowCount from affectedRows for a write). */
@@ -29,7 +29,7 @@ function asPgResult(r) {
 // Parameters go along only when there are any: query(sql) otherwise.
 const send = (conn, sql, params) => (params && params.length ? conn.query(sql, params) : conn.query(sql));
 
-function pgliteDb(pg = new PGlite()) {
+function pgliteDb(pg = newPglite()) {
     const db = {
         async query(sql, params) {
             return asPgResult(await send(pg, sql, params));

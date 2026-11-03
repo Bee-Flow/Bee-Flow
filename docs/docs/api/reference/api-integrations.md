@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/integrations`
 
-54 routes, 26 with a request schema. Back to the [endpoint reference](../reference.md).
+58 routes, 26 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `calendar`
 
@@ -436,6 +436,32 @@ No request schema.
 No request schema.
 
 ### `GET /api/integrations/microsoft/status`
+
+**Access:** Signed-in user
+
+No request schema.
+
+## `nmbrs`
+
+### `GET /api/integrations/nmbrs/auth-url`
+
+**Access:** Signed-in user
+
+No request schema.
+
+### `GET /api/integrations/nmbrs/callback`
+
+**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+
+No request schema.
+
+### `POST /api/integrations/nmbrs/disconnect`
+
+**Access:** Signed-in user
+
+No request schema.
+
+### `GET /api/integrations/nmbrs/status`
 
 **Access:** Signed-in user
 

@@ -26,7 +26,7 @@
 
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { makeSolutionStageStore, applySolutionStageSchema } = require('../../stores/solutionStageStore');
 const { makeRunner, missingAcknowledgements, errorOf } = require('./runner');
@@ -36,7 +36,7 @@ let store;
 let seq = 0;
 
 before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await applySolutionStageSchema({ runDdl: async (_t, statements) => { for (const s of statements) await pg.exec(s); } });
     store = makeSolutionStageStore(pgliteDb(pg).db, { projectStore: {} });
 });

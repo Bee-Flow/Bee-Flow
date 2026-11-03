@@ -52,8 +52,8 @@ const synced = (over = {}) => ({
 const grains = (...messages) => [{ level: 0, rows: [] }, { level: 1, rows: messages }];
 
 test.before(async () => {
-    const { PGlite } = require('@electric-sql/pglite');
-    db = new PGlite();
+    const { newPglite } = require('../testUtils/pgliteTemplate');
+    db = newPglite();
     await db.exec("SET TIME ZONE 'UTC'");
     await db.exec(ddlForTable(MESSAGES, { tableKeyById: new Map([[MESSAGES.id, MESSAGES.key]]) }));
 });

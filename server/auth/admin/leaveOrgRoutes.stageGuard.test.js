@@ -24,7 +24,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 
 const h = require('../../testUtils/routeHarness');
 const { makeSwaps } = require('../../testUtils/swaps');
@@ -79,7 +79,7 @@ test('the reassignment leaves the agents of a stage project with their run-as', 
     const [sql] = reassigned();
     assert.ok(sql, 'the reassignment ran');
 
-    const pg = new PGlite();
+    const pg = newPglite();
     try {
         await pg.exec(`
             CREATE TABLE projects (id TEXT PRIMARY KEY, stage_of TEXT);

@@ -28,7 +28,7 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 const { makeProjectStore, applyProjectSchema } = require('./projectStore');
 
@@ -48,7 +48,7 @@ let pg;
 let store;
 
 before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await applySchema(pg);
     await applySchema(pg);
     store = makeProjectStore(facadeFor(pg));

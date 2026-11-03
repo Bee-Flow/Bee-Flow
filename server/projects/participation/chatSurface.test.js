@@ -22,7 +22,7 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const chatStoreModule = require('../../stores/projectChatStore');
 const participationStoreModule = require('../../stores/projectAiParticipationStore');
@@ -32,7 +32,7 @@ const { makeChatSurface } = require('./chatSurface');
 const { makeParticipationEngine } = require('./engine');
 const { makePolicy } = require('./policy');
 
-const { pg, db } = pgliteDb(new PGlite());
+const { pg, db } = pgliteDb(newPglite());
 const chats = chatStoreModule.makeProjectChatStore(db);
 const participationStore = participationStoreModule.makeProjectAiParticipationStore(db);
 const KEY = crypto.randomBytes(32);

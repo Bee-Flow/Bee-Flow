@@ -21,13 +21,13 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
 const { writeTurnRows } = require('../stores/agent/conversationOrder.mts');
 
 const { up, INDEX_NAME } = require('./conversation-messages-seq-unique-2026-10');
 
-const pg = new PGlite();
+const pg = newPglite();
 const query = pgliteQuery(pg);
 /** @type {import('./conversation-messages-seq-unique-2026-10').MigrationDb} */
 const db = {

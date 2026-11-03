@@ -27,12 +27,12 @@
  * Run: cd server && node --test stores/transcriptionStore.artifactWindow.pg.test.js
  */
 
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 
 // De echte db.js, met zijn pool beantwoord door één pglite-verbinding.
 const { usePglitePool } = require('../testUtils/pglitePool');
-const { query } = usePglitePool();
+const { query, close } = usePglitePool();
 
 const store = require('./transcriptionStore');
 const { mergeRegeneratedActionItems, mergeRegeneratedNotes } = require('../core/meetingNotes/actionItems');
@@ -506,3 +506,6 @@ test('invoer van vóór én van tijdens de run overleven dezelfde schrijfactie',
 
     assert.strictEqual(after.actionItems.length, 3, 'geen duplicaten uit de twee regels samen');
 });
+
+// pglite holds the process open until it is closed.
+after(close);

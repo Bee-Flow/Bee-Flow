@@ -34,7 +34,7 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 
 const { makeProjectStore, applyProjectSchema } = require('./projectStore');
@@ -75,7 +75,7 @@ let pg;
 let store;
 
 before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await applySchema(pg);
     await pg.exec(CONVERSATIONS);
     // Team chats, reduced to the column the count reads.
@@ -325,7 +325,7 @@ test('the chats a Solution cannot hold are counted: filed conversations and team
 });
 
 test('an installation without conversation tables has no shared conversations', async () => {
-    const bare = new PGlite();
+    const bare = newPglite();
     try {
         await applySchema(bare);
         const bareStore = makeProjectStore(facadeFor(bare));

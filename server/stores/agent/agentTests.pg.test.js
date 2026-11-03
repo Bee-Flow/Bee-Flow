@@ -23,14 +23,14 @@
  * Run: cd server && node --test --test-force-exit stores/agent/agentTests.pg.test.js
  */
 
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 
 // node-postgres's `query(sql, params)` over this PGlite.
 const q = pgliteQuery(pg);
@@ -347,3 +347,6 @@ test('a missing id answers instead of querying', async () => {
     assert.deepStrictEqual(await store.listTestRuns(null, opts), []);
     assert.strictEqual(await store.getLastTestRun(null, opts), null);
 });
+
+// pglite holds the process open until it is closed.
+after(async () => { await pg.close(); });

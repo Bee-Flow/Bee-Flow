@@ -21,7 +21,7 @@
 
 const path = require('node:path');
 const Module = require('node:module');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('./pgliteTemplate');
 const { pgliteQuery } = require('./pglitePool');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -44,7 +44,7 @@ function usePgliteLadder() {
     // mailbox OAuth tokens; the ladder runs it, so a test key is supplied.
     process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'integration-test-session-secret-0123456789abcdef';
 
-    const pg = new PGlite();
+    const pg = newPglite();
     const pgQuery = pgliteQuery(pg);
     /** @param {string} sql @param {unknown[]} [params] */
     const rawQuery = (sql, params) => pgQuery(sql, params);

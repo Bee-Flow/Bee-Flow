@@ -217,9 +217,14 @@ async function addUserCredentialTools({ userId, userSimpleMode, isAppOn, addTool
         addTools(T.AFAS_TOOLS);
     }
 
-    // NMBRS — read-only payroll/HR. Requires subdomain + token (and login email
-    // for the SOAP API). Bring-your-own like AFAS: payroll data is not lendable.
-    const hasNmbrsConfig = !!(await D.configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) && !!(await D.configStore.getSecret(`nmbrs_token_user_${userId}`));
+    // NMBRS — read-only payroll/HR. SOAP needs subdomain + token (and login
+    // email); REST needs the subscription key (the OAuth grant is checked per
+    // call, so an expired one answers "reconnect" instead of hiding the tools).
+    // Bring-your-own like AFAS: payroll data is not lendable.
+    const nmbrsRest = (await D.configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) === 'rest';
+    const hasNmbrsConfig = nmbrsRest
+        ? !!(await D.configStore.getSecret(`nmbrs_subscription_key_user_${userId}`))
+        : !!(await D.configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) && !!(await D.configStore.getSecret(`nmbrs_token_user_${userId}`));
     if (hasNmbrsConfig && isAppOn('nmbrs')) {
         addTools(T.NMBRS_TOOLS);
     }

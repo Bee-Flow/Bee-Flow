@@ -3,7 +3,7 @@
  *
  * Run: node integrations/nmbrsTools.test.js
  *
- * No network/DB needed — the real `configStore` reads a table the test fills and `global.fetch` is scripted per case. Covers BOTH api
+ * No network/DB needed — the real `configStore` reads a table the test fills, the NMBRS transport (nmbrsTransport.mts) is scripted per case and the OAuth vault is a stub. Covers BOTH api
  * modes (soap + rest), SSRF/validation guards and error sanitization.
  */
 
@@ -19,10 +19,8 @@ const {
     isNmbrsTool,
     escapeXml,
     buildSoapUrl,
-    buildRestUrl,
     buildSoapEnvelope,
     coerceArray,
-    restListFrom,
     extractSoapResult,
     truncateRows,
     extractNmbrsErrorMessage,
@@ -31,10 +29,26 @@ const {
     EMAIL_RE,
     SOAP_METHODS_READONLY,
 } = require('./nmbrsTools');
+const { nmbrsTransport } = require('./nmbrsTransport.mts');
+const { buildRestUrl, restRows } = require('./nmbrsRest.mts');
+const { oauthDeps } = require('./nmbrsOAuth.mts');
+
+// The OAuth vault: one active, fresh credential per REST user.
+const VAULT = {};
+oauthDeps.credentials = () => ({
+    getCredential: async (userId) => VAULT[userId] || null,
+    upsertCredential: async () => { throw new Error('no refresh expected'); },
+    markNeedsReauth: async () => {},
+});
 
 const TOKEN = 'a1b2c3d4e5f6a7b8c9d0e1f2'; // 24 printable chars
 
+const SUB_KEY = '30d05593229f49c18856be06ebc47b24';
 function setCreds(userId, { mode = 'soap', subdomain = 'acme', email = 'me@acme.nl', token = TOKEN, env = 'production' } = {}) {
+    if (mode === 'rest') {
+        SECRETS[`nmbrs_subscription_key_user_${userId}`] = SUB_KEY;
+        VAULT[userId] = { userId, orgId: 'o1', accessToken: TOKEN, refreshToken: 'r', expiresAt: Date.now() + 3600_000, scope: null, status: 'active' };
+    }
     SECRETS[`nmbrs_api_mode_user_${userId}`] = mode;
     SECRETS[`nmbrs_subdomain_user_${userId}`] = subdomain;
     SECRETS[`nmbrs_email_user_${userId}`] = email;
@@ -49,7 +63,7 @@ function clearCreds(userId) {
 let fetchCalls = [];
 function scriptFetch(responses) {
     fetchCalls = [];
-    global.fetch = async (url, opts) => {
+    nmbrsTransport.fetch = async (url, opts) => {
         fetchCalls.push({ url, opts });
         const r = responses[fetchCalls.length - 1];
         if (r === undefined) throw new Error(`Unexpected upstream request #${fetchCalls.length}: ${url}`);
@@ -88,14 +102,13 @@ function soapResponse(method, innerXml) {
     // ── buildSoapUrl / buildRestUrl: host pinning + SSRF guard ─────────
     assert.strictEqual(buildSoapUrl('acme', 'EmployeeService', 'production'), 'https://api.nmbrs.nl/soap/v3/EmployeeService.asmx');
     assert.strictEqual(buildSoapUrl('acme', 'EmployeeService', 'sandbox'), 'https://api-sandbox.nmbrs.nl/soap/v3/EmployeeService.asmx');
-    assert.strictEqual(buildRestUrl('acme', 'companies/9/employees', 'production'), 'https://api.nmbrsapp.com/companies/9/employees');
-    assert.strictEqual(buildRestUrl('acme', 'debtors', 'sandbox'), 'https://api-sandbox.nmbrsapp.com/debtors');
+    assert.strictEqual(buildRestUrl('companies/9/employees'), 'https://api.nmbrsapp.com/api/companies/9/employees');
     for (const bad of ['a.b', 'evil/', '']) {
         assert.throws(() => buildSoapUrl(bad, 'EmployeeService', 'production'), /subdomain/, `soap url rejects subdomain ${JSON.stringify(bad)}`);
-        assert.throws(() => buildRestUrl(bad, 'debtors', 'production'), /subdomain/, `rest url rejects subdomain ${JSON.stringify(bad)}`);
     }
     assert.throws(() => buildSoapUrl('acme', 'EvilService', 'production'), /service/, 'soap url rejects unknown service');
-    assert.throws(() => buildRestUrl('acme', '../secrets', 'production'), /path/, 'rest url rejects bad path');
+    assert.throws(() => buildRestUrl('../secrets'), /path/, 'rest url rejects bad path');
+    assert.throws(() => buildRestUrl('a?b=1'), /path/, 'rest url rejects a query smuggled into the path');
 
     // ── buildSoapEnvelope ─────────────────────────────────────────────
     {
@@ -115,11 +128,10 @@ function soapResponse(method, innerXml) {
     assert.deepStrictEqual(coerceArray(null), []);
     assert.deepStrictEqual(coerceArray([{ a: 1 }]), [{ a: 1 }]);
 
-    // ── restListFrom ──────────────────────────────────────────────────
-    assert.deepStrictEqual(restListFrom([{ a: 1 }]), [{ a: 1 }]);
-    assert.deepStrictEqual(restListFrom({ data: [{ a: 1 }] }), [{ a: 1 }]);
-    assert.deepStrictEqual(restListFrom({ items: [{ a: 1 }] }), [{ a: 1 }]);
-    assert.deepStrictEqual(restListFrom({ id: 1 }), [{ id: 1 }]);
+    // ── restRows: the paged `data` array of a REST body ───────────────
+    assert.deepStrictEqual(restRows([{ a: 1 }]), [{ a: 1 }]);
+    assert.deepStrictEqual(restRows({ pagination: { totalPages: 1 }, data: [{ a: 1 }] }), [{ a: 1 }]);
+    assert.deepStrictEqual(restRows({ taskId: 't' }), [{ taskId: 't' }]);
 
     // ── extractSoapResult: result + fault ─────────────────────────────
     {
@@ -210,52 +222,72 @@ function soapResponse(method, innerXml) {
         assert.strictEqual(fetchCalls[0].opts.headers.SOAPAction, 'https://api.nmbrs.nl/soap/v3/CompanyService/List_GetByDebtor');
         assert.ok(fetchCalls[0].opts.body.includes('<tns:DebtorId>1</tns:DebtorId>'));
     }
-    // Payslips have no per-employee SOAP call: a clear error, and no request is sent.
+    // Payslips per employee exist on neither API: a pointer to the per-run tool, and no request.
     scriptFetch([]);
     {
         const r = await executeNmbrsTool('nmbrs_list_payslips', { employeeId: '3', year: 2026 }, 'soapU');
-        assert.ok(String(r.error).includes('REST'));
+        assert.ok(String(r.error).includes('nmbrs_get_company_run_payslips'), r.error);
         assert.strictEqual(fetchCalls.length, 0);
     }
 
     // ── REST mode: same logical call, backend-agnostic result shape ───
-    setCreds('restU', { mode: 'rest', subdomain: 'acme', token: TOKEN, env: 'production' });
-    scriptFetch([{ json: { data: [{ Id: '1', Name: 'Alice' }, { Id: '2', Name: 'Bob' }] } }]);
+    setCreds('restU', { mode: 'rest', subdomain: '', token: '', email: '' });
+    scriptFetch([{ json: { pagination: { totalPages: 1 }, data: [{ Id: '1', Name: 'Alice' }, { Id: '2', Name: 'Bob' }] } }]);
     {
         const r = await executeNmbrsTool('nmbrs_list_employees', { companyId: '9' }, 'restU');
         const u = new URL(fetchCalls[0].url);
         assert.strictEqual(u.origin, 'https://api.nmbrsapp.com');
-        assert.strictEqual(u.pathname, '/companies/9/employees');
-        assert.strictEqual(u.searchParams.get('active'), 'true');
+        assert.strictEqual(u.pathname, '/api/companies/9/employees');
+        assert.strictEqual(u.searchParams.get('employeeType'), 'payroll');
+        assert.strictEqual(u.searchParams.get('pageNumber'), '1');
+        assert.strictEqual(u.searchParams.get('pageSize'), '100');
         assert.strictEqual(fetchCalls[0].opts.method, 'GET');
         assert.strictEqual(fetchCalls[0].opts.redirect, 'error');
         assert.strictEqual(fetchCalls[0].opts.headers.Authorization, `Bearer ${TOKEN}`);
-        assert.strictEqual(fetchCalls[0].opts.headers['X-Subdomain'], 'acme');
+        assert.strictEqual(fetchCalls[0].opts.headers['X-Subscription-Key'], SUB_KEY);
+        assert.ok(!fetchCalls[0].url.includes(SUB_KEY) && !fetchCalls[0].url.includes(TOKEN), 'no secret in the URL');
         // Mode isolation: identical normalized shape to the SOAP call above.
         assert.deepStrictEqual(r.items, [{ Id: '1', Name: 'Alice' }, { Id: '2', Name: 'Bob' }]);
     }
-    // Sandbox env hits the sandbox host.
-    setCreds('restSandbox', { mode: 'rest', subdomain: 'acme', token: TOKEN, env: 'sandbox' });
-    scriptFetch([{ json: [] }]);
+    // Every page of a paged list is read; former employees ask for both types.
+    scriptFetch([
+        { json: { pagination: { totalPages: 2 }, data: [{ Id: '1' }] } },
+        { json: { pagination: { totalPages: 2 }, data: [{ Id: '2' }] } },
+    ]);
     {
-        await executeNmbrsTool('nmbrs_list_debtors', {}, 'restSandbox');
-        assert.strictEqual(new URL(fetchCalls[0].url).origin, 'https://api-sandbox.nmbrsapp.com');
-        assert.strictEqual(new URL(fetchCalls[0].url).pathname, '/debtors');
+        const r = await executeNmbrsTool('nmbrs_list_employees', { companyId: '9', activeOnly: false }, 'restU');
+        assert.strictEqual(fetchCalls.length, 2);
+        assert.strictEqual(new URL(fetchCalls[0].url).searchParams.get('employeeType'), 'payroll,formerPayroll');
+        assert.strictEqual(new URL(fetchCalls[1].url).searchParams.get('pageNumber'), '2');
+        assert.deepStrictEqual(r.items.map((e) => e.Id), ['1', '2']);
     }
+    // REST without the subscription key is not configured; without an OAuth grant it says connect.
+    setCreds('restNoKey', { mode: 'rest' });
+    delete SECRETS['nmbrs_subscription_key_user_restNoKey'];
+    assert.ok((await executeNmbrsTool('nmbrs_list_debtors', {}, 'restNoKey')).error.includes('not configured'));
+    setCreds('restNoGrant', { mode: 'rest' });
+    delete VAULT.restNoGrant;
+    assert.ok((await executeNmbrsTool('nmbrs_list_debtors', {}, 'restNoGrant')).error.includes('Connect NMBRS'));
+    setCreds('restRevoked', { mode: 'rest' });
+    VAULT.restRevoked.status = 'needs_reauth';
+    assert.ok((await executeNmbrsTool('nmbrs_list_debtors', {}, 'restRevoked')).error.includes('Reconnect NMBRS'));
 
-    // ── REST companies by debtor + year/period query ──────────────────
-    scriptFetch([{ json: { items: [{ Id: '5' }] } }]);
+    // ── REST companies by debtor; per-employee reads go per company ────
+    scriptFetch([{ json: { pagination: { totalPages: 1 }, data: [{ companyId: '5' }] } }]);
     {
         await executeNmbrsTool('nmbrs_list_companies', { debtorId: '7' }, 'restU');
-        assert.strictEqual(new URL(fetchCalls[0].url).pathname, '/debtors/7/companies');
+        assert.strictEqual(new URL(fetchCalls[0].url).pathname, '/api/debtors/7/companies');
     }
-    scriptFetch([{ json: [] }]);
+    scriptFetch([]);
+    assert.ok((await executeNmbrsTool('nmbrs_list_employee_contracts', { employeeId: '3' }, 'restU')).error.includes('companyId'));
+    assert.strictEqual(fetchCalls.length, 0);
+    scriptFetch([{ json: { pagination: { totalPages: 1 }, data: [] } }, { json: { pagination: { totalPages: 1 }, data: [] } }]);
     {
-        await executeNmbrsTool('nmbrs_list_payslips', { employeeId: '3', year: 2026, period: 5 }, 'restU');
-        const u = new URL(fetchCalls[0].url);
-        assert.strictEqual(u.pathname, '/employees/3/payslips');
-        assert.strictEqual(u.searchParams.get('year'), '2026');
-        assert.strictEqual(u.searchParams.get('period'), '5');
+        await executeNmbrsTool('nmbrs_list_employee_wage_components', { employeeId: '3', companyId: '9', year: 2026, period: 5 }, 'restU');
+        const fixed = new URL(fetchCalls[0].url);
+        assert.strictEqual(fixed.pathname, '/api/companies/9/employees/fixedWageComponents');
+        assert.deepStrictEqual([fixed.searchParams.get('employeeId'), fixed.searchParams.get('year'), fixed.searchParams.get('period')], ['3', '2026', '5']);
+        assert.strictEqual(new URL(fetchCalls[1].url).pathname, '/api/companies/9/employees/variablewagecomponents');
     }
 
     // ── SSRF / validation guards reject bad IDs before any fetch ──────
@@ -272,10 +304,10 @@ function soapResponse(method, innerXml) {
     }
     // Bad year / period.
     scriptFetch([]);
-    assert.ok((await executeNmbrsTool('nmbrs_list_payslips', { employeeId: '3', year: 99 }, 'restU')).error.includes('year'));
+    assert.ok((await executeNmbrsTool('nmbrs_list_employee_salaries', { employeeId: '3', companyId: '9', year: 99, period: 1 }, 'restU')).error.includes('year'));
     assert.strictEqual(fetchCalls.length, 0);
     scriptFetch([]);
-    assert.ok((await executeNmbrsTool('nmbrs_list_payslips', { employeeId: '3', year: 2026, period: 99 }, 'restU')).error.includes('period'));
+    assert.ok((await executeNmbrsTool('nmbrs_list_employee_salaries', { employeeId: '3', companyId: '9', year: 2026, period: 99 }, 'restU')).error.includes('period'));
     assert.strictEqual(fetchCalls.length, 0);
 
     // ── error mapping: no body / URL / secret leakage ─────────────────
@@ -294,7 +326,7 @@ function soapResponse(method, innerXml) {
     // ── isNmbrsTool / read-only method allow-list ─────────────────────
     assert.ok(isNmbrsTool('nmbrs_list_debtors') && isNmbrsTool('nmbrs_get_employee'));
     assert.ok(!isNmbrsTool('nmbrs_update_employee') && !isNmbrsTool('afas_query'));
-    for (const m of SOAP_METHODS_READONLY) assert.ok(/Get|List|Reports_/.test(m), `read-only method name: ${m}`);
+    for (const m of SOAP_METHODS_READONLY) assert.ok(/Get|List|Reports_/.test(m) && !/Insert|Update|Delete|Set_/.test(m), `read-only method name: ${m}`);
 
     // ── salaries: Period and Year are required and sent (WSDL order) ───
     scriptFetch([{ text: soapResponse('Salary_GetList', '<Salary><Value>3000</Value></Salary>') }]);
@@ -328,7 +360,18 @@ function soapResponse(method, innerXml) {
         ['nmbrs_list_company_runs', { year: 2026 }, 'CompanyService', 'Run_GetList', '<tns:CompanyId>9</tns:CompanyId><tns:Year>2026</tns:Year>'],
         ['nmbrs_list_company_personal_info', {}, 'EmployeeService', 'PersonalInfoContractSalaryAddress_GetAll_AllEmployeesByCompany', '<tns:CompanyID>9</tns:CompanyID>'],
         ['nmbrs_list_company_contracts', {}, 'EmployeeService', 'Contract_GetAll_AllEmployeesByCompany', '<tns:CompanyID>9</tns:CompanyID>'],
+        ['nmbrs_list_company_salaries', {}, 'EmployeeService', 'Salary_GetAll_AllEmployeesByCompany', '<tns:CompanyID>9</tns:CompanyID>'],
     ];
+    // The REST list of each bulk tool (nmbrsRest.mts cites the operation page of each).
+    const REST_BULK = {
+        nmbrs_list_company_employments: '/api/companies/9/employees/employments',
+        nmbrs_list_company_lease_cars: '/api/companies/9/employees/leasecars',
+        nmbrs_list_company_svw_settings: '/api/companies/9/employees/svwsettings',
+        nmbrs_list_company_runs: '/api/companies/9/runs',
+        nmbrs_list_company_personal_info: '/api/companies/9/employees/personalinfo',
+        nmbrs_list_company_contracts: '/api/companies/9/employees/contracts',
+        nmbrs_list_company_salaries: '/api/companies/9/employees/salaries',
+    };
     for (const [tool, extra, service, method, params] of BULK_CASES) {
         assert.ok(isNmbrsTool(tool) && SOAP_METHODS_READONLY.has(`${service}/${method}`), `${tool} registered and allow-listed`);
         scriptFetch([{ text: soapResponse(method, '<Item><Id>1</Id></Item><Item><Id>2</Id></Item>') }]);
@@ -354,11 +397,27 @@ function soapResponse(method, innerXml) {
             assert.ok((await executeNmbrsTool(tool, { companyId: '9', year: 2026 }, 'soapU')).error.includes('period'));
             assert.strictEqual(fetchCalls.length, 0);
         }
-        // REST mode: a clear message and no request.
-        scriptFetch([]);
+        // REST mode: the documented per-company list, one GET.
+        scriptFetch([{ json: { pagination: { totalPages: 1 }, data: [{ employeeId: 'e1' }] } }]);
         const rest = await executeNmbrsTool(tool, { companyId: '9', ...extra }, 'restU');
-        assert.ok(/SOAP API/.test(rest.error), rest.error);
-        assert.strictEqual(fetchCalls.length, 0);
+        assert.ok(!rest.error, `${tool} over REST: ${rest.error}`);
+        assert.strictEqual(fetchCalls.length, 1);
+        assert.strictEqual(new URL(fetchCalls[0].url).pathname, REST_BULK[tool], tool);
+        assert.strictEqual(fetchCalls[0].opts.method, 'GET');
+        if (tool === 'nmbrs_list_company_runs') assert.strictEqual(new URL(fetchCalls[0].url).searchParams.get('year'), '2026');
+    }
+    // REST personal info goes through its own allow-list.
+    scriptFetch([{ json: { pagination: { totalPages: 1 }, data: [{ employeeId: 'e1', info: [{
+        basicInfo: { employeeNumber: 4, firstName: 'Alice', lastName: 'Jansen', employeeType: 'payroll' },
+        birthInfo: { birthDate: '1990-01-02', gender: 'female', nationality: { codeISO: 'NL' } },
+        contactInfo: { privateEmail: 'a@home.nl', privatePhone: '0612345678' },
+        partnerInfo: { partnerName: 'Pietersen' }, emergencyInfo: { emergencyContact: 'Bob' },
+        period: { year: 2026, period: 1 },
+    }] }] } }]);
+    {
+        const r = await executeNmbrsTool('nmbrs_list_company_personal_info', { companyId: '9' }, 'restU');
+        assert.deepStrictEqual(r.items[0].info[0], { employeeNumber: 4, firstName: 'Alice', prefix: null, initials: null, lastName: 'Jansen', employeeType: 'payroll', birthDate: '1990-01-02', gender: 'female', period: { year: 2026, period: 1 } });
+        assert.ok(!/a@home|0612345678|Pietersen|Bob|"NL"/.test(JSON.stringify(r)), 'private fields stay behind');
     }
 
     // Nested SOAP shape (one item per employee with a nested list) comes through.
@@ -445,9 +504,10 @@ function soapResponse(method, innerXml) {
         for (const leak of ['123456782', 'alice@home.nl', '0612345678', 'NX1234', 'Bob', 'Pietersen']) assert.ok(!text.includes(leak), `${leak} must not reach the model`);
     }
     // REST nests and camel-cases: the same allow-list applies at any depth.
-    scriptFetch([{ json: { employeeId: '7', bsn: '123456782', basicInfo: { firstName: 'Alice', lastName: 'Jansen', privateEmail: 'alice@home.nl' }, address: { street: 'Dorpsstraat', city: 'Utrecht' } } }]);
+    scriptFetch([{ json: { pagination: { totalPages: 1 }, data: [{ employeeId: '7', bsn: '123456782', personalInfo: { basicInfo: { firstName: 'Alice', lastName: 'Jansen' }, contactInfo: { privateEmail: 'alice@home.nl' } }, address: { street: 'Dorpsstraat', city: 'Utrecht' } }] } }]);
     {
         const r = await executeNmbrsTool('nmbrs_get_employee', { employeeId: '7' }, 'restU');
+        assert.strictEqual(new URL(fetchCalls[0].url).pathname, '/api/employees/7');
         assert.deepStrictEqual(r.employee, { EmployeeId: '7', FirstName: 'Alice', LastName: 'Jansen' });
         assert.ok(!/123456782|Dorpsstraat|Utrecht|alice@home/.test(JSON.stringify(r)));
     }

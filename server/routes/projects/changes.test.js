@@ -22,7 +22,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 const express = require('express');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteDb, dbFacade } = require('../../testUtils/pgliteDb');
 const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
 const { assertRefused } = require('../../testUtils/routeHarness');
@@ -57,7 +57,7 @@ const server = http.createServer(app);
 const listening = new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
 test.before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await applyProjectSchema({
         exec: (sql) => pg.exec(sql),
         runDdl: async (_t, statements) => { for (const s of statements) await pg.exec(typeof s === 'string' ? s : s.sql); },

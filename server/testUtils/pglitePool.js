@@ -21,7 +21,9 @@
 
 'use strict';
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('./pgliteTemplate');
+
+/** @typedef {import('@electric-sql/pglite').PGlite} PGlite */
 
 /**
  * PGlite's answer in node-postgres's shape; a multi-statement exec answers
@@ -66,7 +68,7 @@ function pgliteQuery(pg) {
  * @param {PGlite} [pg]
  * @returns {{ pg: PGlite, query: Function, restore: () => void, close: () => Promise<void> }}
  */
-function usePglitePool(pg = new PGlite()) {
+function usePglitePool(pg = newPglite()) {
     const db = require('../db');
     const saved = { query: db.pool.query, connect: db.pool.connect };
 

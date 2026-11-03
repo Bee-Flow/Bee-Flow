@@ -24,7 +24,7 @@
 
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 const { makeProjectStore, applyProjectSchema } = require('../stores/projectStore');
 const { makeChangeFeed, summarizeChanges, summarizeChangesPage, changeWindow } = require('./changeFeed');
@@ -40,7 +40,7 @@ const quietLog = { warn: (...a) => warnings.push(a.join(' ')), info() {}, error(
 let feed;
 
 before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await applyProjectSchema({
         exec: (sql) => pg.exec(sql),
         runDdl: async (_t, statements) => { for (const s of statements) await pg.exec(typeof s === 'string' ? s : s.sql); },

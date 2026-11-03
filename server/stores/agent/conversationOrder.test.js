@@ -15,10 +15,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { READ_ORDER, lockConversation } = require('./conversationOrder.mts');
 
-const pg = new PGlite();
+const pg = newPglite();
 
 test.before(async () => {
     await pg.exec(`
