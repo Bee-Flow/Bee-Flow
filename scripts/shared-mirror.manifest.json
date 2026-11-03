@@ -306,6 +306,12 @@
             "why": "The model behind the Now running strip (rollups, tone, order, hidden count, null-not-empty rule): one implementation for web and phone; nowRunning.lockstep.test.ts still runs the fixtures; model/nowRunning.ts adapts the phone's RunFacets (null) to it."
         },
         {
+            "source": "agent-hub/src/components/automation/Builder/runs/runPhase.ts",
+            "target": "mobile/src/features/runs/mirror/runPhase.ts",
+            "transform": "none",
+            "why": "Where a run is (running, paused on a form or a decision, done, failed, cancelled) and whether it was a test or a dry run, from its status and run profile: the builder's toasts and banners and the phone's run actions branch on the same vocabulary; runPhase.lockstep.test.ts runs the web test's table against this copy."
+        },
+        {
             "source": "agent-hub/src/components/shared/kindKeys.ts",
             "target": "mobile/src/shared/ui/mirror/kindKeys.ts",
             "transform": "none",

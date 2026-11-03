@@ -21,6 +21,7 @@ function buildRunContext({
     automation, runOrgId, isResume, session, run, tokenVault, runPolicy, stepRecord,
     effectiveMode, onlyStepId, fromStepId, emitLifecycle, enteredTrigger,
     identity: { runUserGroupIds, runUserOrgRole, runUserHomeOrgId, runIdentityError },
+    profile = null,
 }) {
     const ctx = {
         userId: automation.userId,
@@ -120,11 +121,15 @@ function buildRunContext({
         // Read from the trigger the run actually entered through (rootStepId),
         // falling back to the primary trigger.
         formBaseTheme: enteredTrigger?.form?.theme || null,
+        // The run's profile (automationModel/runProfile.mts): what kind of run
+        // this is and what it may do (pauses, approver seat, notifications,
+        // answers sink). Decided once in executeAutomation; read-only here.
+        profile,
     };
     return ctx;
 }
 
-/** Record the step a resumed leg continues from (live runs only). */
+/** Record the step a resumed leg continues from (live and dry runs). */
 async function recordResumeBoundary(deps, { skipUntilStepId, replayState, effectiveMode, automation, run, runState }) {
     const { automationStore } = deps;
     const { secretValuesFor } = deps.engine;
@@ -136,7 +141,9 @@ async function recordResumeBoundary(deps, { skipUntilStepId, replayState, effect
     // and a SECOND pause later in the same flow would resume with page one's
     // answers already lost. Recording it up-front (not after the DAG settles)
     // also means a crash mid-resume still leaves the audit trail intact.
-    if (skipUntilStepId && replayState && replayState[skipUntilStepId] && effectiveMode === 'live') {
+    // A dry run that paused for real (the builder answered it) resumes as a dry
+    // run, and its second pause needs the first answer just the same.
+    if (skipUntilStepId && replayState && replayState[skipUntilStepId] && (effectiveMode === 'live' || effectiveMode === 'dry_run')) {
         const boundary = replayState[skipUntilStepId];
         const node = (automation.definition?.steps || []).find(s => s?.id === skipUntilStepId);
         const now = new Date().toISOString();

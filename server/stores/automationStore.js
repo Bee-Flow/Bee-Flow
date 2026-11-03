@@ -70,6 +70,9 @@ module.exports = {
     createAutomationTemplate: require('./automationStore/templates').createAutomationTemplate,
     listAutomationTemplatesFor: require('./automationStore/templates').listAutomationTemplatesFor,
     getAutomationTemplateFor: require('./automationStore/templates').getAutomationTemplateFor,
+    // Ending a pause outside the runner: the paused step row, the journey's
+    // visitor session (withdraw, reject, a form wait cancelled).
+    ...require('./automationStore/pauseRows'),
     // Exported for unit tests.
     rowToRunStep,
     fromJsonb,

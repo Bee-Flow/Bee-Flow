@@ -5,6 +5,7 @@ import { runWithCallerNotice } from './callerNotice';
 import { acknowledgeCallerNotice, fetchCallerNotice } from '@/api/queries/automation/callerNotice';
 import { useTranslation } from '@/hooks/useTranslation';
 import { runStartRefusal } from '@/api/queries/automation/runAccess';
+import { runOutcomeToast, toastStepLabel } from './runs/runOutcomeToast';
 import type { BuilderTab } from './useBuilderTabUrl';
 import type { Dispatch, SetStateAction } from 'react';
 import type useAutomationApi from '@/hooks/useAutomationApi';
@@ -179,7 +180,7 @@ export default function useBuilderRuns({
             stopWatch = watchActiveRun(aid); // live progress while it runs
             const r = await api.dryRun<LiveRunReply>(aid, runBody(fromTrigger));
             setRunResult(r.run, r.steps);
-            toast.success('Dry-run complete — open a step to see its output.');
+            runOutcomeToast(t, r.run, { stepLabel: toastStepLabel(effectiveDef, r.run, r.steps) });
         }
         // `watchActiveRun` may already have surfaced a 'running' progress stub
         // by the time the request throws, and nothing else will ever settle it:
@@ -233,7 +234,7 @@ export default function useBuilderRuns({
                 // A form journey is not over when the request returns — the
                 // automation may be paused on its next page, and the overlay is
                 // about to say so. Only claim completion when nothing is.
-                if (r?.run?.status !== 'awaiting_form') toast.success('Live run complete — open a step to see its output.');
+                if (r?.run?.status !== 'awaiting_form') runOutcomeToast(t, r.run, { stepLabel: toastStepLabel(effectiveDef, r.run, r.steps) });
             }
             return r;
         }

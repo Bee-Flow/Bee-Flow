@@ -71,11 +71,19 @@ test('live: a read-only tool is not stopped', async () => {
     await assert.rejects(() => run(step), (e) => e === REACHED);
 });
 
-test('dry run: the same template is not failed, and the miss reaches the step log', async () => {
+// RM-5: a dry run fails on the same hole when the data is real (the live run
+// would), and only lets a hole in data the dry run simulated through.
+test('dry run: the same template on REAL data fails the step, as live', async () => {
     const step = talk(tpl('{{steps.ev.output.event.summary}}'));
+    await assert.rejects(() => run(step, 'dry_run'), (e) => e.errorClass === 'binding_unresolved');
+});
+
+test('dry run: on SIMULATED data the template is not failed, and the miss reaches the step log', async () => {
+    const step = talk(tpl('{{steps.ev.output.event.summary}}'));
+    const simulated = () => ({ ...state(), steps: { ev: { output: { summary: 'Standup' }, synthesised: true } } });
     const log = [];
     await withBindingLog(log, async () => {
-        await assert.rejects(() => run(step, 'dry_run'), (e) => e === REACHED);
+        await assert.rejects(() => execIntegrationAction(step, {}, simulated(), 'dry_run', deps()), (e) => e === REACHED);
     });
     assert.ok(log.some(m => m.kind === 'template'));
 });

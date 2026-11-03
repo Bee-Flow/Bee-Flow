@@ -141,7 +141,7 @@ async function writeTerminalRow(deps, { run, firstRunNeedsConfirm, runStatus, fi
 async function finalizeRun(deps, {
     automation, run, ctx, runState, tokenVault, startedAt, firstRunNeedsConfirm,
     outcome: { runResult, runErrorObj, runErrorMsg, runStatus },
-    ownsMarker, schedule, rootStepId, triggerKind, effectiveMode, testRun,
+    ownsMarker, schedule, rootStepId, triggerKind, effectiveMode, testRun, profile = null,
     onRunFinished, emitLifecycle,
 }) {
     const { automationStore, loadApprovalLifecycle } = deps;
@@ -222,7 +222,7 @@ async function finalizeRun(deps, {
         emitLifecycle('run.finished', { status: finalStatus, durationMs: Date.now() - startedAt, handledErrorCount });
     }
 
-    if (ownsMarker) await releaseMarker(deps, { automation, firstRunNeedsConfirm, runStatus, finishedAt, schedule, rootStepId });
+    if (ownsMarker) await releaseMarker(deps, { automation, firstRunNeedsConfirm, runStatus, finishedAt, schedule, rootStepId, profile });
     await notifyRunEnd(deps, { automation, run, firstRunNeedsConfirm, runStatus, runErrorObj, summary, userSafeError, triggerKind, effectiveMode, testRun, approvalRow });
     await advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, schedule, triggerKind });
 

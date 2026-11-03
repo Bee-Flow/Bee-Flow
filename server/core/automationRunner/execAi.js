@@ -23,14 +23,15 @@ const { getAdapter } = require('../providers');
 const { resolveInputs } = require('../automationModel/bind');
 const { captureBindingMisses } = require('../automationModel/bindCapture');
 const { isSideEffect } = require('../automationModel/sideEffectMap');
-const { failOnBlankInputs } = require('./blankInputs');
+const { failOnBlankInputs, missesThatFail } = require('./blankInputs');
 const { inferAiStepOutputSchema } = require('./aiOutputInference');
 // Safety/monitoring backbone — PII + regex guardrails + egress logging, mirroring
 // the agent/direct-chat pipeline so automations stop bypassing those controls.
 const safety = require('./safety');
 const log = require('../../telemetry/log');
 const { execIntegrationAction: runIntegrationAction } = require('./execIntegrationAction');
-const { groundAiStepWithMemory, groundAiStepWithKB, groundAiStepWithSkills } = require('./aiStepGrounding');
+// Grounding, and the label of a dry-run answer made without its knowledge (RM-6).
+const { groundAiStep, markNoKnowledge } = require('./aiStepGrounding');
 const { envFlagOn } = require('./integrationCachePolicy');
 const {
     isEmptyToolResult,
@@ -276,25 +277,6 @@ function resolveAiStepOutputContract(step, ctx, stepSkills, skillCtx) {
     return { inferred, inferredFields, outputContract, effectiveSchema: outputContract.schema };
 }
 
-/** Knowledge base, personal memory and skill grounding for the system prompt. */
-async function groundAiStep(step, ctx, mode, promptText, agent) {
-    const { agentBinding, knowledgeBaseIdsForStep, skillGrants, skillCtx } = agent;
-    // Knowledge Base grounding — one search keyed off ctx.userId/ctx.orgId
-    // (never an app-level owner: an automation has none), queried with this
-    // step's own interpolated prompt. See groundAiStepWithKB (./aiStepGrounding).
-    const kbIdsForStep = [...new Set([...knowledgeBaseIdsForStep(step, agentBinding), ...skillGrants.kbIds])];
-    const kbGround = await groundAiStepWithKB(step, ctx, promptText, mode, kbIdsForStep, groundingDeps);
-    const kbBlock = kbGround.context ? `\n\nReference material:\n${kbGround.context}` : '';
-    // Personal memory grounding (step.useMemory) — the automation OWNER's
-    // user_memories, keyed off ctx.userId like the KB search above. Rides in
-    // the same slot as the KB block so the safety tail still closes the prompt.
-    const memoryBlock = await groundAiStepWithMemory(step, ctx, promptText, groundingDeps);
-    // Skills — the step's own first (leading), then the agent's.
-    const skillGround = await groundAiStepWithSkills(step, ctx, agentBinding, skillCtx.loaded ? skillCtx.skills : null, groundingDeps);
-    return { kbBlock, memoryBlock, skillGround, skillBlock: skillGround.systemPromptAddendum || '' };
-}
-
-
 async function execAiStep(step, ctx, runState, mode) {
     const agent = await loadAiStepAgentContext(step, ctx);
     const { agentBinding, skillCtx } = agent;
@@ -315,7 +297,7 @@ async function execAiStep(step, ctx, runState, mode) {
     // comes out of the same budget as the answer.
     const stepReasoningEffort = tier.reasoningEffort ?? (effectiveSchema ? 'none' : undefined);
 
-    const grounding = await groundAiStep(step, ctx, mode, promptText, agent);
+    const grounding = await groundAiStep({ step, ctx, mode, promptText, agent }, groundingDeps);
     const messages = buildAiStepMessages(step, { agent, grounding, effectiveSchema, resolvedInputs, promptText });
     // enumFrom: the allowed values ride in ONE extra message, so the guard below tokenises them with the prompt.
     const prep = prepareAiAnswer({ step, runState, ctx, mode, messages });
@@ -326,9 +308,10 @@ async function execAiStep(step, ctx, runState, mode) {
     });
     // The tool loop writes with what the prompt and inputs gave the model: a
     // step offered a tool with a side effect does not go out with a hole in
-    // them, the same rule as a tool step's own inputs (./blankInputs).
-    if (mode !== 'dry_run' && Array.isArray(tools) && tools.some((t) => t?.function?.name && isSideEffect(t.function.name))) {
-        failOnBlankInputs(step, prompted.misses);
+    // them, the same rule as a tool step's own inputs (./blankInputs). A dry
+    // run checks too, except a hole in data it simulated (./execCode.js header).
+    if (Array.isArray(tools) && tools.some((t) => t?.function?.name && isSideEffect(t.function.name))) {
+        failOnBlankInputs(step, missesThatFail(prompted.misses, runState, ctx, mode));
     }
 
     // ── Safety: guard the ai_step prompt (userInput scope) before the LLM call.
@@ -366,7 +349,7 @@ async function execAiStep(step, ctx, runState, mode) {
     // execIntegrationAction this reaches only an in-process reader today —
     // automation_run_steps has no column for it — and this is the producing
     // half of that.
-    return {
+    const result = {
         output: answer.output, _tier: resolvedTier,
         ...(piiSummary ? { piiSummary } : {}),
         // Checks that ran, and whether the answer was reused instead of asked for.
@@ -376,6 +359,7 @@ async function execAiStep(step, ctx, runState, mode) {
         // Where the answer's shape came from: 'step' | 'skill' | 'inferred'.
         ...(outputContract.source ? { outputSchemaSource: outputContract.source } : {}),
     };
+    return mode === 'dry_run' && grounding.kbUnavailable ? markNoKnowledge(result, step, runState) : result;
 }
 
 module.exports = { execIntegrationAction, collectAiStepOutputFields, execAiStep };

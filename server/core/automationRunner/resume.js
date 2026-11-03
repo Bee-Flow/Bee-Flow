@@ -14,6 +14,10 @@ const { gapsReadAfterPause } = require('./replayGaps');
 const { executeAutomation } = require('./execution');
 const { automationForRun, withWorkingSettings } = require('./definitionForRun');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+// The paused run's profile decides what the continuation is (runProfile.mts),
+// and the default decision has the one approval output shape (approvalOutput.mts).
+const { profileOfRun } = require('../automationModel/runProfile.mts');
+const { approvalOutput } = require('../automationModel/approvalOutput.mts');
 
 /**
  * Continue a paused run from its awaiting step.
@@ -127,10 +131,19 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
     // Inject the synthetic decision output for the resumption-boundary step.
     if (fromStepId) {
         replayedStepState[fromStepId] = {
-            output: decision || { approved: true, resumedAt: new Date().toISOString(), by: userId },
+            output: decision || approvalOutput({ approved: true, by: userId }),
             status: 'success',
         };
     }
+
+    // The continuation is the SAME kind of run as the one that paused (a resume
+    // never changes kind): a dry run stays a dry run, so the writes after the
+    // answer stay simulated; a partial run keeps its bound, so "Execute this
+    // step" on an approval or form page stops after that step instead of running
+    // the rest of the flow live (RM-1, F3). runDag stops after a REPLAYED target
+    // too, which is what the boundary step is here. A legacy row derives the
+    // profile it ran with (live, no bound), so it resumes exactly as before.
+    const profile = profileOfRun(original);
 
     return await executeAutomation({
         ...automation,
@@ -138,7 +151,9 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
         triggerKind: original.triggerKind || 'manual',
         triggerPayload: original.triggerPayload || null,
         triggerHeaders,
-        mode: 'live',
+        mode: profile.kind === 'dry' ? 'dry_run' : 'live',
+        untilStepId: profile.stopAfterStepId,
+        profileOverride: profile,
         parentRunId: runId,
         // Continuing a pause keeps the journey the visitor started, so the
         // history shows their three-question form as ONE run instead of one row
@@ -153,7 +168,7 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
         skipUntilStepId: fromStepId,
         rootStepId: rootStepId ?? original.rootStepId ?? null,
         // A resumed test run is still a test run (the Runs tab's filter).
-        isTest: !!original.isTest,
+        isTest: !!original.isTest || profile.kind !== 'production',
         startedByUserId: original.startedByUserId || null,
         // A run that began on its starter's own connections keeps them, whatever
         // the setting says by now.

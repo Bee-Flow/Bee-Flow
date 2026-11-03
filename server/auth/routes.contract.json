@@ -6426,7 +6426,7 @@
     },
     "POST /auth/sso-encryption-setup": {
       "gate": "handler",
-      "via": "handler"
+      "via": "registry:handler"
     },
     "POST /auth/sso-encryption-unlock": {
       "gate": "handler",

@@ -111,20 +111,44 @@ function enforceSeedPlan(plan, seed) {
 }
 
 /**
- * Execute a partial run, or (planOnly) just report the plan. With a seed run the
- * plan is enforced first; without one this is exactly executeAutomation plus the
- * stale-version tag, as it always was. `execute` is the runner's executeAutomation
- * (late-bound in partialRuns.js, so tests can swap it).
+ * The refusal of a partial run WITHOUT a chosen run (RM-9). The replay comes
+ * from recent live runs, and a prerequisite none of them has an output for is
+ * executed live to feed the target (runDag's fillMissingUpstream). The target
+ * itself is what the author asked to run; a prerequisite that sends or writes
+ * is not, and a dry run never leaves replay data behind, so ▶ Execute after a
+ * dry run would have mailed for real on every click. Such a prerequisite needs
+ * the caller's explicit yes (409 side_effects_need_confirm, the same code and
+ * detail shape as a seeded re-run).
  */
-async function executePartial(execute, automation, opts, { seed, plan, staleFrom, seedRun }) {
-    const rerunPlan = plan ? describePlan(plan, seedRun, staleFrom) : null;
+function enforceUpstreamPlan(plan, seed) {
+    if (seed.confirmSideEffects) return;
+    const missing = new Set(plan.missingUpstream);
+    const steps = plan.sideEffects.filter((s) => missing.has(s.stepId));
+    if (!steps.length) return;
+    throw new HttpError(409, 'side_effects_need_confirm',
+        'Running this step would first run earlier steps that send or write outside the run, because no earlier run has their output. Confirm to continue.',
+        { steps, missingUpstream: plan.missingUpstream });
+}
+
+/**
+ * Execute a partial run, or (planOnly) just report the plan. The plan is always
+ * enforced: with a seed run both seed refusals, without one the upstream
+ * side-effect refusal (enforceUpstreamPlan). Then this is executeAutomation plus
+ * the stale-version tag, and `replaySource` when the trigger payload was taken
+ * from an earlier run. `execute` is the runner's executeAutomation (late-bound in
+ * partialRuns.js, so tests can swap it).
+ */
+async function executePartial(execute, automation, opts, { seed, plan, staleFrom, seedRun, replaySource = null }) {
+    const rerunPlan = plan && seed.seedRunId ? describePlan(plan, seedRun, staleFrom) : null;
     if (seed.planOnly) return { rerunPlan };
-    if (plan) enforceSeedPlan(plan, seed);
-    const run = withReplayStale(await execute(automation, opts), staleFrom);
+    if (plan && seed.seedRunId) enforceSeedPlan(plan, seed);
+    else if (plan) enforceUpstreamPlan(plan, seed);
+    let run = withReplayStale(await execute(automation, opts), staleFrom);
+    if (run && replaySource) run = { ...run, replaySource };
     return rerunPlan && run ? { ...run, rerunPlan } : run;
 }
 
-module.exports = { planPartialExecution, seedOptions, describePlan, emptyPlan, enforceSeedPlan, executePartial };
+module.exports = { planPartialExecution, seedOptions, describePlan, emptyPlan, enforceSeedPlan, enforceUpstreamPlan, executePartial };
 
 /**
  * @typedef {ReturnType<typeof planPartialExecution>} PartialPlan

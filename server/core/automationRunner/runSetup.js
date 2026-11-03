@@ -16,6 +16,8 @@ const { PUBLIC_VALUES } = require('./publicValues');
 // Handoff 5: which copy a run executes (live vs working) and the automation's
 // run policy (default retry, time budget, concurrency).
 const { automationForRun, isTestRun } = require('./definitionForRun');
+// The run's profile: decided once, here, next to the copy (runProfile.mts).
+const { profileFor, normalizeProfile } = require('../automationModel/runProfile.mts');
 // Solution stages (design 4.2, D17): the project's variable values over
 // definition.vars, and whether an automation is managed by a stage.
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
@@ -62,11 +64,39 @@ function resolveEnteredTrigger(def, rootStepId = null) {
 }
 
 /**
- * The copy of the automation this run executes.
+ * The run's profile (automationModel/runProfile.mts), with the copy
+ * definitionForRun chose recorded in it (the live copy carries
+ * `runsLiveVersion`).
  *
- * @returns {Promise<{ automation: object, testRun: boolean }>}
+ * `profileOverride`: the profile of the run a resume continues. A resume never
+ * changes kind, so it is kept as it is (normalised); only a run that starts
+ * fresh gets a profile from the facts.
+ *
+ * @param {RunAutomation} automation the selected copy
+ * @param {SelectFacts} facts
+ * @param {boolean} managed
  */
-async function selectRunCopy(deps, automation, { mode, triggerKind, isTest }) {
+function runProfileFor(automation, facts, managed) {
+    return normalizeProfile(facts.profileOverride) || profileFor({
+        mode: facts.mode, triggerKind: facts.triggerKind, isTest: facts.isTest,
+        startedByUserId: facts.startedByUserId ?? null, ownerUserId: automation?.userId ?? null,
+        partial: facts.partial ?? null, origin: facts.origin ?? null, harness: facts.harness ?? null,
+        pausesRequested: !!facts.pausesRequested, managed,
+        copy: automation?.runsLiveVersion ? 'live' : 'working',
+    });
+}
+
+/**
+ * The copy of the automation this run executes, and the run's profile with
+ * that copy recorded in it (runProfileFor).
+ *
+ * @param {RunDeps} deps
+ * @param {RunAutomation} automation
+ * @param {SelectFacts} facts
+ * @returns {Promise<{ automation: object, testRun: boolean, profile: import('../automationModel/runProfile.mts').RunProfile }>}
+ */
+async function selectRunCopy(deps, automation, facts) {
+    const { mode, triggerKind, isTest } = facts;
     const { automationStore } = deps;
     // ── Live or working copy (handoff 5) ──────────────────────────────────
     // Test runs (dry run, partial builder runs, the Test button's `isTest`)
@@ -89,7 +119,7 @@ async function selectRunCopy(deps, automation, { mode, triggerKind, isTest }) {
         : null;
     automation = automationForRun(storeLive ? { ...automation, liveVersion: storeLive.liveVersion ?? null } : automation,
         { mode, triggerKind, isTest, managed, liveDefinition: storeLive?.liveDefinition ?? null });
-    return { automation, testRun };
+    return { automation, testRun, profile: runProfileFor(automation, facts, managed) };
 }
 
 /** The run's initial state: trigger, replayed steps, vars, loop seed. */
@@ -231,6 +261,9 @@ module.exports = { runOrgFor, resolveEnteredTrigger, selectRunCopy, buildRunStat
  * The automation a run executes: a store row, or a caller-built spread of one
  * (execution.js types it the same way).
  * @typedef {Record<string, any>} RunAutomation
+ * @typedef {{ mode?: string, triggerKind?: string, isTest?: boolean, startedByUserId?: string | null,
+ *   partial?: import('../automationModel/runProfile.mts').PartialScope | null, origin?: string | null,
+ *   harness?: unknown, pausesRequested?: boolean, profileOverride?: unknown }} SelectFacts  what a run starts with
  * @typedef {NonNullable<ReturnType<typeof import('../../stores/automationStore/rowMappers').rowToRun>>} RunRow
  * @typedef {{ id?: string, type?: string, kind?: string, label?: string, appEvent?: { provider?: string, event?: string },
  *   schedule?: object, form?: { theme?: unknown }, [key: string]: unknown }} TriggerNode

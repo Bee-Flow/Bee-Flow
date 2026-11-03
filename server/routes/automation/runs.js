@@ -1,3 +1,4 @@
+// @typecheck
 // §WS5 #4 — run execution + run listing/facets/stream endpoints, extracted
 // verbatim from routes/automation.js. parseRunFilters co-located.
 const express = require('express');
@@ -17,6 +18,8 @@ const { describeNoticeFor } = require('../../core/automationRunner/callerNotice'
 const { makeAutomationAccess, roleSatisfies, mayStartRun } = require('../../automation/access');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
+const { startCapped, pendingRunBody } = require('../../core/automationRunner/startCapped.mts');
+const { refuseUnpublished, sampleTriggerPayload, eventIsFor } = require('./runStart.mts');
 const { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
 
 // Per-user throttle for the expensive run-trigger endpoints (each spins up a
@@ -40,6 +43,7 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (/
     // startedByUserId.
     const access = await automationAccess.guard(req, res, a, isTest ? 'edit' : 'start');
     if (!access) return;
+    refuseUnpublished(stored, access, isTest);
     const ownerId = a.userId || userId;
     // The first time somebody other than the owner runs an automation that uses
     // THEIR OWN connections, they are told which apps it will act in and must
@@ -54,103 +58,43 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (/
     const sampleUserId = (resolveRunPolicy(a.definition).connections === 'caller' && ownerId !== userId) ? userId : ownerId;
     const runner = require('../../core/automationRunner');
 
-    // Manual runs are user-initiated and should execute synchronously
-    // so the UI can immediately show what happened (success / per-step
-    // output / errors). Cap the wait so a misbehaving step can't hang
-    // the request; if the cap is hit, fall back to fire-and-forget.
-    const RESPONSE_TIMEOUT_MS = 60_000;
-    let timedOut = false;
-    /** @type {NodeJS.Timeout} */
-    let guardTimer;
-    const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, RESPONSE_TIMEOUT_MS); });
-    // The cap counts from here, so the payload lookups below spend from it as
-    // they always have. Every way out of the block — an early return, a throw,
-    // a run that beat the cap — clears the timer: left armed, it would hold
-    // this request's closure for the rest of the minute after the response.
-    try {
-        // For Gmail-triggered automations the manual run is meaningless
-        // without a real email payload (every binding resolves to undefined,
-        // gmail_compose then errors with "to is required" etc.). Synthesize
-        // a payload from the user's most recent matching inbox message so
-        // the test mirrors a real fire of the trigger.
-        let triggerPayload = req.body.triggerPayload || null;
-        // Which entry point to test: the primary unless the caller names one of
-        // the ADDITIONAL triggers (definition.triggers[]). The payload synthesis
-        // below and the run itself both follow that trigger.
-        const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.body.triggerStepId);
-        if (entered.error) return res.status(400).json({ error: entered.error });
-        const trig = entered.trigger;
-        const isGmailTrig = trig?.kind === 'app_event'
-            && trig?.appEvent?.provider === 'gmail'
-            && trig?.appEvent?.event === 'mail.new';
-        const isNcTrig = trig?.kind === 'app_event' && trig?.appEvent?.provider === 'nextcloud';
-        if (isGmailTrig && !triggerPayload) {
-            const triggerBus = require('../../automation/triggerBus');
-            const latest = await triggerBus.fetchLatestGmailMatch(sampleUserId, trig.appEvent.filter || null);
-            if (latest) {
-                triggerPayload = { provider: 'gmail', event: 'mail.new', ...latest };
-            } else {
-                return res.status(200).json({
-                    accepted: true,
-                    pending: false,
-                    skipped: true,
-                    message: 'No matching email found in your inbox to test against. The automation is ready — it will fire when a new matching email arrives.',
-                });
-            }
-        }
-        // Nextcloud-triggered automations need the same treatment: a manual run
-        // with no payload leaves trigger.output.path undefined and the first NC
-        // action fails ("path is required") — the "Sort Invoices" symptom.
-        if (isNcTrig && !triggerPayload) {
-            const triggerBus = require('../../automation/triggerBus');
-            const ev = String(trig.appEvent.event || '').replace(/^nextcloud\./, '');
-            const latest = await triggerBus.fetchLatestNextcloudMatch(sampleUserId, ev, trig.appEvent.filter || null);
-            if (latest) {
-                triggerPayload = { provider: 'nextcloud', event: trig.appEvent.event, ...latest };
-            } else {
-                return res.status(200).json({
-                    accepted: true,
-                    pending: false,
-                    skipped: true,
-                    message: 'No matching recent Nextcloud activity to test against. The automation is ready — it will fire when a matching event arrives.',
-                });
-            }
-        }
+    // Which entry point to test: the primary unless the caller names one of
+    // the ADDITIONAL triggers (definition.triggers[]). The payload synthesis
+    // below and the run itself both follow that trigger.
+    const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.body.triggerStepId);
+    if (entered.error) return res.status(400).json({ error: entered.error });
+    const sampled = await sampleTriggerPayload(entered.trigger, sampleUserId, req.body.triggerPayload || null);
+    if (sampled.skipped) return res.status(200).json({ accepted: true, pending: false, skipped: true, message: sampled.message });
+    const triggerPayload = sampled.payload;
 
-        const runPromise = runner.executeAutomation(a, {
-            triggerKind: 'manual',
-            triggerPayload,
-            mode: 'live',
-            rootStepId: entered.rootStepId,
-            isTest,
-            startedByUserId: userId,
-        }).catch(e => {
-            // A refusal the caller must see (a managed automation with no live
-            // copy answers 409) is not a "still running" 202.
-            if (e instanceof HttpError || e?.errorClass === 'managed_part_not_deployed') throw e;
-            log.error('[automation/run] error:', e.message);
-            return null;
-        });
-
-        const run = await Promise.race([runPromise, guard]);
-
-        if (timedOut || !run) {
-            return res.status(202).json({
-                accepted: true,
-                pending: true,
-                message: 'Run is still in progress. Check the run history shortly.',
-            });
-        }
-        const steps = await automationStore.getRunSteps(run.id).catch((e) => fallback('routes/automation/runs:anon', e, []));
-        return res.status(200).json({
-            accepted: true,
-            run,
-            steps,
-        });
-    } finally {
-        clearTimeout(guardTimer);
-    }
+    // Manual runs are user-initiated and answer with the run (success,
+    // per-step output, errors) when it ends within the response cap, else
+    // 202 with its id; `respond: 'created'` answers 202 { runId } at once
+    // (core/automationRunner/startCapped.mts).
+    const outcome = await startCapped((onRunCreated) => runner.executeAutomation(a, {
+        triggerKind: 'manual',
+        triggerPayload,
+        mode: 'live',
+        rootStepId: entered.rootStepId,
+        isTest,
+        startedByUserId: userId,
+        onRunCreated,
+    }), { respond: req.body.respond, label: 'automation/run' });
+    return sendCappedRun(res, outcome);
 });
+
+/**
+ * The answer of a capped run start: 202 { runId } while it goes on, else 200
+ * with the run and its steps. `extra` adds to the 200 body.
+ * @param {import('express').Response} res
+ * @param {{ kind: 'finished', run: any } | { kind: 'pending', runId: string }} outcome
+ */
+async function sendCappedRun(res, outcome) {
+    if (outcome.kind === 'pending') return res.status(202).json(pendingRunBody(outcome.runId));
+    const { run } = outcome;
+    const steps = await automationStore.getRunSteps(run.id).catch((e) => fallback('routes/automation/runs:sendCappedRun', e, []));
+    return res.status(200).json({ accepted: true, run, steps });
+}
 
 // POST /:id/diagnose-trigger lives in diagnoseTrigger.js, mounted here so it
 // keeps its place in the route table (between /:id/run and /:id/dry-run).
@@ -192,9 +136,13 @@ router.post('/:id/dry-run', runTriggerLimiter, validate({ body: RunBody }), asyn
     const runner = require('../../core/automationRunner');
     const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.body.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });
-    const run = await runner.executeAutomation(a, { triggerKind: 'dry_run', triggerPayload: req.body.triggerPayload || null, mode: 'dry_run', rootStepId: entered.rootStepId, startedByUserId: userId });
-    const steps = await automationStore.getRunSteps(run.id);
-    res.json({ run, steps });
+    const outcome = await startCapped((onRunCreated) => runner.executeAutomation(a, {
+        triggerKind: 'dry_run', triggerPayload: req.body.triggerPayload || null, mode: 'dry_run',
+        rootStepId: entered.rootStepId, startedByUserId: userId, onRunCreated,
+    }), { respond: req.body.respond, label: 'automation/dry-run' });
+    if (outcome.kind === 'pending') return res.status(202).json(pendingRunBody(outcome.runId));
+    const steps = await automationStore.getRunSteps(outcome.run.id);
+    res.json({ run: outcome.run, steps });
 });
 
 /**
@@ -218,7 +166,7 @@ router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: Partia
     const runner = require('../../core/automationRunner');
     const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.body.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });
-    const run = await runner.runPartial(a, req.params.stepId, {
+    const partial = {
         mode: req.body.mode,
         triggerKind: 'manual_step',
         triggerPayload: req.body.triggerPayload || null,
@@ -229,7 +177,15 @@ router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: Partia
         seedRunId: req.body.seedRunId || null,
         allowLiveUpstream: req.body.allowLiveUpstream === true,
         confirmSideEffects: req.body.confirmSideEffects === true,
-    });
+    };
+    // Capped like /:id/run. runPartial hands onRunCreated on to the run it
+    // starts; a path that does not is answered when its run ends.
+    const outcome = await startCapped((onRunCreated) => {
+        const opts = { ...partial, onRunCreated };
+        return runner.runPartial(a, req.params.stepId, opts);
+    }, { respond: req.body.respond, label: 'automation/steps/run' });
+    if (outcome.kind === 'pending') return res.status(202).json(pendingRunBody(outcome.runId));
+    const run = outcome.run;
     const steps = await automationStore.getRunSteps(run.id);
     const stepRecord = steps.find(s => s.stepId === req.params.stepId) || null;
     // The plan describes this response, not the run: it leaves the run row.
@@ -562,7 +518,8 @@ router.get('/_runs/org/facets', validate({ query: FacetsQuery }), async (/** @ty
 /**
  * §9 SSE stream of run lifecycle events for the CURRENT USER. Subscribes to
  * runEventBus (which the runner now emits to) and pushes events as they fire,
- * dropping any event whose `userId` isn't the subscriber's. An optional
+ * dropping any event that is neither the subscriber's (`userId`) nor started
+ * by them (`startedByUserId`). An optional
  * `?automationId=` further scopes the stream to one automation/Step surface.
  *
  * Consumed via fetch streaming (authFetch), so the normal X-Session-Token /
@@ -582,8 +539,13 @@ router.get('/_runs/stream', validate({ query: StreamQuery }), async (/** @type {
         heartbeat: { intervalMs: 25_000, frame: ': keepalive\n\n' },
     });
     const unsubscribe = onAny((event) => {
-        // Per-user scoping — never leak another user's run activity.
-        if (event.userId && event.userId !== me) return;
+        // Per-user scoping — never leak another user's run activity. The
+        // run's owner (userId) and the person who started it get it: an
+        // editor's test of a shared automation runs AS THE OWNER, and its
+        // starter must still see it move (run-watch F8). A run on its
+        // starter's own connections carries no data on its events either way
+        // (runHeartbeat.makeLifecycleEmitter, runEventBus.emitRunClosed).
+        if (!eventIsFor(event, me)) return;
         if (scopeAutomationId && event.automationId && event.automationId !== scopeAutomationId) return;
         sendRaw(`data: ${JSON.stringify(event)}\n\n`);
     });

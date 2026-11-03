@@ -34,11 +34,19 @@ const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} m
     .int(`${name} must be a whole number.`).optional();
 
 const STEP_TEXT = 'triggerStepId is the id of a trigger on this automation.';
+const RESPOND_TEXT = 'respond is "created" or "finished".';
+/**
+ * When to answer (core/automationRunner/startCapped.mts): "created" answers
+ * 202 { runId } as soon as the run exists, so the caller follows it by id;
+ * "finished" (the default) waits for the end, up to the response cap.
+ */
+const Respond = z.enum(['created', 'finished'], { error: () => RESPOND_TEXT }).optional();
 const RUN_SHAPE = {
     // What the run ENTERS with — a form submission, an inbound message. The
     // runner reads it; this route only carries it.
     triggerPayload: z.unknown().optional(),
     triggerStepId: worded(STEP_TEXT).trim().min(1, STEP_TEXT).nullish(),
+    respond: Respond,
 };
 const RunBody = bodyOf({
     ...RUN_SHAPE,
@@ -121,4 +129,4 @@ const SeenBody = z.object({
     items: z.array(worded(ITEMS_TEXT).trim().min(1, ITEMS_TEXT).max(100, ITEMS_TEXT), { error: () => ITEMS_TEXT }).max(100, ITEMS_TEXT),
 }).strict();
 
-module.exports = { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody };
+module.exports = { Respond, SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody };

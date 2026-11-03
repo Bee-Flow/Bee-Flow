@@ -55,7 +55,7 @@ async function deciderName(userId) {
  * travels into the resume decision object and the response, so downstream
  * steps can read steps.<id>.output.votes.
  */
-async function finalizeDecision(/** @type {{ approval: any, run: any, deciderId: any, decision: any, trimmedReason: any, coercedAnswers: any, source: any, votes?: unknown[] | null }} */ { approval, run, deciderId, decision, trimmedReason, coercedAnswers, source, votes = null }) {
+async function finalizeDecision(/** @type {{ approval: any, run: any, deciderId: any, decision: any, trimmedReason: any, coercedAnswers: any, source: any, votes?: unknown[] | null, respond?: 'created' | 'finished' | null }} */ { approval, run, deciderId, decision, trimmedReason, coercedAnswers, source, votes = null, respond = null }) {
     const runless = isRunless(approval);
     const decidedByName = await deciderName(deciderId);
     const decidedAt = new Date().toISOString();
@@ -117,59 +117,82 @@ async function finalizeDecision(/** @type {{ approval: any, run: any, deciderId:
         return outcome(200, { accepted: true, decision, approval: decided, ...(votes ? { votes: votes.map(voteSummary) } : {}) });
     }
 
-    if (decision === 'reject') {
-        await automationStore.updateRun(run.id, {
-            status: 'error',
-            error: `Approval rejected: ${trimmedReason}`,
-            errorClass: 'ApprovalRejected',
-            finishedAt: decidedAt,
-            awaitingStepId: null,
-            approvalToken: null,
-        });
-        const fresh = await automationStore.getRun(run.id);
-        return outcome(200, { accepted: true, decision: 'reject', approval: decided, run: redactRunForViewer(fresh, deciderId) });
-    }
+    if (decision === 'reject') return rejectRun({ approval: decided, run, deciderId, trimmedReason, decidedAt });
+    return resumeApprovedRun({ approval: decided, run, deciderId, trimmedReason, coercedAnswers, votes, decidedAt, respond });
+}
 
-    // Approve → resume. Clearing the awaiting state FIRST is the run-level
-    // half of the double-approve guard (kept from the legacy path).
+/**
+ * A rejection fails the paused run, closes its paused step row as 'rejected'
+ * (the step would otherwise go on saying "Waiting for your approval" on a
+ * finished run) and tells the stream (run-watch F10).
+ * @param {{ approval: any, run: any, deciderId: string, trimmedReason: string, decidedAt: string }} p
+ */
+async function rejectRun({ approval, run, deciderId, trimmedReason, decidedAt }) {
+    const error = `Approval rejected: ${trimmedReason}`;
+    await automationStore.updateRun(run.id, {
+        status: 'error',
+        error,
+        errorClass: 'ApprovalRejected',
+        finishedAt: decidedAt,
+        awaitingStepId: null,
+        approvalToken: null,
+    });
+    await Promise.resolve().then(() => automationStore.closeAwaitingStepRow(run.id, approval.stepId, 'awaiting_approval', 'rejected'))
+        .catch((e) => bestEffort('automation/approvalDecision:rejectRun', e));
+    require('../core/runEventBus').emitRunClosed(run, { status: 'error', errorClass: 'ApprovalRejected', error });
+    const fresh = await automationStore.getRun(run.id);
+    return outcome(200, { accepted: true, decision: 'reject', approval, run: redactRunForViewer(fresh, deciderId) });
+}
+
+/**
+ * Approve → resume, answered within the response cap
+ * (core/automationRunner/startCapped.mts): 200 with the continuation when it
+ * ends in time, else 202 with its run id. `respond: 'created'` answers 202 as
+ * soon as the continuation exists.
+ * @param {{ approval: any, run: any, deciderId: string, trimmedReason: string, coercedAnswers: any, votes: unknown[] | null, decidedAt: string, respond: 'created' | 'finished' | null }} p
+ */
+async function resumeApprovedRun({ approval, run, deciderId, trimmedReason, coercedAnswers, votes, decidedAt, respond }) {
+    // Clearing the awaiting state FIRST is the run-level half of the
+    // double-approve guard (kept from the legacy path).
     const runner = require('../core/automationRunner');
-    const RESPONSE_TIMEOUT_MS = 60_000;
-    let timedOut = false;
-    const guard = new Promise((resolve) => setTimeout(() => { timedOut = true; resolve(null); }, RESPONSE_TIMEOUT_MS));
+    const { startCapped, pendingRunBody } = require('../core/automationRunner/startCapped.mts');
 
     await automationStore.updateRun(run.id, {
         awaitingStepId: null,
         approvalToken: null,
     }).catch((e) => bestEffort('automation/approvalDecision:finalizeDecision#3', e));
 
-    const resumePromise = runner.resumeFromStep(run.id, approval.stepId, {
-        decision: {
-            approved: true,
-            by: deciderId,
-            reason: trimmedReason || null,
-            decidedAt,
-            ...(coercedAnswers ? { answers: coercedAnswers } : {}),
-            // Panel evidence, additive: who voted what, in order. Downstream
-            // steps bind steps.<id>.output.votes when they care.
-            ...(votes ? { votes: votes.map(voteSummary) } : {}),
-        },
-        userId: deciderId,
-    }).catch(e => { log.error('[approvalService] resume error:', e.message); return null; });
-
-    const newRun = await Promise.race([resumePromise, guard]);
+    const decisionOutput = {
+        approved: true,
+        by: deciderId,
+        reason: trimmedReason || null,
+        decidedAt,
+        ...(coercedAnswers ? { answers: coercedAnswers } : {}),
+        // Panel evidence, additive: who voted what, in order. Downstream
+        // steps bind steps.<id>.output.votes when they care.
+        ...(votes ? { votes: votes.map(voteSummary) } : {}),
+    };
+    /** @type {{ kind: 'finished', run: any } | { kind: 'pending', runId: string } | null} */
+    const resumed = await startCapped((onRunCreated) => runner.resumeFromStep(run.id, approval.stepId, { decision: decisionOutput, userId: deciderId, onRunCreated }),
+        { respond, label: 'approvalService/resume' })
+        .catch((e) => { log.error('[approvalService] resume error:', e.message); return null; });
+    const childId = resumed?.kind === 'finished' ? resumed.run?.id : resumed?.runId;
 
     await automationStore.updateRun(run.id, {
         status: 'success',
-        summary: newRun?.id
-            ? `Resumed via approval — see child run ${newRun.id}`
+        summary: childId
+            ? `Resumed via approval — see child run ${childId}`
             : 'Resumed via approval — continuation running (see run history).',
         finishedAt: decidedAt,
     }).catch((e) => bestEffort('automation/approvalDecision:finalizeDecision#4', e));
 
-    if (timedOut || !newRun) {
-        return outcome(202, { accepted: true, pending: true, approval: decided, message: 'Resume started; check run history.' });
+    if (resumed?.kind === 'finished') {
+        return outcome(200, { accepted: true, decision: 'approve', approval, run: redactRunForViewer(resumed.run, deciderId) });
     }
-    return outcome(200, { accepted: true, decision: 'approve', approval: decided, run: redactRunForViewer(newRun, deciderId) });
+    if (childId) return outcome(202, { ...pendingRunBody(childId, 'Resume started; check run history.'), approval });
+    // The continuation never started, so there is no run to follow: say so
+    // rather than "still running". The decision itself stands (written above).
+    return outcome(500, { error: 'The approval was recorded, but the run could not continue. Check its run history.', code: 'resume_failed', decision: 'approve', approval });
 }
 
 module.exports = { outcome, recordDeploymentOutcome, userDisplayName, deciderName, finalizeDecision };

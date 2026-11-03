@@ -51,10 +51,18 @@ async function advanceSecondarySchedule(deps, { automation, schedule, rootStepId
  * lastRunAt with preview results. Without releasing, a live row stays
  * `running` forever on a crash — the reaper still catches that; releasing
  * here is the fast path.
+ *
+ * The same goes for every run whose profile does not hold the marker (a test
+ * or partial run, RM-12): claimRunMarker never gives it the marker, and should
+ * one still arrive here its result is not the automation's last status.
  */
-async function releaseMarker(deps, { automation, firstRunNeedsConfirm, runStatus, finishedAt, schedule, rootStepId }) {
+async function releaseMarker(deps, { automation, firstRunNeedsConfirm, runStatus, finishedAt, schedule, rootStepId, profile = null }) {
     const { automationStore } = deps;
     try {
+        if (profile && profile.holdsMarker === false) {
+            await automationStore.releaseAutomation(automation.id);
+            return;
+        }
         await automationStore.updateAutomation(automation.id, {
             lastStatus: firstRunNeedsConfirm ? 'awaiting_confirm' : runStatus,
             lastRunAt: finishedAt,

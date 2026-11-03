@@ -21,6 +21,8 @@
 
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
+/** Results are read loosely here: each case asserts the fields it is about. */
+const anyOf = (/** @type {any} */ v) => v;
 
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
@@ -54,6 +56,7 @@ function canUserAccessKB(kb, userId, orgIds, groups, opts) {
 const guardAiInputCalls = [];
 const quickKBSearchCalls = [];
 let quickKBSearchResult = [];
+let quickKBSearchError = null;
 
 const restore = installResolveStub({
     '../llm/modelResolver': { async getUserTierMap() { return TIERS; } },
@@ -83,6 +86,8 @@ const restore = installResolveStub({
         restoreForRunState: (v) => v,
         buildPiiSummary() { return null; },
     },
+    // The structured route (a step with an outputSchema) asks llmClient.
+    '../llm/llmClient': { async chatForcedTool() { return { structured: { ok: true }, content: null, usage: {} }; } },
     '../../stores/usageStore': { async logUsage() {} },
     '../../stores/terminationStore': { async logTermination() {} },
     // ── The two dependencies this feature adds ──────────────────────────
@@ -96,6 +101,7 @@ const restore = installResolveStub({
     '../agentRuntime/knowledgeSearch': {
         async quickKBSearch(userId, kbIds, query, opts) {
             quickKBSearchCalls.push({ userId, kbIds, query, opts });
+            if (quickKBSearchError) throw quickKBSearchError;
             return quickKBSearchResult;
         },
     },
@@ -184,14 +190,39 @@ test('the KB content reaches guardAiInput as part of the system message, not a s
     assert.match(systemMessage().content, /the secret sauce/);
 });
 
-// ── 4. Dry-run never performs a live search ─────────────────────────────────
+// ── 4. Dry-run searches too (RM-6) ───────────────────────────────────────────
+//
+// This used to assert the opposite. The model is called for real in a dry run,
+// so skipping the (read-only) search made it answer without the material and
+// a switch behind it took a branch the live run never would.
 
-test('dry-run skips the KB search entirely — no permission lookups, no live call', async () => {
-    await execAiStep(step({ knowledgeBaseIds: ['kb_ok'] }), CTX, {}, 'dry_run');
+test('dry-run performs the same permission-checked KB search as live', async () => {
+    quickKBSearchResult = [{ title: 'Refund policy', content: 'the secret sauce' }];
+    const r = anyOf(await execAiStep(step({ knowledgeBaseIds: ['kb_ok', 'kb_foreign'] }), CTX, {}, 'dry_run'));
 
-    assert.strictEqual(kbGetCalls.length, 0, 'dry-run must not even consult the KB store');
-    assert.strictEqual(quickKBSearchCalls.length, 0);
-    assert.doesNotMatch(systemMessage().content, /Reference material:/);
+    assert.deepStrictEqual(quickKBSearchCalls.map(c => c.kbIds), [['kb_ok']], 'the foreign base is still filtered out');
+    assert.match(systemMessage().content, /Reference material:/);
+    assert.strictEqual(r.dryRunSynthesised, undefined, 'a grounded dry-run answer is a real answer');
+    assert.strictEqual(r.output._dryRunNoKnowledge, undefined);
+});
+
+test('dry-run with the KB search unavailable labels the answer and marks it synthesised', async () => {
+    quickKBSearchError = new Error('vector store down');
+    const rs = { _templateWarnings: [] };
+    const r = anyOf(await execAiStep(step({ knowledgeBaseIds: ['kb_ok'], outputSchema: { ok: 'boolean' } }), CTX, rs, 'dry_run'));
+    assert.strictEqual(quickKBSearchCalls.length, 1);
+    assert.strictEqual(r.output._dryRunNoKnowledge, true);
+    assert.strictEqual(r.dryRunSynthesised, true);
+    assert.strictEqual(r.dryRunFallback, 'no_knowledge');
+    assert.match(rs._templateWarnings.join('\n'), /ai_1: the knowledge base search was unavailable/);
+    // A plain-text answer cannot carry the key: the flag and the warning still do.
+    const text = anyOf(await execAiStep(step({ knowledgeBaseIds: ['kb_ok'] }), CTX, { _templateWarnings: [] }, 'dry_run'));
+    assert.strictEqual(typeof text.output, 'string');
+    assert.strictEqual(text.dryRunSynthesised, true);
+    // Live keeps its best-effort behaviour: no label, no taint.
+    const live = anyOf(await execAiStep(step({ knowledgeBaseIds: ['kb_ok'], outputSchema: { ok: 'boolean' } }), CTX, {}, 'live'));
+    assert.strictEqual(live.output._dryRunNoKnowledge, undefined);
+    assert.strictEqual(live.dryRunSynthesised, undefined);
 });
 
 // ── 5. The org-admin bypass does not follow an automation into a retrieval ─────

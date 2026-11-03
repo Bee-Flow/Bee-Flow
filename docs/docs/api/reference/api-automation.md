@@ -177,6 +177,7 @@ No request schema.
 |-------|------|:--------:|-------|
 | `triggerPayload` | any |  |  |
 | `triggerStepId` | string or null |  |  |
+| `respond` | one of `"created"`, `"finished"` |  |  |
 | `test` | boolean |  |  |
 
 ### `POST /api/automation/:id/duplicate`
@@ -343,6 +344,7 @@ No request schema.
 |-------|------|:--------:|-------|
 | `triggerPayload` | any |  |  |
 | `triggerStepId` | string or null |  |  |
+| `respond` | one of `"created"`, `"finished"` |  |  |
 | `test` | boolean |  |  |
 
 ### `GET /api/automation/:id/runs`
@@ -427,6 +429,7 @@ No request schema.
 |-------|------|:--------:|-------|
 | `triggerPayload` | any |  |  |
 | `triggerStepId` | string or null |  |  |
+| `respond` | one of `"created"`, `"finished"` |  |  |
 | `mode` | one of `"only"`, `"from"`, `"upTo"` |  | default `"only"` |
 | `seedRunId` | string or null |  |  |
 | `allowLiveUpstream` | boolean |  |  |
@@ -1315,6 +1318,7 @@ No request schema.
 | `decision` | one of `"approve"`, `"reject"` | yes |  |
 | `reason` | string |  | max length 2000 |
 | `answers` | any |  |  |
+| `respond` | one of `"created"`, `"finished"` |  |  |
 
 ### `POST /api/automation/runs/:runId/cancel`
 
@@ -1370,6 +1374,7 @@ No request schema.
 |-------|------|:--------:|-------|
 | `stepId` | string |  | min length 1 |
 | `values` | object |  | default `{}` |
+| `respond` | one of `"created"`, `"finished"` |  |  |
 
 ### `POST /api/automation/runs/:runId/golden`
 

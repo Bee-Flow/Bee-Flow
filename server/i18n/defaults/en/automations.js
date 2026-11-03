@@ -554,6 +554,8 @@ module.exports = {
     "automations.runs.rejected_because": "Rejected — {reason}",
     "automations.runs.waiting_form": "Waiting for a form to be filled in",
     "automations.runs.stopped_by_user": "Stopped before it finished",
+    "automations.runs.discard_test_run": "Discard this test run",
+    "automations.runs.stop_waiting_title": "Closes this run without an answer. Nothing after the pause runs.",
 
     // ── Automations builder: the node catalog ──────────────────────────
     // Generated from agent-hub/.../Builder/flow/nodeDefs.js, which is the

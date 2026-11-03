@@ -63,8 +63,14 @@ async function acquireRunMarker(deps, automationId, triggerKind, { wait = true }
     return false;
 }
 
-/** The run's lifecycle emitter (a no-op for dry runs). */
-function makeLifecycleEmitter({ run, automation, effectiveMode }) {
+/**
+ * The run's lifecycle emitter (a no-op for dry runs).
+ * Every event carries `startedByUserId` (who started the run, null for a
+ * trigger), so the stream can show a tester their own test runs only.
+ * @param {{ run: RunRow, automation: RunAutomation, effectiveMode: string, startedByUserId?: string | null }} args
+ */
+function makeLifecycleEmitter({ run, automation, effectiveMode, startedByUserId = null }) {
+    const starter = startedByUserId || run.startedByUserId || null;
     // Live run-lifecycle events for the executions UI's SSE stream. Skipped for
     // dry-runs (the executions table only shows live runs) and never allowed to
     // throw — emission must not break a run. Stamped with userId so the stream
@@ -89,6 +95,7 @@ function makeLifecycleEmitter({ run, automation, effectiveMode }) {
                 // nothing, and the visible row would sit on "Still running…"
                 // until a manual refresh.
                 rootRunId: run.rootRunId || run.id,
+                startedByUserId: starter,
                 ...extra,
             });
         } catch (err) { bestEffort('core/automationRunner/runHeartbeat:emitLifecycle', err); /* never break a run on telemetry */ }
@@ -103,7 +110,7 @@ function makeLifecycleEmitter({ run, automation, effectiveMode }) {
  *   `skipped` with the cancelled run row (lastOutput attached) when the run
  *   was dropped because the automation was already running.
  */
-async function claimRunMarker(deps, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle }) {
+async function claimRunMarker(deps, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle, holdsMarker = true }) {
     const { automationStore, clearRunCancellation } = deps;
     // §WS2.4 — concurrency guard. markRunning atomically flips the automations
     // row to 'running' and RETURNS FALSE if a run is already in flight. We honour
@@ -134,6 +141,13 @@ async function claimRunMarker(deps, { automation, run, runPolicy, triggerKind, e
     // takes the marker when it is free and never waits for it, and when it is
     // not free it runs without owning it (so it cannot release it from under
     // the run that does). 'serial' (the default) is today's behaviour.
+    // The run's profile decides whether it takes part at all (`holdsMarker`,
+    // runProfile.mts): only a PRODUCTION run claims the marker. A test, partial
+    // or dry run never acquires it, never waits for it and never releases it —
+    // the way a parallel run that finds the automation busy runs alongside it —
+    // so a webhook arriving during a test is not skipped as "already running",
+    // and a failed test does not write the automation's last status (RM-12).
+    if (!holdsMarker) return { ownsMarker: false, skipped: false, row: null };
     const parallel = runPolicy.concurrency === 'parallel';
     let ownsMarker = effectiveMode === 'live';
     if (triggerKind !== 'schedule' && effectiveMode === 'live') {

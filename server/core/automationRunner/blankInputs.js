@@ -22,10 +22,18 @@
  * the datatable writes (`values` of add_row, save_row and update_rows) and
  * return_to_app (the record and the toast the App Studio app is handed).
  * Not covered on purpose: fill_document `values` (reported as `missing`).
+ *
+ * A DRY RUN checks too (the dry-run honesty rule, ./execCode.js header): a
+ * hole in a read of REAL upstream data is the same hole live, so the step
+ * fails the same way. Only a miss on data the dry run made up itself (a
+ * simulated write's sample, a synthetic trigger, an auto-approved approval)
+ * is let through, because it predicts nothing about the live run.
  */
 'use strict';
 
 const { withBindingLog, describeBindingMiss, interpolateTemplate, noteMiss, resolveValue, underField } = require('../automationModel/bind');
+const { refHead } = require('../automationModel/refPaths');
+const { refIsSynthetic, collectBindingPaths } = require('./shared');
 
 const HTTP_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const READS_STEP_OUTPUT = /^steps[.[]/;
@@ -86,6 +94,51 @@ function failOnBlankInputs(step, misses) {
     throw err;
 }
 
+/**
+ * Output keys a dry-run executor leaves on an answer it did not really get:
+ * an approval auto-approved, a notification not sent, a datatable write or a
+ * wait simulated. A step whose result is flagged `dryRunSynthesised` is
+ * marked `synthesised` on its runState record instead (runDagRecord).
+ */
+const SIMULATED_OUTPUT_KEYS = ['_dryRun', '_dryRunSynthesised', 'wouldNotify'];
+const own = (/** @type {unknown} */ o, /** @type {string} */ k) => o !== null && typeof o === 'object' && Object.prototype.hasOwnProperty.call(o, k);
+
+/** True when a run path reads the output of a step this dry run simulated. */
+function readsSimulated(path, runState, ctx) {
+    if (refIsSynthetic(path, runState, ctx || {})) return true;
+    const { root, second } = refHead(String(path || ''));
+    if (root !== 'steps' || second === null || !own(runState.steps, second)) return false;
+    const out = runState.steps[second] && runState.steps[second].output;
+    return SIMULATED_OUTPUT_KEYS.some((k) => own(out, k));
+}
+
+/**
+ * The misses of a DRY RUN that predict the live run: everything except a read
+ * of data the dry run made up. A formula that does not parse is never exempt
+ * (it fails the same way whatever the data); a formula that throws is exempt
+ * when it reads simulated data.
+ * @param {Array<Partial<BindingMiss>>} misses  as bindCapture hands them over
+ */
+function missesOnRealData(misses, runState, ctx) {
+    return misses.filter((m) => {
+        if (m.kind === 'expr' && m.reason === 'syntax') return true;
+        const paths = m.kind === 'expr' && m.reason === 'error'
+            ? collectBindingPaths({ kind: 'expr', value: m.path })
+            : [m.path];
+        return !paths.some((p) => readsSimulated(p, runState, ctx));
+    });
+}
+
+/**
+ * The misses a step fails on in this mode: all of them live, the ones on
+ * real data in a dry run.
+ * @param {Array<Partial<BindingMiss>>} misses  as bindCapture hands them over
+ * @param {string} mode
+ */
+function missesThatFail(misses, runState, ctx, mode) {
+    return mode === 'dry_run' ? missesOnRealData(misses, runState, ctx) : misses;
+}
+
 /** Resolve one field the way its executor does, so its misses land in the log. */
 function resolveField(field, value, how, state) {
     if (typeof value === 'string') {
@@ -95,10 +148,15 @@ function resolveField(field, value, how, state) {
     if (how !== 'template' && value && typeof value === 'object') underField(field, () => resolveValue(value, state, { allowSecrets: false }));
 }
 
-/** Throws before the executor runs when a live step of a covered type would write a hole. */
-function preflightBlankInputs(step, runState, mode) {
+/**
+ * Throws before the executor runs when a step of a covered type would write a
+ * hole: live, and in a dry run when the hole is in real data (header).
+ * @param {string} mode
+ * @param {{ triggerSynthetic?: boolean }} [ctx]
+ */
+function preflightBlankInputs(step, runState, mode, ctx = {}) {
     const fieldsOf = FIELDS[step.type];
-    if (!fieldsOf || mode === 'dry_run') return;
+    if (!fieldsOf) return;
     // The executor logs its own misses and run warnings; this pass stays out of both.
     const state = { ...runState, _templateWarnings: undefined };
     /**
@@ -108,12 +166,18 @@ function preflightBlankInputs(step, runState, mode) {
     withBindingLog(misses, () => {
         for (const [field, value, how = 'template'] of fieldsOf(step)) resolveField(field, value, how, state);
     });
-    if (!misses.some(isBlank)) return;
+    const failing = missesThatFail(misses, runState, ctx, mode);
+    if (!failing.some(isBlank)) return;
     for (const m of misses) noteMiss({ ...m });
-    failOnBlankInputs(step, misses);
+    failOnBlankInputs(step, failing);
 }
 
-module.exports = { failOnBlankInputs, preflightBlankInputs };
+module.exports = { failOnBlankInputs, preflightBlankInputs, missesThatFail };
+
+/**
+ * One record of the binding log (bind.js noteMiss), as far as this pass reads it.
+ * @typedef {{ kind: string, reason: string, path: string }} BindingMiss
+ */
 
 /**
  * The step fields this pass reads.

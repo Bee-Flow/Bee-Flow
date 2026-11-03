@@ -99,7 +99,7 @@ async function ensureApprovalForRun(run, automation) {
  * caller via canDecide); `run` is the actionable leg (resolveActionableRun).
  * Returns {code, body} ready for res.status(code).json(body).
  */
-async function decide({ approval, run, deciderId, decision, reason = null, answers = null, source = 'studio' }) {
+async function decide({ approval, run, deciderId, decision, reason = null, answers = null, source = 'studio', respond = null }) {
     if (!approval) return outcome(404, { error: 'Approval not found' });
     if (approval.status !== 'pending') {
         return outcome(409, { error: `This approval was already ${approval.status}.`, status: approval.status });
@@ -189,7 +189,10 @@ async function decide({ approval, run, deciderId, decision, reason = null, answe
         return castPanelVote({ approval, run, deciderId, decision, trimmedReason, coercedAnswers, source });
     }
 
-    return finalizeDecision({ approval, run, deciderId, decision, trimmedReason, coercedAnswers, source });
+    // `respond: 'created'` answers as soon as the continuation exists
+    // (core/automationRunner/startCapped.mts). A panel or staged vote that
+    // resolves the row answers when the continuation ends, up to the cap.
+    return finalizeDecision({ approval, run, deciderId, decision, trimmedReason, coercedAnswers, source, respond });
 }
 
 /**
@@ -233,15 +236,7 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
     // Close the paused run — it is the withdrawn question's mechanism.
     if (approval.runId) {
         const run = await automationStore.getRun(approval.runId).catch((e) => fallback('automation/approvalService:withdraw#2', e, null));
-        if (run && run.status === 'awaiting_approval' && run.awaitingStepId === approval.stepId) {
-            await automationStore.updateRun(run.id, {
-                status: 'cancelled',
-                summary: 'Approval withdrawn — the run was closed without a decision.',
-                finishedAt: new Date().toISOString(),
-                awaitingStepId: null,
-                approvalToken: null,
-            }).catch((e) => bestEffort('automation/approvalService:withdraw#3', e));
-        }
+        if (run && run.status === 'awaiting_approval' && run.awaitingStepId === approval.stepId) await closeWithdrawnRun(run, approval.stepId);
     }
 
     // Tell the people who were asked (and the owner, when an admin withdrew).
@@ -271,6 +266,27 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
     }
 
     return outcome(200, { accepted: true, approval: cancelled });
+}
+
+const WITHDRAWN_SUMMARY = 'Approval withdrawn — the run was closed without a decision.';
+
+/**
+ * The run a withdrawn approval paused: cancelled, its paused step row too (it
+ * would otherwise go on saying "Waiting for your approval" on a closed run),
+ * and the stream hears it (run-watch F10).
+ */
+async function closeWithdrawnRun(run, stepId) {
+    const closed = await automationStore.updateRun(run.id, {
+        status: 'cancelled',
+        summary: WITHDRAWN_SUMMARY,
+        finishedAt: new Date().toISOString(),
+        awaitingStepId: null,
+        approvalToken: null,
+    }).then(() => true, (e) => { bestEffort('automation/approvalService:withdraw#3', e); return false; });
+    if (!closed) return;
+    await Promise.resolve().then(() => automationStore.closeAwaitingStepRow(run.id, stepId, 'awaiting_approval', 'cancelled'))
+        .catch((e) => bestEffort('automation/approvalService:closeWithdrawnRun', e));
+    require('../core/runEventBus').emitRunClosed(run, { status: 'cancelled', summary: WITHDRAWN_SUMMARY });
 }
 
 /**

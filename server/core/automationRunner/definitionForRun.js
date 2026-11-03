@@ -64,8 +64,11 @@
 'use strict';
 
 const { HttpError } = require('../http/errors');
+// The run's kind is the run profile's (automationModel/runProfile.mts); the
+// legacy test rule (mode, isTest, trigger kind) lives there.
+const runProfile = require('../automationModel/runProfile.mts');
 
-const TEST_TRIGGER_KINDS = new Set(['manual_step', 'dry_run']);
+const { TEST_TRIGGER_KINDS } = runProfile;
 
 /** Definition keys that are automation SETTINGS: always read from the working copy. */
 const SETTINGS_KEYS = Object.freeze(['notificationSettings', 'runPolicy']);
@@ -95,11 +98,12 @@ function withWorkingSettings(live, working) {
  * }} IsTestRunArgs
  */
 /**
- * True when this run executes the working copy.
+ * True when this run executes the working copy: its run profile's kind is not
+ * 'production' (a dry run, a partial builder run, a run flagged isTest).
  * @param {IsTestRunArgs} [param0]
  */
 function isTestRun({ mode = 'live', triggerKind = null, isTest = false } = {}) {
-    return !!isTest || mode === 'dry_run' || TEST_TRIGGER_KINDS.has(triggerKind);
+    return runProfile.kindOf({ mode, triggerKind, isTest: !!isTest }) !== 'production';
 }
 
 /**

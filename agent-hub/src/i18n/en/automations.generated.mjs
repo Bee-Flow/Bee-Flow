@@ -537,6 +537,8 @@ export default {
     "automations.runs.rejected_because": "Rejected — {reason}",
     "automations.runs.waiting_form": "Waiting for a form to be filled in",
     "automations.runs.stopped_by_user": "Stopped before it finished",
+    "automations.runs.discard_test_run": "Discard this test run",
+    "automations.runs.stop_waiting_title": "Closes this run without an answer. Nothing after the pause runs.",
     "automations.node.group.flow_control": "Flow control",
     "automations.node.group.data": "Data",
     "automations.node.group.lists": "Lists",

@@ -26,7 +26,8 @@ const DEF = {
     edges: [{ from: 'trg', to: 's1' }],
     runPolicy: { connections: 'caller' },
 };
-const AUTOMATION = { id: 'a1', userId: 'owner1', organizationId: 'org1', definition: DEF };
+// Published (liveVersion): a run-only colleague may only start a published automation (RM-11).
+const AUTOMATION = { id: 'a1', userId: 'owner1', organizationId: 'org1', definition: DEF, liveVersion: 0 };
 const grow = () => { AUTOMATION.definition = { ...DEF, steps: [...DEF.steps, { id: 's2', type: 'knowledge_write' }] }; };
 
 mock('stores/automationStore', {
