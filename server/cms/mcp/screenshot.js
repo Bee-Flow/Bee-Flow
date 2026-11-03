@@ -31,6 +31,7 @@
 
 'use strict';
 const log = require('../../telemetry/log');
+const { paintRegion, countLiveFrames } = require('./screenshotWalk.mts');
 const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // services/browserProvider.js BACKEND_UNAVAILABLE: the code of "no browser to render with".
@@ -201,17 +202,9 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
                 { timeout: HYDRATE_WAIT_MS, polling: 100 },
             ).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#2', e));
             await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true)).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#3', e));
-            if (fullPage) {
-                // Walk down the page so lazy images load, then back up.
-                await page.evaluate(async () => {
-                    const step = window.innerHeight || 800;
-                    for (let y = 0; y < document.documentElement.scrollHeight && y < 24000; y += step) {
-                        window.scrollTo(0, y);
-                        await new Promise((r) => setTimeout(r, 60));
-                    }
-                    window.scrollTo(0, 0);
-                }).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#4', e));
-            }
+            const from = fullPage ? 0 : Math.max(0, offsetY);
+            await paintRegion(page, from, fullPage ? 24000 : from + viewport.height)
+                .catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#4', e));
             await page.waitForTimeout(SETTLE_MS);
 
             const hydrated = await page.evaluate(
@@ -220,6 +213,8 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
             const pageHeight = await page.evaluate(
                 () => Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0),
             ).catch(() => viewport.height);
+
+            const liveComponentFrames = await countLiveFrames(page);
 
             let png;
             if (fullPage) {
@@ -234,7 +229,7 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
             } else {
                 png = await page.screenshot({ type: 'png' });
             }
-            return { png, hydrated, pageHeight, consoleErrors };
+            return { png, hydrated, pageHeight, consoleErrors, liveComponentFrames };
         },
     );
 }
@@ -424,6 +419,7 @@ function createScreenshotRenderer(overrides = null) {
 
             const image = await deps.encode(shot.png);
             const hydrated = !!shot.hydrated;
+            const liveFrames = Number(shot.liveComponentFrames) || 0;
             const rendering = hydrated ? 'hydrated' : 'server-markup-only';
             const why = hydrated
                 ? 'Rendered with the real site bundle, as a visitor sees it.'
@@ -435,12 +431,16 @@ function createScreenshotRenderer(overrides = null) {
                 image,
                 rendering,
                 pageHeight: shot.pageHeight,
+                liveComponentFrames: Number(shot.liveComponentFrames) || 0,
                 path,
                 text: [
                     `Screenshot of ${state} ${path} (${content.locale}), ${args.viewport && VIEWPORTS[args.viewport] ? args.viewport : 'desktop'} ${viewport.width}px wide, image ${image.width}x${image.height}.`,
                     why,
                     `The full page is ${shot.pageHeight}px tall at this width${args.fullPage ? ' (scaled down to fit)' : '; pass offsetY to look further down it, or fullPage:true for an overview'}.`,
-                ].join(' '),
+                    liveFrames > 0
+                        ? `The page contains ${liveFrames} live-component frame${liveFrames === 1 ? '' : 's'} (sandboxed iframes): a blank area where one sits may be a capture artefact (the frame had not painted), not an empty block; take the screenshot again or check the block's code.`
+                        : '',
+                ].filter(Boolean).join(' '),
             };
         } catch (err) {
             if (err && err.code === BACKEND_UNAVAILABLE) {
