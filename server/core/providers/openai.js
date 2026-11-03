@@ -480,7 +480,7 @@ class OpenAIProvider extends BaseProvider {
         const params = this._buildCompletionsParams(model, messages, options);
 
         log.info(`[${this.name}] SDK chat (completions) for model:`, model);
-        const response = await client.chat.completions.create(params);
+        const response = await client.chat.completions.create(params, options.signal ? { signal: options.signal } : undefined);
 
         const message = response.choices?.[0]?.message;
         const usage = this._normalizeUsage(response.usage, { service_tier: response.service_tier });
@@ -502,7 +502,7 @@ class OpenAIProvider extends BaseProvider {
         const params = this._buildResponsesParams(model, messages, options);
 
         log.info(`[${this.name}] SDK chat (responses, store=${this.responsesStore}) for model:`, model);
-        const response = await client.responses.create(params);
+        const response = await client.responses.create(params, options.signal ? { signal: options.signal } : undefined);
 
         // The Responses API reports failure OUT of band: a 200 response whose
         // `status` is 'failed' or 'incomplete', with empty/partial output.

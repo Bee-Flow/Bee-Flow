@@ -47,6 +47,8 @@ const emailFetch = require('../services/email/fetch');
 const { viewerMayReadAttachment } = require('./attachmentAccess');
 const { bestEffort } = require('../utils/bestEffort');
 const { providerFailure, materializeErrorBody } = require('./mailboxProviderFailure.mts');
+const { proposeMimeFromName } = require('./attachmentSniff.mts');
+const { textOnlyKind, inlineTextDescriptor } = require('./mailTextAttachment.mts');
 
 // The formats an LLM or a browser can actually do something with. Everything else is refused rather than stored.
 // CAD (STEP/DXF/DWG/IGES) is included because the mailbox is THE ingestion
@@ -65,11 +67,8 @@ const ALLOWED_MIME = new Set([
     // file_intake expands it, bounded and per-entry re-gated (storeDerivedFile
     // below) — nothing else ever unpacks third-party archives.
     'application/zip',
-    // The other containers a customer's context menu offers. We cannot OPEN a
-    // .7z or a .rar (see appStudio/archive.js — no third-party archiver runs on
-    // mailed bytes here), and storing them anyway is the difference between an
-    // operator who can download the file and forward it, and one staring at a
-    // 415 that says "that file type is not supported" about an order.
+    // Other containers: we cannot OPEN a .7z or .rar (appStudio/archive.js), but
+    // storing them lets an operator download and forward the file instead of a 415.
     'application/x-7z-compressed',
     'application/vnd.rar',
     'application/x-tar',
@@ -243,7 +242,7 @@ async function locateDescriptor(app, model, { attachmentId, tableId, recordId, v
  * @returns {Promise<object>} a studio_attachment descriptor
  */
 async function materializeAttachment(app, model, {
-    attachmentId, tableId, recordId, viewer, inline = false, deps = {},
+    attachmentId, tableId, recordId, viewer, inline = false, asText = false, deps = {},
 } = {}) {
     const fetchBytes = deps.getAttachmentBytes || emailFetch.getAttachmentBytes;
     const identityFor = deps.resolveMailboxIdentity || resolveMailboxIdentity;
@@ -267,39 +266,38 @@ async function materializeAttachment(app, model, {
     if (!isPending(descriptor)) throw httpError(415, 'That attachment cannot be opened');
 
     // 3. Cheap refusals, all BEFORE the provider call.
-    //    CAD first: mail providers label .step/.dxf as octet-stream or a
-    //    vendor alias more often than the real thing, so fold aliases and let
-    //    the attachment NAME propose a canonical mime for a generic type —
-    //    propose only; the post-download sniff (step 6) still has to confirm
-    //    the bytes. The 10 MB document cap is deliberate and unchanged for
-    //    CAD; only an archive is measured against the larger container ceiling.
+    //    Providers label .step/.dxf as octet-stream or a vendor alias, so fold
+    //    aliases and let the NAME propose a mime for a generic type — propose
+    //    only; the post-download sniff (step 6) still has to confirm the bytes.
+    //    Only an archive is measured against the larger container ceiling.
     let mime = String(descriptor.mime || '').toLowerCase();
     const cadCanonical = canonicalCadMime(mime);
     if (cadCanonical) mime = cadCanonical;
     else if (ZIP_ALIAS_MIMES.has(mime)) mime = 'application/zip';
     else if (ARCHIVE_ALIAS_MIMES[mime]) mime = ARCHIVE_ALIAS_MIMES[mime];
     else if (GENERIC_MIMES.has(mime)) {
-        const proposed = cadMimeForName(descriptor.name);
-        if (proposed) mime = proposed;
-        // Same propose-then-confirm rule as CAD: a generic type with an archive
-        // name is proposed as that archive, and step 6 still demands the bytes
-        // to sniff as one.
+        // CAD, else the extension of an ordinary document (Outlook sends an order PDF as
+        // octet-stream). Proposals only: step 6 demands the bytes sniff as that family.
+        const proposed = cadMimeForName(descriptor.name) || proposeMimeFromName(descriptor.name, mime);
+        if (proposed && !GENERIC_MIMES.has(proposed)) mime = proposed;
+        // Same rule for an archive name: step 6 still demands the bytes sniff as one.
         else {
             const ext = String(descriptor.name || '').toLowerCase().split('.').pop();
             if (ARCHIVE_MIME_BY_EXT[ext]) mime = ARCHIVE_MIME_BY_EXT[ext];
         }
     }
-    if (REFUSED_MIME.has(mime)) throw httpError(415, 'That file type is not supported');
-    if (!ALLOWED_MIME.has(mime)) throw httpError(415, 'That file type is not supported');
+    // An xml file or a forwarded mail is refused for STORAGE (REFUSED_MIME), but an AI
+    // step may read it as TEXT: `asText` returns a transient descriptor, nothing is stored.
+    const textOnly = asText && Boolean(textOnlyKind(mime, descriptor.name));
+    if (!textOnly && (REFUSED_MIME.has(mime) || !ALLOWED_MIME.has(mime))) throw httpError(415, 'That file type is not supported');
     // An inline image (a signature logo) is no attachment unless asked for, and then only a raster one.
     if (descriptor.isInline && !(inline && INLINE_IMAGE_MIMES.has(mime))) throw httpError(415, 'That is an inline image, not an attachment');
     const declared = Number(descriptor.size) || 0;
-    const ceiling = ceilingFor(mime);
+    const ceiling = textOnly ? MAX_ARCHIVE_BYTES : ceilingFor(mime);
     if (declared > ceiling) throw httpError(413, 'That attachment is too large to open here');
 
     // 4. Quota, still before the network: a 409 must not cost a download.
-    await studioAppQuota.assertAttachmentQuota(app, declared || 1);
-    await assertAttachmentTotalBytes(app, declared);
+    if (!textOnly) { await studioAppQuota.assertAttachmentQuota(app, declared || 1); await assertAttachmentTotalBytes(app, declared); }
 
     // 5. Whose credentials? Exactly the ladder the sync uses — runAs:'viewer'
     //    means the person clicking, runAs:'owner' means the owner. Never a
@@ -318,6 +316,7 @@ async function materializeAttachment(app, model, {
         maxBytes: ceiling,
     }).catch((err) => { throw providerFailure(err, identity.provider); });
     if (!buffer || !buffer.length) throw httpError(422, 'That attachment came back empty');
+    if (textOnly) return inlineTextDescriptor(buffer, { name: filename || descriptor.name, mime, scan });
 
     // 6. Trust the BYTES, never the provider's content type — that header is
     //    written by whoever sent the mail. (The family table now also carries
@@ -336,7 +335,7 @@ async function materializeAttachment(app, model, {
     // 7. Store, then record. A ledger row only ever describes clean bytes.
     //    The stored mime is the CANONICAL one — the extractor routes on it
     //    later, and "application/octet-stream" routes nowhere.
-    let storedMime = String(mimeType || mime || 'application/octet-stream').toLowerCase();
+    let storedMime = String((mimeType && !GENERIC_MIMES.has(String(mimeType).toLowerCase()) ? mimeType : mime) || 'application/octet-stream').toLowerCase();
     storedMime = canonicalCadMime(storedMime)
         || (CAD_CANONICAL_MIMES.has(mime) && GENERIC_MIMES.has(storedMime) ? mime : storedMime);
     const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');

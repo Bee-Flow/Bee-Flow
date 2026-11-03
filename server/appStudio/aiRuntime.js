@@ -28,6 +28,8 @@
 'use strict';
 
 const llmClient = require('../core/llm/llmClient');
+const { guardedAiCall } = require('./aiCallGuard.mts');
+const { readDocument, newReport } = require('./aiDocumentRead.mts');
 const usageStore = require('../stores/usageStore');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
 const log = require('../telemetry/log');
@@ -391,9 +393,12 @@ function buildMessages(system, user) {
  */
 const STUDIO_APP_AI_TIMEOUT_MS = parseInt(process.env.STUDIO_APP_AI_TIMEOUT_MS, 10) || 120_000;
 
-function withTimeout(options) {
-    return { ...(options || {}), timeoutMs: STUDIO_APP_AI_TIMEOUT_MS };
+function withTimeout(options, extra) {
+    return { ...(options || {}), ...(extra || {}), timeoutMs: STUDIO_APP_AI_TIMEOUT_MS };
 }
+
+/** One model call under the per-call deadline (aiCallGuard.mts): `run(extra)` gets `{ signal }` to pass on, aborted at the deadline. */
+const guarded = (kind, model, run) => guardedAiCall((signal) => run(signal ? { signal } : {}), { kind, model: model.modelId });
 
 /**
  * Forced structured output. `parameters` is a JSON Schema (build it with
@@ -404,7 +409,7 @@ function withTimeout(options) {
 async function runStructured(app, model, { system, user, parameters, toolName = 'record_output', toolDescription = 'Return the requested structured data.' }) {
     const toolDef = { type: 'function', function: { name: toolName, description: toolDescription, parameters } };
     const t0 = Date.now();
-    const res = await llmClient.chatForcedTool(model.modelId, buildMessages(system, user), toolDef, withTimeout(model.options));
+    const res = await guarded('structured', model, (x) => llmClient.chatForcedTool(model.modelId, buildMessages(system, user), toolDef, withTimeout(model.options, x)));
     logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
@@ -417,7 +422,7 @@ async function runStructured(app, model, { system, user, parameters, toolName = 
 /** Free-form text generation. */
 async function runText(app, model, { system, user }) {
     const t0 = Date.now();
-    const res = await llmClient.chat(model.modelId, buildMessages(system, user), withTimeout(model.options));
+    const res = await guarded('text', model, (x) => llmClient.chat(model.modelId, buildMessages(system, user), withTimeout(model.options, x)));
     logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
     return { text: typeof res?.content === 'string' ? res.content : '', usage: res?.usage };
 }
@@ -457,9 +462,9 @@ async function runTextWithTools(app, model, { system, user, tools }) {
     if (!Array.isArray(tools) || tools.length === 0) return runText(app, model, { system, user });
     const { defs, executeTool } = toolTables(tools);
     const t0 = Date.now();
-    const res = await llmClient.runToolLoop(
-        model.modelId, buildMessages(system, user), defs, withTimeout(model.options), executeTool, MAX_TOOL_ROUNDS,
-    );
+    const res = await guarded('text+tools', model, (x) => llmClient.runToolLoop(
+        model.modelId, buildMessages(system, user), defs, withTimeout(model.options, x), executeTool, MAX_TOOL_ROUNDS,
+    ));
     logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
     return { text: typeof res?.content === 'string' ? res.content : '', usage: res?.usage, toolCallRounds: res?.toolCallRounds || 0 };
 }
@@ -474,10 +479,10 @@ async function runStructuredWithTools(app, model, { system, user, parameters, to
     const finalTool = { type: 'function', function: { name: toolName, description: toolDescription, parameters } };
     const { defs, executeTool } = toolTables(tools);
     const t0 = Date.now();
-    const res = await llmClient.runToolLoop(
+    const res = await guarded('structured+tools', model, (x) => llmClient.runToolLoop(
         model.modelId, buildMessages(system, user), defs,
-        { ...withTimeout(model.options), finalTool }, executeTool, MAX_TOOL_ROUNDS,
-    );
+        { ...withTimeout(model.options, x), finalTool }, executeTool, MAX_TOOL_ROUNDS,
+    ));
     logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
@@ -582,13 +587,9 @@ function streamToBuffer(stream) {
  * the same guard app_trigger file inputs use) and return the extractor's
  * { name, type, content(base64) } shape.
  *
- * `viewer` is not optional in spirit. An ai_extract `source` resolves from
- * CLIENT-supplied formValues / vars / item, so without a per-viewer read check
- * any signed-in user could name any fileId in the app and have the model read
- * it out — and with writeTo, copy it into a table they can read. Owner-scope
- * plus a scan flag was enough while the only way in was uploading to your own
- * form; it stopped being enough the moment a mailbox started filling a file
- * column with other people's documents.
+ * `viewer` is not optional in spirit: an ai_extract `source` resolves from
+ * CLIENT-supplied values, so without the per-viewer read check any signed-in
+ * user could name any fileId in the app and have the model read it out.
  */
 async function loadAttachment(app, descriptor, { viewer = null, model = null } = {}) {
     const studioAppDataStore = require('../stores/studioAppDataStore');
@@ -609,7 +610,9 @@ async function loadAttachment(app, descriptor, { viewer = null, model = null } =
     const buf = await streamToBuffer(stream);
     const name = (typeof descriptor.name === 'string' && descriptor.name.trim())
         ? descriptor.name.trim().slice(0, 200) : `attachment_${att.sha256.slice(0, 8)}`;
-    return { name, type: att.mimeType, content: buf.toString('base64') };
+    // The BYTES decide a generic or wrong declared type (an Outlook PDF arrives as octet-stream).
+    const type = require('./attachmentSniff.mts').sniffMime(buf, { name, mime: att.mimeType });
+    return { name, type, content: buf.toString('base64') };
 }
 
 function isPdfAttachment(att) {
@@ -626,16 +629,13 @@ function isPdfAttachment(att) {
  * parser too, and the extracted text is the guaranteed-readable channel
  * (directChat learned this first; same rule here).
  *
- * Aggregate budgets are enforced ACROSS the batch. When one runs out, the
- * remaining documents are represented by ONE explicit note block — the model
- * must know its evidence is incomplete, and so must the operator reading the
- * answer. Never a silent drop.
+ * Aggregate budgets are enforced ACROSS the batch; documents past a budget are
+ * represented by ONE explicit note block, never a silent drop. A file that
+ * cannot be read is skipped with a note when `report` is lenient (aiDocumentRead.mts);
+ * the default report is strict and rethrows.
  *
- * `textWasRedacted`: App Studio has no inbound DLP today, so nothing sets it —
- * but the moment inbound tokenisation lands, the raw-PDF block must drop
- * whenever the extracted text was redacted (directChat's `_wasTokenised`
- * rule), or the block would hand the model the unredacted original. The guard
- * exists now so it cannot be forgotten then.
+ * `textWasRedacted`: nothing sets it yet (no inbound DLP), but once text is
+ * redacted the raw-PDF block must drop (directChat's `_wasTokenised` rule).
  */
 async function extractDocuments(app, descriptors, {
     modelSupportsVision: vision = false,
@@ -644,19 +644,15 @@ async function extractDocuments(app, descriptors, {
     textWasRedacted = false,
     viewer = null,
     model = null,
+    report = newReport(true),
 } = {}) {
     const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = require('../core/documents/attachmentExtractor');
     const all = (Array.isArray(descriptors) ? descriptors : []).filter(Boolean);
     const list = all.slice(0, MAX_DOCS);
     const mode = ['auto', 'text', 'images'].includes(documentMode) ? documentMode : 'auto';
 
-    // `images` is not a preference, it is a requirement: an author writes it
-    // because the answer is IN the picture — a title block, a dimension, a tap
-    // callout on a technical drawing. Handing that job to a model that cannot
-    // see would degrade in silence to the PDF's text layer, and the model
-    // would then answer confidently about a plate someone was going to cut.
-    // Failing loudly is the only honest option; `auto` still degrades, because
-    // `auto` is the author saying they do not mind.
+    // `images` is a requirement (the answer is IN the picture): a model that
+    // cannot see must fail loudly, not degrade to the text layer. `auto` degrades.
     if (mode === 'images' && !vision) {
         const e = new Error('This step needs to LOOK at the pages, but the configured model cannot read images. Point the step at a tier whose model supports vision, or set documentMode to "auto".');
         e.status = 400;
@@ -671,22 +667,25 @@ async function extractDocuments(app, descriptors, {
     const skipped = [];
 
     for (const descriptor of list) {
-        // Budget check BEFORE the load: once chars or images are exhausted no
-        // further document can contribute anything but its name.
+        // Budget check BEFORE the load: past it a document contributes only its name.
         if (totalChars >= MAX_TOTAL_DOC_CHARS || totalImages >= MAX_TOTAL_DOC_IMAGES) {
             skipped.push(typeof descriptor.name === 'string' ? descriptor.name : 'document');
             continue;
         }
-        const att = await loadAttachment(app, descriptor, { viewer, model });
-        const result = await extractAttachment(att, { modelSupportsVision: vision, documentMode: mode, maxImages: MAX_TOTAL_DOC_IMAGES - totalImages });
+        // One unreadable file is a note in `report`, not the end of the batch.
+        const read = await readDocument(descriptor, {
+            report,
+            load: () => loadAttachment(app, descriptor, { viewer, model }),
+            extract: (a) => extractAttachment(a, { modelSupportsVision: vision, documentMode: mode, maxImages: MAX_TOTAL_DOC_IMAGES - totalImages }),
+        });
+        if (!read) continue;
+        const { att, result } = read;
 
         if (result.kind === 'text') {
             const text = (result.text || '').slice(0, Math.min(MAX_DOC_CHARS, MAX_TOTAL_DOC_CHARS - totalChars));
             totalChars += text.length;
             blocks.push({ type: 'text', text: `${formatTextHeader(att, result)}\n${text}` });
-            // The native PDF block rides ALONGSIDE the text, never instead of
-            // it — and only within the raw-byte budget, and never when the
-            // text channel was redacted.
+            // The native PDF block rides ALONGSIDE the text, within the raw-byte budget.
             if (nativeDocuments && !textWasRedacted && mode !== 'text' && isPdfAttachment(att)) {
                 const raw = Buffer.byteLength(att.content, 'base64');
                 if (totalBytes + raw <= MAX_TOTAL_DOC_BYTES) {

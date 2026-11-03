@@ -123,6 +123,10 @@ async function executeDataStep(app, model, step, ctx = {}) {
         // establish it", 501 "this cannot happen here yet". Collapsing those into "Step failed"
         // would remove the only sentence someone can act on: "empty", "not allowed" and
         // "could not" would become one word.
+        // The per-call AI deadline (aiCallGuard.mts): its message names the seconds, and the code lets a caller tell it from a table refusal.
+        if (e && e.code === 'ai_timeout' && e.safe === true) {
+            return { ok: false, error: /** @type {Error} */ (e).message, code: 'ai_timeout' };
+        }
         if (e && e.safe === true && typeof status === 'number') {
             return { ok: false, error: /** @type {Error} */ (e).message || 'Step failed', code: 'datatable_source' };
         }

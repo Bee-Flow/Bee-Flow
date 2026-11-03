@@ -266,3 +266,40 @@ test('the MCP tool list advertises app_run_action with appId required, as a writ
     assert.match(tool.description, /never executed/i);
     assert.match(tool.description, /AI budget/);
 });
+
+// ── AI time-out stops the sequence; always the latest saved definition ─────────
+
+test('a step that fails on the AI time-out stops the sequence: the following step does not run', async () => {
+    const { guardedAiCall } = require('./aiCallGuard.mts');
+    const stepsRun = [];
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'ai_generate', resultVar: 'summary' },
+        { kind: 'create_record', tableId: 'tbl_a', values: {} },
+    ] }, { dryRun: false }, OWNER, {
+        executeStep: async (_app, _model, step) => {
+            stepsRun.push(step.kind);
+            try {
+                await guardedAiCall(() => new Promise(() => {}), { kind: 'text', model: 'm' }, { log: { info() {} }, env: { STUDIO_AI_CALL_TIMEOUT_MS: '30' } });
+                return { ok: true, result: null };
+            } catch (e) { return { ok: false, error: e.message }; }
+        },
+    });
+    assert.deepEqual(stepsRun, ['ai_generate']);
+    assert.equal(out.ok, false);
+    assert.match(out.steps[0].error, /^The AI gave no answer within \d+ s$/);
+    assert.equal(out.stopped, 'steps[0] failed');
+});
+
+test('app_run_action right after app_set_action runs the new definition (read from the store on every call)', async () => {
+    const store = { version: 1, definition: { actions: { act_1: { kind: 'toast', message: 'old' } } } };
+    const d = deps({ getApp: async () => ({ id: 'app_1', userId: OWNER, definition: structuredClone(store.definition), definitionVersion: store.version }) });
+    const first = await runAction({ appId: 'app_1', actionId: 'act_1', dryRun: false }, OWNER, d);
+    assert.equal(first.definitionVersion, 1);
+    // app_set_action saves a new draft (what persistDraft does: a new definition, version + 1)
+    store.definition = { actions: { act_1: { kind: 'sequence', steps: [{ kind: 'ai_generate' }] } } };
+    store.version = 2;
+    executed = [];
+    const second = await runAction({ appId: 'app_1', actionId: 'act_1', dryRun: false }, OWNER, d);
+    assert.equal(second.definitionVersion, 2);
+    assert.deepEqual(kindsRun(), ['ai_generate'], 'the second run used the new action, not the old toast');
+});

@@ -53,7 +53,7 @@ stub('../stores/studioAppDataStore', {
 });
 
 stub('../stores/storageStore', {
-    uploadFile: async (key, buffer) => { state.uploads.push({ key, size: buffer.length }); },
+    uploadFile: async (key, buffer, mime) => { state.uploads.push({ key, size: buffer.length, mime }); },
     deleteFile: async (key) => { state.deletedBlobs.push(key); },
     buildStudioAppAttachmentKey: (owner, appId, sha) => `${owner}/${appId}/${sha}`,
 });
@@ -438,4 +438,74 @@ test('the read carries what finds the file again after Outlook moved its message
     state.rows = [{ id: 'rec_1', thread_key: 'outlook:row', file: pending({ threadKey: 'outlook:descriptor' }) }];
     await run({ getAttachmentBytes: capture }).promise;
     assert.strictEqual(seen.threadKey, 'outlook:descriptor');
+});
+
+// ── generic mime types, and xml / mail read as text for the AI ───────────────
+
+const OCTET = 'application/octet-stream';
+
+const XML = Buffer.from('<?xml version="1.0"?><!DOCTYPE o [<!ENTITY x "EXPANDED">]><Order><No>PO-2026-0001</No><Note>&x;</Note></Order>');
+const EML = Buffer.from([
+    'From: Buyer <buyer@example.com>', 'To: sales@example.org', 'Subject: Please quote', 'Date: Mon, 02 Nov 2026 09:00:00 +0000',
+    'MIME-Version: 1.0', 'Content-Type: multipart/mixed; boundary="b1"', '',
+    '--b1', 'Content-Type: text/plain; charset=utf-8', '', 'Please quote 10 pieces of the attached part.', '',
+    '--b1', 'Content-Type: application/pdf; name="drawing.pdf"', 'Content-Disposition: attachment; filename="drawing.pdf"',
+    'Content-Transfer-Encoding: base64', '', Buffer.from('%PDF-1.4 fake').toString('base64'), '--b1--', '',
+].join('\r\n'));
+
+function materialize(descriptor, bytes, { asText = false, scanClean = true } = {}) {
+    state.rows = [{ id: 'rec_1', file: pending({ mime: OCTET, ...descriptor }) }];
+    const { deps: d } = deps({
+        getAttachmentBytes: async () => ({ buffer: bytes, mimeType: OCTET, filename: descriptor.name }),
+        scanBuffer: async () => ({ clean: scanClean }),
+    });
+    return mailboxAttachments.materializeAttachment(APP, MODEL, { attachmentId: 'a1', viewer: VIEWER, asText, deps: d });
+}
+
+test('an octet-stream pdf is stored AS a pdf', async () => {
+    const d = await materialize({ name: 'Order_PO-2026-0001.pdf' }, PDF);
+    assert.strictEqual(d.kind, 'studio_attachment');
+    assert.strictEqual(d.mime, 'application/pdf');
+    assert.strictEqual(state.uploads[0].mime, 'application/pdf');
+});
+
+test('a ".pdf" octet-stream whose bytes are not a pdf is refused', async () => {
+    await assert.rejects(materialize({ name: 'order.pdf' }, Buffer.from('<html>nope</html>')), { status: 415 });
+    assert.strictEqual(state.uploads.length, 0);
+});
+
+test('xml is still refused for storage', async () => {
+    await assert.rejects(materialize({ name: 'PurchaseOrder 123.xml', mime: 'application/xml' }, XML), { status: 415 });
+    assert.strictEqual(state.uploads.length, 0);
+});
+
+test('asText: xml comes back as text, verbatim and unexpanded, and nothing is stored', async () => {
+    const d = await materialize({ name: 'PurchaseOrder 123.xml', mime: 'application/xml' }, XML, { asText: true });
+    assert.strictEqual(d.kind, 'inline_text');
+    assert.match(d.text, /<No>PO-2026-0001<\/No>/);
+    assert.match(d.text, /&x;/, 'entities are not expanded');
+    assert.doesNotMatch(d.text, /<Note>EXPANDED/);
+    assert.strictEqual(state.uploads.length, 0);
+    assert.strictEqual(state.ledger.size, 0);
+    assert.strictEqual(state.updates.length, 0, 'the row is not rewritten either');
+});
+
+test('asText: a forwarded mail gives its headers, body and attachment NAMES, not their content', async () => {
+    const d = await materialize({ name: 'Fwd.eml', mime: 'message/rfc822' }, EML, { asText: true });
+    assert.strictEqual(d.kind, 'inline_text');
+    assert.match(d.text, /From: .*buyer@example\.com/);
+    assert.match(d.text, /Subject: Please quote/);
+    assert.match(d.text, /Please quote 10 pieces/);
+    assert.match(d.text, /drawing\.pdf/);
+    assert.strictEqual(state.uploads.length, 0);
+});
+
+test('asText: a generic mime with an .eml name is a mail; a dirty scan is refused', async () => {
+    const d = await materialize({ name: 'forwarded.eml' }, EML, { asText: true });
+    assert.strictEqual(d.kind, 'inline_text');
+    await assert.rejects(materialize({ name: 'forwarded.eml' }, EML, { asText: true, scanClean: false }), { status: 422 });
+});
+
+test('asText does not widen anything else: an executable is still refused', async () => {
+    await assert.rejects(materialize({ name: 'setup.exe', mime: 'application/x-msdownload' }, Buffer.from('MZ'), { asText: true }), { status: 415 });
 });

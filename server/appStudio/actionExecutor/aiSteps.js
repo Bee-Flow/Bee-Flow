@@ -12,6 +12,7 @@ const {
 } = require('./shared');
 const { writeRecord, writeRecordBatch } = require('./records');
 const log = require('../../telemetry/log');
+const { redeemEach, newReport, assertSomethingRead } = require('../aiDocumentRead.mts');
 const { replaceTemplate, parsePath, walkTokens } = require('../../shared/expr/index.mjs');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
@@ -101,18 +102,14 @@ async function resolveFileBinding(app, model, binding, ctx, scope) {
  * rule applies here as when a person clicks the attachment — an action is not a
  * way around your own access.
  */
-async function redeemPendingDescriptors(app, model, descriptors, ctx) {
-    const pending = descriptors.filter((d) => d.kind === 'mailbox_attachment' && !d.fileId);
-    if (!pending.length) return descriptors;
-
+async function redeemPendingDescriptors(app, model, descriptors, ctx, report = newReport(true)) {
     const { materializeAttachment } = require('../mailboxAttachments');
     const viewer = { id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null };
-    const out = [];
-    for (const d of descriptors) {
-        if (d.kind !== 'mailbox_attachment' || d.fileId) { out.push(d); continue; }
-        out.push(await materializeAttachment(app, model, { attachmentId: d.attachmentId, viewer }));
-    }
-    return out;
+    // Per file: one that cannot be redeemed is a note in `report`, not a failed step.
+    // `asText`: an xml file or a forwarded mail is handed over as text, never stored.
+    return redeemEach(descriptors, async (d) => ((d.kind !== 'mailbox_attachment' || d.fileId)
+        ? d
+        : materializeAttachment(app, model, { attachmentId: d.attachmentId, viewer, asText: !report.strict })), report);
 }
 
 /**
@@ -281,14 +278,17 @@ async function aiExtractStep(app, model, step, ctx) {
     if (!fields.length) { const e = new Error('No output fields are configured for extraction'); e.status = 400; throw e; }
 
     const aiModel = await aiRuntime.resolveOwnerModel(app, step.modelTier);
-    const files = await redeemPendingDescriptors(app, model, descriptors, ctx);
+    const report = newReport();
+    const files = await redeemPendingDescriptors(app, model, descriptors, ctx, report);
     const docBlocks = await aiRuntime.extractDocuments(app, files, {
         modelSupportsVision: aiModel.supportsVision,
         nativeDocuments: aiModel.supportsNativeDocuments,
         documentMode: step.documentMode,
         viewer: { id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null },
         model,
+        report,
     });
+    assertSomethingRead(report);
     const ground = await aiRuntime.groundWithKB(app, {
         knowledgeBaseIds: step.knowledgeBaseIds,
         query: fields.map((f) => f.name).join(', '),
@@ -417,7 +417,9 @@ async function aiExtractStep(app, model, step, ctx) {
     const summary = step.resultDetail === 'summary';
     return {
         ok: true,
+        ...(report.notes.length ? { notes: report.notes } : null),
         result: {
+            ...(report.notes.length ? { notes: report.notes } : null),
             rows: summary ? [] : rows,
             count: rows.length,
             written,
@@ -523,13 +525,15 @@ async function aiGenerateStep(app, model, step, ctx) {
 
     const aiModel = await aiRuntime.resolveOwnerModel(app, step.modelTier);
     const descriptors = await resolveFileBinding(app, model, step.attachments, ctx, scope);
+    const report = newReport();
     const docBlocks = descriptors.length
-        ? await aiRuntime.extractDocuments(app, await redeemPendingDescriptors(app, model, descriptors, ctx), {
+        ? await aiRuntime.extractDocuments(app, await redeemPendingDescriptors(app, model, descriptors, ctx, report), {
             modelSupportsVision: aiModel.supportsVision,
             nativeDocuments: aiModel.supportsNativeDocuments,
             documentMode: step.documentMode,
             viewer: { id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null },
             model,
+            report,
         })
         : [];
     const ground = await aiRuntime.groundWithKB(app, {
@@ -555,6 +559,9 @@ async function aiGenerateStep(app, model, step, ctx) {
         extraContext,
     ].filter(Boolean).join('\n\n');
     const fullPrompt = blocks ? `${prompt}\n\n${blocks}` : prompt;
+    // Bound files and nothing readable: fail with the real reason, unless the step has other material to work from.
+    assertSomethingRead(report, { needed: !blocks && !ground.context });
+    const notes = report.notes.length ? { notes: report.notes } : null;
     const user = docBlocks.length ? [{ type: 'text', text: fullPrompt }, ...docBlocks] : fullPrompt;
 
     if (step.output === 'structured') {
@@ -562,7 +569,7 @@ async function aiGenerateStep(app, model, step, ctx) {
         if (!fields.length) { const e = new Error('Structured output needs at least one field'); e.status = 400; throw e; }
         const parameters = aiRuntime.fieldsToObjectSchema(fields);
         const { structured } = await aiRuntime.runStructuredWithTools(app, aiModel, { system, user, parameters, tools: datasetTools.tools });
-        return { ok: true, result: aiRuntime.coerceRowToFields(structured, fields) };
+        return { ok: true, ...notes, result: aiRuntime.coerceRowToFields(structured, fields) };
     }
     const { text } = await aiRuntime.runTextWithTools(app, aiModel, { system, user, tools: datasetTools.tools });
     // Citations travel as titles/scores only. The chunk BODIES are already in
@@ -583,7 +590,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     const body = step.markdownToHtml === true
         ? require('../../services/email/send').markdownToHtml(text)
         : text;
-    return { ok: true, result: { text: body, citations } };
+    return { ok: true, ...notes, result: { text: body, citations, ...notes } };
 }
 
 // The prompt-context cap. Generous enough for a ticket thread, small enough that

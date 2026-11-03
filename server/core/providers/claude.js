@@ -468,7 +468,7 @@ class ClaudeProvider extends BaseProvider {
         /** @type {Message & { _request_id?: string | null; _workspace_id?: string | null; }} */
         let response;
         try {
-            response = await client.messages.create(params, this._requestOptionsFor(params, oauth));
+            response = await client.messages.create(params, options.signal ? { ...this._requestOptionsFor(params, oauth), signal: options.signal } : this._requestOptionsFor(params, oauth));
         } catch (err) {
             // A replayed thinking block the API won't verify (usually a model
             // switch mid-conversation) — drop the blocks and retry once. They
