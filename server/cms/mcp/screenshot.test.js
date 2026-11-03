@@ -304,3 +304,38 @@ test('the screenshot context asks for reduced motion, so the site shows every sc
     await captureWithBrowser({ serve: async () => ({ status: 204 }), url: `${FAKE_ORIGIN}/`, viewport: { width: 1280, height: 800 }, fullPage: true, offsetY: 0 }, provider);
     assert.equal(seen && seen.reducedMotion, 'reduce');
 });
+
+test('live-component frames are reported with a note that a blank area may be a capture artefact', async () => {
+    const { deps } = makeDeps({ capture: async () => ({ png: await bigPng(1280, 800), hydrated: true, pageHeight: 3000, liveComponentFrames: 2 }) });
+    const out = await createScreenshotRenderer(deps).render({ siteId: SITE.id, offsetY: 1250 });
+    assert.equal(out.liveComponentFrames, 2);
+    assert.match(out.text, /2 live-component frames/);
+    assert.match(out.text, /capture artefact/);
+    const none = await createScreenshotRenderer(makeDeps().deps).render({ siteId: SITE.id });
+    assert.equal(none.liveComponentFrames, 0);
+    assert.doesNotMatch(none.text, /live-component/);
+});
+
+test('capture walks the offset region (two frames per stop) before photographing, and counts the frames', async () => {
+    const png = await bigPng(1280, 800);
+    const evalArgs = [];
+    const page = {
+        setDefaultTimeout() {}, on() {}, route: async () => {},
+        goto: async () => {}, waitForFunction: async () => {}, waitForTimeout: async () => {},
+        evaluate: async (fn, arg) => {
+            const src = String(fn);
+            evalArgs.push(arg);
+            if (arg && String(arg).includes('Live Component')) return 3;
+            if (src.includes('scrollHeight') && !arg) return 3000;
+            return true;
+        },
+        screenshot: async () => png,
+    };
+    const context = { addInitScript: async () => {}, route: async () => {}, routeWebSocket: async () => {}, newPage: async () => page };
+    const provider = { withContext: async (opts, fn) => fn(context) };
+    const out = await captureWithBrowser({ serve: async () => ({ status: 204 }), url: `${FAKE_ORIGIN}/`, viewport: { width: 1280, height: 800 }, fullPage: false, offsetY: 1250 }, provider);
+    assert.equal(out.liveComponentFrames, 3);
+    const walk = evalArgs.find((a) => a && a.a !== undefined);
+    assert.equal(walk.a, 1250);
+    assert.equal(walk.b, 2050);
+});

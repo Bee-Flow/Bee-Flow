@@ -151,7 +151,7 @@ function createScreenshotHandler({ deps, resolveSite, takeBudget, shotBudget }) 
             return { result: { unavailable: true, reason: shot.reason }, text };
         }
         return {
-            result: { siteId: site.siteId, rendering: shot.rendering, path: shot.path, pageHeight: shot.pageHeight },
+            result: { siteId: site.siteId, rendering: shot.rendering, path: shot.path, pageHeight: shot.pageHeight, liveComponentFrames: shot.liveComponentFrames ?? 0 },
             text: shot.text,
             image: { data: shot.image.data, mimeType: shot.image.mimeType },
         };
