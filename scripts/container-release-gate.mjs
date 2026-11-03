@@ -34,7 +34,9 @@ export function inspectContainer(report, image, exceptions = [], today = new Dat
     // Exception ids are public (they are in this repo), so naming the ones Debian has fixed leaks nothing.
     const fixedUpstream = [...new Set(exceptions.filter(entry => entry.debianTracker && entry.images?.includes(service)
         && findings.some(f => f.VulnerabilityID === entry.id) && !debianStillUnfixed(debianTracker, entry)).map(entry => entry.id))];
-    return { total: findings.length, unreviewed: unreviewed.length, fixedUpstream };
+    // Named so a red gate says what to fix; the ids, packages and versions come from the public scan.
+    const open = [...new Set(unreviewed.map(f => `${f.VulnerabilityID} ${f.PkgName} ${f.InstalledVersion}`))];
+    return { total: findings.length, unreviewed: unreviewed.length, fixedUpstream, open };
 }
 function main() {
     const [file, image] = process.argv.slice(2);
@@ -46,6 +48,7 @@ function main() {
     const result = inspectContainer(read(file), image, exceptions, undefined, { runtimeVerified: process.env.CONTAINER_RUNTIME_VERIFIED === 'true', debianTracker });
     if (debianTracker && result.fixedUpstream.length) console.log(`Debian now lists a fix or a DSA for: ${result.fixedUpstream.join(', ')}; rebuild on the fixed packages and drop the exception`);
     console.log(`Container release gate: ${result.total} high/critical findings, ${result.unreviewed} without a valid reachability review`);
+    for (const line of result.open) console.log(`  without a review: ${line}`);
     if (result.unreviewed) process.exitCode = 1;
 }
 if (isEntryPoint(import.meta.url)) main();

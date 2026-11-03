@@ -576,6 +576,31 @@
       "references": [
         "https://security-tracker.debian.org/tracker/CVE-2026-119373"
       ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-11-03",
+      "expires": "2027-02-03",
+      "debianTracker": {
+        "source": "sqlite3",
+        "release": "trixie"
+      },
+      "requiredUser": "app",
+      "id": "CVE-2026-119373",
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "versions": [
+        "3.46.1-7+deb13u2"
+      ],
+      "reason": "Debian marks this CVE no-dsa (minor issue) for trixie and ships no fixed build; the heap overflow needs an FTS5 table with detail=none filled with attacker-chosen rowids and a prefix MATCH on it.",
+      "reachability": "libsqlite3-0 backs Python's sqlite3 module. Neither service imports it; of the installed packages only filelock (lock files) and torch (local caches) do, and nothing in the image creates or queries an FTS5 table, let alone with request data. The default process is UID 1000 (app).",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-119373"
+      ]
     }
   ]
 }
