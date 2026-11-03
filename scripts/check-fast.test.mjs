@@ -152,8 +152,8 @@ test('a gate that hangs is killed and reported as FAIL', async () => {
 });
 
 test('a slow gate is named in the summary, so a new lint:* script cannot quietly make the run slow', async () => {
-    const dir = sandbox({ 'lint:slow': nodeEval('setTimeout(() => {}, 400)'), 'lint:quick': nodeEval('0') });
-    const r = await inProcess(dir, { slowMs: 200 });
+    const dir = sandbox({ 'lint:slow': nodeEval('setTimeout(() => {}, 2500)'), 'lint:quick': nodeEval('0') });
+    const r = await inProcess(dir, { slowMs: 1500 });
     assert.strictEqual(r.code, 0, 'slow is not failed');
     assert.match(r.out, /Slow: lint:slow \(\d+\.\d s\)\. .*belongs in DENYLIST/);
     assert.doesNotMatch(r.out, /Slow: .*lint:quick/);
