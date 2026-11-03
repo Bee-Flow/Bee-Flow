@@ -193,7 +193,11 @@ def create_env_file() -> None:
     )
     contents = contents.rstrip() + "\n" + extras
 
-    ENV_FILE.write_text(contents)
+    # Owner-only from the first byte (POSIX): the file holds secrets. On Windows
+    # the mode bits are largely ignored and the file inherits its folder's ACL.
+    fd = os.open(ENV_FILE, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        fh.write(contents)
     ok(".env created with a freshly generated SESSION_SECRET")
 
 
