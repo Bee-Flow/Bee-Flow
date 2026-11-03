@@ -212,3 +212,38 @@ export async function runRetention(opts: {
     if (purged) log.info(`[ConnectorSync] purged ${purged} row(s) past retention on ${where}`);
     return purged;
 }
+
+type AttachmentDeps = {
+    listAttachments: (appId: string, ownerId: string) => Promise<Array<{ id: string; sha256: string }> | null | undefined>;
+    deleteAttachment: (id: string, appId: string, ownerId: string) => Promise<unknown>;
+    deleteFile: (key: string) => Promise<unknown>;
+    buildAttachmentKey: (ownerId: string, appId: string, sha: string) => string;
+};
+
+/**
+ * Delete the ledger rows, and the blobs that no longer have a ledger row.
+ *
+ * Keys are content-addressed by sha256, so two records attaching the identical
+ * file share one blob. Deleting it because ONE of them expired would silently
+ * break the other — hence the refcount over the remaining ledger.
+ */
+export async function purgeAttachments(app: App, fileIds: string[], deps: AttachmentDeps): Promise<void> {
+    const before = await deps.listAttachments(app.id, app.userId);
+    const byId = new Map((before || []).map((a) => [a.id, a]));
+
+    const shas = new Set<string>();
+    for (const id of fileIds) {
+        const row = byId.get(id);
+        if (!row) continue;
+        shas.add(row.sha256);
+        await deps.deleteAttachment(id, app.id, app.userId);
+    }
+    if (!shas.size) return;
+
+    const after = await deps.listAttachments(app.id, app.userId); // a failure leaves the blob rather than orphans a live row
+    const stillUsed = new Set((after || []).map((a) => a.sha256));
+    for (const sha of shas) {
+        if (stillUsed.has(sha)) continue;
+        await deps.deleteFile(deps.buildAttachmentKey(app.userId, app.id, sha));
+    }
+}

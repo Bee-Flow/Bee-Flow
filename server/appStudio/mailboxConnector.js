@@ -243,9 +243,6 @@ function groupIntoThreads(messages, partialThreads = null) {
             entry = {
                 index: byKey.size,
                 complete: !partialThreads || !partialThreads.has(key),
-                // Outlook categories of every message, first spelling wins. Gmail
-                // labels are ids (INBOX, Label_123), so its threads carry none.
-                labels: msg.provider === 'outlook' ? new Map() : null,
                 firstInboundAt: null,
                 firstOutboundAfterAt: null,
                 thread: {
@@ -265,10 +262,6 @@ function groupIntoThreads(messages, partialThreads = null) {
 
         const t = entry.thread;
         t.message_count += 1;
-        for (const label of String(entry.labels ? msg.labels || '' : '').split(',')) {
-            const name = label.trim();
-            if (name && !entry.labels.has(name.toLowerCase())) entry.labels.set(name.toLowerCase(), name);
-        }
         // Unread is a property of the conversation: one unread inbound message
         // is enough to make the whole thread need attention.
         if (msg.direction === 'inbound' && msg.is_read === false) t.has_unread = true;
@@ -310,7 +303,6 @@ function groupIntoThreads(messages, partialThreads = null) {
     return {
         threads: [...byKey.values()].map((e) => {
             if (!e.thread.requester_email && e.fallbackTo) e.thread.requester_email = e.fallbackTo;
-            if (e.labels) e.thread.labels = [...e.labels.values()].join(',');
 
             if (e.complete) {
                 // Only a thread held in full can be measured. A first-response
@@ -330,8 +322,7 @@ function groupIntoThreads(messages, partialThreads = null) {
             // columns rather than overwrite a correct stored value with a
             // smaller wrong one: an upsert only writes the columns present, so
             // omitting them leaves the previous, complete answer alone.
-            // Labels too: a slice of the thread holds a slice of its categories.
-            const { message_count: _c, has_unread: _u, labels: _l, ...partial } = e.thread;
+            const { message_count: _c, has_unread: _u, ...partial } = e.thread;
             return partial;
         }),
         messages: outMessages,

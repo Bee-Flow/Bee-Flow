@@ -40,7 +40,26 @@ const WRAPPER_STYLE = `
 
 // Make links open in a new tab (never navigate the app frame) and cap oversized
 // images so a wide email can't force a horizontal scrollbar.
-const HEAD_INJECT = '<base target="_blank"><style>img{max-width:100%;height:auto}</style>';
+// html/body are forced to their content height: a mail with `height:100%` or
+// `min-height:100vh` would otherwise be as tall as the iframe viewport and could never shrink.
+// flow-root makes the body enclose floated content (a two-column signature), which
+// measureContentHeight would otherwise cut off.
+export const HEAD_INJECT = '<base target="_blank"><style>img{max-width:100%;height:auto}'
+    + 'html,body{height:auto !important;min-height:0 !important}body{display:flow-root}</style>';
+
+/**
+ * Height of the mail CONTENT: the body's box plus its vertical margins. Never
+ * documentElement.scrollHeight, which is at least the iframe's current height
+ * and so can only grow.
+ */
+export function measureContentHeight(doc: Document): number {
+    const body = doc.body;
+    if (!body) return 0;
+    let margins = 0;
+    const style = doc.defaultView?.getComputedStyle(body);
+    if (style) margins = (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0);
+    return Math.ceil(body.getBoundingClientRect().height + margins);
+}
 
 /**
  * Build the iframe document. Many senders (receipts, calendar invites,
@@ -127,28 +146,30 @@ export default function EmailHtmlBody({ html, inlineImages }: EmailHtmlBodyProps
         try {
             const doc = iframe.contentDocument;
             if (!doc) return;
-            const h = Math.max(
-                doc.documentElement?.scrollHeight || 0,
-                doc.body?.scrollHeight || 0,
-            );
+            const h = measureContentHeight(doc);
             if (h) setHeight(h + 4);
         } catch (err) { logger.debug('cross-origin guard — shouldn\'t trip with allow-same-origin', err); }
     }, []);
 
     const handleLoad = useCallback(() => {
-        measure();
         // Remote images change layout height after the initial load event, so
         // keep re-measuring while the email's body resizes.
         try {
             const doc = iframeRef.current?.contentDocument;
             doc?.addEventListener('click', openLinkFromEmail);
-            doc?.addEventListener('click', (event) => { if (isQuoteToggle(event.target)) quoteRef.current?.toggle(); });
+            doc?.addEventListener('click', (event) => {
+                if (!isQuoteToggle(event.target)) return;
+                quoteRef.current?.toggle();
+                measure();
+            });
             quoteRef.current = doc
                 ? collapseQuotedHistory(doc, {
                     show: t('support.email_quote_show', 'Show earlier messages'),
                     hide: t('support.email_quote_hide', 'Hide earlier messages'),
                 })
                 : null;
+            // Collapse first, then measure: the frame must never see the full height.
+            measure();
             if (doc?.body && typeof ResizeObserver !== 'undefined') {
                 observerRef.current?.disconnect();
                 const ro = new ResizeObserver(() => measure());
