@@ -6,6 +6,8 @@ WORKDIR /app
 # below only; it is purged again before `COPY . .`. The upgrade pulls in the
 # Debian security updates published after the pinned base digest (openssl,
 # pcre2, ...): the release container gate fails on any fixable HIGH/CRITICAL.
+# This early upgrade is cached; the dated one in the hardening step below
+# (OS_PATCH_DATE) is what keeps the release image current.
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -94,7 +96,15 @@ RUN if [ -n "$GUARD_DISCLOSURE_MODEL" ]; then \
 # libgomp1 (OpenMP) arrives with gcc but is a runtime library; marked manual so
 # the auto-remove keeps it. The release runtime check imports torch and
 # onnxruntime, so a library this purge took along fails CI, not a customer.
-RUN apt-mark manual libgomp1 \
+# OS_PATCH_DATE (YYYY-MM-DD) is the cache key of the OS upgrade: the pinned
+# base digest and the instructions never change, so without it a cached layer
+# keeps serving packages with fixed CVEs. CI passes the build date, so this
+# layer (and only the cheap ones after it, not the model export above) is
+# rebuilt once a day. The upgrade runs BEFORE the hardening, which must see
+# the final packages (an upgraded util-linux would bring mount back).
+ARG OS_PATCH_DATE=""
+RUN echo "os patch ${OS_PATCH_DATE}" && apt-get update && apt-get upgrade -y \
+    && apt-mark manual libgomp1 \
     && apt-get purge -y --auto-remove build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/infocmp \

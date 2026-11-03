@@ -200,6 +200,7 @@ build_one() {
     server)
       # DB-IP Lite edition month for the Dockerfile's `geo` stage (cache key).
       extra+=(--build-arg "GEO_DB_MONTH=$(date -u +%Y-%m)")
+      extra+=(--build-arg "OS_PATCH_DATE=$(date -u +%Y-%m-%d)")
       # Same context staging and build stamp as CI (build-push-ghcr.yml, job
       # `server`): the App Studio runtime bundle and the SBOM, which is stamped
       # with the very sha baked in as APP_BUILD_SHA.
@@ -212,6 +213,7 @@ build_one() {
       ;;
     agent-hub)
       extra+=(--build-arg "VITE_BUILD_SHA=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo local)")
+      extra+=(--build-arg "OS_PATCH_DATE=$(date -u +%Y-%m-%d)")
       extra+=(--build-arg "BUILDKIT_INLINE_CACHE=1")
       if [[ "${FAST_DEV:-0}" == "1" ]]; then
         if [[ "$env" == "prd" ]]; then
@@ -230,6 +232,9 @@ build_one() {
           return 1
         fi
       fi
+      ;;
+    guard)
+      extra+=(--build-arg "OS_PATCH_DATE=$(date -u +%Y-%m-%d)")
       ;;
     license-server)
       # Private source, checked out beside this repo (see LICENSE_SERVER_SRC

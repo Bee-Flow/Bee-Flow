@@ -5,6 +5,8 @@ WORKDIR /app
 # Debian security updates published after the pinned base digest (openssl,
 # pcre2, ...). The release container gate (.github/security/) fails on any
 # fixable HIGH/CRITICAL finding, so a stale base blocks the release.
+# This early upgrade is cached; the dated one in the hardening step after the
+# model bake (OS_PATCH_DATE) is what keeps the release image current.
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # The base image ships pip 25.0.1 (carries CVEs); upgrade it before any install.
@@ -35,19 +37,7 @@ ENV HF_HOME=/tmp/huggingface
 
 # Runtime user: uid 1000, no home directory. /opt/model stays root-owned and
 # read-only to it.
-# Then the hardening server/Dockerfile does, for the same Debian advisories
-# without a trixie fix: remove the CLIs they are reached through and every
-# SUID/SGID bit. The reviews in .github/security/container-exceptions.json
-# rely on this, and scripts/check-release-container.sh asserts it on the
-# exact release digest.
-# pip goes too: nothing installs after this, and pip vendors its own msgpack,
-# urllib3 and setuptools (listed in pip/_vendor/bom.cdx.json), whose advisories
-# trail every pip release.
-RUN useradd --uid 1000 --user-group --no-create-home --shell /usr/sbin/nologin app \
-    && rm -f /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/infocmp \
-    && find /usr -type f -path '*/Archive/Tar*' -delete \
-    && find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
-    && python -m pip uninstall -y pip
+RUN useradd --uid 1000 --user-group --no-create-home --shell /usr/sbin/nologin app
 
 # Bake the model into the image. Production pods are egress-blocked, so the
 # weights are never fetched at runtime; this layer is the only download.
@@ -60,6 +50,27 @@ ARG CLASSIFY_MODEL_REVISION=0bd888b6c3ef9fca5f0a9d407bddfbbc7623486b
 COPY scripts/bake_model.py /tmp/bake_model.py
 RUN CLASSIFY_MODEL_DIR=/opt/model python /tmp/bake_model.py \
     && rm -rf /tmp/bake_model.py /tmp/huggingface
+
+# OS_PATCH_DATE (YYYY-MM-DD) is the cache key of the OS upgrade: the pinned
+# base digest and the instructions never change, so without it a cached layer
+# keeps serving packages with fixed CVEs. CI passes the build date, so this
+# layer (not the model bake above) is rebuilt once a day. The upgrade runs
+# BEFORE the hardening, which must see the final packages.
+# The hardening is what server/Dockerfile does, for the same Debian advisories
+# without a trixie fix: remove the CLIs they are reached through and every
+# SUID/SGID bit. The reviews in .github/security/container-exceptions.json
+# rely on this, and scripts/check-release-container.sh asserts it on the
+# exact release digest.
+# pip goes too: nothing installs after this, and pip vendors its own msgpack,
+# urllib3 and setuptools (listed in pip/_vendor/bom.cdx.json), whose advisories
+# trail every pip release.
+ARG OS_PATCH_DATE=""
+RUN echo "os patch ${OS_PATCH_DATE}" && apt-get update && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/infocmp \
+    && find /usr -type f -path '*/Archive/Tar*' -delete \
+    && find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
+    && python -m pip uninstall -y pip
 
 COPY . .
 

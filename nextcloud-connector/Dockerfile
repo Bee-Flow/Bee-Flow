@@ -103,7 +103,11 @@ RUN git init -q . \
 
 # ── Stage 2: connector runtime ────────────────────────────────
 FROM node:22.23.4-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS runtime
-RUN apk upgrade --no-cache
+# OS_PATCH_DATE (YYYY-MM-DD) is the cache key of the OS upgrade: the pinned base digest
+# and this instruction never change, so without it a cached layer would keep serving
+# packages with fixed CVEs. CI passes the build date, so the layer is refreshed daily.
+ARG OS_PATCH_DATE=""
+RUN echo "os patch ${OS_PATCH_DATE}" && apk upgrade --no-cache
 WORKDIR /app
 
 # Connector source is the build context. Paths are relative to the connector
