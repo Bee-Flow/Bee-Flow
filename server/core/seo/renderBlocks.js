@@ -21,6 +21,7 @@
  */
 
 const { esc } = require('./html');
+const { isFeatureMatrix, emitFeatureMatrix } = require('./renderFeatureMatrix');
 const { variantSrcSet, columnSizes, preloadLink, DEFAULT_SIZES } = require('../cms/imageDelivery');
 
 /** The LCP candidate is looked for in this many leading blocks. */
@@ -190,10 +191,12 @@ function walk(node, out, depth, state) {
     if (parts) emitHeading(parts, out, depth, state);
 
     const compareTable = isCompareTable(node);
+    const featureMatrix = isFeatureMatrix(node);
 
     for (const [key, value] of Object.entries(node)) {
         if (SKIP_KEYS.has(key)) continue;
         if (compareTable && key === 'rows') continue; // emitted as a <table> below
+        if (featureMatrix && (key === 'columns' || key === 'groups')) continue; // likewise
 
         if (isProse(value)) {
             if (EYEBROW_KEYS.has(key)) out.push(`<p class="label">${esc(value)}</p>`);
@@ -221,6 +224,7 @@ function walk(node, out, depth, state) {
     }
 
     if (compareTable) emitCompareTable(node, out);
+    if (featureMatrix) emitFeatureMatrix(node, out);
 
     // A card that is also a link ({ title, body, link }) keeps its text above
     // and gets the anchor a crawler follows. Reached only by mixed nodes: a

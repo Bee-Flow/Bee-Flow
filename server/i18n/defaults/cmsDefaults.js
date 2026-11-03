@@ -564,6 +564,46 @@ const BLOCK_DEFAULTS = {
         footnote: '',
     },
 
+    // Feature matrix: features as rows, 2-6 licence/plan columns, rows grouped
+    // by category. Separate from `compare-table` (always two sides). Every
+    // column, group and row carries a stable `id`; a row's `cells` are
+    // { id: <column id>, kind, text }, so a translation (index-aligned, kept on
+    // its item by stores/cms/overrideAlign.js through `id`) never drifts when a
+    // column or row moves. `id` and `kind` are on the translation denylist
+    // (structural); `label`, `title` and a text cell's `text` translate.
+    // `kind`: 'included' | 'excluded' | 'text'. `highlight` marks one column.
+    'feature-matrix': {
+        eyebrow: '',
+        title: 'Compare the plans',
+        lead: '',
+        columns: [
+            { id: 'col-1', label: 'Basic', highlight: false },
+            { id: 'col-2', label: 'Plus', highlight: true },
+        ],
+        groups: [
+            {
+                id: 'grp-1',
+                title: 'Group name',
+                rows: [
+                    {
+                        id: 'row-1', label: 'A feature in this group',
+                        cells: [{ id: 'col-1', kind: 'excluded', text: '' }, { id: 'col-2', kind: 'included', text: '' }],
+                    },
+                    {
+                        id: 'row-2', label: 'A feature with a limit',
+                        cells: [{ id: 'col-1', kind: 'text', text: 'Up to 5' }, { id: 'col-2', kind: 'text', text: 'Unlimited' }],
+                    },
+                ],
+            },
+        ],
+        footnote: '',
+        // The words behind the check and the dash (read out by a screen reader)
+        // and the label of the phone's plan buttons. Authored so they translate.
+        includedLabel: 'Included',
+        excludedLabel: 'Not included',
+        pickerLabel: 'Choose a plan',
+    },
+
     // Tabs / switcher: one section that serves several audiences ("Bee Flow
     // for IT / Legal / DPO"). 2-6 tabs, each with a heading, text, an optional
     // media slot and an optional CTA. `tabId` is the stable key behind the
@@ -787,6 +827,9 @@ const BLOCK_TYPES = [
     // Same rollback caveat: an export with this block imported into an older
     // deployment drops it.
     { type: 'tabs',          label: 'Tabs',             icon: 'Layers',           category: 'Content' },
+    // Same rollback caveat: an export with this block imported into an older
+    // deployment drops it.
+    { type: 'feature-matrix', label: 'Feature matrix',  icon: 'Table',            category: 'Trust' },
     // Same rollback caveat (customer stories): an export with these blocks
     // imported into an older deployment drops them.
     { type: 'story-header',     label: 'Customer story header', icon: 'Quote',  category: 'Trust' },
@@ -804,6 +847,11 @@ const BLOCK_TYPES = [
 // outside the range (a stored block is never rewritten for being out of range).
 const TABS_MIN = 2;
 const TABS_MAX = 6;
+
+// Bounds of a feature-matrix block: value columns. The editor stops at the
+// maximum; the validator warns outside the range.
+const MATRIX_COLUMNS_MIN = 2;
+const MATRIX_COLUMNS_MAX = 6;
 
 // Bounds of the customer-stories feature: metrics on a story header, and cards
 // in one grid.
@@ -1035,6 +1083,7 @@ module.exports = {
     BLOCK_TYPES,
     BLOCK_TYPE_IDS,
     TABS_MIN, TABS_MAX,
+    MATRIX_COLUMNS_MIN, MATRIX_COLUMNS_MAX,
     STORY_METRICS_MIN, STORY_METRICS_MAX, STORY_GRID_MAX,
     BLOCK_VARIANTS,
     DEMO_FEATURE_IDS,

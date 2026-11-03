@@ -263,6 +263,24 @@ const THUMBS: Record<string, React.ReactElement> = {
             <Card x={66} y={30} w={40} h={26} />
         </Frame>
     ),
+    'feature-matrix': (
+        <Frame>
+            <rect x="62" y="8" width="20" height="48" rx="2" fill={ACCENT} fillOpacity="0.14" />
+            <Line x={14} y={12} w={24} h={3} o={0.6} />
+            <Line x={56} y={12} w={10} h={3} o={0.5} />
+            <Line x={72} y={12} w={10} h={3} o={0.7} />
+            <Line x={88} y={12} w={10} h={3} o={0.5} />
+            <Line x={14} y={21} w={20} h={2.5} o={0.35} />
+            {[28, 37, 46].map(y => (
+                <g key={y}>
+                    <Line x={14} y={y} w={30} h={3} o={0.45} />
+                    <circle cx="61" cy={y + 1.5} r="2" fill={ACCENT} fillOpacity={y === 37 ? 0.2 : 0.85} />
+                    <circle cx="77" cy={y + 1.5} r="2" fill={ACCENT} fillOpacity="0.85" />
+                    <circle cx="93" cy={y + 1.5} r="2" fill={ACCENT} fillOpacity={y === 28 ? 0.2 : 0.85} />
+                </g>
+            ))}
+        </Frame>
+    ),
     'story-header': (
         <Frame>
             <Line x={14} y={10} w={22} h={6} o={0.5} />

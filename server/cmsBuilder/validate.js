@@ -25,6 +25,8 @@
  *             low_contrast        — a design colour pair below WCAG AA (4.5:1)
  *             heavy_hero_image, autoplay_video, many_media — page speed (validateMedia.js)
  *             demo_poster_not_text, demo_caption_not_text — feature-demo poster/caption (validateBlocks.js)
+ *             matrix_columns_count, matrix_missing_id, matrix_duplicate_id, matrix_empty_label,
+ *             matrix_many_highlights, matrix_unknown_column, matrix_cell_kind — feature-matrix (validateBlocks.js)
  *
  * The three design checks are WARNINGS, never errors, per this file's
  * doctrine: cmsStore.sanitizeDesign() coerces instead of rejecting, so these
@@ -39,7 +41,7 @@
 
 const { sanitizeBlockDesignStyle, BLOCK_DESIGN_STYLE_KEYS, MEDIA_HEIGHTS, MEDIA_FITS } = require('../i18n/defaults/blockStyleEnums');
 const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
-const { checkTabs, checkStoryHeader, checkScrollStory, checkFeatureDemo } = require('./validateBlocks');
+const { checkTabs, checkFeatureMatrix, checkStoryHeader, checkScrollStory, checkFeatureDemo } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
 const { checkPageMedia } = require('./validateMedia');
 const { safeIconAsset } = require('../stores/cms/localeMedia');
@@ -380,6 +382,7 @@ function validateSiteDraft(draftWrap) {
                 checkFeatureDemo(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             }
             if (b?.type === 'tabs') checkTabs(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
+            if (b?.type === 'feature-matrix') checkFeatureMatrix(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             if (b?.type === 'scrollStory') checkScrollStory(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             if (b?.type === 'story-header') checkStoryHeader(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             warnings.push(...experimentWarnings(b, `pages.${entry.id}.blocks[${i}].content`));

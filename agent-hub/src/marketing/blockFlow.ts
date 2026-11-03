@@ -12,7 +12,7 @@ import type { CmsBlock } from './ProductWebsite.types';
 const FLAT_TYPES = new Set<string>([
     'socialProof', 'content', 'media-text', 'features', 'security', 'architecture',
     'faq', 'testimonials', 'form', 'showcase', 'feature-demo', 'roadmap',
-    'compare-table', 'release-notes', 'blog-latest',
+    'compare-table', 'feature-matrix', 'release-notes', 'blog-latest',
     // Legacy `alt-bg` types are flat only once the block sets backgroundVariant 'default'.
     'steps', 'integrations', 'techStats', 'pricing',
 ]);

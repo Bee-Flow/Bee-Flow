@@ -79,15 +79,27 @@ same stores and validators as the admin panel. After an edit the result carries
 `validation` warnings (an empty page, a link to a page that does not exist, a
 low-contrast colour pair), and a rejected call carries a `_fixHint`.
 
-## Tabs and customer stories
+## Tabs, feature matrix and customer stories
 
-Two blocks you add with `cms_add_blocks` like any other (the block catalogue lists
+Three blocks you add with `cms_add_blocks` like any other (the block catalogue lists
 them, with their default content):
 
 - **`tabs`**: one section for several audiences ("for IT / Legal / DPO"). Two to six
   tabs in `items`, each `{ tabId, label, title, body, media, cta }` (`cta` is `null`
   or `{ label, link }`). All tab text is in the page HTML; `?tab=<tabId>` opens a
   tab. Send the complete `items` array: arrays replace wholesale.
+- **`feature-matrix`**: a licence matrix, features as rows and plans as columns,
+  grouped by category. Two to six `columns` of `{ id, label, highlight }` (set
+  `highlight: true` on at most one) and `groups` of `{ id, title, rows }`, where a
+  row is `{ id, label, cells }` and a cell is `{ id: <column id>, kind, text }` with
+  `kind` `included`, `excluded` (a check or a dash with hidden text for screen
+  readers) or `text` (shows `text`). A cell is matched to its column by `id`, so
+  the cells of a row may be in any order. Every column, group and row needs its own
+  short, stable `id` (lowercase letters, digits and dashes; never change it later):
+  translations are kept on their column, row and cell through it. On a phone the
+  visitor picks one plan at a time. Send the complete `columns` and `groups`
+  arrays: arrays replace wholesale. The `compare-table` block stays the
+  two-sided "us versus them" table.
 - **Customer stories**: a story is an ordinary page that starts with a
   **`story-header`** block (`customer`, `sector`, `title`, `lead`, `logo`, `quote`,
   `quoteBy`, and two to four `metrics` of `{ stat, label }`; use the customer's real

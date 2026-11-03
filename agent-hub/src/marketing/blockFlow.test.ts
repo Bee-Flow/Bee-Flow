@@ -9,6 +9,10 @@ describe('joinsPreviousBlock', () => {
         expect(joinsPreviousBlock(block('features'), block('faq'))).toBe(true);
     });
 
+    it('joins a feature matrix like the other plain sections', () => {
+        expect(joinsPreviousBlock(block('faq'), block('feature-matrix'))).toBe(true);
+    });
+
     it('never joins the first block', () => {
         expect(joinsPreviousBlock(undefined, block('features'))).toBe(false);
     });
