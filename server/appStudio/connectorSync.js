@@ -45,7 +45,7 @@ const connectorSchema = require('./connectorSchema');
 const { renderWatermark, highWatermark } = require('./connectorWatermark.mts');
 const dataModel = require('./dataModel');
 const { planRetention } = require('./dataModel/retentionPlan');
-const { runRetention } = require('./connectorRetention.mts');
+const { runRetention, purgeAttachments } = require('./connectorRetention.mts');
 const log = require('../telemetry/log');
 
 // One sync never writes more than a connector run can return. The connector
@@ -242,35 +242,8 @@ function defaultDeps() {
         runNewRecordHook: (/** @type {Parameters<typeof import('./mailboxNewRecordHook.mts').runNewRecordHook>} */ ...a) => require('./mailboxNewRecordHook.mts').runNewRecordHook(...a),
         adoptRecordedReplies: (/** @type {Parameters<typeof import('./mailboxRecordedReplies.mts').adoptRecordedReplies>} */ ...a) => require('./mailboxRecordedReplies.mts').adoptRecordedReplies(...a),
         ensureLabelColumns: (/** @type {Parameters<typeof import('./mailboxLabelColumn.mts').ensureLabelColumns>} */ ...a) => require('./mailboxLabelColumn.mts').ensureLabelColumns(...a),
+        refreshThreadLabels: (/** @type {Parameters<typeof import('./mailboxThreadLabels.mts').refreshThreadLabels>} */ ...a) => require('./mailboxThreadLabels.mts').refreshThreadLabels(...a),
     };
-}
-
-/**
- * Delete the ledger rows, and the blobs that no longer have a ledger row.
- *
- * Keys are content-addressed by sha256, so two records attaching the identical
- * file share one blob. Deleting it because ONE of them expired would silently
- * break the other — hence the refcount over the remaining ledger.
- */
-async function purgeAttachments(app, fileIds, deps) {
-    const before = await deps.listAttachments(app.id, app.userId);
-    const byId = new Map((before || []).map((a) => [a.id, a]));
-
-    const shas = new Set();
-    for (const id of fileIds) {
-        const row = byId.get(id);
-        if (!row) continue;
-        shas.add(row.sha256);
-        await deps.deleteAttachment(id, app.id, app.userId);
-    }
-    if (!shas.size) return;
-
-    const after = await deps.listAttachments(app.id, app.userId); // a failure leaves the blob rather than orphans a live row
-    const stillUsed = new Set((after || []).map((a) => a.sha256));
-    for (const sha of shas) {
-        if (stillUsed.has(sha)) continue;
-        await deps.deleteFile(deps.buildAttachmentKey(app.userId, app.id, sha));
-    }
 }
 
 // The identity the sync writes as. A connector is owner-scoped by construction
@@ -487,8 +460,10 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
         let rows = Array.isArray(primaryRows) ? primaryRows.slice(0, MAX_SYNC_ROWS) : [];
 
         // 'client' tier: everything came back, but only newer rows are written.
+        // Not with child tables: their `_parentIndex` points into grain 0 as it came back, so a
+        // shorter parent list linked a skipped conversation's messages to its neighbour instead.
         let skipped = 0;
-        if (incremental?.field && !incremental.param && priorWatermark) {
+        if (incremental?.field && !incremental.param && priorWatermark && !children.length) {
             const before = rows.length;
             rows = rows.filter((row) => {
                 const iso = connectorSchema.toIsoStamp(connectorSchema.readPath(row, incremental.field));
@@ -543,6 +518,8 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
             updated += res.updated;
             childResults.push({ tableId: child.tableId, table: childTable.key, inserted: res.inserted, updated: res.updated });
         }
+        // A conversation's categories come from all its STORED messages, so after they are written.
+        updated += await deps.refreshThreadLabels(app, model, connector, recordIdsByLevel[0], deps);
 
         const purged = await purgePastRetention(app, model, connector, deps);
         const watermark = incremental?.field ? highWatermark(rows, incremental.field, priorWatermark) : null;

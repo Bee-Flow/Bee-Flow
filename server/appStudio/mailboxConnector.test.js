@@ -508,21 +508,15 @@ test('attachments carry the conversation key they are filtered by', async () => 
     assert.strictEqual(res.grains[1].rows[0].thread_key, 'T7');
 });
 
-test('an Outlook conversation carries the categories of all its messages, each once', () => {
+test('a conversation row carries no labels of its own: they come from ALL stored messages (mailboxThreadLabels.mts)', () => {
+    // From the run alone a partial thread would hold a slice of its categories,
+    // and the run's union and the stored union would overwrite each other.
     const grouped = mailboxConnector._groupIntoThreads([
         { thread_key: 'T1', provider: 'outlook', direction: 'inbound', labels: 'Daniel', received_at: '2026-08-01T00:00:00Z' },
-        { thread_key: 'T1', provider: 'outlook', direction: 'outbound', labels: 'daniel, Urgent', received_at: '2026-08-02T00:00:00Z' },
-        { thread_key: 'T2', provider: 'outlook', direction: 'inbound', labels: '', received_at: '2026-08-01T00:00:00Z' },
+        { thread_key: 'T2', provider: 'gmail', direction: 'inbound', labels: 'INBOX,Label_12', received_at: '2026-08-01T00:00:00Z' },
     ]);
-    assert.strictEqual(grouped.threads[0].labels, 'Daniel,Urgent');
-    assert.strictEqual(grouped.threads[1].labels, '', 'categories taken off in Outlook clear the conversation too');
-});
-
-test('a Gmail conversation carries no labels: they are ids, not names', () => {
-    const grouped = mailboxConnector._groupIntoThreads([
-        { thread_key: 'T1', provider: 'gmail', direction: 'inbound', labels: 'INBOX,Label_12', received_at: '2026-08-01T00:00:00Z' },
-    ]);
-    assert.ok(!('labels' in grouped.threads[0]));
+    assert.ok(grouped.threads.every((t) => !('labels' in t)));
+    assert.strictEqual(grouped.messages[0].labels, 'Daniel', 'the message keeps its own categories');
 });
 
 // ── Roll-up honesty ──────────────────────────────────────────────────────────
