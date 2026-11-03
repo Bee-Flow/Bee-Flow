@@ -21,7 +21,13 @@ const SOAP_METHODS_READONLY = new Set([
     'EmployeeService/SVW_GetAll_AllEmployeesByCompany',
     'EmployeeService/PersonalInfoContractSalaryAddress_GetAll_AllEmployeesByCompany',
     'EmployeeService/Contract_GetAll_AllEmployeesByCompany',
+    'EmployeeService/Salary_GetAll_AllEmployeesByCompany',
     'CompanyService/Run_GetList',
+    // The payslips of a run: these two start a background report and read its
+    // result (ReportService WSDL). They generate a document; they change no
+    // payroll data. See nmbrsPayslips.mts.
+    'ReportService/Reports_GetPayslipByRunCompany_v2_Background',
+    'ReportService/Reports_BackgroundTask_Result',
 ]);
 
 // EmployeeService/List_GetByCompany filters on Nmbrs' EmployeeType enumeration:

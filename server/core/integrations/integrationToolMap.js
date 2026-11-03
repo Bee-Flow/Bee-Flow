@@ -201,6 +201,8 @@ const INTEGRATION_TOOL_MAP = {
     nmbrs_list_company_runs: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll' },
     nmbrs_list_company_personal_info: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
     nmbrs_list_company_contracts: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, pii' },
+    nmbrs_list_company_salaries: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
+    nmbrs_get_company_run_payslips: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
 
     // ── Withings (read-only health) ──────────────────────────
     // Everything Withings returns is health data about an identified person —
