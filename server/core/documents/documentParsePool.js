@@ -57,9 +57,12 @@ const slots = [];
 /** @type {Queued[]} */
 const queue = [];
 
+// The worker script; a test swaps in one that never answers (see _useWorkerScript).
+let workerScript = path.join(__dirname, 'documentParseWorker.js');
+
 function spawnSlot() {
     const memoryMb = envNumber('DOCUMENT_PARSE_MEMORY_MB', DEFAULT_MEMORY_MB);
-    const worker = new Worker(path.join(__dirname, 'documentParseWorker.js'), {
+    const worker = new Worker(workerScript, {
         ...(memoryMb > 0 ? { resourceLimits: { maxOldGenerationSizeMb: memoryMb } } : {}),
     });
     /** @type {Slot} */
@@ -153,4 +156,15 @@ async function closeDocumentParsePool() {
     await Promise.all(all.map((s) => s.worker.terminate().catch((e) => bestEffort('documentParsePool:terminate', e))));
 }
 
-module.exports = { parseInWorker, parseTimeoutMs, closeDocumentParsePool, DocumentParseError, DEFAULT_TIMEOUT_MS, DEFAULT_MEMORY_MB };
+/**
+ * Tests only: run the next workers from another script (null = the real one), after ending the
+ * current ones. A deadline test needs a parse that is slow for certain; racing a real parser
+ * against a 1 ms deadline lost whenever a warm worker answered first.
+ * @param {string | null} script
+ */
+async function _useWorkerScript(script) {
+    await closeDocumentParsePool();
+    workerScript = script || path.join(__dirname, 'documentParseWorker.js');
+}
+
+module.exports = { parseInWorker, parseTimeoutMs, closeDocumentParsePool, DocumentParseError, DEFAULT_TIMEOUT_MS, DEFAULT_MEMORY_MB, _useWorkerScript };
