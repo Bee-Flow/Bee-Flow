@@ -524,6 +524,7 @@ jobs:
               - 'mobile/tsconfig.json'
               - 'mobile/plugins/**'
               - 'mobile/modules/**'
+              - 'mobile/vendor/**'
               - 'mobile/assets/**'
               - 'mobile/src/**'
               - 'mobile/app/**'

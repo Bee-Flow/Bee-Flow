@@ -56,6 +56,14 @@
             "reason": "local Expo module of mobile/ with no dependencies of its own"
         },
         {
+            "dir": "mobile/vendor/decode-uri-component",
+            "ecosystem": "npm",
+            "role": "client",
+            "lockfile": "none",
+            "dependabot": "none",
+            "reason": "vendored CommonJS port of decode-uri-component 0.5.1 (override for query-string 7 under expo-router 57); no dependencies; removed with the Expo SDK 58 upgrade"
+        },
+        {
             "dir": "classify-service/eval",
             "ecosystem": "pip",
             "role": "tooling",
