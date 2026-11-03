@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { postConnector } from '@/api/connectorHttp';
 import { TextField } from './ConnectorFields';
 import MailboxHookFields from './MailboxHookFields';
+import MailboxRetention from './MailboxRetention';
+import type { ModelTable } from '../../tables/tablesManagerModel';
 import type { HookAction } from './mailboxHook';
 import { INPUT, LABEL, mailboxProviderFields } from './connectorModel';
 import type { Connector } from './connectorModel';
@@ -79,6 +81,8 @@ interface MailboxFieldsProps {
     saved?: boolean;
     /** The app's actions, for the "when new mail arrives" picker. */
     actions?: Record<string, HookAction> | null;
+    /** The app's tables, for the retention date column. */
+    tables?: ModelTable[];
 }
 
 /**
@@ -94,7 +98,7 @@ interface MailboxFieldsProps {
  * else's mailbox at all, so there it means mail delivered to a team address
  * inside your own.
  */
-export default function MailboxFields({ connector, setOpt, patch, disabled, appId, saved, actions }: MailboxFieldsProps) {
+export default function MailboxFields({ connector, setOpt, patch, disabled, appId, saved, actions, tables = [] }: MailboxFieldsProps) {
     const { t } = useTranslation();
     const shared = connector.mode === 'shared';
     const isGmail = connector.provider === 'gmail';
@@ -174,6 +178,8 @@ export default function MailboxFields({ connector, setOpt, patch, disabled, appI
             </p>
 
             <MailboxHookFields connector={connector} actions={actions} patch={patch} disabled={disabled} />
+
+            <MailboxRetention connector={connector} tables={tables} patch={patch} disabled={disabled} />
 
             {saved ? <VerifyAccess connector={connector} disabled={disabled} state={verifyState} /> : null}
         </div>

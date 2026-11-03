@@ -127,7 +127,9 @@ async function runMailboxConnector(connector, ctx = {}) {
     // matches neither the query nor a watermark that has already moved past the
     // labelled message. The search therefore re-runs over the whole lookback
     // window each time and the threads it finds are expanded in full below —
-    // bounded by maxPerRun, and the upsert makes re-seeing a message free.
+    // bounded by maxPerRun, and the upsert makes re-seeing a message free. (Outlook
+    // filters this window on lastModifiedDateTime, so a label added later to an older
+    // message is found as long as it was modified inside the window.)
     let since = connector.groupIntoThreads ? lookbackIso : (systemArgs.since || null);
     if (!since) since = lookbackIso;
 

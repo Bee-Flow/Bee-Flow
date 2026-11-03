@@ -37,11 +37,30 @@ test('labels only: one $filter with the date, ordered, nothing left to filter he
         query: 'label:daniel OR label:kees', sinceIso: '2026-11-01T00:00:00.000Z', select: 'id', top: 50,
     });
     const p = decode(qs);
-    assert.strictEqual(p.$filter, "receivedDateTime ge 2026-11-01T00:00:00.000Z and categories/any(c:c eq 'daniel' or c eq 'kees')");
-    assert.strictEqual(p.$orderby, 'receivedDateTime desc');
+    assert.strictEqual(p.$filter, "lastModifiedDateTime ge 2026-11-01T00:00:00.000Z and categories/any(c:c eq 'daniel' or c eq 'kees')");
+    assert.strictEqual(p.$orderby, 'lastModifiedDateTime desc');
     assert.strictEqual(p.$search, undefined);
     assert.ok(!qs.includes('+'), 'spaces travel as %20');
     assert.deepStrictEqual(labelGroups, []);
+});
+
+test('a since filters on the MODIFIED time (a category change bumps it), ordered by the same property', () => {
+    const p = decode(outlookListQuery({ query: '', sinceIso: '2026-11-01T00:00:00.000Z', select: 'id', top: 50 }).qs);
+    assert.strictEqual(p.$filter, 'lastModifiedDateTime ge 2026-11-01T00:00:00.000Z');
+    assert.strictEqual(p.$orderby, 'lastModifiedDateTime desc');
+});
+
+test('without a since the order stays by received time', () => {
+    const p = decode(outlookListQuery({ query: 'label:daniel', sinceIso: null, select: 'id', top: 50 }).qs);
+    assert.strictEqual(p.$orderby, 'receivedDateTime desc');
+    assert.strictEqual(p.$filter, "categories/any(c:c eq 'daniel')");
+});
+
+test('text with a since stays a $search: no filter, no order, no date', () => {
+    const p = decode(outlookListQuery({ query: 'factuur', sinceIso: '2026-11-01T00:00:00.000Z', select: 'id', top: 50 }).qs);
+    assert.strictEqual(p.$search, '"factuur"');
+    assert.strictEqual(p.$filter, undefined);
+    assert.strictEqual(p.$orderby, undefined);
 });
 
 test('labels and text: $search for the text, the labels come back to apply to the results', () => {

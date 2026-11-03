@@ -61,6 +61,23 @@ function dependentDatedColumn(table, declared) {
     return field && DEPENDENT_RETENTION_COLUMN_TYPES.includes(field.type) ? field.key : null;
 }
 
+// The columns a mailbox sync itself fills with the message date, in order of
+// preference: the conversation's last message (thread mode), the message's own
+// received time (flat mode). Used when neither a retentionField nor an
+// incremental stamp names a column, so "Only fetch new mail" being off does not
+// make the retention promise unkeepable. Date types only.
+const MAILBOX_DATE_COLUMNS = ['last_message_at', 'received_at'];
+
+function mailboxDateColumn(table) {
+    const fields = (table && table.fields) || [];
+    for (const name of MAILBOX_DATE_COLUMNS) {
+        const column = retentionColumn(table, name);
+        const field = column ? fields.find((f) => f && f.key === column) : null;
+        if (field && (field.type === 'datetime' || field.type === 'date')) return column;
+    }
+    return null;
+}
+
 /**
  * How a retention purge reaches every table this connector writes.
  *
@@ -110,7 +127,9 @@ function planRetention(model, connector) {
     const primary = byId.get(sync.tableId) || null;
     if (!primary) return { days, steps, unreachable: [String(sync.tableId ?? 'unknown table')] };
 
-    const primaryColumn = datedColumn(primary, sync.retentionField, stamp);
+    const declaredField = typeof sync.retentionField === 'string' && sync.retentionField ? sync.retentionField : null;
+    const primaryColumn = datedColumn(primary, sync.retentionField, stamp)
+        || (!declaredField && connector.kind === 'mailbox' ? mailboxDateColumn(primary) : null);
     if (primaryColumn) steps.push({ level: 0, table: primary, mode: 'column', column: primaryColumn });
     else unreachable.push(primary.key);
 

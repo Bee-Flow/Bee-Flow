@@ -462,8 +462,10 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
         // 'client' tier: everything came back, but only newer rows are written.
         // Not with child tables: their `_parentIndex` points into grain 0 as it came back, so a
         // shorter parent list linked a skipped conversation's messages to its neighbour instead.
+        // Not for a mailbox either: it already narrowed server-side (systemArgs.since, on the
+        // MODIFIED time), and an old message labelled later has a received_at below the watermark.
         let skipped = 0;
-        if (incremental?.field && !incremental.param && priorWatermark && !children.length) {
+        if (incremental?.field && !incremental.param && priorWatermark && !children.length && connector.kind !== 'mailbox') {
             const before = rows.length;
             rows = rows.filter((row) => {
                 const iso = connectorSchema.toIsoStamp(connectorSchema.readPath(row, incremental.field));
