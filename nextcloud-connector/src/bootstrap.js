@@ -28,6 +28,7 @@ const log = require('./log');
  */
 
 const fs = require('fs').promises;
+const { writeFileAtomic } = require('./atomicWrite');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const config = require('./config');
@@ -136,7 +137,7 @@ async function writeCache(data) {
     const cachePath = path.join(config.persistentStorage, CACHE_FILE);
     try {
         await fs.mkdir(config.persistentStorage, { recursive: true });
-        await fs.writeFile(cachePath, JSON.stringify(data, null, 2), { mode: 0o600 });
+        await writeFileAtomic(cachePath, JSON.stringify(data, null, 2));
     } catch (e) {
         log.warn(`[Bootstrap] Could not persist tenant key to ${cachePath}: ${errMessage(e)}`);
     }
@@ -162,7 +163,7 @@ async function writePendingFile(data) {
     const p = path.join(config.persistentStorage, PENDING_FILE);
     try {
         await fs.mkdir(config.persistentStorage, { recursive: true });
-        await fs.writeFile(p, JSON.stringify(data, null, 2), { mode: 0o600 });
+        await writeFileAtomic(p, JSON.stringify(data, null, 2));
     } catch (e) {
         log.warn(`[Bootstrap] Could not persist pending state to ${p}: ${errMessage(e)}`);
     }
@@ -440,7 +441,7 @@ async function writeErrorFile(data) {
     const p = path.join(config.persistentStorage, ERROR_FILE);
     try {
         await fs.mkdir(config.persistentStorage, { recursive: true });
-        await fs.writeFile(p, JSON.stringify(data, null, 2), { mode: 0o600 });
+        await writeFileAtomic(p, JSON.stringify(data, null, 2));
     } catch (e) {
         log.warn(`[Bootstrap] Could not persist error state to ${p}: ${errMessage(e)}`);
     }
@@ -1164,7 +1165,7 @@ async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
         pendingState = null;
         await deletePendingFile();
         if (prev.cacheFile) {
-            await fs.writeFile(cachePath, prev.cacheFile, { mode: 0o600 }).catch(() => {});
+            await writeFileAtomic(cachePath, prev.cacheFile).catch(() => {});
         }
         throw err;
     } finally {
