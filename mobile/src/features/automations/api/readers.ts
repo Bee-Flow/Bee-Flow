@@ -17,6 +17,9 @@ import type {
     AutomationDefinition,
     AutomationRun,
     AutomationRunStep,
+    RunDecisionResult,
+    RunPendingApproval,
+    RunProfileView,
     RunTriggerResult,
     SchedulePreview,
 } from '../model/types';
@@ -88,7 +91,47 @@ export const readRun: (raw: unknown) => AutomationRun = shapeOf({
     handledErrorCount: field.num(0),
     canStart: field.optBool,
     journeyRunId: field.optStr,
+    isTest: field.optBool,
+    profile: (value: unknown) => field.optRecord<RunProfileView>(value),
+    canDecide: field.optBool,
+    waitingOn: (value: unknown) => readWaitingOn(value) ?? undefined,
+    approvalId: optStrOrNull,
+    versionBehind: field.optBool,
 });
+
+/** `waitingOn` ({ stageName, seatCount }), or null when it is not one. */
+function readWaitingOn(value: unknown): { stageName: string | null; seatCount: number } | null {
+    if (!value || typeof value !== 'object') return null;
+    return { stageName: field.strOrNull(pick(value, 'stageName')), seatCount: field.num(0)(pick(value, 'seatCount')) };
+}
+
+/** GET /runs/:runId/form `pendingApproval`; null when the server sent none (not waiting, or an older server). */
+export function readRunPendingApproval(raw: unknown): RunPendingApproval | null {
+    const approvalId = field.str('')(pick(raw, 'approvalId'));
+    if (!approvalId) return null;
+    return {
+        approvalId,
+        prompt: field.str('')(pick(raw, 'prompt')),
+        fields: field.list((f: unknown) => field.record<Record<string, unknown>>({})(f))(pick(raw, 'fields')),
+        canDecide: field.bool(false)(pick(raw, 'canDecide')),
+        waitingOn: readWaitingOn(pick(raw, 'waitingOn')),
+        isTest: field.bool(false)(pick(raw, 'isTest')),
+    };
+}
+
+const DECISIONS = ['approve', 'reject'] as const;
+
+/**
+ * POST /runs/:runId/approve-step's answer. `vote_recorded` is a vote, not a
+ * decision: the run still waits. A 202 carries the continuation's runId.
+ */
+export function readRunDecisionResult(raw: unknown, fallback: 'approve' | 'reject'): RunDecisionResult {
+    const said = field.str('')(pick(raw, 'decision'));
+    if (said === 'vote_recorded') return { kind: 'vote', stage: field.strOrNull(pick(raw, 'stage')) };
+    const decision = field.oneOf(DECISIONS, fallback)(said);
+    if (pick(raw, 'pending') === true) return { kind: 'pending', decision, runId: field.strOrNull(pick(raw, 'runId')) };
+    return { kind: 'decided', decision, run: nullable(readRun)(pick(raw, 'run')) };
+}
 
 export const readRunStep: (raw: unknown) => AutomationRunStep = shapeOf({
     runId: field.str(''),

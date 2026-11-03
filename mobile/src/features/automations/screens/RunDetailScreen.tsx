@@ -10,20 +10,22 @@ import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
-import { useTranslation } from '@/core/i18n';
+import { useTranslation, type TranslateFn } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { QueryScreen, type DetailQuery } from '@/shared/patterns';
+import { runPause, runPhase } from '@/shared/runs/runPhase';
 import { ScreenHeader, useToast } from '@/shared/ui';
 
 import { RunActions } from '../components/RunActions';
 import { RunFacts } from '../components/RunFacts';
 import { RunOutcome } from '../components/RunOutcome';
 import { RunStepsSection } from '../components/RunStepsSection';
-import { useCancelRun, useDecideRunStep, useRetryRun, useRunRefresh } from '../hooks/mutations';
+import { useCancelRun, useRetryRun, useRunRefresh } from '../hooks/mutations';
 import { useRun, useRunSteps } from '../hooks/queries';
+import { useRunDecision } from '../hooks/useRunDecision';
 import { useRunStream } from '../hooks/useRunStream';
 import { mayStartRun } from '../model/runAccess';
-import { isLiveStatus, statusLabel, statusToken } from '../model/status';
+import { isLiveStatus, isMovingRun, statusLabel, statusToken } from '../model/status';
 import { absoluteTime, runElapsedMs } from '../model/time';
 import type { AutomationRun } from '../model/types';
 
@@ -34,7 +36,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 /** The run's writes, each toasting its outcome the way this screen always has. */
-function useRunDetailActions(automationId: string, runId: string) {
+function useRunDetailActions(automationId: string, runId: string, run: AutomationRun | null | undefined) {
     const router = useRouter();
     const { toast } = useToast();
     const t = useTranslation();
@@ -53,15 +55,20 @@ function useRunDetailActions(automationId: string, runId: string) {
         },
         onError,
     });
+    // A pause stops at once (the approval is withdrawn, the form wait closed);
+    // a run that is doing work stops after its current step.
+    const paused = !!run && !isMovingRun(run) && isLiveStatus(run.status);
     const cancel = useCancelRun(refresh, {
-        onSuccess: () => toast(t('mobile.automations.stop_requested', 'Stop requested — it ends after the current step')),
+        onSuccess: () => toast(stopWords(paused, runPhase(run).isTest, t), paused ? 'success' : 'neutral'),
         onError,
     });
-    const decide = useDecideRunStep(runId, refresh, {
-        onSuccess: () => toast(t('mobile.automations.decision_sent', 'Decision sent'), 'success'),
-        onError,
-    });
+    const decide = useRunDecision(run, refresh);
     return { retry, cancel, decide };
+}
+
+function stopWords(paused: boolean, isTest: boolean, t: TranslateFn): string {
+    if (!paused) return t('mobile.automations.stop_requested', 'Stop requested — it ends after the current step');
+    return isTest ? t('mobile.runs.stopped_test', 'Test run discarded') : t('mobile.runs.stopped', 'Run stopped');
 }
 
 /**
@@ -93,7 +100,7 @@ export function RunDetailScreen({ automationId, runId }: { automationId: string;
             void steps.refetch();
         },
     });
-    const { retry, cancel, decide } = useRunDetailActions(automationId, runId);
+    const { retry, cancel, decide } = useRunDetailActions(automationId, runId, run.data);
     const elapsed = useMemo(() => (run.data ? runElapsedMs(run.data) : null), [run.data]);
 
     const query: DetailQuery<AutomationRun> = {
@@ -127,9 +134,9 @@ export function RunDetailScreen({ automationId, runId }: { automationId: string;
                         <RunOutcome run={current} failed={statusToken(current.status).tone === 'error'} />
                         <RunFacts run={current} elapsed={elapsed} />
                         <RunActions
-                            awaitingApproval={current.status === 'awaiting_approval'}
-                            live={isLiveStatus(current.status)}
-                            decide={{ run: (d) => decide.mutate(d), pending: decide.isPending }}
+                            pause={runPause(current, t)}
+                            live={isLiveStatus(current.status) && isMovingRun(current)}
+                            decide={{ run: decide.decide, pending: decide.pending, checking: decide.checking }}
                             stop={{ run: () => cancel.mutate(runId), pending: cancel.isPending }}
                             retry={{ run: () => retry.mutate(), pending: retry.isPending }}
                             canRetry={mayStartRun(current)}

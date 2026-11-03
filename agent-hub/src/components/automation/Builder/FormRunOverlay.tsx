@@ -1,185 +1,119 @@
-import { X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import FormSaveScenario from './FormSaveScenario';
-import FormScenarioPicker from './FormScenarioPicker';
-import apiClient from '@/api/client';
-import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
-import PublicFormRenderer from '../../forms/PublicFormRenderer';
-import type { FormDef, FormFieldDef } from '../../forms/PublicFormRenderer.types';
-import { logger } from '@/utils/logger';
-import type { FormRunFollow, FormRunMode, FormRunStart } from './formRunContract';
+import { X } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import FormRunApproval from './FormRunApproval';
+import FormRunClosePrompt from './FormRunClosePrompt';
+import FormRunPage from './FormRunPage';
+import { EndPhase, ModeChip, SlowPhase, WorkingPhase } from './FormRunPhases';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import useFormRunJourney from './useFormRunJourney';
+import type { FollowTiming } from './formRunFollower';
+import type { FormDef } from '../../forms/PublicFormRenderer.types';
+import type { FormRunClose, FormRunFollow, FormRunKind, FormRunMode, FormRunShellProps, FormRunStart } from './formRunContract';
 
-function headerTitle(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, attached: boolean, hasStep: boolean) {
+/**
+ * Testing a form-triggered automation as the person filling it in would see
+ * it, from page one to the closing page, over the canvas (or over a run in
+ * Studio > Runs, attached to it).
+ *
+ *   1. Page one comes from the DECLARATION being edited. Its button starts a
+ *      dry run (nothing is sent or written, pages and approvals wait here);
+ *      "Run for real" starts a live test behind the shell's confirm. Both go
+ *      through the shell (onStartRun), which follows the run on the canvas.
+ *   2. The overlay follows the journey (formRunFollower.ts) to whatever comes
+ *      next: a later page, answered here and continued (POST /runs/:id/form,
+ *      the canvas follows the continuation through onFollowRun); an approval,
+ *      decided here with its snapshot questions (a pause, never an error); or
+ *      the end, with the closing page the visitor would see.
+ *   3. Closing never loses something by accident: a click beside a typed page
+ *      asks first, a parked test run is kept waiting or discarded, and a run
+ *      still going is not opened again by itself (RUN-11).
+ *
+ * The renderer is the visitor's own (PublicFormRenderer), so theme, field
+ * types, uploads and the app picker behave as they will there. The picker and
+ * uploads go through the builder's owner-scoped endpoints, because the public
+ * ones need a form token this automation may not have yet.
+ *
+ * Attach mode (`runId` without `form`) never starts a run: it follows the run
+ * it was given, and is what Studio > Runs opens for "Answer this page" / "Decide".
+ * What the overlay does is useFormRunJourney; this file draws it.
+ */
+interface FormRunOverlayProps extends FormRunShellProps {
+    automationId: string | null | undefined;
+    /** Page one: the form declaration being edited. */
+    form?: FormDef;
+    /** Attach mode: the run (journey head) already going or parked on a page. */
+    runId?: string | null;
+    /** Start the run page one asked for (formRunContract.ts): 'started' carries the id to follow. */
+    onStartRun: FormRunStart;
+    /** What page one's own button starts: a dry run unless the overlay was opened from Run live. */
+    startMode?: FormRunMode;
+    /** The canvas follows a run by id; for every continuation of the journey. */
+    onFollowRun?: FormRunFollow;
+    onClose: FormRunClose;
+    /** Attach mode: dry run, live test or production, when the caller knows; else read from the run. */
+    runKind?: FormRunKind | null;
+    /** The follow loop's cadence and budget. */
+    followTiming?: FollowTiming;
+}
+
+function headerTitle(t: TranslateFn, attached: boolean, hasStep: boolean) {
     if (attached) return t('automations.form_run_overlay.live_run_title', 'Live run — this page is waiting for you');
     if (hasStep) return t('automations.form_run_overlay.next_page_title', 'Test — the next page');
     return t('automations.form_run_overlay.test_this_form', 'Test this form');
 }
 
-/** The line above the page: a paused journey, or what Submit on page one starts. */
-function pageHint(t: (key: string | undefined, fallback?: string) => string, paused: boolean, mode: FormRunMode) {
-    if (paused) return t('automations.form_run_overlay.paused_hint', 'The automation paused here and is waiting for an answer.');
-    if (mode === 'dry') return t('automation_testing.overlay.first_page_hint_dry', 'What you submit starts a dry run with these answers as the trigger: nothing is sent or written, and forms and approvals wait for you here.');
-    return t('automations.form_run_overlay.first_page_hint', 'What you submit runs the automation for real, with these answers as the trigger.');
+/** Esc belongs to the overlay while it is open: the builder's own Esc would close it without asking. */
+function useOverlayEscape(onEscape: () => void) {
+    const ref = useRef(onEscape);
+    useEffect(() => { ref.current = onEscape; });
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            e.stopPropagation();
+            ref.current();
+        };
+        window.addEventListener('keydown', onKey, true);
+        return () => window.removeEventListener('keydown', onKey, true);
+    }, []);
 }
 
-/**
- * Testing a form-triggered automation, as the person filling it in would see it.
- *
- * A form trigger is the one kind you cannot test by pressing Run: the trigger
- * IS a page somebody fills in, and pressing Run with nothing to submit used to
- * open the node editor and leave you to find the inline preview inside it. The
- * public page is no help while you are building either — formPublic 404s a
- * draft or deactivated automation by design, and a real submission there would run
- * the flow for real.
- *
- * So this is the form, over the canvas, wired to a real run:
- *
- *   1. page one comes from the DECLARATION being edited, so it reflects what is
- *      on screen right now rather than what was last saved;
- *   2. submitting starts a live run with those answers as the trigger payload;
- *   3. if the automation pauses at a `form_page`, the overlay serves THAT page and
- *      continues the same run — which is what makes it a test of the journey
- *      and not just of the first screen;
- *   4. when the run ends, the overlay says so and gets out of the way, leaving
- *      the canvas to show what every step did.
- *
- * The renderer is the same component the visitor gets (PublicFormRenderer), so
- * the theme, the field types and the app picker behave here exactly as they
- * will there. The picker is the one thing wired differently: it searches
- * through the builder's own owner-scoped endpoint, because the public one needs
- * a form token this automation does not have yet.
- */
-interface FormRunOverlayProps {
-    automationId: string | null | undefined;
-    form?: FormDef;
-    runId?: string | null;
-    /** Start the run page one asked for (formRunContract.ts): 'started' carries the id to follow. */
-    onStartRun: FormRunStart;
-    /** What Submit on page one starts: a dry run unless the overlay was opened from Run live. */
-    startMode?: FormRunMode;
-    /** The canvas follows a run by id; for the continuation of a journey. */
-    onFollowRun?: FormRunFollow;
-    onClose: (e?: React.MouseEvent<HTMLButtonElement>) => void;
-}
+type Journey = ReturnType<typeof useFormRunJourney>;
 
-interface RunFormState {
-    waiting?: boolean;
-    form?: FormDef;
-    runId?: string;
-    stepId: string | null;
-    status?: string;
-    run?: { id?: string };
+/** The phase on screen. */
+function OverlayBody({ j, automationId, startMode }: { j: Journey; automationId: string | null | undefined; startMode: FormRunMode }) {
+    const { s } = j;
+    if (s.phase === 'form' && s.page.form) {
+        return (
+            <FormRunPage
+                key={s.page.stepId || 'page1'}
+                automationId={automationId}
+                form={s.page.form}
+                stepId={s.page.stepId}
+                startMode={startMode}
+                onSubmit={j.submit}
+                onSearchApp={j.searchApp}
+                onUpload={j.upload}
+                onTyped={j.typed}
+            />
+        );
+    }
+    if (s.phase === 'approval') return <FormRunApproval approval={s.approval} onDecide={j.decide} onWithdraw={j.withdraw} />;
+    if (s.phase === 'slow') return <SlowPhase reason={s.slow} onRetry={j.retry} onClose={j.close} />;
+    if (s.phase === 'done' || s.phase === 'failed' || s.phase === 'stopped') {
+        // Answers can be kept after any journey that answered a page here, however it ended.
+        return <EndPhase phase={s.phase} ending={s.ending} automationId={automationId} scenarioRunId={s.answered > 0 ? s.runIds[0] ?? null : null} onClose={j.close} />;
+    }
+    return <WorkingPhase />;
 }
 
 export default function FormRunOverlay({
-    automationId,
-    // The form declaration being edited — page one, live from the panel.
-    form,
-    // ATTACH mode: the id of a run that is already going (or parked on a page).
-    // With no `form`, the overlay starts in 'working' and follows that run, so
-    // the page it is waiting on shows up here instead of in a new browser tab.
-    runId: attachRunId = null,
-    // (answers, { mode }) => Promise<{ kind, runId }>. Starts the run. Owned by
-    // the shell, because that is what follows the run the canvas is showing.
-    onStartRun,
-    startMode = 'dry',
-    onClose,
+    automationId, form, runId: attachRunId = null, onStartRun, startMode = 'dry', onFollowRun, onClose,
+    runKind = null, triggerStepId = null, followTiming,
 }: FormRunOverlayProps) {
     const { t } = useTranslation();
-    // 'form' — a page is on screen; 'working' — the run is going; 'waiting' —
-    // paused on a later page; 'done' / 'error' — it ended.
     const attached = !form && !!attachRunId;
-    const [phase, setPhase] = useState(attached ? 'working' : 'form');
-    const [page, setPage] = useState<{ form: FormDef | null; stepId: string | null }>({ form: form || null, stepId: null });
-    const [runId, setRunId] = useState(attachRunId || null);
-    const [error, setError] = useState<string | null>(null);
-    // Saved answers laid over the page on screen (see FormScenarioPicker).
-    const [prefill, setPrefill] = useState<Record<string, unknown> | null>(null);
-    const closedRef = useRef(false);
-
-    useEffect(() => {
-        closedRef.current = false;
-        return () => { closedRef.current = true; };
-    }, []);
-
-    /** The app picker, against the owner's own connections. */
-    const searchApp = useCallback(async (field: FormFieldDef, query: string) => {
-        const body = await apiClient.post(`/api/automation/${encodeURIComponent(String(automationId))}/form-pick`, {
-            source: field.source, query,
-        });
-        return body || { results: [] };
-    }, [automationId]);
-
-    /**
-     * Follow the run until it either ends or stops on another page.
-     *
-     * Polled rather than streamed: the builder already has a run stream for the
-     * canvas, but what this needs is a different question ("is there a page for
-     * me?") and a much slower cadence. A form pause can last as long as the
-     * steps before it take.
-     */
-    const follow = useCallback(async (id: string | null) => {
-        for (let i = 0; i < 600 && !closedRef.current; i++) {
-            let state: RunFormState | null = null;
-            try {
-                state = await apiClient.get<RunFormState>(`/api/automation/runs/${encodeURIComponent(String(id))}/form`);
-            } catch (err) { logger.debug('A transient read must not end the test; the next tick retries.', err); }
-            if (closedRef.current) return;
-            if (state?.waiting && state.form) {
-                setRunId(state.runId || id);
-                setPage({ form: state.form, stepId: state.stepId });
-                setPrefill(null);
-                setPhase('form');
-                return;
-            }
-            if (state && state.status && !['running', 'queued', 'awaiting_form'].includes(state.status)) {
-                setPhase(state.status === 'success' ? 'done' : 'error');
-                if (state.status !== 'success') {
-                    setError(t('automations.form_run_overlay.run_ended_as', 'The run ended as {status}.', { status: state.status }));
-                }
-                return;
-            }
-            await new Promise(r => setTimeout(r, 1000));
-        }
-    }, [t]);
-
-    // Attach mode: pick up the run that is already waiting.
-    useEffect(() => {
-        if (attached) follow(attachRunId);
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on mount
-    }, []);
-
-    /** Page one: start the run. Later pages: continue the one that is paused. */
-    const submit = useCallback(async ({ website_url: _honeypot, ...answers }: Record<string, unknown>) => {
-        setError(null);
-        setPhase('working');
-        try {
-            if (!page.stepId) {
-                const out = await onStartRun(answers, { mode: startMode });
-                // Nothing started is never "finished": a no back to the page,
-                // a skip says why.
-                if (out.kind === 'declined') { setPhase('form'); return; }
-                if (out.kind !== 'started') {
-                    setPhase('error');
-                    setError(out.message || t('automation_testing.overlay.nothing_started', 'Nothing was started.'));
-                    return;
-                }
-                setRunId(out.runId);
-                await follow(out.runId);
-                return;
-            }
-            const out = await apiClient.post<RunFormState>(`/api/automation/runs/${encodeURIComponent(String(runId))}/form`, {
-                stepId: page.stepId, values: answers,
-            });
-            const next = out?.run?.id || runId;
-            setRunId(next);
-            await follow(next);
-        } catch (e) {
-            if (closedRef.current) return;
-            setPhase('error');
-            setError((e as Error)?.message || t('automations.form_run_overlay.could_not_start', 'That run could not be started.'));
-        }
-    }, [page.stepId, runId, onStartRun, startMode, follow, t]);
+    const j = useFormRunJourney({ automationId, form, attachRunId, onStartRun, startMode, onFollowRun, onClose, runKind, triggerStepId, followTiming });
+    useOverlayEscape(() => j.requestClose(false));
 
     return (
         <div
@@ -187,81 +121,24 @@ export default function FormRunOverlay({
             role="dialog"
             aria-modal="true"
             aria-label={headerTitle(t, attached, false)}
-            onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) j.requestClose(true); }}
         >
             <div className="w-full max-w-xl my-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-2xl overflow-hidden">
                 <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border-default)]">
-                    <span className="flex-1 text-xs font-medium text-[var(--text-secondary)]">
-                        {headerTitle(t, attached, !!page.stepId)}
-                    </span>
+                    <span className="flex-1 text-xs font-medium text-[var(--text-secondary)]">{headerTitle(t, attached, !!j.s.page.stepId)}</span>
+                    <ModeChip runKind={j.s.runKind} />
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={() => j.requestClose(false)}
                         aria-label={t('automations.form_run_overlay.close_the_test_form', 'Close the test form')}
                         className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                     >
                         <X size={14} />
                     </button>
                 </div>
-
+                {j.s.prompt && <FormRunClosePrompt prompt={j.s.prompt} onClose={j.close} onDiscardRun={j.discardAndClose} onBack={j.back} />}
                 <div className="p-4 max-h-[75vh] overflow-auto">
-                    {phase === 'form' && (
-                        <>
-                            {/* Answers go through the automation for real — the
-                                overlay is a test of the flow, not of the page. */}
-                            <p className="mb-3 text-[11px] text-[var(--text-tertiary)]">
-                                {pageHint(t, !!page.stepId, startMode)}
-                            </p>
-                            <FormScenarioPicker automationId={automationId} stepId={page.stepId} onPick={setPrefill} />
-                            <PublicFormRenderer
-                                key={page.stepId || 'page1'}
-                                form={page.form as FormDef}
-                                prefill={prefill}
-                                onSubmit={submit}
-                                onSearchApp={searchApp}
-                                showSuccess={false}
-                            />
-                        </>
-                    )}
-
-                    {phase === 'working' && (
-                        <div className="py-12 text-center">
-                            <Loader2 size={20} className="mx-auto animate-spin text-[var(--text-tertiary)]" />
-                            <p className="mt-3 text-sm text-[var(--text-secondary)]">{t('automations.form_run_overlay.running_the_automation', 'Running the automation…')}</p>
-                            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-                                {t('automations.form_run_overlay.each_step_lights_up_on_the', 'Each step lights up on the canvas behind this.')}
-                            </p>
-                        </div>
-                    )}
-
-                    {phase === 'done' && (
-                        <div className="py-12 text-center">
-                            <CheckCircle2 size={20} className="mx-auto text-emerald-500" />
-                            <p className="mt-3 text-sm text-[var(--text-primary)]">{t('automations.form_run_overlay.the_automation_finished', 'The automation finished.')}</p>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="mt-4 px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--accent)] text-white hover:opacity-90"
-                            >
-                                {t('automations.form_run_overlay.see_what_each_step_did', 'See what each step did')}
-                            </button>
-                            {runId && <FormSaveScenario automationId={automationId} runId={runId} />}
-                        </div>
-                    )}
-
-                    {phase === 'error' && (
-                        <div className="py-12 text-center">
-                            <AlertTriangle size={20} className="mx-auto text-amber-500" />
-                            <p className="mt-3 text-sm text-[var(--text-primary)]">{error || t('automations.form_run_overlay.something_went_wrong', 'Something went wrong.')}</p>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="mt-4 px-3 py-1.5 rounded-md text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
-                            >
-                                {t('automations.form_run_overlay.close_and_look_at_the_run', 'Close and look at the run')}
-                            </button>
-                        </div>
-                    )}
+                    <OverlayBody j={j} automationId={automationId} startMode={startMode} />
                 </div>
             </div>
         </div>

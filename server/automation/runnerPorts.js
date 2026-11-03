@@ -95,4 +95,9 @@ registerRunnerPorts({
         /** @type {typeof import('./toolRegistry').availabilityFor} */ availabilityFor: (...args) => toolRegistry().availabilityFor(...args),
         allToolApps: () => toolRegistry().ALL_TOOL_APPS,
     },
+    // A form journey paused: hold the visitor's session to the deadline, and
+    // tell the submitter when a page after an approval is due (formJourney.mts).
+    formJourney: {
+        /** @type {typeof import('./formJourney.mts').paused} */ paused: (...args) => require('./formJourney.mts').paused(...args),
+    },
 });

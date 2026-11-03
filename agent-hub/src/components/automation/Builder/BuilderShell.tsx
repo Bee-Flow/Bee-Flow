@@ -214,7 +214,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     });
     const {
         formTest, handleExecuteStep, handleRetryFromStep, onDryRun, onRunLive, onFormTestRun, onFollowRun, closeFormTest,
-        openFormOverlay, runBlocked,
+        openFormOverlay, runBlocked, onRestartWithAnswers,
     } = useBuilderRuns({
         api, state, effectiveDef, executeStep, followRun, continueRun, setRunResult,
         ensureAutomationCreated, noteManagedRefusal, busy, setBusy, setError, confirm, setTab,
@@ -298,7 +298,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             build={{
                 headerProps, mode, state, user, onSend, workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge,
                 assistantContext, chatWidth, onChatResizeStart, formTest, onFormTestRun, onFollowRun, onCloseFormTest: closeFormTest,
-                onOpenFormOverlay: openFormOverlay, onOpenRun: openRunInRuns,
+                onOpenFormOverlay: openFormOverlay, onOpenRun: openRunInRuns, onRestartWithAnswers,
                 // The persisted row: the webhook trigger's node panel needs its id to list/create webhook URLs (BFSF-320).
                 automation: serverAutomation,
                 rootDef: effectiveDef, scopedDef, scopeKey, setScopeKey, onVisualEditRoot, chatInput, setChatInput, modelTiers,

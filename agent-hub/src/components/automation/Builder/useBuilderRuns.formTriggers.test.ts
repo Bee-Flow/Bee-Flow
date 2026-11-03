@@ -18,9 +18,11 @@ describe('useBuilderRuns — form triggers', () => {
         expect(h.result.current.formTest).toEqual({ form: SECOND_FORM, triggerStepId: 'trg2', mode: 'dry' });
         expect(h.deps.executeStep).not.toHaveBeenCalled();
 
-        h.deps.api.dryRun.mockResolvedValue({ accepted: true, pending: true, runId: 'r1' });
+        // Page one goes through the form's own submission path, so uploads and picks are claimed (studio F8).
+        h.deps.api.formTest.mockResolvedValue({ accepted: true, pending: true, runId: 'r1' });
         await act(async () => { await h.result.current.onFormTestRun({ reden: 'x' }, { mode: 'dry' }); });
-        expect(h.deps.api.dryRun).toHaveBeenCalledWith('a1', { triggerPayload: { reden: 'x' }, triggerStepId: 'trg2', pauses: 'real', respond: 'created' });
+        expect(h.deps.api.formTest).toHaveBeenCalledWith('a1', { values: { reden: 'x' }, triggerStepId: 'trg2', mode: 'dry', respond: 'created' });
+        expect(h.deps.api.dryRun).not.toHaveBeenCalled();
     });
 
     it('▶ Execute on a bare secondary form trigger opens its form instead of running blind', async () => {
@@ -61,16 +63,16 @@ describe('useBuilderRuns — form triggers', () => {
         expect(h.result.current.formTest).toEqual({ form: PRIMARY_FORM, triggerStepId: 'trg', mode: 'live', liveConfirmed: true });
 
         h.rerender({ state: { dryRun: null, steps: [], executingStepId: null } });
-        h.deps.api.run.mockResolvedValue({ accepted: true, pending: true, runId: 'r3' });
+        h.deps.api.formTest.mockResolvedValue({ accepted: true, pending: true, runId: 'r3' });
         await act(async () => { await h.result.current.onFormTestRun({ naam: 'Ada' }, { mode: 'live' }); });
         expect(h.deps.confirm).toHaveBeenCalledTimes(1);
-        expect(h.deps.api.run).toHaveBeenCalledWith('a1', { triggerPayload: { naam: 'Ada' }, test: true, respond: 'created' });
+        expect(h.deps.api.formTest).toHaveBeenCalledWith('a1', { values: { naam: 'Ada' }, mode: 'live', respond: 'created' });
     });
 
     it('"Run for real" from a Dry-run overlay asks once per overlay session', async () => {
         const h = renderBuilderRuns(runDefinition());
         await act(async () => { await h.result.current.handleExecuteStep('trg', { openForm: true }); });
-        h.deps.api.run.mockResolvedValue({ accepted: true, pending: true, runId: 'r4' });
+        h.deps.api.formTest.mockResolvedValue({ accepted: true, pending: true, runId: 'r4' });
         await act(async () => { await h.result.current.onFormTestRun({ naam: 'A' }, { mode: 'live' }); });
         expect(h.deps.confirm).toHaveBeenCalledTimes(1);
         expect(h.result.current.formTest?.liveConfirmed).toBe(true);

@@ -9,10 +9,13 @@
  *     from an additional trigger names it, so the server seeds the run there;
  *   - a form trigger with no sample has nothing to run WITH: a live run of it
  *     is a person filling the form in, so the builder opens the trigger
- *     instead (the web opens the form over the canvas).
+ *     instead (the web opens the form over the canvas);
+ *   - a last run that waits (a decision, a form page) can be stopped from
+ *     the menu too: "Discard this test run" on a test, "Stop this run" else.
  */
 
-import { triggerTypeLabel, type FlowDefinition, type FlowTrigger } from '@/features/flow-editor/model';
+import { triggerTypeLabel, type FlowDefinition, type FlowTrigger, type Translate } from '@/features/flow-editor/model';
+import { runPause, type RunPauseFacts } from '@/shared/runs/runPhase';
 
 export interface StartPoint {
     /** The trigger's id; null for the primary. */
@@ -64,4 +67,9 @@ export function runInputFor(def: FlowDefinition | null | undefined, from: string
 export function bareFormEntry(def: FlowDefinition | null | undefined, from: string | null): string | null {
     const entry = entryTrigger(def, from);
     return entry && entry.kind === 'form' && entry.pinnedOutput == null ? entry.id : null;
+}
+
+/** The menu's way out of a last run that waits on a decision or a form page: its label, or null when nothing waits. */
+export function pausedStopLabel(run: RunPauseFacts | null | undefined, t: Translate): string | null {
+    return runPause(run, t)?.stopLabel ?? null;
 }

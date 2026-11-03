@@ -1,6 +1,7 @@
 /** Contract readers for approvals (server/stores/automationStore/approvals.js). */
 
 import { field, shapeOf } from '@/core/api/contract';
+import { readFillFields } from '@/features/forms';
 
 import type { Approval, ApprovalDetail } from '../model/types';
 
@@ -21,6 +22,8 @@ export const readApproval: (raw: unknown) => Approval = shapeOf({
     decidedAt: field.strOrNull,
     expiresAt: field.strOrNull,
     createdAt: field.str(''),
+    isTest: field.bool(false),
+    fields: readFillFields,
 });
 
 /** `canDecide` and `canWithdraw` read fail-closed: anything but `true` is no. */

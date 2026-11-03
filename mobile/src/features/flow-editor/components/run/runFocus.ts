@@ -29,11 +29,16 @@ export interface RunFocus {
     startedAt: string | null;
     /** The step the line names is parked on a form page. */
     awaitingForm: boolean;
+    /** The step the line names waits for a decision. */
+    awaitingApproval: boolean;
+    /** When the step the run waits on began: the clock stops there. Null while nothing waits. */
+    pausedAt: string | null;
 }
 
 // Rows in these states have finished their work and count toward progress.
 const DONE_STATES = ['success', 'skipped', 'pinned'];
 const AWAITING_FORM = 'awaiting_form';
+const AWAITING_APPROVAL = 'awaiting_approval';
 
 function liveGraph(definition: DefinitionInput): AnyNode[] {
     return [definition?.trigger, ...(definition?.steps || [])].filter((n): n is AnyNode => !!n);
@@ -75,18 +80,34 @@ export function computeRunFocus({
         total: graph.length,
         state: found.moving ? 'running' : found.failed ? 'error' : 'running',
         startedAt: earliestStart(rows),
-        awaitingForm: !!found.target && found.target === found.waiting,
+        ...pauseOf(found),
     };
 }
 
-/** The row the line names: a running step, else one parked on a form, else (once over) the failure. */
+/** Whether the row the line names waits, on what, and since when. */
+function pauseOf({ target, waiting, deciding, parked }: ReturnType<typeof targetOf>): Pick<RunFocus, 'awaitingForm' | 'awaitingApproval' | 'pausedAt'> {
+    return {
+        awaitingForm: !!target && target === waiting,
+        awaitingApproval: !!target && target === deciding,
+        pausedAt: target && target === parked ? target.startedAt || null : null,
+    };
+}
+
+/**
+ * The row the line names: a running step, else one parked on a form or a
+ * decision, else (once over) the failure. While the run executes again (a
+ * decision was just given, a page just answered), a row still saying
+ * "waiting" is history and names nothing.
+ */
 function targetOf(rows: readonly FocusRow[], runInFlight: boolean) {
     const running = rows.find((s) => s.status === 'running');
-    const waiting = rows.find((s) => s.status === AWAITING_FORM);
+    const waiting = runInFlight ? undefined : rows.find((s) => s.status === AWAITING_FORM);
+    const deciding = runInFlight ? undefined : rows.find((s) => s.status === AWAITING_APPROVAL);
+    const parked = waiting || deciding;
     const failed = rows.find((s) => s.status === 'error');
-    // A run parked on a form IS the run, so it names the line when nothing executes.
-    const target = running || waiting || (runInFlight ? null : failed);
-    return { target, waiting, failed, moving: !!(running || waiting) };
+    // A run parked on a form or a decision IS the run, so it names the line when nothing executes.
+    const target = running || parked || (runInFlight ? null : failed);
+    return { target, waiting, deciding, parked, failed, moving: !!(running || parked) };
 }
 
 /** "12m 33s": seconds under a minute, m+s under an hour, h+m above; null for an unreadable start. */

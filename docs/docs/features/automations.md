@@ -147,14 +147,20 @@ The visual builder shows refs as `‹Step Label›.foo` on the canvas instead of
 ## Run lifecycle
 
 ```
-pending  ─▶ running  ─▶ success
-                  │
-                  ├─▶ failed (non-retryable error)
-                  │
-                  ├─▶ awaiting (paused at an approval step)
-                  │
-                  └─▶ cancelled (user stopped, or supersedes flag)
+queued  ─▶ running  ─▶ success
+                 │
+                 ├─▶ error (non-retryable error)
+                 │
+                 ├─▶ awaiting_approval (paused at an approval step)
+                 │
+                 ├─▶ awaiting_form (paused at a form page, waiting for the visitor)
+                 │
+                 └─▶ cancelled (user stopped, or supersedes flag)
 ```
+
+A paused run continues in a child run once the person answers; the Runs list shows the
+whole chain as one run. `awaiting_confirm` is a legacy status: no run reaches it any more,
+and older rows that carry it are shown as waiting for approval.
 
 Run row fields (`automation_runs` table):
 
@@ -164,13 +170,15 @@ Run row fields (`automation_runs` table):
 | `user_id` | Who triggered it (or system, for schedules). |
 | `trigger_kind` | `schedule` / `webhook` / `event` / `manual`. |
 | `trigger_payload` | The exact payload the trigger received. Available to steps as `trigger.output.<…>`. |
-| `mode` | `dry_run` (test, side-effects synthesised) or `live`. |
+| `mode` | `dry_run` (side effects simulated) or `live`. |
+| `run_profile` | What kind of run this is (production, test or dry) and what it may do: which copy, real or simulated writes, who decides approvals, where form answers go, where a partial run stops. See [Run modes](automation-testing.md#run-modes). |
+| `is_test` | True for every run that is not a production run. The Runs filters read it. |
 | `status` | See diagram. |
 | `started_at`, `finished_at`, `duration_ms` | Timing. |
 | `error` | Error message, if any. |
 | `summary` | Short LLM-generated one-liner. |
 | `parent_run_id` | Set when a run was retried from a step. |
-| `awaiting_step_id` | Set when paused on approval. |
+| `awaiting_step_id` | Set when paused at an approval or a form page. |
 | `cancel_requested` | Boolean cancellation flag. |
 
 Step rows (`automation_run_steps`) record `step_id`, `step_type`, `attempts`, `status`, `started_at`, `finished_at`, `input_json`, `output_json`, `error`.
@@ -179,18 +187,19 @@ Step rows (`automation_run_steps`) record `step_id`, `step_type`, `attempts`, `s
 
 Every automation has two run modes:
 
-- **Dry-run** — invoked from the builder's `Dry-run` button. Steps that have side-effects (tools that send / create / update / delete) are not actually invoked; instead the runner synthesises a sample output from each tool's declared output schema ([`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/beeflow)) so the variable tree stays connected. Read-only tools and pure utility nodes execute for real.
-- **Live** — the trigger fires the automation and every step runs end-to-end. The first live run from a draft is gated behind a one-time confirmation dialog so authors don't accidentally email customers while testing.
+- **Dry-run** — invoked from the builder's `Dry run` button, the AI builder, MCP, mobile or the API. Steps that have side-effects (tools that send / create / update / delete) are not actually invoked; instead the runner synthesises a sample output from each tool's declared output schema ([`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/beeflow)) so the variable tree stays connected. Read-only tools and pure utility nodes execute for real. The builder's dry run pauses at approvals and form pages for you to answer; a dry run nobody watches (AI builder, MCP, mobile, API) auto-approves approvals and answers form pages with blanks, and marks both as simulated.
+- **Live** — the trigger fires the automation and every step runs end-to-end. In the builder, **Run live (test)** runs the working copy for real after a confirmation on every run; its approvals go to you, never to the configured approvers.
+
+[Testing automations → Run modes](automation-testing.md#run-modes) lists every way to start a run and how each one treats approvals, form pages and answers.
 
 The side-effect map ([`server/core/automationModel/sideEffectMap.js`](https://github.com/Bee-Flow/beeflow)) is **fail-closed**: any tool that isn't on the read-only allow-list is treated as a write. New write integrations get conservative handling automatically.
 
 ## Validation flow
 
 1. Author drafts the automation (`is_draft=true`). Saves are debounced + versioned.
-2. The first time a draft runs live, the user is asked to confirm — `needs_first_run_confirm=true`.
-3. Live runs honour `run_timeout_ms` (default 5 minutes, max 1 hour).
-4. A reaper job resets stuck runs older than `REAPER_FLOOR_MS` (6 minutes).
-5. Failed runs can be **retried from a specific step** via `resumeFromStep()`. The retry creates a child run linked via `parent_run_id`.
+2. Live runs honour `run_timeout_ms` (default 5 minutes, max 1 hour).
+3. A reaper job resets stuck runs older than `REAPER_FLOOR_MS` (6 minutes).
+4. Failed runs can be **retried from a specific step** via `resumeFromStep()`. The retry creates a child run linked via `parent_run_id`.
 
 The validator runs on every save and surfaces issues as red/yellow chips on the affected nodes:
 

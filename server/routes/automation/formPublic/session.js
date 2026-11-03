@@ -3,8 +3,9 @@
 // @typecheck strict
 /**
  * The visitor's session on a multi-page form: the poll that reports working,
- * the next page, done or error (with a trail of step titles while the
- * automation works), and the download of a document the journey produced.
+ * the next page, waiting on a decision, done or error (with a trail of step
+ * titles while the automation works), and the download of a document the
+ * journey produced.
  */
 
 const log = require('../../../telemetry/log');
@@ -154,6 +155,20 @@ async function workingResponse(automationId, extra = {}) {
 }
 
 /**
+ * `waiting_decision`: the journey waits on a person's decision (an approval).
+ * The visitor cannot help with it, so the page stops polling and tells them
+ * they may close it. `notify` says whether they will get the link to the next
+ * page (the run knows who submitted: automation/formJourney.mts tells them);
+ * nothing about the approver or the step goes out.
+ * @param {NonNullable<Awaited<ReturnType<typeof currentRunFor>>>} run
+ */
+async function waitingDecisionResponse(run) {
+    const rootId = run.rootRunId || run.id;
+    const root = rootId === run.id ? run : await automationStore.getRun(rootId).catch((e) => fallback('routes/automation/formPublic/session:waitingDecisionResponse', e, null));
+    return { state: 'waiting_decision', notify: !!root?.submittedByUserId };
+}
+
+/**
  * @param {import('express').Request<{ token: string, sid: string }>} req
  * @param {import('express').Response} res
  */
@@ -163,55 +178,67 @@ async function pollSession(req, res) {
     if (!found) return undefined;
     const loaded = await loadSession(found, req.params.sid);
     if (!loaded) return res.status(404).json({ error: 'Not found' });
-    if (loaded.expired) return res.json({ state: 'expired' });
+    // A test journey says so on every answer: a page reloaded with ?s= never
+    // reads GET /form/:token again, and would lose its Test banner otherwise.
+    const test = found.test === true || loaded.session.isTest === true;
+    /** @param {Record<string, unknown>} body */
+    const reply = (body) => res.json(test ? { ...body, test: true } : body);
+    if (loaded.expired) return reply({ state: 'expired' });
+    return reply(await sessionState(found, loaded.session));
+}
 
-    const { session } = loaded;
+/**
+ * Where the visitor's journey is now, as the poll answers it.
+ * @param {NonNullable<Awaited<ReturnType<typeof loadForm>>>} found
+ * @param {NonNullable<Awaited<ReturnType<typeof loadSession>>>['session']} session
+ * @returns {Promise<Record<string, unknown>>}
+ */
+async function sessionState(found, session) {
     await automationStore.touchFormSession(session.id).catch((e) => bestEffort('routes/automation/formPublic/session:pollSession', e));
 
     // Queued behind other submissions, or the run row is not written yet.
     const automationId = found.automation.id;
-    if (!session.runId) return res.json(await workingResponse(automationId));
+    if (!session.runId) return workingResponse(automationId);
     const run = await currentRunFor(session);
-    if (!run) return res.json(await workingResponse(automationId));
+    if (!run) return workingResponse(automationId);
 
     if (run.status === 'awaiting_form') {
         const pending = await pendingPageFor(session, run);
         // The run says it is paused but the step row has not landed yet —
         // a sub-second window the poll should simply retry through.
-        if (!pending) return res.json(await workingResponse(automationId));
-        return res.json({
+        if (!pending) return workingResponse(automationId);
+        return {
             state: 'form',
             stepId: pending.stepId,
             form: await resolveDownloadFields(pending.form, session),
             csrf: issueCsrf(`${found.token}:${session.id}`),
             issuedAt: Date.now(),
-        });
+        };
     }
-    if (run.status === 'queued' || run.status === 'running' || run.status === 'awaiting_approval') {
-        // awaiting_approval is a human the VISITOR cannot help with, so it
-        // reads as "still working" rather than exposing the internal gate.
+    if (run.status === 'awaiting_approval') return waitingDecisionResponse(run);
+    if (run.status === 'queued' || run.status === 'running') {
         const at = run.status === 'running'
             ? progressTrail(found.automation.definition || {}, await automationStore.getRunSteps(run.id))
             : null;
-        return res.json(await workingResponse(automationId, {
+        return workingResponse(automationId, {
             ...(at ? { progress: at.trail } : {}),
             ...(at?.note ? { progressNote: at.note } : {}),
-        }));
+        });
     }
     if (run.status === 'success') {
         const steps = await automationStore.getRunSteps(run.id);
         const ending = endingFrom(steps);
         // The closing page is where a download usually lives — "here is the
         // document the automation just made".
-        return res.json({ state: 'done', ending: ending ? await resolveDownloadFields(ending, session) : null });
+        return { state: 'done', ending: ending ? await resolveDownloadFields(ending, session) : null };
     }
     // A run that lost the per-automation race did nothing at all, and
     // runQueued is backing off to try it again. Reporting that as a failure
     // would end the visitor's journey over a collision they never caused.
-    if (lostToConcurrency(run)) return res.json(await workingResponse(automationId));
+    if (lostToConcurrency(run)) return workingResponse(automationId);
     // error / cancelled. Never surface run.error — it is written for the
     // owner's diagnostics and can carry upstream API detail.
-    return res.json({ state: 'error' });
+    return { state: 'error' };
 }
 
 /**

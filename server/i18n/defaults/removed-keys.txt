@@ -3122,3 +3122,9 @@ automations.canvas.run_failed
 # Mailbox retention (2026-11): the editor no longer says rows are deleted.
 studio_apps_bi.connectors.retention_hint
 studio_apps_bi.connectors.retention_field_hint_thread
+
+# Canvas pause UX (2026-11): the waiting banner names the wait in its title; the old header test menu keys are unused.
+automations.canvas.run_waiting_form
+automations.header.test_title
+automations.header.test_from_title
+automations.header.dry_run_hint

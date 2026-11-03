@@ -93,7 +93,10 @@ describe('FormRunOverlay — page one', () => {
         renderOverlay();
         await fill('Jouw naam', 'Tom');
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
-        await waitFor(() => expect(screen.getByText(/ended as error/)).toBeTruthy());
+        // Updated for WI-10: the end is named from the run vocabulary (runPhase), never the raw status.
+        await waitFor(() => expect(screen.getByText('Failed')).toBeTruthy());
+        expect(screen.getByText(/stopped on an error/)).toBeTruthy();
+        expect(screen.queryByText(/ended as/)).toBeNull();
     });
 
     it('opened from Run live, it says so and starts a live run', async () => {
@@ -151,7 +154,8 @@ describe('FormRunOverlay — the rest of the journey', () => {
         expect(url).toBe('/api/automation/runs/run1/form');
         // The step id rides along: a stale overlay must not have page two's
         // answers coerced against page three's declaration.
-        expect(body).toEqual({ stepId: 'fp_2', values: { adres: 'Dorpsstraat 1' } });
+        // respond 'created' (WI-10): the continuation answers 202 { runId } at once and is followed by that id.
+        expect(body).toEqual({ stepId: 'fp_2', values: { adres: 'Dorpsstraat 1' }, respond: 'created' });
         await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
     });
 
@@ -211,7 +215,8 @@ describe('FormRunOverlay — attached to a live run', () => {
         await waitFor(() => expect(post).toHaveBeenCalled());
         const [url, body] = post.mock.calls[0];
         expect(url).toBe('/api/automation/runs/run9/form');
-        expect(body).toEqual({ stepId: 'fp_2', values: { adres: 'Dorpsstraat 1' } });
+        // respond 'created' (WI-10): answered at once with the continuation's id.
+        expect(body).toEqual({ stepId: 'fp_2', values: { adres: 'Dorpsstraat 1' }, respond: 'created' });
         expect(onStartRun).not.toHaveBeenCalled();
         await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
     });

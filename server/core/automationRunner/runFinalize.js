@@ -23,7 +23,7 @@ const { classifyUnknownError, remediationFor } = require('../automationErrors');
 const { bindingMissSummary } = require('./bindingMisses');
 const { truncationSummary } = require('./truncations');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
-const { runnerPort } = require('./featurePorts');
+const { runnerPort, hasRunnerPort } = require('./featurePorts');
 const { releaseMarker, notifyRunEnd, advancePrimarySchedule } = require('./runFinalizeEffects');
 const { extendJourneyTablesForPause } = require('./tables/pauseExpiry');
 const log = require('../../telemetry/log');
@@ -206,6 +206,8 @@ async function finalizeRun(deps, {
         handledErrorCount,
     });
 
+    if (!firstRunNeedsConfirm && paused) await formJourneyPaused({ automation, run, ctx, runStatus, runErrorObj });
+
     // The run row is TERMINAL (or paused) on disk now — the second moment a
     // caller can act on, mirroring onRunCreated. The public form uses it to
     // stamp "completed" on the answers row once the journey has no more pages
@@ -229,6 +231,25 @@ async function finalizeRun(deps, {
     return withLastOutput(await automationStore.getRun(run.id), runResult?.lastOutput ?? null);
 }
 
+
+/**
+ * A form journey paused (automation/formJourney.mts, through the port): its
+ * visitor session is held open to the pause deadline + 1 h, and a page due
+ * after an approval is announced to the submitter. Production and test runs
+ * alike. Best-effort: bookkeeping never takes a run down, and a process that
+ * registered no ports (a unit test) simply skips it.
+ */
+async function formJourneyPaused({ automation, run, ctx, runStatus, runErrorObj }) {
+    if (!hasRunnerPort('formJourney')) return;
+    try {
+        await runnerPort('formJourney').paused({
+            run, status: runStatus, expiresAt: runErrorObj?.expiresAt || null, automation,
+            resumedFromStepId: ctx?.resumedFromStepId || null,
+        });
+    } catch (e) {
+        log.warn(`[AutomationRunner] form journey bookkeeping failed for run ${run.id}: ${/** @type {Error} */ (e).message}`);
+    }
+}
 
 /**
  * Write a run's outcome sentence (automation/runOutcome.js). Best-effort by

@@ -94,6 +94,10 @@ Solution you already have. UAT and Production are **copies of it that live in th
 organisation** (two more projects, named *Solution (UAT)* and *Solution (Production)*),
 and the only way something gets into them is a **deployment** of a **release**.
 
+UAT is where several people rehearse a process together, with each stage's own approver
+seats deciding: a test run in the builder or through a form's
+[test link](forms.md#the-test-link) sends every approval to the tester alone.
+
 **Tier:** Enterprise. The stage routes need `blueprint_packaging` on top of `projects`;
 turning on the Production approval gate also needs `approvals`. What keeps a stage that
 already runs operable is deliberately *not* licensed: see [When the licence lapses](#when-the-licence-lapses).

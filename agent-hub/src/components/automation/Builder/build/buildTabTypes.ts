@@ -14,7 +14,7 @@ import type { ReviewPlan } from '../chat/PlanReview';
 import type { PendingTable } from '../chat/pendingTables';
 import type { FormDef } from '@/components/forms/PublicFormRenderer.types';
 import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
-import type { FormRunFollow, FormRunStart, FormTestSession } from '../formRunContract';
+import type { FormRunClose, FormRunFollow, FormRunStart, FormTestSession } from '../formRunContract';
 
 /** One message of the builder chat: the stream hook's shape, plus the tool calls this builder adds to it. */
 export type BuilderMessage = StreamMessage & { toolCalls?: unknown[] | null };
@@ -109,11 +109,14 @@ export interface BuildTabProps {
     onFormTestRun: FormRunStart;
     /** The canvas follows that run by id (a continuation of the journey included). */
     onFollowRun?: FormRunFollow;
-    onCloseFormTest: (e?: MouseEvent<HTMLButtonElement>) => void;
+    /** The overlay closed; `dismissRunIds` are runs it must not reopen for by itself (formRunContract.ts). */
+    onCloseFormTest: FormRunClose;
     /** (runId) — open that form overlay attached to a run parked on a page. */
     onOpenFormOverlay?: Fn<[runId: string]>;
     /** (runId) — open that run in Runs (the failed-run banner's "View run"). */
     onOpenRun?: Fn<[runId: string]>;
+    /** (runId) — a new dry run of the working copy with that run's answers ("Restart with the current version"). */
+    onRestartWithAnswers?: Fn<[runId: string], Promise<void>>;
     state: BuilderTabState;
     automation?: { id?: string | null; [key: string]: unknown } | null;
     rootDef: FlowDefinition | null;

@@ -106,6 +106,9 @@ function answersFromJourney({ definition, rootRun, steps }) {
             if (r && r.stepId === step.id && !r.parentStepId && r.status === 'success') row = r;
         }
         if (!row || !isPlainObject(row.output) || row.output._skipped === true) continue;
+        // A page nobody answered (a dry run's blanks, or saved answers that had
+        // no entry for it) is not something a person typed: never replay it.
+        if (row.output._dryRunSynthesised === true || row.output._scenarioMissing === true) continue;
         const r = keepDeclared(step.form, row.output, step.id);
         pages[step.id] = r.kept;
         skipped.push(...r.skipped);

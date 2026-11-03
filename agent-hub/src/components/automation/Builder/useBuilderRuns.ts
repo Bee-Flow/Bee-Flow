@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from '../../shared/Toast';
-import { shouldAutoOpenFormOverlay, awaitingFormStepId, dismissKey } from './flow/formOverlayAutoOpen';
+import useFormOverlayAutoOpen from './flow/useFormOverlayAutoOpen';
 import { runWithCallerNotice } from './callerNotice';
 import { acknowledgeCallerNotice, fetchCallerNotice } from '@/api/queries/automation/callerNotice';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
@@ -23,7 +23,7 @@ type Stream = ReturnType<typeof useAutomationBuilderStream>;
 type Confirm = ReturnType<typeof useConfirm>['confirm'];
 
 export interface UseBuilderRunsOptions {
-    api: Pick<ReturnType<typeof useAutomationApi>, 'run' | 'dryRun'>;
+    api: Pick<ReturnType<typeof useAutomationApi>, 'run' | 'dryRun' | 'formTest'>;
     /** The run on the canvas, its rows and the step executing now. */
     state: Pick<Stream['state'], 'dryRun' | 'steps' | 'executingStepId'>;
     effectiveDef: FlowDefinition | null;
@@ -107,6 +107,21 @@ function confirmLive(confirm: Confirm, t: TranslateFn) {
         confirmLabel: t('automation_testing.run_live.confirm', 'Run it'),
         destructive: true,
     });
+}
+
+/**
+ * The overlay's page one: the answers go through the form's own submission
+ * path (POST /:id/form-test), so uploads are claimed, picks read and the
+ * trigger carries the form's headers, as a visitor's run would (studio F8).
+ */
+async function sendFormTest(api: UseBuilderRunsOptions['api'], mode: FormRunMode, aid: string, body: RunStartBody, ask: { confirm: Confirm; t: TranslateFn }): Promise<RunStartReply | null | 'declined'> {
+    const form = { values: (body.triggerPayload || {}) as Record<string, unknown>, ...(body.triggerStepId ? { triggerStepId: body.triggerStepId } : {}), mode, respond: 'created' as const };
+    if (mode === 'dry') return api.formTest<RunStartReply>(aid, form);
+    const started = await runWithCallerNotice<RunStartReply>(
+        { run: (id, b) => api.formTest<RunStartReply>(id, b as typeof form), getCallerNotice: fetchCallerNotice, ackCallerNotice: acknowledgeCallerNotice },
+        aid, form, ask.confirm, ask.t,
+    );
+    return started.declined ? 'declined' : started.result;
 }
 
 function confirmUpstream(confirm: Confirm, t: TranslateFn, names: string) {
@@ -197,7 +212,7 @@ export default function useBuilderRuns({
     };
 
     /** Start a whole-flow run. Throws a refusal (the overlay shows it); the header callers swallow it after setError. */
-    const startRun = async (mode: FormRunMode, body: RunStartBody): Promise<FormRunStartResult> => {
+    const startRun = async (mode: FormRunMode, body: RunStartBody, viaForm = false): Promise<FormRunStartResult> => {
         startingRef.current = true;
         setBusy(true); setError(null);
         const clickedAt = Date.now();
@@ -209,7 +224,7 @@ export default function useBuilderRuns({
                 setError(message);
                 return { kind: 'skipped', message };
             }
-            const reply = await sendStart(mode, aid, body);
+            const reply = viaForm ? await sendFormTest(api, mode, aid, body, { confirm, t }) : await sendStart(mode, aid, body);
             return reply === 'declined' ? { kind: 'declined' } : startedFrom(reply);
         } catch (e: unknown) {
             const recovered = aid && isDrop(e) ? await recoverStart(aid, clickedAt) : null;
@@ -272,7 +287,7 @@ export default function useBuilderRuns({
             setFormTest(f => (f ? { ...f, liveConfirmed: true } : f));
         }
         const tr = triggerById(effectiveDef, session?.triggerStepId || null);
-        return startRun(mode, { triggerPayload: answers, ...(tr && !isPrimary(effectiveDef, tr) ? { triggerStepId: tr.id } : {}) });
+        return startRun(mode, { triggerPayload: answers, ...(tr && !isPrimary(effectiveDef, tr) ? { triggerStepId: tr.id } : {}) }, true);
     };
 
     /**
@@ -302,32 +317,24 @@ export default function useBuilderRuns({
     const handleExecuteStep = (stepId: string, opts?: ExecuteRequest) => runStep(stepId, opts);
     const handleRetryFromStep = (stepId: string, opts: Omit<ExecuteRequest, 'mode'> = {}) => runStep(stepId, { ...opts, mode: 'from' });
 
-    // A run started here that parks on a `form_page` opens the overlay attached
-    // to it. Closing remembers `${runId}:${stepId}` so the same page does not
-    // pop up again straight away.
-    const dismissedFormPagesRef = useRef(new Set<string>());
-    const awaitingStepNow = awaitingFormStepId(state.steps);
-    const currentRunId = state.dryRun?.id || null;
-    const closeFormTest = () => {
-        if (currentRunId && awaitingStepNow) dismissedFormPagesRef.current.add(dismissKey(currentRunId, awaitingStepNow));
-        setFormTest(null);
-    };
-    const openFormOverlay = (runId: string | null | undefined) => { if (runId) setFormTest({ runId }); };
-    useEffect(() => {
-        if (shouldAutoOpenFormOverlay({
-            liveFromBuilder: startedHereRef.current,
-            runId: currentRunId,
-            awaitingStepId: awaitingStepNow,
-            overlayOpen: !!formTest,
-            dismissed: dismissedFormPagesRef.current,
-        })) setFormTest({ runId: currentRunId });
-    }, [currentRunId, awaitingStepNow, formTest]);
+    // The overlay opens by itself on a page a run started here parks on, and stays closed when closed (RUN-11).
+    const { closeFormTest, openFormOverlay } = useFormOverlayAutoOpen({ steps: state.steps, runId: state.dryRun?.id, startedHereRef, formTest, setFormTest });
 
-    /** The overlay (and the approval bar in batch 3) hands the canvas a run to follow, a continuation included. */
+    /** The overlay and the approval bar hand the canvas a run to follow, a continuation included. */
     const onFollowRun = (runId: string) => { if (runId) void continueRun(runId); };
+
+    /**
+     * "Restart with the current version" (tests-and-docs F9): a dry run of the
+     * working copy that replays the answers and decisions of `runId`, so a fix
+     * made while a test waited needs no retyping (POST /:id/dry-run answersFromRunId).
+     */
+    const onRestartWithAnswers = async (runId: string) => {
+        if (!runId || blocked()) return;
+        await startRun('dry', { answersFromRunId: runId }).catch(() => {});
+    };
 
     return {
         formTest, handleExecuteStep, handleRetryFromStep, onDryRun, onRunLive, onFormTestRun, onFollowRun,
-        closeFormTest, openFormOverlay, runBlocked,
+        onRestartWithAnswers, closeFormTest, openFormOverlay, runBlocked,
     };
 }

@@ -11,6 +11,7 @@ import { useCallback } from 'react';
 
 import {
     cancelRun,
+    decideFirstRun,
     decideRunStep,
     retryRun,
     runAutomation,
@@ -20,7 +21,7 @@ import {
 import { automationKeys } from '../api/keys';
 import { withSchedule } from '../model/definition';
 import { isSettledRunEvent } from '../model/runEvents';
-import type { Automation, AutomationRun, RunEvent, RunTriggerResult } from '../model/types';
+import type { Automation, AutomationRun, RunDecisionResult, RunEvent, RunTriggerResult } from '../model/types';
 
 /** Screen-side reactions, run after the mutation's own invalidation. */
 export interface MutationHandlers<TData, TVars = void> {
@@ -166,16 +167,26 @@ export function useCancelRun(refresh: () => void, handlers: MutationHandlers<Aut
     });
 }
 
-/** Approve or reject the step a paused run is waiting on. */
-export function useDecideRunStep(runId: string, refresh: () => void, handlers: MutationHandlers<void, 'approve' | 'reject'> = {}) {
+export interface RunStepDecision {
+    decision: 'approve' | 'reject';
+    reason?: string;
+    answers?: Record<string, unknown>;
+    /** The legacy first-run confirmation (`awaiting_confirm`), which has its own route. */
+    firstRun?: boolean;
+}
+
+/** Approve or reject the step a paused run is waiting on; resolves to what came of it. */
+export function useDecideRunStep(runId: string, refresh: () => void, handlers: MutationHandlers<RunDecisionResult, RunStepDecision> = {}) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (decision: 'approve' | 'reject') => decideRunStep(runId, decision),
-        onSuccess: (data, decision) => {
+        mutationFn: ({ decision, reason, answers, firstRun }: RunStepDecision) =>
+            firstRun ? decideFirstRun(runId, decision) : decideRunStep(runId, decision, { reason, answers }),
+        onSuccess: (data, vars) => {
             refresh();
             // Decided from the run's card: the approvals inbox and badge move too.
             void queryClient.invalidateQueries({ queryKey: automationKeys.approvalLists });
-            handlers.onSuccess?.(data, decision);
+            void queryClient.invalidateQueries({ queryKey: automationKeys.runPendingApproval(runId) });
+            handlers.onSuccess?.(data, vars);
         },
         onError: handlers.onError,
     });

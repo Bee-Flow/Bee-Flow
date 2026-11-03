@@ -11,9 +11,7 @@ import { api } from '@/core/api/client';
 
 import { getApproval, listApprovals } from './endpoints';
 
-jest.mock('@/core/api/client', () => ({
-    api: { get: jest.fn(), post: jest.fn(), put: jest.fn(), patch: jest.fn(), delete: jest.fn() },
-}));
+jest.mock('@/core/api/client', () => jest.requireActual('@/shared/testing/screenMocks').apiClient());
 
 const get = api.get as jest.Mock;
 

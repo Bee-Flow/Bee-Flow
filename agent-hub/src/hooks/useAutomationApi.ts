@@ -3,10 +3,10 @@ import { API_BASE, authFetch } from '../utils/helpers';
 import { readEventStream } from '../utils/sseStream';
 import type { HttpConnection } from './useAutomationApi.types';
 import { logger } from '../utils/logger';
-import { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type RunStartBody, type PartialRunBody, type RunFormBody, type RunRespond } from './useAutomationApi.types2';
+import { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type RunStartBody, type PartialRunBody, type RunFormBody, type RunRespond, type FormTestBody } from './useAutomationApi.types2';
 import { errorBody, safeText, buildRunQuery, buildAutomationListQuery, buildFacetQuery } from './useAutomationApi.helpers';
 export { errorBody, safeText } from './useAutomationApi.helpers';
-export { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type RunStartBody, type PartialRunBody, type RunFormBody, type RunRespond, type RunStartReply } from './useAutomationApi.types2';
+export { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type RunStartBody, type PartialRunBody, type RunFormBody, type RunRespond, type RunStartReply, type FormTestBody } from './useAutomationApi.types2';
 /**
  * REST helpers for the automation builder. Thin wrapper over authFetch so
  * components don't have to repeat the URL prefix and JSON handshake.
@@ -118,6 +118,8 @@ export default function useAutomationApi() {
         // builder follows every run it starts by that id.
         run: <T = unknown>(id: string, body?: RunStartBody) => send<T>('POST', `/${id}/run`, body || {}),
         dryRun: <T = unknown>(id: string, body?: RunStartBody) => send<T>('POST', `/${id}/dry-run`, body || {}),
+        // The form test overlay's page one: answers, uploads and picks go through the form's own submission path.
+        formTest: <T = unknown>(id: string, body: FormTestBody) => send<T>('POST', `/${id}/form-test`, body),
         // "Execute step": one step, the step and what follows, or the flow up to it.
         executeStep: <T = unknown>(id: string, stepId: string, body: PartialRunBody) => send<T>('POST', `/${id}/steps/${encodeURIComponent(stepId)}/run`, body),
         diagnoseTrigger: (id: string) => send('POST', `/${id}/diagnose-trigger`),

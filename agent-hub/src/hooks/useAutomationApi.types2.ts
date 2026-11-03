@@ -81,6 +81,17 @@ export interface PartialRunBody {
     respond?: RunRespond;
 }
 
+/** POST /:id/form-test: page one of a form, answered in the builder's overlay, through the form's own submission path. */
+export interface FormTestBody {
+    /** The answers, as a visitor's browser posts them (a file question carries its fileId). */
+    values: Record<string, unknown>;
+    /** A form trigger other than the primary one. */
+    triggerStepId?: string | null;
+    /** 'dry' simulates every write and pauses for real; 'live' is a test run with real effects. */
+    mode: 'dry' | 'live';
+    respond?: RunRespond;
+}
+
 /** POST /runs/:runId/form: answer the page a run waits on, and continue it. */
 export interface RunFormBody {
     stepId?: string;

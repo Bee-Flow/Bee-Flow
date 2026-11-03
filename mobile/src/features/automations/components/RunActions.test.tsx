@@ -10,7 +10,7 @@ import { RunActions } from './RunActions';
 const HINT = 'You can view this automation but not start it. Ask the owner for run access.';
 
 const props = () => ({
-    awaitingApproval: false,
+    pause: null,
     live: false,
     decide: { run: jest.fn(), pending: false },
     stop: { run: jest.fn(), pending: false },

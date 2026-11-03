@@ -285,6 +285,9 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
         ctx.callerOnly = null;
     }
     ctx.startedByUserId = startedByUserId || null;
+    // The step a resumed leg continues from (null on a first leg): a form page
+    // due right after an approval waits longer, and its submitter is told.
+    ctx.resumedFromStepId = skipUntilStepId || null;
     // Test harness (golden replay, form scenario): dry runs only, null otherwise.
     ctx.testHarness = harnessFor(effectiveMode, harness);
 

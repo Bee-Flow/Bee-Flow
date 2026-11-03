@@ -172,7 +172,7 @@ router.post('/:id/dry-run', runTriggerLimiter, validate({ body: DryRunBody }), a
 });
 
 /**
- * n8n-style "Execute step" — run a single step using replay data from
+ * "Execute step" — run a single step using replay data from
  * the most recent prior run (and any pinned outputs). Returns the
  * resulting step record so the inspector can show input/output without
  * the user waiting for a full dry-run.

@@ -43,6 +43,7 @@ export function ApprovalBody({ detail }: { detail: ApprovalDetail }) {
             <View style={styles.heading}>
                 <View style={styles.state}>
                     <Badge label={approvalStatusLabel(approval.status, t)} tone={STATUS_TONE[approval.status] ?? 'neutral'} />
+                    {approval.isTest ? <Badge label={t('mobile.runs.test_marker', 'Test')} tone="ai" testID="approval-test-chip" /> : null}
                     <Text variant="caption" tone="tertiary">
                         {approvalWhenLine(approval, t)}
                     </Text>

@@ -422,9 +422,9 @@ async function deleteFormUploads(ids) {
 // endpoint derives the visitor's state from the run row, so there is no second
 // copy of the truth.
 
-// How long a visitor's journey may stay open. The run's own
-// awaiting_step_expires_at is the authority for the PAUSE; this is the outer
-// bound on the session pointer itself, refreshed on every poll.
+// How long a visitor's journey may stay open: refreshed on every poll, never shortened (the run's
+// awaiting_step_expires_at is the authority for the PAUSE; automation/formJourney.mts holds the
+// session open up to that deadline + 1 h).
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 /** @param {SessionRow | null} r */
@@ -484,7 +484,7 @@ async function attachFormSessionRun(id, runId) {
     await initDB();
     await run(
         `UPDATE automation_form_sessions SET run_id = $2, updated_at = NOW(),
-                expires_at = NOW() + ($3::bigint * INTERVAL '1 millisecond')
+                expires_at = GREATEST(expires_at, NOW() + ($3::bigint * INTERVAL '1 millisecond'))
           WHERE id = $1`,
         [id, runId, SESSION_TTL_MS],
     );
@@ -498,7 +498,7 @@ async function touchFormSession(id) {
     await initDB();
     await run(
         `UPDATE automation_form_sessions SET updated_at = NOW(),
-                expires_at = NOW() + ($2::bigint * INTERVAL '1 millisecond')
+                expires_at = GREATEST(expires_at, NOW() + ($2::bigint * INTERVAL '1 millisecond'))
           WHERE id = $1`,
         [id, SESSION_TTL_MS],
     );

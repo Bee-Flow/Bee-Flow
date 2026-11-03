@@ -17,6 +17,8 @@ export const automationKeys = {
     activeRuns: ['automate', 'runs', 'active'] as const,
     run: (runId: string) => ['automate', 'run', runId] as const,
     runSteps: (runId: string) => ['automate', 'run', runId, 'steps'] as const,
+    /** The approval a paused run waits on (GET /runs/:runId/form pendingApproval). */
+    runPendingApproval: (runId: string) => ['automate', 'run', runId, 'pending-approval'] as const,
     schedulePreview: (cron: string, tz: string) => ['automate', 'schedule-preview', cron, tz] as const,
     /**
      * Every approvals list (the inbox, the drawer badge, the Cowork hub's

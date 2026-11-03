@@ -80,7 +80,9 @@ is the owner's choice** (the Share tab, *Who can fill it in*):
   that existed before this choice did keep working this way.
 
 Whatever is chosen, a colleague the form is not for gets the same *not available* as
-an unknown token — there is no "not yours" to probe for. `/app/forms` (the fillers'
+an unknown token — there is no "not yours" to probe for. A form that is not live answers
+*not available* in the same way, with one exception: someone who may edit the automation
+sees *This form is not live yet*, with the way to activate it or to try it first. `/app/forms` (the fillers'
 page) lists only the forms the signed-in person may open; the Studio directory lists
 every form of the organisation, with an owner-only chip saying who it is shared with.
 Rotating the link keeps the audience: a new token is not un-sharing. Signed in, the
@@ -125,11 +127,49 @@ form inline, shows the same three-valued status pill as the directory, copies th
   of the organisation, or the whole organisation — see *The address*), and, when the
   form collects, wraps the answers table's sharing card: *sharing the table is sharing
   the dashboard*. The two audiences are separate on purpose: who may answer is not
-  who may read the answers.
+  who may read the answers. The same tab makes a [test link](#the-test-link).
 - **Settings** holds the *Live* toggle (it runs the automation's full validation and shows
   the reason when it refuses), the *Collect answers in a table* toggle, a link to the
   table's data-and-retention settings, and the danger zone. Deleting the form deletes
   the automation; the answers table stays.
+
+## The test link
+
+A **test link** lets you and your testers fill in the form as a visitor would, before it
+is live or before your latest changes are published. Make one in the Share tab with
+**Make a test link**.
+
+- **It opens the working copy**: the questions and later pages as they are saved now,
+  whether the automation is a draft, switched off, or live with changes that are not
+  published. The production link keeps serving the published form.
+- **It has its own address and its own audience.** *Who can open the test link* starts
+  with only you; add colleagues or groups of the organisation the same way as for the
+  form itself. Making a new test link stops the old one at once, and **Stop the test
+  link** stops it without a new one; the production link is never touched. Someone who
+  opens a stopped or expired test link gets *not available*. Test runs that already
+  started go on.
+- **It expires** after `AUTOMATION_FORM_TEST_LINK_DAYS` days (default 14; see
+  [Limits you can change](#limits-you-can-change)).
+- **The page says it is a test.** A *Test* banner on top tells the visitor that this is
+  the form as saved now, that sending it starts a test run with real effects, and that
+  nothing lands in the answers.
+
+Every submission through a test link is a **test run** of the working copy, started as
+the person who submitted it:
+
+- **Effects are real.** Mail is sent and rows are written, as in production.
+- **Approvals go to the submitter**, who decides as the tester for every approver (the
+  automation's owner may decide too). The configured approvers are never asked or told.
+  See [Approvals → Test approvals](approvals.md#test-approvals).
+- **No answers row and no count.** A test never writes a row in the answers table, never
+  counts as a submission and never shows on the Answers dashboard. Its answers stay in
+  the run, listed under the automation's test runs.
+
+The test link is also the way to try a **file question on a later page**: the builder's
+form overlay uploads files on the first page only.
+
+To rehearse the whole process with the real approvers in their seats, deploy to a
+Solution's UAT stage instead (see [Solutions → Stages and deployments](solutions.md#stages-and-deployments)).
 
 ## Build it with AI
 
@@ -202,7 +242,9 @@ is queued — the run queue is in memory; the table is the durable record. A sin
 form marks the row complete at once; a multi-page form completes it when the last page
 is answered, and the dashboard counts the rest as *open*. If the row cannot be written —
 the table's quota is full, or the table is gone — the submission still succeeds and the
-problem is shown on the table's source card (`lastWriteError`).
+problem is shown on the table's source card (`lastWriteError`). Tests never write here:
+a submission through the [test link](#the-test-link) or from the automation builder
+writes no row and counts no submission.
 
 **Who sees the answers.** Permission is the answers table's own grade ladder: the owner,
 the organisation's admins, and anyone the table is shared with (viewer or editor).
@@ -359,6 +401,31 @@ passed. Let both branches end in the same step. From there on, read the file wit
 a step that did not run reads as empty, and `coalesce` skips empty values. Form pages cannot
 sit inside a loop, which is why the retry is written out once.
 
+### An approval between two pages
+
+A form can ask a person to decide before the visitor sees the next page: put an
+**Approval** step between the first page and a later **Form page** step. For the visitor
+that goes like this:
+
+- **They are told to wait.** After they submit, the page says *Waiting for a review*: a
+  person needs to review this, they can close the page, and they get a link when the next
+  page is ready. The page also shows the link to come back to.
+- **Their session is held.** The link stays valid until one hour after the approval's
+  deadline, or 30 days when the approval has no deadline. It never lasts shorter than an
+  ordinary form session (8 hours).
+- **They hear when the next page is ready.** When the approver approves and the run
+  reaches a form page, the person who submitted the form gets one bell and one e-mail
+  that name the form and say *the next page is ready*, with the link to their own form. The message
+  holds no answers, no approver and no reason. Nobody is notified for the first page or
+  for a page that directly follows another page, because the visitor is still there.
+- **The next page waits longer.** A form page reached right after a decision waits
+  `AUTOMATION_FORM_WAIT_AFTER_DECISION_MS` (default 7 days) for the visitor, instead of
+  the usual hour. A wait time set on the step itself wins.
+
+When the approver rejects, the run ends, unless the approval has an
+[On rejected branch](approvals.md#when-the-approver-rejects), for example to a closing
+page that explains the outcome.
+
 ### Busy forms
 
 A wizard that many people fill in at the same time should have **Run at the same time**
@@ -367,13 +434,16 @@ once" option). Otherwise a second visitor waits for the first run to finish. Whi
 
 ### Limits you can change
 
-Two environment variables set how large a dynamic list may get. Both have a generous
-default and **0 means unlimited**:
+These environment variables set how large a dynamic list may get, how long a test link
+works and how long a page after a decision waits. Each has a generous default; the last
+column says what **0** means.
 
-| Variable | Default | What it caps |
-|----------|---------|--------------|
-| `AUTOMATION_FORM_MAX_OPTIONS` | `200` | The options of one choice question (typed or loaded from a list). |
-| `AUTOMATION_FORM_MAX_FIELDS_FROM` | `50` | The questions one "once per item" question expands into. |
+| Variable | Default | What it sets | 0 means |
+|----------|---------|--------------|---------|
+| `AUTOMATION_FORM_MAX_OPTIONS` | `200` | The options of one choice question (typed or loaded from a list). | Unlimited |
+| `AUTOMATION_FORM_MAX_FIELDS_FROM` | `50` | The questions one "once per item" question expands into. | Unlimited |
+| `AUTOMATION_FORM_TEST_LINK_DAYS` | `14` | Days a new [test link](#the-test-link) works. | It does not expire |
+| `AUTOMATION_FORM_WAIT_AFTER_DECISION_MS` | `604800000` | How long a form page reached right after an approval waits for the visitor (7 days). | The usual wait of one hour |
 
 ## Where to next
 

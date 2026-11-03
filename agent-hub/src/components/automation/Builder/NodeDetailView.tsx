@@ -1,5 +1,5 @@
 import React, { type ComponentProps, useCallback, useMemo, useRef, useState } from 'react';
-import ApprovalActionBar from './approvals/ApprovalActionBar';
+import PausedApprovalBar from './approvals/PausedApprovalBar';
 import { buildStepLabelMap } from './flow/displayHelpers';
 import { isRouteStep } from './flow/routeModel';
 import { FormDensityContext, resolveMode, type FormDensity, type FormMode } from './flow/settings/formDensity';
@@ -25,7 +25,7 @@ import useNdvPanels from './useNdvPanels';
 import useNodeDetailData from './useNodeDetailData';
 import { useTranslation } from '@/hooks/useTranslation';
 import { walkPath } from '@/utils/bindingHelpers';
-import type { RunStepRow, PlacedStep, BlockCatalogEntry, TriggerAutomation, Group, UpstreamDefinition, UpstreamNode, ModelTierConfig, Validation, ToolCatalog, NextSuggestion, FocusedField, ApprovalDecl, NodeDetailViewProps } from './NodeDetailView.types';
+import type { RunStepRow, PlacedStep, BlockCatalogEntry, TriggerAutomation, Group, UpstreamDefinition, UpstreamNode, ModelTierConfig, Validation, ToolCatalog, NextSuggestion, FocusedField, NodeDetailViewProps } from './NodeDetailView.types';
 
 /**
  * Node Detail View (NDV): the focused editor for a single step, at two
@@ -49,6 +49,8 @@ const QUICK_H_STACKED = 'clamp(420px, 55vh, 680px)';
 
 export default function NodeDetailView({
     step, runStep, runSteps = [], definition, rootDefinition = null, blocksCatalog = [], onSaveStep,
+    // The run the canvas follows, and the way to hand it a run to follow (the approval bar).
+    followedRun = null, onFollowRun = null,
     // (base, from, to) => number|undefined. The shell's edit (BuildTab.onRenameBinding).
     onRenameBinding = null,
     // (stepId, step) => boolean|undefined. The shell's edit (BuildTab.onInsertStepBefore).
@@ -258,15 +260,9 @@ export default function NodeDetailView({
                     onClose={onClose}
                 />
 
-                {runStep?.status === 'awaiting_approval' && (runStep?.runId as string | undefined) && (
-                    <ApprovalActionBar
-                        runId={runStep.runId as string}
-                        stepId={step?.id}
-                        // The run's rendered question first; the raw prompt is the fallback.
-                        prompt={(runStep?.output as { prompt?: unknown } | null | undefined)?.prompt || step?.prompt}
-                        fields={Array.isArray((step?.approval as ApprovalDecl | undefined)?.fields) ? (step.approval as ApprovalDecl).fields : null}
-                    />
-                )}
+                {/* Only while the followed run waits on THIS step, and from the
+                    approval's snapshot, never the step as edited since. */}
+                <PausedApprovalBar run={followedRun} stepId={step?.id} runStep={runStep} onFollowRun={onFollowRun} />
 
                 {/* Quick density: the settings and the output side by side when
                     the drawer is wide, stacked when it is not. */}

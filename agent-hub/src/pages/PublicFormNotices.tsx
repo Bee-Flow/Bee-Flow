@@ -1,4 +1,5 @@
-import { FlaskConical } from 'lucide-react';
+import { useState } from 'react';
+import { FlaskConical, UserCheck } from 'lucide-react';
 import useTranslation from '../hooks/useTranslation';
 
 /**
@@ -10,6 +11,10 @@ import useTranslation from '../hooks/useTranslation';
  *   FormNotLiveView  the caller may edit this form, and it is not live yet
  *                    (409 form_not_live): say so instead of "not available",
  *                    and point at the two ways forward
+ *   FormWaitingDecisionView  the journey waits on a person's decision (an
+ *                    approval): no spinner, no "taking a while", the visitor may
+ *                    close the page; the address that brings them back (the
+ *                    session is in ?s=), and "Check again"
  */
 
 export function TestLinkBanner() {
@@ -43,6 +48,56 @@ export function FormNotLiveView({ automationId }: FormNotLiveViewProps) {
                     {t('forms.studio.open_automation', 'Open the automation')}
                 </a>
             )}
+        </div>
+    );
+}
+
+interface FormWaitingDecisionViewProps {
+    /** The visitor will be sent the link when the next page is ready. */
+    notify: boolean;
+    onCheckAgain: () => void;
+}
+
+export function FormWaitingDecisionView({ notify, onCheckAgain }: FormWaitingDecisionViewProps) {
+    const { t } = useTranslation();
+    const [copied, setCopied] = useState(false);
+    // The address this page is on carries the session (?s=): it is the way back.
+    const link = typeof window === 'undefined' ? '' : window.location.href;
+    const copy = async () => {
+        try {
+            await navigator.clipboard.writeText(link);
+            setCopied(true);
+        } catch {
+            setCopied(false);
+        }
+    };
+    return (
+        <div className="text-center py-16" data-testid="form-waiting-decision" role="status">
+            <UserCheck size={28} className="mx-auto text-[var(--text-secondary)]" aria-hidden="true" />
+            <h1 className="mt-3 text-lg font-semibold text-[var(--text-primary)]">{t('forms.public_waiting_decision_title', 'Waiting for a review')}</h1>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                {notify
+                    ? t('forms.public_waiting_decision_text', 'A person needs to review this. You can close this page; we will send you a link when the next page is ready.')
+                    : t('forms.public_waiting_decision_text_no_notify', 'A person needs to review this. You can close this page and come back to it later with the link below.')}
+            </p>
+            <p className="mt-4 text-xs text-[var(--text-secondary)]">{t('forms.public_waiting_decision_link', 'This page, to come back to:')}</p>
+            <p className="mt-1 break-all text-xs font-mono text-[var(--text-primary)]" data-testid="form-resume-link">{link}</p>
+            <div className="mt-4 flex items-center justify-center gap-2">
+                <button
+                    type="button"
+                    onClick={copy}
+                    className="px-3 py-1.5 text-sm rounded-md border border-[var(--border-default)] text-[var(--text-primary)]"
+                >
+                    {copied ? t('forms.public_link_copied', 'Link copied') : t('forms.public_copy_link', 'Copy link')}
+                </button>
+                <button
+                    type="button"
+                    onClick={onCheckAgain}
+                    className="px-3 py-1.5 text-sm rounded-md border border-[var(--border-default)] text-[var(--text-primary)]"
+                >
+                    {t('forms.public_check_again', 'Check again')}
+                </button>
+            </div>
         </div>
     );
 }

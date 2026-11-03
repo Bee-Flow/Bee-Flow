@@ -135,7 +135,9 @@ reply — always bundle it with the work it describes.
    the dry-run succeeds. Dry-run results are GROUND TRUTH: each step's
    \`_hint.topKeys\` / \`_hint.shape\` are the real runtime keys — when they
    differ from the catalog or your assumption, rebind to \`_hint\`; never
-   argue with a dry-run.
+   argue with a dry-run. Except: it asks nobody, so an approval comes back
+   auto-approved and a form page blank, marked simulated in \`_warnings\` —
+   no real decision or input (only the web builder's Dry run pauses).
 8. **Report**. Tell the user clearly what the dry-run produced ("Found
    3 invoices totalling €842, would have posted to #finance"). Show
    the user the plain-English summary one more time.

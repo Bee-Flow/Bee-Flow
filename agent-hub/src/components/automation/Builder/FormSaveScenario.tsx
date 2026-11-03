@@ -6,8 +6,19 @@ import { scenarioErrorText } from './runs/runChecksErrors';
 /**
  * After a test run of a form: keep its answers as a named scenario, so the same
  * path can be tried again without typing it. The name is the only question.
+ *
+ * Offered after any journey that answered at least one page, also one that
+ * failed or was stopped (`partial`): the answers typed so far are what the
+ * author wants to replay once the broken step is fixed (pauses F12).
  */
-export default function FormSaveScenario({ automationId, runId }: { automationId: string | null | undefined; runId: string }) {
+interface FormSaveScenarioProps {
+    automationId: string | null | undefined;
+    runId: string;
+    /** The journey did not finish: only the pages answered so far are kept. */
+    partial?: boolean;
+}
+
+export default function FormSaveScenario({ automationId, runId, partial = false }: FormSaveScenarioProps) {
     const { t } = useTranslation();
     const create = useCreateFormScenario(automationId);
     const [open, setOpen] = useState(false);
@@ -59,6 +70,11 @@ export default function FormSaveScenario({ automationId, runId }: { automationId
                     {t('automation_run_checks.save.button', 'Save scenario')}
                 </button>
             </div>
+            {partial && (
+                <p className="text-[var(--text-tertiary)]">
+                    {t('automation_testing.overlay.save_partial', 'The run did not finish, so only the pages you answered are kept.')}
+                </p>
+            )}
             <p className="text-[var(--text-tertiary)]">
                 {t('automation_run_checks.save.help', 'Files and app picks are not saved. Scenarios are run data and are never exported or deployed.')}
             </p>

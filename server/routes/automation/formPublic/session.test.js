@@ -101,13 +101,15 @@ test('a failed run never leaks the internal error to the visitor', async () => {
     assert.strictEqual(json.includes('billing'), false);
 });
 
-test('an approval gate reads as "still working" — the visitor cannot act on it', async () => {
+test('an approval gate reads as "waiting on a decision" — the visitor cannot act on it, and is told so', async () => {
     state.runQueue = [{ id: 'runD' }];
     const sid = await startSession();
     putRun('runD', 'awaiting_approval', { awaitingStepId: 'gate' });
     const res = makeRes();
     await getSession(makeReq({ sid }), res);
-    assert.strictEqual(res.body.state, 'working');
+    assert.strictEqual(res.body.state, 'waiting_decision');
+    // Nothing about the gate itself: no step id, no approver (session.waitingDecision.test.js).
+    assert.strictEqual(res.body.stepId, undefined);
 });
 
 test('an unknown session, and one minted on another form, are both a plain 404', async () => {
@@ -274,7 +276,7 @@ test('a paused or queued run reports no step at all', async () => {
 
     const res = makeRes();
     await getSession(makeReq({ sid }), res);
-    assert.strictEqual(res.body.state, 'working');
+    assert.strictEqual(res.body.state, 'waiting_decision');
     assert.strictEqual(res.body.progress, undefined);
 });
 

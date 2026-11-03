@@ -29,6 +29,7 @@ import { Divider, Icon, Text } from '@/shared/ui';
 
 import { StatusIcon } from './StatusPill';
 import { ValuePreview } from './ValuePreview';
+import { simulatedPauseOf, simulatedPauseText } from '../model/simulatedPause';
 import { statusLabel, tokenForStep } from '../model/status';
 import { runStepNames, runStepTitle } from '../model/stepLabels';
 import { stepTypeName } from '../model/stepNames';
@@ -147,6 +148,7 @@ function StepRow({
     // A failed step opens itself. Nobody taps a row to find out why something
     // broke when the answer could already be on screen.
     const [expanded, setExpanded] = useState(failed);
+    const simulated = simulatedPauseOf(step);
 
     // The RAW values travel to ValuePreview, which decides whether they are a
     // table, a record, a list or genuinely raw. Pre-stringifying here is what
@@ -186,6 +188,12 @@ function StepRow({
                     <Text variant="caption" tone="tertiary" numberOfLines={1}>
                         {stepMeta(step, title, word, t)}
                     </Text>
+
+                    {simulated ? (
+                        <Text variant="caption" tone="warning" testID="step-simulated">
+                            {simulatedPauseText(simulated, t)}
+                        </Text>
+                    ) : null}
 
                     {step.error ? <StepError step={step} /> : null}
                 </View>

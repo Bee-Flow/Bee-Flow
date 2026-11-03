@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { automationKeys } from '@/features/automations';
+import { automationKeys, type RunDecisionResult } from '@/features/automations';
 import { notificationKeys } from '@/features/notifications';
 
 import { decideApproval } from '../api/endpoints';
@@ -12,17 +12,19 @@ import type { ApprovalDecision } from '../model/types';
 export interface Decision {
     decision: ApprovalDecision;
     reason?: string;
+    /** The answers an approval with fields asks for (approve only). */
+    answers?: Record<string, unknown>;
 }
 
 export function useDecideApproval(
     id: string,
-    handlers: { onSuccess?: (vars: Decision) => void; onError?: (error: Error) => void } = {},
+    handlers: { onSuccess?: (vars: Decision, result: RunDecisionResult) => void; onError?: (error: Error) => void } = {},
 ) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ decision, reason }: Decision) => decideApproval(id, decision, reason),
-        onSuccess: (_data, vars) => {
-            handlers.onSuccess?.(vars);
+        mutationFn: ({ decision, reason, answers }: Decision) => decideApproval(id, decision, reason, answers),
+        onSuccess: (result, vars) => {
+            handlers.onSuccess?.(vars, result);
             // The decision changes the run, the recent-runs list, the bell and
             // every approvals list (inbox, drawer badge, Cowork hub), so none
             // of them may keep serving what they had a moment ago — it used to

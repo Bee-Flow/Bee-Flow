@@ -96,7 +96,8 @@ describe('CanvasSouthBar — the run banner', () => {
         await userEvent.click(btn);
         expect(onOpenFormOverlay).toHaveBeenCalledTimes(1);
         expect(screen.queryByTestId('canvas-run-open-form-tab')).toBeNull();
-        expect(screen.getByTestId('canvas-run-banner').textContent).toContain('waiting for the form');
+        // The wait names the banner (RUN-06): not "Live run" for a run that executes nothing.
+        expect(screen.getByTestId('canvas-run-title').textContent).toBe('Waiting for the form');
     });
 
     it('keeps the public page as a small secondary link that opens in a new tab', () => {

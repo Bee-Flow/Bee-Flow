@@ -10,6 +10,10 @@
  *                                  shell asks once per overlay session.
  *   onFollowRun(runId)             the canvas follows that run (or the
  *                                  continuation of a journey) by its id.
+ *   onClose(info)                  the overlay closed; `dismissRunIds` are the
+ *                                  runs it was following while they still ran,
+ *                                  so the shell must not open it again by itself
+ *                                  when one of them parks on a page (RUN-11).
  *
  * A start answers with what happened, never with "done": a run that started
  * is followed by id until it pauses or ends, so the overlay must not claim a
@@ -42,4 +46,25 @@ export interface FormTestSession {
     mode?: FormRunMode;
     /** The Run live confirm was answered yes in this session. */
     liveConfirmed?: boolean;
+}
+
+/** Who a test run is, as the overlay's chip says it: a dry run, a live test, or a production run (no chip). */
+export type FormRunKind = FormRunMode | 'production';
+
+/** What the overlay hands the shell when it closes. */
+export interface FormRunCloseInfo {
+    /** Runs that were still going when the overlay closed: no auto-open for them any more. */
+    dismissRunIds?: string[];
+}
+
+export type FormRunClose = (info?: FormRunCloseInfo) => void;
+
+/**
+ * Props the builder shell (build/BuildCanvas.tsx) hands the overlay besides
+ * the session: `triggerStepId` names the form trigger of page one, so an
+ * upload on a second form trigger is checked against that trigger's own
+ * questions (POST /:id/form-test/upload). Left out, the primary trigger.
+ */
+export interface FormRunShellProps {
+    triggerStepId?: string | null;
 }

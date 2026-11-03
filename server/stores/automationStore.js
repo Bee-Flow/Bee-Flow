@@ -73,6 +73,9 @@ module.exports = {
     // Ending a pause outside the runner: the paused step row, the journey's
     // visitor session (withdraw, reject, a form wait cancelled).
     ...require('./automationStore/pauseRows'),
+    // A paused form journey: its visitor session held to the deadline, the
+    // "next page is ready" notice claimed once (automation/formJourney.mts).
+    ...require('./automationStore/formJourneyRows'),
     // Exported for unit tests.
     rowToRunStep,
     fromJsonb,

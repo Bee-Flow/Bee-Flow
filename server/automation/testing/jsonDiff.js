@@ -38,6 +38,8 @@ const MAX_DEPTH = 64;
 const META_KEYS = Object.freeze(new Set([
     '_dryRun', '_dryRunSyntheticInputs', '_dryRunSynthesised', '_dryRunFallback',
     'wouldHaveCalled', '_fromScenario', 'httpCalls', FULL_OUTPUT_REF,
+    // A dry run's preview of a pause and the flag of a missing saved answer.
+    '_preview', '_scenarioMissing',
 ]));
 
 /** @param {unknown} v @returns {v is Record<string, unknown>} */

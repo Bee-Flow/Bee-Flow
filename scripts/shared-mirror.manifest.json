@@ -5,6 +5,7 @@
         "mobile/src/features/forms/mirror",
         "mobile/src/features/runs/mirror",
         "mobile/src/shared/ui/mirror",
+        "mobile/src/shared/runs/mirror",
         "mobile/src/features/app-studio/mirror",
         "mobile/src/features/org/mirror",
         "mobile/src/features/orgPeople/mirror",
@@ -307,9 +308,9 @@
         },
         {
             "source": "agent-hub/src/components/automation/Builder/runs/runPhase.ts",
-            "target": "mobile/src/features/runs/mirror/runPhase.ts",
+            "target": "mobile/src/shared/runs/mirror/runPhase.ts",
             "transform": "none",
-            "why": "Where a run is (running, paused on a form or a decision, done, failed, cancelled) and whether it was a test or a dry run, from its status and run profile: the builder's toasts and banners and the phone's run actions branch on the same vocabulary; runPhase.lockstep.test.ts runs the web test's table against this copy."
+            "why": "Where a run is (running, paused on a form or a decision, done, failed, cancelled) and whether it was a test or a dry run, from its status and run profile: the builder's toasts and banners and the phone's run actions branch on the same vocabulary; in shared/ so features/automations and features/flow-editor both read it without an import cycle through features/runs (shared/runs/runPhase.ts re-exports it); runPhase.lockstep.test.ts runs the web test's table against this copy."
         },
         {
             "source": "agent-hub/src/components/shared/kindKeys.ts",

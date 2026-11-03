@@ -41,7 +41,7 @@ test('a working answer carries the median of the recent legs, in seconds', async
     assert.strictEqual(body.typicalSeconds, 4);
 });
 
-test('every working branch carries it: no run row yet, queued, approval gate, lost race', async () => {
+test('every working branch carries it: no run row yet, queued, lost race; a decision wait does not', async () => {
     legDurations.auto1 = [5000, 5000, 5000];
     const sid = await startSession();
     // The session has no run yet.
@@ -50,12 +50,15 @@ test('every working branch carries it: no run row yet, queued, approval gate, lo
     // The run row is not written yet.
     state.sessions.get(sid).runId = 'ghost';
     assert.strictEqual((await poll(sid)).typicalSeconds, 5);
-    // Queued and behind an approval gate.
+    // Queued.
     state.sessions.get(sid).runId = 'run1';
     putRun('run1', 'queued');
     assert.strictEqual((await poll(sid)).typicalSeconds, 5);
+    // Behind an approval gate the wait is a person's, not the automation's: no figure.
     putRun('run1', 'awaiting_approval');
-    assert.strictEqual((await poll(sid)).typicalSeconds, 5);
+    const waiting = await poll(sid);
+    assert.strictEqual(waiting.state, 'waiting_decision');
+    assert.ok(!('typicalSeconds' in waiting));
     // Lost to the per-automation concurrency check.
     putRun('run1', 'cancelled').error = 'Skipped: automation already running';
     const body = await poll(sid);

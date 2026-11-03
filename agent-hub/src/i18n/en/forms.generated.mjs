@@ -294,4 +294,10 @@ export default {
     "forms.public_test_text": "You opened a test link. This is the form as it is saved now; sending it starts a test run, with real effects, and nothing lands in the answers.",
     "forms.public_not_live_title": "This form is not live yet",
     "forms.public_not_live_text": "Only you see this, because you can edit it. Activate the automation to open the form to others, or try it first from the builder or with a test link (Forms → Share).",
+    "forms.public_waiting_decision_title": "Waiting for a review",
+    "forms.public_waiting_decision_text": "A person needs to review this. You can close this page; we will send you a link when the next page is ready.",
+    "forms.public_waiting_decision_text_no_notify": "A person needs to review this. You can close this page and come back to it later with the link below.",
+    "forms.public_waiting_decision_link": "This page, to come back to:",
+    "forms.public_copy_link": "Copy link",
+    "forms.public_link_copied": "Link copied",
 };

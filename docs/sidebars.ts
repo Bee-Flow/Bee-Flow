@@ -304,6 +304,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/platform-operator',
             'contributing/decisions/release-notes',
             'contributing/decisions/tests-next-to-the-source',
+            'contributing/decisions/run-profile',
           ],
         },
       ],

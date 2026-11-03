@@ -1,11 +1,11 @@
 /**
  * The RUN PROFILE: one record of what kind of run this is and what it may do.
  *
- * Until now every surface derived "is this a test?" on its own from three loose
- * facts (mode, is_test, trigger_kind), and a resumed run re-derived them from
- * what happened to be on its row. A partial run lost its bounds on a pause and
- * ran the rest of the flow live (RM-1, F3); a test run held the production
- * running marker and wrote the automation's last status (RM-12). The profile is
+ * Three loose facts (mode, is_test, trigger_kind) are not enough for a surface
+ * to decide what a run may do, and a resumed run must not re-derive them from
+ * whatever is on its row: a partial run would lose its bound on a pause and run
+ * the rest of the flow live, and a test run would hold the production running
+ * marker and write the automation's last status. So the profile is
  * decided ONCE, when a run starts (profileFor), stored on the run row
  * (automation_runs.run_profile) and read back on resume and in every view
  * (profileOfRun). A resumed run keeps its profile: a resume never changes kind.

@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
     getAutomation,
     getRun,
+    getRunPendingApproval,
     getRunSteps,
     listActiveRuns,
     listAutomations,
@@ -72,11 +73,26 @@ export function useActiveRuns({ busyMs, idleMs }: { busyMs: number; idleMs: numb
 }
 
 /** One run. Polls only while it is still moving; a finished run never changes. */
-export function useRun(runId: string) {
+export function useRun(runId: string, { enabled = true }: { enabled?: boolean } = {}) {
     return useQuery({
         queryKey: automationKeys.run(runId),
         queryFn: ({ signal }) => getRun(runId, signal),
+        enabled: enabled && !!runId,
         refetchInterval: (query) => (isLiveStatus(query.state.data?.status) ? 4000 : false),
+    });
+}
+
+/**
+ * The approval a run waits on, with its snapshot's fields: whether Approve
+ * can post from here or has to ask for answers first. Only while the run
+ * waits for approval; an older server answers without it (null).
+ */
+export function useRunPendingApproval(runId: string, enabled: boolean) {
+    return useQuery({
+        queryKey: automationKeys.runPendingApproval(runId),
+        queryFn: ({ signal }) => getRunPendingApproval(runId, signal),
+        enabled,
+        retry: false,
     });
 }
 

@@ -22,7 +22,7 @@ export function makeBuilderRunsDeps(effectiveDef: FlowDefinition | null) {
     return {
         follow,
         deps: {
-            api: { run: vi.fn(), dryRun: vi.fn() },
+            api: { run: vi.fn(), dryRun: vi.fn(), formTest: vi.fn() },
             state: { dryRun: null, steps: [], executingStepId: null },
             effectiveDef,
             executeStep: vi.fn<UseBuilderRunsOptions['executeStep']>(async () => ({ kind: 'settled', run: { id: 'r', status: 'success' }, steps: [] })),

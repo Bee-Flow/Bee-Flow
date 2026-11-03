@@ -3,7 +3,8 @@
 // without a change in behaviour.
 import { Suspense } from 'react';
 import { lazyWithI18n } from '@/utils/lazyWithReload';
-import { runIdentityOf } from './runIdentity';
+import { runIdentityOf, type RunPauseActions } from './runIdentity';
+import { runPhase } from '../runs/runPhase';
 import { autoMapToastMessage } from './addStepModel';
 import type { BuildTabProps } from './buildTabTypes';
 import { AssistantLauncher, ContextAddPopover, ExternalDraftBanner, ProposalPreviewOverlay } from './CanvasOverlays';
@@ -14,6 +15,7 @@ import type { DiagramPaneProps } from './jsComponents';
 import type { BuildTabModel } from './useBuildTabModel';
 import { toast } from '@/components/shared/Toast';
 import type { CatalogTable } from '../chat/pendingTables';
+import type { FormRunKind } from '../formRunContract';
 
 // The form-test overlay (with the scenario picker) opens on demand.
 const FormRunOverlay = lazyWithI18n(() => import('../FormRunOverlay'));
@@ -72,6 +74,8 @@ export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, pr
                     automationId={state.automationId || p.automation?.id}
                     form={p.formTest.form}
                     runId={p.formTest.runId}
+                    runKind={p.formTest.runId ? formRunKindOf(state.dryRun) : null}
+                    triggerStepId={p.formTest.triggerStepId ?? null}
                     onStartRun={p.onFormTestRun}
                     startMode={p.formTest.mode}
                     onFollowRun={p.onFollowRun}
@@ -81,6 +85,14 @@ export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, pr
             )}
         </div>
     );
+}
+
+/** The followed run as the attached overlay names it: a dry run, a live test, or a production run. */
+function formRunKindOf(run: BuildTabProps['state']['dryRun']): FormRunKind | null {
+    if (!run) return null;
+    const phase = runPhase(run);
+    if (phase.isDry) return 'dry';
+    return phase.isTest ? 'live' : 'production';
 }
 
 /**
@@ -147,19 +159,45 @@ function canvasPaneProps(p: BuildTabProps, m: CanvasModel): DiagramPaneProps {
     return { ...canvasEditProps(p, m), ...canvasRunProps(p, m), ...canvasFlowletProps(p, m) };
 }
 
+/**
+ * What the run banner may do about a waiting run: open the waiting step's
+ * drawer (its approval bar), stop the test (POST /runs/:id/cancel, which closes
+ * a form wait and withdraws an approval), and restart a test of an older
+ * version as a new dry run with its answers. A stop or restart puts the
+ * canvas back on the run at once instead of the next slow read.
+ */
+function runPauseActions(p: BuildTabProps, runId: string | null | undefined): RunPauseActions | null {
+    if (!runId) return null;
+    const stop = async () => {
+        await p.onStopRun?.(runId);
+        p.onFollowRun?.(runId);
+    };
+    return {
+        onReview: (stepId) => p.openNdv(stepId),
+        onStop: p.onStopRun ? () => { void stop(); } : null,
+        onRestart: p.onStopRun && p.onRestartWithAnswers
+            ? () => { void (async () => { await p.onStopRun?.(runId); await p.onRestartWithAnswers?.(runId); })(); }
+            : null,
+    };
+}
+
 /** The run drawn on the canvas, and what the canvas can do about it. */
 function canvasRunProps(p: BuildTabProps, m: CanvasModel): DiagramPaneProps {
     const { state, onOpenFormOverlay } = p;
     const dryRunId = state.dryRun?.id;
+    // Only my own test answers its pages from here (RUN-07): a production run
+    // waiting on a form page is a visitor's journey, and their page is theirs.
+    // No new-tab link either (RUN-08): a builder test has no page of its own
+    // outside the overlay, and the public start page would begin a new run.
+    const ownTest = !!state.dryRun && runPhase(state.dryRun).isTest;
     return {
         runSteps: m.run.replaySteps,
         replayStepId: m.run.replayStepId,
-        formUrl: m.waitingFormUrl,
-        onOpenFormOverlay: onOpenFormOverlay && dryRunId ? () => onOpenFormOverlay(dryRunId) : null,
+        onOpenFormOverlay: onOpenFormOverlay && dryRunId && ownTest ? () => onOpenFormOverlay(dryRunId) : null,
         onExecuteStep: p.onExecuteStep,
         executingStepId: state.executingStepId,
         runInFlight: m.run.liveRunInFlight,
-        runIdentity: runIdentityOf(state.dryRun, p.onOpenRun || null),
+        runIdentity: runIdentityOf(state.dryRun, p.onOpenRun || null, runPauseActions(p, dryRunId)),
         onDiagnose: p.scopedDef?.trigger?.kind === 'app_event' ? p.onDiagnose : null,
         fatalError: p.fatalError,
         aborted: state.aborted,
@@ -271,6 +309,11 @@ function StepDrawer({ p, m }: { p: BuildTabProps; m: BuildTabModel }) {
                 step={ndvStep}
                 runStep={drawer.ndvRunStep(ndvStep.id)}
                 runSteps={state.steps}
+                // The run the canvas follows: the approval bar shows only while
+                // it waits on THIS step, and hands the run back to the canvas
+                // after the decision.
+                followedRun={state.dryRun}
+                onFollowRun={p.onFollowRun}
                 realOutputById={m.realOutputById}
                 catalog={m.catalog}
                 definition={m.flowlets.flatDef}

@@ -13,6 +13,10 @@ const { desugarApprovalStages } = require('../automationModel/approvalStages');
 const { runnerPort } = require('./featurePorts');
 const { resolveApprovalTtlMs } = require('./shared');
 const { pageAnswersFor, approvalDecisionFor } = require('./testHarness');
+const {
+    FORM_WAIT_DEFAULT_MS, FORM_WAIT_MIN_MS, FORM_WAIT_MAX_MS, FORM_WAIT_AFTER_DECISION_DEFAULT_MS,
+    resolveFormWaitMs, formWaitAfterDecisionMs, continuesFromApproval,
+} = require('./formWait.mts');
 // What a non-production pause does (pauses real / harness / synthesise), the
 // licence gate and the dry-run preview: ./dryPause.mts.
 const {
@@ -248,16 +252,8 @@ async function execApproval(step, ctx, runState, mode) {
 // The page's text is TEMPLATED against the paused run — that is what makes
 // "show a summary of the execution" possible without a second contract.
 
-const FORM_WAIT_DEFAULT_MS = 60 * 60_000;          // 1 hour
-const FORM_WAIT_MIN_MS = 60_000;                   // 1 minute
-const FORM_WAIT_MAX_MS = 7 * 24 * 60 * 60_000;     // 7 days
-
-/** Deadline (ms from now) for a paused form step. Always finite: a visitor is waiting. */
-function resolveFormWaitMs(step) {
-    const secs = Number(step?.waitSeconds);
-    if (!Number.isFinite(secs) || secs <= 0) return FORM_WAIT_DEFAULT_MS;
-    return Math.min(FORM_WAIT_MAX_MS, Math.max(FORM_WAIT_MIN_MS, Math.round(secs) * 1000));
-}
+// How long a paused page waits (and a page due right after an approval waits
+// longer): ./formWait.mts.
 
 class FormInputRequiredError extends Error {
     constructor(stepId, form, expiresAt = null) {
@@ -373,13 +369,14 @@ async function execFormPage(step, ctx, runState, mode) {
     // the submit route coerces against. A test or dry pause waits at most the
     // profile's pauseTtlMs.
     const rendered = renderFormPage(step, runState, { baseTheme });
-    throw new FormInputRequiredError(step.id, rendered, pauseExpiresAt(resolveFormWaitMs(step), ctx.profile));
+    const waitMs = resolveFormWaitMs(step, { afterDecision: continuesFromApproval(ctx) });
+    throw new FormInputRequiredError(step.id, rendered, pauseExpiresAt(waitMs, ctx.profile));
 }
 
 module.exports = {
     ApprovalRequiredError, renderApprovalPrompt, renderApprovalExtras, execApproval,
-    FORM_WAIT_DEFAULT_MS, FORM_WAIT_MIN_MS, FORM_WAIT_MAX_MS,
-    resolveFormWaitMs, FormInputRequiredError, isRunPause, execFormPage, conditionMet,
+    FORM_WAIT_DEFAULT_MS, FORM_WAIT_MIN_MS, FORM_WAIT_MAX_MS, FORM_WAIT_AFTER_DECISION_DEFAULT_MS,
+    resolveFormWaitMs, formWaitAfterDecisionMs, FormInputRequiredError, isRunPause, execFormPage, conditionMet,
 };
 
 /**
@@ -390,6 +387,6 @@ module.exports = {
  *   form_page step as the definition stores it (parsed JSON)
  * @typedef {{ userId?: string, orgId?: string, session?: object, layerStack?: unknown[], formBaseTheme?: object|null,
  *   testHarness?: NonNullable<Parameters<typeof pageAnswersFor>[0]>['testHarness'],
- *   profile?: import('../automationModel/runProfile.mts').RunProfile | null,
- *   definition?: { edges?: Array<{ from?: string, label?: string, caseName?: string }> } }} PauseCtx
+ *   profile?: import('../automationModel/runProfile.mts').RunProfile | null, resumedFromStepId?: string | null,
+ *   definition?: { edges?: Array<{ from?: string, label?: string, caseName?: string }>, steps?: Array<{ id?: string, type?: string } | null> } }} PauseCtx
  */
