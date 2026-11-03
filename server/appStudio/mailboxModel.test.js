@@ -12,7 +12,7 @@ const assert = require('node:assert');
 
 const dataModel = require('./dataModel');
 const connectorSync = require('./connectorSync');
-const { parseLabelQuery, outlookListQuery } = require('../services/email/outlookQuery.mts');
+const { outlookListQuery } = require('../core/integrations/outlookQuery.mts');
 
 const TABLE = {
     id: 'tbl_msgs',
@@ -128,13 +128,20 @@ test('folder is a URL segment, so traversal is refused', () => {
 test('quotes in pairs are a label with a space; an odd quote and control characters are refused', () => {
     const q = 'label:"TEST OFFERTES" OR label:"TEST INKOOP"';
     assert.deepStrictEqual(errorsFor([mailbox({ query: q })]), []);
-    assert.deepStrictEqual(parseLabelQuery(q).groups, [['TEST OFFERTES', 'TEST INKOOP']]);
 
     assert.ok(errorsFor([mailbox({ query: 'label:"TEST OFFERTES' })]).some((e) => /unpaired quote/.test(e)));
     assert.ok(errorsFor([mailbox({ query: 'label:a\nlabel:b' })]).some((e) => /control characters/.test(e)));
     assert.ok(errorsFor([mailbox({ query: 'a'.repeat(600) })]).some((e) => /query exceeds/.test(e)));
     // A normal query with spaces is perfectly fine.
     assert.deepStrictEqual(errorsFor([mailbox({ query: 'from:klant.nl has:attachment' })]), []);
+});
+
+test('an Outlook query that mixes a category with other terms under OR is refused at save, with the run-time message', () => {
+    const errs = errorsFor([mailbox({ provider: 'outlook', query: 'category:A OR from:x' })]);
+    assert.ok(errs.some((e) => /category: can only be combined with other search terms by AND — `category:A OR from:x` mixes them/.test(e)), errs.join('|'));
+    assert.deepStrictEqual(errorsFor([mailbox({ provider: 'outlook', query: '(category:"A" OR category:B) AND from:x (a OR b)' })]), []);
+    // Gmail keeps its own syntax untouched.
+    assert.deepStrictEqual(errorsFor([mailbox({ provider: 'gmail', query: 'category:A OR from:x' })]), []);
 });
 
 test('a paired quote in free text still cannot break out of Graph $search="..."', () => {
@@ -267,23 +274,29 @@ function planFor(connector) {
     return connectorSync.planRetention({ tables: THREADED_TABLES }, connector);
 }
 
-test('planRetention reaches a child with its own date column, and one that cascades', () => {
+test('planRetention purges the messages on their own date and the attachments by cascade; the ticket stays', () => {
     const plan = planFor(threadedMailbox({ retentionCascade: true }, { retentionCascade: true }));
-    assert.deepStrictEqual(plan.unreachable, [], 'every table is covered');
+    assert.deepStrictEqual(plan.unreachable, [], 'every table the purge touches is covered');
     assert.deepStrictEqual(
         plan.steps.map((s) => [s.table.key, s.mode]),
-        [['tickets', 'column'], ['messages', 'cascade'], ['attachments', 'cascade']],
-        'parent-first: a cascade child runs only after its parent is gone',
+        [['messages', 'column'], ['attachments', 'cascade']],
+        'the ticket is an app record: not a step',
     );
-    assert.strictEqual(plan.steps[2].parentTable.key, 'messages', 'an attachment cascades from its MESSAGE, not the ticket');
+    assert.strictEqual(plan.steps[1].parentTable.key, 'messages', 'an attachment cascades from its MESSAGE, not the ticket');
 });
 
 test('planRetention names the tables nothing would ever delete from', () => {
-    // No cascade, no date column of their own — exactly the shipped state that
-    // kept every message body forever behind a 90-day promise.
+    // An attachment with no cascade and no date column of its own would keep its
+    // file forever behind a 90-day promise.
     const plan = planFor(threadedMailbox());
-    assert.deepStrictEqual(plan.unreachable, ['messages', 'attachments']);
-    assert.deepStrictEqual(plan.steps.map((s) => s.table.key), ['tickets']);
+    assert.deepStrictEqual(plan.unreachable, ['attachments']);
+    assert.deepStrictEqual(plan.steps.map((s) => s.table.key), ['messages']);
+});
+
+test('planRetention: a message table that cannot be dated is unreachable (the ticket cannot stand in)', () => {
+    const noDate = [THREADED_TABLES[0], { ...THREADED_TABLES[1], fields: THREADED_TABLES[1].fields.filter((f) => f.key !== 'received_at') }, ATT_TABLE];
+    const plan = connectorSync.planRetention({ tables: noDate }, threadedMailbox({}, { retentionCascade: true }));
+    assert.deepStrictEqual(plan.unreachable, ['messages']);
 });
 
 test('a declared retentionField must exist on that table — no silent fallback', () => {
@@ -298,7 +311,7 @@ test('a retention promise no purge can keep is refused at save time', () => {
     };
     const errors = dataModel.validateDataModel(model).errors;
     assert.ok(
-        errors.some((e) => /nothing would ever delete rows from messages, attachments/.test(e)),
+        errors.some((e) => /nothing would ever delete rows from attachments/.test(e)),
         `expected a retention-gap error, got: ${JSON.stringify(errors)}`,
     );
 });

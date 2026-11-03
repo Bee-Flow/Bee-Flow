@@ -87,6 +87,23 @@ describe('mailbox retention fields', () => {
         expect(screen.queryByLabelText('Date column')).toBeNull();
     });
 
+    it('says that mail is removed from the app, not from the provider, with the days and the provider', () => {
+        renderFields(connector(), [flatTable]);
+        expect(screen.getByText('Mail older than 90 days is removed from the app; it stays in Outlook.')).toBeInTheDocument();
+        expect(screen.getByText(/The app’s own records stay\./)).toBeInTheDocument();
+    });
+
+    it('names Gmail for a Gmail mailbox and tells a thread-mode desk that conversations stay', () => {
+        renderFields(connector({ provider: 'gmail', groupIntoThreads: true } as Partial<Connector>), [flatTable]);
+        expect(screen.getByText('Mail older than 90 days is removed from the app; it stays in Gmail.')).toBeInTheDocument();
+        expect(screen.getByText(/Conversations and the app’s own records stay\./)).toBeInTheDocument();
+    });
+
+    it('offers no date column in thread mode: the conversation table is never purged', () => {
+        renderFields(connector({ groupIntoThreads: true } as Partial<Connector>), [twoDates]);
+        expect(screen.queryByLabelText('Date column')).toBeNull();
+    });
+
     it('writes retentionField from the date-column select', async () => {
         const user = userEvent.setup();
         const writes = renderFields(connector(), [twoDates]);

@@ -28,7 +28,7 @@ const {
 } = require('./parse');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
 const { fetchOutlookAttachment, listOutlookAttachments } = require('./outlookAttachment.mts');
-const { outlookListQuery, matchesLabelGroups } = require('./outlookQuery.mts');
+const { outlookListQuery } = require('../../core/integrations/outlookQuery.mts');
 const crypto = require('crypto');
 
 /**
@@ -291,16 +291,16 @@ async function listMessages({
     }
 
     if (provider === 'outlook') {
-        // `label:` terms become a categories filter (outlookQuery.mts); the
-        // labels come back only when free text forced a $search instead.
+        // Category terms become a categories filter (outlookQuery.mts); `matches`
+        // applies them here only when free text forced a $search instead.
         // `since` is on lastModifiedDateTime (outlookQuery.mts); Gmail's `after:` is the message date, so a late label on an old mail is missed there.
         const sinceIso = since ? new Date(new Date(since).getTime() - MAILBOX_OVERLAP_MS).toISOString() : null;
-        const { qs, labelGroups } = outlookListQuery({ query, sinceIso, select: includeBody ? `${GRAPH_SELECT},body` : GRAPH_SELECT, top: Math.min(max, 100) });
+        const { qs, matches } = outlookListQuery({ query, sinceIso, select: includeBody ? `${GRAPH_SELECT},body` : GRAPH_SELECT, top: Math.min(max, 100) });
         // Graph hands back an absolute @odata.nextLink for the next page.
         const path = pageToken || `${graphBase(mailbox)}/mailFolders/${encodeURIComponent(folder)}/messages?${qs}`;
         const res = await graphFetchFromTokens(tokens, onRefresh, path);
         const messages = (res.value || []).map((m) => normalizeGraph(m, { mailbox, includeBody }))
-            .filter((m) => matchesLabelGroups(m.labels, labelGroups));
+            .filter((m) => matches(m.labels));
         return { messages, nextPageToken: res['@odata.nextLink'] || null };
     }
 

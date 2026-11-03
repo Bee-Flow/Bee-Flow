@@ -41,23 +41,31 @@ interface MailboxRetentionProps {
     disabled?: boolean;
 }
 
-/** What the date column defaults to, what deletion does, and what a later label does. */
-function RetentionHints({ connector, showColumnHint }: { connector: Connector; showColumnHint: boolean }) {
+/** What the date column defaults to, what is removed (the mail copy only), and what a later label does. */
+function RetentionHints({ connector, days, showColumnHint }: { connector: Connector; days: number | null; showColumnHint: boolean }) {
     const { t } = useTranslation();
     const threaded = Boolean(connector.groupIntoThreads);
+    const gmail = connector.provider === 'gmail';
     return (
         <>
             {showColumnHint ? (
                 <p className="text-xs text-[var(--text-tertiary)]">
-                    {threaded
-                        ? t('studio_apps_bi.connectors.retention_field_hint_thread', 'Automatic uses the date of the last message in the conversation (last_message_at).')
-                        : t('studio_apps_bi.connectors.retention_field_hint_flat', 'Automatic uses the date the message was received (received_at).')}
+                    {t('studio_apps_bi.connectors.retention_field_hint_flat', 'Automatic uses the date the message was received (received_at).')}
+                </p>
+            ) : null}
+            {days !== null ? (
+                <p className="text-xs text-[var(--text-tertiary)]">
+                    {gmail
+                        ? t('studio_apps_bi.connectors.retention_removed_gmail', 'Mail older than {days} days is removed from the app; it stays in Gmail.', { days })
+                        : t('studio_apps_bi.connectors.retention_removed_outlook', 'Mail older than {days} days is removed from the app; it stays in Outlook.', { days })}
                 </p>
             ) : null}
             <p className="text-xs text-[var(--text-tertiary)]">
-                {t('studio_apps_bi.connectors.retention_hint', 'On each sync, rows older than this are deleted, including their files.')}
+                {threaded
+                    ? t('studio_apps_bi.connectors.retention_records_stay_thread', 'Conversations and the app’s own records stay.')
+                    : t('studio_apps_bi.connectors.retention_records_stay_flat', 'The app’s own records stay.')}
                 {' '}
-                {connector.provider === 'gmail'
+                {gmail
                     ? t('studio_apps_bi.connectors.retention_hint_gmail', 'With “Only fetch new mail” on, Gmail reads only newly arriving mail.')
                     : t('studio_apps_bi.connectors.retention_hint_outlook', 'Outlook mail you label later is picked up on the next sync.')}
             </p>
@@ -74,7 +82,8 @@ export default function MailboxRetention({ connector, tables, patch, disabled }:
     if (!sync) return null;
 
     const invalid = draft !== '' && parseRetentionDays(draft) === null;
-    const columns = dateColumnKeys(sync, tables);
+    // In thread mode the main table holds conversations (app records, never purged): the mail is dated on received_at.
+    const columns = connector.groupIntoThreads ? [] : dateColumnKeys(sync, tables);
 
     const write = (changes: Record<string, unknown>) => {
         const next: SyncBlock = { ...sync };
@@ -129,7 +138,7 @@ export default function MailboxRetention({ connector, tables, patch, disabled }:
                     {t('studio_apps_bi.connectors.retention_invalid', 'Enter a whole number of days from 1 to {max}.', { max: MAX_RETENTION_DAYS })}
                 </p>
             ) : null}
-            <RetentionHints connector={connector} showColumnHint={columns.length > 1} />
+            <RetentionHints connector={connector} days={parseRetentionDays(draft)} showColumnHint={columns.length > 1} />
         </div>
     );
 }

@@ -252,6 +252,19 @@ test('anything else is a 502, not a silent empty sync', async () => {
     );
 });
 
+test('Graph refusing the Outlook search (400) is a typed 422 that says why, not an empty list', () => {
+    const err = Object.assign(new Error('Graph API 400: {"error":{"code":"BadRequest","message":"Syntax error: character \'x\' is not valid"}}'), { status: 400 });
+    const out = mailboxConnector.classifyMailboxError(err, { provider: 'outlook', query: 'from:(' });
+    assert.strictEqual(out.status, 422);
+    assert.strictEqual(out.code, 'mailbox_query_invalid');
+    assert.match(out.message, /^Outlook did not accept the search: Syntax error/);
+    // A truncated body still gives a safe message.
+    const cut = mailboxConnector.classifyMailboxError(Object.assign(new Error('Graph API 400: {"error":{"co'), { status: 400 }), { provider: 'outlook', query: 'x' });
+    assert.strictEqual(cut.code, 'mailbox_query_invalid');
+    // Without a query a 400 is not the query's fault.
+    assert.strictEqual(mailboxConnector.classifyMailboxError(err, { provider: 'outlook' }).code, 'connector_failed');
+});
+
 test('an identity failure passes through untouched', async () => {
     // resolveMailboxIdentity already produced the actionable 409 with a
     // provider on it; re-classifying would flatten that.

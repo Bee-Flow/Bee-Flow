@@ -49,6 +49,18 @@ function mailboxError(status, message, code) {
 
 // ── Error classification ────────────────────────────────────────────────────
 
+/** The reason Graph gave for a 400 (its error.message), short enough to show. */
+function graphReason(err) {
+    const raw = String(err?.message || '');
+    const marker = '"message":"';
+    const at = raw.indexOf(marker);
+    if (at >= 0) {
+        const reason = raw.slice(at + marker.length).split('"')[0].trim();
+        if (reason) return reason.slice(0, 200);
+    }
+    return 'check the "Only mail matching" text.';
+}
+
 /**
  * Turn a provider failure into something the client can act on.
  *
@@ -81,6 +93,9 @@ function classifyMailboxError(err, connector) {
         const e = mailboxError(409, 'The mailbox connection expired — reconnect it in Settings → Connections.', 'connection_required');
         e.provider = connector?.provider === 'gmail' ? 'gmail' : 'outlook';
         return e;
+    }
+    if (status === 400 && connector?.provider === 'outlook' && connector?.query) {
+        return mailboxError(422, `Outlook did not accept the search: ${graphReason(err)}`, 'mailbox_query_invalid');
     }
     return mailboxError(502, `Mailbox sync failed: ${String(err?.message || err).slice(0, 200)}`, 'connector_failed');
 }

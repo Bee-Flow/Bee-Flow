@@ -379,8 +379,7 @@ module.exports = {
                 // the pairing/upsert key (base filename, so re-running the
                 // intake updates rather than duplicates); thread_key /
                 // toegevoegd_op are stamped by writeTo.constants — without
-                // them a row names no request and outlives the retention
-                // purge.
+                // them a row names no request.
                 //
                 // KEYS ARE THE PORTAL'S, NOT OURS — see the file header. There
                 // are deliberately NO length/width columns: the portal reads
@@ -560,31 +559,19 @@ module.exports = {
                     keyField: 'thread_key',
                     incremental: { field: 'last_message_at', format: 'iso' },
                     schedule: { everyMinutes: 2 },
-                    // A quote trail is commercial history: a year, then gone —
-                    // conversation, messages and attachments as one unit.
+                    // The MAIL COPY is kept a year, then gone: messages and
+                    // their attachments. The request, its project lines, the
+                    // activity trail and the final-check findings are the
+                    // team's own records and stay (a mailbox purge never
+                    // touches the conversation table or `dependents`).
                     retentionDays: 365,
-                    // Tables the connector never WRITES but whose lifetime it
-                    // governs: project lines, the activity trail and the
-                    // final-check findings all hang off a conversation by
-                    // thread_key (text), which no child mode can follow — so
-                    // each is declared as a dependent that ages out on its own
-                    // date column. planRetention purges these rows on the
-                    // same 365-day promise instead of leaving them behind as
-                    // orphans.
-                    dependents: [
-                        { tableId: 'tbl_qiline', retentionField: 'toegevoegd_op' },
-                        { tableId: 'tbl_qiact', retentionField: 'at' },
-                        { tableId: 'tbl_qicheck', retentionField: 'at' },
-                    ],
                     refreshOnView: true,
                     children: [
                         {
                             tableId: 'tbl_qimsg', level: 1, relationField: 'aanvraag',
                             keyField: 'provider_message_id', mode: 'upsert',
-                            // The retention promise is about the CONVERSATION:
-                            // kept for a year after its last message, then gone
-                            // whole. Ageing each message on its own received_at
-                            // would shred a still-running request.
+                            // Aged on its own received_at; the request row
+                            // (status, owner) stays.
                             retentionCascade: true,
                         },
                         {
@@ -2488,9 +2475,8 @@ module.exports = {
                                         bron_bestand: 'file_name',
                                     },
                                     // thread_key joins the upsert match (per
-                                    // conversation); toegevoegd_op is the
-                                    // retention stamp the dependents purge
-                                    // ages this table on.
+                                    // conversation); toegevoegd_op records
+                                    // when the line was added.
                                     constants: {
                                         thread_key: { kind: 'formula', expr: 'vars.thread' },
                                         toegevoegd_op: { kind: 'formula', expr: 'now' },

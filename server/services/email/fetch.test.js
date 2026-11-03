@@ -312,7 +312,25 @@ test('graph list: label: terms become a categories filter next to the date, not 
     await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: SHARED, query: 'label:daniel OR label:kees', since: '2026-08-01T00:00:00Z' });
     const qs = decodeURIComponent(graphPaths[0].split('?')[1]);
     assert.ok(!qs.includes('$search'));
-    assert.match(qs, /\$filter=lastModifiedDateTime ge 2026-07-31T23:58:00\.000Z and categories\/any\(c:c eq 'daniel' or c eq 'kees'\)/);
+    assert.match(qs, /\$filter=lastModifiedDateTime ge 2026-07-31T23:58:00\.000Z and \(categories\/any\(c:c eq 'daniel'\) or categories\/any\(c:c eq 'kees'\)\)/);
+});
+
+test('graph list: category OR text is refused at run time with the typed query error, before any request', async () => {
+    await assert.rejects(
+        fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, query: 'category:A OR from:x' }),
+        (e) => e.code === 'mailbox_query_invalid' && e.status === 422 && /mixes them/.test(e.message),
+    );
+    assert.strictEqual(graphPaths.length, 0);
+});
+
+test('graph list: category:"x" with text and a gmail query are untouched by the category syntax', async () => {
+    graphResult = { value: [
+        { ...GRAPH_MSG, id: 'with', categories: ['Daniel'] },
+        { ...GRAPH_MSG, id: 'without', categories: [] },
+    ] };
+    const out = await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: SHARED, query: 'from:klant.nl category:"daniel"' });
+    assert.match(decodeURIComponent(graphPaths[0]), /\$search="from:klant\.nl"/);
+    assert.deepStrictEqual(out.messages.map((m) => m.provider_message_id), ['with']);
 });
 
 test('graph list: with text next to a label, the label filters the $search results here', async () => {
