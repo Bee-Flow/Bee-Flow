@@ -33,6 +33,10 @@ const setupRouter = require('../src/setup');
 const declarativeSettings = require('../src/declarativeSettings');
 
 setupConfig.init(storage);
+function readJsonOrNull(file) {
+    try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+}
+
 const realFetch = globalThis.fetch;
 
 async function post(pathname, body) {
@@ -109,10 +113,11 @@ test('H3: a successful switch in /setup binds to the new server', async () => {
     });
     try {
         await post('/setup', { mode: 'self-hosted', apiBaseUrl: NEW });
-        await until(() => config.tenantKey === 'new-key' && fs.existsSync(path.join(storage, 'tenant-key.json')));
+        const cacheFile = path.join(storage, 'tenant-key.json');
+        await until(() => config.tenantKey === 'new-key' && readJsonOrNull(cacheFile)?.boundApiBaseUrl === NEW);
         assert.equal(config.apiBaseUrl, NEW);
         assert.equal(setupConfig.get()?.apiBaseUrl, NEW);
-        const cached = JSON.parse(fs.readFileSync(path.join(storage, 'tenant-key.json'), 'utf8'));
+        const cached = readJsonOrNull(cacheFile);
         assert.equal(cached.boundApiBaseUrl, NEW);
     } finally {
         world.restore();
