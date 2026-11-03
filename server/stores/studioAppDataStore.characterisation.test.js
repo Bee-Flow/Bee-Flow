@@ -226,6 +226,7 @@ test('studioAppDataStore golden behaviour', async () => {
     await capture('deleteSyncState', () => store.deleteSyncState('app-1', 'con-1'));
     await capture('reconcileSyncStates', () => store.reconcileSyncStates('app-1', 'u1', ['con-1', 'con-2', 'con-1', '', 3]));
     await capture('reconcileSyncStates.none', () => store.reconcileSyncStates('app-1', 'u1'));
+    await capture('resetSyncStates', () => store.resetSyncStates('app-1', 'u1', ['con-1', 'con-1', '', 3]));
     await capture('logEmailSend', () => store.logEmailSend({ appId: 'app-1', connectorId: 'con-1', viewerUserId: 'u1', subject: 'S' }));
     await capture('listEmailSends', () => store.listEmailSends('app-1', { limit: 9999 }));
     // Members

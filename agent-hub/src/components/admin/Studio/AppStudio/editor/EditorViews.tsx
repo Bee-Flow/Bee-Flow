@@ -99,6 +99,8 @@ export function DataView({ app, definition, screenId, onCommit, dispatch, disabl
                             open={designerOpen}
                             onClose={() => setDesignerOpen(false)}
                             appId={app?.id}
+                            appName={app?.name}
+                            canEmpty={!disabled}
                             definition={definition}
                             screenId={screenId}
                             onCommit={onCommit}

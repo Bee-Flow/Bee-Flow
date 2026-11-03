@@ -293,3 +293,90 @@ describe('TablesManager — table source (linked vs own storage)', () => {
         expect((screen.getByRole('button', { name: /^Rows$/ }) as HTMLButtonElement).disabled).toBe(true);
     });
 });
+
+/**
+ * "Start clean": the Empty actions live in the table list, only for someone who
+ * may edit; the dialog makes the owner type the app's name, and a 409
+ * referenced_by is answered by widening the list. Everything goes through the
+ * mocked authFetch, so the real api function is under test.
+ */
+const PARENTS = { id: 'tbl_p', key: 'customers', name: 'Customers', fields: [], rowCount: 12 };
+const CHILD = { id: 'tbl_c', key: 'orders', name: 'Orders', fields: [], rowCount: 3 };
+
+const json = (status: number, body: unknown) => ({ ok: status < 400, status, json: async () => body, headers: { get: () => null } });
+
+let emptyReplies: Array<ReturnType<typeof json>>;
+
+function route(url: string) {
+    if (url.endsWith('/data/empty')) return emptyReplies.shift() ?? json(200, { emptied: [], skipped: [], connectorsReset: 0, files: 0 });
+    return json(200, { tables: [PARENTS, CHILD] });
+}
+
+function renderEmptyManager(props = {}) {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+        <QueryClientProvider client={qc}>
+            <TablesManager open appId="app1" appName="Shop" definition={null} screenId={null} {...props} />
+        </QueryClientProvider>,
+    );
+}
+
+const emptyCalls = () => asMock(authFetch).mock.calls.filter(([url]) => String(url).endsWith('/data/empty'));
+
+describe('TablesManager — empty tables', () => {
+    beforeEach(() => {
+        emptyReplies = [];
+        asMock(studioAppsApi.getSchema).mockResolvedValue({ model: { modelVersion: 1, tables: [PARENTS, CHILD] }, modelVersion: 1 });
+        asMock(authFetch).mockImplementation(async (url: string) => route(String(url)));
+    });
+
+    it('shows no Empty action to someone who may not edit', async () => {
+        renderEmptyManager({ canEmpty: false });
+        await screen.findByRole('button', { name: 'Customers' });
+        expect(screen.queryByRole('button', { name: /^empty/i })).toBeNull();
+    });
+
+    it('keeps Delete all rows disabled until the app name is typed, then empties all tables without tableIds', async () => {
+        emptyReplies.push(json(200, { emptied: [{ tableId: 'tbl_p', key: 'customers', rows: 12 }, { tableId: 'tbl_c', key: 'orders', rows: 3 }], skipped: [], connectorsReset: 1, files: 2 }));
+        renderEmptyManager();
+        await userEvent.click(await screen.findByRole('button', { name: 'Empty all tables' }));
+
+        const confirm = screen.getByRole('button', { name: 'Delete all rows' });
+        expect(confirm).toBeDisabled();
+        expect(screen.getByText('12 rows')).toBeInTheDocument();
+        await userEvent.type(screen.getByLabelText(/type the app/i), '  shop ');
+        expect(confirm).toBeEnabled();
+        await userEvent.click(confirm);
+
+        await waitFor(() => expect(emptyCalls()).toHaveLength(1));
+        expect(JSON.parse(emptyCalls()[0][1].body)).toEqual({});
+        await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('15 rows and 2 files deleted, 1 connectors reset')));
+    });
+
+    it('empties one table by id and widens the list when the server says another table still points at it', async () => {
+        emptyReplies.push(
+            json(409, { error: 'referenced', code: 'referenced_by', tables: [{ tableId: 'tbl_p', key: 'customers', referencedBy: ['orders'] }] }),
+            json(200, { emptied: [], skipped: [], connectorsReset: 0, files: 0 }),
+        );
+        renderEmptyManager();
+        await userEvent.click(await screen.findByRole('button', { name: 'Empty Customers' }));
+        await userEvent.type(screen.getByLabelText(/type the app/i), 'Shop');
+        await userEvent.click(screen.getByRole('button', { name: 'Delete all rows' }));
+
+        expect(JSON.parse(emptyCalls()[0][1].body)).toEqual({ tableIds: ['tbl_p'] });
+        expect(await screen.findByText('Empty orders too — it still points at customers')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Include these tables' }));
+
+        await waitFor(() => expect(emptyCalls()).toHaveLength(2));
+        expect(JSON.parse(emptyCalls()[1][1].body)).toEqual({ tableIds: ['tbl_p', 'tbl_c'] });
+    });
+
+    it('shows the server’s sentence when emptying fails', async () => {
+        emptyReplies.push(json(403, { error: 'Only the owner may do this.' }));
+        renderEmptyManager();
+        await userEvent.click(await screen.findByRole('button', { name: 'Empty all tables' }));
+        await userEvent.type(screen.getByLabelText(/type the app/i), 'Shop');
+        await userEvent.click(screen.getByRole('button', { name: 'Delete all rows' }));
+        expect(await screen.findByText('Only the owner may do this.')).toBeInTheDocument();
+    });
+});

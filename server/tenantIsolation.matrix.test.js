@@ -61,7 +61,7 @@ before(async () => {
     }
     for (const u of [USER_A, USER_B]) await userStore.createUser({ ...u, passwordHash: 'x' });
     // Stores initialise their schema on first use; PGlite is one session, so one at a time.
-    for (const store of ['agentStore', 'webpageStore', 'automationStore', 'datatableStore', 'notebookStore']) {
+    for (const store of ['agentStore', 'webpageStore', 'automationStore', 'datatableStore', 'notebookStore', 'studioAppStore']) {
         const s = require(`./stores/${store}`);
         if (typeof s.initDB === 'function') await s.initDB();
     }

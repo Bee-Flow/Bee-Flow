@@ -103,6 +103,23 @@ const FIXTURES = [
         },
         routes: ['GET /api/notebooks/:id', 'PUT /api/notebooks/:id', 'DELETE /api/notebooks/:id'],
     },
+    {
+        // The data/schema/members routes of an App Studio app (routes/studioAppData.js). An app of
+        // org B is unpublished, so a member of org A cannot even see it: 404 on every route.
+        kind: 'studioApp',
+        mount: '/api/studio-apps',
+        router: () => require('../routes/studioAppData'),
+        create: async ({ orgId, userId, index }) => {
+            const studioAppStore = require('../stores/studioAppStore');
+            const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `App ${index}` });
+            return app.id;
+        },
+        routes: [
+            // PUT schema and POST members validate their body before the gate, so an empty body is a 400.
+            'GET /api/studio-apps/:id/schema', 'GET /api/studio-apps/:id/members',
+            'DELETE /api/studio-apps/:id/members/:userId', 'POST /api/studio-apps/:id/data/empty',
+        ],
+    },
 ];
 
 module.exports = { FIXTURES };

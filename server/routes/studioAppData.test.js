@@ -83,6 +83,9 @@ stub('../stores/studioAppDataStore', {
     setRowCount: async () => ({}),
     bumpRowCount: async (appId, tableKey, delta, ownerId) => { rowBumps.push({ appId, tableKey, delta, ownerId }); return {}; },
     getRowCounts: async (appId) => rowCountsByApp.get(appId) || {},
+    resetSyncStates: async () => 0,
+    listAttachments: async () => [],
+    deleteAttachment: async () => true,
     saveDataModel: async (appId, ownerId, model, opts) => {
         saveModelCalls.push({ appId, ownerId, model, opts });
         return { ok: true, version: (models.get(appId)?.modelVersion || 0) + 1 };
@@ -111,6 +114,13 @@ stub('../stores/studioAppDbStore', {
         return { changes: r.changes, lastInsertRowid: Number(r.lastInsertRowid) };
     },
     sizeBytes: async () => dbSize,
+    batch: async (ownerId, appId, statements) => {
+        dbCalls.push({ op: 'batch', ownerId, appId, statements });
+        return memdb.transaction(() => statements.map((st) => {
+            const stmt = memdb.prepare(st.sql);
+            return stmt.readonly ? { rows: stmt.all(...norm(st.params)) } : { changes: stmt.run(...norm(st.params)).changes };
+        }))();
+    },
 });
 
 stub('../stores/userStore', {
@@ -267,6 +277,20 @@ test('a member with read:own still sees the table in the list; a null-role viewe
 });
 
 // ── Create stamps created_by from the session ───────────────────────
+
+test('GET tables carries the stored row count of every table (0 when never counted)', async () => {
+    const app = makeApp();
+    const none = await dispatch({ url: `/${app.id}/data/tables`, user: OWNER });
+    assert.strictEqual(none.body.tables[0].rowCount, 0);
+    rowCountsByApp.set(app.id, { tasks: 7 });
+    const some = await dispatch({ url: `/${app.id}/data/tables`, user: OWNER });
+    assert.strictEqual(some.body.tables[0].rowCount, 7);
+    // A member reading only its own rows must not learn how many there are in total.
+    const member = await dispatch({ url: `/${app.id}/data/tables`, user: 'mem', orgIds: [ORG] });
+    assert.strictEqual(member.body.tables.length, 1);
+    assert.ok(!('rowCount' in member.body.tables[0]), 'no total count for a non-owner');
+    rowCountsByApp.delete(app.id);
+});
 
 test('create stamps created_by from SESSION; body created_by/id/org_id ignored', async () => {
     const app = makeApp();
@@ -496,6 +520,25 @@ test('non-owner (readable viewer) cannot GET/PUT schema or touch members → 403
     }
     assert.strictEqual(saveModelCalls.length, 0, 'no model save reached the store');
     assert.strictEqual(memberMutations.length, 0, 'no member mutation reached the store');
+});
+
+test('POST data/empty: owner 200 (owner-scoped batch), readable non-owner 403, invisible 404, unknown table 400', async () => {
+    const app = makeApp();
+    memdb.exec(`DELETE FROM tasks; INSERT INTO tasks (id, title) VALUES ('e1', 'a'), ('e2', 'b')`);
+    const url = `/${app.id}/data/empty`;
+    dbCalls.length = 0;
+    const viewer = await dispatch({ method: 'POST', url, user: 'viewer-1', orgIds: [ORG], body: {} });
+    assert.strictEqual(viewer.statusCode, 403);
+    const stranger = await dispatch({ method: 'POST', url, user: 'stranger', orgIds: ['other'], body: {} });
+    assert.strictEqual(stranger.statusCode, 404);
+    assert.strictEqual(dbCalls.length, 0, 'nothing reached the database');
+    const unknown = await dispatch({ method: 'POST', url, user: OWNER, body: { tableIds: ['tbl_nope'] } });
+    assert.strictEqual(unknown.statusCode, 400);
+    const ok = await dispatch({ method: 'POST', url, user: OWNER, body: {} });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.deepStrictEqual(ok.body.emptied, [{ tableId: 'tbl_tasks0', key: 'tasks', rows: 2 }]);
+    assert.strictEqual(dbCalls.at(-1).ownerId, OWNER);
+    assert.strictEqual(memdb.prepare('SELECT COUNT(*) AS n FROM tasks').get().n, 0);
 });
 
 test('invisible app → 404 for schema (not 403 — no existence leak)', async () => {
