@@ -11,12 +11,12 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 
 const { applyProjectCheckSchema, queryOf } = require('./testSchema');
 const { makeSignalReader, hasSpecialKinds } = require('./personalDataSignals');
 
-const pg = new PGlite();
+const pg = newPglite();
 let reader;
 
 const KB = '11111111-1111-1111-1111-111111111111';

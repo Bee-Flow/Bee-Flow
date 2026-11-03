@@ -23,7 +23,7 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 
 const { makeProjectStore, applyProjectSchema } = require('../stores/projectStore');
 const { makeSolutionStageStore, applySolutionStageSchema } = require('../stores/solutionStageStore');
@@ -58,7 +58,7 @@ const admit = (stage, key, status = 'queued') => store.insertDeployment({
 const settle = (id, status) => pg.query(`UPDATE solution_deployments SET status = $2, finished_at = NOW() WHERE id = $1`, [id, status]);
 
 before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await applyProjectSchema({ exec: (sql) => pg.exec(sql), runDdl: runDdl(pg) });
     await applySolutionStageSchema({ runDdl: runDdl(pg) });
     const { db } = pgliteDb(pg);

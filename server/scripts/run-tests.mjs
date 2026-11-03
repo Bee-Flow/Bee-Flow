@@ -245,6 +245,17 @@ if (reporterFlags.length > 0) {
     process.exit(1);
 }
 
+// PGLITE TEMPLATE. Most pglite files boot an empty cluster; initdb is ~1.4 s of
+// every ~1.9 s boot, so testUtils/pgliteTemplate.js hands them a pre-initialised
+// data directory from a disk cache. Build the small one here, once, before the
+// pool starts: otherwise every worker that needs it first builds it too. (The
+// large "whole ladder" template is built on demand by the files that use it.)
+// A failure only costs speed: newPglite() falls back to a plain boot.
+const PGLITE_TEMPLATE = path.join(SERVER_DIR, 'testUtils', 'pgliteTemplateBuild.js');
+if (runFiles.length > 0 && existsSync(PGLITE_TEMPLATE)) {
+    spawnSync(process.execPath, [PGLITE_TEMPLATE, '--prepare'], { cwd: SERVER_DIR, env: childEnv, stdio: 'inherit' });
+}
+
 const CONCURRENCY = Number(process.env.TEST_CONCURRENCY) || availableParallelism();
 // Base budget per file; a file with a recorded duration gets up to 5x that
 // (testShards.fileTimeoutMs), so a heavy file is not killed under full load.

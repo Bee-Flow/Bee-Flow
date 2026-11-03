@@ -76,8 +76,8 @@ const run = async (sql, params = []) => {
 const seededIds = {}; // title -> record id
 
 test('(setup) boot pglite, materialise pg DDL, seed via compiled inserts', async () => {
-    const { PGlite } = require('@electric-sql/pglite');
-    db = new PGlite();
+    const { newPglite } = require('../testUtils/pgliteTemplate');
+    db = newPglite();
     await db.exec("SET TIME ZONE 'UTC'");
     await db.exec(ddlForTable(PROJECTS, { tableKeyById: KEY_BY_ID }));
     await db.exec(ddlForTable(TASKS, { tableKeyById: KEY_BY_ID }));

@@ -28,9 +28,9 @@ const path = require('node:path');
 
 const SERVER = path.resolve(__dirname, '..');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 
 const executed = [];   // every statement the migration ran, in order
 
@@ -236,7 +236,7 @@ test('it is a no-op on a deployment that has no datatables at all', async () => 
     // A fresh install reaches this migration before datatableStore.createSchema
     // has run. Probing first is what keeps the ladder from logging a failure
     // for every new deployment.
-    const fresh = new PGlite();
+    const fresh = newPglite();
     const realQuery = require(path.join(SERVER, 'db.js')).getOne;
     require(path.join(SERVER, 'db.js')).getOne = async (sql, params) => {
         const r = Array.isArray(params) && params.length

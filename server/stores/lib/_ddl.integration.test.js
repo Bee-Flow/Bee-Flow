@@ -21,14 +21,14 @@
  * Run: cd server && node --test stores/lib/_ddl.integration.test.js
  */
 
-const { test } = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert');
 
 // ── The real db.js, its pool answered by one pglite connection ──────────────
 // Before the stores are required: they start their schema init at load.
 // pglite is ONE connection, so these tests stay sequential.
 const { usePglitePool } = require('../../testUtils/pglitePool');
-const { query: rawQuery } = usePglitePool();
+const { query: rawQuery, close } = usePglitePool();
 
 // Testhaak voor test 4: één statement dat "de verbinding verliest" —
 // een rejectie ZONDER SQLSTATE, zoals een pool-timeout of dode socket.
@@ -156,3 +156,6 @@ test('kapotte invoer faalt meteen en synchroon', () => {
     assert.throws(() => runDdl('x', ['SELECT 1'], { lockTimeout: "15s'; DROP TABLE users; --" }), TypeError,
         'lockTimeout wordt geïnterpoleerd en moet dus gevalideerd zijn');
 });
+
+// pglite holds the process open until it is closed.
+after(close);

@@ -19,10 +19,10 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { buildRunFilterWhere } = require('./runs');
 
-const pg = new PGlite();
+const pg = newPglite();
 
 before(async () => {
     await pg.exec(`

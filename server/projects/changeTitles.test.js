@@ -16,7 +16,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { makeChangeTitles } = require('./changeTitles');
 
 let pg;
@@ -25,7 +25,7 @@ const queries = [];
 const warnings = [];
 
 test.before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await pg.exec(`
         CREATE TABLE notebooks (id TEXT PRIMARY KEY, name TEXT NOT NULL, project_id TEXT);
         CREATE TABLE studio_documents (id TEXT PRIMARY KEY, name TEXT NOT NULL, project_id TEXT,

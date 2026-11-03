@@ -21,7 +21,7 @@
  * Run: cd server && node --test --test-force-exit migrations/org-granted-capabilities-2026-09.integration.test.js
  */
 
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -30,9 +30,9 @@ const Module = require('node:module');
 const SERVER = path.join(__dirname, '..');
 
 // ── pglite behind the db.js facade ─────────────────────────────────────────
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 
 // node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
 const rawQuery = pgliteQuery(pg);
@@ -165,3 +165,6 @@ test('today the real registry equals the seeded pair — production run is a no-
     // And the derived "new ids" logic sees the mocked growth.
     assert.deepStrictEqual(newUserFacingCoreIds(), [NEW_ID]);
 });
+
+// pglite holds the process open until it is closed.
+after(async () => { await pg.close(); });

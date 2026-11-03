@@ -77,8 +77,8 @@ const TASKS = {
 };
 
 test('(setup) boot pglite, studio_apps fixture, engine', async () => {
-    const { PGlite } = require('@electric-sql/pglite');
-    pg = new PGlite();
+    const { newPglite } = require('../../testUtils/pgliteTemplate');
+    pg = newPglite();
     await pg.exec("SET TIME ZONE 'UTC'");
     await pg.exec(`
         CREATE TABLE studio_apps (

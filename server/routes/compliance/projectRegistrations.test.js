@@ -10,13 +10,13 @@
 
 const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 
 const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const { applyProjectCheckSchema, queryOf } = require('../../compliance/projects/testSchema');
 const { makeProjectRegistrationRouter } = require('./projectRegistrations');
 
-const pg = new PGlite();
+const pg = newPglite();
 const state = { regs: new Map(), evidence: [], reruns: [] };
 const store = {
     listSubjectRegistrations: async (orgId) => [...state.regs.values()].filter(r => r.orgId === orgId),

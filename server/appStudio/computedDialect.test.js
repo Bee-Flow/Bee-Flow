@@ -75,8 +75,9 @@ test('the quote-intake model materialises on Postgres and computes correctly', a
 
     let db;
     try {
-        const { PGlite } = require('@electric-sql/pglite');
-        db = new PGlite();
+        const { newPglite } = require('../testUtils/pgliteTemplate');
+        db = newPglite();
+        t.after(() => db.close());   // pglite holds the process open until it is closed
         await db.exec("SET TIME ZONE 'UTC'");
     } catch (e) {
         t.skip(`pglite unavailable: ${e.message}`);

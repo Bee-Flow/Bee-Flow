@@ -23,7 +23,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 const express = require('express');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 
 const { makeProjectStore, applyProjectSchema } = require('../stores/projectStore');
 const { makeSolutionStageStore, applySolutionStageSchema } = require('../stores/solutionStageStore');
@@ -95,7 +95,7 @@ function call(user, method, path, body) {
 }
 
 before(async () => {
-    pg = new PGlite();
+    pg = newPglite();
     await applyProjectSchema({ exec: (sql) => pg.exec(sql), runDdl: runDdl(pg) });
     await applySolutionStageSchema({ runDdl: runDdl(pg) });
     const { db } = pgliteDb(pg);

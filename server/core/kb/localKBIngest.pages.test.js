@@ -18,9 +18,9 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 
 // node-postgres's `query(sql, params)` over this PGlite.
 const q = pgliteQuery(pg);

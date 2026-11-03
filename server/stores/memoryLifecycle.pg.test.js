@@ -7,13 +7,13 @@
  * Run: cd server && node --test stores/memoryLifecycle.pg.test.js
  */
 
-const { test, describe, before, beforeEach } = require('node:test');
+const { test, describe, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
 const { createLifecycle } = require('./memoryLifecycle');
 
-const pg = new PGlite();
+const pg = newPglite();
 const db = { run: pgliteQuery(pg) };
 const lc = createLifecycle(db);
 
@@ -223,3 +223,6 @@ describe('enforceCap', () => {
         assert.equal(await lc.enforceCap('', 1), 0);
     });
 });
+
+// pglite holds the process open until it is closed.
+after(async () => { await pg.close(); });

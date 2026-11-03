@@ -16,7 +16,7 @@
  * Run: cd server && node --test --test-force-exit migrations/automation-form-submitter-2026-09.integration.test.js
  */
 
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -24,9 +24,9 @@ const Module = require('node:module');
 
 const SERVER = path.join(__dirname, '..');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 
 // node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
 const rawQuery = pgliteQuery(pg);
@@ -99,3 +99,6 @@ test('old writers keep working: a row inserted without the column reads NULL', a
         { id: 'run-old', submitted_by_user_id: null },
     ], 'pre-existing and owner-written rows are the anonymous/unknown state, never invented');
 });
+
+// pglite holds the process open until it is closed.
+after(async () => { await pg.close(); });

@@ -21,9 +21,9 @@ const path = require('node:path');
 
 const SERVER = path.resolve(__dirname, '..', '..');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 const q = pgliteQuery(pg);
 
 // Both stores read through db.js's getOne/getAll; those answer from this

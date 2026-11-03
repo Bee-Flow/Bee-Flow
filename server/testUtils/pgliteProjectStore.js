@@ -5,13 +5,13 @@
  */
 'use strict';
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('./pgliteTemplate');
 
 const { makeProjectStore, applyProjectSchema } = require('../stores/projectStore');
 const { pgliteDb } = require('./pgliteDb');
 
 async function openPgliteProjectStore() {
-    const pg = new PGlite();
+    const pg = newPglite();
     const { db } = pgliteDb(pg);
     /**
      * @param {string} _tag

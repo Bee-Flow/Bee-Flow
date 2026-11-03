@@ -11,10 +11,10 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
-const pg = new PGlite();
+const pg = newPglite();
 const restore = installResolveStub({
     './core': {
         initDB: async () => {},

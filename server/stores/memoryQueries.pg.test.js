@@ -10,14 +10,14 @@
  * Run: cd server && node --test stores/memoryQueries.pg.test.js
  */
 
-const { test, before, beforeEach } = require('node:test');
+const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 const { createMemoryQueries } = require('./memoryQueries');
 const { hydrateRows, keyHashForWrite, PLAINTEXT_WRITE } = require('./memoryCrypto');
 
-const pg = new PGlite();
+const pg = newPglite();
 const db = dbFacade(pgliteDb(pg).db);
 
 const lifecycleCalls = [];
@@ -295,3 +295,6 @@ test('listActiveByIds returns only readable active rows: never another person\'s
     assert.deepStrictEqual(got.map((m) => m.id).sort(), ['mine', 'mine-art9', 'pool-ok']);
     assert.deepStrictEqual(await q.listActiveByIds('bob', ids), got.filter((m) => !m.project_id), 'without a role check no pool row is returned');
 });
+
+// pglite holds the process open until it is closed.
+after(async () => { await pg.close(); });

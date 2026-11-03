@@ -15,7 +15,7 @@
  * Run: cd server && node --test --test-force-exit migrations/org-mfa-required-2026-09.integration.test.js
  */
 
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -23,9 +23,9 @@ const Module = require('node:module');
 
 const SERVER = path.join(__dirname, '..');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
-const pg = new PGlite();
+const pg = newPglite();
 
 // node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
 const rawQuery = pgliteQuery(pg);
@@ -112,3 +112,6 @@ test('an org created later is stamped off at the next tick — same as the reade
     assert.strictEqual(JSON.parse(rows[`${CONFIG_KEY_PREFIX}org-3`]).required, false,
         'a creation-time ON write would survive (row exists ⇒ DO NOTHING); absent that, off is stamped');
 });
+
+// pglite holds the process open until it is closed.
+after(async () => { await pg.close(); });

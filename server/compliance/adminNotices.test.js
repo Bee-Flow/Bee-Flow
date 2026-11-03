@@ -13,11 +13,11 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 
 const { makeAdminNotices, RECIPIENT_SQL, _windowKey } = require('./adminNotices');
 
-const pg = new PGlite();
+const pg = newPglite();
 const getAll = async (sql, params) => (await pg.query(sql, params)).rows;
 
 before(async () => {

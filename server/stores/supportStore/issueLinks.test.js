@@ -27,10 +27,10 @@ const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { usePglitePool } = require('../../testUtils/pglitePool');
 
-const pg = new PGlite();
+const pg = newPglite();
 
 // db.js's pool answered by the same PGlite the test seeds.
 const { query, restore: restorePool } = usePglitePool(pg);

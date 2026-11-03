@@ -120,8 +120,8 @@ test('talk: meeting notes from a Talk room, by room token', async () => {
 });
 
 test('a missing table is no meetings, not a failure', async () => {
-    const { PGlite } = require('@electric-sql/pglite');
-    const empty = pgliteDb(new PGlite());
+    const { newPglite } = require('../../../testUtils/pgliteTemplate');
+    const empty = pgliteDb(newPglite());
     try {
         const c = { userId: 'u1', ...win, deps: { db: empty.db } };
         assert.deepStrictEqual(await collectTeamsMeetings(c), []);

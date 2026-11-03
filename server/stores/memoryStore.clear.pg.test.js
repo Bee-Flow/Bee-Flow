@@ -50,10 +50,10 @@
 const { test, describe, before, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../testUtils/pglitePool');
 // `let`: the upgrade suite at the end swaps in a database with the OLD schema.
-let pg = new PGlite();
+let pg = newPglite();
 
 // node-postgres's `query(sql, params)` over the current `pg` (read per call:
 // the upgrade suite swaps it).
@@ -950,7 +950,7 @@ describe('upgrade from the previous schema', () => {
     };
 
     before(async () => {
-        pg = new PGlite();
+        pg = newPglite();
         await query(`CREATE TABLE users (id TEXT PRIMARY KEY, username TEXT, "displayName" TEXT, "organizationId" TEXT, "orgWrappedDEK" TEXT)`);
         await query(`CREATE TABLE organizations (id TEXT PRIMARY KEY, name TEXT, encryption_tier TEXT DEFAULT 'none', encryption_scope TEXT, org_root_key TEXT, org_key_version INTEGER)`);
         await query(`CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, owner_id TEXT NOT NULL, organization_id TEXT DEFAULT '')`);

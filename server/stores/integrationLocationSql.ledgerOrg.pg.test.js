@@ -17,12 +17,12 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 const { installResolveStub } = require('../testUtils/stubRequire');
 const { LEDGER_ORG_SQL } = require('./integrationLocationSql');
 
-const pg = new PGlite();
+const pg = newPglite();
 const fakeDb = dbFacade(pgliteDb(pg).db);
 
 const restore = installResolveStub({

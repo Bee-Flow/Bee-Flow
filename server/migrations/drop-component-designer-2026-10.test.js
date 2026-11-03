@@ -9,7 +9,7 @@
 
 const { test, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../testUtils/pgliteTemplate');
 
 const { pgliteDb } = require('../testUtils/pgliteDb');
 const { up } = require('./drop-component-designer-2026-10');
@@ -17,7 +17,7 @@ const { LOOSE_MIGRATIONS } = require('../boot/bootMigrations');
 
 const open = [];
 function fresh() {
-    const h = pgliteDb(new PGlite());
+    const h = pgliteDb(newPglite());
     open.push(h.pg);
     return h;
 }

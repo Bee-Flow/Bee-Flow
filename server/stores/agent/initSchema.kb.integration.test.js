@@ -29,11 +29,11 @@
  * Run: cd server && node --test stores/agent/initSchema.kb.integration.test.js
  */
 
-const { test } = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert');
 
 const { usePglitePool } = require('../../testUtils/pglitePool');
-const { query: rawQuery } = usePglitePool();
+const { query: rawQuery, close } = usePglitePool();
 
 const { initDB } = require('./initSchema');
 
@@ -117,3 +117,6 @@ test('a NULL cannot be written into it — "nothing" has one representation', as
         /null value|not-null|violates/i
     );
 });
+
+// pglite holds the process open until it is closed.
+after(close);

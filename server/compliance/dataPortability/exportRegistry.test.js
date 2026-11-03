@@ -33,9 +33,9 @@ const GAP_KINDS = ['agents', 'knowledge_bases', 'conversations', 'ai_webpages', 
 
 /** A real Postgres (pglite) with the project store's own schema. */
 async function projectPg() {
-    const { PGlite } = require('@electric-sql/pglite');
+    const { newPglite } = require('../../testUtils/pgliteTemplate');
     const { applyProjectSchema } = require('../../stores/projectStore');
-    const pg = new PGlite();
+    const pg = newPglite();
     await applyProjectSchema({
         exec: (sql) => pg.exec(sql),
         runDdl: async (_tag, statements) => { for (const s of statements) await pg.exec(typeof s === 'string' ? s : s.sql); },

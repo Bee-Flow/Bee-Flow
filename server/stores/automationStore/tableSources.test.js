@@ -10,11 +10,11 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../../testUtils/pglitePool');
 const { getClaimedFormUploadForAutomation } = require('./tableSources');
 
-const pg = new PGlite();
+const pg = newPglite();
 const query = pgliteQuery(pg);
 const db = {
     initDB: async () => {},

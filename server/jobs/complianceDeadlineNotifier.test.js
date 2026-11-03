@@ -365,8 +365,8 @@ test("a DSR in the 'default' bucket nudges that bucket's admins, users stored wi
     // The admin lookup against a real Postgres: 'default' is users whose
     // "organizationId" is '' or NULL, the same bucket the DSR intake files a
     // request from such a user under.
-    const { PGlite } = require('@electric-sql/pglite');
-    const pg = new PGlite();
+    const { newPglite } = require('../testUtils/pgliteTemplate');
+    const pg = newPglite();
     try {
         await pg.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, "organizationId" TEXT DEFAULT '', role TEXT, "orgRole" TEXT)`);
         await pg.query(`INSERT INTO users VALUES ('op', '', 'admin', NULL), ('dpo', NULL, 'user', 'dpo'), ('member', '', 'user', NULL), ('other', 'org_a', 'admin', NULL)`);

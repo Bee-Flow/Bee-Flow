@@ -10,12 +10,12 @@
 
 const { test, after } = require('node:test');
 const assert = require('node:assert');
-const { PGlite } = require('@electric-sql/pglite');
+const { newPglite } = require('../../testUtils/pgliteTemplate');
 
 const { applyProjectCheckSchema, queryOf } = require('./testSchema');
 const { projectIdsOfRow, projectNames } = require('./projectNames');
 
-const pg = new PGlite();
+const pg = newPglite();
 after(() => pg.close());
 
 test('a row refers to its subject project, its evidence project and its offenders', () => {
