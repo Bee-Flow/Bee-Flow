@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BuildTab from './BuildTab';
@@ -287,9 +287,14 @@ describe('BuildTab — the hand-over after the assistant saved', () => {
         const onActivate = vi.fn();
         const { container } = renderTab({ assistantOpen: true, state: done(), headerProps: { onActivate, onDryRun: vi.fn(), isActive: false } });
         await flush();
-        const card = container.querySelector('[data-testid="assistant-handover"]');
-        expect(card?.textContent).toContain('Ready — saved, not switched on yet. To use it:');
-        act(() => { (card?.querySelector('button') as HTMLButtonElement).click(); });
+        // The card is a lazy chunk: wait for it rather than read the first paint.
+        const card = await waitFor(() => {
+            const el = container.querySelector('[data-testid="assistant-handover"]');
+            if (!el) throw new Error('no hand-over card yet');
+            return el;
+        });
+        expect(card.textContent).toContain('Ready — saved, not switched on yet. To use it:');
+        act(() => { (card.querySelector('button') as HTMLButtonElement).click(); });
         expect(onActivate).toHaveBeenCalledTimes(1);
     });
 

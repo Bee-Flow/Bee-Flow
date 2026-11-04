@@ -8,7 +8,7 @@ import { THEME_PRESETS } from './formStyle/stylePresets';
  * lazy chunk that loads when a form is actually edited.
  */
 
-export interface FormFieldDeclaration {
+interface FormFieldDeclaration {
     name: string;
     type: string;
     label: string;
