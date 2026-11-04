@@ -46,6 +46,13 @@ export interface FormTestSession {
     mode?: FormRunMode;
     /** The Run live confirm was answered yes in this session. */
     liveConfirmed?: boolean;
+    /**
+     * "Test step" on a step after this form: the run page one starts ends after
+     * that step (POST /:id/form-test untilStepId). Pauses before it still wait here.
+     */
+    untilStepId?: string | null;
+    /** That step's name on the canvas, for the note on page one. */
+    untilLabel?: string | null;
 }
 
 /** Who a test run is, as the overlay's chip says it: a dry run, a live test, or a production run (no chip). */
@@ -64,7 +71,10 @@ export type FormRunClose = (info?: FormRunCloseInfo) => void;
  * the session: `triggerStepId` names the form trigger of page one, so an
  * upload on a second form trigger is checked against that trigger's own
  * questions (POST /:id/form-test/upload). Left out, the primary trigger.
+ * `untilStepId` / `untilLabel`: page one tests that one step (the session's).
  */
 export interface FormRunShellProps {
     triggerStepId?: string | null;
+    untilStepId?: string | null;
+    untilLabel?: string | null;
 }

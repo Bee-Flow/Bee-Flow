@@ -106,9 +106,24 @@ function OverlayBody({ j, automationId, startMode }: { j: Journey; automationId:
     return <WorkingPhase />;
 }
 
+/**
+ * Page one of a "Test step" on a step after this form: why the form opened,
+ * and that the run (dry or live) ends after that step.
+ */
+function UntilNote({ label }: { label: string | null }) {
+    const { t } = useTranslation();
+    return (
+        <p className="mb-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs text-[var(--text-secondary)]" data-testid="form-run-until-note">
+            {label
+                ? t('automations.form_run_overlay.until_step_note', 'Fill in the form to test "{step}". The run stops after that step.', { step: label })
+                : t('automations.form_run_overlay.until_step_note_unnamed', 'Fill in the form to test this step. The run stops after that step.')}
+        </p>
+    );
+}
+
 export default function FormRunOverlay({
     automationId, form, runId: attachRunId = null, onStartRun, startMode = 'dry', onFollowRun, onClose,
-    runKind = null, triggerStepId = null, followTiming,
+    runKind = null, triggerStepId = null, untilStepId = null, untilLabel = null, followTiming,
 }: FormRunOverlayProps) {
     const { t } = useTranslation();
     const attached = !form && !!attachRunId;
@@ -138,6 +153,7 @@ export default function FormRunOverlay({
                 </div>
                 {j.s.prompt && <FormRunClosePrompt prompt={j.s.prompt} onClose={j.close} onDiscardRun={j.discardAndClose} onBack={j.back} />}
                 <div className="p-4 max-h-[75vh] overflow-auto">
+                    {untilStepId && j.s.phase === 'form' && !j.s.page.stepId && <UntilNote label={untilLabel} />}
                     <OverlayBody j={j} automationId={automationId} startMode={startMode} />
                 </div>
             </div>

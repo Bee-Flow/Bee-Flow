@@ -8,16 +8,16 @@ import { runStartRefusal } from '@/api/queries/automation/runAccess';
 import { GATEWAY_DROP, awaitRunAfterDrop } from '@/api/dryRun';
 import { runOutcomeToast, toastStepLabel } from './runs/runOutcomeToast';
 import { runPhase } from './runs/runPhase';
+import { formSessionFor, isBareForm, isPrimary, stepStart, triggerById, triggerInput, type ExecuteRequest } from './runs/stepStart';
 import type { BuilderTab } from './useBuilderTabUrl';
 import type { Dispatch, SetStateAction } from 'react';
 import type useAutomationApi from '@/hooks/useAutomationApi';
 import type { AutomationApiError, RunStartBody, RunStartReply } from '@/hooks/useAutomationApi';
 import type useAutomationBuilderStream from '@/hooks/useAutomationBuilderStream';
-import type { ExecuteStepOptions, ExecuteStepResult, SideEffectStep } from '@/hooks/automationBuilder/useRunControls';
+import type { ExecuteStepResult, SideEffectStep } from '@/hooks/automationBuilder/useRunControls';
 import type useConfirm from '../../shared/useConfirm';
 import type { FlowDefinition, FlowStep } from './flow/types';
 import type { FormRunMode, FormRunStart, FormRunStartResult, FormTestSession } from './formRunContract';
-import type { FormDef } from '../../forms/PublicFormRenderer.types';
 
 type Stream = ReturnType<typeof useAutomationBuilderStream>;
 type Confirm = ReturnType<typeof useConfirm>['confirm'];
@@ -43,46 +43,14 @@ export interface UseBuilderRunsOptions {
     setTab: (tab: BuilderTab) => void;
 }
 
-/** Execute options as the canvas and the step editor hand them over. */
-export type ExecuteRequest = ExecuteStepOptions & { openForm?: boolean };
+/** Execute options as the canvas and the step editor hand them over (runs/stepStart.ts). */
+export type { ExecuteRequest } from './runs/stepStart';
 
-type Trigger = FlowStep & { kind?: string; form?: unknown; pinnedOutput?: unknown };
 type ToastRun = Parameters<typeof runOutcomeToast>[1];
 
 /** A trigger id from a handler argument: the hotkey hands over nothing, the split button a click event. */
 function triggerIdArg(arg: unknown): string | null {
     return typeof arg === 'string' && arg ? arg : null;
-}
-
-/** The primary trigger, or the trigger (primary or additional) with that id; null when `id` names no trigger. */
-function triggerById(def: FlowDefinition | null | undefined, id: string | null): Trigger | null {
-    const primary = (def?.trigger ?? null) as Trigger | null;
-    if (!id) return primary;
-    return ([primary, ...(def?.triggers || [])] as Array<Trigger | null>).find(tr => tr?.id === id) ?? null;
-}
-
-const isPrimary = (def: FlowDefinition | null | undefined, tr: Trigger | null) => !!tr && tr.id === def?.trigger?.id;
-
-/** The overlay session a form trigger opens: its declaration as it stands on screen (not the stored copy). */
-function formSessionFor(tr: Trigger | null): FormTestSession | null {
-    return tr?.kind === 'form' && tr.form ? { form: tr.form as FormDef, triggerStepId: tr.id } : null;
-}
-
-/** A form trigger nobody has filled in yet: nothing to run WITH until somebody answers the page. */
-const isBareForm = (tr: Trigger | null) => tr?.kind === 'form' && tr.pinnedOutput == null;
-
-/**
- * What a run entered through `tr` carries (BFSF-408): that trigger's own saved
- * sample, and its id when it is not the primary one, so the server seeds the
- * DAG there. `{}` without a sample, so an untouched automation sends what it
- * always did.
- */
-function triggerInput(def: FlowDefinition | null | undefined, tr: Trigger | null): { triggerPayload?: unknown; triggerStepId?: string } {
-    const sample = tr?.pinnedOutput ?? null;
-    return {
-        ...(sample == null ? {} : { triggerPayload: sample }),
-        ...(tr && !isPrimary(def, tr) ? { triggerStepId: tr.id } : {}),
-    };
 }
 
 /** A proxy or the network gave up between the browser and the server; the run may well go on. */
@@ -114,8 +82,15 @@ function confirmLive(confirm: Confirm, t: TranslateFn) {
  * path (POST /:id/form-test), so uploads are claimed, picks read and the
  * trigger carries the form's headers, as a visitor's run would (studio F8).
  */
-async function sendFormTest(api: UseBuilderRunsOptions['api'], mode: FormRunMode, aid: string, body: RunStartBody, ask: { confirm: Confirm; t: TranslateFn }): Promise<RunStartReply | null | 'declined'> {
-    const form = { values: (body.triggerPayload || {}) as Record<string, unknown>, ...(body.triggerStepId ? { triggerStepId: body.triggerStepId } : {}), mode, respond: 'created' as const };
+async function sendFormTest(api: UseBuilderRunsOptions['api'], mode: FormRunMode, aid: string, body: RunStartBody, ask: { confirm: Confirm; t: TranslateFn; untilStepId?: string | null }): Promise<RunStartReply | null | 'declined'> {
+    const form = {
+        values: (body.triggerPayload || {}) as Record<string, unknown>,
+        ...(body.triggerStepId ? { triggerStepId: body.triggerStepId } : {}),
+        mode,
+        // "Test step" on a step after a bare form: the run ends after that step.
+        ...(ask.untilStepId ? { untilStepId: ask.untilStepId } : {}),
+        respond: 'created' as const,
+    };
     if (mode === 'dry') return api.formTest<RunStartReply>(aid, form);
     const started = await runWithCallerNotice<RunStartReply>(
         { run: (id, b) => api.formTest<RunStartReply>(id, b as typeof form), getCallerNotice: fetchCallerNotice, ackCallerNotice: acknowledgeCallerNotice },
@@ -211,8 +186,12 @@ export default function useBuilderRuns({
         return { kind: 'started', runId: rec.run.id };
     };
 
-    /** Start a whole-flow run. Throws a refusal (the overlay shows it); the header callers swallow it after setError. */
-    const startRun = async (mode: FormRunMode, body: RunStartBody, viaForm = false): Promise<FormRunStartResult> => {
+    /**
+     * Start a whole-flow run (`viaForm`: through the form's own submission
+     * path, bounded to end after `untilStepId` when it names one). Throws a
+     * refusal (the overlay shows it); the header callers swallow it after setError.
+     */
+    const startRun = async (mode: FormRunMode, body: RunStartBody, viaForm: false | { untilStepId?: string | null } = false): Promise<FormRunStartResult> => {
         startingRef.current = true;
         setBusy(true); setError(null);
         const clickedAt = Date.now();
@@ -224,7 +203,7 @@ export default function useBuilderRuns({
                 setError(message);
                 return { kind: 'skipped', message };
             }
-            const reply = viaForm ? await sendFormTest(api, mode, aid, body, { confirm, t }) : await sendStart(mode, aid, body);
+            const reply = viaForm ? await sendFormTest(api, mode, aid, body, { confirm, t, untilStepId: viaForm.untilStepId }) : await sendStart(mode, aid, body);
             return reply === 'declined' ? { kind: 'declined' } : startedFrom(reply);
         } catch (e: unknown) {
             const recovered = aid && isDrop(e) ? await recoverStart(aid, clickedAt) : null;
@@ -287,28 +266,25 @@ export default function useBuilderRuns({
             setFormTest(f => (f ? { ...f, liveConfirmed: true } : f));
         }
         const tr = triggerById(effectiveDef, session?.triggerStepId || null);
-        return startRun(mode, { triggerPayload: answers, ...(tr && !isPrimary(effectiveDef, tr) ? { triggerStepId: tr.id } : {}) }, true);
+        return startRun(mode, { triggerPayload: answers, ...(tr && !isPrimary(effectiveDef, tr) ? { triggerStepId: tr.id } : {}) }, { untilStepId: session?.untilStepId });
     };
 
     /**
-     * ▶ Execute (and Retry from here) with the trigger's data. A bare form
-     * trigger, or "Test this form" (openForm) on any form trigger, opens its page
-     * in dry mode instead. Executing a trigger runs with THAT trigger's sample
-     * and id; any other step with the primary's. When earlier steps that send or
-     * write would run first, the server asks for a yes (409
+     * ▶ Execute (and Retry from here) with the trigger's data, or the form page
+     * to fill in first (stepStart). Executing a trigger runs with THAT trigger's
+     * sample and id; any other step with the primary's. When earlier steps that
+     * send or write would run first, the server asks for a yes (409
      * side_effects_need_confirm): the confirm names them and the step runs again
      * with confirmSideEffects.
      */
     const runStep = async (stepId: string, opts: ExecuteRequest = {}): Promise<ExecuteStepResult> => {
-        const { openForm, ...runOpts } = opts;
-        const tr = triggerById(effectiveDef, stepId);
-        const session = formSessionFor(tr);
-        if ((openForm && session) || (runOpts.triggerPayload == null && isBareForm(tr))) {
-            if (session) openSession({ ...session, mode: 'dry' });
+        const start = stepStart(effectiveDef, state, stepId, opts);
+        if ('form' in start) {
+            if (start.form) openSession(start.form);
             else toast.info(t('automation_testing.start.form_needs_question', 'Add at least one question to this form first.'));
             return null;
         }
-        const merged: ExecuteStepOptions = { ...triggerInput(effectiveDef, tr ?? triggerById(effectiveDef, null)), ...runOpts };
+        const merged = start.input;
         const first = await executeStep(stepId, merged);
         if (first?.kind !== 'needs_confirm') return first;
         if (!await confirmUpstream(confirm, t, sideEffectNames(effectiveDef, first.steps))) return first;

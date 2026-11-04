@@ -2,7 +2,7 @@ import { Search, ArrowLeft, X, MousePointer2, MessageCircleQuestion } from 'luci
 import React, { useMemo, useState } from 'react';
 import { countFieldsInUse } from './fieldInUse';
 import { filterGroups } from './filterFields';
-import InputNodeSection from './InputNodeSection';
+import InputNodeSection, { isPlaceholderGroup } from './InputNodeSection';
 import { FieldRow } from './VariableTree';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { walkPath } from '../../../../utils/bindingHelpers';
@@ -102,6 +102,9 @@ export default function InputDataPanel({
             && g.kind !== 'trigger_meta' && (g.fields || []).length)?.id ?? null;
     }, [ordered, nearestId]);
     const shown = useMemo(() => filterGroups(ordered, query), [ordered, query]);
+    // No source has run yet: every value on show is an example, so the hint
+    // must not say they come from the last run.
+    const allSamples = useMemo(() => groups.some(isPlaceholderGroup) && !groups.some((g: InputGroup) => g.hasRealData), [groups]);
 
     const tableGroup = tableFor ? groups.find((g: InputGroup) => g.id === tableFor) : null;
 
@@ -189,7 +192,7 @@ export default function InputDataPanel({
                             <React.Fragment key={g.id}>
                                 <div className="px-2 pt-1 text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)] truncate">{g.label}</div>
                                 {(g.fields || []).map((f: NonNullable<InputGroup['fields']>[number]) => (
-                                    <FieldRow key={f.path} field={f} onInsert={onPick} depth={0} previewSample={previewSample} inUse={usedPaths} human />
+                                    <FieldRow key={f.path} field={f} onInsert={onPick} depth={0} previewSample={previewSample} inUse={usedPaths} human sample={isPlaceholderGroup(g)} />
                                 ))}
                             </React.Fragment>
                         ))}
@@ -218,7 +221,9 @@ export default function InputDataPanel({
                 {manualStart && !query && <ManualStartHint onAdd={onAddStartQuestion} />}
                 <div className="px-1 py-1 text-[11px] leading-4 text-[var(--text-tertiary)] flex gap-1.5 shrink-0">
                     <MousePointer2 size={13} className="shrink-0 mt-px" />
-                    {t('automations.mapping.hint_drag', 'Drag a field onto a setting. Values come from the last run.')}
+                    {allSamples
+                        ? t('automations.mapping.hint_drag_samples', 'Drag a field onto a setting. Values marked sample are examples until a run shows the real ones.')
+                        : t('automations.mapping.hint_drag', 'Drag a field onto a setting. Values come from the last run.')}
                 </div>
             </div>
         </div>

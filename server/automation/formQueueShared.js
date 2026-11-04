@@ -70,8 +70,21 @@ function runKindOf(work) {
     return { startedByUserId };
 }
 
+/**
+ * The runner options of a first submission bounded to one step
+ * (formSubmission.mts stoppingAfter): stop after it, and record the bound as a
+ * root "up to" partial scope so the profile keeps it across a pause.
+ * @param {FormWork} work
+ */
+function stopAfterOf(work) {
+    const stepId = typeof work.untilStepId === 'string' && work.untilStepId ? work.untilStepId : null;
+    if (!stepId) return {};
+    return { untilStepId: stepId, partial: { mode: /** @type {'upTo'} */ ('upTo'), targetStepId: stepId, scope: /** @type {'root'} */ ('root') } };
+}
+
 module.exports = {
     runKindOf,
+    stopAfterOf,
     QUEUE_DEPTH,
     RETRY_DELAYS_MS,
     CANCELLED_RE,

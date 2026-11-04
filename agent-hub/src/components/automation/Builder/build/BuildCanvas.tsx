@@ -76,6 +76,8 @@ export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, pr
                     runId={p.formTest.runId}
                     runKind={p.formTest.runId ? formRunKindOf(state.dryRun) : null}
                     triggerStepId={p.formTest.triggerStepId ?? null}
+                    untilStepId={p.formTest.untilStepId}
+                    untilLabel={p.formTest.untilLabel}
                     onStartRun={p.onFormTestRun}
                     startMode={p.formTest.mode}
                     onFollowRun={p.onFollowRun}

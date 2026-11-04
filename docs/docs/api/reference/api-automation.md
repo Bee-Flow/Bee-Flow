@@ -277,6 +277,7 @@ No request schema.
 | `values` | object |  |  |
 | `triggerStepId` | string or null |  |  |
 | `mode` | one of `"dry"`, `"live"` |  | default `"dry"` |
+| `untilStepId` | string or null |  |  |
 | `respond` | one of `"created"`, `"finished"` |  |  |
 
 ### `POST /api/automation/:id/form-test/upload`
