@@ -26,6 +26,7 @@ const UNSUPPORTED_AUDIO_FORMAT = 'UNSUPPORTED_AUDIO_FORMAT';
 const { AUDIO_SCRATCH_DIR: uploadsDir } = require('../../core/meetingNotes/savedAudioStore');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
+// nosemgrep: semgrep.beeflow-multer-without-upload-guard -- audio only: the bytes go through ffmpeg conditioning, which refuses anything that is not audio, and the stored key is minted by savedAudioStore, never taken from the client name (tracked by lint:multer-guard-ratchet)
 const upload = multer({
     dest: uploadsDir,
     // Browsers send the file name as raw UTF-8 bytes; multer reads them as

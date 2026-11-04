@@ -372,6 +372,7 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
     // value already was.
     const format = req.query.format || 'md';
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the answer is a markdown or plain-text attachment with its own Content-Type, never HTML; the title reaches the header through contentDisposition
     const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
     if (!transcription) return res.status(404).json({ error: 'Not found' });
 

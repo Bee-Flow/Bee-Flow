@@ -61,10 +61,10 @@ stubModule('./audioPreprocess', {
     // Like ffmpeg: start up for a moment, then read the input and write the output.
     preprocessForStt: async (/** @type {string} */ input) => {
         await new Promise((r) => setTimeout(r, 20));
-        const read = fs.readFileSync(input, 'utf8');
-        preprocessed.push({ input, read });
+        const audio = fs.readFileSync(input, 'utf8');
+        preprocessed.push({ input, read: audio });
         const out = path.join(os.tmpdir(), `azwhi-test-out-${process.pid}-${preprocessed.length}.flac`);
-        fs.writeFileSync(out, read);
+        fs.writeFileSync(out, audio);
         return { path: out, preprocessed: true, cleanup: () => fs.unlinkSync(out) };
     },
 });

@@ -207,7 +207,7 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
  */
 async function resolveRoomToken(ncPath, configuredFolder, ownerId, getSession) {
     const token = parseTalkRoomToken(ncPath, configuredFolder);
-    if (token || !/\/recording\//i.test(ncPath)) return token;
+    if (token || !ncPath.toLowerCase().includes('/recording/')) return token;
     try {
         const session = await getSession();
         if (!session) return null;
