@@ -52,6 +52,8 @@ export interface FormDef {
     submitLabel?: string;
     successMessage?: string;
     theme?: Record<string, unknown> | null;
+    /** The form-only look (formStyleVars.ts): font, width, colours, field and button shape, logo, footer, custom CSS. */
+    style?: Record<string, unknown> | null;
     fields?: FormFieldDef[];
 }
 
@@ -119,6 +121,8 @@ export interface FormEndingViewProps {
 
 export interface FormWaitingViewProps {
     theme?: Record<string, unknown> | null;
+    /** The form's `style`, so the wait looks like the form it belongs to. */
+    formStyle?: Record<string, unknown> | null;
     progress?: string[] | null;
     note?: string | null;
     label?: string;

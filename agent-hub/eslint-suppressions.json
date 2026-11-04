@@ -5011,10 +5011,10 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 3
+      "count": 2
     },
     "react-refresh/only-export-components": {
-      "count": 7
+      "count": 6
     }
   },
   "src/components/automation/Builder/flow/settings/FormEditorModal.tsx": {

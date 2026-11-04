@@ -7,6 +7,7 @@ import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { nOf } from '../../KnowledgeStudio/plural';
 import { takeSeed } from '../../studioAi/handoff';
 import type { FormDetail, FormDraft } from './useFormDetail';
+import { styleAssistFor } from '@/api/formStyleAssist';
 
 // The builder's own form editor — title, intro, questions, button text,
 // thank-you message, theme, preview. Lazy: it drags the builder chunk.
@@ -59,7 +60,7 @@ export default function QuestionsTab({ detail, draft, setDraft, dirty, save, dis
             <DashCard testId="form-questions-card">
                 {draft ? (
                     <Suspense fallback={<div className="flex items-center gap-2 text-xs py-6 text-[var(--text-tertiary)]"><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('forms.page.loading_editor', 'Loading the editor…')}</div>}>
-                        <FormBuilderFields form={draft} onChange={setDraft} bindingBase="trigger.output" />
+                        <FormBuilderFields form={draft} onChange={setDraft} bindingBase="trigger.output" onStyleAssist={styleAssistFor(detail?.automationId)} />
                     </Suspense>
                 ) : (
                     <p className="text-xs text-[var(--text-tertiary)]">{t('forms.page.readonly_hint', 'Shared with this account through its answers table — the questions and settings belong to the form’s owner.')}</p>

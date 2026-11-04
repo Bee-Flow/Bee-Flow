@@ -14,6 +14,7 @@ const { AudienceBody, readAudienceBody } = require('./formAudienceBody');
 const { roleSatisfies } = require('../../automation/access');
 const { orgOf, automationAccess } = require('./crudContext');
 const { registerFormTestLinkRoutes, editorFormFacts } = require('./formTestLink');
+const { StyleAssistBody } = require('./formStyleAssistBody.mts');
 
 /**
  * `row → may this caller fill it in`, for a batch of page rows: the
@@ -179,6 +180,24 @@ function registerFormRoutes(router) {
         (req, res) => formsAi().draft(req, res));
 
     /**
+     * POST /:id/forms/style-assist — "Describe the look": custom CSS for the
+     * form from the author's words (formsAi.js styleAssist). The same per-user
+     * limiter as the draft; `edit` on the automation is checked BEFORE the body
+     * is read, so a caller without it learns nothing from a 400.
+     */
+    router.post('/:id/forms/style-assist',
+        (req, res, next) => formsAi().limiter(req, res, next),
+        async (/** @type {import('express').Request<{ id: string }>} */ req, res, next) => {
+            const a = await automationStore.getAutomation(req.params.id);
+            if (!a) return res.status(404).json({ error: 'Not found' });
+            if (!await automationAccess.guard(req, res, a, 'edit')) return undefined;
+            res.locals.automation = a;
+            return next();
+        },
+        validate({ body: StyleAssistBody }),
+        (/** @type {import('express').Request<{ id: string }>} */ req, res) => formsAi().styleAssist(req, res));
+
+    /**
      * GET /forms/:automationId — one form, for the Form page.
      *
      * Same audience as the directory (the organisation that owns it; 404
@@ -234,6 +253,7 @@ function registerFormRoutes(router) {
                 collect: trigger.form?.collect === true,
                 fields: normalizeFields(trigger.form),
                 theme: trigger.form?.theme || null,
+                style: trigger.form?.style || null,
             },
             pages: formAnswers.inputPagesOf(def).map(p => ({ stepId: p.stepId, label: p.label, mode: 'input', fields: normalizeFields(p.form) })),
             answers: answersFor(row, trigger, answersByAutomation),

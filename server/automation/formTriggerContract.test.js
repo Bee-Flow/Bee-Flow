@@ -101,6 +101,16 @@ test('theme values are validated against the shared spec', () => {
     assert.deepEqual(codes(bad).sort(), ['theme_color', 'theme_enum', 'theme_unknown_key']);
 });
 
+test('style values are validated next to the theme, on the trigger and on a page', () => {
+    assert.deepEqual(validateFormTrigger({ ...FORM, style: { font: 'serif', width: 'wide', button: { shape: 'pill' }, customCss: '.bf-form__card { padding: 2rem }' } }), []);
+    const bad = validateFormTrigger({ ...FORM, style: { font: 'comic', cardColor: 'white', logoUrl: 'https://cdn.example.com/x.png', glow: 1 } });
+    assert.deepEqual(codes(bad).sort(), ['style_color', 'style_enum', 'style_logo_url', 'style_unknown_key']);
+    assert.ok(bad.every(i => i.path.startsWith('form.style.')));
+    const page = validateFormDeclaration({ title: 'Done', style: { customCss: 'x'.repeat(20001) } }, { requireFields: false });
+    assert.deepEqual(codes(page), ['style_css_too_long']);
+    assert.deepEqual(codes(validateFormTrigger({ ...FORM, style: 'dark' })), ['style_shape']);
+});
+
 test('an over-long field list is rejected', () => {
     const fields = Array.from({ length: 41 }, (_, i) => ({ name: `f${i}`, type: 'text' }));
     assert.ok(codes(validateFormTrigger({ fields })).includes('fields_too_many'));
@@ -264,6 +274,25 @@ test('a page with no theme inherits the trigger theme; a partial theme merges on
         renderFormConfig({ fields: [], theme: { primary: '#1D4ED8' } }, { baseTheme: base }).theme,
         { ...base, primary: '#1D4ED8' },
     );
+});
+
+test('style: absent renders no key at all; set renders canonical, the custom CSS sanitised', () => {
+    assert.equal('style' in renderFormConfig({ fields: [] }), false);
+    assert.equal('style' in renderFormConfig({ fields: [], style: { font: 'comic' } }), false);
+    assert.deepEqual(renderFormConfig({ fields: [], style: {
+        font: 'serif', secret: 'x', logoUrl: '//evil.example/x.png',
+        customCss: '@import url(https://evil.example/x.css); .bf-form__card { padding: 2rem }',
+    } }).style, { font: 'serif', customCss: ' .bf-form__card { padding: 2rem }' });
+});
+
+test('a page with no style inherits the trigger style; a key the page declares wins, null clears', () => {
+    const base = { font: 'serif', width: 'wide', cardColor: '#FFF8E7', button: { shape: 'pill', width: 'full' }, customCss: '.bf-form__title { color: #7a3e00 }' };
+    assert.deepEqual(renderFormConfig({ fields: [] }, { baseStyle: base }).style, base);
+    assert.deepEqual(
+        renderFormConfig({ fields: [], style: { width: 'narrow', cardColor: null, button: { shape: 'square' } } }, { baseStyle: base }).style,
+        { font: 'serif', width: 'narrow', button: { shape: 'square' }, customCss: base.customCss },
+    );
+    assert.equal('style' in renderFormConfig({ fields: [] }, { baseStyle: null }), false);
 });
 
 test('renderConfig is renderFormConfig on the definition trigger, uninterpolated', () => {

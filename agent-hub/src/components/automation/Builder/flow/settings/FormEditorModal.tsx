@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Smartphone, Monitor, FileText, Flag, Zap } from 'lucide-react';
+import { X, FileText, Flag, Zap } from 'lucide-react';
 import FormBuilderFields, { THEME_PRESETS } from './FormBuilderFields';
-import PublicFormRenderer, { FormEndingView } from '@/components/forms/PublicFormRenderer';
 import { buildPreviewConfig } from './formPreview';
 import type { FormPageEntry } from './formPages';
 import { useTranslation } from '@/hooks/useTranslation';
+import { mergeFormStyle } from '@/components/forms/formStyleVars';
+import FormEditorPreview from './FormEditorPreview';
+import { styleAssistFor } from '@/api/formStyleAssist';
 
 /**
  * The full-screen overview of an automation's hosted form: every page on the
@@ -23,12 +25,10 @@ const SAVE_DELAY_MS = 500;
 // The editor is JavaScript whose props TypeScript infers from their defaults
 // (`= null` becomes the type `null`), so it is typed here.
 const Fields = FormBuilderFields as unknown as React.ComponentType<Record<string, unknown>>;
-// KEPT: buildPreviewConfig builds from the stored form as read (`Loose`), so its
-// `theme` is `unknown`, a field's `name`/`type` are not proven strings and
-// `maxSizeMb` types as `{}`. Typing the renderer's `form` as FormDef needs guards
-// in buildPreviewConfig first: a runtime change, not part of a types-only commit.
-const Renderer = PublicFormRenderer as unknown as React.ComponentType<Record<string, unknown>>;
-const EndingView = FormEndingView as unknown as React.ComponentType<Record<string, unknown>>;
+// KEPT (FormEditorPreview): buildPreviewConfig builds from the stored form as
+// read (`Loose`), so its `theme` is `unknown`, a field's `name`/`type` are not
+// proven strings and `maxSizeMb` types as `{}`. Typing the renderer's `form` as
+// FormDef needs guards in buildPreviewConfig first: a runtime change.
 
 type Form = Record<string, unknown>;
 
@@ -42,14 +42,15 @@ export interface FormEditorModalProps {
     onFocusField?: ((handle: unknown) => void) | null;
     /** Renaming a binding rewrites the graph; offered only for the page it is bound to. */
     onRenameField?: ((from: string, to: string) => number | undefined) | null;
+    /** The saved automation, for "Describe the look"; null before the first save. */
+    automationId?: string | null;
 }
 
 export default function FormEditorModal({
-    pages, currentId = null, onChangePage, onClose, previewSample = null, onFocusField = null, onRenameField = null,
+    pages, currentId = null, onChangePage, onClose, previewSample = null, onFocusField = null, onRenameField = null, automationId = null,
 }: FormEditorModalProps) {
     const { t } = useTranslation();
     const [selectedId, setSelectedId] = useState<string | null>(currentId && pages.some(p => p.id === currentId) ? currentId : (pages[0]?.id ?? null));
-    const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
     const [local, setLocal] = useState<Record<string, Form>>({});
     const dialogRef = useRef<HTMLDivElement>(null);
     const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
@@ -90,10 +91,11 @@ export default function FormEditorModal({
 
     const page = pages.find(p => p.id === selectedId) || pages[0] || null;
     const form: Form | null = page ? (local[page.id] || page.form) : null;
-    const triggerTheme = useMemo(() => {
+    const triggerForm = useMemo(() => {
         const trig = pages.find(p => p.kind === 'trigger');
-        return trig ? ((local[trig.id] || trig.form).theme as Record<string, unknown> | undefined) || null : null;
+        return trig ? (local[trig.id] || trig.form) : null;
     }, [pages, local]);
+    const triggerTheme = (triggerForm?.theme as Record<string, unknown> | undefined) || null;
 
     const change = (id: string, next: Form) => {
         latest.current[id] = next;
@@ -108,15 +110,19 @@ export default function FormEditorModal({
 
     const previewConfig = useMemo(() => {
         if (!page || !form) return null;
+        // A later page shows the first page's look unless it overrides it: the
+        // theme whole (as the server does), the style key by key on top.
+        const inherits = page.kind !== 'trigger';
         return buildPreviewConfig({
             form,
             theme: (form.theme as Record<string, unknown> | null | undefined) || triggerTheme || THEME_PRESETS[0].theme,
+            style: inherits ? mergeFormStyle(triggerForm?.style, form.style) : form.style,
             isEnding: page.kind === 'ending',
             allowVariables: page.allowVariables,
             previewSample,
             t,
         });
-    }, [page, form, triggerTheme, previewSample, t]);
+    }, [page, form, triggerTheme, triggerForm, previewSample, t]);
 
     const kindLabel = (p: FormPageEntry) => p.kind === 'trigger'
         ? t('automations.form_editor.page_start', 'Start')
@@ -187,50 +193,14 @@ export default function FormEditorModal({
                                     onFocusField={page.id === currentId ? onFocusField : null}
                                     previewSample={previewSample}
                                     onRenameField={page.id === currentId ? onRenameField : null}
+                                    onStyleAssist={styleAssistFor(automationId, page.kind === 'trigger' ? page.id : null)}
                                     hidePreview
                                 />
                             </div>
                         )}
                     </div>
 
-                    <section aria-label={t('automations.form_editor.preview', 'Preview')} className="w-[44%] max-w-[640px] shrink-0 border-l border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-y-auto">
-                        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-3 py-2 bg-[var(--bg-secondary)] border-b border-[var(--border-default)]">
-                            <span className="text-[11px] font-medium text-[var(--text-secondary)]">{t('automations.form_editor.preview', 'Preview')}</span>
-                            <div className="inline-flex rounded-md border border-[var(--border-default)] overflow-hidden" role="group" aria-label={t('automations.form_editor.device', 'Preview width')}>
-                                <button
-                                    type="button"
-                                    aria-pressed={device === 'desktop'}
-                                    aria-label={t('automations.form_editor.desktop', 'Desktop')}
-                                    onClick={() => setDevice('desktop')}
-                                    className={`p-1.5 ${device === 'desktop' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'}`}
-                                >
-                                    <Monitor size={13} />
-                                </button>
-                                <button
-                                    type="button"
-                                    aria-pressed={device === 'mobile'}
-                                    aria-label={t('automations.form_editor.mobile', 'Mobile')}
-                                    onClick={() => setDevice('mobile')}
-                                    className={`p-1.5 ${device === 'mobile' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'}`}
-                                >
-                                    <Smartphone size={13} />
-                                </button>
-                            </div>
-                        </div>
-                        <div className="p-4">
-                            {page && previewConfig && (
-                                <div
-                                    data-testid="form-editor-preview"
-                                    data-device={device}
-                                    className={`mx-auto w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] p-3 ${device === 'mobile' ? 'max-w-[390px]' : 'max-w-[600px]'}`}
-                                >
-                                    {page.kind === 'ending'
-                                        ? <EndingView form={previewConfig} />
-                                        : <Renderer form={previewConfig} preview />}
-                                </div>
-                            )}
-                        </div>
-                    </section>
+                    <FormEditorPreview kind={page ? page.kind : null} config={previewConfig} />
                 </div>
             </div>
         </div>

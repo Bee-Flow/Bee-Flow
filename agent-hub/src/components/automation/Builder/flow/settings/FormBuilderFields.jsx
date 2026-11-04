@@ -16,6 +16,8 @@ import InfoFieldEditor from './formFields/InfoFieldEditor';
 import PerItemEditor from './formFields/PerItemEditor';
 import ShowIfEditor from './formFields/ShowIfEditor';
 import { buildPreviewConfig, fillTemplate, isDisplayField, DISPLAY_FIELD_TYPES } from './formPreview';
+import FormStyleEditor from './formStyle/FormStyleEditor';
+import { THEME_PRESETS } from './formStyle/stylePresets';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { normaliseOptions } from '../../../../forms/formOptions';
 
@@ -31,9 +33,11 @@ export { normaliseOptions, fillTemplate };
  *   1. Dropping a node already gives a WORKING page (title, fields, thank-you
  *      text, the Clean preset). Refining is optional, not a prerequisite —
  *      that is what "super simpel in gebruik" has to mean.
- *   2. Styling is a set of presets plus five knobs. No CSS, ever. The knobs are
- *      the platform's shared THEME_SPEC (server/core/themeSpec.js), so a form
- *      and a Studio App are themed by the same vocabulary.
+ *   2. Styling starts with a preset and grouped knobs (formStyle/). The theme
+ *      knobs are the platform's shared THEME_SPEC (server/core/cms/themeSpec.js),
+ *      so a form and a Studio App are themed by the same vocabulary; the
+ *      form-only ones live in `form.style`. Custom CSS is the last group, for
+ *      who wants it, scoped to the form and sanitised twice.
  *   3. The author edits the LABEL; `name` is slugged once at creation and never
  *      re-derived. Re-deriving on every rename would silently break every
  *      `<base>.<name>` binding downstream, with no error anywhere.
@@ -93,27 +97,8 @@ function usePickSources() {
  * and in the renderer (components/forms/PublicFormRenderer.jsx).
  */
 
-// One click sets all five theme keys. This IS the "styling without code" story;
-// the individual knobs below are for the people who want to fine-tune.
-export const THEME_PRESETS = [
-    { id: 'clean', label: 'Clean', theme: { primary: '#0F766E', radius: 'md', density: 'comfortable', fontScale: 'md', appearance: 'light' } },
-    { id: 'corporate', label: 'Corporate', theme: { primary: '#1D4ED8', radius: 'sm', density: 'compact', fontScale: 'sm', appearance: 'light' } },
-    { id: 'friendly', label: 'Friendly', theme: { primary: '#C2410C', radius: 'xl', density: 'spacious', fontScale: 'lg', appearance: 'light' } },
-    { id: 'night', label: 'Night', theme: { primary: '#0891B2', radius: 'lg', density: 'comfortable', fontScale: 'md', appearance: 'dark' } },
-    { id: 'system', label: 'Match visitor', theme: { primary: '#047857', radius: 'md', density: 'comfortable', fontScale: 'md', appearance: 'auto' } },
-];
-
-const THEME_KNOBS = [
-    { key: 'radius', label: 'Corners', values: ['none', 'sm', 'md', 'lg', 'xl'] },
-    { key: 'density', label: 'Spacing', values: ['compact', 'comfortable', 'spacious'] },
-    { key: 'fontScale', label: 'Text size', values: ['sm', 'md', 'lg'] },
-    { key: 'appearance', label: 'Appearance', values: ['light', 'dark', 'auto'] },
-];
-
-const COLOR_PRESETS = [
-    '#0F766E', '#0369A1', '#1D4ED8', '#0891B2', '#047857', '#4D7C0F',
-    '#B45309', '#C2410C', '#B91C1C', '#BE185D', '#334155', '#57534E',
-];
+// The presets and swatches live with the style editor (formStyle/stylePresets.ts).
+export { THEME_PRESETS };
 
 /** The form a freshly-dropped trigger node starts with — already publishable. */
 export function defaultFormDeclaration() {
@@ -224,6 +209,11 @@ export default function FormBuilderFields({
     hidePreview = false,
     // Start with every question expanded instead of collapsed to its row.
     defaultExpanded = false,
+    // ({ prompt, style, theme, customCss }) => Promise<{ css, notes, removed }>:
+    // "Describe the look" (api/formStyleAssist). Null where there is no saved
+    // automation to ask about; the panel then says why its button is off. No
+    // default on purpose: a `= null` would type the prop as null for callers.
+    onStyleAssist,
 }) {
     const { t } = useTranslation();
     // Default OPEN when this is the trigger's own testable editor
@@ -261,7 +251,7 @@ export default function FormBuilderFields({
     // same way here, against the sample tree, and leave unresolvable paths
     // standing so a typo stays visible rather than silently vanishing.
     const previewConfig = useMemo(
-        () => buildPreviewConfig({ form, theme, isEnding, allowVariables, previewSample, t }),
+        () => buildPreviewConfig({ form, theme, style: form?.style, isEnding, allowVariables, previewSample, t }),
         [form, theme, isEnding, allowVariables, previewSample, t],
     );
 
@@ -373,7 +363,7 @@ export default function FormBuilderFields({
                 <Eye size={onTestSubmit ? 13 : 12} /> {showPreview ? 'Hide preview' : 'Preview the form'}
             </button>
             {showPreview && (
-                <div className="mt-2 p-3 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)]" data-testid="form-preview">
+                <div className="mt-2 p-3 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] relative isolate overflow-hidden [contain:paint]" data-testid="form-preview">
                     {/* The same component the visitor gets — inert unless
                         the host handed us a way to run the trigger with
                         what is typed into it. `showSuccess` stays off for a
@@ -481,9 +471,6 @@ export default function FormBuilderFields({
                         <AddButton onClick={addInfoField}>{t('automations.form_wizard.add_a_text_block', 'Add a text block')}</AddButton>
                     </div>
 
-                    <FormRow label={t('automations.form_builder_fields.button_text', 'Button text')}>
-                        {textSlot({ slot: 'submitLabel', placeholder: 'Submit' })}
-                    </FormRow>
                     <FormRow label={t('automations.form_builder_fields.thank_you_message', 'Thank-you message')} hint={`Replaces the form after a successful submission.${varsHint}`}>
                         {textSlot({ slot: 'successMessage', rows: 2 })}
                     </FormRow>
@@ -532,11 +519,18 @@ export default function FormBuilderFields({
                 </div>
             )}
 
-            <ThemeEditor
+            {/* The look, in groups (formStyle/): theme keys to form.theme,
+                form-only knobs to form.style. The button text lives in its
+                Button group. */}
+            <FormStyleEditor
                 theme={theme}
+                formStyle={form?.style}
                 inherits={inherits}
                 canInherit={bindingBase !== 'trigger.output'}
-                onChange={(next) => patch({ theme: next })}
+                isEnding={isEnding}
+                onChange={patch}
+                buttonText={isEnding ? null : textSlot({ slot: 'submitLabel', placeholder: 'Submit' })}
+                onStyleAssist={onStyleAssist}
             />
 
             {/* Only reached when onTestSubmit is null (a form_page step's
@@ -815,99 +809,6 @@ function AppPickEditor({ field, index, onChange }) {
                     ? <>{t('automations.form_builder_fields.the_record_is_read_when_the', 'The record is read when the form is submitted, so a later step can use')} <code>{field.name}.text</code> {t('automations.form_builder_fields.the_transcript_the_email_body_the', '— the transcript, the email body, the note.')}</>
                     : <>{t('automations.form_builder_fields.only_a_reference_travels_the_title', 'Only a reference travels: the title and the id. Nothing is read from the app.')}</>}
             </p>
-        </div>
-    );
-}
-
-function ThemeEditor({ theme, onChange, inherits = false, canInherit = false }) {
-    const { t } = useTranslation();
-    const activePreset = THEME_PRESETS.find(p => Object.keys(p.theme).every(k => p.theme[k] === theme?.[k]));
-    return (
-        <div className="space-y-2">
-            <div className={subLabelClass()}>{t('automations.form_builder_fields.styling', 'Styling')}</div>
-
-            {canInherit && (
-                // A later page defaults to the trigger's look so a form does not
-                // change appearance halfway through. Overriding is one click,
-                // and going back is the same click.
-                <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] cursor-pointer select-none">
-                    <input
-                        type="checkbox"
-                        checked={inherits}
-                        onChange={(e) => onChange(e.target.checked ? null : { ...theme })}
-                    />
-                    {t('automations.form_builder_fields.match_the_first_page', 'Match the first page')}
-                </label>
-            )}
-
-            {!(canInherit && inherits) && (
-                <>
-                    <div className="flex flex-wrap gap-1.5">
-                        {THEME_PRESETS.map(p => (
-                            <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => onChange({ ...p.theme })}
-                                aria-pressed={activePreset?.id === p.id}
-                                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition ${
-                                    activePreset?.id === p.id
-                                        ? 'border-[var(--accent)] text-[var(--text-primary)] bg-[var(--accent)]/10'
-                                        : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                                }`}
-                            >
-                                <span className="h-3 w-3 rounded-full shrink-0" style={{ background: p.theme.primary }} />
-                                {p.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="space-y-0.5">
-                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.accent_colour', 'Accent colour')}</div>
-                        <div className="flex flex-wrap items-center gap-1">
-                            {COLOR_PRESETS.map(hex => (
-                                <button
-                                    key={hex}
-                                    type="button"
-                                    aria-label={`Accent ${hex}`}
-                                    onClick={() => onChange({ ...theme, primary: hex })}
-                                    className={`h-5 w-5 rounded-full transition hover:scale-110 ${theme?.primary === hex ? 'ring-2 ring-offset-1 ring-[var(--text-primary)]' : ''}`}
-                                    style={{ background: hex }}
-                                />
-                            ))}
-                            <input
-                                type="color"
-                                aria-label={t('automations.form_builder_fields.custom_accent_colour', 'Custom accent colour')}
-                                value={theme?.primary || '#0F766E'}
-                                onChange={(e) => onChange({ ...theme, primary: e.target.value })}
-                                className="h-5 w-7 rounded cursor-pointer border-0 bg-transparent p-0"
-                            />
-                        </div>
-                    </div>
-
-                    {THEME_KNOBS.map(knob => (
-                        <div key={knob.key} className="flex items-center gap-2">
-                            <span className="w-20 shrink-0 text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{knob.label}</span>
-                            <div className="flex gap-1 flex-wrap">
-                                {knob.values.map(v => (
-                                    <button
-                                        key={v}
-                                        type="button"
-                                        onClick={() => onChange({ ...theme, [knob.key]: v })}
-                                        aria-pressed={theme?.[knob.key] === v}
-                                        className={`px-1.5 py-0.5 rounded text-[10px] border transition ${
-                                            theme?.[knob.key] === v
-                                                ? 'border-[var(--accent)] text-[var(--text-primary)] bg-[var(--accent)]/10'
-                                                : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                                        }`}
-                                    >
-                                        {v}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </>
-            )}
         </div>
     );
 }

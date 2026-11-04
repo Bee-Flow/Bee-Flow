@@ -1,18 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Check, Download, BookOpen, Copy, FileText, FileDown, Globe, type LucideIcon } from 'lucide-react';
-import { resultFilename, saveBlob } from './resultFile';
+import { Loader2 } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import themeVars from '../admin/Studio/AppStudio/runtime/themeVars';
 import { messageOf } from '../../utils/caughtError';
 import FormField from './fields/FormField';
 import { FormRichText } from './fields/FormRichText';
 import { valuesWithPrefill } from './prefill';
-import { collectErrors, fieldError, groupBlocks, initialValues, isDisplayField, submissionValues, typicalDurationText, visibleNames } from './formRules';
-import type { FormErrorHandler, FormEndingViewProps, FormExportBarProps, FormFieldDef, FormValue, FormValues, FormWaitingViewProps, PublicFormRendererProps, SubmitError } from './PublicFormRenderer.types';
-import { logger } from '../../utils/logger';
+import { collectErrors, fieldError, groupBlocks, initialValues, submissionValues, visibleNames } from './formRules';
+import { FormCustomCss, FormFooter, FormHeader } from './FormChrome';
+import { CARD_CLASS, FormStyleContext, useFormLook } from './formLook';
+import { FormEndingView } from './FormEndingView';
+import type { FormErrorHandler, FormFieldDef, FormValue, FormValues, PublicFormRendererProps, SubmitError } from './PublicFormRenderer.types';
 
 // The importers reach these through this module.
-export { FormRichText, initialValues };
+export { FormRichText, initialValues, FormEndingView };
+export { FormWaitingView } from './FormWaitingView';
 
 /** The server's per-question messages from a refused submit, by name, or null when it sent none. */
 function fieldErrorsOf(err: unknown): Record<string, string> | null {
@@ -72,7 +73,9 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
     // only a bot that fills every input it finds will touch it.
     const [honeypot, setHoneypot] = useState('');
 
-    const style = useMemo(() => themeVars(theme), [theme]);
+    // The theme and the style as one variable map, the bf-form classes, and the
+    // author's custom CSS scoped to this root (formLook.ts).
+    const look = useFormLook(theme, form?.style);
     // Which questions are on screen. A hidden one is not drawn, not checked and
     // not sent; the server decides the same way and re-checks everything.
     const visible = useMemo(() => visibleNames(fields, values), [fields, values]);
@@ -144,21 +147,17 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
     );
 
     return (
+        <FormStyleContext.Provider value={look.style}>
         <form
-            style={style}
+            style={look.rootStyle}
+            data-bf-scope={look.scopeId}
             onSubmit={submit}
             noValidate
-            className="w-full flex flex-col"
+            className={`${look.rootClass} flex flex-col`}
         >
-            <div
-                className="border px-6 py-6 flex flex-col gap-5 [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))]"
-            >
-                <header className="flex flex-col gap-1.5">
-                    <h1 className="text-xl font-semibold text-[var(--text-primary)]">{form.title}</h1>
-                    {form.description ? (
-                        <FormRichText className="text-sm text-[var(--text-secondary)]">{form.description}</FormRichText>
-                    ) : null}
-                </header>
+            <FormCustomCss css={look.css} />
+            <div className={`bf-form__card px-6 py-6 flex flex-col gap-5 ${CARD_CLASS}`}>
+                <FormHeader title={form.title} description={form.description} logoUrl={look.style.logoUrl} />
 
                 {blocks.map(block => (block.kind === 'group' ? (
                     // One question per list item: the header names the list, the
@@ -183,304 +182,26 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
                 </div>
 
                 {formError ? (
-                    <p className="text-sm [color:#ef4444]!" role="alert">{formError}</p>
+                    <p className="bf-form__error text-sm [color:#ef4444]!" role="alert">{formError}</p>
                 ) : null}
 
-                <button
-                    type="submit"
-                    disabled={preview || busy}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-60 [background:var(--app-primary)] [color:var(--app-primary-contrast)]! [border-radius:var(--app-radius)]"
-                >
-                    {busy ? <Loader2 size={15} className="animate-spin" /> : null}
-                    {form.submitLabel}
-                </button>
+                {/* The call to action paints with the theme's accent (the primary
+                    family when none was chosen); width, shape and text colour
+                    are the style's. */}
+                <div className="bf-form__actions flex flex-col">
+                    <button
+                        type="submit"
+                        disabled={preview || busy}
+                        className="bf-form__submit inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-60 [background:var(--app-accent,var(--app-primary))] [color:var(--bf-button-text,var(--app-accent-contrast,var(--app-primary-contrast)))]! [border-radius:var(--bf-button-radius,var(--app-radius))] [align-self:var(--bf-button-align,stretch)]"
+                    >
+                        {busy ? <Loader2 size={15} className="animate-spin" /> : null}
+                        {form.submitLabel}
+                    </button>
+                </div>
+                <FormFooter text={look.style.footerText} />
             </div>
         </form>
+        </FormStyleContext.Provider>
     );
 }
 
-/** How long this form's runs usually take, when the poll knew; nothing otherwise. */
-function TypicalDuration({ seconds }: { seconds: number | null | undefined }) {
-    const { t } = useTranslation();
-    const text = typicalDurationText(seconds, t);
-    return text ? <span className="text-xs text-[var(--text-tertiary)]" data-testid="form-waiting-typical">{text}</span> : null;
-}
-
-/**
- * The screen a visitor sits on while the automation works.
- *
- * A multi-page form pauses the run at every question, and the stretch between
- * two questions is whatever the author put there — a web search, a model call,
- * a document being written. That is regularly a minute or more, and a bare
- * spinner over an empty page reads as "this broke".
- *
- * So it says WHERE the automation is. `progress` is the trail the poll sends:
- * titles only, outermost flowlet first, the node it is on last. The last
- * segment is the headline because that is the thing actually happening; the
- * flowlets above it are context and sit in the eyebrow.
- *
- * `note` is the running flowlet's own one-line description, when its author
- * gave it one. A name says where the automation is; the description says what it
- * is doing — "Searches Google for a given term and lets AI analyse top-ranking
- * pages…" is the difference between a wait that reads as progress and one that
- * reads as a hang. It takes the place of the generic reassurance line, which
- * steps back to a quieter tone rather than disappearing: it is the line that
- * says the length of the wait is expected.
- *
- * Themed like the form and the closing page — one card on the page's ground —
- * because a full-bleed dark page with two lines of grey text on it is not a
- * design, it is an absence of one.
- */
-export function FormWaitingView({ theme = null, progress = null, note = null, label = 'Working on it', typicalSeconds = null }: FormWaitingViewProps) {
-    const style = useMemo(() => themeVars(theme || {}), [theme]);
-    const trail = Array.isArray(progress) ? progress.filter(Boolean) : [];
-    const current = trail.length ? trail[trail.length - 1] : null;
-    const context = trail.slice(0, -1);
-    const summary = typeof note === 'string' && note.trim() ? note.trim() : null;
-
-    return (
-        <div style={style} className="w-full" data-testid="form-waiting" role="status" aria-live="polite">
-            <style>{WAITING_KEYFRAMES}</style>
-            <div
-                className="flex flex-col gap-4 px-6 py-8 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))]"
-            >
-                <div className="flex items-start gap-4">
-                    {/* A ring rather than a bare spinner: it reads as a process
-                        that is running, not as a page that failed to load. */}
-                    <span
-                        aria-hidden="true"
-                        className="flex-shrink-0 mt-0.5 w-[34px] h-[34px] [border-radius:999px] [border:2px_solid_var(--app-primary-soft)] [border-top-color:var(--app-primary)] [animation:bf-form-spin_900ms_linear_infinite]"
-                    />
-                    <div className="min-w-0 flex flex-col gap-1">
-                        {context.length ? (
-                            <span
-                                className="text-[11px] font-medium uppercase tracking-wide truncate text-[var(--app-primary)]"
-                                title={context.join(' › ')}
-                            >
-                                {context.join(' › ')}
-                            </span>
-                        ) : null}
-                        <span className="text-base font-semibold leading-snug text-[var(--text-primary)]">
-                            {current || `${label}…`}
-                        </span>
-                        {summary ? (
-                            <span
-                                className="text-xs leading-relaxed text-[var(--text-secondary)]"
-                                data-testid="form-waiting-note"
-                            >
-                                {summary}
-                            </span>
-                        ) : null}
-                        <span className="text-xs" style={{ color: summary ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}>
-                            {current ? `${label} — this can take a moment.` : 'This can take a moment.'}
-                        </span>
-                        {/* How long this form's runs usually take, when the poll knew:
-                            a wait with a number on it reads as progress, not as a hang. */}
-                        <TypicalDuration seconds={typicalSeconds} />
-                    </div>
-                </div>
-
-                {/* Indeterminate on purpose. The automation cannot say how far
-                    along it is — a percentage here would be a lie. */}
-                <span
-                    aria-hidden="true"
-                    className="block w-full overflow-hidden h-[3px] [border-radius:999px] [background:var(--app-primary-soft)]"
-                >
-                    <span
-                        className="block h-full w-[38%] [border-radius:999px] [background:var(--app-primary)] [animation:bf-form-sweep_1.6s_ease-in-out_infinite]"
-                    />
-                </span>
-            </div>
-        </div>
-    );
-}
-
-const WAITING_KEYFRAMES = `
-@keyframes bf-form-spin { to { transform: rotate(360deg); } }
-@keyframes bf-form-sweep {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(300%); }
-}
-@media (prefers-reduced-motion: reduce) {
-    [data-testid="form-waiting"] * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
-}
-`;
-
-// Short closings ("Thanks!") stay centred under the tick, the way they always
-// looked. A long one is a document — centring a blog is unreadable. The same
-// split gates the export bar below: a one-line "Thanks!" has nothing worth
-// keeping, an automation's real output does.
-const LONG_ENDING_CHARS = 240;
-
-/**
- * The generic fallback for a closing page that has no `generate_document`
- * step at all (BFSF-419) — the common case: the automation's whole "result" is
- * markdown sitting in `form.description` (a blog post, a summary, an
- * analysis), with no download/notebook field wired, because the author never
- * added one. Without this, closing the tab loses the text for good.
- *
- * Independent of any download/notebook field on purpose — those need the
- * automation to have produced an actual generated file; this needs nothing
- * from the automation at all, because the text is already sitting right there
- * in the page.
- *
- * "Download as .txt" and "Copy text" are pure client-side operations on the
- * text already in hand — no backend round trip, so they work even in the
- * builder's live preview. Word, PDF, Notebook and Webpage go through the
- * server (it renders or stores the run's own result), so each renders only
- * when the caller hands over a working handler — the same "no handler ⇒ no
- * button" rule the file-based "Open in Notebooks" button follows for the
- * builder preview.
- */
-function FormExportBar({ text, title, onDownloadAs, onSaveToNotebook, onSaveAsWebpage }: FormExportBarProps) {
-    const { t } = useTranslation();
-    // Hooks first, always — the "is this worth exporting?" bail-out below has
-    // to come after every hook call, or a length change across renders would
-    // call them in a different order.
-    const [copied, setCopied] = useState(false);
-    // One action at a time: which one is running ('docx', 'pdf', 'notebook',
-    // 'webpage'), and what went wrong with the last one.
-    const [busy, setBusy] = useState<string | null>(null);
-    const [actionError, setActionError] = useState<string | null>(null);
-
-    // Same split the layout above uses to tell a real result from a one-line
-    // "Thanks!" — recomputed here (not passed down as a bool) so this stays
-    // the one place that decides whether there is something worth exporting.
-    if (!text || text.length <= LONG_ENDING_CHARS) return null;
-
-    const downloadTxt = () => {
-        // Ship the raw markdown as-is. Stripping `##` / `**` back to plain
-        // prose is a project of its own — a .txt with a few stray symbols in
-        // it is still far better than a tab the visitor can no longer get back.
-        saveBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), resultFilename(title, 'txt'));
-    };
-
-    const copyText = async () => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch (err) { logger.debug('Denied permission or an insecure context — there is nothing useful to do beyond leaving the button as it was.', err); }
-    };
-
-    /**
-     * Run one server-side action. A save navigates away on success, so its
-     * button stays disabled (mirroring "Open in Notebooks": a button that
-     * re-enables first reads as "nothing happened, press again"); a download
-     * leaves the visitor here and frees the bar again.
-     */
-    const run = async (key: string, action: (() => Promise<unknown>) | null | undefined, { navigates }: { navigates: boolean }) => {
-        if (!action || busy) return;
-        setBusy(key);
-        setActionError(null);
-        try {
-            await action();
-            if (!navigates) setBusy(null);
-        } catch (e) {
-            setActionError(messageOf(e, t('forms.result.failed')));
-            setBusy(null);
-        }
-    };
-
-    const actionClass = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border transition disabled:opacity-60';
-    const actionStyle = {
-        borderColor: 'var(--border-default)',
-        borderRadius: 'var(--app-radius)',
-        background: 'var(--bg-card, var(--bg-secondary))',
-        color: 'var(--text-primary)',
-    };
-    const actionButton = (key: string, Icon: LucideIcon, label: string, busyLabel: string, onClick: () => void) => (
-        <button
-            type="button"
-            onClick={onClick}
-            disabled={busy === key}
-            aria-disabled={busy === key}
-            className={actionClass}
-            style={actionStyle}
-            data-testid={`form-export-${key}`}
-        >
-            {busy === key ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
-            {busy === key ? busyLabel : label}
-        </button>
-    );
-
-    return (
-        <div className="flex flex-col gap-1.5" data-testid="form-export-bar">
-            <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={downloadTxt} className={actionClass} style={actionStyle} data-testid="form-export-download">
-                    <Download size={14} /> {t('forms.result.download_txt')}
-                </button>
-                {onDownloadAs ? (
-                    <>
-                        {actionButton('docx', FileText, t('forms.result.download_docx'), t('forms.result.preparing'), () => run('docx', () => onDownloadAs('docx'), { navigates: false }))}
-                        {actionButton('pdf', FileDown, t('forms.result.download_pdf'), t('forms.result.preparing'), () => run('pdf', () => onDownloadAs('pdf'), { navigates: false }))}
-                    </>
-                ) : null}
-                <button type="button" onClick={copyText} className={actionClass} style={actionStyle} data-testid="form-export-copy">
-                    {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? t('forms.result.copied') : t('forms.result.copy')}
-                </button>
-                {onSaveToNotebook
-                    ? actionButton('notebook', BookOpen, t('forms.result.save_notebook'), t('forms.result.saving'), () => run('notebook', onSaveToNotebook, { navigates: true }))
-                    : null}
-                {onSaveAsWebpage
-                    ? actionButton('webpage', Globe, t('forms.result.save_webpage'), t('forms.result.saving'), () => run('webpage', onSaveAsWebpage, { navigates: true }))
-                    : null}
-            </div>
-            {actionError ? <p className="text-xs text-[#ef4444]" role="alert">{actionError}</p> : null}
-        </div>
-    );
-}
-
-/**
- * The visitor's last screen: a single-page form's success message, or a
- * `form_page` step with mode 'ending' — which the server renders against the
- * finished run, so its text can be a summary of what actually happened.
- *
- * Same theme plumbing as the form, so the journey does not change appearance
- * on its final step.
- */
-export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = null, onSaveToNotebook = null, onSaveAsWebpage, onDownloadAs }: FormEndingViewProps) {
-    const style = useMemo(() => themeVars(form?.theme || {}), [form]);
-    const description = form?.description || '';
-    const isLong = description.length > LONG_ENDING_CHARS;
-    return (
-        <div style={style} className="w-full" data-testid="form-ending">
-            <div
-                className={`flex flex-col gap-3 px-6 py-10 border ${isLong ? 'items-stretch text-left' : 'items-center text-center'} [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))]`}
-            >
-                <span
-                    className={`h-11 w-11 flex items-center justify-center ${isLong ? 'self-center' : ''} [background:var(--app-primary)] [color:var(--app-primary-contrast)] [border-radius:999px]`}
-                >
-                    <Check size={22} />
-                </span>
-                <p className={`text-base font-medium ${isLong ? 'self-center text-center' : ''} text-[var(--text-primary)]`}>
-                    {form?.title || 'Thanks — we got your answer.'}
-                </p>
-                {description ? (
-                    <>
-                        <FormRichText className="text-sm text-[var(--text-secondary)]">{description}</FormRichText>
-                        {/* The generic fallback: whatever produced this text is
-                            otherwise gone the moment the tab closes. FormExportBar
-                            itself decides whether description is substantial
-                            enough to bother with — nothing else here needs to
-                            know that threshold. */}
-                        <FormExportBar
-                            text={description}
-                            title={form?.title}
-                            onDownloadAs={onDownloadAs}
-                            onSaveToNotebook={onSaveToNotebook}
-                            onSaveAsWebpage={onSaveAsWebpage}
-                        />
-                    </>
-                ) : null}
-                {/* The closing page is where a produced document usually lands
-                    — "here is the thing the automation just made for you". Only
-                    display fields render here; a closing page collects nothing,
-                    so anything else on it would have no way to be submitted. */}
-                {(form?.fields || []).filter(isDisplayField).map(field => (
-                    <FormField key={field.name} field={field} downloadHref={downloadHref ? downloadHref(field) : null} onOpenInNotebooks={onOpenInNotebooks} />
-                ))}
-            </div>
-        </div>
-    );
-}

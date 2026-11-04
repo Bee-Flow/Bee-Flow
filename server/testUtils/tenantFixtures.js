@@ -82,6 +82,8 @@ const FIXTURES = [
             'POST /api/automation/:id/form-test', 'POST /api/automation/:id/form-test/upload',
             'GET /api/automation/forms/:automationId/test-link', 'POST /api/automation/forms/:automationId/test-link',
             'DELETE /api/automation/forms/:automationId/test-link', 'PUT /api/automation/forms/:automationId/test-link/audience',
+            // "Describe the look" (a model call): `edit` is checked before the body is read.
+            'POST /api/automation/:id/forms/style-assist',
         ],
     },
     {

@@ -140,10 +140,10 @@ describe('SettingsForm — form page step', () => {
         const inherit = screen.getByLabelText('Match the first page');
         expect(inherit.checked).toBe(true);
         // While inheriting, the theme controls stay out of the way.
-        expect(screen.queryByLabelText('Custom accent colour')).toBeNull();
+        expect(screen.queryByLabelText('Custom main colour')).toBeNull();
 
         await user.click(inherit);
-        expect(screen.getByLabelText('Custom accent colour')).toBeTruthy();
+        expect(screen.getByLabelText('Custom main colour')).toBeTruthy();
         await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls.at(-1)[0].form.theme).toMatchObject({ primary: expect.any(String) });
     });

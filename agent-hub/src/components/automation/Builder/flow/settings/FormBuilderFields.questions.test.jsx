@@ -136,7 +136,8 @@ describe('FormBuilderFields — the per-type controls', () => {
         renderEditor(form([text('one', 'One')]));
         expect(screen.queryByText('Binding name')).toBeNull();
 
-        await user.click(screen.getByText('Advanced'));
+        // The question's Advanced, not the form design's Advanced group further down.
+        await user.click(screen.getAllByText('Advanced')[0]);
         expect(screen.getByText('Binding name')).toBeTruthy();
         expect(screen.getByText('trigger.output.one')).toBeTruthy();
         expect(screen.getByLabelText('Question 1 placeholder')).toBeTruthy();

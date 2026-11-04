@@ -6,6 +6,9 @@
  *   POST /api/automation/forms/ai/draft
  *        { mode: 'create'|'revise', brief?, note?, current? } → { draft: { form, notes } }
  *
+ *   POST /api/automation/:id/forms/style-assist
+ *        { prompt, triggerStepId?, style?, theme?, customCss? } → { css, notes, removed }
+ *
  * Wired into `routes/automation/forms.js`, registered on the router
  * `routes/automation/crud.js` owns, behind that router's gates (requireAuth,
  * the automations feature, the active-org block). Plain
@@ -23,6 +26,13 @@
  * The brief is the person's own text (or what they pasted). It goes to the
  * workspace's fast-tier model and nowhere else; the current questions go
  * along in revise mode. No other form, table or row is read.
+ *
+ * STYLE ASSIST ("Describe the look") needs `edit` on the automation (forms.js
+ * checks it before the body is read). The model gets the stable class names,
+ * the theme and style, the current custom CSS and the questions' labels
+ * (core/forms/formStyleAssist.mts), never an answer or a visitor, and answers
+ * CSS that goes through sanitizeFormCss before it is returned. Nothing is
+ * stored and the CSS never runs here: the editor previews it.
  */
 
 'use strict';
@@ -61,8 +71,8 @@ async function resolveModel({ userId, userOrgId }) {
     }
 }
 
-/** One usage row per drafting call — `chatForcedTool` logs nothing itself. */
-async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs }) {
+/** One usage row per model call — `chatForcedTool` logs nothing itself. */
+async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs, source = 'form_ai_draft' }) {
     try {
         const usageStore = require('../../stores/usageStore');
         await usageStore.logUsage({
@@ -73,7 +83,7 @@ async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs }) {
             // Normalised by the adapter (providers/usageNormalizer.js): cache read/write,
             // the 5m/1h split and reasoning tokens ride along.
             ...usageLogFields(usage),
-            source: 'form_ai_draft',
+            source,
             duration_ms: Date.now() - startMs,
             organization_id: userOrgId || null,
         });
@@ -91,6 +101,7 @@ function readCurrent(raw) {
     }
     if (Array.isArray(raw.fields)) out.fields = raw.fields.slice(0, 60);
     if (raw.theme && typeof raw.theme === 'object') out.theme = raw.theme;
+    if (raw.style && typeof raw.style === 'object') out.style = raw.style;
     if (typeof raw.collect === 'boolean') out.collect = raw.collect;
     return out;
 }
@@ -100,7 +111,7 @@ function readCurrent(raw) {
 // `mode` was read as `=== 'revise' ? 'revise' : 'create'`. So `mode: 'Revise'`
 // -- or any other spelling -- DREW A NEW FORM over the one on screen instead
 // of changing it, and answered 200 with a draft that looked plausible. The
-// same class as `mode: 'defenition'` on the n8n route.
+// same class as `mode: 'defenition'` on the automation import route.
 //
 // `current` stays OPEN on purpose: it is the form as the editor holds it, and
 // readCurrent() below is already the allow-list of the parts the prompt
@@ -152,4 +163,80 @@ async function draft(req, res) {
     return res.json({ draft: parsed, mode });
 }
 
-module.exports = { draft, limiter, resolveModel, orgIdOf, DraftBody };
+// ── POST /api/automation/:id/forms/style-assist ──────────────────────
+
+// 20 000 characters of CSS is some 6 000 tokens; the notes are a few lines.
+const STYLE_MAX_TOKENS = 8000;
+
+/** @typedef {{ kind?: string, form?: StyleSource | null }} FormTriggerNode */
+/** @typedef {{ theme?: unknown, style?: Record<string, unknown> | null }} StyleSource */
+/**
+ * The questions the CSS can target by `data-field`: the entered trigger's and
+ * every input page's. Names, labels and types only.
+ * @param {import('../../automation/formAnswers/derive').Def} definition
+ * @param {FormTriggerNode} trigger
+ * @returns {{ name: string, label: string, type: string }[]}
+ */
+function styleQuestionsOf(definition, trigger) {
+    const { normalizeFields } = require('../../automation/formTriggerContract');
+    const { inputPagesOf } = require('../../automation/formAnswers/derive');
+    const forms = [trigger.form, ...inputPagesOf(definition).map((/** @type {{ form: unknown }} */ p) => p.form)];
+    return forms.flatMap((form) => normalizeFields(form))
+        .filter((f) => typeof f.name === 'string' && f.name)
+        .map((f) => ({ name: f.name, label: typeof f.label === 'string' ? f.label : '', type: String(f.type || 'text') }));
+}
+
+/**
+ * The look the model starts from: what the editor sent (unsaved), else what
+ * the form has saved. `null` from the editor means "none".
+ * @param {StyleSource & { customCss?: string | null }} body
+ * @param {StyleSource | null | undefined} savedForm
+ */
+function styleInputsOf(body, savedForm) {
+    const saved = savedForm && typeof savedForm === 'object' ? savedForm : {};
+    const style = body.style !== undefined ? body.style : saved.style;
+    const savedCss = typeof style?.customCss === 'string' ? style.customCss : null;
+    return {
+        theme: body.theme !== undefined ? body.theme : saved.theme,
+        style,
+        customCss: body.customCss !== undefined ? body.customCss : savedCss,
+    };
+}
+
+/**
+ * Edit access is checked before this runs (forms.js leaves the automation on
+ * res.locals). The editor's unsaved style, theme and CSS win over the saved
+ * ones; a value left out falls back to what the form has.
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
+async function styleAssist(req, res) {
+    const a = res.locals.automation;
+    const body = req.body;
+    const { resolveTriggerStepId } = require('./runEntry');
+    const entered = resolveTriggerStepId(a.definition, body.triggerStepId || null);
+    if (entered.error) throw new HttpError(400, 'invalid_trigger_step', entered.error);
+    const trigger = /** @type {FormTriggerNode | null | undefined} */ (entered.trigger);
+    if (!trigger || trigger.kind !== 'form') throw new HttpError(409, 'not_a_form', 'This trigger is not a form.');
+    const { theme, style, customCss } = styleInputsOf(body, trigger.form);
+
+    const userId = req.session.user.id;
+    const userOrgId = await orgIdOf(req);
+    const modelId = await resolveModel({ userId, userOrgId });
+    if (!modelId) {
+        throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace.');
+    }
+    const { STYLE_TOOL, buildStyleMessages, parseStyleAnswer } = require('../../core/forms/formStyleAssist.mts');
+    const llmClient = require('../../core/llm/llmClient');
+    const startMs = Date.now();
+    const messages = buildStyleMessages({ prompt: body.prompt, theme, style, customCss, questions: styleQuestionsOf(a.definition, trigger) });
+    const result = await llmClient.chatForcedTool(modelId, messages, STYLE_TOOL, { maxTokens: STYLE_MAX_TOKENS, temperature: 0.4 });
+    await logDraftUsage({ userId, userOrgId, modelId, usage: result?.usage, startMs, source: 'form_ai_style' });
+    const answer = parseStyleAnswer(result?.structured || null);
+    if (!answer) {
+        throw new HttpError(502, 'ai_unusable', 'The model did not return usable CSS. Try again, or describe the look differently.');
+    }
+    return res.json(answer);
+}
+
+module.exports = { draft, styleAssist, limiter, resolveModel, orgIdOf, DraftBody };

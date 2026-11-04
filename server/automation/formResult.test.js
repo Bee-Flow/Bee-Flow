@@ -23,6 +23,11 @@ test('the LAST ending step is the closing page', () => {
     assert.strictEqual(endingFrom(undefined), null);
 });
 
+test('the closing page comes back whole, its style included', () => {
+    const form = { title: 'Thanks', style: { font: 'serif', customCss: '.bf-form__ending { padding: 2rem }' } };
+    assert.deepStrictEqual(endingFrom([{ output: { mode: 'ending', form } }]), form);
+});
+
 test('a closing page without text has no result to keep', () => {
     assert.strictEqual(resultOf(null), null);
     assert.strictEqual(resultOf({ title: 'Thanks' }), null);
