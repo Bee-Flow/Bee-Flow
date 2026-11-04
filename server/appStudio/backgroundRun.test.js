@@ -11,8 +11,6 @@
 
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 
 const { pgliteDb } = require('../testUtils/pgliteDb');
 const { makeActionRunStore } = require('../stores/studioAppData/actionRuns.mts');
@@ -25,10 +23,11 @@ const { pg, db } = pgliteDb();
 const store = makeActionRunStore(db);
 
 before(async () => {
-    const text = fs.readFileSync(path.join(__dirname, '..', 'stores', 'studioAppData', 'schema.js'), 'utf8');
-    const ddl = /`(\s*CREATE TABLE IF NOT EXISTS studio_app_action_runs[\s\S]*?)`/.exec(text)[1];
+    const { studioRunTableDdl } = require('../testUtils/studioRunTables');
+    const ddl = studioRunTableDdl('studio_app_action_runs');
     await pg.exec('CREATE TABLE studio_apps (id TEXT PRIMARY KEY, user_id TEXT NOT NULL)');
     await pg.exec(ddl);
+    await pg.exec(studioRunTableDdl('studio_app_action_run_steps'));
     await pg.query("INSERT INTO studio_apps (id, user_id) VALUES ('app_1', 'owner')");
 });
 after(async () => { await pg.close(); });
@@ -274,4 +273,23 @@ test('stop() ends running jobs as interrupted and refuses new starts', async () 
     const refused = await BG.startBackgroundRun(input(action), deps());
     assert.equal(refused.status, 503);
     BG._resetForTests();
+});
+
+test('run log: the job row itself gets the step rows (no second row), the failing step with its error', async () => {
+    const { makeRunLogStore } = require('../stores/studioAppData/runLogStore.mts');
+    const runLog = makeRunLogStore(db);
+    execute = async (_a, _m, step) => { clock += 10; return step.kind === 'update_record' ? { ok: false, error: 'Record r9 was not found', code: 'not_found' } : { ok: true, result: { id: 'r1' } }; };
+    const row = await startAndSettle(
+        { kind: 'sequence', background: true, steps: [{ kind: 'create_record', tableId: 't' }, { kind: 'update_record', tableId: 't', recordId: 'r9' }] },
+        {}, deps({ runLog: () => runLog }),
+    );
+    assert.equal(row.status, 'error');
+    const { rows } = await pg.query('SELECT COUNT(*)::int AS n FROM studio_app_action_runs');
+    assert.equal(rows[0].n, 1, 'one row: the job');
+    const steps = await runLog.getSteps(row.id);
+    assert.deepEqual(steps.map((s) => [s.path, s.status, s.durationMs]), [['steps[0]', 'ok', 10], ['steps[1]', 'error', 10]]);
+    assert.equal(steps[1].error, 'Record r9 was not found');
+    const logged = await runLog.getLoggedRun('app_1', row.id, { idleMs: 60_000, staleMs: 900_000 });
+    assert.equal(logged.origin, 'background');
+    assert.equal(logged.failedSteps, 1);
 });

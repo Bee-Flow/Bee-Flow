@@ -2604,6 +2604,12 @@
     "GET /api/studio-apps/:id/ref": {
       "gate": "auth"
     },
+    "GET /api/studio-apps/:id/runs": {
+      "gate": "auth"
+    },
+    "GET /api/studio-apps/:id/runs/:runId": {
+      "gate": "auth"
+    },
     "GET /api/studio-apps/:id/runtime": {
       "gate": "auth"
     },
@@ -5762,6 +5768,9 @@
       "gate": "auth"
     },
     "POST /api/studio-apps/:id/actions/:actionId/run": {
+      "gate": "auth"
+    },
+    "POST /api/studio-apps/:id/actions/:actionId/runs/end": {
       "gate": "auth"
     },
     "POST /api/studio-apps/:id/actions/:actionId/step": {

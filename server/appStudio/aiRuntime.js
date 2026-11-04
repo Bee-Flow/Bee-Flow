@@ -135,9 +135,9 @@ function usageEntry(app, modelId, usage, t0, source) {
  * @param {number} t0
  * @param {string} source
  */
-function logUsage(app, modelId, usage, t0, source) {
-    // Never let billing bookkeeping break a step (matches studioAppsRun).
-    try { usageStore.logUsage(usageEntry(app, modelId, usage, t0, source)).catch((e) => bestEffort('appStudio/aiRuntime:logUsage', e)); } catch (err) { bestEffort('appStudio/aiRuntime:logUsage#2', err); /* ignore */ }
+function logUsage(app, model, usage, t0, source) {
+    // Never let billing bookkeeping break a step (matches studioAppsRun). The run log of the step gets the call too (runLog/aiUsage.mts).
+    try { const entry = usageEntry(app, model.modelId, usage, t0, source); require('./runLog/aiUsage.mts').noteStepAiCall(model, entry); usageStore.logUsage(entry).catch((e) => bestEffort('appStudio/aiRuntime:logUsage', e)); } catch (err) { bestEffort('appStudio/aiRuntime:logUsage#2', err); /* ignore */ }
 }
 
 /**
@@ -409,7 +409,7 @@ async function runStructured(app, model, { system, user, parameters, toolName = 
     const toolDef = { type: 'function', function: { name: toolName, description: toolDescription, parameters } };
     const t0 = Date.now();
     const res = await guarded('structured', model, (x) => llmClient.chatForcedTool(model.modelId, buildMessages(system, user), toolDef, withTimeout(model.options, x)));
-    logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
+    logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
         e.status = 422;
@@ -423,7 +423,7 @@ async function runStructured(app, model, { system, user, parameters, toolName = 
 async function runText(app, model, { system, user }) {
     const t0 = Date.now();
     const res = await guarded('text', model, (x) => llmClient.chat(model.modelId, buildMessages(system, user), withTimeout(model.options, x)));
-    logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
+    logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     return { text: typeof res?.content === 'string' ? res.content : '', usage: res?.usage };
 }
 
@@ -465,7 +465,7 @@ async function runTextWithTools(app, model, { system, user, tools }) {
     const res = await guarded('text+tools', model, (x) => llmClient.runToolLoop(
         model.modelId, buildMessages(system, user), defs, withTimeout(model.options, x), executeTool, MAX_TOOL_ROUNDS,
     ));
-    logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
+    logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     return { text: typeof res?.content === 'string' ? res.content : '', usage: res?.usage, toolCallRounds: res?.toolCallRounds || 0 };
 }
 
@@ -483,7 +483,7 @@ async function runStructuredWithTools(app, model, { system, user, parameters, to
         model.modelId, buildMessages(system, user), defs,
         { ...withTimeout(model.options, x), finalTool }, executeTool, MAX_TOOL_ROUNDS,
     ));
-    logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
+    logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
         e.status = 422;
@@ -512,7 +512,7 @@ async function streamChat(app, model, { system, messages }, onEvent) {
         if (type === 'done' && data) lastUsage = data.usage || data;
         onEvent(type, data);
     });
-    logUsage(app, model.modelId, lastUsage, t0, 'studio_app_chat');
+    logUsage(app, model, lastUsage, t0, 'studio_app_chat');
 }
 
 // ── Knowledge-base grounding (RAG) ───────────────────────────────────────────

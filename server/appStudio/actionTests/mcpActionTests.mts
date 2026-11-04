@@ -18,7 +18,7 @@
  */
 
 import { createRequire } from 'node:module';
-import { defaultDeps, loadRunTarget, runOnce, takeCallBudgets } from '../mcpRunAction.mts';
+import { defaultDeps, finishLoggedRun, loadRunTarget, runOnce, startLoggedRun, takeCallBudgets } from '../mcpRunAction.mts';
 import type { App, RunDeps, RunReport, RunTarget, StepReport } from '../mcpRunAction.mts';
 import { isObject, limitText, runLimits, trimValue } from '../mcpRunActionPolicy.mts';
 import type { Obj, RunLimits } from '../mcpRunActionPolicy.mts';
@@ -40,6 +40,8 @@ export type TestStatus = 'pass' | 'fail' | 'error' | 'not_run';
 export type TestReport = {
     actionId: string; name: string; status: TestStatus; wasStatus: string | null; free: boolean; ms: number;
     failures: ExpectationResult[]; steps?: StepReport[]; stopped?: string; notes?: string[]; error?: string; _fixHint?: string;
+    /** The run-log row of this test run (app_get_run reads it). */
+    runId?: string;
 };
 
 const ID_RE = /^[A-Za-z0-9_-]{1,80}$/;
@@ -147,10 +149,21 @@ async function runOneTest(c: RunCtx, t: ActionTestRow): Promise<TestReport> {
     const remaining = c.limits.testsBudgetMs ? Math.max(1, c.limits.testsBudgetMs - spent) : 0;
     const budgetMs = [c.limits.budgetMs, remaining].filter((n) => n > 0).reduce((m, n) => Math.min(m, n), Number.POSITIVE_INFINITY);
     const { spec } = checked as CheckedTest;
-    const { report, view } = await runOnce(c.target, {
-        actionId: t.actionId, userId: c.userId, dryRun: true, scope: spec.scope, mock: spec.mock, chargeUpFront: false,
-        budgetMs: Number.isFinite(budgetMs) ? budgetMs : 0, tool: 'app_run_tests',
-    }, c.deps.run);
+    // One run-log row per test (origin test), so a failing test can be read back with app_get_run.
+    const recorder = await startLoggedRun(c.deps.run, c.target.app, t.actionId, c.userId, { origin: 'test', dryRun: true });
+    let ran: Awaited<ReturnType<typeof runOnce>>;
+    try {
+        ran = await runOnce(c.target, {
+            actionId: t.actionId, userId: c.userId, dryRun: true, scope: spec.scope, mock: spec.mock, chargeUpFront: false,
+            budgetMs: Number.isFinite(budgetMs) ? budgetMs : 0, tool: 'app_run_tests', recorder,
+        }, c.deps.run);
+    } catch (e) {
+        await recorder.finish({ status: 'error', error: 'The run stopped unexpectedly.', errorCode: 'internal', durationMs: Math.max(0, c.deps.run.now() - now) });
+        throw e;
+    }
+    const { report, view } = ran;
+    await finishLoggedRun(recorder, report, view, Math.max(0, c.deps.run.now() - now));
+    if (recorder.id) report.runId = recorder.id;
     const { pass, results } = evaluateTest(view, spec.expect, trimValue);
     const blocked = pass ? null : blockedBy(report);
     const status: TestStatus = blocked ? 'error' : (pass ? 'pass' : 'fail');
@@ -162,6 +175,7 @@ async function runOneTest(c: RunCtx, t: ActionTestRow): Promise<TestReport> {
         ...(report.stopped ? { stopped: report.stopped } : {}),
         ...(report.notes.length ? { notes: report.notes } : {}),
         ...(blocked ? { error: blocked } : {}),
+        ...(report.runId ? { runId: report.runId } : {}),
     };
 }
 

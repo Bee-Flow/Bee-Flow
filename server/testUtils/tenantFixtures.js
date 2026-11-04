@@ -142,8 +142,21 @@ const FIXTURES = [
         routes: [
             'GET /api/studio-apps/:id/actions/jobs', 'GET /api/studio-apps/:id/actions/jobs/:jobId',
             'POST /api/studio-apps/:id/actions/:actionId/background', 'POST /api/studio-apps/:id/actions/:actionId/run',
-            'GET /api/studio-apps/:id/actions/runs/:runId',
+            'GET /api/studio-apps/:id/actions/runs/:runId', 'POST /api/studio-apps/:id/actions/:actionId/runs/end',
         ],
+    },
+    {
+        // The run log of an App Studio app (routes/studioApps/runLog.js): owner only, so a member
+        // of org A gets 404 on the list and on a run, and the owner the list.
+        kind: 'studioAppRunLog',
+        mount: '/api/studio-apps',
+        router: () => require('../routes/studioApps/runLog'),
+        create: async ({ orgId, userId, index }) => {
+            const studioAppStore = require('../stores/studioAppStore');
+            const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `Run log app ${index}` });
+            return app.id;
+        },
+        routes: ['GET /api/studio-apps/:id/runs', 'GET /api/studio-apps/:id/runs/:runId'],
     },
 ];
 

@@ -20,6 +20,19 @@ export function postJson(url: string, body: unknown, deadlineMs?: number): Promi
     });
 }
 
+/**
+ * A JSON POST that outlives the page (fetch keepalive): the run log's end report, sent as a
+ * sequence settles, also when the viewer navigates away right after.
+ */
+export function postKeepalive(url: string, body: unknown): Promise<Response> {
+    return authFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        keepalive: true,
+    });
+}
+
 /** A plain authenticated GET (a run's state, an attachment's bytes). */
 export function getAuthed(url: string): Promise<Response> {
     return authFetch(url);

@@ -2994,6 +2994,31 @@ declare namespace DbRow {
         payload_hash: string | null;
         processed_at: Date;
     }
+    /** Row of `studio_app_action_run_steps`. */
+    interface StudioAppActionRunSteps {
+        action_id: string | null;
+        ai_calls: number;
+        attempts: number | null;
+        completion_tokens: number;
+        cost: string | null;
+        cost_currency: string | null;
+        duration_ms: number;
+        error: string | null;
+        error_code: string | null;
+        handled: boolean;
+        iteration: number | null;
+        kind: string;
+        mocked: boolean;
+        model: string | null;
+        model_tier: string | null;
+        path: string;
+        prompt_tokens: number;
+        run_id: string;
+        seq: number;
+        started_at: Date;
+        status: string;
+        step_index: number | null;
+    }
     /** Row of `studio_app_action_runs`. */
     interface StudioAppActionRuns {
         action_id: string;

@@ -46,6 +46,13 @@ const walker = nodeRequire('./sequenceWalk.mts') as {
     walkAction: (w: WalkState, action: Record<string, unknown>, host: WalkHost, opts: { actionId: string }) => Promise<void>;
 };
 
+type RunRecorder = { id: string | null; finish: (o: { status: string; error?: string | null; errorCode?: string | null; durationMs: number }) => Promise<void> };
+const runLog = nodeRequire('./runLog/recorder.mts') as {
+    NOOP_RECORDER: RunRecorder;
+    startRun: (meta: Record<string, unknown>, deps: Record<string, unknown>) => Promise<RunRecorder>;
+    withRunLog: (host: WalkHost, recorder: RunRecorder) => WalkHost;
+};
+
 type Values = Record<string, unknown>;
 export type NewRecord = { id: string; values: Values };
 /** What one sync inserted: conversations (thread mode only) and messages. */
@@ -72,6 +79,8 @@ export type HookDeps = {
     now: () => number;
     /** The wait between retries of a step with `retry` (fake in tests). */
     sleep?: (ms: number) => Promise<void>;
+    /** The run log (origin mailbox_hook, no actor); absent: not logged. */
+    runLog?: () => unknown;
 };
 
 export type HookReport = { ran: number; failed: number; refused: number; skippedLimit: number };
@@ -86,6 +95,7 @@ function defaultDeps(): HookDeps {
         log: nodeRequire('../telemetry/log'),
         limits: () => hookLimits(),
         now: () => Date.now(),
+        runLog: () => (nodeRequire('../stores/studioAppData/runLogStore.mts') as { runLogStore: () => unknown }).runLogStore(),
     };
 }
 
@@ -149,12 +159,22 @@ function hostFor(app: App, model: unknown, def: Record<string, unknown>, actionI
 /** Run the action for one new row. Never throws. */
 async function runOne(app: App, model: unknown, def: Record<string, unknown>, actionId: string, action: unknown, item: unknown, deps: HookDeps): Promise<Run> {
     const w = walker.newWalkState({ item });
+    const t0 = deps.now();
+    const recorder = deps.runLog
+        ? await runLog.startRun({
+            appId: app.id, ownerUserId: app.userId, actionId, origin: 'mailbox_hook', viewerUserId: null,
+            draft: !app.publishedDefinition, definitionVersion: null, client: 'mailbox',
+        }, { store: deps.runLog, log: deps.log })
+        : runLog.NOOP_RECORDER;
+    let run: Run;
     try {
-        await walker.walkAction(w, action as Record<string, unknown>, hostFor(app, model, def, actionId, deps), { actionId });
+        await walker.walkAction(w, action as Record<string, unknown>, runLog.withRunLog(hostFor(app, model, def, actionId, deps), recorder), { actionId });
+        run = { vars: w.vars, steps: w.executed, failure: w.failed ? w.failed.error : null };
     } catch (e) {
-        return { vars: w.vars, steps: w.executed, failure: (e as Error)?.message || 'The action could not run' };
+        run = { vars: w.vars, steps: w.executed, failure: (e as Error)?.message || 'The action could not run' };
     }
-    return { vars: w.vars, steps: w.executed, failure: w.failed ? w.failed.error : null };
+    await recorder.finish({ status: run.failure ? 'error' : 'success', error: run.failure, durationMs: Math.max(0, deps.now() - t0) });
+    return run;
 }
 
 // ── The hook ───────────────────────────────────────────────────────────────

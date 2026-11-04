@@ -346,6 +346,8 @@ async function callTool(name, rawArgs, { userId }) {
         const { runAction } = require('./mcpRunAction.mts');
         return { result: await runAction({ ...args, appId }, userId) };
     }
+    // The run log (read-only, owner only, actors as references): no draft either.
+    if (name === 'app_list_runs' || name === 'app_get_run') return { result: await require('./mcpRunLog.mts')[name === 'app_list_runs' ? 'listRuns' : 'getRun']({ ...args, appId }, userId) };
     // Saved action tests: their own table and access rules (save: editors, run: owner), no draft.
     if (name === 'app_save_test' || name === 'app_run_tests') {
         const { saveTest, runTests } = require('./actionTests/mcpActionTests.mts');

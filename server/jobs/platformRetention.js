@@ -16,7 +16,9 @@
  *      nulled after STUDIO_APP_RUN_RESULT_TTL_HOURS, rows deleted after
  *      STUDIO_APP_RUN_RETENTION_DAYS (stores/studioAppData/runPolicy.mts; 0 = keep). Run
  *      rows can carry customer values in their result, so this is a retention duty and
- *      sits here, ungated, under its own advisory lock (0xBEEF115).
+ *      sits here, ungated, under its own advisory lock (0xBEEF115). The same pass closes
+ *      idle browser runs of the run log and applies STUDIO_APP_RUN_LOG_MAX_RUNS_PER_APP;
+ *      step rows (studio_app_action_run_steps) go with their run (ON DELETE CASCADE).
  *
  * ── WHY THIS IS NOT ON THE AUTOMATION RUNNER'S TICK ─────────────────
  * Both must not ride processRunRetention in core/automationRunner/scheduler/
@@ -66,6 +68,7 @@ let _running = false;
  *   pruneSuggestionFeedback: () => ReturnType<typeof import('../stores/suggestionFeedbackStore').pruneExpired>,
  *   pruneDocumentSuggestions: () => ReturnType<typeof import('../stores/documentSuggestionStore').purgeResolved>,
  *   pruneStudioActionRuns?: (opts: { resultTtlHours: number, retentionDays: number, batch?: number }) => Promise<{ nulled: number, deleted: number }>,
+ *   pruneStudioRunLog?: (opts: { maxPerApp: number, idleMs: number, staleMs: number, batch?: number }) => Promise<{ closed: number, overflow: number }>,
  *   log: typeof import('../telemetry/log'),
  * }} PlatformRetentionDeps
  */
@@ -82,6 +85,12 @@ function deps() {
             pruneSuggestionFeedback: () => require('../stores/suggestionFeedbackStore').pruneExpired(),
             pruneDocumentSuggestions: () => require('../stores/documentSuggestionStore').purgeResolved(DOCUMENT_SUGGESTION_RETENTION_DAYS),
             pruneStudioActionRuns: (opts) => require('../stores/studioAppData/actionRuns.mts').actionRunStore().pruneRuns(opts),
+            pruneStudioRunLog: async (opts) => {
+                const store = require('../stores/studioAppData/runLogStore.mts').runLogStore();
+                const closed = await store.closeIdleRuns({ idleMs: opts.idleMs, staleMs: opts.staleMs, limit: opts.batch });
+                const overflow = await store.pruneOverflow({ maxPerApp: opts.maxPerApp, batch: opts.batch });
+                return { closed, overflow };
+            },
             log: require('../telemetry/log'),
         };
     }
@@ -150,7 +159,8 @@ async function _pruneStudioActionRuns(d) {
     const policy = require('../stores/studioAppData/runPolicy.mts');
     const resultTtlHours = policy.resultTtlHours();
     const retentionDays = policy.retentionDays();
-    if (!resultTtlHours && !retentionDays) return;
+    const runLog = typeof d.pruneStudioRunLog === 'function' ? d.pruneStudioRunLog : null;
+    if (!resultTtlHours && !retentionDays && !runLog) return;
     let acquired = false;
     let client;
     try {
@@ -158,8 +168,7 @@ async function _pruneStudioActionRuns(d) {
         const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [ACTION_RUN_PRUNE_LOCK_KEY]);
         acquired = !!lockRes.rows[0]?.locked;
         if (!acquired) return;
-        const { nulled, deleted } = await d.pruneStudioActionRuns({ resultTtlHours, retentionDays, batch: 5000 });
-        if (nulled || deleted) d.log.info(`[platformRetention] action runs: ${nulled} payload(s) cleared, ${deleted} row(s) deleted`);
+        await _actionRunPasses(d, { resultTtlHours, retentionDays }, runLog, policy);
     } catch (e) {
         d.log.warn('[platformRetention] action-run prune failed:', /** @type {Error} */ (e).message);
     } finally {
@@ -168,6 +177,34 @@ async function _pruneStudioActionRuns(d) {
             client.release();
         }
     }
+}
+
+/**
+ * Under the action-run lock: payloads and old rows (when a knob is set), then the run log.
+ * @param {PlatformRetentionDeps} d
+ * @param {{ resultTtlHours: number, retentionDays: number }} knobs
+ * @param {PlatformRetentionDeps['pruneStudioRunLog'] | null} runLog
+ * @param {typeof import('../stores/studioAppData/runPolicy.mts')} policy
+ */
+async function _actionRunPasses(d, knobs, runLog, policy) {
+    if ((knobs.resultTtlHours || knobs.retentionDays) && d.pruneStudioActionRuns) {
+        const { nulled, deleted } = await d.pruneStudioActionRuns({ ...knobs, batch: 5000 });
+        if (nulled || deleted) d.log.info(`[platformRetention] action runs: ${nulled} payload(s) cleared, ${deleted} row(s) deleted`);
+    }
+    if (runLog) await _pruneRunLog(d, runLog, policy);
+}
+
+/**
+ * The run log's part of the pass (under the action-run lock): browser runs that never reported
+ * their end are closed, and an app keeps at most STUDIO_APP_RUN_LOG_MAX_RUNS_PER_APP runs
+ * (0 = no ceiling). Step rows cascade with their run.
+ * @param {PlatformRetentionDeps} d
+ * @param {NonNullable<PlatformRetentionDeps['pruneStudioRunLog']>} runLog
+ * @param {typeof import('../stores/studioAppData/runPolicy.mts')} policy
+ */
+async function _pruneRunLog(d, runLog, policy) {
+    const { closed, overflow } = await runLog({ maxPerApp: policy.maxRunsPerApp(), idleMs: policy.idleCloseMs(), staleMs: policy.staleStepMs(), batch: 5000 });
+    if (closed || overflow) d.log.info(`[platformRetention] run log: ${closed} idle run(s) closed, ${overflow} run(s) over the per-app ceiling deleted`);
 }
 
 /** One pass of all of them. A failing pass never skips the ones after it. */

@@ -60,3 +60,9 @@ test('a public step inside a called action: callPath ≤ 3 whole numbers and par
     const res = await call('POST', '/actions/a1/step', { stepIndex: 0, callPath: [1], params: { n: 1 } });
     assert.strictEqual(res.status, 404, res.text);
 });
+
+test('a public step\'s runKey is the run log\'s shape; there is no public end route', async () => {
+    h.assertRefused(assert, await call('POST', '/actions/a1/step', { stepIndex: 0, runKey: 'rk_x' }), 'body.runKey', /run key the app made/);
+    const res = await call('POST', '/actions/a1/runs/end', { runKey: 'rk_0123456789abcdefXYZ' });
+    assert.strictEqual(res.status, 404);
+});

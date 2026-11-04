@@ -34,6 +34,7 @@ vi.mock('./components/AppModal', () => ({ openAppModal: vi.fn(), closeAppModal: 
 vi.mock('./formContext', () => ({ resetAppForm: vi.fn() }));
 
 import toast from '@/components/shared/Toast';
+import { stepPosts } from '@/test/runLogCalls';
 import { authFetch } from '@/utils/helpers';
 import { resetAppForm } from './formContext';
 import useActionRunner from './useActionRunner';
@@ -302,7 +303,7 @@ describe('_appEffects — the 202 + poll path and the sequence path carry it too
 
         await act(async () => { await result.current.runAction('go'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(2);
+        expect(stepPosts(authFetch)).toHaveLength(2);
         expect(onNavigate).toHaveBeenCalledTimes(1);
         expect(onNavigate).toHaveBeenCalledWith('scr_orders');
     });

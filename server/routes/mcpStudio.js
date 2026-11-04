@@ -72,6 +72,8 @@ const router = express.Router();
  * Kept short on purpose — the 17k-token guide is a tool call away, not a
  * permanent context tax.
  */
+const RUN_RETENTION_DAYS = require('../stores/studioAppData/runPolicy.mts').retentionDays();
+const RUN_RETENTION_TEXT = RUN_RETENTION_DAYS ? `for ${RUN_RETENTION_DAYS} days` : 'until the app is deleted';
 const INSTRUCTIONS = [
     'Bee Flow App Studio. These tools author real apps in this Bee Flow instance — every call reads and writes the live database, there is no staging copy.',
     '',
@@ -82,6 +84,8 @@ const INSTRUCTIONS = [
     'Build order that works: tables (app_upsert_table) → seed rows (app_seed_records) → screens (app_add_screen) → sections and components (app_add_section, app_add_components) → actions (app_set_action, app_bind_action). Verify with app_dry_run and app_screenshot — actually look at the screenshot — and fix findings before app_finalize.',
     '',
     'Changing an existing app: read an action with app_get_action before you rewrite it with app_set_action (it replaces the whole action). Fill a new field on existing rows with app_update_records (by id, or by filter with dry_run first). Test a sequence with app_run_action (owner only; dryRun is the default and never sends mail or writes rows; outside dryRun send_email only saves a draft). Keep a check repeatable with app_save_test (scope, AI mocks, expectations) and run every saved test with app_run_tests; mocked AI steps make a test free and give the same answer every time.',
+    '',
+    `Every action run (clicks, public pages, app_run_action, app_run_tests, background jobs, mailbox hooks) is logged ${RUN_RETENTION_TEXT}: app_list_runs {status:'error'} → app_get_run {runId} shows the failing step, its error and per-step duration and AI cost.`,
     '',
     'Tool results carry `_hints` when the canonicalizer repaired your input and `_fixHint` when a call was rejected. Both are worth reading: they are how this API teaches its own shape.',
 ].join('\n');

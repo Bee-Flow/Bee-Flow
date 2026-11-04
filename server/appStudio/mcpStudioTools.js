@@ -84,6 +84,33 @@ const STUDIO_TOOLS = [
             },
         },
     },
+    {
+        name: 'app_list_runs',
+        description: 'The run log of the app, newest first (owner only, read-only): every action run from a click, a public page, app_run_action (origin mcp), app_run_tests (test), a background job or a mailbox hook. Per run { id, actionId, origin, status: running|success|error|interrupted|cancelled|refused, endedBy, startedAt, durationMs, stepCount, failedSteps, handledErrors, error, errorCode, errorStep, ai: { calls, promptTokens, completionTokens, costByCurrency } (cost is an estimate), actor: { kind: owner|user|visitor|system, isYou, ref } }. People are never named: ref is the same for one person within this app. Filter with actionId, status, origin, user (me|others|visitors|system) and since; page with the nextCursor. Runs are kept for retentionDays. Read one with app_get_run.',
+        parameters: {
+            type: 'object',
+            properties: {
+                actionId: { type: 'string', description: 'Only runs of this action.' },
+                status: { type: 'string', enum: ['running', 'success', 'error', 'interrupted', 'cancelled', 'refused'], description: 'Only runs that ended like this ("error" finds the failing ones).' },
+                origin: { type: 'string', description: 'Comma list of click, public, mcp, test, background, mailbox_hook.' },
+                user: { type: 'string', enum: ['me', 'others', 'visitors', 'system'], description: 'Who ran it: you, other signed-in people, public-page visitors, or the system (mailbox hook).' },
+                since: { type: 'string', description: 'Only runs started at or after this ISO 8601 date and time.' },
+                limit: { type: 'integer', minimum: 1, maximum: 50, description: 'Runs per page (default 20).' },
+                cursor: { type: 'string', description: 'The nextCursor of the previous page.' },
+            },
+        },
+    },
+    {
+        name: 'app_get_run',
+        description: 'One run of the app\'s run log with its steps in order (owner only, read-only): per step { path (as in app_run_action: "steps[0]", "steps[1].then[0]", "steps[0].call.steps[0]"; "#<n>" when a browser step could not be placed), kind, status: ok|error|skipped|refused|deferred, durationMs, error?, code?, attempts?, handled?, mocked?, iteration?, ai?: { calls, model, tier, promptTokens, completionTokens, cost, currency } }. The first failing step is the run\'s errorStep. No results, inputs or prompts are kept, only what happened and how long it took.',
+        parameters: {
+            type: 'object',
+            properties: {
+                runId: { type: 'string', description: 'The id app_list_runs, app_run_action or app_run_tests returned (sar_…).' },
+            },
+            required: ['runId'],
+        },
+    },
 ];
 
 module.exports = { STUDIO_TOOLS };

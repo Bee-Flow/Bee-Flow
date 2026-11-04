@@ -166,6 +166,8 @@ async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
 // for this route and a background job (studioAppStepBudget.mts, where the reasoning lives).
 const { HEAVY_STEP_KINDS, limitersForStepDef } = require('./studioAppStepBudget.mts');
 const { mountBackgroundRoutes, refuseLocked } = require('./studioAppBackground');
+// The run log of a browser run (package 8): the step envelope and the end report.
+const { loggedSignedInStep, logAutomationRun, signedInClick, endClickRun } = require('../appStudio/runLog/clickRuns.mts');
 
 // ── POST /:id/actions/:actionId/step ────────────────────────────────
 // Execute one server-authoritative DATA step of a v2 action sequence. Same
@@ -254,7 +256,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     const value = req.body?.value;
 
     const t0 = Date.now();
-    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await actionExecutor.executeDataStep(app, dataModel, step, {
+    // The run log (appStudio/runLog/clickRuns.mts): the steps of one click share the browser's runKey.
+    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await loggedSignedInStep({ app, actionId, userId, draft: isOwner && wantDraft, def, step, body: req.body, ownerActionId }, () => actionExecutor.executeDataStep(app, dataModel, step, {
         viewerId: userId,
         // Audit stamp for steps that create durable records (request_approval):
         // the action that holds the step (a called action's own id).
@@ -284,7 +287,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // same shape buildViewer produces on the data route; a partial one
         // silently matches nothing.
         viewer: { id: userId, role: role || null, organizationId: req.session.user.organizationId || null },
-    }));
+    })));
 
     // Real work happened under the OWNER (record write or owner-scoped run)
     // regardless of the viewer — attribute usage to the owner (as /run does).
@@ -315,6 +318,28 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         result: result?.result ?? null,
         ...stepFailureExtras(/** @type {{ retryable?: unknown, ref?: unknown }} */ (result)),
     });
+});
+
+// ── POST /:id/actions/:actionId/runs/end ────────────────────────────
+// The browser's end report of a run it tied together with a runKey (the run log,
+// appStudio/runLog/clickRuns.mts): its verdict (an onError handler may have dealt with a
+// failing step; a declined confirm cancels). Same app gate as /step; only the caller's own
+// run of that key changes. No key: nothing to end (recorded: false). Public pages have no
+// twin: their runs close by the idle rule.
+router.post('/:id/actions/:actionId/runs/end', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.RunEndBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {
+    const userId = req.session.user.id;
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    const isOwner = app.userId === userId;
+    const wantDraft = ['1', 'true'].includes(String(req.query?.draft ?? ''));
+    const def = (isOwner && wantDraft) ? app.definition : app.publishedDefinition;
+    const actions = def && typeof def.actions === 'object' && def.actions ? def.actions : {};
+    if (!Object.hasOwn(actions, req.params.actionId)) return res.status(404).json({ error: 'Action not found' });
+    if (!req.body?.runKey) return res.json({ ok: true, recorded: false });
+    const recorded = await endClickRun({
+        app, actionId: req.params.actionId, origin: 'click', actorUserId: userId, visitorKey: null, runKey: req.body.runKey,
+    }, { status: req.body.status, error: req.body.error ?? null, handled: req.body.handled === true });
+    res.json({ ok: true, recorded });
 });
 
 // ── Background actions (routes/studioAppBackground.js) ──────────────
@@ -412,6 +437,8 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // Logged when the run settles regardless of client wait/disconnect —
     // real work happened under the OWNER either way (same rationale as the
     // webpage bridge's usage logging).
+    // The run log: a run of one step, finished from the automation's outcome (also after a 202).
+    logAutomationRun(signedInClick(app, actionId, userId, isOwner && wantDraft, null), runPromise, t0);
     runPromise.then(() => {
         usageStore.logUsage({
             user_id: app.userId,

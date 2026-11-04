@@ -84,3 +84,16 @@ test('a background start takes the click scope only; a job id is sar_ + 32 hex; 
     h.assertRefused(assert, await api.call('GET', '/api/studio-apps/app1/actions/jobs?actionId=a%20b', {}), 'query.actionId', /id of an action/);
     assert.deepStrictEqual(db.queries, []);
 });
+
+test('the run log: a step\'s runKey and the end report are bounded; an empty end body still reaches the app gate', async () => {
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, runKey: 'not-a-key' }), 'body.runKey', /run key the app made/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { runKey: 'rk_short' }), 'body.runKey', /run key the app made/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { status: 'done' }), 'body.status', /success, error or cancelled/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { error: 'x'.repeat(301) }), 'body.error', /at most 300/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { handled: 'yes' }), 'body.handled', /onError handler/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { result: {} }), 'body', /"result"/);
+    assert.deepStrictEqual(db.queries, []);
+    const res = await post('/actions/a1/runs/end', {});
+    assert.strictEqual(res.status, 404, res.text);
+    assert.ok(db.queries.some((q) => /studio_apps/.test(q)), db.queries.join(' | '));
+});

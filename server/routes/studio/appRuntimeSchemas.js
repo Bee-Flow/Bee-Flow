@@ -46,6 +46,9 @@ const ErrorScope = z.object({
     stepIndex: z.number({ error: ERROR_TEXT }).int(ERROR_TEXT).min(0, ERROR_TEXT).optional(),
 }, { error: ERROR_TEXT });
 
+const RUN_KEY_TEXT = 'runKey is the run key the app made for this click (rk_ and 16 to 64 letters, digits, _ or -).';
+const RunKey = worded(RUN_KEY_TEXT).regex(/^rk_[A-Za-z0-9_-]{16,64}$/, RUN_KEY_TEXT);
+
 /** One server step of an action (…/actions/:actionId/step). */
 const StepBody = bodyOf({
     stepIndex: wholeNumber('stepIndex is the position of the step in the action.'),
@@ -62,7 +65,21 @@ const StepBody = bodyOf({
     params: bag('params').nullish(),
     // Inside an onError handler: the failure it handles (scope root `error`).
     error: ErrorScope.optional(),
+    // The run log: the key that ties the server steps of one click together (appStudio/runLog/clickRuns.mts).
+    runKey: RunKey.optional(),
 }, 'An action step');
+
+const RUN_END_TEXT = 'status is success, error or cancelled.';
+/**
+ * The browser's end report of one run (…/actions/:actionId/runs/end). Every field optional, so
+ * an empty body still reaches the app gate (and answers recorded: false).
+ */
+const RunEndBody = bodyOf({
+    runKey: RunKey.optional(),
+    status: choice(['success', 'error', 'cancelled'], RUN_END_TEXT).optional(),
+    error: worded('error is the reason the run failed, at most 300 characters.').max(300, 'error is the reason the run failed, at most 300 characters.').optional(),
+    handled: z.boolean({ error: 'handled is true when an onError handler dealt with a failure.' }).optional(),
+}, 'The end of an action run');
 
 /** A background action's start (…/actions/:actionId/background): the scope roots of the click. */
 const BackgroundBody = bodyOf({
@@ -127,4 +144,4 @@ const RecordsQuery = queryOf({
     sample: choice(['0', '1'], 'sample is 1 for an editor preview.').optional(),
 }, 'A table page');
 
-module.exports = { DraftQuery, StepBody, RunBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };
+module.exports = { DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };

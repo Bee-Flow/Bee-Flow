@@ -354,7 +354,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     if (!ctx) return undefined;
 
     const t0 = Date.now();
-    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await actionExecutor.executeDataStep(found.app, ctx.model, step, {
+    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await require('../appStudio/runLog/clickRuns.mts').loggedPublicStep({ app: found.app, actionId, viewerId: ctx.viewerId, def: found.definition, step, body: req.body, ownerActionId }, () => actionExecutor.executeDataStep(found.app, ctx.model, step, {
         viewerId: ctx.viewerId,
         // Audit stamp for steps that create durable records (request_approval):
         // the action that holds the step (a called action's own id).
@@ -375,7 +375,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         // Inside an onError handler: the failure it handles, read as error.message / error.step.
         error: sanitizeErrorScope(req.body?.error),
         viewer: ctx.viewer,
-    }));
+    })));
 
     // The work happened under the OWNER — attribute it to them, as /step does.
     usageStore.logUsage({

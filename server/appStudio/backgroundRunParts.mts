@@ -9,6 +9,7 @@ import type { ReadData } from './runBindings.mts';
 import { backgroundLimits } from './backgroundRunPolicy.mts';
 import type { BackgroundLimits } from './backgroundRunPolicy.mts';
 import type { ActionRunRow, ActionRunStore } from '../stores/studioAppData/actionRuns.mts';
+import type { RunLogStore } from '../stores/studioAppData/runLogStore.mts';
 import type { StepBudget } from '../routes/studioAppStepBudget.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -25,6 +26,8 @@ export type StartInput = {
 
 export type RunnerDeps = {
     store: () => ActionRunStore;
+    /** The run log's step rows on the job row; null: not logged (a test that injects its own store). */
+    runLog: (() => RunLogStore) | null;
     executeStep: (app: App, model: unknown, step: Step, ctx: Obj) => Promise<StepResult>;
     evaluate: (expr: string, scope: unknown) => unknown;
     buildScope: (ctx: Obj) => unknown;
@@ -103,6 +106,8 @@ export function toJobView(row: ActionRunRow): JobView {
 export function withDefaults(given: Partial<RunnerDeps>): RunnerDeps {
     return {
         store: given.store ?? (() => (nodeRequire('../stores/studioAppData/actionRuns.mts') as { actionRunStore: () => ActionRunStore }).actionRunStore()),
+        runLog: given.runLog !== undefined ? given.runLog
+            : (given.store ? null : () => (nodeRequire('../stores/studioAppData/runLogStore.mts') as { runLogStore: () => RunLogStore }).runLogStore()),
         executeStep: given.executeStep ?? ((app, model, step, ctx) => nodeRequire('./actionExecutor').executeDataStep(app, model, step, ctx)),
         evaluate: given.evaluate ?? ((expr, scope) => nodeRequire('../shared/expr/index.mjs').tryEvaluate(expr, scope)?.value),
         buildScope: given.buildScope ?? ((ctx) => nodeRequire('./actionExecutor/shared').buildServerScope(ctx)),

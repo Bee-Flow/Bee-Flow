@@ -37,6 +37,8 @@ export type RunReport = {
     mocked: number;
     /** A background action: the lockKey this run resolved and the progress variable. */
     background?: { lockKey: string | null; progressVar: string | null };
+    /** The run log row of this run (app_get_run reads it). */
+    runId?: string;
 };
 export type RunOutcome = RunReport | { error: string; _fixHint?: string };
 
@@ -64,6 +66,8 @@ export type RunDeps = {
     limits: () => Partial<RunLimits>;
     /** The run table (a live run of a background action with a lockKey takes its lock); default actionRunStore(). */
     actionRuns?: () => import('../stores/studioAppData/actionRuns.mts').ActionRunStore;
+    /** The run log (runLog/recorder.mts); absent: the run is not logged (defaultDeps sets it). */
+    runLog?: () => import('../stores/studioAppData/runLogStore.mts').RunLogStore;
 };
 
 export type Deps = RunDeps & Required<Pick<RunDeps, 'readData' | 'takeFreeBudget' | 'promptOf'>>;
@@ -79,6 +83,8 @@ export type RunOnceOptions = {
     budgetMs?: number;
     /** The tool name in messages. */
     tool?: string;
+    /** The run log of this walk (runLog/recorder.mts). */
+    recorder?: import('./runLog/recorder.mts').RunRecorder | null;
 };
 
 export type Run = {

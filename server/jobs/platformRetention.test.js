@@ -181,3 +181,36 @@ test('the action-run prune runs under its own lock with the policy knobs; a fail
         job._setDeps(null);
     }
 });
+
+test('the run log pass closes idle browser runs and applies the per-app ceiling under the same lock; env knobs reach it', async () => {
+    const queries = [];
+    const runLog = [];
+    const logs = [];
+    const deps = {
+        pool: { connect: async () => ({ query: async (sql, params) => { queries.push({ sql, params }); return { rows: [{ locked: true }] }; }, release() {} }) },
+        monitoringRetentionPass: async () => ({ deleted: {} }),
+        pruneScanLedger: async () => ({ deleted: 0 }),
+        ledgerKeyVersion: 1,
+        pruneSuggestionScans: async () => 0,
+        pruneSuggestionFeedback: async () => 0,
+        pruneDocumentSuggestions: async () => 0,
+        pruneStudioActionRuns: async () => ({ nulled: 0, deleted: 0 }),
+        pruneStudioRunLog: async (opts) => { runLog.push(opts); return { closed: 3, overflow: 1 }; },
+        log: { debug() {}, info: (...a) => logs.push(a.join(' ')), warn: (...a) => logs.push(a.join(' ')), error() {} },
+    };
+    process.env.STUDIO_APP_RUN_LOG_MAX_RUNS_PER_APP = '250';
+    process.env.STUDIO_APP_RUN_RETENTION_DAYS = '0';
+    process.env.STUDIO_APP_RUN_RESULT_TTL_HOURS = '0';
+    try {
+        job._setDeps(deps);
+        await job.runOnce();
+        assert.deepStrictEqual(runLog, [{ maxPerApp: 250, idleMs: 60_000, staleMs: 900_000, batch: 5000 }], 'runs even when the age knobs are 0 (keep forever)');
+        assert.ok(logs.some((l) => /3 idle run\(s\) closed, 1 run\(s\) over the per-app ceiling/.test(l)));
+        assert.ok(queries.some((q) => /pg_try_advisory_lock/.test(q.sql) && q.params[0] === job.ACTION_RUN_PRUNE_LOCK_KEY));
+    } finally {
+        delete process.env.STUDIO_APP_RUN_LOG_MAX_RUNS_PER_APP;
+        delete process.env.STUDIO_APP_RUN_RETENTION_DAYS;
+        delete process.env.STUDIO_APP_RUN_RESULT_TTL_HOURS;
+        job._setDeps(null);
+    }
+});

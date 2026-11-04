@@ -19,6 +19,7 @@ vi.mock('@/components/shared/Toast', () => {
 vi.mock('./components/AppModal', () => ({ openAppModal: vi.fn(), closeAppModal: vi.fn() }));
 
 import toast from '@/components/shared/Toast';
+import { stepPosts } from '@/test/runLogCalls';
 import { authFetch } from '@/utils/helpers';
 import { dataCacheKey } from './resolveBinding';
 import useActionRunner from './useActionRunner';
@@ -63,7 +64,7 @@ describe('useActionRunner — bindings resolve against the full bag', () => {
 
         await act(async () => { await result.current.runAction('seq'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(2);
+        expect(stepPosts(authFetch)).toHaveLength(2);
         expect(bodyOfCall(0).vars.row).toEqual({ id: 'a' });
         expect(bodyOfCall(1).vars.row).toEqual({ id: 'b' });
         expect(bodyOfCall(0).item).toEqual({ id: 'a' });
@@ -108,7 +109,7 @@ describe('useActionRunner — bindings resolve against the full bag', () => {
 
         await act(async () => { await result.current.runAction('seq'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(bodyOfCall(0).vars.row).toEqual({ id: 'x' });
     });
 
@@ -130,7 +131,7 @@ describe('useActionRunner — bindings resolve against the full bag', () => {
         authFetch.mockClear();
         await act(async () => { await result.current.runAction('seq'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(2);
+        expect(stepPosts(authFetch)).toHaveLength(2);
         expect(bodyOfCall(0).vars.row).toEqual({ id: 'p' });
         expect(bodyOfCall(1).vars.row).toEqual({ id: 'q' });
     });
@@ -227,10 +228,10 @@ describe('useActionRunner — refresh is a barrier, not a hint', () => {
             order.push('refresh:start');
             setTimeout(() => { settled = true; order.push('refresh:done'); resolve(); }, 10);
         }));
-        authFetch.mockImplementation(async () => {
+        authFetch.mockImplementation(async (url) => {
             // The read that used to race: it must not run while the refetch is
             // still in flight, or it resolves against the stale cache.
-            order.push(settled ? 'read:after' : 'read:during');
+            if (!String(url).includes('/runs/end')) order.push(settled ? 'read:after' : 'read:during');
             return resp(200, { ok: true, result: { id: 'r' } });
         });
 

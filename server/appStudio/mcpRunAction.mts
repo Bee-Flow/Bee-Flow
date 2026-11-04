@@ -35,6 +35,8 @@ import {
 } from './mcpRunActionPolicy.mts';
 import type { Obj, RunScope } from './mcpRunActionPolicy.mts';
 import { newWalkState, outcomeView, walkAction } from './sequenceWalk.mts';
+import { NOOP_RECORDER, startRun, withRunLog } from './runLog/recorder.mts';
+import type { RunRecorder } from './runLog/recorder.mts';
 import type { OutcomeView } from './sequenceWalk.mts';
 import type { ReadData } from './runBindings.mts';
 import { checkMock } from './actionTests/mockStep.mts';
@@ -65,7 +67,8 @@ export async function runOnce(target: RunTarget, opts: RunOnceOptions, given: Ru
         charged: opts.chargeUpFront, chargedHere: false, reads: 0, mocked: 0, current: '',
         deadline: budgetMs ? deps.now() + budgetMs : 0, w,
     };
-    await walkAction(w, action, hostFor(run), { actionId: opts.actionId });
+    const host = opts.recorder ? withRunLog(hostFor(run), opts.recorder) : hostFor(run);
+    await walkAction(w, action, host, { actionId: opts.actionId });
     const view = outcomeView(w);
     const truncated = w.truncated || run.reportTruncated;
     const report: RunReport = {
@@ -189,17 +192,22 @@ export async function runAction(args: unknown, userId: string, given: RunDeps = 
     }
 
     const t0 = Date.now();
+    // The run log: the lock row IS the run row of a live background action; otherwise a row of its own.
+    const recorder = await startLoggedRun(given, app, actionId, userId, { origin: 'mcp', dryRun, existingId: lock?.id ?? null });
     let outcome: Awaited<ReturnType<typeof runOnce>>;
     try {
-        outcome = await runOnce(target, { actionId, userId, dryRun, scope, mock: mock.mock, chargeUpFront: !dryRun }, given);
+        outcome = await runOnce(target, { actionId, userId, dryRun, scope, mock: mock.mock, chargeUpFront: !dryRun, recorder }, given);
     } catch (e) {
+        await recorder.finish({ status: 'error', error: 'The run stopped unexpectedly.', errorCode: 'internal', durationMs: Date.now() - t0 });
         if (lock) await lock.store.finishRun(lock.id, { status: 'error', error: 'The run stopped unexpectedly.', errorCode: 'internal', durationMs: Date.now() - t0 }).catch(() => false);
         throw e;
     }
-    const { report, executed } = outcome;
+    const { report, executed, view } = outcome;
+    await finishLoggedRun(recorder, report, view, Date.now() - t0);
     if (lock) {
         await lock.store.finishRun(lock.id, { status: report.ok ? 'success' : 'error', error: report.ok ? null : (report.stopped ?? null), durationMs: Date.now() - t0, stepCount: executed }).catch(() => false);
     }
+    noteRunId(report, recorder);
     if (bg.background) {
         report.background = { lockKey, progressVar: bg.progressVar };
         report.notes.push('Clicked, this runs as a background job (the page shows its progress and can be closed); here it ran inline within the time budget.');
@@ -209,6 +217,33 @@ export async function runAction(args: unknown, userId: string, given: RunDeps = 
         actionId, dryRun, executed, steps: report.steps.length, failed: !report.ok, mocked: report.mocked, free: report.free,
     }, app, userId);
     return report;
+}
+
+/** The run log of one MCP walk (origin mcp or test); the NOOP recorder when the deps carry no run log. */
+export async function startLoggedRun(given: RunDeps, app: App, actionId: string, userId: string, o: { origin: 'mcp' | 'test'; dryRun: boolean; existingId?: string | null }): Promise<RunRecorder> {
+    if (!given.runLog) return NOOP_RECORDER;
+    return startRun({
+        appId: app.id, ownerUserId: app.userId, actionId, origin: o.origin, viewerUserId: userId, draft: true,
+        definitionVersion: app.definitionVersion ?? null, dryRun: o.dryRun, client: 'mcp', existingId: o.existingId ?? null,
+    }, { store: given.runLog, log: given.log });
+}
+
+/** Close the logged run from the walk's outcome (the first failing step is the run's error). */
+export async function finishLoggedRun(recorder: RunRecorder, report: RunReport, view: OutcomeView, durationMs: number): Promise<void> {
+    const failed = view.failed;
+    await recorder.finish({
+        status: report.ok ? 'success' : 'error',
+        error: failed ? `${failed.path}: ${failed.error}` : (report.ok ? null : report.stopped ?? null),
+        errorCode: failed?.code ?? (report.truncated ? 'run_limit' : null), durationMs, truncated: report.truncated === true,
+        endedBy: report.truncated ? 'limit' : null,
+    });
+}
+
+/** The report names its run row, so the caller can read it back with app_get_run. */
+export function noteRunId(report: RunReport, recorder: RunRecorder): void {
+    if (!recorder.id) return;
+    report.runId = recorder.id;
+    report.notes.push(`Logged as run ${recorder.id}: app_get_run shows it.`);
 }
 
 /** A live MCP run of a background action takes its lock like a click (one run row, origin mcp). */
@@ -257,6 +292,7 @@ export function defaultDeps(): RunDeps {
         log: nodeRequire('../telemetry/log'),
         now: () => Date.now(),
         limits: () => runLimits(),
+        runLog: () => (nodeRequire('../stores/studioAppData/runLogStore.mts') as { runLogStore: () => import('../stores/studioAppData/runLogStore.mts').RunLogStore }).runLogStore(),
     };
 }
 

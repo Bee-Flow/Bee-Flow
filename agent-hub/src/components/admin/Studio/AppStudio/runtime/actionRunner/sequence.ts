@@ -27,6 +27,7 @@ import type { RunnerContext } from './runnerContext';
 import { StepFailure, dispatchBrowseStep, dispatchServerStep } from './serverSteps';
 import type { ErrorScope, SeqState } from './serverSteps';
 import { runCallStep } from './callStep';
+import { newRunTrack, reportRunEnd } from './runEnd';
 
 interface SeqEnv extends ClientStepEnv {
     actionId: string;
@@ -245,6 +246,7 @@ async function handleStepFailure(env: SeqEnv, step: RunStep | null | undefined, 
     const saved = st.errorScope;
     st.errorScope = errorScopeFor(env, step, e);
     st.error = null;
+    if (st.run) st.run.handled = true;
     try {
         await execSteps(env, handler.steps, st);
     } finally {
@@ -313,6 +315,21 @@ async function prepareServerRun(ctx: RunnerContext, actionId: string): Promise<b
     return true;
 }
 
+type RunOutcome = 'success' | 'error' | 'cancelled' | 'aborted';
+
+/**
+ * The run log of this click (./runEnd): one run key for every server step, and the one end report
+ * when it settles. `aborted` (a declined confirm or onError stop) ends as success when a handler
+ * dealt with a failure, else as cancelled.
+ */
+function runEnder(ctx: RunnerContext, actionId: string, state: SeqState, hasServer: boolean): (outcome: RunOutcome, error?: string | null) => void {
+    if (hasServer) state.run = newRunTrack();
+    return (outcome, error) => {
+        const status = outcome === 'aborted' ? (state.run?.handled ? 'success' : 'cancelled') : outcome;
+        void reportRunEnd(ctx.appId, actionId, !!ctx.draft, state.run, { status, error });
+    };
+}
+
 export async function runSequence(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<void> {
     const steps = normalizeSequence(action);
     // Follows call_action, so a server step inside a called action shows the spinner too.
@@ -321,13 +338,16 @@ export async function runSequence(ctx: RunnerContext, actionId: string, action: 
 
     const env: SeqEnv = { ctx, actionId, hasServer, indexMap: buildStepIndexMap(steps), liveBag: makeLiveBag(ctx, actionId), callChain: [actionId] };
     const state = initialState(ctx, actionId, opts);
+    const end = runEnder(ctx, actionId, state, hasServer);
     const { setEntry, applyEffects } = ctx;
     try {
         await execSteps(env, steps, state);
+        end('success');
         if (hasServer) setEntry(actionId, { status: 'success', result: state.lastResult, error: null });
         await applyEffects(mergeAppEffects(action.onSuccess, state.appEffects), { formId: opts.formId, formName: opts.formName, effectsUnknown: !!state.effectsUnknown });
     } catch (e) {
         if (e === SEQ_ABORT) {
+            end('aborted');
             // Declined confirm / handled onError — settle without an error.
             if (hasServer) {
                 setEntry(actionId, state.lastResult !== undefined
@@ -336,8 +356,9 @@ export async function runSequence(ctx: RunnerContext, actionId: string, action: 
             }
             return;
         }
-        if (e === CANCELLED || !ctx.alive.current) return;
+        if (e === CANCELLED || !ctx.alive.current) { end('cancelled'); return; }
         const message = state.error || failureMessage(e, ctx.tr);
+        end('error', message);
         // A server-touching sequence surfaces the error on the triggering
         // control (status:'error'); every failed sequence also toasts so the
         // abort is never silent. onError effects (if any) apply afterwards.

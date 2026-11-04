@@ -56,6 +56,8 @@ const { requireAuth } = require('../auth/permissions');
 const { browseStepLimiter, aiStepLimiter } = require('./studioAppRateLimits');
 const { bestEffort } = require('../utils/bestEffort');
 const { sessionUser } = require('../core/http/sessionUser');
+// The run log of a browser run (package 8).
+const { loggedSignedInStep } = require('../appStudio/runLog/clickRuns.mts');
 
 const MAX_BODY_BYTES = 64 * 1024;
 const jsonBody = express.json({ limit: MAX_BODY_BYTES });
@@ -118,6 +120,8 @@ const BrowseBody = partOf({
     params: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('params') }) }).nullish(),
     // Inside an onError handler: the failure it handles (scope root `error`).
     error: require('./studio/appRuntimeSchemas').ErrorScope.optional(),
+    // The run log's key of this click (appStudio/runLog/clickRuns.mts).
+    runKey: z.string({ error: 'runKey is the run key the app made for this click.' }).regex(/^rk_[A-Za-z0-9_-]{16,64}$/, 'runKey is the run key the app made for this click.').optional(),
 });
 
 router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (/** @type {import('express').Request<{ id: string, actionId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
@@ -176,7 +180,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         try {
             const formValues = sanitizeBag(req.body.formValues);
             const vars = sanitizeBag(req.body.vars);
-            const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await actionExecutor.executeDataStep(app, dataModel, step, {
+            const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await loggedSignedInStep({ app, actionId, userId, draft: isOwner && wantDraft, def, step, body: req.body, ownerActionId }, () => actionExecutor.executeDataStep(app, dataModel, step, {
                 viewerId: userId,
                 viewerName: sessionUser(req).name || null,
                 viewerEmail: sessionUser(req).email || null,
@@ -196,7 +200,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 params: sanitizeBag(req.body.params),
                 error: sanitizeErrorScope(req.body.error),
                 browse: { send: bridge, isCancelled: () => cancelled },
-            }));
+            })));
             send({ type: 'result', ok: !!result?.ok, result: result?.result || null, error: result?.error || null, code: result?.code || null });
             send({ type: 'done' });
         } catch (e) {

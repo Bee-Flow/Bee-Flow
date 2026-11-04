@@ -82,6 +82,16 @@ the run goes on; a step with `retry` reports how many `attempts` it took. A
 `{ "$sequence": [ { "$error": "…" }, "answer" ] }` gives one answer per attempt, so a
 saved test (`app_save_test`) can check that a retry recovers (`steps[0].attempts`).
 
+Every action run is logged (clicks, public pages, background runs, mailbox hooks,
+`app_run_action` and `app_run_tests`, which return the `runId` of their run).
+`app_list_runs { actionId?, status?, origin?, user?, since?, limit?, cursor? }` lists them
+newest first with status, duration, step counts, the error and the step it came from, and
+the AI tokens and estimated cost; `app_get_run { runId }` gives every step with its path,
+status, duration, error, attempts and AI usage. Both are read-only and owner-only, and name
+no one: a run's actor is a kind (`owner`, `user`, `visitor`, `system`), `isYou` and a
+reference that is stable within the app. No values, results or prompts are kept. Runs are
+kept for `STUDIO_APP_RUN_RETENTION_DAYS` (default 30).
+
 ## Access control
 
 Four independent gates, all of which must pass:

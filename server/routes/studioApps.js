@@ -58,5 +58,7 @@ router.use('/', require('./studioApps/publish'));
 router.use('/', require('./studioApps/publicPages'));
 // POST /:id/check, /:id/template-upgrade; GET /:id/runtime.
 router.use('/', require('./studioApps/runtime'));
+// GET /:id/runs, /:id/runs/:runId — the run log (owner only).
+router.use('/', require('./studioApps/runLog'));
 
 module.exports = router;

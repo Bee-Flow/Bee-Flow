@@ -27,6 +27,7 @@
 import { newWalkState, outcomeView, walkAction } from './sequenceWalk.mts';
 import type { Obj, Step, StepEvent, StepResult, WalkHost, WalkState } from './sequenceWalk.mts';
 import { resolveRunBinding } from './runBindings.mts';
+import { NOOP_RECORDER, startRun, withRunLog } from './runLog/recorder.mts';
 import { ownAction } from './actionCalls.mts';
 import {
     BACKGROUND_DEFERRED_KINDS, BACKGROUND_REFUSED_KINDS, MAX_DEFERRED_EFFECTS, backgroundActionProblems, leadingConfirmCount, limitLabel,
@@ -284,11 +285,19 @@ async function executeRun(job: Job): Promise<void> {
     const store = deps.store();
     const initialVars = { ...job.w.vars };
     const beat = deps.setInterval(() => { store.heartbeat([jobId]).catch(() => {}); }, Math.max(1000, Math.floor(job.limits.staleMs / 3)));
+    // The run log writes its step rows onto the job's own row (no second row).
+    const recorder = deps.runLog
+        ? await startRun({
+            appId: input.app.id, ownerUserId: input.app.userId, actionId: input.actionId, origin: 'background',
+            viewerUserId: input.viewer.id, draft: input.draft, definitionVersion: input.definitionVersion, existingId: jobId,
+        }, { store: deps.runLog, log: deps.log })
+        : NOOP_RECORDER;
     try {
         await writeProgress(job, true);
-        await walkAction(job.w, job.action, hostFor(job), { actionId: input.actionId });
+        await walkAction(job.w, job.action, withRunLog(hostFor(job), recorder), { actionId: input.actionId });
     } finally {
         deps.clearInterval(beat);
+        await recorder.finish({ status: 'success', durationMs: deps.now() - job.startedAt });
     }
     const w = job.w;
     const view = outcomeView(w);

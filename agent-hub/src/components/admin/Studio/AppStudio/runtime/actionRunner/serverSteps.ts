@@ -9,6 +9,7 @@ import type { EffectObject, Translate, Vars } from './core';
 import type { RunnerContext } from './runnerContext';
 import type { BrowseEvent } from '../BrowserRunContext';
 import { errorName } from '@/utils/caughtError';
+import type { RunTrack } from './runEnd';
 
 /**
  * A step the SERVER answered with a failure (ok:false, or a non-2xx status).
@@ -60,6 +61,8 @@ export interface SeqState {
     callPath?: number[];
     /** Inside an onError handler: the failure it handles (scope root `error`, sent with each step). */
     errorScope?: ErrorScope | null;
+    /** The run log's key of this click, shared by every copy of the state (./runEnd). */
+    run?: RunTrack;
 }
 
 /** The body both step endpoints take: the ordinal plus the scope roots the server declares. */
@@ -80,6 +83,11 @@ function stepBody(stepIndex: number | undefined, st: SeqState): Record<string, u
     if (st.params && Object.keys(st.params).length) body.params = st.params;
     // A server step inside an onError handler reads error.message / error.step.
     if (st.errorScope) body.error = st.errorScope;
+    // The run log: every server step of one click carries the same run key.
+    if (st.run) {
+        body.runKey = st.run.runKey;
+        st.run.serverSteps += 1;
+    }
     return body;
 }
 

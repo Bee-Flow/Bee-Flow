@@ -57,4 +57,14 @@ const BULK_WRITES = `## Changing many rows, idempotent writes
 - writeTo.replaceWhere: [clauses] deletes the matching rows first, then writes (refused, with nothing changed, when it matches more than 500 rows or a value is empty). Without upsertKey the delete and the inserts are one transaction; with upsertKey they are not (delete first, then row by row).
 - In a dry run (app_run_action) a filter-mode write reports wouldWrite { kind, tableId, matched, wouldAffect, limit } (or blocked: <field>) and writes nothing; replaceWhere is not applied.`;
 
-export const MCP_GUIDE_SECTIONS: readonly string[] = Object.freeze([TESTING_ACTIONS, BACKGROUND_ACTIONS, BULK_WRITES]);
+const RUN_INSIGHT = `## Run insight (MCP)
+
+Every action run is logged: a click or a public page (the server steps of one click form one run), app_run_action (origin mcp), app_run_tests (origin test, one run per test), a background job and a mailbox hook. A sequence of only client steps (toast, navigate, ...) is not logged. Runs are kept for STUDIO_APP_RUN_RETENTION_DAYS (default 30; 0 keeps them).
+- app_list_runs { actionId?, status?, origin?, user?: me|others|visitors|system, since?, limit?, cursor? } lists runs newest first: who (actor kind, isYou and a per-app ref, never a name), when, durationMs, status (success | error | running | interrupted | cancelled | refused), stepCount, failedSteps, the error and the step it came from (errorStep), AI calls, tokens and the estimated cost per currency.
+- app_get_run { runId } gives the steps in order: path (the app_run_action paths), kind, status, durationMs, error and code, attempts, handled (an onError handler ran), mocked, and per AI step { calls, model, tier, promptTokens, completionTokens, cost, currency }.
+- app_run_action and app_run_tests return the runId of their run.
+- Debugging a failure: app_list_runs { status: "error", actionId } → app_get_run { runId } shows the failing step and its error; reproduce it with app_run_action (dryRun) and keep it fixed with app_save_test.
+- A browser run that never reported its end (the page closed) closes itself after a minute without activity; its status follows its steps (endedBy "idle").
+- No results, inputs, variables or prompts are kept: only what ran, how long it took and how it ended.`;
+
+export const MCP_GUIDE_SECTIONS: readonly string[] = Object.freeze([TESTING_ACTIONS, BACKGROUND_ACTIONS, BULK_WRITES, RUN_INSIGHT]);

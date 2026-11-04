@@ -34,6 +34,12 @@ function startRetentionAndComplianceJobs() {
     // Monitoring-ledger retention and the PII scan-ledger prune. NOT gated on
     // a module: chat and DLP fill those tables on every install, including
     // one without Automations, whose runner these passes do not ride.
+    // The run log of browser runs (App Studio /step): on against the real store from here on.
+    try {
+        require('../appStudio/runLog/clickRuns.mts').configureClickRuns();
+    } catch (err) {
+        log.warn('[Server] App Studio run log not enabled:', err.message);
+    }
     try {
         require('../jobs/platformRetention').start();
     } catch (err) {

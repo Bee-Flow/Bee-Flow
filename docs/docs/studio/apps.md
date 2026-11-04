@@ -146,6 +146,30 @@ days.
   old rows are deleted first and the new ones are written one by one. More than 500
   matching rows, or a filter value that is empty, refuses the step with nothing changed.
 
+### Runs: what happened when an action ran
+
+**Logic → Runs** lists every run of the app's actions, newest first: when, which action,
+who (by name; a public page's visitor and the mailbox hook as such), how it ended, how long
+it took, how many steps ran and the estimated AI cost. Filter by action, status and person;
+**Include tests and MCP runs** adds the runs of saved tests and of an AI agent's test runs.
+Open a run to see each step in order with its duration, its error and error code, how often
+it was tried, whether an *On error* handler dealt with it, and for an AI step the model,
+tier, tokens and cost (an estimate in the price's own currency; billing is separate).
+
+- **What is logged**: every click or public-page use of an action that does work on the
+  server (all server steps of one click form one run), background runs, mailbox hooks,
+  saved tests and MCP test runs. An action of only client steps (a message, navigation)
+  is not logged.
+- **What is not**: the data. No field values, results, variables or prompts are kept, and
+  error texts are cut to their first line with quoted values and e-mail addresses removed.
+- **Who sees it**: the app owner.
+- **How long**: 30 days by default. On self-hosted, `STUDIO_APP_RUN_RETENTION_DAYS` (0 =
+  keep), `STUDIO_APP_RUN_LOG=off` stops recording, and `STUDIO_APP_RUN_LOG_MAX_STEPS` /
+  `STUDIO_APP_RUN_LOG_MAX_RUNS_PER_APP` cap the size (see `server/.env.example`).
+- A run whose page was closed before it reported its end closes itself after a minute
+  without activity; its status then follows its steps.
+- The mobile app's runs appear as one run per server step for now.
+
 ## Data tables, roles & access
 
 Open **Data** to design the data model directly: add tables and fields, define

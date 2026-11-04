@@ -24,6 +24,7 @@ import { authFetch } from '@/utils/helpers';
 import toast from '@/components/shared/Toast';
 import { asMock, stub } from '@/test/mocks';
 import { backgroundTiming } from './actionRunner/backgroundRun';
+import { stepPosts } from '@/test/runLogCalls';
 
 const resp = (status: number, body: unknown, ok = status >= 200 && status < 300) => ({ ok, status, json: async () => body });
 
@@ -87,7 +88,7 @@ describe('useActionRunner — v2 sequence coordinator', () => {
 
         await act(async () => { await result.current.runAction('seq'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(urlOfCall(0)).toContain('/actions/seq/step');
         expect(result.current.actionState.seq.status).toBe('success');
     });
@@ -107,7 +108,7 @@ describe('useActionRunner — v2 sequence coordinator', () => {
 
         await act(async () => { await result.current.runAction('seq', { formValues: { a: 1 } }); });
 
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         const body = bodyOfCall(0);
         expect(body.stepIndex).toBe(1);
         expect(body.vars).toEqual({ priority: 5 });
@@ -130,7 +131,7 @@ describe('useActionRunner — v2 sequence coordinator', () => {
 
         await act(async () => { await result.current.runAction('seq', { formValues: { go: true } }); });
 
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         // The dispatched step is the `then` branch's create_record at index 1.
         expect(bodyOfCall(0).stepIndex).toBe(1);
     });
@@ -150,7 +151,7 @@ describe('useActionRunner — v2 sequence coordinator', () => {
 
         await act(async () => { await result.current.runAction('seq'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(2);
+        expect(stepPosts(authFetch)).toHaveLength(2);
         expect(bodyOfCall(0).stepIndex).toBe(0);
         // The second dispatch carries the first step's result threaded under `created`.
         const second = bodyOfCall(1);
@@ -180,7 +181,7 @@ describe('useActionRunner — v2 sequence coordinator', () => {
 
         await act(async () => { await result.current.runAction('seq'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(1);   // aborted after the first failure
+        expect(stepPosts(authFetch)).toHaveLength(1);   // aborted after the first failure
         expect(result.current.actionState.seq.status).toBe('error');
         expect(result.current.actionState.seq.error).toMatch(/not found/i);
         expect(toast.error).toHaveBeenCalled();
@@ -226,7 +227,7 @@ describe('useActionRunner — v2 sequence coordinator', () => {
 
         await act(async () => { await result.current.runAction('act_run'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(urlOfCall(0)).toContain('/actions/act_run/run');   // legacy /run, NOT /step
         expect(urlOfCall(0)).not.toContain('/step');
         expect(result.current.actionState.act_run.status).toBe('success');
@@ -277,7 +278,7 @@ describe('useActionRunner — call_action', () => {
         const { result } = renderHook(() => useActionRunner('app1', definition));
         await act(async () => { await result.current.runAction('main'); });
 
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(urlOfCall(0)).toContain('/actions/main/step');
         const body = bodyOfCall(0);
         expect(body.stepIndex).toBe(1);
@@ -386,7 +387,7 @@ describe('useActionRunner — step error handling', () => {
                 { kind: 'create_record', tableId: 't', values: {} },
             ] },
         });
-        expect(authFetch).toHaveBeenCalledTimes(3);
+        expect(stepPosts(authFetch)).toHaveLength(3);
         const handlerBody = bodyOfCall(1);
         // ordinals: ai_generate 0, the later create_record 1, then the handler: set_variable 2, create_record 3
         expect(handlerBody.stepIndex).toBe(3);
@@ -405,7 +406,7 @@ describe('useActionRunner — step error handling', () => {
             .mockResolvedValueOnce(resp(200, { ok: false, error: 'busy', code: 'db_busy', retryable: true }))
             .mockResolvedValueOnce(resp(200, { ok: true, result: { id: 'rec_1' } }));
         const result = await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 't', values: {}, retry: { times: 1, delayMs: 0 }, resultVar: 'row' }] } });
-        expect(authFetch).toHaveBeenCalledTimes(2);
+        expect(stepPosts(authFetch)).toHaveLength(2);
         expect(bodyOfCall(1).stepIndex).toBe(0);
         expect(result.current.actionState.seq?.status).toBe('success');
         expect(toast.error).not.toHaveBeenCalled();
@@ -414,31 +415,31 @@ describe('useActionRunner — step error handling', () => {
     it('retryable:false is posted once; a 5xx is retried, a 4xx is not', async () => {
         asMock(authFetch).mockResolvedValue(resp(200, { ok: false, error: 'Record not found', retryable: false }));
         await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'update_record', tableId: 't', values: {}, retry: { times: 3, delayMs: 0 } }] } });
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(toast.error).toHaveBeenCalledWith('Record not found');
 
         asMock(authFetch).mockReset();
         asMock(authFetch).mockResolvedValueOnce(resp(503, { error: 'unavailable' })).mockResolvedValueOnce(resp(200, { ok: true, result: null }));
         await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'update_record', tableId: 't', values: {}, retry: { times: 1, delayMs: 0 } }] } });
-        expect(authFetch).toHaveBeenCalledTimes(2);
+        expect(stepPosts(authFetch)).toHaveLength(2);
 
         asMock(authFetch).mockReset();
         asMock(authFetch).mockResolvedValue(resp(400, { error: 'stepIndex is the position of the step in the action.' }));
         await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'update_record', tableId: 't', values: {}, retry: { times: 2, delayMs: 0 } }] } });
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
     });
 
     it('an aborted request (unknown outcome) is never retried', async () => {
         asMock(authFetch).mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
         const result = await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 't', values: {}, retry: { times: 3, delayMs: 0 } }] } });
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(result.current.actionState.seq?.status).toBe('error');
     });
 
     it('no onError: a failure stops the sequence with its reason, as before', async () => {
         asMock(authFetch).mockResolvedValue(resp(200, AI_DOWN));
         const result = await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x' }, { kind: 'create_record', tableId: 't', values: {} }] } });
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(toast.error).toHaveBeenCalledWith(AI_DOWN.error);
         expect(result.current.actionState.seq).toMatchObject({ status: 'error', error: AI_DOWN.error });
     });
@@ -449,7 +450,7 @@ describe('useActionRunner — step error handling', () => {
             { kind: 'ai_generate', prompt: 'x', onError: { steps: [{ kind: 'toast', message: 'We will try later', tone: 'info' }], stop: true } },
             { kind: 'create_record', tableId: 't', values: {} },
         ] } });
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(toast.info).toHaveBeenCalledWith('We will try later');
         expect(toast.error).not.toHaveBeenCalled();
 
@@ -459,7 +460,7 @@ describe('useActionRunner — step error handling', () => {
             { kind: 'ai_generate', prompt: 'x', onError: [{ kind: 'toast', message: 'Legacy', tone: 'info' }] },
             { kind: 'create_record', tableId: 't', values: {} },
         ] } });
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
         expect(toast.info).toHaveBeenCalledWith('Legacy');
         expect(toast.error).not.toHaveBeenCalled();
     });
@@ -556,7 +557,7 @@ describe('useActionRunner — background actions', () => {
         const other = renderHook(() => useActionRunner('app1', bgDefinition()));
         await act(async () => { await other.result.current.runAction('act_bg'); });
         expect(other.result.current.actionState.act_bg?.status).toBe('idle');
-        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(stepPosts(authFetch)).toHaveLength(1);
     });
 
     it('a declined leading confirm starts nothing', async () => {

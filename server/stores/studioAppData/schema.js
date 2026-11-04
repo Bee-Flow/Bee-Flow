@@ -228,6 +228,37 @@ async function initActionRuns() {
         CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_started ON studio_app_action_runs(started_at);
         CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_active ON studio_app_action_runs(last_activity_at) WHERE status = 'running';
     `);
+    // The run log's step rows (package 8): one per step a run reached, in order. Duration,
+    // status, the error (already cleaned by runLogError: no prompt text, no customer values),
+    // and per AI step the model, tokens and the estimated cost. Never results, scope or prompts.
+    // They go with their run (ON DELETE CASCADE), so retention and app deletion need no second pass.
+    await exec(`
+        CREATE TABLE IF NOT EXISTS studio_app_action_run_steps (
+            run_id TEXT NOT NULL REFERENCES studio_app_action_runs(id) ON DELETE CASCADE,
+            seq INTEGER NOT NULL,
+            action_id TEXT,
+            step_index INTEGER,
+            path TEXT NOT NULL,
+            iteration INTEGER,
+            kind TEXT NOT NULL,
+            status TEXT NOT NULL,
+            error TEXT,
+            error_code TEXT,
+            attempts SMALLINT,
+            handled BOOLEAN NOT NULL DEFAULT FALSE,
+            mocked BOOLEAN NOT NULL DEFAULT FALSE,
+            started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            duration_ms INTEGER NOT NULL DEFAULT 0,
+            model TEXT,
+            model_tier TEXT,
+            ai_calls INTEGER NOT NULL DEFAULT 0,
+            prompt_tokens INTEGER NOT NULL DEFAULT 0,
+            completion_tokens INTEGER NOT NULL DEFAULT 0,
+            cost NUMERIC(14,6),
+            cost_currency TEXT,
+            PRIMARY KEY (run_id, seq)
+        );
+    `);
 }
 
 module.exports = { initDB };
