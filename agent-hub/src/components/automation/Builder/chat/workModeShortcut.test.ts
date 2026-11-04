@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { isWorkModeShortcut, nextWorkMode } from './workModeShortcut';
 import { WORK_MODES } from './WorkModePicker';
