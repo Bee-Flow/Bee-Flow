@@ -146,7 +146,9 @@ test('a miss on a described (curated) shape is a warning, and the binding is kep
 });
 
 test('an unknown shape never complains', () => {
-    const dw = { def: graph() };   // no dry run: the ai_step's output is unknown
+    // No dry run: the ai_step's output is unknown. The variable is declared
+    // (an undeclared one is refused, refCheck.vars.test.js).
+    const dw = { def: { ...graph(), vars: { rows: [] } } };
     for (const p of ['steps.c.output.anything.at[3].all', 'steps.nope.output.x', 'vars.rows[0]', 'loop.x.y']) {
         const r = check(p, dw);
         assert.equal(r.error, null, p);

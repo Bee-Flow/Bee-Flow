@@ -5,7 +5,7 @@
 import type { MouseEvent, RefObject, UIEvent } from 'react';
 import type { BuilderMessage as StreamMessage, DryRun } from '@/hooks/builderStream';
 import type { FlowletAgentState } from '@/hooks/useFlowletAgentStream';
-import type { BuilderWebSearchStatus } from '@/hooks/useAutomationBuilderStream';
+import type { BuilderImageStatus, BuilderWebSearchStatus } from '@/hooks/useAutomationBuilderStream';
 import type { PlanTodo } from '../BuilderPlanChecklist';
 import type { BuilderHeaderProps } from '../BuilderHeader';
 import type { BuilderSendOptions } from '../builderSend';
@@ -42,6 +42,7 @@ export interface BuilderTabState {
     reviewQuestions?: unknown[] | null;
     proposal?: BuilderProposal | null;
     webSearch?: BuilderWebSearchStatus | null;
+    images?: BuilderImageStatus | null;
     turn?: { firstEventAt?: unknown } | null;
     dryRun?: (DryRun & { isTest?: boolean; startedAt?: string | number | null }) | null;
     dryRunSeq?: unknown;

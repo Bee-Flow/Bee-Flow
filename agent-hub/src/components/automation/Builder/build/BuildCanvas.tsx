@@ -2,6 +2,7 @@
 // drawer, the step drawer and the form-test overlay. Split out of BuildTab
 // without a change in behaviour.
 import { Suspense } from 'react';
+import useCloseReviewWhenBuilt from './useCloseReviewWhenBuilt';
 import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { runIdentityOf, type RunPauseActions } from './runIdentity';
 import { runPhase } from '../runs/runPhase';
@@ -40,6 +41,8 @@ interface ColumnProps {
 export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, previewOpen, setPreviewOpen }: ColumnProps) {
     const { state, setAssistantOpen, setWorkMode, setChatInput } = p;
     const { t } = m;
+    // A plan that turned `built` has nothing left to review: the panel closes by itself.
+    useCloseReviewWhenBuilt(state.reviewPlan, setReviewOpen);
     const ndvStep = m.drawer.ndvStep;
     return (
         <div className="flex-1 min-w-0 flex flex-col relative bg-[var(--bg-primary)]">

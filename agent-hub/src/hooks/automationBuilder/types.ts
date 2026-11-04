@@ -99,6 +99,11 @@ export interface AutomationBuilderState {
      *  reason, so the composer can disable the switch instead of offering a
      *  dead one. Null until a turn reported it. */
     webSearch: BuilderWebSearchStatus | null;
+    /** What became of the pictures attached to the last message (`images`):
+     *  how many, how many the model was shown, how many were over a size or
+     *  count cap, and whether the model cannot see images at all. Null when
+     *  the last message had none. */
+    images: BuilderImageStatus | null;
 }
 
 /** What the builder saved at finalize, and what it still needs (design point 5's hand-over). */
@@ -112,4 +117,11 @@ export interface BuilderWebSearchStatus {
     requested: boolean;
     available: boolean;
     reason: string | null;
+}
+
+export interface BuilderImageStatus {
+    attached: number;
+    shown: number;
+    skipped: number;
+    blind: boolean;
 }

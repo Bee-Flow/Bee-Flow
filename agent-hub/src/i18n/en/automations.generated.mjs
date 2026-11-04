@@ -27,6 +27,8 @@ export default {
     "automations.assistant.ready_review": "Ready for review",
     "automations.assistant.paused": "Paused",
     "automations.assistant.plan_built": "This plan has been built.",
+    "automations.assistant.plan_build_stopped": "The build stopped before the plan was finished. Ask the assistant to fix what went wrong, or continue the plan.",
+    "automations.assistant.plan_close": "Close",
     "automations.assistant.plan_paused": "Building is paused. Continue to allow the next step.",
     "automations.assistant.ask_first": "Describe it",
     "automations.assistant.ask_first_hint": "I ask a few questions first, then write a plan in plain words and build it after your OK.",

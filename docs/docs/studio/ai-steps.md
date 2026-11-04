@@ -92,6 +92,12 @@ is ticked.
 A list longer than 500 values is checked but not shown to the model (the limit is
 `AUTOMATION_AI_ENUM_MAX_VALUES`, see [Environment variables](../self-hosting/env.md)).
 
+A list read from a variable (`vars.<name>`) must be a variable the automation has: one of its
+own variables or a Solution variable. No step writes a variable, so a list nothing sets is
+always empty and the step can never pass: validation reports it (`ai_check.list_unset`) and
+the automation cannot go live with it. To make the list inside the flow, put it in an
+**Edit data** step before the AI step and pick that step's field as the list.
+
 ### Numbers must come from the data
 
 For a short summary that may only quote figures from a table. Every number in the text

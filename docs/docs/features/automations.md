@@ -320,6 +320,12 @@ applies to this automation:
 - Your tables, documents, agents and knowledge bases.
 - The last test run: per step, which fields came back and in what shape (never the
   values). The next message builds on that instead of guessing.
+- The last run of the automation, whatever started it: which steps ran and which one
+  failed, with the error's code and a short message with personal data masked (never
+  the values that went in or came out). When you ask it to fix something, it reads
+  that run first instead of asking you to describe the error.
+- A screenshot you attach, when the model you use can see images; otherwise it says so
+  in one line and still reads the last run.
 
 #### What it cannot do
 

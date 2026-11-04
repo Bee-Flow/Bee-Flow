@@ -71,18 +71,45 @@ interface PlanFooterProps {
     onPauseChange: (value: boolean) => void;
     onApprove: (pauseAfterStep: boolean) => void;
     onReject: (() => void) | null;
+    stopped?: boolean;
 }
 
-function PlanFooter({ waiting, running, paused, pauseAfterStep, onPauseChange, onApprove, onReject }: PlanFooterProps) {
+function PlanFooter({ waiting, running, paused, pauseAfterStep, onPauseChange, onApprove, onReject, stopped = false }: PlanFooterProps) {
     const { t } = useTranslation();
     return <div className="shrink-0 border-t border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3 sm:px-6 sm:py-4">
             <div className="mx-auto flex max-w-[820px] flex-wrap items-center gap-x-5 gap-y-3">
                 <div className="min-w-0 flex-1 basis-60"><p className="text-xs leading-5 text-[var(--text-secondary)]">{waiting}</p><label className="mt-1.5 inline-flex cursor-pointer items-center gap-2 text-[11px] text-[var(--text-tertiary)]"><input type="checkbox" disabled={running} checked={pauseAfterStep} onChange={(e: React.ChangeEvent<HTMLInputElement>) => onPauseChange(e.target.checked)} className="h-3.5 w-3.5 rounded accent-[var(--type-ai)]" /><Pause size={11} />{t('automations.assistant.pause_each', 'Pause after each step')}</label></div>
-                <div className="flex items-center gap-2">{onReject && <button type="button" disabled={running} onClick={onReject} className="rounded-xl px-3 py-2.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50">{t('automations.assistant.discard', 'Discard')}</button>}
-                    <button type="button" disabled={running} onClick={() => onApprove(pauseAfterStep)} className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-xs font-semibold text-[var(--bg-primary)] transition-opacity hover:opacity-90 disabled:opacity-50"><Hammer size={14} />{paused ? t('automations.assistant.continue_plan', 'Continue plan') : t('automations.assistant.build_plan', 'Build this plan')}</button>
+                <div className="flex items-center gap-2">{onReject && !stopped && <button type="button" disabled={running} onClick={onReject} className="rounded-xl px-3 py-2.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50">{t('automations.assistant.discard', 'Discard')}</button>}
+                    <button type="button" disabled={running} onClick={() => onApprove(pauseAfterStep)} className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-xs font-semibold text-[var(--bg-primary)] transition-opacity hover:opacity-90 disabled:opacity-50"><Hammer size={14} />{paused || stopped ? t('automations.assistant.continue_plan', 'Continue plan') : t('automations.assistant.build_plan', 'Build this plan')}</button>
                 </div>
             </div>
         </div>;
+}
+
+/** A built plan has nothing left to approve: the status and the way out. */
+function BuiltFooter({ version, onClose }: { version: PlanFooterVersion; onClose: () => void }) {
+    const { t } = useTranslation();
+    return <div className="shrink-0 border-t border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto flex max-w-[820px] items-center gap-3">
+            <p className="flex min-w-0 flex-1 items-center gap-2 text-xs text-[var(--text-secondary)]"><CheckCircle2 size={14} className="shrink-0 text-[var(--type-ai)]" />{t('automations.assistant.plan_built_short', 'Plan v{version} built', { version })}</p>
+            <button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">{t('automations.assistant.plan_close', 'Close')}</button>
+        </div>
+    </div>;
+}
+
+type PlanFooterVersion = string | number;
+
+type Translate = ReturnType<typeof useTranslation>['t'];
+
+function ReadyChip({ paused }: { paused: boolean }) {
+    const { t } = useTranslation();
+    return <span className="hidden items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[var(--type-ai)]" />{paused ? t('automations.assistant.paused', 'Paused') : t('automations.assistant.ready_review', 'Ready for review')}</span>;
+}
+
+function waitingText(t: Translate, status: string | null | undefined, stopped: boolean): string {
+    if (stopped) return t('automations.assistant.plan_build_stopped', 'The build stopped before the plan was finished. Ask the assistant to fix what went wrong, or continue the plan.');
+    if (status === 'paused') return t('automations.assistant.plan_paused', 'Building is paused. Continue to allow the next step.');
+    return t('automations.assistant.plan_waiting', 'The flow stays unchanged until you approve this plan.');
 }
 
 export default function PlanReview({ plan, running = false, onApprove, onComment = null, onClose, onReject = null }: Props) {
@@ -92,7 +119,9 @@ export default function PlanReview({ plan, running = false, onApprove, onComment
     if (!plan) return null;
     // The view numbers the steps itself: a "1." the model wrote in the line would show twice.
     const linesOf = (key: SectionKey) => (Array.isArray(plan[key]) ? plan[key] : []).map(stripListMarker);
-    const canBuild = plan.status === 'review' || plan.status === 'paused';
+    // `building` with no turn running is a build that stopped half way (the turn did not finish the plan).
+    const stopped = plan.status === 'building' && !running;
+    const canBuild = plan.status === 'review' || plan.status === 'paused' || stopped;
     const sections = ([
         ['steps', t('automations.assistant.steps', 'The steps'), ListChecks],
         ['assumptions', t('automations.assistant.assumptions', 'What I assume'), CircleHelp],
@@ -102,13 +131,13 @@ export default function PlanReview({ plan, running = false, onApprove, onComment
     const newTables = namedTables(plan.datatables);
     const usedTables = namedTables(plan.useDatatables);
     const paused = plan.status === 'paused';
-    const waiting = paused ? t('automations.assistant.plan_paused', 'Building is paused. Continue to allow the next step.') : t('automations.assistant.plan_waiting', 'The flow stays unchanged until you approve this plan.');
+    const waiting = waitingText(t, plan.status, stopped);
     return <div className="absolute inset-0 z-30 flex flex-col bg-[var(--bg-secondary)]" data-testid="plan-review">
         <div className="flex shrink-0 items-center gap-3 border-b border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3 sm:px-6">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--type-ai)_10%,transparent)] text-[var(--type-ai)]"><ClipboardList size={16} /></span>
             <span className="text-sm font-semibold text-[var(--text-primary)]">{t('automations.assistant.plan', 'Plan')}</span><span className="rounded-md border border-[var(--border-default)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">v{plan.version}</span>
             <span className="flex-1" />
-            {canBuild && <span className="hidden items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[var(--type-ai)]" />{paused ? t('automations.assistant.paused', 'Paused') : t('automations.assistant.ready_review', 'Ready for review')}</span>}
+            {canBuild && !stopped && <ReadyChip paused={paused} />}
             <button type="button" onClick={onClose} aria-label={t('automations.assistant.show_canvas', 'Show canvas')} className="rounded-lg p-2 text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"><X size={16} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto scroll-smooth px-4 py-6 text-[var(--text-primary)] sm:px-8 sm:py-8">
@@ -129,9 +158,9 @@ export default function PlanReview({ plan, running = false, onApprove, onComment
                     </details>
                 </section>)}
                 <PlanTables newTables={newTables} usedTables={usedTables} />
-                {!canBuild && plan.status === 'built' && <p className="flex items-center gap-2 px-1 text-xs text-[var(--text-secondary)]"><CheckCircle2 size={14} className="text-[var(--type-ai)]" />{t('automations.assistant.plan_built', 'This plan has been built.')}</p>}
             </div>
         </div>
-        {canBuild && <PlanFooter waiting={waiting} running={running} paused={paused} pauseAfterStep={pauseAfterStep} onPauseChange={setPauseAfterStep} onApprove={onApprove} onReject={onReject} />}
+        {plan.status === 'built' && <BuiltFooter version={plan.version ?? ''} onClose={onClose} />}
+        {canBuild && <PlanFooter stopped={stopped} waiting={waiting} running={running} paused={paused} pauseAfterStep={pauseAfterStep} onPauseChange={setPauseAfterStep} onApprove={onApprove} onReject={onReject} />}
     </div>;
 }

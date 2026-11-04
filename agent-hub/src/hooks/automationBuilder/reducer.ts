@@ -336,6 +336,13 @@ export function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>
                 webSearch: { requested: !!data.requested, available: !!data.available, reason: data.reason || null },
             }));
             break;
+        case 'images': {
+            // The pictures of this message: shown to the model, over a cap, or a model that cannot see.
+            const d = data as { attached?: unknown; shown?: unknown; skipped?: unknown; blind?: unknown };
+            const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+            setState(s => ({ ...s, images: { attached: n(d.attached), shown: n(d.shown), skipped: n(d.skipped), blind: !!d.blind } }));
+            break;
+        }
         case 'validation_errors':
             // Structured records emitted after each mutation. Stored as
             // state.validation so the consolidated banner / step inspector

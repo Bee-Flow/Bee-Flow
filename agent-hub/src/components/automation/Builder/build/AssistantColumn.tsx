@@ -21,6 +21,7 @@ import type { HandoverLifecycle } from '../chat/HandoverCard';
 import PlanInlineCard from '../chat/PlanInlineCard';
 import QuestionsCard from '../chat/QuestionsCard';
 import { webSearchUnavailableHint } from '../chat/webSearchStatus';
+import { imageStatusHint } from '../chat/imageStatus';
 import { WORK_MODES } from '../chat/WorkModePicker';
 import { isWorkModeShortcut, nextWorkMode } from '../chat/workModeShortcut';
 import { stepLabelsOf } from '../chat/plainVocabulary';
@@ -173,6 +174,7 @@ interface AssistantComposerProps {
 function AssistantComposer(p: AssistantComposerProps) {
     const { t } = useTranslation();
     const { state, setWorkMode } = p;
+    const imageHint = imageStatusHint(state.images, t);
     let toolbarExtra: ReactNode = null;
     if (setWorkMode) {
         toolbarExtra = <WorkModePicker anchor="composer" alwaysPlanLarge={p.alwaysPlanLarge} onAlwaysPlanLargeChange={p.setAlwaysPlanLarge} value={p.workMode} onChange={setWorkMode} disabled={state.running} planStatus={state.reviewPlan?.status} planVersion={state.reviewPlan?.version} />;
@@ -187,6 +189,7 @@ function AssistantComposer(p: AssistantComposerProps) {
             {p.assistantContext && <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] text-[var(--type-ai)]"><Sparkles size={12} /><span className="flex-1 min-w-0 truncate">@{p.assistantContext.label}</span><button type="button" onClick={p.onClearAssistantContext || undefined} aria-label={t('automations.assistant.clear_context', 'Clear step context')}><X size={12} /></button></div>}
             {/(?:^|\s)@[^@\s]*$/.test(p.chatInput) && <StepMentionList {...p} />}
             {p.applyingProposal && <p role="status" className="mb-2 text-[11px] text-[var(--text-tertiary)]">{t('automations.assistant.applying_hint', 'Applying the proposal. You can write again in a moment.')}</p>}
+            {imageHint && <p role="status" className="mb-2 text-[11px] text-[var(--text-tertiary)]">{imageHint}</p>}
             <InputArea
                 compact
                 placeholder={t('automations.assistant.placeholder', 'Describe what you want…')}
