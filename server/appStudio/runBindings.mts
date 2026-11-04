@@ -114,12 +114,9 @@ export function applyPick(value: unknown, pick: unknown): unknown {
  */
 function blockedByRequiredFilter(binding: Obj, resolveValue: (b: Obj) => unknown): boolean {
     if (!Array.isArray(binding.filter)) return false;
-    return binding.filter.some((entry) => {
-        if (!isObject(entry) || entry.required !== true) return false;
-        const raw = entry.value;
-        const value = isObject(raw) && typeof raw.kind === 'string' ? resolveValue(raw) : raw;
-        return value === undefined || value === null || value === '';
-    });
+    // The same loop the read itself runs, so `any` groups block exactly when the read would.
+    const { filtersBlocked } = nodeRequire('./stepDataSource.js') as { filtersBlocked: (f: unknown, r: (b: Obj) => unknown) => boolean };
+    return filtersBlocked(binding.filter, resolveValue);
 }
 
 function defaultReadData(): ReadData {

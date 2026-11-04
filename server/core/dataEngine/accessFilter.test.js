@@ -180,6 +180,19 @@ test('a row filter rejects anything outside the safe subset', () => {
     }
 });
 
+test('a row filter refuses the read-on forms and list functions of the formula language', () => {
+    for (const expr of [
+        'first(record.tags).x == 1',
+        '(record.region).x == "eu"',
+        '(record.region || viewer.region) == "eu"',
+        'some(record.tags, it == "x")',
+        'filter(record.tags, it == "x") == viewer.region',
+        'regexMatch(record.region, "^e")',
+    ]) {
+        assert.strictEqual(accessFilter.validateRowFilter(expr, TABLE).ok, false, `${expr} must be refused`);
+    }
+});
+
 test('a row filter cannot address a column the table does not declare', () => {
     assert.strictEqual(accessFilter.validateRowFilter('record.salary > 1', TABLE).ok, false);
 });

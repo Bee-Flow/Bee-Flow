@@ -12,8 +12,9 @@
  *                 copy and written one by one through the source (not atomic, documented).
  *
  * `resolveStrictFilters` is the write side of a filter: an empty value BLOCKS the write instead of
- * being dropped (dropping it would widen "rows of this order" to "every row"). Package 6 moves it
- * onto filterGroups.resolveFilterList with a strict option (PLAN decision 13).
+ * being dropped (dropping it would widen "rows of this order" to "every row"). It runs on
+ * filterGroups.resolveFilterList with the strict option, so `{ any: [...] }` OR groups (package 6)
+ * mean the same in a write as in a read, except that a write never widens (PLAN decision 13).
  */
 
 import { createRequire } from 'node:module';
@@ -21,7 +22,7 @@ import { createRequire } from 'node:module';
 const nodeRequire = createRequire(import.meta.url);
 
 type Obj = Record<string, unknown>;
-export type Filter = { field?: string; op?: string; value?: unknown; ci?: boolean };
+export type Filter = { field?: string; op?: string; value?: unknown; ci?: boolean; any?: Filter[] };
 type App = { id: string; userId: string; organizationId?: string | null };
 type AccessFilter = { where: string; params: unknown[] };
 type Compiled = { sql: string; params: unknown[] };
@@ -125,12 +126,30 @@ export class WriteFilterError extends Error {
     }
 }
 
-const VALUELESS_OPS = new Set(['isNull', 'isNotNull']);
 const isBinding = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v) && typeof (v as Obj).kind === 'string';
+const isEntry = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+const filterGroups = nodeRequire('../../shared/expr/filterGroups.mjs') as {
+    isAnyGroup(e: unknown): e is Obj & { any: unknown[] };
+    resolveFilterList(f: unknown, r: (v: unknown, c: Obj) => unknown, o?: Obj): { status: 'ok'; filters: unknown[] } | { status: 'blocked'; field: string | null } | { status: 'required' } | { status: 'skip' };
+};
+
+/** Every entry an object, a group a non-empty list of clauses one level deep: else the author's filter is malformed. */
+function assertWriteFilterShape(filters: unknown[]): void {
+    const malformed = (): never => { throw new WriteFilterError('Each write filter clause must be an object { field, op, value } or an { any: [clauses] } group.', 'filter_invalid'); };
+    for (const entry of filters) {
+        if (!isEntry(entry)) malformed();
+        if (!filterGroups.isAnyGroup(entry)) continue;
+        if (!entry.any.length) throw new WriteFilterError('An { any: [...] } group in a write filter needs at least one clause.', 'filter_invalid');
+        for (const member of entry.any) if (!isEntry(member) || filterGroups.isAnyGroup(member)) malformed();
+    }
+}
 
 /**
- * The authored clause list → literal clauses, STRICTLY: a clause whose value resolves to nothing
- * blocks the whole write (`{ blocked: true, field }`) rather than being dropped. Valueless ops are
+ * The authored clause list → literal clauses, STRICTLY (filterGroups.resolveFilterList with
+ * `strict`, PLAN decision 13): a top-level clause whose value resolves to nothing blocks the whole
+ * write (`{ blocked: true, field }`) rather than being dropped. Inside an `{ any: [...] }` group
+ * an unresolved member is dropped (the OR narrows), a group left empty blocks. Valueless ops are
  * kept as they are; an empty array stays (`in []` matches nothing). A formula STRING instead of a
  * list cannot be compiled on the server and is refused.
  */
@@ -141,18 +160,13 @@ export function resolveStrictFilters(filters: unknown, resolveValue: (b: unknown
     if (!Array.isArray(filters)) throw new WriteFilterError('A write filter must be a list of { field, op, value } clauses.', 'filter_invalid');
     // No clause at all would mean every row: never the reading of an empty filter.
     if (!filters.length) throw new WriteFilterError('A write filter needs at least one clause; an empty filter would change every row.', 'bulk_filter_empty');
-    const out: Filter[] = [];
-    for (const entry of filters) {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new WriteFilterError('Each write filter clause must be an object { field, op, value }.', 'filter_invalid');
-        const { required: _required, value: raw, ...rest } = entry as Obj & Filter & { required?: unknown };
-        if (typeof rest.op === 'string' && VALUELESS_OPS.has(rest.op)) { out.push(rest); continue; }
-        const value = isBinding(raw) ? resolveValue(raw) : raw;
-        if (value === undefined || value === null || value === '') {
-            return { filters: [], blocked: true, field: typeof rest.field === 'string' ? rest.field : '' };
-        }
-        out.push({ ...rest, value });
-    }
-    return { filters: out, blocked: false };
+    assertWriteFilterShape(filters);
+    const res = filterGroups.resolveFilterList(filters, (raw) => (isBinding(raw) ? resolveValue(raw) : raw), {
+        strict: true,
+        isUnset: (v: unknown) => v === undefined || v === null || v === '',
+    });
+    if (res.status === 'ok') return { filters: res.filters as Filter[], blocked: false };
+    return { filters: [], blocked: true, field: res.status === 'blocked' && typeof res.field === 'string' ? res.field : '' };
 }
 
 /** A compile error of the author's filter is the author's to fix: a 422 with the compiler's sentence. */

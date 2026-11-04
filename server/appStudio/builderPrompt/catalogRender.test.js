@@ -228,8 +228,14 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * full-only lines on changing a table that holds rows (stored vs read-time computed, the safe
  * type conversions with dryRun and onUnconvertible) took the catalog to 57_567, within 58_000.
  * The compact form is unchanged.
+ *
+ * 58_000 → 59_000 (App Studio package 6, formulas and filters, measured 2026-11-04 on top of
+ * 1, 2, 3, 5 and 4): seven function signatures (unique, regexMatch, regexReplace, map, filter,
+ * some, every; sum gained its field), one OR-group line under the filters and two formula lines
+ * (member access on a call result, `it`, the regex subset) took the catalog to 58_259. ~740
+ * headroom; the round's end-state target is <= 59_000 (plan section 4).
  */
-const CATALOG_CHAR_CEILING = 58_000;
+const CATALOG_CHAR_CEILING = 59_000;
 
 test('renderCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCatalogText();
@@ -542,7 +548,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // line on filter writes, upsertKey and replaceWhere — 57_076 chars.
 // 2026-11-04, package 4 (data model changes with data): stored vs read-time computed and the safe
 // type conversions — 57_567 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '6d1df5f2f7ad2361e1a50e2eb8993de35c369f93a43a341ae273581883bddcb0';
+// 2026-11-04, package 6 (formulas and filters): new function signatures, the any-group filter line,
+// member access on call results, map/filter/some/every with it, the regex subset — 58_259 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'a59e22f331db2435591c473b703f2e74a410481c098a6ec137511dffa16496f5';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();
@@ -646,8 +654,11 @@ test('compact steps: the common kinds in full, the rest named once with the insp
 test('the compact catalog keeps the whole formula vocabulary and the core binding kinds, and drops the rest', () => {
     const text = renderCompactCatalogText();
     const formulas = text.slice(text.indexOf('### Formulas'), text.indexOf('### Data model'));
-    for (const name of EXPR_FUNCTION_NAMES) assert.ok(formulas.includes(`${name}(`), `formula function ${name} present`);
-    for (const f of EXPR_FUNCTIONS) assert.ok(formulas.includes(f.signature), `signature ${f.signature} verbatim`);
+    // Every name, except the list functions and the regex pair (2026-11-04): the core prompt
+    // budget only goes down, so the compact vocabulary is the one before them (formulaGuide.js).
+    const { NOT_IN_COMPACT, COMPACT_SIGNATURES } = require('./formulaGuide');
+    for (const name of EXPR_FUNCTION_NAMES) assert.strictEqual(formulas.includes(`${name}(`), !NOT_IN_COMPACT.has(name), `formula function ${name} present unless left out on purpose`);
+    for (const f of EXPR_FUNCTIONS.filter((x) => !NOT_IN_COMPACT.has(x.name))) assert.ok(formulas.includes(COMPACT_SIGNATURES.get(f.name) || f.signature), `signature ${f.signature} verbatim`);
     for (const kind of ['static', 'actionResult', 'formula', 'record', 'records', 'aggregate']) {
         assert.ok(text.includes(`"kind": "${kind}"`), `binding kind ${kind} taught`);
     }

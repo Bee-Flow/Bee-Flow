@@ -86,3 +86,9 @@ test('an input_relation whose tableId is a HANDLE for exactly one table is repai
     assert.equal(b.errors[0].suggestion, 'tbl_fact');
     assert.match(b.errors[0].hint, /Did you mean "tbl_fact"\?/);
 });
+
+test('a clause inside an { any: [...] } group is field-checked at its own path', () => {
+    const entries = [{ type: 'data_grid', props: { data: { kind: 'records', tableId: 'tbl_own', filter: [{ any: [{ field: 'body', op: 'contains', value: 'x' }, { field: 'Body', op: 'eq', value: 'y' }] }] } } }];
+    const { errors } = checkComponentDataRefs(entries, MODEL);
+    assert.deepEqual(errors.map((e) => [e.index, e.path]), [[0, 'components[0].props.data.filter[0].any[1].field']]);
+});

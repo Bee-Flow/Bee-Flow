@@ -23,9 +23,18 @@
  *   multiplicative := unary (('*'|'/'|'%') unary)*
  *   unary    := ('!'|'-'|'+') unary | power
  *   power    := primary ('^' unary)?
- *   primary  := number | string | bool | null | call | identifier_path | '(' expr ')'
+ *   primary  := number | string | bool | null | (call | each | '(' expr ')') segment* | identifier_path
  *   call     := (WHITELISTED_FN | HOST_FN) '(' (expr (',' expr)*)? ')'
- *   identifier_path := ident ('.' ident | '[' expr ']' | '[*]' | '[' key '=' literal ']')*
+ *   each     := ('map'|'filter'|'some'|'every') '(' expr ',' expr ')'
+ *   identifier_path := ident segment*
+ *   segment  := '.' ident | '[' expr ']' | '[*]' | '[' key '=' literal ']'
+ *
+ * A call result reads on like a path (`find(rows, "id", x).name`,
+ * `first(list).y`, `(a || b).name`, `f(x)[0]`): the node becomes a path whose
+ * first segment is `{ kind: 'base', expr }`, with the same own-property rules
+ * as every other step. A call without segments parses to the same tree as
+ * before. In the second argument of map/filter/some/every the name `it` is
+ * the item (`{ kind: 'local' }`); everywhere else `it` is an ordinary root.
  *
  * HOST functions. A caller may pass `{ host }` to parseExpr/evaluate/
  * tryEvaluate: a small table of extra callables that only exist where that
@@ -41,119 +50,32 @@
  * of guessing.
  */
 
-import { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES, checkDateUnit } from './functions.mjs';
+import { FUNCTIONS, EXPR_FUNCTIONS as PLAIN_FUNCTION_DOCS, EXPR_FUNCTION_NAMES as PLAIN_FUNCTION_NAMES } from './functions.mjs';
 import { jsonCacheFor, stepInto, stepMatch, walkTokens } from './path.mjs';
-import { ExprError, guardValue } from './limits.mjs';
+import { TOKEN, tokenize } from './tokens.mjs';
+import { collectRefs, collectHostCalls, collectEachCalls, readsItem } from './astWalk.mjs';
+import { checkRegexCall } from './regex.mjs';
+import { checkDateUnit } from './dates.mjs';
+import { LIST_FUNCTION_DOCS, EACH_FUNCTIONS } from './lists.mjs';
+import { ExprError, guardValue, tickEach } from './limits.mjs';
 
 export { ExprError }; // defined in limits.mjs so the functions can throw it
 
-// ── Tokenizer ──────────────────────────────────────────
-const TOKEN = {
-    NUMBER: 'NUM', STRING: 'STR', IDENT: 'ID', BOOL: 'BOOL', NULL: 'NULL',
-    LPAREN: '(', RPAREN: ')', LBRACK: '[', RBRACK: ']',
-    DOT: '.', COMMA: ',', QMARK: '?', COLON: ':',
-    OR: '||', AND: '&&', EQ: '==', NEQ: '!=', SEQ: '===', SNEQ: '!==',
-    LT: '<', LTE: '<=', GT: '>', GTE: '>=',
-    PLUS: '+', MINUS: '-', STAR: '*', SLASH: '/', PERCENT: '%', CARET: '^',
-    BANG: '!', ASSIGN: '=', EOF: 'EOF',
-};
-
-function tokenize(src) {
-    if (typeof src !== 'string') throw new ExprError('Expression must be a string', 0);
-    const tokens = [];
-    let i = 0;
-    let brackets = 0;
-    while (i < src.length) {
-        const c = src[i];
-        if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
-        const prev = tokens[tokens.length - 1];
-        const memberDot = c === '.' && prev && (prev.t === TOKEN.IDENT || prev.t === TOKEN.RBRACK);
-        if (memberDot) { tokens.push({ t: TOKEN.DOT, i }); i++; continue; }
-        // Right after a member dot, a name is a KEY whatever it looks like:
-        // `items.0.subject` (digits), `flags.true`, `naam.prénom`. The same
-        // spellings a ref binding resolves (path.mjs), so a picked path never
-        // works in a field and breaks in a formula.
-        const afterDot = tokens.length > 0 && tokens[tokens.length - 1].t === TOKEN.DOT;
-        if (afterDot && /[\p{L}\p{N}_$]/u.test(c)) {
-            let j = i;
-            while (j < src.length && /[\p{L}\p{N}\p{M}_$]/u.test(src[j])) j++;
-            tokens.push({ t: TOKEN.IDENT, v: src.slice(i, j), i });
-            i = j; continue;
-        }
-        if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(src[i + 1] || ''))) {
-            let j = i;
-            while (j < src.length && /[0-9.]/.test(src[j])) j++;
-            tokens.push({ t: TOKEN.NUMBER, v: parseFloat(src.slice(i, j)), raw: src.slice(i, j), i });
-            i = j; continue;
-        }
-        if (c === '"' || c === "'") {
-            const q = c; let j = i + 1; let out = '';
-            while (j < src.length && src[j] !== q) {
-                if (src[j] === '\\' && j + 1 < src.length) {
-                    const n = src[j + 1];
-                    // JSON's escapes, so a key the builder quoted with
-                    // JSON.stringify (path.mjs formatKey) reads back here too.
-                    if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(src.slice(j + 2, j + 6))) {
-                        out += String.fromCharCode(parseInt(src.slice(j + 2, j + 6), 16));
-                        j += 6;
-                        continue;
-                    }
-                    out += (n === 'n' ? '\n' : n === 't' ? '\t' : n === 'r' ? '\r' : n === 'b' ? '\b' : n === 'f' ? '\f' : n);
-                    j += 2;
-                } else { out += src[j]; j++; }
-            }
-            if (j >= src.length) throw new ExprError('Unterminated string in expression', i);
-            tokens.push({ t: TOKEN.STRING, v: out, i });
-            i = j + 1; continue;
-        }
-        if (/[\p{L}_$]/u.test(c)) {
-            let j = i;
-            while (j < src.length && /[\p{L}\p{N}\p{M}_$]/u.test(src[j])) j++;
-            const word = src.slice(i, j);
-            if (word === 'true' || word === 'false') tokens.push({ t: TOKEN.BOOL, v: word === 'true', i });
-            else if (word === 'null') tokens.push({ t: TOKEN.NULL, i });
-            else tokens.push({ t: TOKEN.IDENT, v: word, i });
-            i = j; continue;
-        }
-        const two = src.slice(i, i + 2);
-        const three = src.slice(i, i + 3);
-        if (three === '===') { tokens.push({ t: TOKEN.SEQ, i }); i += 3; continue; }
-        if (three === '!==') { tokens.push({ t: TOKEN.SNEQ, i }); i += 3; continue; }
-        if (two === '||') { tokens.push({ t: TOKEN.OR, i }); i += 2; continue; }
-        if (two === '&&') { tokens.push({ t: TOKEN.AND, i }); i += 2; continue; }
-        if (two === '==') { tokens.push({ t: TOKEN.EQ, i }); i += 2; continue; }
-        if (two === '!=') { tokens.push({ t: TOKEN.NEQ, i }); i += 2; continue; }
-        if (two === '<=') { tokens.push({ t: TOKEN.LTE, i }); i += 2; continue; }
-        if (two === '>=') { tokens.push({ t: TOKEN.GTE, i }); i += 2; continue; }
-        const single = {
-            '(': TOKEN.LPAREN, ')': TOKEN.RPAREN, '[': TOKEN.LBRACK, ']': TOKEN.RBRACK,
-            '.': TOKEN.DOT, ',': TOKEN.COMMA, '?': TOKEN.QMARK, ':': TOKEN.COLON,
-            '<': TOKEN.LT, '>': TOKEN.GT, '+': TOKEN.PLUS, '-': TOKEN.MINUS,
-            '*': TOKEN.STAR, '/': TOKEN.SLASH, '%': TOKEN.PERCENT, '!': TOKEN.BANG,
-            // `^` is EXPONENT here, not bitwise XOR. The grammar has no bitwise
-            // operators at all, so there is nothing to collide with, and every
-            // non-programmer who types 2^10 means 1024. Before this it was an
-            // "Unexpected character", so no stored expression can contain one.
-            '^': TOKEN.CARET,
-        };
-        // A single `=` only exists inside a path's brackets, as the match
-        // segment `headers[name="Subject"]` (path.mjs). Anywhere else it is
-        // still the old error, so `a = b` keeps telling the author to write ==.
-        if (c === '=' && brackets > 0) { tokens.push({ t: TOKEN.ASSIGN, i }); i++; continue; }
-        if (c === '[') brackets++;
-        else if (c === ']' && brackets > 0) brackets--;
-        if (single[c]) { tokens.push({ t: single[c], i }); i++; continue; }
-        throw new ExprError(`Unexpected character in expression: ${c}`, i);
-    }
-    tokens.push({ t: TOKEN.EOF, i: src.length });
-    return tokens;
-}
-
 const hasOwn = (o, k) => o != null && Object.prototype.hasOwnProperty.call(o, k);
+
+/** @type {ReadonlySet<string>} */
+const EACH_NAMES = new Set(EACH_FUNCTIONS);
+
+/** The parse-time argument checks of a plain call (literal date unit, literal regex). */
+function checkCallArgs(tk, args) {
+    return checkRegexCall(tk, checkDateUnit(tk, args, ExprError), ExprError);
+}
 
 // ── Parser (recursive descent) ─────────────────────────
 function parse(tokens, host) {
     let pos = 0;
+    // > 0 while parsing the second argument of map/filter/some/every: `it` is the item there.
+    let eachDepth = 0;
     const peek = () => tokens[pos];
     const eat = (t) => {
         if (tokens[pos].t !== t) throw new ExprError(`Expected ${t} but got ${tokens[pos].t}`, tokens[pos].i);
@@ -250,86 +172,126 @@ function parse(tokens, host) {
         if (accept(TOKEN.CARET)) return { kind: 'binop', op: '^', a: base, b: unary() };
         return base;
     }
+    function args() {
+        eat(TOKEN.LPAREN);
+        const out = [];
+        if (peek().t !== TOKEN.RPAREN) {
+            out.push(ternary());
+            while (accept(TOKEN.COMMA)) out.push(ternary());
+        }
+        eat(TOKEN.RPAREN);
+        return out;
+    }
+    // map/filter/some/every: exactly a list and a body; the body reads the item as `it`.
+    function eachOf(tk) {
+        eat(TOKEN.LPAREN);
+        const list = ternary();
+        if (!accept(TOKEN.COMMA)) throw new ExprError(`${tk.v}() takes a list and an expression, like ${tk.v}(list, it.x)`, tk.i);
+        eachDepth++;
+        const body = ternary();
+        eachDepth--;
+        if (peek().t !== TOKEN.RPAREN) throw new ExprError(`${tk.v}() takes exactly two arguments: a list and an expression`, tk.i);
+        eat(TOKEN.RPAREN);
+        if (collectHostCalls(body).length > 0) {
+            throw new ExprError(`${tk.v}(): ${collectHostCalls(body)[0].name}() cannot be used inside the expression of ${tk.v}()`, tk.i);
+        }
+        return { kind: 'each', name: tk.v, args: [list, body] };
+    }
+    function callOf(tk) {
+        // FUNCTIONS wins a name clash, so a host can never change
+        // what a whitelisted function means; the list forms come next.
+        if (!hasOwn(FUNCTIONS, tk.v) && EACH_NAMES.has(tk.v)) return eachOf(tk);
+        const spec = !hasOwn(FUNCTIONS, tk.v) && hasOwn(host, tk.v) ? host[tk.v] : null;
+        if (!spec && !hasOwn(FUNCTIONS, tk.v)) {
+            throw new ExprError(`Unknown function: ${tk.v}`, tk.i);
+        }
+        const list = args();
+        if (!spec) return { kind: 'call', name: tk.v, args: checkCallArgs(tk, list) };
+        // A host call inside another host call's arguments would need
+        // its own answer before the caller could collect what to ask.
+        if (list.some((a) => collectHostCalls(a).length > 0)) {
+            throw new ExprError(`${tk.v}() cannot be used inside another ${tk.v}()`, tk.i);
+        }
+        const problem = typeof spec.check === 'function' ? spec.check(list) : null;
+        if (problem) throw new ExprError(problem, tk.i);
+        return { kind: 'hostcall', name: tk.v, args: list };
+    }
+    /** The `.key`, `[expr]`, `[*]` and `[key=literal]` steps after a name or a value. */
+    function segments() {
+        /** @type {Array<{ kind: string, [field: string]: any }>} */
+        const path = [];
+        while (true) {
+            if (accept(TOKEN.DOT)) {
+                const id = eat(TOKEN.IDENT);
+                path.push({ kind: 'name', v: id.v });
+            } else if (accept(TOKEN.LBRACK)) {
+                path.push(bracketSegment());
+            } else break;
+        }
+        return path;
+    }
+    // After the `[`: one bracket step, up to and including its `]`.
+    function bracketSegment() {
+        // `[*]` wildcard — same flatten-map semantics as the
+        // binding resolver's walkPath, so a picker-inserted path
+        // like `steps.x.output.results[*].subject` evaluates to
+        // the array of subjects instead of throwing
+        // "Unexpected token: *" (which conditions swallowed into a
+        // silent `false` → wrong branch).
+        if (peek().t === TOKEN.STAR) {
+            eat(TOKEN.STAR);
+            eat(TOKEN.RBRACK);
+            return { kind: 'wildcard' };
+        }
+        if ((peek().t === TOKEN.IDENT || peek().t === TOKEN.STRING) && tokens[pos + 1]?.t === TOKEN.ASSIGN) {
+            return matchSegment();
+        }
+        if (peek().t === TOKEN.NUMBER && /^[0-9]+$/.test(peek().raw || '') && !Number.isSafeInteger(peek().v) && tokens[pos + 1]?.t === TOKEN.RBRACK) {
+            // A digit key past 2^53 (a snowflake id) would round as
+            // a number; read it as the key it spells, as path.mjs does.
+            const key = tokens[pos++].raw;
+            eat(TOKEN.RBRACK);
+            return { kind: 'index', expr: { kind: 'str', v: key } };
+        }
+        const idx = ternary();
+        eat(TOKEN.RBRACK);
+        return { kind: 'index', expr: idx };
+    }
+    // `[key="value"]` — the first element whose key equals
+    // the literal (path.mjs stepMatch), so a picked
+    // `headers[name="Subject"].value` reads the same here.
+    function matchSegment() {
+        const key = tokens[pos++].v;
+        eat(TOKEN.ASSIGN);
+        const neg = accept(TOKEN.MINUS);
+        const lit = tokens[pos++];
+        let value;
+        if (lit.t === TOKEN.NUMBER) value = neg ? -lit.v : lit.v;
+        else if (!neg && lit.t === TOKEN.STRING) value = lit.v;
+        else if (!neg && lit.t === TOKEN.BOOL) value = lit.v;
+        else if (!neg && lit.t === TOKEN.NULL) value = null;
+        else throw new ExprError('Expected a text, number, true, false or null after =', lit.i);
+        eat(TOKEN.RBRACK);
+        return { kind: 'match', key, value };
+    }
+    // A value read on like a path: `first(x).y`, `(a || b).name`, `f(x)[0]`.
+    // Without a segment the node is returned as it was parsed.
+    function postfix(node) {
+        const rest = segments();
+        return rest.length ? { kind: 'path', segments: [{ kind: 'base', expr: node }, ...rest] } : node;
+    }
     function primary() {
         const tk = peek();
         if (tk.t === TOKEN.NUMBER) { pos++; return { kind: 'num', v: tk.v }; }
         if (tk.t === TOKEN.STRING) { pos++; return { kind: 'str', v: tk.v }; }
         if (tk.t === TOKEN.BOOL) { pos++; return { kind: 'bool', v: tk.v }; }
         if (tk.t === TOKEN.NULL) { pos++; return { kind: 'null' }; }
-        if (tk.t === TOKEN.LPAREN) { pos++; const e = ternary(); eat(TOKEN.RPAREN); return e; }
+        if (tk.t === TOKEN.LPAREN) { pos++; const e = ternary(); eat(TOKEN.RPAREN); return postfix(e); }
         if (tk.t === TOKEN.IDENT) {
             pos++;
-            if (peek().t === TOKEN.LPAREN) {
-                // FUNCTIONS wins a name clash, so a host can never change
-                // what a whitelisted function means.
-                const spec = !hasOwn(FUNCTIONS, tk.v) && hasOwn(host, tk.v) ? host[tk.v] : null;
-                if (!spec && !hasOwn(FUNCTIONS, tk.v)) {
-                    throw new ExprError(`Unknown function: ${tk.v}`, tk.i);
-                }
-                eat(TOKEN.LPAREN);
-                const args = [];
-                if (peek().t !== TOKEN.RPAREN) {
-                    args.push(ternary());
-                    while (accept(TOKEN.COMMA)) args.push(ternary());
-                }
-                eat(TOKEN.RPAREN);
-                if (!spec) return { kind: 'call', name: tk.v, args: checkDateUnit(tk, args, ExprError) };
-                // A host call inside another host call's arguments would need
-                // its own answer before the caller could collect what to ask.
-                if (args.some((a) => collectHostCalls(a).length > 0)) {
-                    throw new ExprError(`${tk.v}() cannot be used inside another ${tk.v}()`, tk.i);
-                }
-                const problem = typeof spec.check === 'function' ? spec.check(args) : null;
-                if (problem) throw new ExprError(problem, tk.i);
-                return { kind: 'hostcall', name: tk.v, args };
-            }
-            /** @type {Array<{ kind: string, [field: string]: any }>} */
-            const path = [{ kind: 'name', v: tk.v }];
-            while (true) {
-                if (accept(TOKEN.DOT)) {
-                    const id = eat(TOKEN.IDENT);
-                    path.push({ kind: 'name', v: id.v });
-                } else if (accept(TOKEN.LBRACK)) {
-                    // `[*]` wildcard — same flatten-map semantics as the
-                    // binding resolver's walkPath, so a picker-inserted path
-                    // like `steps.x.output.results[*].subject` evaluates to
-                    // the array of subjects instead of throwing
-                    // "Unexpected token: *" (which conditions swallowed into a
-                    // silent `false` → wrong branch).
-                    if (peek().t === TOKEN.STAR) {
-                        eat(TOKEN.STAR);
-                        eat(TOKEN.RBRACK);
-                        path.push({ kind: 'wildcard' });
-                    } else if ((peek().t === TOKEN.IDENT || peek().t === TOKEN.STRING) && tokens[pos + 1]?.t === TOKEN.ASSIGN) {
-                        // `[key="value"]` — the first element whose key equals
-                        // the literal (path.mjs stepMatch), so a picked
-                        // `headers[name="Subject"].value` reads the same here.
-                        const key = tokens[pos++].v;
-                        eat(TOKEN.ASSIGN);
-                        const neg = accept(TOKEN.MINUS);
-                        const lit = tokens[pos++];
-                        let value;
-                        if (lit.t === TOKEN.NUMBER) value = neg ? -lit.v : lit.v;
-                        else if (!neg && lit.t === TOKEN.STRING) value = lit.v;
-                        else if (!neg && lit.t === TOKEN.BOOL) value = lit.v;
-                        else if (!neg && lit.t === TOKEN.NULL) value = null;
-                        else throw new ExprError('Expected a text, number, true, false or null after =', lit.i);
-                        eat(TOKEN.RBRACK);
-                        path.push({ kind: 'match', key, value });
-                    } else if (peek().t === TOKEN.NUMBER && /^[0-9]+$/.test(peek().raw || '') && !Number.isSafeInteger(peek().v) && tokens[pos + 1]?.t === TOKEN.RBRACK) {
-                        // A digit key past 2^53 (a snowflake id) would round as
-                        // a number; read it as the key it spells, as path.mjs does.
-                        const key = tokens[pos++].raw;
-                        eat(TOKEN.RBRACK);
-                        path.push({ kind: 'index', expr: { kind: 'str', v: key } });
-                    } else {
-                        const idx = ternary();
-                        eat(TOKEN.RBRACK);
-                        path.push({ kind: 'index', expr: idx });
-                    }
-                } else break;
-            }
-            return { kind: 'path', segments: path };
+            if (peek().t === TOKEN.LPAREN) return postfix(callOf(tk));
+            const head = tk.v === 'it' && eachDepth > 0 ? { kind: 'local', v: 'it' } : { kind: 'name', v: tk.v };
+            return { kind: 'path', segments: [head, ...segments()] };
         }
         throw new ExprError(`Unexpected token: ${tk.t}`, tk.i);
     }
@@ -340,10 +302,26 @@ function parse(tokens, host) {
 }
 
 // ── Evaluator ──────────────────────────────────────────
-function walkPath(segments, runState, host) {
-    let cur = runState;
+/**
+ * The evaluation environment: the host table, the item of the innermost
+ * map/filter/some/every (`it`), and the item budget shared by the whole
+ * evaluation (limits.mjs tickEach).
+ * @typedef {{ host: Record<string, { fn?: (...args: unknown[]) => unknown, unanswered?: string }> | null, it: unknown, budget: { used: number } }} EvalEnv
+ */
+
+function walkPath(segments, runState, env) {
+    const head = segments[0];
+    // A call result or a parenthesised value read on like a path (`base`),
+    // or `it` inside map/filter/some/every (`local`): the walk starts there.
+    if (head && head.kind === 'base') return walkFrom(evalNode(head.expr, runState, env), segments, 1, runState, env);
+    if (head && head.kind === 'local') return walkFrom(env.it, segments, 1, runState, env);
+    return walkFrom(runState, segments, 0, runState, env);
+}
+
+function walkFrom(start, segments, from, runState, env) {
+    let cur = start;
     const cache = jsonCacheFor(runState);
-    for (let i = 0; i < segments.length; i++) {
+    for (let i = from; i < segments.length; i++) {
         if (cur == null) return undefined;
         const s = segments[i];
         if (s.kind === 'name') {
@@ -366,7 +344,7 @@ function walkPath(segments, runState, host) {
                 if (r.kind === 'name') tokens.push({ type: 'prop', key: r.v });
                 else if (r.kind === 'wildcard') tokens.push({ type: 'wild' });
                 else if (r.kind === 'match') tokens.push({ type: 'match', key: r.key, value: r.value });
-                else tokens.push({ type: 'prop', key: evalNode(r.expr, runState, host) });
+                else tokens.push({ type: 'prop', key: evalNode(r.expr, runState, env) });
             }
             return walkTokens([{ type: 'wild' }, ...tokens], cur);
         } else if (s.kind === 'match') {
@@ -375,7 +353,7 @@ function walkPath(segments, runState, host) {
             // Internal marker kept for callers that seed a walk at a value.
             cur = s.v;
         } else {
-            const k = evalNode(s.expr, runState, host);
+            const k = evalNode(s.expr, runState, env);
             if (cur == null) return undefined;
             // Same gate as the dot branch: x["constructor"] stays undefined,
             // `name[0]` on a string works exactly as it does in a ref binding.
@@ -386,38 +364,39 @@ function walkPath(segments, runState, host) {
     return cur;
 }
 
-function evalNode(n, ctx, host) {
+function evalNode(n, ctx, env) {
     switch (n.kind) {
         case 'num': return n.v;
         case 'str': return n.v;
         case 'bool': return n.v;
         case 'null': return null;
-        case 'path': return walkPath(n.segments, ctx, host);
+        case 'path': return walkPath(n.segments, ctx, env);
+        case 'each': return evalEach(n, ctx, env);
         case 'call': {
             const fn = FUNCTIONS[n.name];
             if (!fn) throw new ExprError(`Unknown function: ${n.name}`);
             // Every produced text passes the cap (limits.mjs).
-            return guardValue(fn(...n.args.map((a) => evalNode(a, ctx, host))));
+            return guardValue(fn(...n.args.map((a) => evalNode(a, ctx, env))));
         }
         case 'hostcall': {
-            const h = hasOwn(host, n.name) ? host[n.name] : null;
+            const h = hasOwn(env.host, n.name) ? env.host[n.name] : null;
             if (!h || typeof h.fn !== 'function') {
                 throw new ExprError(h?.unanswered || `${n.name}() has no answer here`);
             }
-            return guardValue(h.fn(...n.args.map((a) => evalNode(a, ctx, host))));
+            return guardValue(h.fn(...n.args.map((a) => evalNode(a, ctx, env))));
         }
         case 'unop': {
-            const v = evalNode(n.a, ctx, host);
+            const v = evalNode(n.a, ctx, env);
             if (n.op === '!') return !v;
             if (n.op === '-') return -v;
             if (n.op === '+') return +v;
             return undefined;
         }
         case 'binop': {
-            if (n.op === '&&') return evalNode(n.a, ctx, host) && evalNode(n.b, ctx, host);
-            if (n.op === '||') return evalNode(n.a, ctx, host) || evalNode(n.b, ctx, host);
-            const a = evalNode(n.a, ctx, host);
-            const b = evalNode(n.b, ctx, host);
+            if (n.op === '&&') return evalNode(n.a, ctx, env) && evalNode(n.b, ctx, env);
+            if (n.op === '||') return evalNode(n.a, ctx, env) || evalNode(n.b, ctx, env);
+            const a = evalNode(n.a, ctx, env);
+            const b = evalNode(n.b, ctx, env);
             switch (n.op) {
                 case '+': return guardValue(a + b); // a text `+` grows like concat(): same cap
                 case '-': return a - b;
@@ -439,34 +418,37 @@ function evalNode(n, ctx, host) {
                 default: throw new ExprError(`Unknown operator: ${n.op}`);
             }
         }
-        case 'ternary': return evalNode(n.cond, ctx, host) ? evalNode(n.a, ctx, host) : evalNode(n.b, ctx, host);
+        case 'ternary': return evalNode(n.cond, ctx, env) ? evalNode(n.a, ctx, env) : evalNode(n.b, ctx, env);
         default: throw new ExprError(`Unknown node kind: ${n.kind}`);
     }
 }
 
-// Distinct root identifiers referenced by a path (for validation without
-// executing) — e.g. `actions.x.result + form.total` → ['actions','form'].
-function collectRefs(node, out) {
-    if (!node || typeof node !== 'object') return out;
-    if (node.kind === 'path' && node.segments[0]?.kind === 'name') out.add(node.segments[0].v);
-    for (const key of ['a', 'b', 'cond', 'expr']) if (node[key]) collectRefs(node[key], out);
-    if (node.segments) for (const s of node.segments) if (s.expr) collectRefs(s.expr, out);
-    if (node.args) for (const a of node.args) collectRefs(a, out);
-    return out;
+/**
+ * map/filter/some/every: the body once per item, with the item as `it`.
+ * Not a list gives [] (map, filter) or false (some, every); every() of an
+ * empty list is false, like everyOf().
+ */
+function evalEach(n, ctx, env) {
+    const list = evalNode(n.args[0], ctx, env);
+    const body = n.args[1];
+    const many = n.name === 'map' || n.name === 'filter';
+    if (!Array.isArray(list)) return many ? [] : false;
+    const out = [];
+    for (const item of list) {
+        tickEach(env.budget);
+        const v = evalNode(body, ctx, { host: env.host, it: item, budget: env.budget });
+        if (n.name === 'map') out.push(v);
+        else if (n.name === 'filter') { if (v) out.push(item); }
+        else if (n.name === 'some') { if (v) return true; }
+        else if (!v) return false;
+    }
+    if (many) return out;
+    return n.name === 'every' && list.length > 0;
 }
 
-/**
- * Every host call in an AST, in source order: the nodes a caller has to
- * answer before it evaluates. Walks the same keys as collectRefs.
- */
-export function collectHostCalls(node, out = []) {
-    if (!node || typeof node !== 'object') return out;
-    if (node.kind === 'hostcall') out.push(node);
-    // `cond` first: a ternary's condition comes before its branches.
-    for (const key of ['cond', 'a', 'b', 'expr']) if (node[key]) collectHostCalls(node[key], out);
-    if (node.segments) for (const s of node.segments) if (s.expr) collectHostCalls(s.expr, out);
-    if (node.args) for (const a of node.args) collectHostCalls(a, out);
-    return out;
+/** A fresh environment for one evaluation. @returns {EvalEnv} */
+function newEnv(host) {
+    return { host: host || null, it: undefined, budget: { used: 0 } };
 }
 
 // ── Public API ─────────────────────────────────────────
@@ -492,7 +474,7 @@ export function compile(src, opts) {
  */
 export function evaluate(src, scope, opts) {
     const ast = typeof src === 'string' ? parseExpr(src, opts) : src;
-    return evalNode(ast, scope || {}, opts?.host || null);
+    return evalNode(ast, scope || {}, newEnv(opts?.host));
 }
 
 /**
@@ -508,4 +490,9 @@ export function tryEvaluate(src, scope, opts) {
     }
 }
 
-export { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES };
+// The whole vocabulary: FUNCTIONS plus the list forms (functions.mjs's own
+// lists hold the plain functions only).
+const EXPR_FUNCTIONS = [...PLAIN_FUNCTION_DOCS, ...LIST_FUNCTION_DOCS];
+const EXPR_FUNCTION_NAMES = [...PLAIN_FUNCTION_NAMES, ...EACH_FUNCTIONS];
+
+export { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES, EACH_FUNCTIONS, collectRefs, collectHostCalls, collectEachCalls, readsItem };

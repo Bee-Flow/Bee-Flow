@@ -31,7 +31,7 @@ const queryCompiler = require('../core/dataEngine/queryCompiler');
 const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
-const { compile, tryEvaluate } = require('../shared/expr/index.mjs');
+const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
@@ -100,7 +100,6 @@ function dataCacheKey(binding) {
 // also excluded: it drifts by milliseconds between our key and the renderer's,
 // which would split the key anyway (the client docs tell authors to avoid it).
 const RESOLVABLE_ROOTS = new Set(['currentUser', 'vars', 'forms', 'screen', 'today']);
-const NO_VALUE_FILTER_OPS = new Set(['isNull', 'isNotNull']);
 const AGGREGATE_SHAPE_FIELDS = ['groupBy', 'aggregates', 'sort', 'limit'];
 
 function formulaRefsResolvable(expr) {
@@ -139,34 +138,21 @@ function resolveShape(binding, scope) {
  */
 function resolveFilters(binding, scope) {
     if (!Array.isArray(binding.filter) || binding.filter.length === 0) return { binding };
-    let changed = false;
-    const filter = [];
-    for (const entry of binding.filter) {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { filter.push(entry); continue; }
-        if (NO_VALUE_FILTER_OPS.has(entry.op)) { filter.push(entry); continue; }
-        const { required, ...rest } = entry;
-        const raw = entry.value;
-        const isFormula = raw && typeof raw === 'object' && raw.kind === 'formula';
-        if (isFormula && !formulaRefsResolvable(raw.expr)) return { skipped: true };
-        const value = isFormula ? evalFormula(raw, scope) : raw;
-        if (value === undefined || value === null) {
-            // Client: required + unresolved → the whole binding resolves to
-            // null (no query at all); optional → the entry is omitted.
-            if (required) return { skipped: true };
-            changed = true;
-            continue;
-        }
-        if (required) { changed = true; filter.push({ ...rest, value }); continue; }
-        if (value === entry.value) { filter.push(entry); continue; }
-        changed = true;
-        filter.push({ ...rest, value });
-    }
-    if (!changed) return { binding };
-    if (filter.length === 0) {
+    const res = resolveFilterList(binding.filter, (raw) => {
+        const v = /** @type {{ kind?: unknown, expr?: unknown } | null} */ (raw);
+        const isFormula = !!v && typeof v === 'object' && v.kind === 'formula';
+        if (isFormula && !formulaRefsResolvable(v.expr)) return FILTER_SKIP;
+        return isFormula ? evalFormula(v, scope) : raw;
+    });
+    // Client: required + unresolved → the whole binding resolves to null (no
+    // query at all); optional → the entry is omitted.
+    if (res.status !== 'ok') return { skipped: true };
+    if (!res.changed) return { binding };
+    if (res.filters.length === 0) {
         const { filter: _dropped, ...rest } = binding;
         return { binding: rest };
     }
-    return { binding: { ...binding, filter } };
+    return { binding: { ...binding, filter: res.filters } };
 }
 
 // ── Data pass — real rows through the sanctioned read paths ─────────

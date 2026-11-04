@@ -31,15 +31,19 @@ export class ExprLimitError extends ExprError {
     constructor(message) { super(message); this.code = 'expr_limit'; }
 }
 
-function readEnvCap() {
-    const raw = globalThis.process?.env?.EXPR_MAX_TEXT_CHARS;
-    if (raw === undefined || raw === null || raw === '') return DEFAULT_MAX_TEXT_CHARS;
+/**
+ * A cap from the environment: unset or unreadable gives the default, 0 unlimited.
+ * @param {string} name @param {number} fallback
+ */
+function readEnvCap(name, fallback) {
+    const raw = globalThis.process?.env?.[name];
+    if (raw === undefined || raw === null || raw === '') return fallback;
     const n = Number(raw);
-    if (!Number.isFinite(n) || n < 0) return DEFAULT_MAX_TEXT_CHARS;
+    if (!Number.isFinite(n) || n < 0) return fallback;
     return n === 0 ? Infinity : Math.trunc(n);
 }
 
-let maxTextChars = readEnvCap();
+let maxTextChars = readEnvCap('EXPR_MAX_TEXT_CHARS', DEFAULT_MAX_TEXT_CHARS);
 
 /** The current cap; Infinity when unlimited. */
 export function getMaxTextChars() { return maxTextChars; }
@@ -70,4 +74,35 @@ export function assertTextSize(length) {
 export function guardValue(v) {
     if (typeof v === 'string') assertTextSize(v.length);
     return v;
+}
+
+/**
+ * How many items map/filter/some/every may visit in ONE evaluation, counted
+ * over every list function in it (nested ones multiply). Read once from
+ * EXPR_MAX_EACH_STEPS when there is an environment; 0 means unlimited.
+ */
+export const DEFAULT_MAX_EACH_STEPS = 200_000;
+
+let maxEachSteps = readEnvCap('EXPR_MAX_EACH_STEPS', DEFAULT_MAX_EACH_STEPS);
+
+/** The current item budget per evaluation; Infinity when unlimited. */
+export function getMaxEachSteps() { return maxEachSteps; }
+
+/**
+ * Set the item budget for this process (tests, a host with its own setting); 0 or Infinity = unlimited.
+ * @param {number} n
+ */
+export function setMaxEachSteps(n) {
+    maxEachSteps = (n === 0 || n === Infinity) ? Infinity : Math.max(1, Math.trunc(Number(n) || DEFAULT_MAX_EACH_STEPS));
+}
+
+/**
+ * Count one visited item against the evaluation's budget; throws past it.
+ * @param {{ used: number }} budget
+ */
+export function tickEach(budget) {
+    budget.used += 1;
+    if (budget.used > maxEachSteps) {
+        throw new ExprLimitError(`List functions visited more than ${maxEachSteps} items in one formula (EXPR_MAX_EACH_STEPS=${maxEachSteps})`);
+    }
 }

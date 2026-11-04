@@ -127,3 +127,13 @@ test('canonicalize: absent fields stay absent; upsertKey coerced, folded and cut
     assert.ok(JSON.stringify(res.repairs).includes('writeto.upsert_key_coerced'));
     assert.ok(JSON.stringify(res.repairs).includes('writeto.upsert_on_folded'));
 });
+
+test('OR groups (package 6) in a write filter and in replaceWhere: valid, and their clauses count toward the cap', () => {
+    const group = { any: [{ field: 'status', op: 'eq', value: 'done' }, { field: 'status', op: 'eq', value: 'void' }] };
+    const ok = validate([del({ filter: [group] }), extract({ upsertKey: ['po', 'line'], replaceWhere: [{ field: 'po', op: 'eq', value: 'p1' }, group] })]);
+    assert.deepEqual(ok.errors, []);
+    const wide = { any: Array.from({ length: 20 }, () => ({ field: 'status', op: 'eq', value: 'a' })) };
+    const res = validate([del({ filter: [{ field: 'po', op: 'eq', value: 'p1' }, wide] }), del({ filter: [{ any: [{ field: 'nope', op: 'eq', value: 1 }] }] })]);
+    assert.equal(codes(res.errors, 'action.bulk_filter_too_large').length, 1, '21 clauses counting the group');
+    assert.ok(res.errors.some((e) => /nope/.test(e.message)), 'a group member names an unknown field');
+});

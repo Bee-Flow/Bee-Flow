@@ -5212,11 +5212,6 @@
       "count": 2
     }
   },
-  "core/text/safePattern.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "core/tools/datatableRows.js": {
     "complexity": {
       "count": 1
@@ -8722,7 +8717,7 @@
   },
   "services/appStudioRender.js": {
     "complexity": {
-      "count": 4
+      "count": 3
     }
   },
   "services/bfBridgeNotices.js": {
@@ -8957,10 +8952,7 @@
   },
   "shared/expr/engine.mjs": {
     "complexity": {
-      "count": 3
-    },
-    "max-depth": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -9018,6 +9010,14 @@
   },
   "shared/expr/sheetFill.mjs": {
     "max-params": {
+      "count": 1
+    }
+  },
+  "shared/expr/tokens.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
       "count": 1
     }
   },

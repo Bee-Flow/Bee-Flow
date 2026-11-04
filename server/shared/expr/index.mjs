@@ -14,11 +14,26 @@ export {
     evaluate,
     tryEvaluate,
     collectHostCalls,
+    collectEachCalls,
+    collectRefs,
+    readsItem,
     ExprError,
     FUNCTIONS,
     EXPR_FUNCTIONS,
     EXPR_FUNCTION_NAMES,
+    EACH_FUNCTIONS,
 } from './engine.mjs';
+export { MAX_REGEX_PATTERN_CHARS, regexProblem, hasNestedQuantifier } from './regex.mjs';
+export {
+    MAX_FILTER_CLAUSES,
+    NO_VALUE_FILTER_OPS,
+    FILTER_SKIP,
+    isAnyGroup,
+    countFilterLeaves,
+    filterClauseFields,
+    forEachFilterClause,
+    resolveFilterList,
+} from './filterGroups.mjs';
 export {
     TOPIC_FN,
     TOPIC_HOST_SPEC,

@@ -420,3 +420,17 @@ test('captureDocument screens every request off the preview origin before the pa
     assert.strictEqual(await verdict('http://10.1.2.3/'), 'abort');
     assert.strictEqual(await verdict('https://93.184.216.34/x.js'), 'continue');
 });
+
+test('resolveFilters: an any group resolves like the client, and skips on an unresolvable root', () => {
+    const scope = { vars: { status: 'open' } };
+    const group = { any: [{ field: 'status', op: 'eq', value: { kind: 'formula', expr: 'vars.status' } }, { field: 'p', op: 'eq', value: { kind: 'formula', expr: 'vars.none' } }] };
+    const out = _test.resolveFilters({ kind: 'records', tableId: 't', filter: [group] }, scope);
+    assert.deepStrictEqual(out.binding.filter, [{ any: [{ field: 'status', op: 'eq', value: 'open' }] }]);
+    const emptied = _test.resolveFilters({ kind: 'records', tableId: 't', filter: [{ any: [group.any[1]] }] }, scope);
+    assert.deepStrictEqual(emptied, { binding: { kind: 'records', tableId: 't' } }, 'an emptied group drops, and the filter with it');
+    assert.deepStrictEqual(_test.resolveFilters({ kind: 'records', tableId: 't', filter: [{ any: [group.any[1]], required: true }] }, scope), { skipped: true });
+    const live = { any: [{ field: 'x', op: 'eq', value: { kind: 'formula', expr: 'item.x' } }] };
+    assert.deepStrictEqual(_test.resolveFilters({ kind: 'records', tableId: 't', filter: [live] }, scope), { skipped: true }, 'a per-instance root inside a group skips the binding');
+    const same = { kind: 'records', tableId: 't', filter: [{ any: [{ field: 'x', op: 'eq', value: 1 }] }] };
+    assert.strictEqual(_test.resolveFilters(same, scope).binding, same, 'identity kept when nothing changed');
+});

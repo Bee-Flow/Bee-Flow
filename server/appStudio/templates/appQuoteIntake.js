@@ -90,8 +90,8 @@
  *  • Structured ai_generate results are read by the NEXT SERVER STEP via
  *    vars.<resultVar>.* — the server-side scope pins `actions` to {}.
  *  • A loop's itemVar lands in vars.<name> (vars.regel, never bare `regel`),
- *    and the expr engine parses bracket indexing (vars.gelezen.rows[0].x) but
- *    NOT property access on a call result (first(x).y is a parse error).
+ *    and the expr engine parses bracket indexing (vars.gelezen.rows[0].x) and
+ *    property access on a call result (first(x).y).
  */
 
 'use strict';

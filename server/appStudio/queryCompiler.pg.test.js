@@ -197,6 +197,37 @@ test('pg: isNull / isNotNull on a relation column', async () => {
     assert.strictEqual(res2.rows[0].project, seededIds.project);
 });
 
+// ── OR groups: { any: [...] } ───────────────────────────────────────
+
+const titlesOf = (res) => res.rows.map((r) => r.title).sort();
+
+test('pg: a records list with an any group returns exactly the union of both conditions', async () => {
+    const filters = [{ any: [{ field: 'status', op: 'eq', value: 'open' }, { field: 'amount', op: 'gte', value: 1000 }] }];
+    const all = qc.compileRecordList(TASKS, { filters }, ALLOW);
+    assert.deepStrictEqual(titlesOf(await run(all.sql, all.params)), ['Alpha task', 'beta task', 'intruder outlier']);
+    const open = qc.compileRecordList(TASKS, { filters: [filters[0].any[0]] }, ALLOW);
+    const big = qc.compileRecordList(TASKS, { filters: [filters[0].any[1]] }, ALLOW);
+    const union = [...new Set([...titlesOf(await run(open.sql, open.params)), ...titlesOf(await run(big.sql, big.params))])].sort();
+    assert.deepStrictEqual(titlesOf(await run(all.sql, all.params)), union, 'the group is the union of its clauses, no more and no less');
+});
+
+test('pg: a matching row of another owner stays hidden under an owner access filter', async () => {
+    const filters = [{ any: [{ field: 'status', op: 'eq', value: 'open' }, { field: 'amount', op: 'gte', value: 1000 }] }];
+    const q = qc.compileRecordList(TASKS, { filters }, MINE);
+    assert.match(q.sql, /\("created_by" = \?\)/, 'the access predicate sits outside the OR');
+    assert.deepStrictEqual(titlesOf(await run(q.sql, q.params)), ['Alpha task', 'beta task'], 'user-2\'s row matches the group but is not the viewer\'s');
+    const agg = qc.compileAggregate(TASKS, { filters, aggregates: [{ fn: 'count', as: 'n' }] }, MINE);
+    assert.strictEqual(Number((await run(agg.sql, agg.params)).rows[0].n), 2);
+});
+
+test('pg: an any group ANDs with the other entries, also under match any', async () => {
+    const group = { any: [{ field: 'status', op: 'eq', value: 'done' }, { field: 'amount', op: 'lt', value: 15 }] };
+    const q = qc.compileRecordList(TASKS, { filters: [{ field: 'title', op: 'contains', value: 'task' }, group] }, ALLOW);
+    assert.deepStrictEqual(titlesOf(await run(q.sql, q.params)), ['Alpha task']);
+    const anyQ = qc.compileRecordList(TASKS, { filters: [{ field: 'title', op: 'contains', value: 'beta' }, group], match: 'any' }, ALLOW);
+    assert.deepStrictEqual(titlesOf(await run(anyQ.sql, anyQ.params)), ['100% done', 'Alpha task', 'beta task', 'intruder outlier']);
+});
+
 // ── sort + keyset cursor ────────────────────────────────────────────
 
 test('pg: keyset pagination pages the whole set in order without overlap', async () => {

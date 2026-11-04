@@ -8,9 +8,15 @@
  * change, what those modules export.
  */
 
-/** One segment of a member path: `a`, `.b`, `[expr]`, `[*]`. */
+/**
+ * One segment of a member path: `a`, `.b`, `[expr]`, `[*]`. A path that reads
+ * on from a value starts with `base` (`first(x).y`), and `it` inside
+ * map/filter/some/every starts with `local`.
+ */
 export type ExprPathSegment =
     | { kind: 'name'; v: string }
+    | { kind: 'base'; expr: ExprNode }
+    | { kind: 'local'; v: 'it' }
     | { kind: 'index'; expr: ExprNode }
     | { kind: 'wildcard' }
     | { kind: 'match'; key: string; value: string | number | boolean | null };
@@ -25,6 +31,7 @@ export type ExprNode =
     | { kind: 'binop'; op: string; a: ExprNode; b: ExprNode }
     | { kind: 'ternary'; cond: ExprNode; a: ExprNode; b: ExprNode }
     | { kind: 'call'; name: string; args: ExprNode[] }
+    | { kind: 'each'; name: 'map' | 'filter' | 'some' | 'every'; args: [ExprNode, ExprNode] }
     | { kind: 'path'; segments: ExprPathSegment[] };
 
 export declare class ExprError extends Error {
@@ -71,6 +78,42 @@ export declare function collectHostCalls(node: ExprNode, out?: ExprCallNode[]): 
 export declare const FUNCTIONS: Readonly<Record<string, ExprFunction>>;
 export declare const EXPR_FUNCTIONS: readonly ExprFunctionDoc[];
 export declare const EXPR_FUNCTION_NAMES: readonly string[];
+export declare const EACH_FUNCTIONS: readonly ['map', 'filter', 'some', 'every'];
+export type ExprEachNode = Extract<ExprNode, { kind: 'each' }>;
+/** Every map/filter/some/every node, in source order. */
+export declare function collectEachCalls(node: ExprNode, out?: ExprEachNode[]): ExprEachNode[];
+/** The root names an expression reads, added to `out`. */
+export declare function collectRefs(node: ExprNode, out: Set<string>): Set<string>;
+/** True when the expression reads `it` as the item of an enclosing list function. */
+export declare function readsItem(node: ExprNode): boolean;
+export declare const MAX_REGEX_PATTERN_CHARS: number;
+export declare function regexProblem(pattern: unknown, flags: unknown): string | null;
+export declare function hasNestedQuantifier(source: string): boolean;
+
+export declare const MAX_FILTER_CLAUSES: number;
+export declare const NO_VALUE_FILTER_OPS: ReadonlySet<string>;
+export declare const FILTER_SKIP: unique symbol;
+export declare function isAnyGroup(entry: unknown): entry is Record<string, unknown> & { any: unknown[] };
+export declare function forEachFilterClause(filters: unknown, visit: (clause: unknown, suffix: string) => void): void;
+export declare function countFilterLeaves(filters: unknown): number;
+export declare function filterClauseFields(filters: unknown): string[];
+export interface ResolveFilterOptions {
+    isUnset?: (value: unknown, clause: Record<string, unknown>) => boolean;
+    keepMalformed?: boolean;
+    noValueOps?: boolean;
+    ignoreRequired?: boolean;
+    strict?: boolean;
+}
+export type FilterListResult =
+    | { status: 'ok'; filters: unknown[]; changed: boolean }
+    | { status: 'required' }
+    | { status: 'skip' }
+    | { status: 'blocked'; field: string | null };
+export declare function resolveFilterList(
+    filters: unknown,
+    resolveValue: (value: unknown, clause: Record<string, unknown>) => unknown,
+    opts?: ResolveFilterOptions,
+): FilterListResult;
 
 export declare const TOPIC_FN: 'isAbout';
 export declare const TOPIC_HOST_SPEC: ExprHostTable;

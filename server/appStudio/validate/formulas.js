@@ -13,7 +13,7 @@ const { LIMITS, FORMULA_SCOPE_ROOTS, CURRENT_USER_KEYS } = require('../component
 // require()-ing the .mjs directly) keeps App Studio on the CommonJS surface the
 // rest of the server uses and is transparent to the route/store test harnesses
 // that monkeypatch Module._resolveFilename.
-const { compile } = require('../../shared/expr/index.mjs');
+const { compile, collectEachCalls, collectRefs, readsItem } = require('../../shared/expr/index.mjs');
 
 // ---------------------------------------------------------------------------
 // v2 shared checks — formula compilation (NEVER execution), and reference
@@ -33,8 +33,9 @@ function validateFormula(expr, path, ctx, allowedRoots) {
         return;
     }
     let refs;
+    let ast;
     try {
-        refs = compile(expr).refs;
+        ({ refs, ast } = compile(expr));
     } catch (e) {
         const idx = e && typeof e.index === 'number' ? e.index : null;
         pushE({ code: 'formula.parse_error', severity: 'error', path, message: `Formula failed to parse${idx != null ? ` at position ${idx}` : ''}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e)}.`, hint: 'Fix the expression syntax; only the whitelisted functions/operators are allowed.' });
@@ -51,7 +52,30 @@ function validateFormula(expr, path, ctx, allowedRoots) {
         pushW({ code: 'formula.error_outside_handler', severity: 'warning', path, message: 'This formula reads `error`, which only has a value inside a step\'s onError handler — here it is null.', hint: 'Read error.message / error.step in a step of onError.steps, or set a variable there and read that.' });
     }
     checkVariableReads(expr, path, ctx);
+    checkEachBodies(ast, path, ctx);
 }
+
+/**
+ * map/filter/some/every whose expression never reads the item: the same value
+ * for every item, which is nearly always `item.x` written where `it.x` was meant.
+ * @param {Parameters<typeof collectEachCalls>[0]} ast
+ * @param {string} path
+ */
+function checkEachBodies(ast, path, ctx) {
+    for (const call of collectEachCalls(ast)) {
+        const body = call.args[1];
+        if (readsItem(body)) continue;
+        const readsLoopItem = collectRefs(body, new Set()).has('item');
+        ctx.pushW({
+            code: 'formula.each_without_it', severity: 'warning', path,
+            message: `${call.name}() never reads the item: its expression gives the same answer for every item.`,
+            hint: readsLoopItem
+                ? `Inside ${call.name}() the item is it, not item: write it.<field>.`
+                : `Read the item as it, e.g. ${call.name}(list, it.status == "open").`,
+        });
+    }
+}
+
 
 // `vars.<name>` reads, extracted from the source text — compile().refs reports
 // the ROOT only, so the name after the dot has to come off the string, exactly

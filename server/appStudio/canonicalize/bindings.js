@@ -28,6 +28,37 @@ function cleanFormula(raw, path, push) {
     return { kind: 'formula', expr };
 }
 
+/**
+ * A filter list with its OR groups in the one spelling the runtime reads:
+ * `{ or: [...] }` (a common guess) becomes `{ any: [...] }`, and a group inside
+ * a group is flattened into it (a OR (b OR c) is a OR b OR c). Anything else is
+ * copied untouched; a list without groups comes back equal to its copy.
+ * @param {unknown} filter
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function canonicalFilterList(filter, path, push) {
+    if (!Array.isArray(filter)) return deepCopy(filter);
+    return filter.map((entry, i) => {
+        let e = entry;
+        if (isObject(e) && e.any === undefined && Array.isArray(e.or) && e.field === undefined) {
+            const { or, ...rest } = e;
+            e = { ...rest, any: or };
+            push('binding.filter_or_to_any', `${path}[${i}]`, 'filter: renamed `or` to `any` (an OR group is { any: [...] }).');
+        }
+        if (!isObject(e) || !Array.isArray(e.any)) return deepCopy(e);
+        /** @type {unknown[]} */
+        const members = [];
+        let flattened = false;
+        for (const m of e.any) {
+            const inner = isObject(m) && m.field === undefined ? (Array.isArray(m.any) ? m.any : Array.isArray(m.or) ? m.or : null) : null;
+            if (inner) { members.push(...inner.map(deepCopy)); flattened = true; } else members.push(deepCopy(m));
+        }
+        if (flattened) push('binding.filter_any_flattened', `${path}[${i}].any`, 'filter: a group inside an OR group was merged into it (a OR (b OR c) is a OR b OR c).');
+        return { ...deepCopy(e), any: members };
+    });
+}
+
 // Shared filter/sort/limit copy for record + records bindings.
 /**
  * @param {string} path
@@ -35,7 +66,7 @@ function cleanFormula(raw, path, push) {
  */
 function copyRecordsQuery(raw, out, path, push) {
     if (raw.filter !== undefined && raw.filter !== null) {
-        out.filter = typeof raw.filter === 'string' ? truncate(raw.filter, LIMITS.MAX_FORMULA_LEN, `${path}.filter`, push) : deepCopy(raw.filter);
+        out.filter = typeof raw.filter === 'string' ? truncate(raw.filter, LIMITS.MAX_FORMULA_LEN, `${path}.filter`, push) : canonicalFilterList(raw.filter, `${path}.filter`, push);
     }
     if (raw.sort !== undefined && raw.sort !== null) out.sort = deepCopy(raw.sort);
     if (raw.limit !== undefined && raw.limit !== null) {
@@ -265,6 +296,7 @@ module.exports = {
     cleanRecordFilter,
     cleanFormula,
     copyRecordsQuery,
+    canonicalFilterList,
     cleanConnectorParams,
     cleanPick,
     cleanAggGroupBy,

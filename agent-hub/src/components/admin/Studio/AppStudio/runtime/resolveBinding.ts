@@ -47,8 +47,9 @@
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { getRelativePath } from '@shared/expr/path.mjs';
-import type { Binding, BindingInput, DataBinding, DataMap, ResolveResult, Scope } from './resolveBinding.types';
-import { NO_VALUE_FILTER_OPS, AGGREGATE_SHAPE_FIELDS } from './resolveBinding.constants';
+import { resolveFilterList } from '@shared/expr/filterGroups.mjs';
+import type { Binding, BindingInput, DataBinding, DataMap, FilterValue, ResolveResult, Scope } from './resolveBinding.types';
+import { AGGREGATE_SHAPE_FIELDS } from './resolveBinding.constants';
 import { isRelativePath, stableStringify, resolveFilterValue, normalizeBag, fromDataEntry, applyPick } from './resolveBinding.helpers';
 
 /**
@@ -135,35 +136,22 @@ export function resolveBindingFilters(binding: Binding | null | undefined, scope
     if (binding.kind !== 'record' && binding.kind !== 'records' && binding.kind !== 'aggregate') return binding;
     if (!Array.isArray(binding.filter) || binding.filter.length === 0) return binding;
 
-    let changed = false;
-    const filter: unknown[] = [];
-    for (const entry of binding.filter) {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { filter.push(entry); continue; }
-        if (NO_VALUE_FILTER_OPS.has(entry.op)) { filter.push(entry); continue; }
-        const { required, ...rest } = entry;
-        const value = resolveFilterValue(entry.value, scope);
-        if (value === undefined || value === null) {
-            // An unresolved filter is normally OMITTED, which is right for an
-            // optional one (a filter_bar field nobody filled in). It is exactly
-            // wrong for a filter that SCOPES a component to a selection: drop
-            // "belongs to the open ticket" and the component cheerfully lists
-            // every row in the table. `required` says so out loud — no value,
-            // no query, no rows.
-            if (required) return null;
-            changed = true;
-            continue;
-        }
-        if (required) { changed = true; filter.push({ ...rest, value }); continue; }
-        if (value === entry.value) { filter.push(entry); continue; }
-        changed = true;
-        filter.push({ ...rest, value });
-    }
-    if (!changed) return binding;
-    if (filter.length === 0) {
+    // An unresolved filter is normally OMITTED, which is right for an
+    // optional one (a filter_bar field nobody filled in). It is exactly
+    // wrong for a filter that SCOPES a component to a selection: drop
+    // "belongs to the open ticket" and the component cheerfully lists
+    // every row in the table. `required` says so out loud — no value,
+    // no query, no rows. An `{ any: [...] }` group drops its unresolved
+    // clauses and is dropped itself when none is left (unless required).
+    // The loop is shared with the phone and the server (filterGroups.mjs).
+    const res = resolveFilterList(binding.filter, (value) => resolveFilterValue(value as FilterValue, scope));
+    if (res.status !== 'ok') return null;
+    if (!res.changed) return binding;
+    if (res.filters.length === 0) {
         const { filter: _dropped, ...rest } = binding;
         return rest;
     }
-    return { ...binding, filter };
+    return { ...binding, filter: res.filters };
 }
 
 /**

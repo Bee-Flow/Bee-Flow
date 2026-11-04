@@ -159,6 +159,17 @@ test('filter: dry_run is the default, reports the count and the first ids and wr
     assert.equal(execLog.filter((s) => /^\s*UPDATE/i.test(s)).length, 0);
 });
 
+test('filter: an any group matches the union of its clauses; a bad group is refused', async () => {
+    const group = { any: [{ field: 'status', op: 'eq', value: 'done' }, { field: 'amount', op: 'lt', value: 15 }] };
+    const out = await applyUpdateRecords(wrap(OWNER), { tableId: 'tbl_tasks0', filter: [group], values: { status: 'archived' } });
+    assert.equal(out.dry_run, true);
+    assert.deepEqual(out.ids, ['rec_a1', 'rec_b2'], 'amount 10 or status done');
+    assert.match((await applyUpdateRecords(wrap(OWNER), { tableId: 'tbl_tasks0', filter: [{ any: [] }], values: { status: 'x' } })).error, /at least one clause/);
+    assert.match((await applyUpdateRecords(wrap(OWNER), { tableId: 'tbl_tasks0', filter: [{ any: [group] }], values: { status: 'x' } })).error, /no group inside a group/);
+    const many = Array.from({ length: 21 }, () => ({ field: 'status', op: 'eq', value: 'open' }));
+    assert.match((await applyUpdateRecords(wrap(OWNER), { tableId: 'tbl_tasks0', filter: [{ any: many }], values: { status: 'x' } })).error, /at most 20 clauses.*has 21/);
+});
+
 test('filter: a real run respects max and reports what was left', async () => {
     const out = await applyUpdateRecords(wrap(OWNER), { tableId: 'tbl_tasks0', filter: [{ field: 'status', op: 'eq', value: 'open' }], values: { status: 'archived' }, max: 2, dry_run: false });
     assert.equal(out.matched, 4);

@@ -257,3 +257,17 @@ test('a genuinely broken aggregate is still reported', async () => {
     assert.strictEqual(r.bindings[0].ok, false, JSON.stringify(r.bindings[0]));
     assert.match(r.bindings[0].error, /unknown field/i);
 });
+
+test('resolveDryRunFilters: any groups resolve against the synthetic scope; required is not enforced, literals stay', () => {
+    const { resolveDryRunFilters } = require('./appDryRunReads');
+    const scope = { vars: { status: 'open' }, currentUser: { id: 'u1' } };
+    const group = { any: [
+        { field: 'status', op: 'eq', value: { kind: 'formula', expr: 'vars.status' } },
+        { field: 'p', op: 'eq', value: { kind: 'formula', expr: 'vars.none' }, required: true },
+        { field: 'q', op: 'eq', value: null },
+    ] };
+    assert.deepStrictEqual(resolveDryRunFilters({ filter: [group] }, scope), {
+        filters: [{ any: [{ field: 'status', op: 'eq', value: 'open' }, { field: 'q', op: 'eq', value: null }] }],
+    });
+    assert.deepStrictEqual(resolveDryRunFilters({ filter: [{ any: [{ field: 'x', op: 'eq', value: { kind: 'formula', expr: 'item.x' } }] }] }, scope), { skipped: true });
+});

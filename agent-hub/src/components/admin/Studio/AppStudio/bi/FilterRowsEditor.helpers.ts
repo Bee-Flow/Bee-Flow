@@ -90,3 +90,34 @@ export function emptyValueFor(control: string) {
     if (control === 'range') return ['', ''];
     return '';
 }
+
+/**
+ * Move a per-row marker from the row object being replaced onto its
+ * replacement, and forget rows that no longer exist. A row that was NOT marked
+ * must stay unmarked — carrying the marker onto every edited row would send the
+ * whole list to free text after one keystroke. Same set back when nothing
+ * changed (no re-render).
+ */
+export function reKeySet<R>(prev: Set<R>, rows: readonly unknown[], from: R, to: R): Set<R> {
+    if (!prev.has(from)) {
+        const live = new Set(rows.filter((row): row is R => prev.has(row as R)));
+        return live.size === prev.size ? prev : live;
+    }
+    const next = new Set<R>();
+    for (const row of rows as R[]) {
+        if (row === from) next.add(to);
+        else if (prev.has(row)) next.add(row);
+    }
+    return next;
+}
+
+/** reKeySet for the remembered other-mode values (a map keyed by row object). */
+export function reKeyMap<R, V>(prev: Map<R, V>, rows: readonly unknown[], from: R, to: R): Map<R, V> {
+    if (prev.size === 0) return prev;
+    const next = new Map<R, V>();
+    for (const row of rows as R[]) {
+        if (row === from) { if (prev.has(from)) next.set(to, prev.get(from) as V); }
+        else if (prev.has(row)) next.set(row, prev.get(row) as V);
+    }
+    return next.size === prev.size && !prev.has(from) ? prev : next;
+}

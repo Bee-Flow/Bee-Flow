@@ -295,7 +295,7 @@ const TOOL_SCHEMAS_PART_2 = [
                     datasetId: { type: 'string', description: 'Saved dataset id to run instead of a raw table read.' },
                     filter: {
                         type: 'array',
-                        description: `Optional literal filters: [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}.`,
+                        description: `Optional literal filters: [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}; an entry {any:[clauses]} matches when one of its clauses does.`,
                         items: { type: 'object' },
                     },
                     sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },

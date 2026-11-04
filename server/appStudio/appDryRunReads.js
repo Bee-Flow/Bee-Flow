@@ -13,7 +13,7 @@
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
 const { seedVariableDefaults } = require('./componentSpecs');
-const { compile, tryEvaluate } = require('../shared/expr/index.mjs');
+const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const log = require('../telemetry/log');
 
@@ -26,7 +26,6 @@ const DRY_RUN_LIMIT = 3;
 // `form`, actions/records/datasets) can't be simulated statically → the binding
 // is reported skipped:'dynamic' rather than run with a wrong value.
 const SYNTHETIC_SCOPE_ROOTS = new Set(['currentUser', 'vars', 'forms', 'screen', 'now', 'today']);
-const NO_VALUE_FILTER_OPS = new Set(['isNull', 'isNotNull']);
 function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 /**
@@ -66,24 +65,21 @@ function resolveDryRunFilters(binding, scope) {
     if (typeof filter === 'string') return { skipped: true };
     if (!Array.isArray(filter)) return { filters: undefined };
 
-    const out = [];
-    for (const entry of filter) {
-        if (!isPlainObject(entry)) { out.push(entry); continue; }
-        if (NO_VALUE_FILTER_OPS.has(entry.op)) { out.push(entry); continue; }
-        const v = entry.value;
-        if (isPlainObject(v) && v.kind === 'formula') {
-            let refs;
-            try { refs = compile(String(v.expr || '')).refs; }
-            catch { return { skipped: true }; } // a bad formula is a STATIC error; skip data
-            if (refs.some((r) => !SYNTHETIC_SCOPE_ROOTS.has(r))) return { skipped: true };
-            const { value } = tryEvaluate(v.expr, scope);
-            if (value === undefined || value === null) continue; // omit — matches the client
-            out.push({ ...entry, value });
-        } else {
-            out.push(entry);
-        }
-    }
-    return { filters: out };
+    const res = resolveFilterList(filter, (raw) => {
+        const v = /** @type {{ kind?: unknown, expr?: unknown }} */ (raw);
+        if (!isPlainObject(v) || v.kind !== 'formula') return raw;
+        let refs;
+        try { refs = compile(String(v.expr || '')).refs; }
+        catch { return FILTER_SKIP; } // a bad formula is a STATIC error; skip data
+        if (refs.some((r) => !SYNTHETIC_SCOPE_ROOTS.has(r))) return FILTER_SKIP;
+        return tryEvaluate(v.expr, scope).value; // undefined/null → omitted, matches the client
+    }, {
+        ignoreRequired: true,
+        // A literal stays as written (as before); only a formula that resolved to nothing is omitted.
+        isUnset: (value, clause) => (value === undefined || value === null) && isPlainObject(clause.value) && /** @type {{ kind?: unknown }} */ (clause.value).kind === 'formula',
+    });
+    if (res.status !== 'ok') return { skipped: true };
+    return { filters: res.filters };
 }
 
 

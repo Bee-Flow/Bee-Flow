@@ -11,6 +11,7 @@ const { pickClosestId } = require('../../automation/validate/helpers');
 const { relativePathTokens, suggestRelativeSpelling } = require('../../core/automationModel/refPaths');
 const { FILTER_OPS } = require('../dataModel');
 const { isObject } = require('./shared');
+const { countFilterLeaves, MAX_FILTER_CLAUSES: MAX_FILTERS } = require('../../shared/expr/filterGroups.mjs');
 const { validateFormula } = require('./formulas');
 const {
     checkTableRef,
@@ -90,23 +91,66 @@ function validateBindingFilter(filter, path, ctx, tableId, label) {
     }
     filter.forEach((entry, i) => {
         const p = `${path}[${i}]`;
-        if (!isObject(entry)) {
-            pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'Each filter entry must be an object { field, op, value? }.', hint: `Ops: ${FILTER_OPS.join(', ')}.` });
+        if (isObject(entry) && entry.any !== undefined) validateAnyGroup(entry, p, ctx, tableId, label);
+        else validateFilterClause(entry, p, ctx, tableId, label);
+    });
+    const leaves = countFilterLeaves(filter);
+    if (leaves > MAX_FILTERS) {
+        pushE({ code: 'binding.filter_too_many', severity: 'error', path, message: `${label} filter has ${leaves} clauses; the limit is ${MAX_FILTERS}, counting the clauses inside any groups.`, hint: 'Combine values with op "in" instead of one clause per value.' });
+    }
+}
+
+/**
+ * One `{ any: [clause, …] }` OR group: a non-empty list of clauses, one level deep.
+ * @param {Record<string, unknown>} entry
+ * @param {string} p
+ * @param {string} label
+ */
+function validateAnyGroup(entry, p, ctx, tableId, label) {
+    const { pushE } = ctx;
+    if (entry.field !== undefined || entry.op !== undefined || entry.value !== undefined) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or an OR group { any: [...] }, not both.', hint: 'Move the clause into the group\'s any list, or next to the group.' });
+    }
+    if (!Array.isArray(entry.any) || entry.any.length === 0) {
+        pushE({ code: 'binding.filter_group_empty', severity: 'error', path: `${p}.any`, message: 'An OR group needs a non-empty any list of clauses.', hint: '{ "any": [{ "field": "status", "op": "eq", "value": "open" }, { "field": "priority", "op": "eq", "value": "high" }] }' });
+        return;
+    }
+    if (entry.required !== undefined && typeof entry.required !== 'boolean') {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until one of the clauses has a value.' });
+    }
+    entry.any.forEach((clause, j) => {
+        const cp = `${p}.any[${j}]`;
+        if (isObject(clause) && clause.any !== undefined) {
+            pushE({ code: 'binding.filter_group_nested', severity: 'error', path: cp, message: 'An OR group cannot hold another group.', hint: 'Put its clauses directly in this group\'s any list (a OR (b OR c) is a OR b OR c).' });
             return;
         }
-        if (typeof entry.field !== 'string' || !entry.field) {
-            pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.field`, message: 'Each filter entry needs a non-empty string `field`.', hint: 'Use a field key from the bound table (system columns id/created_at/updated_at/created_by/org_id also resolve).' });
-        } else {
-            checkFieldRef(tableId, entry.field, `${p}.field`, ctx, `${label} filter`);
-        }
-        if (!FILTER_OPS.includes(entry.op)) {
-            pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.op`, message: `Unknown filter op ${JSON.stringify(entry.op)}.`, hint: `Use one of: ${FILTER_OPS.join(', ')}.` });
-        }
-        if (entry.required !== undefined && typeof entry.required !== 'boolean') {
-            pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until this value exists.' });
-        }
-        validateFilterValue(entry.value, `${p}.value`, ctx);
+        validateFilterClause(clause, cp, ctx, tableId, label);
     });
+}
+
+/**
+ * One filter clause { field, op, value?, required? }.
+ * @param {string} p
+ * @param {string} label
+ */
+function validateFilterClause(entry, p, ctx, tableId, label) {
+    const { pushE } = ctx;
+    if (!isObject(entry)) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'Each filter entry must be an object { field, op, value? }.', hint: `Ops: ${FILTER_OPS.join(', ')}.` });
+        return;
+    }
+    if (typeof entry.field !== 'string' || !entry.field) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.field`, message: 'Each filter entry needs a non-empty string `field`.', hint: 'Use a field key from the bound table (system columns id/created_at/updated_at/created_by/org_id also resolve).' });
+    } else {
+        checkFieldRef(tableId, entry.field, `${p}.field`, ctx, `${label} filter`);
+    }
+    if (!FILTER_OPS.includes(entry.op)) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.op`, message: `Unknown filter op ${JSON.stringify(entry.op)}.`, hint: `Use one of: ${FILTER_OPS.join(', ')}.` });
+    }
+    if (entry.required !== undefined && typeof entry.required !== 'boolean') {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until this value exists.' });
+    }
+    validateFilterValue(entry.value, `${p}.value`, ctx);
 }
 
 /**

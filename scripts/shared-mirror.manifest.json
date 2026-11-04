@@ -21,7 +21,13 @@
             "source": "server/shared/expr",
             "target": "agent-hub/src/shared/expr",
             "transform": "none",
-            "why": "App Studio and the web automation builder: the agent-hub image builds with context ./agent-hub and cannot see server/."
+            "exclude": [
+                "regexEngine.mjs"
+            ],
+            "keep": [
+                "regexEngine.mjs"
+            ],
+            "why": "App Studio and the web automation builder: the agent-hub image builds with context ./agent-hub and cannot see server/. regexEngine.mjs is hand-written here: the server copy runs RE2 through node:module, the browser runs the native engine behind regex.mjs's checks."
         },
         {
             "source": "server/shared/expr",
@@ -31,12 +37,15 @@
                 "corpus.mjs",
                 "sheet.mjs",
                 "sheetDates.mjs",
-                "sheetFill.mjs"
+                "sheetFill.mjs",
+                "corpusLists.mjs",
+                "regexEngine.mjs"
             ],
             "keep": [
-                "index.d.mts"
+                "index.d.mts",
+                "regexEngine.mjs"
             ],
-            "why": "The phone's flow editor evaluates the same conditions; exprVendor.lockstep.test.ts holds it to both originals. index.d.mts is the hand-written type declaration."
+            "why": "The phone's flow editor evaluates the same conditions; exprVendor.lockstep.test.ts holds it to both originals. index.d.mts is the hand-written type declaration. regexEngine.mjs is hand-written: the server copy runs RE2 through node:module, the phone runs the native engine behind regex.mjs's checks."
         },
         {
             "source": "server/shared/appDefinition",

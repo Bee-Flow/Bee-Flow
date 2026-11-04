@@ -8,6 +8,7 @@
 
 const { isObject, pushDataRef } = require('./shared');
 const { LIMITS } = require('../componentSpecs/limits');
+const { countFilterLeaves } = require('../../shared/expr/filterGroups.mjs');
 
 // The fixed output vocabulary of file_intake — what writeTo.mapping values may
 // name (where ai_extract maps to its declared schema fields instead).
@@ -193,8 +194,10 @@ function checkWriteFilter(filter, at, tableId, ctx, label) {
         pushE({ code: 'action.bulk_filter_empty', severity: 'error', path: at, message: `${label} has an empty filter, which would change every row.`, hint: 'Add at least one clause, e.g. { field: "status", op: "eq", value: "done" }.' });
         return;
     }
-    if (filter.length > LIMITS.MAX_WRITE_FILTER_CLAUSES) {
-        pushE({ code: 'action.bulk_filter_too_large', severity: 'error', path: at, message: `${label} filter has ${filter.length} clauses (limit ${LIMITS.MAX_WRITE_FILTER_CLAUSES}).`, hint: 'Narrow it with fewer clauses (use op "in" for a list of values).' });
+    // Clauses inside { any: [...] } groups count too (package 6).
+    const leaves = countFilterLeaves(filter);
+    if (leaves > LIMITS.MAX_WRITE_FILTER_CLAUSES) {
+        pushE({ code: 'action.bulk_filter_too_large', severity: 'error', path: at, message: `${label} filter has ${leaves} clauses (limit ${LIMITS.MAX_WRITE_FILTER_CLAUSES}, counting the clauses inside any groups).`, hint: 'Narrow it with fewer clauses (use op "in" for a list of values).' });
         return;
     }
     require('./bindings').validateBindingFilter(filter, at, ctx, tableId, label);

@@ -1,8 +1,5 @@
 import type { Bag } from './resolveBinding.types';
 
-/** Filter ops that carry no value — their entries pass through untouched. */
-export const NO_VALUE_FILTER_OPS = new Set(['isNull', 'isNotNull']);
-
 /**
  * Resolve a record/records binding's dynamic filter values against the live
  * scope: entries whose value is { kind:'formula', expr } are evaluated with

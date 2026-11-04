@@ -8,7 +8,7 @@
  * on the server stays the security boundary.
  */
 
-import { tryEvaluate } from '@/shared/expr';
+import { resolveFilterList, tryEvaluate } from '@/shared/expr';
 
 import { stableStringify } from './paths';
 
@@ -71,30 +71,14 @@ export function resolveBindingShape<B>(binding: B, scope: Scope): B {
     return (changed ? out : binding) as B;
 }
 
-const NO_VALUE_FILTER_OPS = new Set(['isNull', 'isNotNull']);
 const FILTERED_KINDS = new Set(['record', 'records', 'aggregate']);
-const REQUIRED_UNRESOLVED = Symbol('required-unresolved');
-
-/** One filter entry resolved: kept, rewritten, omitted (undefined) or fatal. */
-function resolveEntry(entry: unknown, scope: Scope): { entry?: unknown; changed: boolean } | typeof REQUIRED_UNRESOLVED {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return { entry, changed: false };
-    const e = entry as Binding;
-    if (NO_VALUE_FILTER_OPS.has(e.op as string)) return { entry, changed: false };
-    const { required, ...rest } = e;
-    const value = resolveFilterValue(e.value, scope);
-    if (value === undefined || value === null) {
-        // A `required` filter scopes a component to a selection: no value, no query.
-        return required ? REQUIRED_UNRESOLVED : { changed: true };
-    }
-    if (required) return { entry: { ...rest, value }, changed: true };
-    if (value === e.value) return { entry, changed: false };
-    return { entry: { ...rest, value }, changed: true };
-}
 
 /**
  * Resolve a record/records/aggregate binding's dynamic filter values. An
  * unresolved optional entry is omitted, an unresolved `required` one makes the
- * whole binding null (no query), and a filter left empty is dropped.
+ * whole binding null (no query), and a filter left empty is dropped. An
+ * `{ any: [...] }` group drops its unresolved clauses and is dropped itself
+ * when none is left (null when it is required). Same loop as the web.
  */
 export function resolveBindingFilters<B>(binding: B, scope: Scope): B | null {
     if (!binding || typeof binding !== 'object') return binding;
@@ -102,20 +86,14 @@ export function resolveBindingFilters<B>(binding: B, scope: Scope): B | null {
     if (!FILTERED_KINDS.has(b.kind as string)) return binding;
     if (!Array.isArray(b.filter) || b.filter.length === 0) return binding;
 
-    let changed = false;
-    const filter: unknown[] = [];
-    for (const entry of b.filter) {
-        const res = resolveEntry(entry, scope);
-        if (res === REQUIRED_UNRESOLVED) return null;
-        if (res.changed) changed = true;
-        if ('entry' in res) filter.push(res.entry);
-    }
-    if (!changed) return binding;
-    if (filter.length === 0) {
+    const res = resolveFilterList(b.filter, (value) => resolveFilterValue(value, scope));
+    if (res.status !== 'ok') return null;
+    if (!res.changed) return binding;
+    if (res.filters.length === 0) {
         const { filter: _dropped, ...rest } = b;
         return rest as B;
     }
-    return { ...b, filter } as B;
+    return { ...b, filter: res.filters } as B;
 }
 
 /**

@@ -63,10 +63,8 @@ const {
     SYSTEM_COLUMNS,
     KEY_RE,
 } = require('../dataModel');
-// The shared expression engine, via the project's CJS re-export (same boundary
-// appStudio/validate.js uses). The formula vocabulary is DERIVED from it — see
-// renderFormulaFunctions.
-const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../shared/expr/index.mjs');
+// The formula vocabulary, DERIVED from the shared expression engine (formulaGuide.js).
+const { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT } = require('./formulaGuide');
 // The validation-rule vocabulary, from the same module that declares it to the
 // tool schemas — so the catalog and the tool surface cannot teach two lists.
 const { NODE_VALIDATION_TYPES } = require('../builderTools/schemas');
@@ -252,46 +250,6 @@ function renderStepKindCompactLine(kind) {
     return `${kind} [${side}]: { ${renderSpecFields(fields)} }`;
 }
 
-// ---------------------------------------------------------------------------
-// Formula vocabulary — DERIVED from the shared expression engine
-// ---------------------------------------------------------------------------
-
-/**
- * The callable names a formula may use, rendered from the engine itself.
- *
- * The enumeration walks EXPR_FUNCTION_NAMES — which is `Object.keys(FUNCTIONS)`,
- * i.e. the exact set the parser accepts at PARSE time — so it cannot drift from
- * the engine the way a hand-maintained list does. It did drift, expensively: the
- * whole maths family (pow/sqrt/ln/log/exp/trig, PI(), E(), the `^` operator)
- * existed with nothing anywhere in the prompt naming any of it, and the builder
- * told a user their scientific calculator was unbuildable. Signatures come from
- * the EXPR_FUNCTIONS doc table; a name that table has not caught up with still
- * renders as `name(…)` rather than vanishing from the prompt.
- *
- * Wrapping is a fixed-width greedy fill over a fixed input — deterministic, so
- * the catalog stays byte-stable (prompt-cache discipline).
- */
-const FORMULA_WRAP_COLS = 108;
-
-function renderFormulaFunctions() {
-    const signatureByName = new Map(EXPR_FUNCTIONS.map((f) => [f.name, f.signature]));
-    /** @type {string[]} */
-    const lines = [];
-    let line = '';
-    for (const name of EXPR_FUNCTION_NAMES) {
-        const sig = signatureByName.get(name) || `${name}(…)`;
-        const next = line ? `${line}, ${sig}` : sig;
-        if (line && next.length > FORMULA_WRAP_COLS) {
-            lines.push(`${line},`);
-            line = sig;
-        } else {
-            line = next;
-        }
-    }
-    if (line) lines.push(line);
-    return lines.join('\n');
-}
-
 let _sections = null;
 
 /**
@@ -410,7 +368,7 @@ function buildCatalogSections() {
         `  { "kind": "aggregate", "tableId": "<tbl_…>", "filter"?, "groupBy"?: [{ "field", "bucket"?: ${DATE_BUCKETS.join('|')}, "as"? }], "aggregates"?: [{ "fn": ${AGG_FNS.join('|')}, "field"?, "as"? }], "sort"?, "limit"?, "pick"? } — counts/totals per group; add "pick":{"row":"first","column":"<as>"} for ONE number.`,
         `  { "kind": "dataset", "datasetId": "<ds_…>", "params"? } — a saved dataset's rows (grouped/aggregated queries).`,
         `  { "kind": "connector", "connectorId": "<conn_…>", "params"? } — rows from an owner-authored EXTERNAL connector (run acts-as-owner). params: { <key>: <literal> | {"kind":"formula","expr":"<expr>"} }. You WIRE existing connectors (app_list_connectors) — you never author them or their credentials.`,
-        `filter: [{ "field": "<field key>", "op": ${FILTER_OPS.join('|')}, "value"?: <literal> | [<literals>] | {"kind":"formula","expr":"<expr>"} }] — formula values resolve client-side against live scope before the fetch (e.g. {"field":"created_by","op":"eq","value":{"kind":"formula","expr":"currentUser.id"}}).`,
+        `filter: [{ "field": "<field key>", "op": ${FILTER_OPS.join('|')}, "value"?: <literal> | [<literals>] | {"kind":"formula","expr":"<expr>"} }] — formula values resolve client-side against live scope before the fetch (e.g. {"field":"created_by","op":"eq","value":{"kind":"formula","expr":"currentUser.id"}}).${ANY_GROUP_TEXT}`,
         `sort: [{ "field": "<field key>", "dir": "asc"|"desc" }] (default created_at desc). System columns ${SYSTEM_COLUMNS.join('/')} are filterable/sortable on every table.`,
         `inputMapping values (run_automation) accept ONLY:`,
         `  { "kind": "static", "value": <any JSON> }`,
@@ -420,7 +378,7 @@ function buildCatalogSections() {
 
     const formulas = [
         renderFormulaFunctions(),
-        `That is the WHOLE vocabulary: the parser rejects any other name before the formula runs. No eval, no user-defined helpers, no method calls on values.`,
+        `That is the WHOLE vocabulary: the parser rejects any other name before the formula runs. No eval, no user-defined helpers, no method calls on values.${LIST_FORMS_TEXT}`,
         `Operators: + - * / % ^ · == != === !== < <= > >= · && || ! · ternary cond ? a : b · dotted and [indexed] paths. \`^\` is exponent — RIGHT-associative (2^3^2 = 512), binding TIGHTER than unary minus (-2^2 = -4; write (-2)^2 for the other reading), and it IS pow(). π and e are PI() and E(), with brackets.`,
         `TOTALITY, and its one hole: every helper above is null-safe and total — a domain error, a pole or an overflow (sqrt(-1), ln(0), exp(1000), 2^10000) returns NOTHING, never NaN. The bare arithmetic operators do NOT: + - * / % over a value that has not arrived yet is NaN, and x/0 is Infinity — both render as an empty tile. Guard arithmetic over forms/vars: number(x) and round(x, 2) collapse the hole to nothing, \`isEmpty(x) ? 0 : <maths>\` is the general form.`,
     ].join('\n');
@@ -679,7 +637,7 @@ function renderCompactCatalogText() {
     // Bindings: the five kinds the core menu can satisfy. dataset needs
     // app_upsert_dataset and connector needs app_list_connectors — neither is
     // on the menu, and a shape the model cannot fulfil is one it invents ids for.
-    const bindings = s._bindingLines.filter((l) => !/"kind": "(dataset|connector)"/.test(l)).join('\n');
+    const bindings = s._bindingLines.filter((l) => !/"kind": "(dataset|connector)"/.test(l)).join('\n').replace(ANY_GROUP_TEXT, '');
     const steps = [...s._stepsLead, renderStepKindCompact()].join('\n');
     // Actions: the full section renders nine kinds as pointers to their step
     // twin; the compact step list does not carry four of those twins, so the
@@ -701,7 +659,9 @@ function renderCompactCatalogText() {
         .map(([k, fs]) => renderPropSpec(k, fs))
         .join('; ');
     // Formulas: the TOTALITY line is the core prompt's guard bullet, said once there.
-    const formulas = s.formulas.split('\n').filter((l) => !l.startsWith('TOTALITY')).join('\n');
+    // The compact vocabulary and prose stay as they were before the list functions (formulaGuide.js).
+    const formulas = s.formulas.replace(renderFormulaFunctions(), renderFormulaFunctions({ compact: true })).replace(LIST_FORMS_TEXT, '')
+        .split('\n').filter((l) => !l.startsWith('TOTALITY')).join('\n');
 
     _compact = `### Style knobs (closed vocabulary — the only legal style keys; each type lists its own below)
 ${knobs}
