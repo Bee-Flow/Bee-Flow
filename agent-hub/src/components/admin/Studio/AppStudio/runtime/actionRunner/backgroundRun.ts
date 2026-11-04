@@ -111,7 +111,7 @@ async function pollOnce(ctx: RunnerContext, actionId: string, jobId: string, st:
 }
 
 /** Follow job `jobId` of `actionId` until it ends (once per surface; silent once unmounted). */
-export async function watchJob(ctx: RunnerContext, actionId: string, jobId: string): Promise<void> {
+async function watchJob(ctx: RunnerContext, actionId: string, jobId: string): Promise<void> {
     const jobs = ctx.jobs;
     if (jobs?.has(jobId)) return;
     jobs?.add(jobId);

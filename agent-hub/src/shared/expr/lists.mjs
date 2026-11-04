@@ -56,7 +56,7 @@ export function uniqueOf(list, key) {
  */
 export function regexMatchOf(text, pattern, flags) {
     if (text == null) return false;
-    const s = typeof text === 'string' ? text : String(text);
+    const s = typeof text === 'string' ? text : String(text); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- compiledRegex only accepts patterns checkRegexCall allowed (no nested or alternated repeats, no back-references), the server compiles them with RE2, and the text is capped by assertTextSize
     assertTextSize(s.length);
     return compiledRegex(pattern, flags).plain.test(s);
 }

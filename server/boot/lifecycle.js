@@ -114,7 +114,9 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
         // it under the orchestrator's termination grace (k8s default 30s).
         // App Studio background actions drain in parallel under the same bound; what does not
         // finish in time is marked interrupted (there is no resume).
-        const drainMs = parseInt(process.env.AUTOMATION_DRAIN_TIMEOUT_MS, 10) || 25_000;
+        // Unset, not a number or not above 0 keeps the 25 s default (the behaviour of the old `|| 25_000`).
+        const drainEnv = Number(process.env.AUTOMATION_DRAIN_TIMEOUT_MS);
+        const drainMs = Number.isFinite(drainEnv) && drainEnv > 0 ? Math.floor(drainEnv) : 25_000;
         await Promise.all([
             (async () => {
                 try {

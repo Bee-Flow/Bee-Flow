@@ -6,7 +6,7 @@ import type { ActionEntry, ActionState } from './actionRunner/core';
 type Translate = ReturnType<typeof useTranslation>['t'];
 
 /** The line a running job shows: its progress text, the loop position, a budget wait, or the step count. */
-export function progressLine(entry: ActionEntry, t: Translate): string {
+function progressLine(entry: ActionEntry, t: Translate): string {
     const p = entry.progress;
     if (p?.waiting === 'budget') return t('studio_apps_runtime.background.waiting_budget', 'Waiting for the AI budget…');
     if (p?.message) return p.message;

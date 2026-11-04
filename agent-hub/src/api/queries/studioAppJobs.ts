@@ -8,12 +8,12 @@ import { QueryClient, QueryClientContext, useQuery } from '@tanstack/react-query
 import { getAuthed, jobsUrl } from '../actionHttp';
 import type { JobView } from '../actionHttp';
 
-export const studioAppJobKeys = {
+const studioAppJobKeys = {
     active: (appId: string | null, draft: boolean) => ['studioAppJobs', 'active', appId, draft] as const,
 };
 
 /** The viewer's running jobs; any failure (a public page, an old server) reads as none. */
-export async function fetchActiveJobs(appId: string | null, draft: boolean): Promise<JobView[]> {
+async function fetchActiveJobs(appId: string | null, draft: boolean): Promise<JobView[]> {
     try {
         const res = await getAuthed(`${jobsUrl(appId)}?active=1${draft ? '&draft=1' : ''}`);
         if (!res.ok) return [];

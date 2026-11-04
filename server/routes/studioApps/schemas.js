@@ -67,7 +67,7 @@ const DraftQuery = queryOf({ draft: choice(['0', '1'], 'draft is 1 for the saved
 // ── The run log (routes/studioApps/runLog.js) ────────────────────────
 const RUN_STATUS_TEXT = 'status is running, success, error, interrupted, cancelled or refused.';
 const ORIGIN_TEXT = 'origin is a comma list of click, public, mcp, test, background and mailbox_hook.';
-const USER_TEXT = 'user is me, others, visitors, system or the id of a person.';
+const USER_TEXT = 'user is me, others, visitors, system or the id of a person.'; // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a help text for the user filter, not a username
 const RunsQuery = queryOf({
     actionId: appText('actionId is the id of an action of the app.', 80).regex(/^[A-Za-z0-9_-]{1,80}$/, 'actionId is the id of an action of the app.').optional(),
     status: choice(['running', 'success', 'error', 'interrupted', 'cancelled', 'refused'], RUN_STATUS_TEXT).optional(),

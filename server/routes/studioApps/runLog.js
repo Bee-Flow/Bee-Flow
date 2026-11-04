@@ -55,7 +55,7 @@ router.get('/:id/runs', requireAuth, validate({ query: RunsQuery }), /** @param 
 router.get('/:id/runs/:runId', requireAuth, validate({ params: RunParams }), /** @param {import('express').Request<{ id: string, runId: string }>} req */ async (req, res) => {
     const app = await ownedApp(req);
     if (!app) return res.status(404).json({ error: 'App not found' });
-    if (!RUN_ID_RE.test(req.params.runId)) return res.status(404).json({ error: 'Run not found' });
+    if (!RUN_ID_RE.test(req.params.runId)) return res.status(404).json({ error: 'Run not found' }); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- RUN_ID_RE is the fixed /^sar_[0-9a-f]{32}$/, linear on any input
     const store = runLogStore();
     const run = await store.getLoggedRun(app.id, req.params.runId, { idleMs: idleCloseMs(), staleMs: staleStepMs() });
     if (!run) return res.status(404).json({ error: 'Run not found' });

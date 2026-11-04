@@ -144,7 +144,7 @@ function mountBackgroundRoutes(router, mw) {
         const app = await loadVisibleApp(req, res);
         if (!app) return;
         const { RUN_ID_RE } = require('../stores/studioAppData/runPolicy.mts');
-        if (!RUN_ID_RE.test(req.params.jobId)) return res.status(404).json({ error: 'Run not found' });
+        if (!RUN_ID_RE.test(req.params.jobId)) return res.status(404).json({ error: 'Run not found' }); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- RUN_ID_RE is the fixed /^sar_[0-9a-f]{32}$/, linear on any input
         const { actionRunStore } = require('../stores/studioAppData/actionRuns.mts');
         const row = await actionRunStore().getRun(app.id, req.params.jobId);
         const userId = sessionUser(req).id;
