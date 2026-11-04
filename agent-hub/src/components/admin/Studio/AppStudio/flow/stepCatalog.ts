@@ -215,6 +215,11 @@ export const STEP_CATALOG: Record<string, StepMeta> = {
         blurb: 'Do the same thing for every row in a list.',
         blurbKey: 'studio_apps_edit.step_catalog.loop_blurb',
     },
+    call_action: {
+        label: 'Run another action', labelKey: 'studio_apps_edit.step_catalog.call_action_label', group: 'Flow', icon: Workflow,
+        blurb: 'Run the steps of another action here, with values you pass in.',
+        blurbKey: 'studio_apps_edit.step_catalog.call_action_blurb',
+    },
 };
 
 /** Fallback presentation, so an unknown kind is still readable. */
@@ -316,6 +321,8 @@ export function newStep(kind: string, { screenId = '', modalId = '', t = null }:
         // so every hand-built switch fell through to "Otherwise" for ever.
         case 'switch': return { kind, expr: '', cases: [{ value: '', steps: [] }], default: [] };
         case 'loop': return { kind, source: { kind: 'static', value: [] }, itemVar: 'item', steps: [] };
+        // The action to run is picked next; params are added as the called action needs them.
+        case 'call_action': return { kind, actionId: '', params: {} };
         default: return { kind };
     }
 }

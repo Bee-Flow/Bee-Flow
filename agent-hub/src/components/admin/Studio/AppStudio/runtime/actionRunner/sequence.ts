@@ -18,11 +18,14 @@ import type { RunOpts, RunStep, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
 import { dispatchBrowseStep, dispatchServerStep } from './serverSteps';
 import type { SeqState } from './serverSteps';
+import { runCallStep } from './callStep';
 
 interface SeqEnv extends ClientStepEnv {
     actionId: string;
     indexMap: Map<RunStep, number>;
     hasServer: boolean;
+    /** call_action: the actions on the chain, root first. */
+    callChain: string[];
 }
 
 // The FULL bag resolveBinding takes ({ actionState, dataState, scope }) —
@@ -55,6 +58,7 @@ function makeLiveBag(ctx: RunnerContext, actionId: string): LiveBag {
                 item: st.item,
                 index: st.index,
                 value: st.value,
+                params: st.params || {},
                 currentUser: live.currentUser || null,
             }),
         };
@@ -164,6 +168,11 @@ async function execStep(env: SeqEnv, step: RunStep | null | undefined, st: SeqSt
         await runServerStep(env, step, st);
         return;
     }
+    // Another action as a subroutine (./callStep): its steps run through this coordinator.
+    if (step.kind === 'call_action') {
+        await runCallStep(env, step, st, execSteps, recordServerResult);
+        return;
+    }
     if (await runClientStep(env, step, st)) return;
     await runControlStep(env, step, st);
 }
@@ -237,10 +246,11 @@ async function prepareServerRun(ctx: RunnerContext, actionId: string): Promise<b
 
 export async function runSequence(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<void> {
     const steps = normalizeSequence(action);
-    const hasServer = sequenceHasServerStep(steps);
+    // Follows call_action, so a server step inside a called action shows the spinner too.
+    const hasServer = sequenceHasServerStep(steps, ctx.live.current.definition?.actions);
     if (hasServer && !(await prepareServerRun(ctx, actionId))) return;
 
-    const env: SeqEnv = { ctx, actionId, hasServer, indexMap: buildStepIndexMap(steps), liveBag: makeLiveBag(ctx, actionId) };
+    const env: SeqEnv = { ctx, actionId, hasServer, indexMap: buildStepIndexMap(steps), liveBag: makeLiveBag(ctx, actionId), callChain: [actionId] };
     const state = initialState(ctx, actionId, opts);
     const { setEntry, applyEffects } = ctx;
     try {

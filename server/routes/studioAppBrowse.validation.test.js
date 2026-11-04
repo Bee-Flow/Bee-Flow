@@ -170,3 +170,11 @@ test('without the flag the published app runs, as before', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'executeDataStep').step.task.value, 'published task');
 });
+
+test('a browse inside a called action: callPath ≤ 3 whole numbers; params reach the step', async () => {
+    await refuses({ url: URL_, body: { stepIndex: 0, callPath: [0, 0, 0, 0] } }, 'body.callPath');
+    await refuses({ url: URL_, body: { stepIndex: 0, callPath: [-1] } }, 'body.callPath.0');
+    const res = await dispatch({ url: URL_, body: { stepIndex: 0, params: { q: 'x' } } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'executeDataStep').ctx.params, { q: 'x' });
+});

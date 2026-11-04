@@ -13,6 +13,7 @@ const {
 const { writeRecord, writeRecordBatch } = require('./records');
 const log = require('../../telemetry/log');
 const { redeemEach, newReport, assertSomethingRead } = require('../aiDocumentRead.mts');
+const { resolveStepModel, notesWith } = require('./modelTierChoice.mts');
 const { replaceTemplate, parsePath, walkTokens } = require('../../shared/expr/index.mjs');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
@@ -277,7 +278,7 @@ async function aiExtractStep(app, model, step, ctx) {
     const fields = aiRuntime.normalizeSchemaFields(step.schema);
     if (!fields.length) { const e = new Error('No output fields are configured for extraction'); e.status = 400; throw e; }
 
-    const aiModel = await aiRuntime.resolveOwnerModel(app, step.modelTier);
+    const { aiModel, tierNote } = await resolveStepModel(aiRuntime, app, step.modelTier, (b) => resolveBinding(b, ctx, scope));
     const report = newReport();
     const files = await redeemPendingDescriptors(app, model, descriptors, ctx, report);
     const docBlocks = await aiRuntime.extractDocuments(app, files, {
@@ -415,11 +416,12 @@ async function aiExtractStep(app, model, step, ctx) {
     // that also WRITES its rows would otherwise ship them back as well and trip
     // the 64KB body cap — the same reason file_intake grew this knob first.
     const summary = step.resultDetail === 'summary';
+    const notes = notesWith(report.notes, tierNote);
     return {
         ok: true,
-        ...(report.notes.length ? { notes: report.notes } : null),
+        ...notes,
         result: {
-            ...(report.notes.length ? { notes: report.notes } : null),
+            ...notes,
             rows: summary ? [] : rows,
             count: rows.length,
             written,
@@ -523,7 +525,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     const prompt = interpolatePrompt(typeof step.prompt === 'string' ? step.prompt : '', ctx);
     if (!prompt.trim()) { const e = new Error('The prompt is empty'); e.status = 400; throw e; }
 
-    const aiModel = await aiRuntime.resolveOwnerModel(app, step.modelTier);
+    const { aiModel, tierNote } = await resolveStepModel(aiRuntime, app, step.modelTier, (b) => resolveBinding(b, ctx, scope));
     const descriptors = await resolveFileBinding(app, model, step.attachments, ctx, scope);
     const report = newReport();
     const docBlocks = descriptors.length
@@ -561,7 +563,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     const fullPrompt = blocks ? `${prompt}\n\n${blocks}` : prompt;
     // Bound files and nothing readable: fail with the real reason, unless the step has other material to work from.
     assertSomethingRead(report, { needed: !blocks && !ground.context });
-    const notes = report.notes.length ? { notes: report.notes } : null;
+    const notes = notesWith(report.notes, tierNote);
     const user = docBlocks.length ? [{ type: 'text', text: fullPrompt }, ...docBlocks] : fullPrompt;
 
     if (step.output === 'structured') {
@@ -764,11 +766,10 @@ module.exports = {
  * @typedef {{ name: string, required?: boolean }} SchemaField
  * @typedef {{
  *   kind?: string, source?: import('./shared').Binding, attachments?: import('./shared').Binding,
- *   query?: import('./shared').Binding, topK?: number, schema?: unknown, modelTier?: string, documentMode?: string,
+ *   query?: import('./shared').Binding, topK?: number, schema?: unknown, modelTier?: unknown, documentMode?: string,
  *   knowledgeBaseIds?: string[], promptContext?: import('./shared').Binding,
  *   contextSources?: Array<{ source?: import('./shared').Binding, label?: unknown }>,
- *   datasets?: import('./shared').Binding, prompt?: string, output?: string, markdownToHtml?: boolean,
- *   resultDetail?: string,
+ *   datasets?: import('./shared').Binding, prompt?: string, output?: string, markdownToHtml?: boolean, resultDetail?: string,
  *   writeTo?: { tableId?: string, mapping?: Record<string, string>, constants?: Record<string, import('./shared').Binding>, upsertOn?: string, insertMissing?: boolean, fillOnly?: boolean },
  * }} AiStep  an ai_extract / ai_generate / kb_query step
  *   Fields: `source`: ai_extract: the file binding; `attachments`: ai_generate: the file binding; `query`: kb_query;

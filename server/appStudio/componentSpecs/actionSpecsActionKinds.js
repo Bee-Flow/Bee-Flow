@@ -3,7 +3,7 @@ const DECK_LOOK = require('../../core/documents/deckThemeOptions');
 const { LIMITS } = require('./limits');
 
 // Top-level action kinds (definition.actions values): a v1 bare action or a v2 { kind:'sequence', steps:[Step] }.
-const ACTION_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'sequence'];
+const ACTION_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'call_action', 'sequence'];
 
 // Step kinds inside a sequence. A bare v1 action is an implicit 1-step
 // sequence, so the v1 kinds appear here too. Each step is tagged client/server
@@ -14,7 +14,7 @@ const STEP_KINDS = [
     'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'reset_form', 'download_file', 'confirm', 'set_variable', 'refresh',
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
     'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document',
-    'condition', 'loop', 'switch',
+    'condition', 'loop', 'switch', 'call_action',
 ];
 
 // Steps that read/write persistent DATA / call the model server-side. Everything
@@ -89,7 +89,7 @@ const AI_EXTRACT_FIELDS = {
     // of being handed two anonymous arrays and left to guess which is which.
     contextSources: { type: 'contextSources' },
     documentMode: { type: 'enum', values: AI_DOCUMENT_MODES, default: 'auto' },
-    modelTier: { type: 'string', maxLen: 60 },
+    modelTier: { type: 'tierChoice', maxLen: 60 }, // tier name | formula/static binding (not a tier name → default, with a note)
     knowledgeBaseIds: { type: 'stringList' },
     // LARGE datasets (genome files) the model may query in bounded slices
     // during this step — a list of studio_dataset descriptors or dataset ids.
@@ -126,7 +126,7 @@ const AI_GENERATE_FIELDS = {
     // which tags are allowed. Only meaningful with output 'text'.
     markdownToHtml: { type: 'boolean', default: false },
     schema: { type: 'aiSchema' },                    // used when output === 'structured'
-    modelTier: { type: 'string', maxLen: 60 },
+    modelTier: { type: 'tierChoice', maxLen: 60 }, // tier name | formula/static binding (not a tier name → default, with a note)
     knowledgeBaseIds: { type: 'stringList' },
     // Same contract as ai_extract.datasets — bounded genome-slice tool access.
     datasets: { type: 'binding' },

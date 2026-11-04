@@ -6,7 +6,7 @@
 
 'use strict';
 
-const { isObject, truncate } = require('./shared');
+const { isObject, truncate, deepCopy } = require('./shared');
 const { LIMITS } = require('../componentSpecs/limits');
 const { cleanBinding } = require('./bindings');
 
@@ -152,4 +152,24 @@ function cleanContextSources(v, path, push) {
     return out;
 }
 
-module.exports = { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanContextSources };
+/**
+ * modelTier: a tier name (truncated like any string field), or a binding worked
+ * out per run ({kind:'formula',expr} / {kind:'static',value}), rebuilt to its
+ * exact shape. Anything else is dropped with a note (as the string field did).
+ * A definition that writes a plain tier name canonicalizes byte-identically.
+ * @param {number} maxLen
+ * @param {string} path
+ * @param {(code: string, path: string, message: string) => void} push
+ * @param {string} [code]
+ */
+function cleanTierChoice(v, maxLen, path, push, code = 'step.field_invalid') {
+    if (typeof v === 'string') return truncate(v, maxLen, path, push);
+    if (isObject(v) && v.kind === 'formula') {
+        return { kind: 'formula', expr: typeof v.expr === 'string' ? truncate(v.expr, LIMITS.MAX_FORMULA_LEN, `${path}.expr`, push) : deepCopy(v.expr) };
+    }
+    if (isObject(v) && v.kind === 'static') return { kind: 'static', value: deepCopy(v.value) };
+    push(code, path, 'modelTier must be a tier name or {kind:"formula",expr} — dropped.');
+    return undefined;
+}
+
+module.exports = { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanContextSources, cleanTierChoice };

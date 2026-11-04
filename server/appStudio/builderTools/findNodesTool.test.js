@@ -73,6 +73,15 @@ test('another action that references this one is reported as such', () => {
     assert.equal(r.hits.find((h) => h.id === 'act_x').why, 'is this action');
 });
 
+test('an action that call_actions this one says where it calls it', () => {
+    const def = defWith([], {
+        act_x: toast,
+        act_y: { kind: 'sequence', steps: [toast, { kind: 'call_action', actionId: 'act_x', params: {} }] },
+    });
+    const r = find(def, { actionId: 'act_x' });
+    assert.equal(r.hits.find((h) => h.id === 'act_y').why, 'calls this action (steps[1])');
+});
+
 test('an action nothing runs, calls or reads: the note says it is unreachable and safe to remove', () => {
     const r = find(defWith([], { act_x: toast }), { actionId: 'act_x' });
     assert.match(r.note, /Nothing runs, calls or reads action "act_x" — it is unreachable \(validator warning action\.unreachable\), so it is safe to remove\./);

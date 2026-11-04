@@ -52,3 +52,11 @@ test('a valid step reaches the page lookup and answers as before', async () => {
     assert.strictEqual(res.status, 404, res.text);
     assert.ok(db.queries.some((q) => /public_pages/.test(q)), db.queries.join(' | '));
 });
+
+test('a public step inside a called action: callPath ≤ 3 whole numbers and params pass, more is refused', async () => {
+    h.assertRefused(assert, await call('POST', '/actions/a1/step', { stepIndex: 0, callPath: [0, 0, 0, 0] }), 'body.callPath', /call_action step positions/);
+    h.assertRefused(assert, await call('POST', '/actions/a1/step', { stepIndex: 0, callPath: ['a'] }), 'body.callPath.0', /call_action step positions/);
+    assert.deepStrictEqual(db.queries, []);
+    const res = await call('POST', '/actions/a1/step', { stepIndex: 0, callPath: [1], params: { n: 1 } });
+    assert.strictEqual(res.status, 404, res.text);
+});

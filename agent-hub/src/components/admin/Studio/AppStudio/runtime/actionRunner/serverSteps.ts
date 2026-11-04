@@ -22,6 +22,10 @@ export interface SeqState {
     appEffects: EffectObject | null | undefined;
     effectsUnknown?: boolean;
     error: string | null;
+    /** Inside a called action: the params it reads as params.<name>. */
+    params?: Record<string, unknown>;
+    /** Inside a called action: the call_action ordinals from the root (actionId stays the ROOT). */
+    callPath?: number[];
 }
 
 /** The body both step endpoints take: the ordinal plus the scope roots the server declares. */
@@ -36,6 +40,10 @@ function stepBody(stepIndex: number | undefined, st: SeqState): Record<string, u
     // `value` rides along like item/index — it too is a declared server
     // scope root that otherwise arrives undefined in every server step.
     if (st.value !== undefined) body.value = st.value;
+    // A step inside a called action: the URL keeps the root action, the
+    // server walks callPath to the step and reads params.<name>.
+    if (st.callPath && st.callPath.length) body.callPath = st.callPath;
+    if (st.params && Object.keys(st.params).length) body.params = st.params;
     return body;
 }
 

@@ -52,6 +52,8 @@ export type ExpressionScope = {
     item: unknown;
     index: unknown;
     value: unknown;
+    /** call_action params inside a called action ({} otherwise). */
+    params: Record<string, unknown>;
     currentUser: unknown;
     records: Record<string, unknown>;
     datasets: Record<string, unknown>;
@@ -72,6 +74,7 @@ export interface BuildScopeInput {
     item?: unknown;
     index?: unknown;
     value?: unknown;
+    params?: Record<string, unknown> | null;
     now?: unknown;
     today?: unknown;
 }
@@ -123,7 +126,7 @@ function shortNameRank(cacheKey: string, entry: DataEntry) {
  * buildScope(input) → the shared expression-scope ROOT object, IDENTICAL in
  * shape everywhere a formula evaluates (client runtime, inspector live-eval,
  * server). Keep this list in lockstep with the engine's scope-adapter root:
- *   { actions, form, forms, screen, vars, item, index, value, currentUser,
+ *   { actions, form, forms, screen, vars, item, index, value, params, currentUser,
  *     records, datasets, connectors, now, today }
  *
  *   actions   — the actionState map ({ [id]: { status, result, error } }); a
@@ -153,6 +156,7 @@ export function buildScope(input: BuildScopeInput = {}): ExpressionScope {
         item,
         index,
         value,
+        params,
         now,
         today,
     } = input;
@@ -190,6 +194,7 @@ export function buildScope(input: BuildScopeInput = {}): ExpressionScope {
         item,
         index,
         value,
+        params: params && typeof params === 'object' && !Array.isArray(params) ? params : {},
         currentUser: currentUser || null,
         records,
         datasets,

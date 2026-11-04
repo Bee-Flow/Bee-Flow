@@ -11,6 +11,19 @@ const { LIMITS } = require('./limits');
 const { ACTION_KINDS, STEP_KINDS, DATA_MUTATING_STEP_KINDS, CLIENT_STEP_KINDS, TOAST_TONES, AI_SCHEMA_FIELD_TYPES, AI_EXTRACT_FIELDS, AI_GENERATE_FIELDS, KB_QUERY_FIELDS, SEND_EMAIL_FIELDS, GENERATE_FILE_FIELDS, FILL_DOCUMENT_FIELDS, GENERATE_PRESENTATION_FORMATS, GENERATE_PRESENTATION_FIELDS, REDACT_PDF_FIELDS, FILE_INTAKE_FIELDS, DATASET_QUERY_FIELDS } = require('./actionSpecsActionKinds');
 const { COPY_DOCUMENT_FIELDS } = require('./documentSpecs');
 
+/**
+ * call_action — run another action of the app as a subroutine. `params` is a
+ * map of name → binding, read inside the called action as `params.<name>`.
+ * The result is the called action's last server result (into `resultVar`).
+ * At most LIMITS.MAX_CALL_DEPTH calls deep, never recursive (validated).
+ * One table for the step and the bare action, like CREATE_RECORD_FIELDS.
+ */
+const CALL_ACTION_FIELDS = {
+    actionId: { type: 'string', required: true, maxLen: 80 },
+    params: { type: 'callParams' },
+    resultVar: { type: 'string', maxLen: 60 },
+};
+
 // The look vocabulary is owned by core/documents/deckThemeOptions.js.
 
 /**
@@ -93,6 +106,8 @@ const ACTION_SPECS = {
     // a dialog could not be wired to anything, and a save sequence left the
     // dialog standing open over the form it had just submitted.
     close_modal: { fields: { modalId: { type: 'string', required: true } } },
+    // Run another action as a subroutine (CALL_ACTION_FIELDS).
+    call_action: { fields: CALL_ACTION_FIELDS },
     // A sequence runs an ordered list of Steps. Its `steps` are validated by
     // the STEP_SPECS table (see validate.js validateActionSteps).
     sequence: { fields: { steps: { type: 'steps', required: true } } },
@@ -331,6 +346,8 @@ const STEP_SPECS = {
             default: { type: 'steps' },
         },
     },
+    // Flow control too: the called action's own steps decide where they run.
+    call_action: { mutatesData: false, fields: CALL_ACTION_FIELDS },
 };
 
 module.exports = {
@@ -343,6 +360,7 @@ module.exports = {
     TOAST_TONES,
     SEND_EMAIL_FIELDS,
     CREATE_RECORD_FIELDS,
+    CALL_ACTION_FIELDS,
     AI_SCHEMA_FIELD_TYPES,
     GENERATE_PRESENTATION_FORMATS,
     GENERATE_PRESENTATION_FIELDS,

@@ -44,6 +44,12 @@ describe('stepReferences agrees with the web', () => {
         }
     });
 
+    it('actionRefOptions, with and without the action being edited', () => {
+        const actions = { act_a: { kind: 'toast', name: '  Save ' }, act_b: { kind: 'sequence', steps: [] }, act_c: null, act_d: { label: 'Labelled' } };
+        for (const except of [null, 'act_a', 'act_x']) both('actionRefOptions', actions, except);
+        both('actionRefOptions', null, null);
+    });
+
     it('collectModals on every fixture', () => {
         for (const def of Object.values(allFixtures())) both('collectModals', def);
         both('collectModals', null);

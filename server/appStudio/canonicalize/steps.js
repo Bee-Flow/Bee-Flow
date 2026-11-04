@@ -9,8 +9,8 @@
 const { LIMITS, STEP_SPECS } = require('../componentSpecs');
 const { HARD_DEPTH_CAP, isObject, deepCopy, truncate } = require('./shared');
 const { cleanBinding } = require('./bindings');
-const { cleanInputMapping, cleanNavParams } = require('./mappings');
-const { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanContextSources } = require('./aiFields');
+const { cleanInputMapping, cleanNavParams, cleanCallParams } = require('./mappings');
+const { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanContextSources, cleanTierChoice } = require('./aiFields');
 const { cleanApprovalQuestions, cleanApprovalStages, cleanApprovalOnDecided } = require('./approvals');
 
 // ---------------------------------------------------------------------------
@@ -133,6 +133,10 @@ function cleanStep(raw, path, depth, push) {
             if (v !== undefined) out[field] = cleanApprovalStages(v, p, push);
         } else if (fs.type === 'approvalOnDecided') {
             if (v !== undefined) { const w = cleanApprovalOnDecided(v, p, push); if (w !== undefined) out[field] = w; }
+        } else if (fs.type === 'callParams') {
+            if (v !== undefined) out[field] = cleanCallParams(v, p, push);
+        } else if (fs.type === 'tierChoice') {
+            if (v !== undefined) { const t = cleanTierChoice(v, fs.maxLen || LIMITS.MAX_STRING, p, push); if (t !== undefined) out[field] = t; }
         }
     }
     const unknown = Object.keys(raw).filter((k) => k !== 'kind' && !(k in spec.fields));

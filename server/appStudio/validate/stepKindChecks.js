@@ -7,6 +7,18 @@
 'use strict';
 
 const { isObject, pushDataRef } = require('./shared');
+const { checkCallAction } = require('./callChecks.mts');
+const { someStepThroughCalls } = require('../actionCalls.mts');
+
+/**
+ * A step of `kind` under these steps, or in an action they call.
+ * @param {unknown} steps
+ * @param {string} kind
+ * @param {{ actions?: unknown }} ctx
+ */
+function containsThroughCalls(steps, kind, ctx) {
+    return containsStepKind(steps, kind) || someStepThroughCalls(steps, ctx.actions, (/** @type {Record<string, unknown>} */ s) => s.kind === kind);
+}
 
 /**
  * Is there a send_email anywhere under these steps?
@@ -246,7 +258,7 @@ function checkLoopCosts(step, path, ctx) {
     const { pushW } = ctx;
 // A deck inside a loop is the fill_document shape: one stored file per
 // iteration, against the attachment quota. A warning about the cost.
-if (step.kind === 'loop' && containsStepKind(step.steps, 'generate_presentation')) {
+if (step.kind === 'loop' && containsThroughCalls(step.steps, 'generate_presentation', ctx)) {
     pushW({
         code: 'action.generate_presentation_in_loop', severity: 'warning', path: `${path}.steps`,
         message: 'A "generate presentation" step runs inside a loop — one stored deck per iteration.',
@@ -258,7 +270,7 @@ if (step.kind === 'loop' && containsStepKind(step.steps, 'generate_presentation'
 // shape) but easy to reach by accident — each iteration writes a blob
 // against the app's attachment quota, and a quota 409 halfway leaves a
 // partial run. A warning, where send_email-in-loop is an error.
-if (step.kind === 'loop' && containsStepKind(step.steps, 'generate_file')) {
+if (step.kind === 'loop' && containsThroughCalls(step.steps, 'generate_file', ctx)) {
     pushW({
         code: 'action.generate_file_in_loop', severity: 'warning', path: `${path}.steps`,
         message: 'A "generate file" step runs inside a loop — one stored file per iteration.',
@@ -269,7 +281,7 @@ if (step.kind === 'loop' && containsStepKind(step.steps, 'generate_file')) {
 // fill_document in a loop is the same quota shape — but the other way
 // round: one invoice PER row is the normal thing to want, where one export
 // over all rows is. So it warns about the cost rather than the intent.
-if (step.kind === 'loop' && containsStepKind(step.steps, 'fill_document')) {
+if (step.kind === 'loop' && containsThroughCalls(step.steps, 'fill_document', ctx)) {
     pushW({
         code: 'action.fill_document_in_loop', severity: 'warning', path: `${path}.steps`,
         message: 'A "fill document" step runs inside a loop — one stored PDF per iteration.',
@@ -322,6 +334,7 @@ const KIND_CHECKS = {
     loop: checkLoopCosts,
     ai_browse: checkAiBrowse,
     copy_document: checkCopyDocument,
+    call_action: checkCallAction,
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS };

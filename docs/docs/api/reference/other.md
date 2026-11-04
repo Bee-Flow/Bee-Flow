@@ -961,6 +961,8 @@ No request schema.
 | `item` | any |  |  |
 | `index` | integer or null |  |  |
 | `value` | any |  |  |
+| `callPath` | array of integer |  | max items 3 |
+| `params` | object or null |  |  |
 
 ### `POST /api/public-app/:token/data/attachments`
 

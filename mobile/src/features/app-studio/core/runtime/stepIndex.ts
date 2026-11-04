@@ -21,7 +21,7 @@ export const STEP_KINDS = [
     'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'reset_form', 'download_file', 'confirm', 'set_variable', 'refresh',
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
     'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document',
-    'condition', 'loop', 'switch',
+    'condition', 'loop', 'switch', 'call_action',
 ] as const;
 
 /**

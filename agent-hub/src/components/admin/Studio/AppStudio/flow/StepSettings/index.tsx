@@ -37,10 +37,10 @@ import { StepField } from './StepField';
  * repair it.
  */
 
-export default function StepSettings({ step, onChange, definition, node = null, screens = [], disabled = false, formFields = [] }: StepSettingsProps) {
+export default function StepSettings({ step, onChange, definition, node = null, screens = [], disabled = false, formFields = [], actionId = null }: StepSettingsProps) {
     const { t } = useTranslation();
     const stepSpecs = useCatalogStepSpecs();
-    const references = useStepReferences(definition);
+    const references = useStepReferences(definition, actionId);
     if (!step) return null;
     const meta = stepMeta(step.kind, t);
     const spec = stepSpecs ? stepSpecs[step.kind] : null;

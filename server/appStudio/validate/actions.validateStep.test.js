@@ -147,3 +147,18 @@ test('aiSchema with more than 40 fields names the count and the maximum', () => 
     assert.equal(e.code, 'action.ai_schema_too_large');
     assert.match(e.message, /has 41 fields — the maximum is 40/);
 });
+
+test('modelTier: a tier name, a formula or a static tier is accepted; another shape is refused', () => {
+    const gen = (modelTier) => ({ kind: 'ai_generate', prompt: 'p', output: 'text', resultVar: 'r', modelTier });
+    assert.deepEqual(run([gen('fast'), gen({ kind: 'formula', expr: "params.quick ? 'fast' : 'thinking'" }), gen(st('thinking'))]), []);
+    assert.deepEqual(run([gen(42)]), [`E action.step_field_invalid @${P}[0].modelTier`]);
+    assert.deepEqual(run([gen({ kind: 'formula', expr: '' })]), [`E action.step_field_invalid @${P}[0].modelTier`]);
+    assert.deepEqual(run([gen('x'.repeat(61))]), [`E action.step_field_invalid @${P}[0].modelTier`]);
+});
+
+test('call_action: an unknown target and a loop that calls a sender', () => {
+    const actions = { act_send: { kind: 'sequence', steps: [mail()] } };
+    const ctx = { actionIds: new Set(['act_1', 'act_send']), actions };
+    assert.deepEqual(run([{ kind: 'call_action', actionId: 'act_nope' }], ctx), [`E action.call_target_unknown @${P}[0].actionId`]);
+    assert.deepEqual(run([loopOf({ kind: 'call_action', actionId: 'act_send' })], ctx), [`E action.send_email_in_loop @${P}[0].steps`]);
+});

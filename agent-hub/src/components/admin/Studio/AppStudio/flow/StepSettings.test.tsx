@@ -42,6 +42,8 @@ const STEP_SPECS_STUB = {
         },
     },
     navigate: { fields: { screenId: { type: 'string', required: true }, params: { type: 'navParams' } } },
+    call_action: { fields: { actionId: { type: 'string', required: true, maxLen: 80 }, params: { type: 'callParams' }, resultVar: { type: 'string', maxLen: 60 } } },
+    ai_generate: { fields: { prompt: { type: 'string', required: true }, modelTier: { type: 'tierChoice', maxLen: 60 } } },
 };
 
 vi.mock('../studioAppsApi', () => ({
@@ -311,5 +313,49 @@ describe('StepSettings — a keyed row offers only the kinds the server takes', 
         await screen.findByLabelText('Table');
         // A blank static IS the chooser's "nothing picked yet" state.
         expect(await screen.findByText('A table in this app')).toBeTruthy();
+    });
+});
+
+describe('StepSettings — run another action, and the model tier', () => {
+    const withActions = {
+        ...DEFINITION,
+        actions: { act_main: { kind: 'sequence', steps: [] }, act_calc: { kind: 'sequence', steps: [], name: 'Work out the total' } },
+    };
+    function renderCall(step: ComponentProps<typeof StepSettings>['step'], actionId: string | null) {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        const onChange = vi.fn();
+        render(
+            <QueryClientProvider client={client}>
+                <EditorChromeContext.Provider value={{ appId: 'app-1' }}>
+                    <StepSettings step={step} onChange={onChange} definition={withActions} screens={withActions.screens} actionId={actionId} />
+                </EditorChromeContext.Provider>
+            </QueryClientProvider>,
+        );
+        return { last: () => onChange.mock.calls.at(-1)?.[0] };
+    }
+
+    it('picks the action by name, never the action being edited', async () => {
+        renderCall({ kind: 'call_action', actionId: '', params: {} }, 'act_main');
+        const control = await screen.findByLabelText('Action');
+        expect(control.tagName).toBe('SELECT');
+        const texts = optionsOf(control);
+        expect(texts).toContain('Work out the total');
+        expect(texts).not.toContain('act_main');
+    });
+
+    it('adds a param row with a binding', async () => {
+        const { last } = renderCall({ kind: 'call_action', actionId: 'act_calc', params: {} }, 'act_main');
+        await userEvent.click(await screen.findByRole('button', { name: 'Add one' }));
+        // One paste: the panel is controlled by the step, which this harness does not feed back.
+        await userEvent.click(screen.getByLabelText('Params 1 name'));
+        await userEvent.paste('quick');
+        expect(last().params).toEqual({ quick: { kind: 'static', value: '' } });
+    });
+
+    it('switches the model tier between a tier name and a formula', async () => {
+        const { last } = renderCall({ kind: 'ai_generate', prompt: 'p', modelTier: 'fast' }, null);
+        expect((await screen.findByLabelText('Model tier') as HTMLInputElement).value).toBe('fast');
+        await userEvent.click(screen.getByRole('radio', { name: 'Work it out with a formula' }));
+        expect(last().modelTier).toEqual({ kind: 'formula', expr: '' });
     });
 });

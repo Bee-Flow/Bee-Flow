@@ -23,7 +23,7 @@
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 
-export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document';
+export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document' | 'action';
 
 /** A { key, en } entry: the translation key and its English default. */
 export interface ReferenceText {
@@ -61,6 +61,8 @@ export const REFERENCE_FIELDS: Record<string, ReferenceKind> = {
     automationId: 'automation',
     connectorId: 'connector',
     documentId: 'document',
+    // call_action: another action of this app.
+    actionId: 'action',
 };
 
 /** The label a picker shows when the field is not set yet: { key, en } per reference kind. */
@@ -72,6 +74,7 @@ export const REFERENCE_PLACEHOLDERS: Record<ReferenceKind, ReferenceText> = {
     automation: { key: 'studio_apps_edit.step_refs.pick_automation', en: 'Pick an automation…' },
     connector: { key: 'studio_apps_edit.step_refs.pick_connector', en: 'Pick a connection…' },
     document: { key: 'studio_apps_edit.step_refs.pick_document', en: 'Pick a document…' },
+    action: { key: 'studio_apps_edit.step_refs.pick_action', en: 'Pick an action…' },
 };
 
 /**
@@ -86,6 +89,7 @@ export const REFERENCE_EMPTY_HINTS: Record<ReferenceKind, ReferenceText> = {
     automation: { key: 'studio_apps_edit.step_refs.empty_automation', en: 'No automations yet.' },
     connector: { key: 'studio_apps_edit.step_refs.empty_connector', en: 'No connections yet — add one under Data · Connections first.' },
     document: { key: 'studio_apps_edit.step_refs.empty_document', en: 'No designed documents yet — make the invoice, quote or letter in Studio → Documents first.' },
+    action: { key: 'studio_apps_edit.step_refs.empty_action', en: 'This app has no other actions yet.' },
 };
 
 /** A { key, en } entry from the tables above, translated (English without `t`). */
@@ -161,6 +165,21 @@ export function automationOptions(automations: Array<{ id: string; title?: strin
     return (Array.isArray(automations) ? automations : [])
         .filter((a) => a && typeof a.id === 'string')
         .map((a) => ({ id: a.id, label: a.title || a.name || a.id }));
+}
+
+/**
+ * The app's actions as { id, label }, without `exceptId` (the action being
+ * edited: an action may not run itself). The label is the action's own name
+ * when it has one, else its id.
+ */
+export function actionRefOptions(actions: Record<string, unknown> | null | undefined, exceptId: string | null = null): RefOption[] {
+    if (!actions || typeof actions !== 'object') return [];
+    return Object.entries(actions)
+        .filter(([id, a]) => id !== exceptId && a && typeof a === 'object')
+        .map(([id, a]) => {
+            const name = (a as { name?: unknown; label?: unknown }).name ?? (a as { label?: unknown }).label;
+            return { id, label: typeof name === 'string' && name.trim() ? name.trim() : id };
+        });
 }
 
 /** Connectors as { id, label }. */

@@ -58,6 +58,8 @@ export const EDITOR_BY_KIND: Record<string, string> = {
     // the tableId picker and the column rows arrive without a bespoke editor
     // to keep in step with the schema.
     create_record: 'spec',
+    // The action picker and the params rows come from the spec too.
+    call_action: 'spec',
     sequence: 'flow',
 };
 
@@ -86,6 +88,7 @@ export const KIND_OPTIONS: KindOption[] = [
     { value: 'open_modal', labelKey: 'app_studio.inspector.kind_open_modal', labelEn: 'Open a dialog' },
     { value: 'close_modal', labelKey: 'app_studio.inspector.kind_close_modal', labelEn: 'Close a dialog' },
     { value: 'send_email', labelKey: 'app_studio.inspector.kind_send_email', labelEn: 'Send an e-mail' },
+    { value: 'call_action', labelKey: 'app_studio.inspector.kind_call_action', labelEn: 'Run another action' },
     { value: 'sequence', labelKey: 'app_studio.inspector.kind_sequence', labelEn: 'Several steps (a flow)' },
 ];
 
@@ -197,6 +200,8 @@ const DEFAULTS_BY_KIND: Record<string, DefaultsBuilder> = {
     // one default here that could quietly cost data. `values` starts empty
     // because the columns depend on the table that is not picked yet.
     create_record: (kind) => ({ kind, tableId: '', values: {} }),
+    // The action to run is picked next (no guess: a wrong one would run unseen).
+    call_action: (kind) => ({ kind, actionId: '', params: {} }),
     sequence: (kind) => ({ kind, steps: [] }),
 };
 

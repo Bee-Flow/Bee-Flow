@@ -18,6 +18,7 @@
 'use strict';
 
 const { MAX_FIELD_KEY_LEN, MAX_INPUT_FIELDS } = require('./actionExecutor');
+const { LIMITS } = require('./componentSpecs/limits');
 
 /**
  * @param {import('./actionExecutor/shared').StepDef | null | undefined} action
@@ -76,4 +77,93 @@ function sanitizeBag(bag) {
     return out;
 }
 
-module.exports = { normalizeSequence, flattenSteps, sanitizeBag };
+/**
+ * @param {unknown} actions
+ * @param {unknown} id
+ * @returns {import('./actionExecutor/shared').StepDef | null}
+ */
+function ownActionOf(actions, id) {
+    if (!actions || typeof actions !== 'object' || typeof id !== 'string' || !id) return null;
+    if (!Object.hasOwn(actions, id)) return null;
+    const a = /** @type {Record<string, unknown>} */ (actions)[id];
+    return a && typeof a === 'object' && !Array.isArray(a) ? /** @type {import('./actionExecutor/shared').StepDef} */ (a) : null;
+}
+
+/**
+ * The step a /step request names, resolved FROM THE DEFINITION — the one lookup the
+ * signed-in, public and browse routes share.
+ *
+ * `stepIndex` is the flattenSteps ordinal inside the action that holds the step.
+ * `callPath` (optional) walks into called actions first: each entry is the ordinal of
+ * a call_action step, root first, in the action reached so far; each hop must be a
+ * call_action to an own action not yet on the path, at most LIMITS.MAX_CALL_DEPTH hops.
+ * The URL keeps the ROOT action id, so the role gate and the public surface stay on the
+ * action that was clicked.
+ *
+ * @param {unknown} def
+ * @param {string} actionId
+ * @param {unknown} stepIndex
+ * @param {unknown} [callPath]
+ * @returns {{ step: import('./actionExecutor/shared').StepDef, ownerActionId: string } | { error: 'action' | 'step' | 'call' }}
+ */
+function resolveRequestedStep(def, actionId, stepIndex, callPath) {
+    const actions = def && typeof def === 'object' ? /** @type {Record<string, unknown>} */ (def).actions : null;
+    const root = ownActionOf(actions, actionId);
+    if (!root) return { error: 'action' };
+    const owner = followCallPath(actions, root, actionId, callPath);
+    if (!owner) return { error: 'call' };
+    const index = Number.isInteger(stepIndex) ? /** @type {number} */ (stepIndex) : parseInt(String(stepIndex), 10);
+    const step = stepAtOrdinal(owner.action, index);
+    if (!step || typeof step.kind !== 'string') return { error: 'step' };
+    return { step, ownerActionId: owner.id };
+}
+
+/**
+ * @param {import('./actionExecutor/shared').StepDef} action
+ * @param {unknown} ordinal
+ * @returns {import('./actionExecutor/shared').StepDef | null}
+ */
+function stepAtOrdinal(action, ordinal) {
+    const steps = flattenSteps(normalizeSequence(action));
+    return (Number.isInteger(ordinal) && /** @type {number} */ (ordinal) >= 0 && /** @type {number} */ (ordinal) < steps.length)
+        ? steps[/** @type {number} */ (ordinal)] : null;
+}
+
+/**
+ * The action a callPath ends in (the root itself for none), or null for a bad hop.
+ * @param {unknown} actions
+ * @param {import('./actionExecutor/shared').StepDef} root
+ * @param {string} rootId
+ * @param {unknown} callPath
+ * @returns {{ action: import('./actionExecutor/shared').StepDef, id: string } | null}
+ */
+function followCallPath(actions, root, rootId, callPath) {
+    const hops = Array.isArray(callPath) ? callPath : [];
+    if (hops.length > LIMITS.MAX_CALL_DEPTH) return null;
+    let at = { action: root, id: rootId };
+    const seen = new Set([rootId]);
+    for (const hop of hops) {
+        const call = /** @type {Record<string, unknown> | null} */ (stepAtOrdinal(at.action, hop));
+        const target = call && call.kind === 'call_action' && typeof call.actionId === 'string' ? call.actionId : null;
+        const next = target && !seen.has(target) ? ownActionOf(actions, target) : null;
+        if (!next || !target) return null;
+        seen.add(target);
+        at = { action: next, id: target };
+    }
+    return at;
+}
+
+/**
+ * The `notes` sibling of a /step answer: the executor's remarks on a step that ran
+ * (a modelTier formula that fell back, a file that could not be read), only when
+ * there are any, so an answer without remarks keeps its old shape.
+ *
+ * @param {{ notes?: unknown } | null | undefined} result
+ * @returns {{ notes?: string[] }}
+ */
+function stepNotes(result) {
+    const notes = result && Array.isArray(result.notes) ? result.notes.filter((n) => typeof n === 'string').slice(0, 20) : [];
+    return notes.length ? { notes } : {};
+}
+
+module.exports = { normalizeSequence, flattenSteps, sanitizeBag, resolveRequestedStep, stepNotes };

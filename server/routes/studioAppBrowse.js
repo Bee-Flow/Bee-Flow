@@ -48,7 +48,8 @@ const { z, typeError } = require('../utils/zod');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
-const { normalizeSequence, flattenSteps, sanitizeBag } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, sanitizeBag } = require('../appStudio/actionSequence');
+const { LIMITS } = require('../appStudio/componentSpecs/limits');
 const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate');
 const { resolveAudienceContext } = require('../auth/audience');
 const { requireAuth } = require('../auth/permissions');
@@ -87,6 +88,7 @@ const partOf = (shape) => z.preprocess(
 const STEP_TEXT = 'stepIndex is the position of the step in the action (0, 1, 2, …).';
 const DRAFT_TEXT = 'draft is "1" or "true" to run the draft, "0" or "false" (or nothing) for the published app.';
 const BAG_TEXT = (/** @type {string} */ name) => `${name} is an object of values, keyed by name.`;
+const CALL_PATH_TEXT = `callPath is the list of call_action step positions, root first (at most ${LIMITS.MAX_CALL_DEPTH}).`;
 
 const BrowseQuery = partOf({
     draft: z.enum(['1', 'true', '0', 'false'], { error: () => DRAFT_TEXT }).optional(),
@@ -109,6 +111,11 @@ const BrowseBody = partOf({
     index: z.number({ error: typeError({ invalid: 'index is the loop position (0, 1, 2, …).' }) })
         .int('index is the loop position (0, 1, 2, …).').min(0, 'index is the loop position (0, 1, 2, …).').optional(),
     value: z.unknown().optional(),
+    // A step inside a called action: the call_action ordinals, root first (the
+    // URL keeps the root action), and the params the called action reads.
+    callPath: z.array(z.number().int(CALL_PATH_TEXT).min(0, CALL_PATH_TEXT), { error: () => CALL_PATH_TEXT })
+        .max(LIMITS.MAX_CALL_DEPTH, CALL_PATH_TEXT).optional(),
+    params: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('params') }) }).nullish(),
 });
 
 router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (/** @type {import('express').Request<{ id: string, actionId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
@@ -134,14 +141,10 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         const wantDraft = req.query.draft === '1' || req.query.draft === 'true';
         const def = (isOwner && wantDraft) ? app.definition : app.publishedDefinition;
 
-        const action = (def && typeof def === 'object' && def.actions && typeof def.actions === 'object'
-            && Object.hasOwn(def.actions, actionId)) ? def.actions[actionId] : null;
-        if (!action) return res.status(404).json({ error: 'Action not found' });
-
-        const { stepIndex } = req.body;
-        const steps = flattenSteps(normalizeSequence(action));
-        const step = stepIndex < steps.length ? steps[stepIndex] : null;
-        if (!step || typeof step.kind !== 'string') return res.status(404).json({ error: 'Step not found' });
+        // Inside a called action when the body carries a callPath; the role gate stays on the root.
+        const resolved = resolveRequestedStep(def, actionId, req.body.stepIndex, req.body.callPath);
+        if ('error' in resolved) return res.status(404).json({ error: resolved.error === 'action' ? 'Action not found' : 'Step not found' });
+        const { step, ownerActionId } = resolved;
         // This endpoint runs ONLY ai_browse. Anything else belongs on /step.
         if (step.kind !== 'ai_browse') return res.status(400).json({ error: 'This endpoint only runs ai_browse steps' });
 
@@ -177,7 +180,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 viewerEmail: sessionUser(req).email || null,
                 role,
                 orgId: app.organizationId || null,
-                actionId,
+                actionId: ownerActionId,
                 def,                                   // browseStep needs aiBrowsing
                 formValues,
                 vars,
@@ -188,6 +191,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 item: req.body.item,
                 index: req.body.index,
                 value: req.body.value,
+                params: sanitizeBag(req.body.params),
                 browse: { send: bridge, isCancelled: () => cancelled },
             }));
             send({ type: 'result', ok: !!result?.ok, result: result?.result || null, error: result?.error || null, code: result?.code || null });

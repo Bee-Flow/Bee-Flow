@@ -12,6 +12,7 @@ import type { TranslateParams } from '@/hooks/useTranslation';
 import type { RowBinding, SwitchCase, Placeholder, StepFieldProps, ReferenceFieldProps, AutomationRefFieldProps, SwitchCasesFieldProps } from '../StepSettings.types';
 import { FIELD_LABELS, HINTS } from './StepSettings.constants';
 import { KeyedBindingsField } from './KeyedBindingsField';
+import TierChoiceField from './TierChoiceField';
 
 /** 'screenId' → 'Screen', 'maxIterations' → 'Max iterations'. */
 function humanize(key: string) {
@@ -133,9 +134,13 @@ export function StepField({
                     />
                 </FormField>
             );
+        // modelTier: a tier name, or a formula worked out when the step runs.
+        case 'tierChoice':
+            return <TierChoiceField label={label} hint={hint} value={value} onChange={onChange} definition={definition} node={node} maxLen={fs.maxLen} disabled={disabled} />;
         case 'switchCases':
             return <SwitchCasesField label={t('studio_apps_edit.step_settings.cases', 'Cases')} value={value as SwitchCase[] | undefined} onChange={onChange} disabled={disabled} />;
         case 'navParams':
+        case 'callParams':
         case 'recordValues':
         case 'inputMapping':
             return (

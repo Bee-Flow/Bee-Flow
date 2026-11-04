@@ -3,7 +3,7 @@ import { dataCacheKey } from './resolveBinding';
 import { buildScope } from './RuntimeContext';
 
 const ROOT_KEYS = [
-    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value',
+    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value', 'params',
     'currentUser', 'records', 'datasets', 'now', 'today',
 ];
 
@@ -101,7 +101,7 @@ describe('buildScope — shared scope root', () => {
 
     it('defaults every collection root to an empty object and currentUser to null', () => {
         const scope = buildScope({});
-        for (const k of ['actions', 'form', 'forms', 'screen', 'vars', 'records', 'datasets']) {
+        for (const k of ['actions', 'form', 'forms', 'screen', 'vars', 'params', 'records', 'datasets']) {
             expect(scope[k]).toEqual({});
         }
         expect(scope.currentUser).toBeNull();
@@ -116,5 +116,11 @@ describe('buildScope — shared scope root', () => {
         expect(typeof fresh.now).toBe('string');
         expect(fresh.now).toMatch(/^\d{4}-\d{2}-\d{2}T/);
         expect(fresh.today).toBe(fresh.now.slice(0, 10));
+    });
+
+    it('params: the call_action params inside a called action, {} otherwise', () => {
+        expect(buildScope({ params: { n: 2 } }).params).toEqual({ n: 2 });
+        expect(buildScope({ params: null }).params).toEqual({});
+        expect(buildScope({}).params).toEqual({});
     });
 });

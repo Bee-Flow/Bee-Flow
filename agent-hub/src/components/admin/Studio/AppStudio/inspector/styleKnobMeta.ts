@@ -263,7 +263,7 @@ export const TYPE_EVENTS: Record<string, string> = { button: 'onClick', form: 'o
  * instead of quietly changing what autocompletes.
  */
 export const FORMULA_SCOPE_ROOTS: string[] = [
-    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value',
+    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value', 'params',
     'currentUser', 'records', 'datasets', 'connectors', 'now', 'today',
 ];
 

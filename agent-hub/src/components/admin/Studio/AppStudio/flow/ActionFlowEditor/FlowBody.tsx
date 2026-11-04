@@ -55,7 +55,7 @@ function flowNodesFor({ nodes, positions, selectedId, options, t, disabled, setS
     }));
 }
 
-export function FlowBody({ action, onChange, definition, node = null, disabled = false, formFields = [] }: FlowBodyProps) {
+export function FlowBody({ action, onChange, definition, node = null, disabled = false, formFields = [], actionId = null }: FlowBodyProps) {
     const { t } = useTranslation();
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [adding, setAdding] = useState<{ prefix: string; after?: string } | null>(null);   // { prefix, after? } — where
@@ -67,7 +67,7 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
     const positions = useMemo(() => layoutGraph(graph.nodes), [graph.nodes]);
 
     const screens = useMemo(() => definition?.screens || [], [definition?.screens]);
-    const references = useStepReferences(definition);
+    const references = useStepReferences(definition, actionId);
     const selected = graph.nodes.find((n): n is StepNode => n.id === selectedId && !n.isEntry) || null;
 
     /**
@@ -236,7 +236,7 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
                     <SelectedStepPanel
                         t={t} selected={selected} disabled={disabled} canMoveEarlier={canMove(graph, selected.id, -1)} canMoveLater={canMove(graph, selected.id, 1)}
                         onMove={(delta) => moveStep(selected.id, delta)} onRemove={() => removeStep(selected.id)} onPatch={(next) => patchStep(selected.id, next)}
-                        definition={definition} node={node} screens={screens} formFields={formFields}
+                        definition={definition} node={node} screens={screens} formFields={formFields} actionId={actionId}
                     />
                 ) : (
                     <PickOrAddStep t={t} disabled={disabled} onAdd={() => setAdding({ prefix: '' })} />

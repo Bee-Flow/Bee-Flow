@@ -14,6 +14,7 @@
 
 import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
+import { MAX_CALL_DEPTH } from './actionRunner/stepWalk';
 import { APP_COMPONENT_TYPES, PALETTE_CATEGORIES } from './componentRegistry';
 import {
     COLOR_ROLES as FE_COLOR_ROLES,
@@ -129,6 +130,11 @@ describe('catalog lockstep — styleKnobMeta.js mirrors componentSpecs.js', () =
     // invisible until someone reports it.
     it('FORMULA_SCOPE_ROOTS is a verbatim mirror', () => {
         expect(FE_FORMULA_SCOPE_ROOTS).toEqual(specs.FORMULA_SCOPE_ROOTS);
+    });
+
+    // call_action: the browser refuses a chain deeper than the validator allows.
+    it('MAX_CALL_DEPTH matches LIMITS.MAX_CALL_DEPTH', () => {
+        expect(MAX_CALL_DEPTH).toBe(specs.LIMITS.MAX_CALL_DEPTH);
     });
 
     it('every event a spec declares is in the global EVENT_NAMES vocabulary', () => {

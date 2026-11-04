@@ -295,3 +295,15 @@ test('a BARE create_record action is redacted for anonymous delivery', () => {
     assert.ok(!wire.includes('tbl_secret'), 'the target table id reached the visitor');
     assert.ok(!wire.includes('nooit tonen'), 'a column value reached the visitor');
 });
+
+test('an action a public root calls ships redacted, but is not a surface root', () => {
+    const def = definition();
+    def.actions.act_submit.steps.push({ kind: 'call_action', actionId: 'act_helper', params: { n: { kind: 'static', value: 1 } } });
+    def.actions.act_helper = { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 'tbl_secret', values: { a: 1 }, resultVar: 'r' }] };
+    const surface = resolvePublicSurface(def);
+    assert.equal(surface.actionIds.has('act_helper'), false, 'posting the callee id directly is a 404');
+    const pub = buildPublicDefinition(def, surface);
+    assert.deepEqual(pub.actions.act_helper, { kind: 'sequence', steps: [{ kind: 'create_record', resultVar: 'r' }] });
+    assert.equal(JSON.stringify(pub).includes('tbl_secret'), false);
+    assert.equal(pub.actions.act_submit.steps.at(-1).actionId, 'act_helper', 'the call step travels whole');
+});

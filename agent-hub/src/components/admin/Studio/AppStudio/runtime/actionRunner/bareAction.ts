@@ -76,7 +76,8 @@ function runInlineAction(ctx: RunnerContext, action: RunnableAction, opts: RunOp
 // action through the same normalizeSequence the client uses, so it
 // needed no path of its own — only this one line. Without it, the
 // button was a silent no-op.
-const SERVER_STEP_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record']);
+// call_action runs here too: the coordinator walks the called action's steps.
+const SERVER_STEP_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'call_action']);
 
 export async function runActionById(ctx: RunnerContext, actionId: string, opts: RunOpts = {}): Promise<void> {
     const action = ctx.live.current.definition?.actions?.[actionId];

@@ -34,6 +34,9 @@ const {
 const { validateBinding } = require('./bindings');
 const { validateContextSources } = require('./contextSources.mts');
 const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
+const { checkCallAction, validateCallParams } = require('./callChecks.mts');
+const { someStepThroughCalls } = require('../actionCalls.mts');
+const { validateTierChoice } = require('./tierChoice.mts');
 const { DATASET_QUERY_OUTPUTS, KIND_CHECKS: DATA_KIND_CHECKS } = require('./stepDataChecks');
 
 // ---------------------------------------------------------------------------
@@ -84,7 +87,7 @@ function validateEffects(effects, path, ctx) {
  * where the spec wants a binding), so it is a behaviour change of its own
  * rather than a side effect of this one.
  */
-const PER_FIELD_VALIDATED_ACTION_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'create_record']);
+const PER_FIELD_VALIDATED_ACTION_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'create_record', 'call_action']);
 
 /**
  * @param {string} id
@@ -185,6 +188,7 @@ function validateAction(id, action, path, ctx) {
             validateStepField(action.kind, field, fs, action[field], `${path}.${field}`, 1, { n: 0, reported: false }, ctx, label);
         }
         checkRecordValueColumns(action.kind, action.tableId, action.values, path, ctx, label);
+        if (action.kind === 'call_action') checkCallAction(action, path, ctx);
     }
 }
 
@@ -366,6 +370,8 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         case 'approvalOnDecided':
             validateApprovalOnDecided(value, path, ctx);
             return;
+        case 'callParams': validateCallParams(field, value, path, ctx); return;
+        case 'tierChoice': validateTierChoice(field, fs, value, path, ctx); return;
         default:
             return;
     }
@@ -649,7 +655,9 @@ function validateStep(step, path, depth, counter, ctx) {
     // binding is 500 outbound messages from a real person's mailbox. There is no
     // legitimate app-builder use for it that an automation cannot do better, with
     // its own throttling. This is the single most important guard on the step.
-    if (step.kind === 'loop' && containsSendEmail(step.steps)) {
+    // Through a call too: a loop that calls an action which sends is the same cannon.
+    if (step.kind === 'loop' && (containsSendEmail(step.steps)
+        || someStepThroughCalls(step.steps, ctx.actions, (/** @type {Record<string, unknown>} */ s) => s.kind === 'send_email'))) {
         pushE({
             code: 'action.send_email_in_loop', severity: 'error', path: `${path}.steps`,
             message: 'A "send email" step may not run inside a loop.',

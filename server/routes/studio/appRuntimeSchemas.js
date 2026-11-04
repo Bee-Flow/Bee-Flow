@@ -20,6 +20,7 @@
  */
 
 const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
+const { LIMITS } = require('../../appStudio/componentSpecs/limits');
 
 /**
  * @param {string} name
@@ -29,6 +30,8 @@ const bag = (name) => z.record(z.string(), z.unknown(), { error: typeError({ inv
 const DraftQuery = queryOf({
     draft: choice(['0', '1', 'true', 'false'], 'draft is 1 to run the saved draft.').optional(),
 }, 'An app request');
+
+const CALL_PATH_TEXT = `callPath is the list of call_action step positions, root first (at most ${LIMITS.MAX_CALL_DEPTH}).`;
 
 /** One server step of an action (…/actions/:actionId/step). */
 const StepBody = bodyOf({
@@ -40,6 +43,10 @@ const StepBody = bodyOf({
     item: z.unknown().optional(),
     index: wholeNumber('index is the loop position, 0 or more.').nullish(),
     value: z.unknown().optional(),
+    // A step inside a called action (call_action): the call_action step positions,
+    // root first — the URL keeps the root action — and the params it reads.
+    callPath: z.array(wholeNumber(CALL_PATH_TEXT), { error: CALL_PATH_TEXT }).max(LIMITS.MAX_CALL_DEPTH, CALL_PATH_TEXT).optional(),
+    params: bag('params').nullish(),
 }, 'An action step');
 
 /** A whole action handed to its automation (…/actions/:actionId/run). */

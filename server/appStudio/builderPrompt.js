@@ -570,6 +570,7 @@ function summariseSteps(steps) {
         }
         if (s.kind === 'navigate') return `navigate→${s.screenId}`;
         if (s.kind === 'run_automation') return `run_automation(${s.automationId ?? 'null'})`;
+        if (s.kind === 'call_action') return `call_action→${s.actionId}`;
         if (s.kind === 'condition' || s.kind === 'loop' || s.kind === 'switch') return `${s.kind}{…}`;
         return s.kind || '?';
     };

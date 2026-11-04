@@ -16,6 +16,7 @@ import { readScope } from '../mcpRunActionPolicy.mts';
 import type { Obj, RunScope } from '../mcpRunActionPolicy.mts';
 import { stepPaths } from '../sequenceWalk.mts';
 import { checkMock, mockablePaths } from './mockStep.mts';
+import type { CallOpts } from './mockStep.mts';
 import { expectationOps, isUnaryOp, pathProblem } from './expectations.mts';
 import type { Expectation } from './expectations.mts';
 
@@ -54,10 +55,10 @@ function readExpectation(raw: unknown, i: number, known: Set<string>, ops: strin
     return { path: raw.path.trim(), op, ...(isUnaryOp(op) ? {} : { value: raw.value }) };
 }
 
-function readExpectations(raw: unknown, action: unknown): Expectation[] | SpecProblem {
+function readExpectations(raw: unknown, action: unknown, opts: CallOpts): Expectation[] | SpecProblem {
     if (!Array.isArray(raw) || raw.length === 0) return { error: 'expect must be a list of 1-50 { path, op, value } items.' };
     if (raw.length > MAX_EXPECTATIONS) return { error: `expect has ${raw.length} items; at most ${MAX_EXPECTATIONS}.` };
-    const known = new Set(stepPaths(action).map((p) => p.path));
+    const known = new Set(stepPaths(action, opts).map((p) => p.path));
     const ops = expectationOps();
     const out: Expectation[] = [];
     for (let i = 0; i < raw.length; i += 1) {
@@ -72,20 +73,21 @@ function readExpectations(raw: unknown, action: unknown): Expectation[] | SpecPr
  * The test as stored, checked against `action` (null = the action no longer exists).
  * `args` carries { scope?, mock?, expect } in the app_save_test shape.
  */
-export function normaliseTestSpec(args: Obj, action: unknown, actionId: string): CheckedTest | SpecProblem {
+export function normaliseTestSpec(args: Obj, action: unknown, actionId: string, calls: Pick<CallOpts, 'resolveCallee'> = {}): CheckedTest | SpecProblem {
+    const opts: CallOpts = { ...calls, rootId: actionId };
     const named = readTestName(args.name);
     if ('error' in named) return named;
     if (!isObject(action)) return { error: `The app has no action "${actionId}".`, _fixHint: 'Remove the test (app_save_test with remove: true) or point it at an existing action.' };
     const scope = readScope(args.scope);
     if ('error' in scope) return scope;
-    const mock = checkMock(args.mock, action);
+    const mock = checkMock(args.mock, action, opts);
     if ('error' in mock) return mock;
-    const expect = readExpectations(args.expect, action);
+    const expect = readExpectations(args.expect, action, opts);
     if ('error' in expect) return expect;
     const spec: TestSpec = { scope, mock: mock.mock, expect };
     if (bytes(spec) > MAX_SPEC_BYTES) return { error: `The test is larger than ${MAX_SPEC_BYTES / 1024} KB.` };
     const mockPaths = Object.keys(mock.mock);
-    const unmocked = mockablePaths(action).filter((p) => !Object.hasOwn(mock.mock, p.path));
+    const unmocked = mockablePaths(action, opts).filter((p) => !Object.hasOwn(mock.mock, p.path));
     const hints = unmocked.slice(0, 10).map((p) => `${p.path} (${p.kind}) is not mocked: running this test calls the model or reads a knowledge base or dataset, and counts against the rate limit.`);
     return { name: named.name, spec, mockPaths, unmockedAiPaths: unmocked.map((p) => p.path), hints };
 }

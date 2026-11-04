@@ -13,8 +13,16 @@
  * Path grammar (fixed; reports, saved-test mocks and expectations read it):
  *   `steps[i]` at the top of a sequence, `action[0]` for a bare v1 action;
  *   `.then[i]`, `.else[i]`; `.cases[k].steps[i]`, `.default[i]`; a loop body `.steps[i]`
- *   (no iteration index in the path: the event carries `iteration` and `loop.count`).
+ *   (no iteration index in the path: the event carries `iteration` and `loop.count`);
+ *   a called action's steps `.call.steps[i]` under its call_action step (the callee always
+ *   normalised as a sequence, so a bare callee is `.call.steps[0]`; events carry the callee's
+ *   id as `ownerActionId`, ordinals are the callee's own).
  * The suffixes come from shared/appDefinition/stepFlow.mjs (childStepSlots).
+ *
+ * call_action is walker-native: the callee comes from host.resolveCallee (own property of
+ * def.actions), runs with `params` (and the caller's vars/form; item/index/value are not
+ * inherited), its vars writes carry back, its last server result is the call's result.
+ * Missing callee, a cycle or more than LIMITS.MAX_CALL_DEPTH calls stop the run.
  *
  * Ordinals are flattenSteps(normalizeSequence(action)) positions, mapped by object identity,
  * so a walker path and a browser stepIndex always name the same step.
@@ -22,81 +30,17 @@
 
 import { createRequire } from 'node:module';
 import { childStepSlots } from '../shared/appDefinition/stepFlow.mjs';
+import { calleeTop, ordinalMap, stepPaths, topOf } from './sequencePaths.mts';
+import type { Decision, Obj, Outcome, OutcomeView, Step, StepEndEvent, StepEvent, StepResult, WalkHost, WalkState } from './sequenceWalkTypes.mts';
 
 const nodeRequire = createRequire(import.meta.url);
-const { LIMITS } = nodeRequire('./componentSpecs/limits.js') as { LIMITS: { MAX_ACTION_DEPTH: number; MAX_ACTION_LOOP_ITERATIONS: number } };
-
-export type Obj = Record<string, unknown>;
-export type Step = Obj & { kind?: string };
-
-export type StepResult = { ok: boolean; result?: unknown; error?: string; code?: string; retryable?: boolean; notes?: string[] };
-export type Decision =
-    | { run: true; step: Step; note?: string }
-    | { run: false; status: 'skipped' | 'refused' | 'deferred'; reason: string; result?: unknown };
-
-export type StepEvent = {
-    path: string; kind: string; ordinal: number | null; ownerActionId: string;
-    iteration: number | null; loop: { index: number; count: number } | null;
-};
-export type StepStatus = 'ok' | 'error' | 'skipped' | 'refused' | 'deferred';
-export type StepEndEvent = StepEvent & {
-    status: StepStatus; ms: number;
-    error?: string; code?: string; mocked?: boolean; attempts?: number; handled?: boolean; result?: unknown;
-    /** A remark on a step that ran (e.g. "dryRun: writeTo not applied"). */
-    note?: string;
+const { LIMITS } = nodeRequire('./componentSpecs/limits.js') as {
+    LIMITS: { MAX_ACTION_DEPTH: number; MAX_ACTION_LOOP_ITERATIONS: number; MAX_CALL_DEPTH: number; MAX_CALL_PARAMS: number };
 };
 
-export type Outcome = {
-    path: string; kind: string; ordinal: number | null;
-    status: StepStatus | 'not_run';
-    result?: unknown; error?: string; code?: string; prompt?: string; note?: string;
-    mocked?: boolean; ms: number;
-    /** How often the path ran (a loop body runs once per iteration; the outcome is the last). */
-    count: number;
-};
-
-export type WalkState = {
-    vars: Obj; form: Obj; item: unknown; index: unknown; value: unknown;
-    params: Obj;
-    error?: Obj;
-    lastResult: unknown; executed: number; stopped: string | null;
-    /** The stop came from a budget (shouldStop), not from a failing step. */
-    truncated: boolean;
-    failed: { path: string; kind: string; ordinal: number | null; error: string; code?: string } | null;
-    callChain: string[];
-    deferred: Obj[];
-    outcomes: Map<string, Outcome>;
-    /** Every walker path of the action with its kind (stepPaths), set by walkAction. */
-    known: Map<string, string>;
-    /** Remarks for the caller ("looped 200 of 450 rows"), each prefixed with its path. */
-    notes: Set<string>;
-};
-
-export type WalkHost = {
-    decide(step: Step, f: StepEvent, w: WalkState): Promise<Decision>;
-    execute(step: Step, f: StepEvent, w: WalkState): Promise<StepResult>;
-    mockFor?(path: string, step: Step): { value: unknown } | null;
-    mocked?(step: Step, value: unknown, ctx: Obj): StepResult;
-    resolve(binding: unknown, ctx: Obj, scope: unknown): Promise<unknown>;
-    evaluate(expr: string, scope: unknown): unknown;
-    buildScope(ctx: Obj): unknown;
-    ctxFor(w: WalkState, f: StepEvent): Obj;
-    promptOf?(step: Step, ctx: Obj): string | undefined;
-    onStepStart?(e: StepEvent): void | Promise<void>;
-    onStepEnd?(e: StepEndEvent): void | Promise<void>;
-    onVar?(name: string, value: unknown): void;
-    shouldStop?(w: WalkState): string | null;
-    resolveCallee?(actionId: string): Obj | null;
-    sleep(ms: number): Promise<void>;
-    now(): number;
-};
-
-export type StepPath = { path: string; kind: string; ordinal: number | null; ownerActionId?: string };
-
-export type OutcomeView = {
-    ok: boolean; stopped: string | null; failed: WalkState['failed'];
-    vars: Obj; result: unknown; steps: Map<string, Outcome>;
-};
+// The contract and the paths live beside the walker; one import path for its users.
+export type { Decision, Obj, Outcome, OutcomeView, Step, StepEndEvent, StepEvent, StepPath, StepResult, StepStatus, WalkHost, WalkState } from './sequenceWalkTypes.mts';
+export { stepPaths };
 
 export const CONTROL_KINDS: readonly string[] = Object.freeze(['condition', 'switch', 'loop']);
 /** Distinct paths kept in `outcomes` (a report never needs more). */
@@ -105,6 +49,9 @@ const MAX_NOTES = 50;
 const MAX_PROMPT_CHARS = 4000;
 const MAX_WALK_DEPTH = LIMITS.MAX_ACTION_DEPTH + 1;
 export const MAX_LOOP_ITERATIONS = LIMITS.MAX_ACTION_LOOP_ITERATIONS;
+export const MAX_CALL_DEPTH = LIMITS.MAX_CALL_DEPTH;
+/** The lastResult of a called action before it ran a server step. */
+const NO_RESULT: unique symbol = Symbol('no result');
 
 const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
 const same = (a: unknown, b: unknown): boolean => a === b || (a != null && b != null && String(a) === String(b));
@@ -119,44 +66,6 @@ export function newWalkState(init: { vars?: Obj; form?: Obj; item?: unknown; ind
     };
 }
 
-// ── Paths and ordinals ──────────────────────────────────────────────────────
-
-function topOf(action: unknown): { list: unknown[]; base: string } {
-    if (!isObject(action)) return { list: [], base: 'steps' };
-    if (action.kind === 'sequence') return { list: Array.isArray(action.steps) ? action.steps : [], base: 'steps' };
-    return { list: [action], base: 'action' };
-}
-
-/** flattenSteps positions by object identity (the browser's stepIndex). */
-function ordinalMap(action: unknown): Map<object, number> {
-    const seq = nodeRequire('./actionSequence.js') as { normalizeSequence: (a: unknown) => unknown[]; flattenSteps: (s: unknown[]) => unknown[] };
-    const map = new Map<object, number>();
-    seq.flattenSteps(seq.normalizeSequence(action)).forEach((step, i) => { if (isObject(step)) map.set(step, i); });
-    return map;
-}
-
-function collectPaths(list: unknown[], base: string, ordinals: Map<object, number>, depth: number, out: StepPath[]): void {
-    list.forEach((step, i) => {
-        if (!isObject(step)) return;
-        const path = `${base}[${i}]`;
-        out.push({ path, kind: typeof step.kind === 'string' ? step.kind : '(invalid)', ordinal: ordinals.get(step) ?? null });
-        if (depth >= MAX_WALK_DEPTH) return;
-        for (const slot of childStepSlots(step)) {
-            if (slot.walked) collectPaths(slot.steps, `${path}${slot.suffix}`, ordinals, depth + 1, out);
-        }
-    });
-}
-
-/**
- * Every walker path of `action` with its kind and its flattenSteps ordinal, in pre-order.
- * `opts.resolveCallee` is the seam for a called action's steps (none yet).
- */
-export function stepPaths(action: unknown, _opts: { resolveCallee?: (id: string) => Obj | null } = {}): StepPath[] {
-    const out: StepPath[] = [];
-    const { list, base } = topOf(action);
-    collectPaths(list, base, ordinalMap(action), 1, out);
-    return out;
-}
 
 // ── The walk ────────────────────────────────────────────────────────────────
 
@@ -245,6 +154,7 @@ async function walkStep(fr: Frame, step: Step, path: string): Promise<void> {
         return fail(fr, ev, { error: `Steps are nested deeper than ${MAX_WALK_DEPTH - 1} levels` }, startedAt);
     }
     if (kind === 'set_variable') return setVariable(fr, step, ev, startedAt);
+    if (kind === 'call_action') return walkCall(fr, step, ev, startedAt);
     if (CONTROL_KINDS.includes(kind)) return walkControl(fr, step, ev, startedAt);
     return walkLeaf(fr, step, ev, startedAt);
 }
@@ -365,9 +275,61 @@ async function walkLoop(fr: Frame, step: Step, ev: StepEvent, startedAt: number,
     w.index = saved.index;
 }
 
+/** Why a call_action cannot run, or null. */
+function callRefusal(w: WalkState, id: string, callee: Obj | null): { error: string; code: string } | null {
+    if (!id || !callee) return { error: `call_action: the app has no action "${id.slice(0, 80)}"`, code: 'call_missing' };
+    if (w.callChain.includes(id)) return { error: `call_action: ${[...w.callChain, id].join(' → ')} calls itself; an action cannot run itself, directly or through another action`, code: 'call_cycle' };
+    if (w.callChain.length > MAX_CALL_DEPTH) return { error: `call_action: ${[...w.callChain, id].join(' → ')} is more than ${MAX_CALL_DEPTH} calls deep`, code: 'call_too_deep' };
+    return null;
+}
+
+/** The call's params, resolved in the CALLER's scope (data bindings are read like any binding). */
+async function callParams(fr: Frame, step: Step, ev: StepEvent): Promise<{ value: Obj } | { error: string; code?: string }> {
+    const ctx = fr.host.ctxFor(fr.w, ev);
+    const scope = fr.host.buildScope(ctx);
+    const params: Obj = {};
+    const entries = isObject(step.params) ? Object.entries(step.params).slice(0, LIMITS.MAX_CALL_PARAMS) : [];
+    for (const [name, binding] of entries) {
+        const got = await resolveIn(fr, binding, ctx, scope);
+        if ('error' in got) return got;
+        params[name] = got.value;
+    }
+    return { value: params };
+}
+
+async function walkCall(fr: Frame, step: Step, ev: StepEvent, startedAt: number): Promise<void> {
+    const { w, host } = fr;
+    const id = typeof step.actionId === 'string' ? step.actionId : '';
+    const callee = id && host.resolveCallee ? host.resolveCallee(id) : null;
+    const refused = callRefusal(w, id, isObject(callee) ? callee : null);
+    if (refused) return fail(fr, ev, refused, startedAt);
+    const got = await callParams(fr, step, ev);
+    if ('error' in got) return fail(fr, ev, got, startedAt);
+    const saved = { params: w.params, item: w.item, index: w.index, value: w.value, lastResult: w.lastResult, callChain: w.callChain, failed: w.failed };
+    Object.assign(w, { params: got.value, item: undefined, index: undefined, value: undefined, lastResult: NO_RESULT, callChain: [...w.callChain, id] });
+    const { list, base } = calleeTop(callee, `${ev.path}.call.steps`);
+    try {
+        await walkList({ ...fr, ordinals: ordinalMap(callee), ownerActionId: id, depth: 1 }, list, base);
+    } finally {
+        const produced = w.lastResult !== NO_RESULT;
+        const result = produced ? w.lastResult : null;
+        Object.assign(w, { params: saved.params, item: saved.item, index: saved.index, value: saved.value, callChain: saved.callChain, lastResult: produced ? result : saved.lastResult });
+        if (typeof step.resultVar === 'string' && step.resultVar) w.vars = { ...w.vars, [step.resultVar]: result };
+    }
+    const outcome = { actionId: id, params: got.value };
+    if (w.stopped && w.failed && w.failed !== saved.failed) {
+        const inner = w.failed;
+        return fail(fr, ev, { error: `The called action "${id}" failed at ${inner.path}: ${inner.error}`, ...(inner.code ? { code: inner.code } : {}) }, startedAt, { result: outcome });
+    }
+    return record(fr, ev, { status: 'ok', result: outcome }, startedAt);
+}
+
 /** Walk one action (a sequence or a bare v1 action) with `host`. */
 export async function walkAction(w: WalkState, action: Obj, host: WalkHost, opts: { actionId: string }): Promise<void> {
-    for (const p of stepPaths(action)) if (!w.known.has(p.path)) w.known.set(p.path, p.kind);
+    const own = host.resolveCallee;
+    const resolveCallee = own ? (id: string) => own(id) : undefined;
+    for (const p of stepPaths(action, { resolveCallee, rootId: opts.actionId })) if (!w.known.has(p.path)) w.known.set(p.path, p.kind);
+    if (!w.callChain.length) w.callChain = [opts.actionId];
     const fr: Frame = { w, host, ordinals: ordinalMap(action), ownerActionId: opts.actionId, loop: null, depth: 1 };
     const { list, base } = topOf(action);
     await walkList(fr, list, base);

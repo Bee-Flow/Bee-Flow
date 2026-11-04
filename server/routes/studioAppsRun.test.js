@@ -1107,3 +1107,48 @@ test('step: the 403 lands BEFORE the heavy-step budget is charged', async () => 
         assert.strictEqual(r.statusCode, 403, `attempt ${i + 1} must be a role refusal, not a 429`);
     }
 });
+
+// ── call_action: a called action's server step through callPath ─────────────
+//
+// root: 0 toast, 1 call_action → callee. callee: 0 create_record (reads params.x).
+const CALL_ROOT = { kind: 'sequence', steps: [{ kind: 'toast', message: 'hi' }, { kind: 'call_action', actionId: 'callee', params: { x: { kind: 'static', value: 1 } } }] };
+const CALLEE = { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 'tbl_x', values: { title: { kind: 'formula', expr: 'params.x' } } }] };
+
+test('step: callPath runs the called action\'s create_record with params; the URL keeps the root', async () => {
+    const app = makeApp({ actionsPub: { root: CALL_ROOT, callee: CALLEE } });
+    const r = await dispatch({ url: `/${app.id}/actions/root/step`, orgIds: [ORG], body: { stepIndex: 0, callPath: [1], params: { x: 'from call' } } });
+    assert.strictEqual(r.statusCode, 200);
+    assert.deepStrictEqual(r.body, { ok: true, result: { id: 'rec_new' } }, 'no notes key without notes');
+    assert.strictEqual(stepCalls.length, 1);
+    assert.strictEqual(stepCalls[0].step.kind, 'create_record');
+    assert.deepStrictEqual(stepCalls[0].ctx.params, { x: 'from call' });
+    assert.strictEqual(stepCalls[0].ctx.actionId, 'callee', 'the audit stamp is the action that holds the step');
+});
+
+test('step: a callPath hop that is not a call_action answers 404 Step not found', async () => {
+    const app = makeApp({ actionsPub: { root: CALL_ROOT, callee: CALLEE } });
+    const r = await dispatch({ url: `/${app.id}/actions/root/step`, orgIds: [ORG], body: { stepIndex: 0, callPath: [0] } });
+    assert.strictEqual(r.statusCode, 404);
+    assert.strictEqual(r.body.error, 'Step not found');
+    assert.strictEqual(stepCalls.length, 0);
+});
+
+test('step: the role gate is the ROOT\'s (403 even when the callee is wired to an open button)', async () => {
+    const app = makeApp({
+        actionsPub: { root: CALL_ROOT, callee: CALLEE },
+        screensPub: screensWith([
+            { id: 'cmp_gated', type: 'button', props: {}, onClick: 'root', visibleToRoles: ['admin'] },
+            { id: 'cmp_open', type: 'button', props: {}, onClick: 'callee' },
+        ]),
+    });
+    const r = await dispatch({ url: `/${app.id}/actions/root/step`, orgIds: [ORG], body: { stepIndex: 0, callPath: [1] } });
+    assert.strictEqual(r.statusCode, 403);
+    assert.strictEqual(stepCalls.length, 0);
+});
+
+test('step: executor notes ride along as a top-level notes array only when present', async () => {
+    const app = makeApp({ actionsPub: { seq: SEQ_ACTION } });
+    stepResult = { ok: true, result: { text: 'x' }, notes: ['The model tier formula did not give a tier name, so the default tier was used.'] };
+    const r = await dispatch({ url: `/${app.id}/actions/seq/step`, orgIds: [ORG], body: { stepIndex: 1 } });
+    assert.deepStrictEqual(r.body, { ok: true, result: { text: 'x' }, notes: ['The model tier formula did not give a tier name, so the default tier was used.'] });
+});

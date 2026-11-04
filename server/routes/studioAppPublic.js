@@ -88,7 +88,7 @@ const { uploadGuard, scanBuffer } = require('../middleware/uploadGuard');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
-const { flattenSteps, normalizeSequence, sanitizeBag } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, sanitizeBag, stepNotes } = require('../appStudio/actionSequence');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
@@ -333,15 +333,13 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         // action that does not exist.
         return res.status(404).json({ error: 'Action not found' });
     }
-    const actions = found.definition.actions;
-    const action = (actions && typeof actions === 'object' && Object.hasOwn(actions, actionId)) ? actions[actionId] : null;
-    if (!action) return res.status(404).json({ error: 'Action not found' });
-
-    const rawIndex = req.body?.stepIndex;
-    const stepIndex = Number.isInteger(rawIndex) ? rawIndex : parseInt(rawIndex, 10);
-    const steps = flattenSteps(normalizeSequence(action));
-    const step = (Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length) ? steps[stepIndex] : null;
-    if (!step || typeof step.kind !== 'string') return res.status(404).json({ error: 'Step not found' });
+    // A called action's step is reached ONLY through callPath from this public
+    // root: posting the callee's own id is the 404 above.
+    const resolved = resolveRequestedStep(found.definition, actionId, req.body?.stepIndex, req.body?.callPath);
+    if ('error' in resolved) {
+        return res.status(404).json({ error: resolved.error === 'action' ? 'Action not found' : 'Step not found' });
+    }
+    const { step, ownerActionId } = resolved;
     if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
         return res.status(400).json({ error: 'This step does not run on the server' });
     }
@@ -356,10 +354,11 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     if (!ctx) return undefined;
 
     const t0 = Date.now();
-    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await actionExecutor.executeDataStep(found.app, ctx.model, step, {
+    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await actionExecutor.executeDataStep(found.app, ctx.model, step, {
         viewerId: ctx.viewerId,
-        // Audit stamp for steps that create durable records (request_approval).
-        actionId,
+        // Audit stamp for steps that create durable records (request_approval):
+        // the action that holds the step (a called action's own id).
+        actionId: ownerActionId,
         // No name, no email: there is no person behind this id, and a
         // `currentUser.name` formula must render empty rather than invent one.
         viewerName: null,
@@ -372,6 +371,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         item: req.body?.item,
         index: Number.isInteger(Number(req.body?.index)) && Number(req.body?.index) >= 0 ? Number(req.body.index) : undefined,
         value: req.body?.value,
+        params: sanitizeBag(req.body?.params),
         viewer: ctx.viewer,
     }));
 
@@ -390,7 +390,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         conversation_id: found.app.id,
     }).catch((e) => bestEffort('routes/studioAppPublic:anon', e));
 
-    if (result && result.ok) return res.json({ ok: true, result: result.result ?? null });
+    if (result && result.ok) return res.json({ ok: true, result: result.result ?? null, ...stepNotes(result) });
     return res.json({
         ok: false,
         error: (result && result.error) || 'Step failed',

@@ -131,7 +131,7 @@ const { loadVisibleApp, assertActionRoleAccess, stepDocumentContext } = require(
 // actionSequence.js: the public route (routes/studioAppPublic.js) resolves
 // steps by the same pre-order index, and two copies of that walk is two ways
 // for one index to mean two different steps. See that module's header.
-const { normalizeSequence, flattenSteps, sanitizeBag } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, sanitizeBag, stepNotes } = require('../appStudio/actionSequence');
 const { validate } = require('../core/http/validate');
 const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
@@ -197,21 +197,14 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     const wantDraft = ['1', 'true'].includes(String(req.query?.draft ?? ''));
     const def = (isOwner && wantDraft) ? app.definition : app.publishedDefinition;
 
-    const action = (def && typeof def === 'object' && def.actions && typeof def.actions === 'object'
-        && Object.hasOwn(def.actions, actionId))
-        ? def.actions[actionId]
-        : null;
-    if (!action) return res.status(404).json({ error: 'Action not found' });
-
-    // Resolve the step FROM THE DEFINITION by its pre-order index.
-    const rawIndex = req.body?.stepIndex;
-    const stepIndex = Number.isInteger(rawIndex) ? rawIndex : parseInt(rawIndex, 10);
-    const steps = flattenSteps(normalizeSequence(action));
-    const step = (Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length)
-        ? steps[stepIndex] : null;
-    if (!step || typeof step.kind !== 'string') {
-        return res.status(404).json({ error: 'Step not found' });
+    // Resolve the step FROM THE DEFINITION by its pre-order index — inside a
+    // called action when the body carries a callPath (the URL keeps the ROOT
+    // action, so the role gate below stays on the action that was clicked).
+    const found = resolveRequestedStep(def, actionId, req.body?.stepIndex, req.body?.callPath);
+    if ('error' in found) {
+        return res.status(404).json({ error: found.error === 'action' ? 'Action not found' : 'Step not found' });
     }
+    const { step, ownerActionId } = found;
     // A client-only kind must never dispatch to the server.
     if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
         return res.status(400).json({ error: 'This step does not run on the server' });
@@ -292,10 +285,11 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     const value = req.body?.value;
 
     const t0 = Date.now();
-    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await actionExecutor.executeDataStep(app, dataModel, step, {
+    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await actionExecutor.executeDataStep(app, dataModel, step, {
         viewerId: userId,
-        // Audit stamp for steps that create durable records (request_approval).
-        actionId,
+        // Audit stamp for steps that create durable records (request_approval):
+        // the action that holds the step (a called action's own id).
+        actionId: ownerActionId,
         // The display name a `currentUser.name` formula reads. Without it
         // every activity/audit row an action wrote recorded an empty "Who" —
         // the editor offered the attribute, the browser resolved it, and the
@@ -313,6 +307,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         item,
         index,
         value,
+        // A called action's params (call_action), read as `params.<name>`.
+        params: sanitizeBag(req.body?.params),
         // The FULL viewer the row filters see (viewer.<attr> params) —
         // same shape buildViewer produces on the data route; a partial one
         // silently matches nothing.
@@ -336,7 +332,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     }).catch((e) => bestEffort('routes/studioAppsRun:anon', e));
 
     if (result && result.ok) {
-        return res.json({ ok: true, result: result.result ?? null });
+        // Step remarks (e.g. a modelTier formula that fell back) ride along only when there are any.
+        return res.json({ ok: true, result: result.result ?? null, ...stepNotes(result) });
     }
     // Forward the executor's error code (e.g. quota_exceeded) so the client
     // can map it to actionable copy instead of the generic failure text.

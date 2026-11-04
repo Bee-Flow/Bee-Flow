@@ -81,4 +81,5 @@ export const STEP_ROWS: readonly StepRow[] = [
     ['condition', 'Flow', 'GitBranch', 'If…', 'Take one path or the other.', 'container'],
     ['switch', 'Flow', 'Layers', 'Depending on…', 'Several paths, one per case.', 'container'],
     ['loop', 'Flow', 'Repeat', 'For each', 'Do the same thing for every row in a list.', 'container'],
+    ['call_action', 'Flow', 'Workflow', 'Run another action', 'Run the steps of another action here, with values you pass in.'],
 ];

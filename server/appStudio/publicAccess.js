@@ -66,6 +66,8 @@
 
 const { collectReferencedActions } = require('./validate');
 const { DATA_MUTATING_STEP_KINDS } = require('./componentSpecs');
+const { closeOverCalls } = require('./actionCalls.mts');
+const { LIMITS } = require('./componentSpecs/limits');
 const { THEME_SPEC, HEX_RE, canonicalizeTheme } = require('../core/cms/themeSpec');
 const { DESIGN_SPEC } = require('./appDesignSpec');
 // The reserved anonymous role. It lives in dataModel because the RLS gateway —
@@ -336,6 +338,13 @@ function buildPublicDefinition(definition, surface) {
     const actions = isObject(definition.actions) ? definition.actions : {};
     for (const id of surface.actionIds) {
         if (Object.hasOwn(actions, id)) out.actions[id] = redactAction(actions[id]);
+    }
+    // The actions a public root CALLS (call_action) ship too, redacted the same
+    // way, so the browser can walk them. They stay out of surface.actionIds: a
+    // callee is reachable only through callPath from a public root, never by
+    // posting its own id.
+    for (const id of closeOverCalls(actions, surface.actionIds, LIMITS.MAX_CALL_DEPTH)) {
+        if (!surface.actionIds.has(id) && Object.hasOwn(actions, id)) out.actions[id] = redactAction(actions[id]);
     }
     // Deliberately absent: `nav`. Its groups name back-office screens, so
     // shipping it would leak the app's internal structure to the open internet.

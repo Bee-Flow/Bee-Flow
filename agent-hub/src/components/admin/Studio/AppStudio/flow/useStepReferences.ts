@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import {
-    automationOptions, collectModals, connectorOptions, datasetOptions, documentOptions,
+    actionRefOptions, automationOptions, collectModals, connectorOptions, datasetOptions, documentOptions,
     screenOptions, tableOptions,
 } from './stepReferences';
 import type { DocumentSource } from './stepReferences';
@@ -46,7 +46,7 @@ async function fetchDatasets(appId: string | null): Promise<DatasetSource> {
     return Array.isArray(body?.datasets) ? body.datasets : [];
 }
 
-export default function useStepReferences(definition: AppDefinition | null | undefined) {
+export default function useStepReferences(definition: AppDefinition | null | undefined, actionId: string | null = null) {
     const { t } = useTranslation();
     const chrome = useEditorChrome();
     const appId = chrome?.appId || null;
@@ -103,6 +103,8 @@ export default function useStepReferences(definition: AppDefinition | null | und
             automation: automationOptions(automationQuery.data),
             connector: connectorOptions(connectors),
             document: documentOptions(documentQuery.data, t),
+            // call_action: the other actions of this app (never the one being edited).
+            action: actionRefOptions(definition?.actions, actionId),
         };
         return {
             options,
@@ -114,5 +116,5 @@ export default function useStepReferences(definition: AppDefinition | null | und
             ),
             appId,
         };
-    }, [definition, rawTables, datasetQuery.data, automationQuery.data, connectors, documentQuery.data, appId, t]);
+    }, [definition, rawTables, datasetQuery.data, automationQuery.data, connectors, documentQuery.data, appId, t, actionId]);
 }

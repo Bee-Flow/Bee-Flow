@@ -210,8 +210,12 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * 54_500 → 55_000 (chips and the own PDF viewer, measured 2026-11-02):
  * page_header.tagsFrom, list.tagsKey and file_preview viewer/textLayer, each
  * description already cut to one clause, took the catalog to 54_571. ~430 headroom.
+ *
+ * 55_000 → 56_000 (App Studio package 1, reusable logic, measured 2026-11-04): the
+ * call_action step and action kind, its params field and one semantics line, and
+ * modelTier as a tier name or formula, took the catalog to 55_436. ~560 headroom.
  */
-const CATALOG_CHAR_CEILING = 55_000;
+const CATALOG_CHAR_CEILING = 56_000;
 
 test('renderCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCatalogText();
@@ -513,7 +517,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-11-03, MAX_ACTION_STEPS 60 -> 120 ("max 120 steps") — 54_572 chars.
 // 2026-11-04, package 9 (limits): 200 actions, depth 8, prompt <=32000, aiSchema/contextSources limits
 // named in the field lists — 54_716 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'c07fdde793c9d458a3157f2936bab3800e4c38b588ad67d20a0a69c5a3b336f2';
+// 2026-11-04, package 1 (reusable logic): call_action (step + action, params, semantics line) and
+// modelTier as tier name | formula — 55_436 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'f218648b0a4b38504a74a85953c2603b533230adc54c1bac4c4c8781be4390d5';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();
@@ -674,4 +680,12 @@ test('the catalog names the AI step limits: prompt, schema description, context 
     assert.ok(text.includes(`description? ≤${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}`));
     assert.ok(text.includes(`[{ label? ≤${LIMITS.MAX_CONTEXT_SOURCE_LABEL}, source: binding }] (≤${LIMITS.MAX_CONTEXT_SOURCES})`));
     assert.ok(text.includes('≤32000'));
+});
+
+test('the guide teaches call_action (params.<name>, depth 3, never recursive) and modelTier as a formula', () => {
+    const text = require('./catalogRender').renderCatalogText();
+    assert.match(text, /call_action \[client\]: \{ actionId: string REQUIRED ≤80, params: \{ <name>: binding \} \(≤20, read as params\.<name> in the called action\)/);
+    assert.match(text, /call_action runs another action as a subroutine.*≤3 calls deep, never recursive/);
+    assert.match(text, /modelTier: tier name \| \{kind:"formula",expr\} \(not a tier name → default tier, with a note\)/);
+    assert.match(require('./catalogRender').renderCompactCatalogText(), /call_action/, 'the compact catalog names the kind');
 });

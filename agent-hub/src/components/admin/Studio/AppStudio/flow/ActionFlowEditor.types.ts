@@ -9,6 +9,8 @@ export interface FlowBodyProps {
     node?: AppNode | null;
     disabled?: boolean;
     formFields?: FormFieldRef[];
+    /** The action being edited (a call_action step cannot pick it). */
+    actionId?: string | null;
 }
 
 export type FlowGraph = { nodes: GraphNode[]; edges: GraphEdge[] };

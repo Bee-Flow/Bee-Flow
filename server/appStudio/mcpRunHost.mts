@@ -14,6 +14,7 @@ import type { StepEndEvent, StepEvent, StepResult, WalkHost, WalkState } from '.
 import { BindingRefusal, resolveRunBinding } from './runBindings.mts';
 import type { ReadData } from './runBindings.mts';
 import { mockStepResult } from './actionTests/mockStep.mts';
+import { ownAction } from './actionCalls.mts';
 import type { MockHelpers } from './actionTests/mockStep.mts';
 
 export type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown; definitionVersion?: number | null };
@@ -81,7 +82,7 @@ function ctxFor(run: Run, w: WalkState): Obj {
     return {
         viewerId: app.userId, actionId: run.opts.actionId, viewerName: null, viewerEmail: null,
         role: 'owner', orgId: app.organizationId || null,
-        formValues: w.form, vars: w.vars,
+        formValues: w.form, vars: w.vars, params: w.params,
         variables: Array.isArray(def.variables) ? def.variables : null,
         item: w.item, index: w.index,
         viewer: { id: app.userId, role: 'owner', organizationId: app.organizationId || null },
@@ -194,6 +195,8 @@ export function hostFor(run: Run): WalkHost {
             return mockStepResult(step, value, { prompt, ...(deps.mockHelpers ? { helpers: deps.mockHelpers } : {}) });
         },
         resolve: (binding, ctx, scope) => resolveFor(run, binding, ctx, scope),
+        // call_action: an own action of the draft the run read (never a prototype key).
+        resolveCallee: (id) => ownAction(run.target.def.actions, id),
         evaluate: (expr, scope) => deps.evaluate(expr, scope),
         buildScope: (ctx) => deps.buildScope(ctx),
         ctxFor: (w) => ctxFor(run, w),

@@ -96,6 +96,8 @@ No request schema.
 | `item` | any |  |  |
 | `index` | integer or null |  |  |
 | `value` | any |  |  |
+| `callPath` | array of integer |  | max items 3 |
+| `params` | object or null |  |  |
 
 ### `POST /api/studio-apps/:id/actions/:actionId/step/stream`
 
@@ -117,6 +119,8 @@ No request schema.
 | `item` | any |  |  |
 | `index` | integer |  | min 0; max 9007199254740991 |
 | `value` | any |  |  |
+| `callPath` | array of integer |  | max items 3 |
+| `params` | object or null |  |  |
 
 ### `GET /api/studio-apps/:id/actions/runs/:runId`
 

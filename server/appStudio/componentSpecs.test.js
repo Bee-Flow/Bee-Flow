@@ -149,7 +149,21 @@ test('stat was extended additively (v1 props still present)', () => {
 // ── Actions / steps ─────────────────────────────────────────────────────────
 
 test('action kinds add open_modal/close_modal, sequence, the native AI actions and create_record', () => {
-    assert.deepEqual(ACTION_KINDS, ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'sequence']);
+    assert.deepEqual(ACTION_KINDS, ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'call_action', 'sequence']);
+});
+
+// call_action (2026-11): one field table for the step and the bare action, a
+// client-side (flow) kind, and `params` a formula root.
+test('call_action is an action AND a step, off one shared field table, with the params root', () => {
+    const { CALL_ACTION_FIELDS, CLIENT_STEP_KINDS, FORMULA_SCOPE_ROOTS, LIMITS } = require('./componentSpecs');
+    assert.equal(ACTION_SPECS.call_action.fields, STEP_SPECS.call_action.fields);
+    assert.equal(ACTION_SPECS.call_action.fields, CALL_ACTION_FIELDS);
+    assert.ok(CLIENT_STEP_KINDS.includes('call_action'));
+    assert.ok(!DATA_MUTATING_STEP_KINDS.includes('call_action'));
+    assert.equal(STEP_KINDS[STEP_KINDS.indexOf('switch') + 1], 'call_action');
+    assert.ok(FORMULA_SCOPE_ROOTS.includes('params'));
+    assert.equal(LIMITS.MAX_CALL_DEPTH, 3);
+    assert.equal(LIMITS.MAX_CALL_PARAMS, 20);
 });
 
 // "Add a row" is one of the four things a button most often does, so it is a

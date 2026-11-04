@@ -152,6 +152,8 @@ const ACTION_STEP_PROPS = {
     resultVar: { type: 'string', description: 'Server steps: variable name the result is written to.' },
     automationId: { type: 'string', description: 'run_automation: the automation id.' },
     inputMapping: { type: 'object', description: 'run_automation: { <param>: {kind:"static",value} | {kind:"field",name,formId?} }.' },
+    actionId: { type: 'string', description: 'call_action: the act_… id of the action to run.' },
+    params: { type: 'object', description: 'call_action: { <name>: binding }, read as params.<name> in the called action.' },
 };
 
 const ACTION_OBJECT_PROPS = {
@@ -167,7 +169,8 @@ const ACTION_OBJECT_PROPS = {
     automationId: { type: 'string', nullable: true, description: 'run_automation: the automation id (null until the user connects one).' },
     inputMapping: { type: 'object', description: 'run_automation: { <param>: {kind:"static",value} | {kind:"field",name,formId?} }.' },
     screenId: { type: 'string', description: 'navigate: scr_… id.' },
-    params: { type: 'object', description: 'navigate: { <key>: {kind:"static",value}|{kind:"formula",expr} } → screen.params.<key>.' },
+    params: { type: 'object', description: 'navigate: { <key>: {kind:"static",value}|{kind:"formula",expr} } → screen.params.<key>. call_action: { <name>: binding } → params.<name> in the called action.' },
+    actionId: { type: 'string', description: 'call_action: the act_… id of the action to run.' },
     message: { type: 'string', description: 'toast text.' },
     tone: { type: 'string', enum: [...TOAST_TONES] },
     modalId: { type: 'string', description: 'open_modal / close_modal: the modal cmp_… id.' },

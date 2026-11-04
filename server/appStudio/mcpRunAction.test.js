@@ -511,3 +511,45 @@ test('the app_run_action description no longer says data bindings are unavailabl
     assert.ok(tool.inputSchema.properties.mock);
     assert.ok(tool.inputSchema.properties.expectVersion);
 });
+
+// ── call_action ─────────────────────────────────────────────────────────────
+
+// buildScope with the params root, as actionExecutor/shared.buildServerScope has it.
+const runDef = (actions, actionId, args = {}) => {
+    appRow.definition = { actions };
+    return runAction({ appId: 'app_1', actionId, ...args }, OWNER, deps({
+        buildScope: (ctx) => ({ vars: ctx.vars, form: ctx.formValues, item: ctx.item, index: ctx.index, params: ctx.params }),
+    }));
+};
+
+test('call_action is followed: the callee step sees params, its result lands in resultVar', async () => {
+    const out = await runDef({
+        act_main: { kind: 'sequence', steps: [
+            { kind: 'call_action', actionId: 'act_sum', params: { n: { kind: 'static', value: 2 } }, resultVar: 'sum' },
+        ] },
+        act_sum: { kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x', resultVar: 'r' }] },
+    }, 'act_main', { dryRun: false });
+    assert.equal(out.ok, true, JSON.stringify(out));
+    assert.equal(executed.length, 1);
+    assert.deepEqual(executed[0].ctx.params, { n: 2 });
+    assert.equal(out.vars.sum, 'a summary');
+    assert.ok(out.steps.some((s) => s.path === 'steps[0].call.steps[0]'), JSON.stringify(out.steps.map((s) => s.path)));
+});
+
+test('a mock on a called action\'s step (steps[0].call.steps[0]) answers instead of the executor', async () => {
+    const out = await runDef({
+        act_main: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'act_sum', resultVar: 'sum' }] },
+        act_sum: { kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x', resultVar: 'r' }] },
+    }, 'act_main', { mock: { 'steps[0].call.steps[0]': 'mocked text' } });
+    assert.equal(out.ok, true, JSON.stringify(out));
+    assert.equal(executed.length, 0);
+    assert.deepEqual(out.vars.sum, { text: 'mocked text', citations: [] });
+});
+
+test('scope.params tests a called action on its own', async () => {
+    const out = await runDef({
+        act_sum: { kind: 'sequence', steps: [{ kind: 'set_variable', name: 'got', value: { kind: 'formula', expr: 'params.n' } }] },
+    }, 'act_sum', { scope: { params: { n: 7 } } });
+    assert.equal(out.ok, true, JSON.stringify(out));
+    assert.equal(out.vars.got, 7);
+});

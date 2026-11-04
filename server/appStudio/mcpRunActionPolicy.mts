@@ -177,12 +177,13 @@ export function limitText(limits: RunLimits, key: keyof RunLimits): string {
 
 // ── Scope ───────────────────────────────────────────────────────────────────
 
-export type RunScope = { vars: Obj; form: Obj; item: unknown };
+/** `params` tests a called action on its own (what call_action would pass as params.<name>). */
+export type RunScope = { vars: Obj; form: Obj; item: unknown; params?: Obj };
 
 /** What a click would have in scope: { vars?, form?, item? }, at most MAX_SCOPE_BYTES. */
 export function readScope(raw: unknown): RunScope | { error: string } {
     if (raw === undefined || raw === null) return { vars: {}, form: {}, item: undefined };
-    if (!isObject(raw)) return { error: 'scope must be an object { vars?, form?, item? }.' };
+    if (!isObject(raw)) return { error: 'scope must be an object { vars?, form?, item?, params? }.' };
     const bag = (v: unknown, name: string): Obj | string => {
         if (v === undefined || v === null) return {};
         if (!isObject(v)) return `scope.${name} must be an object.`;
@@ -190,9 +191,12 @@ export function readScope(raw: unknown): RunScope | { error: string } {
     };
     const vars = bag(raw.vars, 'vars');
     const form = bag(raw.form, 'form');
+    const params = bag(raw.params, 'params');
     if (typeof vars === 'string') return { error: vars };
     if (typeof form === 'string') return { error: form };
+    if (typeof params === 'string') return { error: params };
     if (JSON.stringify(raw).length > MAX_SCOPE_BYTES) return { error: `scope is larger than ${MAX_SCOPE_BYTES / 1024} KB.` };
-    return { vars: { ...vars }, form: { ...form }, item: raw.item };
+    // params only when given: a saved test without it keeps its stored shape.
+    return { vars: { ...vars }, form: { ...form }, item: raw.item, ...(raw.params !== undefined && raw.params !== null ? { params: { ...params } } : {}) };
 }
 

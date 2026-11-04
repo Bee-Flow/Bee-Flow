@@ -179,3 +179,107 @@ test('stepFlow: the child slots of each kind, in the order flattenSteps visits t
     assert.deepEqual(childStepSlots(null), []);
     assert.deepEqual(childStepLists({ kind: 'condition', then: 'x' }), [[], []], 'a malformed list reads as empty');
 });
+
+// ── call_action ─────────────────────────────────────────────────────────────
+
+function callHost(actions, over = {}) {
+    return host({
+        execute: async (step, _f, w) => ({ ok: true, result: { double: (w.params.n ?? 0) * 2, kind: step.kind } }),
+        buildScope: (ctx) => ({ vars: ctx.vars, item: ctx.item, params: ctx.params }),
+        ctxFor: (w) => ({ vars: w.vars, item: w.item, index: w.index, params: w.params }),
+        resolveCallee: (id) => (Object.hasOwn(actions, id) ? actions[id] : null),
+        ...over,
+    });
+}
+
+test('spec: an action calls another with params and uses its result', async () => {
+    const actions = {
+        act_main: { kind: 'sequence', steps: [
+            { kind: 'call_action', actionId: 'act_calc', params: { n: { kind: 'static', value: 2 } }, resultVar: 'calc' },
+            { kind: 'set_variable', name: 'total', value: { kind: 'formula', expr: 'vars.calc.double' } },
+        ] },
+        act_calc: { kind: 'sequence', steps: [{ kind: 'ai_generate' }] },
+    };
+    const h = callHost(actions);
+    const w = newWalkState();
+    await walkAction(w, actions.act_main, h, { actionId: 'act_main' });
+    assert.equal(w.stopped, null);
+    assert.equal(w.vars.total, 4);
+    const inner = h.ends.find((e) => e.path === 'steps[0].call.steps[0]');
+    assert.ok(inner, h.ends.map((e) => e.path).join(', '));
+    assert.equal(inner.ownerActionId, 'act_calc');
+    assert.equal(inner.ordinal, 0, 'ordinals are the callee\'s own');
+    assert.deepEqual(w.params, {}, 'params are restored after the call');
+    const paths = stepPaths(actions.act_main, { resolveCallee: h.resolveCallee, rootId: 'act_main' });
+    assert.deepEqual(paths.map((p) => p.path), ['steps[0]', 'steps[0].call.steps[0]', 'steps[1]']);
+    assert.equal(paths[1].ownerActionId, 'act_calc');
+});
+
+test('call_action: the callee does not inherit item; vars writes carry back', async () => {
+    const actions = {
+        act_main: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'act_sub' }] },
+        act_sub: { kind: 'sequence', steps: [
+            { kind: 'set_variable', name: 'seen', value: { kind: 'formula', expr: 'item' } },
+            { kind: 'set_variable', name: 'mark', value: { kind: 'static', value: 'set' } },
+        ] },
+    };
+    const w = newWalkState({ item: { id: 'r1' } });
+    await walkAction(w, actions.act_main, callHost(actions), { actionId: 'act_main' });
+    assert.equal(w.vars.seen ?? null, null);
+    assert.equal(w.vars.mark, 'set');
+    assert.deepEqual(w.item, { id: 'r1' }, 'the caller keeps its item');
+});
+
+test('call_action: a cycle in a hand-written definition stops the run', async () => {
+    const actions = {
+        act_a: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'act_b' }] },
+        act_b: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'act_a' }] },
+    };
+    const w = newWalkState();
+    await walkAction(w, actions.act_a, callHost(actions), { actionId: 'act_a' });
+    assert.ok(w.stopped);
+    assert.match(w.failed.error, /act_a → act_b → act_a calls itself/);
+});
+
+test('call_action: more than three calls deep is refused; a missing callee fails the step', async () => {
+    const actions = {};
+    for (let i = 0; i < 5; i++) actions[`act_${i}`] = { kind: 'sequence', steps: i < 4 ? [{ kind: 'call_action', actionId: `act_${i + 1}` }] : [{ kind: 'ai_generate' }] };
+    const w = newWalkState();
+    await walkAction(w, actions.act_0, callHost(actions), { actionId: 'act_0' });
+    assert.match(w.failed.error, /more than 3 calls deep/);
+    const w2 = newWalkState();
+    await walkAction(w2, { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'act_gone' }] }, callHost({}), { actionId: 'act_x' });
+    assert.match(w2.failed.error, /no action "act_gone"/);
+    assert.equal(w2.failed.code, 'call_missing');
+});
+
+test('call_action: a send_email inside a callee called from a loop sees the loop', async () => {
+    const actions = {
+        act_main: { kind: 'sequence', steps: [{ kind: 'loop', source: { kind: 'static', value: [1] }, steps: [{ kind: 'call_action', actionId: 'act_mail' }] }] },
+        act_mail: { kind: 'sequence', steps: [{ kind: 'send_email' }] },
+    };
+    const loops = [];
+    const h = callHost(actions, {
+        decide: async (step, f) => {
+            if (step.kind === 'send_email') { loops.push(f.loop); return { run: false, status: 'refused', reason: 'send_email inside a loop' }; }
+            return { run: true, step };
+        },
+    });
+    await walkAction(newWalkState(), actions.act_main, h, { actionId: 'act_main' });
+    assert.equal(loops.length, 1);
+    assert.ok(loops[0], 'the loop frame reaches the callee');
+    assert.equal(h.ends.find((e) => e.path === 'steps[0].steps[0].call.steps[0]').status, 'refused');
+});
+
+test('call_action: a failure inside the callee is the call step\'s failure', async () => {
+    const actions = {
+        act_main: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'act_bad' }, { kind: 'toast' }] },
+        act_bad: { kind: 'sequence', steps: [{ kind: 'ai_generate' }] },
+    };
+    const h = callHost(actions, { execute: async () => ({ ok: false, error: 'boom' }) });
+    const w = newWalkState();
+    await walkAction(w, actions.act_main, h, { actionId: 'act_main' });
+    assert.equal(w.failed.path, 'steps[0]');
+    assert.match(w.failed.error, /act_bad" failed at steps\[0\]\.call\.steps\[0\]: boom/);
+    assert.ok(!h.ends.some((e) => e.path === 'steps[1]'), 'the run stops');
+});

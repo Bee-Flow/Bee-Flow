@@ -26,11 +26,12 @@ interface SelectedStepPanelProps {
     node: SettingsProps['node'];
     screens: SettingsProps['screens'];
     formFields: SettingsProps['formFields'];
+    actionId?: SettingsProps['actionId'];
 }
 
 /** The selected step: its name, move earlier/later and delete, and its settings. */
 export function SelectedStepPanel({
-    t, selected, disabled, canMoveEarlier, canMoveLater, onMove, onRemove, onPatch, definition, node, screens, formFields,
+    t, selected, disabled, canMoveEarlier, canMoveLater, onMove, onRemove, onPatch, definition, node, screens, formFields, actionId = null,
 }: SelectedStepPanelProps) {
     return (
         <div className="flex flex-col gap-3">
@@ -72,6 +73,7 @@ export function SelectedStepPanel({
                 screens={screens}
                 formFields={formFields}
                 disabled={disabled}
+                actionId={actionId}
             />
         </div>
     );

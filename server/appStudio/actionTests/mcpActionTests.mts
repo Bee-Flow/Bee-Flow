@@ -96,7 +96,7 @@ export async function saveTest(args: unknown, userId: string, deps: TestDeps = d
     if ('error' in app) return app;
     if (a.remove === true) return removeTest(deps, app, actionId, a.name);
 
-    const checked = normaliseTestSpec(a, actionOf(app.definition, actionId), actionId);
+    const checked = normaliseTestSpec(a, actionOf(app.definition, actionId), actionId, { resolveCallee: (id) => actionOf(app.definition, id) });
     if ('error' in checked) return checked;
     const capped = await capRefusal(deps, app, actionId, checked.name);
     if (capped) return capped;
@@ -139,7 +139,7 @@ type RunCtx = { target: RunTarget; userId: string; deps: TestDeps; limits: RunLi
 async function runOneTest(c: RunCtx, t: ActionTestRow): Promise<TestReport> {
     const now = c.deps.run.now();
     const action = actionOf(c.target.def, t.actionId);
-    const checked = normaliseTestSpec({ name: t.name, ...t.spec }, action, t.actionId);
+    const checked = normaliseTestSpec({ name: t.name, ...t.spec }, action, t.actionId, { resolveCallee: (id) => actionOf(c.target.def, id) });
     if ('error' in checked) {
         return { ...notRun(t, `The saved test no longer fits the action: ${checked.error}`), status: 'error', ...(checked._fixHint ? { _fixHint: checked._fixHint } : {}) };
     }

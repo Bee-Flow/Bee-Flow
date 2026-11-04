@@ -38,6 +38,7 @@ import { newWalkState, outcomeView, walkAction } from './sequenceWalk.mts';
 import type { OutcomeView } from './sequenceWalk.mts';
 import type { ReadData } from './runBindings.mts';
 import { checkMock } from './actionTests/mockStep.mts';
+import { ownAction } from './actionCalls.mts';
 import { dryRunNote, hostFor } from './mcpRunHost.mts';
 import type { App, Deps, Run, RunDeps, RunOnceOptions, RunOutcome, RunReport, RunTarget } from './mcpRunHost.mts';
 
@@ -53,7 +54,7 @@ export async function runOnce(target: RunTarget, opts: RunOnceOptions, given: Ru
     const limits = { ...runLimits(), ...deps.limits() };
     const actions = isObject(target.def.actions) ? target.def.actions : {};
     const action = (Object.hasOwn(actions, opts.actionId) && isObject(actions[opts.actionId]) ? actions[opts.actionId] : {}) as Obj;
-    const w = newWalkState({ vars: opts.scope.vars, form: opts.scope.form, item: opts.scope.item });
+    const w = newWalkState({ vars: opts.scope.vars, form: opts.scope.form, item: opts.scope.item, params: opts.scope.params });
     const budgetMs = opts.budgetMs ?? limits.budgetMs;
     const run: Run = {
         target, deps, limits, opts, reports: [], reportTruncated: false,
@@ -161,7 +162,7 @@ export async function runAction(args: unknown, userId: string, given: RunDeps = 
     if (!isObject(action)) {
         return { error: `The app has no action "${actionId}".`, _fixHint: `Actions: ${Object.keys(actions).slice(0, 50).join(', ') || '(none)'}.` };
     }
-    const mock = checkMock(parsed.mock, action);
+    const mock = checkMock(parsed.mock, action, { resolveCallee: (id) => ownAction(actions, id), rootId: actionId });
     if ('error' in mock) return mock;
 
     const refused = takeCallBudgets(given, userId, !dryRun);

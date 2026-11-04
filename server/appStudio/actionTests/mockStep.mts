@@ -123,9 +123,12 @@ export function mockStepResult(step: Obj, answer: unknown, opts: { prompt?: stri
     }
 }
 
-/** The walker paths of `action` a mock may name (AI and read steps). */
-export function mockablePaths(action: unknown): StepPath[] {
-    return stepPaths(action).filter((p) => MOCKABLE_KINDS.includes(p.kind));
+/** How a reader follows call_action into the called actions (sequenceWalk.stepPaths opts). */
+export type CallOpts = { resolveCallee?: (id: string) => Obj | null; rootId?: string };
+
+/** The walker paths of `action` a mock may name (AI and read steps), called actions included. */
+export function mockablePaths(action: unknown, opts: CallOpts = {}): StepPath[] {
+    return stepPaths(action, opts).filter((p) => MOCKABLE_KINDS.includes(p.kind));
 }
 
 function listPaths(paths: StepPath[]): string {
@@ -134,9 +137,9 @@ function listPaths(paths: StepPath[]): string {
 }
 
 /** A `mock` argument checked against the action: every key a mockable walker path. */
-export function checkMock(raw: unknown, action: unknown): { mock: Obj } | { error: string; _fixHint: string } {
+export function checkMock(raw: unknown, action: unknown, opts: CallOpts = {}): { mock: Obj } | { error: string; _fixHint: string } {
     if (raw === undefined || raw === null) return { mock: {} };
-    const paths = mockablePaths(action);
+    const paths = mockablePaths(action, opts);
     const hint = `Mockable steps of this action: ${listPaths(paths)}.`;
     if (!isObject(raw)) return { error: 'mock must be an object { "<step path>": <answer> }.', _fixHint: hint };
     const keys = Object.keys(raw);

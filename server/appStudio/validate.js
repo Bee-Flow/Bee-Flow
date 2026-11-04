@@ -65,6 +65,7 @@ const {
 const { checkDesignAndNav, checkPublicAccess } = require('./validate/designChecks');
 const { checkMailboxHooks } = require('./validate/mailboxHookCheck');
 const { validateAction, DATASET_QUERY_OUTPUTS } = require('./validate/actions');
+const { checkCallGraph } = require('./validate/callChecks.mts');
 
 const ID_HINT = 'Ids must match <prefix>_<4-12 lowercase alphanumerics> with prefix scr/sec/cmp/act. Use newId() from componentSpecs.';
 
@@ -348,11 +349,8 @@ function walkScreens(screens, ctx) {
 /** Actions (after the walk — mapping checks need the input names), then the variable warnings. */
 function checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, ctx) {
     const { pushW } = ctx;
-    // ── Actions (after the walk — mapping checks need the input names) ────
     if (actionsObj) {
-        for (const [id, action] of Object.entries(actionsObj)) {
-            validateAction(id, action, `actions.${id}`, ctx);
-        }
+        for (const [id, action] of Object.entries(actionsObj)) validateAction(id, action, `actions.${id}`, ctx);
 
         // An action nothing can reach. Not an error — an app may keep one around
         // while it is being wired up — but it is invisible, and "the button that
@@ -360,7 +358,8 @@ function checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, 
         // The support desk shipped with an assign action wired to nothing, so
         // its "My queue" screen was permanently empty and there was no way to
         // put anything in it.
-        const reached = collectReferencedActions(screens);
+        // checkCallGraph also checks call_action across actions; what a reachable action calls is reachable.
+        const reached = checkCallGraph(actionsObj, ctx, collectReferencedActions(screens));
         for (const id of Object.keys(actionsObj)) {
             if (reached.has(id)) continue;
             pushW({
@@ -444,6 +443,7 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         // Consulted per ai_browse step: a step in an app whose flag is off is
         // an authoring error the builder must surface, not a runtime surprise.
         aiBrowsingEnabled: def.aiBrowsing?.enabled === true,
+        actions: isObject(def.actions) ? def.actions : null,
     };
 }
 

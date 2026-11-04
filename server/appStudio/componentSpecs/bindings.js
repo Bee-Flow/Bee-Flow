@@ -41,6 +41,7 @@ const FORMULA_SCOPE_ROOTS = [
     'item',         // current repeater/loop item
     'index',        // current repeater/loop index
     'value',        // current field/binding value
+    'params',       // call_action params inside a called action ({} otherwise)
     'currentUser',  // { id, name, roles, ... }
     'records',      // { [tableId]: rows }
     'datasets',     // { [datasetId]: rows }

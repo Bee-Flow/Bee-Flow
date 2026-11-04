@@ -56,3 +56,13 @@ test('a valid step reaches the app lookup and answers as before', async () => {
     assert.strictEqual(res.status, 404, res.text);
     assert.ok(db.queries.some((q) => /studio_apps/.test(q)), db.queries.join(' | '));
 });
+
+test('a step inside a called action: callPath is at most 3 whole numbers, params an object', async () => {
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, callPath: [0, 1, 2, 3] }), 'body.callPath', /call_action step positions/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, callPath: [1.5] }), 'body.callPath.0', /call_action step positions/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, params: 'x' }), 'body.params', /params/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, callpath: [0] }), 'body', /"callpath"/);
+    assert.deepStrictEqual(db.queries, []);
+    const res = await post('/actions/a1/step?draft=1', { stepIndex: 0, callPath: [0, 1, 2], params: { n: 1 } });
+    assert.strictEqual(res.status, 404, res.text);
+});

@@ -146,9 +146,11 @@ function logUsage(app, modelId, usage, t0, source) {
  * model supports vision (so extraction can decide text-vs-image). A tier the
  * owner hasn't configured, or 'auto', falls back to a configured tier — never
  * silently to the global default. Throws { status:400 } when no model exists.
+ * `askedTier`/`fellBack` say whether another tier answered; `opts.fromBinding` keeps a formula's tier out of the log.
  * @param {string | undefined} tierName
+ * @param {{ fromBinding?: boolean }} [opts]
  */
-async function resolveOwnerModel(app, tierName) {
+async function resolveOwnerModel(app, tierName, opts = {}) {
     const { getUserTierMap, getTierConfig, canonicalTierName } = require('../core/llm/modelResolver');
     const userOrgId = app.organizationId || null;
     const userId = app.userId;
@@ -170,9 +172,8 @@ async function resolveOwnerModel(app, tierName) {
         // configured would otherwise land on whatever was left, silently — which is
         // how a step written for a reasoning model got answered by a 0.6B local
         // one, for weeks, with nobody able to tell from the outcome.
-        if (asked !== 'auto' && asked !== resolved) {
-            log.warn(`[StudioAppAI] app ${app.id} asked for tier "${asked}" — not configured; using "${resolved}" (${tiers[resolved]?.modelId || 'workspace default'})`);
-        }
+        const what = opts.fromBinding ? 'a tier from a formula' : `tier "${asked}"`;
+        if (asked !== 'auto' && asked !== resolved) log.warn(`[StudioAppAI] app ${app.id} asked for ${what} — not configured; using "${resolved}" (${tiers[resolved]?.modelId || 'workspace default'})`);
     }
 
     let modelId = tiers[resolved]?.modelId || null;
@@ -180,16 +181,13 @@ async function resolveOwnerModel(app, tierName) {
         const globalConfig = await require('../core/aiAgent').getAIConfig().catch((e) => fallback('appStudio/aiRuntime:resolveOwnerModel', e, null));
         modelId = globalConfig?.model || null;
     }
-    if (!modelId) {
-        const e = new Error('No AI model is configured for this workspace');
-        e.status = 400;
-        throw e;
-    }
+    if (!modelId) { const e = new Error('No AI model is configured for this workspace'); e.status = 400; throw e; }
 
     const cfg = await getTierConfig(resolved, { userOrgId, userId }) || {};
     return {
         modelId,
         tierName: resolved,
+        askedTier: asked, fellBack: asked !== 'auto' && asked !== resolved,
         supportsVision: await modelSupportsVision(modelId),
         supportsNativeDocuments: await modelSupportsNativeDocuments(modelId),
         options: {

@@ -204,6 +204,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                             node={node}
                             screens={definition?.screens || []}
                             formFields={formFields}
+                            actionId={actionId}
                             disabled={disabled}
                         />
                     )}
@@ -271,6 +272,7 @@ function EventWiringModal({ flowFor, setFlowFor, t, action, commitAction, defini
                     definition={definition}
                     node={node}
                     formFields={formFields}
+                    actionId={flowFor}
                     disabled={disabled} />
             </div>
         ) : null}

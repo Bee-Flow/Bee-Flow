@@ -64,15 +64,15 @@ function roleAllows(nodeOrScreen, role) {
 // trees for an event wiring (EVENT_NAMES) OR a per-row action
 // (props.rowActions on data_grid, props.itemActions on repeater) naming the
 // action; a wiring counts only when its screen AND every ancestor container
-// clear the gate too. referenced:false means NO node wires the action — it is
-// programmatic (an action step, an onSuccess chain), which role gating never
-// described, so the caller keeps running it.
+// clear the gate too. referenced:false means NO node wires the action and no
+// other action calls it — it is programmatic (an onSuccess chain), which role
+// gating never described, so the caller keeps running it.
 /**
  * @param {{ screens?: unknown } | null | undefined} def
  * @param {string} actionId
  * @param {string | null | undefined} role
  */
-function actionRoleAccess(def, actionId, role) {
+function wiredRoleAccess(def, actionId, role) {
     let referenced = false;
     let allowed = false;
     /**
@@ -109,9 +109,51 @@ function actionRoleAccess(def, actionId, role) {
 }
 
 /**
+ * The actions that call `actionId` through a call_action step, from the
+ * definition's actions map (own properties only).
+ * @param {unknown} actions
+ * @param {string} actionId
+ * @returns {string[]}
+ */
+function callersOf(actions, actionId) {
+    if (!actions || typeof actions !== 'object' || Array.isArray(actions)) return [];
+    const { callTargets, ownAction } = require('../appStudio/actionCalls.mts');
+    return Object.keys(actions).filter((id) => id !== actionId && ownAction(actions, id)
+        && callTargets(ownAction(actions, id)).some((/** @type {{ actionId: string }} */ t) => t.actionId === actionId));
+}
+
+// Role access through calls: a called action is as reachable as the actions
+// that call it. Its own wiring counts as before; on top of that it is allowed
+// when at least one caller is allowed (or is itself programmatic). An action
+// that something calls is never "programmatic", so a direct POST of a callee
+// of an admin-only root is refused like the root. The seen-set bounds a
+// hand-written cycle (the validator rejects those); a cycle grants nothing.
+/**
+ * @param {{ screens?: unknown, actions?: unknown } | null | undefined} def
+ * @param {string} actionId
+ * @param {string | null | undefined} role
+ * @param {Set<string>} [seen]
+ * @returns {{ referenced: boolean, allowed: boolean }}
+ */
+function actionRoleAccess(def, actionId, role, seen = new Set()) {
+    seen.add(actionId);
+    const wired = wiredRoleAccess(def, actionId, role);
+    if (wired.allowed) return wired;
+    let referenced = wired.referenced;
+    for (const caller of callersOf(def?.actions, actionId)) {
+        referenced = true;
+        if (seen.has(caller)) continue;
+        const via = actionRoleAccess(def, caller, role, seen);
+        if (!via.referenced || via.allowed) return { referenced: true, allowed: true };
+    }
+    return { referenced, allowed: false };
+}
+
+/**
  * The role gate for both bridges. Answers 403 itself and returns false when the
  * viewer's role cannot reach the action; returns true otherwise. The owner and
- * any action no node wires (programmatic actions, onSuccess chains) always pass.
+ * any action no node wires and no action calls (onSuccess chains) always pass;
+ * a called action passes when the role can reach one of its callers.
  * @param {import('express').Response} res
  * @param {{ screens?: unknown } | null | undefined} def
  * @param {string} actionId

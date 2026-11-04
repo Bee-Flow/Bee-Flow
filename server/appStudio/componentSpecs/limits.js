@@ -49,6 +49,10 @@ const LIMITS = {
     MAX_ACTION_STEPS: 120,             // steps in one action sequence (recursive count)
     MAX_ACTION_DEPTH: 8,               // sequence nesting: condition/loop/switch branches (8 since 2026-11, was 6; stays === MAX_DEPTH)
     MAX_ACTION_LOOP_ITERATIONS: 200,   // ceiling for loop.maxIterations
+    // call_action (2026-11): an action runs another one as a subroutine. Three
+    // levels keep a chain readable; a cycle is refused outright.
+    MAX_CALL_DEPTH: 3,                 // call_action hops below the clicked action
+    MAX_CALL_PARAMS: 20,               // call_action params map entries
     MAX_DATA_GRID_COLUMNS: 20,         // data_grid columns
     // AI step limits (2026-11). Plain constants, not env: they decide whether a
     // definition is valid, and that must not differ per instance.

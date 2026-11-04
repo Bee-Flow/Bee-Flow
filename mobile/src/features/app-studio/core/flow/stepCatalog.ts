@@ -114,6 +114,7 @@ const FIXED_SEEDS: Readonly<Record<string, () => Record<string, unknown>>> = {
     condition: () => ({ expr: '', then: [], else: [] }),
     switch: () => ({ expr: '', cases: [{ value: '', steps: [] }], default: [] }),
     loop: () => ({ source: stat([]), itemVar: 'item', steps: [] }),
+    call_action: () => ({ actionId: '', params: {} }),
 };
 
 export interface NewStepOptions {

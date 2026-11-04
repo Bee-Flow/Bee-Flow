@@ -246,3 +246,110 @@ describe('useActionRunner — v2 sequence coordinator', () => {
         expect(result.current.actionState.seq.status).toBe('success');
     });
 });
+
+// ── call_action: one action runs another as a subroutine ────────────────────
+// A server step inside a called action posts to the ROOT action's URL with
+// callPath + params; cycles and too-deep chains are refused before any request.
+
+type Def = Parameters<typeof useActionRunner>[1];
+const callDef = (actions: Record<string, unknown>) => stub<Def>({ schemaVersion: 2, actions });
+
+describe('useActionRunner — call_action', () => {
+    beforeEach(() => {
+        asMock(authFetch).mockReset();
+        for (const fn of [toast.success, toast.error, toast.info]) asMock(fn).mockReset();
+    });
+
+    it('spec: a called action\'s server step posts to the ROOT with callPath and params; the result lands in resultVar for a later step', async () => {
+        asMock(authFetch).mockResolvedValue(resp(200, { ok: true, result: { double: 4 } }));
+        const definition = callDef({
+            main: { kind: 'sequence', steps: [
+                { kind: 'toast', message: 'start' },
+                { kind: 'call_action', actionId: 'calc', params: { n: { kind: 'formula', expr: '1 + 1' } }, resultVar: 'calc' },
+                { kind: 'set_variable', name: 'total', value: { kind: 'formula', expr: 'vars.calc.double' } },
+            ] },
+            calc: { kind: 'sequence', steps: [
+                { kind: 'toast', tone: 'success', message: 'inside' },
+                { kind: 'create_record', tableId: 't', values: {} },
+            ] },
+        });
+        const { result } = renderHook(() => useActionRunner('app1', definition));
+        await act(async () => { await result.current.runAction('main'); });
+
+        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(urlOfCall(0)).toContain('/actions/main/step');
+        const body = bodyOfCall(0);
+        expect(body.stepIndex).toBe(1);
+        expect(body.callPath).toEqual([1]);
+        expect(body.params).toEqual({ n: 2 });
+        expect(toast.success).toHaveBeenCalledWith('inside');
+        expect(result.current.vars.calc).toEqual({ double: 4 });
+        expect(result.current.vars.total).toBe(4);
+        expect(result.current.actionState.main?.status).toBe('success');
+    });
+
+    it('the spinner and beforeServerStep fire when the only server step is in the called action', async () => {
+        asMock(authFetch).mockResolvedValue(resp(200, { ok: true, result: { id: 'r1' } }));
+        const beforeServerStep = vi.fn(async () => ({ ok: true }));
+        const definition = callDef({
+            main: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'save' }] },
+            save: { kind: 'create_record', tableId: 't', values: {} },
+        });
+        const { result } = renderHook(() => useActionRunner('app1', definition, { beforeServerStep }));
+        await act(async () => { await result.current.runAction('main'); });
+        expect(beforeServerStep).toHaveBeenCalledTimes(1);
+        expect(bodyOfCall(0).callPath).toEqual([0]);
+        expect(bodyOfCall(0).params).toBeUndefined();
+        expect(result.current.actionState.main?.status).toBe('success');
+    });
+
+    it('a bare call_action on a button runs the called action', async () => {
+        const definition = callDef({
+            btn: { kind: 'call_action', actionId: 'hello', params: { who: { kind: 'static', value: 'Ada' } } },
+            hello: { kind: 'sequence', steps: [{ kind: 'set_variable', name: 'greeting', value: { kind: 'formula', expr: 'params.who' } }] },
+        });
+        const { result } = renderHook(() => useActionRunner('app1', definition));
+        await act(async () => { await result.current.runAction('btn'); });
+        expect(result.current.vars.greeting).toBe('Ada');
+        expect(authFetch).not.toHaveBeenCalled();
+    });
+
+    it('item is not inherited by the called action (pass it as a param)', async () => {
+        const definition = callDef({
+            main: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'sub', params: { row: { kind: 'formula', expr: 'item' } } }] },
+            sub: { kind: 'sequence', steps: [
+                { kind: 'set_variable', name: 'inner', value: { kind: 'formula', expr: 'item' } },
+                { kind: 'set_variable', name: 'passed', value: { kind: 'formula', expr: 'params.row.id' } },
+            ] },
+        });
+        const { result } = renderHook(() => useActionRunner('app1', definition));
+        await act(async () => { await result.current.runAction('main', { item: { id: 'r7' } }); });
+        expect(result.current.vars.inner ?? null).toBeNull();
+        expect(result.current.vars.passed).toBe('r7');
+    });
+
+    it('a cycle is refused with the i18n message and no request', async () => {
+        const definition = callDef({
+            a: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'b' }, { kind: 'create_record', tableId: 't', values: {} }] },
+            b: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'a' }] },
+        });
+        const { result } = renderHook(() => useActionRunner('app1', definition));
+        await act(async () => { await result.current.runAction('a'); });
+        expect(authFetch).not.toHaveBeenCalled();
+        expect(toast.error).toHaveBeenCalledWith('An action cannot run itself, directly or through another action.');
+    });
+
+    it('more than three calls deep, or a missing action, is refused with no request', async () => {
+        const chain: Record<string, unknown> = {};
+        for (let i = 0; i < 5; i++) chain[`a${i}`] = { kind: 'sequence', steps: [i < 4 ? { kind: 'call_action', actionId: `a${i + 1}` } : { kind: 'create_record', tableId: 't', values: {} }] };
+        const { result } = renderHook(() => useActionRunner('app1', callDef(chain)));
+        await act(async () => { await result.current.runAction('a0'); });
+        expect(authFetch).not.toHaveBeenCalled();
+        expect(toast.error).toHaveBeenCalledWith('Actions call each other more than 3 levels deep.');
+
+        asMock(toast.error).mockReset();
+        const missing = renderHook(() => useActionRunner('app1', callDef({ m: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'gone' }] } })));
+        await act(async () => { await missing.result.current.runAction('m'); });
+        expect(toast.error).toHaveBeenCalledWith('This step runs an action that no longer exists.');
+    });
+});

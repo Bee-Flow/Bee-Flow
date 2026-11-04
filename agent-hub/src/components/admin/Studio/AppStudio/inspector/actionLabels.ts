@@ -74,6 +74,10 @@ export function describeAction(
         }
         case 'send_email':
             return t('studio_apps_insp.labels.send_email', 'Send an e-mail');
+        // The called action is named by its kind label only: describing it in
+        // turn could follow a (refused, but stored) cycle.
+        case 'call_action':
+            return t('app_studio.inspector.kind_call_action', 'Run another action');
         // No table NAME here on purpose: the tables live behind a fetch, not in
         // the definition, so this module cannot resolve one. "Add a row to
         // tbl_7f2a" would be worse than saying less.

@@ -165,6 +165,13 @@ function renderComponent(type) {
 // Action / step field rendering — one fragment per field, from the ACTION_SPECS / STEP_SPECS vocabulary.
 // ---------------------------------------------------------------------------
 
+/** @type {Record<string, string>} How a field type with a fixed text reads in the catalog. */
+const FIELD_TYPE_TEXT = {
+    boolean: 'boolean', formula: 'formula expr string (compiled, never executed)', binding: 'binding', effects: 'Effects', stringList: '[string]',
+    inputMapping: '{ <param>: {kind:"static",value} | {kind:"field",name,formId?} }', recordValues: '{ <field key>: binding }', steps: '[Step] (nested)', switchCases: '[{ value, steps: [Step] }]',
+    tierChoice: 'tier name | {kind:"formula",expr} (not a tier name → default tier, with a note)',
+};
+
 /**
  * @param {string} key
  */
@@ -175,21 +182,13 @@ function renderActionField(key, fs) {
         case 'string': bits.push(fs.nullable ? 'string|null' : 'string'); break;
         case 'url': bits.push('https URL'); break;
         case 'enum': bits.push(fs.values.map((v) => JSON.stringify(v)).join('|')); break;
-        case 'boolean': bits.push('boolean'); break;
         case 'int': bits.push('int' + (fs.min !== undefined ? ` ${fs.min}..${fs.max}` : '')); break;
-        case 'formula': bits.push('formula expr string (compiled, never executed)'); break;
-        case 'binding': bits.push('binding'); break;
-        case 'inputMapping': bits.push('{ <param>: {kind:"static",value} | {kind:"field",name,formId?} }'); break;
-        case 'effects': bits.push('Effects'); break;
-        case 'recordValues': bits.push('{ <field key>: binding }'); break;
-        case 'steps': bits.push('[Step] (nested)'); break;
-        case 'switchCases': bits.push('[{ value, steps: [Step] }]'); break;
         case 'navParams': bits.push(`{ <key>: {kind:"static",value}|{kind:"formula",expr} } (≤${LIMITS.MAX_NAVIGATE_PARAMS}, → screen.params.<key>)`); break;
-        case 'stringList': bits.push('[string]'); break;
+        case 'callParams': bits.push(`{ <name>: binding } (≤${LIMITS.MAX_CALL_PARAMS}, read as params.<name> in the called action)`); break;
         case 'aiSchema': case 'contextSources': bits.push(fs.type === 'aiSchema' ? `[{ name, type, description? ≤${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}, required? }] (≤${LIMITS.MAX_AI_SCHEMA_FIELDS})` : `[{ label? ≤${LIMITS.MAX_CONTEXT_SOURCE_LABEL}, source: binding }] (≤${LIMITS.MAX_CONTEXT_SOURCES})`); break;
         case 'approvalQuestions': bits.push('[{ name, label, type: "text"|"textarea"|"number"|"date"|"email"|"select"|"checkbox", required?, options? }] (≤20 approver questions; answers reach onDecided templates as {{answers.<name>}})'); break;
         case 'approvalOnDecided': bits.push('{ tableId, recordId: binding, set: { approved?|rejected?|expired?|cancelled?: { <field key>: literal | "{{answers.<q>}}"|"{{reason}}"|"{{decidedByName}}"|"{{decision}}"|"{{context.<key>}}" } } } (the record write executed when the decision lands)'); break;
-        default: bits.push(fs.type);
+        default: bits.push(Object.hasOwn(FIELD_TYPE_TEXT, fs.type) ? FIELD_TYPE_TEXT[fs.type] : fs.type);
     }
     if (fs.required) bits.push('REQUIRED');
     if (fs.maxLen) bits.push(`≤${fs.maxLen}`);
@@ -368,6 +367,7 @@ function buildCatalogSections() {
         ...ACTION_KINDS.map(renderActionKind),
         `Effects (bounded, never chain): { toast?: {message ≤500, tone ${TOAST_TONES.join('|')}}, navigateTo?: <screenId>|null }`,
         `open_modal/close_modal target a \`modal\` component's cmp_… id — end a save sequence with close_modal so the dialog does not stay open over the form it just submitted. A sequence runs its steps in order (max ${LIMITS.MAX_ACTION_STEPS} steps, nesting ≤${LIMITS.MAX_ACTION_DEPTH}).`,
+        `call_action runs another action as a subroutine: its params.<name> come from \`params\`, it shares vars/form (not item/index/value), its result is the called action's last server result (→ resultVar), its own effects are not applied. ≤${LIMITS.MAX_CALL_DEPTH} calls deep, never recursive; access is the clicked action's (a called action runs on its own only for a role that can reach a caller). On a public page the called actions ship to the browser with the root, so their navigate/open_modal/toast targets are visible there: keep back-office screens out of them.`,
     ].join('\n');
 
     const stepsLead = [

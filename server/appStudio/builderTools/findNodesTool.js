@@ -8,6 +8,7 @@
 
 const { COMPONENT_SPECS, COMPONENT_TYPES } = require('../componentSpecs');
 const { nodeActionRefs } = require('../nodeActionRefs.mts');
+const { callTargets } = require('../actionCalls.mts');
 const { canonicalComponentType } = require('./componentAliases');
 
 // ── app_find_nodes ───────────────────────────────────────────────────
@@ -147,7 +148,11 @@ function applyFindNodes(draftWrap, args = {}) {
             if (tableId && [...tableRefs].some((ref) => json.includes(`"${ref}"`))) reasons.push('touches table');
             if (variable && (json.includes(`vars.${variable}`) || json.includes(`"${variable}"`))) reasons.push('reads/writes variable');
             if (actionId && id === actionId) reasons.push('is this action');
-            else if (actionId && json.includes(actionIdNeedle)) reasons.push('references this action');
+            else if (actionId && json.includes(actionIdNeedle)) {
+                // A call_action names the step that runs it; anything else stays generic.
+                const call = callTargets(action).find((t) => t.actionId === actionId);
+                reasons.push(call ? `calls this action (${call.path})` : 'references this action');
+            }
             if (reasons.length) {
                 push({ kind: 'action', id, type: action?.kind || 'sequence', why: reasons.join('; ') });
             }

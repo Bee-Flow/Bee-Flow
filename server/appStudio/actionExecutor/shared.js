@@ -44,7 +44,7 @@ const SERVER_CURRENT_USER_KEYS = Object.freeze([...CURRENT_USER_KEYS]);
 
 /** The scope ROOTS a server-side formula may read. */
 const SERVER_SCOPE_ROOTS = Object.freeze([
-    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value',
+    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value', 'params',
     'currentUser', 'records', 'datasets', 'now', 'today',
 ]);
 
@@ -79,6 +79,9 @@ function buildServerScope(ctx) {
         // silently read nothing in every server step. Client-supplied at the
         // same trust level as `item`.
         value: ctx.value,
+        // call_action params inside a called action ({} otherwise). Client-supplied
+        // like `item` (sanitizeBag-bounded on the /step routes).
+        params: (ctx.params && typeof ctx.params === 'object' && !Array.isArray(ctx.params)) ? ctx.params : {},
         currentUser: {
             id: ctx.viewerId ?? null,
             // A person's display name is the whole point of an audit column.
@@ -264,7 +267,8 @@ module.exports = {
  * @typedef {{ id?: string|null, role?: string|null, name?: string|null, email?: string|null, organizationId?: string|null }} Viewer
  * @typedef {{
  *   vars?: Record<string, unknown>, variables?: Array<{ name?: string, type?: string, default?: unknown }> | null,
- *   formValues?: Record<string, unknown>, item?: unknown, index?: unknown, value?: unknown, viewerId?: string|null,
+ *   formValues?: Record<string, unknown>, item?: unknown, index?: unknown, value?: unknown, params?: Record<string, unknown>,
+ *   viewerId?: string|null,
  *   viewerName?: string|null, viewerEmail?: string|null, role?: string|null, viewer?: Viewer, orgId?: string|null,
  *   browse?: { send?: (event: string, data: object) => void, isCancelled?: () => boolean }, actionId?: string|null,
  *   def?: object | null,
