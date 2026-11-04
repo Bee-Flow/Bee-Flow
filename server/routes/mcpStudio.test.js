@@ -24,6 +24,9 @@ test('initialize advertises tools and carries the orientation instructions', asy
     // validator rejects, so initialize is where that is said.
     assert.match(res.result.instructions, /studio_get_guide/);
     assert.match(res.result.instructions, /appId/);
+    // Saved action tests are only discoverable if initialize names them.
+    assert.match(res.result.instructions, /app_save_test/);
+    assert.match(res.result.instructions, /app_run_tests/);
 });
 
 test('the server identifies as a DIFFERENT server from /mcp', async () => {

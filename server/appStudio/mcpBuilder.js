@@ -118,7 +118,8 @@ function toMcpTool(fn) {
         || fn.name === 'app_save_as_template'
         || fn.name === 'studio_create_app'
         // Not a definition edit, but with dryRun false it writes records and makes files.
-        || fn.name === 'app_run_action';
+        // A saved test is a row of its own; a test run spends AI budget and writes its status.
+        || ['app_run_action', 'app_save_test', 'app_run_tests'].includes(fn.name);
 
     // Spread the source schema so sibling JSON Schema keys survive, then set
     // the two we own. `required` is deleted rather than left when empty: a
@@ -235,9 +236,10 @@ async function loadDraft(appId, userId) {
 
 async function runGetGuide() {
     const { buildSystemPrompt } = require('./builderPrompt');
-    // toolset 'full' is the same menu this endpoint advertises, so the guide
-    // never names a tool the caller does not have.
-    return { guide: buildSystemPrompt({ toolset: 'full' }) };
+    const { MCP_GUIDE_SECTIONS } = require('./mcpGuide/appendix.mts');
+    // toolset 'full' is the same menu this endpoint advertises, so the guide never names a tool
+    // the caller does not have. MCP-only sections come after it: the in-product prompt is unchanged.
+    return { guide: [buildSystemPrompt({ toolset: 'full' }), ...MCP_GUIDE_SECTIONS].join('\n\n') };
 }
 
 const { runListApps } = require('./mcpListApps.mts');
@@ -343,6 +345,11 @@ async function callTool(name, rawArgs, { userId }) {
     if (name === 'app_run_action') {
         const { runAction } = require('./mcpRunAction.mts');
         return { result: await runAction({ ...args, appId }, userId) };
+    }
+    // Saved action tests: their own table and access rules (save: editors, run: owner), no draft.
+    if (name === 'app_save_test' || name === 'app_run_tests') {
+        const { saveTest, runTests } = require('./actionTests/mcpActionTests.mts');
+        return { result: await (name === 'app_save_test' ? saveTest : runTests)({ ...args, appId }, userId) };
     }
 
     // The checklist lives in the in-product builder chat; over MCP there is

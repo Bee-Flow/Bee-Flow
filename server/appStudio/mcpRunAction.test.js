@@ -16,6 +16,9 @@ let appRow;
 let clock;
 let budget;
 let failOn;
+let reads;
+let readAnswer;
+let budgetCalls;
 
 const pick = (path, root) => String(path).split('.').reduce((o, k) => (o == null ? undefined : o[k]), root);
 
@@ -38,7 +41,8 @@ function deps(over = {}) {
             if (b.kind === 'formula') return pick(b.expr, scope);
             return null;
         },
-        takeBudget: (userId, now) => takeRunBudget(userId, now, budget),
+        readData: async (_app, _model, binding, opts) => { reads.push({ binding, opts }); return readAnswer(binding, opts); },
+        takeBudget: (userId, now) => { budgetCalls += 1; return takeRunBudget(userId, now, budget); },
         audit: async (entry) => { audits.push(entry); },
         log: { warn() {} },
         now: () => clock,
@@ -56,6 +60,7 @@ const kindsRun = () => executed.map((e) => e.step.kind);
 
 beforeEach(() => {
     executed = []; audits = []; failOn = null; clock = 1_000_000; budget = 10;
+    reads = []; readAnswer = () => null; budgetCalls = 0;
     appRow = { id: 'app_1', userId: OWNER, name: 'Desk', organizationId: 'org_1', definition: {} };
     resetRunWindows();
 });
@@ -136,6 +141,18 @@ test('send_email in the switch default and the else branch is held back too', as
     ] }, { scope: { vars: { go: false, mode: 'z' } } });
     assert.equal(executed.length, 0);
     assert.equal(out.steps.filter((s) => s.kind === 'send_email' && s.status === 'skipped').length, 2);
+});
+
+test('dryRun wouldSend resolves `to` like the real email step: a records-bound `to` is not read and has no recipient', async () => {
+    const out = await run({ kind: 'sequence', steps: [
+        { ...EMAIL, to: { kind: 'records', tableId: 'tbl_a', pick: 'email' } },
+    ] });
+    assert.equal(reads.length, 0, 'the preview triggers no data read');
+    assert.equal(executed.length, 0);
+    const mail = out.steps.find((s) => s.kind === 'send_email');
+    assert.equal(mail.status, 'skipped');
+    assert.deepEqual(mail.result, { wouldSend: { to: null, subject: 'Hello', mode: 'send' } });
+    assert.ok(out.notes.some((n) => n.startsWith('steps[0]: send_email does not read a records binding')), 'a note says the step would have no recipient');
 });
 
 // ── Live ────────────────────────────────────────────────────────────────────
@@ -239,13 +256,16 @@ test('the time budget stops the run and says so', async () => {
     assert.match(out.stopped, /time budget/);
 });
 
-test('the per-user rate limit: the eleventh call within a minute is refused, another user is not', async () => {
+test('the per-user rate limit: the eleventh live call within a minute is refused, another user is not', async () => {
+    // Live runs are charged up front. (A dry run is charged only when a step reaches the
+    // executor: see the mock tests below.)
     budget = 10;
-    for (let i = 0; i < 10; i += 1) assert.equal((await run({ kind: 'toast' })).ok, true);
-    const eleventh = await run({ kind: 'toast' });
+    for (let i = 0; i < 10; i += 1) assert.equal((await run({ kind: 'toast' }, { dryRun: false })).ok, true);
+    const eleventh = await run({ kind: 'toast' }, { dryRun: false });
     assert.match(eleventh.error, /Too many app_run_action calls/);
+    assert.match(eleventh.error, /STUDIO_MCP_RUN_ACTION_PER_MINUTE=10/);
     clock += 61_000;
-    assert.equal((await run({ kind: 'toast' })).ok, true, 'the window moves on');
+    assert.equal((await run({ kind: 'toast' }, { dryRun: false })).ok, true, 'the window moves on');
     assert.equal(takeRunBudget('someone_else', clock, 10), true);
 });
 
@@ -302,4 +322,192 @@ test('app_run_action right after app_set_action runs the new definition (read fr
     const second = await runAction({ appId: 'app_1', actionId: 'act_1', dryRun: false }, OWNER, d);
     assert.equal(second.definitionVersion, 2);
     assert.deepEqual(kindsRun(), ['ai_generate'], 'the second run used the new action, not the old toast');
+});
+
+// ── Data bindings on the server (like a click) ─────────────────────────────────
+
+test('a loop over a records binding runs in app_run_action', async () => {
+    const rows = [{ id: 'r1', title: 'One' }, { id: 'r2', title: 'Two' }, { id: 'r3', title: 'Three' }];
+    readAnswer = (binding) => (binding.kind === 'records' ? rows : null);
+    const source = { kind: 'records', tableId: 'tbl_tickets', filter: [{ field: 'status', op: 'eq', value: { kind: 'formula', expr: 'vars.status' } }] };
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'loop', source, itemVar: 'row', steps: [{ kind: 'ai_generate', prompt: 'Summarise {{vars.row.title}}' }] },
+    ] }, { scope: { vars: { status: 'open' } } });
+    assert.equal(out.ok, true);
+    assert.deepEqual(executed.map((e) => e.ctx.item), rows, 'the body ran once per row, with item = that row');
+    assert.deepEqual(executed.map((e) => e.ctx.vars.row.id), ['r1', 'r2', 'r3']);
+    assert.equal(reads.length, 1);
+    assert.equal(reads[0].binding.limit, 50, 'no limit on the binding: what a screen gets');
+    assert.equal(reads[0].opts.maxRows, 200, 'a loop source reads at most the loop cap');
+    assert.equal(reads[0].opts.role, 'owner');
+    // The formula-valued filter is resolved by the read, through resolveValue.
+    assert.equal(reads[0].opts.resolveValue(source.filter[0].value), 'open');
+    assert.deepEqual(out.steps[0].result, { iterations: 3 });
+    assert.deepEqual(out.steps.filter((s) => s.kind === 'ai_generate').map((s) => s.iteration), [0, 1, 2]);
+    assert.equal(out.notes.join(' ').includes('not available'), false);
+});
+
+test('set_variable from a record binding applies its path; a null read says why', async () => {
+    readAnswer = (binding) => (binding.tableId === 'tbl_a' ? { id: 'r1', customer: { name: 'Ada' } } : null);
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'set_variable', name: 'who', value: { kind: 'record', tableId: 'tbl_a', path: 'customer.name' } },
+        { kind: 'set_variable', name: 'gone', value: { kind: 'records', tableId: 'tbl_missing' } },
+    ] });
+    assert.equal(out.ok, true);
+    assert.equal(out.vars.who, 'Ada');
+    assert.equal(out.vars.gone, null);
+    assert.match(out.notes.join(' '), /steps\[1\]: the records binding returned nothing .*app_query_data/);
+});
+
+test('a required filter without a value reads no rows and does not query', async () => {
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'set_variable', name: 'rows', value: { kind: 'records', tableId: 'tbl_a', filter: [{ field: 'ticket', op: 'eq', value: { kind: 'formula', expr: 'vars.ticket' }, required: true }] } },
+    ] });
+    assert.deepEqual(out.vars.rows, []);
+    assert.equal(reads.length, 0);
+    assert.match(out.notes.join(' '), /required filter/);
+});
+
+test('a safe refusal from the read stops the run with its message', async () => {
+    readAnswer = () => { const e = new Error('This table is linked to a datatable you can no longer read'); e.safe = true; e.status = 501; throw e; };
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'loop', source: { kind: 'records', tableId: 'tbl_a' }, steps: [{ kind: 'ai_generate' }] },
+        { kind: 'ai_generate' },
+    ] });
+    assert.equal(out.ok, false);
+    assert.equal(out.stopped, 'steps[0] failed');
+    assert.equal(out.steps[0].error, 'This table is linked to a datatable you can no longer read');
+    assert.equal(executed.length, 0);
+});
+
+test('an unsafe read failure is "returned nothing", never its message', async () => {
+    readAnswer = () => { throw new Error('relation "secret_internal" does not exist'); };
+    const out = await run({ kind: 'sequence', steps: [{ kind: 'set_variable', name: 'x', value: { kind: 'records', tableId: 'tbl_a' } }] });
+    assert.equal(out.ok, true);
+    assert.equal(JSON.stringify(out).includes('secret_internal'), false);
+});
+
+test('the read cap stops the run and names the variable', async () => {
+    readAnswer = () => [{ id: 1 }];
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'loop', source: { kind: 'formula', expr: 'vars.n' }, steps: [{ kind: 'set_variable', name: 'r', value: { kind: 'records', tableId: 'tbl_a' } }] },
+    ] }, { scope: { vars: { n: [1, 2, 3, 4] } } }, OWNER, { limits: () => ({ perMinute: budget, budgetMs: 60_000, maxExecuted: 500, maxReads: 2 }) });
+    assert.equal(out.ok, false);
+    assert.equal(reads.length, 2);
+    assert.match(out.steps.find((s) => s.status === 'error').error, /more than 2 times \(STUDIO_MCP_RUN_ACTION_MAX_READS=2\)/);
+});
+
+test('a binding that returns its limit says so', async () => {
+    readAnswer = (_b, opts) => Array.from({ length: 50 }, (_, i) => ({ id: i, max: opts.maxRows }));
+    const out = await run({ kind: 'sequence', steps: [{ kind: 'set_variable', name: 'r', value: { kind: 'records', tableId: 'tbl_a' } }] });
+    assert.match(out.notes.join(' '), /returned its limit of 50 rows/);
+});
+
+// ── expectVersion ─────────────────────────────────────────────────────────────
+
+test('expectVersion: a mismatch is refused before any budget is taken', async () => {
+    appRow.definitionVersion = 7;
+    const out = await run({ kind: 'sequence', steps: [{ kind: 'ai_generate' }] }, { expectVersion: 6, dryRun: false });
+    assert.match(out.error, /The saved draft is version 7, not 6/);
+    assert.match(out._fixHint, /app_get_action/);
+    assert.equal(budgetCalls, 0);
+    assert.equal(executed.length, 0);
+    const ok = await run({ kind: 'sequence', steps: [{ kind: 'ai_generate' }] }, { expectVersion: 7 });
+    assert.equal(ok.ok, true);
+    assert.equal(ok.definitionVersion, 7);
+    const bad = await run({ kind: 'toast' }, { expectVersion: 'x' });
+    assert.match(bad.error, /expectVersion/);
+});
+
+// ── Mocks ────────────────────────────────────────────────────────────────────
+
+test('a mocked ai_generate never reaches the executor; resultVar gets { text }', async () => {
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'ai_generate', prompt: 'Summarise {{vars.ticket}}', resultVar: 'summary', writeTo: { tableId: 'tbl_a' } },
+        { kind: 'set_variable', name: 'copy', value: { kind: 'formula', expr: 'vars.summary.text' } },
+    ] }, { mock: { 'steps[0]': 'A short summary' }, scope: { vars: { ticket: 'T-1' } } });
+    assert.equal(out.ok, true);
+    assert.equal(executed.length, 0, 'not sent to executeStep');
+    assert.equal(out.steps[0].mocked, true);
+    assert.deepEqual(out.vars.summary, { text: 'A short summary', citations: [] });
+    assert.equal(out.vars.copy, 'A short summary');
+    assert.equal(out.free, true);
+    assert.equal(out.mocked, 1);
+    assert.equal(budgetCalls, 0);
+});
+
+test('a mocked $error fails the step and stops the run', async () => {
+    const out = await run({ kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x' }, { kind: 'ai_generate', prompt: 'y' }] },
+        { mock: { 'steps[0]': { $error: 'The model refused', $code: 'refused' } } });
+    assert.equal(out.ok, false);
+    assert.equal(out.stopped, 'steps[0] failed');
+    assert.equal(out.steps[0].error, 'The model refused');
+    assert.equal(out.steps[0].code, 'refused');
+    assert.equal(executed.length, 0);
+});
+
+test('a mock key that is not a mockable step is refused with the mockable paths', async () => {
+    const action = { kind: 'sequence', steps: [{ kind: 'toast' }, { kind: 'condition', expr: 'vars.x', then: [{ kind: 'ai_extract' }] }] };
+    const out = await run(action, { mock: { 'steps[0]': 'x' } });
+    assert.match(out.error, /"steps\[0\]", not an AI or read step/);
+    assert.match(out._fixHint, /steps\[1\]\.then\[0\] \(ai_extract\)/);
+    const typo = await run(action, { mock: { 'steps[9]': 'x' } });
+    assert.match(typo.error, /not an AI or read step/);
+    const shape = await run(action, { mock: ['x'] });
+    assert.match(shape.error, /mock must be an object/);
+    assert.equal(budgetCalls, 0);
+});
+
+test('budget: fully mocked dry runs are free, an unmocked AI step pays, a live run pays up front, the free window still holds', async () => {
+    budget = 2;
+    const ai = { kind: 'sequence', steps: [{ kind: 'toast' }, { kind: 'ai_generate', prompt: 'p' }] };
+    assert.equal((await run(ai)).free, false, 'unmocked: charged when the AI step runs');
+    assert.equal((await run(ai)).free, false);
+    for (let i = 0; i < 11; i += 1) {
+        const mocked = await run(ai, { mock: { 'steps[1]': 'ok' } });
+        assert.equal(mocked.ok, true);
+        assert.equal(mocked.free, true);
+    }
+    const spent = await run(ai);
+    assert.equal(spent.ok, false);
+    assert.equal(spent.steps[1].code, 'rate_limited');
+    assert.match(spent.steps[1].error, /steps\[1\] \(ai_generate\) is not mocked and would call the model; mock it to run for free/);
+    assert.equal(spent.steps[0].status, 'skipped', 'the client step before it was walked normally');
+    const live = await run({ kind: 'toast' }, { dryRun: false });
+    assert.match(live.error, /Too many app_run_action calls/, 'a live run is charged up front');
+    // The hygiene window: every call takes it, mocked or not.
+    resetRunWindows();
+    const limits = () => ({ perMinute: 10, budgetMs: 60_000, maxExecuted: 500, freePerMinute: 3 });
+    for (let i = 0; i < 3; i += 1) assert.equal((await run({ kind: 'toast' }, {}, OWNER, { limits })).ok, true);
+    const fourth = await run({ kind: 'toast' }, {}, OWNER, { limits });
+    assert.match(fourth.error, /limit 3 per minute per user, STUDIO_MCP_RUN_ACTION_FREE_PER_MINUTE=3/);
+});
+
+test('the default free window is 120 calls a minute', async () => {
+    for (let i = 0; i < 120; i += 1) assert.equal((await run({ kind: 'toast' })).ok, true);
+    const over = await run({ kind: 'toast' });
+    assert.match(over.error, /limit 120 per minute per user/);
+});
+
+test('dryRun: a record write shows the values and record id it would use; send_email has no body', async () => {
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'update_record', tableId: 'tbl_a', recordId: { kind: 'formula', expr: 'vars.id' }, values: { status: { kind: 'static', value: 'done' }, note: { kind: 'formula', expr: 'form.note' } } },
+        EMAIL,
+    ] }, { scope: { vars: { id: 'r7' }, form: { note: 'checked' } } });
+    assert.deepEqual(out.steps[0].result, { wouldWrite: { kind: 'update_record', tableId: 'tbl_a', values: { status: 'done', note: 'checked' }, recordId: 'r7' } });
+    assert.equal(JSON.stringify(out).includes('SECRET BODY'), false);
+});
+
+test('every report step carries its duration', async () => {
+    const out = await run({ kind: 'sequence', steps: [{ kind: 'toast' }, { kind: 'ai_generate' }] });
+    assert.ok(out.steps.every((s) => typeof s.ms === 'number' && s.ms >= 0));
+});
+
+test('the app_run_action description no longer says data bindings are unavailable, and documents mock and expectVersion', () => {
+    const { buildToolList } = require('./mcpBuilder');
+    const tool = buildToolList().find((t) => t.name === 'app_run_action');
+    assert.equal(/not available/i.test(tool.description), false);
+    assert.match(tool.description, /records binding/);
+    assert.ok(tool.inputSchema.properties.mock);
+    assert.ok(tool.inputSchema.properties.expectVersion);
 });

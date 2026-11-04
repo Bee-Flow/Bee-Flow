@@ -2,7 +2,9 @@
  * app_run_action over the Studio MCP: run one action of an app on the server to TEST it,
  * with a per-step report. Steps go through the same executor a button click uses
  * (actionExecutor.executeDataStep), as the app owner, so row access, quotas and the AI
- * budget behave as they do there.
+ * budget behave as they do there. The walk itself is the shared server walker
+ * (sequenceWalk.mts) with the MCP host of mcpRunHost.mts (policy per step, the executor choke
+ * point, mocks, reads, report); this file is the entry: access, arguments, budgets, audit.
  *
  * Because it runs as the owner (their mailbox, connectors and AI budget), the rules are tight:
  *   - WHO: only when the caller IS the owner. An editor with write access is refused: running
@@ -11,238 +13,77 @@
  *   - dryRun (the default): nothing is written, nothing is sent. Record writes, file writers,
  *     automations and approvals are reported as "would ..." and skipped; send_email is never
  *     executed; the AI steps (ai_extract, ai_generate, kb_query, dataset_query) do run, without
- *     their writeTo, and cost the owner's AI budget like a click. Client steps are skipped.
+ *     their writeTo, and cost the owner's AI budget like a click, unless the call gives them a
+ *     fixed answer (`mock`). Client steps are skipped.
  *   - dryRun false: the steps run for real, except those that reach people or need a viewer:
  *     send_email only with mode "draft" (a draft in the mailbox, never a send), and never inside
  *     a loop; run_automation, request_approval, ai_browse and copy_document are refused.
- *   - ONE choke point: every step reaches the executor through runGuarded(), which re-checks
- *     the send_email rule on the step it is about to run. Branches, switch cases and loops all
- *     recurse into the same walker, so nesting cannot bypass it.
- *   - caps: a per-user rate limit, a step count, a loop-iteration cap, a time budget, a
- *     trimmed report (no big payloads, secret-looking keys redacted).
+ *   - ONE choke point: every step reaches the executor through the host's execute(), which
+ *     re-checks the send_email rule on the step it is about to run. Branches, switch cases and
+ *     loops all recurse into the same walker, so nesting cannot bypass it.
+ *   - data bindings (record / records / aggregate) are READ on the server, like a click
+ *     (runBindings.mts): a loop over a records binding iterates the rows.
+ *   - caps: a per-user rate limit (a live run is charged up front; a dry run only when a step
+ *     first reaches the executor, so a fully mocked dry run is free), a free hygiene window per
+ *     call, a read cap, a step count, a loop-iteration cap, a time budget, a trimmed report (no
+ *     big payloads, secret-looking keys redacted).
  */
 
 import { createRequire } from 'node:module';
 import {
-    CONTROL_KINDS, MAX_ERROR_CHARS, MAX_LOOP_ITERATIONS, MAX_REPORT_STEPS, MAX_SCOPE_BYTES,
-    decideStep, isObject, resetRunWindows, runLimits, short, takeRunBudget, trimResult, trimValue,
+    LIMIT_ENV, isObject, limitText, readScope, resetRunWindows, runLimits, takeFreeBudget, takeRunBudget, trimValue,
 } from './mcpRunActionPolicy.mts';
-import type { Obj, RunLimits, Step } from './mcpRunActionPolicy.mts';
+import type { Obj, RunScope } from './mcpRunActionPolicy.mts';
+import { newWalkState, outcomeView, walkAction } from './sequenceWalk.mts';
+import type { OutcomeView } from './sequenceWalk.mts';
+import type { ReadData } from './runBindings.mts';
+import { checkMock } from './actionTests/mockStep.mts';
+import { dryRunNote, hostFor } from './mcpRunHost.mts';
+import type { App, Deps, Run, RunDeps, RunOnceOptions, RunOutcome, RunReport, RunTarget } from './mcpRunHost.mts';
 
-export { resetRunWindows, takeRunBudget, trimValue };
+export type { App, RunDeps, RunOnceOptions, RunReport, RunTarget, StepReport, StepStatus, RunOutcome } from './mcpRunHost.mts';
+
+export { resetRunWindows, takeRunBudget, takeFreeBudget, trimValue };
 
 const nodeRequire = createRequire(import.meta.url);
 
-type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown; definitionVersion?: number | null };
-type StepResult = { ok: boolean; result?: unknown; error?: string };
-
-export type StepStatus = 'ok' | 'skipped' | 'refused' | 'error';
-export type StepReport = { path: string; kind: string; status: StepStatus; result?: unknown; error?: string };
-export type RunReport = {
-    ok: boolean; dryRun: boolean; actionId: string; definitionVersion?: number; steps: StepReport[]; vars?: unknown;
-    stopped?: string; truncated?: boolean; notes: string[];
-};
-export type RunOutcome = RunReport | { error: string; _fixHint?: string };
-
-export type RunDeps = {
-    getApp: (appId: string) => Promise<App | null>;
-    canWrite: (app: App, userId: string) => boolean;
-    getDataModel: (appId: string, ownerId: string) => Promise<unknown>;
-    executeStep: (app: App, model: unknown, step: Step, ctx: Obj) => Promise<StepResult>;
-    evaluate: (expr: string, scope: unknown) => unknown;
-    buildScope: (ctx: Obj) => unknown;
-    resolveBinding: (binding: unknown, ctx: Obj, scope: unknown) => unknown;
-    takeBudget: (userId: string, now: number) => boolean;
-    audit: (entry: Obj, app: App, userId: string) => Promise<void>;
-    log: { warn: (...a: unknown[]) => void };
-    now: () => number;
-    limits: () => RunLimits;
-};
-
-
-// ── The walk ────────────────────────────────────────────────────────────────
-
-type Run = {
-    app: App; model: unknown; def: Obj; actionId: string; userId: string; dryRun: boolean;
-    vars: Obj; form: Obj; item: unknown; index: unknown;
-    reports: StepReport[]; executed: number; deadline: number; maxExecuted: number;
-    stopped: string | null; truncated: boolean; failed: boolean; notes: Set<string>;
-    deps: RunDeps;
-};
-
-function ctxFor(run: Run): Obj {
-    const { app, def } = run;
-    return {
-        viewerId: app.userId, actionId: run.actionId, viewerName: null, viewerEmail: null,
-        role: 'owner', orgId: app.organizationId || null,
-        formValues: run.form, vars: run.vars,
-        variables: Array.isArray(def.variables) ? def.variables : null,
-        item: run.item, index: run.index,
-        viewer: { id: app.userId, role: 'owner', organizationId: app.organizationId || null },
+/** One walk of one action against a target read once. Never audits (the caller does). */
+export async function runOnce(target: RunTarget, opts: RunOnceOptions, given: RunDeps = defaultDeps()): Promise<{ report: RunReport; view: OutcomeView; executed: number }> {
+    const deps = withDefaults(given);
+    const limits = { ...runLimits(), ...deps.limits() };
+    const actions = isObject(target.def.actions) ? target.def.actions : {};
+    const action = (Object.hasOwn(actions, opts.actionId) && isObject(actions[opts.actionId]) ? actions[opts.actionId] : {}) as Obj;
+    const w = newWalkState({ vars: opts.scope.vars, form: opts.scope.form, item: opts.scope.item });
+    const budgetMs = opts.budgetMs ?? limits.budgetMs;
+    const run: Run = {
+        target, deps, limits, opts, reports: [], reportTruncated: false,
+        charged: opts.chargeUpFront, chargedHere: false, reads: 0, mocked: 0, current: '',
+        deadline: budgetMs ? deps.now() + budgetMs : 0, w,
     };
-}
-
-function report(run: Run, entry: StepReport): void {
-    if (run.reports.length >= MAX_REPORT_STEPS) { run.truncated = true; return; }
-    run.reports.push(entry);
-}
-
-const same = (a: unknown, b: unknown): boolean => a === b || (a != null && b != null && String(a) === String(b));
-
-/** The only place a step reaches the executor. Re-checks the send_email rule on what it is about to run. */
-async function runGuarded(run: Run, step: Step, inLoop: boolean): Promise<StepResult> {
-    if (step.kind === 'send_email' && (run.dryRun || inLoop || step.mode !== 'draft')) {
-        return { ok: false, error: 'send_email is not allowed here' };
-    }
-    return run.deps.executeStep(run.app, run.model, step, ctxFor(run));
-}
-
-function wouldSendOf(run: Run, step: Step): Obj {
-    const ctx = ctxFor(run);
-    const scope = run.deps.buildScope(ctx);
-    const read = (b: unknown): unknown => {
-        if (b === undefined || b === null) return null;
-        try { return run.deps.resolveBinding(b, ctx, scope); } catch { return null; }
+    await walkAction(w, action, hostFor(run), { actionId: opts.actionId });
+    const view = outcomeView(w);
+    const truncated = w.truncated || run.reportTruncated;
+    const report: RunReport = {
+        ok: !w.failed && !(w.stopped && truncated),
+        dryRun: opts.dryRun, actionId: opts.actionId, steps: run.reports,
+        // The saved version the run read, read fresh from the store: compare it with app_set_action's `version`.
+        ...(typeof target.app.definitionVersion === 'number' ? { definitionVersion: target.app.definitionVersion } : {}),
+        vars: trimValue(w.vars),
+        notes: [...w.notes, ...(opts.dryRun ? [dryRunNote(run)] : [])],
+        free: !run.chargedHere && !opts.chargeUpFront,
+        mocked: run.mocked,
     };
-    const to = read(step.to);
-    return {
-        to: Array.isArray(to) ? to.slice(0, 10).map((v) => short(v, 120)) : short(to, 200),
-        subject: short(read(step.subject), 200),
-        mode: step.mode === 'draft' ? 'draft' : 'send',
-    };
-}
-
-async function execLeaf(run: Run, step: Step, path: string, inLoop: boolean): Promise<void> {
-    const kind = String(step.kind);
-    if (kind === 'set_variable') {
-        const name = typeof step.name === 'string' ? step.name : '';
-        if (!name) { report(run, { path, kind, status: 'error', error: 'set_variable has no name' }); run.failed = true; return; }
-        const ctx = ctxFor(run);
-        const value = run.deps.resolveBinding(step.value, ctx, run.deps.buildScope(ctx));
-        run.vars = { ...run.vars, [name]: value };
-        report(run, { path, kind, status: 'ok', result: trimResult({ [name]: value }) });
-        return;
-    }
-    const decision = decideStep(step, run.dryRun, inLoop, kind === 'send_email' ? wouldSendOf(run, step) : undefined);
-    if (!decision.run) {
-        report(run, { path, kind, status: decision.status, error: decision.reason, ...(decision.result !== undefined ? { result: trimResult(decision.result) } : {}) });
-        return;
-    }
-    run.executed += 1;
-    let res: StepResult;
-    try {
-        res = await runGuarded(run, decision.step, inLoop);
-    } catch (e) {
-        res = { ok: false, error: (e as Error)?.message || 'Step failed' };
-    }
-    if (!res || res.ok !== true) {
-        run.failed = true;
-        run.stopped = `${path} failed`;
-        report(run, { path, kind, status: 'error', error: String(res?.error || 'Step failed').slice(0, MAX_ERROR_CHARS) });
-        return;
-    }
-    if (typeof step.resultVar === 'string' && step.resultVar) run.vars = { ...run.vars, [step.resultVar]: res.result ?? null };
-    report(run, { path, kind, status: 'ok', result: trimResult(res.result ?? null), ...(decision.note ? { error: decision.note } : {}) });
-}
-
-function overBudget(run: Run): string | null {
-    if (run.deadline && run.deps.now() > run.deadline) return 'time budget used up';
-    if (run.maxExecuted && run.executed >= run.maxExecuted) return `step limit of ${run.maxExecuted} executed steps reached`;
-    return null;
-}
-
-async function walkSteps(run: Run, list: unknown, base: string, inLoop: boolean): Promise<void> {
-    const steps = Array.isArray(list) ? list : [];
-    for (let i = 0; i < steps.length; i += 1) {
-        if (run.stopped) return;
-        const stop = overBudget(run);
-        if (stop) { run.stopped = stop; run.truncated = true; return; }
-        const step = steps[i] as Step | null;
-        const path = `${base}[${i}]`;
-        if (!isObject(step) || typeof step.kind !== 'string') {
-            report(run, { path, kind: '(invalid)', status: 'error', error: 'Not a step object' });
-            run.failed = true; run.stopped = `${path} is not a step`;
-            return;
-        }
-        await walkStep(run, step as Step, path, inLoop);
-    }
-}
-
-async function walkStep(run: Run, step: Step, path: string, inLoop: boolean): Promise<void> {
-    const kind = String(step.kind);
-    if (!CONTROL_KINDS.includes(kind)) return execLeaf(run, step, path, inLoop);
-    const ctx = ctxFor(run);
-    const scope = run.deps.buildScope(ctx);
-    if (kind === 'condition') {
-        const value = run.deps.evaluate(String(step.expr ?? ''), scope);
-        report(run, { path, kind, status: 'ok', result: { branch: value ? 'then' : 'else' } });
-        return walkSteps(run, value ? step.then : step.else, `${path}.${value ? 'then' : 'else'}`, inLoop);
-    }
-    if (kind === 'switch') {
-        const value = run.deps.evaluate(String(step.expr ?? ''), scope);
-        const cases = Array.isArray(step.cases) ? step.cases as Array<{ value?: unknown; steps?: unknown }> : [];
-        const at = cases.findIndex((c) => c && same(c.value, value));
-        report(run, { path, kind, status: 'ok', result: { case: at >= 0 ? at : 'default' } });
-        return walkSteps(run, at >= 0 ? cases[at].steps : step.default, at >= 0 ? `${path}.cases[${at}].steps` : `${path}.default`, inLoop);
-    }
-    return walkLoop(run, step, path, scope, ctx);
-}
-
-async function walkLoop(run: Run, step: Step, path: string, scope: unknown, ctx: Obj): Promise<void> {
-    const source = run.deps.resolveBinding(step.source, ctx, scope);
-    if (!Array.isArray(source)) {
-        run.notes.add(`${path}: the loop source did not resolve to a list on the server (table and record bindings are not available here); pass the rows in scope.vars and bind the loop to them.`);
-        report(run, { path, kind: 'loop', status: 'skipped', error: 'source did not resolve to a list', result: { iterations: 0 } });
-        return;
-    }
-    const own = typeof step.maxIterations === 'number' && step.maxIterations > 0 ? step.maxIterations : MAX_LOOP_ITERATIONS;
-    const cap = Math.min(own, MAX_LOOP_ITERATIONS);
-    const count = Math.min(source.length, cap);
-    if (source.length > count) run.notes.add(`${path}: looped ${count} of ${source.length} rows (cap ${cap}).`);
-    report(run, { path, kind: 'loop', status: 'ok', result: { iterations: count } });
-    const outer = { vars: run.vars, item: run.item, index: run.index };
-    for (let n = 0; n < count && !run.stopped; n += 1) {
-        run.item = source[n];
-        run.index = n;
-        const bound: Obj = {};
-        if (typeof step.itemVar === 'string' && step.itemVar) bound[step.itemVar] = source[n];
-        if (typeof step.indexVar === 'string' && step.indexVar) bound[step.indexVar] = n;
-        run.vars = { ...run.vars, ...bound };
-        await walkSteps(run, step.steps, `${path}.steps`, true);
-    }
-    // itemVar/indexVar are iteration-scoped, as in the browser; other writes carry on.
-    const carried: Obj = { ...run.vars };
-    for (const name of [step.itemVar, step.indexVar]) {
-        if (typeof name !== 'string' || !name) continue;
-        if (Object.hasOwn(outer.vars, name)) carried[name] = outer.vars[name]; else delete carried[name];
-    }
-    run.vars = carried;
-    run.item = outer.item;
-    run.index = outer.index;
+    if (w.stopped) report.stopped = w.stopped;
+    if (truncated) report.truncated = true;
+    return { report, view, executed: w.executed };
 }
 
 // ── Entry ───────────────────────────────────────────────────────────────────
 
 const ID_RE = /^[A-Za-z0-9_-]{1,80}$/;
 
-function readScope(raw: unknown): { vars: Obj; form: Obj; item: unknown } | { error: string } {
-    if (raw === undefined || raw === null) return { vars: {}, form: {}, item: undefined };
-    if (!isObject(raw)) return { error: 'scope must be an object { vars?, form?, item? }.' };
-    const bag = (v: unknown, name: string): Obj | string => {
-        if (v === undefined || v === null) return {};
-        if (!isObject(v)) return `scope.${name} must be an object.`;
-        return v;
-    };
-    const vars = bag(raw.vars, 'vars');
-    const form = bag(raw.form, 'form');
-    if (typeof vars === 'string') return { error: vars };
-    if (typeof form === 'string') return { error: form };
-    if (JSON.stringify(raw).length > MAX_SCOPE_BYTES) return { error: `scope is larger than ${MAX_SCOPE_BYTES / 1024} KB.` };
-    return { vars: { ...vars }, form: { ...form }, item: raw.item };
-}
-
 /** The access decision, taken now: write access (resolution failure = deny), then ownership. */
-async function authorize(deps: RunDeps, appId: string, userId: string): Promise<{ app: App } | { error: string; _fixHint?: string }> {
+async function authorize(deps: RunDeps, appId: string, userId: string, tool: string): Promise<{ app: App } | { error: string; _fixHint?: string }> {
     let app: App | null = null;
     try { app = await deps.getApp(appId); } catch { app = null; }
     if (!app || !deps.canWrite(app, userId)) {
@@ -250,66 +91,100 @@ async function authorize(deps: RunDeps, appId: string, userId: string): Promise<
     }
     if (app.userId !== userId) {
         return {
-            error: 'app_run_action runs as the app owner and is only available to the owner. You can edit this app, but running an action would use the owner\'s mailbox, connectors and AI budget without the owner acting.',
+            error: `${tool} runs as the app owner and is only available to the owner. You can edit this app, but running an action would use the owner's mailbox, connectors and AI budget without the owner acting.`,
             _fixHint: 'Ask the owner to run it (their token), or test the pieces with app_dry_run.',
         };
     }
     return { app };
 }
 
-export async function runAction(args: unknown, userId: string, deps: RunDeps = defaultDeps()): Promise<RunOutcome> {
+/** Authorise (owner only) and read the draft and its data model once. */
+export async function loadRunTarget(given: RunDeps, appId: string, userId: string, tool = 'app_run_action'): Promise<RunTarget | { error: string; _fixHint?: string }> {
+    const auth = await authorize(given, appId, userId, tool);
+    if ('error' in auth) return auth;
+    const { app } = auth;
+    const def = (isObject(app.definition) ? app.definition : {}) as Obj;
+    let model: unknown = null;
+    try { model = (await given.getDataModel(app.id, app.userId) as { model?: unknown } | null)?.model ?? null; } catch { model = null; }
+    return { app, def, model };
+}
+
+/** The free window, then (live only) the paid budget. A refusal names the variable. */
+export function takeCallBudgets(deps: RunDeps, userId: string, live: boolean, tool = 'app_run_action'): { error: string } | null {
+    const d = withDefaults(deps);
+    const limits = { ...runLimits(), ...d.limits() };
+    if (!d.takeFreeBudget(userId, d.now())) {
+        return { error: `Too many ${tool} calls (limit ${limits.freePerMinute} per minute per user, ${limitText(limits, 'freePerMinute')}), mocked or not. Wait a minute and run fewer.` };
+    }
+    if (live && !d.takeBudget(userId, d.now())) {
+        return { error: `Too many ${tool} calls (limit ${limits.perMinute} per minute per user, ${limitText(limits, 'perMinute')}). Wait a minute and run fewer.` };
+    }
+    return null;
+}
+
+function versionMismatch(app: App, expect: unknown): { error: string; _fixHint: string } | null {
+    if (expect === undefined || expect === null) return null;
+    if (app.definitionVersion === expect) return null;
+    return {
+        error: `The saved draft is version ${app.definitionVersion ?? '(none)'}, not ${String(expect)}: something saved the app in between (the Studio editor autosaves).`,
+        _fixHint: 'Re-read with app_get_action and run again.',
+    };
+}
+
+function readArgs(args: unknown): { appId: string; actionId: string; dryRun: boolean; scope: RunScope; expectVersion: unknown; mock: unknown } | { error: string } {
     const a = isObject(args) ? args : {};
     const appId = typeof a.appId === 'string' ? a.appId.trim() : '';
     const actionId = typeof a.actionId === 'string' ? a.actionId : '';
     if (!appId) return { error: 'app_run_action needs an appId.' };
     if (!ID_RE.test(actionId)) return { error: 'app_run_action needs the actionId of an action of the app.' };
-    const dryRun = a.dryRun !== false;
+    if (a.expectVersion !== undefined && a.expectVersion !== null && !(Number.isInteger(a.expectVersion) && (a.expectVersion as number) >= 0)) {
+        return { error: 'expectVersion must be the draft version as a whole number (app_get_action returns it).' };
+    }
     const scope = readScope(a.scope);
     if ('error' in scope) return { error: scope.error };
+    return { appId, actionId, dryRun: a.dryRun !== false, scope, expectVersion: a.expectVersion, mock: a.mock };
+}
 
-    const auth = await authorize(deps, appId, userId);
-    if ('error' in auth) return auth;
-    const { app } = auth;
+export async function runAction(args: unknown, userId: string, given: RunDeps = defaultDeps()): Promise<RunOutcome> {
+    const parsed = readArgs(args);
+    if ('error' in parsed) return parsed;
+    const { appId, actionId, dryRun, scope } = parsed;
 
-    const limits = deps.limits();
-    if (!deps.takeBudget(userId, deps.now())) {
-        return { error: `Too many app_run_action calls (limit ${limits.perMinute} per minute per user). Wait a minute and run fewer.` };
-    }
+    const target = await loadRunTarget(given, appId, userId);
+    if ('error' in target) return target;
+    const { app, def } = target;
 
-    const def = (isObject(app.definition) ? app.definition : {}) as Obj;
+    const stale = versionMismatch(app, parsed.expectVersion);
+    if (stale) return stale;
     const actions = isObject(def.actions) ? def.actions : {};
     const action = Object.hasOwn(actions, actionId) ? actions[actionId] : null;
     if (!isObject(action)) {
         return { error: `The app has no action "${actionId}".`, _fixHint: `Actions: ${Object.keys(actions).slice(0, 50).join(', ') || '(none)'}.` };
     }
+    const mock = checkMock(parsed.mock, action);
+    if ('error' in mock) return mock;
 
-    let model: unknown = null;
-    try { model = (await deps.getDataModel(app.id, app.userId) as { model?: unknown } | null)?.model ?? null; } catch { model = null; }
+    const refused = takeCallBudgets(given, userId, !dryRun);
+    if (refused) return refused;
 
-    const run: Run = {
-        app, model, def, actionId, userId, dryRun,
-        vars: scope.vars, form: scope.form, item: scope.item, index: undefined,
-        reports: [], executed: 0, deadline: limits.budgetMs ? deps.now() + limits.budgetMs : 0, maxExecuted: limits.maxExecuted,
-        stopped: null, truncated: false, failed: false, notes: new Set(), deps,
-    };
-    const top = action.kind === 'sequence' ? action.steps : [action];
-    await walkSteps(run, top, action.kind === 'sequence' ? 'steps' : 'action', false);
-
-    await deps.audit({ actionId, dryRun, executed: run.executed, steps: run.reports.length, failed: run.failed }, app, userId);
-    const out: RunReport = {
-        ok: !run.failed && !(run.stopped && run.truncated),
-        dryRun, actionId, steps: run.reports,
-        // The saved version the run read, read fresh from the store: compare it with app_set_action's `version`.
-        ...(typeof app.definitionVersion === 'number' ? { definitionVersion: app.definitionVersion } : {}),
-        vars: trimValue(run.vars),
-        notes: [...run.notes, ...(dryRun ? ['dryRun: nothing was written or sent. AI steps ran and cost the owner\'s AI budget like a click.'] : [])],
-    };
-    if (run.stopped) out.stopped = run.stopped;
-    if (run.truncated) out.truncated = true;
-    return out;
+    const { report, executed } = await runOnce(target, { actionId, userId, dryRun, scope, mock: mock.mock, chargeUpFront: !dryRun }, given);
+    await given.audit({
+        actionId, dryRun, executed, steps: report.steps.length, failed: !report.ok, mocked: report.mocked, free: report.free,
+    }, app, userId);
+    return report;
 }
 
-function defaultDeps(): RunDeps {
+/** Fill the optional deps (a test passes only what it controls). */
+function withDefaults(deps: RunDeps): Deps {
+    return {
+        ...deps,
+        readData: deps.readData ?? ((app, model, binding, opts) => (nodeRequire('./stepDataSource.js') as { resolveDataBinding: ReadData }).resolveDataBinding(app, model, binding, opts)),
+        takeFreeBudget: deps.takeFreeBudget ?? ((uid, now) => takeFreeBudget(uid, now, { ...runLimits(), ...deps.limits() }.freePerMinute)),
+        promptOf: deps.promptOf ?? ((step, ctx) => (nodeRequire('./actionExecutor/aiSteps.js') as { interpolatePrompt: (t: unknown, c: Obj) => string }).interpolatePrompt(step.prompt, ctx)),
+    };
+}
+
+export function defaultDeps(): RunDeps {
     return {
         getApp: (appId) => nodeRequire('../stores/studioAppStore').getStudioApp(appId),
         canWrite: (app, userId) => nodeRequire('../stores/studioAppStore').canWriteStudioApp(app, userId),
@@ -334,3 +209,5 @@ function defaultDeps(): RunDeps {
         limits: () => runLimits(),
     };
 }
+
+export { LIMIT_ENV };

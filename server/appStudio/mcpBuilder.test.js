@@ -127,6 +127,34 @@ test('the guide is the same one the in-product builder gets', async () => {
     assert.match(result.guide, /call `app_list_automations` for the owner's automations/);
 });
 
+test('the guide appends the MCP-only sections; the in-product prompt does not carry them', async () => {
+    const { buildSystemPrompt } = require('./builderPrompt');
+    const { result } = await mcpBuilder.callTool('studio_get_guide', {}, { userId: 'u1' });
+    const inProduct = buildSystemPrompt({ toolset: 'full' });
+    assert.match(result.guide, /## Testing actions \(MCP\)/);
+    assert.ok(result.guide.startsWith(inProduct), 'the builder prompt comes first, unchanged');
+    assert.equal(inProduct.includes('Testing actions'), false);
+    assert.equal(buildSystemPrompt().includes('Testing actions'), false);
+    assert.match(result.guide, /app_save_test/);
+    assert.match(result.guide, /app_run_tests/);
+});
+
+test('the saved-test tools are advertised as writes with appId required', () => {
+    const tools = new Map(mcpBuilder.buildToolList().map((t) => [t.name, t]));
+    for (const name of ['app_save_test', 'app_run_tests']) {
+        const tool = tools.get(name);
+        assert.ok(tool, `${name} is listed`);
+        assert.equal(tool.annotations.readOnlyHint, false, `${name} is a write`);
+        assert.ok(tool.inputSchema.required.includes('appId'));
+    }
+    assert.deepEqual(tools.get('app_save_test').inputSchema.required, ['appId', 'actionId', 'name']);
+});
+
+test('app_save_test and app_run_tests never reach the draft loader without an appId', async () => {
+    const { result } = await mcpBuilder.callTool('app_run_tests', {}, { userId: 'u1' });
+    assert.match(result.error, /needs an appId/);
+});
+
 test('the screenshot budget is per user and refills', () => {
     const { takeScreenshotBudget, SHOT_MAX_PER_WINDOW, _shotBudget } = mcpBuilder._test;
     _shotBudget.clear();

@@ -2994,6 +2994,20 @@ declare namespace DbRow {
         payload_hash: string | null;
         processed_at: Date;
     }
+    /** Row of `studio_app_action_tests`. */
+    interface StudioAppActionTests {
+        action_id: string;
+        app_id: string;
+        created_at: Date;
+        created_by: string | null;
+        id: string;
+        last_run_at: Date | null;
+        last_status: string | null;
+        name: string;
+        spec: Json;
+        updated_at: Date;
+        updated_by: string | null;
+    }
     /** Row of `studio_app_attachments`. */
     interface StudioAppAttachments {
         app_id: string;
