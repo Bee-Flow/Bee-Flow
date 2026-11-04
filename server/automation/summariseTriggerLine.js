@@ -57,6 +57,7 @@ function triggerStateLine(t, graph) {
     const id = t.id || 'trg';
     if (t.kind === 'layer_input') {
         const params = (t.params || []).map((p) => (typeof p === 'string' ? p : p.name)).filter(Boolean);
+        // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format -- a markdown line for the model's prompt, never HTML
         return `  - \`${id}\` trigger:layer_input  inputs: ${params.join(', ') || '(none)'}  (bind inside as trigger.output.<name>)`;
     }
     if (t.kind === 'form') {

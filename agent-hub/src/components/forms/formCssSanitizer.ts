@@ -151,6 +151,7 @@ function unquotedUrlEnd(src: string, paren: number, before: string): number {
     const ident = /(?:^|[^\w\\-])((?:[\w-]|\\[0-9a-fA-F]{1,6}\s?|\\[^\r\n\f])+)$/.exec(before);
     if (!ident || decodeAllEscapes(ident[1]).toLowerCase() !== 'url') return -1;
     let i = paren + 1;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- tests ONE character, no backtracking
     while (i < src.length && /\s/.test(src[i])) i += 1;
     if (src[i] === '"' || src[i] === "'") return -1;
     while (i < src.length) {
@@ -229,6 +230,7 @@ class Scanner {
 /** How many characters from `i` form one opaque token (escape, string, unquoted url), or 0 for a plain one. */
 function opaqueLength(src: string, i: number, seg: string): number {
     const c = src[i];
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- tests ONE character, no backtracking
     if (c === '\\') return i + 1 < src.length && !/[\r\n\f]/.test(src[i + 1]) ? 2 : 0;
     if (c === '"' || c === "'") return stringEnd(src, i) - i;
     if (c === '(') {
