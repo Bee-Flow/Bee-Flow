@@ -16,6 +16,12 @@
  * Refused before anything runs: a child of another kind, a missing table, a
  * table backed by a Studio datatable (another store: no shared rollback), a
  * role that may not write. Quotas are checked once, before the batch.
+ *
+ * A filter-mode update/delete child (package 5, PLAN decision 12) is ONE
+ * set-based statement with a limited subquery, so it also sees rows an earlier
+ * child created in the same batch; it carries no expectChanges (zero matches is
+ * fine) and its result is `{ changed }`. A filter value that resolves to nothing
+ * blocks that child: no statement, a note, the other children still commit.
  */
 
 import { createRequire } from 'node:module';
@@ -26,7 +32,7 @@ type Obj = Record<string, unknown>;
 type App = { id: string; userId: string; organizationId?: string | null };
 type Table = Obj & { key: string; id?: string };
 type Statement = { sql: string; params: unknown[]; expectChanges?: boolean };
-type Planned = { kind: string; table: Table; statement: Statement; result: Obj; expectedUpdatedAt: string | null; resultVar: string | null };
+type Planned = { kind: string; table: Table; statement: Statement | null; result: Obj; expectedUpdatedAt: string | null; resultVar: string | null; bulk?: boolean; note?: string };
 
 const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS } = nodeRequire('../../shared/appDefinition/stepFlow.mjs') as {
     TRANSACTION_CHILD_KINDS: readonly string[]; MAX_TRANSACTION_STEPS: number;
@@ -52,6 +58,11 @@ type Deps = {
     };
     records: { bumpVersion(app: App, key: string): Promise<void>; bumpCount(app: App, key: string, delta: number): Promise<void> };
     describeStepError(e: unknown, step: unknown): { ok: false; error: string; code: string; retryable: boolean };
+    bulk: {
+        compileDeleteMatching(t: Table, f: unknown[], a: unknown, o: Obj): { sql: string; params: unknown[] };
+        compileUpdateMatching(t: Table, v: Obj, f: unknown[], a: unknown, o: Obj): { sql: string; params: unknown[] };
+        clampBulkLimit(l: unknown): number;
+    };
 };
 
 /**
@@ -84,6 +95,7 @@ function defaultDeps(): Deps {
         shared: nodeRequire('./shared'),
         records: bookkeepingStore(),
         describeStepError: (nodeRequire('./stepErrors.mts') as { describeStepError: Deps['describeStepError'] }).describeStepError,
+        bulk: nodeRequire('../../core/dataEngine/queryCompilerBulk.mts'),
     };
 }
 
@@ -124,6 +136,7 @@ function planChild(d: Deps, app: App, model: unknown, child: Obj, i: number, ctx
         const c = d.queryCompiler.compileInsert(table, values, { createdBy: viewer.id ?? null, orgId: app.organizationId || null });
         return { kind, table, statement: { sql: c.sql, params: c.params }, result: { id: c.id, created: true }, expectedUpdatedAt: null, resultVar };
     }
+    if (child.filter !== undefined && child.filter !== null) return planFilterChild(d, { table, child, i, kind, ctx, scope, viewer, resultVar });
     const recordId = d.shared.coerceRecordId(d.shared.resolveBinding(child.recordId, ctx, scope));
     if (!recordId) return refuse(`${label(i, kind)}: Record not found. Nothing was saved.`, 'transaction_rolled_back');
     const op = kind === 'update_record' ? 'update' : 'delete';
@@ -138,6 +151,34 @@ function planChild(d: Deps, app: App, model: unknown, child: Obj, i: number, ctx
     }
     const c = d.queryCompiler.compileDelete(table, recordId, filter);
     return { kind, table, statement: { sql: c.sql, params: c.params, expectChanges: true }, result: { id: recordId, deleted: true, changes: 1 }, expectedUpdatedAt: null, resultVar };
+}
+
+type FilterChild = { table: Table; child: Obj; i: number; kind: string; ctx: Obj; scope: unknown; viewer: Obj; resultVar: string | null };
+
+/** A filter-mode update/delete child: one limited set-based statement, or a blocked no-op. */
+function planFilterChild(d: Deps, c: FilterChild): Planned | Refusal {
+    const op = c.kind === 'update_record' ? 'update' : 'delete';
+    const role = c.viewer.role ?? null;
+    d.rls.assertCanWrite(c.table, role, op);
+    const { resolveStrictFilters, WriteFilterError } = nodeRequire('./writeTarget.mts') as typeof import('./writeTarget.mts');
+    let strict;
+    try {
+        strict = resolveStrictFilters(c.child.filter, (b) => d.shared.resolveBinding(b, c.ctx, c.scope));
+    } catch (e) {
+        if (e instanceof WriteFilterError) return refuse(`${label(c.i, c.kind)}: ${e.message} Nothing was saved.`, 'transaction_invalid');
+        throw e;
+    }
+    const base = { kind: c.kind, table: c.table, expectedUpdatedAt: null, resultVar: c.resultVar, bulk: true };
+    if (strict.blocked) {
+        const note = `${label(c.i, c.kind)}: the filter value for "${strict.field}" was empty, so no rows were changed.`;
+        return { ...base, statement: null, result: { changed: 0 }, note };
+    }
+    const access = d.rls.compileAccessFilter(c.table, role, c.viewer, op);
+    const limit = d.bulk.clampBulkLimit(c.child.limit);
+    const compiled = op === 'update'
+        ? d.bulk.compileUpdateMatching(c.table, d.shared.resolveValues(c.child.values, c.ctx, c.scope), strict.filters, access, { limit })
+        : d.bulk.compileDeleteMatching(c.table, strict.filters, access, { limit });
+    return { ...base, statement: { sql: compiled.sql, params: compiled.params }, result: { changed: 0 } };
 }
 
 /** Every child planned in order, with resultVars accumulating; or the first refusal. */
@@ -169,8 +210,10 @@ async function assertQuotas(d: Deps, app: App, plan: Planned[]): Promise<void> {
 function rolledBack(d: Deps, e: unknown, plan: Planned[], step: Obj): Refusal | ReturnType<Deps['describeStepError']> {
     const err = e as { code?: unknown; statementIndex?: unknown };
     if (err && err.code === 'batch_no_rows' && Number.isInteger(err.statementIndex)) {
-        const i = err.statementIndex as number;
-        const p = plan[i];
+        // The batch counts only the children that compiled to a statement.
+        const ran = plan.filter((x) => x.statement);
+        const p = ran[err.statementIndex as number];
+        const i = p ? plan.indexOf(p) : (err.statementIndex as number);
         const why = p && p.expectedUpdatedAt
             ? 'This record was changed by someone else — refresh and try again.'
             : 'Record not found.';
@@ -184,7 +227,9 @@ function rolledBack(d: Deps, e: unknown, plan: Planned[], step: Obj): Refusal | 
 async function bookkeeping(d: Deps, app: App, plan: Planned[]): Promise<void> {
     const delta = new Map<string, number>();
     for (const p of plan) {
-        const n = p.kind === 'create_record' ? 1 : p.kind === 'delete_record' ? -1 : 0;
+        if (!p.statement) continue;
+        const removed = p.bulk ? Number(p.result.changed) || 0 : 1;
+        const n = p.kind === 'create_record' ? 1 : p.kind === 'delete_record' ? -removed : 0;
         delta.set(p.table.key, (delta.get(p.table.key) ?? 0) + n);
     }
     for (const [key, n] of delta) {
@@ -209,11 +254,22 @@ export async function transactionStep(app: App, model: unknown, step: Obj, ctx: 
     if ('ok' in planned) return planned;
     const { plan, vars } = planned;
     await assertQuotas(d, app, plan);
+    const ran = plan.filter((p) => p.statement);
+    let outcomes: unknown[];
     try {
-        await d.db.batch(app.userId, app.id, plan.map((p) => p.statement));
+        outcomes = ran.length ? await d.db.batch(app.userId, app.id, ran.map((p) => p.statement as Statement)) : [];
     } catch (e) {
         return rolledBack(d, e, plan, step);
     }
+    // A filter-mode child's result is the number of rows its statement changed.
+    ran.forEach((p, k) => {
+        if (!p.bulk) return;
+        const o = Array.isArray(outcomes) ? outcomes[k] as { changes?: unknown } | undefined : undefined;
+        p.result.changed = Number(o && o.changes) || 0;
+    });
     await bookkeeping(d, app, plan);
-    return { ok: true, result: { results: plan.map((p) => p.result), vars, count: plan.length } };
+    const notes = plan.map((p) => p.note).filter((n): n is string => !!n);
+    const result: Obj = { results: plan.map((p) => p.result), vars, count: plan.length };
+    if (notes.length) result.notes = notes;
+    return notes.length ? { ok: true, notes, result } : { ok: true, result };
 }

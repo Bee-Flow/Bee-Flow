@@ -8,6 +8,11 @@ import type { AppAction, AppDefinition, AppNode, AppScreen, FormFieldRef } from 
 import type { StepSettingsProps, FieldSpec, StepReferences } from '../StepSettings.types';
 import { CANVAS_TYPES, AI_AUTHORED_TYPES, IGNORED_FIELDS } from './StepSettings.constants';
 import { StepField } from './StepField';
+import RecordTargetField from './RecordTargetField';
+
+/** update/delete_record: recordId | filter + limit are one "which rows" control (RecordTargetField). */
+const RECORD_TARGET_KINDS = new Set(['update_record', 'delete_record']);
+const RECORD_TARGET_FIELDS = new Set(['filter', 'limit']);
 
 /**
  * One step's settings, rendered FROM THE SPEC rather than hand-written per kind.
@@ -74,7 +79,10 @@ export default function StepSettings({ step, onChange, definition, node = null, 
             <p className="text-xs text-[var(--text-secondary)]">{meta.blurb}</p>
             {step.kind === 'fill_document' && <DocumentFillFields step={step} onChange={set} definition={definition} node={node} formFields={formFields} disabled={disabled}/>}
 
-            {fields.map(([key, fs]) => (
+            {fields.map(([key, fs]) => (RECORD_TARGET_KINDS.has(step.kind) && (RECORD_TARGET_FIELDS.has(key) || (key === 'expectedUpdatedAt' && step.filter != null)) ? null
+                : RECORD_TARGET_KINDS.has(step.kind) && key === 'recordId' ? (
+                    <RecordTargetField key={key} step={step} onChange={onChange} definition={definition} node={node} disabled={disabled} />
+                ) : (
                 <StepField
                     key={key}
                     fieldKey={key}
@@ -89,7 +97,7 @@ export default function StepSettings({ step, onChange, definition, node = null, 
                     formFields={formFields}
                     disabled={disabled}
                 />
-            ))}
+            )))}
 
             {meta.server ? (
                 <p className="text-[11px] text-[var(--text-secondary)]">

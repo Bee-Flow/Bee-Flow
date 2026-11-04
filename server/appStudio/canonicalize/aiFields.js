@@ -8,7 +8,7 @@
 
 const { isObject, truncate, deepCopy } = require('./shared');
 const { LIMITS } = require('../componentSpecs/limits');
-const { cleanBinding } = require('./bindings');
+const { cleanBinding, cleanRecordFilter } = require('./bindings');
 
 // ── Native AI field cleaners (shared by cleanStep + canonAction) ─────────────
 const AI_SCHEMA_TYPES = new Set(['string', 'number', 'boolean', 'date', 'array', 'object']);
@@ -89,6 +89,11 @@ function cleanAiWriteTo(v, path, push) {
     //     a blank answer never erases a person's correction or a default.
     if (v.insertMissing === false) out.insertMissing = false;
     if (v.fillOnly === true) out.fillOnly = true;
+    cleanUpsertKey(v, out, path, push);
+    if (v.replaceWhere !== undefined && v.replaceWhere !== null) {
+        const r = cleanRecordFilter(v.replaceWhere, `${path}.replaceWhere`, push, { tableId: out.tableId });
+        if (r !== undefined) out.replaceWhere = r;
+    }
     // Provenance columns stamped on every extracted row. Only kept when there is
     // something to keep, so an absent `constants` stays absent rather than
     // padding every existing definition with an empty object.
@@ -107,6 +112,35 @@ function cleanAiWriteTo(v, path, push) {
     return out;
 }
 
+
+/**
+ * writeTo.upsertKey (package 5): a list of 1..5 distinct column keys. A bare string becomes a
+ * one-column list; an upsertOn that is part of the key is folded into it. Absent stays absent.
+ * @param {Record<string, any>} v
+ * @param {Record<string, any>} out
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function cleanUpsertKey(v, out, path, push) {
+    if (v.upsertKey === undefined || v.upsertKey === null) return;
+    let raw = v.upsertKey;
+    if (typeof raw === 'string') {
+        push('writeto.upsert_key_coerced', `${path}.upsertKey`, 'upsertKey is a list of columns: wrapped the single column in a list.');
+        raw = [raw];
+    }
+    if (!Array.isArray(raw)) { out.upsertKey = deepCopy(raw); return; } // wrong type left for validate.js
+    const cols = [...new Set(raw.filter((c) => typeof c === 'string' && c))];
+    if (cols.length > LIMITS.MAX_UPSERT_KEY_COLUMNS) {
+        push('writeto.upsert_key_cut', `${path}.upsertKey`, `upsertKey takes at most ${LIMITS.MAX_UPSERT_KEY_COLUMNS} columns: kept the first ${LIMITS.MAX_UPSERT_KEY_COLUMNS}.`);
+    }
+    const key = cols.slice(0, LIMITS.MAX_UPSERT_KEY_COLUMNS);
+    if (!key.length) return;
+    out.upsertKey = key;
+    if (typeof out.upsertOn === 'string' && key.includes(out.upsertOn)) {
+        delete out.upsertOn;
+        push('writeto.upsert_on_folded', `${path}.upsertOn`, 'upsertOn is part of upsertKey: dropped upsertOn.');
+    }
+}
 
 /**
  * `contextSources` — extra LABELLED context an AI step may read.

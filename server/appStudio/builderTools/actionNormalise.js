@@ -160,7 +160,7 @@ function repairRecordStep(step, at, notes, ctx) {
     // Nulls the model writes for "not set" (measured 2026-09-14).
     for (const k of ['expectedUpdatedAt', 'recordId']) {
         if (step[k] === null || (typeof step[k] === 'string' && looksGarbledBinding(step[k]) && !parseGarbledBinding(step[k]))) {
-            if (k === 'recordId' && step.kind !== 'create_record') {
+            if (k === 'recordId' && step.kind !== 'create_record' && (step.filter === undefined || step.filter === null)) { // a filter step: a stray recordId is noise
                 throw new Refusal({
                     error: `${at}.recordId is ${step[k] === null ? 'null' : 'a corrupted string'} — an ${step.kind} needs the row it changes; nothing was created.`,
                     _fixHint: `Reject reason: ${at}.recordId missing. On a detail screen use {kind:"formula", expr:"screen.params.recordId"} (the id the grid row passed); in a grid row action use {kind:"formula", expr:"item.id"}.`,

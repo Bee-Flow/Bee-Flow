@@ -59,7 +59,7 @@
   },
   "appStudio/actionExecutor/aiSteps.js": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -3584,7 +3584,7 @@
   },
   "core/dataEngine/queryCompilerWrite.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "core/dataEngine/sources/mirror/linking.js": {

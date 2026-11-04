@@ -55,13 +55,13 @@ const TOAST_TONES = ['info', 'success', 'warning', 'danger'];
 //   'aiSchema'  — [{ name, type, description?, required? }] output field list
 //                 (type ∈ AI_SCHEMA_FIELD_TYPES)
 //   'aiWriteTo' — { tableId, mapping: { [column]: <schema field name> },
-//                   upsertOn?: <column> — read the same document twice and the
-//                   same rows are UPDATED instead of doubled,
+//                   upsertOn?: <column> | upsertKey?: [<column>, ...] (1..5) — a
+//                   row with the same key is UPDATED instead of doubled,
+//                   replaceWhere?: [{ field, op, value? }] — delete the rows it
+//                   matches (at most MAX_BULK_WRITE_ROWS) first, then write,
 //                   constants?: { [column]: <binding> } }
-//                 `constants` is resolved ONCE and stamped on every extracted
-//                 row. Without it the rows are orphans: nothing records which
-//                 ticket or document they came from, so they cannot be shown in
-//                 context and a retention purge cannot find them.
+//                 `constants` is resolved ONCE and stamped on every extracted row: without
+//                 it nothing records the ticket or document a row came from (no context, no purge).
 //   'stringList' — knowledge base ids for RAG grounding
 // ---------------------------------------------------------------------------
 const AI_SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', 'object'];

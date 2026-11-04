@@ -164,7 +164,7 @@ async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
 // Step kinds that cost what a /run costs (a full automation, a model call, a write into the
 // owner's storage envelope), the model calls among them, and the limiters per kind: one list
 // for this route and a background job (studioAppStepBudget.mts, where the reasoning lives).
-const { HEAVY_STEP_KINDS, limitersForStep } = require('./studioAppStepBudget.mts');
+const { HEAVY_STEP_KINDS, limitersForStepDef } = require('./studioAppStepBudget.mts');
 const { mountBackgroundRoutes, refuseLocked } = require('./studioAppBackground');
 
 // ── POST /:id/actions/:actionId/step ────────────────────────────────
@@ -233,7 +233,9 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     // own bucket (an action loops them once per document), other heavy kinds the
     // /run bucket; send_email is charged per minute and per day, file_intake and
     // dataset_query on their own buckets (studioAppStepBudget.mts).
-    for (const { limiter } of limitersForStep(step.kind)) {
+    // A bulk write (filter-mode update/delete, writeTo replaceWhere) costs a run, not a step
+    // (appStudio/bulkWritePolicy.mts).
+    for (const { limiter } of limitersForStepDef(step)) {
         if (!(await limiter.check(req, res))) return;
     }
 

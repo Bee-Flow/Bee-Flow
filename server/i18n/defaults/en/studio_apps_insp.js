@@ -114,6 +114,8 @@ module.exports = {
     'studio_apps_insp.ai_actions.type_text': 'Text',
     'studio_apps_insp.ai_actions.use_expression': 'Use an expression (e.g. a row from a list)',
     'studio_apps_insp.ai_actions.write_rows': 'Write extracted rows to a data table',
+    'studio_apps_insp.ai_actions.upsert_key': 'Update rows with the same key',
+    'studio_apps_insp.ai_actions.upsert_key_hint': 'Pick the columns that identify a row. Running the step again updates those rows instead of adding new ones.',
     'studio_apps_insp.automation_picker.active': 'Active',
     'studio_apps_insp.automation_picker.best_for_apps': 'Best for apps',
     'studio_apps_insp.automation_picker.built_for_apps': 'Built for apps',

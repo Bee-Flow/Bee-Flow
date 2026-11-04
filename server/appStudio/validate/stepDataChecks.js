@@ -7,6 +7,7 @@
 'use strict';
 
 const { isObject, pushDataRef } = require('./shared');
+const { LIMITS } = require('../componentSpecs/limits');
 
 // The fixed output vocabulary of file_intake — what writeTo.mapping values may
 // name (where ai_extract maps to its declared schema fields instead).
@@ -50,7 +51,8 @@ function checkFileIntake(step, path, ctx) {
         }
         // The upsert matches on the mapped base_name column. Without it,
         // every press of the button appends a duplicate row per pair.
-        if (!Object.values(step.writeTo.mapping).includes('base_name')) {
+        const explicitKey = Array.isArray(step.writeTo.upsertKey) && step.writeTo.upsertKey.length > 0;
+        if (!explicitKey && !Object.values(step.writeTo.mapping).includes('base_name')) {
             pushE({
                 code: 'action.file_intake_no_upsert_key', severity: 'error', path: `${path}.writeTo.mapping`,
                 message: 'file_intake writeTo.mapping must map some column to "base_name".',
@@ -134,7 +136,7 @@ function checkDatasetQuery(step, path, ctx) {
                 });
             }
         }
-        if (!step.writeTo.upsertOn) {
+        if (!step.writeTo.upsertOn && !(Array.isArray(step.writeTo.upsertKey) && step.writeTo.upsertKey.length)) {
             pushW({
                 code: 'action.dataset_query_no_upsert', severity: 'warning', path: `${path}.writeTo`,
                 message: 'dataset_query writeTo has no upsertOn — re-running the query appends duplicate rows.',
@@ -144,11 +146,67 @@ function checkDatasetQuery(step, path, ctx) {
     }
 }
 
+/**
+ * update_record / delete_record address ONE row (`recordId`) or every row matching a `filter`
+ * (package 5): exactly one of the two. A filter is a non-empty clause list (an empty one would
+ * mean every row), at most LIMITS.MAX_WRITE_FILTER_CLAUSES, in the records-binding grammar.
+ * @param {Record<string, any>} step
+ * @param {string} path
+ */
+function checkRecordTarget(step, path, ctx) {
+    const { pushE } = ctx;
+    const hasId = step.recordId !== undefined && step.recordId !== null;
+    const hasFilter = step.filter !== undefined && step.filter !== null;
+    const label = `Step "${step.kind}"`;
+    if (!hasId && !hasFilter) {
+        pushE({ code: 'action.step_field_required', severity: 'error', path: `${path}.recordId`, message: `${label} is missing required \`recordId\`.`, hint: 'Provide a binding for one row, or a `filter` (clause list) plus an optional `limit` for many rows.' });
+        return;
+    }
+    if (hasId && hasFilter) {
+        pushE({ code: 'action.record_target_ambiguous', severity: 'error', path: `${path}.filter`, message: `${label} has both \`recordId\` and \`filter\`.`, hint: 'Use recordId for one row or filter for many rows, not both.' });
+        return;
+    }
+    if (!hasFilter) {
+        if (step.limit !== undefined) pushE({ code: 'action.step_field_invalid', severity: 'error', path: `${path}.limit`, message: `${label} has a \`limit\` but no \`filter\`.`, hint: 'limit only applies to a filter; remove it.' });
+        return;
+    }
+    checkWriteFilter(step.filter, `${path}.filter`, step.tableId, ctx, label);
+    if (step.kind === 'update_record' && step.expectedUpdatedAt !== undefined) {
+        pushE({ code: 'action.step_field_invalid', severity: 'error', path: `${path}.expectedUpdatedAt`, message: `${label} with a \`filter\` cannot carry \`expectedUpdatedAt\`.`, hint: 'The compare-and-set token belongs to one row; remove it or use recordId.' });
+    }
+}
+
+/**
+ * A write filter clause list (filter-mode record step, writeTo.replaceWhere).
+ * @param {unknown} filter
+ * @param {string} at
+ * @param {unknown} tableId
+ * @param {string} label
+ */
+function checkWriteFilter(filter, at, tableId, ctx, label) {
+    const { pushE } = ctx;
+    if (typeof filter === 'string' || !Array.isArray(filter)) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: at, message: `${label} filter must be a list of { field, op, value? } clauses (a formula string cannot run on the server).`, hint: 'Write [{ field: "status", op: "eq", value: "done" }].' });
+        return;
+    }
+    if (!filter.length) {
+        pushE({ code: 'action.bulk_filter_empty', severity: 'error', path: at, message: `${label} has an empty filter, which would change every row.`, hint: 'Add at least one clause, e.g. { field: "status", op: "eq", value: "done" }.' });
+        return;
+    }
+    if (filter.length > LIMITS.MAX_WRITE_FILTER_CLAUSES) {
+        pushE({ code: 'action.bulk_filter_too_large', severity: 'error', path: at, message: `${label} filter has ${filter.length} clauses (limit ${LIMITS.MAX_WRITE_FILTER_CLAUSES}).`, hint: 'Narrow it with fewer clauses (use op "in" for a list of values).' });
+        return;
+    }
+    require('./bindings').validateBindingFilter(filter, at, ctx, tableId, label);
+}
+
 const KIND_CHECKS = {
     file_intake: checkFileIntake,
     dataset_query: checkDatasetQuery,
+    update_record: checkRecordTarget,
+    delete_record: checkRecordTarget,
 };
 
-module.exports = { DATASET_QUERY_OUTPUTS, KIND_CHECKS };
+module.exports = { DATASET_QUERY_OUTPUTS, KIND_CHECKS, checkWriteFilter };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */

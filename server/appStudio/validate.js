@@ -66,6 +66,7 @@ const { checkDesignAndNav, checkPublicAccess } = require('./validate/designCheck
 const { checkMailboxHooks } = require('./validate/mailboxHookCheck');
 const { validateAction, DATASET_QUERY_OUTPUTS } = require('./validate/actions');
 const { checkCallGraph } = require('./validate/callChecks.mts');
+const { buildFieldTypes } = require('./validate/writeToKeyChecks.mts');
 
 const ID_HINT = 'Ids must match <prefix>_<4-12 lowercase alphanumerics> with prefix scr/sec/cmp/act. Use newId() from componentSpecs.';
 
@@ -422,10 +423,9 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         // field keys, plus the known dataset ids. null model = "no model yet"
         // (every table/dataset reference is unknown). See the module header.
         dataTables: buildDataTables(opts.dataModel),
-        // De tweede tabelsoort: tableId → model.tables[].source. Leeg voor een
-        // app waarvan elke tabel haar eigen opslag heeft, en dat is de enige
-        // vorm die vandaag bestaat — vandaar dat niets aan de bestaande soort
-        // verandert.
+        dataFieldTypes: buildFieldTypes(opts.dataModel),
+        // The second table kind: tableId → model.tables[].source. Empty for an app whose
+        // tables all have their own storage, so nothing changes for that kind.
         dataTableSources: buildTableSources(opts.dataModel),
         // The Studio datatables that the OWNER has. Unlike opts.datasets this does NOT get an empty
         // collection when it is absent: "no list" and "an empty list" are different answers, and the

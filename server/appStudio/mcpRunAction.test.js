@@ -670,3 +670,13 @@ test('a live run of a locked background action is refused while a job holds the 
     assert.equal(mine.origin, 'mcp');
     assert.equal(mine.status, 'success');
 });
+
+test('dryRun: a filter-mode delete reports how many rows it would change, read only', async () => {
+    const previews = [];
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'delete_record', tableId: 'tbl_a', filter: [{ field: 'status', op: 'eq', value: 'done' }], limit: 2 },
+    ] }, {}, OWNER, { previewWrite: async (_app, _model, step) => { previews.push(step.kind); return { matched: 3, wouldAffect: 2, limit: 2 }; } });
+    assert.deepEqual(out.steps[0].result, { wouldWrite: { kind: 'delete_record', tableId: 'tbl_a', matched: 3, wouldAffect: 2, limit: 2 } });
+    assert.deepEqual(previews, ['delete_record']);
+    assert.deepEqual(kindsRun(), [], 'nothing executed');
+});

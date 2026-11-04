@@ -183,7 +183,7 @@ function deferEffect(job: Job, step: Step): void {
 async function chargeBudgets(job: Job, step: Step): Promise<StepResult | null> {
     const { deps, input } = job;
     const key = `${input.viewer.id}:${input.app.id}`;
-    for (const budget of deps.budgetsFor(String(step.kind))) {
+    for (const budget of deps.budgetsFor(String(step.kind), step)) {
         if (!budget.limiter || typeof budget.limiter.take !== 'function') continue;
         for (;;) {
             if (shuttingDown) return { ok: false, error: 'The server is restarting.', code: 'shutting_down', retryable: false };

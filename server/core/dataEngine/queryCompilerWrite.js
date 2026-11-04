@@ -77,19 +77,7 @@ function compileUpdate(tableMeta, id, values, accessFilter, {
     assertRowsWritable(tableMeta, { allowLockedRows });
     assertAccessFilter(accessFilter);
     if (typeof id !== 'string' || !id) throw new CompileError('record id is required');
-    const fm = fieldMap(tableMeta);
-    const vals = (values && typeof values === 'object' && !Array.isArray(values)) ? values : {};
-
-    const sets = [`${qi('updated_at')} = ?`];
-    const params = [new Date().toISOString()];
-    for (const [k, v] of Object.entries(vals)) {
-        if (SYSTEM_COLUMNS.includes(k)) continue; // system columns are server-owned
-        if (!fm.has(k)) throw new CompileError(`unknown field: ${k}`);
-        const f = fm.get(k);
-        if (f.type === 'computed') continue;
-        sets.push(`${qi(f.key)} = ?`);
-        params.push(coerceValue(v, f, dialect));
-    }
+    const { sets, params } = compileSetClause(tableMeta, values, dialect);
 
     /** @type {string[]} */
     const guard = [];
@@ -106,6 +94,31 @@ function compileUpdate(tableMeta, id, values, accessFilter, {
     const sql = `UPDATE ${qi(tableMeta.key)} SET ${sets.join(', ')} `
         + `WHERE ${qi('id')} = ? AND (${accessFilter.where})${guard.join('')}`;
     return { sql, params: [...params, id, ...accessFilter.params, ...guardParams], updatedAt: params[0] };
+}
+
+/**
+ * The SET list of an UPDATE: `updated_at` first (server-stamped), then every
+ * written column coerced per type. System columns are server-owned and
+ * skipped, computed columns are derived and skipped, an unknown field is a 422.
+ * Shared by compileUpdate and the bulk compilers (queryCompilerBulk.mts).
+ * @param {import('./queryCompiler').TableMeta} tableMeta
+ * @param {object | null | undefined} values
+ * @param {string} dialect
+ */
+function compileSetClause(tableMeta, values, dialect) {
+    const fm = fieldMap(tableMeta);
+    const vals = (values && typeof values === 'object' && !Array.isArray(values)) ? values : {};
+    const sets = [`${qi('updated_at')} = ?`];
+    const params = [new Date().toISOString()];
+    for (const [k, v] of Object.entries(vals)) {
+        if (SYSTEM_COLUMNS.includes(k)) continue; // system columns are server-owned
+        if (!fm.has(k)) throw new CompileError(`unknown field: ${k}`);
+        const f = fm.get(k);
+        if (f.type === 'computed') continue;
+        sets.push(`${qi(f.key)} = ?`);
+        params.push(coerceValue(v, f, dialect));
+    }
+    return { sets, params };
 }
 
 /**
@@ -266,4 +279,4 @@ function compileUpsertById(tableMeta, id, values, accessFilter, {
     return { sql, params: [...params, ...accessFilter.params] };
 }
 
-module.exports = { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById };
+module.exports = { compileInsert, compileUpdate, compileSetClause, compileDelete, compileUpsertByKey, compileUpsertById };

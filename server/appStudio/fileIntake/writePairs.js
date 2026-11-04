@@ -6,6 +6,9 @@
 'use strict';
 const { hasField } = require('./attachmentRows');
 
+// Required by a variable path (see actionExecutor/dispatch.js).
+const WRITE_TO_ROWS = '../actionExecutor/writeToRows.mts';
+
 /**
  * Resolve writeTo.constants ({ col: binding }) to literal values, keeping only
  * columns that exist on the target table. Resolved ONCE for the whole batch —
@@ -21,6 +24,33 @@ function resolveConstants(constants, table, ctx, scope, resolveBinding) {
     return out;
 }
 
+/**
+ * The explicit writeTo.upsertKey (package 5) or the implicit base_name key, and writeTo.replaceWhere:
+ * checked (strict, under the limit) before anything is written, then the matching rows go first.
+ * Not atomic with the per-pair upserts (documented). Returns `{ upsert }` (the explicit key or
+ * null) or the refusal.
+ * @param {{ id: string, userId: string, organizationId?: string | null }} app
+ * @param {{ key: string, id?: string, fields?: Record<string, unknown>[] }} table
+ * @param {Record<string, any>} writeTo
+ * @param {{ constants: Record<string, any>, baseCol: string | null, run: { ctx: any, viewer: any, resolveValue: (b: any) => any } }} opts
+ * @returns {Promise<{ ok: false, error: string, code?: string } | { ok: true, upsert: any }>}
+ */
+async function prepareKeyAndReplace(app, table, writeTo, { constants, baseCol, run }) {
+    const writeToRows = require(WRITE_TO_ROWS);
+    const upsert = Array.isArray(writeTo.upsertKey) && writeTo.upsertKey.length
+        ? writeToRows.upsertKeyOf(writeTo, table, constants)
+        : null;
+    if (!upsert && (!baseCol || !hasField(table, baseCol))) {
+        return { ok: false, error: 'writeTo.mapping must map a column to base_name' };
+    }
+    if (writeTo.replaceWhere !== undefined && writeTo.replaceWhere !== null) {
+        const prepared = await writeToRows.prepareReplace(app, table, writeTo.replaceWhere, run);
+        if (writeToRows.isRefusal(prepared)) return prepared;
+        await writeToRows.replaceBefore(app, table, prepared.filters, run);
+    }
+    return { ok: true, upsert };
+}
+
 /** Returns `{ written }`, or the `{ ok: false, error }` that ends the step. */
 async function writePairs(app, model, step, pairs, {
     ctx, scope, viewer, resolveBinding, findTable, writeRecord, writeViewer, stepDataSource,
@@ -34,12 +64,14 @@ async function writePairs(app, model, step, pairs, {
         const constants = resolveConstants(step.writeTo.constants, table, ctx, scope, resolveBinding);
 
         // The mapped base_name column is the upsert key (validate.js makes it
-        // required); the scalar constants narrow the match so two orders never
-        // collide on the same part number.
+        // required unless writeTo.upsertKey names the key); the scalar constants
+        // narrow the match so two orders never collide on the same part number.
         const baseCol = Object.entries(mapping).find(([, out]) => out === 'base_name')?.[0] || null;
-        if (!baseCol || !hasField(table, baseCol)) {
-            return { ok: false, error: 'writeTo.mapping must map a column to base_name' };
-        }
+        const writeToRows = require(WRITE_TO_ROWS);
+        const run = { ctx, viewer, resolveValue: (/** @type {unknown} */ b) => resolveBinding(b, ctx, scope) };
+        const prep = await prepareKeyAndReplace(app, table, step.writeTo, { constants, baseCol, run });
+        if (prep.ok === false) return prep;
+        const explicitKey = prep.upsert;
 
         const outputsFor = (pair) => ({
             base_name: pair.baseName,
@@ -74,9 +106,20 @@ async function writePairs(app, model, step, pairs, {
             // same column, exactly as ai_extract's writeTo does.
             Object.assign(values, constants);
 
-            // Existing row for this (base name + scalar constants)?
+            // Existing row for this (base name + scalar constants)? With an explicit
+            // upsertKey: exactly those columns (an empty one means no identity: insert).
+            if (explicitKey) {
+                const keyFilter = writeToRows.keyFilterOf(explicitKey, values);
+                const twin = keyFilter ? await writeToRows.findExistingByKey(app, model, table, keyFilter, run) : null;
+                const saved = await writeRecord(app, model, table, values, {
+                    viewer: writeViewer(ctx), recordId: twin && twin.id ? twin.id : undefined,
+                });
+                pair.recordId = (saved && (saved.id || saved.recordId)) || (twin && twin.id) || null;
+                written += 1;
+                continue;
+            }
             /** @type {Array<{field: string, op: string, value: any, required?: boolean}>} */
-            const matchFilter = [{ field: baseCol, op: 'eq', value: pair.baseName, required: true }];
+            const matchFilter = [{ field: /** @type {string} */ (baseCol), op: 'eq', value: pair.baseName, required: true }];
             for (const [col, v] of Object.entries(constants)) {
                 // Date/datetime constants are stamps, not identity: a
                 // `toegevoegd_op: now` resolves fresh on every press, so

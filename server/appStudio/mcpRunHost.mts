@@ -56,6 +56,8 @@ export type RunDeps = {
     /** The interpolated prompt of an ai_generate step (default aiSteps.interpolatePrompt). */
     promptOf?: (step: Step, ctx: Obj) => string;
     mockHelpers?: MockHelpers;
+    /** Read-only count for a filter-mode update/delete in a dry run (bulkRecords.previewMatching). */
+    previewWrite?: (app: App, model: unknown, step: Step, ctx: Obj) => Promise<Obj>;
     audit: (entry: Obj, app: App, userId: string) => Promise<void>;
     log: { warn: (...a: unknown[]) => void };
     now: () => number;
@@ -152,6 +154,26 @@ function wouldWriteOf(run: Run, step: Step, ctx: Obj): Obj {
     return out;
 }
 
+/** wouldWrite of a record write; a filter-mode one also says how many rows it would change (read only). */
+async function wouldWriteFor(run: Run, step: Step, ctx: Obj): Promise<Obj> {
+    const out = wouldWriteOf(run, step, ctx);
+    if (step.filter === undefined || step.filter === null || !run.deps.previewWrite) return out;
+    try {
+        const preview = await run.deps.previewWrite(run.target.app, run.target.model, step, ctx);
+        return { ...out, ...preview };
+    } catch {
+        return out;
+    }
+}
+
+/** A writeTo with replaceWhere: the dry run does not apply it (the AI step runs without its writeTo). */
+function noteReplaceWhere(run: Run, step: Step): void {
+    const w = isObject(step.writeTo) ? step.writeTo : null;
+    if (w && w.replaceWhere !== undefined && w.replaceWhere !== null && run.w.notes.size < 50) {
+        run.w.notes.add(`${run.current}: writeTo.replaceWhere not applied in this run (the step runs without its writeTo).`);
+    }
+}
+
 function rateLimitedStep(run: Run, f: StepEvent): StepResult {
     const { limits, opts } = run;
     return {
@@ -195,7 +217,8 @@ export function hostFor(run: Run): WalkHost {
             const kind = String(step.kind);
             const ctx = ctxFor(run, w);
             const wouldSend = kind === 'send_email' ? wouldSendOf(run, step, ctx) : undefined;
-            const wouldWrite = opts.dryRun && RECORD_WRITES.includes(kind) ? wouldWriteOf(run, step, ctx) : undefined;
+            const wouldWrite = opts.dryRun && RECORD_WRITES.includes(kind) ? await wouldWriteFor(run, step, ctx) : undefined;
+            if (opts.dryRun) noteReplaceWhere(run, step);
             return decideStep(step, opts.dryRun, f.loop !== null, wouldSend, wouldWrite);
         },
         execute: (step, f, w) => executeFor(run, step, f, w),

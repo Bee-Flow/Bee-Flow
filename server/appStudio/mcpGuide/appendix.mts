@@ -49,4 +49,12 @@ A sequence with background: true runs as a server job when it is clicked: the cl
 - app_run_action runs a background action inline within its time budget and reports background: { lockKey, progressVar }. A live run (dryRun false) with a lockKey takes the lock like a click and is refused while a job holds it; a dry run takes no lock.
 - Every AI call has a time-out (STUDIO_AI_CALL_TIMEOUT_MS, default 120 s) and one retry; then the step fails with "The AI gave no answer within N s" (code ai_timeout), which a step onError can handle.`;
 
-export const MCP_GUIDE_SECTIONS: readonly string[] = Object.freeze([TESTING_ACTIONS, BACKGROUND_ACTIONS]);
+const BULK_WRITES = `## Changing many rows, idempotent writes
+
+- update_record / delete_record with filter: [{ field, op, value }] (instead of recordId) change every row the role may write that matches, oldest first, up to limit (default and max 500). The result is { bulk: true, matched, updated | deleted, changes, remaining, ids }; remaining > 0 means more rows match: run the step again to continue. Zero matches is a success with zeros. A clause whose value resolves to nothing (an empty form field) changes NOTHING and adds a note; it never widens the filter. isNull / isNotNull take no value. Example: { kind: "delete_record", tableId: "tbl_tasks", filter: [{ field: "status", op: "eq", value: "done" }] }.
+- Inside a transaction a filter child is one statement (it also sees rows created earlier in the same transaction); its result is { changed }.
+- writeTo.upsertKey: ["po_number", "line"] (1 to 5 columns the step writes): a row with the same key values is UPDATED instead of added, so running the same ai_extract twice does not double the table. A row with an empty key value is inserted. Prefer it over the older single-column upsertOn, which also matches on the scalar constants.
+- writeTo.replaceWhere: [clauses] deletes the matching rows first, then writes (refused, with nothing changed, when it matches more than 500 rows or a value is empty). Without upsertKey the delete and the inserts are one transaction; with upsertKey they are not (delete first, then row by row).
+- In a dry run (app_run_action) a filter-mode write reports wouldWrite { kind, tableId, matched, wouldAffect, limit } (or blocked: <field>) and writes nothing; replaceWhere is not applied.`;
+
+export const MCP_GUIDE_SECTIONS: readonly string[] = Object.freeze([TESTING_ACTIONS, BACKGROUND_ACTIONS, BULK_WRITES]);

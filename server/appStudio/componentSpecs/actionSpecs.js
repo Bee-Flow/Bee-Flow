@@ -239,7 +239,9 @@ const STEP_SPECS = {
         mutatesData: true,
         fields: {
             tableId: { type: 'string', required: true },
-            recordId: { type: 'binding', required: true },
+            // One row by id OR every row matching `filter` up to `limit` (stepDataChecks.checkRecordTarget).
+            recordId: { type: 'binding' },
+            filter: { type: 'recordFilter' }, limit: { type: 'int', min: 1, max: LIMITS.MAX_BULK_WRITE_ROWS },
             values: { type: 'recordValues', required: true },
             resultVar: { type: 'string', maxLen: 60 },
             // OPTIONAL compare-and-set. Bind it to the updated_at of the row
@@ -256,7 +258,8 @@ const STEP_SPECS = {
         mutatesData: true,
         fields: {
             tableId: { type: 'string', required: true },
-            recordId: { type: 'binding', required: true },
+            recordId: { type: 'binding' },
+            filter: { type: 'recordFilter' }, limit: { type: 'int', min: 1, max: LIMITS.MAX_BULK_WRITE_ROWS },
             resultVar: { type: 'string', maxLen: 60 },
         },
     },

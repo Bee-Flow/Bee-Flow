@@ -125,6 +125,27 @@ leave or close the page; when you come back the run is shown again.
 Results and variables of a finished run are kept for 24 hours, the run itself for 30
 days.
 
+### Change many rows, idempotent writes
+
+- **Rows matching a filter**: *Change a row* and *Delete a row* can work on every row
+  that matches a filter instead of one row. Pick "Rows matching a filter" in the step
+  settings, add the conditions (for example *Status is Done*) and, if you like, a
+  maximum. At most 500 rows change per run, oldest first; the result says how many
+  matched, how many changed and how many remain, so running the step again continues
+  where it stopped. Only rows the person's role may change or delete are touched. A
+  condition whose value is empty (an empty form field) changes nothing at all: an
+  empty filter never means "every row". Inside *All or nothing* such a step also sees
+  the rows added earlier in the block.
+- **Update instead of duplicate** (`writeTo.upsertKey`): *Read a document* (and file
+  intake) can write its rows with a key, one to five columns such as order number and
+  line. A row whose key matches an existing row updates that row, so reading the same
+  document twice does not double the table. A row with an empty key is added as new.
+- **Replace a set** (`writeTo.replaceWhere`): delete the rows matching a filter first
+  (for example the lines of this order), then write the new ones. Without a key this
+  happens in one go: either the old rows are replaced or nothing changes. With a key the
+  old rows are deleted first and the new ones are written one by one. More than 500
+  matching rows, or a filter value that is empty, refuses the step with nothing changed.
+
 ## Data tables, roles & access
 
 Open **Data** to design the data model directly: add tables and fields, define

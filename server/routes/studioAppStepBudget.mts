@@ -8,6 +8,8 @@
 
 import { createRequire } from 'node:module';
 
+import { isBulkWriteStep } from '../appStudio/bulkWritePolicy.mts';
+
 const nodeRequire = createRequire(import.meta.url);
 
 // Step kinds that cost what a /run costs: a full automation, a model call, or a write into the
@@ -27,11 +29,15 @@ export type Limiter = {
 
 export type StepBudget = { limiter: Limiter; name: string; daily: boolean };
 
-/** The limiters a step of `kind` is charged against, in the order /step charges them. */
-export function limitersForStep(kind: string, limiters: Record<string, Limiter> = nodeRequire('./studioAppRateLimits')): StepBudget[] {
+/**
+ * The limiters a step of `kind` is charged against, in the order /step charges them. `bulk`: the
+ * step is a bulk write (filter-mode update/delete_record or a writeTo replaceWhere, package 5),
+ * which changes up to 500 rows in one step and so costs a run, not a step.
+ */
+export function limitersForStep(kind: string, limiters: Record<string, Limiter> = nodeRequire('./studioAppRateLimits'), bulk = false): StepBudget[] {
     const out: StepBudget[] = [];
     if (AI_STEP_KINDS.includes(kind)) out.push({ limiter: limiters.aiStepLimiter, name: 'STUDIO_APP_AI_STEP_RPM', daily: false });
-    else if (HEAVY_STEP_KINDS.includes(kind)) out.push({ limiter: limiters.actionRunLimiter, name: 'STUDIO_APP_ACTION_RUN_RPM', daily: false });
+    else if (HEAVY_STEP_KINDS.includes(kind) || bulk) out.push({ limiter: limiters.actionRunLimiter, name: 'STUDIO_APP_ACTION_RUN_RPM', daily: false });
     if (kind === 'send_email') {
         out.push({ limiter: limiters.sendEmailLimiter, name: 'STUDIO_APP_SEND_EMAIL_RPM', daily: false });
         out.push({ limiter: limiters.sendEmailDailyLimiter, name: 'STUDIO_APP_SEND_EMAIL_DAILY', daily: true });
@@ -39,4 +45,10 @@ export function limitersForStep(kind: string, limiters: Record<string, Limiter> 
     if (kind === 'file_intake') out.push({ limiter: limiters.fileIntakeLimiter, name: 'STUDIO_APP_FILE_INTAKE_RPM', daily: false });
     if (kind === 'dataset_query') out.push({ limiter: limiters.datasetQueryLimiter, name: 'STUDIO_APP_DATASET_QUERY_RPM', daily: false });
     return out;
+}
+
+/** The limiters of one resolved step: its kind, plus the per-run bucket for a bulk write. */
+export function limitersForStepDef(step: unknown, limiters?: Record<string, Limiter>): StepBudget[] {
+    const kind = step !== null && typeof step === 'object' ? String((step as { kind?: unknown }).kind) : '';
+    return limitersForStep(kind, limiters, isBulkWriteStep(step));
 }

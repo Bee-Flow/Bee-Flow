@@ -242,6 +242,7 @@ export function defaultDeps(): RunDeps {
         evaluate: (expr, scope) => nodeRequire('../shared/expr/index.mjs').tryEvaluate(expr, scope)?.value,
         buildScope: (ctx) => nodeRequire('./actionExecutor/shared').buildServerScope(ctx),
         resolveBinding: (binding, ctx, scope) => nodeRequire('./actionExecutor/shared').resolveBinding(binding, ctx, scope),
+        previewWrite: (app, model, step, ctx) => nodeRequire('./actionExecutor/bulkRecords.mts').previewMatching(app, model, step, ctx),
         takeBudget: (userId, now) => takeRunBudget(userId, now, runLimits().perMinute),
         audit: async (entry, app, userId) => {
             try {

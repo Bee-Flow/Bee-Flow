@@ -171,7 +171,15 @@ const FIELD_TYPE_TEXT = {
     boolean: 'boolean', formula: 'formula expr string (compiled, never executed)', binding: 'binding', effects: 'Effects', stringList: '[string]',
     inputMapping: '{ <param>: {kind:"static",value} | {kind:"field",name,formId?} }', recordValues: '{ <field key>: binding }', steps: '[Step] (nested)', switchCases: '[{ value, steps: [Step] }]',
     tierChoice: 'tier name | {kind:"formula",expr} (not a tier name → default tier, with a note)',
+    recordFilter: '[{ field, op, value? }]',
 };
+
+/** One line on bulk writes and idempotent writeTo (package 5); the full catalog only. */
+function bulkWriteLines() {
+    return [
+        `update/delete_record take filter (instead of recordId; ≤${LIMITS.MAX_WRITE_FILTER_CLAUSES} clauses, under the role's write scope) + limit (≤${LIMITS.MAX_BULK_WRITE_ROWS}, default ${LIMITS.MAX_BULK_WRITE_ROWS}, oldest first) and return { matched, updated|deleted, remaining }; a clause whose value is empty changes nothing. writeTo (ai_extract/file_intake/dataset_query) takes upsertKey: [column] (≤${LIMITS.MAX_UPSERT_KEY_COLUMNS}; a row with the same key is updated, not doubled) and replaceWhere: [clause] (those rows are deleted first; over ${LIMITS.MAX_BULK_WRITE_ROWS} matches refuses).`,
+    ];
+}
 
 /**
  * @param {string} key
@@ -230,6 +238,18 @@ function renderStepKind(kind) {
     const spec = STEP_SPECS[kind];
     const side = DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
     return `${kind} [${side}]: { ${renderSpecFields(spec.fields)} }`;
+}
+
+// Bulk writes (filter + limit on update/delete_record) are a full-catalog feature: the compact
+// band writes one row at a time, and its text is paid on every round of every local build.
+const COMPACT_OMIT_FIELDS = new Set(['filter', 'limit']);
+
+/** The compact form of a step line: the full line without COMPACT_OMIT_FIELDS. */
+function renderStepKindCompactLine(kind) {
+    const spec = STEP_SPECS[kind];
+    const side = DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
+    const fields = Object.fromEntries(Object.entries(spec.fields).filter(([k]) => !COMPACT_OMIT_FIELDS.has(k)));
+    return `${kind} [${side}]: { ${renderSpecFields(fields)} }`;
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +396,7 @@ function buildCatalogSections() {
     const steps = [
         ...stepsLead,
         ...errorHandlingLines(), // the error-handling envelope and transaction: full catalog only
+        ...bulkWriteLines(), // filter-mode record writes and idempotent writeTo: full catalog only
         ...STEP_KINDS.map(renderStepKind),
     ].join('\n');
 
@@ -616,7 +637,7 @@ const COMPACT_STEP_KINDS = [
 ];
 
 function renderStepKindCompact() {
-    const full = COMPACT_STEP_KINDS.filter((k) => STEP_SPECS[k]).map(renderStepKind);
+    const full = COMPACT_STEP_KINDS.filter((k) => STEP_SPECS[k]).map(renderStepKindCompactLine);
     const rest = STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
     return [
         ...full,
@@ -745,6 +766,7 @@ module.exports = {
     renderComponentCompact,
     renderStepKindCompact,
     COMPACT_STEP_KINDS,
+    renderStepKindCompactLine,
     COMPACT_KEY_PROP_NAMES,
 };
 

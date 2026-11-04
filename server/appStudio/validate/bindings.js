@@ -275,6 +275,8 @@ function validateBinding(key, value, path, ctx) {
 
 module.exports = {
     validateBinding,
+    // The filter grammar, for the filter-mode record writes (stepDataChecks.checkRecordTarget).
+    validateBindingFilter,
 };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */

@@ -8,7 +8,7 @@
 
 const { LIMITS, STEP_SPECS } = require('../componentSpecs');
 const { HARD_DEPTH_CAP, isObject, deepCopy, truncate } = require('./shared');
-const { cleanBinding } = require('./bindings');
+const { cleanBinding, cleanRecordFilter } = require('./bindings');
 const { cleanInputMapping, cleanNavParams, cleanCallParams } = require('./mappings');
 const { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanContextSources, cleanTierChoice } = require('./aiFields');
 const { cleanApprovalQuestions, cleanApprovalStages, cleanApprovalOnDecided } = require('./approvals');
@@ -109,6 +109,9 @@ function cleanStep(raw, path, depth, push) {
             else if (v !== undefined) out[field] = deepCopy(v);
         } else if (fs.type === 'binding') {
             if (v !== undefined) out[field] = cleanBinding(v, p, push);
+        } else if (fs.type === 'recordFilter') {
+            const f = cleanRecordFilter(v, p, push, { tableId: raw.tableId });
+            if (f !== undefined) out[field] = f;
         } else if (fs.type === 'inputMapping') {
             if (v !== undefined) { const m = cleanInputMapping(v, p, push); if (m !== undefined) out[field] = m; }
         } else if (fs.type === 'recordValues') {

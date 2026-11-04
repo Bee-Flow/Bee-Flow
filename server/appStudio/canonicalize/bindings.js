@@ -239,7 +239,30 @@ function cleanBinding(raw, path, push) {
     return { kind: 'static', value: copied === undefined ? null : copied };
 }
 
+/**
+ * A write filter (update/delete_record `filter`, writeTo.replaceWhere): a clause list
+ * [{ field, op, value? }]. A records binding written in its place ({ kind:'records', filter })
+ * is unwrapped when it names the same table or none. Anything else is copied as it is for the
+ * validator: clauses are never dropped here, since a dropped clause would WIDEN the write.
+ * @param {unknown} raw
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ * @param {{ tableId?: unknown }} [opts]
+ * @returns {unknown}
+ */
+function cleanRecordFilter(raw, path, push, { tableId } = {}) {
+    if (raw === undefined || raw === null) return undefined;
+    const b = isObject(raw) ? /** @type {Record<string, unknown>} */ (raw) : null;
+    if (b && (b.kind === 'records' || b.kind === 'record') && b.filter !== undefined
+        && (b.tableId === undefined || b.tableId === tableId)) {
+        push('binding.filter_unwrapped', path, 'A write filter is the clause list itself: unwrapped the records binding to its `filter`.');
+        return deepCopy(b.filter);
+    }
+    return deepCopy(raw);
+}
+
 module.exports = {
+    cleanRecordFilter,
     cleanFormula,
     copyRecordsQuery,
     cleanConnectorParams,

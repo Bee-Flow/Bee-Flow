@@ -30,7 +30,7 @@ export type RunnerDeps = {
     buildScope: (ctx: Obj) => unknown;
     resolveBinding: (binding: unknown, ctx: Obj, scope: unknown) => unknown;
     readData?: ReadData;
-    budgetsFor: (kind: string) => StepBudget[];
+    budgetsFor: (kind: string, step?: Step) => StepBudget[];
     heavyKinds: readonly string[];
     stepDocumentContext: (step: Step, def: Obj, role: string | null) => Obj;
     logUsage: (entry: Obj) => Promise<unknown>;
@@ -108,7 +108,7 @@ export function withDefaults(given: Partial<RunnerDeps>): RunnerDeps {
         buildScope: given.buildScope ?? ((ctx) => nodeRequire('./actionExecutor/shared').buildServerScope(ctx)),
         resolveBinding: given.resolveBinding ?? ((binding, ctx, scope) => nodeRequire('./actionExecutor/shared').resolveBinding(binding, ctx, scope)),
         readData: given.readData,
-        budgetsFor: given.budgetsFor ?? ((kind) => (nodeRequire('../routes/studioAppStepBudget.mts') as { limitersForStep: (k: string) => StepBudget[] }).limitersForStep(kind)),
+        budgetsFor: given.budgetsFor ?? ((kind, step) => (nodeRequire('../routes/studioAppStepBudget.mts') as { limitersForStepDef: (s: unknown) => StepBudget[] }).limitersForStepDef(step ?? { kind })),
         heavyKinds: given.heavyKinds ?? (nodeRequire('../routes/studioAppStepBudget.mts') as { HEAVY_STEP_KINDS: readonly string[] }).HEAVY_STEP_KINDS,
         stepDocumentContext: given.stepDocumentContext ?? ((step, def, role) => nodeRequire('../routes/studioAppRunGate').stepDocumentContext(step, def, role)),
         logUsage: given.logUsage ?? ((entry) => nodeRequire('../stores/usageStore').logUsage(entry)),

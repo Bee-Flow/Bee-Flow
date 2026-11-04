@@ -27,6 +27,7 @@ const {
     buildCatalogSections,
     renderComponentEntry,
     renderStepEntry,
+    renderStepKindCompactLine,
     renderComponentCompact,
     COMPACT_STEP_KINDS,
 } = require('./catalogRender');
@@ -218,8 +219,12 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * 56_000 → 57_000 (App Studio package 2, error handling, measured 2026-11-04): the
  * onError/retry envelope (one line for every server step instead of per kind) and
  * the transaction step with its line took the catalog to 56_475. ~520 headroom.
+ *
+ * 57_000 → 58_000 (App Studio package 5, bulk writes, measured 2026-11-04): filter + limit on
+ * update/delete_record and one line on filter writes, writeTo upsertKey and replaceWhere took the
+ * catalog to 57_012 (the compact form leaves the two fields out). ~990 headroom.
  */
-const CATALOG_CHAR_CEILING = 57_000;
+const CATALOG_CHAR_CEILING = 58_000;
 
 test('renderCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCatalogText();
@@ -527,9 +532,10 @@ test('the validation types in the catalog are the ones the tool surface declares
 // modelTier as tier name | formula — 55_436 chars.
 // 2026-11-04, package 2 (error handling): onError/retry envelope line, the transaction step and
 // its line — 56_475 chars.
-// 2026-11-04, package 3 (background actions): sequence background / lockKey / progressVar fields
-// — 56_539 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '39ffeddbeef1ab1c29fcb277b377264cba57ada01ae886cc167da605026d42c4';
+// 2026-11-04, package 5 (bulk writes) on top of package 3 (background / lockKey / progressVar):
+// filter + limit on update/delete_record, recordId no longer REQUIRED (one of the two), and one
+// line on filter writes, upsertKey and replaceWhere — 57_076 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'ac2d031992a84d40c9af83cac7d1e52c1b0fab8109dfee6dd4611668023cfd14';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();
@@ -613,7 +619,9 @@ test('compact steps: the common kinds in full, the rest named once with the insp
     for (const kind of COMPACT_STEP_KINDS) {
         assert.ok(STEP_SPECS[kind], `${kind} is a real step kind`);
         assert.ok(new RegExp(`^${kind} \\[(client|SERVER)\\]: \\{`, 'm').test(section), `${kind} rendered in full`);
-        assert.ok(section.includes(renderStepEntry(kind)), `${kind}: the compact line IS the full step line`);
+        // The full step line, minus the bulk-write fields (filter, limit) the compact band does not get.
+        assert.ok(section.includes(renderStepKindCompactLine(kind)), `${kind}: the compact line IS the full step line`);
+        if (!/filter: |limit: /.test(renderStepEntry(kind))) assert.strictEqual(renderStepKindCompactLine(kind), renderStepEntry(kind));
     }
     const rest = STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
     assert.ok(rest.length > 0);

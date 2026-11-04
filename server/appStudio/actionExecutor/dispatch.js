@@ -25,6 +25,7 @@ const { redactPdfStep } = require('./redactStep');
 const COPY_DOCUMENT_STEP = './copyDocumentStep.mts';
 const STEP_ERRORS = './stepErrors.mts';
 const TRANSACTION_STEP = './transactionStep.mts';
+const BULK_RECORDS = './bulkRecords.mts';
 
 // ── Public entry ────────────────────────────────────────────────────
 
@@ -65,8 +66,13 @@ async function runStepKind(app, model, step, ctx) {
     try {
         switch (step.kind) {
             case 'create_record': return await createRecord(app, model, step, ctx);
-            case 'update_record': return await updateRecord(app, model, step, ctx);
-            case 'delete_record': return await deleteRecord(app, model, step, ctx);
+            // With a `filter` instead of a recordId: every matching row up to `limit` (bulkRecords.mts).
+            case 'update_record': return step.filter != null
+                ? await require(BULK_RECORDS).bulkUpdateRecordStep(app, model, step, ctx)
+                : await updateRecord(app, model, step, ctx);
+            case 'delete_record': return step.filter != null
+                ? await require(BULK_RECORDS).bulkDeleteRecordStep(app, model, step, ctx)
+                : await deleteRecord(app, model, step, ctx);
             case 'run_automation': return await runAutomationStep(app, step, ctx);
             case 'request_approval': return await requestApprovalStep(app, model, step, ctx);
             case 'ai_extract': return await aiExtractStep(app, model, step, ctx);

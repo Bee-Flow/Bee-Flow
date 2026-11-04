@@ -28,6 +28,15 @@ const STEP_SPECS_STUB = {
         },
     },
     open_modal: { fields: { modalId: { type: 'string', required: true } } },
+    delete_record: {
+        fields: {
+            tableId: { type: 'string', required: true },
+            recordId: { type: 'binding' },
+            filter: { type: 'recordFilter' },
+            limit: { type: 'int', min: 1, max: 500 },
+            resultVar: { type: 'string', maxLen: 60 },
+        },
+    },
     run_automation: {
         fields: {
             automationId: { type: 'string', nullable: true, required: true },
@@ -379,5 +388,23 @@ describe('StepSettings — run another action, and the model tier', () => {
         expect(last().onError).toBeUndefined();
         await userEvent.selectOptions(screen.getByLabelText('Times to try again'), '0');
         expect(last().retry).toBeUndefined();
+    });
+});
+
+describe('StepSettings — update/delete_record: one row or rows matching a filter', () => {
+    it('switching to a filter drops the recordId; switching back drops filter and limit', async () => {
+        const user = userEvent.setup();
+        const { last } = renderStep({ kind: 'delete_record', tableId: 'tbl_inv', recordId: { kind: 'formula', expr: 'item.id' } });
+        await user.click(await screen.findByRole('radio', { name: 'Rows matching a filter' }));
+        expect(last()).toEqual({ kind: 'delete_record', tableId: 'tbl_inv', filter: [] });
+    });
+
+    it('filter mode shows the limit field and never a text box for the filter', async () => {
+        const user = userEvent.setup();
+        const { last } = renderStep({ kind: 'delete_record', tableId: 'tbl_inv', filter: [{ field: 'customer', op: 'eq', value: 'ACME' }], limit: 20 });
+        const limit = await screen.findByLabelText('At most');
+        expect((limit as HTMLInputElement).value).toBe('20');
+        await user.click(screen.getByRole('radio', { name: 'One row' }));
+        expect(last()).toEqual({ kind: 'delete_record', tableId: 'tbl_inv' });
     });
 });

@@ -142,7 +142,9 @@ const ACTION_OBJECT_DESC = `{ kind, …fields of that kind } — shapes: catalog
 const ACTION_STEP_PROPS = {
     kind: { type: 'string', enum: [...STEP_KINDS] },
     tableId: { type: 'string', description: 'tbl_… id (record steps, refresh).' },
-    recordId: { type: 'object', description: 'update/delete_record: a binding, e.g. {kind:"formula",expr:"form.item.id"}.' },
+    recordId: { type: 'object', description: 'update/delete_record: a binding for ONE row, e.g. {kind:"formula",expr:"form.item.id"}. Leave it out when you use filter.' },
+    filter: { type: 'array', items: { type: 'object' }, description: 'update/delete_record instead of recordId: change every row matching these clauses [{field, op, value}] (value may be {kind:"formula",expr}); an empty value changes nothing.' },
+    limit: { type: 'integer', minimum: 1, description: 'update/delete_record with filter: at most this many rows (oldest first; default and max 500).' },
     values: { type: 'object', description: '{ <fieldKey>: {kind:"formula",expr:"form.<inputName>"} | {kind:"static",value} } (create/update_record).' },
     message: { type: 'string', description: 'toast / confirm text.' },
     tone: { type: 'string', enum: [...TOAST_TONES] },
