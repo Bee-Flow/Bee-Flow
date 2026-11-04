@@ -45,20 +45,21 @@ describe('AssistantWelcome — an automation with steps', () => {
 });
 
 describe('AssistantWelcome — an empty draft', () => {
-    it('asks what should happen and recommends asking a few questions first, which switches to plan', async () => {
+    it('asks what should happen and recommends "Describe it", which switches to describe', async () => {
         const user = userEvent.setup();
         const onWorkModeChange = vi.fn();
         render(<AssistantWelcome definition={emptyDraft} workMode="approve" onWorkModeChange={onWorkModeChange} onPick={vi.fn()} />);
         expect(screen.getByText('What should happen? Tell me in your own words.')).toBeTruthy();
         const askFirst = screen.getByTestId('assistant-ask-first');
-        expect(askFirst.textContent).toContain('Let me ask a few questions first');
+        expect(askFirst.textContent).toContain('Describe it');
         expect(askFirst.textContent).toContain('Recommended');
+        expect(askFirst.textContent).toContain('I ask a few questions first, then write a plan in plain words and build it after your OK.');
         await user.click(askFirst);
-        expect(onWorkModeChange).toHaveBeenCalledWith('plan');
+        expect(onWorkModeChange).toHaveBeenCalledWith('describe');
     });
 
-    it('in plan mode it says it will ask first instead of offering it again', () => {
-        render(<AssistantWelcome definition={emptyDraft} workMode="plan" onWorkModeChange={vi.fn()} onPick={vi.fn()} />);
+    it.each(['describe', 'plan'])('in %s mode it says it will ask first instead of offering it again', (mode) => {
+        render(<AssistantWelcome definition={emptyDraft} workMode={mode} onWorkModeChange={vi.fn()} onPick={vi.fn()} />);
         expect(screen.queryByTestId('assistant-ask-first')).toBeNull();
         expect(screen.getByTestId('assistant-ask-first-on')).toBeTruthy();
     });

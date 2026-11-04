@@ -54,15 +54,17 @@ const { fallback } = require('../utils/bestEffort');
  * @param {string} userId
  * @param {Partial<Express.Session> | null} session  Live request session, or the offline session
  *   from automation/triggerBus loadSession() for unattended/MCP callers.
- * @param {{ deps?: Pick<typeof import('../core/integrations/integrationTools'), 'getIntegrationTools' | 'getUserPermittedApps'> | null }} [opts]
- *   `deps` replaces the resolver (tests).
+ * @param {{ deps?: Pick<typeof import('../core/integrations/integrationTools'), 'getIntegrationTools' | 'getUserPermittedApps'>
+ *   & Partial<Pick<typeof import('../core/integrations/integrationTools'), 'availableMcpServerIds'>> | null }} [opts]
+ *   `deps` replaces the resolver (tests). Without `availableMcpServerIds` no MCP server counts as connected.
  */
 async function buildCatalogForUser(userId, session, { deps = null } = {}) {
     try {
         const { TOOL_REGISTRY, loadTools } = require('./toolRegistry');
         const { getOutputSchema, OUTPUT_SCHEMAS } = require('./outputSchemas');
         const { isSideEffect, isMemoisable } = require('./sideEffectMap');
-        const { getIntegrationTools, getUserPermittedApps } = deps || require('../core/integrations/integrationTools');
+        const resolver = deps || require('../core/integrations/integrationTools');
+        const { getIntegrationTools, getUserPermittedApps } = resolver;
         const { buildTriggerOutputsCatalog } = require('./builderTools');
 
         // The authoritative per-user answer: org ∩ group ∩ toggle ∩ entitlement
@@ -82,7 +84,7 @@ async function buildCatalogForUser(userId, session, { deps = null } = {}) {
             // step, and without it a tool the runner will happily execute is
             // missing from the builder (and now, refused by it).
             const r = await getIntegrationTools(/** @type {Parameters<typeof getIntegrationTools>[0]} */ ({ userId, session, isAdmin: !!session?.isAdmin, automationStep: true }));
-            userToolDefs = Array.isArray(r.tools) ? r.tools : [];
+            userToolDefs = await connectedOnly(Array.isArray(r.tools) ? r.tools : [], userId, resolver.availableMcpServerIds);
             for (const t of userToolDefs) if (t?.function?.name) userToolNames.add(t.function.name);
         } catch (e) {
             const err = new Error(`Could not resolve which integrations you can use: ${/** @type {Error} */ (e).message}`);
@@ -168,6 +170,40 @@ async function buildCatalogForUser(userId, session, { deps = null } = {}) {
         log.warn('[builderCatalog] catalog could not be built:', e && /** @type {Error} */ (e).message);
         return { apps: [], triggerOutputs: {}, catalogError: (e && /** @type {Error} */ (e).message) || 'catalog unavailable' };
     }
+}
+
+// ── Connected only ────────────────────────────────────────────────────────
+// The assistant may use an app only when it is switched on AND connected for
+// this user. Registry apps reach the resolved set only with their credentials;
+// an MCP server's tools reach it on the org and group grant alone
+// (externalToolInjection appendMcpTools checks no credential), so a server the
+// user switched on but never gave its credentials would get a row and its
+// tools would pass the add-time gate. Its tools are dropped here, before the
+// rows and `toolNames` are built from the set. Custom integrations are org-wide
+// with no credential per user, and Step tools and agent-callable automations
+// are the user's own: they stay.
+
+/**
+ * The resolved definitions without the tools of an MCP server this user has
+ * not supplied every credential for. An answer we cannot get counts as "not
+ * connected" (fail closed: it can only hide a server).
+ * @param {ToolDef[]} defs
+ * @param {string} userId
+ * @param {((names: Set<string>, userId: string) => Promise<Set<string>>) | undefined} availableMcpServerIds
+ * @returns {Promise<ToolDef[]>}
+ */
+async function connectedOnly(defs, userId, availableMcpServerIds) {
+    const serverOf = (/** @type {ExtraToolDef} */ def) => def?._mcp?.serverId || null;
+    if (!defs.some(serverOf)) return defs;
+    /** @type {Set<string>} */
+    let connected = new Set();
+    try {
+        if (typeof availableMcpServerIds === 'function') {
+            const names = new Set(defs.map(d => d?.function?.name).filter(/** @returns {n is string} */ n => typeof n === 'string' && !!n));
+            connected = await availableMcpServerIds(names, userId);
+        }
+    } catch (err) { fallback('automation/builderCatalog:connectedMcpServers', err); /* none counts as connected */ }
+    return defs.filter(def => { const id = serverOf(def); return !id || connected.has(id); });
 }
 
 // ── Rows for the tools TOOL_REGISTRY has no home for ─────────────────────
@@ -311,7 +347,7 @@ function inspectedToolsFrom(stored, available) {
     return out;
 }
 
-module.exports = { buildCatalogForUser, inputSchemasByTool, inspectedToolsFrom, _internals: { extraAppRows, extraGroupOf } };
+module.exports = { buildCatalogForUser, inputSchemasByTool, inspectedToolsFrom, _internals: { extraAppRows, extraGroupOf, connectedOnly } };
 
 /**
  * @typedef {{ name: string, description?: string, sideEffect: boolean, askOnceable: boolean,

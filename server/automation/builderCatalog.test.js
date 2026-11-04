@@ -192,3 +192,66 @@ test('a healthy catalog has no marker, and carries the tool definitions out of b
         assert.ok(!('toolDefs' in { ...cat }));
     } finally { restore(); }
 });
+
+// ── Connected only (D1) ─────────────────────────────────────────────────
+// An MCP server's tools reach the resolved set on the org and group grant
+// alone; the catalogue keeps them only when this user supplied every
+// credential the server needs (integrationTools.availableMcpServerIds).
+
+const mcpDef = (server, tool, label = server) => ({ type: 'function', function: { name: `mcp_${server}_${tool}`, parameters: { type: 'object', properties: {} } }, _mcp: { serverId: server, serverName: label } });
+const D1_DEFS = [
+    mcpDef('tix', 'create_ticket', 'Ticket desk'),
+    mcpDef('wiki', 'search', 'Wiki'),
+    { type: 'function', function: { name: 'cint_crm_find_contact' }, _cint: { rawName: 'find_contact' } },
+    { type: 'function', function: { name: 'step_normalise_address' }, __step: { id: 's1' } },
+];
+
+/** buildCatalogForUser over D1_DEFS with `connected` as the credentialled servers. */
+function catalogWithMcp(connected, extra = {}) {
+    const asked = [];
+    const deps = {
+        getIntegrationTools: async () => ({ tools: D1_DEFS }),
+        getUserPermittedApps: async () => null,
+        availableMcpServerIds: async (names, userId) => { asked.push({ names: [...names], userId }); return new Set(connected); },
+        ...extra,
+    };
+    return require('./builderCatalog').buildCatalogForUser('u1', { user: { id: 'u1' } }, { deps: /** @type {any} */ (deps) }).then(cat => ({ cat, asked }));
+}
+
+test('an MCP server without its credentials gets no row and its tools are not in toolNames; a credentialled one does', async () => {
+    const { cat, asked } = await catalogWithMcp(['tix']);
+    assert.ok(appById(cat, 'mcp:tix'), 'the credentialled server has its row');
+    assert.deepEqual(appById(cat, 'mcp:tix').actions.map(a => a.name), ['mcp_tix_create_ticket']);
+    assert.equal(appById(cat, 'mcp:wiki'), null, 'the server missing a credential has no row');
+    assert.ok(cat.toolNames.has('mcp_tix_create_ticket'));
+    assert.equal(cat.toolNames.has('mcp_wiki_search'), false, 'and the add-time gate does not let its tools through');
+    assert.ok(!cat.toolDefs.some(d => d.function.name === 'mcp_wiki_search'), 'nor do the definitions the pickers read');
+    assert.equal(asked.length, 1);
+    assert.equal(asked[0].userId, 'u1', 'the credentials of THIS user decide');
+    assert.ok(asked[0].names.includes('mcp_wiki_search'));
+});
+
+test('custom integrations and Step tools need no per-user credential and stay', async () => {
+    const { cat } = await catalogWithMcp([]);
+    assert.ok(cat.toolNames.has('cint_crm_find_contact'));
+    assert.ok(cat.toolNames.has('step_normalise_address'));
+    assert.ok(appById(cat, 'custom-integrations'));
+    assert.ok(appById(cat, 'step-tools'));
+    assert.ok(!(cat.apps || []).some(a => String(a.id).startsWith('mcp:')), 'no MCP server is connected');
+});
+
+test('the credential check failing, or missing, counts as not connected (fail closed)', async () => {
+    const failed = await catalogWithMcp(['tix'], { availableMcpServerIds: async () => { throw new Error('store down'); } });
+    assert.ok(![...failed.cat.toolNames].some(n => n.startsWith('mcp_')));
+    assert.ok(failed.cat.toolNames.has('cint_crm_find_contact'), 'the rest of the catalogue is untouched');
+    const missing = await catalogWithMcp(['tix'], { availableMcpServerIds: undefined });
+    assert.ok(![...missing.cat.toolNames].some(n => n.startsWith('mcp_')));
+});
+
+test('without MCP tools the credential check is not asked', async () => {
+    const { connectedOnly } = require('./builderCatalog')._internals;
+    let calls = 0;
+    const defs = [{ function: { name: 'gmail_search' } }];
+    assert.equal(await connectedOnly(defs, 'u1', async () => { calls++; return new Set(); }), defs);
+    assert.equal(calls, 0);
+});

@@ -63,7 +63,9 @@ export function makeBuilderSend(c: BuilderSendContext) {
                 // the structured list, the model gets the text.
                 answers: options.answers || null,
                 targetAutomationId,
-                workMode: approvedPlanId ? 'plan' : c.workMode,
+                // A plan in progress goes out as 'plan', except in 'describe': the
+                // server keeps that mode's everyday words for the build it approved.
+                workMode: approvedPlanId && c.workMode !== 'describe' ? 'plan' : c.workMode,
                 approvedPlanId,
                 alwaysPlanLarge: !!c.alwaysPlanLarge && !c.autoSendInput && !c.forcedTier,
                 pauseAfterStep: options.pauseAfterStep ?? (!!approvedPlanId && !!c.state.reviewPlan?.pauseAfterStep),

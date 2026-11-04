@@ -11,7 +11,7 @@ interface AssistantWelcomeProps {
     selectedStep?: FlowStep | null;
     /** Sends the text as the person's own message. */
     onPick?: (text: string) => void;
-    /** The current work mode ('discuss' | 'approve' | 'plan' | 'build'). */
+    /** The current work mode ('describe' | 'discuss' | 'approve' | 'plan' | 'build'). */
     workMode?: string;
     /** Switches the work mode of this automation; absent = the welcome cannot offer it. */
     onWorkModeChange?: ((mode: string) => void) | null;
@@ -103,10 +103,11 @@ function IdeaList({ ideas, onPick, testId }: { ideas: string[]; onPick?: (text: 
     );
 }
 
-/** The empty draft: what should happen, the offer to ask first, and three example briefs. */
+/** The empty draft: what should happen, the offer of "Describe it", and three example briefs. */
 function EmptyDraftWelcome({ onPick, workMode, onWorkModeChange }: Pick<AssistantWelcomeProps, 'onPick' | 'workMode' | 'onWorkModeChange'>) {
     const { t } = useTranslation();
-    const planning = workMode === 'plan';
+    // Both modes ask a few questions before they plan; only 'describe' is offered.
+    const planning = workMode === 'describe' || workMode === 'plan';
     return (
         <div className="flex flex-col gap-5 py-5 text-left">
             <div>
@@ -120,15 +121,15 @@ function EmptyDraftWelcome({ onPick, workMode, onWorkModeChange }: Pick<Assistan
                 </p>
             )}
             {!planning && onWorkModeChange && (
-                <button type="button" data-testid="assistant-ask-first" onClick={() => onWorkModeChange('plan')}
+                <button type="button" data-testid="assistant-ask-first" onClick={() => onWorkModeChange('describe')}
                     className="flex items-start gap-2.5 text-left p-3 rounded-lg border border-[var(--type-ai)] bg-[color-mix(in_srgb,var(--type-ai)_6%,var(--bg-card))] hover:bg-[color-mix(in_srgb,var(--type-ai)_12%,var(--bg-card))] transition">
                     <ListChecks size={15} className="shrink-0 mt-0.5 text-[var(--type-ai)]" />
                     <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2 text-xs font-medium text-[var(--text-primary)]">
-                            {t('automations.assistant.ask_first', 'Let me ask a few questions first')}
+                            {t('automations.assistant.ask_first', 'Describe it')}
                             <span className="rounded px-1.5 py-px text-[10px] font-medium text-[var(--type-ai)] bg-[color-mix(in_srgb,var(--type-ai)_14%,transparent)]">{t('automations.assistant.recommended', 'Recommended')}</span>
                         </span>
-                        <span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-tertiary)]">{t('automations.assistant.ask_first_hint', 'Then I write a plan in plain words and build it after your OK.')}</span>
+                        <span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-tertiary)]">{t('automations.assistant.ask_first_hint', 'I ask a few questions first, then write a plan in plain words and build it after your OK.')}</span>
                     </span>
                 </button>
             )}

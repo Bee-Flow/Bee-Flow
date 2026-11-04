@@ -241,8 +241,8 @@ to do before it runs.
   sends it. If you would rather choose how the automation starts yourself, the start
   cards are below, under *or start from how it begins*.
 - **Studio → New → Describe it**: what you type there goes straight to the assistant of
-  a new automation, which starts on it at once. The name you gave becomes the
-  automation's name.
+  a new automation, which starts on it at once in **Describe it** (below). The name you
+  gave becomes the automation's name.
 - **An existing automation**: click **Assistant** in the header (⌘J). It opens with one
   sentence about what it sees, for example *I can see your form 'Contact' and the 2
   steps after it.*, and up to three suggestions that fit this automation. Clicking a
@@ -255,6 +255,7 @@ automation.
 
 | Choice | What the assistant does |
 |---|---|
+| **Describe it** | For when you know what should happen but not how to build it. You say it in your own words; the assistant asks a few questions, writes a plan in plain words, and after your OK builds it, tests it and hands it over, using only the apps you have connected. |
 | **Just advise** | Answers and gives advice. Leaves the automation as it is. |
 | **Show me before changing** | Shows each change first. You decide whether to make it. This is the default. |
 | **Ask, plan, then build** | Asks a few questions, writes a plan in plain words, and builds after your OK. |
@@ -263,13 +264,16 @@ automation.
 **Check with me for big changes**: with this on, *Change it right away* still shows you a
 change of four steps or more first. A new, empty automation is built without that stop.
 
-On a new, empty automation the assistant recommends *Let me ask a few questions first*.
-Clicking it switches this automation to **Ask, plan, then build**.
+On a new, empty automation the assistant recommends **Describe it**. Clicking it switches
+this automation to that mode; the default for your other automations stays as it was.
 
-#### Ask, plan, then build
+#### Describe it, and Ask, plan, then build
 
-The assistant works in five stages. It waits for you after the questions and after the
-plan.
+Both modes work in the five stages below. The assistant waits for you after the questions
+and after the plan. *Describe it* keeps to everyday words throughout (no step names, fields or
+technical terms), and when your request needs an app you have not connected, it says so
+in one sentence, tells you where to connect it, and offers the nearest way it can do
+the job now.
 
 1. **Questions.** At most four, each with suggested answers, the most likely first:
    where it starts, where the data comes from, who is involved, and what should exist at
@@ -306,10 +310,13 @@ applies to this automation:
 - Every step on the canvas with its settings, and the step you have selected.
 - Every kind of step you can add, under the same names and groups as the ribbon: *How it
   starts*, *AI*, *Logic*, *People*, *Data & documents*, *Apps* and *My building blocks*.
-- The apps you have connected, with their actions.
-- Your workspace's building blocks, tools from MCP servers your organisation added, your
-  organisation's custom integrations, and automations that agents may call, each with the
-  inputs it needs.
+- The apps that are switched on for you **and** connected for you, with their actions. An
+  app that is switched on but not connected yet is not shown to it at all. The same goes
+  for MCP servers: a server's tools are only there once every credential it asks for
+  is filled in for you.
+- Your workspace's building blocks, tools from those MCP servers, your organisation's
+  custom integrations, and automations that agents may call, each with the inputs it
+  needs.
 - Your tables, documents, agents and knowledge bases.
 - The last test run: per step, which fields came back and in what shape (never the
   values). The next message builds on that instead of guessing.

@@ -3,26 +3,40 @@ import scopedStorage from '@/utils/scopedStorage';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { BuilderTab } from './useBuilderTabUrl';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { WORK_MODES } from './chat/WorkModePicker';
 
-const WORK_MODES: readonly string[] = ['discuss', 'approve', 'plan', 'build'];
+const WORK_MODE_IDS: readonly string[] = WORK_MODES.map(m => m.id);
 
 interface WorkModePrefsArgs {
     automationId: string | null;
     /** The id the stream knows (a lazily created automation), once it has one. */
     streamAutomationId: string | null | undefined;
-    /** A host that drives the build (auto-send, forced tier) opens in 'build'. */
-    startInBuild: boolean;
+    /**
+     * The mode a host that drives the build opens in: 'describe' for a Studio
+     * "Describe it" brief, 'build' for any other auto-send or a forced tier
+     * (Playbook stages); null = the remembered mode.
+     */
+    startMode: string | null;
 }
 
 /** The work mode and the "always plan large builds" choice, remembered per automation. */
-export function useWorkModePrefs({ automationId, streamAutomationId, startInBuild }: WorkModePrefsArgs) {
+export function useWorkModePrefs({ automationId, streamAutomationId, startMode }: WorkModePrefsArgs) {
     const modeStorageKey = `automationWorkMode:${automationId || 'new'}`;
     const [workMode, setWorkMode] = useState<string>(() => {
-        if (startInBuild) return 'build';
+        if (startMode && WORK_MODE_IDS.includes(startMode)) return startMode;
         const saved = scopedStorage.getItem(modeStorageKey);
-        return saved !== null && WORK_MODES.includes(saved) ? saved : 'approve';
+        return saved !== null && WORK_MODE_IDS.includes(saved) ? saved : 'approve';
     });
-    useEffect(() => { scopedStorage.setItem(`automationWorkMode:${streamAutomationId || automationId || 'new'}`, workMode); }, [workMode, streamAutomationId, automationId]);
+    // The mode a host opened with is this draft's, not the remembered default
+    // for the next new automation: until the draft has an id it is not written
+    // under 'new' (a choice the person makes themselves is).
+    const hostStartRef = useRef(startMode);
+    useEffect(() => {
+        const id = streamAutomationId || automationId;
+        if (!id && workMode === hostStartRef.current) return;
+        if (!id) hostStartRef.current = null; // the person chose another mode: from here on it is theirs
+        scopedStorage.setItem(`automationWorkMode:${id || 'new'}`, workMode);
+    }, [workMode, streamAutomationId, automationId]);
     const [alwaysPlanLarge, setAlwaysPlanLarge] = useState(() => scopedStorage.getItem(`automationLargePlan:${automationId || 'new'}`) !== 'false');
     useEffect(() => { scopedStorage.setItem(`automationLargePlan:${streamAutomationId || automationId || 'new'}`, String(alwaysPlanLarge)); }, [alwaysPlanLarge, streamAutomationId, automationId]);
     return { workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge };

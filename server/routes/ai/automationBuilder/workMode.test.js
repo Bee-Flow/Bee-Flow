@@ -2,7 +2,7 @@
 'use strict';
 
 /**
- * The tool sets of the four work modes, as pure functions.
+ * The tool sets of the five work modes, as pure functions.
  *
  * The route test (chatStream.workMode.test.js) drives whole turns; this file
  * pins the rules underneath so a change to a set cannot slip through a turn
@@ -25,7 +25,7 @@ const {
 } = require('./workMode');
 const { endsInQuestion } = require('./roundNudges');
 const { briefGaps, briefText } = require('./briefGaps.mts');
-const { askFirstRefusal, questionLimit } = require('./modeRules.mts');
+const { askFirstRefusal, questionLimit, asksFirst, turnModeOf, DESCRIBE_RULE, DESCRIBE_QUESTIONS } = require('./modeRules.mts');
 const { TOOL_SCHEMAS } = require('../../../automation/builderTools');
 
 const ALL = TOOL_SCHEMAS.map(t => t.function.name);
@@ -507,4 +507,47 @@ test('the ask-first refusal names exactly what is missing and lets a sure model 
     assert.match(askFirstRefusal(['source', 'people']), /does not say where it starts or where the data comes from or who is involved\./);
     assert.match(askFirstRefusal(['source', 'destination', 'people']), /where the data comes from, where the result goes or who is involved/);
     assert.match(askFirstRefusal([]), /call builder_write_plan again unchanged/);
+});
+
+// ── Describe it: Plan first in everyday words ──
+
+test('Describe it runs as Plan first: the turn mode, the tool gates and the refusals are the plan ones', () => {
+    assert.ok(MODES.includes('describe'));
+    assert.equal(turnModeOf('describe', null), 'plan');
+    assert.equal(turnModeOf('describe', { id: 'p1' }), 'build', 'the approved plan builds');
+    for (const mode of ['discuss', 'approve', 'plan', 'build']) assert.equal(turnModeOf(mode, null), mode, mode);
+    assert.deepEqual(MODES.filter(asksFirst), ['describe', 'plan']);
+    for (const name of [...ALL, 'builder_write_plan', 'builder_ask_questions']) {
+        assert.equal(toolAllowed(name, 'describe'), toolAllowed(name, 'plan'), name);
+        assert.equal(previewRefusal(name, 'describe').replace('in describe mode', 'in plan mode'), previewRefusal(name, 'plan'), name);
+    }
+    assert.equal(questionStatusNote({ prior: [{ prompt: 'Which inbox?' }], answeredText: 'Q: Which inbox?\nA: Gmail', mode: 'describe' }),
+        questionStatusNote({ prior: [{ prompt: 'Which inbox?' }], answeredText: 'Q: Which inbox?\nA: Gmail', mode: 'plan' }));
+});
+
+test('Describe it is the plan instruction plus its everyday-words rule, on the plan turn and on the build of its approved plan', () => {
+    const describe = modeInstruction('describe');
+    assert.equal(describe, modeInstruction('plan', null, 'describe'));
+    assert.ok(describe.startsWith(modeInstruction('plan').replace(` ${TABLE_CONSENT_RULE}`, '')), 'the whole plan body first');
+    assert.ok(describe.includes(DESCRIBE_RULE));
+    assert.ok(describe.endsWith(TABLE_CONSENT_RULE));
+    assert.match(DESCRIBE_RULE, /Ask at most 4 questions/);
+    assert.match(DESCRIBE_RULE, /no step ids, tool names, step type names, paths, bindings, field keys or JSON/);
+    assert.match(DESCRIBE_RULE, /only the apps in the catalog: they are the ones switched on and connected/);
+    assert.match(DESCRIBE_RULE, /"Your Gmail is not connected yet; connect it under Settings → Connections, then I can send the mail\."/);
+    assert.match(DESCRIBE_RULE, /a notification, an e-mail from Bee Flow or a form/);
+    const plan = { id: 'p1', steps: ['Read the invoice'] };
+    const build = modeInstruction('build', plan, 'describe');
+    assert.ok(build.includes(DESCRIBE_RULE), 'the build of the approved plan keeps the register');
+    assert.match(build, /starts with "To use it:"/, 'and hands over');
+    for (const mode of ['plan', 'discuss', 'approve', 'build']) assert.ok(!modeInstruction(mode, mode === 'build' ? plan : null).includes(DESCRIBE_RULE), mode);
+});
+
+test('Describe it shows at most four questions, also when its approved build asks one', () => {
+    assert.equal(DESCRIBE_QUESTIONS, 4);
+    assert.equal(questionLimit('describe', null, MAX_QUESTIONS), 4);
+    assert.equal(questionLimit('plan', null, MAX_QUESTIONS, 'describe'), 4);
+    assert.equal(questionLimit('build', { id: 'p1' }, MAX_QUESTIONS, 'describe'), 4);
+    assert.equal(questionLimit('plan', null, 3, 'describe'), 3, 'never above the hard cap');
+    assert.equal(questionLimit('plan', null, MAX_QUESTIONS, 'plan'), MAX_QUESTIONS, 'Plan first keeps its six');
 });

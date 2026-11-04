@@ -877,3 +877,51 @@ test('a direct build shows at most one question (a Playbook stage runs in this m
     assert.match(run.first('tool_call').result._note, /2 question\(s\) were not shown \(limit 1\)/);
     assert.match(systemText(run), /Ask at most ONE question, and only when nothing can be built without its answer/);
 });
+
+// ── Describe it: Plan first in everyday words ──────────────────────────────
+// The fifth work mode runs every Plan-first rule (ask first, one round, the
+// plan, the approved build) with its own rule text and four questions at most.
+
+const describeRule = /DESCRIBE IT: the person describes in their own words what should happen/;
+
+test('Describe it on a thin new brief: the plan rules plus the everyday-words rule, a plan anyway goes back once, the questions end the turn', async () => {
+    const run = await h.run({ message: THIN, body: { workMode: 'describe' },
+        rounds: [{ toolCalls: [call('builder_write_plan', NEW_PLAN)] }, { toolCalls: [call('builder_ask_questions', BRIEF_QUESTIONS)] }, { text: 'never' }] });
+    assert.match(systemText(run), /PLAN FIRST\./);
+    assert.match(systemText(run), /On a NEW automation \(the draft has no steps\) your first call is builder_ask_questions/);
+    assert.match(systemText(run), describeRule);
+    assert.match(systemText(run), /Use only the apps in the catalog: they are the ones switched on and connected/);
+    assert.match(run.dataOf('tool_call')[0].result.error, /^Plan not written yet: this is a new automation/);
+    assert.equal(run.first('review_questions').questions.length, 3);
+    assert.ok(names(run).includes('builder_write_plan') && !names(run).includes('builder_update_step'), 'the plan tools, nothing that builds');
+    assert.deepEqual(run.storedSessions.at(-1).payload.questionsMeta, { round: 1, planId: null, mode: 'plan' }, 'one question round, as in Plan first');
+});
+
+test('Describe it shows at most four questions and tells the model what was cut', async () => {
+    const run = await h.run({ message: THIN, body: { workMode: 'describe' }, rounds: [{ toolCalls: [ASK_AGAIN(6)] }, { text: 'never' }] });
+    assert.equal(run.first('review_questions').questions.length, 4);
+    assert.match(run.first('tool_call').result._note, /2 question\(s\) were not shown \(limit 4\)/);
+    const plan = await h.run({ message: THIN, body: { workMode: 'plan' }, rounds: [{ toolCalls: [ASK_AGAIN(6)] }, { text: 'never' }] });
+    assert.equal(plan.first('review_questions').questions.length, 6, 'Plan first keeps its six');
+    assert.doesNotMatch(systemText(plan), describeRule);
+});
+
+test('the build of an approved Describe it plan keeps the everyday-words rule, builds and hands over', async () => {
+    const run = await h.run({ draft: draft(), body: { automationId: 'a1', workMode: 'describe', approvedPlanId: 'p1' }, builderSession: { reviewPlan: approved() },
+        rounds: [{ toolCalls: [call('builder_update_step', { stepId: 's1' })] }, { text: 'Done.' }],
+        tools: { builder_update_step: (_args, wrap) => { wrap.def.steps[0].label = 'Renamed'; return { ok: true }; }, builder_finalize: () => ({ error: 'Not finalized in this test.' }) } });
+    assert.match(systemText(run), /APPROVED this plan: build it now/);
+    assert.match(systemText(run), describeRule);
+    assert.match(systemText(run), /test it with builder_request_dry_run[\s\S]*starts with "To use it:"/);
+    assert.equal(run.first('draft').definition.steps[0].label, 'Renamed', 'the build lands in the live draft, no preview in between');
+    const plain = await h.run({ draft: draft(), body: buildBody, builderSession: { reviewPlan: approved() }, rounds: [{ text: 'Done.' }] });
+    assert.doesNotMatch(systemText(plain), describeRule, 'a Plan first build does not get it');
+});
+
+test('the turn body accepts describe as a work mode and names it in the refusal', () => {
+    const { TurnBody } = require('./turnSetup');
+    assert.equal(TurnBody.safeParse({ message: 'x', workMode: 'describe' }).success, true);
+    const bad = TurnBody.safeParse({ message: 'x', workMode: 'describe-it' });
+    assert.equal(bad.success, false);
+    assert.match(JSON.stringify(bad.error.issues), /workMode is describe, discuss, approve, plan or build\./);
+});

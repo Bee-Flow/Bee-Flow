@@ -41,7 +41,7 @@ export function canAutoSend({ autoSendInput, automationId, messageCount }: CanAu
 const NO_GROUPS: never[] = [];
 
 export default function BuilderShell({ automationId, onBack, onOpenList = null, onExportJson = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
-    onTurnEnd = null, forcedTier = null, backLabel = null, forceAssistantOpen = false, seedMetadata = null, patternOrigin = null }: BuilderShellProps) {
+    onTurnEnd = null, forcedTier = null, backLabel = null, forceAssistantOpen = false, seedMetadata = null, patternOrigin = null, initialWorkMode = null }: BuilderShellProps) {
     const api = useAutomationApi();
     // Step mode (kind='block'): same builder, but persistence targets the
     // /api/step router, the root is an input/output contract (no real trigger),
@@ -98,8 +98,9 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     });
 
     const { t } = useTranslation();
+    // A Playbook stage (forced tier) and any other auto-send open in 'build'; a Studio "Describe it" brief in 'describe'.
     const { workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge } = useWorkModePrefs({
-        automationId, streamAutomationId: state.automationId, startInBuild: !!(autoSendInput || forcedTier),
+        automationId, streamAutomationId: state.automationId, startMode: forcedTier ? 'build' : initialWorkMode || (autoSendInput ? 'build' : null),
     });
     const { assistantContext, setAssistantContext, askAssistant, stepByIdForAssistant: stepByIdForAssistantRef } = useAssistantAsk({
         readOnlyRef, ndvStepId, setTab, setAssistantOpen, setChatInput, t,

@@ -226,9 +226,10 @@ test('renderDatatablesBlock: requireChoice adds one fixed sentence and the outpu
 // add-time gate lets them through), so the model must be shown them and
 // builder_inspect_tool must answer their inputs: a row per group carries them.
 
-/** buildCatalogForUser with the resolver answering these definitions. */
+/** buildCatalogForUser with the resolver answering these definitions; every MCP server is connected. */
 function catalogFromDefs(defs) {
-    const deps = { getIntegrationTools: async () => ({ tools: defs }), getUserPermittedApps: async () => null };
+    const mcpIds = new Set(defs.map(d => d._mcp && d._mcp.serverId).filter(Boolean));
+    const deps = { getIntegrationTools: async () => ({ tools: defs }), getUserPermittedApps: async () => null, availableMcpServerIds: async () => mcpIds };
     return require('../builderCatalog').buildCatalogForUser('u1', { user: { id: 'u1' } }, { deps: /** @type {any} */ (deps) });
 }
 

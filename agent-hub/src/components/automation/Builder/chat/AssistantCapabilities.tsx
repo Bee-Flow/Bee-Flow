@@ -4,7 +4,7 @@ import WorkModePicker, { WORK_MODES } from './WorkModePicker';
 import type { WorkMode } from './WorkModePicker';
 
 
-/** What the assistant may do in each work mode: allowed, refused, or through a proposal / plan. */
+/** What the assistant may do in each work mode (in WORK_MODES order): allowed, refused, or through a proposal / plan. */
 type Permission = boolean | 'proposal' | 'plan';
 
 interface Props {
@@ -15,13 +15,13 @@ interface Props {
 export default function AssistantCapabilities({ workMode, onChange }: Props) {
     const { t } = useTranslation();
     const rows: [string, Permission[]][] = [
-        [t('automations.assistant.rights.read_flow', 'Read the flow, steps and settings'), [true, true, true, true]],
-        [t('automations.assistant.rights.read_mapping', 'Read mappings and available fields'), [true, true, true, true]],
-        [t('automations.assistant.rights.read_run', 'Read run values · personal data masked'), [true, true, true, true]],
-        [t('automations.assistant.rights.change', 'Add steps, edit settings and map fields'), [false, 'proposal', 'plan', true]],
-        [t('automations.assistant.rights.remove', 'Remove a step'), [false, 'proposal', false, false]],
-        [t('automations.assistant.rights.test', 'Execute a test run'), [false, false, false, true]],
-        [t('automations.assistant.rights.live', 'Activate or publish'), [false, false, false, false]],
+        [t('automations.assistant.rights.read_flow', 'Read the flow, steps and settings'), [true, true, true, true, true]],
+        [t('automations.assistant.rights.read_mapping', 'Read mappings and available fields'), [true, true, true, true, true]],
+        [t('automations.assistant.rights.read_run', 'Read run values · personal data masked'), [true, true, true, true, true]],
+        [t('automations.assistant.rights.change', 'Add steps, edit settings and map fields'), ['plan', false, 'proposal', 'plan', true]],
+        [t('automations.assistant.rights.remove', 'Remove a step'), [false, false, 'proposal', false, false]],
+        [t('automations.assistant.rights.test', 'Execute a test run'), ['plan', false, false, false, true]],
+        [t('automations.assistant.rights.live', 'Activate or publish'), [false, false, false, false, false]],
     ];
     return <div className="space-y-4">
         <div><h2 className="font-semibold text-sm">{t('automations.assistant.title', 'Assistant')}</h2><p className="text-xs text-[var(--text-secondary)] mt-1">{t('automations.assistant.rights.how_hint', 'Choose how the assistant works. Your choice is remembered for this automation.')}</p></div>

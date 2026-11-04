@@ -123,7 +123,7 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
             round.refusedThisIter = true;
             return true;
         }
-        const limit = questionLimit(turnMode, approvedPlan, MAX_QUESTIONS);
+        const limit = questionLimit(turnMode, approvedPlan, MAX_QUESTIONS, req.body.workMode);
         const written = writeQuestions(args, { datatables: draftWrap._datatables, max: limit });
         turn.reviewQuestions = written ? written.questions : null;
         toolResult = written
@@ -168,9 +168,10 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
         else round.acceptedThisIter = true;
         return true;
     }
-    // Plan first on a new automation: a plan from a brief that does not say
-    // where the data comes from, where it goes or who is involved goes back
-    // once with "ask first" (modeRules ASK_FIRST_RULE says the same up front).
+    // Plan first (and Describe it, which runs as 'plan': modeRules turnModeOf)
+    // on a new automation: a plan from a brief that does not say where the
+    // data comes from, where it goes or who is involved goes back once with
+    // "ask first" (modeRules ASK_FIRST_RULE says the same up front).
     if (name === 'builder_write_plan' && turnMode === 'plan' && !questionsClosed && !askedFirst.has(turn) && isBlankDraft(baseDraft)) {
         const gaps = briefGaps(briefText(turn.message, turn.history));
         if (gaps.length) {

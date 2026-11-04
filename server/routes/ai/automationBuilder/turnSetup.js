@@ -21,6 +21,7 @@ const { buildCatalogForUser, inputSchemasByTool, inspectedToolsFrom } = require(
 const { loadOrCreateDraft } = require('./builderDraft');
 const { MODES, isBlankDraft, planMentionsRemoval, pendingProposal } = require('./workMode');
 const { setupDatatableTurn, clientSnapshot } = require('./datatableTurn');
+const { turnModeOf } = require('./modeRules.mts');
 const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = require('../../../core/http/schemaParts');
 
 /**
@@ -127,7 +128,7 @@ const TurnBody = bodyOf({
     modelTier: text('modelTier is the name of a model tier.').nullish(),
     alwaysPlanLarge: flag('alwaysPlanLarge is true or false.').optional(),
     pauseAfterStep: flag('pauseAfterStep is true or false.').optional(),
-    workMode: choice(MODES, 'workMode is discuss, approve, plan or build.').optional(),
+    workMode: choice(MODES, 'workMode is describe, discuss, approve, plan or build.').optional(),
     approvedPlanId: text('approvedPlanId is the exact plan revision approved by the user.').nullish(),
     selectedStepId: text('selectedStepId is the step the user is asking about.').nullish(),
     history: z.array(z.unknown(), { error: typeError({ invalid: 'history is the list of earlier turns.' }) }).nullish(),
@@ -224,7 +225,7 @@ async function setupTurn(turn) {
         send('error', { error: 'This plan revision is no longer available. Review and approve the latest plan.' });
         res.end(); return false;
     }
-    const turnMode = approvedPlan ? 'build' : workMode;
+    const turnMode = turnModeOf(workMode, approvedPlan);
     // A new or empty draft is built directly: the size check is for
     // changes to a flow that already exists.
     const bufferedBuild = turnMode === 'build' && alwaysPlanLarge && !approvedPlan && !isBlankDraft(draftWrap.def);

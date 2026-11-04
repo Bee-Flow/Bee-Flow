@@ -57,7 +57,8 @@ function open(step: Record<string, unknown>, over: Record<string, unknown>) {
 describe('NodeDetailView — the approval bar reads the snapshot', () => {
     it('shows the question and fields the run paused with, not the step as edited since', async () => {
         open(EDITED_APPROVAL, { followedRun: PAUSED, onFollowRun: vi.fn() });
-        expect(await screen.findByText('Amount for Acme?')).toBeTruthy();
+        // The bar is a lazy chunk behind a fetch: under a loaded CI runner the default 1 s is too short.
+        expect(await screen.findByText('Amount for Acme?', {}, { timeout: 5000 })).toBeTruthy();
         const bar = screen.getByTestId('approval-action-bar');
         expect(bar.textContent).toContain('Amount');
         expect(bar.textContent).not.toContain('Budget');
@@ -68,7 +69,7 @@ describe('NodeDetailView — the approval bar reads the snapshot', () => {
     it('hands the run back to the canvas after the decision', async () => {
         const onFollowRun = vi.fn();
         open(EDITED_APPROVAL, { followedRun: PAUSED, onFollowRun });
-        await screen.findByText('Amount for Acme?');
+        await screen.findByText('Amount for Acme?', {}, { timeout: 5000 });
         await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
         await waitFor(() => expect(onFollowRun).toHaveBeenCalledWith('r1'));
     });

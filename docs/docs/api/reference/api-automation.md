@@ -974,7 +974,7 @@ No request schema.
 | `modelTier` | string or null |  |  |
 | `alwaysPlanLarge` | boolean |  |  |
 | `pauseAfterStep` | boolean |  |  |
-| `workMode` | one of `"discuss"`, `"approve"`, `"plan"`, `"build"` |  |  |
+| `workMode` | one of `"describe"`, `"discuss"`, `"approve"`, `"plan"`, `"build"` |  |  |
 | `approvedPlanId` | string or null |  |  |
 | `selectedStepId` | string or null |  |  |
 | `history` | array of any or null |  |  |
