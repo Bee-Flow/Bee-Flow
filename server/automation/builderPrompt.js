@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * System prompt for the conversational automation builder agent.
  *
@@ -9,6 +10,9 @@
  *     wall of guidance. Written per MENU (`menu`): the small band's lean
  *     projection, or the full menu the reasoning band keeps.
  *
+ * Both open with "## What you can build" (builderPrompt/stepFamilies.js) right
+ * after the role line: every step type in the canvas's groups and words.
+ *
  * Few-shot helpers prepend short worked dialogues to the message history
  * when the model profile requests them (see builderModelProfiles.js).
  */
@@ -18,11 +22,11 @@ const {
 const { buildFewShotMessages } = require('./builderPrompt/fewShotExamples');
 const { renderTriggerBlockLean } = require('./builderPrompt/triggerBlock');
 const { CONDITION_RULES_HINT } = require('./builderTools/ruleExamples');
-const { canvasOnlyMenu, BATCH_STEP_TYPES, ARRAY_OP_FAMILY } = require('./builderTools/stepTypeTable');
-const { leanBatchTypes } = require('./builderTools/schemaProjection');
+const { canvasOnlyMenu } = require('./builderTools/stepTypeTable');
+const { renderWhatYouCanBuild } = require('./builderPrompt/stepFamilies');
 const { WEBPAGES_GUIDANCE, DRIVE_GUIDANCE, CODE_STEP_MENU_ENTRY } = require('./builderPrompt/fullPromptGuidance');
-const { FULL_PROMPT_INTRO, FULL_PROMPT_STEP_MENU } = require('./builderPrompt/fullPromptMenu');
-const { FULL_PROMPT_WORKFLOW, FULL_PROMPT_RULES, FULL_PROMPT_PITFALLS, FULL_PROMPT_PITFALLS_TAIL } = require('./builderPrompt/fullPromptWorkflow');
+const { FULL_PROMPT_ROLE, FULL_PROMPT_INTRO, FULL_PROMPT_STEP_MENU } = require('./builderPrompt/fullPromptMenu');
+const { FULL_PROMPT_WORKFLOW, FULL_PROMPT_RULES, FULL_PROMPT_PITFALLS, FULL_PROMPT_PITFALLS_TAIL, LEAN_PLAN_FIRST_STEP, LEAN_HANDOVER_STEP } = require('./builderPrompt/fullPromptWorkflow');
 const { FULL_PROMPT_FORMS } = require('./builderPrompt/fullPromptForms');
 const { FULL_PROMPT_TABLES } = require('./builderPrompt/fullPromptTables');
 const { FULL_PROMPT_AI_CHECKS } = require('./builderPrompt/fullPromptAiChecks');
@@ -69,7 +73,13 @@ function buildFullSystemPrompt({ catalog, codeStepEnabled }) {
         ? CODE_STEP_MENU_ENTRY
         : '(code steps are currently DISABLED — never propose them)';
 
-    return `${FULL_PROMPT_INTRO}${codeStepMenuEntry}${FULL_PROMPT_STEP_MENU}${canvasOnlyMenu()}${FULL_PROMPT_WORKFLOW}${FULL_PROMPT_RULES}${FULL_PROMPT_FORMS}${FULL_PROMPT_TABLES}${FULL_PROMPT_AI_CHECKS}${FULL_PROMPT_PITFALLS}${CONDITION_RULES_HINT}${FULL_PROMPT_PITFALLS_TAIL}${webpagesGuidance}${driveGuidance}
+    const whatYouCanBuild = renderWhatYouCanBuild({ variant: 'full', codeStepEnabled: !!codeStepEnabled });
+
+    return `${FULL_PROMPT_ROLE}
+
+${whatYouCanBuild}
+
+${FULL_PROMPT_INTRO}${codeStepMenuEntry}${FULL_PROMPT_STEP_MENU}${canvasOnlyMenu()}${FULL_PROMPT_WORKFLOW}${FULL_PROMPT_RULES}${FULL_PROMPT_FORMS}${FULL_PROMPT_TABLES}${FULL_PROMPT_AI_CHECKS}${FULL_PROMPT_PITFALLS}${CONDITION_RULES_HINT}${FULL_PROMPT_PITFALLS_TAIL}${webpagesGuidance}${driveGuidance}
 ${datatablesBlock ? `${datatablesBlock}\n\n` : ''}${documentsBlock ? `${documentsBlock}\n\n` : ''}## Catalog (only these are available)
 
 ${apps || emptyCatalogLine(catalog)}
@@ -125,6 +135,8 @@ ${agentDraftState}`;
  * buildFullSystemPrompt). Absent inputs render nothing: an undefined
  * `webSearchEnabled` is "no preference", not "disabled".
  *
+ * @param {{ userTimezone?: string, webSearchEnabled?: boolean, webResearchLine?: string,
+ *   disabledMedia?: Record<string, unknown>, allowedModelTiers?: string[] }} [prefs]
  * @returns {string|null} null when no preference is set at all
  */
 function renderTurnPreferences({ userTimezone, webSearchEnabled, webResearchLine, disabledMedia, allowedModelTiers } = {}) {
@@ -152,31 +164,6 @@ function renderTurnPreferences({ userTimezone, webSearchEnabled, webResearchLine
     return `## This turn\n\n${lines.join('\n')}`;
 }
 
-/** @typedef {{ codeStepEnabled?: boolean }} LeanMenuNoticeArgs */
-/**
- * The notice that tells the model it holds the REDUCED menu, and what that
- * leaves out. Derived from the same two lists the menu is built from (the batch
- * types of stepTypeTable.js and the lean projection's LEAN_BATCH_TYPES), so it
- * cannot say a step type is missing that the menu serves, or the opposite. A
- * small model never saw the full prompt: without this line it does not know
- * that a document, a switch or a wait EXISTS, and builds the rest silently.
- * Static text: it belongs in the system prompt, which stays the same for every
- * user and session of the band.
- * @param {LeanMenuNoticeArgs} [param0]
- */
-function leanMenuNotice({ codeStepEnabled = false } = {}) {
-    const buildable = leanBatchTypes({ codeStepEnabled });
-    // Disabled code steps are said once, by the code rule ("DISABLED"); they are
-    // not listed a second time as a gap of the menu.
-    const covered = new Set([...buildable, 'code', ...(buildable.includes('array_op') ? ARRAY_OP_FAMILY : [])]);
-    const missing = BATCH_STEP_TYPES.filter(t => !covered.has(t));
-    return `## This is the reduced menu
-
-You hold the compact tool menu. Step types you can build: ${buildable.join(', ')} (array_op also covers ${ARRAY_OP_FAMILY.join(', ')}). NOT on this menu: ${missing.join(', ')}, flowlets and additional triggers. If the request needs one of those, build everything else, then say in ONE sentence of your summary which part the user must add on the canvas, or that a larger model can build it. Never claim a step you could not create.
-
-`;
-}
-
 /**
  * Lean prompt for small / reasoning models. Hard rules + binding examples
  * only, for a band that loses focus on the 220-line full prompt.
@@ -186,18 +173,19 @@ You hold the compact tool menu. Step types you can build: ${buildable.join(', ')
  * lacks is a round wasted (builderPrompt.coreMenuDoctrine.test.js pins that
  * for 'lean'):
  *   - 'lean' (the default; the small band): the LEAN schema projection
- *     (builderTools/schemaProjection.js) — no flowlets, no additional
- *     triggers, no delegation, no loop container, no switch, no batch update.
- *     Every section teaches a tool that menu serves and nothing it does not,
- *     and the app-event knowledge the projected builder_propose_trigger no
- *     longer carries is rendered as `## Triggers`.
+ *     (builderTools/schemaProjection.js) — every step type as a
+ *     builder_add_steps entry, but no flowlet creation, no additional
+ *     triggers, no delegation, no single-step loop tool, no batch update.
+ *     Every section teaches a tool that menu serves and nothing it does not;
+ *     the app-event knowledge the projected builder_propose_trigger does not
+ *     carry is rendered as `## Triggers`, and the compact "What you can build"
+ *     block gives each type's spec keys and says what the menu cannot make.
  *   - 'full' (the reasoning band: lean prose, full menu, full schemas): the
  *     same prose plus what that menu serves — the loop container beside
  *     forEach, `## Flowlets`, `## Additional triggers`, the delegate half of
  *     the plan section, the switch rule and builder_update_steps as the
- *     dry-run repair. Before 2026-09-17 this was the only lean prompt; the
- *     diet must not tell a model with builder_add_loop on its menu that
- *     "there is no loop container".
+ *     dry-run repair. A model with builder_add_loop on its menu is never told
+ *     to avoid the loop container.
  *
  * `catalogPlacement` decides where the three PER-USER blocks — the app
  * catalog, the datatables, the documents — go. 'system' (the default, and
@@ -234,21 +222,22 @@ function buildLeanSystemPrompt({ catalog, codeStepEnabled, batchTools = false, c
 You may emit SEVERAL tool calls in one reply — they execute in order. Typical build: reply 1 = \`builder_set_plan\` + \`builder_propose_trigger\` + \`builder_set_metadata\` + \`builder_inspect_tool({tools:[all tools you'll use]})\`; reply 2 = ONE \`builder_add_steps\` call with every step (tempIds cross-reference: \`steps.$a.output.x\`, \`afterStepId:"$a"\`); reply 3 = \`builder_summarise\` + \`builder_request_dry_run\`; reply 4 = \`builder_finalize\`, or ${repairCall} + \`builder_request_dry_run\` again. Never send \`builder_set_plan\` alone in a reply.
 ` : '';
 
-    // Step 3's per-type list is the menu's: the lean projection has no loop
-    // container, no set step and no form page.
+    // Step 3's per-type list is the menu's: on the lean projection the other
+    // types exist only as builder_add_steps entries.
     const perTypeTools = fullMenu
         ? 'The per-type tools are `builder_add_action`, `builder_add_ai_step`, `builder_add_loop`, `builder_add_condition`, `builder_add_notification`, `builder_add_http_request`, `builder_add_data_extraction`, `builder_add_datatable`, `builder_add_approval`, `builder_add_set`, `builder_add_array_op` (and, for a form-triggered automation that needs more input or a closing summary, `builder_add_form_page`).'
-        : 'The per-type tools are `builder_add_action`, `builder_add_ai_step`, `builder_add_condition`, `builder_add_notification`, `builder_add_http_request`, `builder_add_data_extraction`, `builder_add_datatable`, `builder_add_approval`, `builder_add_array_op`.';
+        : `The per-type tools are \`builder_add_action\`, \`builder_add_ai_step\`, \`builder_add_condition\`, \`builder_add_notification\`, \`builder_add_http_request\`, \`builder_add_data_extraction\`, \`builder_add_datatable\`, \`builder_add_approval\`, \`builder_add_array_op\`.${batchTools ? ' Every other type in "What you can build" is a `builder_add_steps` entry with the spec keys listed there.' : ''}`;
 
-    // Per-item work. On the lean menu there is one way (forEach on the step,
-    // chained); the full menu also has the loop container, and the bullets
-    // say when it is the right one.
+    // Per-item work. On the lean menu forEach on the step, chained, is the way:
+    // a loop entry exists in the batch, but nothing on that menu can change its
+    // body afterwards. The full menu has the loop tools, and the bullets say
+    // when the container is the right one.
     const loopBullets = fullMenu
         ? `   - PREFER \`forEach\` ON THE STEP over a \`loop\` container. Set \`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"item"}\` on the step itself (integration_action / ai_step / code / notification / set / http_request / datatable / knowledge_write) and reference the item as \`loop.<itemVar>\`. It reads as one node on the canvas instead of a nested block.
    - CHAIN per-item work with forEach — you almost never need a \`loop\`. A \`forEach\` step publishes \`steps.<id>.output.results\`, one entry per item carrying \`{index, item, output, status}\`. Point the NEXT step's \`forEach\` at that array and per-item correlation is preserved: \`loop.<v>.item\` is the original item and \`loop.<v>.output\` is that same item's result from the previous step. So "read each file, then extract from each file" is TWO flat forEach steps, not a loop.
    - A failed item's entry has \`status:"error"\` and NO \`output\` key. Before chaining, drop them: \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\` and point the next \`forEach\` at that filter's \`output.items\`.
    - A \`loop\` container is for the rare case where two steps must read the SAME source item without one consuming the other's results, or where a body step branches. It is also ALL-OR-NOTHING: one failing item aborts the whole loop, while \`forEach\` records the failure, carries on, and only fails if every item failed. Prefer \`forEach\`. Never wrap a single step in a loop.`
-        : `   - There is no loop container on this menu. Per-item work is \`forEach\` on the step (\`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"f"}\`, the item is \`loop.f\`); a forEach step publishes \`steps.<id>.output.results\`, one entry per item as \`{index, item, output, status}\`. Chain: the next step's forEach points at \`steps.<prev>.output.results\` and reads \`loop.<v>.output.<field>\` — "read each file, then extract from each file" is TWO flat forEach steps. Failed items have \`status:"error"\` and no \`output\` — drop them first with \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\` and point the next forEach at that filter's \`output.items\`.`;
+        : `   - Per-item work is \`forEach\` on the step, not a loop container: nothing on this menu can change a loop's body once it exists. \`forEach\` on the step (\`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"f"}\`, the item is \`loop.f\`); a forEach step publishes \`steps.<id>.output.results\`, one entry per item as \`{index, item, output, status}\`. Chain: the next step's forEach points at \`steps.<prev>.output.results\` and reads \`loop.<v>.output.<field>\` — "read each file, then extract from each file" is TWO flat forEach steps. Failed items have \`status:"error"\` and no \`output\` — drop them first with \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\` and point the next forEach at that filter's \`output.items\`.`;
 
     // Which trigger fired. The full menu can branch on it with a switch and
     // can add flowlets, whose own trigger is their input contract.
@@ -271,7 +260,9 @@ Extra entry points: \`builder_add_trigger({kind:"app_event"|"schedule"|"webhook"
     const delegateHalf = fullMenu
         ? ' Delegate with `builder_generate_layer({title, instruction, params, outputFields})` / `builder_generate_layers({layers:[…]})` (up to 3 in parallel) ONLY for two or more INDEPENDENT multi-step sub-flows or a reusable flowlet — a single linear flow is faster built directly. Then wire each with `builder_add_call_layer`.'
         : '';
-    const switchRule = fullMenu ? ' For a `switch`, pass `caseName` when appending a branch step.' : '';
+    const switchRule = fullMenu
+        ? ' For a `switch`, pass `caseName` when appending a branch step.'
+        : ' For a `switch` entry, put `caseName` in the spec of the step that starts each case.';
 
     // The hard-rule half of the same change as codeStepMenuEntry above — see
     // that comment for why the absolute "use only when no integration fits"
@@ -292,9 +283,8 @@ Extra entry points: \`builder_add_trigger({kind:"app_event"|"schedule"|"webhook"
     // flag ON.
     //
     // The declarative steps it names (data_extraction, array_op, http_request)
-    // are the ones BOTH projections of this prompt actually serve — `set` and
-    // `datetime` are full-menu only, and recommending a step the model has no
-    // way to add is how a rung of the ladder becomes a dead end.
+    // have a single-step tool on BOTH projections, so the rung it recommends can
+    // always be added and repaired one step at a time.
     const codeStepRule = codeStepEnabled
         ? 'Code steps are available, as the LAST rung of a ladder — not as a forbidden one. '
           + 'Prefer an integration_action (it carries the auth, the retries, the egress ledger and the PII guard); '
@@ -316,11 +306,15 @@ Extra entry points: \`builder_add_trigger({kind:"app_event"|"schedule"|"webhook"
 
 ${apps || emptyCatalogLine(catalog)}`;
 
+    const whatYouCanBuild = renderWhatYouCanBuild({ variant: 'compact', codeStepEnabled: !!codeStepEnabled, leanMenu: !fullMenu });
+
     return `You are the BeeFlow Automation Builder. Your only output channel is the structured \`builder_*\` tools — do NOT describe steps in prose, call the tool.
+
+${whatYouCanBuild}
 ${batchSection}
 ## Workflow
 
-1. Call \`builder_propose_trigger\` first (kind: schedule | manual | webhook | form | app_event | agent_call | app_trigger — see "## Triggers").
+1. ${LEAN_PLAN_FIRST_STEP} Otherwise call \`builder_propose_trigger\` first (kind: schedule | manual | webhook | form | app_event | agent_call | app_trigger — see "## Triggers").
 2. The catalog lists action names + an input COUNT only. Before adding an \`integration_action\` with required inputs (or whose output you'll chain), call \`builder_inspect_tool({tools:[…]})\` ONCE with every tool you'll use to get the exact param names + output shape — don't guess. (Adding a non-trivial action without inspecting it first is rejected — the rejection inlines the schema; resend the corrected call.)
 3. Add the steps.${batchTools ? ' DEFAULT: ONE `builder_add_steps` call carrying the WHOLE chain — every step of a 6-step automation in a single call, cross-referenced by tempId (`steps.$a.output.x`, `afterStepId:"$a"`). Entries apply in order; if entry i fails, the entries before it STAY built and the error tells you which index failed and what to resend. Resend only from that index — built entries are never added twice. Reach for a single `builder_add_*` call only to append ONE step to a draft that already exists.' : ''} ${perTypeTools}
 ${loopBullets}
@@ -330,7 +324,7 @@ ${loopBullets}
 4. To CHANGE a step, use \`builder_update_step({stepId, patch})\` — it keeps the id and wiring. To MOVE a step, or put it on a condition's other branch, patch its position the same way: \`builder_update_step({stepId, patch:{afterStepId:"<id>", branch:"else"}})\` — same id, same refs. NEVER delete and re-add a step to edit or move it (that mints a new id and breaks downstream refs).
 5. Call \`builder_summarise\` so the user can see the plan, in the same reply as the dry run.
 6. Call \`builder_request_dry_run\` to test. Read errors. Fix every failing step with ${repairCall} and rerun — all in the SAME reply. Dry-run \`_hint\` keys are ground truth: rebind to them.
-7. Call \`builder_finalize\` once the dry-run is clean.
+7. Call \`builder_finalize\` once the dry-run is clean. ${LEAN_HANDOVER_STEP}
 
 ## Binding rules (the #1 source of errors)
 
@@ -356,7 +350,7 @@ Forwarding a mail attachment to Drive? Pass the \`sourceHandle\` returned by \`g
 
 ${renderTriggerBlockLean()}
 
-${fullMenuSections}${fullMenu ? '' : leanMenuNotice({ codeStepEnabled })}## Naming
+${fullMenuSections}## Naming
 
 Your FIRST reply on a new draft names the automation: \`builder_set_metadata({title, description})\` bundled with \`builder_set_plan\` and \`builder_propose_trigger\`. Title ≤ 60 chars, in the user's language, saying what the automation does; description one sentence. A title stated in the request is used verbatim. An automation that reaches \`builder_finalize\` as "Untitled automation" is a defect.
 
@@ -410,6 +404,7 @@ function renderCatalogContextMessage({ catalog } = {}) {
  * shares an agent, and the system prompt is the front of the prompt cache. In
  * the dynamic message they cost one re-read per turn, like the draft state.
  * Null when the caller built none (no catalog, or a surface that never asked).
+ * @param {{ catalog?: BuilderPromptCatalog }} [args]
  */
 function renderPickerContextMessage({ catalog } = {}) {
     const text = renderPickerBlocks(catalog);

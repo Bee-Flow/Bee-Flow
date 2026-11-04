@@ -3,6 +3,7 @@ import { buildHeaderProps, secondaryTriggerOptions } from './builderHeaderState'
 import { makeBuilderSend } from './builderSend';
 import BuilderShellView from './BuilderShellView';
 import BuildTab from './BuildTab';
+import { isEmptyDraft } from './emptyDraft';
 import { triggerAppRef } from './flow/appRefLabel';
 import { isBlankDefinition } from './flow/normalizeDefinition';
 import { unwrapRow } from './unwrapRow';
@@ -89,7 +90,12 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         modelTiers, tierForSend, setTierForPicker,
         messagesContainerRef, messagesBodyRef, messagesEndRef,
         onMessagesScroll,
-    } = useBuilderChatPanel({ forceAssistantOpen, initialChatInput, forcedTier, running: state.running });
+    } = useBuilderChatPanel({
+        forceAssistantOpen, initialChatInput, forcedTier, running: state.running,
+        // Only once the definition is known: an automation that is still loading is not empty.
+        emptyDraft: !isStep && (!automationId || !!serverAutomation || !isBlankDefinition(state.draft))
+            && isEmptyDraft((!isBlankDefinition(state.draft) ? state.draft : serverAutomation?.definition) as FlowDefinition | null),
+    });
 
     const { t } = useTranslation();
     const { workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge } = useWorkModePrefs({

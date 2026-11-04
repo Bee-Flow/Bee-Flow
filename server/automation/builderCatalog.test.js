@@ -71,17 +71,69 @@ test('a connected app exposes ONLY the actions this user can run', async () => {
     } finally { restore(); }
 });
 
-test('toolNames is the raw resolved set, deliberately wider than any app row', async () => {
+test('toolNames is the raw resolved set; a tool no registry entry owns gets a row of its own', async () => {
     // MCP / org-custom / agent-callable-automation / Step tools own no
-    // TOOL_REGISTRY entry, so they can never appear under `apps` — but the user
-    // really can run them, and the add-time gate authorises against this set.
+    // TOOL_REGISTRY entry. The user really can run them, and the add-time gate
+    // authorises against `toolNames`; the model must also SEE them, so they
+    // get a row after the registry apps (builderCatalog extraAppRows).
     const { mod, restore } = loadWithStubs({ tools: ['mcp:srv__do_thing'], permitted: null });
     try {
         const cat = await mod.buildCatalogForUser('u1', { user: { id: 'u1' } });
         assert.ok(cat.toolNames instanceof Set);
         assert.ok(cat.toolNames.has('mcp:srv__do_thing'));
-        assert.equal((cat.apps || []).some(a => a.available), false, 'no registry app is available');
+        const available = (cat.apps || []).filter(a => a.available);
+        assert.deepEqual(available.map(a => a.id), ['other-tools'], 'no registry app is available, only the extra row');
+        assert.deepEqual(available[0].actions.map(a => a.name), ['mcp:srv__do_thing']);
     } finally { restore(); }
+});
+
+test('extra rows: one per MCP server, then custom, automations, Step tools, other; registry tools never twice', () => {
+    const { extraAppRows } = require('./builderCatalog')._internals;
+    const classify = { isSideEffect: () => true, isMemoisable: () => false, getOutputSchema: () => null };
+    const params = { type: 'object', properties: { x: { type: 'string' } } };
+    const rows = extraAppRows([
+        { function: { name: 'gmail_search' } },
+        { function: { name: 'step_a', parameters: params }, __step: { id: 's' } },
+        { function: { name: 'loose' } },
+        { function: { name: 'automation_a' }, __automation: { id: 'a' } },
+        { function: { name: 'cint_x_y' } },
+        { function: { name: 'mcp_z_do' }, _mcp: { serverId: 'z', serverName: 'Zeta' } },
+        { function: { name: 'mcp_b_do' }, _mcp: { serverId: 'b', serverName: 'Beta' } },
+        { function: { name: 'mcp_b_do' }, _mcp: { serverId: 'b', serverName: 'Beta' } },
+        { function: {} },
+    ], new Set(['gmail_search']), classify);
+    assert.deepEqual(rows.map(r => [r.id, r.label]), [
+        ['mcp:b', 'MCP · Beta'], ['mcp:z', 'MCP · Zeta'], ['custom-integrations', 'Custom integrations'],
+        ['agent-automations', 'Agent-callable automations'], ['step-tools', 'Step tools'], ['other-tools', 'Other tools'],
+    ]);
+    assert.deepEqual(rows[0].actions.map(a => a.name), ['mcp_b_do'], 'a duplicate definition is listed once');
+    assert.deepEqual(rows.find(r => r.id === 'step-tools').actions[0].inputSchema, params, 'the schema of the definition itself');
+    assert.ok(rows.every(r => r.available && r.connected && r.permitted));
+});
+
+test('inputSchemasByTool: rows first, then the resolved definitions a row did not carry', () => {
+    const { inputSchemasByTool } = require('./builderCatalog');
+    const rowSchema = { type: 'object', properties: { a: { type: 'string' } } };
+    const defSchema = { type: 'object', properties: { b: { type: 'string' } } };
+    const catalog = { apps: [{ id: 'x', actions: [{ name: 'x_do', inputSchema: rowSchema }, { name: 'x_bare', inputSchema: null }] }] };
+    Object.defineProperty(catalog, 'toolDefs', { value: [
+        { function: { name: 'x_do', parameters: defSchema } },
+        { function: { name: 'mcp_only', parameters: defSchema } },
+        { function: { name: 'no_params' } },
+    ], enumerable: false });
+    const out = inputSchemasByTool(catalog);
+    assert.deepEqual(Object.keys(out).sort(), ['mcp_only', 'x_do']);
+    assert.equal(out.x_do, rowSchema, 'the row wins');
+    assert.equal(out.mcp_only, defSchema);
+    assert.deepEqual(inputSchemasByTool(null), {});
+});
+
+test('inspectedToolsFrom: the stored names the user can still run; anything else is an empty set', () => {
+    const { inspectedToolsFrom } = require('./builderCatalog');
+    assert.deepEqual([...inspectedToolsFrom(['a', 'gone', 7, '', 'b'], new Set(['a', 'b']))], ['a', 'b']);
+    assert.deepEqual([...inspectedToolsFrom(['a', 'gone'], null)], ['a', 'gone'], 'could not tell what is runnable: keep them');
+    assert.equal(inspectedToolsFrom(undefined, new Set(['a'])).size, 0);
+    assert.equal(inspectedToolsFrom('a', null).size, 0);
 });
 
 test('a resolver failure throws rather than reporting an empty catalog', async () => {

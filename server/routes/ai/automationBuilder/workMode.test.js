@@ -23,6 +23,9 @@ const {
     writePlan, writeQuestions, stripListMarker, QUESTIONS_TOOL, PLAN_TOOL, MAX_QUESTIONS, MAX_OPTIONS,
     TABLE_CONSENT_RULE, planDatatableEntry, changedSteps, withChangeStatus, reviewStatusNote, questionStatusNote,
 } = require('./workMode');
+const { endsInQuestion } = require('./roundNudges');
+const { briefGaps, briefText } = require('./briefGaps.mts');
+const { askFirstRefusal, questionLimit } = require('./modeRules.mts');
 const { TOOL_SCHEMAS } = require('../../../automation/builderTools');
 
 const ALL = TOOL_SCHEMAS.map(t => t.function.name);
@@ -436,14 +439,14 @@ test('reviewStatusNote: a plan that waits is built by the button only', () => {
 test('discuss mode says it cannot stage, names the mode switch and forbids "the fix is ready"', () => {
     const text = modeInstruction('discuss');
     assert.match(text, /cannot stage/i);
-    assert.match(text, /Approve each change/);
+    assert.match(text, /Show me before changing/);
     assert.match(text, /never say a fix is (ready|done|applied)/i);
 });
 
 test('a refused tool in discuss mode says nothing changed and points to no plan tool', () => {
     const text = previewRefusal('builder_update_step', 'discuss');
     assert.match(text, /Nothing was changed/);
-    assert.match(text, /Approve each change/);
+    assert.match(text, /Show me before changing/);
     assert.doesNotMatch(text, /plan/i);
     assert.match(previewRefusal('builder_update_step', 'plan'), /plan/, 'plan mode keeps its pointer to the plan');
 });
@@ -455,4 +458,53 @@ test('every mode asks to read real output first and to mark paths as checked or 
         assert.match(text, /checked/i, mode);
         assert.match(text, /assumed/i, mode);
     }
+});
+
+// ── The plan-first loop and the direct build's one question ──
+
+test('Plan first asks first on a new automation, plans in plain words with "What is needed"; an approved build hands over', () => {
+    const plan = modeInstruction('plan');
+    assert.match(plan, /On a NEW automation \(the draft has no steps\) your first call is builder_ask_questions, unless the request already says where it starts/);
+    assert.match(plan, /Ask at most 4 questions/);
+    assert.match(plan, /no step ids, tool names, paths or bindings/);
+    assert.match(plan, /prerequisites is the plan's "What is needed" list/);
+    const approved = modeInstruction('build', { id: 'p1', steps: ['Read the invoice'] });
+    assert.match(approved, /starts with "To use it:" \(in the user's language\)/);
+    assert.match(approved, /finalize result's needs/);
+    assert.doesNotMatch(approved, /Ask at most ONE question/);
+    const direct = modeInstruction('build');
+    assert.match(direct, /Ask at most ONE question, and only when nothing can be built without its answer/);
+    for (const mode of ['discuss', 'approve']) assert.doesNotMatch(modeInstruction(mode), /NEW automation|Ask at most ONE question/, mode);
+});
+
+test('a direct build without an approved plan shows one question; every other turn keeps the round', () => {
+    assert.equal(questionLimit('build', null, MAX_QUESTIONS), 1);
+    assert.equal(questionLimit('build', { id: 'p1' }, MAX_QUESTIONS), MAX_QUESTIONS);
+    for (const mode of ['plan', 'approve', 'discuss']) assert.equal(questionLimit(mode, null, MAX_QUESTIONS), MAX_QUESTIONS, mode);
+    const args = { questions: [{ prompt: 'One?', options: ['a', 'b'] }, { prompt: 'Two?', options: ['a', 'b'] }, { prompt: 'Three?', options: ['a', 'b'] }] };
+    const one = writeQuestions(args, { max: 1 });
+    assert.deepEqual(one?.questions.map(q => q.prompt), ['One?']);
+    assert.equal(one?.dropped, 2);
+    assert.equal(writeQuestions(args)?.questions.length, 3);
+});
+
+test('a reply that ends in a question is recognised through closing quotes, brackets and emphasis', () => {
+    for (const text of ['Which inbox?', 'Which inbox?  ', '**Which inbox?**', 'Use "Finance?"', '(which one?)', 'Welke map\uFF1F']) assert.equal(endsInQuestion(text), true, text);
+    for (const text of ['Done.', 'Is it? Yes, it is.', '', null, 42]) assert.equal(endsInQuestion(text), false, String(text));
+});
+
+test('briefGaps names what a new automation\'s brief leaves open (English and Dutch)', () => {
+    assert.deepEqual(briefGaps('Automatiseer mijn facturen'), ['source', 'destination', 'people'], 'too short to plan on');
+    assert.deepEqual(briefGaps('When an invoice e-mail arrives in my Gmail, save the amount in the Facturen table and send me a summary.'), []);
+    assert.deepEqual(briefGaps('Zodra er een factuur binnenkomt in Gmail, zet het bedrag in de tabel en stuur mij een melding.'), []);
+    assert.deepEqual(briefGaps('Every Monday morning, make a summary of the open tickets in the CRM.'), ['people']);
+    assert.deepEqual(briefGaps('Please build something useful for our finance team today'), ['source', 'destination']);
+    assert.equal(briefText('second part', [{ role: 'user', content: 'first part' }, { role: 'assistant', content: 'ok' }, null]), 'first part\nsecond part');
+});
+
+test('the ask-first refusal names exactly what is missing and lets a sure model resend', () => {
+    assert.match(askFirstRefusal(['people']), /does not say who is involved\./);
+    assert.match(askFirstRefusal(['source', 'people']), /does not say where it starts or where the data comes from or who is involved\./);
+    assert.match(askFirstRefusal(['source', 'destination', 'people']), /where the data comes from, where the result goes or who is involved/);
+    assert.match(askFirstRefusal([]), /call builder_write_plan again unchanged/);
 });

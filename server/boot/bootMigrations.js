@@ -269,6 +269,7 @@ const NL_TRANSLATIONS = [
     'add-nl-app-studio-documents-2026-10-translations', // App Studio: Studio documents in an app (document viewer, picker, compare)
     'add-nl-nc-trigger-scope-2026-10-translations', // Automations: the Nextcloud trigger switch "also react to events of colleagues"
     'add-nl-automation-testing-translations', // Automations: testing in the builder (dry run, live test, run phases, toasts, the test form and approval overlay)
+    'add-nl-handover-translations',            // Automations: the assistant column in plain words (the card after a save, the preview of a change, the vocabulary)
     'update-nl-memory-2026-10',                // Memory: Dutch for the memory manager, chat controls, org Memory admin page and Settings lines; "Conversation memory" becomes "Context in lange gesprekken" (old shipped text only)
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',

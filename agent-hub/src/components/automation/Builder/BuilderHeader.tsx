@@ -217,7 +217,8 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                     {!isStepMode && onAssistant && <button type="button" onClick={() => onAssistant()} aria-pressed={assistantOpen}
                         title={t('automations.assistant.open', 'Ask the assistant (⌘J)')} aria-label={t('automations.assistant.open', 'Ask the assistant (⌘J)')}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-default)] px-2.5 py-1.5 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">
-                        <Sparkles size={13} /><span className="@max-[1400px]/bar:hidden">{t('automations.assistant.title', 'Assistant')}</span><kbd className="@max-[1600px]/bar:hidden text-[10px]">⌘ J</kbd>
+                        {/* The word stays at every width (owner, 2026-11-04): a sparkle alone is not a door anybody reads as "ask for help". */}
+                        <Sparkles size={13} /><span className="whitespace-nowrap">{t('automations.assistant.title', 'Assistant')}</span><kbd className="@max-[1600px]/bar:hidden text-[10px]">⌘ J</kbd>
                     </button>}
                     <SavingPill state={savingState} settled={tab === 'settings'} readOnly={live.managed} />
                     {isStepMode ? (

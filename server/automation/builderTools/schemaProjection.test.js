@@ -129,13 +129,16 @@ test('additionalProperties:false stays on builder_add_steps.steps.items (measure
     assert.deepEqual(items.required, ['type', 'spec']);
 });
 
-test('the batch type enum names only types whose single tool is on the lean menu', () => {
+test('the batch type enum is every batch type (code steps off), and a type without its own tool is still repairable', () => {
+    const { BATCH_STEP_TYPES } = require('./stepTypeTable');
     const en = leanTool('builder_add_steps').function.parameters.properties.steps.items.properties.type.enum;
-    assert.deepEqual(en, [...LEAN_BATCH_TYPES]);
-    const names = new Set(lean().map(t => t.function.name));
-    const toolFor = { integration_action: 'builder_add_action', ai_step: 'builder_add_ai_step', data_extraction: 'builder_add_data_extraction', condition: 'builder_add_condition', notification: 'builder_add_notification', http_request: 'builder_add_http_request', datatable: 'builder_add_datatable', approval: 'builder_add_approval', array_op: 'builder_add_array_op' };
-    for (const type of en) assert.ok(names.has(toolFor[type]), `${type} → ${toolFor[type]} is on the menu`);
-    assert.ok(!en.includes('loop') && !en.includes('switch') && !en.includes('set') && !en.includes('form_page'));
+    assert.deepEqual(en, LEAN_BATCH_TYPES.filter(t => t !== 'code'));
+    assert.deepEqual([...LEAN_BATCH_TYPES], [...BATCH_STEP_TYPES], 'every batch type');
+    for (const t of ['loop', 'switch', 'set', 'form_page', 'wait', 'guard', 'read_table', 'call_layer']) assert.ok(en.includes(t), `${t} is buildable on the small menu`);
+    // builder_update_step patches any type, so every one of them has a repair tool.
+    assert.ok(leanTool('builder_update_step'), 'the repair tool is on the menu');
+    const spec = leanTool('builder_add_steps').function.parameters.properties.steps.items.properties.spec.description;
+    assert.match(spec, /the spec keys "What you can build" lists for the type/);
 });
 
 test('every property the few-shot batches put inside spec exists on the matching projected single tool', () => {

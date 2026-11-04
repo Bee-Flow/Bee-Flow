@@ -92,6 +92,7 @@ const PATCHABLE_FIELDS = {
     // columns (flattenStep.patchFlatten) and are never stored.
     flatten: ['arrayRef', 'parents', 'keepEmpty', 'maxItems', 'label', 'childField', 'keepFields'],
     call_layer: ['inputs', 'label'],   // layerKey change = builder_replace_step (recursion guard re-runs)
+    call_block: ['inputs', 'label'],   // blockId change = builder_replace_step (the block list gate re-runs)
     // `datatableId` is patchable ONLY onto a step that has none — see the
     // fill-only guard in applyUpdateStep. Repointing a BOUND step at a
     // different table is still not an edit (it changes which organisation's

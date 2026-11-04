@@ -7,6 +7,7 @@ import BuilderThinkingBlock from './BuilderThinkingBlock';
 import BuilderActivity from './BuilderActivity';
 import InlineMarkdown from './InlineMarkdown';
 import { parseAnswersText } from './questionAnswers';
+import type { StepLabels } from './plainVocabulary';
 import type { LiveRunFocus } from './toolCallDisplay';
 import type { BuilderMessage } from '@/hooks/builderStream';
 
@@ -15,6 +16,8 @@ interface MessageBubbleProps {
     activity?: ReactNode;
     liveRun?: LiveRunFocus | null;
     onFocusStep?: ((id: string) => void) | null;
+    /** Step id → label, so the activity rows and refusals name steps, never ids. */
+    stepLabels?: StepLabels | null;
 }
 
 /**
@@ -70,8 +73,12 @@ export function readsAsMarkdown(text: unknown) {
  * @param {object|null} [props.liveRun] — the test run in flight under THIS
  *   message, as flow/runFocus.js reads it; BuilderActivity shows it as its
  *   live row, and only while the message is still streaming.
+ * @param {Map<string, string>|null} [props.stepLabels] — the draft's step labels
+ *   by id: what the activity rows say instead of a step id or a ref path (the
+ *   plain vocabulary, plainVocabulary.ts). The raw call stays in each row's
+ *   details.
  */
-export default function MessageBubble({ msg, activity, liveRun = null, onFocusStep = null }: MessageBubbleProps) {
+export default function MessageBubble({ msg, activity, liveRun = null, onFocusStep = null, stepLabels = null }: MessageBubbleProps) {
     const { t } = useTranslation();
     const isUser = msg.role === 'user';
     // The answers to the builder's questions: sent as text for the model, shown
@@ -113,7 +120,7 @@ export default function MessageBubble({ msg, activity, liveRun = null, onFocusSt
             )}
             {!isUser && (activity !== undefined
                 ? activity
-                : <BuilderActivity toolCalls={msg.toolCalls} running={!!msg.isStreaming} liveRun={liveRun} t={t} onFocusStep={onFocusStep} />)}
+                : <BuilderActivity toolCalls={msg.toolCalls} running={!!msg.isStreaming} liveRun={liveRun} t={t} onFocusStep={onFocusStep} stepLabels={stepLabels} />)}
         </div>
     );
 }

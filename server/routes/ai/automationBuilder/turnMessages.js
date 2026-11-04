@@ -37,7 +37,8 @@
  * for the session. The id lists (agents, knowledge bases, the user's app_event
  * providers) sit in `dyn` on EVERY band: they change when somebody creates an
  * agent, which the cached system prompt must not feel. Order inside `dyn`:
- * catalog → id lists → schemas → preferences → draft state LAST, so the part
+ * catalog → id lists → schemas → last test run → preferences → draft state
+ * LAST, so the part
  * that changes every round sits closest to the end.
  */
 
@@ -73,6 +74,7 @@ function attachmentSummaryText(attachments) {
  *   draftIsEmpty: boolean,
  *   canvasScope?: string,
  *   schemaPart?: string|null, // pre-inspected schemas (§WS8) or null
+ *   lastTestRun?: string|null, // the "## Last test run" block (builderPrompt/lastTestRun.mts) or null
  *   turnPrefs?: { userTimezone?: string, webSearchEnabled?: boolean, webResearchLine?: string|null, disabledMedia?: Record<string, unknown>, allowedModelTiers?: string[] },
  *   title?: string, // the draft's title (draftWrap.title) for the draft-state message
  *   workMode?: string|null }} p  workMode: the turn's work mode; plan and discuss get no few-shots
@@ -81,7 +83,7 @@ function attachmentSummaryText(attachments) {
 function composeTurnMessages({
     profile, modelId, promptCatalog, codeStepEnabled, batchTools,
     history, message, attachments,
-    agentDraftState, draftIsEmpty, canvasScope, schemaPart, turnPrefs, title, workMode = null,
+    agentDraftState, draftIsEmpty, canvasScope, schemaPart, lastTestRun = null, turnPrefs, title, workMode = null,
 }) {
     const prof = profile || {};
     const buildPrompt = prof.promptVariant === 'lean' ? buildLeanSystemPrompt : buildFullSystemPrompt;
@@ -145,6 +147,10 @@ function composeTurnMessages({
         // change between turns, and the system prompt must not.
         renderPickerContextMessage({ catalog: promptCatalog }),
         schemaPart || null,
+        // What the last test run showed per step (session memory, F7): it
+        // changes only when a turn dry-runs, so it sits before the
+        // preferences and the draft state.
+        lastTestRun || null,
         renderTurnPreferences(turnPrefs || {}),
         draftIsEmpty ? null : renderDraftStateSystemMessage({ agentDraftState, canvasScope, title }),
     ].filter(Boolean).join('\n\n');

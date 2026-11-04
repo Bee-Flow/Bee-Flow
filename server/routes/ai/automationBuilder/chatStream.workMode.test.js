@@ -792,3 +792,88 @@ test('a plan with a removal and an inline step: the build turn may fold a flowle
     assert.equal(stagedRun.first('tool_call').result.changeStatus, 'staged');
     assert.equal(stagedRun.persists.length, 0);
 });
+
+// ── Plan first: ask before planning a new automation ───────
+// On a new automation a thin brief gets questions before a plan (the model is
+// told up front, a plan written anyway goes back ONCE), a full brief is planned
+// at once, a reply that asks the user something is never pinned to a tool
+// call, and a direct build (also a Playbook stage) shows at most one question.
+
+const THIN = 'Automatiseer mijn facturen';
+const FULL = 'When an invoice e-mail arrives in my Gmail, save the amount in the Facturen table and send me a weekly summary.';
+const NEW_PLAN = { title: 'Invoices', goal: 'Book every invoice', steps: ['Read the invoice', 'Save the amount'] };
+const BRIEF_QUESTIONS = { questions: [
+    { prompt: 'Where do the invoices arrive?', options: ['Gmail', 'Outlook'] },
+    { prompt: 'Where should they go?', options: ['A Bee Flow table', 'A spreadsheet'] },
+    { prompt: 'Who checks them?', options: ['Only me', 'Finance'] },
+] };
+const blankDraft = () => ({ id: 'a1', userId: 'u1', title: 'New', description: '', definition: { schemaVersion: 2, steps: [], edges: [] } });
+
+test('a thin brief on a new automation: told to ask first, a plan anyway goes back once, the questions end the turn', async () => {
+    const run = await h.run({ message: THIN, body: { workMode: 'plan' },
+        rounds: [{ toolCalls: [call('builder_write_plan', NEW_PLAN)] }, { toolCalls: [call('builder_ask_questions', BRIEF_QUESTIONS)] }, { text: 'never' }] });
+    assert.match(systemText(run), /On a NEW automation \(the draft has no steps\) your first call is builder_ask_questions/);
+    const [refused] = run.dataOf('tool_call');
+    assert.match(refused.result.error, /^Plan not written yet: this is a new automation and the request does not say where it starts or where the data comes from, where the result goes or who is involved\./);
+    assert.equal(run.has('review_plan'), false);
+    assert.equal(run.rounds.length, 2, 'the refused plan, then the questions');
+    assert.equal(run.first('review_questions').questions.length, 3);
+    assert.deepEqual(run.storedSessions.at(-1).payload.questionsMeta, { round: 1, planId: null, mode: 'plan' });
+});
+
+test('the nudge is once: a second plan in the same turn stands', async () => {
+    const run = await h.run({ message: THIN, body: { workMode: 'plan' },
+        rounds: [{ toolCalls: [call('builder_write_plan', NEW_PLAN)] }, { toolCalls: [call('builder_write_plan', NEW_PLAN)] }] });
+    assert.match(run.dataOf('tool_call')[0].result.error, /Plan not written yet/);
+    assert.equal(run.dataOf('tool_call')[1].result.awaitingApproval, true);
+    assert.equal(run.last('review_plan').plan.status, 'review');
+});
+
+test('a brief that says where, what and who is planned at once', async () => {
+    const run = await h.run({ message: FULL, body: { workMode: 'plan' }, rounds: [{ toolCalls: [call('builder_write_plan', NEW_PLAN)] }] });
+    assert.equal(run.dataOf('tool_call')[0].result.awaitingApproval, true);
+    assert.equal(run.rounds.length, 1);
+});
+
+test('an existing flow and the answer turn are never sent back to ask', async () => {
+    const existing = await h.run({ draft: draft(), message: THIN, body: { automationId: 'a1', workMode: 'plan' }, rounds: [{ toolCalls: [call('builder_write_plan', NEW_PLAN)] }] });
+    assert.equal(existing.dataOf('tool_call')[0].result.awaitingApproval, true);
+    const answered = await h.run({ draft: blankDraft(), message: 'Q: Where do the invoices arrive?\nA: Gmail', body: { automationId: 'a1', workMode: 'plan' },
+        builderSession: { reviewQuestions: [{ id: 'q1', prompt: 'Where do the invoices arrive?', options: ['Gmail', 'Outlook'] }], questionsMeta: { round: 1, planId: null, mode: 'plan' } },
+        rounds: [{ toolCalls: [call('builder_write_plan', NEW_PLAN)] }] });
+    assert.equal(answered.dataOf('tool_call')[0].result.awaitingApproval, true);
+});
+
+test('prose on a thin new brief in Plan first is nudged toward the questions, not the plan', async () => {
+    const run = await h.run({ message: THIN, body: { workMode: 'plan' },
+        rounds: [{ text: 'I will look into this.' }, { toolCalls: [call('builder_ask_questions', BRIEF_QUESTIONS)] }] });
+    assert.match(lastUser(run, 1).content, /Plan first, new automation: if the user asked for one, call builder_ask_questions now \(at most 4 questions/);
+    assert.equal(run.roundOptions(1).toolChoice, 'auto');
+    assert.equal(run.has('review_questions'), true);
+});
+
+test('a reply that ends in a question is never pinned to a tool call', async () => {
+    // A small model (forceFirstToolCall) on a blank draft in a direct build:
+    // prose used to be pinned to a tool call; a question waits for the user.
+    const asked = await h.run({ message: THIN, modelId: 'mistral-small', body: { workMode: 'build' }, rounds: [{ text: 'Which mailbox do the invoices arrive in?' }, { text: 'never' }] });
+    assert.equal(asked.rounds.length, 1);
+    assert.equal(asked.has('error'), false);
+    const plain = await h.run({ message: THIN, modelId: 'mistral-small', body: { workMode: 'build' }, rounds: [{ text: 'I will build it.' }, { text: 'Done.' }] });
+    assert.equal(plain.rounds.length, 2, 'plain prose is still pinned once');
+    assert.equal(plain.roundOptions(1).toolChoice, 'required');
+    // A plan turn that asks in prose is not pushed to write a plan…
+    const planAsk = await h.run({ draft: draft(), body: { automationId: 'a1', workMode: 'plan' }, rounds: [{ text: 'Should the old step stay?' }, { text: 'never' }] });
+    assert.equal(planAsk.rounds.length, 1);
+    // …but after the user's answers the plan is due, question mark or not.
+    const answerTurn = await h.run({ draft: draft(), message: 'Q: Scope?\nA: All', body: { automationId: 'a1', workMode: 'plan' },
+        builderSession: { reviewQuestions: [{ id: 'q1', prompt: 'Scope?', options: ['All', 'Open'] }], questionsMeta: { round: 1, planId: null, mode: 'plan' } },
+        rounds: [{ text: 'Anything else?' }, { toolCalls: [call('builder_write_plan', NEW_PLAN)] }] });
+    assert.match(lastUser(answerTurn, 1).content, /The user answered your questions/);
+});
+
+test('a direct build shows at most one question (a Playbook stage runs in this mode)', async () => {
+    const run = await h.run({ message: THIN, body: { workMode: 'build' }, rounds: [{ toolCalls: [call('builder_ask_questions', BRIEF_QUESTIONS)] }, { text: 'never' }] });
+    assert.equal(run.first('review_questions').questions.length, 1);
+    assert.match(run.first('tool_call').result._note, /2 question\(s\) were not shown \(limit 1\)/);
+    assert.match(systemText(run), /Ask at most ONE question, and only when nothing can be built without its answer/);
+});

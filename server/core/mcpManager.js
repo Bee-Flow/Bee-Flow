@@ -216,7 +216,7 @@ async function getAllToolsAsOpenAI() {
                         description: tool.description || `MCP tool: ${tool.name}`,
                         parameters: tool.inputSchema || { type: 'object', properties: {} },
                     },
-                    _mcp: { serverId: server.id, originalName: tool.name },
+                    _mcp: { serverId: server.id, serverName: server.name || null, originalName: tool.name }, // name: builder catalogue "MCP · <name>"
                 });
             }
         }

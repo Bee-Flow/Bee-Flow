@@ -6,6 +6,7 @@ import {
     INVOICES, entitlements, mountDesigner, res, scenario, useDesignerHarness,
 } from '../../test/automationDesignerHarness';
 import { toast } from '../shared/Toast';
+import { parkSeed, takeSeed } from '../admin/Studio/studioAi/handoff';
 
 /**
  * AITasksDesigner's sidebar list as a user sees it, pinned before the long
@@ -264,6 +265,32 @@ describe('AITasksDesigner — automation builder pane', () => {
         mountDesigner({}, entitlements(true, true));
         await screen.findByText('Invoice sync');
         expect(screen.getByTestId('launcher')).toHaveAttribute('data-can-create', 'false');
+    });
+});
+
+describe('AITasksDesigner — a brief from Studio "Describe it"', () => {
+    it('studio/automations/new with a parked brief opens a NEW builder that sends it, under the parked name', async () => {
+        parkSeed('automation', 'send a report every Monday', 'Weekly report');
+        mountDesigner({ initialTaskId: 'new' });
+        const builder = await screen.findByTestId('builder');
+        expect(builder).toHaveAttribute('data-id', 'null');
+        expect(builder).toHaveAttribute('data-auto-send', 'send a report every Monday');
+        expect(builder).toHaveAttribute('data-seed-title', 'Weekly report');
+        // read once: a reload of the same URL is just the list
+        expect(takeSeed('automation')).toBe(null);
+    });
+
+    it('waits for the entitlements before taking the brief', async () => {
+        parkSeed('automation', 'tidy my inbox');
+        mountDesigner({ initialTaskId: 'new' }, entitlements(false, true));
+        expect(screen.queryByTestId('builder')).toBeNull();
+        expect(takeSeed('automation')).toBe('tidy my inbox');
+    });
+
+    it('without a brief, studio/automations/new is the list', async () => {
+        mountDesigner({ initialTaskId: 'new' });
+        expect(await screen.findByText('Invoice sync')).toBeInTheDocument();
+        expect(screen.queryByTestId('builder')).toBeNull();
     });
 });
 

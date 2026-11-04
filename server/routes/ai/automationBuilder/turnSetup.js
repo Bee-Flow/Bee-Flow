@@ -17,7 +17,7 @@ const { summariseDefinition, renderAgentDraftState } = require('../../../automat
 // Lives in automation/ rather than here because the MCP surface
 // (automation/mcpBuilder.js) needs the same catalog, and automation/ may not
 // require routes/ (server/layering.test.js).
-const { buildCatalogForUser } = require('../../../automation/builderCatalog');
+const { buildCatalogForUser, inputSchemasByTool, inspectedToolsFrom } = require('../../../automation/builderCatalog');
 const { loadOrCreateDraft } = require('./builderDraft');
 const { MODES, isBlankDraft, planMentionsRemoval, pendingProposal } = require('./workMode');
 const { setupDatatableTurn, clientSnapshot } = require('./datatableTurn');
@@ -315,25 +315,23 @@ async function setupTurn(turn) {
     // add-action gate can require an inspect before binding non-trivial
     // params. `_inspectedTools` tracks what the agent inspected this turn.
     //
-    // Built from the catalog's `actions`, which buildCatalogForUser has
-    // already narrowed to what this user can RUN. It must not be built from
-    // the full TOOL_REGISTRY, or `unknownToolError` would read
-    // "the catalog knows this tool's schema" as "the user has this tool".
+    // Built from the catalog's rows and resolved definitions, which
+    // buildCatalogForUser has already narrowed to what this user can RUN
+    // (MCP, custom-integration, automation and Step tools included). It must
+    // not be built from the full TOOL_REGISTRY, or `unknownToolError` would
+    // read "the catalog knows this tool's schema" as "the user has this tool".
     // The two lists must come from one source or they drift back apart.
-    draftWrap._inputSchemasByTool = {};
-    for (const app of (catalog?.apps || [])) {
-        for (const act of (app.actions || [])) {
-            if (act && act.name && act.inputSchema) draftWrap._inputSchemasByTool[act.name] = act.inputSchema;
-        }
-    }
-    // The authorisation set, and deliberately NOT derived from `apps`: the
-    // resolved set also carries MCP, org-custom, agent-callable-automation and
-    // Step tools, which own no TOOL_REGISTRY entry and so never appear in
-    // `apps`. Gating on `apps` would refuse tools the user really has.
+    draftWrap._inputSchemasByTool = inputSchemasByTool(catalog);
+    // The authorisation set, and deliberately NOT derived from `apps`: it is
+    // the raw resolved set, and a row that could not be built for a tool
+    // must not turn into a refusal of a tool the user really has.
     // Nor is `_inputSchemasByTool` the authority — it is keyed on tools
     // that HAVE an input schema, so a parameterless tool would vanish.
     draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
-    draftWrap._inspectedTools = new Set();
+    // What this session already inspected (the stored session's
+    // `inspectedTools`, when it carries them), narrowed to tools the user can
+    // still run; otherwise empty, and the gate asks again this turn.
+    draftWrap._inspectedTools = inspectedToolsFrom(/** @type {{ inspectedTools?: unknown } | null} */ (snapshot)?.inspectedTools, draftWrap._availableToolNames);
     // What the draft's tools really returned on this user's last live run
     // (shapeCache), read by the path checks (builderTools/refCheck.js,
     // outputFields.js) before the curated shapes. One cache read per tool,
@@ -380,8 +378,9 @@ async function setupTurn(turn) {
     // permission filters. Each fails into its own "could not read" marker
     // (never into "none"), and none of them throws. They are rendered into
     // the late dynamic message, not the cached system prompt.
-    Object.assign(catalog, await require('../../../automation/builderPickerCatalog')
-        .buildPickerCatalogsForUser(userId, req.session, catalog));
+    const picked = await require('../../../automation/builderPickerCatalog').buildPickerCatalogsForUser(userId, req.session, catalog);
+    Object.assign(catalog, picked);
+    draftWrap._blocks = !picked.blocksError && Array.isArray(picked.blocks) ? picked.blocks : null; // call_block's gate; null = could not read
 
     // Human-readable summary — seeds `lastSummary` (the "What this
     // automation does" panel + builder_session snapshot). User-facing, so

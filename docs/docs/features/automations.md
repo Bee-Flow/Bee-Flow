@@ -230,7 +230,98 @@ The inspector's variable picker shows a tree of every output produced by every p
 
 ### AI builder assistant
 
-A chat panel runs alongside the canvas. It exposes a small set of `builder_*` tools to a model: add a step, wire an edge, set an input binding, configure a switch case. Ask "wire an automation that classifies inbound mail and posts urgent ones in Talk" and it'll author the graph step-by-step. You confirm before anything saves.
+The assistant is a chat next to the canvas. You tell it in your own words what should
+happen. It builds the automation with you, tests it, and tells you what is left for you
+to do before it runs.
+
+#### How it opens
+
+- **A new automation** opens with the assistant. The empty canvas asks *What should
+  happen? Tell me in your own words.* and shows three example requests; clicking one
+  sends it. If you would rather choose how the automation starts yourself, the start
+  cards are below, under *or start from how it begins*.
+- **Studio → New → Describe it**: what you type there goes straight to the assistant of
+  a new automation, which starts on it at once. The name you gave becomes the
+  automation's name.
+- **An existing automation**: click **Assistant** in the header (⌘J). It opens with one
+  sentence about what it sees, for example *I can see your form 'Contact' and the 2
+  steps after it.*, and up to three suggestions that fit this automation. Clicking a
+  suggestion sends it.
+
+#### How should it work?
+
+The menu under the message box asks *How should I work?* Your choice is remembered per
+automation.
+
+| Choice | What the assistant does |
+|---|---|
+| **Just advise** | Answers and gives advice. Leaves the automation as it is. |
+| **Show me before changing** | Shows each change first. You decide whether to make it. This is the default. |
+| **Ask, plan, then build** | Asks a few questions, writes a plan in plain words, and builds after your OK. |
+| **Change it right away** | Makes the changes straight away. You can undo them. It asks at most one question, and only when it cannot build anything without the answer. |
+
+**Check with me for big changes**: with this on, *Change it right away* still shows you a
+change of four steps or more first. A new, empty automation is built without that stop.
+
+On a new, empty automation the assistant recommends *Let me ask a few questions first*.
+Clicking it switches this automation to **Ask, plan, then build**.
+
+#### Ask, plan, then build
+
+The assistant works in five stages. It waits for you after the questions and after the
+plan.
+
+1. **Questions.** At most four, each with suggested answers, the most likely first:
+   where it starts, where the data comes from, who is involved, and what should exist at
+   the end. Pick an answer, type your own under *Other…*, or choose *Use suggestions for
+   the rest*. When your request already says all of this, it skips the questions. It
+   never asks what it can already see.
+2. **The plan.** A card with *The steps* (one plain sentence each), *What is needed* (apps
+   to connect, tables, the people involved, a form link to share), *What I assume* and
+   *How I will test it*. You can comment on a line. Nothing changes until you press
+   **Build this plan**.
+3. **Building.** The steps appear on the canvas. The plan is the checklist it works
+   through.
+4. **Test run.** It runs a test by itself, then tells you in one sentence per step what
+   happened. Its test sends and writes nothing. It asks nobody either: an approval
+   counts as approved and a form page stays empty, and it says so (see
+   [Dry runs from the AI builder](./automation-testing.md#dry-runs-over-mcp-and-from-the-ai-builder)).
+5. **Hand-over.** It saves the automation, which is not switched on yet. Its last message
+   ends with *To use it: …*, and the hand-over card below it holds the buttons.
+
+#### The hand-over card
+
+The card is titled *Ready — saved, not switched on yet. To use it:* and shows only what
+applies to this automation:
+
+| Row | Button | When |
+|---|---|---|
+| Connect *app* | **Open Connections** | The automation uses an app you have not connected yet. You connect it under Settings → Connections. |
+| Switch it on | **Activate** | The automation starts by itself (a schedule, a form, an event in an app). Until you activate it, nothing happens by itself. |
+| Share the form link | **Copy the form link** | The automation starts from a form. Colleagues open the link after signing in; it opens for others once the automation is switched on. *Who can open it* leads to the form's Share tab. |
+| Try it first | **Run a test** | Always. Nothing is sent or written; forms and approvals wait for you. |
+
+#### What the assistant can see
+
+- Every step on the canvas with its settings, and the step you have selected.
+- Every kind of step you can add, under the same names and groups as the ribbon: *How it
+  starts*, *AI*, *Logic*, *People*, *Data & documents*, *Apps* and *My building blocks*.
+- The apps you have connected, with their actions.
+- Your workspace's building blocks, tools from MCP servers your organisation added, your
+  organisation's custom integrations, and automations that agents may call, each with the
+  inputs it needs.
+- Your tables, documents, agents and knowledge bases.
+- The last test run: per step, which fields came back and in what shape (never the
+  values). The next message builds on that instead of guessing.
+
+#### What it cannot do
+
+- **Switch an automation on.** Activating is your decision: a running automation sends
+  real mail and writes to real systems.
+- **Connect an app.** You connect apps under Settings → Connections; the hand-over card
+  links there.
+- **See apps you have not connected.** When none of your connected apps can do what you
+  ask, it says so and asks which app you want to use, or suggests another way.
 
 ### Run data on the canvas
 

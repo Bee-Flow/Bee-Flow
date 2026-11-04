@@ -1,0 +1,10 @@
+{
+  "brief": "When someone fills in our contact form, I want my colleague to check it first, and then the person should get a thank-you mail.",
+  "tier": "fast",
+  "workMode": "plan",
+  "expect": {
+    "finalized": false,
+    "maxFailedCalls": 0,
+    "maxRounds": 3
+  }
+}

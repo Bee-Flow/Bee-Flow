@@ -76,6 +76,7 @@ export default function BuildTab(props: BuildTabProps) {
                         onPreviewProposal={() => setPreviewOpen(true)}
                         realOutputById={m.realOutputById}
                         liveRunFocus={m.run.liveRunFocus}
+                        handover={headerProps}
                         onFocusStep={(id) => { props.openNdv(id); m.diagramRef.current?.focusStep?.(id); }}
                         messagesContainerRef={props.messagesContainerRef}
                         messagesBodyRef={props.messagesBodyRef}

@@ -20,3 +20,46 @@ export const TABLE_CONSENT_RULE = 'Bind a step to an EXISTING table only when th
 export const EVIDENCE_RULE = 'Before you suggest a binding or mapping change, read the real output with builder_inspect_run (or the dry run\'s _hint). '
     + 'In your reply mark each path or value as checked (seen in a run, a dry run or an inspect result) or assumed (taken from a schema or the catalog); never present an assumed path as a fact. '
     + 'If there is no run to read, say so.';
+
+// Plan first is the ask-plan-build loop: ask, plan in plain words, build, test,
+// hand over. On a new automation a plan written from a thin brief is a guess
+// the user then has to correct line by line, so the questions come first.
+export const ASK_FIRST_RULE = 'On a NEW automation (the draft has no steps) your first call is builder_ask_questions, unless the request already says where it starts or where the data comes from, where the result goes and who is involved. '
+    + 'Ask at most 4 questions, only about what is missing (where it starts, where the data comes from, who is involved, what should exist at the end), each with 2-4 suggested answers, the most likely first.';
+
+// The plan is read by the person who asked, not by the builder.
+export const PLAIN_PLAN_RULE = 'Write the plan for the person, in their language and in plain words: no step ids, tool names, paths or bindings. '
+    + 'prerequisites is the plan\'s "What is needed" list: the apps to connect, the tables, the people involved, a form link to share.';
+
+// The end of a build: the person learns what the test showed and what they
+// still do themselves, from the finalize result's `needs`.
+export const HANDOVER_RULE = 'When every step is built, test it with builder_request_dry_run and tell the user in one plain sentence per step what happened. '
+    + 'After a clean test call builder_finalize, then end your message with a line that starts with "To use it:" (in the user\'s language) naming each item of the finalize result\'s needs: switch it on, share the form link, run it once, connect the named app.';
+
+// Change it right away (and a Playbook stage or a "Build it directly"
+// suggestion, which the client starts in this mode with nobody watching:
+// BuilderShell startInBuild) must not stall on a question round.
+export const ONE_QUESTION_RULE = 'Ask at most ONE question, and only when nothing can be built without its answer; otherwise build on the most likely reading and say what you assumed.';
+
+/**
+ * How many questions one builder_ask_questions call may show this turn: one in
+ * a direct build without an approved plan (ONE_QUESTION_RULE), `max` otherwise.
+ * `mode` is the turn's mode; an approved plan builds in 'build'.
+ */
+export function questionLimit(mode: string, approvedPlan: unknown, max: number): number {
+    return mode === 'build' && !approvedPlan ? 1 : max;
+}
+
+const GAP_WORDS = { source: 'where it starts or where the data comes from', destination: 'where the result goes', people: 'who is involved' } as const;
+
+/**
+ * The one refusal of a plan written on a new automation before any question,
+ * when the brief leaves something open (briefGaps.mts).
+ */
+export function askFirstRefusal(gaps: ReadonlyArray<keyof typeof GAP_WORDS>): string {
+    const missing = gaps.map((g) => GAP_WORDS[g]).filter(Boolean);
+    const list = missing.length > 1 ? `${missing.slice(0, -1).join(', ')} or ${missing.at(-1)}` : missing[0] || 'what it needs';
+    return `Plan not written yet: this is a new automation and the request does not say ${list}. `
+        + 'Ask first: call builder_ask_questions with at most 4 questions about exactly that, each with suggested answers. '
+        + 'If the request and the context already settle it, call builder_write_plan again unchanged.';
+}

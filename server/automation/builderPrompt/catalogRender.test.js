@@ -219,3 +219,68 @@ test('renderDatatablesBlock: requireChoice adds one fixed sentence and the outpu
     assert.equal(renderDatatablesBlock(tables), renderDatatablesBlock(tables, { requireChoice: false }), 'off by default');
     assert.doesNotMatch(renderDatatablesBlock([], { canCreate: true, requireChoice: true }), /needs the user's choice/, 'no tables, nothing to choose');
 });
+
+// ── Every runnable tool is named (F1) ───────────────────────────────────
+// MCP server tools, org custom integrations, agent-callable automations and
+// Step tools own no TOOL_REGISTRY entry. They are in `catalog.toolNames` (the
+// add-time gate lets them through), so the model must be shown them and
+// builder_inspect_tool must answer their inputs: a row per group carries them.
+
+/** buildCatalogForUser with the resolver answering these definitions. */
+function catalogFromDefs(defs) {
+    const deps = { getIntegrationTools: async () => ({ tools: defs }), getUserPermittedApps: async () => null };
+    return require('../builderCatalog').buildCatalogForUser('u1', { user: { id: 'u1' } }, { deps: /** @type {any} */ (deps) });
+}
+
+const schema = (prop) => ({ type: 'object', properties: { [prop]: { type: 'string', description: `the ${prop}` } }, required: [prop] });
+const EXTRA_DEFS = [
+    { type: 'function', function: { name: 'gmail_search', description: 'Search mail', parameters: schema('query') } },
+    { type: 'function', function: { name: 'mcp_tix_create_ticket', description: 'Create a ticket\nmore text', parameters: schema('title') }, _mcp: { serverId: 'tix', serverName: 'Ticket desk', originalName: 'create_ticket' } },
+    { type: 'function', function: { name: 'mcp_wiki_search', description: 'Search the wiki', parameters: schema('q') }, _mcp: { serverId: 'wiki' } },
+    { type: 'function', function: { name: 'cint_crm_find_contact', description: 'Find a contact', parameters: schema('email') }, _cint: { rawName: 'find_contact' } },
+    { type: 'function', function: { name: 'automation_send_report', description: 'Run the report automation', parameters: schema('month') }, __automation: { id: 'a1', userId: 'u1' } },
+    { type: 'function', function: { name: 'step_normalise_address', description: 'Run the "Normalise address" Step.', parameters: schema('address') }, __step: { id: 's1', userId: 'u1' } },
+    { type: 'function', function: { name: 'browse_web_inline', description: 'Open a page', parameters: schema('url') } },
+];
+
+test('every tool in catalog.toolNames is named in renderCatalogSlim', async () => {
+    const catalog = await catalogFromDefs(EXTRA_DEFS);
+    assert.equal(catalog.toolNames.size, EXTRA_DEFS.length);
+    const out = renderCatalogSlim(catalog);
+    for (const name of catalog.toolNames) {
+        assert.ok(out.includes(`  - ${name}`), `${name} must be rendered as an action line`);
+    }
+});
+
+test('the tools without a registry entry render under their group, with their input count', async () => {
+    const out = renderCatalogSlim(await catalogFromDefs(EXTRA_DEFS));
+    assert.match(out, /### MCP · Ticket desk \(mcp:tix\)\n {2}- mcp_tix_create_ticket \[side-effect\] — Create a ticket \(1 input, 1 required\)/);
+    assert.match(out, /### MCP · wiki \(mcp:wiki\)/, 'a server without a name is labelled by its id');
+    assert.match(out, /### Custom integrations \(custom-integrations\)\n {2}- cint_crm_find_contact/);
+    assert.match(out, /### Agent-callable automations \(agent-automations\)\n {2}- automation_send_report/);
+    assert.match(out, /### Step tools \(step-tools\)\n {2}- step_normalise_address/);
+    assert.match(out, /### Other tools \(other-tools\)\n {2}- browse_web_inline/);
+    // Registry apps first, then the groups in a fixed order: the order is part
+    // of the cached system prompt.
+    const order = ['### Gmail', '### MCP · Ticket desk', '### MCP · wiki', '### Custom integrations', '### Agent-callable automations', '### Step tools', '### Other tools'];
+    const at = order.map(h => out.indexOf(h));
+    assert.ok(at.every(i => i >= 0), `every group is rendered: ${at}`);
+    assert.deepEqual([...at].sort((a, b) => a - b), at, 'in the fixed order');
+});
+
+test('builder_inspect_tool answers the real inputs of an MCP, custom and Step tool', async () => {
+    const { inputSchemasByTool } = require('../builderCatalog');
+    const { applyToolCall } = require('../builderTools');
+    const { emptyDefinition } = require('../builderTools/draftGraph');
+    const catalog = await catalogFromDefs(EXTRA_DEFS);
+    const dw = {
+        userId: 'u_test', def: emptyDefinition(),
+        _inputSchemasByTool: inputSchemasByTool(catalog), _availableToolNames: catalog.toolNames, _inspectedTools: new Set(),
+    };
+    for (const [tool, input] of [['mcp_tix_create_ticket', 'title'], ['cint_crm_find_contact', 'email'], ['step_normalise_address', 'address']]) {
+        const r = await applyToolCall('builder_inspect_tool', { tool }, dw);
+        assert.ok(r && r.inputs && r.inputs[input], `${tool}: inputs must not be null (${JSON.stringify(r).slice(0, 200)})`);
+        assert.equal(r.inputs[input].required, true);
+        assert.ok(dw._inspectedTools.has(tool));
+    }
+});

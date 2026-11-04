@@ -13,17 +13,32 @@ const { PLAN_TOOL, QUESTIONS_TOOL, toolAllowed } = require('./workMode');
 const { INSPECTION_TOOLS } = require('./inspectionTools');
 const { fallback } = require('../../../utils/bestEffort');
 
+/**
+ * The five single-op array tools builder_add_array_op replaced. They stay in
+ * TOOL_SCHEMAS — applyToolCall still dispatches them, the MCP surface and the
+ * evolution plan vocabulary (evolution.js) still name builder_add_filter — but
+ * no chat menu offers them: builder_add_array_op does all five. A provider
+ * needs a tool's schema only for a tool call in the messages it is sent, and
+ * the history a turn replays is user/assistant TEXT only (the client sends
+ * {role, content}, useAutomationBuilderStream.ts; chatTurnLoop.sanitizeHistory
+ * drops everything else), so no earlier call to one of them is ever replayed.
+ * The core menu leaves them out as well (CORE_TOOL_NAMES). ~7.5k characters
+ * per turn.
+ */
+const LEGACY_ARRAY_TOOLS = new Set([
+    'builder_add_filter', 'builder_add_limit', 'builder_add_dedupe', 'builder_add_aggregate', 'builder_add_summarize',
+]);
+
 async function buildToolMenu(turn) {
     const {
         req, userId, codeStepEnabled, userOrgForTiers, draftWrap, turnMode, bufferedBuild, permissionMode,
         planAllowsRemoval, questionsClosed, modelId, profile, webResearch,
     } = turn;
     // Filter the tool schema set: by feature flag AND by profile.
-    // The 'core' subset shrinks the tool menu from 26 to 13 for small
-    // models. The five legacy array tools are still listed in full
-    // mode so existing chat histories keep validating; core mode
-    // hides them in favour of the unified builder_add_array_op.
-    let tools = TOOL_SCHEMAS.filter(t => codeStepEnabled || t.function.name !== 'builder_add_code_step');
+    // The 'core' subset shrinks the tool menu for small models. Every
+    // band gets builder_add_array_op instead of the legacy array tools.
+    let tools = TOOL_SCHEMAS.filter(t => !LEGACY_ARRAY_TOOLS.has(t.function.name)
+        && (codeStepEnabled || t.function.name !== 'builder_add_code_step'));
     if (profile.toolset === 'core') {
         tools = tools.filter(t => CORE_TOOL_NAMES.has(t.function.name));
     }
@@ -115,4 +130,4 @@ async function buildToolMenu(turn) {
     Object.assign(turn, { tools, webpageInspectorEnabled, webpageInspectorCtx, isWebpageAutomationTool, executeWebpageAutomationTool, webpageToolGate });
 }
 
-module.exports = { buildToolMenu };
+module.exports = { buildToolMenu, LEGACY_ARRAY_TOOLS };

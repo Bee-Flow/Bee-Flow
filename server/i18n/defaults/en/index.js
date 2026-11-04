@@ -69,6 +69,7 @@ const NAMESPACES = {
     "flatten_node":    require('./flatten_node.js'),
     "forms":           require('./forms.js'),
     "greet":           require('./greet.js'),
+    "handover":        require('./handover.js'),
     "http_query":      require('./http_query.js'),
     "integ":           require('./integ.js'),
     "kb_studio":       require('./kb_studio.js'),

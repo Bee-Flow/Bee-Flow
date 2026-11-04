@@ -290,3 +290,14 @@ test('golden: flowlet delegation, an inspection read and a webpage tool in build
         },
     });
 });
+
+test('golden: Plan first on a new automation with a thin brief: the plan goes back once, the questions end the turn', async () => {
+    await golden_('plan-ask-first', {
+        message: 'Automatiseer mijn facturen',
+        body: { workMode: 'plan' },
+        rounds: [
+            { toolCalls: [call('builder_write_plan', { title: 'Plan', goal: 'Doel', steps: ['Stap'] })] },
+            { toolCalls: [call('builder_ask_questions', { questions: [{ prompt: 'Waar komen de facturen binnen?', options: ['Gmail', 'Outlook'] }, { prompt: 'Wie keurt ze goed?', options: ['Ik', 'Finance'] }] })] },
+        ],
+    });
+});

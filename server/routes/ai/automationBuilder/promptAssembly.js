@@ -11,6 +11,7 @@ const { rankAppsForMessage, applyCatalogOrder, catalogOrderOf } = require('../..
 const { resolveWebResearch, webResearchPromptLine } = require('./webResearch');
 const { LARGE_CHANGE_STEPS, modeInstruction, reviewStatusNote, questionStatusNote } = require('./workMode');
 const { composeTurnMessages } = require('./turnMessages');
+const { renderLastTestRun, stepIdsOf } = require('../../../automation/builderPrompt/lastTestRun.mts');
 
 // Catalog ORDERING for profiles that ask for it — see
 // automation/builderPrompt/rankApps.js. It used to be a catalog FILTER, and
@@ -41,7 +42,7 @@ async function assembleTurnPrompt(turn) {
         req, send, userId, message, history, attachments, webSearchEnabled, disabledMedia, timezone, canvasScope,
         pauseAfterStep, selectedStepId, codeStepEnabled, userOrgForTiers, draftWrap, reviewPlan, planCurrent,
         approvedPlan, turnMode, bufferedBuild, isolated, baseDraft, savedProposal, reviewOutcome, priorQuestions,
-        storedCatalogOrder, catalog, tableChoice, agentDraftState, modelId, profile,
+        storedCatalogOrder, catalog, tableChoice, agentDraftState, modelId, profile, snapshot,
     } = turn;
     // The catalogue in the profile's order. 'filtered' is a misnomer kept
     // for the profile field: relevance ORDERS the catalogue, it never
@@ -102,6 +103,9 @@ async function assembleTurnPrompt(turn) {
         profile, modelId, promptCatalog, codeStepEnabled,
         history, message, attachments,
         agentDraftState, draftIsEmpty, canvasScope, schemaPart,
+        // What the session's last test run showed per step (turnClosing.js
+        // sessionMemory), for the steps the draft in front of the model has.
+        lastTestRun: renderLastTestRun(snapshot?.lastDryRunHints, { keep: stepIdsOf(draftWrap.def) }) || null,
         workMode: req.body.workMode ? turnMode : null,
         // The draft-state message opens with the name, or with the fact
         // that there is none yet (renderDraftStateSystemMessage).

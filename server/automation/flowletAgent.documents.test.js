@@ -145,3 +145,25 @@ test('a parallel agent\'s isolated draft carries the datatable consent gate: an 
     await runLayersInParallel({ rootDef: open, specs: [{ title: 'Lookup', instruction: 'x' }], modelId: 'stub', userId: 'u1', catalog: { apps: [] }, send: (e, d) => openEvents.push([e, d]), datatables: tables });
     assert.ok(openEvents.filter(e => e[0] === 'tool_call').every(e => !e[1].result.error));
 });
+
+test('the sub-agent sees a tool without a registry entry and builder_inspect_tool answers its inputs (standalone route)', async () => {
+    // The standalone flowlet route (layerAgent.js) hands a bare draft with no
+    // inspect map; the catalogue row carries the definition's schema.
+    let system = '';
+    const queue = [
+        { content: null, toolCalls: [tc('builder_inspect_tool', { tool: 'mcp_tix_create_ticket' })] },
+        { content: 'done', toolCalls: [] },
+    ];
+    llmClient.chat = async (_model, messages) => { if (!system) system = messages[0].content; return queue.shift() || { content: 'done', toolCalls: [] }; };
+    const catalog = { apps: [{ id: 'mcp:tix', label: 'MCP · Ticket desk', kind: 'mcp', available: true, actions: [{
+        name: 'mcp_tix_create_ticket', description: 'Create a ticket', sideEffect: true,
+        inputSchema: { type: 'object', properties: { title: { type: 'string' } }, required: ['title'] },
+    }] }] };
+    const events = [];
+    const def = rootDef({ tix: makeLayerSkeleton('Ticket', []) });
+    await runLayerAgent({ draftWrap: { userId: 'u1', def, automationId: null }, layerKey: 'tix', instruction: 'x', modelId: 'stub', userId: 'u1', catalog, send: (e, d) => events.push([e, d]) });
+    assert.match(system, /### MCP · Ticket desk \(mcp:tix\)\n {2}- mcp_tix_create_ticket \[side-effect\] — Create a ticket \(1 input, 1 required\)/);
+    const inspected = events.find(([e, d]) => e === 'tool_call' && d.name === 'builder_inspect_tool');
+    assert.ok(inspected, 'the inspect call ran');
+    assert.equal(inspected[1].result.inputs?.title?.required, true, JSON.stringify(inspected[1].result).slice(0, 300));
+});

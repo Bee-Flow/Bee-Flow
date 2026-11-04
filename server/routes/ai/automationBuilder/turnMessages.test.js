@@ -240,8 +240,8 @@ test('(g) the lean prompt is written for the menu the band reads: lean menu on s
     assert.strictEqual(REASONING.toolset, 'full');
     const small = turn1(SMALL).sys;
     const reasoning = turn1(REASONING).sys;
-    assert.ok(/There is no loop container on this menu/.test(small), 'small: no loop container');
-    assert.ok(!/There is no loop container/.test(reasoning), 'reasoning: the claim is not made');
+    assert.ok(/not a loop container: nothing on this menu can change a loop's body/.test(small), 'small: forEach, not a loop container');
+    assert.ok(!/not a loop container: nothing on this menu/.test(reasoning), 'reasoning: the claim is not made');
     for (const n of ['builder_add_loop', 'builder_update_steps', 'builder_add_trigger', 'builder_add_switch', 'builder_create_layer', 'builder_generate_layer', 'builder_add_set', 'builder_add_form_page']) {
         assert.ok(reasoning.includes(n), `reasoning: teaches ${n}`);
         assert.ok(!small.includes(n), `small: never names ${n}`);
@@ -360,4 +360,24 @@ test('plan and discuss turns get no few-shots (they build with the checklist); b
     }
     // The system prompt itself does not move with the mode.
     assert.strictEqual(turn1(SMALL, { workMode: 'plan' }).sys, turn1(SMALL, { workMode: 'build' }).sys);
+});
+
+// Session memory (F7): what the last test run showed per step is replayed in
+// the dynamic message on the next turn, never in the cached prefix.
+test('the "## Last test run" block rides in the dynamic message, after the schemas and before the preferences and the draft state', () => {
+    const block = '## Last test run\n- `s1` (integration_action) worked; steps.s1.output is { files[*]: { path } }';
+    const plain = turn2();
+    for (const profile of [SMALL, MID]) {
+        const t = turn2(profile, { lastTestRun: block, schemaPart: '## Pre-inspected tool schemas\n(stub)' });
+        const ref = turn2(profile, { schemaPart: '## Pre-inspected tool schemas\n(stub)' });
+        const p = stablePrefixLength(ref.messages);
+        assert.strictEqual(stablePrefixLength(t.messages), p);
+        assert.deepStrictEqual(t.messages.slice(0, p), ref.messages.slice(0, p), 'the prefix is byte-identical with or without the block');
+        assert.ok(!t.sys.includes('Last test run'));
+        const d = t.dynamicContext;
+        assert.ok(d.indexOf('## Pre-inspected tool schemas') < d.indexOf('## Last test run'));
+        assert.ok(d.indexOf('## Last test run') < d.indexOf('## This turn'));
+        assert.ok(d.indexOf('## This turn') < d.indexOf('Current draft — LIVE state'));
+    }
+    assert.ok(!plain.dynamicContext.includes('Last test run'), 'no hints, no block');
 });

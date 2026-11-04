@@ -31,7 +31,7 @@ vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'
 
 import { STUDIO_APPS, resolveStudioNav } from '../studioApps';
 import DescribeItPanel from './DescribeItPanel';
-import { takeSeed } from './handoff';
+import { takeSeedEntry } from './handoff';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
@@ -172,15 +172,14 @@ describe('toestand 3 — de schema-kaart', () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('draagt de naam mee naar de bouwer die er iets mee doet, en parkeert de brief', async () => {
+    it('an automation lands in a new builder that sends the brief: no row first, brief and name parked together', async () => {
         const user = userEvent.setup();
-        fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ automation: { id: 'a7' } }), text: async () => '' });
         const onNavigate = vi.fn();
         await showPlan({}, { onNavigate });
         await user.click(screen.getByTestId('studio-ai-create'));
-        await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/automations/a7'));
-        expect(JSON.parse(fetchMock.mock.calls[0][1].body).title).toBe('Weekrapport');
-        expect(takeSeed('automation')).toBe('stuur elke maandag een rapport');
+        await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/automations/new'));
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(takeSeedEntry('automation')).toEqual({ seed: 'stuur elke maandag een rapport', name: 'Weekrapport' });
     });
 
     it('"Iets anders" brengt je terug naar het veld met de brief er nog in', async () => {
@@ -218,15 +217,13 @@ describe('zaaien-eerlijkheid', () => {
         await waitFor(() => expect(writeText).toHaveBeenCalledWith('alles over onze offertes'));
     });
 
-    // THE REGRESSION THIS MUST CATCH: automation carried the NAME, so it was
-    // marked "seedable", and the screen concealed the brief there — on the most
-    // likely route of this screen. Today the brief reaches NO builder at all, so
-    // the flag is false everywhere.
-    it('ook bij automation staat de brief er, met de kopieerknop', async () => {
+    // The brief now reaches the automation builder (SEED_SUPPORT.automation):
+    // the assistant receives it and sends it, so there is nothing to paste and
+    // no copy block. Every kind that does not carry it still shows it (above).
+    it('automation carries the brief along, so the copy block is not shown', async () => {
         await showPlan();
-        expect(screen.getByTestId('studio-ai-seed')).toBeTruthy();
-        expect(screen.getByTestId('studio-ai-seed-text').textContent).toBe('stuur elke maandag een rapport');
-        expect(screen.getByTestId('studio-ai-copy')).toBeTruthy();
+        expect(screen.queryByTestId('studio-ai-seed')).toBe(null);
+        expect(screen.queryByTestId('studio-ai-copy')).toBe(null);
     });
 });
 

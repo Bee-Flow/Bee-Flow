@@ -1,19 +1,21 @@
 // @typecheck strict
 'use strict';
 /**
- * The opening of the FULL builder system prompt: the role and the step menu
- * (../builderPrompt.js buildFullSystemPrompt splices the code-step entry and
- * the canvas-only menu between these). Template text kept byte-identical:
- * the prompt is the front of the prompt cache.
+ * The opening of the FULL builder system prompt: the role line and the step
+ * menu. ../builderPrompt.js buildFullSystemPrompt puts "## What you can build"
+ * (./stepFamilies.js) between the role and the menu, and splices the code-step
+ * entry and the canvas-only menu into the menu. The block says WHAT each type
+ * is in the user's words; this menu says HOW the types with something to know
+ * work, so a type whose block line says it all has no entry here.
  */
 
+/** The first line of the full prompt. */
+const FULL_PROMPT_ROLE = 'You are the BeeFlow Automation Builder.';
+
 // Up to the code-step entry of the step menu.
-const FULL_PROMPT_INTRO = `You are the BeeFlow Automation Builder.
+const FULL_PROMPT_INTRO = `You help the user assemble an automation by editing a structured draft. The
+draft is a typed DAG of steps, started by its trigger. How the step types work:
 
-You help the user assemble an automation by editing a structured draft. The
-draft is a typed DAG of steps:
-
-  trigger          — what kicks the automation off (schedule | manual | webhook | form | app_event)
   integration_action — call an app the user has connected
   ai_step          — ask an LLM to reason over upstream data. By default no tools, but
                      pass allowTools:true (and optionally tools:["agent_search","gmail_search",…])
@@ -100,7 +102,6 @@ const FULL_PROMPT_STEP_MENU = `
                      Feeding a Nextcloud Tables row: name fields after the column titles
                      (\`excl_btw\` for "Excl. btw"), key \`values\` the same way, and name an
                      unknown table by its exact title in tableId — never guess an id.
-  notification     — deliver a result to the user
   set              — "Edit data": build an object from explicit field bindings, or set
                      \`arrayRef\` to work through a LIST — every row gets the fields
                      (the row is \`item\` in exprs) plus whole-table operations
@@ -218,6 +219,11 @@ const FULL_PROMPT_STEP_MENU = `
                      "Knowledge bases you may use" block in the context (a WRITABLE one), never an
                      id you invented, and if they need a base that does not exist yet, say so and stop.
   call_layer       — run an inline Flowlet (a named sub-flow stored in definition.layers)
+  call_block       — run a reusable building block (a Step this workspace built and published).
+                     Only as a builder_add_steps entry: {type:"call_block", spec:{blockId,
+                     inputs:{<input>: binding}}}. Take blockId from the "Building blocks you may
+                     use" block, never invent one; bind every input marked *; read its outputs
+                     as steps.<id>.output.<output>. Not inside a building block itself.
   note             — a free-floating sticky-note annotation: builder_add_note({text}). It
                      NEVER runs and is NEVER wired to anything (no afterStepId/branch — do
                      not try to chain it). Use it to explain WHY a branch exists or leave a
@@ -226,4 +232,4 @@ const FULL_PROMPT_STEP_MENU = `
 
 `;
 
-module.exports = { FULL_PROMPT_INTRO, FULL_PROMPT_STEP_MENU };
+module.exports = { FULL_PROMPT_ROLE, FULL_PROMPT_INTRO, FULL_PROMPT_STEP_MENU };

@@ -34,6 +34,8 @@
  */
 'use strict';
 
+const { BATCH_STEP_TYPES } = require('./stepTypeTable');
+
 // Tools the small menu does without (owner decision 2026-09-17). Each one
 // stays in CORE_TOOL_NAMES so the menu tests, the MCP surface and the
 // leaked-call recovery keep ONE list; this is the only place they leave it.
@@ -58,25 +60,22 @@ const DROP_TOOLS_SMALL = Object.freeze([
     'builder_wire_error_branch',
 ]);
 
-// Step types whose single-step tool is on the lean menu — the batch enum
-// may name nothing the model could not also build one at a time, so a
-// dry-run repair of that step type always has a tool.
-const LEAN_BATCH_TYPES = Object.freeze([
-    'integration_action', 'ai_step', 'data_extraction', 'condition', 'notification',
-    'http_request', 'datatable', 'approval', 'array_op',
-]);
+// The small band builds every step type the full menu builds (owner decision
+// 2026-11-04): the batch enum is the whole table. A type without a single-step
+// tool on this menu is still created as a builder_add_steps entry (the compact
+// "What you can build" block lists its spec keys) and repaired with
+// builder_update_step, which patches any type.
+const LEAN_BATCH_TYPES = BATCH_STEP_TYPES;
 
 /**
- * The batch type enum of the lean menu. `code` joins it ONLY when code steps are
- * enabled: the lean prompt then teaches "a `code` entry" (builderPrompt.js,
- * codeStepRule) and, with no builder_add_code_step on this menu, the batch entry
- * is the only way to make one. Without this the prompt would promise an entry the
- * enum does not contain, and grammar-constrained decoding cannot emit a value
- * outside the enum. With the flag off the enum is the plain LEAN_BATCH_TYPES, so
- * the bytes of the common case are unchanged.
+ * The batch type enum of the lean menu: every batch type, `code` only when code
+ * steps are enabled. The lean prompt then teaches "a `code` entry"
+ * (builderPrompt.js, codeStepRule) and, with no builder_add_code_step on this
+ * menu, the batch entry is the only way to make one; with the flag off the
+ * prompt forbids code steps and grammar-constrained decoding cannot emit one.
  */
 function leanBatchTypes({ codeStepEnabled = false } = {}) {
-    return codeStepEnabled ? [...LEAN_BATCH_TYPES, 'code'] : [...LEAN_BATCH_TYPES];
+    return LEAN_BATCH_TYPES.filter((t) => codeStepEnabled || t !== 'code');
 }
 
 // JSON-schema keywords the Gemma 4 template does not render (only
@@ -387,7 +386,7 @@ function projectAddSteps(properties, { codeStepEnabled = false } = {}) {
         items.properties.type.enum = leanBatchTypes({ codeStepEnabled });
     }
     if (items.properties.spec) {
-        items.properties.spec.description = 'EXACTLY the fields of the matching builder_add_<type> tool (tool+inputs · prompt+inputs+outputSchema · source+fields · op+datatableId+datatableKey+values · expr · title+body · url+method+body · op+arrayRef · prompt+assignee) plus the shared ones: afterStepId, branch ("then"|"else"|"error"), label, forEach:{overRef,itemVar}. Put EVERY step field inside spec, never beside it. Per-item work is forEach on the step; chain the next entry\'s forEach over steps.$<prev>.output.results and bind loop.<v>.output.<field>. Prefer {kind:"ref"} bindings over {{templates}} inside a batch.';
+        items.properties.spec.description = 'EXACTLY the spec keys "What you can build" lists for the type (the fields of its builder_add_<type> tool where this menu has one) plus the shared ones: afterStepId, branch ("then"|"else"|"error"), label, forEach:{overRef,itemVar}. Put EVERY step field inside spec, never beside it. Per-item work is forEach on the step; chain the next entry\'s forEach over steps.$<prev>.output.results and bind loop.<v>.output.<field>. Prefer {kind:"ref"} bindings over {{templates}} inside a batch.';
     }
 }
 

@@ -14,7 +14,7 @@
  *   - event ids and payload fields come from the DECLARATIONS
  *     (triggerSources/declared/*.js via the global registry), so a renamed or
  *     removed event cannot survive here;
- *   - filter keys and cautions come from TRIGGER_PROMPT_NOTES below, verified
+ *   - filter keys and cautions come from TRIGGER_PROMPT_NOTES (./triggerNotes.js), verified
  *     by hand against the matchers in triggerBus/filters.js and the pollers
  *     in triggerBus.js — the declarations do not carry filter keys, and the
  *     generic fallback matcher (exact equality on a payload field) is what an
@@ -26,153 +26,26 @@
  * block sits in the system prompt, the front of the prompt cache on the
  * single-slot local box, and must be byte-identical across users and
  * sessions. Rendered once per process and memoised.
+ *
+ * The FULL band reads the same knowledge per user: renderAppEventProviderLines
+ * renders the providers THIS user has (builderPickerCatalog's list) into the
+ * "App events you may use" block of the per-turn message, with the extra
+ * filter keys (`more`) and cautions (`fullNote`, PROVIDER_PROMPT_NOTES). It is
+ * the only per-provider catalogue on that band: builder_propose_trigger's
+ * description is one paragraph that points here, because a global catalogue
+ * in a tool schema is ~16k characters of every provider on every turn for
+ * every user. triggerBlock.test.js and builderTools/promptCatalogSync.test.js
+ * check these lines.
  */
 
 'use strict';
 
-const { listTriggerSources } = require('../triggerSources');
+const { listTriggerSources, getEventDef } = require('../triggerSources');
 const { pickMatcher } = require('../triggerBus/filters');
 const { matchFilter } = require('../triggers/dslFilters');
 const { PUSH_PENDING } = require('../deliverableEvents');
 
-/**
- * Sidecar notes keyed `provider.event`.
- *   filters      the keys the matcher / poller reads (verified, see header);
- *                a parenthesis after a key is prose the model needs beside it,
- *                and `a + b` names two keys that only work together
- *   fields       the payload fields worth naming (a subset of the declared
- *                list, plus `extraFields` for enriched keys the declaration
- *                omits but the producer always sets)
- *   extraFields  enriched payload keys, each with where it was verified
- *   group        events sharing one line (same filters, same payload)
- *   note         one caution, only where the recorded builds needed it
- */
-const TRIGGER_PROMPT_NOTES = Object.freeze({
-    'gmail.mail.new': {
-        filters: ['from', 'to', 'subjectContains', 'labelIds', 'hasAttachment', 'excludeFromSelf'],
-        fields: ['messageId', 'threadId', 'from', 'to', 'subject', 'snippet', 'date', 'labelIds', 'hasAttachment', 'attachments[{attachmentId, filename}]'],
-        // hasAttachment / attachments[]: fetchGmailMessageMetadata (triggerBus.js) enriches every mail.new payload with them.
-        extraFields: ['hasAttachment', 'attachments[{attachmentId, filename}]'],
-        note: 'Reply with gmail_compose replyToMessageId: trigger.output.messageId. "Last 24 h" is NOT a filter: use schedule + gmail_search newer_than:1d.',
-    },
-    'gmail.label.added': {
-        filters: ['labelId (required)', 'from', 'subjectContains'],
-        fields: ['messageId', 'addedLabelIds', 'from', 'subject'],
-    },
-    'google-calendar.event.upcoming': {
-        filters: ['leadMinutes (default 15)', 'calendarId'],
-        fields: ['eventId', 'summary', 'start', 'end', 'attendees', 'minutesUntilStart'],
-    },
-    'google-calendar.event.changed': {
-        filters: ['calendarId', 'statusEquals'],
-        fields: ['eventId', 'summary', 'start', 'end', 'status', 'attendees'],
-    },
-    'google-drive.file.new': {
-        filters: ['folderId', 'mimeType', 'nameContains'],
-        fields: ['fileId', 'name', 'mimeType', 'webViewLink'],
-    },
-    'nextcloud.file.new': { group: 'nc-file', filters: ['inFolder', 'extension', 'nameContains'], fields: ['path', 'name', 'extension', 'actor'], note: 'bind path, never an id (file.deleted has none).' },
-    'nextcloud.file.changed': { group: 'nc-file' },
-    'nextcloud.file.deleted': { group: 'nc-file' },
-    'nextcloud.file.renamed': { group: 'nc-file' },
-    'nextcloud.file.tagged': {
-        filters: ['tagId (the numeric id from nextcloud_list_tags, or the tag name)'],
-        fields: ['fileId', 'tagId'],
-        // nextcloud_read_file takes a path, and this payload has none (ids
-        // only) — the full schema's "read it by fileId" advice was wrong.
-        note: 'the payload has ids only — no path, no tag name.',
-    },
-    'nextcloud.forms.submitted': {
-        filters: ['formId', 'includeColleagues (true = also others\' submissions; off = only the owner\'s own)'],
-        fields: ['formId', 'submissionId'],
-        note: 'the answers are NOT in the payload: follow with nextcloud_forms_get_submissions.',
-    },
-    'nextcloud.tables.row.added': {
-        group: 'nc-tables',
-        filters: ['tableId', 'columnId + valueEquals', 'changedOnly', 'includeColleagues (true = also others\' edits)'],
-        note: 'without columnId, valueEquals / valueContains / changedOnly hold when ANY column satisfies them.',
-        fields: ['tableId', 'rowId', 'values (keyed by numeric column id)'],
-    },
-    'nextcloud.tables.row.updated': { group: 'nc-tables' },
-    'nextcloud.calendar.event.upcoming': {
-        filters: ['leadMinutes', 'calendarId (omit = every calendar)', 'summaryContains'],
-        fields: ['uid', 'summary', 'startsAt', 'endsAt', 'attendees'],
-    },
-    'nextcloud.calendar.event.created': {
-        group: 'nc-cal',
-        filters: ['calendarId', 'includeColleagues (true = also others\' changes in calendars the owner can see)'],
-        fields: ['uid', 'calendarUri'],
-        // calendarUri: automationEventsWebhook.js normalisePayload sets it on every calendar.* envelope.
-        extraFields: ['calendarUri'],
-        note: 'metadata only, no summary — read it with nextcloud_calendar_get_event (calendar: trigger.output.calendarUri, uid: trigger.output.uid).',
-    },
-    'nextcloud.calendar.event.changed': { group: 'nc-cal' },
-    'nextcloud.talk.message.received': {
-        filters: ['roomToken', 'messageContains', 'excludeOwnMessages', 'includeColleagues (true = also other members\' messages; off = only the owner\'s own)'],
-        fields: ['messageId', 'roomToken', 'actor', 'message'],
-        note: 'the Bee Flow bot must be in the room; say so.',
-    },
-    'nextcloud.talk.reaction.added': {
-        filters: ['roomToken', 'reaction'],
-        fields: ['messageId', 'roomToken', 'actor', 'reaction'],
-        note: 'an EVENT, not an approval gate (use builder_add_approval for that); the bot must be in the room.',
-    },
-    'nextcloud.deck.card.created': {
-        group: 'nc-deck', filters: ['boardId', 'stackId', 'titleContains', 'includeColleagues (true = also others\' changes on boards the owner can open)'], fields: ['cardId', 'boardId', 'stackId', 'title', 'done'],
-        // fromStackId/toStackId are read by the deck.card.moved matcher against
-        // payload.previousStackId / payload.stackId (filters.js, fixed 2026-09-17).
-        note: 'deck.card.moved also filters fromStackId / toStackId (the list it left / landed in) and carries previousStackId.',
-    },
-    'nextcloud.deck.card.changed': { group: 'nc-deck' },
-    'nextcloud.deck.card.deleted': { group: 'nc-deck' },
-    'nextcloud.deck.card.moved': { group: 'nc-deck' },
-    'nextcloud.deck.card.completed': { group: 'nc-deck' },
-    'nextcloud.share.received': { filters: ['actorEquals', 'nameContains'], fields: ['path', 'name', 'actor'] },
-    'nextcloud.activity.new': { filters: ['type', 'actorEquals'], fields: ['type', 'subject', 'objectName', 'actor'] },
-    'nextcloud.notification.new': { filters: ['app', 'subjectContains'], fields: ['app', 'subject', 'message'] },
-    'meeting-notes.meeting.processed': {
-        filters: ['tags (empty = EVERY meeting)', 'reprocessed'],
-        fields: ['transcriptionId', 'tags'],
-        note: 'no step reads the note; pass the id on.',
-    },
-    'support.ticket.resolved': {
-        filters: ['inboxId', 'categoryEquals', 'priorityEquals', 'tagIncludes'],
-        fields: ['threadId', 'subject', 'category', 'priority', 'tags', 'transcript'],
-    },
-    'approvals.approval.decided': {
-        filters: ['decision (approved | rejected | expired | cancelled)'],
-        fields: ['approvalId', 'decision', 'reason', 'answers', 'prompt', 'decidedBy'],
-    },
-    'approvals.approval.requested': { filters: [], fields: ['approvalId', 'prompt', 'requestedBy', 'expiresAt'] },
-    'msgraph.mail.new': {
-        // mailbox: read by matchMsGraphMailFilter and the poller (triggerBus/pollers/msGraphMail.mts).
-        filters: ['mailbox (a shared mailbox address; omit = the user\'s own inbox)'],
-        fields: ['resourceData.id', 'mailbox'],
-        // resourceData.id: the Graph change-notification envelope always names the changed item there.
-        // mailbox: set by the webhook route ("me") and the poller (the address).
-        extraFields: ['resourceData.id', 'mailbox'],
-        note: 'a Graph notification, no body — read it with outlook_read {messageId: trigger.output.resourceData.id, mailbox: trigger.output.mailbox}; pass the same mailbox to every Outlook step that answers it.',
-    },
-    'msgraph.mail.flagged': {
-        group: 'msgraph', filters: [], fields: ['resourceData.id'],
-        extraFields: ['resourceData.id'],
-        note: 'a Graph notification, no body — read the item with the matching Outlook/OneDrive tool.',
-    },
-    'msgraph.event.created': { group: 'msgraph' },
-    'msgraph.event.changed': { group: 'msgraph' },
-    'msgraph.file.new': { group: 'msgraph' },
-    'msgraph.file.changed': { group: 'msgraph' },
-    'google-sheets.spreadsheet.changed': { group: 'gsheets', filters: [], fields: ['id', 'name', 'url', 'modifiedTime'] },
-    'google-sheets.spreadsheet.new': { group: 'gsheets' },
-    'google-slides.presentation.changed': { group: 'gslides', filters: [], fields: ['id', 'name', 'url', 'modifiedTime'] },
-    'google-slides.presentation.new': { group: 'gslides' },
-    'google-contacts.contact.new': { group: 'gcontacts', filters: [], fields: ['resourceName', 'displayName', 'email', 'phone', 'company'] },
-    'google-contacts.contact.changed': { group: 'gcontacts' },
-    'google-keep.note.new': { group: 'gkeep', filters: [], fields: ['noteId', 'title', 'content'] },
-    'google-keep.note.changed': { group: 'gkeep' },
-    'tuya.device.status.changed': { group: 'tuya', filters: [], fields: ['deviceId', 'deviceName', 'online', 'status', 'changedKeys'] },
-    'tuya.device.online.changed': { group: 'tuya' },
-});
+const { TRIGGER_PROMPT_NOTES, PROVIDER_PROMPT_NOTES } = require('./triggerNotes');
 
 // The wording for the generic matcher: exact equality on a payload field.
 const GENERIC_FILTER_TEXT = 'a payload field = exact value';
@@ -186,7 +59,10 @@ function usesGenericMatcher(provider, event) {
     return pickMatcher(provider, event) === matchFilter;
 }
 
-/** The declared, non-hidden events per non-hidden provider, registry order. */
+/**
+ * The declared, non-hidden events per non-hidden provider, registry order.
+ * @returns {DeclaredEvent[]}
+ */
 function declaredEvents() {
     const out = [];
     for (const src of listTriggerSources({ includeHidden: false })) {
@@ -198,9 +74,17 @@ function declaredEvents() {
     return out;
 }
 
-/** The filter bracket for one line. */
-function renderFilters(provider, event, note) {
-    const keys = note && Array.isArray(note.filters) ? note.filters : null;
+/**
+ * The filter bracket for one line. The full detail adds the sidecar's `more`
+ * keys (verified like the rest, see the test).
+ * @param {string} provider
+ * @param {string} event
+ * @param {TriggerNote | undefined} note
+ * @param {Detail} detail
+ */
+function renderFilters(provider, event, note, detail) {
+    const base = note && Array.isArray(note.filters) ? note.filters : null;
+    const keys = base && detail === 'full' && Array.isArray(note?.more) ? [...base, ...note.more] : base;
     if (keys && keys.length) return ` [${keys.join(', ')}]`;
     if (usesGenericMatcher(provider, event)) return ` [${GENERIC_FILTER_TEXT}]`;
     // A custom matcher this file has no verified notes for: say nothing
@@ -208,10 +92,95 @@ function renderFilters(provider, event, note) {
     return '';
 }
 
-/** The payload arrow for one line: the sidecar's subset, else the declaration. */
-function renderFields(decl, note) {
-    const fields = note && Array.isArray(note.fields) && note.fields.length ? note.fields : decl.fields.slice(0, 8);
+/** "resourceData.id" → "resourceData", "values (keyed …)" → "values". */
+const bareField = (/** @type {string} */ f) => (/^[a-zA-Z_]+/.exec(f) || [''])[0];
+
+/**
+ * The payload arrow for one line: the sidecar's subset, else the declaration.
+ * The full detail names every declared field (the subset first).
+ * @param {DeclaredEvent} decl
+ * @param {TriggerNote | undefined} note
+ * @param {Detail} detail
+ */
+function renderFields(decl, note, detail) {
+    let fields = note && Array.isArray(note.fields) && note.fields.length ? note.fields : decl.fields.slice(0, 8);
+    if (detail === 'full') {
+        const named = new Set(fields.map(bareField));
+        fields = [...fields, ...decl.fields.filter(f => !named.has(bareField(f)))];
+    }
     return fields.length ? ` → ${fields.join(', ')}` : '';
+}
+
+/**
+ * @param {TriggerNote | undefined} note
+ * @param {Detail} detail
+ */
+function renderNote(note, detail) {
+    if (!note) return '';
+    return [note.note, detail === 'full' ? note.fullNote : null].filter(Boolean).join(' ');
+}
+
+/** The sidecar entry that carries a group's filters, fields and note: its first member. */
+function groupLead(/** @type {string} */ group) {
+    const key = Object.keys(TRIGGER_PROMPT_NOTES).find(k => TRIGGER_PROMPT_NOTES[k].group === group);
+    return key ? TRIGGER_PROMPT_NOTES[key] : undefined;
+}
+
+/**
+ * One line per event (or per run of events sharing a sidecar `group`), and
+ * the events nothing produces, which get no line of their own.
+ * @param {DeclaredEvent[]} decls
+ * @param {{ detail: Detail, lead: (provider: string) => string, skipBare?: boolean }} opts
+ *   `lead` = the text before the event ids; `skipBare` drops a line that would
+ *   say nothing but the id (an event with neither notes nor declared fields)
+ * @returns {{ lines: string[], never: DeclaredEvent[] }}
+ */
+function renderEventLines(decls, { detail, lead, skipBare = false }) {
+    /** @type {DeclaredEvent[]} */
+    const never = [];
+    /** @type {string[]} */
+    const lines = [];
+    // Group consecutive events that share a sidecar `group` onto one line —
+    // the first member carries the filters/fields/note for all of them.
+    /** @type {{ provider: string, group: string | null, events: string[], filters: string, fields: string, note: string } | null} */
+    let open = null;
+    const flush = () => {
+        if (!open) return;
+        const head = open.events.join(' / ');
+        if (!(skipBare && !open.fields && !open.note)) {
+            lines.push(`${lead(open.provider)}${head}${open.filters}${open.fields}${open.note ? ` — ${open.note}` : ''}`);
+        }
+        open = null;
+    };
+    for (const decl of decls) {
+        const key = `${decl.provider}.${decl.event}`;
+        if (PUSH_PENDING[decl.provider] && PUSH_PENDING[decl.provider].has(decl.event)) {
+            // Declared, listed in the UI with its deliverability note, and
+            // produced by nothing: the one event the model must be told NOT
+            // to propose (the recorded builds proposed it twice).
+            never.push(decl);
+            continue;
+        }
+        const note = TRIGGER_PROMPT_NOTES[key];
+        const group = note && note.group ? note.group : null;
+        if (group && open && open.group === group && open.provider === decl.provider) {
+            open.events.push(decl.event);
+            continue;
+        }
+        flush();
+        const entry = group ? groupLead(group) : note;
+        open = {
+            provider: decl.provider,
+            group,
+            events: [decl.event],
+            filters: renderFilters(decl.provider, decl.event, entry, detail),
+            fields: renderFields(decl, entry, detail),
+            note: renderNote(entry, detail),
+        };
+        if (!group) flush();
+    }
+    flush();
+    return { lines, never };
 }
 
 /** @type {string | null} */
@@ -224,47 +193,7 @@ let memo = null;
  */
 function renderTriggerBlockLean() {
     if (memo !== null) return memo;
-    /** @type {string[]} */
-    const never = [];
-    /** @type {string[]} */
-    const lines = [];
-    // Group consecutive events that share a sidecar `group` onto one line —
-    // the first member carries the filters/fields/note for all of them.
-    let open = null;
-    const flush = () => {
-        if (!open) return;
-        const head = open.events.join(' / ');
-        lines.push(`- ${open.provider}: ${head}${open.filters}${open.fields}${open.note ? ` — ${open.note}` : ''}`);
-        open = null;
-    };
-    for (const decl of declaredEvents()) {
-        const key = `${decl.provider}.${decl.event}`;
-        if (PUSH_PENDING[decl.provider] && PUSH_PENDING[decl.provider].has(decl.event)) {
-            // Declared, listed in the UI with its deliverability note, and
-            // produced by nothing: the one event the model must be told NOT
-            // to propose (the recorded builds proposed it twice).
-            never.push(`${decl.provider} ${decl.event}`);
-            continue;
-        }
-        const note = TRIGGER_PROMPT_NOTES[key];
-        const group = note && note.group ? note.group : null;
-        if (group && open && open.group === group && open.provider === decl.provider) {
-            open.events.push(decl.event);
-            continue;
-        }
-        flush();
-        const lead = group ? TRIGGER_PROMPT_NOTES[Object.keys(TRIGGER_PROMPT_NOTES).find(k => TRIGGER_PROMPT_NOTES[k].group === group)] : note;
-        open = {
-            provider: decl.provider,
-            group,
-            events: [decl.event],
-            filters: renderFilters(decl.provider, decl.event, lead),
-            fields: renderFields(decl, lead),
-            note: lead && lead.note ? lead.note : '',
-        };
-        if (!group) flush();
-    }
-    flush();
+    const { lines, never } = renderEventLines(declaredEvents(), { detail: 'lean', lead: (provider) => `- ${provider}: ` });
     memo = [
         '## Triggers (builder_propose_trigger — the first call of a new draft)',
         '',
@@ -272,20 +201,88 @@ function renderTriggerBlockLean() {
         'An agent_call or app_trigger argument arrives as trigger.output.<name> (there is no trigger.payload): declare every argument the steps need, with a description the agent can read. After building an agent_call automation, tell the user to link it to an agent under "Who can call this" in the trigger panel: you cannot do that yourself.',
         'App events, as `appProvider: appEvent [filter keys] → payload fields` (bind them as trigger.output.<field>; an omitted filter = every event):',
         ...lines,
-        ...(never.length ? [`NEVER propose ${never.join(', ')} (nothing produces it).`] : []),
+        ...(never.length ? [`NEVER propose ${never.map(d => `${d.provider} ${d.event}`).join(', ')} (nothing produces it).`] : []),
     ].join('\n');
     return memo;
 }
 
+// The per-user list's cap per provider: an auto-derived MCP provider can
+// declare dozens of watchable list tools. catalogRender.test.js pins it (40
+// shown, the rest counted).
+const PROVIDER_EVENTS_CAP = 40;
+
+/** @param {unknown} v @param {number} max */
+const oneLine = (v, max) => {
+    const t = String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+    return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+};
+
+/**
+ * The lines of the per-user "App events you may use" block, for the providers
+ * THIS user has (builderPickerCatalog.buildAppEventProvidersFor; an entry is
+ * `{ id, label?, events: [{ id, deliverability? }] }`).
+ *
+ * Every band gets one header line per provider: `- <id> (<label>): <event>,
+ * …`, the connector-dependent events marked. That is the whole render on the
+ * 'lean' band, whose system prompt already carries the global `## Triggers`
+ * block with every filter key and payload field (repeating them in the
+ * per-turn message would be re-read on every turn on the local box).
+ *
+ * The 'full' band (the default: the cloud bands and the MCP guide) has no
+ * other per-provider source (builder_propose_trigger's description points
+ * here), so under each header it renders one line per event: the
+ * filter keys the runtime reads (TRIGGER_PROMPT_NOTES `filters` + `more`),
+ * every declared payload field, and the cautions (`note` + `fullNote`), then
+ * the provider's PROVIDER_PROMPT_NOTES and the events nothing produces.
+ * Field lists come from the declaration (getEventDef), so an org-scoped or
+ * auto-derived provider gets its real payload too; an event with nothing to
+ * say beyond its id gets no detail line.
+ *
+ * @param {AppEventProvider[]} providers
+ * @param {{ band?: 'full' | 'lean' }} [opts]
+ * @returns {string} the lines, joined by newlines ('' for no providers)
+ */
+function renderAppEventProviderLines(providers, { band = 'full' } = {}) {
+    const list = Array.isArray(providers) ? providers.filter(p => p && p.id) : [];
+    /** @type {string[]} */
+    const out = [];
+    if (band === 'full' && list.length) {
+        out.push('Under each provider, one line per event: `event [filter keys] → payload fields — caution`. Use only the filter keys listed (an omitted filter = every event) and bind the payload as trigger.output.<field>; never add a search step for data the payload already has.');
+    }
+    for (const p of list) {
+        const events = (Array.isArray(p.events) ? p.events : []).filter(e => e && e.id);
+        const shown = events.slice(0, PROVIDER_EVENTS_CAP);
+        const more = events.length - shown.length;
+        const ids = shown.map(e => `${e.id}${e.deliverability === 'connector' ? ' [needs the connector]' : ''}`);
+        out.push(`- ${p.id} (${oneLine(p.label || p.id, 40)}): ${ids.join(', ')}${more > 0 ? `, …and ${more} more events` : ''}`);
+        if (band !== 'full') continue;
+        const decls = shown.map(e => {
+            const def = getEventDef(p.id, e.id);
+            return { provider: p.id, event: e.id, fields: def && Array.isArray(def.fields) ? def.fields : [] };
+        });
+        const { lines, never } = renderEventLines(decls, { detail: 'full', lead: () => '  - ', skipBare: true });
+        out.push(...lines);
+        if (PROVIDER_PROMPT_NOTES[p.id]) out.push(`  ${PROVIDER_PROMPT_NOTES[p.id]}`);
+        if (never.length) out.push(`  NEVER propose ${never.map(d => d.event).join(', ')} (nothing produces it, so it would never fire).`);
+    }
+    return out.join('\n');
+}
+
 module.exports = {
     renderTriggerBlockLean,
+    renderAppEventProviderLines,
     TRIGGER_PROMPT_NOTES,
+    PROVIDER_PROMPT_NOTES,
     GENERIC_FILTER_TEXT,
     // Test seams.
     _declaredEvents: declaredEvents,
     _usesGenericMatcher: usesGenericMatcher,
 };
 
-/** @typedef {{ group?: string, filters?: string[], fields?: string[], extraFields?: string[], note?: string }} TriggerNote */
+/** @typedef {'lean' | 'full'} Detail */
+
+/** @typedef {import('./triggerNotes').TriggerNote} TriggerNote */
 
 /** @typedef {{ provider: string, event: string, fields: string[] }} DeclaredEvent */
+
+/** @typedef {{ id: string, label?: string, events?: Array<{ id: string, deliverability?: string }> }} AppEventProvider */

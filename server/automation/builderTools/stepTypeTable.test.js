@@ -11,7 +11,9 @@
  *   - the batch and replace enums, ADD_FOR_TYPE and the table agree;
  *   - a canvas-only type is in no enum and no builder, and the model is told so;
  *   - the full prompt names every creatable type and teaches nothing no tool can
- *     do; the lean prompt says it holds the reduced menu and what that leaves out;
+ *     do; the lean prompt names every type with its spec keys and says what its
+ *     menu cannot make;
+ *   - every type a person can meet has a ribbon family and a palette label;
  *   - the Privacy Shield steps (guard, tokenize, untokenize) really are
  *     authorable: batch entry, $tempId refs in sourceRef, branches, patch, replace.
  *
@@ -30,6 +32,7 @@ const { ADD_FOR_TYPE } = require('./stepBuilders');
 const { validateDefinition } = require('../validate');
 const { buildFullSystemPrompt, buildLeanSystemPrompt } = require('../builderPrompt');
 const { leanBatchTypes, projectToolSchemas, LEAN_BATCH_TYPES } = require('./schemaProjection');
+const { FAMILIES } = require('../builderPrompt/stepFamilies');
 
 const schemaOf = (name) => TOOL_SCHEMAS.find(t => t.function.name === name);
 const enumOf = (tool, prop) => {
@@ -72,7 +75,7 @@ test('the Privacy Shield steps are authorable (they were in ADD_FOR_TYPE but in 
 });
 
 test('canvas-only types are in no enum and no builder, and the batch refuses them by name', async () => {
-    assert.deepEqual(CANVAS_ONLY_STEP_TYPES.map(e => e.type).sort(), ['call_block', 'parallel', 'return_to_app']);
+    assert.deepEqual(CANVAS_ONLY_STEP_TYPES.map(e => e.type).sort(), ['parallel', 'return_to_app']);
     for (const { type } of CANVAS_ONLY_STEP_TYPES) {
         assert.ok(!BATCH_STEP_TYPES.includes(type), `${type} not in the batch enum`);
         assert.ok(!REPLACEABLE_STEP_TYPES.includes(type), `${type} not in the replace enum`);
@@ -98,40 +101,59 @@ test('the full prompt names every creatable step type and states the canvas-only
 
 test('every tool the prompt\'s step list names as creating a type exists', () => {
     const prompt = buildFullSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: true });
-    // builder_ask_questions is handled by the chat route in a work mode
-    // (workMode.QUESTIONS_TOOL), not by builderTools; the prompt names it for
-    // the table-choice rule.
-    const names = new Set([...TOOL_SCHEMAS.map(t => t.function.name), 'builder_ask_questions']);
+    // builder_ask_questions and builder_write_plan are handled by the chat route
+    // in a work mode (workMode.QUESTIONS_TOOL / PLAN_TOOL), not by builderTools.
+    const { QUESTIONS_TOOL, PLAN_TOOL } = require('../../routes/ai/automationBuilder/workMode');
+    const modeTools = [QUESTIONS_TOOL, PLAN_TOOL].map(t => (typeof t === 'string' ? t : t.function.name));
+    const names = new Set([...TOOL_SCHEMAS.map(t => t.function.name), ...modeTools]);
     const named = [...new Set(prompt.match(/builder_[a-z_]*[a-z](?![a-z_<])/g) || [])];
     const unknown = named.filter(n => !names.has(n));
     assert.deepEqual(unknown, [], `the prompt names tools that do not exist: ${unknown.join(', ')}`);
 });
 
-test('the lean prompt says it holds the reduced menu, and lists exactly what the menu leaves out', () => {
-    const lean = buildLeanSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false, batchTools: true, catalogPlacement: 'dynamic', menu: 'lean' });
-    assert.match(lean, /## This is the reduced menu/);
-    const section = lean.slice(lean.indexOf('## This is the reduced menu'), lean.indexOf('## Naming'));
-    const buildable = /Step types you can build: ([^(]+) \(/.exec(section)[1].split(', ').map(s => s.trim());
-    assert.deepEqual(buildable, leanBatchTypes({ codeStepEnabled: false }));
-    const notOn = /NOT on this menu: ([^.]+)\./.exec(section)[1].split(', ').map(s => s.trim());
-    const covered = new Set([...buildable, ...ARRAY_OP_FAMILY, 'code']);
-    assert.deepEqual(notOn.filter(t => BATCH_STEP_TYPES.includes(t)), BATCH_STEP_TYPES.filter(t => !covered.has(t)), 'the gap list is the table minus the menu');
-    assert.ok(notOn.includes('guard') && notOn.includes('switch') && notOn.includes('wait'));
-    assert.match(section, /Never claim a step you could not create/);
-    // The reasoning band reads lean prose beside the FULL menu: no notice there.
-    assert.doesNotMatch(buildLeanSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false, batchTools: true, menu: 'full' }), /reduced menu/);
+test('every type but a retired one has a ribbon family and a palette label', () => {
+    const families = new Set(FAMILIES.map(f => f.id));
+    for (const e of STEP_TYPE_TABLE) {
+        if (e.authoring === 'retired') {
+            assert.equal(e.family, undefined, `${e.type} is retired: no family, the prompt does not list it`);
+            continue;
+        }
+        assert.ok(families.has(e.family), `${e.type}: family ${e.family} is a ribbon group`);
+        assert.ok(typeof e.userLabel === 'string' && e.userLabel.length >= 3, `${e.type}: userLabel`);
+    }
+    // The canvas words, spot-checked against flow/nodeDefs.ts and flow/ribbon/ribbonCategories.ts.
+    const label = (t) => STEP_TYPE_TABLE.find(e => e.type === t);
+    assert.deepEqual([label('approval').family, label('approval').userLabel], ['people', 'Ask someone to approve']);
+    assert.deepEqual([label('http_request').family, label('http_request').userLabel], ['logic', 'Call a web service']);
+    assert.deepEqual([label('limit').family, label('limit').userLabel], ['data', 'Shorten list']);
+    assert.deepEqual([label('call_block').family, label('call_block').authoring], ['blocks', 'batch']);
+    // opFamily, not family, marks the list operations array_op dispatches on.
+    assert.deepEqual([...ARRAY_OP_FAMILY], ['filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten']);
 });
 
-test('the lean batch enum gains `code` only when code steps are enabled, in step with the lean prompt', () => {
+test('the lean prompt names every batch type with its spec keys, and says what its menu cannot make', () => {
+    const lean = buildLeanSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false, batchTools: true, catalogPlacement: 'dynamic', menu: 'lean' });
+    for (const t of BATCH_STEP_TYPES.filter(x => x !== 'code')) assert.match(lean, new RegExp(`\\[${t}\\] — [^\\n]*Spec \\{`), `${t} has a line with spec keys`);
+    assert.match(lean, /- Code \[code\] — switched off on this server; never propose it\./);
+    assert.match(lean, /Not on your tool menu: a new flowlet, a second trigger and a note\./);
+    assert.match(lean, /Never claim a step you could not create/);
+    assert.doesNotMatch(lean, /reduced menu|NOT on this menu/, 'the old notice is gone');
+    // The reasoning band reads lean prose beside the FULL menu: it can make all of those.
+    assert.doesNotMatch(buildLeanSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false, batchTools: true, menu: 'full' }), /Not on your tool menu/);
+});
+
+test('the lean batch enum is every batch type, with `code` only when code steps are enabled', () => {
     const tools = TOOL_SCHEMAS.filter(t => t.function.name === 'builder_add_steps');
     const off = projectToolSchemas(tools, { variant: 'lean' })[0].function.parameters.properties.steps.items.properties.type.enum;
     const on = projectToolSchemas(tools, { variant: 'lean', codeStepEnabled: true })[0].function.parameters.properties.steps.items.properties.type.enum;
-    assert.deepEqual(off, [...LEAN_BATCH_TYPES], 'the common case keeps its bytes');
-    assert.deepEqual(on, [...LEAN_BATCH_TYPES, 'code']);
+    assert.deepEqual([...LEAN_BATCH_TYPES], [...BATCH_STEP_TYPES]);
+    assert.deepEqual(on, [...BATCH_STEP_TYPES]);
+    assert.deepEqual(off, BATCH_STEP_TYPES.filter(t => t !== 'code'));
+    assert.deepEqual(leanBatchTypes({ codeStepEnabled: false }), off);
     const leanOn = buildLeanSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: true, batchTools: true });
     assert.match(leanOn, /then a `code` entry/, 'the prompt promises a code entry…');
     assert.ok(on.includes('code'), '…so the enum must contain one');
-    assert.match(leanOn, /Step types you can build: [^(]*\bcode\b/);
+    assert.match(leanOn, /- Code \[code\] — your own JavaScript[^\n]*Spec \{code, inputs\}/);
     // The full menu is untouched by the flag.
     assert.strictEqual(projectToolSchemas(tools, { variant: 'full', codeStepEnabled: true }), tools);
 });

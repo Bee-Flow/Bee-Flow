@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { BuilderStreamData, DryRun } from '../builderStream';
 import { rateOf } from '../builderStream';
-import type { AutomationBuilderState } from './types';
+import type { AutomationBuilderState, BuilderFinalized } from './types';
 import { markFirstEvent, questionsPlanIdOf, shallowDefinitionEqual, touchTurn } from './streamHelpers';
 
 /**
@@ -12,6 +12,18 @@ import { markFirstEvent, questionsPlanIdOf, shallowDefinitionEqual, touchTurn } 
 export interface StreamRunHooks {
     follow: (runId: string, opts?: { kind?: 'full' | 'partial' | 'journey'; startedAt?: number | string | null }) => unknown;
     adopt: (run: DryRun | null | undefined, steps?: unknown, opts?: { merge?: boolean; fromStream?: boolean }) => void;
+}
+
+/**
+ * The `finalized` event as the hand-over card reads it. `needs` is kept as the
+ * server sent it (strings only); an older server sends none, and the card
+ * then works from the definition alone.
+ */
+export function finalizedOf(data: BuilderStreamData): BuilderFinalized | null {
+    if (!data.automationId) return null;
+    const raw = (data as { needs?: unknown }).needs;
+    const needs = Array.isArray(raw) ? raw.filter((n): n is string => typeof n === 'string' && !!n) : null;
+    return { automationId: data.automationId, needs, autoFinalized: !!(data as { autoFinalized?: unknown }).autoFinalized };
 }
 
 /**
@@ -304,7 +316,7 @@ export function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>
             runs?.adopt(data.run ?? null, data.steps || [], { fromStream: true });
             break;
         case 'finalized':
-            setState(s => ({ ...s, finalizedId: data.automationId || null }));
+            setState(s => ({ ...s, finalizedId: data.automationId || null, finalized: finalizedOf(data) }));
             break;
         case 'metadata':
             // The automation's name changed (builder_set_metadata, or the
