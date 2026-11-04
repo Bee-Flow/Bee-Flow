@@ -25,7 +25,7 @@ function Row({ entry, onDismiss, t }: { entry: ActionEntry; onDismiss: () => voi
         <li className="flex items-start gap-2 px-3 py-2 text-sm" data-background-job={entry.jobId} data-status={entry.status}>
             {running && <Loader2 className="w-4 h-4 mt-0.5 shrink-0 animate-spin [color:var(--app-primary)]" aria-hidden="true" />}
             {!running && !failed && <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 [color:var(--app-primary)]" aria-hidden="true" />}
-            {failed && <XCircle className="w-4 h-4 mt-0.5 shrink-0 [color:var(--color-danger,#dc2626)]" aria-hidden="true" />}
+            {failed && <XCircle className="w-4 h-4 mt-0.5 shrink-0 [color:var(--error)]" aria-hidden="true" />}
             <span className="flex-1 min-w-0 break-words">{text}</span>
             {!running && (
                 <button type="button" onClick={onDismiss} aria-label={t('studio_apps_runtime.background.dismiss', 'Dismiss')} className="shrink-0 opacity-70 hover:opacity-100">
@@ -51,7 +51,7 @@ export default function BackgroundRunTray({ actionState }: { actionState: Action
             role="status"
             aria-live="polite"
             data-background-run-tray="true"
-            className="fixed bottom-4 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] border shadow-lg [border-color:var(--border-primary)] [background:var(--bg-primary)] [color:var(--text-primary)] [border-radius:var(--app-radius)]"
+            className="fixed bottom-4 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] border shadow-lg [border-color:var(--border-default)] [background:var(--bg-primary)] [color:var(--text-primary)] [border-radius:var(--app-radius)]"
         >
             <div className="px-3 pt-2 text-xs font-medium opacity-70">{t('studio_apps_runtime.background.title', 'Running in the background')}</div>
             <ul>

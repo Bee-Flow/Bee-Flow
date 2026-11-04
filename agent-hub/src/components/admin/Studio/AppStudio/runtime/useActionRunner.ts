@@ -2,7 +2,6 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRe
 import { applyEffects as applyEffectObject } from './actionRunner/applyEffects';
 import type { EffectContext } from './actionRunner/applyEffects';
 import { runActionById } from './actionRunner/bareAction';
-import { resumeActiveJobs } from './actionRunner/backgroundRun';
 import { useOptionalActiveActionJobs } from '@/api/queries/studioAppJobs';
 import type { ActionEntry, ActionState, EffectObject, RunOpts, Translate, Vars } from './actionRunner/core';
 import type {
@@ -225,7 +224,7 @@ export default function useActionRunner(
     // up again: the list comes from a query, the effect only attaches (no fetch in it).
     const { data: activeJobs } = useOptionalActiveActionJobs(appId, draft);
     useEffect(() => {
-        if (activeJobs && activeJobs.length) resumeActiveJobs(ctx, activeJobs);
+        if (activeJobs && activeJobs.length) void import('./actionRunner/backgroundRun').then((m) => m.resumeActiveJobs(ctx, activeJobs));
     }, [ctx, activeJobs]);
 
     return { actionState, runAction, vars, setVar };

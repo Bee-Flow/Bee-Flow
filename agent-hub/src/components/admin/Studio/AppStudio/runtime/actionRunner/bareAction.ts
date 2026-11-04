@@ -10,7 +10,6 @@ import { resolveNavParams, showToast } from './core';
 import type { RunOpts, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
 import { runSequence } from './sequence';
-import { runBackgroundAction } from './backgroundRun';
 
 function navigate(ctx: RunnerContext, action: RunnableAction, opts: RunOpts): void {
     const live = ctx.live.current;
@@ -84,8 +83,10 @@ export async function runActionById(ctx: RunnerContext, actionId: string, opts: 
     const action = ctx.live.current.definition?.actions?.[actionId];
     if (!action) return;
 
-    // A background sequence runs as a server job the browser follows.
+    // A background sequence runs as a server job the browser follows. Loaded on first use:
+    // most apps never run one, and the public entry budget counts every static import.
     if (action.kind === 'sequence' && action.background === true) {
+        const { runBackgroundAction } = await import('./backgroundRun');
         return runBackgroundAction(ctx, actionId, action, opts);
     }
     // v2 sequences use the coordinator; bare v1 actions keep their exact
