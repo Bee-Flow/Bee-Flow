@@ -21,6 +21,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { countFilterLeaves, isAnyGroup } from '../../shared/expr/filterGroups.mjs';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -133,13 +134,26 @@ async function writeOne(app: App, model: Model, table: Table, viewer: Viewer, it
     }
 }
 
+const isClause = (c: unknown): boolean => isPlainObject(c) && typeof c.field === 'string' && !!c.field && typeof c.op === 'string' && FILTER_OPS.includes(c.op);
+
+/** Why an `{ any: [...] }` group cannot be used, or null. */
+function groupProblem(group: { any: unknown[] }, at: string): string | null {
+    if (!group.any.length) return `${at}.any must hold at least one clause.`;
+    const bad = group.any.findIndex((c) => !isClause(c));
+    return bad >= 0 ? `${at}.any[${bad}] must be { field, op, value? } with op one of ${FILTER_OPS.join(', ')} (no group inside a group).` : null;
+}
+
 function validateFilter(filter: unknown): Result | null {
     if (!Array.isArray(filter) || !filter.length) {
-        return fail('filter must be a non-empty array of { field, op, value? }. An empty filter would match every row.', `ops: ${FILTER_OPS.join(', ')}.`);
+        return fail('filter must be a non-empty array of { field, op, value? } (or { any: [...] } OR groups). An empty filter would match every row.', `ops: ${FILTER_OPS.join(', ')}.`);
     }
-    if (filter.length > MAX_FILTER_CLAUSES) return fail(`filter: at most ${MAX_FILTER_CLAUSES} clauses.`);
-    const bad = filter.findIndex((c) => !isPlainObject(c) || typeof c.field !== 'string' || !c.field || typeof c.op !== 'string' || !FILTER_OPS.includes(c.op));
-    if (bad >= 0) return fail(`filter[${bad}] must be { field, op, value? } with op one of ${FILTER_OPS.join(', ')}.`);
+    const leaves = countFilterLeaves(filter);
+    if (leaves > MAX_FILTER_CLAUSES) return fail(`filter: at most ${MAX_FILTER_CLAUSES} clauses, counting those inside any groups (this one has ${leaves}).`);
+    for (let i = 0; i < filter.length; i++) {
+        const c: unknown = filter[i];
+        const problem = isAnyGroup(c) ? groupProblem(c, `filter[${i}]`) : (isClause(c) ? null : `filter[${i}] must be { field, op, value? } with op one of ${FILTER_OPS.join(', ')}, or { any: [...] }.`);
+        if (problem) return fail(problem);
+    }
     return null;
 }
 

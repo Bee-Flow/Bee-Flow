@@ -23,6 +23,7 @@ const { SYSTEM_COLUMNS } = require('../dataModel');
 const { isDatatableBacked } = require('../datatableSource');
 const { getSpec } = require('../componentSpecs');
 const { suggestTableId } = require('./tableHints');
+const { forEachFilterClause } = require('../../shared/expr/filterGroups.mjs');
 
 // What the model reads when a table is not there: both ways to get one. The
 // 2026-09-13 trace saw "create the table first" from a menu that had no
@@ -117,7 +118,8 @@ function checkComponentDataRefs(entries, model) {
             return;
         }
         const filters = Array.isArray(b.filter) ? b.filter : (Array.isArray(b.filters) ? b.filters : []);
-        filters.forEach((f, i) => { if (isObject(f)) fieldCheck(index, `${path}.filter[${i}].field`, table, f.field, `${b.kind} filter`); });
+        // Every clause, the ones inside { any: [...] } groups too.
+        forEachFilterClause(filters, (f, at) => { if (isObject(f)) fieldCheck(index, `${path}.filter${at}.field`, table, f.field, `${b.kind} filter`); });
         const sorts = Array.isArray(b.sort) ? b.sort : (isObject(b.sort) ? [b.sort] : []);
         const aliases = new Set();
         if (b.kind === 'aggregate') {

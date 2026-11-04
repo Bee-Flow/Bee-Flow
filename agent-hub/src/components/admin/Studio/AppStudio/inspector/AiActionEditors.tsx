@@ -10,6 +10,7 @@ import { autoMapping, bindingForField, extractableColumns, fieldNameFromBinding,
 import type { FormFieldRef, AppAction } from './appDefinition';
 import type { AppTable } from '../bi/useAppTables';
 import type { SourceBinding, WriteTo, NamedField, AiAction, SchemaMeta, ApplyPatch, MappingRowsProps, MappingSummaryProps, WriteToEditorProps, AiExtractEditorProps, KbQueryEditorProps, AiActionEditorProps } from './AiActionEditors.types';
+import UpsertKeyPicker from './UpsertKeyPicker';
 import { ModelTierRow, FieldSourcePicker, SchemaFieldsEditor, KbMultiSelect, ResultVarField, AiGenerateEditor } from './AiGenerateEditor';
 ;
 
@@ -79,6 +80,19 @@ function MappingSummary({ mapped, total }: MappingSummaryProps) {
 
 const MATCH_BTN_CLS = 'px-2.5 py-1 text-xs rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50';
 
+/**
+ * The writeTo after a table pick. The same table keeps everything; another table keeps only the
+ * table-independent switches (the key, the constants and replaceWhere name columns of the old one).
+ */
+function retarget(writeTo: WriteTo | undefined, tableId: string): Omit<WriteTo, 'mapping'> {
+    if (writeTo && writeTo.tableId === tableId) return writeTo;
+    return {
+        tableId,
+        ...(writeTo?.insertMissing === false ? { insertMissing: false } : {}),
+        ...(writeTo?.fillOnly === true ? { fillOnly: true } : {}),
+    };
+}
+
 function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }: WriteToEditorProps) {
     const { t } = useTranslation();
     const enabled = !!(writeTo && writeTo.tableId);
@@ -98,18 +112,27 @@ function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }: Wri
         const schema = derived.length ? derived : fields;
         onApply({
             ...(derived.length ? { schema: derived } : {}),
-            writeTo: { tableId, mapping: autoMapping(schema, cols) },
+            writeTo: { ...retarget(writeTo, tableId), mapping: autoMapping(schema, cols) },
         });
     };
     const rematch = () => {
         if (!writeTo) return;
-        onApply({ writeTo: { tableId: writeTo.tableId, mapping: autoMapping(fields, columns) } });
+        onApply({ writeTo: { ...writeTo, mapping: autoMapping(fields, columns) } });
     };
     const adoptColumns = () => {
         const derived = schemaFromColumns(columns);
         if (!derived.length || !writeTo) return;
-        onApply({ schema: derived, writeTo: { tableId: writeTo.tableId, mapping: autoMapping(derived, columns) } });
+        onApply({ schema: derived, writeTo: { ...writeTo, mapping: autoMapping(derived, columns) } });
     };
+    const setUpsertKey = (next: string[] | undefined) => {
+        if (!writeTo) return;
+        const { upsertKey: _old, upsertOn, ...rest } = writeTo;
+        // upsertOn is the older one-column form: a key that holds it replaces it.
+        const keepOn = upsertOn && !(next || []).includes(upsertOn) ? { upsertOn } : {};
+        onApply({ writeTo: { ...rest, ...keepOn, ...(next ? { upsertKey: next } : {}) } });
+    };
+    const writtenColumns = targets.filter((c) => Object.prototype.hasOwnProperty.call(writeTo?.mapping || {}, c.key)
+        || Object.prototype.hasOwnProperty.call(writeTo?.constants || {}, c.key));
     // mapping is { [columnKey]: schemaFieldName }; the UI is one row per output
     // field → target column, so we invert on write.
     const mapping = writeTo?.mapping || {};
@@ -119,7 +142,7 @@ function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }: Wri
         const next = { ...mapping };
         for (const c of Object.keys(next)) if (next[c] === fieldName) delete next[c];
         if (col) next[col] = fieldName;
-        onApply({ writeTo: { tableId: writeTo.tableId, mapping: next } });
+        onApply({ writeTo: { ...writeTo, mapping: next } });
     };
     const mapped = fields.filter((f) => columnForField(f.name)).length;
     const canAdopt = enabled && extractableColumns(columns).length > 0;
@@ -154,6 +177,7 @@ function WriteToEditor({ writeTo, schemaFields, tables, onApply, disabled }: Wri
                             disabled={disabled}
                         />
                         <MappingSummary mapped={mapped} total={fields.length} />
+                        <UpsertKeyPicker columns={writtenColumns} value={writeTo?.upsertKey} onChange={setUpsertKey} disabled={disabled} />
                         <div className="flex flex-wrap gap-2">
                             <button
                                 type="button"
@@ -224,7 +248,7 @@ function AiExtractEditor({ action, commit, formFields, disabled }: AiExtractEdit
                 const hit = autoMapping([{ name: meta.renamed.to }], columns.filter((c) => !(c.key in next)));
                 Object.assign(next, hit);
             }
-            patch.writeTo = { tableId: w.tableId, mapping: next };
+            patch.writeTo = { ...w, mapping: next };
         }
         set(patch);
     };

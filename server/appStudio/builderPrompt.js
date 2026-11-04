@@ -21,9 +21,11 @@
 
 'use strict';
 
+const { LIMITS } = require('./componentSpecs/limits');
 const { renderCatalogText, renderCompactCatalogText } = require('./builderPrompt/catalogRender');
 const { buildCoreSystemPrompt } = require('./builderPrompt/corePrompt');
 const { buildFewShotMessages } = require('./builderPrompt/fewShots');
+const { computedBits } = require('./builderPrompt/computedMarks');
 
 // The machine note that carries the owner's automations and documents. Defined
 // here (with the renderer) and listed in routes/ai/appStudioBuilder/turnLoop.js
@@ -186,8 +188,16 @@ this list as "the ways an app passes validation and is still broken".
 - Every mutation needs a following \`{kind:"refresh", tableId}\` naming the table it dirtied. Nothing
   invalidates a bound query on its own, so without it the change does not appear and the user clicks
   the button again.
-- A sequence action takes ONLY \`{kind:"sequence", steps}\`. No onError, no onSuccess — they are
-  stripped on save. The runner already toasts the real failure message.
+- A sequence action takes \`{kind:"sequence", steps}\` plus, for long work, \`background:true\`
+  (runs as a server job that survives closing the page; the page shows progress and the result).
+  A background sequence may use server steps, set_variable, condition/switch/loop, call_action,
+  toast/refresh (shown at the end) and a LEADING confirm; nothing else from the browser.
+  \`lockKey\` (a binding, e.g. {kind:"formula",expr:"'order:' + item.id"}) refuses a second start
+  for the same key while one runs; \`progressVar:"status"\` shows vars.status as the progress text.
+  Loops still stop at 200 iterations and a records binding reads 50 rows unless it sets limit.
+  No onError, no onSuccess on the action — they are stripped on save. The runner already toasts
+  the real failure message. A server STEP inside it may carry onError {steps} / retry (see
+  ### Sequence steps).
 - Give anything you will reorder by dragging a DISTINCT rank. Two rows sharing one have no gap to
   insert between, so the drag computes the rank the card already had and it springs back on refresh.
 
@@ -202,9 +212,9 @@ this list as "the ways an app passes validation and is still broken".
 - A widthValue/heightValue whose mode is still the default is INERT: the number is stored, the box
   does not change. Always send mode and value together — and to go back, \`{widthMode:"span",
   widthValue:null}\`, because clearing the mode alone strands the number.
-- Maximum depth is 6, counting the section as 1 and each container as +1. \`section → tabs → tab →
-  modal → form → input\` is EXACTLY the cap: it validates today and breaks the moment anyone wraps
-  two fields in a container. Hoist dialogs into their own section instead of nesting them in tabs.
+- Maximum depth is ${LIMITS.MAX_DEPTH}, counting the section as 1 and each container as +1. \`section → tabs → tab →
+  modal → form → input\` spends 6 of them, so two wrapper levels fit around it. Hoist dialogs into
+  their own section instead of nesting them in tabs.
 
 **Components with a contract**
 - \`filter_bar\` publishes to ONE reserved variable, \`vars.filters\`. One per screen, and never declare
@@ -554,27 +564,11 @@ function renderAction(id, action, homeless) {
     } else if (action.kind === 'open_modal' || action.kind === 'close_modal') {
         bits.push(`→modal:${action.modalId}`);
     } else if (action.kind === 'sequence') {
-        bits.push(summariseSteps(action.steps));
+        bits.push(require('./builderPrompt/summariseSteps.mts').summariseSteps(action.steps));
+        if (action.background === true) bits.push('background');
+        if (action.lockKey) bits.push('lock');
     }
     return bits.join(' ');
-}
-
-/** Compact one-line summary of a sequence's step tree: `steps[3]{confirm → create_record(tbl_x) → toast}`. */
-function summariseSteps(steps) {
-    if (!Array.isArray(steps) || !steps.length) return 'steps[0]';
-    const label = (s) => {
-        if (!s || typeof s !== 'object') return '?';
-        if (s.kind === 'create_record' || s.kind === 'update_record' || s.kind === 'delete_record') {
-            return `${s.kind}(${s.tableId || '?'})`;
-        }
-        if (s.kind === 'navigate') return `navigate→${s.screenId}`;
-        if (s.kind === 'run_automation') return `run_automation(${s.automationId ?? 'null'})`;
-        if (s.kind === 'condition' || s.kind === 'loop' || s.kind === 'switch') return `${s.kind}{…}`;
-        return s.kind || '?';
-    };
-    const shown = steps.slice(0, 6).map(label);
-    if (steps.length > 6) shown.push('…');
-    return `steps[${steps.length}]{${shown.join(' → ')}}`;
 }
 
 // ── Data block — the app's data model rendered compact & ID-bearing ──
@@ -590,7 +584,7 @@ function renderDataField(f, withId = false) {
         bits.push(`options=[${vals.join(',')}]`);
     }
     if (f.type === 'relation' && f.relation) bits.push(`→${f.relation.table || f.relation.tableId || '?'}`);
-    if (f.type === 'computed') bits.push('(read-only)');
+    bits.push(...computedBits(f, withId));
     return bits.join(' ');
 }
 

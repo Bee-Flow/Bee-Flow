@@ -152,3 +152,143 @@ test('a quoted identifier containing doubled quotes round-trips through the no-o
     const res = applyPlanTolerantly(db, ['ALTER TABLE "gone" RENAME TO "we""ird"'], { log: silentLog });
     assert.strictEqual(res.skipped[0].reason, 'table already renamed');
 });
+
+// ── Changing the model while the table holds rows (real SQLite) ─────
+
+const { planMigration } = require('./dataModel');
+
+/** Run a planMigration result the way studioAppDbStore.applyMigration does: one transaction. */
+function applyPlanned(db, planned) {
+    return db.transaction(() => applyPlanTolerantly(db, planned.statements, { log: silentLog, probes: planned.probes }))();
+}
+
+const LINES = (fields) => tableModel([{ id: 'tbl_lines1', key: 'lines', fields }]);
+const QTY = { id: 'fld_qty', key: 'qty', type: 'number' };
+const computedField = (expr, key = 'dbl', id = 'fld_dbl') => ({ id, key, type: 'computed', computed: { expr, type: 'number', stored: true } });
+
+/** A fresh database holding the `lines` table of `model` with `rows`. */
+function populated(model, rows) {
+    const db = freshDb();
+    applyPlanTolerantly(db, migrationPlan(tableModel([]), model), { log: silentLog });
+    const cols = Object.keys(rows[0]);
+    const ins = db.prepare(`INSERT INTO "lines" (id, ${cols.map((c) => `"${c}"`).join(', ')}) VALUES (?, ${cols.map(() => '?').join(', ')})`);
+    rows.forEach((r, i) => ins.run(`rec_${i}`, ...cols.map((c) => r[c])));
+    return db;
+}
+
+test('spec: a stored computed field with a NEW expression gives the new value for every existing row', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const before = LINES([QTY, computedField('qty * 2')]);
+    const db = populated(before, [{ qty: 1 }, { qty: 2 }, { qty: 5 }]);
+    t.after(() => db.close());
+    assert.deepStrictEqual(db.prepare('SELECT dbl FROM lines ORDER BY qty').all().map((r) => r.dbl), [2, 4, 10]);
+
+    const planned = planMigration(before, LINES([QTY, computedField('qty * 3')]), { dialect: 'sqlite' });
+    const res = applyPlanned(db, planned);
+    assert.deepStrictEqual(db.prepare('SELECT dbl FROM lines ORDER BY qty').all().map((r) => r.dbl), [3, 6, 15]);
+    const op = planned.ops.findIndex((o) => o.kind === 'recompute');
+    assert.strictEqual(planned.ops[op].reason, 'expression');
+    assert.strictEqual(res.probed.find((p) => p.opIndex === op).n, 3, 'the report counts every recomputed row');
+});
+
+test('a NEW stored computed field on a populated table is added and filled (VIRTUAL: SQLite cannot ADD STORED)', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const before = LINES([QTY]);
+    const db = populated(before, [{ qty: 4 }, { qty: 7 }]);
+    t.after(() => db.close());
+    const planned = planMigration(before, LINES([QTY, computedField('qty + 1')]), { dialect: 'sqlite' });
+    assert.match(planned.statements[0], /VIRTUAL$/);
+    applyPlanned(db, planned);
+    assert.deepStrictEqual(db.prepare('SELECT dbl FROM lines WHERE dbl > 5 ORDER BY dbl DESC').all().map((r) => r.dbl), [8],
+        'the added column filters and sorts');
+});
+
+test('a renamed stored computed field drops its OLD column (no "no such column")', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const before = LINES([QTY, computedField('qty * 2')]);
+    const db = populated(before, [{ qty: 3 }]);
+    t.after(() => db.close());
+    const planned = planMigration(before, LINES([QTY, computedField('qty * 2', 'twice')]), { dialect: 'sqlite' });
+    assert.deepStrictEqual(planned.statements[0], 'ALTER TABLE "lines" DROP COLUMN "dbl"');
+    applyPlanned(db, planned);
+    assert.deepStrictEqual(db.prepare('SELECT twice FROM lines').get(), { twice: 6 });
+    assert.ok(!db.prepare('PRAGMA table_info(lines)').all().some((c) => c.name === 'dbl'));
+});
+
+test('text → number converts in place (shadow-column swap), sorts numerically, keeps the dependent stored field', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const AMOUNT = { id: 'fld_amt', key: 'amount', type: 'text', unique: true };
+    const before = LINES([AMOUNT, computedField('amount * 2')]);
+    const db = populated(before, [{ amount: '10' }, { amount: ' 9.5 ' }, { amount: '100' }, { amount: '' }]);
+    t.after(() => db.close());
+    const after = LINES([{ ...AMOUNT, type: 'number' }, computedField('amount * 2')]);
+    const planned = planMigration(before, after, { dialect: 'sqlite', convertTypes: true });
+    const res = applyPlanned(db, planned);
+    assert.deepStrictEqual(db.prepare('SELECT amount, dbl FROM lines WHERE amount IS NOT NULL ORDER BY amount').all(),
+        [{ amount: 9.5, dbl: 19 }, { amount: 10, dbl: 20 }, { amount: 100, dbl: 200 }]);
+    assert.strictEqual(db.prepare('SELECT amount FROM lines WHERE id = ?').get('rec_3').amount, null, 'an empty text becomes NULL');
+    assert.ok(db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'uq_tbl_lines1_fld_amt'`).get(), 'the unique index is back');
+    const conv = planned.ops.findIndex((o) => o.kind === 'convert');
+    assert.deepStrictEqual(res.probed.find((p) => p.opIndex === conv), { opIndex: conv, refuse: true, n: 4, bad: 0 });
+    assert.ok(planned.ops.some((o) => o.kind === 'recompute' && o.reason === 'dependency'));
+    // Replaying the same plan (the SQLite-ahead-of-Postgres window) is harmless.
+    applyPlanned(db, planned);
+    assert.deepStrictEqual(db.prepare('SELECT amount FROM lines WHERE amount IS NOT NULL ORDER BY amount').all().map((r) => r.amount), [9.5, 10, 100]);
+});
+
+test('refuse mode: values that cannot convert fail the plan and roll it back; clear mode empties them', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const CODE = { id: 'fld_code', key: 'code', type: 'text' };
+    const before = LINES([CODE]);
+    const db = populated(before, [{ code: '12' }, { code: '12,50' }, { code: '007' }, { code: null }]);
+    t.after(() => db.close());
+    const after = LINES([{ ...CODE, type: 'number' }]);
+    assert.throws(() => applyPlanned(db, planMigration(before, after, { dialect: 'sqlite', convertTypes: true })), (err) => {
+        assert.strictEqual(err.code, 'migration_precondition');
+        assert.strictEqual(err.probed[0].bad, 2, "'12,50' and '007' are not numbers");
+        return true;
+    });
+    assert.strictEqual(db.prepare('SELECT typeof(code) AS t FROM lines WHERE id = ?').get('rec_0').t, 'text', 'rolled back');
+    applyPlanned(db, planMigration(before, after, { dialect: 'sqlite', convertTypes: true, onUnconvertible: 'clear' }));
+    assert.deepStrictEqual(db.prepare('SELECT code FROM lines ORDER BY id').all().map((r) => r.code), [12, null, null, null]);
+});
+
+test('text → select counts exactly the values outside the options; no DDL without clear', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const ST = { id: 'fld_st', key: 'status', type: 'text' };
+    const before = LINES([ST]);
+    const db = populated(before, [{ status: 'open' }, { status: 'done' }, { status: 'later' }, { status: '' }, { status: 'weird' }]);
+    t.after(() => db.close());
+    const after = LINES([{ ...ST, type: 'select', options: ['open', { value: 'done', label: 'Done' }] }]);
+    const planned = planMigration(before, after, { dialect: 'sqlite', convertTypes: true });
+    assert.deepStrictEqual(planned.statements, []);
+    assert.throws(() => applyPlanned(db, planned), (err) => err.probed[0].bad === 2);
+    applyPlanned(db, planMigration(before, after, { dialect: 'sqlite', convertTypes: true, onUnconvertible: 'clear' }));
+    assert.deepStrictEqual(db.prepare('SELECT status FROM lines ORDER BY id').all().map((r) => r.status), ['open', 'done', null, '', null]);
+});
+
+test('number ⇄ integer ⇄ text keeps the values', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const N = { id: 'fld_n', key: 'n', type: 'number' };
+    const asInt = { ...N, subtype: 'integer' };
+    const asText = { ...N, type: 'text' };
+    const db = populated(LINES([N]), [{ n: 20 }, { n: 3 }]);
+    t.after(() => db.close());
+    applyPlanned(db, planMigration(LINES([N]), LINES([asInt]), { dialect: 'sqlite', convertTypes: true }));
+    assert.deepStrictEqual(db.prepare('SELECT typeof(n) AS t FROM lines').all().map((r) => r.t), ['integer', 'integer']);
+    applyPlanned(db, planMigration(LINES([asInt]), LINES([asText]), { dialect: 'sqlite', convertTypes: true }));
+    assert.deepStrictEqual(db.prepare('SELECT n FROM lines ORDER BY id').all().map((r) => r.n), ['20', '3']);
+
+    const db2 = populated(LINES([N]), [{ n: 20 }, { n: 2.5 }]);
+    t.after(() => db2.close());
+    applyPlanned(db2, planMigration(LINES([N]), LINES([asText]), { dialect: 'sqlite', convertTypes: true }));
+    assert.deepStrictEqual(db2.prepare('SELECT n FROM lines ORDER BY id').all().map((r) => r.n), ['20', '2.5'], 'a whole REAL renders without ".0"');
+});
+
+test('a failing statement carries its plan index', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const db = freshDb();
+    t.after(() => db.close());
+    assert.throws(() => applyPlanTolerantly(db, ['CREATE TABLE a (x TEXT)', 'ALTER TABLE a DROP COLUMN nope'], { log: silentLog }),
+        (err) => err.migrationStatementIndex === 1);
+});

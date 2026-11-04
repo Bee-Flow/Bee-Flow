@@ -71,6 +71,9 @@ function stepsOfKind(action: unknown, kind: string, out: Array<Record<string, un
         if (Array.isArray(list)) for (const child of list) stepsOfKind(child, kind, out, depth + 1);
     }
     if (Array.isArray(step.cases)) for (const c of step.cases) stepsOfKind({ steps: (c as { steps?: unknown })?.steps }, kind, out, depth + 1);
+    // A step's onError handler (`{ steps }`; the legacy array form too) runs as well.
+    const handler = step.onError;
+    if (handler && typeof handler === 'object') stepsOfKind(Array.isArray(handler) ? { steps: handler } : handler, kind, out, depth + 1);
     return out;
 }
 

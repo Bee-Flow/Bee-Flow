@@ -53,6 +53,8 @@ export function stepCount(action: AppAction | null | undefined): number {
         let total = n + 1;
         total += walk(step.then) + walk(step.else) + walk(step.steps) + walk(step.default);
         for (const c of Array.isArray(step.cases) ? step.cases : []) total += walk(c?.steps);
+        // A step's onError handler counts too, as the validator counts it.
+        total += walk((step as { onError?: { steps?: unknown } }).onError?.steps);
         return total;
     }, 0);
     return walk(action.steps);

@@ -1,6 +1,6 @@
 // @typecheck strict
 /**
- * stores/studioApp/schema.js — the studio_apps / studio_app_versions schema
+ * stores/studioApp/schema.js — the studio_apps / studio_app_versions / studio_app_action_tests schema
  * and the store's memoised init (one instance: every module awaits this one).
  */
 
@@ -128,6 +128,8 @@ async function _initDB() {
         `ALTER TABLE studio_app_versions ADD COLUMN IF NOT EXISTS summary TEXT`,
     ]);
 
+    await initActionTests();
+
     // Columns whose rationale doesn't fit on one line live as their own
     // migration file under ../migrations (same convention as automationStore),
     // applied here so a plain `npm run db:migrate` — which only loads stores —
@@ -138,6 +140,32 @@ async function _initDB() {
         }
     }
     log.info('[StudioAppStore] PostgreSQL initialized');
+}
+
+/**
+ * Saved action tests (app_save_test / app_run_tests over the Studio MCP; queries in
+ * ./actionTests.mts). Their own table, not the definition: a published definition ships
+ * whole to viewers, the canonicalizer drops unknown keys, and saving a test must not bump
+ * the draft's CAS version under an open editor. created_by / updated_by are nullable:
+ * account erasure detaches them (stores/user/erasureCoverage.js), the owner keeps the test.
+ */
+async function initActionTests() {
+    await exec(`
+        CREATE TABLE IF NOT EXISTS studio_app_action_tests (
+            id TEXT PRIMARY KEY,
+            app_id TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE,
+            action_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            spec JSONB NOT NULL DEFAULT '{}'::jsonb,
+            created_by TEXT,
+            updated_by TEXT,
+            last_status TEXT,
+            last_run_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_studio_app_action_tests_name ON studio_app_action_tests(app_id, action_id, name);
+    `);
 }
 
 module.exports = { initDB };

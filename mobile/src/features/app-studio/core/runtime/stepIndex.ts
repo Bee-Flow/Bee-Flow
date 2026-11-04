@@ -5,7 +5,8 @@
  *
  * `stepIndex` is never stored. The phone, the browser and the server each
  * derive it by walking the saved step tree in the same PRE-ORDER (a step, then
- * its branches: condition then/else, loop body, switch cases then default),
+ * its branches: condition then/else, loop body, switch cases then default;
+ * error handlers after the whole tree),
  * and a server step is dispatched as { stepIndex } alone: the server resolves
  * the step from its own copy of the definition. So buildStepIndexMap must be
  * byte-for-byte the server's flattenSteps (server/appStudio/actionSequence.js);
@@ -21,7 +22,7 @@ export const STEP_KINDS = [
     'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'reset_form', 'download_file', 'confirm', 'set_variable', 'refresh',
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
     'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document',
-    'condition', 'loop', 'switch',
+    'condition', 'loop', 'switch', 'call_action', 'transaction',
 ] as const;
 
 /**
@@ -32,7 +33,7 @@ export const STEP_KINDS = [
 export const SERVER_STEP_KINDS: ReadonlySet<string> = new Set([
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
     'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document',
-    'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document',
+    'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'transaction',
 ]);
 
 /** Client-executed kinds (the server's CLIENT_STEP_KINDS): chrome, navigation, flow control. */
@@ -54,23 +55,36 @@ export function normalizeSequence(action: AppAction | ActionStep | null | undefi
     return [action as ActionStep];
 }
 
-/** Pre-order walk, the server's flattenSteps: every step object, in index order. */
+/**
+ * Pre-order walk, the server's flattenSteps: every step object, in index order.
+ * Error handlers (onError.steps, or the legacy array) follow the whole tree in
+ * owner order; a transaction's children are not numbered (one server step).
+ */
 export function flattenSteps(steps: unknown, out: ActionStep[] = []): ActionStep[] {
-    for (const step of Array.isArray(steps) ? steps : []) {
-        if (!step || typeof step !== 'object') continue;
-        const s = step as ActionStep;
-        out.push(s);
-        if (s.kind === 'condition') {
-            flattenSteps(s.then, out);
-            flattenSteps(s.else, out);
-        } else if (s.kind === 'loop') {
-            flattenSteps(s.steps, out);
-        } else if (s.kind === 'switch') {
-            for (const c of Array.isArray(s.cases) ? s.cases : []) {
-                if (c && typeof c === 'object') flattenSteps((c as { steps?: unknown }).steps, out);
+    const start = out.length;
+    const walk = (list: unknown): void => {
+        for (const step of Array.isArray(list) ? list : []) {
+            if (!step || typeof step !== 'object') continue;
+            const s = step as ActionStep;
+            out.push(s);
+            if (s.kind === 'condition') {
+                walk(s.then);
+                walk(s.else);
+            } else if (s.kind === 'loop') {
+                walk(s.steps);
+            } else if (s.kind === 'switch') {
+                for (const c of Array.isArray(s.cases) ? s.cases : []) {
+                    if (c && typeof c === 'object') walk((c as { steps?: unknown }).steps);
+                }
+                walk(s.default);
             }
-            flattenSteps(s.default, out);
         }
+    };
+    walk(steps);
+    for (let i = start; i < out.length; i++) {
+        const h = (out[i] as { onError?: unknown }).onError;
+        if (Array.isArray(h)) walk(h);
+        else if (h && typeof h === 'object' && Array.isArray((h as { steps?: unknown }).steps)) walk((h as { steps: unknown }).steps);
     }
     return out;
 }

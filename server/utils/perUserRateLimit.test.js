@@ -227,3 +227,20 @@ test('spendLimiter: a value in the environment is the budget, and 0 switches the
     assert.equal(off.limiterName, 'spend-test');
     for (let i = 0; i < 5; i++) assert.equal(await invoke(off, req('c'), fakeRes()), 'next');
 });
+
+test('take(key) spends the same bucket without a request: in memory and on Redis', async () => {
+    const mem = perUserRateLimit({ windowMs: 60_000, max: 2, keyFn: (r) => `${r.session.user.id}:app`, _redis: null });
+    assert.deepEqual(await mem.take('u9:app'), { ok: true });
+    assert.equal(await invoke(mem, req('u9'), fakeRes()), 'next', 'the request and the job share the bucket');
+    const denied = await mem.take('u9:app');
+    assert.equal(denied.ok, false);
+    assert.ok(denied.ok === false && denied.retryAfterSecs >= 1);
+    assert.deepEqual(await mem.take('u10:app'), { ok: true }, 'another key, another bucket');
+
+    let count = 0;
+    const redis = { incr: async () => ++count, incrby: async (_k, c) => (count += c), pexpire: async () => 1 };
+    const fleet = perUserRateLimit({ windowMs: 60_000, max: 1, name: 'test-take', _redis: redis });
+    assert.deepEqual(await fleet.take('k'), { ok: true });
+    const full = await fleet.take('k');
+    assert.equal(full.ok, false);
+});

@@ -57,7 +57,7 @@ export const MAX_LOOP_ITERATIONS = 200;
 // set for that invariant, but execStep intercepts it FIRST (it streams over a
 // dedicated SSE endpoint, not the plain JSON /step dispatch) — the generic
 // branch below never sees it.
-export const SERVER_STEP_KINDS: ReadonlySet<unknown> = new Set(['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document']);
+export const SERVER_STEP_KINDS: ReadonlySet<unknown> = new Set(['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'transaction']);
 
 // A bare v1 action is an implicit 1-step sequence; a v2 action carries its steps.
 export function normalizeSequence(action: RunStep | null | undefined): unknown[] {
@@ -70,7 +70,9 @@ const listOf = (value: unknown): unknown[] => (Array.isArray(value) ? value : []
 
 // Pre-order flatten — BYTE-IDENTICAL to the server's flattenSteps
 // (routes/studioAppsRun.js) so a step's ordinal here is the same one the server
-// resolves from the definition. Returns a Map(step → index).
+// resolves from the definition. Returns a Map(step → index). Error handlers
+// (onError.steps, or the legacy array) are numbered after the whole tree, owner
+// order; a transaction's children are not numbered (it is one server step).
 export function buildStepIndexMap(steps: unknown): Map<RunStep, number> {
     const map = new Map<RunStep, number>();
     let i = 0;
@@ -90,12 +92,45 @@ export function buildStepIndexMap(steps: unknown): Map<RunStep, number> {
         }
     };
     walk(steps);
+    // Map iteration visits keys added while it runs, so a handler inside a handler follows its owner's.
+    for (const step of map.keys()) handlerOf(step, walk);
     return map;
 }
 
-export function sequenceHasServerStep(steps: unknown): boolean {
+/** Walks a step's handler list with `walk`; handlers found then are visited by the caller's loop. */
+function handlerOf(step: RunStep, walk: (list: unknown) => void): void {
+    const h = step.onError;
+    if (Array.isArray(h)) walk(h);
+    else if (h && typeof h === 'object' && Array.isArray((h as { steps?: unknown }).steps)) walk((h as { steps: unknown }).steps);
+}
+
+// call_action: at most this many calls below the clicked action (LIMITS.MAX_CALL_DEPTH,
+// pinned by runtime/catalogLockstep.test.js).
+export const MAX_CALL_DEPTH = 3;
+
+/** The own-property action `id` of `actions`, or null (never a prototype key). */
+export function ownActionOf(actions: unknown, id: unknown): RunStep | null {
+    if (!actions || typeof actions !== 'object' || typeof id !== 'string' || !id) return null;
+    if (!Object.prototype.hasOwnProperty.call(actions, id)) return null;
+    const a = (actions as Record<string, unknown>)[id];
+    return a && typeof a === 'object' && !Array.isArray(a) ? a as RunStep : null;
+}
+
+/**
+ * Does the sequence reach the server? With `actions`, a call_action is followed into
+ * the action it calls (a seen-set, at most MAX_CALL_DEPTH calls), so the spinner and
+ * beforeServerStep fire when the only server step sits in a called action.
+ */
+export function sequenceHasServerStep(steps: unknown, actions?: unknown, depth = 0, seen: Set<string> = new Set()): boolean {
     for (const [step] of buildStepIndexMap(steps)) {
         if (step && SERVER_STEP_KINDS.has(step.kind)) return true;
+        if (!actions || !step || step.kind !== 'call_action' || depth >= MAX_CALL_DEPTH) continue;
+        const id = step.actionId;
+        if (typeof id !== 'string' || seen.has(id)) continue;
+        const callee = ownActionOf(actions, id);
+        if (!callee) continue;
+        seen.add(id);
+        if (sequenceHasServerStep(normalizeSequence(callee), actions, depth + 1, seen)) return true;
     }
     return false;
 }

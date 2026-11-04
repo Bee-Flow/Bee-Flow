@@ -280,3 +280,29 @@ describe('withStepIds / stripStepIds', () => {
         expect(action.steps[0].id).toBe('keepme');
     });
 });
+
+describe('error handlers and transactions on the canvas', () => {
+    it('a step with onError gets an "If it fails" scope after its own; the round trip keeps it', () => {
+        const action = seq([
+            { kind: 'ai_generate', prompt: 'x', onError: { steps: [{ kind: 'toast', message: 'a' }], stop: true } },
+            { kind: 'transaction', steps: [{ kind: 'create_record', tableId: 't', values: {} }] },
+        ]);
+        const { nodes, edges } = stepsToGraph(action);
+        const handlerKids = nodes.filter((n) => !n.isEntry && n.scopeKey === 'on_error');
+        expect(handlerKids.map((n) => n.kind)).toEqual(['toast']);
+        expect(nodes.find((n) => n.isEntry && n.scopeKey === 'on_error').scopeLabel).toBe('If it fails');
+        expect(nodes.filter((n) => !n.isEntry && n.scopeKey === 'body').map((n) => n.kind)).toEqual(['create_record']);
+        expect(stripStepIds(graphToSteps(nodes, edges))).toEqual(stripStepIds(action.steps));
+    });
+
+    it('withStepIds / stripStepIds reach into handlers', () => {
+        const action = seq([{ kind: 'kb_query', onError: { steps: [{ kind: 'toast', message: 'a' }] } }]);
+        expect(action.steps[0].onError.steps[0].id).toBeTruthy();
+        expect(stripStepIds(action.steps)).toEqual([{ kind: 'kb_query', onError: { steps: [{ kind: 'toast', message: 'a' }] } }]);
+    });
+
+    it('an effects object or the legacy array is not drawn as a branch', () => {
+        const action = seq([{ kind: 'kb_query', onError: { toast: { message: 'x' } } }, { kind: 'toast', message: 'y', onError: [{ kind: 'toast' }] }]);
+        expect(stepsToGraph(action).nodes.some((n) => n.scopeKey === 'on_error')).toBe(false);
+    });
+});

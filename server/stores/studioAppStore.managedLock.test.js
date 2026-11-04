@@ -275,7 +275,11 @@ test('additiveOnly retains the fields a release leaves out, and plans only the a
     await seedModel('d_keep', model([table([TITLE, NOTE])]));
     migrations.length = 0;
     const out = await saveDataModel('d_keep', 'runas', model([table([TITLE, EMAIL])]), { ...CAPABILITY, additiveOnly: true });
-    assert.deepStrictEqual(out, { ok: true, version: 2 });
+    // The migration report (recomputed / converted counts) rides along since the data-model round.
+    const { report, ...rest } = out;
+    assert.deepStrictEqual(rest, { ok: true, version: 2 });
+    assert.deepStrictEqual({ recomputed: report.recomputed, converted: report.converted, statements: report.statements },
+        { recomputed: [], converted: [], statements: 1 });
     assert.deepStrictEqual(migrations[0].plan, ['ALTER TABLE "people" ADD COLUMN "email" TEXT']);
     const stored = (await storedModel('d_keep')).model;
     assert.deepStrictEqual(stored.tables[0].fields.map((f) => f.key), ['title', 'email', 'note'],

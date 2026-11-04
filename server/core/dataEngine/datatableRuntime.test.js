@@ -193,6 +193,10 @@ test('BITE — filtering and sorting on an unbound column is refused (no value o
         await assert.rejects(
             () => runtime.readRows(r, { allowColumns: ['name'], sort: [{ field: 'secret_note', dir: 'asc' }] }),
             (e) => e.status === 400 && e.code === 'column_not_bound');
+        // A column inside an { any: [...] } OR group is the same oracle.
+        await assert.rejects(
+            () => runtime.readRows(r, { allowColumns: ['name'], filters: [{ any: [{ field: 'name', op: 'eq', value: 'x' }, { field: 'secret_note', op: 'eq', value: 'x' }] }] }),
+            (e) => e.status === 400 && e.code === 'column_not_bound');
         // On a bound column it is allowed.
         const ok = await runtime.readRows(r, { allowColumns: ['name'], filters: [{ field: 'name', op: 'eq', value: 'x' }] });
         assert.strictEqual(ok.count, 0);
@@ -301,6 +305,9 @@ test('BITE — aggregateRows binds groupBy, aggregates, filters and sort to allo
             (e) => e.status === 400 && e.code === 'column_not_bound');
         await assert.rejects(
             () => bound({ groupBy: [{ field: 'name' }], filters: [{ field: 'price', op: 'gt', value: 1 }] }),
+            (e) => e.status === 400 && e.code === 'column_not_bound');
+        await assert.rejects(
+            () => bound({ groupBy: [{ field: 'name' }], filters: [{ any: [{ field: 'price', op: 'gt', value: 1 }] }] }),
             (e) => e.status === 400 && e.code === 'column_not_bound');
         await assert.rejects(
             () => bound({ groupBy: [{ field: 'name' }], sort: [{ field: 'secret_note', dir: 'asc' }] }),

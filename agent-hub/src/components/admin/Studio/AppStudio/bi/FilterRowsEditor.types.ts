@@ -56,6 +56,15 @@ export interface FilterRow {
     required?: boolean;
 }
 
+/** An `{ any: [...] }` OR group: its rows OR each other, the group ANDs with the other entries. */
+export interface FilterAnyGroupRow {
+    any: FilterRow[];
+    required?: boolean;
+}
+
+/** One entry of a filter list: a row or an OR group of rows. */
+export type FilterEntry = FilterRow | FilterAnyGroupRow;
+
 /** A column a filter may name; select choices are strings or { value, label } objects. */
 export interface FilterField {
     key: string;
@@ -74,8 +83,10 @@ export interface ValueControlProps {
 
 export interface FilterRowsEditorProps {
     fields?: FilterField[];
-    filters: FilterRow[];
-    onChange: (next: FilterRow[]) => void;
+    filters: FilterEntry[];
+    onChange: (next: FilterEntry[]) => void;
+    /** Offer "Add an either/or group" (binding panels). Groups already saved always render as groups. */
+    allowGroups?: boolean;
     definition?: AppDefinition | null;
     node?: AppNode | null;
     allowFormula?: boolean;

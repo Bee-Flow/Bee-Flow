@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import FilterRowsEditor, { type FilterRow } from './FilterRowsEditor';
+import FilterRowsEditor, { type FilterEntry, type FilterRow } from './FilterRowsEditor';
 import type { FilterRowsEditorProps } from './FilterRowsEditor.types';
 
 /**
@@ -20,8 +20,8 @@ const FIELDS = [
 ];
 
 /** Controlled, like both real call sites — rows must survive a re-render. */
-function Harness({ initial, onChange, ...props }: { initial: FilterRow[]; onChange?: (next: FilterRow[]) => void } & Partial<FilterRowsEditorProps>) {
-    const [filters, setFilters] = useState(initial);
+function Harness({ initial, onChange, ...props }: { initial: FilterEntry[]; onChange?: (next: FilterEntry[]) => void } & Partial<FilterRowsEditorProps>) {
+    const [filters, setFilters] = useState<FilterEntry[]>(initial);
     return (
         <FilterRowsEditor
             fields={FIELDS}

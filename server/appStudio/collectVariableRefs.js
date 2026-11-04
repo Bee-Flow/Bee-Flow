@@ -37,7 +37,8 @@ function walkSteps(steps, visit, depth = 0) {
         walkSteps(step.then, visit, depth + 1);
         walkSteps(step.else, visit, depth + 1);
         walkSteps(step.steps, visit, depth + 1);
-        walkSteps(step.onError, visit, depth + 1);
+        walkSteps(step.onError, visit, depth + 1);          // the legacy array form
+        walkSteps(step.onError?.steps, visit, depth + 1);   // { steps, stop? }
         if (Array.isArray(step.cases)) {
             for (const c of step.cases) {
                 if (isObject(c)) walkSteps(c.steps, visit, depth + 1);

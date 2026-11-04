@@ -1196,6 +1196,13 @@
     ]
    },
    {
+    "ch": "run",
+    "sql": "DELETE FROM studio_app_action_runs WHERE app_id = $1",
+    "params": [
+     "app-1"
+    ]
+   },
+   {
     "ch": "dep",
     "name": "purge",
     "args": [

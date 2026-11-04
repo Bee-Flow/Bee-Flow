@@ -51,6 +51,7 @@ const {
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
 } = require('../componentSpecs');
+const { ownFields, errorHandlingLines } = require('./stepErrorText.mts');
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
 const {
     FIELD_TYPES,
@@ -62,10 +63,8 @@ const {
     SYSTEM_COLUMNS,
     KEY_RE,
 } = require('../dataModel');
-// The shared expression engine, via the project's CJS re-export (same boundary
-// appStudio/validate.js uses). The formula vocabulary is DERIVED from it — see
-// renderFormulaFunctions.
-const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../shared/expr/index.mjs');
+// The formula vocabulary, DERIVED from the shared expression engine (formulaGuide.js).
+const { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT } = require('./formulaGuide');
 // The validation-rule vocabulary, from the same module that declares it to the
 // tool schemas — so the catalog and the tool surface cannot teach two lists.
 const { NODE_VALIDATION_TYPES } = require('../builderTools/schemas');
@@ -162,9 +161,23 @@ function renderComponent(type) {
 }
 
 // ---------------------------------------------------------------------------
-// Action / step field rendering — one compact fragment per field, driven by
-// the same field-spec vocabulary ACTION_SPECS and STEP_SPECS use.
+// Action / step field rendering — one fragment per field, from the ACTION_SPECS / STEP_SPECS vocabulary.
 // ---------------------------------------------------------------------------
+
+/** @type {Record<string, string>} How a field type with a fixed text reads in the catalog. */
+const FIELD_TYPE_TEXT = {
+    boolean: 'boolean', formula: 'formula expr string (compiled, never executed)', binding: 'binding', effects: 'Effects', stringList: '[string]',
+    inputMapping: '{ <param>: {kind:"static",value} | {kind:"field",name,formId?} }', recordValues: '{ <field key>: binding }', steps: '[Step] (nested)', switchCases: '[{ value, steps: [Step] }]',
+    tierChoice: 'tier name | {kind:"formula",expr} (not a tier name → default tier, with a note)',
+    recordFilter: '[{ field, op, value? }]',
+};
+
+/** One line on bulk writes and idempotent writeTo (package 5); the full catalog only. */
+function bulkWriteLines() {
+    return [
+        `update/delete_record take filter (instead of recordId; ≤${LIMITS.MAX_WRITE_FILTER_CLAUSES} clauses, under the role's write scope) + limit (≤${LIMITS.MAX_BULK_WRITE_ROWS}, default ${LIMITS.MAX_BULK_WRITE_ROWS}, oldest first) and return { matched, updated|deleted, remaining }; a clause whose value is empty changes nothing. writeTo (ai_extract/file_intake/dataset_query) takes upsertKey: [column] (≤${LIMITS.MAX_UPSERT_KEY_COLUMNS}; a row with the same key is updated, not doubled) and replaceWhere: [clause] (those rows are deleted first; over ${LIMITS.MAX_BULK_WRITE_ROWS} matches refuses).`,
+    ];
+}
 
 /**
  * @param {string} key
@@ -176,20 +189,13 @@ function renderActionField(key, fs) {
         case 'string': bits.push(fs.nullable ? 'string|null' : 'string'); break;
         case 'url': bits.push('https URL'); break;
         case 'enum': bits.push(fs.values.map((v) => JSON.stringify(v)).join('|')); break;
-        case 'boolean': bits.push('boolean'); break;
         case 'int': bits.push('int' + (fs.min !== undefined ? ` ${fs.min}..${fs.max}` : '')); break;
-        case 'formula': bits.push('formula expr string (compiled, never executed)'); break;
-        case 'binding': bits.push('binding'); break;
-        case 'inputMapping': bits.push('{ <param>: {kind:"static",value} | {kind:"field",name,formId?} }'); break;
-        case 'effects': bits.push('Effects'); break;
-        case 'recordValues': bits.push('{ <field key>: binding }'); break;
-        case 'steps': bits.push('[Step] (nested)'); break;
-        case 'switchCases': bits.push('[{ value, steps: [Step] }]'); break;
         case 'navParams': bits.push(`{ <key>: {kind:"static",value}|{kind:"formula",expr} } (≤${LIMITS.MAX_NAVIGATE_PARAMS}, → screen.params.<key>)`); break;
-        case 'stringList': bits.push('[string]'); break;
+        case 'callParams': bits.push(`{ <name>: binding } (≤${LIMITS.MAX_CALL_PARAMS}, read as params.<name> in the called action)`); break;
+        case 'aiSchema': case 'contextSources': bits.push(fs.type === 'aiSchema' ? `[{ name, type, description? ≤${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}, required? }] (≤${LIMITS.MAX_AI_SCHEMA_FIELDS})` : `[{ label? ≤${LIMITS.MAX_CONTEXT_SOURCE_LABEL}, source: binding }] (≤${LIMITS.MAX_CONTEXT_SOURCES})`); break;
         case 'approvalQuestions': bits.push('[{ name, label, type: "text"|"textarea"|"number"|"date"|"email"|"select"|"checkbox", required?, options? }] (≤20 approver questions; answers reach onDecided templates as {{answers.<name>}})'); break;
         case 'approvalOnDecided': bits.push('{ tableId, recordId: binding, set: { approved?|rejected?|expired?|cancelled?: { <field key>: literal | "{{answers.<q>}}"|"{{reason}}"|"{{decidedByName}}"|"{{decision}}"|"{{context.<key>}}" } } } (the record write executed when the decision lands)'); break;
-        default: bits.push(fs.type);
+        default: bits.push(Object.hasOwn(FIELD_TYPE_TEXT, fs.type) ? FIELD_TYPE_TEXT[fs.type] : fs.type);
     }
     if (fs.required) bits.push('REQUIRED');
     if (fs.maxLen) bits.push(`≤${fs.maxLen}`);
@@ -198,9 +204,7 @@ function renderActionField(key, fs) {
     return `${key}: ${bits.join(' ')}`;
 }
 
-function renderSpecFields(fields) {
-    return Object.entries(fields).map(([k, fs]) => renderActionField(k, fs)).join(', ');
-}
+const renderSpecFields = (fields) => Object.entries(ownFields(fields)).map(([k, fs]) => renderActionField(k, fs)).join(', '); // envelope: in the steps lead
 
 /**
  * One action kind. Nine of the eleven kinds are byte-identical twins of the
@@ -218,7 +222,7 @@ function renderSpecFields(fields) {
 function renderActionKind(kind) {
     const full = `${kind}: { ${renderSpecFields(ACTION_SPECS[kind].fields)} }`;
     const step = STEP_SPECS[kind];
-    if (step && JSON.stringify(step.fields) === JSON.stringify(ACTION_SPECS[kind].fields)) {
+    if (step && JSON.stringify(ownFields(step.fields)) === JSON.stringify(ACTION_SPECS[kind].fields)) {
         const ref = `${kind}: { …fields exactly as the ${kind} step below (### Sequence steps) }`;
         if (ref.length < full.length) return ref;
     }
@@ -234,44 +238,16 @@ function renderStepKind(kind) {
     return `${kind} [${side}]: { ${renderSpecFields(spec.fields)} }`;
 }
 
-// ---------------------------------------------------------------------------
-// Formula vocabulary — DERIVED from the shared expression engine
-// ---------------------------------------------------------------------------
+// Bulk writes (filter + limit on update/delete_record) are a full-catalog feature: the compact
+// band writes one row at a time, and its text is paid on every round of every local build.
+const COMPACT_OMIT_FIELDS = new Set(['filter', 'limit']);
 
-/**
- * The callable names a formula may use, rendered from the engine itself.
- *
- * The enumeration walks EXPR_FUNCTION_NAMES — which is `Object.keys(FUNCTIONS)`,
- * i.e. the exact set the parser accepts at PARSE time — so it cannot drift from
- * the engine the way a hand-maintained list does. It did drift, expensively: the
- * whole maths family (pow/sqrt/ln/log/exp/trig, PI(), E(), the `^` operator)
- * existed with nothing anywhere in the prompt naming any of it, and the builder
- * told a user their scientific calculator was unbuildable. Signatures come from
- * the EXPR_FUNCTIONS doc table; a name that table has not caught up with still
- * renders as `name(…)` rather than vanishing from the prompt.
- *
- * Wrapping is a fixed-width greedy fill over a fixed input — deterministic, so
- * the catalog stays byte-stable (prompt-cache discipline).
- */
-const FORMULA_WRAP_COLS = 108;
-
-function renderFormulaFunctions() {
-    const signatureByName = new Map(EXPR_FUNCTIONS.map((f) => [f.name, f.signature]));
-    /** @type {string[]} */
-    const lines = [];
-    let line = '';
-    for (const name of EXPR_FUNCTION_NAMES) {
-        const sig = signatureByName.get(name) || `${name}(…)`;
-        const next = line ? `${line}, ${sig}` : sig;
-        if (line && next.length > FORMULA_WRAP_COLS) {
-            lines.push(`${line},`);
-            line = sig;
-        } else {
-            line = next;
-        }
-    }
-    if (line) lines.push(line);
-    return lines.join('\n');
+/** The compact form of a step line: the full line without COMPACT_OMIT_FIELDS. */
+function renderStepKindCompactLine(kind) {
+    const spec = STEP_SPECS[kind];
+    const side = DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
+    const fields = Object.fromEntries(Object.entries(spec.fields).filter(([k]) => !COMPACT_OMIT_FIELDS.has(k)));
+    return `${kind} [${side}]: { ${renderSpecFields(fields)} }`;
 }
 
 let _sections = null;
@@ -368,6 +344,7 @@ function buildCatalogSections() {
         ...ACTION_KINDS.map(renderActionKind),
         `Effects (bounded, never chain): { toast?: {message ≤500, tone ${TOAST_TONES.join('|')}}, navigateTo?: <screenId>|null }`,
         `open_modal/close_modal target a \`modal\` component's cmp_… id — end a save sequence with close_modal so the dialog does not stay open over the form it just submitted. A sequence runs its steps in order (max ${LIMITS.MAX_ACTION_STEPS} steps, nesting ≤${LIMITS.MAX_ACTION_DEPTH}).`,
+        `call_action runs another action as a subroutine: its params.<name> come from \`params\`, it shares vars/form (not item/index/value), its result is the called action's last server result (→ resultVar), its own effects are not applied. ≤${LIMITS.MAX_CALL_DEPTH} calls deep, never recursive; access is the clicked action's (a called action runs on its own only for a role that can reach a caller). On a public page the called actions ship to the browser with the root, so their navigate/open_modal/toast targets are visible there: keep back-office screens out of them.`,
     ].join('\n');
 
     const stepsLead = [
@@ -376,6 +353,8 @@ function buildCatalogSections() {
     ];
     const steps = [
         ...stepsLead,
+        ...errorHandlingLines(), // the error-handling envelope and transaction: full catalog only
+        ...bulkWriteLines(), // filter-mode record writes and idempotent writeTo: full catalog only
         ...STEP_KINDS.map(renderStepKind),
     ].join('\n');
 
@@ -389,7 +368,7 @@ function buildCatalogSections() {
         `  { "kind": "aggregate", "tableId": "<tbl_…>", "filter"?, "groupBy"?: [{ "field", "bucket"?: ${DATE_BUCKETS.join('|')}, "as"? }], "aggregates"?: [{ "fn": ${AGG_FNS.join('|')}, "field"?, "as"? }], "sort"?, "limit"?, "pick"? } — counts/totals per group; add "pick":{"row":"first","column":"<as>"} for ONE number.`,
         `  { "kind": "dataset", "datasetId": "<ds_…>", "params"? } — a saved dataset's rows (grouped/aggregated queries).`,
         `  { "kind": "connector", "connectorId": "<conn_…>", "params"? } — rows from an owner-authored EXTERNAL connector (run acts-as-owner). params: { <key>: <literal> | {"kind":"formula","expr":"<expr>"} }. You WIRE existing connectors (app_list_connectors) — you never author them or their credentials.`,
-        `filter: [{ "field": "<field key>", "op": ${FILTER_OPS.join('|')}, "value"?: <literal> | [<literals>] | {"kind":"formula","expr":"<expr>"} }] — formula values resolve client-side against live scope before the fetch (e.g. {"field":"created_by","op":"eq","value":{"kind":"formula","expr":"currentUser.id"}}).`,
+        `filter: [{ "field": "<field key>", "op": ${FILTER_OPS.join('|')}, "value"?: <literal> | [<literals>] | {"kind":"formula","expr":"<expr>"} }] — formula values resolve client-side against live scope before the fetch (e.g. {"field":"created_by","op":"eq","value":{"kind":"formula","expr":"currentUser.id"}}).${ANY_GROUP_TEXT}`,
         `sort: [{ "field": "<field key>", "dir": "asc"|"desc" }] (default created_at desc). System columns ${SYSTEM_COLUMNS.join('/')} are filterable/sortable on every table.`,
         `inputMapping values (run_automation) accept ONLY:`,
         `  { "kind": "static", "value": <any JSON> }`,
@@ -399,7 +378,7 @@ function buildCatalogSections() {
 
     const formulas = [
         renderFormulaFunctions(),
-        `That is the WHOLE vocabulary: the parser rejects any other name before the formula runs. No eval, no user-defined helpers, no method calls on values.`,
+        `That is the WHOLE vocabulary: the parser rejects any other name before the formula runs. No eval, no user-defined helpers, no method calls on values.${LIST_FORMS_TEXT}`,
         `Operators: + - * / % ^ · == != === !== < <= > >= · && || ! · ternary cond ? a : b · dotted and [indexed] paths. \`^\` is exponent — RIGHT-associative (2^3^2 = 512), binding TIGHTER than unary minus (-2^2 = -4; write (-2)^2 for the other reading), and it IS pow(). π and e are PI() and E(), with brackets.`,
         `TOTALITY, and its one hole: every helper above is null-safe and total — a domain error, a pole or an overflow (sqrt(-1), ln(0), exp(1000), 2^10000) returns NOTHING, never NaN. The bare arithmetic operators do NOT: + - * / % over a value that has not arrived yet is NaN, and x/0 is Infinity — both render as an empty tile. Guard arithmetic over forms/vars: number(x) and round(x, 2) collapse the hole to nothing, \`isEmpty(x) ? 0 : <maths>\` is the general form.`,
     ].join('\n');
@@ -420,11 +399,11 @@ function buildCatalogSections() {
         `Caps: ${DATA_LIMITS.MAX_TABLES_PER_APP} tables/app, ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} fields/table, ${DATA_LIMITS.MAX_ROWS_PER_TABLE} rows/table, ${DATA_LIMITS.MAX_ROWS_PER_APP} rows/app, ${Math.round(DATA_LIMITS.MAX_DB_BYTES / (1024 * 1024))}MB per app database.`,
     ].join('\n');
 
+    const dataModelChanges = `Tables that hold rows: a stored computed field (computed.stored:true) is a real column — a new one, or a changed expr, is computed for every existing row on save. A read-time computed field is not evaluated (reads empty): use stored:true for a value you show.\nA field's type converts in place only text↔select, number↔text, integer↔text, integer↔number. app_upsert_table dryRun:true counts the values that cannot convert; the save refuses them unless onUnconvertible:"clear" (empties them).`; // full catalog only
     const limits = `${LIMITS.MAX_SCREENS} screens; ${LIMITS.MAX_SECTIONS_PER_SCREEN} sections/screen; ${LIMITS.MAX_TOTAL_NODES} total sections+components; ${LIMITS.MAX_ACTIONS} actions; nesting depth ${LIMITS.MAX_DEPTH} (section=1, each container +1); strings ≤${LIMITS.MAX_STRING} chars; formulas ≤${LIMITS.MAX_FORMULA_LEN} chars.`;
 
     _sections = {
-        theme, design, knobs, advancedSizing, screen, components, nodeLogic, actions, steps,
-        bindings, formulas, variables, dataModel, limits,
+        theme, design, knobs, advancedSizing, screen, components, nodeLogic, actions, steps, bindings, formulas, variables, dataModel, dataModelChanges, limits,
         // The line lists the compact form composes from: it keeps the shapes
         // that ARE the contract (bindings, node logic) and drops the lines
         // that name a tool or a kind the core menu cannot reach.
@@ -482,7 +461,7 @@ ${s.formulas}
 ${s.variables}
 
 ### Data model (the app's own database)
-${s.dataModel}
+${s.dataModel}\n${s.dataModelChanges}
 
 ### Limits
 ${s.limits}`;
@@ -616,7 +595,7 @@ const COMPACT_STEP_KINDS = [
 ];
 
 function renderStepKindCompact() {
-    const full = COMPACT_STEP_KINDS.filter((k) => STEP_SPECS[k]).map(renderStepKind);
+    const full = COMPACT_STEP_KINDS.filter((k) => STEP_SPECS[k]).map(renderStepKindCompactLine);
     const rest = STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
     return [
         ...full,
@@ -658,7 +637,7 @@ function renderCompactCatalogText() {
     // Bindings: the five kinds the core menu can satisfy. dataset needs
     // app_upsert_dataset and connector needs app_list_connectors — neither is
     // on the menu, and a shape the model cannot fulfil is one it invents ids for.
-    const bindings = s._bindingLines.filter((l) => !/"kind": "(dataset|connector)"/.test(l)).join('\n');
+    const bindings = s._bindingLines.filter((l) => !/"kind": "(dataset|connector)"/.test(l)).join('\n').replace(ANY_GROUP_TEXT, '');
     const steps = [...s._stepsLead, renderStepKindCompact()].join('\n');
     // Actions: the full section renders nine kinds as pointers to their step
     // twin; the compact step list does not carry four of those twins, so the
@@ -668,7 +647,7 @@ function renderCompactCatalogText() {
     const ownKinds = ACTION_KINDS.filter((k) => !twinKinds.includes(k));
     const actions = [
         `Kinds: ${ACTION_KINDS.join(' | ')}. The actions map key IS the action id (act_…); \`kind\` is the discriminator. ${twinKinds.join(', ')} take exactly the fields of the step of the same name (### Sequence steps).`,
-        ...ownKinds.map((kind) => `${kind}: { ${renderSpecFields(ACTION_SPECS[kind].fields)} }`),
+        ...ownKinds.map((kind) => `${kind}: { ${renderSpecFields(kind === 'sequence' ? { steps: ACTION_SPECS.sequence.fields.steps } : ACTION_SPECS[kind].fields)} }`), // a sequence without its run options (budget)
         `Effects (bounded, never chain): { toast?: {message ≤500, tone ${TOAST_TONES.join('|')}}, navigateTo?: <screenId>|null }`,
         `open_modal/close_modal target a \`modal\` component's cmp_… id — end a save sequence with close_modal. A sequence runs its steps in order (max ${LIMITS.MAX_ACTION_STEPS} steps, nesting ≤${LIMITS.MAX_ACTION_DEPTH}).`,
     ].join('\n');
@@ -680,7 +659,9 @@ function renderCompactCatalogText() {
         .map(([k, fs]) => renderPropSpec(k, fs))
         .join('; ');
     // Formulas: the TOTALITY line is the core prompt's guard bullet, said once there.
-    const formulas = s.formulas.split('\n').filter((l) => !l.startsWith('TOTALITY')).join('\n');
+    // The compact vocabulary and prose stay as they were before the list functions (formulaGuide.js).
+    const formulas = s.formulas.replace(renderFormulaFunctions(), renderFormulaFunctions({ compact: true })).replace(LIST_FORMS_TEXT, '')
+        .split('\n').filter((l) => !l.startsWith('TOTALITY')).join('\n');
 
     _compact = `### Style knobs (closed vocabulary — the only legal style keys; each type lists its own below)
 ${knobs}
@@ -745,6 +726,7 @@ module.exports = {
     renderComponentCompact,
     renderStepKindCompact,
     COMPACT_STEP_KINDS,
+    renderStepKindCompactLine,
     COMPACT_KEY_PROP_NAMES,
 };
 
@@ -757,5 +739,5 @@ module.exports = {
  * @typedef {Record<string, { mutatesData?: boolean, fields: Record<string, FieldSpec> }>} KindSpecs
  * @typedef {{ theme: string, design: string, knobs: string, advancedSizing: string, screen: string, components: string,
  *   nodeLogic: string, actions: string, steps: string, bindings: string, formulas: string, variables: string,
- *   dataModel: string, limits: string, _nodeLogicLines: string[], _bindingLines: string[], _stepsLead: string[] }} CatalogSections
+ *   dataModel: string, dataModelChanges: string, limits: string, _nodeLogicLines: string[], _bindingLines: string[], _stepsLead: string[] }} CatalogSections
  */

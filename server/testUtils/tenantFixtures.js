@@ -128,6 +128,38 @@ const FIXTURES = [
             'DELETE /api/studio-apps/:id/members/:userId', 'POST /api/studio-apps/:id/data/empty',
         ],
     },
+    {
+        // The runtime routes of an App Studio app (routes/studioAppsRun.js): background jobs and
+        // the automation bridge. The app of org B is unpublished: a member of org A gets the
+        // app gate's 404 on every route before any body, job or action is looked at. /step is
+        // not here: its body names a step index, which is validated before the gate.
+        kind: 'studioAppRuntime',
+        mount: '/api/studio-apps',
+        router: () => require('../routes/studioAppsRun'),
+        create: async ({ orgId, userId, index }) => {
+            const studioAppStore = require('../stores/studioAppStore');
+            const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `Runtime app ${index}` });
+            return app.id;
+        },
+        routes: [
+            'GET /api/studio-apps/:id/actions/jobs', 'GET /api/studio-apps/:id/actions/jobs/:jobId',
+            'POST /api/studio-apps/:id/actions/:actionId/background', 'POST /api/studio-apps/:id/actions/:actionId/run',
+            'GET /api/studio-apps/:id/actions/runs/:runId', 'POST /api/studio-apps/:id/actions/:actionId/runs/end',
+        ],
+    },
+    {
+        // The run log of an App Studio app (routes/studioApps/runLog.js): owner only, so a member
+        // of org A gets 404 on the list and on a run, and the owner the list.
+        kind: 'studioAppRunLog',
+        mount: '/api/studio-apps',
+        router: () => require('../routes/studioApps/runLog'),
+        create: async ({ orgId, userId, index }) => {
+            const studioAppStore = require('../stores/studioAppStore');
+            const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `Run log app ${index}` });
+            return app.id;
+        },
+        routes: ['GET /api/studio-apps/:id/runs', 'GET /api/studio-apps/:id/runs/:runId'],
+    },
 ];
 
 module.exports = { FIXTURES };

@@ -20,6 +20,19 @@ export function postJson(url: string, body: unknown, deadlineMs?: number): Promi
     });
 }
 
+/**
+ * A JSON POST that outlives the page (fetch keepalive): the run log's end report, sent as a
+ * sequence settles, also when the viewer navigates away right after.
+ */
+export function postKeepalive(url: string, body: unknown): Promise<Response> {
+    return authFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        keepalive: true,
+    });
+}
+
 /** A plain authenticated GET (a run's state, an attachment's bytes). */
 export function getAuthed(url: string): Promise<Response> {
     return authFetch(url);
@@ -28,4 +41,46 @@ export function getAuthed(url: string): Promise<Response> {
 /** The attachment route a download_file step reads, so the viewer's access is checked. */
 export function attachmentUrl(appId: string | null, fileId: string): string {
     return `${API_BASE}/api/studio-apps/${encodeURIComponent(String(appId))}/data/attachments/${encodeURIComponent(fileId)}`;
+}
+
+/** Where a background action's job lives: …/actions/jobs[/<jobId>]. */
+export function jobsUrl(appId: string | null, jobId?: string): string {
+    return `${actionsUrl(appId)}/jobs${jobId ? `/${encodeURIComponent(jobId)}` : ''}`;
+}
+
+/** The progress of a background job, as the server reports it. */
+export interface JobProgress {
+    stepIndex: number | null;
+    kind: string | null;
+    executed: number;
+    /** The text of the action's progressVar. */
+    message: string | null;
+    loop: { index: number; count: number } | null;
+    /** 'budget' while the job waits for the per-minute step budget. */
+    waiting: string | null;
+}
+
+/** A deferred toast or refresh the job recorded; the browser replays it at the end. */
+export interface JobEffect {
+    kind: 'toast' | 'refresh' | string;
+    message?: string;
+    tone?: string;
+    tableId?: string;
+    datasetId?: string;
+}
+
+/** One background job (GET …/actions/jobs/:jobId). Additive: unknown fields are ignored. */
+export interface JobView {
+    jobId: string;
+    actionId: string;
+    status: 'running' | 'success' | 'error' | 'interrupted' | 'cancelled' | string;
+    progress: JobProgress;
+    result?: unknown;
+    vars?: Record<string, unknown>;
+    effects?: JobEffect[];
+    error: string | null;
+    errorStep: { path?: string; kind?: string; stepIndex?: number | null } | null;
+    startedAt: string | null;
+    finishedAt: string | null;
+    durationMs: number | null;
 }

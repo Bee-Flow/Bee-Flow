@@ -144,6 +144,8 @@ async function _initDB() {
         CREATE INDEX IF NOT EXISTS idx_studio_app_email_log_app ON studio_app_email_log(app_id, sent_at DESC);
     `);
 
+    await initActionRuns();
+
     // Additive migrations — CREATE TABLE IF NOT EXISTS won't add columns to a
     // pre-existing table. Via runDdl (stores/lib/_ddl.js): a failing statement
     // is reported loudly in the failures list and the rest keeps running — the
@@ -163,6 +165,100 @@ async function _initDB() {
         `ALTER TABLE studio_app_connector_sync ADD COLUMN IF NOT EXISTS consecutive_errors INTEGER NOT NULL DEFAULT 0`,
     ]);
     log.info('[StudioAppDataStore] PostgreSQL initialized');
+}
+
+/**
+ * Action runs (queries in ./actionRuns.mts). A background job IS a run row (its jobId is the
+ * row id); the run log adds its own rows to the same table later. `lock_key` is unique per app
+ * among RUNNING rows (a partial index, so the lock holds across replicas); a heartbeat writes
+ * `last_activity_at`, and a row that stops beating is swept to `interrupted`
+ * (jobs/studioAppActionRuns.js). Payload columns (result, vars, effects, progress) are nulled
+ * after the result TTL and rows are deleted after the retention (jobs/platformRetention.js).
+ * viewer_user_id is detached on account erasure (stores/user/erasureCoverage.js).
+ */
+async function initActionRuns() {
+    await exec(`
+        CREATE TABLE IF NOT EXISTS studio_app_action_runs (
+            id TEXT PRIMARY KEY,
+            app_id TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE,
+            owner_user_id TEXT NOT NULL,
+            action_id TEXT NOT NULL,
+            origin TEXT NOT NULL,
+            draft BOOLEAN NOT NULL DEFAULT FALSE,
+            definition_version INTEGER,
+            dry_run BOOLEAN NOT NULL DEFAULT FALSE,
+            viewer_user_id TEXT,
+            visitor_key TEXT,
+            client TEXT,
+            client_run_key TEXT,
+            tracked BOOLEAN NOT NULL DEFAULT TRUE,
+            status TEXT NOT NULL DEFAULT 'running',
+            ended_by TEXT,
+            error TEXT,
+            error_code TEXT,
+            error_step JSONB,
+            handled_errors INTEGER NOT NULL DEFAULT 0,
+            last_step_status TEXT,
+            in_flight BOOLEAN NOT NULL DEFAULT FALSE,
+            lock_key TEXT,
+            progress JSONB NOT NULL DEFAULT '{}'::jsonb,
+            result JSONB,
+            vars JSONB,
+            effects JSONB,
+            instance_id TEXT,
+            started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            ended_at TIMESTAMPTZ,
+            duration_ms INTEGER,
+            step_count INTEGER NOT NULL DEFAULT 0,
+            failed_steps INTEGER NOT NULL DEFAULT 0,
+            truncated BOOLEAN NOT NULL DEFAULT FALSE,
+            ai_calls INTEGER NOT NULL DEFAULT 0,
+            prompt_tokens INTEGER NOT NULL DEFAULT 0,
+            completion_tokens INTEGER NOT NULL DEFAULT 0,
+            cost_by_currency JSONB NOT NULL DEFAULT '{}'::jsonb
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_studio_app_action_runs_lock
+            ON studio_app_action_runs(app_id, lock_key) WHERE status = 'running' AND lock_key IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_studio_app_action_runs_client_key
+            ON studio_app_action_runs(app_id, client_run_key) WHERE client_run_key IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_app ON studio_app_action_runs(app_id, started_at DESC, id DESC);
+        CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_action ON studio_app_action_runs(app_id, action_id, started_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_viewer ON studio_app_action_runs(app_id, viewer_user_id, started_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_started ON studio_app_action_runs(started_at);
+        CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_active ON studio_app_action_runs(last_activity_at) WHERE status = 'running';
+    `);
+    // The run log's step rows (package 8): one per step a run reached, in order. Duration,
+    // status, the error (already cleaned by runLogError: no prompt text, no customer values),
+    // and per AI step the model, tokens and the estimated cost. Never results, scope or prompts.
+    // They go with their run (ON DELETE CASCADE), so retention and app deletion need no second pass.
+    await exec(`
+        CREATE TABLE IF NOT EXISTS studio_app_action_run_steps (
+            run_id TEXT NOT NULL REFERENCES studio_app_action_runs(id) ON DELETE CASCADE,
+            seq INTEGER NOT NULL,
+            action_id TEXT,
+            step_index INTEGER,
+            path TEXT NOT NULL,
+            iteration INTEGER,
+            kind TEXT NOT NULL,
+            status TEXT NOT NULL,
+            error TEXT,
+            error_code TEXT,
+            attempts SMALLINT,
+            handled BOOLEAN NOT NULL DEFAULT FALSE,
+            mocked BOOLEAN NOT NULL DEFAULT FALSE,
+            started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            duration_ms INTEGER NOT NULL DEFAULT 0,
+            model TEXT,
+            model_tier TEXT,
+            ai_calls INTEGER NOT NULL DEFAULT 0,
+            prompt_tokens INTEGER NOT NULL DEFAULT 0,
+            completion_tokens INTEGER NOT NULL DEFAULT 0,
+            cost NUMERIC(14,6),
+            cost_currency TEXT,
+            PRIMARY KEY (run_id, seq)
+        );
+    `);
 }
 
 module.exports = { initDB };

@@ -287,7 +287,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
 
                         <MeasuresField t={t} aggregates={aggregates} setAggregates={setAggregates} fields={fields} fieldName={fieldName} />
 
-                        <FilterRowsEditor fields={fields} filters={filters} onChange={setFilters} label={t('studio_apps_bi.query.only_count_where', 'Only count rows where')} />
+                        <FilterRowsEditor fields={fields} filters={filters} onChange={(next) => setFilters(next.filter((f): f is FilterRow => !('any' in f)))} label={t('studio_apps_bi.query.only_count_where', 'Only count rows where')} />
 
 
                         <label className="flex flex-col gap-1">

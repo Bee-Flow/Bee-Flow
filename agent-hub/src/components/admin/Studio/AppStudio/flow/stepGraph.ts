@@ -23,7 +23,8 @@ import type { ActionStep } from './stepCatalog';
  *
  * ── HOW BRANCHES MAP ────────────────────────────────────────────────
  * condition → `then` / `else`; switch → `case:<index>` / `case:default`; loop →
- * its body. Each is a CONTAINER node whose children live in their own scope,
+ * its body; transaction → its body; and any step with an error handler
+ * (`onError: { steps }`) → `on_error` ("If it fails"), after its own scopes. Each is a CONTAINER node whose children live in their own scope,
  * addressed by a prefixed id (`s2/then/s5`) — the same trick the automation
  * builder's inline flowlets use, so the ids stay flat and unique while the
  * nesting stays real.
@@ -80,7 +81,17 @@ export type GraphNode = EntryNode | StepNode;
 export interface GraphEdge { id?: string; from: string; to: string; label?: string | null }
 
 /** Steps that hold other steps, and where. */
-export const CONTAINER_KINDS = new Set(['condition', 'loop', 'switch']);
+export const CONTAINER_KINDS = new Set(['condition', 'loop', 'switch', 'transaction']);
+
+/** The scope key of a step's error handler. */
+export const ON_ERROR_SCOPE = 'on_error';
+
+/** A step's handler in the { steps } shape the editor writes (the legacy array is read-only here). */
+function handlerOf(step: FlowStep): { steps?: FlowStep[]; stop?: boolean } | null {
+    const h = (step as { onError?: unknown }).onError;
+    return h && typeof h === 'object' && !Array.isArray(h) && Array.isArray((h as { steps?: unknown }).steps)
+        ? h as { steps?: FlowStep[]; stop?: boolean } : null;
+}
 
 /** The entry pill each container scope hangs from. */
 export const ENTRY_SUFFIX = '__entry__';
@@ -109,6 +120,14 @@ function caseLabel(c: FlowCase | null | undefined, i: number, t: TranslateFnLike
  */
 export function scopesOf(step: unknown, t: TranslateFnLike = null) {
     if (!isObject(step)) return [];
+    const own = kindScopesOf(step, t);
+    const handler = handlerOf(step);
+    if (!handler) return own;
+    return [...own, { key: ON_ERROR_SCOPE, label: tr(t, 'studio_apps_edit.step_graph.on_error', 'If it fails'), steps: handler.steps }];
+}
+
+/** The scopes of the step's own kind (branches, a loop or transaction body). */
+function kindScopesOf(step: FlowStep, t: TranslateFnLike) {
     switch (step.kind) {
         case 'condition':
             return [
@@ -117,6 +136,8 @@ export function scopesOf(step: unknown, t: TranslateFnLike = null) {
             ];
         case 'loop':
             return [{ key: 'body', label: tr(t, 'studio_apps_edit.step_graph.for_each', 'For each'), steps: step.steps }];
+        case 'transaction':
+            return [{ key: 'body', label: tr(t, 'studio_apps_edit.step_graph.all_or_nothing', 'All or nothing'), steps: step.steps }];
         case 'switch': {
             const cases = Array.isArray(step.cases) ? step.cases : [];
             // Keyed by POSITION, not by the case's value: canonicalize keeps
@@ -140,8 +161,12 @@ export function scopesOf(step: unknown, t: TranslateFnLike = null) {
 
 /** Write a scope's steps back onto its container, leaving the rest untouched. */
 function withScope(step: FlowStep, key: string, steps: FlowStep[]): FlowStep {
+    if (key === ON_ERROR_SCOPE) {
+        const handler = handlerOf(step);
+        return handler ? { ...step, onError: { ...handler, steps } } as FlowStep : step;
+    }
     if (step.kind === 'condition') return { ...step, [key]: steps };
-    if (step.kind === 'loop') return { ...step, steps };
+    if (step.kind === 'loop' || step.kind === 'transaction') return { ...step, steps };
     if (step.kind === 'switch') {
         if (key === 'case:default') return { ...step, default: steps };
         const at = Number(key.slice('case:'.length));

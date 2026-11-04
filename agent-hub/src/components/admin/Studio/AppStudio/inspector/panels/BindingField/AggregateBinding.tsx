@@ -125,6 +125,7 @@ export function AggregateBinding({ binding, onChange, appId, disabled, definitio
                         filters={Array.isArray(binding.filter) ? binding.filter : []}
                         onChange={(filter) => patch({ filter: filter.length ? filter : undefined })}
                         allowFormula
+                        allowGroups
                         disabled={disabled}
                         definition={definition}
                         node={node}

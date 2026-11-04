@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-76 routes, 40 with a request schema. Back to the [endpoint reference](../reference.md).
+82 routes, 46 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -59,6 +59,26 @@ No request schema.
 
 No request schema.
 
+### `POST /api/studio-apps/:id/actions/:actionId/background`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `formValues` | object or null |  |  |
+| `vars` | object or null |  |  |
+| `item` | any |  |  |
+| `index` | integer or null |  |  |
+| `value` | any |  |  |
+
 ### `POST /api/studio-apps/:id/actions/:actionId/run`
 
 **Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
@@ -75,6 +95,25 @@ No request schema.
 |-------|------|:--------:|-------|
 | `formValues` | object or null |  |  |
 | `wait` | boolean |  |  |
+
+### `POST /api/studio-apps/:id/actions/:actionId/runs/end`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `runKey` | string |  | pattern `^rk_[A-Za-z0-9_-]{16,64}$` |
+| `status` | one of `"success"`, `"error"`, `"cancelled"` |  |  |
+| `error` | string |  | max length 300 |
+| `handled` | boolean |  |  |
 
 ### `POST /api/studio-apps/:id/actions/:actionId/step`
 
@@ -96,6 +135,15 @@ No request schema.
 | `item` | any |  |  |
 | `index` | integer or null |  |  |
 | `value` | any |  |  |
+| `callPath` | array of integer |  | max items 3 |
+| `params` | object or null |  |  |
+| `error` | object |  |  |
+| `error.message` | string | yes | max length 500 |
+| `error.step` | string | yes | max length 60 |
+| `error.code` | string or null |  |  |
+| `error.attempts` | integer | yes | min 1; max 4 |
+| `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
+| `runKey` | string |  | pattern `^rk_[A-Za-z0-9_-]{16,64}$` |
 
 ### `POST /api/studio-apps/:id/actions/:actionId/step/stream`
 
@@ -117,6 +165,38 @@ No request schema.
 | `item` | any |  |  |
 | `index` | integer |  | min 0; max 9007199254740991 |
 | `value` | any |  |  |
+| `callPath` | array of integer |  | max items 3 |
+| `params` | object or null |  |  |
+| `error` | object |  |  |
+| `error.message` | string | yes | max length 500 |
+| `error.step` | string | yes | max length 60 |
+| `error.code` | string or null |  |  |
+| `error.attempts` | integer | yes | min 1; max 4 |
+| `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
+| `runKey` | string |  | pattern `^rk_[A-Za-z0-9_-]{16,64}$` |
+
+### `GET /api/studio-apps/:id/actions/jobs`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `active` | one of `"0"`, `"1"` |  |  |
+| `actionId` | string |  | pattern `^[A-Za-z0-9_-]{1,80}$` |
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+
+### `GET /api/studio-apps/:id/actions/jobs/:jobId`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `jobId` | string | yes | min length 1; max length 64 |
 
 ### `GET /api/studio-apps/:id/actions/runs/:runId`
 
@@ -639,6 +719,33 @@ No request schema.
 | `screenId` | string |  | max length 200 |
 | `nodeId` | string |  | max length 200 |
 
+### `GET /api/studio-apps/:id/runs`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `actionId` | string |  | max length 80; pattern `^[A-Za-z0-9_-]{1,80}$` |
+| `status` | one of `"running"`, `"success"`, `"error"`, `"interrupted"`, `"cancelled"`, `"refused"` |  |  |
+| `origin` | string |  | max length 120; pattern `^(click\|public\|mcp\|test\|background\|mailbox_hook)(,(click\|...` |
+| `user` | string |  | max length 200 |
+| `since` | string |  | max length 40 |
+| `cursor` | string |  | max length 200 |
+| `limit` | string |  | max length 3; pattern `^(?:[1-9]\d?\|100)$` |
+
+### `GET /api/studio-apps/:id/runs/:runId`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `runId` | string | yes | min length 1; max length 64 |
+
 ### `GET /api/studio-apps/:id/runtime`
 
 **Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
@@ -677,6 +784,8 @@ No request schema.
 |-------|------|:--------:|-------|
 | `model` | object | yes |  |
 | `expectedVersion` | integer or null |  |  |
+| `dryRun` | boolean |  |  |
+| `onUnconvertible` | one of `"refuse"`, `"clear"` |  |  |
 
 ### `POST /api/studio-apps/:id/template-upgrade`
 

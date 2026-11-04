@@ -56,3 +56,44 @@ test('a valid step reaches the app lookup and answers as before', async () => {
     assert.strictEqual(res.status, 404, res.text);
     assert.ok(db.queries.some((q) => /studio_apps/.test(q)), db.queries.join(' | '));
 });
+
+test('a step inside a called action: callPath is at most 3 whole numbers, params an object', async () => {
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, callPath: [0, 1, 2, 3] }), 'body.callPath', /call_action step positions/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, callPath: [1.5] }), 'body.callPath.0', /call_action step positions/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, params: 'x' }), 'body.params', /params/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, callpath: [0] }), 'body', /"callpath"/);
+    assert.deepStrictEqual(db.queries, []);
+    const res = await post('/actions/a1/step?draft=1', { stepIndex: 0, callPath: [0, 1, 2], params: { n: 1 } });
+    assert.strictEqual(res.status, 404, res.text);
+});
+
+test('a step inside an onError handler: error is { message ≤500, step ≤60, code?, attempts 1..4, stepIndex? }', async () => {
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, error: { message: 'x'.repeat(501), step: 'ai_generate', attempts: 1 } }), 'body.error.message', /onError handler/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, error: { message: 'm', step: 'ai_generate', attempts: 5 } }), 'body.error.attempts', /onError handler/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, error: 'boom' }), 'body.error', /onError handler/);
+    assert.deepStrictEqual(db.queries, []);
+    const res = await post('/actions/a1/step?draft=1', { stepIndex: 0, error: { message: 'm', step: 'ai_generate', code: null, attempts: 4, stepIndex: 2 } });
+    assert.strictEqual(res.status, 404, res.text);
+});
+
+test('a background start takes the click scope only; a job id is sar_ + 32 hex; the job list its filters', async () => {
+    h.assertRefused(assert, await post('/actions/a1/background', { stepIndex: 0 }), 'body', /"stepIndex"/);
+    h.assertRefused(assert, await post('/actions/a1/background', { index: -1 }), 'body.index', /loop position/);
+    h.assertRefused(assert, await api.call('GET', `/api/studio-apps/app1/actions/jobs/sar_${'a'.repeat(80)}`, {}), 'params.jobId', /sar_ and 32 hex/);
+    h.assertRefused(assert, await api.call('GET', '/api/studio-apps/app1/actions/jobs?active=yes', {}), 'query.active', /active is 1/);
+    h.assertRefused(assert, await api.call('GET', '/api/studio-apps/app1/actions/jobs?actionId=a%20b', {}), 'query.actionId', /id of an action/);
+    assert.deepStrictEqual(db.queries, []);
+});
+
+test('the run log: a step\'s runKey and the end report are bounded; an empty end body still reaches the app gate', async () => {
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, runKey: 'not-a-key' }), 'body.runKey', /run key the app made/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { runKey: 'rk_short' }), 'body.runKey', /run key the app made/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { status: 'done' }), 'body.status', /success, error or cancelled/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { error: 'x'.repeat(301) }), 'body.error', /at most 300/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { handled: 'yes' }), 'body.handled', /onError handler/);
+    h.assertRefused(assert, await post('/actions/a1/runs/end', { result: {} }), 'body', /"result"/);
+    assert.deepStrictEqual(db.queries, []);
+    const res = await post('/actions/a1/runs/end', {});
+    assert.strictEqual(res.status, 404, res.text);
+    assert.ok(db.queries.some((q) => /studio_apps/.test(q)), db.queries.join(' | '));
+});

@@ -13,12 +13,14 @@ const { parseJSON } = require('../lib/json');
 const { storeError } = require('../lib/managedParts');
 const { initDB } = require('./schema');
 const { mapMetaRow } = require('./rowMappers');
-const { recountRows } = require('./rowCounts');
+const { recountRows, bumpDataVersion } = require('./rowCounts');
+const { buildMigrationReport, applyPlanned, previewAgainst } = require('./migrationPreview.mts');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // The data-model contract (appStudio/dataModel) sits in the server's import
 // cycle; the barrel hands it in through cycleDeps.
 const migrationPlan = (...a) => deps.dataModel.migrationPlan(...a);
+const planMigration = (...a) => deps.dataModel.planMigration(...a);
 const validateDataModel = (...a) => deps.dataModel.validateDataModel(...a);
 const emptyDataModel = (...a) => deps.dataModel.emptyDataModel(...a);
 
@@ -121,13 +123,26 @@ async function reconcileDataModel(appId, ownerId) {
  * see additiveModel below): the deploy applies it in its prepare phase,
  * outside the atomic commit, so the older release must keep working on it.
  *
+ * `opts.convertTypes` (default false) converts a field whose type changed in
+ * place when the pair is safe (core/dataEngine/dataModel/fieldConversion.mts);
+ * `opts.onUnconvertible` 'refuse' (default) refuses the save when a value
+ * cannot convert, 'clear' empties those values. Never on a stage: an additive
+ * save or a capability lock converts nothing (a type change stays model-only).
+ *
  * Returns:
- *   { ok:true, version }                                   on success
+ *   { ok:true, version, report }                           on success (report:
+ *                                                          migrationPreview.buildMigrationReport)
+ *   { ok:false, conversionRefused:true, conversions }      values cannot convert (refuse mode)
+ *   { ok:false, migrationFailed:true, failure }            a recompute/convert statement failed
+ *                                                          (fixed reason, never the DB's text)
  *   { ok:false, invalid:true, errors }                     model failed validation
  *   { ok:false, conflict:true, currentVersion, model }     expectedVersion mismatch
  *   { ok:false, notFound:true }                            app not owned / missing
  */
-async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = null, managedWrite = null, additiveOnly = false } = {}) {
+/**
+ * @returns {Promise<SaveDataModelResult>}
+ */
+async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = null, managedWrite = null, additiveOnly = false, convertTypes = false, onUnconvertible = 'refuse' } = {}) {
     await io.ready();
     const { errors } = validateDataModel(model);
     if (errors.length) return { ok: false, invalid: true, errors };
@@ -180,7 +195,8 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         }
 
         // A stage's model never loses a table or a column, whoever asks.
-        if (additiveOnly || (lock.managed && lock.via === 'capability')) {
+        const stage = additiveOnly || (lock.managed && lock.via === 'capability');
+        if (stage) {
             const additive = additiveModel(currentModel, model);
             if (additive.invalid) {
                 await client.query('ROLLBACK');
@@ -207,11 +223,10 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         // neither does, so the drift window — and everything built to detect
         // and repair it — simply does not exist.
         const nextVersion = currentVersion + 1;
-        const plan = migrationPlan(currentModel, model);
-        await io.applyMigration(ownerId, appId, plan, {
-            targetVersion: nextVersion,
-            ...(io.isPg() ? { client } : {}),
-        });
+        const planned = planMigration(currentModel, model, stage ? {} : { convertTypes, onUnconvertible });
+        const applied = await applyPlanned(io, { ownerId, appId, client, planned, nextVersion });
+        // A refusal leaves through the catch below, which owns the ROLLBACK.
+        if ('result' in applied) throw Object.assign(new Error('data model change refused'), { saveResult: applied.result });
         const payload = JSON.stringify(model ?? {});
         if (metaExists) {
             await client.query(
@@ -236,13 +251,38 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         // Row counts can drift across a migration (table drops/recreates) —
         // take an authoritative recount, best-effort (the save is committed).
         try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (err) { bestEffort('stores/studioAppData/dataModel:saveDataModelIn', err); /* advisory */ }
-        return { ok: true, version: nextVersion };
+        const report = buildMigrationReport(planned, applied.probed);
+        await bumpTouchedTables(io, appId, ownerId, planned);
+        return { ok: true, version: nextVersion, report };
     } catch (e) {
         await client.query('ROLLBACK').catch((e) => bestEffort('stores/studioAppData/dataModel:saveDataModelIn#2', e));
+        const refusal = /** @type {{ saveResult?: import('./migrationPreview.mts').SaveRefusal }} */ (e).saveResult;
+        if (refusal) return refusal;
         throw e;
     } finally {
         client.release();
     }
+}
+
+/** bumpDataVersion for every table whose rows a recompute or conversion changed (best-effort). */
+async function bumpTouchedTables(io, appId, ownerId, planned) {
+    const keys = new Set(planned.ops.filter((o) => o.kind !== 'unsupported').map((o) => o.tableKey));
+    for (const key of keys) {
+        try { await (io.bumpDataVersion || bumpDataVersion)(appId, key, ownerId); } catch (err) { bestEffort('stores/studioAppData/dataModel:bumpTouchedTables', err); }
+    }
+}
+
+/**
+ * The dry run of saveDataModel with the type conversions on: what it would do
+ * to the rows (migrationPreview.previewAgainst), nothing written.
+ * @param {string} appId
+ * @param {string} ownerId
+ * @param {Record<string, unknown>} model
+ * @param {{ onUnconvertible?: 'refuse'|'clear' }} [opts]
+ */
+async function previewDataModelChange(appId, ownerId, model, opts = {}) {
+    const meta = await getDataModel(appId, ownerId);
+    return previewAgainst(appId, ownerId, model, meta, opts);
 }
 
 /**
@@ -256,7 +296,7 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
  * Pure. `invalid` is the validator's errors when the merged model is not a
  * valid model (a new field reusing a retained field's key).
  *
- * @returns {{ model: object, plan: string[], refused: string[], invalid: object[]|null }}
+ * @returns {{ model: DataModel, plan: string[], refused: string[], invalid: string[]|null }}
  */
 function additiveModel(current, model) {
     const merged = retainRemoved(current, model);
@@ -320,6 +360,7 @@ const { saveDataModel } = makeDataModelSaver({
 module.exports = {
     getDataModel,
     saveDataModel,
+    previewDataModelChange,
     makeDataModelSaver,
     additiveModel,
     reconcileDataModel,
@@ -329,6 +370,14 @@ module.exports = {
  * @typedef {{ id?: string, [key: string]: unknown }} DataModelField
  * @typedef {{ id?: string, key?: string, fields?: DataModelField[], [key: string]: unknown }} DataModelTable
  * @typedef {{ tables?: DataModelTable[], [key: string]: unknown }} DataModel
+ */
+
+/**
+ * What saveDataModel answers (see saveDataModelIn).
+ * @typedef {{ ok: boolean, version?: number, report?: import('./migrationPreview.mts').MigrationReport,
+ *   invalid?: boolean, errors?: string[], conflict?: boolean, currentVersion?: number, model?: DataModel,
+ *   notFound?: boolean, conversionRefused?: boolean, conversions?: import('./migrationPreview.mts').ConvertEntry[],
+ *   migrationFailed?: boolean, failure?: import('./migrationPreview.mts').MigrationFailure }} SaveDataModelResult
  */
 
 /**

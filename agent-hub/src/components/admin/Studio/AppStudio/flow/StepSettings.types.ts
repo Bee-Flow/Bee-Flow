@@ -10,6 +10,8 @@ export interface StepSettingsProps {
     screens?: AppScreen[];
     disabled?: boolean;
     formFields?: FormFieldRef[];
+    /** The action this step belongs to: a "run another action" picker leaves it out. */
+    actionId?: string | null;
 }
 
 /** One field of a step kind, as the catalog's STEP_SPECS describes it. */

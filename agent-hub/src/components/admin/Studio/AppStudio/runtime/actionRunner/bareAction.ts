@@ -76,12 +76,19 @@ function runInlineAction(ctx: RunnerContext, action: RunnableAction, opts: RunOp
 // action through the same normalizeSequence the client uses, so it
 // needed no path of its own — only this one line. Without it, the
 // button was a silent no-op.
-const SERVER_STEP_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record']);
+// call_action runs here too: the coordinator walks the called action's steps.
+const SERVER_STEP_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'call_action']);
 
 export async function runActionById(ctx: RunnerContext, actionId: string, opts: RunOpts = {}): Promise<void> {
     const action = ctx.live.current.definition?.actions?.[actionId];
     if (!action) return;
 
+    // A background sequence runs as a server job the browser follows. Loaded on first use:
+    // most apps never run one, and the public entry budget counts every static import.
+    if (action.kind === 'sequence' && action.background === true) {
+        const { runBackgroundAction } = await import('./backgroundRun');
+        return runBackgroundAction(ctx, actionId, action, opts);
+    }
     // v2 sequences use the coordinator; bare v1 actions keep their exact
     // legacy behaviour so existing call sites and semantics are unchanged.
     if (action.kind === 'sequence' || SERVER_STEP_KINDS.has(action.kind as string)) {

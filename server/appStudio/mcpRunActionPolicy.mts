@@ -5,12 +5,18 @@
  */
 
 import { createRequire } from 'node:module';
+import type { Decision } from './sequenceWalk.mts';
+
+export type { Decision };
 
 const nodeRequire = createRequire(import.meta.url);
 
 export type Obj = Record<string, unknown>;
 export type Step = Obj & { kind?: string };
-export type RunLimits = { perMinute: number; budgetMs: number; maxExecuted: number };
+export type RunLimits = {
+    perMinute: number; budgetMs: number; maxExecuted: number;
+    freePerMinute: number; maxReads: number; testsPerCall: number; testsBudgetMs: number; testsPerApp: number;
+};
 
 
 const policy = nodeRequire('./mailboxHookPolicy.mts') as { HOOK_STEP_KINDS: readonly string[] };
@@ -22,7 +28,9 @@ export const CONTROL_KINDS = ['condition', 'switch', 'loop'];
 const LIVE_KINDS: readonly string[] = [...policy.HOOK_STEP_KINDS, 'delete_record'];
 /** Steps that run even in dryRun (they read, or call the model); writeTo is stripped there. */
 const DRY_RUN_KINDS: readonly string[] = ['ai_extract', 'ai_generate', 'kb_query', 'dataset_query'];
-const RECORD_WRITES: readonly string[] = ['create_record', 'update_record', 'delete_record'];
+/** Steps a test may give a fixed answer (`mock`): exactly the ones a dry run sends to the executor. */
+export const MOCKABLE_KINDS: readonly string[] = DRY_RUN_KINDS;
+export const RECORD_WRITES: readonly string[] = ['create_record', 'update_record', 'delete_record'];
 
 export const MAX_LOOP_ITERATIONS = 200;
 export const MAX_REPORT_STEPS = 300;
@@ -32,10 +40,6 @@ export const MAX_SCOPE_BYTES = 64 * 1024;
 const SECRET_KEY_RE = /token|secret|password|passwd|authorization|api[_-]?key|credential|cookie/i;
 
 export const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
-
-export type Decision =
-    | { run: true; step: Step; note?: string }
-    | { run: false; status: 'skipped' | 'refused'; reason: string; result?: unknown };
 
 /** Report-safe value: depth, size and secret-looking keys bounded. */
 export function trimValue(value: unknown, depth = 0): unknown {
@@ -72,7 +76,7 @@ export function short(v: unknown, max = 200): string | null {
  * What to do with one step. Pure. This is the whole policy:
  * the send_email guarantee lives here AND is re-checked by runGuarded right before execution.
  */
-export function decideStep(step: Step, dryRun: boolean, inLoop: boolean, wouldSend?: Obj): Decision {
+export function decideStep(step: Step, dryRun: boolean, inLoop: boolean, wouldSend?: Obj, wouldWrite?: Obj): Decision {
     const kind = String(step.kind);
     if (!SERVER_KINDS.includes(kind)) return { run: false, status: 'skipped', reason: 'client step (runs in the browser; skipped here)' };
     if (kind === 'send_email') {
@@ -87,8 +91,13 @@ export function decideStep(step: Step, dryRun: boolean, inLoop: boolean, wouldSe
             const { writeTo: _dropped, ...rest } = step;
             return { run: true, step: rest, note: 'dryRun: writeTo not applied, no rows written' };
         }
+        if (kind === 'transaction') {
+            const children = Array.isArray(step.steps) ? step.steps : [];
+            const would = children.slice(0, 50).map((c) => ({ kind: isObject(c) ? short(c.kind, 40) : null, tableId: isObject(c) ? short(c.tableId) : null }));
+            return { run: false, status: 'skipped', reason: `dryRun: would write ${children.length} record step(s) in one transaction; nothing is executed`, result: { wouldWrite: would } };
+        }
         const verb = RECORD_WRITES.includes(kind) ? 'would write' : 'would run';
-        return { run: false, status: 'skipped', reason: `dryRun: ${verb} (${kind}); nothing is executed`, result: RECORD_WRITES.includes(kind) ? { wouldWrite: { kind, tableId: short(step.tableId) } } : undefined };
+        return { run: false, status: 'skipped', reason: `dryRun: ${verb} (${kind}); nothing is executed`, result: RECORD_WRITES.includes(kind) ? { wouldWrite: { kind, tableId: short(step.tableId), ...(wouldWrite ?? {}) } } : undefined };
     }
     if (!LIVE_KINDS.includes(kind)) {
         return { run: false, status: 'refused', reason: `${kind} is not run by app_run_action (it reaches people or needs a viewer session); test it with a button click` };
@@ -100,19 +109,36 @@ export function decideStep(step: Step, dryRun: boolean, inLoop: boolean, wouldSe
 
 const RATE_WINDOW_MS = 60_000;
 const windows = new Map<string, number[]>();
+const freeWindows = new Map<string, number[]>();
 
-/** One run for this user, or false when the per-minute budget is spent (perMinute 0 = unlimited). */
-export function takeRunBudget(userId: string, now: number, perMinute: number): boolean {
+function takeFrom(store: Map<string, number[]>, userId: string, now: number, perMinute: number): boolean {
     if (perMinute === 0) return true;
-    const recent = (windows.get(userId) || []).filter((t) => now - t < RATE_WINDOW_MS);
-    if (recent.length >= perMinute) { windows.set(userId, recent); return false; }
+    const recent = (store.get(userId) || []).filter((t) => now - t < RATE_WINDOW_MS);
+    if (recent.length >= perMinute) { store.set(userId, recent); return false; }
     recent.push(now);
-    windows.set(userId, recent);
+    store.set(userId, recent);
     return true;
 }
 
+/**
+ * One PAID run for this user, or false when the per-minute budget is spent (perMinute 0 =
+ * unlimited). A live run takes it up front; a dry run only when a step first reaches the
+ * executor (an AI step that is not mocked), so a fully mocked test is free.
+ */
+export function takeRunBudget(userId: string, now: number, perMinute: number): boolean {
+    return takeFrom(windows, userId, now, perMinute);
+}
+
+/**
+ * The hygiene window every app_run_action / app_run_tests call takes once, mocked or not:
+ * a free run still reads the database (STUDIO_MCP_RUN_ACTION_FREE_PER_MINUTE, 0 = unlimited).
+ */
+export function takeFreeBudget(userId: string, now: number, perMinute: number): boolean {
+    return takeFrom(freeWindows, userId, now, perMinute);
+}
+
 /** Test seam. */
-export function resetRunWindows(): void { windows.clear(); }
+export function resetRunWindows(): void { windows.clear(); freeWindows.clear(); }
 
 function intFromEnv(name: string, fallback: number): number {
     const raw = process.env[name];
@@ -121,12 +147,61 @@ function intFromEnv(name: string, fallback: number): number {
     return Number.isInteger(n) && n >= 0 ? n : fallback;
 }
 
-/** Caps, read on every call (0 = unlimited): STUDIO_MCP_RUN_ACTION_PER_MINUTE 10, _BUDGET_MS 120000, _MAX_STEPS 500. */
+/** The env variable behind each runtime cap, for messages that name it. */
+export const LIMIT_ENV: Readonly<Record<keyof RunLimits, string>> = Object.freeze({
+    perMinute: 'STUDIO_MCP_RUN_ACTION_PER_MINUTE',
+    budgetMs: 'STUDIO_MCP_RUN_ACTION_BUDGET_MS',
+    maxExecuted: 'STUDIO_MCP_RUN_ACTION_MAX_STEPS',
+    freePerMinute: 'STUDIO_MCP_RUN_ACTION_FREE_PER_MINUTE',
+    maxReads: 'STUDIO_MCP_RUN_ACTION_MAX_READS',
+    testsPerCall: 'STUDIO_MCP_RUN_TESTS_MAX',
+    testsBudgetMs: 'STUDIO_MCP_RUN_TESTS_BUDGET_MS',
+    testsPerApp: 'STUDIO_APP_TESTS_MAX',
+});
+
+const LIMIT_DEFAULTS: Readonly<RunLimits> = Object.freeze({
+    perMinute: 10, budgetMs: 120_000, maxExecuted: 500,
+    freePerMinute: 120, maxReads: 500, testsPerCall: 100, testsBudgetMs: 300_000, testsPerApp: 500,
+});
+
+/**
+ * Caps, read on every call (0 = unlimited): STUDIO_MCP_RUN_ACTION_PER_MINUTE 10, _BUDGET_MS 120000,
+ * _MAX_STEPS 500, _FREE_PER_MINUTE 120, _MAX_READS 500; STUDIO_MCP_RUN_TESTS_MAX 100,
+ * STUDIO_MCP_RUN_TESTS_BUDGET_MS 300000; STUDIO_APP_TESTS_MAX 500.
+ */
 export function runLimits(): RunLimits {
-    return {
-        perMinute: intFromEnv('STUDIO_MCP_RUN_ACTION_PER_MINUTE', 10),
-        budgetMs: intFromEnv('STUDIO_MCP_RUN_ACTION_BUDGET_MS', 120_000),
-        maxExecuted: intFromEnv('STUDIO_MCP_RUN_ACTION_MAX_STEPS', 500),
+    const out = { ...LIMIT_DEFAULTS };
+    for (const key of Object.keys(LIMIT_ENV) as Array<keyof RunLimits>) out[key] = intFromEnv(LIMIT_ENV[key], LIMIT_DEFAULTS[key]);
+    return out;
+}
+
+/** "limit 10 (STUDIO_MCP_RUN_ACTION_PER_MINUTE=10)": the words every limit message uses. */
+export function limitText(limits: RunLimits, key: keyof RunLimits): string {
+    return `${LIMIT_ENV[key]}=${limits[key]}`;
+}
+
+// ── Scope ───────────────────────────────────────────────────────────────────
+
+/** `params` tests a called action on its own (what call_action would pass as params.<name>). */
+export type RunScope = { vars: Obj; form: Obj; item: unknown; params?: Obj };
+
+/** What a click would have in scope: { vars?, form?, item? }, at most MAX_SCOPE_BYTES. */
+export function readScope(raw: unknown): RunScope | { error: string } {
+    if (raw === undefined || raw === null) return { vars: {}, form: {}, item: undefined };
+    if (!isObject(raw)) return { error: 'scope must be an object { vars?, form?, item?, params? }.' };
+    const bag = (v: unknown, name: string): Obj | string => {
+        if (v === undefined || v === null) return {};
+        if (!isObject(v)) return `scope.${name} must be an object.`;
+        return v;
     };
+    const vars = bag(raw.vars, 'vars');
+    const form = bag(raw.form, 'form');
+    const params = bag(raw.params, 'params');
+    if (typeof vars === 'string') return { error: vars };
+    if (typeof form === 'string') return { error: form };
+    if (typeof params === 'string') return { error: params };
+    if (JSON.stringify(raw).length > MAX_SCOPE_BYTES) return { error: `scope is larger than ${MAX_SCOPE_BYTES / 1024} KB.` };
+    // params only when given: a saved test without it keeps its stored shape.
+    return { vars: { ...vars }, form: { ...form }, item: raw.item, ...(raw.params !== undefined && raw.params !== null ? { params: { ...params } } : {}) };
 }
 

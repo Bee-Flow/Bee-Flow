@@ -74,3 +74,10 @@ test('time-out 0: no timer, no signal', async () => {
     assert.equal(seen, undefined);
     assert.match(lines[0], /done in \d+ ms$/);
 });
+
+test('one knob: STUDIO_APP_AI_TIMEOUT_MS is read only as an alias when STUDIO_AI_CALL_TIMEOUT_MS is unset', () => {
+    assert.equal(aiCallTimeoutMs({ STUDIO_APP_AI_TIMEOUT_MS: '9000' }), 9000);
+    assert.equal(aiCallTimeoutMs({ STUDIO_APP_AI_TIMEOUT_MS: '9000', STUDIO_AI_CALL_TIMEOUT_MS: '50' }), 50);
+    assert.equal(aiCallTimeoutMs({ STUDIO_APP_AI_TIMEOUT_MS: '0' }), 0);
+    assert.equal(aiCallTimeoutMs({}), 120_000);
+});

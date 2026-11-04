@@ -4,6 +4,7 @@ const { pickClosestId } = require('../../automation/validate/helpers');
 const { emptyDataModel } = require('../dataModel');
 const { persistDraft } = require('./persistence');
 const { fallback } = require('../../utils/bestEffort');
+const log = require('../../telemetry/log');
 
 /**
  * The refusal every data tool gives for a LINKED table (source: datatable).
@@ -80,11 +81,14 @@ function tableIdHint(model) {
  * yet; on a version conflict re-applies the caller's PURE op onto the server's
  * model (`rebase(serverModel)` → next model or { error }) and retries ONCE.
  * On success adopts model/version/rowCounts onto the draftWrap. Returns:
- *   { ok:true, version, model }   — adopted
+ *   { ok:true, version, model, report }  — adopted (report: the migration report)
  *   { invalid:true, errors }      — validateDataModel rejected (self-repair)
+ *   { conversionRefused:true, conversions } / { migrationFailed:true, failure }
+ *                                 — the save's own refusals (dataModelPersistError words them)
  *   { error }                     — persistent conflict / not found / store failure
+ * `saveOpts` go to saveDataModel as they are (convertTypes, onUnconvertible).
  */
-async function persistDataModel(draftWrap, nextModel, /** @type {{ rebase?: ((serverModel: Record<string, unknown>) => Record<string, unknown> | null) | null }} */ { rebase = null } = {}) {
+async function persistDataModel(draftWrap, nextModel, /** @type {{ rebase?: ((serverModel: Record<string, unknown>) => Record<string, unknown> | null) | null, saveOpts?: Record<string, unknown> }} */ { rebase = null, saveOpts = {} } = {}) {
     if (!draftWrap.appId) {
         const created = await persistDraft(draftWrap);
         if (created.error) return created;
@@ -93,6 +97,7 @@ async function persistDataModel(draftWrap, nextModel, /** @type {{ rebase?: ((se
     try {
         let model = nextModel;
         let res = await studioAppDataStore.saveDataModel(draftWrap.appId, draftWrap.userId, model, {
+            ...saveOpts,
             expectedVersion: draftWrap.dataModelVersion ?? null,
         });
         if (res.conflict && typeof rebase === 'function') {
@@ -100,10 +105,13 @@ async function persistDataModel(draftWrap, nextModel, /** @type {{ rebase?: ((se
             if (rebased && rebased.error) return rebased;
             model = rebased;
             res = await studioAppDataStore.saveDataModel(draftWrap.appId, draftWrap.userId, model, {
+                ...saveOpts,
                 expectedVersion: res.currentVersion,
             });
         }
         if (res.invalid) return { invalid: true, errors: res.errors };
+        if (res.conversionRefused) return { conversionRefused: true, conversions: res.conversions || [] };
+        if (res.migrationFailed) return { migrationFailed: true, failure: res.failure };
         if (res.conflict) return { error: DATA_CONFLICT_ERROR };
         if (res.notFound) return { error: 'This app no longer exists — it may have been deleted in another tab. Start a new app.' };
         if (!res.ok) return { error: 'Could not save the data model.' };
@@ -118,9 +126,16 @@ async function persistDataModel(draftWrap, nextModel, /** @type {{ rebase?: ((se
             const { overlayLinkedRowCounts } = require('../linkedTables');
             draftWrap.rowCounts = overlayLinkedRowCounts(rowCountsById(model, counts), draftWrap.linkedTables);
         } catch (err) { fallback('appStudio/builderTools/dataToolsShared:persistDataModel', err); /* stale counts are advisory */ }
-        return { ok: true, version: res.version, model };
+        return { ok: true, version: res.version, model, report: res.report || null };
     } catch (e) {
-        return { error: `Could not save the data model: ${/** @type {Error} */ (e).message}` };
+        // A refusal the store words for the caller (409 managed part, 422 …) is passed on.
+        const status = /** @type {{ status?: unknown }} */ (e).status;
+        if (typeof status === 'number' && status >= 400 && status < 500) {
+            return { error: `Could not save the data model: ${/** @type {Error} */ (e).message}` };
+        }
+        // Never the database's own text: it can quote a row value.
+        log.warn(`[StudioBuilder] data model save failed for ${draftWrap.appId}: ${/** @type {{ code?: unknown }} */ (e).code || 'no code'}`);
+        return { error: 'Could not save the data model (the database refused the change). Nothing was saved.' };
     }
 }
 
@@ -132,6 +147,24 @@ function dataModelPersistError(persisted) {
             error: 'The data model failed validation — fix every error below, then call the tool again.',
             errors: persisted.errors,
             _fixHint: 'Table/field keys are lowercase snake_case; select fields need options; relations must point at existing tbl_… ids.',
+        };
+    }
+    if (persisted.conversionRefused) {
+        const bad = (persisted.conversions || []).filter((c) => c.unconvertible);
+        return {
+            error: `Nothing was saved: ${bad.map((c) => `${c.unconvertible} value(s) in ${c.table}.${c.field} cannot convert from ${c.from} to ${c.to}`).join('; ') || 'some values cannot convert'}.`,
+            conversions: persisted.conversions,
+            _fixHint: 'Fix those rows first (app_update_records), or call again with onUnconvertible:"clear" to empty them. dryRun:true lists examples.',
+        };
+    }
+    if (persisted.migrationFailed) {
+        const f = persisted.failure || {};
+        return {
+            error: `Nothing was saved: ${f.table}.${f.field} could not be ${f.kind === 'convert' ? 'converted' : 'recomputed'}. ${f.message || ''}`.trim(),
+            failure: f,
+            _fixHint: f.kind === 'recompute'
+                ? 'Change the computed expr so it holds for every row (guard divisions with NULLIF, name only existing columns), then call again.'
+                : 'Fix the rows that hold the value, or add a new field instead of converting this one.',
         };
     }
     return null;

@@ -27,6 +27,7 @@ const {
     buildCatalogSections,
     renderComponentEntry,
     renderStepEntry,
+    renderStepKindCompactLine,
     renderComponentCompact,
     COMPACT_STEP_KINDS,
 } = require('./catalogRender');
@@ -210,8 +211,31 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * 54_500 → 55_000 (chips and the own PDF viewer, measured 2026-11-02):
  * page_header.tagsFrom, list.tagsKey and file_preview viewer/textLayer, each
  * description already cut to one clause, took the catalog to 54_571. ~430 headroom.
+ *
+ * 55_000 → 56_000 (App Studio package 1, reusable logic, measured 2026-11-04): the
+ * call_action step and action kind, its params field and one semantics line, and
+ * modelTier as a tier name or formula, took the catalog to 55_436. ~560 headroom.
+ *
+ * 56_000 → 57_000 (App Studio package 2, error handling, measured 2026-11-04): the
+ * onError/retry envelope (one line for every server step instead of per kind) and
+ * the transaction step with its line took the catalog to 56_475. ~520 headroom.
+ *
+ * 57_000 → 58_000 (App Studio package 5, bulk writes, measured 2026-11-04): filter + limit on
+ * update/delete_record and one line on filter writes, writeTo upsertKey and replaceWhere took the
+ * catalog to 57_012 (the compact form leaves the two fields out). ~990 headroom.
+ *
+ * Package 4 (data model changes with data, measured 2026-11-04 on top of 1, 2, 3 and 5): two
+ * full-only lines on changing a table that holds rows (stored vs read-time computed, the safe
+ * type conversions with dryRun and onUnconvertible) took the catalog to 57_567, within 58_000.
+ * The compact form is unchanged.
+ *
+ * 58_000 → 59_000 (App Studio package 6, formulas and filters, measured 2026-11-04 on top of
+ * 1, 2, 3, 5 and 4): seven function signatures (unique, regexMatch, regexReplace, map, filter,
+ * some, every; sum gained its field), one OR-group line under the filters and two formula lines
+ * (member access on a call result, `it`, the regex subset) took the catalog to 58_259. ~740
+ * headroom; the round's end-state target is <= 59_000 (plan section 4).
  */
-const CATALOG_CHAR_CEILING = 55_000;
+const CATALOG_CHAR_CEILING = 59_000;
 
 test('renderCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCatalogText();
@@ -247,8 +271,10 @@ test('all action kinds are rendered — inline fields, or a pointer to an identi
     for (const kind of ACTION_KINDS) {
         assert.ok(new RegExp(`^${kind}: \\{`, 'm').test(text), `action kind ${kind} rendered with a shape`);
         const twin = STEP_SPECS[kind];
+        // The error-handling envelope (retry / onError) is step-only and taught once in the steps lead.
+        const own = twin && Object.fromEntries(Object.entries(twin.fields).filter(([, fs]) => !fs.envelope));
         const identicalTwin = twin
-            && JSON.stringify(twin.fields) === JSON.stringify(ACTION_SPECS[kind].fields);
+            && JSON.stringify(own) === JSON.stringify(ACTION_SPECS[kind].fields);
         if (!identicalTwin) {
             assert.ok(
                 !new RegExp(`^${kind}: \\{ …`, 'm').test(text),
@@ -511,7 +537,20 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-11-02, page_header.tagsFrom and list.tagsKey (mail categories as chips) — 54_476 chars.
 // 2026-11-02, file_preview got viewer/textLayer props — 54_571 chars.
 // 2026-11-03, MAX_ACTION_STEPS 60 -> 120 ("max 120 steps") — 54_572 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '1087e095cc81d785c241b439faeaf162024d8ec64edc216617831b4f9c55a054';
+// 2026-11-04, package 9 (limits): 200 actions, depth 8, prompt <=32000, aiSchema/contextSources limits
+// named in the field lists — 54_716 chars.
+// 2026-11-04, package 1 (reusable logic): call_action (step + action, params, semantics line) and
+// modelTier as tier name | formula — 55_436 chars.
+// 2026-11-04, package 2 (error handling): onError/retry envelope line, the transaction step and
+// its line — 56_475 chars.
+// 2026-11-04, package 5 (bulk writes) on top of package 3 (background / lockKey / progressVar):
+// filter + limit on update/delete_record, recordId no longer REQUIRED (one of the two), and one
+// line on filter writes, upsertKey and replaceWhere — 57_076 chars.
+// 2026-11-04, package 4 (data model changes with data): stored vs read-time computed and the safe
+// type conversions — 57_567 chars.
+// 2026-11-04, package 6 (formulas and filters): new function signatures, the any-group filter line,
+// member access on call results, map/filter/some/every with it, the regex subset — 58_259 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'a59e22f331db2435591c473b703f2e74a410481c098a6ec137511dffa16496f5';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();
@@ -595,7 +634,9 @@ test('compact steps: the common kinds in full, the rest named once with the insp
     for (const kind of COMPACT_STEP_KINDS) {
         assert.ok(STEP_SPECS[kind], `${kind} is a real step kind`);
         assert.ok(new RegExp(`^${kind} \\[(client|SERVER)\\]: \\{`, 'm').test(section), `${kind} rendered in full`);
-        assert.ok(section.includes(renderStepEntry(kind)), `${kind}: the compact line IS the full step line`);
+        // The full step line, minus the bulk-write fields (filter, limit) the compact band does not get.
+        assert.ok(section.includes(renderStepKindCompactLine(kind)), `${kind}: the compact line IS the full step line`);
+        if (!/filter: |limit: /.test(renderStepEntry(kind))) assert.strictEqual(renderStepKindCompactLine(kind), renderStepEntry(kind));
     }
     const rest = STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
     assert.ok(rest.length > 0);
@@ -613,8 +654,11 @@ test('compact steps: the common kinds in full, the rest named once with the insp
 test('the compact catalog keeps the whole formula vocabulary and the core binding kinds, and drops the rest', () => {
     const text = renderCompactCatalogText();
     const formulas = text.slice(text.indexOf('### Formulas'), text.indexOf('### Data model'));
-    for (const name of EXPR_FUNCTION_NAMES) assert.ok(formulas.includes(`${name}(`), `formula function ${name} present`);
-    for (const f of EXPR_FUNCTIONS) assert.ok(formulas.includes(f.signature), `signature ${f.signature} verbatim`);
+    // Every name, except the list functions and the regex pair (2026-11-04): the core prompt
+    // budget only goes down, so the compact vocabulary is the one before them (formulaGuide.js).
+    const { NOT_IN_COMPACT, COMPACT_SIGNATURES } = require('./formulaGuide');
+    for (const name of EXPR_FUNCTION_NAMES) assert.strictEqual(formulas.includes(`${name}(`), !NOT_IN_COMPACT.has(name), `formula function ${name} present unless left out on purpose`);
+    for (const f of EXPR_FUNCTIONS.filter((x) => !NOT_IN_COMPACT.has(x.name))) assert.ok(formulas.includes(COMPACT_SIGNATURES.get(f.name) || f.signature), `signature ${f.signature} verbatim`);
     for (const kind of ['static', 'actionResult', 'formula', 'record', 'records', 'aggregate']) {
         assert.ok(text.includes(`"kind": "${kind}"`), `binding kind ${kind} taught`);
     }
@@ -664,4 +708,20 @@ test('renderComponentEntry / renderStepEntry serve the full entry the compact li
     assert.ok(full.includes(renderStepEntry('request_approval')));
     assert.match(renderStepEntry('request_approval'), /^request_approval \[SERVER\]: \{/);
     assert.strictEqual(renderStepEntry('nope'), null);
+});
+
+test('the catalog names the AI step limits: prompt, schema description, context sources', () => {
+    const text = renderCatalogText();
+    assert.ok(text.includes(`≤${LIMITS.MAX_AI_PROMPT_LEN}`), 'ai_generate prompt maxLen is rendered');
+    assert.ok(text.includes(`description? ≤${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}`));
+    assert.ok(text.includes(`[{ label? ≤${LIMITS.MAX_CONTEXT_SOURCE_LABEL}, source: binding }] (≤${LIMITS.MAX_CONTEXT_SOURCES})`));
+    assert.ok(text.includes('≤32000'));
+});
+
+test('the guide teaches call_action (params.<name>, depth 3, never recursive) and modelTier as a formula', () => {
+    const text = require('./catalogRender').renderCatalogText();
+    assert.match(text, /call_action \[client\]: \{ actionId: string REQUIRED ≤80, params: \{ <name>: binding \} \(≤20, read as params\.<name> in the called action\)/);
+    assert.match(text, /call_action runs another action as a subroutine.*≤3 calls deep, never recursive/);
+    assert.match(text, /modelTier: tier name \| \{kind:"formula",expr\} \(not a tier name → default tier, with a note\)/);
+    assert.match(require('./catalogRender').renderCompactCatalogText(), /call_action/, 'the compact catalog names the kind');
 });

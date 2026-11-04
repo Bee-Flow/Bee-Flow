@@ -127,6 +127,32 @@ function idHint(def) {
 const BENIGN_REPAIR_CODES = new Set(['props.defaulted', 'section.style_defaulted']);
 
 /**
+ * Canonicalizer repairs that CUT authored content to a limit. Loading a stored definition keeps
+ * repairing them (an old app must still open); an authoring call refuses them instead, so a saved
+ * action never silently loses an input, a list entry or the end of a text.
+ */
+const LIMIT_REPAIR_CODES = new Set([
+    'string.truncated',
+    'ai_schema.description_truncated',
+    'ai_schema.fields_truncated',
+    'step.context_sources_truncated',
+    'approval.questions_truncated',
+    'approval.question_truncated',
+    'approval.stages_truncated',
+]);
+
+/**
+ * The limit-cutting repairs canonicalizing `nextDef` would make under `pathPrefix`.
+ * @param {string} pathPrefix
+ * @returns {Array<{ code: string, path: string, message: string }>}
+ */
+function limitRepairsUnder(nextDef, pathPrefix) {
+    const { repairs } = canonicalizeAppDefinition(nextDef);
+    return repairs.filter((r) => LIMIT_REPAIR_CODES.has(r.code) && typeof r.path === 'string'
+        && (r.path === pathPrefix || r.path.startsWith(`${pathPrefix}.`) || r.path.startsWith(`${pathPrefix}[`)));
+}
+
+/**
  * Canonicalize `nextDef`, adopt it as the live draft, and decorate `result`
  * with the canonicalizer's repair hints (clamps, dropped keys, hoists, …).
  * This is THE common tail of every mutating tool.
@@ -179,6 +205,8 @@ module.exports = {
     normalizeNodeField,
     idHint,
     adoptCanonical,
+    limitRepairsUnder,
+    LIMIT_REPAIR_CODES,
     capStr,
     capStrArray,
 };

@@ -97,7 +97,7 @@ function reviveBlobs(v) {
  * @typedef {keyof typeof STATEMENT_OPS} StatementOp
  * @typedef {import('child_process').ChildProcess} ChildProcess
  * @typedef {{ resolve: (v: unknown) => void, reject: (e: Error) => void, entry: RunnerHandle, timer: NodeJS.Timeout, proc: ChildProcess, op: StatementOp, args: unknown[], retried: boolean }} Pending
- * @typedef {{ id: number, ok: boolean, result?: unknown, error?: { message: string, code?: string } }} ChildReply
+ * @typedef {{ id: number, ok: boolean, result?: unknown, error?: { message: string, code?: string, statementIndex?: number } }} ChildReply
  */
 
 /** One statement process and the statements sent to it. */
@@ -196,7 +196,11 @@ class StatementLane {
         this.inflight.delete(msg.id);
         clearTimeout(p.timer);
         if (msg.ok) p.resolve(reviveBlobs(msg.result));
-        else p.reject(Object.assign(new Error(msg.error?.message || 'statement failed'), msg.error?.code ? { code: msg.error.code } : {}));
+        else {
+            p.reject(Object.assign(new Error(msg.error?.message || 'statement failed'),
+                msg.error?.code ? { code: msg.error.code } : {},
+                Number.isInteger(msg.error?.statementIndex) ? { statementIndex: msg.error?.statementIndex } : {}));
+        }
         this.release();
     }
 

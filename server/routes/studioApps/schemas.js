@@ -6,7 +6,7 @@
  * validate against.
  */
 
-const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, closedObject, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
 
 // ── What the app-management routes accept ────────────────────────────
 // Closed bodies and queries. What they close: `isPublished: "false"` on
@@ -64,6 +64,27 @@ const RefQuery = queryOf({
 }, 'An app reference');
 const DraftQuery = queryOf({ draft: choice(['0', '1'], 'draft is 1 for the saved draft.').optional() }, 'The app runtime');
 
+// ── The run log (routes/studioApps/runLog.js) ────────────────────────
+const RUN_STATUS_TEXT = 'status is running, success, error, interrupted, cancelled or refused.';
+const ORIGIN_TEXT = 'origin is a comma list of click, public, mcp, test, background and mailbox_hook.';
+const USER_TEXT = 'user is me, others, visitors, system or the id of a person.'; // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a help text for the user filter, not a username
+const RunsQuery = queryOf({
+    actionId: appText('actionId is the id of an action of the app.', 80).regex(/^[A-Za-z0-9_-]{1,80}$/, 'actionId is the id of an action of the app.').optional(),
+    status: choice(['running', 'success', 'error', 'interrupted', 'cancelled', 'refused'], RUN_STATUS_TEXT).optional(),
+    origin: appText(ORIGIN_TEXT, 120).regex(/^(click|public|mcp|test|background|mailbox_hook)(,(click|public|mcp|test|background|mailbox_hook))*$/, ORIGIN_TEXT).optional(),
+    user: appText(USER_TEXT, 200).optional(),
+    since: appText('since is a date and time (ISO 8601).', 40).refine((v) => !Number.isNaN(Date.parse(v)), 'since is a date and time (ISO 8601).').optional(),
+    cursor: appText('cursor is the nextCursor a previous page returned.', 200).optional(),
+    limit: appText('limit is a whole number from 1 to 100.', 3).regex(/^(?:[1-9]\d?|100)$/, 'limit is a whole number from 1 to 100.').optional(),
+}, 'A run list');
+const RUN_ID_TEXT = 'runId is the id of a run (sar_ and 32 hex characters).';
+// Bounded here; the sar_<32 hex> shape is checked AFTER the app gate (an unknown shape is the
+// same 404 as an unknown run), as for background jobs.
+const RunParams = closedObject({
+    id: appText('id is the app id.', 200).min(1, 'id is the app id.'),
+    runId: appText(RUN_ID_TEXT, 64).min(1, RUN_ID_TEXT),
+}, 'A run address');
+
 module.exports = {
     CreateAppBody,
     UpdateAppBody,
@@ -74,4 +95,6 @@ module.exports = {
     DownloadQuery,
     RefQuery,
     DraftQuery,
+    RunsQuery,
+    RunParams,
 };

@@ -91,8 +91,14 @@ stub('../../stores/datatableStore', {
 const dtExec = [];
 const dtBatch = [];
 let dtExecResult = { changes: 1 };
+const dtQuery = [];
+let dtQueryRows = [];
 stub('../../stores/datatableDbStore', {
     scopeKey: (scope) => `${scope.kind}:${scope.id}`,
+    query: async (ownerId, entityId, sql, params) => {
+        dtQuery.push({ ownerId, entityId, sql, params });
+        return { rows: /COUNT\(\*\)/.test(sql) ? [{ n: dtQueryRows.length }] : dtQueryRows };
+    },
     exec: async (ownerId, entityId, sql, params) => {
         dtExec.push({ ownerId, entityId, sql, params });
         return dtExecResult;
@@ -190,6 +196,8 @@ function reset({ table = datatable(), granted = [] } = {}) {
     grants = granted;
     dtExec.length = 0; dtBatch.length = 0; appExec.length = 0; bumps.length = 0; appBumps.length = 0;
     dtExecResult = { changes: 1 };
+    dtQuery.length = 0;
+    dtQueryRows = [];
     storeFails = null;
     userReadFails = null;
 }
@@ -674,4 +682,52 @@ test('de knooppunten laten een tabel ZONDER source ongemoeid', async () => {
     assert.strictEqual(appExec.length, 2);
     assert.match(appExec[1].sql, /^DELETE FROM "klanten"/);
     assert.strictEqual(dtExec.length, 0);
+});
+
+// ═══ package 5: filter-mode writes on a linked datatable ═══════════════════
+
+const bulkDelete = () => ({ kind: 'delete_record', tableId: 'tbl_model01', filter: [{ field: 'akkoord', op: 'eq', value: true }] });
+
+test('delete_record with a filter: matched and deleted on the DATATABLE, under its grade, one statement', async () => {
+    reset();
+    dtQueryRows = [{ id: 'rec_1' }, { id: 'rec_2' }];
+    dtExecResult = { changes: 2 };
+    const res = await run(bulkDelete(), ownerCtx());
+    assert.strictEqual(res.ok, true, res.error);
+    assert.strictEqual(res.result.deleted, 2);
+    assert.strictEqual(appExec.length, 0, 'never the app storage');
+    assert.ok(dtQuery.every((q) => q.ownerId === `org:${ORG}`), 'matched on the scope key');
+    assert.match(dtQuery[1].sql, /FROM "dt_klanten"/);
+    assert.strictEqual(dtExec.length, 1);
+    assert.match(dtExec[0].sql, /^DELETE FROM "dt_klanten" WHERE .* AND "id" IN \(\?, \?\)$/);
+    assert.deepStrictEqual(bumps, [{ id: DT_ID, scope: { kind: 'org', id: ORG }, delta: -2 }]);
+});
+
+test('a filter-mode write on a mode:read link is refused, nothing matched or written', async () => {
+    for (const step of [bulkDelete(), { ...bulkDelete(), kind: 'update_record', values: { naam: { kind: 'static', value: 'x' } } }]) {
+        reset();
+        const res = await run(step, ownerCtx(), 'read');
+        assert.strictEqual(res.ok, false);
+        assert.match(res.error, /reading only/);
+        assert.strictEqual(dtQuery.length, 0);
+        assert.strictEqual(dtExec.length, 0);
+    }
+});
+
+test('a viewer-grade member cannot bulk delete on the datatable', async () => {
+    reset({ granted: VIEWER_GRANT });
+    const res = await run(bulkDelete(), memberCtx());
+    assert.strictEqual(res.ok, false);
+    assert.strictEqual(dtExec.length, 0);
+});
+
+test('writeTo.replaceWhere on a source mirror is refused before anything is written', async () => {
+    reset({ table: datatable({ managedKind: 'spreadsheet_file' }) });
+    dtRow.managedKind = 'spreadsheet_file';
+    const err = await refusal(() => actionExecutor.writeRecordBatch && require('./replaceRecords.mts').replaceRecordBatch(
+        app, model(), model().tables[0], [{ naam: 'A' }], { viewer: { id: OWNER, role: 'owner', organizationId: ORG }, filters: [{ field: 'naam', op: 'eq', value: 'A' }], limit: 500 },
+    ));
+    assert.strictEqual(err.status, 422);
+    assert.strictEqual(err.code, 'replace_on_mirror');
+    assert.strictEqual(dtExec.length + dtBatch.length, 0);
 });

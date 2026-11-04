@@ -183,7 +183,7 @@ test('applyMigration stamps PRAGMA user_version inside the migration transaction
     // An empty plan with a targetVersion still stamps (model-only saves).
     assert.deepStrictEqual(
         await store.applyMigration(OWNER, appId, [], { targetVersion: 2 }),
-        { applied: 0, skipped: [] },
+        { applied: 0, skipped: [], probed: [] },
     );
     assert.strictEqual(await store.getSchemaStamp(OWNER, appId), 2);
 
@@ -199,6 +199,37 @@ test('applyMigration stamps PRAGMA user_version inside the migration transaction
     // Non-integer / negative targetVersion is ignored, not stamped.
     await store.applyMigration(OWNER, appId, ['CREATE TABLE u (id TEXT)'], { targetVersion: -1 });
     assert.strictEqual(await store.getSchemaStamp(OWNER, appId), 2);
+});
+
+test('applyMigration probes: counted before their statement; a refusing one rolls back the plan and the stamp; a failing statement carries its index', async (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const appId = freshAppId();
+    t.after(() => store.invalidate(appId));
+    await store.applyMigration(OWNER, appId, [
+        'CREATE TABLE p (id TEXT PRIMARY KEY, v TEXT)',
+        "INSERT INTO p (id, v) VALUES ('a', '1'), ('b', 'x')",
+    ], { targetVersion: 1 });
+    const probe = (refuse) => ({ sql: "SELECT COUNT(*) AS n, COALESCE(SUM(CASE WHEN v = 'x' THEN 1 ELSE 0 END), 0) AS bad FROM \"p\"", at: 0, opIndex: 0, refuse, tableKey: 'p' });
+
+    const ok = await store.applyMigration(OWNER, appId, ['CREATE TABLE q (id TEXT)'], { targetVersion: 2, probes: [probe(false)] });
+    assert.deepStrictEqual(ok.probed, [{ opIndex: 0, refuse: false, n: 2, bad: 1 }]);
+
+    await assert.rejects(
+        () => store.applyMigration(OWNER, appId, ['CREATE TABLE r (id TEXT)'], { targetVersion: 3, probes: [probe(true)] }),
+        (err) => err.code === 'migration_precondition' && err.probed[0].bad === 1,
+    );
+    assert.strictEqual(await store.getSchemaStamp(OWNER, appId), 2, 'refused: the stamp stays');
+    assert.ok(!(await store.schema(OWNER, appId)).tables.find((x) => x.name === 'r'), 'refused: the DDL rolled back');
+
+    await assert.rejects(
+        () => store.applyMigration(OWNER, appId, ['CREATE TABLE s (id TEXT)', 'ALTER TABLE p DROP COLUMN nope'], { targetVersion: 4 }),
+        (err) => err.migrationStatementIndex === 1,
+    );
+    // A probe is held to the same statement rules as the plan.
+    await assert.rejects(
+        () => store.applyMigration(OWNER, appId, [], { targetVersion: 5, probes: [{ ...probe(false), sql: "ATTACH DATABASE 'x' AS y" }] }),
+        /not allowed/,
+    );
 });
 
 test('applyMigration tolerates a replayed plan (already-applied signatures skipped)', async (t) => {

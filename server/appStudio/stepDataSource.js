@@ -49,6 +49,7 @@ const datatableSource = require('./datatableSource');
 const MAX_CONTEXT_ROWS = 50;
 
 const DATA_KINDS = new Set(['record', 'records', 'aggregate']);
+const { resolveFilterList } = require('../shared/expr/index.mjs');
 
 function isDataBinding(binding) {
     return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);
@@ -72,23 +73,19 @@ function findTable(model, tableId) {
  */
 function resolveFilters(filters, resolveValue) {
     if (!Array.isArray(filters)) return { filters: [], blocked: false };
-    const out = [];
-    for (const entry of filters) {
-        if (!entry || typeof entry !== 'object') continue;
-        const { required, ...rest } = entry;
+    const res = resolveFilterList(filters, (raw) => (
         // A literal (string/number/bool) stays as it is; only a binding object
         // is re-resolved.
-        const raw = entry.value;
-        const value = (raw && typeof raw === 'object' && typeof raw.kind === 'string')
-            ? resolveValue(raw)
-            : raw;
-        if (value === undefined || value === null || value === '') {
-            if (required) return { filters: [], blocked: true };
-            continue;
-        }
-        out.push({ ...rest, value });
-    }
-    return { filters: out, blocked: false };
+        (raw && typeof raw === 'object' && typeof raw.kind === 'string') ? resolveValue(raw) : raw
+    ), {
+        isUnset: (v) => v === undefined || v === null || v === '',
+        keepMalformed: false,
+        // isNull/isNotNull carry no value, so they are dropped here like an
+        // unresolved clause (kept as it always was; a filed issue tracks it).
+        noValueOps: false,
+    });
+    if (res.status !== 'ok') return { filters: [], blocked: true };
+    return { filters: res.filters, blocked: false };
 }
 
 /**
@@ -207,6 +204,7 @@ module.exports = {
     resolveDataBinding,
     isDataBinding,
     MAX_CONTEXT_ROWS,
+    filtersBlocked: (/** @type {unknown} */ filters, /** @type {(b: Record<string, unknown>) => unknown} */ resolveValue) => resolveFilters(filters, resolveValue).blocked,
     _resolveFilters: resolveFilters,
 };
 

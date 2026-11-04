@@ -174,9 +174,12 @@ mockDb.withTransaction = withTransactionVia(() => mockDb.getClient());
 const migrationCalls = [];
 const sqliteCounts = {};
 let sqliteUserVersion = 0;
+/** One-shot override of the next applyMigration (throw or answer). */
+let nextMigration = null;
 const mockDbStore = {
     applyMigration: async (ownerId, appId, plan, opts = {}) => {
         migrationCalls.push({ ownerId, appId, plan, opts });
+        if (nextMigration) { const fn = nextMigration; nextMigration = null; return fn(plan, opts); }
         if (Number.isInteger(opts.targetVersion) && opts.targetVersion >= 0) {
             sqliteUserVersion = opts.targetVersion;
         }
@@ -227,7 +230,8 @@ function validModel(fieldKey = 'title') {
 test('saveDataModel: first save creates meta, hands the plan to the engine, bumps version', async () => {
     migrationCalls.length = 0;
     const res = await store.saveDataModel('app1', 'owner1', validModel());
-    assert.deepStrictEqual(res, { ok: true, version: 1 });
+    assert.deepStrictEqual({ ...res, report: undefined }, { ok: true, version: 1, report: undefined });
+    assert.ok(res.report && Array.isArray(res.report.recomputed), 'a save returns its migration report');
     assert.strictEqual(migrationCalls.length, 1, 'migration applied once');
     assert.strictEqual(migrationCalls[0].appId, 'app1');
     assert.ok(migrationCalls[0].plan.some(s => /CREATE TABLE IF NOT EXISTS "people"/.test(s)), 'plan creates the table');
@@ -253,7 +257,8 @@ test('saveDataModel: CAS conflict returns the server copy, no migration', async 
 
 test('saveDataModel: matching expectedVersion succeeds and increments', async () => {
     const res = await store.saveDataModel('app1', 'owner1', validModel('title2'), { expectedVersion: 1 });
-    assert.deepStrictEqual(res, { ok: true, version: 2 });
+    assert.deepStrictEqual({ ...res, report: undefined }, { ok: true, version: 2, report: undefined });
+    assert.ok(res.report && Array.isArray(res.report.recomputed), 'a save returns its migration report');
 });
 
 test('saveDataModel: invalid model is rejected before any write', async () => {
@@ -361,7 +366,8 @@ test('PG COMMIT failure after applyMigration: drift reported + recounted, retrie
     // Retrying the SAME save succeeds (the engine replays the plan tolerantly)
     // and re-stamps user_version — the drift is gone.
     const retry = await store.saveDataModel('app1', 'owner1', validModel('title4'));
-    assert.deepStrictEqual(retry, { ok: true, version: before.modelVersion + 1 });
+    assert.deepStrictEqual({ ...retry, report: undefined }, { ok: true, version: before.modelVersion + 1, report: undefined });
+    assert.ok(retry.report && Array.isArray(retry.report.recomputed), 'a save returns its migration report');
     assert.strictEqual(
         migrationCalls[migrationCalls.length - 1].opts.targetVersion,
         before.modelVersion + 1,
@@ -493,4 +499,69 @@ test('attachments: add/list/get/scan/delete/count owner-scoped', async () => {
     assert.strictEqual(await store.deleteAttachment(a.id, 'app1', 'owner2'), false);
     assert.strictEqual(await store.deleteAttachment(a.id, 'app1', 'owner1'), true);
     assert.strictEqual(await store.countAttachments('app1', 'owner1'), 0);
+});
+
+// ── Changing the model while the table holds rows ───────────────────
+
+const withType = (type, extra = {}) => {
+    const m = validModel('status');
+    m.tables[0].fields[0] = { ...m.tables[0].fields[0], type, ...extra };
+    return m;
+};
+
+test('conversions: off by default (a type change stays model-only), on with convertTypes', async () => {
+    tables.studio_apps.push({ id: 'app3', user_id: 'owner3' });
+    await store.saveDataModel('app3', 'owner3', withType('text'));
+    migrationCalls.length = 0;
+    const off = await store.saveDataModel('app3', 'owner3', withType('select', { options: ['a'] }));
+    assert.strictEqual(off.ok, true);
+    assert.deepStrictEqual(migrationCalls[0].plan, []);
+    assert.strictEqual(migrationCalls[0].opts.probes, undefined, 'no probe without convertTypes');
+    assert.deepStrictEqual(off.report.converted, []);
+
+    const on = await store.saveDataModel('app3', 'owner3', withType('text'), { convertTypes: true });
+    assert.strictEqual(on.ok, true);
+    assert.deepStrictEqual(on.report.converted.map((c) => [c.field, c.from, c.to]), [['status', 'select', 'text']]);
+});
+
+test('conversions: a refusing probe is conversionRefused with the counts, and nothing is saved', async () => {
+    const before = await store.getDataModel('app3', 'owner3');
+    nextMigration = (_plan, opts) => {
+        const err = new Error('refused');
+        err.code = 'migration_precondition';
+        err.probed = [{ opIndex: 0, refuse: true, n: 9, bad: 2 }];
+        assert.strictEqual(opts.probes.length, 1);
+        throw err;
+    };
+    const res = await store.saveDataModel('app3', 'owner3', withType('select', { options: ['a'] }), { convertTypes: true });
+    assert.deepStrictEqual({ ok: res.ok, refused: res.conversionRefused }, { ok: false, refused: true });
+    assert.deepStrictEqual(res.conversions.map((c) => [c.field, c.rows, c.unconvertible]), [['status', 9, 2]]);
+    assert.strictEqual((await store.getDataModel('app3', 'owner3')).modelVersion, before.modelVersion, 'rolled back');
+});
+
+test('conversions: a failing convert statement is migrationFailed with a fixed reason; other errors still throw', async () => {
+    nextMigration = () => { const e = new Error('invalid input syntax for type numeric: "row value"'); e.code = '22P02'; e.migrationStatementIndex = 2; throw e; };
+    const res = await store.saveDataModel('app3', 'owner3', withType('number'), { convertTypes: true, onUnconvertible: 'clear' });
+    assert.strictEqual(res.migrationFailed, true);
+    assert.deepStrictEqual([res.failure.kind, res.failure.reason, res.failure.field], ['convert', 'invalid_value', 'status']);
+    assert.doesNotMatch(JSON.stringify(res), /row value/);
+    nextMigration = () => { throw new Error('disk full'); };
+    await assert.rejects(store.saveDataModel('app3', 'owner3', withType('number'), { convertTypes: true }), /disk full/);
+});
+
+test('conversions: a successful conversion reports the probe counts and bumps the table data version', async () => {
+    nextMigration = (plan) => ({ applied: plan.length, skipped: [], probed: [{ opIndex: 0, refuse: false, n: 5, bad: 1 }] });
+    const res = await store.saveDataModel('app3', 'owner3', withType('number'), { convertTypes: true, onUnconvertible: 'clear' });
+    assert.strictEqual(res.ok, true);
+    assert.deepStrictEqual(res.report.converted.map((c) => [c.rows, c.unconvertible, c.action]), [[5, 1, 'clear']]);
+    const meta = await store.getDataModel('app3', 'owner3');
+    assert.ok(meta.dataVersions.people >= 1, 'readers of the table see new data');
+});
+
+test('conversions: an additive (stage) save never converts', async () => {
+    migrationCalls.length = 0;
+    const res = await store.saveDataModel('app3', 'owner3', withType('text'), { convertTypes: true, additiveOnly: true });
+    assert.strictEqual(res.ok, true);
+    assert.deepStrictEqual(migrationCalls[0].plan, []);
+    assert.deepStrictEqual(res.report.converted, []);
 });

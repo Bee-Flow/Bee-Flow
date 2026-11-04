@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor: RECORD WRITES (extracted verbatim from
  * actionExecutor.js). The writeRecord / writeRecordBatch choke point, the create_record /
@@ -42,14 +43,14 @@
 const queryCompiler = require('../queryCompiler');
 const rlsGateway = require('../rlsGateway');
 const studioAppDbStore = require('../../stores/studioAppDbStore');
-const studioAppDataStore = require('../../stores/studioAppDataStore');
 const { assertRowQuota, assertDbByteQuota } = require('../studioAppQuota');
 // De rechtenbeslissing voor de tweede tabelsoort — gedeeld met dataReadRunner.
 const datatableSource = require('../datatableSource');
 const {
     findTable, buildServerScope, resolveBinding, resolveValues, coerceRecordId, writeViewer,
 } = require('./shared');
-const log = require('../../telemetry/log');
+// Best-effort bookkeeping after a committed write (bookkeeping.mts).
+const { bumpVersion, bumpCount, bumpDatatable } = require('./bookkeeping.mts');
 
 // ── Record writes ───────────────────────────────────────────────────
 
@@ -128,6 +129,11 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
  * compiled. Returns the created ids.
  *
  * The same first question as in `writeRecord`: a linked table goes to the datatable or nowhere.
+ * @param {AppRef} app
+ * @param {import('./shared').DataModel} model
+ * @param {import('./shared').DataTable} table
+ * @param {Record<string, any>[]} rows
+ * @param {{ viewer?: any }} [opts]
  */
 async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
@@ -145,22 +151,30 @@ async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
     await assertRowQuota(app, table.key);
     await assertDbByteQuota(app);
 
-    /** @type {({ sql: string; params: (string | null)[]; })[]} */
-    const statements = [];
-    /** @type {string[]} */
-    const ids = [];
-    for (const values of rows) {
-        const compiled = queryCompiler.compileInsert(table, values, {
-            createdBy: v.id ?? null,
-            orgId: app.organizationId || null,
-        });
-        statements.push({ sql: compiled.sql, params: compiled.params });
-        ids.push(compiled.id);
-    }
+    const { statements, ids } = compileInserts(table, rows, { createdBy: v.id ?? null, orgId: app.organizationId || null });
     await studioAppDbStore.batch(app.userId, app.id, statements);
     await bumpVersion(app, table.key);
     await bumpCount(app, table.key, ids.length);
     return ids;
+}
+
+/**
+ * N INSERT statements and their ids (the ids are chosen before anything runs).
+ * @param {import('./shared').DataTable} tableMeta
+ * @param {Record<string, any>[]} rows
+ * @param {{ createdBy: any, orgId: any, dialect?: string }} opts
+ */
+function compileInserts(tableMeta, rows, opts) {
+    /** @type {{ sql: string, params: any[] }[]} */
+    const statements = [];
+    /** @type {string[]} */
+    const ids = [];
+    for (const values of rows) {
+        const compiled = queryCompiler.compileInsert(tableMeta, values, opts);
+        statements.push({ sql: compiled.sql, params: compiled.params });
+        ids.push(compiled.id);
+    }
+    return { statements, ids };
 }
 
 /**
@@ -175,7 +189,11 @@ async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
  *
  * Yields `{ id, deleted, changes }`. 0 rows means "gone OR outside the viewer's scope", and the
  * caller makes one uniform "not found" of that, so the existence of a row never leaks.
+ * @param {AppRef} app
+ * @param {import('./shared').DataModel} model
+ * @param {import('./shared').DataTable} table
  * @param {string} recordId
+ * @param {{ viewer?: any }} [opts]
  */
 async function eraseRecord(app, model, table, recordId, { viewer } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
@@ -356,26 +374,18 @@ async function datatableInsert(bound, rows) {
         return out.inserted.map(r => r.id);
     }
 
-    /** @type {({ sql: string; params: (string | null)[]; })[]} */
-    const statements = [];
-    /** @type {string[]} */
-    const ids = [];
-    for (const values of list) {
-        const ins = queryCompiler.compileInsert(bound.tableMeta, values, {
-            // The one who made the row is the VIEWER, not the app owner: that is the
-            // honest audit field, and it is the column that `row_scope:'own'`
-            // filters on. If we stamped the owner, a member would immediately no longer
-            // see their own row.
-            createdBy: bound.viewer.id ?? null,
-            // The org of the TABLE, never that of the app: a personal table
-            // has none, and stamping the app's org onto its rows is a lie the access filter
-            // has to live with.
-            orgId: bound.datatable.organizationId || null,
-            dialect: bound.dialect,
-        });
-        statements.push({ sql: ins.sql, params: ins.params });
-        ids.push(ins.id);
-    }
+    const { statements, ids } = compileInserts(bound.tableMeta, list, {
+        // The one who made the row is the VIEWER, not the app owner: that is the
+        // honest audit field, and it is the column that `row_scope:'own'`
+        // filters on. If we stamped the owner, a member would immediately no longer
+        // see their own row.
+        createdBy: bound.viewer.id ?? null,
+        // The org of the TABLE, never that of the app: a personal table
+        // has none, and stamping the app's org onto its rows is a lie the access filter
+        // has to live with.
+        orgId: bound.datatable.organizationId || null,
+        dialect: bound.dialect,
+    });
     if (statements.length === 1) {
         await dtStore().exec(bound.scopeKey, bound.scopeKey, statements[0].sql, statements[0].params);
     } else {
@@ -449,6 +459,10 @@ async function datatableDelete(bound, recordId) {
  * The datatable branch of `writeRecord`: create when recordId is empty, otherwise an
  * update. Answers in exactly the same shape as the own-storage branch, so that no single
  * caller knows which of the two it hit.
+ * @param {AppRef} app
+ * @param {import('./shared').DataTable} table
+ * @param {Record<string, any>} values
+ * @param {{ viewer?: any, recordId?: string | null, expectedUpdatedAt?: string | null }} [opts]
  */
 async function writeDatatableRecord(app, table, values, { viewer, recordId, expectedUpdatedAt = null } = {}) {
     const creating = recordId === undefined || recordId === null;
@@ -526,47 +540,6 @@ async function deleteDatatableRecord(app, table, step, ctx) {
     return { ok: true, result: { id: recordId, deleted: true, changes } };
 }
 
-/**
- * Update the row count + data version of the datatable.
- *
- * Best-effort, with the same rationale as `bumpVersion` below: the row is already committed,
- * so failed bookkeeping must not turn the step red after all.
- * `jobs/datatableRetention` recounts `row_count` authoritatively.
- * @param {number} delta
- */
-async function bumpDatatable(bound, delta) {
-    try {
-        const datatableStore = require('../../stores/datatableStore');
-        await datatableStore.bumpAfterWrite(bound.datatable.id, bound.scope, delta);
-    } catch (e) {
-        log.warn(`[ActionExecutor] datatable bookkeeping failed for ${bound.datatable && bound.datatable.id}: ${/** @type {Error} */ (e).message}`);
-    }
-}
-
-async function bumpVersion(app, tableKey) {
-    try {
-        await studioAppDataStore.bumpDataVersion(app.id, tableKey, app.userId);
-    } catch (e) {
-        // A version-bump miss is a cache-staleness nuisance, not a data error —
-        // the write already committed. Don't fail the step over it.
-        log.warn(`[ActionExecutor] data-version bump failed for ${app.id}/${tableKey}: ${/** @type {Error} */ (e).message}`);
-    }
-}
-
-// Best-effort row-count delta (feeds the cached quota reads). Same rationale
-// as bumpVersion: the write already committed, never fail over bookkeeping —
-// recountRows (on schema saves) heals any drift authoritatively.
-/**
- * @param {number} delta
- */
-async function bumpCount(app, tableKey, delta) {
-    try {
-        await studioAppDataStore.bumpRowCount(app.id, tableKey, delta, app.userId);
-    } catch (e) {
-        log.warn(`[ActionExecutor] row-count bump failed for ${app.id}/${tableKey}: ${/** @type {Error} */ (e).message}`);
-    }
-}
-
 module.exports = {
     writeRecord,
     writeRecordBatch,
@@ -574,6 +547,19 @@ module.exports = {
     createRecord,
     updateRecord,
     deleteRecord,
+    // For the filter-scoped writes (bulkRecords.mts, writeTarget.mts, writeToRows.mts,
+    // replaceRecords.mts), which require this module and never the other way round.
+    compileInserts,
+    resolveWrite,
+    dtStore,
+    bumpVersion,
+    bumpCount,
+    bumpDatatable,
+    isSourceMirror,
+    mirrorWrites,
+    mirrorCtx,
+    sourceRefusal,
+    managedRefusal,
 };
 
 /**

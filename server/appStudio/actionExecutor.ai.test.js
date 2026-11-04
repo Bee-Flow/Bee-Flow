@@ -665,6 +665,60 @@ test('ai_extract: the result says WHICH model answered', async () => {
     assert.strictEqual(res.result.tier, 'standard');
 });
 
+test('modelTier from a formula picks the right model (spec)', async () => {
+    const saved = aiState.model;
+    aiState.model = { modelId: 'm-fast', options: {}, supportsVision: false, tierName: 'fast', askedTier: 'fast', fellBack: false };
+    try {
+        const step = {
+            kind: 'ai_extract',
+            source: { kind: 'static', value: { kind: 'studio_attachment', fileId: 'f-1', name: 'x.pdf' } },
+            schema: [{ name: 'vendor', type: 'string' }],
+            modelTier: { kind: 'formula', expr: "params.quick ? 'fast' : 'thinking'" },
+        };
+        const quick = await actionExecutor.executeDataStep(app, model, step, ctx({ params: { quick: true } }));
+        assert.strictEqual(quick.ok, true, quick.error);
+        assert.strictEqual(calls.resolveOwnerModel[0].tier, 'fast');
+        assert.strictEqual(quick.result.tier, 'fast');
+        assert.strictEqual(quick.notes, undefined, 'a tier that resolved needs no note');
+        const slow = await actionExecutor.executeDataStep(app, model, step, ctx({ params: { quick: false } }));
+        assert.strictEqual(slow.ok, true, slow.error);
+        assert.strictEqual(calls.resolveOwnerModel[1].tier, 'thinking');
+    } finally {
+        aiState.model = saved;
+    }
+});
+
+test('modelTier: a formula that gives no tier name uses the default tier, with a note', async () => {
+    const step = { kind: 'ai_generate', prompt: 'Summarize', output: 'text', resultVar: 'out', modelTier: { kind: 'formula', expr: 'vars.missing' } };
+    const r = await actionExecutor.executeDataStep(app, model, step, ctx());
+    assert.strictEqual(r.ok, true, r.error);
+    assert.strictEqual(calls.resolveOwnerModel[0].tier, undefined, 'the default tier is asked for');
+    assert.match(r.notes.join(' '), /did not give a tier name, so the default tier was used/);
+    assert.match(r.result.notes.join(' '), /default tier/);
+});
+
+test('modelTier: a formula tier that is not set up says which tier answered', async () => {
+    const saved = aiState.model;
+    aiState.model = { modelId: 'm-std', options: {}, supportsVision: false, tierName: 'standard', askedTier: 'turbo', fellBack: true };
+    try {
+        const step = { kind: 'ai_generate', prompt: 'Summarize', output: 'structured', schema: [{ name: 'title' }], resultVar: 'out', modelTier: { kind: 'static', value: 'turbo' } };
+        const r = await actionExecutor.executeDataStep(app, model, step, ctx());
+        assert.strictEqual(r.ok, true, r.error);
+        assert.deepStrictEqual(r.notes, ['The model tier "turbo" is not set up in this workspace; "standard" was used.']);
+        assert.strictEqual(r.result.notes, undefined, 'a structured result keeps its own fields');
+    } finally {
+        aiState.model = saved;
+    }
+});
+
+test('modelTier: a tier name written in the step behaves as before (no note)', async () => {
+    const step = { kind: 'ai_generate', prompt: 'Summarize', output: 'text', resultVar: 'out', modelTier: 'fast' };
+    const r = await actionExecutor.executeDataStep(app, model, step, ctx());
+    assert.strictEqual(r.ok, true, r.error);
+    assert.strictEqual(r.notes, undefined);
+    assert.strictEqual(calls.resolveOwnerModel[0].tier, 'fast');
+});
+
 test('ai_extract: resultDetail summary keeps the rows out of the step body', async () => {
     // A 163-line purchase order that also WRITES its rows shipped them back as
     // well and tripped the 64KB body cap.

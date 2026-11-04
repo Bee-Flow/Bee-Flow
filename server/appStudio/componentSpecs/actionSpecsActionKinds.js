@@ -1,9 +1,9 @@
 // @typecheck strict
 const DECK_LOOK = require('../../core/documents/deckThemeOptions');
+const { LIMITS } = require('./limits');
 
-// Top-level action kinds (definition.actions map values). A v1 bare action or
-// a v2 { kind:'sequence', steps:[Step] }. `open_modal` is new in v2.
-const ACTION_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'sequence'];
+// Top-level action kinds (definition.actions values): a v1 bare action or a v2 { kind:'sequence', steps:[Step] }.
+const ACTION_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'call_action', 'sequence'];
 
 // Step kinds inside a sequence. A bare v1 action is an implicit 1-step
 // sequence, so the v1 kinds appear here too. Each step is tagged client/server
@@ -14,7 +14,7 @@ const STEP_KINDS = [
     'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'reset_form', 'download_file', 'confirm', 'set_variable', 'refresh',
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
     'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document',
-    'condition', 'loop', 'switch',
+    'condition', 'loop', 'switch', 'call_action', 'transaction',
 ];
 
 // Steps that read/write persistent DATA / call the model server-side. Everything
@@ -25,7 +25,7 @@ const STEP_KINDS = [
 // by definition, and so are fill_document and generate_presentation, which
 // render one, and redact_pdf, which writes a cleaned copy of one. copy_document
 // writes a new document into the owner's library.
-const DATA_MUTATING_STEP_KINDS = ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document'];
+const DATA_MUTATING_STEP_KINDS = ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'transaction'];
 
 const CLIENT_STEP_KINDS = STEP_KINDS.filter((k) => !DATA_MUTATING_STEP_KINDS.includes(k));
 
@@ -55,13 +55,13 @@ const TOAST_TONES = ['info', 'success', 'warning', 'danger'];
 //   'aiSchema'  — [{ name, type, description?, required? }] output field list
 //                 (type ∈ AI_SCHEMA_FIELD_TYPES)
 //   'aiWriteTo' — { tableId, mapping: { [column]: <schema field name> },
-//                   upsertOn?: <column> — read the same document twice and the
-//                   same rows are UPDATED instead of doubled,
+//                   upsertOn?: <column> | upsertKey?: [<column>, ...] (1..5) — a
+//                   row with the same key is UPDATED instead of doubled,
+//                   replaceWhere?: [{ field, op, value? }] — delete the rows it
+//                   matches (at most MAX_BULK_WRITE_ROWS) first, then write,
 //                   constants?: { [column]: <binding> } }
-//                 `constants` is resolved ONCE and stamped on every extracted
-//                 row. Without it the rows are orphans: nothing records which
-//                 ticket or document they came from, so they cannot be shown in
-//                 context and a retention purge cannot find them.
+//                 `constants` is resolved ONCE and stamped on every extracted row: without
+//                 it nothing records the ticket or document a row came from (no context, no purge).
 //   'stringList' — knowledge base ids for RAG grounding
 // ---------------------------------------------------------------------------
 const AI_SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', 'object'];
@@ -89,7 +89,7 @@ const AI_EXTRACT_FIELDS = {
     // of being handed two anonymous arrays and left to guess which is which.
     contextSources: { type: 'contextSources' },
     documentMode: { type: 'enum', values: AI_DOCUMENT_MODES, default: 'auto' },
-    modelTier: { type: 'string', maxLen: 60 },
+    modelTier: { type: 'tierChoice', maxLen: 60 }, // tier name | formula/static binding (not a tier name → default, with a note)
     knowledgeBaseIds: { type: 'stringList' },
     // LARGE datasets (genome files) the model may query in bounded slices
     // during this step — a list of studio_dataset descriptors or dataset ids.
@@ -107,7 +107,7 @@ const AI_EXTRACT_FIELDS = {
 };
 
 const AI_GENERATE_FIELDS = {
-    prompt: { type: 'string', required: true, maxLen: 8000 },
+    prompt: { type: 'string', required: true, maxLen: LIMITS.MAX_AI_PROMPT_LEN },
     // Live data appended to the prompt as context. Without it `prompt` is a
     // fixed string, so an "AI draft" button has no ticket to draft ABOUT — point
     // this at the open record or thread.
@@ -126,7 +126,7 @@ const AI_GENERATE_FIELDS = {
     // which tags are allowed. Only meaningful with output 'text'.
     markdownToHtml: { type: 'boolean', default: false },
     schema: { type: 'aiSchema' },                    // used when output === 'structured'
-    modelTier: { type: 'string', maxLen: 60 },
+    modelTier: { type: 'tierChoice', maxLen: 60 }, // tier name | formula/static binding (not a tier name → default, with a note)
     knowledgeBaseIds: { type: 'stringList' },
     // Same contract as ai_extract.datasets — bounded genome-slice tool access.
     datasets: { type: 'binding' },

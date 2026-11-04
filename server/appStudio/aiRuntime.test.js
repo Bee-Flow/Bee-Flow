@@ -128,6 +128,35 @@ test('resolveOwnerModel: accepts a tier: prefix and a legacy alias', async () =>
     }
 });
 
+test('resolveOwnerModel: askedTier / fellBack say what was asked and whether another tier answered', async () => {
+    const hit = await aiRuntime.resolveOwnerModel(APP, 'thinking');
+    assert.strictEqual(hit.askedTier, 'thinking');
+    assert.strictEqual(hit.fellBack, false);
+    const auto = await aiRuntime.resolveOwnerModel(APP, undefined);
+    assert.strictEqual(auto.fellBack, false, 'the default tier is not a fallback');
+    const miss = await aiRuntime.resolveOwnerModel(APP, 'no-such-tier');
+    assert.strictEqual(miss.askedTier, 'no-such-tier');
+    assert.strictEqual(miss.fellBack, true);
+    assert.strictEqual(miss.tierName, 'standard');
+});
+
+test('resolveOwnerModel: a tier from a formula is never written to the log', async () => {
+    const log = require('../telemetry/log');
+    const original = log.warn;
+    const lines = [];
+    log.warn = (...a) => { lines.push(a.join(' ')); };
+    try {
+        await aiRuntime.resolveOwnerModel(APP, 'secret-tier-from-formula', { fromBinding: true });
+        await aiRuntime.resolveOwnerModel(APP, 'plain-written-tier');
+    } finally {
+        log.warn = original;
+    }
+    assert.strictEqual(lines.length, 2);
+    assert.doesNotMatch(lines[0], /secret-tier-from-formula/);
+    assert.match(lines[0], /from a formula/);
+    assert.match(lines[1], /plain-written-tier/, 'a tier written in the step is still named');
+});
+
 test('resolveOwnerModel: throws 400 when the owner has no configured model at all', async () => {
     const saved = state.tierMap;
     state.tierMap = {};
@@ -425,4 +454,13 @@ test('coerceValue(number): locale-ambiguous separators keep their real magnitude
     assert.strictEqual(n('1,234,567'), 1234567, 'a repeated separator is a thousands separator');
     assert.strictEqual(n('1.5e3'), 1500, 'exponent notation is unambiguous');
     assert.strictEqual(n('not a number'), null);
+});
+
+test('normalizeSchemaFields: a 1500-char description is kept, 2500 is cut to 2000', () => {
+    const [kept, cut] = aiRuntime.normalizeSchemaFields([
+        { name: 'a', type: 'string', description: 'x'.repeat(1500) },
+        { name: 'b', type: 'string', description: 'y'.repeat(2500) },
+    ]);
+    assert.strictEqual(kept.description.length, 1500);
+    assert.strictEqual(cut.description.length, 2000);
 });

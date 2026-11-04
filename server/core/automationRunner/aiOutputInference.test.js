@@ -236,3 +236,19 @@ test('collectAiStepOutputReads returns the reads as written, envelope included',
     const reads = collectAiStepOutputReads(nestedPerItem(inLoop), 'summ').map(r => r.path);
     assert.deepEqual(reads, ['results[*].output.summary']);
 });
+
+test('member access on a call result, and map/filter/some/every with it', () => {
+    const d = def([
+        { id: 'x', type: 'integration_action', tool: 'jira', inputs: {
+            first: { kind: 'expr', value: 'first(steps.ai.output.lines).sku' },
+            mapped: { kind: 'expr', value: 'map(steps.ai.output.items, it.price * steps.ai.output.rate)' },
+        } },
+    ]);
+    // first(…).sku is not a path of the run: only what the call reads (a list) counts;
+    // `it` is the item, not a field of the output.
+    assert.deepEqual(inferAiStepOutputSchema(d, 'ai').schema, S({
+        lines: { type: 'array' },
+        items: { type: 'array' },
+        rate: STR,
+    }));
+});

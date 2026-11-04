@@ -20,8 +20,8 @@
 import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
 import { addToEpoch, epochDiff, requireDateUnit, validFields } from './dates.mjs';
 import { joinTexts, padStartCp, splitCp, substringCp } from './codePoints.mjs';
-export { checkDateUnit } from './dates.mjs';
 import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
+import { LIST_FUNCTIONS, sumOf } from './lists.mjs';
 
 // ── Deterministic ISO date helpers (UTC-only) ──────────────────────────────
 // Dates are ISO strings. We parse to a UTC instant MANUALLY so a bare
@@ -315,7 +315,7 @@ export const FUNCTIONS = {
         const l = toNum(lo); const h = toNum(hi);
         let r = n; if (l != null) r = Math.max(r, l); if (h != null) r = Math.min(r, h); return r;
     },
-    sum: (arr) => (Array.isArray(arr) ? arr.reduce((s, x) => s + (toNum(x) || 0), 0) : 0),
+    sum: (arr, field) => sumOf(arr, field, toNum), // field: lists.mjs
     avg: (arr) => {
         if (!Array.isArray(arr)) return null;
         const ns = arr.map(toNum).filter((n) => n != null);
@@ -469,6 +469,7 @@ export const FUNCTIONS = {
         ? arr.some((el) => el === x || (typeof el === 'string' && typeof x === 'string' && ciEq(el, x)))
         : false),
     count: (a) => sizeOf(a),
+    ...LIST_FUNCTIONS, // unique, regexMatch, regexReplace (lists.mjs)
     // Positional navigation — at/index_of are the prev/next primitives: find
     // the index of the current selection in a source list, then read the
     // neighbour at index ± 1. Both are list-only (a string is not a list here,
@@ -524,9 +525,8 @@ export const FUNCTIONS = {
     // ── JSON ──────────────────────────────────────────────────────────────
     // Parse JSON text and optionally pick a path out of it. This is the
     // expression-language successor of the parse_json step: deterministic,
-    // free at run time, never throws (invalid JSON → null). The grammar has
-    // no member access on a call result — `parseJson(x).user` cannot parse —
-    // so the two-argument form IS the way to reach into the parsed value.
+    // free at run time, never throws (invalid JSON → null). The result reads
+    // on like a path (`parseJson(x).user`), or pass the path as text.
     // Already-parsed objects/arrays pass through, so the same expression
     // works whether an upstream tool returned text or structured data.
     //
@@ -690,7 +690,7 @@ export const EXPR_FUNCTIONS = [
     { name: 'min', signature: 'min(a, b, …)', description: 'Smallest of the given numbers.' },
     { name: 'max', signature: 'max(a, b, …)', description: 'Largest of the given numbers.' },
     { name: 'clamp', signature: 'clamp(value, lo, hi)', description: 'Constrain value between lo and hi.' },
-    { name: 'sum', signature: 'sum(list)', description: 'Sum of a list of numbers.' },
+    { name: 'sum', signature: 'sum(list, field?)', description: 'Sum of a list of numbers; with field, of the value under field in each item — sum(rows, "amount").' },
     { name: 'avg', signature: 'avg(list)', description: 'Average of a list of numbers.' },
     { name: 'PI', signature: 'PI()', description: 'The constant π (3.14159…). Written with brackets, like a function.' },
     { name: 'E', signature: 'E()', description: "Euler's number e (2.71828…). Written with brackets, like a function." },

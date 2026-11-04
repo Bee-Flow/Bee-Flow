@@ -2,6 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRe
 import { applyEffects as applyEffectObject } from './actionRunner/applyEffects';
 import type { EffectContext } from './actionRunner/applyEffects';
 import { runActionById } from './actionRunner/bareAction';
+import { useOptionalActiveActionJobs } from '@/api/queries/studioAppJobs';
 import type { ActionEntry, ActionState, EffectObject, RunOpts, Translate, Vars } from './actionRunner/core';
 import type {
     BeforeServerStep, BrowseEventSink, ConfirmFn, LiveInputs, NavigateFn, RefreshFn, RunnerContext, RunnerDefinition,
@@ -210,12 +211,21 @@ export default function useActionRunner(
         refresh: () => live.current.onRefresh,
     }), [tr]);
 
+    // The background jobs this surface follows; kept across re-renders so a job is polled once.
+    const [jobs] = useState<Set<string>>(() => new Set());
     const ctx = useMemo<RunnerContext>(
-        () => ({ appId, draft, tr, live, alive, setEntry, setVar, applyEffects }),
-        [appId, draft, tr, setEntry, setVar, applyEffects],
+        () => ({ appId, draft, tr, live, alive, setEntry, setVar, applyEffects, jobs }),
+        [appId, draft, tr, setEntry, setVar, applyEffects, jobs],
     );
 
     const runAction = useCallback((actionId: string, opts: RunOpts = {}) => runActionById(ctx, actionId, opts), [ctx]);
+
+    // Background jobs this viewer started earlier (another tab, before a reload) are picked
+    // up again: the list comes from a query, the effect only attaches (no fetch in it).
+    const { data: activeJobs } = useOptionalActiveActionJobs(appId, draft);
+    useEffect(() => {
+        if (activeJobs && activeJobs.length) void import('./actionRunner/backgroundRun').then((m) => m.resumeActiveJobs(ctx, activeJobs));
+    }, [ctx, activeJobs]);
 
     return { actionState, runAction, vars, setVar };
 }

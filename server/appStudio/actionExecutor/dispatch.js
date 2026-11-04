@@ -18,19 +18,21 @@ const { generateFileStep } = require('./fileStep');
 const { fillDocumentStep } = require('./documentStep');
 const { generatePresentationStep } = require('./presentationStep');
 const { redactPdfStep } = require('./redactStep');
-const log = require('../../telemetry/log');
 
 // Required by a variable path, like core/versioning/stats.js does its bundle:
 // agent-hub's typecheck follows literal requires into this file's imports, and
 // a .mts module needs compiler options that check does not run with.
 const COPY_DOCUMENT_STEP = './copyDocumentStep.mts';
+const STEP_ERRORS = './stepErrors.mts';
+const TRANSACTION_STEP = './transactionStep.mts';
+const BULK_RECORDS = './bulkRecords.mts';
 
 // ── Public entry ────────────────────────────────────────────────────
 
 /**
- * Execute ONE server-authoritative data step. Never throws — every failure is
- * a `{ ok:false, error }` with a generic message (access/compile details are
- * safe to surface; anything else collapses to "Step failed").
+ * Execute ONE server-authoritative data step, ONE attempt. Never throws: every
+ * failure is a `{ ok:false, error, code, retryable }` whose `error` is the real
+ * reason (stepErrors.mts). Retries and onError handlers live in the walkers.
  */
 async function executeDataStep(app, model, step, ctx = {}) {
     if (!app || typeof app !== 'object' || !app.id || !app.userId) {
@@ -44,12 +46,33 @@ async function executeDataStep(app, model, step, ctx = {}) {
     if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
         return { ok: false, error: `Step "${step.kind}" is not a server step` };
     }
+    return withRetryFlag(await runStepKind(app, model, step, ctx));
+}
 
+/**
+ * A failure a step module RETURNED (not threw) is a deterministic refusal
+ * ("Record not found", "Table not found"): trying again cannot help, so it
+ * says so unless the module said otherwise.
+ *
+ * @param {Record<string, unknown> | null | undefined} res
+ */
+function withRetryFlag(res) {
+    if (res && typeof res === 'object' && res.ok === false && typeof res.retryable !== 'boolean') return { ...res, retryable: false };
+    return res;
+}
+
+/** The step's module, one attempt; a throw becomes its real reason (stepErrors.mts). */
+async function runStepKind(app, model, step, ctx) {
     try {
         switch (step.kind) {
             case 'create_record': return await createRecord(app, model, step, ctx);
-            case 'update_record': return await updateRecord(app, model, step, ctx);
-            case 'delete_record': return await deleteRecord(app, model, step, ctx);
+            // With a `filter` instead of a recordId: every matching row up to `limit` (bulkRecords.mts).
+            case 'update_record': return step.filter != null
+                ? await require(BULK_RECORDS).bulkUpdateRecordStep(app, model, step, ctx)
+                : await updateRecord(app, model, step, ctx);
+            case 'delete_record': return step.filter != null
+                ? await require(BULK_RECORDS).bulkDeleteRecordStep(app, model, step, ctx)
+                : await deleteRecord(app, model, step, ctx);
             case 'run_automation': return await runAutomationStep(app, step, ctx);
             case 'request_approval': return await requestApprovalStep(app, model, step, ctx);
             case 'ai_extract': return await aiExtractStep(app, model, step, ctx);
@@ -72,6 +95,8 @@ async function executeDataStep(app, model, step, ctx = {}) {
             // wearing another deck's look), the start of a compare. Reads go
             // through the app's document pool, which the run route puts in ctx.
             case 'copy_document': return await require(COPY_DOCUMENT_STEP).copyDocumentStep(app, model, step, ctx);
+            // Record writes that land together or not at all: one database transaction.
+            case 'transaction': return await require(TRANSACTION_STEP).transactionStep(app, model, step, ctx);
             case 'file_intake': {
                 // Lives in its own module (it is a whole small pipeline); the
                 // helpers travel as an argument so the modules never require
@@ -106,32 +131,10 @@ async function executeDataStep(app, model, step, ctx = {}) {
             default: return { ok: false, error: `Step "${step.kind}" is not a server step` };
         }
     } catch (e) {
-        const status = e && e.status;
-        // Quota errors (studioAppQuota) carry the frozen 409 contract — the
-        // step error keeps the code so callers can surface "app is full".
-        if (status === 409 && e.code === 'quota_exceeded') {
-            return { ok: false, error: /** @type {Error} */ (e).message || 'Storage quota exceeded', code: 'quota_exceeded', limit: e.limit, used: e.used };
-        }
-        // AccessError (403 forbidden / 400 bad filter) and CompileError (422
-        // bad field/descriptor) carry client-safe messages; everything else is
-        // an internal fault we collapse to a generic string.
-        if (status === 403 || status === 422 || status === 400) {
-            return { ok: false, error: /** @type {Error} */ (e).message || 'Step failed' };
-        }
-        // A refusal from the table layer (appStudio/readError.js) carries the flag `safe`
-        // AND a status, and precisely the statuses NOT listed above: 503 "we could not
-        // establish it", 501 "this cannot happen here yet". Collapsing those into "Step failed"
-        // would remove the only sentence someone can act on: "empty", "not allowed" and
-        // "could not" would become one word.
-        // The per-call AI deadline (aiCallGuard.mts): its message names the seconds, and the code lets a caller tell it from a table refusal.
-        if (e && e.code === 'ai_timeout' && e.safe === true) {
-            return { ok: false, error: /** @type {Error} */ (e).message, code: 'ai_timeout' };
-        }
-        if (e && e.safe === true && typeof status === 'number') {
-            return { ok: false, error: /** @type {Error} */ (e).message || 'Step failed', code: 'datatable_source' };
-        }
-        log.error(`[ActionExecutor] ${step.kind} failed: ${e && /** @type {Error} */ (e).message}`);
-        return { ok: false, error: 'Step failed' };
+        // The real reason, never "Step failed" (stepErrors.mts): access/compile/quota
+        // messages pass through, database and provider failures get fixed sentences,
+        // an unknown error a reference that is also in the log.
+        return require(STEP_ERRORS).describeStepError(e, step);
     }
 }
 

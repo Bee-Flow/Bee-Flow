@@ -1183,10 +1183,7 @@
   },
   "src/components/admin/Studio/AppStudio/runtime/resolveBinding.ts": {
     "complexity": {
-      "count": 3
-    },
-    "max-statements": {
-      "count": 1
+      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/shell/MobileNav.tsx": {

@@ -109,6 +109,7 @@ const {
     TOAST_TONES,
     SEND_EMAIL_FIELDS,
     CREATE_RECORD_FIELDS,
+    CALL_ACTION_FIELDS,
     AI_SCHEMA_FIELD_TYPES,
 } = require('./componentSpecs/actionSpecs');
 const {
@@ -316,6 +317,7 @@ module.exports = {
     DATA_MUTATING_STEP_KINDS,
     SEND_EMAIL_FIELDS,
     CREATE_RECORD_FIELDS,
+    CALL_ACTION_FIELDS,
     AI_SCHEMA_FIELD_TYPES,
     TOAST_TONES,
     SCREEN_SPEC,

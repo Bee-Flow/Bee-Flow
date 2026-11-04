@@ -17,6 +17,7 @@ import { useHeaderView } from './header/useHeaderView';
 import VersionHistoryModal from './header/VersionHistoryModal';
 import CommandPalette from './CommandPalette';
 import LogicaTabJs from './LogicaTab';
+import LogicView from './LogicView';
 import { countWiredLogic } from './logicRows';
 import PublishModal from './PublishModal';
 import { toSaveNotices } from './saveNotices';
@@ -270,7 +271,13 @@ export default function EditorHeader({
         <HeaderViewRows
             view={view} app={app} definition={definition} screenId={screenId} streamLock={streamLock} dispatch={dispatch}
             dataOpen={dataOpen}
-            renderLogic={() => logicView ?? <LogicaTab app={app} definition={definition} onCommit={onCommit} saveNotices={saveNotices} disabled={streamLock} onReveal={reveal} />}
+            renderLogic={() => logicView ?? (
+                <LogicView
+                    appId={app.id}
+                    actionIds={Object.keys(definition?.actions ?? {})}
+                    logic={<LogicaTab app={app} definition={definition} onCommit={onCommit} saveNotices={saveNotices} disabled={streamLock} onReveal={reveal} />}
+                />
+            )}
             onCommit={onCommit} canUndo={canUndo} canRedo={canRedo} onUndo={onUndo} onRedo={onRedo}
             onLeaveData={() => applyView('edit')}
             onRolesDirtyChange={(key, d) => setRolesDirty((prev) => (prev[key] === d ? prev : { ...prev, [key]: d }))}

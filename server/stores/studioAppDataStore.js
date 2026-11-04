@@ -22,6 +22,9 @@
  *   • studio_app_members        — app_id + user_id → role_key (RLS input).
  *   • studio_app_attachments    — file attachment ledger (mirrors
  *                                 webpage_extra_files) with scan/quarantine.
+ *   • studio_app_action_runs    — action runs (background jobs, the run log); queries in
+ *                                 studioAppData/actionRuns.mts, NOT in this facade.
+ *   • studio_app_action_run_steps — the run log's step rows (cascade with their run).
  *
  * OWNERSHIP: every mutation is owner-scoped in its WHERE — either directly via
  * an owner_user_id column, or (for the ownerless studio_app_members PK) via an
@@ -60,6 +63,7 @@ module.exports = {
     // Data model
     getDataModel: dataModel.getDataModel,
     saveDataModel: dataModel.saveDataModel,
+    previewDataModelChange: dataModel.previewDataModelChange,
     makeDataModelSaver: dataModel.makeDataModelSaver,
     additiveModel: dataModel.additiveModel,
     reconcileDataModel: dataModel.reconcileDataModel,

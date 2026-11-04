@@ -17,7 +17,7 @@ export interface ModelField {
     default?: string | number | null;
     options?: unknown[];
     relation?: { table?: string } | null;
-    computed?: { expr?: string } | null;
+    computed?: { expr?: string; stored?: boolean; type?: string } | null;
     [key: string]: unknown;
 }
 
@@ -169,3 +169,4 @@ export function withProposedTables(base: DataModel, connectorId: string, list: M
         connectors: (base.connectors || []).map((c) => (c.id === connectorId ? { ...c, sync } : c)),
     };
 }
+

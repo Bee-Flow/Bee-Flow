@@ -9,7 +9,9 @@ import type { RowBinding, RowValueFieldProps, KeyedBindingsFieldProps } from '..
 
 function RowValueField({ shape, value, onChange, definition, node, formFields, disabled }: RowValueFieldProps) {
     const { t } = useTranslation();
-    if (shape === 'recordValues') {
+    // A record's column values and a called action's params take any binding
+    // (a called action's param may be a whole list of rows).
+    if (shape === 'recordValues' || shape === 'callParams') {
         return (
             <BindingField
                 label={null}

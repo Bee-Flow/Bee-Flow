@@ -13,6 +13,21 @@ const { cleanBinding } = require('./bindings');
 // same caps as automation approvals (20 questions, no `file` — attachments are
 // the download channel; approver uploads are out of scope by design).
 const APPROVAL_QUESTION_TYPES = new Set(['text', 'textarea', 'number', 'date', 'email', 'select', 'checkbox']);
+
+/**
+ * Cut `str` to `max` and record the cut (an authoring save refuses it, a stored app keeps loading).
+ * @param {string} str
+ * @param {number} max
+ * @param {string} what
+ * @param {string} path
+ * @param {((code: string, path: string, message: string) => void) | undefined} push
+ */
+function capText(str, max, what, path, push) {
+    if (str.length > max && typeof push === 'function') {
+        push('approval.question_truncated', path, `${what} is ${str.length} chars — the maximum is ${max}; the rest was cut.`);
+    }
+    return str.slice(0, max);
+}
 /**
  * @param {string} path
  * @param {((arg0: string, path: string, arg2: string) => void) | undefined} push
@@ -24,20 +39,24 @@ function cleanApprovalQuestions(v, path, push) {
     for (const f of v) {
         if (!isObject(f) || typeof f.name !== 'string' || !f.name || seen.has(f.name)) continue;
         seen.add(f.name);
-        const q = { name: f.name.slice(0, 60), type: APPROVAL_QUESTION_TYPES.has(f.type) ? f.type : 'text' };
+        const qPath = `${path}.${f.name}`;
+        const q = { name: capText(f.name, 60, `Approver question name "${f.name.slice(0, 20)}…"`, qPath, push), type: APPROVAL_QUESTION_TYPES.has(f.type) ? f.type : 'text' };
         if (f.type === 'file' && typeof push === 'function') {
             push('approval.question_file_dropped', `${path}.${f.name}`,
                 `Approver question "${f.name}" asked for a file upload — coerced to text (approvers download, they don't upload).`);
         }
-        if (typeof f.label === 'string' && f.label) q.label = f.label.slice(0, 120);
-        if (typeof f.help === 'string' && f.help) q.help = f.help.slice(0, 300);
-        if (typeof f.placeholder === 'string' && f.placeholder) q.placeholder = f.placeholder.slice(0, 120);
+        if (typeof f.label === 'string' && f.label) q.label = capText(f.label, 120, 'Approver question label', qPath, push);
+        if (typeof f.help === 'string' && f.help) q.help = capText(f.help, 300, 'Approver question help', qPath, push);
+        if (typeof f.placeholder === 'string' && f.placeholder) q.placeholder = capText(f.placeholder, 120, 'Approver question placeholder', qPath, push);
         if (f.required === true) q.required = true;
         if (q.type === 'select' && Array.isArray(f.options)) {
+            if (f.options.length > 25 && typeof push === 'function') {
+                push('approval.question_truncated', qPath, `Select has ${f.options.length} options — the maximum is 25; the rest were cut.`);
+            }
             q.options = f.options.slice(0, 25).map((o) => {
-                if (typeof o === 'string') return o.slice(0, 120);
+                if (typeof o === 'string') return capText(o, 120, 'Select option', qPath, push);
                 if (isObject(o) && (typeof o.value === 'string' || typeof o.label === 'string')) {
-                    return { value: String(o.value ?? o.label).slice(0, 120), label: String(o.label ?? o.value).slice(0, 120) };
+                    return { value: capText(String(o.value ?? o.label), 120, 'Select option value', qPath, push), label: capText(String(o.label ?? o.value), 120, 'Select option label', qPath, push) };
                 }
                 return null;
             }).filter(Boolean);
@@ -128,7 +147,7 @@ function cleanApprovalStages(v, path, push) {
             const n = Math.round(Number(raw.quorum));
             stage.quorum = Number.isFinite(n) ? Math.min(Math.max(n, 1), seats.length) : Math.min(2, seats.length);
         }
-        if (typeof raw.when === 'string' && raw.when.trim()) stage.when = raw.when.trim().slice(0, 2000);
+        if (typeof raw.when === 'string' && raw.when.trim()) stage.when = capText(raw.when.trim(), 2000, 'Approval stage `when`', `${path}.${key}`, push);
         out.push(stage);
         if (out.length >= MAX_APPROVAL_STAGES) {
             if (v.length > MAX_APPROVAL_STAGES && typeof push === 'function') {
@@ -167,7 +186,7 @@ function cleanApprovalOnDecided(v, path, push) {
             for (const [col, val] of Object.entries(m)) {
                 if (n >= 20) break;
                 if (typeof col !== 'string' || !col) continue;
-                if (typeof val === 'string') cols[col] = val.slice(0, 2000);
+                if (typeof val === 'string') cols[col] = capText(val, 2000, `onDecided value for "${col}"`, `${path}.set.${outcome}`, push);
                 else if (val === null || typeof val === 'number' || typeof val === 'boolean') cols[col] = val;
                 n += 1;
             }

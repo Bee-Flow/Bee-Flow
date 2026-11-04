@@ -158,9 +158,10 @@ const STATEMENT_OPS = {
     /** A series of `{ sql, params? }` in one transaction; per-statement results. */
     batch(db, statements) {
         validateBatch(statements, 'batch');
-        const tx = db.transaction((/** @type {{ sql: string, params?: unknown[] }[]} */ stmts) => {
+        const tx = db.transaction((/** @type {{ sql: string, params?: unknown[], expectChanges?: boolean }[]} */ stmts) => {
             const results = [];
-            for (const s of stmts) {
+            for (let i = 0; i < stmts.length; i++) {
+                const s = stmts[i];
                 validateSql(s?.sql);
                 const params = normalizeParams(s?.params);
                 const stmt = db.prepare(s.sql);
@@ -168,7 +169,12 @@ const STATEMENT_OPS = {
                     const rows = params.length ? stmt.all(...params) : stmt.all();
                     results.push({ rows: rows.slice(0, MAX_RESULT_ROWS) });
                 } else {
-                    results.push(runResult(params.length ? stmt.run(...params) : stmt.run()));
+                    const res = runResult(params.length ? stmt.run(...params) : stmt.run());
+                    // A statement that MUST change a row: none changed rolls the batch back.
+                    if (s.expectChanges === true && !res.changes) {
+                        throw Object.assign(new Error(`batch statement ${i} changed no rows`), { code: 'batch_no_rows', statementIndex: i });
+                    }
+                    results.push(res);
                 }
             }
             return results;

@@ -66,6 +66,8 @@
 
 const { collectReferencedActions } = require('./validate');
 const { DATA_MUTATING_STEP_KINDS } = require('./componentSpecs');
+const { closeOverCalls } = require('./actionCalls.mts');
+const { LIMITS } = require('./componentSpecs/limits');
 const { THEME_SPEC, HEX_RE, canonicalizeTheme } = require('../core/cms/themeSpec');
 const { DESIGN_SPEC } = require('./appDesignSpec');
 // The reserved anonymous role. It lives in dataModel because the RLS gateway —
@@ -276,7 +278,15 @@ function resolvePublicSurface(definition) {
 function redactStep(step) {
     if (!isObject(step)) return step;
     if (DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
-        return step.resultVar ? { kind: step.kind, resultVar: step.resultVar } : { kind: step.kind };
+        // The browser retries and handles a failure itself, so `retry` and the
+        // handler travel (the handler's steps redacted, so their ordinals stay);
+        // a transaction's children stay on the server.
+        return {
+            kind: step.kind,
+            ...(step.resultVar ? { resultVar: step.resultVar } : {}),
+            ...(isObject(step.retry) ? { retry: { ...step.retry } } : {}),
+            ...redactedHandler(step),
+        };
     }
     // Client steps run in the browser, so they travel whole — but their nested
     // branches carry server steps of their own.
@@ -288,14 +298,26 @@ function redactStep(step) {
         out.cases = step.cases.map((c) => (isObject(c) && Array.isArray(c.steps) ? { ...c, steps: c.steps.map(redactStep) } : c));
     }
     if (Array.isArray(step.default)) out.default = step.default.map(redactStep);
+    Object.assign(out, redactedHandler(step));
     return out;
+}
+
+/** A step's onError handler with its steps redacted ({} when it has none). */
+function redactedHandler(step) {
+    const h = step.onError;
+    if (Array.isArray(h)) return { onError: h.map(redactStep) };
+    if (isObject(h) && Array.isArray(h.steps)) return { onError: { steps: h.steps.map(redactStep), ...(h.stop === true ? { stop: true } : {}) } };
+    return {};
 }
 
 /** Redact one action for anonymous delivery, preserving step indices exactly. */
 function redactAction(action) {
     if (!isObject(action)) return action;
     if (action.kind === 'sequence') {
-        return { ...action, steps: (Array.isArray(action.steps) ? action.steps : []).map(redactStep) };
+        // A public visitor walks the action in the foreground: there is no public start of a
+        // background job, so its run options (and the lockKey binding) do not travel.
+        const { background: _background, lockKey: _lockKey, progressVar: _progressVar, ...rest } = action;
+        return { ...rest, steps: (Array.isArray(action.steps) ? action.steps : []).map(redactStep) };
     }
     // A bare v1 action IS its own single step.
     return redactStep(action);
@@ -336,6 +358,13 @@ function buildPublicDefinition(definition, surface) {
     const actions = isObject(definition.actions) ? definition.actions : {};
     for (const id of surface.actionIds) {
         if (Object.hasOwn(actions, id)) out.actions[id] = redactAction(actions[id]);
+    }
+    // The actions a public root CALLS (call_action) ship too, redacted the same
+    // way, so the browser can walk them. They stay out of surface.actionIds: a
+    // callee is reachable only through callPath from a public root, never by
+    // posting its own id.
+    for (const id of closeOverCalls(actions, surface.actionIds, LIMITS.MAX_CALL_DEPTH)) {
+        if (!surface.actionIds.has(id) && Object.hasOwn(actions, id)) out.actions[id] = redactAction(actions[id]);
     }
     // Deliberately absent: `nav`. Its groups name back-office screens, so
     // shipping it would leak the app's internal structure to the open internet.

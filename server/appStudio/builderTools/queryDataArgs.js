@@ -14,7 +14,8 @@ const queryCompiler = require('../queryCompiler');
 const rlsGateway = require('../rlsGateway');
 const log = require('../../telemetry/log');
 
-const MAX_QUERY_LIMIT = 20;
+// 200 since 2026-11 (was 20). The engine ceiling (MAX_RESULT_ROWS) is higher; this is the per-call page.
+const MAX_QUERY_LIMIT = 200;
 const DEFAULT_QUERY_LIMIT = 5;
 // Internal ids the model has no use for (noise, and the org id is not its business).
 const HIDDEN_COLUMNS = ['created_by', 'org_id'];
@@ -32,7 +33,7 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  *
  * @typedef {{
  *   error?: string, _fixHint?: string, tableId?: string|null, datasetId?: string|null, limit?: number,
- *   limitClamped?: boolean, sort?: { field: string, dir: string }, filter?: any[], cursor?: string|null,
+ *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, filter?: any[], cursor?: string|null,
  * }} QueryArgs
  */
 
@@ -56,6 +57,7 @@ function parseQueryArgs(args) {
 
     let limit = DEFAULT_QUERY_LIMIT;
     let limitClamped = false;
+    let requestedLimit;
     if (a.limit !== undefined && a.limit !== null) {
         const n = Number(a.limit);
         if (!Number.isInteger(n) || n < 1) {
@@ -63,6 +65,7 @@ function parseQueryArgs(args) {
             return bad('limit must be a whole number of at least 1.', hint);
         }
         limitClamped = n > MAX_QUERY_LIMIT;
+        if (limitClamped) requestedLimit = n;
         limit = Math.min(n, MAX_QUERY_LIMIT);
     }
 
@@ -85,7 +88,7 @@ function parseQueryArgs(args) {
     if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
         return bad('cursor must be the nextCursor string of the previous call.');
     }
-    return { tableId, datasetId, limit, limitClamped, sort, filter, cursor: a.cursor || null };
+    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, cursor: a.cursor || null };
 }
 
 /** A row without the internal ids a model has no use for. */
@@ -137,12 +140,12 @@ function pageDatasetRows(rows, cursor, limit) {
  * The paging/limit fields every successful answer carries.
  *
  * @param {{ more?: boolean, nextCursor?: string|null }} page
- * @param {{ limit?: number, limitClamped?: boolean }} parsed
+ * @param {{ limit?: number, limitClamped?: boolean, requestedLimit?: number }} parsed
  */
-function pageMeta({ more, nextCursor }, { limit, limitClamped }) {
+function pageMeta({ more, nextCursor }, { limit, limitClamped, requestedLimit }) {
     return {
         ...(more ? { more: true, nextCursor } : {}),
-        ...(limitClamped ? { limitClamped: true, limit } : {}),
+        ...(limitClamped ? { limitClamped: true, limit, requestedLimit } : {}),
     };
 }
 

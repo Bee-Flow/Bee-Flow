@@ -5,6 +5,8 @@
  * same model, so one save persists them all.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { blockedConversions } from './fieldConversions';
+import type { ConversionEntry } from './fieldConversions';
 import { emptyModel, fillersOf, newTableId, uniqueTableKey, withProposedTables } from './tablesManagerModel';
 import type { DataModel, ModelConnector, ModelTable } from './tablesManagerModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -39,6 +41,30 @@ interface SaveResult {
     errors?: Array<string | { message?: string }>;
     managed?: { message?: string } | null;
     error?: string;
+    conversionRefused?: boolean;
+    conversions?: ConversionEntry[];
+    migrationFailed?: boolean;
+    failure?: { reason?: string; table?: string; field?: string; kind?: string } | null;
+    report?: { recomputed?: Array<{ rows?: number | null }>; converted?: Array<{ rows?: number | null }> } | null;
+}
+
+/** The fixed reason of a migration the database refused, in the owner's words. */
+function failureMessage(res: SaveResult, t: TranslateFn): string {
+    const where = res.failure?.field ? `${res.failure.table}.${res.failure.field}` : '';
+    switch (res.failure?.reason) {
+        case 'division_by_zero': return t('studio_apps_tables.migration.division_by_zero', '{field}: the expression divides by zero for at least one row. Nothing was saved.', { field: where });
+        case 'unknown_column': return t('studio_apps_tables.migration.unknown_column', '{field}: the expression names a column the table does not have. Nothing was saved.', { field: where });
+        case 'duplicate_values': return t('studio_apps_tables.migration.duplicate_values', '{field} must be unique, but rows would share a value. Nothing was saved.', { field: where });
+        default: return t('studio_apps_tables.migration.failed', '{field}: the database refused the change. Nothing was saved.', { field: where });
+    }
+}
+
+/** "Data model saved", plus how many rows a recompute or conversion touched. */
+function savedMessage(res: SaveResult, t: TranslateFn): string {
+    const rows = [...(res.report?.recomputed || []), ...(res.report?.converted || [])].reduce((n, e) => n + (e.rows || 0), 0);
+    return rows > 0
+        ? t('studio_apps_tables.migration.saved_rows', 'Data model saved — {n} row values updated.', { n: rows })
+        : t('studio_apps_tables.manager.saved', 'Data model saved.');
 }
 
 /** Reports a save the server refused, in the owner's words. */
@@ -67,6 +93,8 @@ export function useDataModel(appId: string | null | undefined, open: boolean, t:
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<ManagerTab>('tables');
+    // The conversions a save was refused for (values the new type cannot hold).
+    const [refusal, setRefusal] = useState<ConversionEntry[] | null>(null);
 
     // Load the editable owner model whenever the modal opens.
     const load = useCallback(async () => {
@@ -163,7 +191,15 @@ export function useDataModel(appId: string | null | undefined, open: boolean, t:
         if (selectedId === id) setSelectedId(next[0]?.id || null);
     };
 
-    const save = async (): Promise<boolean> => {
+    /** The refused conversions, with examples from a dry run when it answers. */
+    const openRefusal = async (sent: DataModel, conversions: ConversionEntry[] | undefined) => {
+        // The dry run only adds examples; without it the refusal's counts stand.
+        const preview = await studioAppsApi.previewSchema(appId as string, sent).catch(() => null);
+        const previewed = blockedConversions(preview?.report?.converted);
+        setRefusal(previewed.length ? previewed : blockedConversions(conversions));
+    };
+
+    const save = async (opts: { onUnconvertible?: 'refuse' | 'clear' } = {}): Promise<boolean> => {
         if (!appId || !model) return false;
         const problem = firstConnectorProblem(model, t);
         if (problem) {
@@ -174,15 +210,20 @@ export function useDataModel(appId: string | null | undefined, open: boolean, t:
         const sent = model;
         setSaving(true);
         try {
-            const res: SaveResult = await studioAppsApi.saveSchema(appId, sent, modelVersion || undefined);
+            // `opts` may be a click event when save is an onClick handler: read the one flag.
+            const clear = !!opts && (opts as { onUnconvertible?: unknown }).onUnconvertible === 'clear';
+            const res: SaveResult = await studioAppsApi.saveSchema(appId, sent, modelVersion || undefined, clear ? { onUnconvertible: 'clear' } : {});
             if (res.ok) {
                 setModelVersion(res.version ?? modelVersion);
                 setSavedSnapshot(JSON.stringify(sent));
-                toast.success(t('studio_apps_tables.manager.saved', 'Data model saved.'));
+                setRefusal(null);
+                toast.success(savedMessage(res, t));
                 refetchSaved();
                 return true;
             }
-            reportRefusal(res, t, load);
+            if (res.conversionRefused) await openRefusal(sent, res.conversions);
+            else if (res.migrationFailed) toast.error(failureMessage(res, t));
+            else reportRefusal(res, t, load);
         } catch (err) {
             toast.error(messageOf(err, t('studio_apps_tables.manager.save_failed', 'Saving the data model failed.')));
         } finally {
@@ -194,7 +235,7 @@ export function useDataModel(appId: string | null | undefined, open: boolean, t:
     return {
         model, tables, loading, saving, dirty, selectedId, setSelectedId, confirmDeleteId, setConfirmDeleteId,
         activeTab, setActiveTab, patchModel, patchDirectory, patchConnectors, createTableForConnector, addTable,
-        renameSelected, deleteTable, save,
+        renameSelected, deleteTable, save, refusal, dismissRefusal: () => setRefusal(null),
     };
 }
 

@@ -121,6 +121,11 @@ export type { RouteDefinition, RouteRebound } from './vendor/index.mjs';
 
 // A path as a person reads it (vendor/pathLabel.mjs), shared with the web builder.
 export { listPathLabel } from './vendor/index.mjs';
+
+// Filter lists with `{ any: [...] }` OR groups: the one loop that resolves
+// their dynamic values (vendor/filterGroups.mjs), shared with web and server.
+export { FILTER_SKIP, NO_VALUE_FILTER_OPS, countFilterLeaves, forEachFilterClause, isAnyGroup, resolveFilterList } from './vendor/index.mjs';
+export type { FilterListResult, ResolveFilterOptions } from './vendor/index.mjs';
 // Lists inside lists (vendor/nested.mjs) and "Flatten a list" (vendor/flatten.mjs):
 // the levels a list holds, the rows of a route, and a flatten's column plan,
 // rows and run sentence, exactly as the server runs them.

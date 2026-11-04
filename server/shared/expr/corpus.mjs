@@ -11,6 +11,7 @@
  * Add a case here (not in one runner) whenever the grammar/whitelist changes.
  */
 // @typecheck
+import { LIST_CASES, LIST_REJECT } from './corpusLists.mjs'; // member access, list functions, regex
 export const SCOPE = {
     actions: { search: { status: 'success', result: { count: 3, rows: [{ name: 'A' }, { name: 'B' }] } } },
     form: { amount: 120, email: 'a@b.com', qty: 0 },
@@ -337,17 +338,16 @@ export const CASES = [
     { expr: 'asTable(item.tags)', expected: '| value |\n| --- |\n| x |\n| y |' },  // a list of scalars is one column
     { expr: 'asTable(currentUser.name)', expected: '' },                          // not a list at all
     { expr: 'asTable(missing.x)', expected: '' },
-    // composition — a call as an ARGUMENT is fine; a member access ON a call
-    // result is not (same grammar limit as parseJson below).
+    // composition — a call as an ARGUMENT, and a call result read on like a path.
     { expr: 'concat("Totaal: ", formatNumber(group.amount, "amount"))', expected: 'Totaal: \u20ac 1.500.000' },
     { expr: 'yesNoText(isEmpty(item.tags), "leeg", "gevuld")', expected: 'gevuld' },
-    // extended: JSON (parseJson never throws; two-arg path form because the
-    // grammar has no member access on a call result)
+    // extended: JSON (parseJson never throws; path text and member access read the same)
     { expr: 'parseJson(rawJson, "user.name")', expected: 'Ada' },
     { expr: 'parseJson(rawJson, "items[0].qty")', expected: 2 },
     { expr: 'parseJson(rawJson, "items[*].sku")', expected: ['a1', 'b2'] },
     { expr: 'join(parseJson(rawJson, "items[*].sku"), ",")', expected: 'a1,b2' }, // composition
     { expr: 'parseJson(badJson)', expected: null },
+    ...LIST_CASES,
     { expr: 'parseJson(missing.x)', expected: null },
     { expr: 'parseJson("   ")', expected: null },
     { expr: 'parseJson(item, "total")', expected: 50 },          // object passthrough
@@ -415,7 +415,7 @@ export const REJECT = [
     'pi()',      // the constants are PI()/E() — case-sensitive, like every other name
     // A host function (topics.mjs) only parses where the caller passes its
     // host. Everywhere else it is an unknown function, exactly as before.
-    'isAbout(item.region, "a region")',
+    'isAbout(item.region, "a region")', ...LIST_REJECT,
 ];
 
 // ── Host functions: isAbout (topics.mjs) ─────────────────────────────────

@@ -8,6 +8,7 @@
 
 const { LIMITS, ACTION_SPECS, TOAST_TONES } = require('../componentSpecs');
 const { isObject, deepCopy, truncate } = require('./shared');
+const { cleanBinding } = require('./bindings');
 
 /**
  * @param {string} path
@@ -117,4 +118,34 @@ function cleanNavParams(raw, path, push) {
     return out;
 }
 
-module.exports = { cleanInputMapping, cleanEffects, cleanNavParams };
+/**
+ * call_action params — { <name>: binding }, read as `params.<name>` in the called
+ * action. Names are trimmed (a clash after trimming keeps the first), entries past
+ * LIMITS.MAX_CALL_PARAMS are dropped with a note, values go through cleanBinding.
+ * A name that cannot be read as params.<name> is kept for validate.js to name.
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function cleanCallParams(raw, path, push) {
+    if (!isObject(raw)) {
+        push('action.field_invalid', path, 'params must be an object map of { name: binding } — reset to {}.');
+        return {};
+    }
+    const out = {};
+    const entries = Object.entries(raw);
+    for (const [rawName, v] of entries.slice(0, LIMITS.MAX_CALL_PARAMS)) {
+        const name = rawName.trim();
+        if (name !== rawName) push('action.field_trimmed', `${path}.${rawName}`, `Param name ${JSON.stringify(rawName)} trimmed to ${JSON.stringify(name)}.`);
+        if (Object.hasOwn(out, name)) {
+            push('action.field_invalid', `${path}.${rawName}`, `Param "${name}" appears twice — the first is kept.`);
+            continue;
+        }
+        out[name] = cleanBinding(v, `${path}.${name}`, push);
+    }
+    if (entries.length > LIMITS.MAX_CALL_PARAMS) {
+        push('action.field_invalid', path, `params has ${entries.length} entries — the maximum is ${LIMITS.MAX_CALL_PARAMS}; the rest were dropped.`);
+    }
+    return out;
+}
+
+module.exports = { cleanInputMapping, cleanEffects, cleanNavParams, cleanCallParams };

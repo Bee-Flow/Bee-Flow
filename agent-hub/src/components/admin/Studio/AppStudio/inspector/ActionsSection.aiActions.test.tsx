@@ -267,6 +267,37 @@ describe('ActionsSection — native AI actions', () => {
         expect(lastAction().writeTo.mapping).toEqual({ amount: 'total_due' });
     });
 
+    it('ai_extract: a mapping edit keeps upsertKey, constants and replaceWhere (no silent data loss)', async () => {
+        const replaceWhere = [{ field: 'status', op: 'eq', value: 'open' }];
+        const { findByLabelText, getByLabelText, lastAction } = renderActions(formNode, {
+            act1: {
+                kind: 'ai_extract', source: { kind: 'formula', expr: 'form.upload' },
+                schema: [{ name: 'amount', type: 'number', description: 'x' }, { name: 'invoice_number', type: 'string', description: 'y' }],
+                writeTo: { tableId: 'tbl_inv', mapping: { amount: 'amount' }, upsertKey: ['amount'], constants: { status: { kind: 'static', value: 'open' } }, replaceWhere },
+            },
+        });
+        await findByLabelText('Column for invoice_number');
+        await userEvent.selectOptions(getByLabelText('Column for invoice_number'), 'invoice_number');
+        const w = lastAction().writeTo;
+        expect(w.mapping).toEqual({ amount: 'amount', invoice_number: 'invoice_number' });
+        expect(w.upsertKey).toEqual(['amount']);
+        expect(w.constants).toEqual({ status: { kind: 'static', value: 'open' } });
+        expect(w.replaceWhere).toEqual(replaceWhere);
+    });
+
+    it('ai_extract: checking a key column sets upsertKey; unchecking the last removes it', async () => {
+        const { findByRole, lastAction } = renderActions(formNode, {
+            act1: {
+                kind: 'ai_extract', source: { kind: 'formula', expr: 'form.upload' },
+                schema: [{ name: 'amount', type: 'number', description: 'x' }],
+                writeTo: { tableId: 'tbl_inv', mapping: { amount: 'amount' } },
+            },
+        });
+        const box = await findByRole('checkbox', { name: 'Amount' });
+        await userEvent.click(box);
+        expect(lastAction().writeTo.upsertKey).toEqual(['amount']);
+    });
+
     it('ai_extract: warns when nothing would be saved', async () => {
         const { findByText } = renderActions(formNode, {
             act1: {

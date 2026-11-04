@@ -295,3 +295,51 @@ test('a BARE create_record action is redacted for anonymous delivery', () => {
     assert.ok(!wire.includes('tbl_secret'), 'the target table id reached the visitor');
     assert.ok(!wire.includes('nooit tonen'), 'a column value reached the visitor');
 });
+
+test('an action a public root calls ships redacted, but is not a surface root', () => {
+    const def = definition();
+    def.actions.act_submit.steps.push({ kind: 'call_action', actionId: 'act_helper', params: { n: { kind: 'static', value: 1 } } });
+    def.actions.act_helper = { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 'tbl_secret', values: { a: 1 }, resultVar: 'r' }] };
+    const surface = resolvePublicSurface(def);
+    assert.equal(surface.actionIds.has('act_helper'), false, 'posting the callee id directly is a 404');
+    const pub = buildPublicDefinition(def, surface);
+    assert.deepEqual(pub.actions.act_helper, { kind: 'sequence', steps: [{ kind: 'create_record', resultVar: 'r' }] });
+    assert.equal(JSON.stringify(pub).includes('tbl_secret'), false);
+    assert.equal(pub.actions.act_submit.steps.at(-1).actionId, 'act_helper', 'the call step travels whole');
+});
+
+test('buildPublicDefinition: a server step keeps retry and a redacted onError; the ordinals match the server', () => {
+    const action = { kind: 'sequence', steps: [
+        { kind: 'ai_generate', prompt: 'SECRET PROMPT', resultVar: 'd', retry: { times: 2 }, onError: { steps: [
+            { kind: 'create_record', tableId: 'tbl_x', values: { v: { kind: 'static', value: 'SECRET VALUE' } } },
+            { kind: 'toast', message: 'Saved a fallback' },
+        ], stop: true } },
+        { kind: 'transaction', steps: [{ kind: 'create_record', tableId: 'tbl_x', values: {} }] },
+    ] };
+    const def = {
+        schemaVersion: 2, meta: { name: 'P' }, homeScreenId: 'scr_pub001',
+        screens: [{ id: 'scr_pub001', name: 'P', sections: [{ id: 'sec_a00001', children: [{ id: 'cmp_btn001', type: 'button', props: {}, onClick: 'act_one001' }] }] }],
+        actions: { act_one001: action },
+        publicAccess: { screenIds: ['scr_pub001'], entryScreenId: 'scr_pub001' },
+    };
+    const out = buildPublicDefinition(def, resolvePublicSurface(def));
+    const got = out.actions.act_one001;
+    const text = JSON.stringify(got);
+    assert.doesNotMatch(text, /SECRET/);
+    assert.deepEqual(got.steps[0], { kind: 'ai_generate', resultVar: 'd', retry: { times: 2 }, onError: { steps: [{ kind: 'create_record' }, { kind: 'toast', message: 'Saved a fallback' }], stop: true } });
+    assert.deepEqual(got.steps[1], { kind: 'transaction' });
+    assert.deepEqual(flattenSteps(normalizeSequence(got)).map((s) => s.kind), flattenSteps(normalizeSequence(action)).map((s) => s.kind));
+});
+
+test('a background action ships without its run options; its steps (and ordinals) are unchanged', () => {
+    const def = definition();
+    def.actions.act_submit = { ...def.actions.act_submit, background: true, lockKey: { kind: 'formula', expr: "'order:' + form.naam" }, progressVar: 'stap' };
+    const pub = buildPublicDefinition(def, resolvePublicSurface(def));
+    const shipped = pub.actions.act_submit;
+    assert.equal('background' in shipped, false);
+    assert.equal('lockKey' in shipped, false);
+    assert.equal('progressVar' in shipped, false);
+    assert.equal(JSON.stringify(pub).includes("'order:'"), false);
+    const plain = buildPublicDefinition(definition(), resolvePublicSurface(definition()));
+    assert.deepEqual(shipped, plain.actions.act_submit, 'the same steps, so every ordinal stays');
+});

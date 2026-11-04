@@ -11,8 +11,31 @@ const {
     findTable, buildServerScope, resolveBinding, viewerOf, writeViewer,
 } = require('./shared');
 const { writeRecord, writeRecordBatch } = require('./records');
+// Required by a variable path (see dispatch.js): agent-hub's typecheck follows literal requires,
+// and this .mts module imports its siblings with their .mts extension.
+const WRITE_TO_ROWS = './writeToRows.mts';
+const REPLACE_RECORDS = './replaceRecords.mts';
+/**
+ * What this file uses of writeToRows.mts and replaceRecords.mts, spelled out (a type import would
+ * pull the .mts files into agent-hub's typecheck).
+ * @typedef {{ ok: false, error: string, code: string }} Refusal
+ * @typedef {{
+ *   upsertKeyOf(writeTo: Record<string, any>, table: unknown, constants: Record<string, any>): unknown,
+ *   prepareReplace(app: unknown, table: unknown, replaceWhere: unknown, run: unknown): Promise<Refusal | { filters: unknown[], matched: number }>,
+ *   isRefusal(v: unknown): v is Refusal,
+ *   replaceBefore(app: unknown, table: unknown, filters: unknown[], run: unknown): Promise<number>,
+ *   upsertRows(app: unknown, model: unknown, table: unknown, rows: unknown[], o: Record<string, unknown>): Promise<{ written: number, unmatched: string[] }>,
+ * }} WriteToRowsApi
+ * @typedef {{ replaceRecordBatch(app: unknown, model: unknown, table: unknown, rows: unknown[], o: { viewer?: unknown, filters: unknown[], limit: number }): Promise<{ ids: string[], deleted: number }> }} ReplaceRecordsApi
+ */
+/** @returns {WriteToRowsApi} */
+const writeToRowsModule = () => require(WRITE_TO_ROWS);
+/** @returns {ReplaceRecordsApi} */
+const replaceRecordsModule = () => require(REPLACE_RECORDS);
+const { LIMITS } = require('../componentSpecs/limits');
 const log = require('../../telemetry/log');
 const { redeemEach, newReport, assertSomethingRead } = require('../aiDocumentRead.mts');
+const { resolveStepModel, notesWith } = require('./modelTierChoice.mts');
 const { replaceTemplate, parsePath, walkTokens } = require('../../shared/expr/index.mjs');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
@@ -277,7 +300,7 @@ async function aiExtractStep(app, model, step, ctx) {
     const fields = aiRuntime.normalizeSchemaFields(step.schema);
     if (!fields.length) { const e = new Error('No output fields are configured for extraction'); e.status = 400; throw e; }
 
-    const aiModel = await aiRuntime.resolveOwnerModel(app, step.modelTier);
+    const { aiModel, tierNote } = await resolveStepModel(aiRuntime, app, step.modelTier, (b) => resolveBinding(b, ctx, scope));
     const report = newReport();
     const files = await redeemPendingDescriptors(app, model, descriptors, ctx, report);
     const docBlocks = await aiRuntime.extractDocuments(app, files, {
@@ -343,7 +366,7 @@ async function aiExtractStep(app, model, step, ctx) {
         structured = (await run()).structured;
         if (!Array.isArray(structured.rows)) {
             const e = new Error(`The AI returned no records for this document (model ${aiModel.modelId}, tier ${aiModel.tierName}). Try a more capable tier or a simpler schema.`);
-            e.status = 422;
+            Object.assign(e, { status: 422, code: 'ai_no_output' }); // ai_no_output: a step retry may try again
             throw e;
         }
     }
@@ -362,6 +385,8 @@ async function aiExtractStep(app, model, step, ctx) {
     let written = 0;
     /** @type {string[]} */
     let unmatched = [];
+    /** @type {number | undefined} */
+    let replaced;
     const writeTo = (step.writeTo && typeof step.writeTo === 'object') ? step.writeTo : null;
     if (writeTo && writeTo.tableId) {
         const table = findTable(model, writeTo.tableId);
@@ -382,50 +407,30 @@ async function aiExtractStep(app, model, step, ctx) {
             // must not be able to overwrite the record of where it came from.
             return Object.assign(values, constants);
         });
-        if (writeTo.upsertOn) {
-            const res = await upsertExtractedRows(app, model, table, toWrite, {
-                keyColumn: writeTo.upsertOn,
-                constants,
-                ctx,
-                scope,
-                // A row whose key matches nothing is a MISMATCH, not a new
-                // record. Left to insert, a bill of materials whose part
-                // numbers are one suffix short of the file-derived ones
-                // silently doubled an order: 78 ghost lines beside 85 real
-                // ones, indistinguishable in the grid. With insertMissing
-                // false they are counted and reported instead.
-                insertMissing: writeTo.insertMissing !== false,
-                // Never let an empty answer erase what is already there. The
-                // per-drawing path wrapped every value in default() by hand;
-                // the writeTo path did not, and wrote null straight over the
-                // column defaults for cut quality and certificate on 146 rows.
-                fillOnly: writeTo.fillOnly === true,
-            });
-            written = res.written;
-            unmatched = res.unmatched;
-        } else {
-            // One transaction (RLS + quota enforced there): a quota/compile
-            // failure aborts the whole extraction rather than leaving the rows
-            // written so far behind.
-            const ids = await writeRecordBatch(app, model, table, toWrite, { viewer: writeViewer(ctx) });
-            written = ids.length;
-        }
+        const out = await writeExtractedRows(app, model, table, toWrite, { writeTo, constants, ctx, scope });
+        if (out.ok === false) return out;
+        written = out.written;
+        unmatched = out.unmatched;
+        replaced = out.replaced;
     }
     // `summary` keeps the rows out of the step body. A 163-line purchase order
     // that also WRITES its rows would otherwise ship them back as well and trip
     // the 64KB body cap — the same reason file_intake grew this knob first.
     const summary = step.resultDetail === 'summary';
+    const notes = notesWith(report.notes, tierNote);
     return {
         ok: true,
-        ...(report.notes.length ? { notes: report.notes } : null),
+        ...notes,
         result: {
-            ...(report.notes.length ? { notes: report.notes } : null),
+            ...notes,
             rows: summary ? [] : rows,
             count: rows.length,
             written,
             incomplete,
             unmatched: summary ? unmatched.slice(0, 25) : unmatched,
             unmatchedCount: unmatched.length,
+            // Only with writeTo.replaceWhere: how many old rows were deleted first.
+            ...(replaced === undefined ? {} : { replaced }),
             // Which model actually answered. This is the difference between
             // "the AI is bad at drawings" and "the AI was a 0.6B text model".
             model: aiModel.modelId,
@@ -435,86 +440,52 @@ async function aiExtractStep(app, model, step, ctx) {
 }
 
 /**
- * Write extracted rows so that reading the same document twice UPDATES the same
- * lines instead of doubling them.
+ * Write extracted rows: a plain insert (one transaction), or an upsert so that reading the same
+ * document twice UPDATES the same lines instead of doubling them (writeTo.upsertKey, or the legacy
+ * upsertOn plus the scalar constants), optionally after deleting the rows writeTo.replaceWhere
+ * matches. The shared form lives in writeToRows.mts (file_intake and dataset_query use it too).
  *
- * The batch path above is a plain insert per row, which is right for an
- * extraction that discovers new records (invoice lines off a scan). It is
- * exactly wrong for an extraction that RE-STATES records something else already
- * created: a bill of materials read after the file intake paired 77 parts would
- * have added 77 more rows beside them, and the second press another 77.
+ * The plain insert is the right default for an extraction that discovers new records (invoice
+ * lines off a scan); the upsert for one that RE-STATES records something else already created.
+ * The upsert is per row rather than one transaction: a failure part-way leaves the rows already
+ * written, and a half-written order you can re-press beats a doubled one. A plain insert with
+ * replaceWhere is one batch: the old set is replaced or nothing changed.
  *
- * Same shape as file_intake's upsert, deliberately — one identifying column
- * plus the scalar constants, so two orders never collide on the same part
- * number, and a date constant is a stamp rather than identity (`now` resolves
- * fresh every press and would match nothing).
- *
- * The price of converging is that this is per row rather than one transaction:
- * a failure part-way leaves the rows already written. That is the same bargain
- * file_intake makes, and it is the better one here — a half-written order you
- * can re-press beats a doubled order somebody has to unpick by hand.
+ * With insertMissing:false a row whose key matches nothing is a MISMATCH that is reported, not a
+ * new record (a bill of materials one suffix short once doubled an order: 78 ghost lines). With
+ * fillOnly:true an empty answer never erases what is already there.
+ * @returns {Promise<{ ok: false, error: string, code: string } | { ok: true, written: number, unmatched: string[], replaced?: number }>}
  */
-async function upsertExtractedRows(app, model, table, rows, {
-    keyColumn, constants, ctx, scope, insertMissing = true, fillOnly = false,
-} = {}) {
-    const stepDataSource = require('../stepDataSource');
-    const viewer = viewerOf(ctx);
-    const identifying = Object.entries(constants || {}).filter(([col, v]) => {
-        const field = (table.fields || []).find((f) => f && f.key === col);
-        if (field && (field.type === 'date' || field.type === 'datetime')) return false;
-        return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
-    });
-    const constantCols = new Set(Object.keys(constants || {}));
-
-    let written = 0;
-    /** @type {string[]} */
-    const unmatched = [];
-    for (const values of rows) {
-        const key = values[keyColumn];
-        // No key, no identity: an unkeyed row is a new row rather than a silent
-        // overwrite of whichever row happened to have an empty key.
-        let existing = null;
-        if (key !== null && key !== undefined && key !== '') {
-            const filter = [{ field: keyColumn, op: 'eq', value: key, required: true }];
-            for (const [col, v] of identifying) filter.push({ field: col, op: 'eq', value: v });
-            existing = await stepDataSource.resolveDataBinding(app, model, {
-                kind: 'record', tableId: table.id, filter,
-            }, {
-                viewer,
-                role: ctx.role ?? null,
-                resolveValue: (b) => resolveBinding(b, ctx, scope),
-            });
-        }
-
-        if (!existing && !insertMissing) {
-            // Report it, do not create it. The caller decides what a mismatch
-            // means; inventing a row is never the right default for an
-            // extraction that was supposed to ENRICH existing lines.
-            unmatched.push(key == null ? '' : String(key));
-            continue;
-        }
-
-        let toWrite = values;
-        if (fillOnly && existing) {
-            // Fill the gaps, never overwrite. A column the model left blank must
-            // not wipe what a person typed or what the column defaults to — that
-            // is how 146 of 163 lines lost their cut quality and certificate.
-            // Provenance constants are exempt: they describe THIS extraction.
-            const isEmpty = (v) => v === null || v === undefined || v === '';
-            toWrite = {};
-            for (const [col, v] of Object.entries(values)) {
-                if (constantCols.has(col)) toWrite[col] = v;
-                else if (!isEmpty(v) && isEmpty(existing[col])) toWrite[col] = v;
-            }
-        }
-
-        await writeRecord(app, model, table, toWrite, {
-            viewer: writeViewer(ctx),
-            recordId: existing && existing.id ? existing.id : undefined,
-        });
-        written += 1;
+async function writeExtractedRows(app, model, table, rows, { writeTo, constants, ctx, scope }) {
+    const writeToRows = writeToRowsModule();
+    const run = { ctx, viewer: viewerOf(ctx), resolveValue: (/** @type {unknown} */ b) => resolveBinding(/** @type {import('./shared').Binding} */ (b), ctx, scope) };
+    const key = writeToRows.upsertKeyOf(writeTo, table, constants);
+    let replace = null;
+    if (writeTo.replaceWhere !== undefined && writeTo.replaceWhere !== null) {
+        const prepared = await writeToRows.prepareReplace(app, table, writeTo.replaceWhere, run);
+        if (writeToRows.isRefusal(prepared)) return prepared;
+        replace = prepared;
     }
-    return { written, unmatched };
+    if (!key) {
+        if (replace) {
+            // One batch: the old rows go and the new ones land together, or nothing changes.
+            const { ids, deleted } = await replaceRecordsModule().replaceRecordBatch(app, model, table, rows, {
+                viewer: writeViewer(ctx), filters: replace.filters, limit: LIMITS.MAX_BULK_WRITE_ROWS,
+            });
+            return { ok: true, written: ids.length, unmatched: [], replaced: deleted };
+        }
+        // One transaction (RLS + quota enforced there): a quota/compile failure aborts the whole
+        // extraction rather than leaving the rows written so far behind.
+        const ids = await writeRecordBatch(app, model, table, rows, { viewer: writeViewer(ctx) });
+        return { ok: true, written: ids.length, unmatched: [] };
+    }
+    const replaced = replace ? await writeToRows.replaceBefore(app, table, replace.filters, run) : undefined;
+    const res = await writeToRows.upsertRows(app, model, table, rows, {
+        key, constants, run, writeRecord, writeViewer: writeViewer(ctx),
+        insertMissing: writeTo.insertMissing !== false,
+        fillOnly: writeTo.fillOnly === true,
+    });
+    return { ok: true, written: res.written, unmatched: res.unmatched, ...(replaced === undefined ? {} : { replaced }) };
 }
 
 async function aiGenerateStep(app, model, step, ctx) {
@@ -523,7 +494,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     const prompt = interpolatePrompt(typeof step.prompt === 'string' ? step.prompt : '', ctx);
     if (!prompt.trim()) { const e = new Error('The prompt is empty'); e.status = 400; throw e; }
 
-    const aiModel = await aiRuntime.resolveOwnerModel(app, step.modelTier);
+    const { aiModel, tierNote } = await resolveStepModel(aiRuntime, app, step.modelTier, (b) => resolveBinding(b, ctx, scope));
     const descriptors = await resolveFileBinding(app, model, step.attachments, ctx, scope);
     const report = newReport();
     const docBlocks = descriptors.length
@@ -561,7 +532,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     const fullPrompt = blocks ? `${prompt}\n\n${blocks}` : prompt;
     // Bound files and nothing readable: fail with the real reason, unless the step has other material to work from.
     assertSomethingRead(report, { needed: !blocks && !ground.context });
-    const notes = report.notes.length ? { notes: report.notes } : null;
+    const notes = notesWith(report.notes, tierNote);
     const user = docBlocks.length ? [{ type: 'text', text: fullPrompt }, ...docBlocks] : fullPrompt;
 
     if (step.output === 'structured') {
@@ -764,11 +735,10 @@ module.exports = {
  * @typedef {{ name: string, required?: boolean }} SchemaField
  * @typedef {{
  *   kind?: string, source?: import('./shared').Binding, attachments?: import('./shared').Binding,
- *   query?: import('./shared').Binding, topK?: number, schema?: unknown, modelTier?: string, documentMode?: string,
+ *   query?: import('./shared').Binding, topK?: number, schema?: unknown, modelTier?: unknown, documentMode?: string,
  *   knowledgeBaseIds?: string[], promptContext?: import('./shared').Binding,
  *   contextSources?: Array<{ source?: import('./shared').Binding, label?: unknown }>,
- *   datasets?: import('./shared').Binding, prompt?: string, output?: string, markdownToHtml?: boolean,
- *   resultDetail?: string,
+ *   datasets?: import('./shared').Binding, prompt?: string, output?: string, markdownToHtml?: boolean, resultDetail?: string,
  *   writeTo?: { tableId?: string, mapping?: Record<string, string>, constants?: Record<string, import('./shared').Binding>, upsertOn?: string, insertMissing?: boolean, fillOnly?: boolean },
  * }} AiStep  an ai_extract / ai_generate / kb_query step
  *   Fields: `source`: ai_extract: the file binding; `attachments`: ai_generate: the file binding; `query`: kb_query;

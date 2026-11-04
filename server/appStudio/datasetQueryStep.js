@@ -28,6 +28,8 @@ const datasetFileStore = require('../stores/datasetFileStore');
 const storageStore = require('../stores/storageStore');
 const blockIndex = require('../core/datasets/blockIndex');
 const rsidIndex = require('../core/datasets/rsidIndex');
+// Required by a variable path (see actionExecutor/dispatch.js).
+const WRITE_TO_ROWS = './actionExecutor/writeToRows.mts';
 const { queryRegion, DatasetQueryError } = require('../core/datasets/query');
 const stepDataSource = require('./stepDataSource');
 const { DATASET_QUERY_OUTPUTS } = require('./validate');
@@ -207,6 +209,17 @@ async function datasetQueryStep(app, model, step, ctx, helpers) {
         }
         const upsertCol = typeof step.writeTo.upsertOn === 'string' && hasField(table, step.writeTo.upsertOn)
             ? step.writeTo.upsertOn : null;
+        // upsertKey (package 5): exactly these columns; replaceWhere: delete those rows first.
+        const writeToRows = require(WRITE_TO_ROWS);
+        const explicitKey = Array.isArray(step.writeTo.upsertKey) && step.writeTo.upsertKey.length
+            ? writeToRows.upsertKeyOf(step.writeTo, table, constants)
+            : null;
+        const run = { ctx, viewer: writeViewer(ctx), resolveValue: resolve };
+        if (step.writeTo.replaceWhere !== undefined && step.writeTo.replaceWhere !== null) {
+            const prepared = await writeToRows.prepareReplace(app, table, step.writeTo.replaceWhere, run);
+            if (writeToRows.isRefusal(prepared)) return prepared;
+            await writeToRows.replaceBefore(app, table, prepared.filters, run);
+        }
 
         for (const row of result.rows) {
             const outputs = outputsFor(row, result);
@@ -220,7 +233,11 @@ async function datasetQueryStep(app, model, step, ctx, helpers) {
             Object.assign(values, constants);
 
             let existingId;
-            if (upsertCol && values[upsertCol] != null) {
+            if (explicitKey) {
+                const keyFilter = writeToRows.keyFilterOf(explicitKey, values);
+                const twin = keyFilter ? await writeToRows.findExistingByKey(app, model, table, keyFilter, run) : null;
+                existingId = twin && twin.id ? twin.id : undefined;
+            } else if (upsertCol && values[upsertCol] != null) {
                 const existing = await stepDataSource.resolveDataBinding(app, model, {
                     kind: 'record', tableId: table.id,
                     filter: [{ field: upsertCol, op: 'eq', value: values[upsertCol], required: true }],

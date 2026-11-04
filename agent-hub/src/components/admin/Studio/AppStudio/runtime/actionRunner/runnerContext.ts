@@ -46,4 +46,6 @@ export interface RunnerContext {
     setEntry: (actionId: string, entry: ActionEntry) => void;
     setVar: (name: string, value: unknown) => void;
     applyEffects: (effects: EffectObject | null | undefined, ctx?: EffectContext) => Promise<void>;
+    /** Background jobs this surface is following (one poll loop per job). */
+    jobs?: Set<string>;
 }

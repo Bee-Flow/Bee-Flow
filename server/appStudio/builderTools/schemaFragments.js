@@ -131,7 +131,7 @@ const UPDATE_COMPONENT_PATCH_PROPS = {
     ...UPDATE_NODE_LOGIC_PROPS,
 };
 
-const ACTION_OBJECT_DESC = `{ kind, …fields of that kind } — shapes: catalog Actions / Sequence steps. SAVE A FORM: {kind:"sequence", steps:[{kind:"create_record", tableId, values:{<fieldKey>:{kind:"formula",expr:"form.<inputName>"}}}, {kind:"refresh", tableId}, {kind:"toast", message}]} wired to the form's onSubmit. {kind:"field"} exists ONLY in run_automation inputMapping. A sequence has no onError/onSuccess.`;
+const ACTION_OBJECT_DESC = `{ kind, …fields of that kind } — shapes: catalog Actions / Sequence steps. SAVE A FORM: {kind:"sequence", steps:[{kind:"create_record", tableId, values:{<fieldKey>:{kind:"formula",expr:"form.<inputName>"}}}, {kind:"refresh", tableId}, {kind:"toast", message}]} wired to the form's onSubmit. {kind:"field"} exists ONLY in run_automation inputMapping. A sequence has no onError/onSuccess; a server step in it may carry onError {steps} / retry. LONG WORK: background:true on the sequence runs it as a server job (no browser steps but toast/refresh and a leading confirm), lockKey refuses a second start for the same key, progressVar names the variable shown as progress.`;
 
 // The action object's declared shape. An object with NO `properties` renders
 // as `properties:{}` on Gemma's chat template — the model was shown an empty
@@ -142,7 +142,9 @@ const ACTION_OBJECT_DESC = `{ kind, …fields of that kind } — shapes: catalog
 const ACTION_STEP_PROPS = {
     kind: { type: 'string', enum: [...STEP_KINDS] },
     tableId: { type: 'string', description: 'tbl_… id (record steps, refresh).' },
-    recordId: { type: 'object', description: 'update/delete_record: a binding, e.g. {kind:"formula",expr:"form.item.id"}.' },
+    recordId: { type: 'object', description: 'update/delete_record: a binding for ONE row, e.g. {kind:"formula",expr:"form.item.id"}. Leave it out when you use filter.' },
+    filter: { type: 'array', items: { type: 'object' }, description: 'update/delete_record instead of recordId: change every row matching these clauses [{field, op, value}] (value may be {kind:"formula",expr}); an empty value changes nothing.' },
+    limit: { type: 'integer', minimum: 1, description: 'update/delete_record with filter: at most this many rows (oldest first; default and max 500).' },
     values: { type: 'object', description: '{ <fieldKey>: {kind:"formula",expr:"form.<inputName>"} | {kind:"static",value} } (create/update_record).' },
     message: { type: 'string', description: 'toast / confirm text.' },
     tone: { type: 'string', enum: [...TOAST_TONES] },
@@ -152,6 +154,8 @@ const ACTION_STEP_PROPS = {
     resultVar: { type: 'string', description: 'Server steps: variable name the result is written to.' },
     automationId: { type: 'string', description: 'run_automation: the automation id.' },
     inputMapping: { type: 'object', description: 'run_automation: { <param>: {kind:"static",value} | {kind:"field",name,formId?} }.' },
+    actionId: { type: 'string', description: 'call_action: the act_… id of the action to run.' },
+    params: { type: 'object', description: 'call_action: { <name>: binding }, read as params.<name> in the called action.' },
 };
 
 const ACTION_OBJECT_PROPS = {
@@ -167,11 +171,15 @@ const ACTION_OBJECT_PROPS = {
     automationId: { type: 'string', nullable: true, description: 'run_automation: the automation id (null until the user connects one).' },
     inputMapping: { type: 'object', description: 'run_automation: { <param>: {kind:"static",value} | {kind:"field",name,formId?} }.' },
     screenId: { type: 'string', description: 'navigate: scr_… id.' },
-    params: { type: 'object', description: 'navigate: { <key>: {kind:"static",value}|{kind:"formula",expr} } → screen.params.<key>.' },
+    params: { type: 'object', description: 'navigate: { <key>: {kind:"static",value}|{kind:"formula",expr} } → screen.params.<key>. call_action: { <name>: binding } → params.<name> in the called action.' },
+    actionId: { type: 'string', description: 'call_action: the act_… id of the action to run.' },
     message: { type: 'string', description: 'toast text.' },
     tone: { type: 'string', enum: [...TOAST_TONES] },
     modalId: { type: 'string', description: 'open_modal / close_modal: the modal cmp_… id.' },
     url: { type: 'string', description: 'open_url: https URL.' },
+    background: { type: 'boolean', description: 'sequence: run as a server job that keeps running when the page is closed; the page shows progress and the result.' },
+    lockKey: { type: 'object', description: 'sequence with background: a binding, e.g. {kind:"formula",expr:"\'order:\' + item.id"}; a second start with the same key while one runs is refused.' },
+    progressVar: { type: 'string', description: 'sequence with background: the variable a set_variable step writes as the progress text (e.g. "status").' },
 };
 
 const ACTION_OBJECT_SCHEMA = { type: 'object', description: ACTION_OBJECT_DESC, properties: ACTION_OBJECT_PROPS, required: ['kind'] };

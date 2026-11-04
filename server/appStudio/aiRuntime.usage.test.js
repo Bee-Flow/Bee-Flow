@@ -105,3 +105,28 @@ test('streamChat: a stream that reported no usage logs zeros, not a crash', asyn
     assert.strictEqual(usageCalls.length, 1);
     assert.strictEqual(usageCalls[0].prompt_tokens, 0);
 });
+
+test('run log: inside a captured step the call lands in the frame with model, tier and tokens; billing unchanged', async () => {
+    const { captureStep } = require('./runLog/runTrace.mts');
+    let captured = null;
+    await withAdapter(realClaudeAdapter([{ text: 'a summary' }]), async () => {
+        captured = await captureStep(() => aiRuntime.runText(APP, { ...MODEL, tierName: 'smart' }, { system: 's', user: 'u' }));
+    });
+    assert.strictEqual(captured.value.text, 'a summary');
+    assert.strictEqual(captured.ai.calls, 1);
+    assert.strictEqual(captured.ai.model, 'm');
+    assert.strictEqual(captured.ai.tier, 'smart');
+    assert.strictEqual(captured.ai.promptTokens, usageCalls[0].prompt_tokens);
+    assert.strictEqual(captured.ai.completionTokens, usageCalls[0].completion_tokens);
+    assert.ok(!JSON.stringify(captured.ai).includes('summary'), 'no answer text in the run log');
+    assert.strictEqual(usageCalls.length, 1, 'the usage ledger still gets exactly one row');
+});
+
+test('run log: outside a captured step nothing is collected', async () => {
+    const { captureStep } = require('./runLog/runTrace.mts');
+    await withAdapter(realClaudeAdapter([{ text: 'x' }]), async () => {
+        await aiRuntime.runText(APP, MODEL, { system: 's', user: 'u' });
+    });
+    const empty = await captureStep(async () => 1);
+    assert.strictEqual(empty.ai, null);
+});

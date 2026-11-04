@@ -401,37 +401,23 @@ test('caps from LIMITS fail fast', () => {
     assert.ok(has(broken((d) => { kids(d)[1].props.text = 'x'.repeat(LIMITS.MAX_DEFINITION_BYTES + 1); }).errors, 'shape.too_large'));
 });
 
-test('depth cap: MAX_DEPTH (v3 = 6) below the screen, containers +1 each', () => {
-    // section(1) → card(2) → card(3) → card(4) → card(5) → leaf(6) is legal.
-    // This is the shape the v3 bump exists for: a tabbed pane whose tab holds a
-    // toolbar — section → pane → tabs → tab → page_header → button.
-    const legal = broken((d) => {
-        d.screens[1].sections[0].children = [{ id: 'cmp_deep01', type: 'card', props: {}, children: [
-            { id: 'cmp_deep02', type: 'card', props: {}, children: [
-                { id: 'cmp_deep03', type: 'card', props: {}, children: [
-                    { id: 'cmp_deep04', type: 'card', props: {}, children: [
-                        { id: 'cmp_deep0a', type: 'heading', props: { text: 'x' } },
-                    ] },
-                ] },
-            ] },
-        ] }];
-    });
+// A heading nested under `cards` cards: depth = section(1) + cards + the heading.
+const nestedCards = (cards) => {
+    let node = { id: 'cmp_deepleaf', type: 'heading', props: { text: 'x' } };
+    for (let i = cards; i >= 1; i--) node = { id: `cmp_deep${String(i).padStart(2, '0')}`, type: 'card', props: {}, children: [node] };
+    return [node];
+};
+
+test('depth cap: MAX_DEPTH below the screen, containers +1 each', () => {
+    // section(1) + (MAX_DEPTH - 2) cards + a leaf = MAX_DEPTH is legal.
+    const legal = broken((d) => { d.screens[1].sections[0].children = nestedCards(LIMITS.MAX_DEPTH - 2); });
     assert.ok(!has(legal.errors, 'shape.too_deep'));
-    // …but a component nested one container deeper sits at depth 7.
-    const tooDeep = broken((d) => {
-        d.screens[1].sections[0].children = [{ id: 'cmp_deep01', type: 'card', props: {}, children: [
-            { id: 'cmp_deep02', type: 'card', props: {}, children: [
-                { id: 'cmp_deep03', type: 'card', props: {}, children: [
-                    { id: 'cmp_deep04', type: 'card', props: {}, children: [
-                        { id: 'cmp_deep05', type: 'card', props: {}, children: [
-                            { id: 'cmp_deep06', type: 'heading', props: { text: 'x' } },
-                        ] },
-                    ] },
-                ] },
-            ] },
-        ] }];
-    });
+    // …one container deeper is MAX_DEPTH + 1 and names both numbers.
+    const tooDeep = broken((d) => { d.screens[1].sections[0].children = nestedCards(LIMITS.MAX_DEPTH - 1); });
     assert.ok(has(tooDeep.errors, 'shape.too_deep'));
+    const e = tooDeep.errors.find((x) => x.code === 'shape.too_deep');
+    assert.match(e.message, new RegExp(`${LIMITS.MAX_DEPTH + 1} levels`));
+    assert.match(e.message, new RegExp(`maximum is ${LIMITS.MAX_DEPTH}\\b`));
 });
 
 test('unserializable definitions are rejected, not thrown', () => {
@@ -527,6 +513,11 @@ test('action sequence: kinds, refs, loop bounds, depth, count, partition', () =>
     let deep = [{ kind: 'toast', message: 'leaf' }];
     for (let i = 0; i < LIMITS.MAX_ACTION_DEPTH + 1; i++) deep = [{ kind: 'condition', expr: 'form.x', then: deep, else: [] }];
     assert.ok(has(brokenV2(steps(deep)).errors, 'action.step_too_deep'));
+    assert.match(brokenV2(steps(deep)).errors.find((e) => e.code === 'action.step_too_deep').message, new RegExp(`reaches level ${LIMITS.MAX_ACTION_DEPTH + 1} — the maximum is ${LIMITS.MAX_ACTION_DEPTH}`));
+    // exactly MAX_ACTION_DEPTH levels of nesting is legal
+    let fits = [{ kind: 'toast', message: 'leaf' }];
+    for (let i = 0; i < LIMITS.MAX_ACTION_DEPTH - 1; i++) fits = [{ kind: 'condition', expr: 'form.x', then: fits, else: [] }];
+    assert.ok(!has(brokenV2(steps(fits)).errors, 'action.step_too_deep'));
     // a run_automation step with an unset automation warns (mirrors the top-level)
     assert.ok(has(brokenV2(steps([{ kind: 'run_automation', automationId: null }])).warnings, 'action.automation_unset'));
 });

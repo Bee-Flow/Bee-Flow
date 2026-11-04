@@ -97,6 +97,16 @@ describe('ActionFlowEditor — reading an action', () => {
 });
 
 describe('ActionFlowEditor — building', () => {
+    it('a canvas edit keeps the sequence\'s run options (background, lockKey, progressVar)', async () => {
+        const user = userEvent.setup();
+        const lockKey = { kind: 'formula', expr: "'order:' + item.id" };
+        const { last } = renderFlow({ kind: 'sequence', steps: [], background: true, lockKey, progressVar: 'status' });
+        await user.click(screen.getByRole('button', { name: /add the first step/i }));
+        await user.click(screen.getByText('Show a message'));
+        expect(last()).toMatchObject({ kind: 'sequence', background: true, lockKey, progressVar: 'status' });
+        expect(last().steps).toHaveLength(1);
+    });
+
     it('adds a step and commits a sequence', async () => {
         const { last } = renderFlow(seq([]));
         fireEvent.click(screen.getByRole('button', { name: /add the first step/i }));

@@ -19,21 +19,26 @@ import path from 'node:path';
 const REPO = path.resolve(__dirname, '../../../..');
 const VENDOR = path.join(__dirname, 'vendor');
 const ENGINE_FILES = [
+    'astWalk.mjs',
     'codePoints.mjs',
     'dates.mjs',
     'engine.mjs',
     'fileTypes.mjs',
+    'filterGroups.mjs',
     'flatten.mjs',
     'functions.mjs',
     'index.mjs',
     'limits.mjs',
+    'lists.mjs',
     'nested.mjs',
     'path.mjs',
     'pathLabel.mjs',
+    'regex.mjs',
     'routeFollow.mjs',
     'ruleFields.mjs',
     'rules.mjs',
     'templateText.mjs',
+    'tokens.mjs',
     'topics.mjs',
     'wholeRun.mjs',
 ];
@@ -53,7 +58,14 @@ describe('vendor/ is a verbatim copy of the shared engine', () => {
     );
 
     it('holds the engine and its type declaration, and nothing else', () => {
-        expect(fs.readdirSync(VENDOR).sort()).toEqual([...ENGINE_FILES, 'index.d.mts'].sort());
+        // regexEngine.mjs is hand-written (native engine; the server copy runs RE2).
+        expect(fs.readdirSync(VENDOR).sort()).toEqual([...ENGINE_FILES, 'index.d.mts', 'regexEngine.mjs'].sort());
+    });
+
+    it('the hand-written regexEngine.mjs has the server copy\'s exports', () => {
+        const names = (file: string) => [...fs.readFileSync(file, 'utf8').matchAll(/export (?:const|function) (\w+)/g)].map((m) => m[1]).sort();
+        expect(names(path.join(VENDOR, 'regexEngine.mjs'))).toEqual(names(path.join(REPO, 'server/shared/expr/regexEngine.mjs')));
+        expect(names(path.join(VENDOR, 'regexEngine.mjs'))).toEqual(names(path.join(REPO, 'agent-hub/src/shared/expr/regexEngine.mjs')));
     });
 
     it('declares every name index.mjs exports, and no other', () => {

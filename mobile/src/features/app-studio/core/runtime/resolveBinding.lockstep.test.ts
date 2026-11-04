@@ -36,6 +36,12 @@ const BINDINGS: unknown[] = [
     { kind: 'records', tableId: 't1', filter: [{ field: 'x', op: 'eq', value: f('vars.none'), required: true }] },
     { kind: 'records', tableId: 't1', filter: [{ field: 'x', op: 'eq', value: 'lit', required: true }, null, [1], { field: 'y', op: 'isNull' }] },
     { kind: 'records', tableId: 't1', filter: [{ field: 'x', op: 'eq', value: 'same' }], sort: [{ field: 'x' }], limit: 5 },
+    // { any: [...] } OR groups
+    { kind: 'records', tableId: 't1', filter: [{ any: [{ field: 'x', op: 'eq', value: 'a' }, { field: 'y', op: 'isNull' }] }] },
+    { kind: 'records', tableId: 't1', filter: [{ any: [{ field: 'x', op: 'eq', value: f('vars.q') }, { field: 'y', op: 'eq', value: f('vars.none') }] }] },
+    { kind: 'records', tableId: 't1', filter: [{ field: 'z', op: 'eq', value: 1 }, { any: [{ field: 'y', op: 'eq', value: f('vars.none') }] }] },
+    { kind: 'records', tableId: 't1', filter: [{ any: [{ field: 'y', op: 'eq', value: f('vars.none') }], required: true }] },
+    { kind: 'aggregate', tableId: 't1', filter: [{ any: [{ field: 'x', op: 'eq', value: f('currentUser.id'), required: true }] }] },
     { kind: 'record', tableId: 't1', path: 'title' },
     { kind: 'record', tableId: 't1', pick: { column: 'title' } },
     { kind: 'records', tableId: 't1', pick: { row: 'last', column: 'title' } },

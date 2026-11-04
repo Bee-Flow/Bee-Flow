@@ -17,8 +17,10 @@
  * passes ownerId = app.userId — the same acts-as-owner storage identity the
  * data API uses.
  *
- *   assertRowQuota(app, tableKey)   — table rows < MAX_ROWS_PER_TABLE AND app
- *                                     total < MAX_ROWS_PER_APP (create path)
+ *   assertRowQuota(app, tableKey, adding?, appAdding?)
+ *                                   — table rows + adding <= MAX_ROWS_PER_TABLE AND
+ *                                     app total + appAdding <= MAX_ROWS_PER_APP
+ *                                     (create path; both default to one row)
  *   assertDbByteQuota(app)          — db size < MAX_DB_BYTES. At the ceiling a
  *                                     WRITE 409s, but reads/deletes still work
  *                                     (this is only called on write paths, so
@@ -59,22 +61,28 @@ function assertOwnedApp(app) {
 }
 
 /**
- * Throw when creating a row in `tableKey` would breach either the per-table or
- * the whole-app row cap. Uses the store's cached row_counts map (bumped by the
- * data API after every write) — no live SQLite COUNT(*).
+ * Throw when creating `adding` rows in `tableKey` (and `appAdding` rows in the
+ * app as a whole) would breach either the per-table or the whole-app row cap.
+ * A batch (a transaction step) passes its own counts, so it cannot overshoot.
+ * Uses the store's cached row_counts map (bumped by the data API after every
+ * write) — no live SQLite COUNT(*).
+ * @param {{ id: string, userId: string }} app
+ * @param {string} tableKey
+ * @param {number} [adding]
+ * @param {number} [appAdding]
  */
-async function assertRowQuota(app, tableKey) {
+async function assertRowQuota(app, tableKey, adding = 1, appAdding = adding) {
     assertOwnedApp(app);
     const counts = await studioAppDataStore.getRowCounts(app.id, app.userId);
     const tableCount = Math.max(0, parseInt(counts[tableKey], 10) || 0);
-    if (tableCount >= DATA_LIMITS.MAX_ROWS_PER_TABLE) {
+    if (tableCount + adding > DATA_LIMITS.MAX_ROWS_PER_TABLE) {
         throw quotaError('quota_exceeded', {
             limit: DATA_LIMITS.MAX_ROWS_PER_TABLE, used: tableCount,
             message: `Table row limit reached (${DATA_LIMITS.MAX_ROWS_PER_TABLE})`,
         });
     }
     const appTotal = Object.values(counts).reduce((sum, v) => sum + (Math.max(0, parseInt(v, 10) || 0)), 0);
-    if (appTotal >= DATA_LIMITS.MAX_ROWS_PER_APP) {
+    if (appTotal + appAdding > DATA_LIMITS.MAX_ROWS_PER_APP) {
         throw quotaError('quota_exceeded', {
             limit: DATA_LIMITS.MAX_ROWS_PER_APP, used: appTotal,
             message: `App row limit reached (${DATA_LIMITS.MAX_ROWS_PER_APP})`,

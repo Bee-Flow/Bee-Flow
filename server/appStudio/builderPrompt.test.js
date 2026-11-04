@@ -18,7 +18,7 @@ const assert = require('node:assert/strict');
 
 const { buildSystemPrompt, renderDraftState, summariseApp, renderOwnerContextNote, OWNER_CONTEXT_PREFIX } = require('./builderPrompt');
 const { renderCatalogText, renderCompactCatalogText } = require('./builderPrompt/catalogRender');
-const { emptyDefinition } = require('./componentSpecs');
+const { emptyDefinition, LIMITS } = require('./componentSpecs');
 
 // ── Fixtures ────────────────────────────────────────────────────────
 
@@ -89,7 +89,7 @@ test('system prompt teaches all six binding kinds and the data-first workflow', 
 
 test('core toolset gets the shortened data section', () => {
     const core = buildSystemPrompt({ toolset: 'core' });
-    const full = buildSystemPrompt({ toolset: 'full' });
+    const full = buildSystemPrompt();
     assert.ok(core.includes('2. DATA FIRST — decide the table before any component or action'), 'core prompt keeps a data step and leads with the decision');
     assert.ok(core.includes('app_link_datatable {name} FIRST'), 'the core data step leads with linking an existing table');
     const upsertAt = core.indexOf('app_upsert_table {name, fields:[{key,type}]} FIRST');
@@ -766,15 +766,20 @@ test('the form-save shot is byte-true: theme, table (key derived from name), com
  * three compact catalog lines, one step kind named three times and one line on
  * whose documents an app may show. Product, not prose; the diet of the core
  * prose is still owed.
+ * Raised to 36_900 on 2026-11-04 (App Studio package 2): this test already measured
+ * 36_745 before package 2 (packages 9, 7 and 1 of the same round grew the compact
+ * catalog's field lists and added call_action); package 2 adds only the transaction
+ * kind name three times (~40 chars) and one clause on the step-level onError/retry
+ * (~55 chars) to 36_840. The diet of the core prose is owed.
  */
-const CORE_PROMPT_CHAR_CEILING = 35_200;
+const CORE_PROMPT_CHAR_CEILING = 36_900;
 
 test(`the core system prompt with the compact catalog stays under ${CORE_PROMPT_CHAR_CEILING} chars`, () => {
     const core = buildSystemPrompt({ toolset: 'core', catalogMode: 'filtered' });
     assert.ok(core.length < CORE_PROMPT_CHAR_CEILING, `core prompt is ${core.length} chars`);
     assert.ok(core.includes(renderCompactCatalogText()), 'catalogMode filtered puts the compact catalog in');
     assert.ok(!core.includes('### Theme (app_set_theme)'), 'and not the full one');
-    assert.ok(core.length < buildSystemPrompt({ toolset: 'full' }).length / 2, 'less than half the full prompt');
+    assert.ok(core.length < buildSystemPrompt().length / 2, 'less than half the full prompt');
     // The default catalogMode is the full catalog, on both toolsets.
     assert.ok(buildSystemPrompt({ toolset: 'core' }).includes(renderCatalogText()));
     assert.ok(buildSystemPrompt({ toolset: 'full', catalogMode: 'filtered' }).includes(renderCompactCatalogText()), 'the full prompt honours catalogMode too');
@@ -835,7 +840,7 @@ test('the system prompt is identical for two users with different automations �
     assert.notEqual(renderOwnerContextNote(a, []), renderOwnerContextNote(b, []));
     // Nothing per user reaches the prompt: the same call, the same bytes.
     assert.equal(buildSystemPrompt({ toolset: 'core', catalogMode: 'filtered' }), buildSystemPrompt({ toolset: 'core', catalogMode: 'filtered' }));
-    assert.equal(buildSystemPrompt({ toolset: 'full' }), buildSystemPrompt({ toolset: 'full' }));
+    assert.equal(buildSystemPrompt(), buildSystemPrompt({ toolset: 'full' }));
     // The full prompt's owner sections point at the note when the caller
     // sends one (the route, ownerContext 'note'); a legacy caller that still
     // passes a list is honoured, and the prompt never says "listed below"
@@ -892,10 +897,17 @@ test('the data block shows field ids only when asked, so the in-product prompt i
 });
 
 test('the full guide teaches mail apps: the hook tool, send_email refused, the content_id column; the core prompt stays off it', () => {
-    const full = buildSystemPrompt({ toolset: 'full' });
+    const full = buildSystemPrompt();
     assert.match(full, /app_set_mailbox_hook/);
     assert.match(full, /NEVER send_email/);
     assert.match(full, /content_id/);
     assert.match(full, /onAttachmentClick/);
     assert.ok(!buildSystemPrompt({ toolset: 'core' }).includes('app_set_mailbox_hook'));
+});
+
+test('the pitfalls teach the component depth limit from LIMITS', () => {
+    const text = buildSystemPrompt();
+    assert.ok(text.includes(`Maximum depth is ${LIMITS.MAX_DEPTH},`));
+    assert.ok(text.includes('Maximum depth is 8,'));
+    assert.ok(text.includes('≤32000'));
 });

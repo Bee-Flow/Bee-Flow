@@ -39,6 +39,7 @@ export default {
     "app_studio.inspector.kind_open_url": "Open a web page",
     "app_studio.inspector.kind_run_automation": "Run automation",
     "app_studio.inspector.kind_send_email": "Send an e-mail",
+    "app_studio.inspector.kind_call_action": "Run another action",
     "app_studio.inspector.kind_sequence": "Several steps (a flow)",
     "app_studio.inspector.kind_toast": "Show a message",
     "app_studio.inspector.logic": "Logic",

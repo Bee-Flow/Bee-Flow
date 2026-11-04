@@ -85,6 +85,19 @@ test('a write stopped at the deadline leaves the file as it was', async (t) => {
     assert.deepStrictEqual(rows, [{ n: 1 }], 'the half-done transaction was rolled back');
 });
 
+test('a batch_no_rows failure crosses the process boundary with its statementIndex', async (t) => {
+    const engine = makeEngine({ statementTimeoutMs: 5000 });
+    t.after(() => engine.closeAll());
+    const id = freshId();
+    await engine.exec(OWNER, id, 'CREATE TABLE t (a)');
+    await assert.rejects(
+        engine.batch(OWNER, id, [{ sql: 'INSERT INTO t VALUES (1)' }, { sql: 'UPDATE t SET a = 2 WHERE a = 99', expectChanges: true }]),
+        (err) => err.code === 'batch_no_rows' && err.statementIndex === 1,
+    );
+    const { rows } = await engine.query(OWNER, id, 'SELECT count(*) AS n FROM t');
+    assert.deepStrictEqual(rows, [{ n: 0 }]);
+});
+
 test('a write in flight when the process is stopped fails with the timeout error', async (t) => {
     const engine = makeEngine({ statementTimeoutMs: 300 });
     t.after(() => engine.closeAll());

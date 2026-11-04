@@ -90,6 +90,14 @@ test('assertRowQuota: whole-app ceiling → 409 even when the target table is sm
     );
 });
 
+test('assertRowQuota: a batch counts its own rows (table and app), one row of headroom is not enough for two', async () => {
+    state.rowCounts = { orders: DATA_LIMITS.MAX_ROWS_PER_TABLE - 1 };
+    await quota.assertRowQuota(app, 'orders', 1); // exactly fills the table
+    await assert.rejects(() => quota.assertRowQuota(app, 'orders', 2), (err) => err.status === 409 && err.limit === DATA_LIMITS.MAX_ROWS_PER_TABLE);
+    state.rowCounts = { a: DATA_LIMITS.MAX_ROWS_PER_APP - 1, target: 0 };
+    await assert.rejects(() => quota.assertRowQuota(app, 'target', 1, 2), (err) => err.status === 409 && err.limit === DATA_LIMITS.MAX_ROWS_PER_APP);
+});
+
 // ── assertDbByteQuota ───────────────────────────────────────────────
 
 test('assertDbByteQuota: below the ceiling resolves', async () => {

@@ -325,6 +325,8 @@ export function buildStudioScope(
         // Declared variables carry their real starting value, so the live
         // preview under a formula shows something rather than `undefined`.
         vars: { filters: {}, ...seedVariableDefaults(definition?.variables) },
+        // Inside a step's "If it fails" branch the failure is in scope.
+        ...((extraGroups || []).some((g) => g.id === ERROR_GROUP_ID) ? { error: ERROR_SAMPLE } : {}),
         now,
         today: now.slice(0, 10),
     };
@@ -352,6 +354,25 @@ export const valueGroup = (t: TranslateFn = plainEnglish): StudioFieldGroup => (
     fields: [{ key: 'value', path: 'value', label: t('studio_apps_insp.scope.value_checked', 'The value being checked'), sample: '' }],
 });
 export const VALUE_GROUP = valueGroup();
+
+const ERROR_GROUP_ID = 'error';
+const ERROR_SAMPLE = { message: 'The AI provider had a temporary problem. Try again.', step: 'ai_generate', code: 'provider_unavailable', attempts: 1 };
+
+/**
+ * The `error` root, offered inside a step's "If it fails" (onError) branch:
+ * what failed and why. Outside a handler it is null at run time.
+ */
+export function errorScopeGroup(t: TranslateFn = plainEnglish): StudioFieldGroup {
+    return {
+        id: ERROR_GROUP_ID, label: t('studio_apps_edit.scope.error', 'The failure'), kind: 'code', basePath: 'error',
+        fields: [
+            { key: 'message', path: 'error.message', label: t('studio_apps_edit.scope.error_message', 'Why it failed'), sample: ERROR_SAMPLE.message },
+            { key: 'step', path: 'error.step', label: t('studio_apps_edit.scope.error_step', 'Which step failed'), sample: ERROR_SAMPLE.step },
+            { key: 'code', path: 'error.code', label: t('studio_apps_edit.scope.error_code', 'Error code'), sample: ERROR_SAMPLE.code },
+            { key: 'attempts', path: 'error.attempts', label: t('studio_apps_edit.scope.error_attempts', 'Attempts made'), sample: ERROR_SAMPLE.attempts },
+        ],
+    };
+}
 
 export interface StudioScopeProviderProps {
     definition: AppDefinition | null | undefined;

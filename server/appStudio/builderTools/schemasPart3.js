@@ -45,7 +45,7 @@ const TOOL_SCHEMAS_PART_3 = [
                 properties: {
                     componentType: { type: 'string', description: 'Component type to find, e.g. "chart" or "data_grid".' },
                     tableId: { type: 'string', description: 'Find components bound to this table and actions that read or write it (tbl_…).' },
-                    actionId: { type: 'string', description: 'Find components whose events run this action (act_…).' },
+                    actionId: { type: 'string', description: 'Find what uses this action (act_…): components whose events run it, data_grid rowActions / toolbarActions / bulkActions / column actionId / addRowActionId and repeater itemActions, components that read its result (actionResult binding), and other actions that reference it. With no screenId, no hit besides the action itself means it is unreachable; a screenId limits the search to one screen and proves nothing.' },
                     variable: { type: 'string', description: 'Find components and actions that read or write this variable name.' },
                     screenId: { type: 'string', description: 'Limit the search to one screen (scr_…).' },
                 },

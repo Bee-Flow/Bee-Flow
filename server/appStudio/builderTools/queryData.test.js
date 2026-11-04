@@ -62,7 +62,11 @@ test('limit: invalid values are refused, an over-cap value is clamped and says s
         }
         const big = await applyQueryData(wrap(), { tableId: 'tbl_task01', limit: 500 });
         assert.strictEqual(big.limitClamped, true);
-        assert.strictEqual(big.limit, 20);
+        assert.strictEqual(big.limit, 200);
+        assert.strictEqual(big.requestedLimit, 500);
+        const edge = await applyQueryData(wrap(), { tableId: 'tbl_task01', limit: 200 });
+        assert.ok(!edge.limitClamped, 'exactly the cap is not clamped');
+        assert.strictEqual(edge.requestedLimit, undefined);
     });
 });
 

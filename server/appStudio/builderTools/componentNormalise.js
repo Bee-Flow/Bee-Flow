@@ -29,7 +29,7 @@
 
 'use strict';
 
-const { getSpec } = require('../componentSpecs');
+const { getSpec, LIMITS } = require('../componentSpecs');
 const { canonicalComponentType, COMPONENT_TYPE_ALIASES } = require('./componentAliases');
 const { looksGarbled } = require('../../core/llm/partialJsonScan');
 
@@ -117,7 +117,7 @@ function normaliseEntry(entry, at, notes, depth = 0) {
             if (moved.length) notes.push(`${at}: ${moved.map((k) => `"${k}"`).join(', ')} ${moved.length > 1 ? 'were' : 'was'} placed next to props — moved inside props. Component settings go INSIDE props.`);
         }
     }
-    if (Array.isArray(out.children) && depth < 6) {
+    if (Array.isArray(out.children) && depth < LIMITS.MAX_DEPTH) {
         out.children = out.children.map((c, i) => normaliseEntry(c, `${at}.children[${i}]`, notes, depth + 1));
     }
     return out;

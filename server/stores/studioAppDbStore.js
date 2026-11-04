@@ -46,7 +46,11 @@ const { isPg } = require('../utils/engineFlag');
 //   query(ownerId, appId, sql, params)  -> { rows, columns, truncated }
 //   exec(ownerId, appId, sql, params)   -> { changes, lastInsertRowid? }
 //   batch(ownerId, appId, statements)   -> [{ rows } | { changes }]   (one tx)
-//   applyMigration(ownerId, appId, ddl, { targetVersion }) -> { applied, skipped }
+//     A statement may carry `expectChanges: true`: when it changes no rows the
+//     whole batch rolls back with an Error { code: 'batch_no_rows',
+//     statementIndex } (the transaction step: "step N found no record").
+//     Existing callers never set it.
+//   applyMigration(ownerId, appId, ddl, { targetVersion, probes }) -> { applied, skipped, probed }
 //   getSchemaStamp(ownerId, appId)      -> number
 //   schema(ownerId, appId)              -> { tables: [...] }
 //   sizeBytes(ownerId, appId)           -> number (authoritative)
@@ -149,12 +153,17 @@ if (isPg()) {
      * engine immediately (not debounced): schema changes are rare and must be
      * durable in RustFS before the caller's Postgres commit.
      *
-     * Returns { applied, skipped: [{ sql, reason }] }.
+     * With { probes } (planMigration's) the same transaction runs each COUNT
+     * probe right before its statement; a refusing probe that counts an
+     * unconvertible value throws code 'migration_precondition' and the whole
+     * transaction rolls back (see applyPlanTolerantly).
+     *
+     * Returns { applied, skipped: [{ sql, reason }], probed: [{ opIndex, n, bad }] }.
      * @param {string[]} orderedDDL
      * @param {string} ownerId
      * @param {string} id
      */
-    async function applyMigration(ownerId, id, orderedDDL, { targetVersion = null } = {}) {
+    async function applyMigration(ownerId, id, orderedDDL, { targetVersion = null, probes = [] } = {}) {
         if (!Array.isArray(orderedDDL)) {
             throw new Error('applyMigration requires an array of DDL strings');
         }
@@ -172,18 +181,20 @@ if (isPg()) {
             throw new Error('Studio App DB is stale: another replica has written this database — refresh required');
         }
         for (const ddl of orderedDDL) assertPageStatement(ddl);
+        const probeList = Array.isArray(probes) ? probes : [];
+        for (const pr of probeList) assertPageStatement(pr.sql);
         const tx = entry.db.transaction(() => {
-            const res = applyPlanTolerantly(entry.db, orderedDDL);
+            const res = applyPlanTolerantly(entry.db, orderedDDL, { probes: probeList });
             if (stampVersion !== null) entry.db.pragma(`user_version = ${stampVersion}`);
             return res;
         });
-        const { applied, skipped } = tx();
+        const { applied, skipped, probed } = tx();
         // Persist through the engine's own flush pipeline (RustFS blob +
         // studio_apps db_sha256/db_size metadata). `dirty` is the handle contract
         // the engine's own write paths set before scheduling a flush.
         entry.dirty = true;
         await engine.flush(ownerId, id);
-        return { applied, skipped };
+        return { applied, skipped, probed };
     }
 
     /**

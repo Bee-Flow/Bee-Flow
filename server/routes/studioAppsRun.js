@@ -79,7 +79,7 @@ async function runBody(run) {
 }
 const { resolveAudienceContext } = require('../auth/audience');
 const { DATA_MUTATING_STEP_KINDS } = require('../appStudio/componentSpecs');
-const { actionRunLimiter, stepLimiter, sendEmailLimiter, sendEmailDailyLimiter, fileIntakeLimiter, aiStepLimiter, datasetQueryLimiter } = require('./studioAppRateLimits');
+const { actionRunLimiter, stepLimiter, jobStatusLimiter } = require('./studioAppRateLimits');
 const runEventBus = require('../core/runEventBus');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
@@ -131,7 +131,7 @@ const { loadVisibleApp, assertActionRoleAccess, stepDocumentContext } = require(
 // actionSequence.js: the public route (routes/studioAppPublic.js) resolves
 // steps by the same pre-order index, and two copies of that walk is two ways
 // for one index to mean two different steps. See that module's header.
-const { normalizeSequence, flattenSteps, sanitizeBag } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
 const { validate } = require('../core/http/validate');
 const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
@@ -161,23 +161,13 @@ async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
     return null;
 }
 
-// Step kinds that cost what a /run costs — a full automation, a model call, or a
-// write into the owner's storage envelope. They consume the action-run budget
-// on top of the step bucket (see the limiter's rationale in
-// studioAppRateLimits.js).
-// fill_document IS here: it renders a page in a real Chromium and stores the
-// PDF — the same cost shape as generate_file, and more expensive per call.
-// dataset_query is deliberately NOT here: it is a bounded ranged read with no
-// model call and no side effects — it gets its own 30/min bucket below instead
-// of the tight 10/min heavy budget (which would cap genome browsing at ten
-// clicks a minute for no reason).
-const HEAVY_STEP_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'copy_document'];
-
-// The subset of HEAVY_STEP_KINDS that is a model call. Still heavy — they keep
-// the role gate above, which is what stops a role-less viewer spending the
-// owner's model quota — but they are budgeted separately, because these are the
-// ones an action legitimately repeats once per document.
-const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
+// Step kinds that cost what a /run costs (a full automation, a model call, a write into the
+// owner's storage envelope), the model calls among them, and the limiters per kind: one list
+// for this route and a background job (studioAppStepBudget.mts, where the reasoning lives).
+const { HEAVY_STEP_KINDS, limitersForStepDef } = require('./studioAppStepBudget.mts');
+const { mountBackgroundRoutes, refuseLocked } = require('./studioAppBackground');
+// The run log of a browser run (package 8): the step envelope and the end report.
+const { loggedSignedInStep, logAutomationRun, signedInClick, endClickRun } = require('../appStudio/runLog/clickRuns.mts');
 
 // ── POST /:id/actions/:actionId/step ────────────────────────────────
 // Execute one server-authoritative DATA step of a v2 action sequence. Same
@@ -197,21 +187,14 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     const wantDraft = ['1', 'true'].includes(String(req.query?.draft ?? ''));
     const def = (isOwner && wantDraft) ? app.definition : app.publishedDefinition;
 
-    const action = (def && typeof def === 'object' && def.actions && typeof def.actions === 'object'
-        && Object.hasOwn(def.actions, actionId))
-        ? def.actions[actionId]
-        : null;
-    if (!action) return res.status(404).json({ error: 'Action not found' });
-
-    // Resolve the step FROM THE DEFINITION by its pre-order index.
-    const rawIndex = req.body?.stepIndex;
-    const stepIndex = Number.isInteger(rawIndex) ? rawIndex : parseInt(rawIndex, 10);
-    const steps = flattenSteps(normalizeSequence(action));
-    const step = (Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length)
-        ? steps[stepIndex] : null;
-    if (!step || typeof step.kind !== 'string') {
-        return res.status(404).json({ error: 'Step not found' });
+    // Resolve the step FROM THE DEFINITION by its pre-order index — inside a
+    // called action when the body carries a callPath (the URL keeps the ROOT
+    // action, so the role gate below stays on the action that was clicked).
+    const found = resolveRequestedStep(def, actionId, req.body?.stepIndex, req.body?.callPath);
+    if ('error' in found) {
+        return res.status(404).json({ error: found.error === 'action' ? 'Action not found' : 'Step not found' });
     }
+    const { step, ownerActionId } = found;
     // A client-only kind must never dispatch to the server.
     if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
         return res.status(400).json({ error: 'This step does not run on the server' });
@@ -241,40 +224,21 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         return res.status(403).json({ error: 'You do not have access to this app yet' });
     }
 
+    // A background action with a lockKey (an older client walking it in the
+    // foreground): refused while a job holds the same key. Read only, before any budget is charged.
+    if (await refuseLocked(req, res, { app, def, dataModel, actionId, role, isOwner })) return;
+
     // The kind is only known once the step is resolved, so the heavy-step
-    // budget is charged here rather than as route middleware. The limiter
-    // answers 429 itself when the bucket is empty (the Redis-backed
-    // path is asynchronous, so the check is awaited — BFSF-459).
-    //
-    // Model calls get their own bucket. The /run bucket is sized on "one
-    // click = one run", which is exactly wrong for an action that loops a
-    // model call per document: a nine-drawing order spends a dozen of them
-    // from one press and used to die at 10/min partway through, having
-    // already paid for the calls that landed. AI_STEP_RPM is still a real
-    // ceiling — see the reasoning where it is declared.
-    if (AI_STEP_KINDS.includes(step.kind)) {
-        if (!(await aiStepLimiter.check(req, res))) return;
-    } else if (HEAVY_STEP_KINDS.includes(step.kind)) {
-        if (!(await actionRunLimiter.check(req, res))) return;
-    }
-    // Outbound mail is charged twice more: a per-minute bucket and a daily
-    // ceiling. Unlike the other heavy steps this one leaves the building —
-    // an unthrottled loop of it is somebody's mailbox getting suspended.
-    if (step.kind === 'send_email') {
-        if (!(await sendEmailLimiter.check(req, res))) return;
-        if (!(await sendEmailDailyLimiter.check(req, res))) return;
-    }
-    // Bulk intake gets its own tight bucket on top of the heavy budget:
-    // one hit is up to 25 provider fetches landing bytes in the owner's
-    // storage, so the generic step allowance is the wrong unit.
-    if (step.kind === 'file_intake') {
-        if (!(await fileIntakeLimiter.check(req, res))) return;
-    }
-    // A dataset slice is a bounded ranged read + row scan (~16 MB ceiling,
-    // no model call) — its own bucket so genome browsing cannot starve the
-    // generic step budget, and vice versa.
-    if (step.kind === 'dataset_query') {
-        if (!(await datasetQueryLimiter.check(req, res))) return;
+    // budget is charged here rather than as route middleware. Each limiter
+    // answers 429 itself when its bucket is empty (the Redis-backed path is
+    // asynchronous, so the check is awaited — BFSF-459). Model calls have their
+    // own bucket (an action loops them once per document), other heavy kinds the
+    // /run bucket; send_email is charged per minute and per day, file_intake and
+    // dataset_query on their own buckets (studioAppStepBudget.mts).
+    // A bulk write (filter-mode update/delete, writeTo replaceWhere) costs a run, not a step
+    // (appStudio/bulkWritePolicy.mts).
+    for (const { limiter } of limitersForStepDef(step)) {
+        if (!(await limiter.check(req, res))) return;
     }
 
     const formValues = sanitizeBag(req.body?.formValues);
@@ -292,10 +256,12 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     const value = req.body?.value;
 
     const t0 = Date.now();
-    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await actionExecutor.executeDataStep(app, dataModel, step, {
+    // The run log (appStudio/runLog/clickRuns.mts): the steps of one click share the browser's runKey.
+    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await loggedSignedInStep({ app, actionId, userId, draft: isOwner && wantDraft, def, step, body: req.body, ownerActionId }, () => actionExecutor.executeDataStep(app, dataModel, step, {
         viewerId: userId,
-        // Audit stamp for steps that create durable records (request_approval).
-        actionId,
+        // Audit stamp for steps that create durable records (request_approval):
+        // the action that holds the step (a called action's own id).
+        actionId: ownerActionId,
         // The display name a `currentUser.name` formula reads. Without it
         // every activity/audit row an action wrote recorded an empty "Who" —
         // the editor offered the attribute, the browser resolved it, and the
@@ -313,11 +279,15 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         item,
         index,
         value,
+        // A called action's params (call_action), read as `params.<name>`.
+        params: sanitizeBag(req.body?.params),
+        // Inside an onError handler: the failure it handles, read as error.message / error.step.
+        error: sanitizeErrorScope(req.body?.error),
         // The FULL viewer the row filters see (viewer.<attr> params) —
         // same shape buildViewer produces on the data route; a partial one
         // silently matches nothing.
         viewer: { id: userId, role: role || null, organizationId: req.session.user.organizationId || null },
-    }));
+    })));
 
     // Real work happened under the OWNER (record write or owner-scoped run)
     // regardless of the viewer — attribute usage to the owner (as /run does).
@@ -336,7 +306,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     }).catch((e) => bestEffort('routes/studioAppsRun:anon', e));
 
     if (result && result.ok) {
-        return res.json({ ok: true, result: result.result ?? null });
+        // Step remarks (e.g. a modelTier formula that fell back) ride along only when there are any.
+        return res.json({ ok: true, result: result.result ?? null, ...stepNotes(result) });
     }
     // Forward the executor's error code (e.g. quota_exceeded) so the client
     // can map it to actionable copy instead of the generic failure text.
@@ -345,8 +316,35 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         error: (result && result.error) || 'Step failed',
         ...(result?.code ? { code: result.code, limit: result.limit, used: result.used } : {}),
         result: result?.result ?? null,
+        ...stepFailureExtras(/** @type {{ retryable?: unknown, ref?: unknown }} */ (result)),
     });
 });
+
+// ── POST /:id/actions/:actionId/runs/end ────────────────────────────
+// The browser's end report of a run it tied together with a runKey (the run log,
+// appStudio/runLog/clickRuns.mts): its verdict (an onError handler may have dealt with a
+// failing step; a declined confirm cancels). Same app gate as /step; only the caller's own
+// run of that key changes. No key: nothing to end (recorded: false). Public pages have no
+// twin: their runs close by the idle rule.
+router.post('/:id/actions/:actionId/runs/end', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.RunEndBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {
+    const userId = req.session.user.id;
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    const isOwner = app.userId === userId;
+    const wantDraft = ['1', 'true'].includes(String(req.query?.draft ?? ''));
+    const def = (isOwner && wantDraft) ? app.definition : app.publishedDefinition;
+    const actions = def && typeof def.actions === 'object' && def.actions ? def.actions : {};
+    if (!Object.hasOwn(actions, req.params.actionId)) return res.status(404).json({ error: 'Action not found' });
+    if (!req.body?.runKey) return res.json({ ok: true, recorded: false });
+    const recorded = await endClickRun({
+        app, actionId: req.params.actionId, origin: 'click', actorUserId: userId, visitorKey: null, runKey: req.body.runKey,
+    }, { status: req.body.status, error: req.body.error ?? null, handled: req.body.handled === true });
+    res.json({ ok: true, recorded });
+});
+
+// ── Background actions (routes/studioAppBackground.js) ──────────────
+// POST …/background, GET …/jobs and GET …/jobs/:jobId, on this router.
+mountBackgroundRoutes(router, { requireAuth, actionRunLimiter, jobStatusLimiter, jsonBody, bodySizeGuard });
 
 // ── POST /:id/actions/:actionId/run ─────────────────────────────────
 router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.RunBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {
@@ -439,6 +437,8 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // Logged when the run settles regardless of client wait/disconnect —
     // real work happened under the OWNER either way (same rationale as the
     // webpage bridge's usage logging).
+    // The run log: a run of one step, finished from the automation's outcome (also after a 202).
+    logAutomationRun(signedInClick(app, actionId, userId, isOwner && wantDraft, null), runPromise, t0);
     runPromise.then(() => {
         usageStore.logUsage({
             user_id: app.userId,

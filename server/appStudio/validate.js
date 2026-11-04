@@ -65,6 +65,8 @@ const {
 const { checkDesignAndNav, checkPublicAccess } = require('./validate/designChecks');
 const { checkMailboxHooks } = require('./validate/mailboxHookCheck');
 const { validateAction, DATASET_QUERY_OUTPUTS } = require('./validate/actions');
+const { checkCallGraph } = require('./validate/callChecks.mts');
+const { buildFieldTypes } = require('./validate/writeToKeyChecks.mts');
 
 const ID_HINT = 'Ids must match <prefix>_<4-12 lowercase alphanumerics> with prefix scr/sec/cmp/act. Use newId() from componentSpecs.';
 
@@ -348,11 +350,8 @@ function walkScreens(screens, ctx) {
 /** Actions (after the walk — mapping checks need the input names), then the variable warnings. */
 function checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, ctx) {
     const { pushW } = ctx;
-    // ── Actions (after the walk — mapping checks need the input names) ────
     if (actionsObj) {
-        for (const [id, action] of Object.entries(actionsObj)) {
-            validateAction(id, action, `actions.${id}`, ctx);
-        }
+        for (const [id, action] of Object.entries(actionsObj)) validateAction(id, action, `actions.${id}`, ctx);
 
         // An action nothing can reach. Not an error — an app may keep one around
         // while it is being wired up — but it is invisible, and "the button that
@@ -360,7 +359,8 @@ function checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, 
         // The support desk shipped with an assign action wired to nothing, so
         // its "My queue" screen was permanently empty and there was no way to
         // put anything in it.
-        const reached = collectReferencedActions(screens);
+        // checkCallGraph also checks call_action across actions; what a reachable action calls is reachable.
+        const reached = checkCallGraph(actionsObj, ctx, collectReferencedActions(screens));
         for (const id of Object.keys(actionsObj)) {
             if (reached.has(id)) continue;
             pushW({
@@ -423,10 +423,9 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         // field keys, plus the known dataset ids. null model = "no model yet"
         // (every table/dataset reference is unknown). See the module header.
         dataTables: buildDataTables(opts.dataModel),
-        // De tweede tabelsoort: tableId → model.tables[].source. Leeg voor een
-        // app waarvan elke tabel haar eigen opslag heeft, en dat is de enige
-        // vorm die vandaag bestaat — vandaar dat niets aan de bestaande soort
-        // verandert.
+        dataFieldTypes: buildFieldTypes(opts.dataModel),
+        // The second table kind: tableId → model.tables[].source. Empty for an app whose
+        // tables all have their own storage, so nothing changes for that kind.
         dataTableSources: buildTableSources(opts.dataModel),
         // The Studio datatables that the OWNER has. Unlike opts.datasets this does NOT get an empty
         // collection when it is absent: "no list" and "an empty list" are different answers, and the
@@ -444,6 +443,7 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         // Consulted per ai_browse step: a step in an app whose flag is off is
         // an authoring error the builder must surface, not a runtime surprise.
         aiBrowsingEnabled: def.aiBrowsing?.enabled === true,
+        actions: isObject(def.actions) ? def.actions : null,
     };
 }
 
@@ -505,7 +505,7 @@ function validateAppDefinition(def, opts = {}) {
     });
     const totalNodes = countTree(screens);
     if (totalNodes > LIMITS.MAX_TOTAL_NODES) {
-        pushE({ code: 'shape.too_many_nodes', severity: 'error', path: '', message: `App has more than ${LIMITS.MAX_TOTAL_NODES} sections + components.`, hint: 'Split the app or remove components.' });
+        pushE({ code: 'shape.too_many_nodes', severity: 'error', path: '', message: `App has ${totalNodes} sections + components — the maximum is ${LIMITS.MAX_TOTAL_NODES}.`, hint: 'Split the app or remove components.' });
     }
     const actionCount = actionsObj ? Object.keys(actionsObj).length : 0;
     if (actionCount > LIMITS.MAX_ACTIONS) {

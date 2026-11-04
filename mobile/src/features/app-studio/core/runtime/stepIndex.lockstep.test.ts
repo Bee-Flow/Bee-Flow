@@ -49,6 +49,18 @@ const EXTRA: unknown[] = [
             { kind: 'condition', then: 'x', else: [{ kind: 'send_email' }] },
         ],
     },
+    // Error handlers follow the whole tree (nested handlers after their owner's);
+    // a transaction's children are not numbered; the legacy array form counts too.
+    {
+        kind: 'sequence',
+        steps: [
+            { kind: 'ai_generate', onError: { steps: [{ kind: 'toast' }, { kind: 'create_record', onError: { steps: [{ kind: 'set_variable' }] } }] } },
+            { kind: 'condition', then: [{ kind: 'update_record', retry: { times: 2 }, onError: { steps: [{ kind: 'toast' }], stop: true } }] },
+            { kind: 'transaction', steps: [{ kind: 'create_record' }, { kind: 'delete_record' }], onError: { steps: [{ kind: 'toast' }] } },
+            { kind: 'kb_query', onError: [{ kind: 'toast' }] },
+            { kind: 'call_action', actionId: 'x', onError: { steps: 'nope' } },
+        ],
+    },
 ];
 
 const actions = [...Object.values(allFixtures()).flatMap((def) => Object.values(def.actions || {})), ...EXTRA];

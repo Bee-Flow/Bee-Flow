@@ -19,7 +19,8 @@
  *     every row the viewer may read, as if they were the filtered ones.
  */
 
-const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, closedObject, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
+const { LIMITS } = require('../../appStudio/componentSpecs/limits');
 
 /**
  * @param {string} name
@@ -29,6 +30,24 @@ const bag = (name) => z.record(z.string(), z.unknown(), { error: typeError({ inv
 const DraftQuery = queryOf({
     draft: choice(['0', '1', 'true', 'false'], 'draft is 1 to run the saved draft.').optional(),
 }, 'An app request');
+
+const CALL_PATH_TEXT = `callPath is the list of call_action step positions, root first (at most ${LIMITS.MAX_CALL_DEPTH}).`;
+
+const ERROR_TEXT = 'error is the failure an onError handler handles: { message, step, code, attempts, stepIndex }.';
+/**
+ * The `error` scope of a step inside an onError handler (the browser sends the
+ * failure it handles). Bounded here; clampErrorScope bounds it again in ctx.
+ */
+const ErrorScope = z.object({
+    message: z.string({ error: ERROR_TEXT }).max(500, ERROR_TEXT),
+    step: z.string({ error: ERROR_TEXT }).max(60, ERROR_TEXT),
+    code: z.string({ error: ERROR_TEXT }).max(60, ERROR_TEXT).nullish(),
+    attempts: z.number({ error: ERROR_TEXT }).int(ERROR_TEXT).min(1, ERROR_TEXT).max(LIMITS.MAX_STEP_RETRY_TIMES + 1, ERROR_TEXT),
+    stepIndex: z.number({ error: ERROR_TEXT }).int(ERROR_TEXT).min(0, ERROR_TEXT).optional(),
+}, { error: ERROR_TEXT });
+
+const RUN_KEY_TEXT = 'runKey is the run key the app made for this click (rk_ and 16 to 64 letters, digits, _ or -).';
+const RunKey = worded(RUN_KEY_TEXT).regex(/^rk_[A-Za-z0-9_-]{16,64}$/, RUN_KEY_TEXT);
 
 /** One server step of an action (…/actions/:actionId/step). */
 const StepBody = bodyOf({
@@ -40,7 +59,54 @@ const StepBody = bodyOf({
     item: z.unknown().optional(),
     index: wholeNumber('index is the loop position, 0 or more.').nullish(),
     value: z.unknown().optional(),
+    // A step inside a called action (call_action): the call_action step positions,
+    // root first — the URL keeps the root action — and the params it reads.
+    callPath: z.array(wholeNumber(CALL_PATH_TEXT), { error: CALL_PATH_TEXT }).max(LIMITS.MAX_CALL_DEPTH, CALL_PATH_TEXT).optional(),
+    params: bag('params').nullish(),
+    // Inside an onError handler: the failure it handles (scope root `error`).
+    error: ErrorScope.optional(),
+    // The run log: the key that ties the server steps of one click together (appStudio/runLog/clickRuns.mts).
+    runKey: RunKey.optional(),
 }, 'An action step');
+
+const RUN_END_TEXT = 'status is success, error or cancelled.';
+/**
+ * The browser's end report of one run (…/actions/:actionId/runs/end). Every field optional, so
+ * an empty body still reaches the app gate (and answers recorded: false).
+ */
+const RunEndBody = bodyOf({
+    runKey: RunKey.optional(),
+    status: choice(['success', 'error', 'cancelled'], RUN_END_TEXT).optional(),
+    error: worded('error is the reason the run failed, at most 300 characters.').max(300, 'error is the reason the run failed, at most 300 characters.').optional(),
+    handled: z.boolean({ error: 'handled is true when an onError handler dealt with a failure.' }).optional(),
+}, 'The end of an action run');
+
+/** A background action's start (…/actions/:actionId/background): the scope roots of the click. */
+const BackgroundBody = bodyOf({
+    formValues: bag('formValues').nullish(),
+    vars: bag('vars').nullish(),
+    item: z.unknown().optional(),
+    index: wholeNumber('index is the loop position, 0 or more.').nullish(),
+    value: z.unknown().optional(),
+}, 'A background action start');
+
+const RUN_ID_TEXT = 'jobId is the id the start answered with (sar_ and 32 hex characters).';
+/**
+ * …/actions/jobs/:jobId. Bounded here; the sar_<32 hex> shape is checked AFTER the app gate
+ * (an unknown shape is the same 404 as an unknown job), so a malformed id never tells a
+ * stranger more than "not found".
+ */
+const JobParams = closedObject({
+    id: worded('id is the app id.').min(1, 'id is the app id.').max(200, 'id is the app id.'),
+    jobId: worded(RUN_ID_TEXT).min(1, RUN_ID_TEXT).max(64, RUN_ID_TEXT),
+}, 'A background job address');
+
+/** …/actions/jobs?active=1&actionId=… : the caller's own runs. */
+const JobsQuery = queryOf({
+    active: choice(['0', '1'], 'active is 1 for running jobs only.').optional(),
+    actionId: worded('actionId is the id of an action of the app.').regex(/^[A-Za-z0-9_-]{1,80}$/, 'actionId is the id of an action of the app.').optional(),
+    draft: choice(['0', '1', 'true', 'false'], 'draft is 1 for runs of the saved draft.').optional(),
+}, 'A background job list');
 
 /** A whole action handed to its automation (…/actions/:actionId/run). */
 const RunBody = bodyOf({
@@ -78,4 +144,4 @@ const RecordsQuery = queryOf({
     sample: choice(['0', '1'], 'sample is 1 for an editor preview.').optional(),
 }, 'A table page');
 
-module.exports = { DraftQuery, StepBody, RunBody, ChatBody, RecordsQuery };
+module.exports = { DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };

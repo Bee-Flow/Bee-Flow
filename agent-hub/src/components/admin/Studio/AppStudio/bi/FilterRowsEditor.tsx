@@ -6,11 +6,12 @@ import { RepeatableList } from '@/components/admin/product-website/fields';
 import ExpressionInput from '../inspector/logic/ExpressionInput';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
-import type { FormulaValue, FilterValue, Stash, FilterRow, FilterField, FilterRowsEditorProps } from './FilterRowsEditor.types';
+import type { FormulaValue, FilterValue, Stash, FilterRow, FilterField, FilterRowsEditorProps, FilterEntry } from './FilterRowsEditor.types';
+import { AddAnyGroupButton, FilterAnyGroup, isAnyGroupRow, newAnyGroup } from './FilterAnyGroup';
 import { logger } from '@/utils/logger';
-import { allowedOps, opsFor, isFormulaValue, choicesOf, valueControlFor, isNumeric, emptyValueFor } from './FilterRowsEditor.helpers';
+import { allowedOps, opsFor, isFormulaValue, choicesOf, valueControlFor, isNumeric, emptyValueFor, reKeySet, reKeyMap } from './FilterRowsEditor.helpers';
 import { ValueControl } from './ValueControl';
-export type { FilterRow } from './FilterRowsEditor.types';
+export type { FilterRow, FilterEntry } from './FilterRowsEditor.types';
 
 export const NO_VALUE_OPS = new Set(['isNull', 'isNotNull']);
 
@@ -83,6 +84,7 @@ export default function FilterRowsEditor({
     disabled = false,
     definition = null,
     node = null,
+    allowGroups = false,
 }: FilterRowsEditorProps) {
     const { t } = useTranslation();
     const fieldName = (key: string) => (fields.find((f) => f.key === key) || {}).name || key || t('studio_apps_bi.filter.filter', 'Filter');
@@ -94,7 +96,7 @@ export default function FilterRowsEditor({
     // shapes (a list, a range) that cannot be written as an expression at all.
     const [stashed, setStashed] = useState(() => new Map<FilterRow, Stash | undefined>());
 
-    const rows = Array.isArray(filters) ? filters : [];
+    const rows: FilterEntry[] = Array.isArray(filters) ? filters : [];
 
     /**
      * Move the marker from the row object being replaced onto its replacement,
@@ -103,27 +105,8 @@ export default function FilterRowsEditor({
      * whole list to free text after one keystroke.
      */
     const reKey = (from: FilterRow, to: FilterRow) => {
-        setEscaped((prev) => {
-            if (!prev.has(from)) {
-                const live = new Set(rows.filter((row) => prev.has(row)));
-                return live.size === prev.size ? prev : live;   // same set → no re-render
-            }
-            const next = new Set<FilterRow>();
-            for (const row of rows) {
-                if (row === from) next.add(to);
-                else if (prev.has(row)) next.add(row);
-            }
-            return next;
-        });
-        setStashed((prev) => {
-            if (prev.size === 0) return prev;
-            const next = new Map<FilterRow, Stash | undefined>();
-            for (const row of rows) {
-                if (row === from) { if (prev.has(from)) next.set(to, prev.get(from)); }
-                else if (prev.has(row)) next.set(row, prev.get(row));
-            }
-            return next.size === prev.size && !prev.has(from) ? prev : next;
-        });
+        setEscaped((prev) => reKeySet(prev, rows, from, to));
+        setStashed((prev) => reKeyMap(prev, rows, from, to));
     };
 
     return (
@@ -134,8 +117,22 @@ export default function FilterRowsEditor({
                 onChange={onChange}
                 makeNew={() => ({ field: '', op: 'eq', value: '' })}
                 addLabel={t('studio_apps_bi.filter.add', 'Add filter')}
-                itemLabel={(f) => fieldName(f.field)}
-                renderItem={(f, rawUpdate, idx) => {
+                itemLabel={(f) => (isAnyGroupRow(f) ? t('studio_apps_bi.filter.any_group', 'Any of these') : fieldName(f.field))}
+                renderItem={(entry, rawEntryUpdate, idx) => {
+                    if (isAnyGroupRow(entry)) {
+                        return (
+                            <FilterAnyGroup
+                                group={entry} allowRequired={allowFormula}
+                                onChange={(next) => (next ? rawEntryUpdate(next) : onChange(rows.filter((r) => r !== entry)))}
+                                renderMembers={(members, change) => (
+                                    <FilterRowsEditor fields={fields} filters={members} onChange={(next) => change(next.filter((m) => !isAnyGroupRow(m)) as FilterRow[])}
+                                        allowFormula={allowFormula} disabled={disabled} definition={definition} node={node} label={t('studio_apps_bi.filter.any_group', 'Any of these')} />
+                                )}
+                            />
+                        );
+                    }
+                    const f = entry;
+                    const rawUpdate = (next: FilterRow) => rawEntryUpdate(next);
                     // Every write goes through here so the free-text marker
                     // follows the row object rather than its position.
                     const update = (next: FilterRow) => { reKey(f, next); rawUpdate(next); };
@@ -268,6 +265,7 @@ export default function FilterRowsEditor({
                     );
                 }}
             />
+            {allowGroups ? <AddAnyGroupButton onAdd={() => onChange([...rows, newAnyGroup()])} /> : null}
         </fieldset>
     );
 }

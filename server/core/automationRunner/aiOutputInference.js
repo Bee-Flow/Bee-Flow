@@ -75,10 +75,15 @@ const NEVER_READ = {
 const LOOSE_KEYS = new Set(['prompt', 'title', 'body', 'message', 'url', 'headers', 'input', 'input2', ...PATH_KEYS, ...EXPR_KEYS]);
 // Functions whose first argument is a list. count() is not one of them: it
 // also measures text and records (see scanAst).
-const LIST_FUNCTIONS = new Set(['sum', 'avg', 'join', 'first', 'last', 'includes', 'at', 'index_of', 'pluck', 'find', 'asTable']);
+const LIST_FUNCTIONS = new Set(['sum', 'avg', 'join', 'first', 'last', 'includes', 'at', 'index_of', 'pluck', 'find', 'asTable', 'unique']);
 const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 
 const isIndexKey = (k) => typeof k === 'number' || /^-?[0-9]+$/.test(String(k));
+
+/** An `[expr]` segment's token: a literal key, else a list position (a computed index reads the run itself). */
+const indexToken = (e, visitExpr) => (e.kind === 'str' || e.kind === 'num' ? { type: 'prop', key: e.v }
+    : e.kind === 'unop' && e.op === '-' && e.a && e.a.kind === 'num' ? { type: 'prop', key: -e.a.v }
+    : (visitExpr(e, false), { type: 'prop', key: 0 }));
 
 /** Tokens of an expression AST path node, in path.mjs's token shape. */
 function astPathTokens(node, visitExpr) {
@@ -87,17 +92,8 @@ function astPathTokens(node, visitExpr) {
         if (s.kind === 'name') out.push({ type: 'prop', key: s.v });
         else if (s.kind === 'wildcard') out.push({ type: 'wild' });
         else if (s.kind === 'match') out.push({ type: 'match', key: s.key, value: s.value });
-        else if (s.kind === 'index') {
-            const e = s.expr || {};
-            if (e.kind === 'str') out.push({ type: 'prop', key: e.v });
-            else if (e.kind === 'num') out.push({ type: 'prop', key: e.v });
-            else if (e.kind === 'unop' && e.op === '-' && e.a && e.a.kind === 'num') out.push({ type: 'prop', key: -e.a.v });
-            else {
-                // A computed index reads the run itself, and indexes a list.
-                visitExpr(e, false);
-                out.push({ type: 'prop', key: 0 });
-            }
-        } else if (s.kind === 'root') return null;
+        else if (s.kind === 'index') out.push(indexToken(s.expr || {}, visitExpr));
+        else if (s.kind === 'root' || s.kind === 'local') return null; // `it`: the item of map/filter/some/every
     }
     return out;
 }
@@ -173,10 +169,14 @@ function scanAst(node, report, listCtx) {
      */
     const visit = (n, l) => scanAst(n, report, l);
     if (node.kind === 'path') {
+        // A call result read on (`first(x).y`): only the call's own reads are paths of the run.
+        if (node.segments[0]?.kind === 'base') return visit(node.segments[0].expr, false);
         const tokens = astPathTokens(node, visit);
         if (tokens) report(tokens, listCtx);
         return;
     }
+    // map/filter/some/every: the list argument is a list read; the expression's reads (not `it`) count too.
+    if (node.kind === 'each') { visit(node.args[0], true); visit(node.args[1], false); return; }
     if (node.kind === 'call' || node.kind === 'hostcall') {
         // count() of a field: a list, unless the field is also read whole or
         // as a record (count('abc') is 3) — a WEAK hint, settled in toSchema.

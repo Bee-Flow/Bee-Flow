@@ -2,6 +2,7 @@
 /** @typedef {import('./queryCompiler').AccessFilter} AccessFilter */
 // @typecheck
 const { FILTER_OPS, SYSTEM_COLUMNS, KEY_RE } = require('./dataModel/vocabulary');
+const { isAnyGroup, countFilterLeaves, MAX_FILTER_CLAUSES } = require('../../shared/expr/filterGroups.mjs');
 
 // Hard ceiling on rows a single list/aggregate may return. The store applies
 // its own MAX_RESULT_ROWS too; this keeps the SQL LIMIT sane and predictable.
@@ -16,7 +17,8 @@ const MAX_KEY_INDEX_KEYS = 200;
 
 const MAX_IN_VALUES = 200;
 
-const MAX_FILTERS = 50;
+// Clauses per query, counted over the top level and every `any` group.
+const MAX_FILTERS = MAX_FILTER_CLAUSES;
 
 const MAX_GROUP_BY = 8;
 
@@ -269,10 +271,30 @@ function compileFilter(tableMeta, fm, filter, out, dialect) {
     }
 }
 
-// How the client filters join each other. ONE top-level combinator, never a
-// nested group: 'status is new OR retry' is the shape people actually ask for,
-// and a recursive query-builder would trade the closed descriptor — the whole
-// reason no client SQL exists — for a grammar.
+/**
+ * One `{ any: [clause, …] }` entry: its clauses OR each other inside one
+ * parenthesised group, which ANDs with the other entries. One level only
+ * (a group inside a group is refused), every clause goes through
+ * compileFilter, so the columns and bound values stay as closed as ever.
+ * @param {TableMeta} tableMeta @param {ReturnType<typeof fieldMap>} fm @param {Record<string, unknown> & { any: unknown[] }} group
+ * @param {{ sql: string[], params: unknown[] }} out @param {string} dialect
+ */
+function compileAnyGroup(tableMeta, fm, group, out, dialect) {
+    if (group.field !== undefined) throw new CompileError('a filter is either a clause with a field or an { any: [...] } group, not both');
+    if (group.any.length === 0) throw new CompileError('an { any: [...] } filter group needs at least one clause');
+    const inner = { sql: /** @type {string[]} */ ([]), params: /** @type {unknown[]} */ ([]) };
+    for (const clause of group.any) {
+        if (isAnyGroup(clause)) throw new CompileError('an { any: [...] } filter group cannot hold another group');
+        compileFilter(tableMeta, fm, clause, inner, dialect);
+    }
+    out.sql.push(inner.sql.length > 1 ? `(${inner.sql.join(' OR ')})` : inner.sql[0]);
+    out.params.push(...inner.params);
+}
+
+// How the client filters join each other. ONE top-level combinator plus
+// one level of `{ any: [...] }` groups: 'status is new OR retry' is the
+// shape people actually ask for, and a recursive query-builder would trade
+// the closed descriptor — the whole reason no client SQL exists — for a grammar.
 const MATCH_MODES = Object.freeze(['all', 'any']);
 
 /**
@@ -291,8 +313,12 @@ function buildWhere(tableMeta, fm, filters, accessFilter, dialect, match = 'all'
     const out = { sql: [], params: [] };
     if (filters != null) {
         if (!Array.isArray(filters)) throw new CompileError('filters must be an array');
-        if (filters.length > MAX_FILTERS) throw new CompileError(`too many filters (max ${MAX_FILTERS})`);
-        for (const f of filters) compileFilter(tableMeta, fm, f, out, dialect);
+        const leaves = countFilterLeaves(filters);
+        if (leaves > MAX_FILTERS) throw new CompileError(`too many filters: ${leaves} clauses (max ${MAX_FILTERS}, counting the clauses inside any groups)`);
+        for (const f of filters) {
+            if (isAnyGroup(f)) compileAnyGroup(tableMeta, fm, f, out, dialect);
+            else compileFilter(tableMeta, fm, f, out, dialect);
+        }
     }
     const user = (match === 'any' && out.sql.length > 1)
         ? [`(${out.sql.join(' OR ')})`]
@@ -342,4 +368,4 @@ function clampLimit(limit, max = MAX_RESULT_ROWS) {
     return Math.min(n, ceiling);
 }
 
-module.exports = { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_GROUP_BY, MAX_AGGREGATES, ALIAS_RE, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, coerceValue, assertRecordId, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit };
+module.exports = { MAX_FILTERS, MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_GROUP_BY, MAX_AGGREGATES, ALIAS_RE, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, coerceValue, assertRecordId, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit };

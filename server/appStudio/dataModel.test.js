@@ -292,7 +292,7 @@ test('migrationPlan: a stored-computed rule change rebuilds the column', () => {
     const changed = dm.migrationPlan(withExpr(A), withExpr(B));
     assert.deepEqual(changed, [
         'ALTER TABLE "lines" DROP COLUMN "check"',
-        `ALTER TABLE "lines" ADD COLUMN "check" TEXT GENERATED ALWAYS AS (${B}) STORED`,
+        `ALTER TABLE "lines" ADD COLUMN "check" TEXT GENERATED ALWAYS AS (${B}) VIRTUAL`,
     ], 'the rule change is a drop + re-add carrying the NEW expression');
 
     // Same rule, no churn — a save that touches something else must not
@@ -301,7 +301,7 @@ test('migrationPlan: a stored-computed rule change rebuilds the column', () => {
 
     // read-time → stored materialises; stored → read-time drops.
     assert.deepEqual(dm.migrationPlan(withExpr(A, false), withExpr(A, true)),
-        [`ALTER TABLE "lines" ADD COLUMN "check" TEXT GENERATED ALWAYS AS (${A}) STORED`],
+        [`ALTER TABLE "lines" ADD COLUMN "check" TEXT GENERATED ALWAYS AS (${A}) VIRTUAL`],
         'materialising a read-time computed is an ADD');
     assert.deepEqual(dm.migrationPlan(withExpr(A, true), withExpr(A, false)),
         ['ALTER TABLE "lines" DROP COLUMN "check"'],
@@ -326,7 +326,7 @@ test('migrationPlan: a stored-computed field ADDED to an existing table material
     });
 
     assert.deepEqual(dm.migrationPlan(before, withField(true)),
-        [`ALTER TABLE "lines" ADD COLUMN "check" TEXT GENERATED ALWAYS AS (${EXPR}) STORED`],
+        [`ALTER TABLE "lines" ADD COLUMN "check" TEXT GENERATED ALWAYS AS (${EXPR}) VIRTUAL`],
         'a new stored-computed field gets its column');
     assert.deepEqual(dm.migrationPlan(before, withField(false)), [],
         'a read-time computed still has no column — that is what read-time means');
@@ -336,6 +336,22 @@ test('migrationPlan: a stored-computed field ADDED to an existing table material
     assert.deepEqual(dm.migrationPlan(withField(true), before),
         ['ALTER TABLE "lines" DROP COLUMN "check"']);
     assert.deepEqual(dm.migrationPlan(withField(false), before), []);
+});
+test('migrationPlan: an ALTER-added stored-computed column is VIRTUAL on SQLite, STORED on Postgres and in CREATE TABLE', () => {
+    // SQLite refuses ADD COLUMN … STORED ("cannot add a STORED column"); VIRTUAL
+    // reads, filters and sorts the same. CREATE TABLE keeps STORED byte-for-byte.
+    const EXPR = 'qty * 2';
+    const before = { tables: [{ id: 'tl', key: 'lines', name: 'Lines', fields: [{ id: 'fq', key: 'qty', type: 'number' }] }] };
+    const after = { tables: [{ id: 'tl', key: 'lines', name: 'Lines', fields: [
+        { id: 'fq', key: 'qty', type: 'number' },
+        { id: 'fd', key: 'dbl', type: 'computed', computed: { type: 'number', stored: true, expr: EXPR } },
+    ] }] };
+    assert.deepEqual(dm.migrationPlan(before, after, { dialect: 'sqlite' }),
+        [`ALTER TABLE "lines" ADD COLUMN "dbl" REAL GENERATED ALWAYS AS (${EXPR}) VIRTUAL`]);
+    assert.deepEqual(dm.migrationPlan(before, after, { dialect: 'pg' }),
+        [`ALTER TABLE "lines" ADD COLUMN IF NOT EXISTS "dbl" NUMERIC GENERATED ALWAYS AS (${EXPR}) STORED`]);
+    const created = dm.migrationPlan({ tables: [] }, after, { dialect: 'sqlite' });
+    assert.match(created[0], /"dbl" REAL GENERATED ALWAYS AS \(qty \* 2\) STORED/);
 });
 
 test('migrationPlan: add table / drop table', () => {

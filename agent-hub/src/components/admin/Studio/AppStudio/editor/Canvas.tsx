@@ -16,6 +16,7 @@ import type { ActionState, RunOpts, Vars } from '../runtime/actionRunner/core';
 import type { NavigateFn } from '../runtime/actionRunner/runnerContext';
 import type { CanvasBodyProps, CanvasProps } from './Canvas.types';
 import { CanvasBody } from './CanvasBody';
+import BackgroundRunTray from '../runtime/BackgroundRunTray';
 
 /**
  * App Studio editor — the canvas: a scrollable neutral surface around the
@@ -157,6 +158,7 @@ export default function Canvas({ app, onCommit, editActionState = EMPTY_ACTION_S
                 />
             )}
         </AppDataScope>
+        {mode !== 'edit' && <BackgroundRunTray actionState={actionState} />}
         </BrowserRunProvider>
     );
 }

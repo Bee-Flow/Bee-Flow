@@ -71,15 +71,41 @@ function columnExists(db, tableName, colName) {
  * (studioAppDbStore.applyMigration) wraps it in ONE transaction so the
  * all-or-nothing guarantee is unchanged.
  *
+ * `opts.probes` (planMigration's) are COUNT queries run right before the
+ * statement they name; their counts come back in `probed`. A refusing probe
+ * that counts an unconvertible value fails the plan AFTER every probe ran
+ * (code 'migration_precondition', `probed` on the error), so the caller's
+ * transaction rolls back and the refusal can name every conversion. A failing
+ * statement carries its plan index (`migrationStatementIndex`).
+ *
  * @param {InstanceType<typeof import('better-sqlite3')>} db  open handle
  * @param {string[]} orderedDDL                    migrationPlan output
- * @param {{ log?: { warn: Function } }} [opts]    logger (console by default)
- * @returns {{ applied: number, skipped: Array<{ sql: string, reason: string }> }}
+ * @param {{ log?: { warn: Function }, probes?: MigrationProbe[] }} [opts]    logger (console by default)
+ * @returns {{ applied: number, skipped: Array<{ sql: string, reason: string }>, probed: ProbeCount[] }}
  */
-function applyPlanTolerantly(db, orderedDDL, { log = console } = {}) {
+function applyPlanTolerantly(db, orderedDDL, { log = console, probes = [] } = {}) {
     /** @type {{ sql: string; reason: string; }[]} */
     const skipped = [];
     let applied = 0;
+    /** @type {ProbeCount[]} */
+    const probed = [];
+    const list = Array.isArray(orderedDDL) ? orderedDDL : [];
+    /** @param {number} at */
+    const runProbes = (at) => {
+        for (const pr of probes) {
+            if (pr.at !== at) continue;
+            /** @type {{ n?: unknown, bad?: unknown } | undefined} */
+            let row;
+            try {
+                row = /** @type {{ n?: unknown, bad?: unknown } | undefined} */ (db.prepare(pr.sql).get());
+            } catch (e) {
+                // A failing probe belongs to its op: the caller reports it as that op's failure.
+                if (e && typeof e === 'object') /** @type {{ migrationOpIndex?: number }} */ (e).migrationOpIndex = pr.opIndex;
+                throw e;
+            }
+            probed.push({ opIndex: pr.opIndex, refuse: pr.refuse === true, n: Number(row?.n) || 0, bad: Number(row?.bad) || 0 });
+        }
+    };
     /**
      * @param {string} sql
      * @param {string} reason
@@ -91,10 +117,11 @@ function applyPlanTolerantly(db, orderedDDL, { log = console } = {}) {
         }
     };
 
-    for (const ddl of (Array.isArray(orderedDDL) ? orderedDDL : [])) {
+    for (const [i, ddl] of list.entries()) {
         if (typeof ddl !== 'string' || !ddl.trim()) {
             throw new Error('DDL statement must be a non-empty string');
         }
+        runProbes(i);
         const sql = ddl.trim();
 
         // Rename no-ops are detected BEFORE execution — running them would
@@ -132,10 +159,32 @@ function applyPlanTolerantly(db, orderedDDL, { log = console } = {}) {
                 skip(sql, 'column already added');
                 continue;
             }
+            if (e && typeof e === 'object') /** @type {{ migrationStatementIndex?: number }} */ (e).migrationStatementIndex = i;
             throw e;
         }
     }
-    return { applied, skipped };
+    runProbes(list.length);
+    throwIfRefused(probed);
+    return { applied, skipped, probed };
 }
 
-module.exports = { applyPlanTolerantly };
+/**
+ * The refusal of a plan whose refusing probes counted unconvertible values
+ * (shared by the SQLite and Postgres engines).
+ * @param {ProbeCount[]} probed
+ */
+function throwIfRefused(probed) {
+    if (!probed.some((p) => p.refuse && p.bad > 0)) return;
+    /** @type {Error & { code?: string, probed?: ProbeCount[] }} */
+    const err = new Error('A field type conversion found values that cannot be converted');
+    err.code = 'migration_precondition';
+    err.probed = probed;
+    throw err;
+}
+
+module.exports = { applyPlanTolerantly, throwIfRefused };
+
+/**
+ * @typedef {{ sql: string, at: number, opIndex: number, refuse?: boolean, tableKey?: string }} MigrationProbe
+ * @typedef {{ opIndex: number, refuse: boolean, n: number, bad: number }} ProbeCount
+ */

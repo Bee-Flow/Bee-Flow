@@ -276,6 +276,20 @@ test('batch runs everything in ONE transaction with per-statement shapes', async
     assert.strictEqual(after.rows[0].n, 2, 'rec_3 rolled back with the failure');
 });
 
+test('batch: a statement with expectChanges that changes nothing rolls the batch back and names its index', async () => {
+    await assert.rejects(() => engine.batch(OWNER, APP, [
+        { sql: 'INSERT INTO "tasks" ("id", "title") VALUES (?, ?)', params: ['rec_9', 'doomed'] },
+        { sql: 'UPDATE "tasks" SET "title" = ? WHERE "id" = ?', params: ['x', 'rec_missing'], expectChanges: true },
+    ]), (err) => err.code === 'batch_no_rows' && err.statementIndex === 1);
+    const after = await engine.query(OWNER, APP, 'SELECT count(*) AS n FROM "tasks" WHERE "id" = ?', ['rec_9']);
+    assert.strictEqual(after.rows[0].n, 0, 'the insert before it was rolled back');
+    const ok = await engine.batch(OWNER, APP, [
+        { sql: 'UPDATE "tasks" SET "title" = ? WHERE "id" = ?', params: ['first', 'rec_1'], expectChanges: true },
+        { sql: 'UPDATE "tasks" SET "title" = ? WHERE "id" = ?', params: ['x', 'rec_missing'] },
+    ]);
+    assert.deepStrictEqual(ok, [{ changes: 1 }, { changes: 0 }], 'without the flag 0 changes is an answer, not a failure');
+});
+
 // ── Error mapping ───────────────────────────────────────────────────
 
 test('unique violation maps to 409 unique_violation naming the field from uq_<tbl>_<fld>', async () => {

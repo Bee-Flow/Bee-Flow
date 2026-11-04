@@ -11,7 +11,8 @@
  *
  * Only the app action path uses it. Other errors are not retried here.
  *
- * Limit: STUDIO_AI_CALL_TIMEOUT_MS, default 120000, 0 = no time-out.
+ * Limit: STUDIO_AI_CALL_TIMEOUT_MS, default 120000, 0 = no time-out (STUDIO_APP_AI_TIMEOUT_MS is
+ * read as an alias when it is unset; aiRuntime's adapter timeoutMs reads the same value).
  * Logs carry the step kind, the model id, durations and a status or code, never
  * prompt text, document content or an error message from the provider.
  */
@@ -27,7 +28,9 @@ export type GuardDeps = { log?: LogLike; now?: () => number; env?: Record<string
 
 /** Env value to milliseconds: unset, blank, negative or not a number gives the default; 0 means no time-out. */
 export function aiCallTimeoutMs(env: Record<string, string | undefined> = process.env): number {
-    const raw = env.STUDIO_AI_CALL_TIMEOUT_MS;
+    const own = env.STUDIO_AI_CALL_TIMEOUT_MS;
+    // The older STUDIO_APP_AI_TIMEOUT_MS (the adapters' timeoutMs) is an alias, read only when the knob is unset.
+    const raw = own === undefined || String(own).trim() === '' ? env.STUDIO_APP_AI_TIMEOUT_MS : own;
     if (raw === undefined || String(raw).trim() === '') return DEFAULT_AI_CALL_TIMEOUT_MS;
     const n = Number(raw);
     if (!Number.isFinite(n) || n < 0) return DEFAULT_AI_CALL_TIMEOUT_MS;

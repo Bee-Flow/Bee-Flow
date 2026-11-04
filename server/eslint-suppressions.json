@@ -59,7 +59,7 @@
   },
   "appStudio/actionExecutor/aiSteps.js": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -170,11 +170,6 @@
     }
   },
   "appStudio/archive.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "appStudio/automationRefs.js": {
     "complexity": {
       "count": 1
     }
@@ -715,7 +710,7 @@
   },
   "appStudio/validate/nodes.js": {
     "complexity": {
-      "count": 6
+      "count": 5
     },
     "max-lines-per-function": {
       "count": 2
@@ -2013,11 +2008,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "boot/lifecycle.js": {
-    "complexity": {
       "count": 1
     }
   },
@@ -3589,7 +3579,7 @@
   },
   "core/dataEngine/queryCompilerWrite.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "core/dataEngine/sources/mirror/linking.js": {
@@ -5215,11 +5205,6 @@
   "core/text/houseStyleExtractor.js": {
     "complexity": {
       "count": 2
-    }
-  },
-  "core/text/safePattern.js": {
-    "complexity": {
-      "count": 1
     }
   },
   "core/tools/datatableRows.js": {
@@ -8360,7 +8345,7 @@
       "count": 3
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "routes/studioDocuments.js": {
@@ -8722,7 +8707,7 @@
   },
   "services/appStudioRender.js": {
     "complexity": {
-      "count": 4
+      "count": 3
     }
   },
   "services/bfBridgeNotices.js": {
@@ -8957,10 +8942,7 @@
   },
   "shared/expr/engine.mjs": {
     "complexity": {
-      "count": 3
-    },
-    "max-depth": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -9018,6 +9000,14 @@
   },
   "shared/expr/sheetFill.mjs": {
     "max-params": {
+      "count": 1
+    }
+  },
+  "shared/expr/tokens.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
       "count": 1
     }
   },

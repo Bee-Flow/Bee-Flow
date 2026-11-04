@@ -303,13 +303,13 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
         throw refuse(403, 'no_columns_bound', 'This binding does not allow any column of that table');
     }
     const filterList = Array.isArray(filters) ? filters : [];
-    assertFieldsBound(filterList.map(f => f && f.field), columns);
+    assertFieldsBound(require('../../shared/expr/filterGroups.mjs').filterClauseFields(filterList), columns); // OR-group clauses too
     // `sort` may be an object OR a list: resolvePrimarySort accepts both and takes the first
     // entry of a list. Checking only `sort.field` let `sort: [{field:'geheim'}]` slip past
     // unseen, and that is precisely the oracle this check must close.
     assertFieldsBound(sortFields(sort), columns);
 
-    await require('../../stores/lib/sheetCrypto').assertQuery(resolved, [...filterList.map(f => f?.field), ...sortFields(sort)]);
+    await require('../../stores/lib/sheetCrypto').assertQuery(resolved, [...require('../../shared/expr/filterGroups.mjs').filterClauseFields(filterList), ...sortFields(sort)]);
 
     const filter = accessFilter.compileAccessFilter(
         resolved.meta, resolved.grade, { id: resolved.principal?.userId || null }, 'read', PG);
@@ -375,10 +375,10 @@ async function aggregateRows(resolved, { allowColumns, groupBy, aggregates, filt
     assertFieldsBound(groups.map(g => g && g.field), columns);
     // `count(*)` has no field; only a real column name is checked.
     assertFieldsBound(aggs.map(a => (a && a.field !== '*' ? a && a.field : null)), columns);
-    assertFieldsBound(filterList.map(f => f && f.field), columns);
+    assertFieldsBound(require('../../shared/expr/filterGroups.mjs').filterClauseFields(filterList), columns); // OR-group clauses too
     assertFieldsBound(sortFields(sort), columns);
 
-    await require('../../stores/lib/sheetCrypto').assertQuery(resolved, [...groups.map(g => g?.field), ...aggs.map(a => a?.field), ...filterList.map(f => f?.field), ...sortFields(sort)]);
+    await require('../../stores/lib/sheetCrypto').assertQuery(resolved, [...groups.map(g => g?.field), ...aggs.map(a => a?.field), ...require('../../shared/expr/filterGroups.mjs').filterClauseFields(filterList), ...sortFields(sort)]);
 
     const filter = accessFilter.compileAccessFilter(
         resolved.meta, resolved.grade, { id: resolved.principal?.userId || null }, 'read', PG);

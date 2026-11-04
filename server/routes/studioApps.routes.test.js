@@ -56,6 +56,8 @@ const EXPECTED = [
     'get /:id requireAuth <anonymous>',
     'get /:id/public-pages requireAuth <anonymous>',
     'get /:id/ref requireAuth validateRequest <anonymous>',
+    'get /:id/runs requireAuth validateRequest <anonymous>',
+    'get /:id/runs/:runId requireAuth validateRequest <anonymous>',
     'get /:id/runtime requireAuth validateRequest <anonymous>',
     'get /:id/versions requireAuth <anonymous>',
     'get /catalog requireAuth <anonymous>',

@@ -4,7 +4,8 @@
  * definitionOps.js carries two copies of this walk (stripNavigateSteps and
  * stripModalSteps) that differ only in which step they drop; here it is one
  * walk with a predicate. It recurses the same branch bodies canonicalize.js
- * walks server-side: condition then/else, loop steps, switch cases and default.
+ * walks server-side: condition then/else, loop steps, switch cases and default,
+ * and a step's onError handler.
  * Unchanged lists come back by reference.
  */
 
@@ -35,6 +36,12 @@ function stripOne(step: ActionStep, drop: (step: ActionStep) => boolean): Action
     if (Array.isArray(step.cases)) {
         const cases = stripCases(step.cases, drop);
         if (cases) copy = { ...copy, cases };
+    }
+    // A step's onError handler ({ steps }) is walked like a branch.
+    const handler = (step as { onError?: unknown }).onError;
+    if (isRecord(handler) && Array.isArray(handler.steps)) {
+        const branch = stripSteps(handler.steps, drop);
+        if (branch !== handler.steps) copy = { ...copy, onError: { ...handler, steps: branch } };
     }
     return copy;
 }

@@ -83,7 +83,7 @@ These pass validation and still do nothing — the failure is SILENT.
 - An \`aggregate\` binding resolves to the ROWS ARRAY, not a number. A stat needs pick: {row:"first", column:"<one of your aggregates[].as>"} or every KPI reads "1". An aggregate with no explicit \`limit\` is capped at 50 rows.
 - A SERVER step (create_record / update_record / delete_record) sees ONLY form, vars, item, value, currentUser, now, today. screen, forms, actions, records are empty server-side: a values binding naming one of them writes NULL in production.
 - Every mutation needs a following {kind:"refresh", tableId} naming the table it dirtied, or the change does not appear.
-- A sequence action takes ONLY {kind:"sequence", steps}. No onError, no onSuccess — they are stripped.
+- A sequence action: {kind:"sequence", steps, background?}. No onError, no onSuccess — they are stripped; a server STEP in it may carry onError {steps} / retry.
 - GUARD arithmetic over forms/vars: number()/round() or isEmpty(forms.f.a) ? 0 : forms.f.a * 2. The bare + - * / % operators are the one place NaN leaks (a form publishes its values one frame after first paint); every whitelisted function is null-safe.
 - \`filter_bar\` publishes to ONE reserved variable, vars.filters. One per screen; never declare a variable named filters. Never a lone search field over a searchable:true data_grid — that grid has its own search box.
 - \`data_grid\`: inline editing REQUIRES selectable:"none" (with selectable set, onRowSelect fires {selected: rows} instead of the edited row).

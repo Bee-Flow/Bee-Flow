@@ -68,12 +68,14 @@ const FIXTURES: Record<string, unknown> = {
     open_url: { kind: 'open_url', url: 'https://example.test/', newTab: true },
     open_modal: { kind: 'open_modal', modalId: 'cmp_m1' },
     close_modal: { kind: 'close_modal', modalId: 'cmp_m1' },
+    // Runs act_helper (a toast), which observe() puts beside every fixture.
+    call_action: { kind: 'call_action', actionId: 'act_helper', params: {} },
     sequence: { kind: 'sequence', steps: [{ kind: 'toast', message: 'step' }] },
 };
 
 /** Run one bare action through the real hook and report what it did. */
 async function observe(action: unknown, opts = {}) {
-    const definition = { schemaVersion: 2, actions: { act_1: action } };
+    const definition = { schemaVersion: 2, actions: { act_1: action, act_helper: { kind: 'toast', message: 'helped', tone: 'info' } } };
     const onNavigate = vi.fn();
     const openWindow = vi.fn();
     const realOpen = window.open;

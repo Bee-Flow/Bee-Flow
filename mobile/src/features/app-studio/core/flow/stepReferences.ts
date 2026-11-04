@@ -13,7 +13,7 @@
 import { EN_ONLY, type Msg, type Translate } from '../msg';
 import type { AppDefinition, AppNode } from '../types';
 
-export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document';
+export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document' | 'action';
 
 /** Which reference a field key names. Keys are the STEP_SPECS field names. */
 export const REFERENCE_FIELDS: Readonly<Record<string, ReferenceKind>> = {
@@ -24,6 +24,8 @@ export const REFERENCE_FIELDS: Readonly<Record<string, ReferenceKind>> = {
     automationId: 'automation',
     connectorId: 'connector',
     documentId: 'document',
+    // call_action: another action of this app.
+    actionId: 'action',
 };
 
 /** The web's keys (studio_apps_edit.step_refs.*), word for word. */
@@ -38,6 +40,7 @@ export const REFERENCE_PLACEHOLDERS: Readonly<Record<ReferenceKind, Msg>> = {
     automation: m('pick_automation', 'Pick an automation…'),
     connector: m('pick_connector', 'Pick a connection…'),
     document: m('pick_document', 'Pick a document…'),
+    action: m('pick_action', 'Pick an action…'),
 };
 
 /** Why a list is empty, and what to do about it. */
@@ -52,6 +55,7 @@ export const REFERENCE_EMPTY_HINTS: Readonly<Record<ReferenceKind, Msg>> = {
         'empty_document',
         'No designed documents yet — make the invoice, quote or letter in Studio → Documents first.',
     ),
+    action: m('empty_action', 'This app has no other actions yet.'),
 };
 
 export interface RefOption {
@@ -132,6 +136,21 @@ export function automationOptions(automations: unknown): RefOption[] {
     return rows(automations)
         .filter(hasId)
         .map((a) => ({ id: a.id, label: firstText(a.title, a.name, a.id) }));
+}
+
+/**
+ * The app's actions as { id, label }, without `exceptId` (the action being
+ * edited: an action may not run itself). The web's actionRefOptions, line for line.
+ */
+export function actionRefOptions(actions: unknown, exceptId: string | null = null): RefOption[] {
+    if (!actions || typeof actions !== 'object') return [];
+    return Object.entries(actions as Record<string, unknown>)
+        .filter(([id, a]) => id !== exceptId && !!a && typeof a === 'object')
+        .map(([id, a]) => {
+            const row = a as { name?: unknown; label?: unknown };
+            const name = row.name ?? row.label;
+            return { id, label: typeof name === 'string' && name.trim() ? name.trim() : id };
+        });
 }
 
 /** Connectors as { id, label }. */

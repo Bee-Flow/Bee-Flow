@@ -10,6 +10,20 @@
 const { LIMITS } = require('./limits');
 const { ACTION_KINDS, STEP_KINDS, DATA_MUTATING_STEP_KINDS, CLIENT_STEP_KINDS, TOAST_TONES, AI_SCHEMA_FIELD_TYPES, AI_EXTRACT_FIELDS, AI_GENERATE_FIELDS, KB_QUERY_FIELDS, SEND_EMAIL_FIELDS, GENERATE_FILE_FIELDS, FILL_DOCUMENT_FIELDS, GENERATE_PRESENTATION_FORMATS, GENERATE_PRESENTATION_FIELDS, REDACT_PDF_FIELDS, FILE_INTAKE_FIELDS, DATASET_QUERY_FIELDS } = require('./actionSpecsActionKinds');
 const { COPY_DOCUMENT_FIELDS } = require('./documentSpecs');
+const { withErrorEnvelope } = require('./stepEnvelope');
+
+/**
+ * call_action — run another action of the app as a subroutine. `params` is a
+ * map of name → binding, read inside the called action as `params.<name>`.
+ * The result is the called action's last server result (into `resultVar`).
+ * At most LIMITS.MAX_CALL_DEPTH calls deep, never recursive (validated).
+ * One table for the step and the bare action, like CREATE_RECORD_FIELDS.
+ */
+const CALL_ACTION_FIELDS = {
+    actionId: { type: 'string', required: true, maxLen: 80 },
+    params: { type: 'callParams' },
+    resultVar: { type: 'string', maxLen: 60 },
+};
 
 // The look vocabulary is owned by core/documents/deckThemeOptions.js.
 
@@ -93,9 +107,21 @@ const ACTION_SPECS = {
     // a dialog could not be wired to anything, and a save sequence left the
     // dialog standing open over the form it had just submitted.
     close_modal: { fields: { modalId: { type: 'string', required: true } } },
+    // Run another action as a subroutine (CALL_ACTION_FIELDS).
+    call_action: { fields: CALL_ACTION_FIELDS },
     // A sequence runs an ordered list of Steps. Its `steps` are validated by
     // the STEP_SPECS table (see validate.js validateActionSteps).
-    sequence: { fields: { steps: { type: 'steps', required: true } } },
+    // background / lockKey / progressVar (2026-11): run the sequence as a server
+    // job that survives the page (backgroundRunPolicy.mts). All optional and
+    // absent by default, so an existing sequence canonicalizes unchanged.
+    sequence: {
+        fields: {
+            steps: { type: 'steps', required: true },
+            background: { type: 'boolean' },
+            lockKey: { type: 'binding' },
+            progressVar: { type: 'string', maxLen: 60 },
+        },
+    },
 };
 
 // ---------------------------------------------------------------------------
@@ -213,7 +239,9 @@ const STEP_SPECS = {
         mutatesData: true,
         fields: {
             tableId: { type: 'string', required: true },
-            recordId: { type: 'binding', required: true },
+            // One row by id OR every row matching `filter` up to `limit` (stepDataChecks.checkRecordTarget).
+            recordId: { type: 'binding' },
+            filter: { type: 'recordFilter' }, limit: { type: 'int', min: 1, max: LIMITS.MAX_BULK_WRITE_ROWS },
             values: { type: 'recordValues', required: true },
             resultVar: { type: 'string', maxLen: 60 },
             // OPTIONAL compare-and-set. Bind it to the updated_at of the row
@@ -230,7 +258,8 @@ const STEP_SPECS = {
         mutatesData: true,
         fields: {
             tableId: { type: 'string', required: true },
-            recordId: { type: 'binding', required: true },
+            recordId: { type: 'binding' },
+            filter: { type: 'recordFilter' }, limit: { type: 'int', min: 1, max: LIMITS.MAX_BULK_WRITE_ROWS },
             resultVar: { type: 'string', maxLen: 60 },
         },
     },
@@ -331,7 +360,27 @@ const STEP_SPECS = {
             default: { type: 'steps' },
         },
     },
+    // Flow control too: the called action's own steps decide where they run.
+    call_action: { mutatesData: false, fields: CALL_ACTION_FIELDS },
+    /**
+     * transaction — record writes (create/update/delete_record on the app's own
+     * tables) that land together or not at all. ONE server step: the children
+     * are resolved and committed in one database transaction, never dispatched
+     * one by one, so they get no ordinal and no walker path of their own. A
+     * child's resultVar is readable by the children after it (a new row's id
+     * is known before the commit) and by every step after the transaction.
+     */
+    transaction: {
+        mutatesData: true,
+        fields: {
+            steps: { type: 'steps', required: true },
+            resultVar: { type: 'string', maxLen: 60 },
+        },
+    },
 };
+
+// Every server step (and call_action) also takes the error-handling envelope (stepEnvelope.js).
+withErrorEnvelope(STEP_SPECS);
 
 module.exports = {
     ACTION_KINDS,
@@ -343,6 +392,7 @@ module.exports = {
     TOAST_TONES,
     SEND_EMAIL_FIELDS,
     CREATE_RECORD_FIELDS,
+    CALL_ACTION_FIELDS,
     AI_SCHEMA_FIELD_TYPES,
     GENERATE_PRESENTATION_FORMATS,
     GENERATE_PRESENTATION_FIELDS,

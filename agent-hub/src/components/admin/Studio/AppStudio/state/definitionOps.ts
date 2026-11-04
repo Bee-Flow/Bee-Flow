@@ -30,6 +30,7 @@ import {
     collectIds,
 } from '@shared/appDefinition/definitionOps.mjs';
 import { ID_RE } from '@shared/appDefinition/ids.mjs';
+import { mapStepBranches } from './stepBranches';
 import type { ActionResultBinding } from '../runtime/resolveBinding.types';
 import type { AppDefinition, FormulaValue, AppNode, CommonNodeProps, AppAction, AppSection, DefinitionVariable } from '../inspector/appDefinition';
 import type { LogicPatch } from '../inspector/logic/VisibilityControls';
@@ -236,22 +237,7 @@ function stripModalSteps(steps: Step[] | undefined, modalId: string): Step[] | u
             dirty = true;
             continue;
         }
-        let copy = step;
-        for (const key of ['then', 'else', 'steps', 'default'] as const) {
-            const branch = stripModalSteps(step[key], modalId);
-            if (branch !== step[key]) copy = { ...copy, [key]: branch };
-        }
-        if (Array.isArray(step.cases)) {
-            let casesDirty = false;
-            const cases = step.cases.map((c: { steps?: Step[] }) => {
-                if (!c || typeof c !== 'object') return c;
-                const branch = stripModalSteps(c.steps, modalId);
-                if (branch === c.steps) return c;
-                casesDirty = true;
-                return { ...c, steps: branch };
-            });
-            if (casesDirty) copy = { ...copy, cases };
-        }
+        const copy = mapStepBranches(step, (list) => stripModalSteps(list, modalId));
         if (copy !== step) dirty = true;
         next.push(copy);
     }
@@ -408,14 +394,22 @@ export function setVariable(def: AppDefinition | null, variable: DefinitionVaria
 /**
  * Rename a variable in place, keeping its position. Nothing REWRITES the
  * formulas that read it — the manager only offers a rename while a variable is
- * unused, for exactly that reason.
+ * unused, for exactly that reason. A background action's progressVar is a plain
+ * name, not a formula, so it follows the rename.
  */
 export function renameVariable(def: AppDefinition | null, from: string, to: string) {
     if (typeof to !== 'string' || !to || from === to) return def;
     const current = listVariables(def);
     if (!current.some((v) => v?.name === from)) return def;
     if (current.some((v) => v?.name === to)) return def;   // a name is unique
-    return { ...def, variables: current.map((v) => (v?.name === from ? { ...v, name: to } : v)) };
+    const next = { ...def, variables: current.map((v) => (v?.name === from ? { ...v, name: to } : v)) };
+    const actions = def?.actions;
+    if (!actions || typeof actions !== 'object') return next;
+    const hits = Object.entries(actions).filter(([, a]) => a?.progressVar === from);
+    if (!hits.length) return next;
+    const renamed: Record<string, AppAction> = { ...actions };
+    for (const [id, a] of hits) renamed[id] = { ...a, progressVar: to };
+    return { ...next, actions: renamed };
 }
 
 /**
@@ -495,22 +489,7 @@ function stripNavigateSteps(steps: Step[] | undefined, screenId: string): Step[]
     for (const step of steps) {
         if (!step || typeof step !== 'object') { next.push(step); continue; }
         if (step.kind === 'navigate' && step.screenId === screenId) { dirty = true; continue; }
-        let copy = step;
-        for (const key of ['then', 'else', 'steps', 'default'] as const) {
-            const branch = stripNavigateSteps(step[key], screenId);
-            if (branch !== step[key]) copy = { ...copy, [key]: branch };
-        }
-        if (Array.isArray(step.cases)) {
-            let casesDirty = false;
-            const cases = step.cases.map((c: { steps?: Step[] }) => {
-                if (!c || typeof c !== 'object') return c;
-                const branch = stripNavigateSteps(c.steps, screenId);
-                if (branch === c.steps) return c;
-                casesDirty = true;
-                return { ...c, steps: branch };
-            });
-            if (casesDirty) copy = { ...copy, cases };
-        }
+        const copy = mapStepBranches(step, (list) => stripNavigateSteps(list, screenId));
         if (copy !== step) dirty = true;
         next.push(copy);
     }

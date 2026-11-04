@@ -364,6 +364,19 @@ test('batch: mixed read/write, limits', async (t) => {
     );
 });
 
+test('batch: expectChanges with no change rolls back and names the statement (through the statement process)', async (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const id = freshId();
+    t.after(() => engine.invalidate(id));
+    await engine.exec(OWNER, id, 'CREATE TABLE xc (id INTEGER PRIMARY KEY, v TEXT)');
+    await assert.rejects(engine.batch(OWNER, id, [
+        { sql: 'INSERT INTO xc (v) VALUES (?)', params: ['kept?'] },
+        { sql: 'DELETE FROM xc WHERE id = ?', params: [999], expectChanges: true },
+    ]), (err) => err.code === 'batch_no_rows' && err.statementIndex === 1);
+    const r = await engine.query(OWNER, id, 'SELECT count(*) AS n FROM xc');
+    assert.strictEqual(r.rows[0].n, 0, 'the insert was rolled back');
+});
+
 test('applyMigration: atomic rollback + empty no-op + limit', async (t) => {
     if (skipIfNoSqlite(t)) return;
     const id = freshId();

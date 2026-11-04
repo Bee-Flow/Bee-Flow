@@ -21,6 +21,8 @@ const {
     addColumnDdl,
 } = require('./ddl');
 const { isPhysical, coerceModelShape } = require('./migrationShape');
+const { exprMentions } = require('./fieldConversion.mts');
+const { survivingAlterable, pushOp, pushProbe, opBase, rebuildStoredComputed, convertingKeysOf } = require('./migrationRebuild');
 const {
     retireMetaFor, retiredColumnKey, readRetireState, retainConflicts,
     retainOptions, conflictsOf, retiredHadColumn, retireDdl, unretireDdl,
@@ -34,15 +36,6 @@ const {
 //     physical, materialised, dialect, plan }
 // and pushes its statements onto p.plan, in the order the header lists.
 // ---------------------------------------------------------------------------
-
-/** The surviving tables a step may ALTER: [id, newTable, oldTable] for each. */
-function* survivingAlterable(p) {
-    for (const [id, nt] of p.newTables) {
-        if (!p.inScope(id) || !p.alterable(id)) continue;
-        const ot = p.oldTables.get(id);
-        if (ot) yield [id, nt, ot];
-    }
-}
 
 /** 1. Table renames (id survives, key changed). */
 function renameTables(p) {
@@ -93,6 +86,7 @@ function createTables(p) {
 function addColumns(p) {
     for (const [, nt, ot] of survivingAlterable(p)) {
         const oldIds = new Set(ot.fields.map(f => f.id));
+        const converting = p.convertingKeys.get(nt.id) || [];
         for (const nf of nt.fields) {
             if (oldIds.has(nf.id)) continue;
             // A retired field coming back: its column never left the table.
@@ -107,51 +101,17 @@ function addColumns(p) {
             // saveDataModel reported success, every read came back with the
             // key simply missing, and nothing anywhere said so. Step 4b only
             // ever sees fields that already existed, so it could not catch it.
+            // The ADD fills every existing row (VIRTUAL on SQLite, see ddl.js).
             if (isStoredComputed(nf)) {
-                p.plan.push(ddlForStoredComputedColumn(nt.key, nf, p.dialect));
+                // One that reads a column converted in this plan waits for the
+                // conversion (4b): the column cannot change under it.
+                if (converting.some(k => exprMentions(nf.computed.expr, k))) continue;
+                const at = p.plan.length;
+                const opIndex = pushOp(p, [ddlForStoredComputedColumn(nt.key, nf, p.dialect)], opBase('recompute', 'new', { nt, ot, nf, of: null }));
+                pushProbe(p, { tableKey: nt.key, opIndex, at });
                 continue;
             }
             p.plan.push(...addColumnDdl(nt.key, nt.id, nf, p.newKeyById, p.dialect));
-        }
-    }
-}
-
-/**
- * 4b. Stored-computed fields whose RULE changed on a surviving table.
- *
- * The value in a GENERATED ALWAYS column is decided by the expression baked
- * into the column at CREATE time, so editing `computed.expr` in the model used
- * to change nothing at all: the model said one thing, every row kept answering
- * with the old rule, and no error was raised anywhere. A "Controle" column went
- * on reporting "ok" for lines its own definition called doubtful.
- *
- * Rebuilding is safe in a way it never is for a normal column: the data is
- * entirely derived, so DROP + ADD recomputes it from the surviving columns
- * rather than losing anything. That is also what makes read-time ⇄ stored
- * transitions expressible here — a materialise is just an ADD.
- *
- * The expression itself passed computedExprError (no ";", no comment
- * sequences, bounded) during validateDataModel on this very save, the same
- * guard CREATE TABLE relies on.
- */
-function rebuildStoredComputed(p) {
-    for (const [, nt, ot] of survivingAlterable(p)) {
-        const oldById = new Map(ot.fields.map(f => [f.id, f]));
-        for (const nf of nt.fields) {
-            const of = oldById.get(nf.id);
-            if (!of) continue; // brand-new field: handled by step 4 / create
-            const wasStored = isStoredComputed(of);
-            const nowStored = isStoredComputed(nf);
-            if (!wasStored && !nowStored) continue;
-            const sameRule = wasStored && nowStored
-                && of.computed.expr === nf.computed.expr
-                && (of.computed.type || 'text') === (nf.computed.type || 'text')
-                && of.key === nf.key;
-            if (sameRule) continue;
-            // Drop under the OLD key — step 2 renames run before this, so a
-            // renamed column already answers to the new name.
-            if (wasStored) p.plan.push(dropColumnDdl(nt.key, nf.key, p.dialect));
-            if (nowStored) p.plan.push(ddlForStoredComputedColumn(nt.key, nf, p.dialect));
         }
     }
 }
@@ -221,6 +181,7 @@ function dropTables(p) {
  *   2. column renames           ALTER TABLE … RENAME COLUMN
  *   3. new tables               CREATE TABLE (+ unique indexes)
  *   4. new columns              ALTER TABLE … ADD COLUMN (+ unique index)
+ *   4b. stored-computed rebuilds DROP, type conversions, ADD (see step 4b)
  *   5. unique toggles           CREATE/DROP UNIQUE INDEX on surviving columns
  *   6. dropped columns          DROP INDEX (if unique) then DROP COLUMN
  *   7. dropped tables           DROP TABLE
@@ -230,10 +191,10 @@ function dropTables(p) {
  * parent. Column drops handle SQLite's "can't DROP an indexed column" rule by
  * dropping the unique index first.
  *
- * Not emitted in v1 (documented limitations): converting an existing column's
- * type or turning a plain column into a relation FK (both need a table
- * rebuild). SQLite is dynamically typed, so a field type change needs no DDL
- * for storage. A stored-computed field added to an already-created table IS
+ * Not emitted (documented limitations): a type change outside the safe pairs
+ * of fieldConversion.mts, and turning a plain column into a relation FK (both
+ * need a table rebuild). The safe pairs convert only with opts.convertTypes.
+ * A stored-computed field added to an already-created table IS
  * materialised (step 4): left as a documented gap, it would be silent, and the
  * model would list a field the table
  * never grew.
@@ -265,8 +226,23 @@ function dropTables(p) {
  * whose column type changed, a live key that would land on a retired column)
  * throws an HttpError 409 `schema_retain_conflict` with `details.findings`;
  * `retainConflicts` returns the same findings without throwing.
+ *
+ * `opts.convertTypes` converts a field whose type changed in place when the
+ * pair is safe (fieldConversion.mts SAFE_CONVERSIONS); off (the default) a type
+ * change emits nothing, as it always did. `opts.onUnconvertible` 'refuse'
+ * (default) adds a refusing probe per conversion, 'clear' sets the values that
+ * cannot convert to NULL.
+ *
+ * Returns `{ statements, ops, probes }`:
+ *   ops     the report entries: { kind: 'recompute'|'convert'|'unsupported',
+ *           reason, tableId, tableKey, oldTableKey, fieldId, fieldKey,
+ *           oldFieldKey, from?, to?, action?, first, last } (statement range;
+ *           -1 when the op has no statement).
+ *   probes  { sql, at, opIndex, refuse, tableKey }: a COUNT the engine runs
+ *           right before statement `at` (n rows, bad unconvertible values); a
+ *           refusing probe with bad > 0 fails the migration.
  */
-function migrationPlan(oldModel, newModel, opts = {}) {
+function planMigration(oldModel, newModel, opts = {}) {
     // Threaded into every ddl.js emitter: a plan for a Postgres-backed store must
     // not be compiled under the process-global App Studio dialect (engineFlag.js).
     const dialect = opts.dialect;
@@ -311,22 +287,32 @@ function migrationPlan(oldModel, newModel, opts = {}) {
     const p = {
         oldTables, newTables, newKeyById, retain, inScope, physical, materialised, dialect, plan: [],
         alterable: (id) => physical.has(id) && !materialised.has(id),
+        convertTypes: opts.convertTypes === true,
+        onUnconvertible: /** @type {'refuse' | 'clear'} */ (opts.onUnconvertible === 'clear' ? 'clear' : 'refuse'),
+        convertingKeys: new Map(), ops: [], probes: [],
     };
+    p.convertingKeys = convertingKeysOf(p);
     renameTables(p);           // 1
     retireFields(p);           // 1b
     renameColumns(p);          // 2
     createTables(p);           // 3
     addColumns(p);             // 4
-    rebuildStoredComputed(p);  // 4b
+    rebuildStoredComputed(p);  // 4b (with the type conversions)
     toggleUnique(p);           // 5
     dropColumns(p);            // 6
     dropTables(p);             // 7
-    return p.plan;
+    return { statements: p.plan, ops: p.ops, probes: p.probes };
 }
 
-module.exports = { migrationPlan, retireMetaFor, retiredColumnKey, readRetireState, retainConflicts };
+/** The ordered DDL of planMigration (the ~15 callers that only run the plan). */
+function migrationPlan(oldModel, newModel, opts = {}) {
+    return planMigration(oldModel, newModel, opts).statements;
+}
+
+module.exports = { migrationPlan, planMigration, retireMetaFor, retiredColumnKey, readRetireState, retainConflicts };
 
 /** @typedef {import('./migrationShape').ModelTable} ModelTable */
+/** @typedef {import('./migrationShape').ModelField} ModelField */
 
 /**
  * The plan context every step takes (see below).

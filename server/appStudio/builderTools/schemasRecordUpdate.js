@@ -31,7 +31,7 @@ const TOOL_SCHEMAS_RECORD_UPDATE = [
                             required: ['id', 'values'],
                         },
                     },
-                    filter: { type: 'array', description: `Filter form: which rows to change, [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}. Required and non-empty (an empty filter would match every row).`, items: { type: 'object' } },
+                    filter: { type: 'array', description: `Filter form: which rows to change, [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}; an entry {any:[clauses]} matches when one of its clauses does. Required and non-empty (an empty filter would match every row).`, items: { type: 'object' } },
                     values: { type: 'object', description: 'Filter form: { fieldKey: newValue } applied to every matching row.' },
                     max: { type: 'integer', minimum: 1, maximum: MAX_FILTER_UPDATE_ROWS, description: `Filter form: most rows to change in this call (default ${DEFAULT_FILTER_UPDATE_ROWS}).` },
                     dry_run: { type: 'boolean', description: 'Filter form: default true = report only, write nothing. Pass false to apply.' },

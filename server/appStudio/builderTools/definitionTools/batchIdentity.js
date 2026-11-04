@@ -13,6 +13,7 @@
 'use strict';
 
 const ops = require('../../definitionOps');
+const { LIMITS } = require('../../componentSpecs/limits');
 const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
 
 /**
@@ -29,7 +30,7 @@ function formNameClash(def, parentId, list) {
      * @param {number} [depth]
      */
     const collect = (entries, depth = 0) => {
-        if (!Array.isArray(entries) || depth > 6) return;
+        if (!Array.isArray(entries) || depth > LIMITS.MAX_DEPTH) return;
         for (const e of entries) {
             if (!e || typeof e !== 'object') continue;
             if (e.type === 'form' && e.props && typeof e.props.name === 'string' && e.props.name.trim()) wanted.add(e.props.name.trim());

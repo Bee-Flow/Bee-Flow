@@ -28,7 +28,7 @@
 'use strict';
 
 const llmClient = require('../core/llm/llmClient');
-const { guardedAiCall } = require('./aiCallGuard.mts');
+const { guardedAiCall, aiCallTimeoutMs } = require('./aiCallGuard.mts');
 const { readDocument, newReport } = require('./aiDocumentRead.mts');
 const usageStore = require('../stores/usageStore');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
@@ -37,6 +37,8 @@ const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // ── Caps (defence-in-depth; the attachment quota is the real byte backstop) ──
 const MAX_KB_IDS = 10;
+// KB query cap = the old prompt cap: a 32k prompt must not make the embedding call fail and lose grounding.
+const MAX_KB_QUERY_CHARS = 8000;
 // Per-request document budget. MAX_DOCS was 8, which refused a real mailed
 // order (an inkoopbestelbon + ten drawings); the real cost lever was never the
 // count but the AGGREGATE budgets below, added when the count was raised.
@@ -50,9 +52,8 @@ const MAX_TOTAL_DOC_CHARS = 200000;
 const MAX_TOTAL_DOC_BYTES = 16 * 1024 * 1024;
 const MAX_TOTAL_DOC_IMAGES = 30;
 const MAX_SYSTEM_CHARS = 24000;
-const MAX_SCHEMA_FIELDS = 40;
 // An ai_extract has no authorable prompt: these descriptions ARE the instruction.
-const MAX_SCHEMA_FIELD_DESC = 500;
+const { MAX_AI_SCHEMA_FIELDS: MAX_SCHEMA_FIELDS, MAX_AI_SCHEMA_FIELD_DESC: MAX_SCHEMA_FIELD_DESC } = require('./componentSpecs/limits').LIMITS;
 const MAX_EXTRACT_ROWS = 500;  // rows a single ai_extract may produce/insert
 
 const SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', 'object'];
@@ -134,9 +135,9 @@ function usageEntry(app, modelId, usage, t0, source) {
  * @param {number} t0
  * @param {string} source
  */
-function logUsage(app, modelId, usage, t0, source) {
-    // Never let billing bookkeeping break a step (matches studioAppsRun).
-    try { usageStore.logUsage(usageEntry(app, modelId, usage, t0, source)).catch((e) => bestEffort('appStudio/aiRuntime:logUsage', e)); } catch (err) { bestEffort('appStudio/aiRuntime:logUsage#2', err); /* ignore */ }
+function logUsage(app, model, usage, t0, source) {
+    // Never let billing bookkeeping break a step (matches studioAppsRun). The run log of the step gets the call too (runLog/aiUsage.mts).
+    try { const entry = usageEntry(app, model.modelId, usage, t0, source); require('./runLog/aiUsage.mts').noteStepAiCall(model, entry); usageStore.logUsage(entry).catch((e) => bestEffort('appStudio/aiRuntime:logUsage', e)); } catch (err) { bestEffort('appStudio/aiRuntime:logUsage#2', err); /* ignore */ }
 }
 
 /**
@@ -145,9 +146,11 @@ function logUsage(app, modelId, usage, t0, source) {
  * model supports vision (so extraction can decide text-vs-image). A tier the
  * owner hasn't configured, or 'auto', falls back to a configured tier — never
  * silently to the global default. Throws { status:400 } when no model exists.
+ * `askedTier`/`fellBack` say whether another tier answered; `opts.fromBinding` keeps a formula's tier out of the log.
  * @param {string | undefined} tierName
+ * @param {{ fromBinding?: boolean }} [opts]
  */
-async function resolveOwnerModel(app, tierName) {
+async function resolveOwnerModel(app, tierName, opts = {}) {
     const { getUserTierMap, getTierConfig, canonicalTierName } = require('../core/llm/modelResolver');
     const userOrgId = app.organizationId || null;
     const userId = app.userId;
@@ -169,9 +172,8 @@ async function resolveOwnerModel(app, tierName) {
         // configured would otherwise land on whatever was left, silently — which is
         // how a step written for a reasoning model got answered by a 0.6B local
         // one, for weeks, with nobody able to tell from the outcome.
-        if (asked !== 'auto' && asked !== resolved) {
-            log.warn(`[StudioAppAI] app ${app.id} asked for tier "${asked}" — not configured; using "${resolved}" (${tiers[resolved]?.modelId || 'workspace default'})`);
-        }
+        const what = opts.fromBinding ? 'a tier from a formula' : `tier "${asked}"`;
+        if (asked !== 'auto' && asked !== resolved) log.warn(`[StudioAppAI] app ${app.id} asked for ${what} — not configured; using "${resolved}" (${tiers[resolved]?.modelId || 'workspace default'})`);
     }
 
     let modelId = tiers[resolved]?.modelId || null;
@@ -179,16 +181,13 @@ async function resolveOwnerModel(app, tierName) {
         const globalConfig = await require('../core/aiAgent').getAIConfig().catch((e) => fallback('appStudio/aiRuntime:resolveOwnerModel', e, null));
         modelId = globalConfig?.model || null;
     }
-    if (!modelId) {
-        const e = new Error('No AI model is configured for this workspace');
-        e.status = 400;
-        throw e;
-    }
+    if (!modelId) { const e = new Error('No AI model is configured for this workspace'); e.status = 400; throw e; }
 
     const cfg = await getTierConfig(resolved, { userOrgId, userId }) || {};
     return {
         modelId,
         tierName: resolved,
+        askedTier: asked, fellBack: asked !== 'auto' && asked !== resolved,
         supportsVision: await modelSupportsVision(modelId),
         supportsNativeDocuments: await modelSupportsNativeDocuments(modelId),
         options: {
@@ -259,7 +258,7 @@ function fieldsToObjectSchema(fields) {
  *
  * The caps are silent by nature and both have bitten. `ai_extract` has NO
  * authorable prompt — the field DESCRIPTIONS are the entire instruction — so a
- * description trimmed at 500 characters is an instruction cut off mid-sentence,
+ * description trimmed at the description limit is an instruction cut off mid-sentence,
  * and the part that gets lost is always the end, which is where the exceptions
  * live. A 1238-character rule once lost its whole "…and if that is empty, read
  * it from the drawing instead" clause this way, and the column it governed came
@@ -391,10 +390,10 @@ function buildMessages(system, user) {
  * honour it today; on an adapter that ignores it the call still runs long, so
  * the client-side deadline below is the backstop rather than decoration.
  */
-const STUDIO_APP_AI_TIMEOUT_MS = parseInt(process.env.STUDIO_APP_AI_TIMEOUT_MS, 10) || 120_000;
+const STUDIO_APP_AI_TIMEOUT_MS = aiCallTimeoutMs(); // one knob with the guard below (read per call; 0 sends none)
 
 function withTimeout(options, extra) {
-    return { ...(options || {}), ...(extra || {}), timeoutMs: STUDIO_APP_AI_TIMEOUT_MS };
+    return { ...(options || {}), ...(extra || {}), ...(aiCallTimeoutMs() > 0 ? { timeoutMs: aiCallTimeoutMs() } : {}) };
 }
 
 /** One model call under the per-call deadline (aiCallGuard.mts): `run(extra)` gets `{ signal }` to pass on, aborted at the deadline. */
@@ -410,10 +409,11 @@ async function runStructured(app, model, { system, user, parameters, toolName = 
     const toolDef = { type: 'function', function: { name: toolName, description: toolDescription, parameters } };
     const t0 = Date.now();
     const res = await guarded('structured', model, (x) => llmClient.chatForcedTool(model.modelId, buildMessages(system, user), toolDef, withTimeout(model.options, x)));
-    logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
+    logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
         e.status = 422;
+        e.code = 'ai_no_output'; // the next attempt can succeed: a step retry may try again
         throw e;
     }
     return { structured: res.structured, usage: res.usage };
@@ -423,7 +423,7 @@ async function runStructured(app, model, { system, user, parameters, toolName = 
 async function runText(app, model, { system, user }) {
     const t0 = Date.now();
     const res = await guarded('text', model, (x) => llmClient.chat(model.modelId, buildMessages(system, user), withTimeout(model.options, x)));
-    logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
+    logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     return { text: typeof res?.content === 'string' ? res.content : '', usage: res?.usage };
 }
 
@@ -465,7 +465,7 @@ async function runTextWithTools(app, model, { system, user, tools }) {
     const res = await guarded('text+tools', model, (x) => llmClient.runToolLoop(
         model.modelId, buildMessages(system, user), defs, withTimeout(model.options, x), executeTool, MAX_TOOL_ROUNDS,
     ));
-    logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
+    logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     return { text: typeof res?.content === 'string' ? res.content : '', usage: res?.usage, toolCallRounds: res?.toolCallRounds || 0 };
 }
 
@@ -483,10 +483,11 @@ async function runStructuredWithTools(app, model, { system, user, parameters, to
         model.modelId, buildMessages(system, user), defs,
         { ...withTimeout(model.options, x), finalTool }, executeTool, MAX_TOOL_ROUNDS,
     ));
-    logUsage(app, model.modelId, res?.usage, t0, 'studio_app_ai');
+    logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
         e.status = 422;
+        e.code = 'ai_no_output'; // the next attempt can succeed: a step retry may try again
         throw e;
     }
     return { structured: res.structured, usage: res.usage, toolCallRounds: res.toolCallRounds || 0 };
@@ -511,7 +512,7 @@ async function streamChat(app, model, { system, messages }, onEvent) {
         if (type === 'done' && data) lastUsage = data.usage || data;
         onEvent(type, data);
     });
-    logUsage(app, model.modelId, lastUsage, t0, 'studio_app_chat');
+    logUsage(app, model, lastUsage, t0, 'studio_app_chat');
 }
 
 // ── Knowledge-base grounding (RAG) ───────────────────────────────────────────
@@ -540,7 +541,7 @@ async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any
     const requested = Array.isArray(knowledgeBaseIds)
         ? knowledgeBaseIds.filter((x) => typeof x === 'string' && x).slice(0, MAX_KB_IDS)
         : [];
-    const q = (typeof query === 'string' ? query : '').trim();
+    const q = (typeof query === 'string' ? query : '').trim().slice(0, MAX_KB_QUERY_CHARS);
     if (!requested.length || !q) return { context: '', chunks: [] };
 
     const viewerId = viewer?.id || null;

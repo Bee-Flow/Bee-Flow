@@ -6,7 +6,9 @@
 
 'use strict';
 
-const { EVENT_NAMES, COMPONENT_SPECS, COMPONENT_TYPES } = require('../componentSpecs');
+const { COMPONENT_SPECS, COMPONENT_TYPES } = require('../componentSpecs');
+const { nodeActionRefs } = require('../nodeActionRefs.mts');
+const { callTargets } = require('../actionCalls.mts');
 const { canonicalComponentType } = require('./componentAliases');
 
 // ── app_find_nodes ───────────────────────────────────────────────────
@@ -82,9 +84,20 @@ function applyFindNodes(draftWrap, args = {}) {
         try { json = JSON.stringify(node.props ?? {}); } catch { return false; }
         return json.includes(`vars.${variable}`);
     };
-    const nodeRunsAction = (node) => {
+    // Where the node RUNS the action (an event, a row/toolbar/bulk/item action, a column, the add-row
+    // action): the same reader as the validator's unreachable rule, so the two cannot disagree.
+    const actionRunPlaces = (node) => {
+        if (!actionId) return [];
+        return nodeActionRefs(node).filter((r) => r.actionId === actionId).map((r) => r.via);
+    };
+    // A component that only READS the action's result (an actionResult binding) does not run it.
+    const actionIdNeedle = `"actionId":${JSON.stringify(actionId)}`;
+    const nodeReadsActionResult = (node) => {
         if (!actionId) return false;
-        return EVENT_NAMES.some((ev) => node[ev] === actionId);
+        /** @type {string} */
+        let json;
+        try { json = JSON.stringify({ props: node.props ?? {}, computed: node.computed ?? {} }); } catch { return false; }
+        return json.includes(actionIdNeedle);
     };
 
     const visit = (node, screen, path) => {
@@ -94,7 +107,11 @@ function applyFindNodes(draftWrap, args = {}) {
         const reasons = [];
         if (componentType && node.type === componentType) reasons.push('type');
         if (tableId && bindingsByNode.has(node.id)) reasons.push(`bound via ${bindingsByNode.get(node.id).join(', ')}`);
-        if (actionId && nodeRunsAction(node)) reasons.push('runs action');
+        if (actionId) {
+            const places = actionRunPlaces(node);
+            if (places.length) reasons.push(`runs action (${places.join(', ')})`);
+            else if (nodeReadsActionResult(node)) reasons.push('reads its result');
+        }
         if (variable && nodeMentionsVariable(node)) reasons.push('reads variable');
         if (reasons.length) {
             push({
@@ -131,6 +148,11 @@ function applyFindNodes(draftWrap, args = {}) {
             if (tableId && [...tableRefs].some((ref) => json.includes(`"${ref}"`))) reasons.push('touches table');
             if (variable && (json.includes(`vars.${variable}`) || json.includes(`"${variable}"`))) reasons.push('reads/writes variable');
             if (actionId && id === actionId) reasons.push('is this action');
+            else if (actionId && json.includes(actionIdNeedle)) {
+                // A call_action names the step that runs it; anything else stays generic.
+                const call = callTargets(action).find((t) => t.actionId === actionId);
+                reasons.push(call ? `calls this action (${call.path})` : 'references this action');
+            }
             if (reasons.length) {
                 push({ kind: 'action', id, type: action?.kind || 'sequence', why: reasons.join('; ') });
             }
@@ -145,7 +167,11 @@ function applyFindNodes(draftWrap, args = {}) {
     if (tableId && !table) unknown.push(tables ? `tableId "${tableId}" is not a table of this app` : `tableId "${tableId}" could not be checked (the data model is not loaded)`);
     if (variable && !(Array.isArray(def.variables) && def.variables.some((v) => v && v.name === variable))) unknown.push(`variable "${variable}" is not declared in this app`);
     if (actionId && !(def.actions && Object.hasOwn(def.actions, actionId))) unknown.push(`actionId "${actionId}" is not an action of this app`);
-    const note = hits.length
+    // An action nothing runs, calls or reads: say so, with the validator's name for it.
+    const onlyItself = actionId && !screenId && !componentType && !tableId && !variable && !unknown.length && !truncated && hits.length > 0 && hits.every((h) => h.kind === 'action' && h.id === actionId);
+    const note = onlyItself
+        ? `Nothing runs, calls or reads action "${actionId}" — it is unreachable (validator warning action.unreachable), so it is safe to remove.`
+        : hits.length
         ? (truncated ? `Showing the first ${MAX_FIND_HITS} matches — narrow the query with screenId.` : undefined)
         : unknown.length
             ? `Nothing matches, and ${unknown.join('; ')}. Check the id; this is NOT a confirmation that anything is unused.`

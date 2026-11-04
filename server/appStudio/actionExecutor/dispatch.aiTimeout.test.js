@@ -18,5 +18,6 @@ const { executeDataStep } = require('./dispatch');
 
 test('an AI time-out is a step error with its message and code', async () => {
     const res = await executeDataStep({ id: 'a', userId: 'u' }, null, { kind: 'ai_generate' }, {});
-    assert.deepStrictEqual(res, { ok: false, error: 'The AI gave no answer within 120 s', code: 'ai_timeout' });
+    // retryable: a step `retry` may try a timed-out AI call again.
+    assert.deepStrictEqual(res, { ok: false, error: 'The AI gave no answer within 120 s', code: 'ai_timeout', retryable: true });
 });

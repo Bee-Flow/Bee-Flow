@@ -2997,6 +2997,86 @@ declare namespace DbRow {
         payload_hash: string | null;
         processed_at: Date;
     }
+    /** Row of `studio_app_action_run_steps`. */
+    interface StudioAppActionRunSteps {
+        action_id: string | null;
+        ai_calls: number;
+        attempts: number | null;
+        completion_tokens: number;
+        cost: string | null;
+        cost_currency: string | null;
+        duration_ms: number;
+        error: string | null;
+        error_code: string | null;
+        handled: boolean;
+        iteration: number | null;
+        kind: string;
+        mocked: boolean;
+        model: string | null;
+        model_tier: string | null;
+        path: string;
+        prompt_tokens: number;
+        run_id: string;
+        seq: number;
+        started_at: Date;
+        status: string;
+        step_index: number | null;
+    }
+    /** Row of `studio_app_action_runs`. */
+    interface StudioAppActionRuns {
+        action_id: string;
+        ai_calls: number;
+        app_id: string;
+        client: string | null;
+        client_run_key: string | null;
+        completion_tokens: number;
+        cost_by_currency: Json;
+        definition_version: number | null;
+        draft: boolean;
+        dry_run: boolean;
+        duration_ms: number | null;
+        effects: Json | null;
+        ended_at: Date | null;
+        ended_by: string | null;
+        error: string | null;
+        error_code: string | null;
+        error_step: Json | null;
+        failed_steps: number;
+        handled_errors: number;
+        id: string;
+        in_flight: boolean;
+        instance_id: string | null;
+        last_activity_at: Date;
+        last_step_status: string | null;
+        lock_key: string | null;
+        origin: string;
+        owner_user_id: string;
+        progress: Json;
+        prompt_tokens: number;
+        result: Json | null;
+        started_at: Date;
+        status: string;
+        step_count: number;
+        tracked: boolean;
+        truncated: boolean;
+        vars: Json | null;
+        viewer_user_id: string | null;
+        visitor_key: string | null;
+    }
+    /** Row of `studio_app_action_tests`. */
+    interface StudioAppActionTests {
+        action_id: string;
+        app_id: string;
+        created_at: Date;
+        created_by: string | null;
+        id: string;
+        last_run_at: Date | null;
+        last_status: string | null;
+        name: string;
+        spec: Json;
+        updated_at: Date;
+        updated_by: string | null;
+    }
     /** Row of `studio_app_attachments`. */
     interface StudioAppAttachments {
         app_id: string;

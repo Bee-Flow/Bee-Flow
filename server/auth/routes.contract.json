@@ -2541,6 +2541,12 @@
     "GET /api/studio-apps/:id": {
       "gate": "auth"
     },
+    "GET /api/studio-apps/:id/actions/jobs": {
+      "gate": "auth"
+    },
+    "GET /api/studio-apps/:id/actions/jobs/:jobId": {
+      "gate": "auth"
+    },
     "GET /api/studio-apps/:id/actions/runs/:runId": {
       "gate": "auth"
     },
@@ -2596,6 +2602,12 @@
       "gate": "auth"
     },
     "GET /api/studio-apps/:id/ref": {
+      "gate": "auth"
+    },
+    "GET /api/studio-apps/:id/runs": {
+      "gate": "auth"
+    },
+    "GET /api/studio-apps/:id/runs/:runId": {
       "gate": "auth"
     },
     "GET /api/studio-apps/:id/runtime": {
@@ -5755,7 +5767,13 @@
         "manage_apps"
       ]
     },
+    "POST /api/studio-apps/:id/actions/:actionId/background": {
+      "gate": "auth"
+    },
     "POST /api/studio-apps/:id/actions/:actionId/run": {
+      "gate": "auth"
+    },
+    "POST /api/studio-apps/:id/actions/:actionId/runs/end": {
       "gate": "auth"
     },
     "POST /api/studio-apps/:id/actions/:actionId/step": {
