@@ -72,9 +72,22 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
             log.warn(`[builderTools] agent check skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
+    // A Solution's variables are set at run time (stageVars.runVarsFor), so a
+    // `vars.<name>` that reads one is not unset (validate/varsWriters.mts); the
+    // names come from the automation's project, which only a saved row knows.
+    /** @type {Set<string> | null} */
+    let knownVarNames = null;
+    if (draftWrap.automationId) {
+        try {
+            const row = await automationStore.getAutomation(draftWrap.automationId);
+            knownVarNames = row ? await require('../liveSideEffects').knownVarNamesFor(def, row) : null;
+        } catch (e) {
+            log.warn(`[builderTools] variable names skipped: ${/** @type {Error} */ (e).message}`);
+        }
+    }
     // The call_block gate (validate/callBlock.js) reads the same "Building blocks"
     // list the builder checked against; without one only the structure is checked.
-    const validation = validateDefinition(def, { deliverableEvents: getDeliverableEvents(), availableAgents, availableBlocks: blocksByIdOf(draftWrap._blocks) });
+    const validation = validateDefinition(def, { deliverableEvents: getDeliverableEvents(), availableAgents, availableBlocks: blocksByIdOf(draftWrap._blocks), knownVarNames });
     // Approval assignees must belong to the owner's org — the DB half of the
     // rule (shape lives in validate.js). Reported like any other validation
     // error so the model self-corrects instead of persisting a stranger.

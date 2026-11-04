@@ -131,7 +131,7 @@ function createBuilderStream() {
         async setBuilderSession(automationId, userId, payload, opts) {
             script.storedSessions.push({ automationId, userId, payload: snapshot(payload), opts });
         },
-        async getRunSteps() { return []; },
+        async getRunSteps(runId) { return script.runSteps[runId] || []; }, async listRunsForAutomation() { return { runs: snapshot(script.runs) }; }, // the latest run (`runs`, `runSteps`)
     };
     swap('stores/automationStore', automationStore);
     swap('stores/configStore', { async getConfig(key) { return script.config[key]; } });
@@ -204,7 +204,7 @@ function createBuilderStream() {
      *   tools?: Record<string, (args: unknown, draftWrap: unknown, delegation: unknown) => unknown>,
      *   onTool?: ((name: string, args: unknown, draftWrap: unknown, delegation: unknown) => unknown) | null,
      *   draft?: ({ id: string } & Record<string, unknown>) | null, builderSession?: unknown, betaFeatures?: string[],
-     *   tiers?: Record<string, { modelId: string }>, modelId?: string, surfacesRawReasoning?: boolean,
+     *   tiers?: Record<string, { modelId: string }>, modelId?: string, surfacesRawReasoning?: boolean, supportsVision?: boolean, runs?: unknown[], runSteps?: Record<string, unknown[]>,
      *   providerConfig?: { apiKey?: string, url?: string, providerType?: string }, datatables?: unknown,
      *   catalog?: { apps?: unknown[], toolNames?: string[] | null, triggerOutputs?: Record<string, unknown> },
      *   config?: Record<string, unknown>, datatableAccess?: Record<string, unknown>, documents?: unknown,
@@ -223,7 +223,7 @@ function createBuilderStream() {
         tiers,
         modelId = 'claude-sonnet-4-5',
         providerConfig = { apiKey: 'k', url: 'https://example.invalid', providerType: 'claude' },
-        surfacesRawReasoning = false,
+        surfacesRawReasoning = false, supportsVision = false, runs = [], runSteps = {},
         catalog,
         config = {},
         datatables = null,
@@ -254,7 +254,7 @@ function createBuilderStream() {
             datatables,
             datatableAccess,
             documents,
-            pickers,
+            pickers, runs, runSteps,
             thinkingModelId: modelId,
             mintedAutomationId,
             userOrgIds,
@@ -267,7 +267,7 @@ function createBuilderStream() {
         };
 
         const adapter = {
-            surfacesRawReasoning: () => surfacesRawReasoning,
+            surfacesRawReasoning: () => surfacesRawReasoning, supportsVision: () => supportsVision,
             async stream(_apiKey, _url, _modelId, messages, options, onEvent) {
                 const spec = modelRounds.length < rounds.length ? rounds[modelRounds.length] : { text: 'Klaar.' };
                 modelRounds.push({ messages: snapshot(messages), options: { ...options, tools: options.tools } });
@@ -445,7 +445,7 @@ module.exports = { createBuilderStream, call, parseSse };
  *   datatables: unknown,
  *   datatableAccess: unknown,
  *   documents: unknown,
- *   pickers: unknown,
+ *   pickers: unknown, runs: unknown[], runSteps: Record<string, unknown[]>,
  *   thinkingModelId: string,
  *   mintedAutomationId: string,
  *   userOrgIds: string[],

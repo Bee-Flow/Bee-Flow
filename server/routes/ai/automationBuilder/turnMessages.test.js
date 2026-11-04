@@ -381,3 +381,32 @@ test('the "## Last test run" block rides in the dynamic message, after the schem
     }
     assert.ok(!plain.dynamicContext.includes('Last test run'), 'no hints, no block');
 });
+
+// The automation's latest run (a canvas test the person started) and the
+// pictures of this message: both per turn, neither in the cached prefix.
+test('the "## Last run" block and the blind-model line ride in the dynamic message, after the last test run, before the preferences', () => {
+    for (const profile of [SMALL, MID]) {
+        const ref = turn2(profile, { lastTestRun: '## Last test run\n- x' });
+        const t = turn2(profile, { lastTestRun: '## Last test run\n- x', lastRun: '## Last run\n- `ai` failed', imageNote: 'The person attached 1 image (stub).' });
+        const p = stablePrefixLength(ref.messages);
+        assert.deepStrictEqual(t.messages.slice(0, p), ref.messages.slice(0, p), 'the prefix is byte-identical with or without them');
+        const d = t.dynamicContext;
+        assert.ok(d.indexOf('## Last test run') < d.indexOf('## Last run\n'));
+        assert.ok(d.indexOf('## Last run\n') < d.indexOf('The person attached 1 image'));
+        assert.ok(d.indexOf('The person attached 1 image') < d.indexOf('## This turn'));
+        assert.ok(!t.sys.includes('Last run'));
+    }
+});
+
+test('a picture for a model that sees it is an image part of this user message only, the other files keep their name line', () => {
+    const image = { name: 'shot.png', mimeType: 'image/png', bytes: 3, dataUrl: 'data:image/png;base64,AAAA' };
+    const t = turn2(SMALL, { images: [image], attachments: [{ name: 'notes.txt' }] });
+    const ref = turn2(SMALL, { attachments: [{ name: 'notes.txt' }] });
+    const last = /** @type {Array<{ type: string, text?: string, image_url?: { url: string } }>} */ (/** @type {unknown} */ (t.messages.at(-1)?.content));
+    assert.deepStrictEqual(last.map(part => part.type), ['text', 'image_url', 'text']);
+    assert.strictEqual(last[0].text, ref.messages.at(-1)?.content, 'the text part is the message as before');
+    assert.strictEqual(last[1].image_url?.url, image.dataUrl);
+    const p = stablePrefixLength(ref.messages);
+    assert.deepStrictEqual(t.messages.slice(0, p), ref.messages.slice(0, p));
+    assert.ok(!JSON.stringify(t.messages.slice(0, -1)).includes('data:image'), 'nowhere but the user message');
+});

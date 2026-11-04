@@ -260,6 +260,26 @@ describe('useAutomationBuilderStream characterisation: request failures', () => 
         expect(result.current.state.error).toBe('{}');
     });
 
+    it('sends an attached picture with its bytes, keeps the server\'s answer about it for one turn, and never puts it in the history', async () => {
+        const shot = { name: 'scherm.png', type: 'image/png', size: 4, content: 'data:image/png;base64,AAAA' };
+        mockedFetch.mockResolvedValueOnce({ ok: false, status: 400, body: null, json: async () => ({}) } as unknown as Response);
+        const { result } = renderHook(() => useAutomationBuilderStream({ automationId: 'a1' }));
+        await act(async () => { await result.current.send({ message: 'kan je dit oplossen', attachments: [shot] }); });
+        const body = JSON.parse(String((mockedFetch.mock.calls[0] as [string, RequestInit])[1].body));
+        expect(body.attachments).toEqual([shot]);
+        expect(JSON.stringify(result.current.state.messages)).not.toContain('data:image');
+
+        const { result: second, finish } = await streamTurn([['images', { attached: 1, shown: 0, skipped: 0, blind: true }]]);
+        expect(second.current.state.images).toEqual({ attached: 1, shown: 0, skipped: 0, blind: true });
+        await finish();
+        const next = new ReadableStream<Uint8Array>({ start(c) { c.close(); } });
+        mockedFetch.mockResolvedValueOnce({ ok: true, status: 200, body: next } as unknown as Response);
+        await act(async () => { await second.current.send({ message: 'en nu?' }); });
+        expect(second.current.state.images).toBeNull();
+        const history = JSON.parse(String((mockedFetch.mock.calls.at(-1) as [string, RequestInit])[1].body)).history;
+        expect(JSON.stringify(history)).not.toContain('data:image');
+    });
+
 });
 
 describe('useAutomationBuilderStream characterisation: run controls', () => {

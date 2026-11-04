@@ -138,6 +138,10 @@ test('knownVarNamesFor lists the variable names a run would see, only when a ste
     assert.deepStrictEqual(asked, [['a1', true]]);
     assert.strictEqual(await fx.knownVarNamesFor({ steps: [{ type: 'set' }] }, { id: 'a1' }), null);
     assert.strictEqual(asked.length, 1, 'no step asks, no lookup');
+    // A step that reads a variable asks too: the unknown-variable rules need the Solution names.
+    const reads = { steps: [{ type: 'ai_step', checks: [{ kind: 'allowedFrom', field: 'p', ref: 'vars.LABEL' }] }] };
+    assert.deepStrictEqual([...await fx.knownVarNamesFor(reads, { id: 'a1' })], ['TABLE_SALT', 'LABEL']);
+    assert.strictEqual(asked.length, 2);
     const down = makeLiveSideEffects({ stageVars: { runVarsFor: async () => { throw new Error('db down'); } } });
     assert.strictEqual(await down.knownVarNamesFor(def, { id: 'a1' }), null);
 });

@@ -249,5 +249,10 @@ export function builderFrames(callbacks: () => BuilderFrameCallbacks): FrameAdap
         review_plan: IGNORE,
         review_questions: IGNORE,
         proposal_preview: IGNORE,
+
+        // What happened to the pictures attached to a turn (shown to the
+        // model, skipped, or a model that cannot see). The phone attaches
+        // none, so there is nothing to report.
+        images: IGNORE,
     };
 }

@@ -233,12 +233,20 @@ function evaluateAnswer({ restored, modelOutput, rel, lists, runState, mode, ctx
         }
     };
     /**
+     * The list is not there. The message names the binding (a definition path,
+     * never a data value) and, when nothing sits at it at all, says so: a
+     * list read from a variable nothing sets, or from a step that has not run.
      * @param {string} field
+     * @param {unknown} ref
+     * @param {boolean} [unset]
      */
-    const emptyList = (field) => push('missing', field, 'the list of allowed values is empty');
+    const emptyList = (field, ref, unset) => {
+        const at = typeof ref === 'string' && ref.trim() ? ` (${ref.trim()})` : '';
+        push('missing', field, `the list of allowed values${at} is empty${unset ? ': nothing set it before this step' : ': it is not a list'}`);
+    };
 
     for (const l of lists || []) {
-        if (!l.ok) emptyList(l.field);
+        if (!l.ok) emptyList(l.field, l.ref, l.unset);
         else checkAllowed(l.field, allowedIndex(l.values, l.ignoreCase), l.allowEmpty);
     }
 
@@ -247,7 +255,7 @@ function evaluateAnswer({ restored, modelOutput, rel, lists, runState, mode, ctx
         if (check.kind === 'allowedFrom') {
             if (synthetic(check.ref)) continue;
             const res = listValuesOf(check, runState);
-            if (!res.ok) emptyList(check.field);
+            if (!res.ok) emptyList(check.field, check.ref, res.unset);
             else checkAllowed(check.field, allowedIndex(res.values, check.ignoreCase !== false), check.allowEmpty === true);
         } else if (check.kind === 'numbersFrom') {
             if (synthetic(check.ref)) continue;

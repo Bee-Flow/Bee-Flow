@@ -76,6 +76,8 @@
     "automations.assistant.plan_open": "Plan openen",
     "automations.assistant.plan_building": "Plan v{version} wordt gemaakt…",
     "automations.assistant.plan_built_short": "Plan v{version} gemaakt",
+    "automations.assistant.plan_build_stopped": "De build is gestopt voordat het plan af was. Vraag de assistent op te lossen wat er misging, of ga door met het plan.",
+    "automations.assistant.plan_close": "Sluiten",
     "automations.assistant.mode.building_plan": "Plan v{version} maken",
     "automations.assistant.mode.building_plan_hint": "Vervolgberichten gaan door met dit plan. Je eigen werkmodus geldt weer als het klaar is.",
     "automations.assistant.act.web_search": "Op het web gezocht",

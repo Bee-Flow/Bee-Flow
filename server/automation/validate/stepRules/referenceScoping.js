@@ -11,8 +11,11 @@
  * parse under the shared path grammar (`ref.syntax`), an expression input must
  * parse (`expr.parse`), every root must resolve (trigger/steps/vars/secrets/
  * loop), a `loop.<var>` must be bound by this step's own forEach or by a loop
- * it sits inside, and a `steps.<id>` — dotted, bracketed, or inside an
- * expression — must name a step that exists and has already run.
+ * it sits inside, a `steps.<id>` — dotted, bracketed, or inside an
+ * expression — must name a step that exists and has already run, and a
+ * `vars.<name>` must name a variable something sets (varsWriters.mts:
+ * `ref.unknown_var`, and `ai_check.list_unset` for the list of allowed values
+ * of an AI step, which then can never pass).
  *
  * Runs LAST, after the per-type field rules, because a ref that is reported
  * here reads best after the step's own shape has been reported.
@@ -22,10 +25,55 @@ const { isObject, collectLiteralBraces, pickClosestId } = require('../helpers');
 const { LOOP_RUNTIME_KEYS } = require('../constants');
 const { TOPIC_HOST_SPEC } = require('../../expr');
 const {
-    REF_ROOTS, refHead, suggestPathSpelling, suggestExprSpelling, tryParseExpr, exprStepIds,
+    REF_ROOTS, refHead, templateRefs, suggestPathSpelling, suggestExprSpelling, tryParseExpr, exprStepIds,
 } = require('../refPaths');
 const { collectStepRefs } = require('./refSurfaces');
 const { forEachBoundVars } = require('./iterationRules');
+const { varsReadByExpr, unsetVarFix } = require('../varsWriters.mts');
+
+/**
+ * The list of allowed values a binding fills, when it fills one: an
+ * `enumFrom[i].ref`, or the `ref` of an allowedFrom check. Null otherwise.
+ * @param {import('../helpers').StepDef} step
+ * @param {string | undefined} where
+ * @returns {{ field: string } | null}
+ */
+function allowedListAt(step, where) {
+    const m = typeof where === 'string' ? /^(enumFrom|checks)\[(\d+)\]\.ref$/.exec(where) : null;
+    if (!m || step.type !== 'ai_step') return null;
+    const list = Array.isArray(step[m[1]]) ? step[m[1]] : [];
+    const entry = isObject(list[Number(m[2])]) ? list[Number(m[2])] : null;
+    if (!entry || (m[1] === 'checks' && entry.kind !== 'allowedFrom')) return null;
+    return { field: typeof entry.field === 'string' ? entry.field : '' };
+}
+
+/**
+ * A `vars.<name>` read whose name nothing sets (varsWriters.mts lists the
+ * writers; a Solution variable counts when the caller passed `knownVarNames`).
+ * Skipped when the caller passed no `writtenVars`: nothing is known then.
+ * @param {string} name
+ * @param {string} where
+ */
+function checkVarRead(ctx, step, at, name, where) {
+    const { writtenVars, knownVarNames } = ctx;
+    if (!(writtenVars instanceof Set) || !name || writtenVars.has(name)) return;
+    if (knownVarNames instanceof Set && knownVarNames.has(name)) return;
+    const path = where ? `${at}${where.startsWith('[') ? '' : '.'}${where}` : at;
+    const list = allowedListAt(step, where);
+    if (list) {
+        ctx.pushE({
+            code: 'ai_check.list_unset', severity: 'error', path,
+            message: `Step ${step.id}: the allowed values${list.field ? ` for "${list.field}"` : ''} come from vars.${name}, but nothing in this automation sets it, so the list is always empty and the step can never pass.`,
+            hint: unsetVarFix(name, { list: true }),
+        });
+        return;
+    }
+    ctx.pushW({
+        code: 'ref.unknown_var', severity: 'warning', path,
+        message: `Step ${step.id} reads vars.${name}, but nothing in this automation sets it, so it resolves to nothing.`,
+        hint: `${unsetVarFix(name)} A Solution variable of that name counts too.`,
+    });
+}
 
 function checkReferences(ctx, step, at) {
     const { pushE, pushW, trigger, refIds, refSeen, stepsById, loopVarsAbove } = ctx;
@@ -145,6 +193,7 @@ function checkReferences(ctx, step, at) {
             return;
         }
         for (const id of new Set(exprStepIds(ast))) checkStepRead(id, r.src, null);
+        for (const name of new Set(varsReadByExpr(ast))) checkVarRead(ctx, step, at, name, r.where);
     };
 
     for (const r of refs) {
@@ -196,7 +245,8 @@ function checkReferences(ctx, step, at) {
             }
             continue;
         }
-        if (root === 'trigger' || root === 'vars' || root === 'secrets') continue;
+        if (root === 'vars') { checkVarRead(ctx, step, at, head.second, r.where); continue; }
+        if (root === 'trigger' || root === 'secrets') continue;
         // List-mode set evaluates its field bindings per row with `item`
         // and `_index` injected into the scope (execSet, same convention
         // as execFilter). Without this, every editor-written
@@ -213,6 +263,15 @@ function checkReferences(ctx, step, at) {
             continue;
         }
         pushW({ code: 'ref.unknown_root', severity: 'warning', path: at, message: `Step ${step.id}: unknown ref root "${root}".`, hint: 'Refs must start with one of: trigger, steps, vars, secrets, loop.' });
+    }
+
+    // The prompt is left out of the pass above (see the note at the top), but
+    // a {{vars.<name>}} nothing sets is the same hole there: a warning.
+    if (step.type === 'ai_step' && typeof step.prompt === 'string') {
+        for (const inner of templateRefs(step.prompt)) {
+            const head = refHead(inner);
+            if (head.root === 'vars' && head.second) checkVarRead(ctx, step, at, head.second, 'prompt');
+        }
     }
 }
 

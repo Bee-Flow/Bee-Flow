@@ -60,11 +60,14 @@ function makeLiveSideEffects(deps = {}) {
     /**
      * The variable names a run of this automation would see (its own `vars` plus the
      * Solution variables with an applied value), as a Set, for the validator's
-     * "does the salt variable exist" rule. `null` when no step asks for one (no
-     * lookup is made) or when the lookup fails: the rule is then skipped.
+     * "does the salt variable exist" rule and its unknown-variable rules
+     * (`ref.unknown_var`, `ai_check.list_unset`). `null` when no step asks for one
+     * or reads `vars.` (no lookup is made) or when the lookup fails: the
+     * Solution names are then unknown.
      */
     async function knownVarNamesFor(definition, automation) {
-        if (!JSON.stringify(definition || {}).includes('"pseudonymise"')) return null;
+        const text = JSON.stringify(definition || {});
+        if (!text.includes('"pseudonymise"') && !text.includes('vars.') && !text.includes('vars[')) return null;
         try {
             const { runVarsFor } = deps.stageVars || require('../core/automationRunner/stageVars');
             return new Set(Object.keys(await runVarsFor(automation || null, { definition })));
