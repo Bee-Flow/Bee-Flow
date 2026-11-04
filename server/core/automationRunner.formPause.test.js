@@ -167,6 +167,14 @@ test('a page with no theme of its own inherits the trigger theme', async () => {
     );
 });
 
+test('a page with no style of its own inherits the trigger style, its custom CSS sanitised', async () => {
+    const base = { font: 'serif', cardColor: '#FFF8E7', customCss: '@import "https://evil.example/x.css"; .bf-form__card { padding: 2rem }' };
+    await assert.rejects(
+        () => execFormPage(inputPage(), { layerStack: [], formBaseStyle: base }, blankState, 'live'),
+        (err) => { assert.deepEqual(err.form.style, { font: 'serif', cardColor: '#FFF8E7', customCss: ' .bf-form__card { padding: 2rem }' }); return true; },
+    );
+});
+
 test('dry_run synthesises blank answers instead of pausing a run nobody is watching', async () => {
     const step = {
         id: 'fp1', type: 'form_page', mode: 'input',

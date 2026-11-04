@@ -297,12 +297,13 @@ function isRunPause(e) {
  * legible. Nowhere else gets this: JSON is the right rendering for a prompt,
  * a URL or a header.
  */
-function renderFormPage(step, runState, { baseTheme = null } = {}) {
+function renderFormPage(step, runState, { baseTheme = null, baseStyle = null } = {}) {
     const { renderFormConfig } = runnerPort('forms');
     const safeState = { ...runState, secrets: {} };
     return renderFormConfig(step.form, {
         interpolate: (s) => interpolateTemplate(s, safeState, { listAsMarkdown: true }),
         baseTheme,
+        baseStyle,
         // Dynamic options / per-item questions read a run value. Same
         // secret-free state as the interpolation, so `secrets.*` resolves to
         // nothing.
@@ -349,18 +350,19 @@ async function execFormPage(step, ctx, runState, mode) {
         return { output: { ...runnerPort('forms').emptyFormValues(step.form), _skipped: true } };
     }
 
-    const baseTheme = ctx.formBaseTheme || null;
+    // The page inherits the entered trigger's theme and style (runContext.js).
+    const base = { baseTheme: ctx.formBaseTheme || null, baseStyle: ctx.formBaseStyle || null };
 
     if (step.mode === 'ending') {
         // Nothing to wait for. The public poll endpoint picks this row up once
         // the run goes terminal and shows it instead of the generic thank-you.
-        return { output: { shown: true, mode: 'ending', form: renderFormPage(step, runState, { baseTheme }) } };
+        return { output: { shown: true, mode: 'ending', form: renderFormPage(step, runState, base) } };
     }
 
     const handling = pauseHandlingOf(ctx, mode);
     if (handling !== 'real') {
         const saved = handling === 'harness' ? pageAnswersFor(ctx, step.id) : null;
-        if (saved) return { output: scenarioPageOutput(step, renderFormPage(step, runState, { baseTheme }), saved) };
+        if (saved) return { output: scenarioPageOutput(step, renderFormPage(step, runState, base), saved) };
         return synthesisedPage(step, runState, handling === 'harness');
     }
 
@@ -368,7 +370,7 @@ async function execFormPage(step, ctx, runState, mode) {
     // persisted on the awaiting step row: after a restart it is the vocabulary
     // the submit route coerces against. A test or dry pause waits at most the
     // profile's pauseTtlMs.
-    const rendered = renderFormPage(step, runState, { baseTheme });
+    const rendered = renderFormPage(step, runState, base);
     const waitMs = resolveFormWaitMs(step, { afterDecision: continuesFromApproval(ctx) });
     throw new FormInputRequiredError(step.id, rendered, pauseExpiresAt(waitMs, ctx.profile));
 }
@@ -385,7 +387,7 @@ module.exports = {
  * @typedef {{ id?: string, type?: string, title?: string, prompt?: string, when?: string, mode?: string,
  *   waitSeconds?: number|string, form?: object, approval?: Record<string, any> }} PauseStep  an approval or
  *   form_page step as the definition stores it (parsed JSON)
- * @typedef {{ userId?: string, orgId?: string, session?: object, layerStack?: unknown[], formBaseTheme?: object|null,
+ * @typedef {{ userId?: string, orgId?: string, session?: object, layerStack?: unknown[], formBaseTheme?: object|null, formBaseStyle?: Record<string, unknown>|null,
  *   testHarness?: NonNullable<Parameters<typeof pageAnswersFor>[0]>['testHarness'],
  *   profile?: import('../automationModel/runProfile.mts').RunProfile | null, resumedFromStepId?: string | null,
  *   definition?: { edges?: Array<{ from?: string, label?: string, caseName?: string }>, steps?: Array<{ id?: string, type?: string } | null> } }} PauseCtx

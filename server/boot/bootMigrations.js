@@ -183,6 +183,7 @@ const NL_TRANSLATIONS = [
     'add-nl-datatables-spreadsheets-translations',
     'add-nl-forms-answers-translations',
     'add-nl-forms-validation-translations',
+    'add-nl-forms-style-translations',
     'add-nl-cowork-translations',
     'add-nl-studio-fundament-translations',
     'add-nl-dlp-review-translations',

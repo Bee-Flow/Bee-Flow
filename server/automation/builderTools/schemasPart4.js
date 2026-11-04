@@ -21,7 +21,7 @@ const TOOL_SCHEMAS_PART_4 = [
                     when: { type: 'string', description: 'Show this page only when the expression is true (same grammar and scope as a condition: trigger.*, steps.*, vars.*, never {{ }}), e.g. "steps.check.output.verdict == \'retry\'". When false the page is skipped without pausing: its answers are blank and output._skipped is true; a skipped ending page shows nothing. Max 2000 characters.' },
                     form: {
                         type: 'object',
-                        description: 'The page. Same shape as the trigger\'s form. Omit `theme` to match the first page (recommended).',
+                        description: 'The page. Same shape as the trigger\'s form. Omit `theme` and `style` to match the first page (recommended); a key you do set in either wins over the first page\'s.',
                         properties: {
                             title: { type: 'string' },
                             description: { type: 'string', description: 'Supports {{...}} bindings — this is how a closing page summarises the run.' },

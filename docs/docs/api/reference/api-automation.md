@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/automation`
 
-157 routes, 73 with a request schema. Back to the [endpoint reference](../reference.md).
+158 routes, 74 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -302,6 +302,20 @@ No request schema.
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
 No request schema.
+
+### `POST /api/automation/:id/forms/style-assist`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `prompt` | string | yes | min length 1; max length 2000 |
+| `triggerStepId` | string or null |  |  |
+| `style` | object or null |  |  |
+| `theme` | object or null |  |  |
+| `customCss` | string or null |  |  |
 
 ### `GET /api/automation/:id/goldens`
 

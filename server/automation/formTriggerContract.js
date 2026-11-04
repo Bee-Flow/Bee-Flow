@@ -6,7 +6,7 @@
  * A `form` automation is fired by a submission on a PUBLIC page Bee Flow hosts
  * at `/f/<token>`. The author declares the fields in the definition:
  * `definition.trigger.form = { title, description?, submitLabel?,
- * successMessage?, fields: [...], theme? }`. This module is the single home for
+ * successMessage?, fields: [...], theme?, style? }`. This module is the single home for
  * that contract — the declaration rules (automation/validate.js on save), the
  * render config the public page receives, and the runtime coercion the public
  * submit route applies.
@@ -31,6 +31,7 @@
 
 const { PARAM_NAME_RE } = require('../core/automationModel/appTriggerContract');
 const { canonicalizeTheme, validateTheme } = require('../core/cms/themeSpec');
+const { validateFormStyle, overInherited, styleEntry } = require('../core/forms/formStyle.mts');
 const pickSources = require('./formPickSources');
 const types = require('./formFieldTypes');
 const rules = require('./formFieldRules');
@@ -258,7 +259,7 @@ function validateFormDeclaration(form, /** @type {{requireFields?: boolean, allo
         }
     }
 
-    for (const issue of validateTheme(form.theme, 'form.theme')) {
+    for (const issue of [...validateTheme(form.theme, 'form.theme'), ...validateFormStyle(form.style, 'form.style')]) {
         push(issue.code, issue.path, issue.message, issue.hint);
     }
 
@@ -409,7 +410,7 @@ function validateFileKinds(f, at, allowDisplayFields, push) {
 /**
  * The subset of a form declaration the PUBLIC page is allowed to see. Built
  * from the normalized fields, so nothing an author typed into an unknown key
- * can leak, and the theme is always complete.
+ * can leak, the theme is always complete and the style holds valid knobs only.
  *
  * Options:
  *   • `interpolate` — a `(string) => string` template renderer. A form_page
@@ -417,29 +418,28 @@ function validateFileKinds(f, at, allowDisplayFields, push) {
  *     against the paused run; the trigger's own page never does, because at GET
  *     time there is no run yet. The interpolator is responsible for masking
  *     secrets — this config is served to an anonymous visitor.
- *   • `baseTheme` — the theme to inherit. A form_page step passes the trigger's
- *     theme so page 2 looks identical unless the author deliberately overrides
- *     it; a partial override merges on top.
+ *   • `baseTheme`, `baseStyle` — the trigger's theme and style (core/forms/
+ *     formStyle.mts), which a form_page step inherits so page 2 looks like page
+ *     1 unless the author overrides it: a key the page declares wins.
  *   • `resolveList` — `(ref) => value`, a read of the run state. With it,
  *     `optionsFrom` becomes plain options and `fieldsFrom` becomes one
  *     question per item. The output NEVER contains either spec, and strings
  *     that come out of run data are not interpolated again.
  */
-function renderFormConfig(form, { interpolate = null, baseTheme = null, resolveList = null } = {}) {
+function renderFormConfig(form, { interpolate = null, baseTheme = null, baseStyle = null, resolveList = null } = {}) {
     const f = isPlainObject(form) ? form : {};
     const t = makeInterpolator(interpolate);
     const title = typeof f.title === 'string' ? t(f.title).trim() : '';
     const submitLabel = typeof f.submitLabel === 'string' ? t(f.submitLabel).trim() : '';
     const successMessage = typeof f.successMessage === 'string' ? t(f.successMessage).trim() : '';
-    const theme = isPlainObject(f.theme)
-        ? { ...(isPlainObject(baseTheme) ? baseTheme : {}), ...f.theme }
-        : baseTheme;
+    const theme = overInherited(f.theme, baseTheme);
     return {
         title: title ? title.slice(0, MAX_LABEL_LEN) : 'Form',
         description: typeof f.description === 'string' ? t(f.description).slice(0, MAX_RENDERED_DESCRIPTION_LEN) : '',
         submitLabel: submitLabel ? submitLabel.slice(0, MAX_LABEL_LEN) : 'Submit',
         successMessage: successMessage ? successMessage.slice(0, MAX_TEXT_LEN) : 'Thanks — we got your answer.',
         theme: canonicalizeTheme(theme),
+        ...styleEntry(overInherited(f.style, baseStyle)),
         fields: renderDynamicFields(normalizeFields(f, { interpolate }), resolveList),
     };
 }
@@ -531,7 +531,7 @@ module.exports = {
 };
 
 /**
- * @typedef {{ theme?: object, collect?: unknown, fields?: unknown, [key: string]: unknown }} FormDeclaration
+ * @typedef {{ theme?: object, style?: Record<string, unknown>, collect?: unknown, fields?: unknown, [key: string]: unknown }} FormDeclaration
  *   a form as an author wrote it (trigger.form or a form_page step's form)
  * @typedef {{ type: string, optionsFrom?: unknown, fieldsFrom?: unknown } & Record<string, any>} FormField   one declared (or normalized) question: loose authored JSON
  * @typedef {(code: string, path: string, message: string, hint: string) => unknown} IssuePush   collects one validation issue

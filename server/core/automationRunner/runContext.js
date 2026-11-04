@@ -135,6 +135,8 @@ function buildRunContext({
         // Read from the trigger the run actually entered through (rootStepId),
         // falling back to the primary trigger.
         formBaseTheme: enteredTrigger?.form?.theme || null,
+        // Its style (core/forms/formStyle.mts) the same way: a page's own keys win.
+        formBaseStyle: enteredTrigger?.form?.style || null,
         // The run's profile (automationModel/runProfile.mts): what kind of run
         // this is and what it may do (pauses, approver seat, notifications,
         // answers sink). Decided once in executeAutomation; read-only here.

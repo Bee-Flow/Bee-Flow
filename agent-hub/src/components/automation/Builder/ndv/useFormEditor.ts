@@ -13,12 +13,14 @@ type Form = Record<string, unknown>;
 const merge = mergeStepPatchIntoDefinition as (def: unknown, step: unknown, patch: unknown) => FlowDefinition;
 const normalize = normalizeDefinitionShape as (def: unknown) => FlowDefinition | null;
 
-export default function useFormEditor({ definition, step, onSaveStep, onTest }: {
+export default function useFormEditor({ definition, step, onSaveStep, onTest, automationId = null }: {
     definition: FlowDefinition | null;
     step: FlowStep | null;
     onSaveStep: ((next: unknown) => Promise<unknown> | unknown) | null;
     /** Opens the trigger's form over the canvas (the Execute path); null when a run cannot start. */
     onTest: (() => void) | null;
+    /** The saved automation (for "Describe the look"); null before the first save. */
+    automationId?: string | null;
 }): FormEditorContext | null {
     const pages = useMemo(() => collectFormPages(definition), [definition]);
     // Forms being saved right now. Two pages edited inside one round trip must
@@ -48,6 +50,6 @@ export default function useFormEditor({ definition, step, onSaveStep, onTest }: 
     return useMemo(() => {
         if (!step || pages.length === 0) return null;
         if (!pages.some(p => p.id === step.id)) return null;
-        return { pages, savePage, onTestForm: step.type === 'trigger' ? onTest : null };
-    }, [pages, savePage, step, onTest]);
+        return { pages, savePage, onTestForm: step.type === 'trigger' ? onTest : null, automationId };
+    }, [pages, savePage, step, onTest, automationId]);
 }

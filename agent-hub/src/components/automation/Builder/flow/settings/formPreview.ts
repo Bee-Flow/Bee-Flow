@@ -35,6 +35,8 @@ export function fillTemplate(text: unknown, sampleRoot: unknown): string {
 export interface BuildPreviewArgs {
     form: Loose | null | undefined;
     theme: Record<string, unknown> | null | undefined;
+    /** The page's look (`form.style`, merged over the first page's where it inherits). */
+    style?: unknown;
     isEnding?: boolean;
     allowVariables?: boolean;
     previewSample?: unknown;
@@ -148,7 +150,7 @@ function previewField(f: Loose, ctx: { fill: (s: unknown) => string; allowVariab
  * none), and the source keys never reach the renderer. `showIf` and the answer
  * rules are kept, because the renderer applies them.
  */
-export function buildPreviewConfig({ form, theme, isEnding = false, allowVariables = false, previewSample = null, t = plain }: BuildPreviewArgs) {
+export function buildPreviewConfig({ form, theme, style = null, isEnding = false, allowVariables = false, previewSample = null, t = plain }: BuildPreviewArgs) {
     const fill = allowVariables ? (s: unknown) => fillTemplate(s, previewSample) : (s: unknown) => (s as string);
     const fields = Array.isArray(form?.fields) ? (form.fields as Loose[]) : [];
     const ctx = { fill, allowVariables, sample: previewSample, t };
@@ -158,6 +160,7 @@ export function buildPreviewConfig({ form, theme, isEnding = false, allowVariabl
         submitLabel: fill(form?.submitLabel) || 'Submit',
         successMessage: fill(form?.successMessage) || 'Thanks!',
         theme,
+        style: style && typeof style === 'object' ? style as Record<string, unknown> : null,
         fields: fields.filter(f => f?.name).flatMap(f => previewField(f, ctx)),
     };
 }

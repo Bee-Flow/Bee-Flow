@@ -260,7 +260,7 @@ function parseOptions(raw) {
 /**
  * The model's answer → a form declaration, or null when nothing usable came
  * back. `current` is the form as it is now (revise: names are kept from it;
- * both modes: the theme and `collect` are carried over, the model never sees
+ * both modes: the theme, the style and `collect` are carried over, the model never sees
  * or sets them).
  * @param {Record<string, any> | null | undefined} structured
  * @param {{ mode?: string, current?: FormDeclaration | null }} [opts]
@@ -335,6 +335,7 @@ function parseFormDraft(structured, { mode = 'create', current = null } = {}) {
         };
         // What the model never sees stays exactly as it was.
         if (cur.theme && typeof cur.theme === 'object') form.theme = cur.theme;
+        if (cur.style && typeof cur.style === 'object') form.style = cur.style;
         if (typeof cur.collect === 'boolean') form.collect = cur.collect;
         return form;
     };

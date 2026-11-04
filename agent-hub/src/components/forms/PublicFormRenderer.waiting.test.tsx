@@ -82,13 +82,13 @@ describe('FormWaitingView', () => {
         it('keeps the reassurance line, quieter, so the wait still reads as expected', () => {
             render(<FormWaitingView progress={['A', 'B']} note={DESC} />);
             const reassurance = screen.getByText(/this can take a moment/);
-            expect(reassurance.style.color).toBe('var(--text-tertiary)');
+            expect(reassurance.className).toContain('text-[var(--text-tertiary)]');
         });
 
         it('leaves the view exactly as it was when the flowlet has no description', () => {
             render(<FormWaitingView progress={['A', 'B']} />);
             expect(screen.queryByTestId('form-waiting-note')).toBeNull();
-            expect(screen.getByText(/this can take a moment/).style.color).toBe('var(--text-secondary)');
+            expect(screen.getByText(/this can take a moment/).className).toContain('text-[var(--text-secondary)]');
         });
 
         it('ignores a blank one rather than opening an empty line for it', () => {

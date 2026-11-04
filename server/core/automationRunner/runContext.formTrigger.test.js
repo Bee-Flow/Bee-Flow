@@ -41,3 +41,11 @@ test('isEmptyPayload', () => {
     for (const v of [null, undefined, 'x', [], {}, { _meta: 1 }]) assert.strictEqual(isEmptyPayload(v), true, JSON.stringify(v));
     assert.strictEqual(isEmptyPayload({ a: '' }), false);
 });
+
+test('a form_page inherits the theme and the style of the trigger the run entered through', () => {
+    const trigger = { ...FORM, form: { ...FORM.form, theme: { primary: '#1D4ED8' }, style: { font: 'serif' } } };
+    const ctx = ctxOf({ trigger });
+    assert.deepStrictEqual(ctx.formBaseTheme, { primary: '#1D4ED8' });
+    assert.deepStrictEqual(ctx.formBaseStyle, { font: 'serif' });
+    assert.strictEqual(ctxOf().formBaseStyle, null, 'no style: nothing to inherit');
+});

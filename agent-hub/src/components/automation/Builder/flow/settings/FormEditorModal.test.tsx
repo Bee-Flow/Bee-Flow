@@ -82,4 +82,20 @@ describe('FormEditorModal', () => {
         await user.click(screen.getByLabelText('Mobile'));
         expect(screen.getByTestId('form-editor-preview').getAttribute('data-device')).toBe('mobile');
     });
+
+    it('a later page previews in the first page\'s style, its own keys on top, on the theme\'s page ground', async () => {
+        const user = userEvent.setup();
+        const styled: FormPageEntry[] = [
+            { ...pages[0], form: { ...pages[0].form, theme: { primary: '#0F766E', canvas: '#fef3c7' }, style: { font: 'serif', width: 'wide' } } },
+            { ...pages[1], form: { ...pages[1].form, style: { width: 'narrow' } } },
+            pages[2],
+        ];
+        render(<FormEditorModal pages={styled} currentId="t" onChangePage={() => {}} onClose={() => {}} />);
+        await user.click(screen.getByTestId('form-editor-page-p2'));
+        const preview = screen.getByTestId('form-editor-preview');
+        const root = preview.querySelector('form') as HTMLFormElement;
+        expect(root.style.getPropertyValue('--bf-font')).toMatch(/serif/);
+        expect(root.style.getPropertyValue('--bf-form-width')).toBe('480px');
+        expect(preview.style.getPropertyValue('--app-canvas')).toBe('#fef3c7');
+    });
 });
