@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { buildRealOutputMap, buildSampleRoot, deepOverlay, isTruncatedOutput } from './realOutputs';
+import { buildRealOutputMap, buildSampleRoot, deepOverlay, enteredTriggerOutput, isTruncatedOutput } from './realOutputs';
 import { walkPath } from '../../../../utils/bindingHelpers';
 
 /**
@@ -146,3 +146,27 @@ describe('buildSampleRoot — a Loop STEP is not the loop scope', () => {
         expect((root.steps.loop1.output as { iterations: number }).iterations).toBe(0);
     });
 });
+
+describe('the trigger a run entered', () => {
+    it('is what the run entered it with: a whole run writes no row for its trigger', () => {
+        const run = { id: 'r1', rootStepId: 'trg', triggerPayload: { email: 'ada@example.org' } };
+        expect(enteredTriggerOutput(run)).toEqual({ id: 'trg', output: { email: 'ada@example.org' } });
+        expect(buildRealOutputMap(DEF, [], run).get('trg')).toEqual({ email: 'ada@example.org' });
+    });
+
+    it('says nothing without a payload, for an empty one, or without the entered trigger', () => {
+        expect(enteredTriggerOutput(null)).toBeNull();
+        expect(enteredTriggerOutput({ rootStepId: 'trg', triggerPayload: null })).toBeNull();
+        expect(enteredTriggerOutput({ rootStepId: 'trg', triggerPayload: {} })).toBeNull();
+        expect(enteredTriggerOutput({ triggerPayload: { a: 1 } })).toBeNull();
+    });
+
+    it('a trigger row and a pin win over it; a trigger not in this graph (a flowlet\'s input) is ignored', () => {
+        const run = { rootStepId: 'trg', triggerPayload: { from: 'run' } };
+        expect(buildRealOutputMap(DEF, [{ stepId: 'trg', output: { from: 'row' } }], run).get('trg')).toEqual({ from: 'row' });
+        const pinned = { ...DEF, trigger: { ...DEF.trigger, pinnedOutput: { from: 'pin' } } };
+        expect(buildRealOutputMap(pinned, [], run).get('trg')).toEqual({ from: 'pin' });
+        expect(buildRealOutputMap(DEF, [], { rootStepId: 'layer_in', triggerPayload: { from: 'run' } }).has('layer_in')).toBe(false);
+    });
+});
+

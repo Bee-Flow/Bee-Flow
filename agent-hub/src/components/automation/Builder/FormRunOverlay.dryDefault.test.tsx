@@ -90,4 +90,21 @@ describe('FormRunOverlay — dry by default', () => {
         await waitFor(() => expect(onStartRun).toHaveBeenCalledWith({ city: 'Delft' }, { mode: 'dry' }));
         await waitFor(() => expect(screen.getByTestId('form-run-chip').textContent).toBe('Dry run'));
     });
+
+    it('"Test step" on a later step: page one says which step it tests, and the submit starts the run as usual', async () => {
+        const user = userEvent.setup();
+        const onStartRun = renderOverlay({ untilStepId: 's2', untilLabel: 'Show a summary' });
+        expect(screen.getByTestId('form-run-until-note').textContent).toContain('"Show a summary"');
+        await user.type(screen.getByLabelText(/City/), 'Utrecht');
+        await user.click(screen.getByRole('button', { name: 'Send' }));
+        // The bound is the shell's (the session's untilStepId, useBuilderRuns); the overlay hands over the answers.
+        await waitFor(() => expect(onStartRun).toHaveBeenCalledWith({ city: 'Utrecht' }, { mode: 'dry' }));
+        await waitFor(() => expect(screen.queryByTestId('form-run-until-note')).toBeNull());
+    });
+
+    it('without a bound there is no note', () => {
+        renderOverlay();
+        expect(screen.queryByTestId('form-run-until-note')).toBeNull();
+    });
 });
+

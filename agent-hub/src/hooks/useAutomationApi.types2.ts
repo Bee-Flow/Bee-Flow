@@ -89,6 +89,8 @@ export interface FormTestBody {
     triggerStepId?: string | null;
     /** 'dry' simulates every write and pauses for real; 'live' is a test run with real effects. */
     mode: 'dry' | 'live';
+    /** The run ends after this step (a step the form reaches); left out, the whole flow runs. */
+    untilStepId?: string;
     respond?: RunRespond;
 }
 
