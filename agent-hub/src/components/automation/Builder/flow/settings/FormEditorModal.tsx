@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, FileText, Flag, Zap } from 'lucide-react';
-import FormBuilderFields, { THEME_PRESETS } from './FormBuilderFields';
+import FormBuilderFields from './FormBuilderFields';
+import { THEME_PRESETS } from './formStyle/stylePresets';
 import { buildPreviewConfig } from './formPreview';
 import type { FormPageEntry } from './formPages';
 import { useTranslation } from '@/hooks/useTranslation';

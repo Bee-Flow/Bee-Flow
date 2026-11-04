@@ -1,10 +1,11 @@
 /**
- * The form page editor's pure half, held to the web's
- * (agent-hub `Builder/flow/settings/FormBuilderFields.jsx`, a component file
- * neither Metro nor this Jest can load): the answer types, the theme knobs and
- * colours are the web's lists; `slugifyFieldName` is cut out of the web's
- * source and `normaliseOptions` is run from `components/forms/formOptions.ts`,
- * both beside the port; and the page edits
+ * The form page editor's pure half, held to the web's: the answer types are
+ * the list in agent-hub `Builder/flow/settings/FormBuilderFields.jsx` (a
+ * component file neither Metro nor this Jest can load); the theme knobs are
+ * the rows of the style editor's Look and Layout groups (`formStyle/`) and the
+ * colours its `stylePresets.ts` list; `slugifyFieldName` is run from
+ * `formDeclarations.ts` and `normaliseOptions` from
+ * `components/forms/formOptions.ts`, both beside the port; and the page edits
  * behave as the web's `addField` / `addFileField` / `moveField` do.
  */
 
@@ -13,20 +14,37 @@ import path from 'node:path';
 import ts from 'typescript';
 
 import type { FormField } from '@/features/flow-editor/model';
+import { loadWebModule } from '@/shared/testing/webModule';
 
 import { activePreset, addDisplayField, addQuestion, COLOR_PRESETS, DISPLAY_FIELD_TYPES, FIELD_TYPES, moveField, normaliseOptions, optionLines, slugifyFieldName, THEME_KNOBS } from './formModel';
 
-const src = fs.readFileSync(
-    path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/FormBuilderFields.jsx'),
-    'utf8',
-);
+const SETTINGS = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings');
+const src = fs.readFileSync(path.join(SETTINGS, 'FormBuilderFields.jsx'), 'utf8');
+const styleSrc = (file: string) => fs.readFileSync(path.join(SETTINGS, 'formStyle', file), 'utf8');
 
-const block = (start: string, end: string) => {
-    const at = src.indexOf(start);
+const block = (start: string, end: string, text = src) => {
+    const at = text.indexOf(start);
     if (at < 0) throw new Error(`${start} is gone`);
-    return src.slice(at, src.indexOf(end, at) + end.length);
+    return text.slice(at, text.indexOf(end, at) + end.length);
 };
-const fn = (name: string) => block(`export function ${name}(`, '\n}\n').replace('export function', 'function');
+
+/**
+ * The theme knobs of one style group: every `<OptionRow … value={theme.<key>} …/>`,
+ * as [key, [label key, English], values]. The values are its `optionsOf(t, …, [list])`
+ * list, or the `{ value: '…' }` entries of an inline `options` list.
+ */
+function themeKnobs(file: string): [string, [string, string], string[]][] {
+    const rows = [...styleSrc(file).matchAll(/<OptionRow\b[\s\S]*?\/>/g)].map((m) => m[0]);
+    return rows.flatMap((row): [string, [string, string], string[]][] => {
+        const key = /value=\{theme\.(\w+)\}/.exec(row)?.[1];
+        if (!key) return [];
+        const label = /label=\{t\('([\w.]+)', '([^']+)'\)\}/.exec(row);
+        if (!label) throw new Error(`the ${key} row of ${file} has no t() label`);
+        const listed = /optionsOf\(t, '\w+', \[([^\]]*)\]\)/.exec(row)?.[1];
+        const values = listed !== undefined ? [...listed.matchAll(/'([^']+)'/g)] : [...row.matchAll(/\{ value: '([^']+)'/g)];
+        return [[key, [label[1] as string, label[2] as string], values.map((v) => v[1] as string)]];
+    });
+}
 // normaliseOptions moved to the form renderer's own module (agent-hub
 // `components/forms/formOptions.ts`, shared by the editor preview and every
 // form page, BFSF-483): run that file itself, its types stripped.
@@ -35,11 +53,11 @@ const optionsJs = ts.transpileModule(optionsSrc, { compilerOptions: { module: ts
 const optionsModule: { exports: { normaliseOptions?: (o: unknown) => unknown } } = { exports: {} };
 new Function('module', 'exports', optionsJs)(optionsModule, optionsModule.exports);
 const web = {
-    ...new Function(`${fn('slugifyFieldName')}\nreturn { slugifyFieldName };`)(),
+    slugifyFieldName: loadWebModule<{ slugifyFieldName: (label: unknown, taken?: ReadonlySet<unknown>) => string }>(path.join(SETTINGS, 'formDeclarations.ts')).slugifyFieldName,
     normaliseOptions: optionsModule.exports.normaliseOptions as (o: unknown) => unknown,
 };
 
-describe('the form page against FormBuilderFields.jsx', () => {
+describe('the form page against the web’s form editor', () => {
     it('offers the web’s answer types, in its order and words', () => {
         const list = block('const FIELD_TYPES = [', '];');
         const webTypes = [...list.matchAll(/\{ value: '([^']+)', label: '([^']+)' \}/g)].map((m) => [m[1], m[2]]);
@@ -47,15 +65,14 @@ describe('the form page against FormBuilderFields.jsx', () => {
     });
 
     it('has the web’s theme knobs and accent colours', () => {
-        const knobs = block('const THEME_KNOBS = [', '];');
-        const webKnobs = [...knobs.matchAll(/\{ key: '(\w+)', label: '([^']+)', values: \[([^\]]*)\] \}/g)].map((m) => [
-            m[1],
-            m[2],
-            [...(m[3] as string).matchAll(/'([^']+)'/g)].map((v) => v[1]),
-        ]);
-        expect(THEME_KNOBS.map((k) => [k.key, k.label[1], [...k.values]])).toEqual(webKnobs);
-        const colours = block('const COLOR_PRESETS = [', '];');
-        expect([...COLOR_PRESETS]).toEqual([...colours.matchAll(/'(#[0-9A-F]{6})'/g)].map((m) => m[1]));
+        // The style editor shows its Look group (light / dark) above its Layout group.
+        const webKnobs = [...themeKnobs('LookGroup.tsx'), ...themeKnobs('LayoutGroup.tsx')];
+        expect(webKnobs.map(([key]) => key)).toEqual(['appearance', 'radius', 'density', 'fontScale']);
+        expect(THEME_KNOBS.map((k) => [k.key, [...k.label], [...k.values]])).toEqual(webKnobs);
+        const colours = block('export const COLOR_PRESETS = [', '];', styleSrc('stylePresets.ts'));
+        const webColours = [...colours.matchAll(/'(#[0-9A-F]{6})'/g)].map((m) => m[1]);
+        expect(webColours.length).toBeGreaterThan(0);
+        expect([...COLOR_PRESETS]).toEqual(webColours);
     });
 
     it.each([

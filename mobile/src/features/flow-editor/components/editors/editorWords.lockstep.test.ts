@@ -42,6 +42,14 @@ const WEB: Record<string, string[]> = {
         'flow/settings/triggerEditors.tsx',
         'flow/settings/FormPageWaiting.tsx',
         'flow/settings/formFields/ChoiceOptionsEditor.tsx',
+        // The form's look (theme presets, colours, the knobs) is the style editor's.
+        'flow/settings/formStyle/FormStyleEditor.tsx',
+        'flow/settings/formStyle/LookGroup.tsx',
+        'flow/settings/formStyle/LayoutGroup.tsx',
+        'flow/settings/formStyle/FieldsButtonGroups.tsx',
+        'flow/settings/formStyle/BrandGroup.tsx',
+        'flow/settings/formStyle/CustomCssEditor.tsx',
+        'flow/settings/formStyle/DescribeLookPanel.tsx',
     ],
     route: [
         'flow/settings/routeEditors.tsx',

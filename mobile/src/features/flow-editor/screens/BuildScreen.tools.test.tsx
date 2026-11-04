@@ -224,11 +224,12 @@ describe('Ask AI', () => {
         const store = peekDraftStore('a1');
 
         await fireEvent.press(screen.getByLabelText('Ask AI'));
-        await fireEvent.press(await screen.findByText('Process each item with AI'));
-        expect(screen.getByTestId('ai-input').props.value).toBe('Process each item with AI');
-        await fireEvent.press(screen.getByTestId('ai-send'));
+        // An idea is a whole message: one tap sends it (the web's AssistantWelcome).
+        await fireEvent.press(await screen.findByText('Explain what this automation does, step by step'));
 
         await waitFor(() => expect(store?.getState().definition).toEqual(AI_DRAFT));
+        const turn = mockStreamSse.mock.calls.find(([path]) => path === '/api/automation/builder/stream') as [string, { body: Record<string, unknown> }] | undefined;
+        expect(turn?.[1].body.message).toBe('Explain what this automation does, step by step');
         expect(store?.getState().locked).toBe(true);
         expect(await screen.findByTestId('ai-live')).toBeTruthy();
         expect(api.put).not.toHaveBeenCalled();

@@ -1,7 +1,12 @@
+// The hand-over card shows once per save: a lazy chunk, so the canvas does not carry it.
+const HandoverCard = lazyWithI18n(() => import('../chat/HandoverCard'));
+
 // The assistant column of the build tab: header, message thread and composer.
 // Split out of BuildTab without a change in behaviour.
 import { Sparkles, X } from 'lucide-react';
+import { Suspense } from 'react';
 import type { ReactNode, RefObject, UIEvent } from 'react';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { isWaitingForFirstToken } from './buildTabTypes';
 import type { AssistantContext, BuilderTabState } from './buildTabTypes';
 import type { BuilderQuestion } from '../chat/QuestionsCard';
@@ -12,7 +17,6 @@ import {
 } from './jsComponents';
 import { useTranslation } from '@/hooks/useTranslation';
 import BuilderWaitingCard from '../chat/BuilderWaitingCard';
-import HandoverCard from '../chat/HandoverCard';
 import type { HandoverLifecycle } from '../chat/HandoverCard';
 import PlanInlineCard from '../chat/PlanInlineCard';
 import QuestionsCard from '../chat/QuestionsCard';
@@ -141,7 +145,7 @@ function HandoverSlot({ state, definition, lifecycle }: { state: HandoverState; 
     const f = state.finalized;
     if (!f || state.running || f.automationId !== state.finalizedId || !state.lastDone?.finalized) return null;
     const l = lifecycle || {};
-    return <HandoverCard finalized={f} definition={definition} isActive={l.isActive} busy={l.busy} canActivate={l.canActivate} onActivate={l.onActivate} onDryRun={l.onDryRun} />;
+    return <Suspense fallback={null}><HandoverCard finalized={f} definition={definition} isActive={l.isActive} busy={l.busy} canActivate={l.canActivate} onActivate={l.onActivate} onDryRun={l.onDryRun} /></Suspense>;
 }
 
 interface AssistantComposerProps {

@@ -1,7 +1,7 @@
 import { Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Eye, Maximize2, Play } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { FormRow, inputClass, textareaClass, denseInputClass, cardClass, subLabelClass } from './formPrimitives';
-import PublicFormRenderer, { FormEndingView } from '../../../../forms/PublicFormRenderer';
 import TemplateField from '../../mapping/TemplateField';
 import { loadPickSources, pickSourcesSync } from '../pickSourceCatalog';
 // The binding name and its rename live in the shared field designer — the
@@ -9,6 +9,7 @@ import { loadPickSources, pickSourcesSync } from '../pickSourceCatalog';
 // chances to ship an edit that moves a binding without moving what points at
 // it (see fieldDesigner.jsx).
 import { BindingNameField } from './fieldDesigner';
+import { slugifyFieldName } from './formDeclarations';
 import ChoiceOptionsEditor from './formFields/ChoiceOptionsEditor';
 import { CHOICE_TYPES, typeChangePatch } from './formFields/fieldKinds';
 import FieldRulesEditor from './formFields/FieldRulesEditor';
@@ -16,7 +17,6 @@ import InfoFieldEditor from './formFields/InfoFieldEditor';
 import PerItemEditor from './formFields/PerItemEditor';
 import ShowIfEditor from './formFields/ShowIfEditor';
 import { buildPreviewConfig, fillTemplate, isDisplayField, DISPLAY_FIELD_TYPES } from './formPreview';
-import FormStyleEditor from './formStyle/FormStyleEditor';
 import { THEME_PRESETS } from './formStyle/stylePresets';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { normaliseOptions } from '../../../../forms/formOptions';
@@ -100,69 +100,14 @@ function usePickSources() {
 // The presets and swatches live with the style editor (formStyle/stylePresets.ts).
 export { THEME_PRESETS };
 
-/** The form a freshly-dropped trigger node starts with — already publishable. */
-export function defaultFormDeclaration() {
-    return {
-        title: 'Get in touch',
-        description: '',
-        submitLabel: 'Submit',
-        successMessage: 'Thanks — we got your answer.',
-        fields: [
-            { name: 'name', type: 'text', label: 'Your name', required: true, placeholder: '' },
-            { name: 'email', type: 'email', label: 'Your email', required: true, placeholder: '' },
-            { name: 'message', type: 'textarea', label: 'How can we help?', required: false, placeholder: '' },
-        ],
-        theme: { ...THEME_PRESETS[0].theme },
-    };
-}
+// The declarations and the label → name rule live in formDeclarations.ts (pure data, no editor code).
+export { defaultFormDeclaration, defaultFormPageDeclaration, defaultFormEndingDeclaration, slugifyFieldName } from './formDeclarations';
 
-/**
- * A mid-flow page asking for one more thing. `theme: null` means "inherit the
- * trigger's" — the server merges it, so pages match without the author having
- * to restyle each one.
- */
-export function defaultFormPageDeclaration() {
-    return {
-        title: 'One more thing',
-        description: '',
-        submitLabel: 'Continue',
-        successMessage: 'Thanks!',
-        fields: [{ name: 'answer', type: 'text', label: 'Your answer', required: true, placeholder: '' }],
-        theme: null,
-    };
-}
-
-/** The closing page. No questions — its job is to tell the visitor what happened. */
-export function defaultFormEndingDeclaration() {
-    return {
-        title: 'All done',
-        description: 'Thanks — here is what we did:\n',
-        fields: [],
-        theme: null,
-    };
-}
-
-/**
- * Label → field name, once. Must produce a valid identifier for the server's
- * PARAM_NAME_RE (letter first, then letters/digits/underscore).
- */
-export function slugifyFieldName(label, taken = new Set()) {
-    const base = String(label || '')
-        .normalize('NFKD')
-        .replace(/[^\w\s]/g, ' ')
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^[^a-z]+/, '')
-        .slice(0, 55) || 'field';
-    if (!taken.has(base)) return base;
-    for (let i = 2; i < 200; i += 1) {
-        const candidate = `${base}_${i}`;
-        if (!taken.has(candidate)) return candidate;
-    }
-    return `${base}_${Date.now().toString(36)}`;
-}
+// The preview renderer and its form state: a lazy chunk, opened on demand.
+const FormInlinePreview = lazyWithI18n(() => import('./FormInlinePreview'));
+// The design controls (presets, colours, custom CSS, the AI help): a lazy chunk,
+// so the canvas and the public demo page carry only the questions editor.
+const FormStyleEditor = lazyWithI18n(() => import('./formStyle/FormStyleEditor'));
 
 /** The small "+ Add ..." button under a list of questions. */
 function AddButton({ onClick, children }) {
@@ -364,19 +309,10 @@ export default function FormBuilderFields({
             </button>
             {showPreview && (
                 <div className="mt-2 p-3 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] relative isolate overflow-hidden [contain:paint]" data-testid="form-preview">
-                    {/* The same component the visitor gets — inert unless
-                        the host handed us a way to run the trigger with
-                        what is typed into it. `showSuccess` stays off for a
-                        test run: swapping the form for its thank-you page
-                        would take away the thing being tested. */}
-                    {isEnding
-                        ? <FormEndingView form={previewConfig} />
-                        : <PublicFormRenderer
-                            form={previewConfig}
-                            preview={!onTestSubmit}
-                            onSubmit={onTestSubmit}
-                            showSuccess={false}
-                        />}
+                    {/* The same component the visitor gets (FormInlinePreview), loaded on demand. */}
+                    <Suspense fallback={null}>
+                        <FormInlinePreview form={previewConfig} isEnding={isEnding} onTestSubmit={onTestSubmit} />
+                    </Suspense>
                 </div>
             )}
         </div>
@@ -522,6 +458,7 @@ export default function FormBuilderFields({
             {/* The look, in groups (formStyle/): theme keys to form.theme,
                 form-only knobs to form.style. The button text lives in its
                 Button group. */}
+            <Suspense fallback={null}>
             <FormStyleEditor
                 theme={theme}
                 formStyle={form?.style}
@@ -532,6 +469,7 @@ export default function FormBuilderFields({
                 buttonText={isEnding ? null : textSlot({ slot: 'submitLabel', placeholder: 'Submit' })}
                 onStyleAssist={onStyleAssist}
             />
+            </Suspense>
 
             {/* Only reached when onTestSubmit is null (a form_page step's
                 inert look-see) — the trigger's own copy already rendered near

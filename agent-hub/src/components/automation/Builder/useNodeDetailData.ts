@@ -19,7 +19,7 @@ import useUpstreamVariables from '@/hooks/useUpstreamVariables';
 import type { UpstreamGroup } from '@/hooks/useUpstreamVariables';
 import { useTranslation } from '@/hooks/useTranslation';
 import { walkPath } from '@/utils/bindingHelpers';
-import { initialValues } from '../../forms/PublicFormRenderer';
+import { initialValues } from '../../forms/formRules';
 
 /** The tool schemas the editor draws its output guesses from. */
 export interface ToolCatalog {

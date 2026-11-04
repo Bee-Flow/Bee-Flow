@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { slugifyFieldName } from './FormBuilderFields';
+import { slugifyFieldName } from './formDeclarations';
 import { controlSurfaceClass, FormRow } from './formPrimitives';
 import type { ApprovalQuestionRow, SetDraft } from './approvalTypes';
 

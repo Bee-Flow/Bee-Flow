@@ -118,7 +118,7 @@ describe('SettingsForm — form page step', () => {
         renderStep(inputPage());
         await user.click(screen.getByText('Preview the form'));
         const preview = screen.getByTestId('form-preview');
-        expect(within(preview).getByText('One more thing')).toBeTruthy();
+        expect(await within(preview).findByText('One more thing')).toBeTruthy();
         expect(within(preview).getByRole('button', { name: 'Continue' })).toBeTruthy();
     });
 
@@ -127,7 +127,7 @@ describe('SettingsForm — form page step', () => {
         renderStep(endingPage());
         await user.click(screen.getByText('Preview the form'));
         const preview = screen.getByTestId('form-preview');
-        expect(within(preview).getByText('All done')).toBeTruthy();
+        expect(await within(preview).findByText('All done')).toBeTruthy();
         // With no sample data to resolve against, the raw binding stays put —
         // an unresolvable path must never silently become a blank line.
         expect(within(preview).getByText(/We created \{\{steps\.t\.output\.number\}\}\./)).toBeTruthy();
@@ -284,7 +284,7 @@ describe('SettingsForm — form page: values from earlier steps', () => {
         renderStep(endingPage(), { groups: [TICKET_GROUP], previewSample: TICKET_SAMPLE });
         await user.click(screen.getByText('Preview the form'));
         const preview = screen.getByTestId('form-preview');
-        expect(within(preview).getByText(/We created INC-4471\./)).toBeTruthy();
+        expect(await within(preview).findByText(/We created INC-4471\./)).toBeTruthy();
     });
 
     /**
