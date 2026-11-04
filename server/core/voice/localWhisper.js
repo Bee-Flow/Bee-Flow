@@ -136,8 +136,9 @@ function withTimeout(promise, ms, label) {
 /**
  * @param {string} audioPath
  * @param {string} tmpRaw
+ * @param {number} [maxSec] stop decoding after this many seconds (ffmpeg `-t`)
  */
-function decodeArgs(audioPath, tmpRaw) {
+function decodeArgs(audioPath, tmpRaw, maxSec) {
     return buildAudioArgs({
         input: audioPath,
         output: tmpRaw,
@@ -145,17 +146,19 @@ function decodeArgs(audioPath, tmpRaw) {
         sampleRate: 16000,
         codec: 'pcm_f32le',
         format: 'f32le',
+        durationSec: maxSec,
     });
 }
 
 /**
  * @param {string} audioPath
+ * @param {number} [maxSec] decode at most this many seconds of audio
  */
-async function decodeAudioToFloat32(audioPath) {
+async function decodeAudioToFloat32(audioPath, maxSec) {
     const tmpRaw = path.join(os.tmpdir(), `whisper-${crypto.randomUUID()}.f32`);
 
     try {
-        await runFfmpeg(decodeArgs(audioPath, tmpRaw));
+        await runFfmpeg(decodeArgs(audioPath, tmpRaw, maxSec));
     } catch (err) {
         // ffmpeg writes as it goes, so a mid-run failure (corrupt input,
         // unsupported codec) leaves a partial raw dump behind. At 16 kHz mono
@@ -179,6 +182,30 @@ async function decodeAudioToFloat32(audioPath) {
         audioBuf.byteOffset,
         audioBuf.byteLength / Float32Array.BYTES_PER_ELEMENT,
     );
+    return samples;
+}
+
+/**
+ * Decode for the CPU model, refusing a recording over the duration cap.
+ *
+ * The decode stops one second past the cap (ffmpeg `-t`): that is enough to
+ * tell "too long" apart, and it bounds the raw dump on disk and the Buffer in
+ * memory (64 KB per audio second) however long the upload is. Without it a
+ * multi-hour recording was decoded whole before the cap check rejected it, and
+ * past ~9 h the 2 GiB readFile limit turned "too long" into "model unavailable".
+ *
+ * @param {string} audioPath
+ * @param {number} [capSec]
+ * @returns {Promise<Float32Array<ArrayBuffer>>}
+ * @throws {Error & { code: 'local_whisper_too_long' }} when the audio is longer than `capSec`
+ */
+async function decodeWithinCap(audioPath, capSec = LOCAL_WHISPER_MAX_DURATION_SEC) {
+    const samples = await decodeAudioToFloat32(audioPath, capSec + 1);
+    if (samples.length / 16000 > capSec) {
+        const e = /** @type {Error & { code?: string }} */ (new Error(`Audio too long for local model (over the ${capSec}s cap)`));
+        e.code = 'local_whisper_too_long';
+        throw e;
+    }
     return samples;
 }
 
@@ -223,18 +250,14 @@ async function transcribeLocally(audioPath, options = {}) {
     /** @type {Float32Array<ArrayBuffer>} */
     let samples;
     try {
-        samples = await decodeAudioToFloat32(audioPath);
+        samples = await decodeWithinCap(audioPath);
     } catch (err) {
+        if (err?.code === 'local_whisper_too_long') throw err;
         log.warn('[LocalWhisper] ffmpeg decode failed:', /** @type {Error} */ (err).message);
         return null;
     }
 
     const durationSec = samples.length / 16000;
-    if (durationSec > LOCAL_WHISPER_MAX_DURATION_SEC) {
-        const e = new Error(`Audio too long for local model (${Math.round(durationSec)}s > ${LOCAL_WHISPER_MAX_DURATION_SEC}s cap)`);
-        e.code = 'local_whisper_too_long';
-        throw e;
-    }
 
     let raw;
     try {
@@ -300,6 +323,7 @@ module.exports = {
     warmLocalWhisper,
     LOCAL_WHISPER_MODEL_ID,
     _decodeArgs: decodeArgs, // exported for tests
+    _decodeWithinCap: decodeWithinCap, // exported for tests
     _limits: {
         maxDurationSec: LOCAL_WHISPER_MAX_DURATION_SEC,
         timeoutMs:      LOCAL_WHISPER_TIMEOUT_MS,

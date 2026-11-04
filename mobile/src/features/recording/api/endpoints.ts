@@ -14,7 +14,7 @@
 
 import { api } from '@/core/api/client';
 import { guardedDelete } from '@/core/api/deleteGuard';
-import { downloadToCache } from '@/core/api/downloadFile';
+import { downloadToCache, removeCachedDownload } from '@/core/api/downloadFile';
 
 import {
     readExportBody,
@@ -33,8 +33,42 @@ const notePath = (id: string) => `/api/transcriptions/${encodeURIComponent(id)}`
 
 // ── Reads ────────────────────────────────────────────────────────────
 
-export async function listTranscriptions(signal?: AbortSignal, limit = 50): Promise<TranscriptionSummary[]> {
-    return readTranscriptionList(await api.get<unknown>('/api/transcriptions', { signal, query: { limit } }));
+/** The server's largest page (`GET /api/transcriptions` caps `limit` at 100). */
+const LIST_PAGE_SIZE = 100;
+
+function rawPageLength(raw: unknown): number {
+    const rows = raw && typeof raw === 'object' ? (raw as { transcriptions?: unknown }).transcriptions : null;
+    return Array.isArray(rows) ? rows.length : 0;
+}
+
+/**
+ * The notes the caller may read, newest first.
+ *
+ * Without `limit` this is EVERY readable note: the server answers in pages (50
+ * by default, at most 100) and the library searches and filters on tag over
+ * what this returns, so one page hid every note past the newest 50 while the
+ * tag chips (server-side counts) still counted them. It walks the pages until a
+ * short one; a page that adds no new id (a server that ignores `offset`) ends
+ * the walk too. With `limit` it is just the newest `limit` notes, one request.
+ */
+export async function listTranscriptions(signal?: AbortSignal, limit?: number): Promise<TranscriptionSummary[]> {
+    if (limit !== undefined) {
+        return readTranscriptionList(await api.get<unknown>('/api/transcriptions', { signal, query: { limit: Math.min(Math.max(1, limit), LIST_PAGE_SIZE) } }));
+    }
+    const all: TranscriptionSummary[] = [];
+    const seen = new Set<string>();
+    for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
+        const raw = await api.get<unknown>('/api/transcriptions', { signal, query: { limit: LIST_PAGE_SIZE, offset } });
+        let added = 0;
+        for (const note of readTranscriptionList(raw)) {
+            if (note.id && seen.has(note.id)) continue;
+            if (note.id) seen.add(note.id);
+            all.push(note);
+            added++;
+        }
+        if (rawPageLength(raw) < LIST_PAGE_SIZE || added === 0) break;
+    }
+    return all;
 }
 
 export async function getTranscription(id: string, signal?: AbortSignal): Promise<Transcription | null> {
@@ -43,8 +77,8 @@ export async function getTranscription(id: string, signal?: AbortSignal): Promis
 
 /**
  * The tag vocabulary with counts over every note the caller may read
- * (routes/transcriptions/tags.js), count DESC. Server-side because the list is
- * a page of 50: a vocabulary taken from the loaded rows misses every tag past it.
+ * (routes/transcriptions/tags.js), count DESC. Server-side, so the vocabulary
+ * does not depend on the rows a client happened to load.
  */
 export async function listTranscriptionTags(signal?: AbortSignal): Promise<TagCount[]> {
     return readTagCounts(await api.get<unknown>('/api/transcriptions/tags', { signal }));
@@ -55,7 +89,8 @@ export async function listTranscriptionTags(signal?: AbortSignal): Promise<TagCo
  * core/api/downloadFile.ts for why not by URL) and reused on the next play.
  * The route re-checks access and answers 404 when the audio is gone; the
  * reused copy lives in the session cache, which sign-out and a server switch
- * wipe (core/api/sessionCache.ts), so it never outlives that access.
+ * wipe (core/api/sessionCache.ts); deleting the note, or a 404 on it (a share
+ * revoked), drops it through forgetMeetingAudio. So it never outlives that access.
  */
 export async function downloadMeetingAudio(id: string, signal?: AbortSignal): Promise<string> {
     const file = await downloadToCache(`${notePath(id)}/audio`, audioCacheName(id), {
@@ -64,6 +99,11 @@ export async function downloadMeetingAudio(id: string, signal?: AbortSignal): Pr
         sessionScoped: true,
     });
     return file.uri;
+}
+
+/** Delete the phone's copy of a note's recording. Never throws. */
+export function forgetMeetingAudio(id: string): void {
+    removeCachedDownload(audioCacheName(id), { sessionScoped: true });
 }
 
 /**

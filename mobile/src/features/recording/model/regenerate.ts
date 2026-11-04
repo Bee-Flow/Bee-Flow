@@ -4,6 +4,7 @@
 
 import { translate } from '@/core/i18n';
 
+import { reprocessErrorCode } from './reprocess';
 import type { ActionItem, Chapter, Decision, OpenQuestion, Speaker } from './types';
 
 export interface RegenerateResult {
@@ -75,4 +76,25 @@ export function describeRegenerateOutcome(res: RegenerateResult | null): Regener
         };
     }
     return { kind: 'success', message: translate('mobile.recording.regen_done', 'Summary rewritten') };
+}
+
+/**
+ * The sentence for a refused regeneration; `fallback` (describeError's) for any
+ * other failure. Both refusals leave the note as it was:
+ *   502 summary_empty: the model wrote nothing, so nothing was written.
+ *   409 already_processing / transcript_changed: a re-transcription is running,
+ *       or replaced the transcript during the rewrite; regenerate again after it.
+ */
+export function regenerateFailureMessage(error: unknown, fallback: string): string {
+    const code = reprocessErrorCode(error);
+    if (code === 'summary_empty') {
+        return translate('mobile.recording.regen_empty', 'The model returned no summary, so nothing was changed. Try again.');
+    }
+    if (code === 'already_processing' || code === 'transcript_changed') {
+        return translate(
+            'mobile.recording.regen_retranscribing',
+            'This meeting is being re-transcribed, or just was. Wait until it is finished, then rewrite the summary again.',
+        );
+    }
+    return fallback;
 }

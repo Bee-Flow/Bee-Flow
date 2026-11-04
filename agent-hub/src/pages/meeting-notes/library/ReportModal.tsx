@@ -1,5 +1,5 @@
 import { Copy, Loader2, Sparkles } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Modal from '@/components/shared/Modal';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import useTranslation from '@/hooks/useTranslation';
@@ -32,9 +32,15 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
     const [error, setError] = useState<string | null | undefined>(null);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(false);
+    // The modal stays mounted while closed, so a report still running when it
+    // closes would land in the NEXT session (under another selection's
+    // titles, or over a newer request). Every open and every generate bumps
+    // this; an answer whose number is no longer current is dropped.
+    const requestRef = useRef(0);
 
     useEffect(() => {
         if (!open) return;
+        requestRef.current += 1;
         setPrompt('');
         setResult(null);
         setError(null);
@@ -51,16 +57,18 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
     const generate = async (text?: string) => {
         const question = String(text ?? prompt).trim();
         if (!question || busy) return;
+        const request = ++requestRef.current;
+        const current = () => request === requestRef.current;
         setPrompt(question);
         setBusy(true);
         setError(null);
         try {
             const res = await reportMeetings({ ids: meetings.map((m: LibraryMeeting) => m.id), prompt: question });
-            setResult(res);
+            if (current()) setResult(res);
         } catch (err) {
-            setError(errorMessage(err));
+            if (current()) setError(errorMessage(err));
         } finally {
-            setBusy(false);
+            if (current()) setBusy(false);
         }
     };
 

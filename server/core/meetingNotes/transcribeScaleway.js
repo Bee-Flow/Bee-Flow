@@ -76,7 +76,7 @@ async function ensureScalewayFormat(filePath) {
  * Split audio into ~chunkSeconds mp3 chunks (16 kHz mono, Scaleway-safe), using
  * ffmpeg's segment muxer with a CSV segment list so each chunk's EXACT start
  * offset is read back (no cumulative drift from assuming fixed lengths).
- * Returns { chunks:[{path,start}], cleanup }.
+ * Returns { chunks:[{path,start,end?}], cleanup }.
  * @param {string} filePath
  * @param {number} chunkSeconds
  */
@@ -93,8 +93,12 @@ async function splitForScaleway(filePath, chunkSeconds) {
     // CSV rows: filename,start,end (seconds, relative to the source).
     const rows = fs.readFileSync(listPath, 'utf8').trim().split('\n').filter(Boolean);
     const chunks = rows.map(line => {
-        const [fname, start] = line.split(',');
-        return { path: path.join(dir, fname), start: parseFloat(start) || 0 };
+        const [fname, start, end] = line.split(',');
+        const s0 = parseFloat(start) || 0;
+        const e0 = parseFloat(end);
+        // The chunk's real end: a short last chunk must not claim a full
+        // CHUNK_SECONDS of audio that is not there.
+        return { path: path.join(dir, fname), start: s0, ...(Number.isFinite(e0) && e0 > s0 ? { end: e0 } : {}) };
     });
     return { chunks, cleanup: () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (err) { bestEffort('core/meetingNotes/transcribeScaleway:cleanup#2', err); /* ignore */ } } };
     } catch (err) {
@@ -104,8 +108,23 @@ async function splitForScaleway(filePath, chunkSeconds) {
 }
 
 /**
+ * Where chunk `idx` really ends: ffmpeg's own end time, else the next chunk's
+ * start, else the nominal chunk length.
+ * @param {{ start: number, end?: number }[]} chunks
+ * @param {number} idx
+ * @param {number} chunkSeconds
+ */
+function chunkEnd(chunks, idx, chunkSeconds) {
+    const ch = chunks[idx];
+    if (Number.isFinite(ch.end)) return /** @type {number} */ (ch.end);
+    const next = chunks[idx + 1];
+    if (next && next.start > ch.start) return next.start;
+    return ch.start + chunkSeconds;
+}
+
+/**
  * Run up to `limit` async tasks concurrently, preserving input order.
- * @param {{ path: string; start: number; }[]} items
+ * @param {{ path: string; start: number; end?: number }[]} items
  * @param {number} limit
  */
 async function mapLimit(items, limit, fn) {
@@ -201,7 +220,7 @@ async function transcribeWithScaleway(filePath, fileName, language, contextTerms
     const CHUNK_SECONDS = Number(process.env.SCALEWAY_CHUNK_SECONDS) || 600;
     const CONCURRENCY = Number(process.env.SCALEWAY_CHUNK_CONCURRENCY) || 2;
 
-    /** @type {({ text: string; start: number | undefined; end: number | undefined; })[]} */
+    /** @type {({ text: string; start: number | undefined; end: number | undefined; gap?: boolean })[]} */
     let rawSegments = [];
     let fullText = '';
     if (fileSize > CHUNK_THRESHOLD) {
@@ -227,7 +246,7 @@ async function transcribeWithScaleway(filePath, fileName, language, contextTerms
                     // assigned it to, and the same 10 minutes to the meeting
                     // duration — so one failed chunk could hand a participant a
                     // fabricated 40% airtime share in the Insights panel.
-                    return [{ text: '[audio section could not be transcribed]', start: ch.start, end: ch.start + CHUNK_SECONDS, gap: true }];
+                    return [{ text: '[audio section could not be transcribed]', start: ch.start, end: chunkEnd(chunks, idx, CHUNK_SECONDS), gap: true }];
                 }
             });
             rawSegments = perChunk.flat().sort((a, b) => (a.start || 0) - (b.start || 0));
@@ -256,7 +275,10 @@ async function transcribeWithScaleway(filePath, fileName, language, contextTerms
 
     // Map to the shared segment shape. If Scaleway ever returns text-only (no
     // segments), degrade to one segment (no diarization possible without times).
-    let segments = rawSegments.map(s => ({ text: s.text, start: s.start, end: s.end, speakerId: 'speaker_0' }));
+    // `gap` survives: every downstream gap guard (overlap speaker assignment,
+    // turn merging, speaking time) keys on it, and a hole dropped here is
+    // counted as one speaker's 10 minutes of speech.
+    let segments = rawSegments.map(s => ({ text: s.text, start: s.start, end: s.end, speakerId: 'speaker_0', ...(s.gap ? { gap: true } : {}) }));
     if (!segments.length && fullText) {
         segments = [{ text: fullText, start: 0, end: 0, speakerId: 'speaker_0' }];
     }

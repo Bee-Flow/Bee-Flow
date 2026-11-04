@@ -152,6 +152,9 @@ function resetFx() {
     fx.prefs = {};                       // 'kind:id' → true | false (meeting_prefs)
     fx.prefLoads = [];                   // scope waarmee de prefs geladen zijn
     fx.orgPrefs = {};                    // ORG-brede rijen: alleen zichtbaar mét orgId
+    fx.readableIds = [];                 // note ids the job's user may read (canReadTranscription)
+    fx.vaultRows = {};                   // userId → stored vault row (getCredential)
+    fx.spaceError = null;                // thrown by getSpaceByMeetingCode
 }
 resetFx();
 
@@ -177,7 +180,7 @@ const MOCKS = {
         getAllConfig: async () => fx.configAll,
     },
     '../../stores/userStore': {
-        getUser: async (id) => fx.usersById[id] || null,
+        getUser: async (id) => { if (fx.userLookupError) throw fx.userLookupError; return fx.usersById[id] || null; },
         getAllUsers: async () => fx.users,
     },
     // meeting_prefs (M5): the per-meeting choice. The real decision logic (union narrowing, 1-on-1
@@ -224,9 +227,11 @@ const MOCKS = {
     },
     '../../stores/transcriptionStore': {
         getTranscriptionBySourceUri: async (uri) => fx.existingByUri[uri] || null,
+        canReadTranscription: async (id) => fx.readableIds.includes(id),
     },
     '../../stores/automationCredentialStore': {
         upsertCredential: async (row) => { fx.vaultWrites.push(row); },
+        getCredential: async (userId) => fx.vaultRows[userId] || null,
     },
     '../../auth/automationAuth': {
         getProviderAuth: async (userId, provider) => {
@@ -255,7 +260,10 @@ const MOCKS = {
         },
     },
     './gmeetArtifacts': {
-        getSpaceByMeetingCode: async (session, meetingCode) => fx.spaces[meetingCode] || null,
+        getSpaceByMeetingCode: async (session, meetingCode) => {
+            if (fx.spaceError) throw fx.spaceError;
+            return fx.spaces[meetingCode] || null;
+        },
         findConferenceRecord: async (session, args) => {
             fx.findRecordCalls.push(args);
             return fx.conferenceRecord;
@@ -281,7 +289,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /meetingNotes[\\/]gmeetAutoImport\.js$/.test(parent.filename)
+    if (parent && /meetingNotes[\\/]gmeet(AutoImport|Discovery)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -612,7 +620,8 @@ test('org-level duplicate claim → terminal duplicate, sibling note linked', as
     // u1's job already owns the conference for orgA.
     await seedClaimable({ userId: 'u1', eventId: 'evA' });
     Object.assign(fx.store.jobs[0], { conferenceRecord: 'conferenceRecords/crX', status: 'ingested' });
-    fx.existingByUri['gmeet://orgA/conferenceRecords/crX'] = { id: 't-existing', title: 'Bestaande note' };
+    fx.existingByUri['gmeet://orgA/conferenceRecords/crX'] = { id: 't-existing', title: 'Bestaande note', user_id: 'u1' };
+    fx.readableIds = ['t-existing']; // shared with u2 (an invitee)
 
     // u2 attended the same meeting (calendar scope, not the organizer).
     fx.settingsByUser.u2 = { autoImport: true, importScope: 'calendar' };
@@ -705,4 +714,132 @@ test('processJobInline: classified terminal failures throw with a stable code', 
         (err) => err.code === 'no_recording',
     );
     assert.strictEqual(fx.store.jobs[0].status, 'no_recording');
+});
+
+// ── Discovery failures, manual jobs, claim-time entitlement, readability ──
+
+test('a Google 403 during discovery is recorded and retried with backoff, not looped silently', async () => {
+    resetFx();
+    await seedClaimable();
+    fx.spaceError = Object.assign(new Error('Google Meet REST API has not been used in project 1'), { status: 403 });
+    await processDue();
+    const job = fx.store.jobs[0];
+    assert.strictEqual(job.status, 'pending');
+    assert.strictEqual(job.attempts, 1, 'the attempt is counted');
+    assert.match(job.lastError, /REST API has not been used/);
+    assert.ok(new Date(job.nextAttemptAt).getTime() > Date.now() + 60_000, 'backoff, not the 10-minute claim lease');
+});
+
+test('a discovery failure past the no-conference deadline freezes as failed', async () => {
+    resetFx();
+    await seedClaimable({ endedMinAgo: 72 * 60 });
+    fx.spaceError = Object.assign(new Error('forbidden'), { status: 403 });
+    await processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'failed');
+});
+
+test('a revoked grant during discovery parks the job for a reconnect', async () => {
+    resetFx();
+    await seedClaimable();
+    fx.spaceError = Object.assign(new Error('invalid_grant'), { status: 400 });
+    await processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'needs_reauth');
+});
+
+test('a manual import that had to wait for Google is finished by the poller with autoImport off', async () => {
+    resetFx();
+    fx.settingsByUser.u1 = { autoImport: false };
+    const job = await seedClaimable({ preferred: false });
+    Object.assign(fx.store.jobs[0], { requestedByUser: true, requestedLanguage: 'en', contextTerms: 'Foo' });
+    readyArtifacts();
+    fx.recording = { notReady: true };
+    assert.deepStrictEqual(await processJobInline({ job, session: { accessToken: 't' }, manual: true }), { pending: true, status: 'awaiting_artifacts' });
+    fx.recording = { driveFileId: 'drive-1', recordingName: 'rec-1' };
+    fx.store.jobs[0].nextAttemptAt = new Date(Date.now() - 1000).toISOString();
+    await processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'ingested');
+    assert.strictEqual(fx.ingestCalls[0].language, 'en', 'the request language survives the wait');
+    assert.strictEqual(fx.ingestCalls[0].contextTerms, 'Foo');
+});
+
+test('an explicit opt-out still wins over a manual request', async () => {
+    resetFx();
+    await seedClaimable({ eventId: 'ev1' });
+    fx.store.jobs[0].requestedByUser = true;
+    fx.prefs['event:ev1'] = false;
+    await processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
+test('a job whose owner lost the licence after seeding is skipped at claim time', async () => {
+    resetFx();
+    await seedClaimable();
+    readyArtifacts();
+    fx.recording = { driveFileId: 'drive-1', recordingName: 'rec-1' };
+    fx.entitled.u1 = false;
+    await processDue();
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.strictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
+test('a job whose owner was suspended after seeding is skipped at claim time', async () => {
+    resetFx();
+    await seedClaimable();
+    readyArtifacts();
+    fx.recording = { driveFileId: 'drive-1', recordingName: 'rec-1' };
+    fx.usersById.u1 = { id: 'u1', organizationId: 'orgA', status: 'suspended' };
+    await processDue();
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.strictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
+test('a failed owner lookup at claim time leaves the job for the next claim, never skipped', async () => {
+    resetFx();
+    await seedClaimable();
+    readyArtifacts();
+    fx.recording = { driveFileId: 'drive-1', recordingName: 'rec-1' };
+    fx.userLookupError = new Error('connection terminated');
+    try { await processDue(); } finally { fx.userLookupError = null; }
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.notStrictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
+test('a transient token-refresh failure retries instead of asking the user to reconnect', async () => {
+    resetFx();
+    await seedClaimable();
+    fx.authByUser = {};
+    fx.vaultRows.u1 = { userId: 'u1', status: 'active' };
+    await processDue();
+    const job = fx.store.jobs[0];
+    assert.strictEqual(job.status, 'pending');
+    assert.notStrictEqual(job.errorCode, 'needs_reauth');
+    assert.strictEqual(fx.parkCalls.length, 0);
+});
+
+test('a duplicate whose sibling note this user cannot read is refused, not linked', async () => {
+    resetFx();
+    await seedClaimable({ userId: 'u1', eventId: 'evA' });
+    Object.assign(fx.store.jobs[0], { conferenceRecord: 'conferenceRecords/crX', status: 'ingested' });
+    fx.existingByUri['gmeet://orgA/conferenceRecords/crX'] = { id: 't-private', title: 'Privé', user_id: 'u1' };
+    fx.settingsByUser.u2 = { autoImport: true, importScope: 'calendar' };
+    fx.usersById.u2 = { id: 'u2', organizationId: 'orgA' };
+    fx.authByUser.u2 = { userId: 'u2', orgId: 'orgA', accessToken: 'at-u2', refreshToken: 'rt-u2', expiresAt: Date.now() + 3600_000, scope: MEET_SCOPE };
+    await seedClaimable({ userId: 'u2', eventId: 'evB', preferred: false });
+    readyArtifacts();
+    fx.conferenceRecord = { name: 'conferenceRecords/crX' };
+    await processDue();
+    const jobB = fx.store.jobs[1];
+    assert.strictEqual(jobB.transcriptionId, null, 'no link to a note that would answer 404');
+    assert.strictEqual(jobB.errorCode, 'already_imported');
+});
+
+test('while a later recording part is still processing the job waits for it', async () => {
+    resetFx();
+    const job = await seedClaimable();
+    readyArtifacts();
+    fx.recording = { driveFileId: 'drive-1', recordingName: 'rec-1', extraRecordings: 1, pendingRecordings: 1 };
+    assert.deepStrictEqual(await processJobInline({ job, session: { accessToken: 't' } }), { pending: true, status: 'awaiting_artifacts' });
+    fx.recording = { driveFileId: 'drive-1', recordingName: 'rec-1', extraRecordings: 1 };
+    await processJobInline({ job: fx.store.jobs[0], session: { accessToken: 't' } });
+    assert.strictEqual(fx.ingestCalls[0].extraRecordings, 1, 'the note is told it covers one of two parts');
 });

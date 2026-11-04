@@ -327,8 +327,15 @@ async function classifyRecordingResponse(res, authError, okExtra = {}) {
 
 // Capability cache. Keyed by baseUrl + uid, NOT baseUrl alone: the payload also
 // carries `config.attachments.folder`, which is a per-user preference.
-const _capCache = new Map(); // `${baseUrl}|${uid}` → { ts, val }
+const _capCache = new Map(); // `${baseUrl}|${uid}` → { ts, ttl, val }
 const CAP_TTL_MS = 10 * 60 * 1000;
+// A non-2xx answer is not a definite "this instance cannot record": a proxy
+// 502/504, or a 503 from maintenance mode that outlasts the client's retries,
+// is gone a minute later. Cached for the full TTL it switched auto-record off
+// for ten minutes after Nextcloud came back (the scanner skips a user whose
+// capability says no). Held briefly, so a burst of callers during an outage
+// still shares one request, and the next scanner tick asks again.
+const CAP_FAILURE_TTL_MS = 30 * 1000;
 
 const CAP_UNAVAILABLE = Object.freeze({
     recordingEnabled: false,
@@ -367,12 +374,12 @@ async function getTalkRecordingCapability(session, userId) {
     const baseUrl = ctx.baseUrl;
     const cacheKey = `${baseUrl}|${ctx.uid || ''}`;
     const cached = _capCache.get(cacheKey);
-    if (cached && (Date.now() - cached.ts) < CAP_TTL_MS) return cached.val;
+    if (cached && (Date.now() - cached.ts) < cached.ttl) return cached.val;
     try {
         const res = await ctx.fetch(`${baseUrl}/ocs/v2.php/cloud/capabilities?format=json`, { headers: COMMON_HEADERS });
         if (!res.ok) {
             const val = { ...CAP_UNAVAILABLE };
-            _capCache.set(cacheKey, { ts: Date.now(), val });
+            _capCache.set(cacheKey, { ts: Date.now(), ttl: CAP_FAILURE_TTL_MS, val });
             return val;
         }
         const data = await readJsonSafe(res);
@@ -393,7 +400,7 @@ async function getTalkRecordingCapability(session, userId) {
                 ? normalizeFolder(`${folderPrefix(normalizeFolder(attachmentFolder))}${RECORDING_SUBFOLDER}`)
                 : null,
         };
-        _capCache.set(cacheKey, { ts: Date.now(), val });
+        _capCache.set(cacheKey, { ts: Date.now(), ttl: CAP_TTL_MS, val });
         return val;
     } catch (_) {
         return { ...CAP_UNAVAILABLE };

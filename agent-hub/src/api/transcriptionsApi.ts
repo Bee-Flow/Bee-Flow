@@ -3,16 +3,12 @@ import { API_BASE, authFetch, isDemoMode } from '../utils/helpers';
 import type { GoogleMeetImportInput, ImportGoogleMeetArgs, ImportTeamsArgs, MeetingRecordOptions, RegenerateArg, SpeakerPatch, TemplateInput, UploadAudioArgs, UploadNextcloudArgs } from './transcriptionsApi.types';
 import { mutate, ApiError } from './mutate';
 
-export async function listTranscriptions() {
-    const res = await authFetch(`${API_BASE}/api/transcriptions`);
-    const data = await jsonOrThrow(res);
-    return data.transcriptions || [];
-}
+export { listTranscriptions } from './transcriptionsListApi';
 
 /**
  * The tag vocabulary with counts over every note the caller may read —
- * `[{ tag, count }]`, count DESC. Server-side on purpose: the list is a page
- * of 50, so a vocabulary derived from loaded rows missed every tag past it.
+ * `[{ tag, count }]`, count DESC. Server-side, so the vocabulary does not
+ * depend on the rows a client happened to load.
  */
 export async function listTranscriptionTags() {
     const res = await authFetch(`${API_BASE}/api/transcriptions/tags`);
@@ -45,7 +41,7 @@ export async function reportMeetings({ ids, prompt }: { ids: string[]; prompt: s
     return jsonOrThrow(res);
 }
 
-export async function uploadAudio({ file, language, title, contextTerms, attendees, numSpeakers, provider, captureMode, signal }: UploadAudioArgs) {
+export async function uploadAudio({ file, language, title, contextTerms, attendees, numSpeakers, provider, captureMode, clientUploadId, signal }: UploadAudioArgs) {
     const formData = new FormData();
     formData.append('audio', file);
     // 'recording' | 'upload'. Decides what we can honestly tell the user if the
@@ -57,6 +53,7 @@ export async function uploadAudio({ file, language, title, contextTerms, attende
     if (attendees) formData.append('attendees', attendees);
     if (numSpeakers) formData.append('num_speakers', String(numSpeakers));
     if (provider) formData.append('provider', provider);
+    if (clientUploadId) formData.append('client_upload_id', clientUploadId);
     const res = await authFetch(`${API_BASE}/api/transcriptions`, {
         method: 'POST',
         body: formData,

@@ -4,6 +4,10 @@
  * The common failure is a recording finished in a basement meeting room with
  * no signal. Retrying by hand works, but the person who most needs this is the
  * one who has already put their phone away.
+ *
+ * Only entries the person already asked to upload (autoUpload) are retried; a
+ * draft, a kept recording, a cancelled upload or a refusal for good waits for
+ * the person.
  */
 
 import NetInfo from '@react-native-community/netinfo';
@@ -15,7 +19,7 @@ import type { TranscriptionAccepted } from '../model/types';
 export function useDrainOnReconnect(onAccepted: (note: TranscriptionAccepted) => void) {
     const items = useOutbox((state) => state.items);
     const uploadAll = useOutbox((state) => state.uploadAll);
-    const queuedCount = items.filter((item) => item.status !== 'uploading').length;
+    const queuedCount = items.filter((item) => item.status !== 'uploading' && item.autoUpload === true).length;
     const wasOffline = useRef(false);
 
     useEffect(() => {

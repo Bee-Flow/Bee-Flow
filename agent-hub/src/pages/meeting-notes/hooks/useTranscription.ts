@@ -67,14 +67,21 @@ export default function useTranscription(id: string | null | undefined) {
         return () => clearInterval(interval);
     }, [data?.status, refresh]);
 
+    // Bound to the note it was handed out for. The library keeps one detail view
+    // while the user moves from note to note, so a write that started on note A
+    // (regenerate, a PATCH echo, a speaker update) can answer after B has loaded.
+    // The handler that awaited it still holds A's setLocal, and that one now
+    // drops the write: applied, it would show A's summary and action items under
+    // B's id, and the next checkbox on B would PATCH A's full list over B's.
     const setLocal = useCallback((updater: LocalUpdate) => {
+        if (idRef.current !== id) return;
         // A function updater has nothing to edit until the note has loaded (the id just
         // changed and `data` is null): spreading null would build a half-filled note.
         setData((prev) => {
             if (typeof updater !== 'function') return updater;
             return prev ? updater(prev) : prev;
         });
-    }, []);
+    }, [id]);
 
     return { data, loading, error, refresh, setLocal };
 }

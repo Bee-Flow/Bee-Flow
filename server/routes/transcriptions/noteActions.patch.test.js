@@ -36,13 +36,21 @@ const updateCalls = [];
 /** false models "not your note" — the store's WHERE user_id clause answering 0 rows. */
 let updateWrites = true;
 
+/** What getTranscription returns (null = unreadable). */
+let storedNote = null;
+/** Tags handed to the knowledge-source re-arm. */
+const armed = [];
 stub('../../stores/transcriptionStore', {
     updateTranscription: async (id, userId, updates) => {
         updateCalls.push({ id, userId, updates });
         return updateWrites;
     },
-    getTranscription: async () => null,
+    getTranscription: async () => storedNote,
+    deleteTranscription: async () => true,
+    setPublished: async () => true,
 });
+stub('../../stores/kbSources', { armMeetingSourcesForRemoval: async (tags) => { armed.push(tags); return 1; } });
+stub('../../stores/projectTaskStore', { dropLinksTo: async () => 0 });
 stub('../../core/llm/llmClient', { chat: async () => ({ content: '' }) });
 stub('../../auth/permissions', {
     requireAuth: (req, res, next) => (req.session?.user?.id ? next() : res.status(401).json({ error: 'Authentication required' })),
@@ -98,6 +106,8 @@ function dispatch({ method = 'PATCH', url = '/t-1', user = 'owner-1', body }) {
 test.beforeEach(() => {
     updateCalls.length = 0;
     updateWrites = true;
+    storedNote = null;
+    armed.length = 0;
 });
 
 const lastUpdates = () => updateCalls[updateCalls.length - 1].updates;
@@ -247,4 +257,63 @@ test('the answer carries the cleaned lists back for the client to adopt', async 
     assert.strictEqual(res.body.success, true);
     assert.strictEqual(res.body.actionItems.length, 1);
     assert.ok(res.body.actionItems[0].id, 'the id the server minted, so the client stops using its own');
+});
+
+
+// ── Export, delete, publish ─────────────────────────────────────────
+
+test('export: an action item without an assignee has no "(undefined)", and any title is a valid file name', async () => {
+    storedNote = {
+        id: 't-1', title: 'Overleg – Q3 🚀', durationSeconds: 60, speakers: [],
+        summary: 'S', transcript: 'T',
+        actionItems: [
+            { text: 'Send the quote', done: false, timestamp: '00:12' },
+            { text: 'Book the room', assignee: 'Tom', done: true },
+        ],
+    };
+    const http = require('http');
+    for (const format of ['md', 'txt']) {
+        const req = { method: 'GET', url: `/t-1/export?format=${format}` };
+        const res = await new Promise((resolve, reject) => {
+            const r = {
+                statusCode: 200, headers: {}, body: undefined,
+                setHeader(k, v) { this.headers[String(k).toLowerCase()] = v; },
+                status(c) { this.statusCode = c; return this; },
+                json(b) { this.body = b; resolve(this); return this; },
+                send(b) { this.body = b; resolve(this); return this; },
+            };
+            router({ ...req, query: { format }, headers: {}, session: { isAuthenticated: true, user: { id: 'owner-1' } }, get() { return undefined; } }, r, (e) => reject(e || new Error('fell through')));
+        });
+        assert.strictEqual(res.statusCode, 200);
+        assert.doesNotMatch(res.body, /undefined/);
+        assert.match(res.body, /Send the quote/);
+        assert.match(res.body, /Book the room \(Tom\)/);
+        assert.doesNotThrow(() => http.validateHeaderValue('Content-Disposition', res.headers['content-disposition']));
+        assert.match(res.headers['content-disposition'], new RegExp(`filename\\*=UTF-8''Overleg%20%E2%80%93%20Q3%20%F0%9F%9A%80\\.${format}$`));
+    }
+});
+
+test('delete: the knowledge sources that collected the meeting by tag are armed to drop it', async () => {
+    storedNote = { id: 't-1', isOwner: true, tags: ['sales', 'q3'] };
+    const req = { method: 'DELETE', url: '/t-1?confirm=true', query: { confirm: 'true' }, headers: {}, session: { isAuthenticated: true, user: { id: 'owner-1' } }, get() { return undefined; } };
+    const res = await new Promise((resolve, reject) => {
+        const r = { statusCode: 200, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; resolve(this); return this; }, setHeader() {} };
+        router(req, r, (e) => reject(e || new Error('fell through')));
+    });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(armed, [['sales', 'q3']]);
+});
+
+test('a removed tag arms the sources of that tag; an added one does not', async () => {
+    storedNote = { id: 't-1', isOwner: true, tags: ['sales', 'intern'] };
+    const res = await dispatch({ body: { tags: ['intern', 'planning'] } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(armed, [['sales']]);
+});
+
+test('unpublishing arms the sources of the note\'s tags', async () => {
+    storedNote = { id: 't-1', isOwner: true, isPublished: true, organizationId: 'org-1', tags: ['sales'] };
+    const res = await dispatch({ method: 'PATCH', url: '/t-1/publish', body: { isPublished: false } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(armed, [['sales']]);
 });

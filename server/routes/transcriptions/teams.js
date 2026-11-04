@@ -15,29 +15,15 @@
  */
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const router = express.Router();
 const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
-const { lazyDeps } = require('../../core/meetingNotes/lazyDeps');
+const {
+    deps: d, init, resolveTeamsSession, isGrantGone, asNeedsReauth, detachedSession, noteStillExists, configureTeamsAutoRecord, teamsRecordingState,
+} = require('./teamsHelpers');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
-
-/** Collaborators, loaded on first use; tests swap them through `router.init()`. */
-const { deps: d, init } = lazyDeps({
-    permissions: () => require('../../auth/permissions'),
-    shared: () => require('./shared'),
-    settings: () => require('../../core/meetingNotes/teamsNotesSettings'),
-    calendar: () => require('../../core/meetingNotes/teamsCalendar'),
-    artifacts: () => require('../../core/meetingNotes/teamsArtifacts'),
-    autoImport: () => require('../../core/meetingNotes/teamsAutoImport'),
-    importStore: () => require('../../stores/teamsImportStore'),
-    importRunner: () => require('../../core/meetingNotes/manualImportRunner'),
-    meetingPrefs: () => require('../../stores/meetingPrefsStore'),
-    credentialStore: () => require('../../stores/automationCredentialStore'),
-    resolveMicrosoftSession: () => require('../../auth/microsoftSessionHydration').resolveMicrosoftSession,
-});
 
 /** @type {import('express').RequestHandler} */
 const requireAuth = (req, res, next) => d.permissions.requireAuth(req, res, next);
@@ -48,9 +34,12 @@ const resolveAccessContext = (req) => d.shared.resolveAccessContext(req);
 
 // Stable failure codes shared with the UI → HTTP status for /from-teams.
 /** @type {Record<string, number>} */
+// needs_reauth is a 409, not a 401: the web client reloads the whole page on
+// any 401 from /api (a lost login session), which a Microsoft grant that
+// needs renewing is not.
 const TEAMS_ERROR_STATUS = {
     not_connected: 400,
-    needs_reauth: 401,
+    needs_reauth: 409,
     needs_teams_scopes: 403,
     not_organizer: 403,
     not_found: 404,
@@ -61,27 +50,6 @@ const TEAMS_ERROR_STATUS = {
     already_imported: 409,
     empty_transcription: 502,
 };
-
-/**
- * The caller's Microsoft session (live SSO session or vault shim) plus the
- * connection block the UI renders its connect/reconnect prompts from.
- * @param {import('express').Request} req
- */
-async function resolveTeamsSession(req) {
-    const userId = sessionUser(req).id;
-    let credential = null;
-    try {
-        credential = await d.credentialStore.getCredential(userId, 'microsoft');
-    } catch (err) { fallbackSwallowed('routes/transcriptions/teams:resolveTeamsSession', err); /* vault unavailable → session only */ }
-    const connection = d.settings.deriveConnectionStatus({ session: req.session, credential });
-    let session = null;
-    try {
-        session = await d.resolveMicrosoftSession(req.session, userId);
-    } catch (err) {
-        log.warn('[Transcriptions] Microsoft session resolve failed:', /** @type {Error} */ (err).message);
-    }
-    return { session, connection };
-}
 
 const RECORD_TEXT = 'record is true or false.';
 const TeamsPrefBody = bodyOf({
@@ -108,7 +76,13 @@ router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async 
         return res.json({ connection, autoImport: settings.autoImport, autoRecordConfig: settings.autoRecordConfig, count: 0, meetings: [] });
     }
 
-    const meetings = await d.calendar.listUpcomingTeamsMeetings({ session, windowHours: 48 });
+    let meetings;
+    try {
+        meetings = await d.calendar.listUpcomingTeamsMeetings({ session, windowHours: 48 });
+    } catch (err) {
+        if (!isGrantGone(err)) throw err;
+        return res.json({ connection: { ...connection, needsReauth: true }, autoImport: settings.autoImport, autoRecordConfig: settings.autoRecordConfig, count: 0, meetings: [] });
+    }
     const meetingPrefs = d.meetingPrefs;
     const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'teams', userId, orgId });
 
@@ -164,28 +138,9 @@ router.patch('/teams-meetings/:eventId', requireAuth, validate({ body: TeamsPref
     const after = await meetingPrefs.loadMeetingPrefs({ provider: 'teams', userId, orgId });
     const effectiveRecord = after.opinionFor(meetingPrefs.teamsIds({ eventId, seriesMasterId: seriesMasterId || null })) === true;
 
-    let autoRecordingConfig = 'skipped';
-    if (record) {
-        try {
-            const settings = await d.settings.resolveTeamsNotesSettings({ orgId, userId });
-            if (settings.autoRecordConfig) {
-                const { session, connection } = await resolveTeamsSession(req);
-                if (!session) autoRecordingConfig = 'not_connected';
-                else if (!connection.hasMeetingWriteScope) autoRecordingConfig = 'needs_teams_scopes';
-                else {
-                    const match = (await d.calendar.listUpcomingTeamsMeetings({ session, windowHours: 48 })).find(m => m.eventId === eventId);
-                    if (!match || !match.organizerSelf) autoRecordingConfig = 'not_organizer';
-                    else {
-                        const result = await d.artifacts.setRecordAutomatically(session, { joinUrl: match.joinUrl, enabled: true });
-                        autoRecordingConfig = result.ok ? 'set' : result.error;
-                    }
-                }
-            }
-        } catch (err) {
-            log.warn('[Transcriptions] teams auto-record config failed:', /** @type {Error} */ (err).message);
-            autoRecordingConfig = 'error';
-        }
-    }
+    const autoRecordingConfig = await configureTeamsAutoRecord(req, {
+        orgId, userId, eventId, record, effectiveRecord, seriesMasterId: seriesMasterId || null, applyToSeries: !!applyToSeries,
+    });
 
     res.json({ ok: true, eventId, record, effectiveRecord, overridden: effectiveRecord !== record, autoRecordingConfig });
 });
@@ -214,7 +169,14 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
     const { session, connection } = await resolveTeamsSession(req);
     if (!session || !connection.teamsScopesGranted) return res.json({ connection, items: [] });
 
-    const meetings = (await d.calendar.listRecentlyEndedTeamsMeetings({ session, lookbackHours: 24 * 7 }))
+    let ended;
+    try {
+        ended = await d.calendar.listRecentlyEndedTeamsMeetings({ session, lookbackHours: 24 * 7 });
+    } catch (err) {
+        if (!isGrantGone(err)) throw err;
+        return res.json({ connection: { ...connection, needsReauth: true }, items: [] });
+    }
+    const meetings = ended
         .filter(m => m.organizerSelf)
         .sort((a, b) => new Date(b.end || 0).getTime() - new Date(a.end || 0).getTime())
         .slice(0, 10);
@@ -222,30 +184,19 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
     /** @type {({ eventId: string; title: string; start: string | null; end: string | null; recordingState: string; importedNoteId: string | null; })[]} */
     const items = [];
     for (const m of meetings) {
-        // Teams needs time to process a recording: inside the import deadline an
-        // empty answer means "not ready yet", not "was not recorded".
-        const endMs = new Date(m.end || 0).getTime();
-        const stillProcessing = Number.isFinite(endMs) && Date.now() <= endMs + d.autoImport.NO_RECORDING_DEADLINE_MS;
-        let recordingState = stillProcessing ? 'processing' : 'none';
-        try {
-            const meeting = await d.artifacts.getOnlineMeetingByJoinUrl(session, m.joinUrl);
-            // No online meeting for this account: nothing will ever appear.
-            if (!meeting) recordingState = 'none';
-            else {
-                const artifact = await d.autoImport.findArtifact(session, meeting.id,
-                    { meetingStart: m.start, meetingEnd: m.end },
-                    { transcriptAllowed: connection.hasTranscriptScope });
-                if (artifact) recordingState = artifact.kind === 'recording' ? 'available' : 'transcript_only';
-            }
-        } catch (err) { fallbackSwallowed('routes/transcriptions/teams:anon', err); /* best-effort — keep the default state */ }
+        const recordingState = await teamsRecordingState(session, m, connection);
         const job = await d.importStore.getJobForEvent(userId, m.eventId).catch((e) => fallbackSwallowed('routes/transcriptions/teams:anon#2', e, null));
+        // A job that points at a note deleted since is not an import: the
+        // meeting is offered again instead of "Note created" for a note that
+        // 404s.
+        const importedNoteId = job?.transcriptionId && await noteStillExists(job.transcriptionId, userId) ? job.transcriptionId : null;
         items.push({
             eventId: m.eventId,
             title: m.title,
             start: m.start,
             end: m.end,
             recordingState,
-            importedNoteId: job?.transcriptionId || null,
+            importedNoteId,
         });
     }
     res.json({ connection, items });
@@ -262,7 +213,7 @@ async function requireTeamsAccess(req) {
     const { session, connection } = await resolveTeamsSession(req);
     if (!session) {
         throw connection.needsReauth
-            ? new HttpError(401, 'needs_reauth', 'Microsoft access expired — reconnect your Microsoft 365 account')
+            ? new HttpError(409, 'needs_reauth', 'Microsoft access expired — reconnect your Microsoft 365 account')
             : new HttpError(400, 'not_connected', 'Microsoft 365 is not connected for this account');
     }
     if (!connection.teamsScopesGranted) {
@@ -275,15 +226,19 @@ async function requireTeamsAccess(req) {
  * The import itself, run after the 202. Access is checked again here (the
  * session and the user's group scope may have changed since the request was
  * accepted); whatever goes wrong ends up on the job row, never nowhere.
+ * The session handed to the pipeline is a detached copy (detachedSession):
+ * the background work must not write to the live login session.
  * @param {{ req: import('express').Request, job: Awaited<ReturnType<typeof import('../../stores/teamsImportStore').getJob>> & {}, language: string | null, contextTerms: string }} args
  */
 async function runTeamsImport({ req, job, language, contextTerms }) {
     const { session, connection } = await requireTeamsAccess(req);
     const accessCtx = await resolveAccessContext(req);
     await d.autoImport.processJobInline({
-        job, session, language, contextTerms,
+        job, session: detachedSession(req, session), language, contextTerms,
         transcriptAllowed: connection.hasTranscriptScope,
         accessCtx,
+        // The user is watching this run: a failure is final and keeps its code.
+        manual: true,
     });
 }
 
@@ -315,7 +270,8 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
     const orgId = await resolveUserOrgFromReq(req);
     const { session } = await requireTeamsAccess(req);
 
-    const meeting = (await d.calendar.listRecentlyEndedTeamsMeetings({ session, lookbackHours: 24 * 7, graceMinutes: 0 }))
+    const meeting = (await d.calendar.listRecentlyEndedTeamsMeetings({ session, lookbackHours: 24 * 7, graceMinutes: 0 })
+        .catch((err) => { throw asNeedsReauth(err); }))
         .find(m => m.eventId === event_id);
     if (!meeting) throw new HttpError(404, 'not_found', 'No Teams meeting with this id ended in the last 7 days');
     if (!meeting.organizerSelf) throw new HttpError(403, 'not_organizer', 'Only the organizer of a Teams meeting can import it');
@@ -333,7 +289,7 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
         })
         || await teamsImportStore.getJobForEvent(userId, meeting.eventId);
     if (!job) throw new HttpError(500, 'failed', 'Could not create an import job for this meeting');
-    if (job.status === 'ingested' && job.transcriptionId) {
+    if (job.status === 'ingested' && job.transcriptionId && await noteStillExists(job.transcriptionId, userId)) {
         return res.json({ id: job.transcriptionId, dedup: true });
     }
 
@@ -345,10 +301,24 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
         return res.status(202).json({ jobId: job.id, status: 'pending' });
     }
 
+    // A fresh run: drop the previous outcome so the poller does not read it,
+    // and keep the poller's tick off the row while this one works. The run
+    // gets the row AS RESET, not the stale object read above: its retry
+    // budget is counted from errorCode/lastError, and a job that had failed
+    // twice would go terminal on the first transient manual failure.
+    // `requestedByUser` marks the meeting as the user's own choice, so the
+    // poller finishing it later (artifacts not ready yet) does not skip it
+    // under the auto-import rules; the language and terms are kept for that claim.
+    const fresh = {
+        ...job, status: 'pending', errorCode: /** @type {string | null} */ (null), lastError: /** @type {string | null} */ (null),
+        requestedByUser: true,
+    };
     try {
-        // A fresh run: drop the previous outcome so the poller does not read it,
-        // and keep the poller's tick off the row while this one works.
-        await teamsImportStore.updateJob(job.id, { status: 'pending', errorCode: null, lastError: null });
+        await teamsImportStore.updateJob(job.id, {
+            status: 'pending', errorCode: null, lastError: null, requestedByUser: true,
+            ...(language ? { requestedLanguage: language } : {}),
+            ...(context_terms ? { contextTerms: context_terms } : {}),
+        });
         await teamsImportStore.heartbeatJob(job.id, INGEST_LEASE_MINUTES);
     } catch (err) {
         slot.release();
@@ -359,7 +329,7 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
     void d.importRunner.runDetached({
         label: 'Transcriptions',
         release: slot.release,
-        work: () => runTeamsImport({ req, job, language: language || null, contextTerms: context_terms || '' }),
+        work: () => runTeamsImport({ req, job: fresh, language: language || null, contextTerms: context_terms || '' }),
         onFailure: (err) => recordImportFailure(job.id, err),
     });
 });

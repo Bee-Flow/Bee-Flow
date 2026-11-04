@@ -45,7 +45,7 @@
  * samples (builderTools/triggerCatalog.js), the bare-name repair of bindings,
  * the prompt of the build agent and with it the MCP toolset (triggerSources/
  * describe.js → builderTools/schemas.js → automation/mcpBuilder.js), the
- * tenancy/fan-out (`scope: 'org'` → triggerBus/dispatch.js) and the registry
+ * tenancy/fan-out (`scope: 'user'`, owner-only → triggerBus/dispatch.js) and the registry
  * regression tests.
  * NOT carried along: (a) the provider dropdown in the builder — `availability.check`
  * only becomes true when routes/automation/catalog.js puts the key `meeting_notes`
@@ -82,7 +82,13 @@ module.exports = { TRIGGER_SOURCES: [{
                 // regenerated or the recording reprocessed.
                 reprocessed: true,
             },
-            scope: 'org',
+            // OWNER-ONLY, and declared as such. Every emitter passes the note
+            // owner's userId, so dispatch only ever runs that person's own
+            // subscriptions: a colleague's automation on tag `sales` never
+            // fires on my meeting (a meeting note is personal data). `user`
+            // also makes dispatch DROP an event that names no owner, where
+            // `org` would have fanned it out to the whole organisation.
+            scope: 'user',
             source: {
                 kind: 'push',
             },

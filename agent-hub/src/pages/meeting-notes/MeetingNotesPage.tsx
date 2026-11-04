@@ -15,6 +15,7 @@ import useMediaQuery from './hooks/useMediaQuery';
 import useMeetingSources from './hooks/useMeetingSources';
 import { useRecorder, type ProviderFallback } from './hooks/RecorderContext';
 import type { MeetingRowPatch } from './detail/meetingDetailTypes';
+import useMeetingRouteSelection, { type MeetingNavigate } from './useMeetingRouteSelection';
 
 /**
  * Meeting notes — the section chrome (Bee Flow Builder redesign, Sep 2026,
@@ -47,7 +48,7 @@ const UPCOMING = 'upcoming';
  */
 interface MeetingNotesInnerProps {
     user?: { id?: string; displayName?: string; username?: string } | null;
-    onNavigate?: ((href: string) => void) | null;
+    onNavigate?: MeetingNavigate | null;
     onBack?: React.MouseEventHandler<HTMLButtonElement>;
     initialMeetingId?: string | null;
 }
@@ -55,19 +56,9 @@ interface MeetingNotesInnerProps {
 function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate = null }: MeetingNotesInnerProps) {
     const { t } = useTranslation();
     const { items, loading, error, reload, removeLocal, patchLocal } = useTranscriptions();
-    const [selectedId, setSelectedId] = useState(() => {
-        // The global is the older handoff (set by a caller just before it
-        // navigates); `initialMeetingId` is the route-driven one, used by
-        // /app/studio/meeting-notes/<id> and the sidebar's recents panel. The
-        // global wins because it is set for THIS mount and cleared on read.
-        if (typeof window !== 'undefined' && window.__beeflowPendingMeetingId) {
-            const id = window.__beeflowPendingMeetingId;
-            window.__beeflowPendingMeetingId = null;
-            return id;
-        }
-        return initialMeetingId || null;
-    });
     const { openCapture } = useCapture();
+    const { selectedId, select } = useMeetingRouteSelection({ initialMeetingId, onNavigate, openCapture });
+
     const { version, consumeLastResult, lastResultId } = useRecorder();
     const isMobile = useMediaQuery('(max-width: 767px)');
     const [leftView, setLeftView] = useState(LIBRARY);
@@ -77,7 +68,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
     // Upcoming panel is pre-mounted for its count — the segment itself is
     // always there.
     const meetingSources = useMeetingSources();
-    const upcomingAvailable = !!(meetingSources.talk || meetingSources.gmeet);
+    const upcomingAvailable = !!(meetingSources.talk || meetingSources.gmeet || meetingSources.teams);
     const upcomingMounted = leftView === UPCOMING || upcomingAvailable;
 
     // The tag vocabulary with counts; re-asked when a tag changes on a note.
@@ -97,7 +88,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
     const claimResult = useEffectEvent(() => {
         reload().then(() => {
             const { id, meta } = consumeLastResult();
-            if (id) setSelectedId(id);
+            if (id) select(id, { replace: true });
             if (meta?.providerFallback) setFallbackNotice(meta.providerFallback);
         });
     });
@@ -121,7 +112,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
 
     const onDeleted = (id: string) => {
         removeLocal(id);
-        if (selectedId === id) setSelectedId(null);
+        if (selectedId === id) select(null, { replace: true });
         setTagsKey((k) => k + 1);
     };
 
@@ -130,7 +121,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
         if (patch && Object.prototype.hasOwnProperty.call(patch, 'tags')) setTagsKey((k) => k + 1);
     };
 
-    const openFromUpcoming = useCallback((id: string) => { setLeftView(LIBRARY); setSelectedId(id); }, []);
+    const openFromUpcoming = useCallback((id: string) => { setLeftView(LIBRARY); select(id); }, [select]);
 
     const viewSwitch = (
         <SegmentedControl
@@ -156,7 +147,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
                     onRetry={reload}
                     currentUserId={user?.id}
                     selectedId={selectedId}
-                    onSelect={setSelectedId}
+                    onSelect={(next) => select(typeof next === 'function' ? next(selectedId) : next)}
                     onCapture={() => openCapture()}
                     tags={tags}
                     viewSwitch={viewSwitch}
@@ -165,7 +156,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
             {upcomingMounted && (
                 <div className="flex-1 min-h-0 flex flex-col" hidden={leftView !== UPCOMING} data-testid="meetings-upcoming-pane">
                     <div className="px-3 pt-2.5 pb-1">{viewSwitch}</div>
-                    <UpcomingMeetings onOpenNote={openFromUpcoming} onRowsChange={setUpcomingCount} />
+                    <UpcomingMeetings onOpenNote={openFromUpcoming} onRowsChange={setUpcomingCount} talkConnected={meetingSources.loading ? undefined : meetingSources.talk} />
                 </div>
             )}
         </div>
@@ -197,10 +188,10 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
             id={selectedId}
             currentUserId={user?.id}
             currentUserName={user?.displayName || user?.username || ''}
-            onBack={isMobile ? () => setSelectedId(null) : undefined}
+            onBack={isMobile ? () => select(null) : undefined}
             onChanged={onChanged}
             onDeleted={onDeleted}
-            onOpenNote={setSelectedId}
+            onOpenNote={(id) => select(id)}
             onNavigate={onNavigate}
         />
     );

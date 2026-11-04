@@ -17,6 +17,8 @@ interface RegenerateAnswer {
     summaryTemplateId?: string | null;
     summaryTemplateVersion?: number | null;
     artifactsRegenerated?: boolean;
+    speakers?: MeetingNote['speakers'];
+    tags?: string[];
 }
 
 /** The note after a summary regeneration, from the server's answer. */
@@ -36,6 +38,11 @@ function mergeRegenerated(p: MeetingNote, res: RegenerateAnswer): MeetingNote {
         decisions: res.decisions || p.decisions,
         questions: res.questions || p.questions,
         chapters: res.chapters || p.chapters,
+        // The per-speaker summaries were rewritten with the rest.
+        speakers: Array.isArray(res.speakers) ? res.speakers : p.speakers,
+        // The route fills an EMPTY tags column with the AI's tags. Keeping the
+        // stale empty list here meant the next tag edit PATCHed it over them.
+        tags: Array.isArray(res.tags) ? res.tags : p.tags,
         // Which template wrote this new text (M4 step 3). `?? null` and not
         // `|| p.…`: for a one-off prompt the server deliberately answers null —
         // that CLEARS the stamp, and falling back to the old value would leave
@@ -43,6 +50,25 @@ function mergeRegenerated(p: MeetingNote, res: RegenerateAnswer): MeetingNote {
         summaryTemplateId: res.summaryTemplateId ?? null,
         summaryTemplateVersion: res.summaryTemplateVersion ?? null,
     };
+}
+
+/**
+ * The sentence for a refused regenerate. Two refusals change nothing on the
+ * note and say what to do instead of a raw "Regenerate failed":
+ *   502 summary_empty: the model wrote nothing, and nothing was written.
+ *   409 already_processing / transcript_changed: a re-transcription is running,
+ *       or replaced the transcript while this one ran; the summary is for the
+ *       new transcript, so regenerate again once it is there.
+ */
+export function regenerateErrorText(t: TranslateFn, err: unknown): string {
+    const code = errorCode(err);
+    if (code === 'summary_empty') {
+        return t('meetings.regenerate_empty', 'The model returned no summary, so nothing was changed. Try again.');
+    }
+    if (code === 'already_processing' || code === 'transcript_changed') {
+        return t('meetings.regenerate_retranscribing', 'This meeting is being re-transcribed, or just was. Wait until it is finished, then regenerate again.');
+    }
+    return t('meetings.regenerate_failed', 'Regenerate failed: {message}', { message: errorMessage(err) });
 }
 
 /** Say what the regeneration could not do (the lists are kept, never silently). */
@@ -92,10 +118,38 @@ export interface MeetingCommandDeps {
     confirm: (opts: { title: string; description: string; confirmLabel: string }) => Promise<boolean>;
     t: TranslateFn;
     uncheckedKinds: string[];
+    /** The note's tags may have changed on the server (what picks it up follows them). */
+    onTagsMayHaveChanged?: () => void;
+}
+
+/**
+ * The tags a regenerate may have written. The route only fills an EMPTY
+ * column, and an answer without `tags` does not say whether it did: then read
+ * them back, rather than leave an empty list on screen that the next tag edit
+ * would PATCH over the stored ones.
+ */
+async function syncRegeneratedTags(
+    note: MeetingNote,
+    res: RegenerateAnswer,
+    { setLocal, onChanged, onTagsMayHaveChanged }: Pick<MeetingCommandDeps, 'setLocal' | 'onChanged' | 'onTagsMayHaveChanged'>,
+) {
+    let tags: string[] | null = Array.isArray(res.tags) ? res.tags : null;
+    if (!tags && !(note.tags || []).length && res.artifactsRegenerated !== false) {
+        try {
+            const fresh: MeetingNote | null = await api.getTranscription(note.id);
+            if (Array.isArray(fresh?.tags)) tags = fresh.tags;
+        } catch (err) { logger.debug('tags after regenerate not re-read', err); }
+        if (tags) {
+            const next = tags;
+            setLocal((p) => (p.id === note.id ? { ...p, tags: next } : p));
+        }
+    }
+    if (tags) onChanged?.(note.id, { tags });
+    onTagsMayHaveChanged?.();
 }
 
 /** The commands on a meeting: re-transcribe, export, copy, delete and regenerate the summary. */
-export default function useMeetingCommands({ data, setLocal, refresh, onChanged, onDeleted, confirm, t, uncheckedKinds }: MeetingCommandDeps) {
+export default function useMeetingCommands({ data, setLocal, refresh, onChanged, onDeleted, confirm, t, uncheckedKinds, onTagsMayHaveChanged }: MeetingCommandDeps) {
     const [busy, setBusy] = useState(false);
     const [regenerating, setRegenerating] = useState(false);
 
@@ -111,7 +165,9 @@ export default function useMeetingCommands({ data, setLocal, refresh, onChanged,
         try {
             await api.reprocessTranscription(data.id);
             await refresh();
-            onChanged?.(data.id, {});
+            // The server set it to 'processing' (202); so does the library row,
+            // which starts the list's polling and clears a stale "failed" there.
+            onChanged?.(data.id, { status: 'processing', failureReason: null });
         } catch (e) {
             // Branch on the server's stable code, not on prose. 503 means the
             // storage service is briefly unreachable and the recording is fine;
@@ -181,13 +237,12 @@ export default function useMeetingCommands({ data, setLocal, refresh, onChanged,
         try {
             const res: RegenerateAnswer = await api.regenerateSummary(data.id, template);
             setLocal((p) => mergeRegenerated(p, res));
-            if (Array.isArray(res.actionItems)) {
-                const items = res.actionItems as MeetingActionItem[];
-                onChanged?.(data.id, { actionsTotal: items.length, actionsOpen: items.filter((ai) => !ai.done).length });
-            }
+            const items = Array.isArray(res.actionItems) ? (res.actionItems as MeetingActionItem[]) : null;
+            if (items) onChanged?.(data.id, { actionsTotal: items.length, actionsOpen: items.filter((ai) => !ai.done).length });
+            await syncRegeneratedTags(data, res, { setLocal, onChanged, onTagsMayHaveChanged });
             announceRegenerateOutcome(t, res);
         } catch (err) {
-            toast.error(t('meetings.regenerate_failed', 'Regenerate failed: {message}', { message: errorMessage(err) }));
+            toast.error(regenerateErrorText(t, err));
         } finally {
             setRegenerating(false);
         }

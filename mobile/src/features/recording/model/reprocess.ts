@@ -28,6 +28,14 @@ function refusalMessage(code: string): string | undefined {
                 'mobile.recording.reprocess_gone_recorded',
                 'The audio is gone and there was never another copy. The transcript below is what remains.',
             );
+        case 'audio_gone_imported':
+            // Teams, Meet, Talk or Nextcloud (body.importedFrom): there was never
+            // a file the person held, so "import the original again" is advice
+            // nobody can follow.
+            return translate(
+                'mobile.recording.reprocess_gone_imported',
+                'This meeting was imported, and Bee Flow holds no copy of its audio, so it cannot be re-transcribed. The transcript below is what remains.',
+            );
         case 'audio_gone_uploaded':
             return translate(
                 'mobile.recording.reprocess_gone_uploaded',

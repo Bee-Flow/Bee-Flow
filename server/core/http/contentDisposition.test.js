@@ -40,3 +40,13 @@ test('contentDisposition quotes safely and carries the real name', () => {
     assert.match(h, /^attachment; filename="Offerte _Q3___X-Evil: 1 caf_\.docx"; filename\*=UTF-8''/);
     assert.match(h, /caf%C3%A9\.docx$/);
 });
+
+test('contentDisposition can say inline, and any name is a valid header value', () => {
+    const http = require('http');
+    const h = contentDisposition('Weekly sync – Product 🚀 (ł).m4a', { inline: true });
+    assert.match(h, /^inline; filename="Weekly sync _ Product __ \(_\)\.m4a"; filename\*=UTF-8''/);
+    assert.doesNotMatch(h.split("filename*=UTF-8''")[1], /['()*]/);
+    // The header Node refused for the raw name (ERR_INVALID_CHAR) is accepted now.
+    const res = new http.ServerResponse(/** @type {any} */ ({ method: 'GET' }));
+    assert.doesNotThrow(() => res.setHeader('Content-Disposition', h));
+});

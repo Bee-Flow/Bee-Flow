@@ -54,7 +54,12 @@ function stub(p, exports) {
 
 stub('../stores/transcriptionStore', {
     getTranscription: async () => null,
-    getTranscriptionByTalkRoomToken: async (token) => fx.noteByToken[token] || null,
+    getTranscriptionByTalkRoomToken: async (token, userId, opts) => {
+        const note = fx.noteByToken[token] || null;
+        // As the store does: with `since`, only a note made from then on.
+        if (note && opts?.since && note.created_at && new Date(note.created_at) < new Date(opts.since)) return null;
+        return note;
+    },
 });
 stub('../stores/configStore', { getConfig: async () => null, getSecret: async () => null });
 stub('../core/llm/llmClient', {});
@@ -378,4 +383,22 @@ test('de tags van de AFSPRAAK reizen mee — anders had de rij een bron die er n
     const res = await dispatch({ url: '/talk-meetings' });
     // Meest specifieke eerst: de occurrence vóór de ruimte.
     assert.deepEqual(res.body.meetings[0].tags, ['sales', 'klant']);
+});
+
+
+test('an earlier meeting\'s note in the same room does not make the next one "recorded"', async () => {
+    resetFx();
+    fx.meetings = [meeting({ start: '2026-09-17T10:00:00Z', end: '2026-09-17T11:00:00Z' })];
+    fx.rooms = [moderatorRoom()];
+    fx.noteByToken.tok1 = { id: 'note-last-week', created_at: '2026-09-10T11:05:00Z' };
+    const res = await dispatch({ url: '/talk-meetings' });
+    const row = res.body.meetings[0];
+    assert.equal(row.recordedNoteId, null);
+    assert.equal(row.status, 'will_record');
+
+    // A note made during THIS meeting does count.
+    fx.noteByToken.tok1 = { id: 'note-now', created_at: '2026-09-17T11:02:00Z' };
+    const now = await dispatch({ url: '/talk-meetings' });
+    assert.equal(now.body.meetings[0].recordedNoteId, 'note-now');
+    assert.equal(now.body.meetings[0].status, 'recorded');
 });

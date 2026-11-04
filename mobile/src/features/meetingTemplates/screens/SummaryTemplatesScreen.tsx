@@ -34,6 +34,9 @@ export function SummaryTemplatesScreen() {
     const groups = org?.groups ?? [];
     // `undefined` is closed; `null` inside is a new template.
     const [editing, setEditing] = useState<{ template: SummaryTemplate | null } | undefined>(undefined);
+    // `isDefault` is set once per owner (person, org, group), so this list can
+    // hold several; only the one the route resolved applies to new meetings.
+    const defaultId = query.data?.defaultTemplateId ?? null;
     const rows = { ...query, data: query.data ? templateRows(query.data.custom, org?.templates ?? null) : undefined };
     const openNew = () => setEditing({ template: null });
 
@@ -56,6 +59,7 @@ export function SummaryTemplatesScreen() {
                     <TemplateRow
                         template={item.template}
                         groups={groups}
+                        isDefault={item.template.id === defaultId}
                         onPress={item.editable ? () => setEditing({ template: item.template }) : undefined}
                     />
                 )}

@@ -10,7 +10,7 @@ import {
 } from '@/api/queries/teamsMeetingNotes';
 import { openMicrosoftOAuthPopup } from '@/api/microsoftOAuthPopup';
 import { API_BASE, authFetch } from '@/utils/helpers';
-import { errorMessage } from '@/utils/caughtError';
+import { errorCode, errorMessage } from '@/utils/caughtError';
 
 /**
  * Manual import of a finished Microsoft Teams meeting. Lists the meetings the
@@ -46,6 +46,34 @@ const ERROR_BOX = 'flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs bg-[c
 
 interface ImportOutcome { ok?: boolean; pending?: boolean }
 
+interface ReconnectCardProps {
+    title: string;
+    description: string;
+    reauthError: unknown;
+    reauthBusy: boolean;
+    onReauthorize: () => void;
+    t: ReturnType<typeof useTranslation>['t'];
+    testId?: string;
+}
+
+/** Shown instead of the list when only a Microsoft 365 reconnect can help. */
+function ReconnectCard({ title, description, reauthError, reauthBusy, onReauthorize, t, testId }: ReconnectCardProps) {
+    return (
+        <div className={`flex flex-col items-center gap-3 px-4 py-10 text-center ${PANEL}`} data-testid={testId}>
+            <div className={`w-12 h-12 rounded-2xl ${TEAMS_TILE}`}>
+                <Video className="w-6 h-6" />
+            </div>
+            <div className="text-sm font-semibold text-[var(--text-primary)]">{title}</div>
+            <div className="text-xs max-w-sm text-[var(--text-muted)]">{description}</div>
+            {Boolean(reauthError) && <div className="text-xs text-[var(--error)]">{errorMessage(reauthError)}</div>}
+            <button type="button" onClick={onReauthorize} disabled={reauthBusy} className={PRIMARY_BTN}>
+                {reauthBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {t('meetings.teams_reauthorize', 'Reconnect Microsoft 365')}
+            </button>
+        </div>
+    );
+}
+
 export default function TeamsImportPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
     const { importFromTeams, settings, uploading, uploadStage, uploadError, clearError } = useRecorder();
@@ -64,7 +92,7 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
         clearError();
         setBusyKey(item.eventId);
         try {
-            const outcome = (await importFromTeams(item, { language: settings.language, contextTerms: settings.contextTerms })) as ImportOutcome;
+            const outcome = (await importFromTeams(item, { contextTerms: settings.contextTerms })) as ImportOutcome;
             if (outcome?.ok) onComplete?.();
             else if (outcome?.pending) setPendingKeys((prev) => new Set(prev).add(item.eventId));
         } finally {
@@ -77,7 +105,10 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
         setReauthError(null);
         try {
             const result = await openMicrosoftOAuthPopup({ authFetch, apiBase: API_BASE });
-            if (result?.success) await invalidate();
+            if (result?.success) {
+                clearError();
+                await invalidate();
+            }
         } catch (err) {
             setReauthError(err);
         } finally {
@@ -85,26 +116,29 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
         }
     };
 
+    // The grant expired or was revoked: the server answers the lists with
+    // needsReauth (and an empty list), and an import with a 409 needs_reauth.
+    // Either way the only way on is a reconnect, so offer that, not the list.
+    const needsReauth = connection?.needsReauth === true || errorCode(uploadError) === 'needs_reauth';
+    if (needsReauth) {
+        return (
+            <ReconnectCard
+                testId="teams-reauth" reauthError={reauthError} reauthBusy={reauthBusy} onReauthorize={handleReauthorize} t={t}
+                title={t('meetings.teams_expired_title', 'Your Microsoft 365 connection has expired')}
+                description={t('meetings.teams_expired_desc', 'Reconnect to list and import the Teams meetings you organise again. Your settings are kept.')}
+            />
+        );
+    }
+
     // Connected, but the grant predates the Teams permissions: every request
     // would fail, so explain and offer the reconnect instead of the list.
     if (connection && connection.microsoftConnected && !connection.teamsScopesGranted) {
         return (
-            <div className={`flex flex-col items-center gap-3 px-4 py-10 text-center ${PANEL}`}>
-                <div className={`w-12 h-12 rounded-2xl ${TEAMS_TILE}`}>
-                    <Video className="w-6 h-6" />
-                </div>
-                <div className="text-sm font-semibold text-[var(--text-primary)]">
-                    {t('meetings.teams_reconsent_title', 'Microsoft Teams needs additional access')}
-                </div>
-                <div className="text-xs max-w-sm text-[var(--text-muted)]">
-                    {t('meetings.teams_reconsent_desc', 'Your Microsoft 365 account was connected before Teams recordings were supported. Reconnect to let Bee Flow list and import the meetings you organise — your Outlook and OneDrive access keeps working. Your Microsoft 365 admin may need to approve the new permissions.')}
-                </div>
-                {Boolean(reauthError) && <div className="text-xs text-[var(--error)]">{errorMessage(reauthError)}</div>}
-                <button type="button" onClick={handleReauthorize} disabled={reauthBusy} className={PRIMARY_BTN}>
-                    {reauthBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {t('meetings.teams_reauthorize', 'Reconnect Microsoft 365')}
-                </button>
-            </div>
+            <ReconnectCard
+                reauthError={reauthError} reauthBusy={reauthBusy} onReauthorize={handleReauthorize} t={t}
+                title={t('meetings.teams_reconsent_title', 'Microsoft Teams needs additional access')}
+                description={t('meetings.teams_reconsent_desc', 'Your Microsoft 365 account was connected before Teams recordings were supported. Reconnect to let Bee Flow list and import the meetings you organise — your Outlook and OneDrive access keeps working. Your Microsoft 365 admin may need to approve the new permissions.')}
+            />
         );
     }
 

@@ -40,6 +40,9 @@ export function MeetingActionsSheet({
     const icon = (name: IconName, color = theme.colors.textSecondary) => (
         <Icon name={name} size={18} color={color} />
     );
+    // No audio and no way back to it (not a passing storage outage): the
+    // server would only answer 410, so the action is not offered at all.
+    const canRetranscribe = meeting.audio.available !== false || meeting.audio.recoverable;
     return (
         <Sheet visible={visible} onClose={onClose} title={meeting.title || t('mobile.recording.meeting', 'Meeting')} scroll={false}>
             <View style={styles.sheetList}>
@@ -54,12 +57,14 @@ export function MeetingActionsSheet({
                 {meeting.isOwner ? (
                     <>
                         <Divider />
-                        <ListRow
-                            title={t('mobile.recording.retranscribe', 'Re-transcribe from the audio')}
-                            subtitle={t('mobile.recording.retranscribe_hint', 'Runs the whole pipeline again on the saved recording')}
-                            leading={icon('RefreshCw')}
-                            onPress={onRetranscribe}
-                        />
+                        {canRetranscribe ? (
+                            <ListRow
+                                title={t('mobile.recording.retranscribe', 'Re-transcribe from the audio')}
+                                subtitle={t('mobile.recording.retranscribe_hint', 'Runs the whole pipeline again on the saved recording')}
+                                leading={icon('RefreshCw')}
+                                onPress={onRetranscribe}
+                            />
+                        ) : null}
                         <ListRow
                             title={t('mobile.recording.delete', 'Delete meeting')}
                             leading={icon('Trash2', theme.colors.error)}

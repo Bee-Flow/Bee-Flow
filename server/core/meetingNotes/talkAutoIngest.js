@@ -83,10 +83,18 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
     // 1. the mapped event actor, when the delivery carried one;
     // 2. else the uid whose Files root the recording landed in — the recording
     //    backend uploads without a user session, so this is the normal path;
-    // 3. else the org's default owner (bot/federated actors we can't map).
+    // 3. else the org's default owner (bot/federated actors we can't map) —
+    //    but only for a file that is in nobody's Files root. A recording in
+    //    the Files of a Nextcloud user without a Bee Flow account cannot be
+    //    read as the default owner: the path is relative to the OTHER user's
+    //    root, so the download 404'd and the note never appeared.
     let ownerId = userId
         || await resolveUserFromNcUid(orgId, payload?.owner)
         || null;
+    if (!ownerId && payload?.owner) {
+        log.warn('[TalkAutoIngest] the recording\'s Nextcloud owner has no Bee Flow account — skipping (the default owner cannot read their files)', { path: log.nameForLog(ncPath), fileOwner: log.textForLog(payload.owner), orgId });
+        return;
+    }
     if (!ownerId) {
         // defaultOwnerUserId is org-only, so this read needs no user scope.
         const orgSettings = await resolveTalkNotesSettings({ orgId });
@@ -102,8 +110,19 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
     // autoTranscribe, language and the recordings folder are all user-scopable.
     const settings = await resolveTalkNotesSettings({ orgId, userId: ownerId });
 
+    // ── Background auth (connector pseudo-session / vault token), loaded once ──
+    /** @type {Promise<any> | null} */
+    let sessionLoad = null;
+    const getSession = () => {
+        if (!sessionLoad) sessionLoad = Promise.resolve(runnerPort('triggerBus').loadSession(ownerId)).catch(/** @returns {null} */ (e) => {
+            log.warn('[TalkAutoIngest] could not load the owner\'s session:', /** @type {Error} */ (e).message);
+            return null;
+        });
+        return sessionLoad;
+    };
+
     // Must live under the Talk recordings folder as <folder>/<token>/<file>.
-    const token = parseTalkRoomToken(ncPath, settings.recordingFolder);
+    const token = await resolveRoomToken(ncPath, settings.recordingFolder, ownerId, getSession);
     if (!token) return;
 
     // ── Gate ─────────────────────────────────────────────
@@ -118,6 +137,22 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
     try { armed = await require('./talkAutoRecord').isArmed(ownerId, token); } catch (_) { armed = false; }
     if (!settings.autoTranscribe && !armed) return;
 
+    // Consumed the moment the recording it was for has arrived, whatever
+    // happens next. Disarming only after the ingest skipped the early exits
+    // below (a dedup hit, a missing session), so the token stayed armed and
+    // the room's next MANUAL recording was auto-transcribed against the
+    // user's own setting; and a long ingest could consume a newer call's arm.
+    if (armed) { try { await require('./talkAutoRecord').disarmToken(ownerId, token); } catch (_) { log.warn('could not disarm the auto-record token, a later manual recording may auto-transcribe', _); } }
+
+    // The background path bypasses the route gates: an active account with the
+    // Meeting Notes capability, like the Meet and Teams importers.
+    let allowed = false;
+    try { allowed = await require('./talkAutoRecord').mayAutoProcess(ownerId, orgId); } catch (_) { allowed = false; }
+    if (!allowed) {
+        log.info('[TalkAutoIngest] owner is not active or not licensed for Meeting Notes — skipping', { ownerId, path: log.nameForLog(ncPath) });
+        return;
+    }
+
     // ── Dedup ────────────────────────────────────────────
     // Tenant-scoped, mirroring `ingestNextcloudRecording` and the gmeet key.
     // Both sides must build this identically or auto-ingest and manual import
@@ -126,11 +161,19 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
     const existing = await transcriptionStore.getTranscriptionBySourceUri(sourceUri);
     if (existing) return;
 
-    // ── Background auth (connector pseudo-session / vault token) ──
-    const triggerBus = runnerPort('triggerBus');
-    const session = await triggerBus.loadSession(ownerId);
+    const session = await getSession();
     if (!session) {
         log.warn('[TalkAutoIngest] no Nextcloud credentials for owner — skipping', { ownerId, path: log.nameForLog(ncPath) });
+        return;
+    }
+
+    // ── Nextcloud scope ──────────────────────────────────
+    // This tap does not pass through toolDispatcher, so it applies the user's
+    // Nextcloud scope itself, like auto-record does: a recording of a Talk
+    // conversation the user left out of Bee Flow's scope, or a file outside the
+    // folders they shared, is not downloaded, transcribed or stored.
+    if (await outsideScope({ ownerId, orgId, session, token, ncPath })) {
+        log.info('[TalkAutoIngest] recording is outside the owner\'s Nextcloud scope — skipping', { ownerId, room: token, path: log.nameForLog(ncPath) });
         return;
     }
 
@@ -147,14 +190,52 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
     } catch (err) {
         // Surface, don't swallow — but keep it out of the dispatcher's path.
         log.error(`[TalkAutoIngest] ingest failed for ${log.nameForLog(ncPath)} [${err.code || 'error'}]: ${/** @type {Error} */ (err).message}`);
-    } finally {
-        // Disarmed on the FAILURE path too. The token means "the next recording
-        // in this room came from auto-record"; that recording has now arrived,
-        // whether or not we managed to transcribe it. Leaving it armed made
-        // every later manual recording in the room auto-transcribe against the
-        // user's own setting.
-        if (armed) { try { await require('./talkAutoRecord').disarmToken(ownerId, token); } catch (_) { log.warn('could not disarm the auto-record token, a later manual recording may auto-transcribe', _); } }
     }
+}
+
+/**
+ * The room token of a recording path. First against the Bee Flow recordings
+ * folder; when that does not match and the file sits in a `Recording` folder,
+ * against the folder Talk itself writes to — a user can move Talk's attachment
+ * folder (`/Meetings` → `/Meetings/Recording/<token>/…`), and the recordings
+ * list already asks Talk for it. Without this, those recordings were dropped
+ * without a word, even the ones auto-record had started.
+ * @param {string} ncPath
+ * @param {string} configuredFolder
+ * @param {string} ownerId
+ * @param {() => Promise<any>} getSession
+ */
+async function resolveRoomToken(ncPath, configuredFolder, ownerId, getSession) {
+    const token = parseTalkRoomToken(ncPath, configuredFolder);
+    if (token || !/\/recording\//i.test(ncPath)) return token;
+    try {
+        const session = await getSession();
+        if (!session) return null;
+        const { integrationClient } = require('../integrations/integrationClients');
+        const cap = await integrationClient('nextcloudTalk').getTalkRecordingCapability(session, ownerId);
+        const talkFolder = cap?.recordingFolder;
+        const viaTalk = talkFolder ? parseTalkRoomToken(ncPath, talkFolder) : null;
+        if (!viaTalk) log.info('[TalkAutoIngest] a file in a Recording folder matches neither the configured nor Talk\'s recordings folder', { path: log.nameForLog(ncPath) });
+        return viaTalk;
+    } catch (e) {
+        log.warn('[TalkAutoIngest] could not read Talk\'s recordings folder:', /** @type {Error} */ (e).message);
+        return null;
+    }
+}
+
+/**
+ * True when the user's Nextcloud scope excludes the conversation or the file.
+ * Fails closed: a scope that cannot be read counts as excluded (checkToolCall
+ * answers a denial then).
+ * @param {{ ownerId: string, orgId: string | null, session: any, token: string, ncPath: string }} args
+ */
+async function outsideScope({ ownerId, orgId, session, token, ncPath }) {
+    const { checkToolCall } = require('../integrations/ncScopeGuard');
+    const ctx = { userId: ownerId, orgId, session };
+    const room = await checkToolCall({ toolName: 'nextcloud_talk_get_room', toolArgs: { token }, ...ctx });
+    if (room) return true;
+    const file = await checkToolCall({ toolName: 'nextcloud_read_file', toolArgs: { path: ncPath }, ...ctx });
+    return !!file;
 }
 
 module.exports = { maybeIngest };

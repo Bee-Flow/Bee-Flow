@@ -112,7 +112,10 @@ async function classifyGraphFailure(response, context) {
         if (text.includes('speakerattributionnotallowed')) {
             return codedError('Your Teams admin does not allow speaker names in transcripts', 'speaker_attribution_disabled', 403);
         }
-        if (text.includes('scope') || text.includes('consent') || text.includes('permission')) {
+        // Scope or consent only: "permission" also appears in 403s that no
+        // reconnect can fix (a file this account may not open), and labelling
+        // those "reconnect to grant access" sent users round in circles.
+        if (text.includes('scope') || text.includes('consent')) {
             return codedError(`${context}: Microsoft did not grant the Teams meeting permissions`, 'needs_teams_scopes', 403);
         }
         return codedError(`${context}: only the meeting organizer can read this`, 'not_organizer', 403);
@@ -217,6 +220,29 @@ function pickArtifactForSlot(items, { meetingStart, meetingEnd } = {}) {
 }
 
 /**
+ * Every artifact that falls in one occurrence's window, in time order. A
+ * recording stopped and restarted within one meeting gives one artifact per
+ * part. Pure.
+ * @param {Array<{id?: string, createdDateTime?: string, endDateTime?: string}>} items
+ * @param {{ meetingStart?: string|Date|null, meetingEnd?: string|Date|null }} slot
+ */
+function artifactsForSlot(items, { meetingStart, meetingEnd } = {}) {
+    const list = Array.isArray(items) ? items : [];
+    if (!meetingStart) return list.length === 1 ? [list[0]] : [];
+    const startMs = new Date(meetingStart).getTime();
+    const endMs = meetingEnd ? new Date(meetingEnd).getTime() : startMs;
+    const windowStart = startMs - MATCH_PRE_MS;
+    const windowEnd = endMs + MATCH_POST_MS;
+    return list
+        .filter((item) => {
+            const itemStart = new Date(item?.createdDateTime || 0).getTime();
+            const itemEnd = item?.endDateTime ? new Date(item.endDateTime).getTime() : itemStart;
+            return Number.isFinite(itemStart) && itemStart <= windowEnd && itemEnd >= windowStart;
+        })
+        .sort((a, b) => new Date(a?.createdDateTime || 0).getTime() - new Date(b?.createdDateTime || 0).getTime());
+}
+
+/**
  * Stream a recording MP4 to `destPath`. Refuses (code `recording_too_large`)
  * when Content-Length or the running byte count passes `maxBytes`.
  * @param {MsSession} session
@@ -292,6 +318,7 @@ module.exports = {
     listRecordings,
     listTranscripts,
     pickArtifactForSlot,
+    artifactsForSlot,
     downloadRecordingToFile,
     fetchTranscriptVtt,
     parseTeamsVtt,

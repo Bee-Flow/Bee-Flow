@@ -77,21 +77,95 @@ async function readArmed(userId) {
         .filter(e => e && typeof e.token === 'string' && (now - (Number(e.ts) || 0)) < ARMED_TTL_MS);
 }
 
-async function armToken(userId, token) {
-    const cur = await readArmed(userId);
-    const next = cur.filter(e => e.token !== token);
-    next.push({ token, ts: Date.now() });
-    await configStore.setConfig(ARMED_KEY(userId), next);
+/**
+ * The stored list, normalised like readArmed but from the value mutateConfig
+ * hands over (the row as it is inside the lock).
+ * @param {unknown} cur
+ */
+function liveEntries(cur) {
+    if (!Array.isArray(cur)) return [];
+    const now = Date.now();
+    return cur
+        .map(e => (typeof e === 'string' ? { token: e, ts: now } : e))
+        .filter(e => e && typeof e.token === 'string' && (now - (Number(e.ts) || 0)) < ARMED_TTL_MS);
+}
+
+/**
+ * One entry PER auto-started recording, not one flag per room. With a flag,
+ * the file of an earlier call in the room (still uploading, or still being
+ * ingested) disarmed the NEXT call's arm, and that call was silently never
+ * transcribed. Each arriving file now consumes the oldest entry.
+ *
+ * Read-modify-write under configStore.mutateConfig's advisory lock: the scan
+ * (arming) and the file.new tap (disarming) run on different pods at the same
+ * moment, and a plain read-then-write lost one of the two.
+ * @param {string} userId
+ * @param {string} token
+ * @param {number | null} [callStartTime] Talk's callStartTime of the call that was started
+ */
+async function armToken(userId, token, callStartTime = null) {
+    await configStore.mutateConfig(ARMED_KEY(userId), (cur) => {
+        const call = callStartTime || null;
+        // The same call armed twice is one recording, not two.
+        const next = liveEntries(cur).filter(e => !(e.token === token && (e.callStartTime || null) === call));
+        next.push({ token, ts: Date.now(), ...(call ? { callStartTime: call } : {}) });
+        return next;
+    });
 }
 async function isArmed(userId, token) {
     return (await readArmed(userId)).some(e => e.token === token);
 }
+/**
+ * The recording of one armed call arrived: consume ITS entry (the oldest for
+ * the room), leaving a later call's arm in place. Expired entries are pruned on
+ * the way — that is the garbage collection this list never had.
+ * @param {string} userId
+ * @param {string} token
+ */
 async function disarmToken(userId, token) {
-    const cur = await readArmed(userId);
-    const next = cur.filter(e => e.token !== token);
-    // Still write when only expired entries were pruned — that is the garbage
-    // collection this list never had.
-    await configStore.setConfig(ARMED_KEY(userId), next);
+    await configStore.mutateConfig(ARMED_KEY(userId), (cur) => {
+        const live = liveEntries(cur);
+        let oldest = -1;
+        live.forEach((e, i) => {
+            if (e.token === token && (oldest < 0 || (Number(e.ts) || 0) < (Number(live[oldest].ts) || 0))) oldest = i;
+        });
+        return oldest < 0 ? live : live.filter((_, i) => i !== oldest);
+    });
+}
+
+// ── Calls already auto-started ───────────────────────────────────────
+//
+// Keyed per CALL (room token + Talk's callStartTime), stored so every pod sees
+// it. The in-memory 5-minute guard above was all there was: when a moderator
+// stopped the recording on purpose (a confidential topic), the next scan saw
+// "call running, not recording" and started it again within a minute, on a
+// pod that had not done the first start even at once. A call is auto-started
+// at most once; stopping it in Talk is the moderator's decision and stands.
+const STARTED_KEY = (/** @type {string} */ userId) => `talk_autorecord_calls_${userId}`;
+const STARTED_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** @param {string} token @param {number} callStartTime */
+function callKey(token, callStartTime) { return `${token}:${callStartTime}`; }
+
+/** @param {string} userId @returns {Promise<Set<string>>} */
+async function startedCalls(userId) {
+    const cur = await configStore.getConfig(STARTED_KEY(userId)).catch((e) => fallbackSwallowed('core/meetingNotes/talkAutoRecord:startedCalls', e, null));
+    const now = Date.now();
+    return new Set((Array.isArray(cur) ? cur : [])
+        .filter(e => e && typeof e.call === 'string' && (now - (Number(e.ts) || 0)) < STARTED_TTL_MS)
+        .map(e => e.call));
+}
+
+/** @param {string} userId @param {string} token @param {number} callStartTime */
+async function markCallStarted(userId, token, callStartTime) {
+    const call = callKey(token, callStartTime);
+    await configStore.mutateConfig(STARTED_KEY(userId), (cur) => {
+        const now = Date.now();
+        const live = (Array.isArray(cur) ? cur : [])
+            .filter(e => e && typeof e.call === 'string' && (now - (Number(e.ts) || 0)) < STARTED_TTL_MS && e.call !== call);
+        live.push({ call, ts: now });
+        return live;
+    });
 }
 
 /**
@@ -99,6 +173,26 @@ async function disarmToken(userId, token) {
  */
 async function resolveOrgIdForUser(userId) {
     return kit.resolveOrgIdForUser(userId, () => require('../../stores/userStore'));
+}
+
+/**
+ * May the background engines (auto-record, auto-ingest) act for this user?
+ * Active account, and the Meeting Notes capability for their org — the same
+ * per-user gate the Meet and Teams importers apply. A lookup that fails says
+ * no (nothing is recorded or transcribed on a guess).
+ * @param {string} userId
+ * @param {string | null} orgId
+ */
+async function mayAutoProcess(userId, orgId) {
+    try {
+        const user = await require('../../stores/userStore').getUser(userId);
+        if (!user || (user.status ?? 'active') !== 'active') return false;
+        const { hasCapability } = require('../entitlements/entitlements');
+        return !!(await hasCapability('meeting_notes', { userId, orgId }));
+    } catch (e) {
+        bestEffort('core/meetingNotes/talkAutoRecord:mayAutoProcess', e);
+        return false;
+    }
 }
 
 /**
@@ -163,6 +257,13 @@ async function scanUser(userId) {
     const settings = await resolveTalkNotesSettings({ orgId, userId });
     if (!settings.autoRecord) return;
 
+    // The background path bypasses the route gates. An org that turned
+    // auto-record on makes every member a candidate, so check per user, like
+    // the Meet and Teams importers: an active account that holds the Meeting
+    // Notes capability (a licence downgrade or a rollout to selected groups
+    // must stop the recordings too).
+    if (!await mayAutoProcess(userId, orgId)) return;
+
     const triggerBus = runnerPort('triggerBus');
     const session = await triggerBus.loadSession(userId);
     if (!session) return;
@@ -202,9 +303,14 @@ async function scanUser(userId) {
         for (const m of meetings) if (m.talkToken) calendarByToken.set(m.talkToken, m);
     }
 
+    const alreadyStarted = await startedCalls(userId);
     for (const room of active) {
         const token = room.token;
         if (!token || recentlyStarted(token) || isSkipped(userId, token)) continue;
+        const callStartTime = Number(room.callStartTime) || 0;
+        // This call was auto-recorded before and is not recording now: the
+        // moderator stopped it. Leave it stopped.
+        if (callStartTime && alreadyStarted.has(callKey(token, callStartTime))) continue;
         const meeting = calendarByToken ? (calendarByToken.get(token) || null) : null;
         if (settings.autoRecordScope === 'calendar') {
             const isMeeting = room.objectType === 'event' || !!meeting;
@@ -237,7 +343,10 @@ async function scanUser(userId) {
         if (res?.nc_scope_denied) { markSkip(userId, token); continue; }
         if (res && res.success) {
             markStarted(token);
-            await armToken(userId, token).catch((e) => bestEffort('core/meetingNotes/talkAutoRecord:scanUser', e));
+            if (callStartTime) {
+                await markCallStarted(userId, token, callStartTime).catch((e) => bestEffort('core/meetingNotes/talkAutoRecord:markCallStarted', e));
+            }
+            await armToken(userId, token, callStartTime || null).catch((e) => bestEffort('core/meetingNotes/talkAutoRecord:scanUser', e));
             log.info(`[TalkAutoRecord] started ${status === 2 ? 'audio' : 'video'} recording for room ${token} (user ${userId})`);
         } else if (res && (res.error === 'not_moderator' || res.error === 'recording_backend_unavailable' || res.error === 'room_not_found')) {
             markSkip(userId, token);
@@ -264,4 +373,4 @@ async function scanAndRecord() {
     }
 }
 
-module.exports = { scanAndRecord, isArmed, armToken, disarmToken };
+module.exports = { scanAndRecord, isArmed, armToken, disarmToken, mayAutoProcess };

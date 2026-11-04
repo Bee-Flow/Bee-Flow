@@ -63,7 +63,7 @@ describe('GoogleMeetImportPanel', () => {
         render(<GoogleMeetImportPanel onComplete={onComplete} />);
         await user.click(await screen.findByRole('button', { name: 'Transcribe' }));
         await waitFor(() => expect(onComplete).toHaveBeenCalled());
-        expect(recorderMock.current.importFromGoogleMeet).toHaveBeenCalledWith(ITEMS[0], { language: 'nl', contextTerms: 'AFAS' });
+        expect(recorderMock.current.importFromGoogleMeet).toHaveBeenCalledWith(ITEMS[0], { contextTerms: 'AFAS' });
         expect(recorderMock.current.clearError).toHaveBeenCalled();
     });
 
@@ -74,6 +74,17 @@ describe('GoogleMeetImportPanel', () => {
         render(<GoogleMeetImportPanel onComplete={onComplete} />);
         await user.click(await screen.findByRole('button', { name: 'Transcribe' }));
         await waitFor(() => expect(recorderMock.current.importFromGoogleMeet).toHaveBeenCalled());
+        expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it('shows a waiting badge instead of Transcribe when the server parks the import', async () => {
+        const user = userEvent.setup();
+        recorderMock.current = makeRecorder({ importFromGoogleMeet: vi.fn().mockResolvedValue({ ok: false, pending: true, result: { jobId: 'j1' } }) });
+        const onComplete = vi.fn();
+        render(<GoogleMeetImportPanel onComplete={onComplete} />);
+        await user.click(await screen.findByRole('button', { name: 'Transcribe' }));
+        expect(await screen.findByText('Waiting for Google')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Transcribe' })).toBeNull();
         expect(onComplete).not.toHaveBeenCalled();
     });
 

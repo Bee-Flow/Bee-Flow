@@ -331,3 +331,70 @@ test('connector fetch sends the %-escaped wire URL but signs the original decode
     const message = `${ts}\nPUT\n/nc/remote.php/dav/files/${NC_UID}/q%3Fmark.txt\n${NC_UID}\n${bodyHash}\nc1`;
     assert.equal(sig, crypto.createHmac('sha256', TENANT_KEY).update(message).digest('hex'));
 });
+
+// ── downloadBinary: the size cap holds before and during the download ───────
+
+const fsDl = require('fs');
+const osDl = require('os');
+
+/** A WebDAV GET answer of `total` bytes in 64 KiB chunks; `pulled` counts what was read. */
+function bigBody(total, { declare = true } = {}) {
+    const meter = { pulled: 0 };
+    const chunk = new Uint8Array(64 * 1024);
+    const stream = new ReadableStream({
+        pull(controller) {
+            if (meter.pulled >= total) { controller.close(); return; }
+            const n = Math.min(chunk.length, total - meter.pulled);
+            meter.pulled += n;
+            controller.enqueue(chunk.subarray(0, n));
+        },
+    });
+    const headers = { 'content-type': 'video/mp4' };
+    if (declare) headers['content-length'] = String(total);
+    return { meter, response: new Response(stream, { status: 200, headers }) };
+}
+
+async function download(answer, opts) {
+    seedBoundUser({ organizationId: null });
+    state.appPasswords.set(USER, { username: 'tom', password: 'app-pass', url: 'https://cloud.example.com' });
+    const dest = path.join(osDl.tmpdir(), `nc-dl-${process.pid}-${crypto.randomUUID()}.mp4`);
+    const realFetch = global.fetch;
+    global.fetch = async () => answer;
+    try {
+        const out = await ncClient.downloadBinary(standaloneSession(), USER, '/Talk/Recording/abc/rec.mp4', dest, opts)
+            .then((r) => ({ result: r }), (err) => ({ err }));
+        return { ...out, exists: fsDl.existsSync(dest), dest };
+    } finally {
+        global.fetch = realFetch;
+    }
+}
+
+const MB = 1024 * 1024;
+
+test('downloadBinary: a declared size over the cap is refused before anything is written', async () => {
+    const { meter, response } = bigBody(8 * MB);
+    const { err, exists } = await download(response, { maxBytes: 2 * MB });
+    assert.equal(err?.code, ncClient.DOWNLOAD_TOO_LARGE);
+    assert.equal(exists, false, 'no scratch file');
+    assert.ok(meter.pulled <= 2 * 64 * 1024, `body not read (pulled ${meter.pulled})`);
+});
+
+test('downloadBinary: an undeclared body is cut off at the cap and the partial file removed', async () => {
+    const { meter, response } = bigBody(8 * MB, { declare: false });
+    const { err, exists } = await download(response, { maxBytes: 2 * MB });
+    assert.equal(err?.code, ncClient.DOWNLOAD_TOO_LARGE);
+    assert.equal(exists, false, 'partial file removed');
+    assert.ok(meter.pulled < 4 * MB, `stopped reading near the cap (pulled ${meter.pulled})`);
+});
+
+test('downloadBinary: a file under the cap, or with no cap, downloads whole', async () => {
+    for (const opts of [{ maxBytes: 2 * MB }, undefined]) {
+        const { response } = bigBody(MB + 7);
+        const { result, err, exists, dest } = await download(response, opts);
+        assert.equal(err, undefined);
+        assert.equal(result.size, MB + 7);
+        assert.equal(result.contentType, 'video/mp4');
+        assert.ok(exists);
+        fsDl.rmSync(dest, { force: true });
+    }
+});

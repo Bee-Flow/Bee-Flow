@@ -272,14 +272,57 @@ test('attachConferenceRecord rethrows non-unique-violation errors', async () => 
 // ── completeJob / parkNeedsReauth / updateJob / listRecentJobsForUser ───
 
 test('completeJob marks ingested, links the transcription, and clears error fields', async () => {
-    await store.completeJob('id-a', 't-123');
-    const call = lastRun();
+    resetState();
+    assert.strictEqual(await store.completeJob('id-a', 't-123'), true);
+    const runs = state.calls.filter(c => c.fn === 'run');
+    const call = runs[0];
     const sql = norm(call.sql);
     assert.match(sql, /status = 'ingested'/);
     assert.match(sql, /transcription_id = \$2/);
     assert.match(sql, /error_code = NULL/);
     assert.match(sql, /last_error = NULL/);
     assert.deepStrictEqual(call.params, ['id-a', 't-123']);
+
+    // The org siblings parked behind this job go back to the queue, so
+    // resolveDuplicate decides per sibling whether it may read the note.
+    const wake = norm(runs[1].sql);
+    assert.match(wake, /SET status = 'pending'/);
+    assert.match(wake, /next_attempt_at = NOW\(\)/);
+    assert.match(wake, /status = 'duplicate'/, 'only parked siblings');
+    assert.match(wake, /transcription_id IS NULL/);
+    assert.match(wake, /id <> \$1/, 'never wakes itself');
+    assert.match(wake, /org_id = \(SELECT org_id FROM gmeet_import_jobs WHERE id = \$1\)/, 'same organisation only');
+    assert.ok(!/transcription_id = /.test(wake), 'the note id is never copied onto a sibling');
+    assert.deepStrictEqual(runs[1].params, ['id-a']);
+});
+
+test('completeJob on a job that is gone wakes nobody', async () => {
+    resetState();
+    state.runResult = { rowCount: 0, rows: [] };
+    assert.strictEqual(await store.completeJob('id-gone', 't-1'), false);
+    assert.strictEqual(state.calls.filter(c => c.fn === 'run').length, 1);
+});
+
+test('a manual request is kept on the job: requested_by_user, language, context terms', async () => {
+    resetState();
+    await store.updateJob('id-a', { requestedByUser: true, requestedLanguage: 'en', contextTerms: 'Foo' });
+    const call = lastRun();
+    const sql = norm(call.sql);
+    assert.match(sql, /requested_by_user = \$1/);
+    assert.match(sql, /requested_language = \$2/);
+    assert.match(sql, /context_terms = \$3/);
+    assert.deepStrictEqual(call.params, [true, 'en', 'Foo', 'id-a']);
+
+    state.allRows = [jobRow({ requested_by_user: true, requested_language: 'en', context_terms: 'Foo' })];
+    const [job] = await store.listRecentJobsForUser('u1', 3);
+    assert.strictEqual(job.requestedByUser, true);
+    assert.strictEqual(job.requestedLanguage, 'en');
+    assert.strictEqual(job.contextTerms, 'Foo');
+    state.allRows = [jobRow()];
+    const [plain] = await store.listRecentJobsForUser('u1', 3);
+    assert.strictEqual(plain.requestedByUser, false);
+    assert.strictEqual(plain.requestedLanguage, null);
+    assert.strictEqual(plain.contextTerms, null);
 });
 
 test('parkNeedsReauth parks the job with the given resume time', async () => {

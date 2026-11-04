@@ -34,7 +34,8 @@ function extractTalkToken(event) {
 
 /**
  * List the user's upcoming Talk meetings within `windowHours`.
- * Returns [{ uid, title, start, end, organizer, attendees, talkToken, calendar }].
+ * Returns [{ uid, recurrenceId, title, start, end, organizer, attendees, talkToken, calendar }],
+ * one row per occurrence of a recurring series.
  * Best-effort: returns [] on any auth/calendar error.
  * @param {{ session?: object, userId?: string, orgId?: string|null, windowHours?: number }} [opts]
  */
@@ -66,11 +67,15 @@ async function listUpcomingTalkMeetings({ session, userId, orgId = null, windowH
             for (const ev of events) {
                 const talkToken = extractTalkToken(ev);
                 if (!talkToken) continue;
-                const key = `${ev.uid || ''}::${talkToken}`;
+                // Per occurrence: the CalDAV query expands a recurring series, and
+                // every occurrence shares the uid and the room. The same event in
+                // two calendars (a shared one) is still listed once.
+                const key = `${ev.uid || ''}::${talkToken}::${ev.recurrenceId || ev.dtstart || ''}`;
                 if (seen.has(key)) continue;
                 seen.add(key);
                 meetings.push({
                     uid: ev.uid || null,
+                    recurrenceId: ev.recurrenceId || null,
                     title: ev.summary || 'Meeting',
                     start: ev.dtstart || null,
                     end: ev.dtend || null,

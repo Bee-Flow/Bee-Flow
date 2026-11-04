@@ -25,11 +25,13 @@ const path = require('path');
 
 const transcriptionStore = require('../../stores/transcriptionStore');
 const { ingestLocalRecording, IngestError, assertDedupHitReadable } = require('./ingestRecordingCore');
+const { chooseProvider } = require('./ingestTranscription');
 const { AUDIO_SCRATCH_DIR: uploadsDir } = require('./savedAudioStore');
 // Talk's on-disk recording layout (`<attachmentFolder>/Recording/<token>/<file>`)
 // lives in its own db-free module so the routes can share it.
 const { parseTalkRoomToken, talkRecordingRoots, DEFAULT_RECORDING_FOLDER } = require('./talkRecordingPaths');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 // Nextcloud and Talk clients are injected by integrations/ (see ../integrations/integrationClients.js).
 const { integrationClient } = require('../integrations/integrationClients');
 
@@ -40,6 +42,10 @@ const ACCEPTED_RECORDING_EXTS = ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.flac
 // Hard ceiling — matches the manual-upload multer limit. Larger recordings are
 // rejected with a classified error rather than silently timing out.
 const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
+
+/** sourceUri -> the ingest running for it in this process (see ingestNextcloudRecording). */
+/** @type {Map<string, Promise<unknown>>} */
+const inFlight = new Map();
 
 /**
  * @param {{ accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, userId: string, session: Express.Session, orgId?: string, ncPath: string, language?: string,
@@ -82,12 +88,56 @@ async function ingestNextcloudRecording(opts) {
     const sourceUri = opts.sourceUri
         || (talkRoomToken ? `talk://${tenant}/${talkRoomToken}/${fileName}` : `nextcloud://${userId}${ncPath}`);
 
+    // A second request for the same recording while the first still runs (another
+    // device or tab, a client time-out and retry) waits for that run and answers
+    // with its note, instead of paying for a second download and transcription.
+    // One process only; across pods the source_uri unique index still keeps one note.
+    const running = inFlight.get(sourceUri);
+    if (running) {
+        // Its own caller hears how it failed; this one only needs it settled.
+        await running.catch((e) => bestEffort('core/meetingNotes/ingestNextcloudRecording:waitForRunning', e));
+        const done = await transcriptionStore.getTranscriptionBySourceUri(sourceUri);
+        if (done) {
+            await assertDedupHitReadable(done, userId, opts.accessCtx);
+            return { id: done.id, title: done.title, dedup: true, sourceUri, writeBack: null };
+        }
+    }
+    const run = ingestOnce(opts, {
+        userId, session, orgId, ncPath, language, requestedProvider, contextTerms, titleHint, userNameArg,
+        source, talkRoomToken, postSummaryBack, ext, fileName, sourceUri,
+    });
+    inFlight.set(sourceUri, run);
+    try {
+        return await run;
+    } finally {
+        if (inFlight.get(sourceUri) === run) inFlight.delete(sourceUri);
+    }
+}
+
+/**
+ * The ingest proper, once the dedup key is known (see ingestNextcloudRecording).
+ * @param {{ accessCtx?: import('../../stores/transcription/acl').ReadAclCtx }} opts  the caller's options
+ * @param {{ userId: string, session: Express.Session, orgId: string | null, ncPath: string, language: string,
+ *   requestedProvider?: string, contextTerms: string, titleHint: string | null, userNameArg?: string,
+ *   source: string, talkRoomToken: string | null, postSummaryBack: boolean, ext: string, fileName: string,
+ *   sourceUri: string }} args
+ */
+async function ingestOnce(opts, args) {
+    const {
+        userId, session, orgId, ncPath, language, requestedProvider, contextTerms, titleHint, userNameArg,
+        source, talkRoomToken, postSummaryBack, ext, fileName, sourceUri,
+    } = args;
+
     // Cheap pre-check so the same recording isn't downloaded + transcribed twice.
     const existing = await transcriptionStore.getTranscriptionBySourceUri(sourceUri);
     if (existing) {
         await assertDedupHitReadable(existing, userId, opts.accessCtx);
         return { id: existing.id, title: existing.title, dedup: true, sourceUri, writeBack: null };
     }
+
+    // A requested engine the workspace does not allow is refused BEFORE the
+    // download, not after it (the core asks the same question again).
+    if (requestedProvider) await chooseProvider(requestedProvider, null);
 
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
     // randomUUID, not a bare millisecond stamp: the clock is not a unique id.
@@ -101,9 +151,14 @@ async function ingestNextcloudRecording(opts) {
     // ── Download from Nextcloud ──────────────────────────────
     try {
         const ncClient = integrationClient('nextcloud');
-        await ncClient.downloadBinary(session, userId, ncPath, tmpPath);
+        // Capped while it streams: a recording over the limit is refused at its
+        // Content-Length, or cut off, instead of filling the disk first.
+        await ncClient.downloadBinary(session, userId, ncPath, tmpPath, { maxBytes: MAX_RECORDING_BYTES });
     } catch (err) {
         safeUnlink(tmpPath);
+        if (err.code === 'download_too_large') {
+            throw new IngestError('Recording exceeds the 500 MB limit. Record audio-only or trim the file.', { code: 'recording_too_large', status: 413 });
+        }
         if (err.message === 'NOT_CONNECTED') {
             throw new IngestError('Nextcloud is not connected for this account', { code: 'not_connected', status: 400 });
         }
@@ -131,6 +186,9 @@ async function ingestNextcloudRecording(opts) {
         provider: requestedProvider, contextTerms, titleHint, userName: userNameArg,
         participantNames, source, sourceUri,
         extraStoreFields: { talkRoomToken },
+        // The core checks the dedup key again (a colleague's import can land
+        // during the download): the caller must be able to read that note too.
+        accessCtx: opts.accessCtx,
     });
 
     // Dedup (pre-existing note or a lost concurrent-ingest race).
@@ -193,6 +251,9 @@ async function postSummaryToTalk({ session, userId, orgId = null, talkRoomToken,
     }
 }
 
+// Talk actor types that are a person who can speak in a call.
+const PERSON_ACTOR_TYPES = new Set(['users', 'guests', 'federated_users']);
+
 /**
  * Fetch the real display-name roster for a Talk room (best-effort). Used to
  * anchor diarization → real-name mapping. Never throws.
@@ -216,7 +277,18 @@ async function resolveTalkParticipantNames(session, userId, talkRoomToken, orgId
         if (res?.nc_scope_denied) return [];
         if (!res || res.error || !Array.isArray(res.participants)) return [];
         const names = res.participants
-            .map((/** @type {{ displayName?: string }} */ p) => (p.displayName || '').trim())
+            // People only: a group or circle attendee ('Sales') is not a
+            // speaker, and neither is a bot. For an e-mail guest without a
+            // display name the mapper falls back to the actorId, which can be
+            // the address itself — a non-name never becomes a speaker name.
+            .filter((/** @type {{ actorType?: string }} */ p) => !p.actorType || PERSON_ACTOR_TYPES.has(p.actorType))
+            .map((/** @type {{ displayName?: string, actorType?: string, actorId?: string }} */ p) => {
+                const name = (p.displayName || '').trim();
+                if (name.includes('@')) return '';
+                // A guest's actorId is a random id, not a name.
+                if (p.actorType && p.actorType !== 'users' && name === p.actorId) return '';
+                return name;
+            })
             // Drop empty + obvious bot/system actors.
             .filter((/** @type {string} */ n) => n && !/^(bot|system|changelog)$/i.test(n));
         return Array.from(new Set(names));

@@ -74,24 +74,54 @@ export function descriptionFor(t: TranslateFn, meetingTitle: string, s: Pick<Mee
     return lines.join('\n');
 }
 
+function initialRow(s: MeetingTaskSuggestion): Row {
+    return {
+        // Done in the meeting, or already a task: not offered again by default.
+        selected: !s.done && !s.createdTaskId,
+        title: s.text.slice(0, 200),
+        assigneeId: s.suggestedAssigneeId || '',
+        dueDate: s.dueDate || '',
+        priority: 'normal',
+        description: '',
+        labels: [],
+        checklist: [],
+        aiAssignee: false,
+        improved: false,
+    };
+}
+
 function initialRows(suggestions: MeetingTaskSuggestion[]): Record<string, Row> {
-    const rows: Record<string, Row> = {};
-    for (const s of suggestions) {
-        rows[s.itemId] = {
-            // Done in the meeting, or already a task: not offered again by default.
-            selected: !s.done && !s.createdTaskId,
-            title: s.text.slice(0, 200),
-            assigneeId: s.suggestedAssigneeId || '',
-            dueDate: s.dueDate || '',
-            priority: 'normal',
-            description: '',
-            labels: [],
-            checklist: [],
-            aiAssignee: false,
-            improved: false,
-        };
+    return Object.fromEntries(suggestions.map(s => [s.itemId, initialRow(s)]));
+}
+
+/**
+ * New suggestions (a refetch after a create or another member's change) laid over the rows the person is working on:
+ * edits, AI expansions and ticks stay; an item that has just become a task is unticked, so it is not improved by accident;
+ * a new item starts fresh.
+ */
+function mergeRows(prev: Record<string, Row>, before: MeetingTaskSuggestion[], suggestions: MeetingTaskSuggestion[]): Record<string, Row> {
+    const wasMade = new Set(before.filter(s => s.createdTaskId).map(s => s.itemId));
+    return Object.fromEntries(suggestions.map((s) => {
+        const row = prev[s.itemId];
+        if (!row) return [s.itemId, initialRow(s)];
+        const justMade = !!s.createdTaskId && !wasMade.has(s.itemId);
+        return [s.itemId, justMade ? { ...row, selected: false } : row];
+    }));
+}
+
+/**
+ * The rows follow the suggestions. A refetch (after a create, or a live task event) must not wipe what the person did,
+ * so new suggestions are merged into the rows; only another meeting starts over.
+ */
+function useSuggestionRows(meetingId: string, suggestions: MeetingTaskSuggestion[]) {
+    const [rows, setRows] = useState<Record<string, Row>>({});
+    const [synced, setSynced] = useState<{ meetingId: string; suggestions: MeetingTaskSuggestion[] } | null>(null);
+    if (synced?.suggestions !== suggestions || synced.meetingId !== meetingId) {
+        const before = synced?.meetingId === meetingId ? synced.suggestions : null;
+        setSynced({ meetingId, suggestions });
+        setRows(prev => (before ? mergeRows(prev, before, suggestions) : initialRows(suggestions)));
     }
-    return rows;
+    return [rows, setRows] as const;
 }
 
 function MeetingPicker({ projectId, onPick }: { projectId: string; onPick: (id: string) => void }) {
@@ -162,10 +192,9 @@ function Suggestions({ projectId, meetingId, currentUser, onClose, onCreated }: 
     const update = useUpdateTask(projectId);
     const existing = useProjectTasksQuery(projectId).data?.tasks;
     const improve = useImproveMeetingTasks(projectId, meetingId);
-    const [rows, setRows] = useState<Record<string, Row>>({});
     const [error, setError] = useState<string | null>(null);
     const suggestions = useMemo(() => query.data?.suggestions || [], [query.data]);
-    useEffect(() => { setRows(initialRows(suggestions)); }, [suggestions]);
+    const [rows, setRows] = useSuggestionRows(meetingId, suggestions);
 
     // The AI expands the items on its own once they are there; if it cannot, the plain items are still fine to make.
     const improveNow = () => improve.mutate(undefined, {

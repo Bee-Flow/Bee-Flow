@@ -14,16 +14,24 @@ const configStore = require('../../stores/configStore');
 const { transcribeWithWhisperX, transcribeWithScaleway, toContextBias } = require('./summaryHelpers');
 const { IngestError, safeUnlink } = require('./ingestShared');
 
-const NAMED_PROVIDERS = ['voxtral', 'whisperx', 'scaleway', 'azure', 'whisper_azure', 'pyannote'];
-
-/** Provider selection: the request, then the admin config, then voxtral. */
+/**
+ * Provider selection: the request (when the workspace allows that engine),
+ * then the admin config, then voxtral. A requested engine the admin did not
+ * allow, or one this pipeline does not know, is refused with 403
+ * `provider_not_allowed` — the same answer as the upload route — instead of
+ * either reaching a third party the admin excluded or silently falling back.
+ */
 async function chooseProvider(requestedProvider, transcriptResponse) {
-    const localEnabled = (await configStore.getConfig('local_whisper_enabled')) !== false;
-    let provider = await configStore.getConfig('transcription_provider') || 'voxtral';
     const reqP = String(requestedProvider || '').trim().toLowerCase();
-    if (transcriptResponse) provider = reqP || 'platform_transcript';
-    else if (reqP === 'local' && localEnabled) provider = 'local';
-    else if (NAMED_PROVIDERS.includes(reqP)) provider = reqP;
+    // A platform transcript (Teams VTT) is not sent anywhere: no engine runs.
+    if (transcriptResponse) return reqP || 'platform_transcript';
+    const { resolveRequestedProvider } = require('./transcriptionProviderPolicy');
+    const { provider, refusal } = await resolveRequestedProvider(reqP);
+    if (refusal) {
+        throw new IngestError('That transcription engine is not enabled for this workspace.', {
+            code: 'provider_not_allowed', status: 403,
+        });
+    }
     return provider;
 }
 
@@ -39,20 +47,29 @@ async function transcribeWithVoxtral({ filePath, fileName, language, contextTerm
         throw new IngestError('Mistral API key not configured.', { code: 'missing_mistral_key', status: 400 });
     }
     const client = require('./voxtralClient').createVoxtralClient(apiKey);
-    // A File backed by the file on disk: the SDK appends it to the multipart
-    // form as-is, so the recording is read from disk while it is sent instead
-    // of being copied into memory first (it buffers a stream or Buffer whole).
-    const { contentTypeForAudio } = require('./savedAudioStore');
-    const blob = await fs.openAsBlob(filePath, { type: contentTypeForAudio(fileName) });
-    const file = new File([blob], fileName, { type: blob.type });
-    const contextBias = toContextBias(contextTerms);
-    return client.audio.transcriptions.complete({
-        model: 'voxtral-mini-2602',
-        file,
-        diarize: true, language,
-        timestampGranularities: ['segment'],
-        ...(contextBias.length ? { contextBias } : {}),
-    });
+    // Mistral does not list `.aac` among its formats: a raw ADTS recording (the
+    // phone's crash-safe format, synced into Nextcloud) goes over as .m4a, the
+    // same repack the upload and reprocess pipelines do.
+    const { asM4aIfAdts } = require('../voice/audioPreprocess');
+    const audio = await asM4aIfAdts(filePath, fileName);
+    try {
+        // A File backed by the file on disk: the SDK appends it to the multipart
+        // form as-is, so the recording is read from disk while it is sent instead
+        // of being copied into memory first (it buffers a stream or Buffer whole).
+        const { contentTypeForAudio } = require('./savedAudioStore');
+        const blob = await fs.openAsBlob(audio.path, { type: contentTypeForAudio(audio.fileName) });
+        const file = new File([blob], audio.fileName, { type: blob.type });
+        const contextBias = toContextBias(contextTerms);
+        return await client.audio.transcriptions.complete({
+            model: 'voxtral-mini-2602',
+            file,
+            diarize: true, language,
+            timestampGranularities: ['segment'],
+            ...(contextBias.length ? { contextBias } : {}),
+        });
+    } finally {
+        audio.cleanup();
+    }
 }
 
 /**

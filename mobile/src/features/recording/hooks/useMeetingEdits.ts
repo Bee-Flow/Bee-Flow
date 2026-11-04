@@ -16,7 +16,7 @@ import {
     useRenameTranscription,
     useUpdateSpeakers,
 } from './mutations';
-import { describeRegenerateOutcome } from '../model/regenerate';
+import { describeRegenerateOutcome, regenerateFailureMessage } from '../model/regenerate';
 
 export function useMeetingEdits(id: string, closeSheet: () => void) {
     const t = useTranslation();
@@ -45,7 +45,7 @@ export function useMeetingEdits(id: string, closeSheet: () => void) {
             const outcome = describeRegenerateOutcome(res);
             toast(outcome.message, outcome.kind === 'success' ? 'success' : 'neutral');
         },
-        onError: showError,
+        onError: (err: Error) => toast(regenerateFailureMessage(err, describeError(err).message), 'error'),
     });
 
     const editSpeakers = useUpdateSpeakers(id, {

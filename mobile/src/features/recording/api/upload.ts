@@ -47,6 +47,12 @@ export interface UploadInput {
     mimeType: string;
     captureMode: 'recording' | 'upload';
     settings: CaptureSettings;
+    /**
+     * The outbox entry's id ([A-Za-z0-9_-]{8,100} on the server; a UUID fits).
+     * A retry after a lost 202 answers with the first note (202 dedup: true)
+     * instead of creating a second one.
+     */
+    clientUploadId?: string;
 }
 
 interface UploadOptions {
@@ -55,12 +61,13 @@ interface UploadOptions {
 }
 
 /** The text parts beside the audio, snake_case on the wire: they are read straight off `req.body`. */
-function textParts({ captureMode, settings }: UploadInput): Record<string, string> {
+function textParts({ captureMode, settings, clientUploadId }: UploadInput): Record<string, string> {
     const parts: Record<string, string> = { capture_mode: captureMode, language: settings.language, title: settings.title };
     if (settings.contextTerms.trim()) parts.context_terms = settings.contextTerms.trim();
     if (settings.attendees.trim()) parts.attendees = settings.attendees.trim();
     const speakers = settings.numSpeakers.trim();
     if (speakers) parts.num_speakers = speakers;
+    if (clientUploadId) parts.client_upload_id = clientUploadId;
     // `provider` is deliberately never sent. The engine decides which third
     // party the meeting audio reaches, and the admin's server-side default is
     // the only answer this client has any business giving.

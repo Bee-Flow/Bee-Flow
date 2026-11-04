@@ -74,24 +74,36 @@ Return ONLY a JSON array of first names, e.g. ["Tom","Gerard"]. No explanation, 
  * without GLiNER — the exact case that left everyone as SPEAKER_0N.
  * @returns {Promise<{ callerRoster: string[], detectedRoster: string[], extractedRoster: string[], candidateRoster: string[] }>}
  */
-async function rostersFor({ participantNames, lockedNames, evidence, excerpt, language, modelId, userName }) {
+async function rostersFor({ participantNames, lockedNames, knownNames, evidence, excerpt, language, modelId, userName }) {
     const suppliedRoster = Array.isArray(participantNames) ? participantNames.filter(Boolean) : [];
     const lockedList = lockedNames ? [...new Set(Object.values(lockedNames))] : [];
-    // Voiceprint names join the CLOSED set only when the caller already
-    // supplied one. On their own they prove who IS present, never that
-    // nobody else is — so without an attendee list they go in as candidate
-    // names, which makes no completeness claim the model could over-apply.
-    const callerRoster = suppliedRoster.length
-        ? [...new Set([...suppliedRoster, ...lockedList])]
+    const knownList = Array.isArray(knownNames) ? [...new Set(knownNames.map(n => String(n || '').trim()).filter(Boolean))] : [];
+    // Locked names (voiceprint, or a name the user typed) and known names join
+    // the CLOSED set only when the caller supplied ATTENDEES besides them. On
+    // their own they prove who IS present, never that nobody else is — so they
+    // go in as candidate names, which makes no completeness claim the model
+    // could over-apply. A caller that folded the locked names into
+    // `participantNames` (and so supplied nothing else) is the same case: a
+    // set of one renamed speaker told the model the room held one person,
+    // and every other speaker was merged into them.
+    const norm = (/** @type {string} */ n) => String(n || '').trim().toLowerCase();
+    const notAttendee = new Set([...lockedList, ...knownList].map(norm));
+    const attendees = suppliedRoster.filter(n => !notAttendee.has(norm(n)));
+    const callerRoster = attendees.length
+        ? [...new Set([...suppliedRoster, ...lockedList, ...knownList])]
         : [];
     const detectedRoster = evidence?.roster || [];
     /** @type {string[]} */
     let extractedRoster = [];
-    if (!callerRoster.length && !detectedRoster.length && !lockedList.length) {
+    if (!callerRoster.length && !detectedRoster.length && !lockedList.length && !knownList.length) {
         extractedRoster = await extractIntroducedNames(excerpt, language, modelId, userName);
     }
     const candidateRoster = [...new Set([
         ...lockedList,
+        ...knownList,
+        // Supplied names that were not attendees (the locked ones folded in)
+        // are still names people use in this meeting.
+        ...(callerRoster.length ? [] : suppliedRoster),
         ...(detectedRoster.length ? detectedRoster : extractedRoster),
     ])];
     return { callerRoster, detectedRoster, extractedRoster, candidateRoster };
@@ -177,8 +189,13 @@ function sanitizeMapping(mapping, ruledOutNames) {
  * participant into the one enrolled colleague.
  *
  * @param {Array} segments Structured segments ({speaker,start,end,text}).
+ * `opts.knownNames` are names known to be in the meeting (a speaker the user
+ * renamed by hand) without any claim that nobody else is: candidates, never a
+ * closed attendee list. Pass manual names here, not in `participantNames`.
+ *
  * @param {{lockedNames?: Object<string,string>,
  *          ruledOutNames?: Object<string,string[]>,
+ *          knownNames?: string[],
  *          expectedSpeakers?: number|null}} [opts]
  * @param {string | null} [userOrgId]
  */
@@ -228,7 +245,7 @@ async function identifySpeakerNames(segments, speakerIds, language, userName, us
         const { excerpt, stats } = buildSpeakerNamingExcerpt(segments, rendered.lines, {
             nameLines: evidence?.nameLines,
         });
-        const roster = await rostersFor({ participantNames, lockedNames, evidence, excerpt, language, modelId, userName });
+        const roster = await rostersFor({ participantNames, lockedNames, knownNames: opts?.knownNames, evidence, excerpt, language, modelId, userName });
         const systemPrompt = namingSystemPrompt({
             idCount: rows.length,
             rules: rulesOf(roster.callerRoster, ruledOutNames),

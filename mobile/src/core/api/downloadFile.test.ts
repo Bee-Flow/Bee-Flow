@@ -5,7 +5,7 @@
 
 import { fetch as expoFetch } from 'expo/fetch';
 
-import { downloadToCache, safeFileName } from './downloadFile';
+import { downloadToCache, removeCachedDownload, safeFileName } from './downloadFile';
 import { setServerUrl } from './server';
 
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
@@ -149,6 +149,23 @@ describe('downloadToCache', () => {
         const out = await downloadToCache('/x', 'meeting-audio-m1', { sessionScoped: true });
         expect(out.uri).toBe('file:///cache/session/meeting-audio-m1');
         expect(mockFiles.get(out.uri)?.bytes).toEqual([4]);
+    });
+});
+
+describe('removeCachedDownload', () => {
+    it('deletes the reusable copy and its .part, so the next play asks the server again', async () => {
+        fetchMock.mockResolvedValue(response([[4]]));
+        const out = await downloadToCache('/x', 'meeting-audio-m1', { reuse: true, sessionScoped: true });
+        mockFiles.set(`${out.uri}.part`, { bytes: [1], exists: true });
+        removeCachedDownload('meeting-audio-m1', { sessionScoped: true });
+        expect(mockFiles.get(out.uri)?.exists).toBe(false);
+        expect(mockFiles.get(`${out.uri}.part`)?.exists).toBe(false);
+        await downloadToCache('/x', 'meeting-audio-m1', { reuse: true, sessionScoped: true });
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('is quiet when there is nothing to delete', () => {
+        expect(() => removeCachedDownload('never-downloaded', { sessionScoped: true })).not.toThrow();
     });
 });
 

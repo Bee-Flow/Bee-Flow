@@ -53,9 +53,14 @@ function hasRetryAfter(v: unknown): v is { retryAfter?: unknown } {
 }
 
 export function licenceMessage(err: unknown, t: TranslateFn): string | null {
+    // A coded refusal that is not about the licence (a 403 training_required,
+    // a scope refusal) is not "not part of this plan": it falls through to the
+    // caller's own error text. Only an uncoded 402/403 still reads as licence.
+    const code = errorCode(err);
+    if (code && !LICENCE_TOKENS.has(code)) return null;
     const message = String(errorMessage(err) || err || '').trim(); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- word-bounded literal alternatives: linear
     const locked = LICENCE_TOKENS.has(message)
-        || errorCode(err) === 'feature_locked' || errorCode(err) === 'tier_required'
+        || LICENCE_TOKENS.has(code ?? '')
         || errorStatus(err) === 402 || errorStatus(err) === 403
         || /\blicen[cs]e\b|\bforbidden\b/i.test(message);
     return locked

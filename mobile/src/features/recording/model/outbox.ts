@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { create } from 'zustand';
 
+import { ApiError } from '@/core/api/client';
 import { describeError } from '@/core/api/errors';
 
 import { deleteQuietly, fileExists } from './files';
@@ -58,7 +59,12 @@ interface OutboxState {
     cancel: (id: string) => void;
     /** Deletes the entry AND the audio file. Irreversible; confirm first. */
     discard: (id: string) => Promise<void>;
-    /** Retries everything that is queued or failed, one at a time. */
+    /**
+     * The reconnect drain: retries, one at a time, only the entries the person
+     * already asked to upload (`autoUpload`). Never a recording whose details
+     * are still being filled in, one kept on the phone, a cancelled upload or
+     * one the server refused for good.
+     */
     uploadAll: (onAccepted?: (note: TranscriptionAccepted) => void) => Promise<void>;
 }
 
@@ -81,6 +87,10 @@ export const useOutbox = create<OutboxState>()((set, get) => ({
     hydrate: () => hydrateOutbox(set, get),
 
     enqueue: async (input) => {
+        // One file, one entry. Two rows on one uri means the first upload's
+        // cleanup (or a discard) deletes the audio the other still needs.
+        const existing = get().items.find((item) => item.uri === input.uri);
+        if (existing) return existing;
         const entry: PendingRecording = {
             id: Crypto.randomUUID(),
             ...input,
@@ -89,6 +99,7 @@ export const useOutbox = create<OutboxState>()((set, get) => ({
             progress: 0,
             attempts: 0,
             error: null,
+            autoUpload: false,
         };
         const items = [entry, ...get().items];
         set({ items });
@@ -104,9 +115,18 @@ export const useOutbox = create<OutboxState>()((set, get) => ({
         void persist(items);
     },
 
-    upload: (id, onAccepted) => uploadEntry(set, get, id, onAccepted),
+    upload: (id, onAccepted) => {
+        // An explicit request: from now on a reconnect may retry it. Persisted
+        // now, so an app killed mid-upload still retries it after a restart.
+        patchItem(set, get, id, { autoUpload: true });
+        void persist(get().items);
+        return uploadEntry(set, get, id, onAccepted);
+    },
 
     cancel: (id) => {
+        // A cancel is the person saying "not now": the next reconnect must
+        // not quietly start it again.
+        patchItem(set, get, id, { autoUpload: false });
         inFlight.get(id)?.abort();
     },
 
@@ -124,10 +144,13 @@ export const useOutbox = create<OutboxState>()((set, get) => ({
         // one phone radio finish later than the same two in sequence, and both
         // progress bars crawl in a way that reads as "stuck".
         const pending = [...get().items]
-            .filter((item) => item.status !== 'uploading')
+            .filter((item) => item.status !== 'uploading' && item.autoUpload === true)
             .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
         for (const item of pending) {
-            await get().upload(item.id, onAccepted);
+            // Read again: the person may have cancelled it while an earlier
+            // one was uploading.
+            if (get().items.find((current) => current.id === item.id)?.autoUpload !== true) continue;
+            await uploadEntry(set, get, item.id, onAccepted);
         }
     },
 }));
@@ -177,7 +200,9 @@ async function uploadEntry(
     try {
         const { uri, fileName, mimeType, captureMode, settings } = entry;
         const note = await uploadRecording(
-            { uri, fileName, mimeType, captureMode, settings },
+            // The entry id rides along: a retry of the same recording (by hand,
+            // or useDrainOnReconnect after a lost 202) gets the first note back.
+            { uri, fileName, mimeType, captureMode, settings, clientUploadId: entry.id },
             {
                 signal: controller.signal,
                 onProgress: ({ fraction }) => {
@@ -201,10 +226,12 @@ async function uploadEntry(
         onAccepted?.(note);
     } catch (err) {
         const cancelled = controller.signal.aborted;
+        const current = get().items.find((item) => item.id === id);
         patchItem(set, get, id, {
             status: cancelled ? 'queued' : 'failed',
+            autoUpload: !cancelled && !refusedForGood(err) && current?.autoUpload === true,
             progress: 0,
-            attempts: (get().items.find((item) => item.id === id)?.attempts ?? 0) + 1,
+            attempts: (current?.attempts ?? 0) + 1,
             // describeError turns a 402 into "Plan limit reached" instead of
             // "HTTP 402" — this row is where the user reads it.
             error: cancelled ? null : describeError(err).message,
@@ -213,6 +240,16 @@ async function uploadEntry(
     } finally {
         inFlight.delete(id);
     }
+}
+
+/**
+ * A refusal that the same request will get again: a 4xx other than 401 (the
+ * session can be renewed), 408 (timeout) and 429 (slow down). Sending the
+ * whole file again on every reconnect would only burn the person's data.
+ */
+function refusedForGood(err: unknown): boolean {
+    if (!(err instanceof ApiError) || typeof err.status !== 'number') return false;
+    return err.status >= 400 && err.status < 500 && ![401, 408, 429].includes(err.status);
 }
 
 function patchItem(

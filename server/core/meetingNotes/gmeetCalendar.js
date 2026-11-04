@@ -13,12 +13,16 @@
 
 // The Google client is injected by integrations/ (see ../integrations/integrationClients.js).
 const { integrationClient } = require('../integrations/integrationClients');
+const log = require('../../telemetry/log');
 
 // Meet codes are three dash-separated lowercase groups (3-4-3), e.g.
 // `abc-defg-hij`. Accept full meet.google.com URLs (with or without scheme,
 // query, trailing path) and bare codes; anything else → null.
 const MEET_LINK_RE = /meet\.google\.com\/([a-z]{3}-[a-z]{4}-[a-z]{3})(?![a-z-])/i;
 const MEET_CODE_RE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/i;
+// Pages of 250 calendar events followed per scan (a 7-day window of a very
+// busy calendar fits many times over).
+const MAX_EVENT_PAGES = 20;
 
 /** @param {string | null | undefined} url */
 function extractMeetCode(url) {
@@ -30,11 +34,11 @@ function extractMeetCode(url) {
 }
 
 /**
- * @param {{ id?: string, iCalUID?: string, summary?: string, hangoutLink?: string,
+ * @param {{ id?: string, iCalUID?: string, recurringEventId?: string, summary?: string, hangoutLink?: string,
  *   conferenceData?: { entryPoints?: Array<{ uri?: string }> },
  *   start?: { dateTime?: string, date?: string }, end?: { dateTime?: string, date?: string },
  *   organizer?: { email?: string, self?: boolean },
- *   attendees?: Array<{ email?: string, displayName?: string, self?: boolean }> }} event  a Calendar API event
+ *   attendees?: Array<{ email?: string, displayName?: string, self?: boolean, responseStatus?: string, resource?: boolean }> }} event  a Calendar API event
  */
 function formatMeetEvent(event) {
     const meetLink = event.hangoutLink || event.conferenceData?.entryPoints?.[0]?.uri || null;
@@ -43,6 +47,9 @@ function formatMeetEvent(event) {
     return {
         eventId: event.id,
         iCalUID: event.iCalUID || null,
+        // Set on one occurrence of a recurring series: the auto-record switch
+        // then reports 'series_only' instead of arming space-wide recording.
+        recurringEventId: event.recurringEventId || null,
         title: event.summary || '(no title)',
         start: event.start?.dateTime || event.start?.date || null,
         end: event.end?.dateTime || event.end?.date || null,
@@ -52,6 +59,9 @@ function formatMeetEvent(event) {
             email: a.email,
             displayName: a.displayName || null,
             self: a.self === true,
+            // Kept so the ingest can leave out who declined and the rooms.
+            responseStatus: a.responseStatus || null,
+            resource: a.resource === true,
         })),
         meetingCode,
         meetLink,
@@ -68,15 +78,30 @@ async function listMeetEvents(session, { timeMin, timeMax }) {
         version: 'v3',
         notConnectedError: 'Not connected to Google — user must log in with Google',
     });
-    const response = await calendar.events.list({
-        calendarId: 'primary',
-        timeMin: timeMin.toISOString(),
-        timeMax: timeMax.toISOString(),
-        maxResults: 250,
-        singleEvents: true,
-        orderBy: 'startTime',
-    });
-    return (response.data?.items || []).map(formatMeetEvent).filter(Boolean);
+    // Every page, not the first 250: the order is oldest first and the Meet
+    // filter runs after the fetch, so on a busy calendar the cut dropped the
+    // NEWEST meetings — exactly the ones a "recently ended" scan is for.
+    /** @type {any[]} */
+    const items = [];
+    /** @type {string | null} */
+    let pageToken = null;
+    for (let page = 0; page < MAX_EVENT_PAGES; page++) {
+        /** @type {{ data?: { items?: any[], nextPageToken?: string | null } }} */
+        const response = await calendar.events.list({
+            calendarId: 'primary',
+            timeMin: timeMin.toISOString(),
+            timeMax: timeMax.toISOString(),
+            maxResults: 250,
+            singleEvents: true,
+            orderBy: 'startTime',
+            ...(pageToken ? { pageToken } : {}),
+        });
+        items.push(...(response.data?.items || []));
+        pageToken = response.data?.nextPageToken || null;
+        if (!pageToken) break;
+    }
+    if (pageToken) log.warn(`[GmeetCalendar] calendar window holds more than ${MAX_EVENT_PAGES * 250} events; the newest are not listed`);
+    return /** @type {any[]} */ (items.map(formatMeetEvent).filter(Boolean));
 }
 
 /**

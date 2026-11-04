@@ -46,6 +46,27 @@ function recordingsDir(): Directory {
     return dir;
 }
 
+/**
+ * A file in `dir` that does not exist yet: `fileName`, else "<stem> (2)<ext>",
+ * "<stem> (3)<ext>", … Two recordings stopped in the same minute get the same
+ * readable name, and with an overwriting move the second one silently
+ * replaced the first (and both outbox rows then pointed at one file, so the
+ * first upload's cleanup deleted the other). Nothing is ever moved over an
+ * existing file in the recordings directory.
+ */
+function freshDestination(dir: Directory, fileName: string): { file: File; name: string } {
+    const dot = fileName.lastIndexOf('.');
+    const stem = dot > 0 ? fileName.slice(0, dot) : fileName;
+    const extension = dot > 0 ? fileName.slice(dot) : '';
+    for (let n = 1; n <= 99; n += 1) {
+        const name = n === 1 ? fileName : `${stem} (${n})${extension}`;
+        const file = new File(dir, name);
+        if (!file.exists) return { file, name };
+    }
+    const name = `${stem} ${Date.now()}${extension}`;
+    return { file: new File(dir, name), name };
+}
+
 /** "Meeting 2026-08-29 14-05.aac" — what a person recognises in a file listing. */
 function meetingFileName(stamp: Date, extension: string): string {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -69,9 +90,11 @@ export function moveIntoLibrary(uri: string, durationSeconds: number, stamp: Dat
     const fileName = meetingFileName(stamp, extensionOf(uri));
     const mimeType = mimeTypeFor(uri);
     try {
-        const destination = new File(recordingsDir(), fileName);
-        source.moveSync(destination, { overwrite: true });
-        return { uri: destination.uri, fileName, mimeType, sizeBytes: destination.size, durationSeconds };
+        const { file: destination, name } = freshDestination(recordingsDir(), fileName);
+        // No `overwrite`: should the name be taken after all, the move throws
+        // and the recording stays where it is, rather than replacing another.
+        source.moveSync(destination);
+        return { uri: destination.uri, fileName: name, mimeType, sizeBytes: destination.size, durationSeconds };
     } catch {
         // The ORIGINAL is still there and still valid. Losing a meeting over a
         // filename is not an acceptable trade.
@@ -88,8 +111,8 @@ export function moveIntoLibrary(uri: string, durationSeconds: number, stamp: Dat
 export function moveIntoOutbox(uri: string, fileName: string): { uri: string; size: number } {
     const source = new File(uri);
     try {
-        const destination = new File(recordingsDir(), `${Date.now()}-${fileName}`);
-        source.moveSync(destination, { overwrite: true });
+        const { file: destination } = freshDestination(recordingsDir(), `${Date.now()}-${fileName}`);
+        source.moveSync(destination);
         return { uri: destination.uri, size: destination.size };
     } catch {
         return { uri: source.uri, size: source.exists ? source.size : 0 };

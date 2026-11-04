@@ -44,16 +44,22 @@ stub('multer', Object.assign(() => ({ single: () => (req, _res, next) => next() 
 }));
 
 let createFails = null;    // set per test: createTranscription rejects with it
+let updateResult = null;   // set per test: what updateTranscription answers (null = { id })
 const creates = [];        // createTranscription-payloads
 const updates = [];        // updateTranscription-aanroepen
+const heartbeats = [];     // heartbeatProcessing calls (note ids)
+const bySourceUri = new Map(); // notes created with a sourceUri (client_upload_id)
 stub('../../stores/transcriptionStore', {
     createTranscription: async (payload) => {
         if (createFails) throw createFails;
         creates.push(payload);
         if (payload.audioPath) savedCopies.add(payload.audioPath);
+        if (payload.sourceUri) bySourceUri.set(payload.sourceUri, { id: 't-new', user_id: payload.userId });
         return { id: 't-new', ...payload };
     },
-    updateTranscription: async (id, userId, patch) => { updates.push({ id, userId, patch }); return { id }; },
+    updateTranscription: async (id, userId, patch) => { updates.push({ id, userId, patch }); return updateResult === null ? { id } : updateResult; },
+    getTranscriptionBySourceUri: async (uri) => bySourceUri.get(uri) || null,
+    heartbeatProcessing: async (id) => { heartbeats.push(id); return true; },
 });
 // Per-test knobs for the provider selection tests below.
 const cfg = { config: {}, secrets: {} };
@@ -78,10 +84,15 @@ stub('../../auth', { resolveUserOrgIds: async () => new Set(['org-1']) });
 stub('../../auth/permissions', { requireAuth: (req, res, next) => next() });
 stub('../../stores/summaryTemplateStore', { resolveDefaultTemplate: async () => null, resolveDefaultPrompt: async () => null });
 stub('../../stores/storageStore', { getStatus: () => ({ configured: false }), isAvailable: () => false });
+const discarded = [];       // discardSavedAudio calls
 stub('../../core/meetingNotes/savedAudioStore', {
     AUDIO_SCRATCH_DIR: os.tmpdir(),
     savedAudioKey: (base) => `saved-recordings/${base}`,
     persistSavedAudioToStorage: async () => ({ ok: false, reason: 'not_configured' }),
+    discardSavedAudio: async (copies) => {
+        discarded.push(copies);
+        if (copies.audioPath) { try { fs.unlinkSync(copies.audioPath); } catch (_) {} }
+    },
 });
 
 // The PURE helpers for real, the LLM helpers stubbed. `artifactsUsable` and
@@ -89,14 +100,16 @@ stub('../../core/meetingNotes/savedAudioStore', {
 // may write, and whether it reports that, is exactly what is at stake here.
 const pure = require('../../core/meetingNotes/transcriptArtifacts');
 let artifactsResult = null;   // wat extractMeetingArtifacts teruggeeft (per test)
+const WHISPERX_OK = async () => ({
+    text: 'hallo hoi',
+    segments: [
+        { speakerId: 'speaker_0', start: 0, end: 5, text: 'hallo' },
+        { speakerId: 'speaker_1', start: 6, end: 9, text: 'hoi' },
+    ],
+});
+let whisperxImpl = WHISPERX_OK;
 stub('../../core/meetingNotes/summaryHelpers', {
-    transcribeWithWhisperX: async () => ({
-        text: 'hallo hoi',
-        segments: [
-            { speakerId: 'speaker_0', start: 0, end: 5, text: 'hallo' },
-            { speakerId: 'speaker_1', start: 6, end: 9, text: 'hoi' },
-        ],
-    }),
+    transcribeWithWhisperX: async (...a) => whisperxImpl(...a),
     transcribeWithScaleway: async () => ({ segments: [] }),
     identifySpeakerNames: async () => null,
     generateMeetingSummary: async () => 'Samenvatting van de meeting.',
@@ -188,6 +201,7 @@ test.beforeEach(() => {
     fs.writeFileSync(AUDIO_PATH, 'fake-audio-bytes');
     creates.length = 0;
     updates.length = 0;
+    heartbeats.length = 0;
     emitted.length = 0;
     target.asked.length = 0;
     target.announced.length = 0;
@@ -203,6 +217,10 @@ test.beforeEach(() => {
     azureResult = { text: 'azuretekst', truncated: null, segments: [{ speakerId: 'speaker_0', start: 0, end: 3, text: 'azure' }] };
     localImpl = async () => ({ text: 'lokaal', segments: [{ speakerId: 'speaker_0', start: 0, end: 3, text: 'lokaal' }] });
     createFails = null;
+    whisperxImpl = WHISPERX_OK;
+    updateResult = null;
+    discarded.length = 0;
+    bySourceUri.clear();
     artifactsResult = {
         actionItems: [{ id: 'ai-0', text: 'Offerte sturen', assignee: 'Tom', timestamp: '00:02', done: false }],
         decisions: [{ id: 'd-0', text: 'Besloten: plan A', timestamp: '00:03' }],
@@ -325,6 +343,15 @@ test('a finished upload announces meeting.processed once, after the note is comp
     assert.deepStrictEqual(emitted[0].tags, ['planning']);
     assert.strictEqual(emitted[0].userId, 'owner-1');
     assert.strictEqual(emitted[0].reprocessed, undefined);
+});
+
+test('the run reports between its phases and LLM passes, so the reaper measures silence and not meeting length', async () => {
+    await dispatch();
+    await waitFor(() => emitted.length > 0);
+    // After transcription, after analysis, and between the naming, summary,
+    // title, artifact and chapter passes.
+    assert.ok(heartbeats.length >= 5, `heartbeats: ${heartbeats.length}`);
+    assert.ok(heartbeats.every((id) => id === 't-new'));
 });
 
 // ═══ Characterisation: intake, provider choice, fallback, failure ═════════
@@ -515,4 +542,91 @@ test('an upload is behind the transcription-upload spend limiter (TRANSCRIPTION_
     const limiterAt = chain.findIndex((fn) => fn.limiterName === 'transcription-upload');
     const parserAt = chain.findIndex((fn) => /multer|upload|file/i.test(fn.name) || fn.name === '');
     assert.ok(limiterAt >= 0 && limiterAt < parserAt, `limiter at ${limiterAt}, parser at ${parserAt}`);
+});
+
+// ═══ Fixes: allow-list, orphans, raw errors, deleted notes, retries ═══════
+
+test('local too long never falls back to a cloud engine the admin did not allow', async () => {
+    localImpl = async () => { const e = new Error('Recording too long'); e.code = 'local_whisper_too_long'; throw e; };
+    cfg.config.transcription_provider = 'local';
+    cfg.config.transcription_providers_allowed = ['local'];
+    cfg.secrets.mistral_api_key = 'chat-key';
+    await dispatch({ body: { provider: 'local' } });
+    await waitFor(() => !!failure());
+    assert.match(failure().summary, /No cloud engine is enabled for this workspace/);
+    assert.strictEqual(providerCalls.mistralClient.length, 0, 'the recording never went to Mistral');
+    assert.strictEqual(providerCalls.voxtral.length, 0);
+});
+
+test('local too long falls back to an allowed engine only', async () => {
+    localImpl = async () => { const e = new Error('Recording too long'); e.code = 'local_whisper_too_long'; throw e; };
+    cfg.config.transcription_provider = 'local';
+    cfg.config.transcription_providers_allowed = ['local', 'whisperx'];
+    cfg.secrets.mistral_api_key = 'chat-key';
+    cfg.secrets.whisperx_url = 'http://whisperx';
+    await dispatch({ body: { provider: 'local' } });
+    await waitFor(() => !!completion());
+    assert.strictEqual(completion().provider, 'whisperx');
+    assert.strictEqual(providerCalls.voxtral.length, 0);
+});
+
+test('a failed INSERT discards the saved copies it was made for', async () => {
+    createFails = new Error('db down');
+    const res = await dispatch();
+    assert.strictEqual(res.statusCode, 500);
+    assert.strictEqual(discarded.length, 1);
+    assert.ok(discarded[0].audioPath && discarded[0].audioPath.includes('saved-recordings'));
+    assert.strictEqual(fs.existsSync(discarded[0].audioPath), false, 'no orphaned recording is left in saved-recordings');
+});
+
+test('an upstream error body never becomes the summary of a failed note', async () => {
+    whisperxImpl = async () => {
+        throw new Error('WhisperX service error (500): Traceback\n  File "/srv/app/main.py"\nConnectionError: postgres://whisper:pw@10.2.3.4/jobs');
+    };
+    await dispatch();
+    await waitFor(() => !!failure());
+    assert.strictEqual(failure().summary, 'Transcription failed: WhisperX service error (500)');
+});
+
+test('a note deleted while processing is not announced as processed', async () => {
+    updateResult = false;   // the store's answer when the row is gone
+    await dispatch();
+    await waitFor(() => !!completion());
+    await new Promise((r) => setTimeout(r, 20));
+    assert.strictEqual(emitted.length, 0);
+});
+
+test('the completion writes the artifacts through the window, and announces the tags the note really has', async () => {
+    updateResult = { ok: true, actionItems: [], decisions: [], questions: [], tags: ['klant-x'] };
+    await dispatch();
+    await waitFor(() => emitted.length > 0);
+    assert.strictEqual(completion().artifactsSince, '1970-01-01T00:00:00.000000Z',
+        'an item ticked or added while processing survives the AI lists');
+    assert.deepStrictEqual(emitted[0].tags, ['klant-x']);
+});
+
+test('a retry with the same client_upload_id answers with the first note, without a second note or transcription', async () => {
+    const body = { capture_mode: 'recording', client_upload_id: 'outbox-1234-abcd' };
+    const first = await dispatch({ body });
+    assert.strictEqual(first.statusCode, 202);
+    assert.strictEqual(creates[0].sourceUri, 'upload://owner-1/outbox-1234-abcd');
+    await waitFor(() => !!completion());
+
+    fs.writeFileSync(AUDIO_PATH, 'fake-audio-bytes');
+    const again = await dispatch({ body });
+    assert.strictEqual(again.statusCode, 202);
+    assert.strictEqual(again.body.id, 't-new');
+    assert.strictEqual(again.body.dedup, true);
+    assert.strictEqual(creates.length, 1, 'no second note');
+    assert.strictEqual(fs.existsSync(AUDIO_PATH), false, 'the repeated upload is not left on disk');
+});
+
+test('a malformed client_upload_id is refused, not silently ignored', async () => {
+    const { validate } = require('../../core/http/validate');
+    assert.ok(validate);
+    const chain = router.stack.find((l) => l.route && l.route.path === '/').route.stack.map((l) => l.handle);
+    const validator = chain[chain.length - 2];
+    let err = null;
+    validator({ body: { client_upload_id: 'a b' }, query: {}, params: {} }, {}, (e) => { err = e; });
+    assert.ok(err && err.status === 400);
 });

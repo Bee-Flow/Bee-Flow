@@ -35,11 +35,13 @@ export interface UpcomingRowProps {
     busy: boolean;
     overridden: boolean;
     error: unknown;
+    /** What the switch did to Meet's own auto-recording, when the person must know it. */
+    notice?: string;
     onToggle: () => void;
     onOpenNote: (id: string) => void;
 }
 
-export function UpcomingRow({ row, talkMode, busy, overridden, error, onToggle, onOpenNote }: UpcomingRowProps) {
+export function UpcomingRow({ row, talkMode, busy, overridden, error, notice, onToggle, onOpenNote }: UpcomingRowProps) {
     const t = useTranslation();
     const m = row.meeting;
     const record = !m.excluded;
@@ -86,6 +88,10 @@ export function UpcomingRow({ row, talkMode, busy, overridden, error, onToggle, 
                     {error ? (
                         <Text variant="caption" tone="error">
                             {describeError(error).message}
+                        </Text>
+                    ) : notice ? (
+                        <Text variant="caption" tone="tertiary">
+                            {notice}
                         </Text>
                     ) : null}
                 </View>

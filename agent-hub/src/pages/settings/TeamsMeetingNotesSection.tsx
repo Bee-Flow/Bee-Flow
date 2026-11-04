@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import { Toggle, Row, LANGS } from './shared/settingsPrimitives';
+import { Toggle, Row, languageOptions } from './shared/settingsPrimitives';
 import { openMicrosoftOAuthPopup } from '../../api/microsoftOAuthPopup';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import {
@@ -18,8 +18,9 @@ const DEFAULT_CFG: TeamsNotesSettings = { autoImport: false, autoRecordConfig: f
  * Personal Microsoft Teams → Meeting Notes settings. Self-hides while loading,
  * when Meeting Notes is not licensed for this account (the settings request
  * fails) and when Microsoft 365 is not connected. Connected without the Teams
- * permissions → a reconnect prompt instead of the rows. The organisation's
- * settings, where set, win per field.
+ * permissions, or a stored connection that expired (needs reauth) → a reconnect
+ * prompt instead of the rows. The organisation's settings, where set, win per
+ * field.
  */
 export default function TeamsMeetingNotesSection() {
     const { t } = useTranslation();
@@ -34,9 +35,12 @@ export default function TeamsMeetingNotesSection() {
     const [reauthing, setReauthing] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string | undefined } | null>(null);
 
-    const data = query.data;
-    if (query.isLoading || query.error || !data?.connection?.microsoftConnected) return null;
-    const { connection } = data;
+    const connection = query.data?.connection;
+    // A stored credential that needs reauth (and no live Microsoft session)
+    // arrives as connected=false plus needsReauth: offer the reconnect then
+    // instead of hiding the section, so the person sees why imports stopped.
+    const expired = !!connection && !connection.microsoftConnected && !!connection.needsReauth;
+    if (query.isLoading || query.error || !connection || (!connection.microsoftConnected && !expired)) return null;
 
     const onSave = async () => {
         setMessage(null);
@@ -75,10 +79,12 @@ export default function TeamsMeetingNotesSection() {
                 {t('settings.teams_notes_intro', 'Turn the Teams meetings you organise into Meeting Notes — Bee Flow transcribes the Teams recording itself. Per-meeting toggles live in the Upcoming tab of Meeting Notes. Your organisation’s settings, where set, take precedence.')}
             </p>
 
-            {!connection.teamsScopesGranted ? (
+            {expired || !connection.teamsScopesGranted ? (
                 <div className="rounded-xl px-5 py-4 border bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] border-[color-mix(in_srgb,var(--warning)_35%,transparent)]">
                     <p className="text-[12px] text-[var(--warning-ink)]">
-                        {t('settings.teams_notes_reconsent', 'Your Microsoft 365 account is connected, but Meeting Notes needs extra Teams permissions to import your meeting recordings. Reconnect to grant them — your Outlook and OneDrive access is kept. Your Microsoft 365 admin may need to approve them.')}
+                        {expired
+                            ? t('settings.teams_notes_expired', 'Your Microsoft 365 connection has expired, so Meeting Notes cannot import your Teams recordings. Reconnect to continue — your settings are kept.')
+                            : t('settings.teams_notes_reconsent', 'Your Microsoft 365 account is connected, but Meeting Notes needs extra Teams permissions to import your meeting recordings. Reconnect to grant them — your Outlook and OneDrive access is kept. Your Microsoft 365 admin may need to approve them.')}
                     </p>
                     <button
                         type="button" onClick={reauthorize} disabled={reauthing}
@@ -126,7 +132,7 @@ export default function TeamsMeetingNotesSection() {
                                 aria-label={t('settings.teams_notes_language', 'Default language')}
                                 className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                             >
-                                {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                                {languageOptions(cfg.language || 'nl').map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
                             </select>
                         </Row>
                     </div>

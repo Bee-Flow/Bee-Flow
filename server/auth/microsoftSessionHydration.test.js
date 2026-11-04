@@ -157,3 +157,17 @@ test('shared mailbox: the login session stays when it already has the scopes, re
     assert.strictEqual(await resolveMicrosoftSession(narrow, null, { needsSharedMailbox: true }), narrow,
         'then the tool answers with the reconnect message');
 });
+
+// ── Any feature can name the scopes it needs ────────────────────────────────
+
+test('scopeSatisfies: a login from before a reconnect gives way to the vault grant that has the scopes', async () => {
+    const hasTeams = (scope) => /OnlineMeetingRecording\.Read\.All/.test(String(scope || ''));
+    credFixture = { userId: 'u1', orgId: 'o1', accessToken: 'vault-at', refreshToken: 'vault-rt', scope: 'Calendars.ReadWrite OnlineMeetingRecording.Read.All' };
+    const sso = { user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'old-at', oauthScope: 'openid Mail.Read Calendars.ReadWrite' };
+    const used = await resolveMicrosoftSession(sso, 'u1', { scopeSatisfies: hasTeams });
+    assert.strictEqual(used.accessToken, 'vault-at');
+    assert.strictEqual(sso.accessToken, 'old-at', 'the login session is left alone');
+
+    const granted = { user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'sso-at', oauthScope: 'OnlineMeetingRecording.Read.All' };
+    assert.strictEqual(await resolveMicrosoftSession(granted, 'u1', { scopeSatisfies: hasTeams }), granted);
+});

@@ -64,16 +64,17 @@ function teamsSourceUri({ orgId, userId, meetingId, artifactKind, artifactId }) 
 
 /**
  * @param {{ userId: string, session: import('../../integrations/msGraphClient').MsSession, orgId?: string|null, meetingId: string,
- *   artifact: { kind: 'recording'|'transcript', id: string }, title?: string|null, language?: string,
+ *   artifact: { kind: 'recording'|'transcript', id: string, extraRecordings?: number }, title?: string|null, language?: string,
+ *   meetingStart?: string|Date|null,
  *   contextTerms?: string, attendees?: Array<{email?: string|null, displayName?: string|null}>,
  *   accessCtx?: import('../../stores/transcription/acl').ReadAclCtx }} opts `session`: Microsoft session or shim; `meetingId`: Graph onlineMeeting
  *   id; `title`: calendar subject (title hint); `accessCtx`: for a dedup hit the caller must be able to
- *   read
+ *   read; `meetingStart`: when the meeting took place (anchors relative deadlines)
  */
 async function ingestTeamsMeeting(opts) {
     const {
         userId, session, orgId = null, meetingId, artifact,
-        title = null, language = 'nl', contextTerms = '', attendees = [],
+        title = null, language = 'nl', contextTerms = '', attendees = [], meetingStart = null,
     } = opts || {};
 
     if (!userId) throw ingestError('userId is required', { code: 'failed', status: 400 });
@@ -95,6 +96,10 @@ async function ingestTeamsMeeting(opts) {
         titleHint: title, participantNames,
         source: 'teams', sourceUri,
         extraStoreFields: { sharedWith },
+        // The core checks the dedup key again just before it saves.
+        accessCtx: opts.accessCtx,
+        meetingDate: meetingStart,
+        extraRecordings: Number(artifact.extraRecordings) || 0,
     };
 
     if (artifact.kind === 'transcript') {

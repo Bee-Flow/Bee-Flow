@@ -1,6 +1,7 @@
 import { applyDestination } from '../lib/actionDestinations';
 import * as api from '@/api/transcriptionsApi';
 import { appendArtifact } from '../lib/transcriptLines';
+import { actionItemKey } from './actionItemKey';
 import type { MeetingActionItem, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
 
 export interface MeetingEditDeps {
@@ -12,6 +13,10 @@ export interface MeetingEditDeps {
     offerRegenerate: () => void;
     /** Toast for the one failure that has to be said out loud (destination). */
     notifyDestinationNotSaved: () => void;
+    /** Toast for a checkbox or an edited sentence the server refused. */
+    notifyNoteNotSaved?: () => void;
+    /** The tags changed on the server: what picks this meeting up may have changed too. */
+    onTagsSaved?: () => void;
 }
 
 const actionCounts = (list: MeetingActionItem[]) => ({ actionsTotal: list.length, actionsOpen: list.filter((ai) => !ai.done).length });
@@ -21,7 +26,7 @@ const actionCounts = (list: MeetingActionItem[]) => ({ actionsTotal: list.length
  * list and the speakers. Every one updates the screen first and falls back to
  * a refetch when the PATCH fails.
  */
-export default function useMeetingEdits({ data, setLocal, refresh, onChanged, offerRegenerate, notifyDestinationNotSaved }: MeetingEditDeps) {
+export default function useMeetingEdits({ data, setLocal, refresh, onChanged, offerRegenerate, notifyDestinationNotSaved, notifyNoteNotSaved, onTagsSaved }: MeetingEditDeps) {
     const handleRename = async (title: string) => {
         if (!data) return;
         setLocal((p) => ({ ...p, title }));
@@ -34,7 +39,15 @@ export default function useMeetingEdits({ data, setLocal, refresh, onChanged, of
     const saveTags = async (next: string[]) => {
         if (!data) return;
         setLocal((p) => ({ ...p, tags: next }));
-        try { await api.patchTranscription(data.id, { tags: next }); onChanged?.(data.id, { tags: next }); } catch { refresh(); }
+        try {
+            const res = await api.patchTranscription(data.id, { tags: next });
+            // The server's answer wins here too: it trims each tag to 80
+            // characters, dedupes and keeps the first 50, and echoes that.
+            const saved: string[] = Array.isArray(res?.tags) ? res.tags : next;
+            if (saved !== next) setLocal((p) => ({ ...p, tags: saved }));
+            onChanged?.(data.id, { tags: saved });
+            onTagsSaved?.();
+        } catch { refresh(); }
     };
     const handleAddTag = async (tag: string) => { if (data) await saveTags([...(data.tags || []), tag]); };
     const handleRemoveTag = async (tag: string) => { if (data) await saveTags((data.tags || []).filter((x) => x !== tag)); };
@@ -75,24 +88,29 @@ export default function useMeetingEdits({ data, setLocal, refresh, onChanged, of
             }
             return true;
         } catch {
+            // Put the rail's counts back as well: the refetch below only
+            // reaches the detail, and the row would keep the optimistic count.
+            onChanged?.(data.id, actionCounts(data.actionItems || []));
             refresh();
             return false;
         }
     };
 
-    const updateItem = (itemId: string | undefined, patch: (ai: MeetingActionItem) => MeetingActionItem) =>
-        (data?.actionItems || []).map((ai) => (ai.id === itemId ? patch(ai) : ai));
+    // By actionItemKey, the same handle ActionItemsList hands back: matching
+    // `ai.id === itemId` made every id-less legacy item match `undefined`.
+    const updateItem = (itemKey: string | undefined, patch: (ai: MeetingActionItem) => MeetingActionItem) =>
+        (data?.actionItems || []).map((ai, i) => (itemKey !== undefined && actionItemKey(ai, i) === itemKey ? patch(ai) : ai));
 
-    const handleToggleActionItem = async (itemId: string | undefined) => {
+    const handleToggleActionItem = async (itemKey: string | undefined) => {
         if (!data) return;
-        await saveActionItems(updateItem(itemId, (ai) => ({ ...ai, done: !ai.done })));
+        if (!(await saveActionItems(updateItem(itemKey, (ai) => ({ ...ai, done: !ai.done }))))) notifyNoteNotSaved?.();
     };
 
-    const handleEditActionItem = async (itemId: string | undefined, nextText: string) => {
+    const handleEditActionItem = async (itemKey: string | undefined, nextText: string) => {
         if (!data) return;
         const cleaned = String(nextText || '').trim();
         if (!cleaned) return;
-        await saveActionItems(updateItem(itemId, (ai) => ({ ...ai, text: cleaned })));
+        if (!(await saveActionItems(updateItem(itemKey, (ai) => ({ ...ai, text: cleaned }))))) notifyNoteNotSaved?.();
     };
 
     /**
@@ -102,9 +120,11 @@ export default function useMeetingEdits({ data, setLocal, refresh, onChanged, of
      * that has to be said out loud: the automation ran, and the note lost the
      * chip that says so.
      */
-    const handleSetActionDestination = async (itemId: string | undefined, destination: unknown) => {
+    const handleSetActionDestination = async (itemKey: string | undefined, destination: unknown) => {
         if (!data) return;
-        const ok = await saveActionItems(applyDestination(data.actionItems || [], itemId, destination));
+        // applyDestination on the one item the key names (a one-item list
+        // matches on that item's own id, even when it has none).
+        const ok = await saveActionItems(updateItem(itemKey, (ai) => applyDestination([ai], ai.id, destination)[0]));
         if (!ok) notifyDestinationNotSaved();
     };
 

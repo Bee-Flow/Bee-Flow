@@ -63,7 +63,7 @@ const { nextRunFor } = require('../../scheduling/nextRun');
 /**
  * @typedef {{ source: KbSource, kb: Record<string, any>, tenantId: string, kbId: string, reason: string,
  *   maxItems: number, deadline: number, now: () => number, log: (...a: unknown[]) => void,
- *   relatedTables?: Record<string, number> }} SyncCtx
+ *   relatedTables?: Record<string, number>, partial?: boolean }} SyncCtx
  */
 /** @typedef {{ externalId: string }} SourceItem */
 /**
@@ -75,7 +75,7 @@ const { nextRunFor } = require('../../scheduling/nextRun');
  * @typedef {{ enumerate: (source: KbSource, ctx: SyncCtx, deps: SyncDeps) => Promise<SourceItem[]>,
  *   isUnchanged: (item: SourceItem, stored: Record<string, any>) => boolean,
  *   fetch: (item: SourceItem, stored: Record<string, any> | null, ctx: SyncCtx, deps: SyncDeps) => Promise<FetchedDoc | null>,
- *   dedupe?: boolean }} SourceAdapter
+ *   dedupe?: boolean, maxItems?: number }} SourceAdapter
  */
 
 /** @type {Record<string, SourceAdapter>} */
@@ -87,6 +87,7 @@ const ADAPTERS = {
     datatable: require('./datatable'),
 };
 const log = require('../../../telemetry/log');
+const { removeUnseenDocuments, labelDocuments } = require('./syncFinish');
 
 /** Kinds this engine can refresh today. K7–K10 register theirs here. */
 function supportedKinds() {
@@ -219,7 +220,9 @@ async function syncSource(source, opts = {}) {
         return { ...counts, skipped: 'kind_unsupported', nextRefreshAt: null };
     }
 
-    const ctx = makeCtx(source, kb, opts);
+    // An adapter that enumerates more than the default on purpose (every
+    // meeting under a tag) says so; a caller's explicit cap still wins.
+    const ctx = makeCtx(source, kb, { ...opts, maxItems: opts.maxItems || adapter.maxItems });
     const { byExternalId, unmatchable } = await indexStoredDocuments(kb.id, source.id, deps);
     const seen = new Set();
     /**
@@ -331,23 +334,7 @@ async function syncSource(source, opts = {}) {
         }
     }
 
-    // Gone: stored, still matchable, and the source no longer offers it.
-    // Only when the pass actually COMPLETED — a cancelled or truncated pass
-    // saw part of the source, and "I did not look" must never read as "it is
-    // not there any more".
-    const complete = !counts.cancelled && !counts.truncated;
-    if (complete) {
-        for (const [externalId, doc] of byExternalId) {
-            if (seen.has(externalId)) continue;
-            try {
-                await deps.helpers.deleteDocumentChunks(kb.id, doc.id, ctx.tenantId, { skipSnapshot: true });
-                counts.removed += 1;
-            } catch (e) {
-                counts.failed += 1;
-                ctx.log(`source ${source.id} delete ${doc.id} failed: ${/** @type {Error} */ (e).message}`);
-            }
-        }
-    }
+    await removeUnseenDocuments(ctx, { byExternalId, seen, counts }, deps);
 
     if (unmatchable.length) {
         ctx.log(`source ${source.id}: ${unmatchable.length} document(s) predate the source model and were left alone`);
@@ -392,43 +379,6 @@ async function syncSource(source, opts = {}) {
     }
 
     return { ...counts, nextRefreshAt: nextRefreshFor(source, { consecutiveErrors: 0 }) };
-}
-
-/** How many summaries may be in flight at once. */
-const SUMMARY_CONCURRENCY = 3;
-
-/**
- * Write the "what the AI took from it" line for the documents this pass
- * touched.
- *
- * Bounded concurrency, and every failure swallowed: a label is a nicety and
- * the documents are already stored and searchable without one. A refresh that
- * failed because a summariser was rate-limited would be a refresh that failed
- * for no reason the person would accept.
- * @param {Array<{ docId: string, text: string, title: string }>} items
- * @param {SyncCtx} ctx
- * @param {SyncDeps} deps
- */
-async function labelDocuments(items, ctx, deps) {
-    if (!items.length) return;
-    const summariser = deps.extractSummary || require('../extractSummary');
-    let cursor = 0;
-    const workers = Array.from({ length: Math.min(SUMMARY_CONCURRENCY, items.length) }, async () => {
-        for (;;) {
-            const i = cursor++;
-            if (i >= items.length) return;
-            const item = items[i];
-            // Between labels, so a cancelled refresh stops summarising too.
-            if (await deps.kbSourcesStore.isCancelRequested(ctx.source.id)) return;
-            try {
-                const r = await summariser.summarise({ text: item.text, title: item.title });
-                if (r?.summary) await deps.kbStore.replaceDocumentContent(item.docId, { extractSummary: r.summary });
-            } catch (e) {
-                ctx.log(`summary for ${item.docId} skipped: ${/** @type {Error} */ (e).message}`);
-            }
-        }
-    });
-    await Promise.all(workers);
 }
 
 module.exports = {

@@ -1,11 +1,20 @@
 // @typecheck
 /**
- * Narrow reads that never touch content columns: the rows behind on-disk
- * recordings, the dedup and meetings-view lookups by source, Talk room and
- * Meet code, and the "previously in this series" card.
+ * Narrow reads: the rows behind on-disk recordings, the dedup and
+ * meetings-view lookups by source, Talk room and Meet code, and the
+ * "previously in this series" card. Only that card reads a content column
+ * (`summary`), and it opens it through transcriptCrypto like every other
+ * content read.
+ *
+ * transcriptCrypto is required here directly, not handed in by the barrel the
+ * way reads.js gets it: it sits in no import cycle
+ * (`node scripts/scc-ratchet.mjs server --list`), and lint:scc-ratchet would
+ * fail if this edge closed one again.
  */
 
 const { getOne, getAll } = require('../../db');
+const log = require('../../telemetry/log');
+const transcriptCrypto = require('../transcriptCrypto');
 const { initDB } = require('./schema');
 const { parseJsonArray } = require('./jsonArrays');
 
@@ -43,43 +52,93 @@ async function getTranscriptionBySourceUri(sourceUri) {
 }
 
 /**
- * Most recent transcription created from a given Talk room token (used by the
- * "Upcoming meetings" view to show a "recorded → note" status). Scoped to the
- * owner so the meetings view only reflects the current user's notes.
+ * The SQL for a series lookup (Talk room token or Meet code): owner-scoped
+ * when a user is given, and limited to ONE occurrence when `since` is.
+ *
+ * A room token and a Meet code belong to the whole series: a weekly stand-up
+ * keeps them every week. Matched on that alone, week 2 found week 1's note,
+ * so the meetings views showed every later occurrence as "Note created"
+ * (linked to the old note) and hid its Transcribe button. A note is made after
+ * its meeting starts, so `since` (the occurrence's start) rules out the notes
+ * of earlier occurrences; the oldest note from then on is this occurrence's.
+ * Without `since` it stays "the newest note of the series".
+ * @param {'talk_room_token' | 'meet_meeting_code'} column
+ * @param {string} value
+ * @param {string | null} userId
+ * @param {string | Date | null | undefined} since
  */
-async function getTranscriptionByTalkRoomToken(talkRoomToken, userId = null) {
-    if (!talkRoomToken) return null;
-    await initDB();
+function seriesLookup(column, value, userId, since) {
+    /** @type {string[]} */
+    const params = [value];
+    const where = [`${column} = $1`];
     if (userId) {
-        return getOne(
-            'SELECT id, user_id, title, created_at FROM transcriptions WHERE talk_room_token = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1',
-            [talkRoomToken, userId],
-        );
+        params.push(userId);
+        where.push(`user_id = $${params.length}`);
+    }
+    const sinceDate = since ? new Date(since) : null;
+    const scoped = !!sinceDate && !Number.isNaN(sinceDate.getTime());
+    if (scoped) {
+        params.push(/** @type {Date} */ (sinceDate).toISOString());
+        where.push(`created_at >= $${params.length}::timestamptz`);
     }
     return getOne(
-        'SELECT id, user_id, title, created_at FROM transcriptions WHERE talk_room_token = $1 ORDER BY created_at DESC LIMIT 1',
-        [talkRoomToken],
+        `SELECT id, user_id, title, created_at FROM transcriptions WHERE ${where.join(' AND ')} ORDER BY created_at ${scoped ? 'ASC' : 'DESC'} LIMIT 1`,
+        params,
     );
 }
 
 /**
- * Most recent transcription created from a given Google Meet meeting code.
- * Mirrors getTranscriptionByTalkRoomToken — owner-scoped so the meetings view
- * only reflects the current user's notes.
+ * The transcription created from a given Talk room token (used by the
+ * "Upcoming meetings" view to show a "recorded → note" status). Scoped to the
+ * owner so the meetings view only reflects the current user's notes. Pass
+ * `since` (the occurrence's start) to get that occurrence's note; see
+ * seriesLookup.
+ * @param {string | null | undefined} talkRoomToken
+ * @param {string | null} [userId]
+ * @param {{ since?: string | Date | null }} [opts]
  */
-async function getTranscriptionByMeetMeetingCode(meetingCode, userId = null) {
+async function getTranscriptionByTalkRoomToken(talkRoomToken, userId = null, { since = null } = {}) {
+    if (!talkRoomToken) return null;
+    await initDB();
+    return seriesLookup('talk_room_token', talkRoomToken, userId, since);
+}
+
+/**
+ * The transcription created from a given Google Meet meeting code.
+ * Mirrors getTranscriptionByTalkRoomToken — owner-scoped so the meetings view
+ * only reflects the current user's notes, and `since` for one occurrence.
+ * @param {string | null | undefined} meetingCode
+ * @param {string | null} [userId]
+ * @param {{ since?: string | Date | null }} [opts]
+ */
+async function getTranscriptionByMeetMeetingCode(meetingCode, userId = null, { since = null } = {}) {
     if (!meetingCode) return null;
     await initDB();
-    if (userId) {
-        return getOne(
-            'SELECT id, user_id, title, created_at FROM transcriptions WHERE meet_meeting_code = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1',
-            [meetingCode, userId],
-        );
+    return seriesLookup('meet_meeting_code', meetingCode, userId, since);
+}
+
+/**
+ * The summary of a series row, opened. `summary` is sealed whenever the
+ * note's organisation encrypts transcripts, and the key is that row's own
+ * organisation's (a series row may be published from another org the reader
+ * belongs to). Returned raw, the card showed the head of the ciphertext
+ * envelope. A row that will not open gives '' rather than failing the card:
+ * the note itself still throws when opened, which is where that belongs.
+ * @param {{ id: string, organization_id?: string | null, summary?: string | null }} r
+ * @returns {Promise<string>}
+ */
+async function openSummary(r) {
+    if (!r.summary) return '';
+    try {
+        const ctx = r.organization_id
+            ? await transcriptCrypto.resolveTranscriptCrypto(r.organization_id)
+            : transcriptCrypto.PLAINTEXT_CONTEXT;
+        const opened = transcriptCrypto.decryptRow({ id: r.id, summary: r.summary }, ctx);
+        return typeof opened.summary === 'string' ? opened.summary : '';
+    } catch (e) {
+        log.warn(`[TranscriptionStore] Series summary of '${r.id}' could not be opened: ${/** @type {Error} */ (e).message}`);
+        return '';
     }
-    return getOne(
-        'SELECT id, user_id, title, created_at FROM transcriptions WHERE meet_meeting_code = $1 ORDER BY created_at DESC LIMIT 1',
-        [meetingCode],
-    );
 }
 
 /**
@@ -114,7 +173,7 @@ async function getSeriesPrevious({ meetMeetingCode = null, talkRoomToken = null,
     }
 
     const r = await getOne(
-        `SELECT id, title, created_at, summary, action_items
+        `SELECT id, organization_id, title, created_at, summary, action_items
          FROM transcriptions
          WHERE ${seriesClause} AND status = 'completed' AND ${beforeClause} AND ${excludeClause} AND ${aclClause}
          ORDER BY created_at DESC LIMIT 1`,
@@ -126,7 +185,7 @@ async function getSeriesPrevious({ meetMeetingCode = null, talkRoomToken = null,
         id: r.id,
         title: r.title,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
-        summary: r.summary || '',
+        summary: await openSummary(r),
         openActionItems: actionItems.filter((a) => a && !a.done),
     };
 }

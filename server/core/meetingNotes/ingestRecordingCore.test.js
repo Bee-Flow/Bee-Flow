@@ -51,6 +51,11 @@ const fx = {
     actionItems: [{ text: 'Doe iets', assignee: 'Tom' }],
     artifactsFailed: false,  // de artefactpass viel om / was niet te parsen
     chapters: [{ title: 'Opening', start: '00:00' }],
+    titleInputs: [],         // generateMeetingTitle spy (its summary argument)
+    artifactOpts: [],        // extractMeetingArtifacts spy (its options)
+    summaryOverride: undefined,
+    onDownload: null,        // runs inside downloadBinary (a colleague's import landing mid-download)
+    rosterOverride: null,
 };
 
 function resetFx() {
@@ -70,6 +75,13 @@ function resetFx() {
     fx.identifyCalls.length = 0;
     fx.talkCalls.length = 0;
     fx.ncScopeDenies = false;
+    fx.titleInputs = [];
+    fx.artifactOpts = [];
+    fx.summaryOverride = undefined;
+    fx.onDownload = null;
+    fx.rosterOverride = null;
+    fx.onTranscribe = null;
+    fx.downloadError = null;
 }
 
 function fmt(s) {
@@ -90,6 +102,7 @@ const MOCKS = {
         toContextBias: realHelpers.toContextBias,
         transcribeWithWhisperX: async (filePath, fileName, language, contextTerms) => {
             fx.transcribeCalls.push({ filePath, fileName, language, contextTerms });
+            if (fx.onTranscribe) fx.onTranscribe();
             if (fx.transcribeError) throw fx.transcribeError;
             return fx.whisperResponse;
         },
@@ -97,9 +110,9 @@ const MOCKS = {
             fx.identifyCalls.push({ speakerIds, language, userName, orgId, participantNames });
             return fx.nameMapping;
         },
-        generateMeetingSummary: async () => fx.summary,
-        generateMeetingTitle: async () => fx.aiTitle,
-        extractMeetingArtifacts: async () => (fx.artifactsFailed
+        generateMeetingSummary: async () => (fx.summaryOverride !== undefined ? fx.summaryOverride : fx.summary),
+        generateMeetingTitle: async (summary) => { fx.titleInputs.push(summary); return fx.aiTitle; },
+        extractMeetingArtifacts: async (_t, _l, _o, opts) => { fx.artifactOpts.push(opts); return (fx.artifactsFailed
             // The REAL shared failure value, not a self-invented form:
             // a stub that invents its own 'failed' proves nothing about
             // what the pipeline does with the real one.
@@ -110,7 +123,7 @@ const MOCKS = {
                 questions: fx.questions || [],
                 tags: fx.autoTags || [],
                 ok: true,
-            }),
+            }); },
         artifactsUsable: realHelpers.artifactsUsable,
         ARTIFACTS_FAILED: realHelpers.ARTIFACTS_FAILED,
         generateChapters: async () => fx.chapters,
@@ -120,7 +133,7 @@ const MOCKS = {
         buildPipelineNotices: realHelpers.buildPipelineNotices,
         formatTime: fmt,
         // Fresh objects per call — the pipeline mutates merged/speakers in place.
-        buildTranscriptArtifacts: () => ({
+        buildTranscriptArtifacts: (segments) => (fx.realBuild ? realHelpers.buildTranscriptArtifacts(segments) : {
             merged: [
                 { speaker: 'speaker_0', speakerId: 'speaker_0', start: 0, end: 5, text: 'hallo' },
                 { speaker: 'speaker_1', speakerId: 'speaker_1', start: 5, end: 9, text: 'hoi' },
@@ -171,9 +184,11 @@ const MOCKS = {
         resolveDefaultPrompt: async () => (fx.defaultTemplate ? fx.defaultTemplate.prompt : null),
     },
     '../../integrations/nextcloudClient': {
-        downloadBinary: async (session, userId, ncPath, destPath) => {
-            fx.downloads.push({ ncPath, destPath });
+        downloadBinary: async (session, userId, ncPath, destPath, opts) => {
+            fx.downloads.push({ ncPath, destPath, opts });
+            if (fx.downloadError) throw fx.downloadError;
             fs.writeFileSync(destPath, 'fake-audio-bytes');
+            if (fx.onDownload) await fx.onDownload();
         },
     },
     // The write-back now passes the per-user Nextcloud scope guard, whose real
@@ -191,7 +206,7 @@ const MOCKS = {
     '../../integrations/nextcloudTalkTools': {
         executeNextcloudTalkTool: async (tool, args) => {
             fx.talkCalls.push({ tool, args });
-            if (tool === 'nextcloud_talk_list_participants') return { participants: fx.roster };
+            if (tool === 'nextcloud_talk_list_participants') return { participants: fx.rosterOverride || fx.roster };
             return {};
         },
     },
@@ -210,7 +225,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /meetingNotes[\\/]ingest(NextcloudRecording|RecordingCore|Transcription)\.js$/.test(parent.filename)
+    if (parent && /meetingNotes[\\/](ingest(NextcloudRecording|RecordingCore|Transcription|OwnerDefaults)|transcriptionProviderPolicy)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -336,6 +351,37 @@ test('parity: pre-existing sourceUri short-circuits before download', async () =
     assert.strictEqual(fx.downloads.length, 0);
     assert.strictEqual(fx.transcribeCalls.length, 0);
     assert.strictEqual(fx.creates.length, 0);
+});
+
+test('the download is capped at the recording limit; a cut-off is a classified 413', async () => {
+    resetFx();
+    fx.downloadError = Object.assign(new Error('The file is larger than the 500 MB download limit.'), { code: 'download_too_large' });
+    await assert.rejects(
+        () => ingestNextcloudRecording({ userId: 'u1', session: {}, ncPath: '/Recordings/huge.mp4' }),
+        (err) => err instanceof IngestError && err.code === 'recording_too_large' && err.status === 413,
+    );
+    assert.strictEqual(fx.downloads[0].opts.maxBytes, 500 * 1024 * 1024);
+    assert.strictEqual(fx.transcribeCalls.length, 0);
+});
+
+test('a second request for a recording that is still being imported waits and answers with its note', async () => {
+    resetFx();
+    let release;
+    const downloading = new Promise((resolve) => { release = resolve; });
+    fx.onDownload = () => downloading;
+    const args = { userId: 'u1', session: {}, ncPath: '/Recordings/standup.mp4' };
+    const first = ingestNextcloudRecording(args);
+    await new Promise((r) => setImmediate(r));
+    const second = ingestNextcloudRecording(args);
+    await new Promise((r) => setImmediate(r));
+    // The first run lands its note; the waiting one then finds it by source uri.
+    fx.onTranscribe = () => { fx.existingByUri['nextcloud://u1/Recordings/standup.mp4'] = { id: 'new-id', title: 'AI titel', user_id: 'u1' }; };
+    release();
+    const [a, b] = await Promise.all([first, second]);
+    assert.strictEqual(a.id, 'new-id');
+    assert.deepStrictEqual(b, { id: 'new-id', title: 'AI titel', dedup: true, sourceUri: 'nextcloud://u1/Recordings/standup.mp4', writeBack: null });
+    assert.strictEqual(fx.downloads.length, 1, 'downloaded once');
+    assert.strictEqual(fx.transcribeCalls.length, 1, 'transcribed once');
 });
 
 test('a Talk recording imported by one tenant does not dedup against another', async () => {
@@ -501,7 +547,7 @@ test('core: extraStoreFields land in the createTranscription payload', async () 
 
 test('core: pre-existing sourceUri returns the existing row without transcribing', async () => {
     resetFx();
-    fx.existingByUri['gmeet://orgA/rec3'] = { id: 'ex-g', title: 'Bestaand' };
+    fx.existingByUri['gmeet://orgA/rec3'] = { id: 'ex-g', title: 'Bestaand', user_id: 'u1' };
     const filePath = makeLocalFile();
     const out = await ingestLocalRecording({
         userId: 'u1', filePath, provider: 'whisperx', source: 'gmeet', sourceUri: 'gmeet://orgA/rec3',
@@ -532,6 +578,31 @@ test('core: transcription failure unlinks the input and throws a classified Inge
         (err) => err instanceof IngestError && err.code === 'transcription_failed' && err.message === 'whisperx down',
     );
     assert.strictEqual(fx.creates.length, 0);
+    assert.ok(!fs.existsSync(filePath), 'input file consumed');
+});
+
+test('core: speaker turns without a single word are an empty transcription, not a note', async () => {
+    resetFx();
+    const saved = fx.whisperResponse;
+    fx.realBuild = true;
+    fx.whisperResponse = {
+        text: '',
+        segments: [
+            { speakerId: 'speaker_0', start: 0, end: 5, text: '' },
+            { speakerId: 'speaker_1', start: 5, end: 9, text: '   ' },
+        ],
+    };
+    const filePath = makeLocalFile();
+    try {
+        await assert.rejects(
+            () => ingestLocalRecording({ userId: 'u1', filePath, provider: 'whisperx', source: 'gmeet', sourceUri: 'gmeet://orgA/silent' }),
+            (err) => err instanceof IngestError && err.code === 'empty_transcription' && err.status === 502,
+        );
+    } finally {
+        fx.whisperResponse = saved;
+        fx.realBuild = false;
+    }
+    assert.strictEqual(fx.creates.length, 0, 'no finished, empty note');
     assert.ok(!fs.existsSync(filePath), 'input file consumed');
 });
 
@@ -660,4 +731,121 @@ test('core: a ready-made transcript (Teams VTT) skips transcription, naming and 
 test('core: without a transcript a filePath is still required', async () => {
     resetFx();
     await assert.rejects(ingestLocalRecording({ userId: 'u1' }), (err) => err.code === 'missing_path');
+});
+
+// ── Dedup readability inside the core, titles, meeting date, roster ─────────
+
+test('a colleague\'s note that appears DURING the download is refused, not handed over', async () => {
+    resetFx();
+    fx.onDownload = () => {
+        fx.existingByUri['talk://orgA/tok9/rec.mp4'] = { id: 'ex1', title: 'Salarisbespreking', user_id: 'colleague' };
+    };
+    await assert.rejects(
+        () => ingestNextcloudRecording({
+            userId: 'u2', orgId: 'orgA', session: {}, ncPath: '/Talk/tok9/rec.mp4',
+            talkRoomToken: 'tok9', source: 'talk', accessCtx: { orgIds: ['orgA'] },
+        }),
+        (err) => err.code === 'already_imported' && !/Salarisbespreking/.test(err.message),
+    );
+    assert.strictEqual(fx.transcribeCalls.length, 0, 'refused before any transcription');
+});
+
+test('losing the insert race to a colleague\'s unreadable note is refused with 409', async () => {
+    resetFx();
+    fx.raceDedup = true;
+    fx.existingByUri['gmeet://orgA/rec-race'] = { id: 'race-winner', title: 'Hun titel', user_id: 'colleague' };
+    // Only after the pre-check: the winner lands while this run transcribes.
+    const winner = fx.existingByUri['gmeet://orgA/rec-race'];
+    delete fx.existingByUri['gmeet://orgA/rec-race'];
+    fx.onTranscribe = () => { fx.existingByUri['gmeet://orgA/rec-race'] = winner; };
+    await assert.rejects(
+        () => ingestLocalRecording({
+            userId: 'u2', orgId: 'orgA', filePath: makeLocalFile(), provider: 'whisperx',
+            source: 'gmeet', sourceUri: 'gmeet://orgA/rec-race', accessCtx: { orgIds: ['orgA'] },
+        }),
+        (err) => err.code === 'already_imported',
+    );
+    trackCreates();
+});
+
+test('the AI title is made from the summary alone, never from the pipeline notices', async () => {
+    resetFx();
+    fx.artifactsFailed = true;
+    await ingestLocalRecording({
+        userId: 'u1', orgId: 'orgA', filePath: makeLocalFile(), provider: 'whisperx', titleHint: 'Weekly sync',
+    });
+    trackCreates();
+    assert.deepStrictEqual(fx.titleInputs, [fx.summary]);
+});
+
+test('with no summary the title hint stays: a notice alone is not titled', async () => {
+    resetFx();
+    fx.artifactsFailed = true;
+    fx.summaryOverride = '';
+    await ingestLocalRecording({
+        userId: 'u1', orgId: 'orgA', filePath: makeLocalFile(), provider: 'whisperx', titleHint: 'Weekly sync',
+    });
+    trackCreates();
+    assert.deepStrictEqual(fx.titleInputs, [], 'no title call on notice text');
+    assert.strictEqual(fx.creates[0].title, 'Weekly sync');
+});
+
+test('relative deadlines resolve against the meeting date when the import knows it', async () => {
+    resetFx();
+    await ingestLocalRecording({
+        userId: 'u1', orgId: 'orgA', filePath: makeLocalFile(), provider: 'whisperx',
+        meetingDate: '2026-10-29T09:00:00Z',
+    });
+    trackCreates();
+    assert.strictEqual(fx.artifactOpts[0].meetingDateIso, '2026-10-29');
+    resetFx();
+    await ingestLocalRecording({ userId: 'u1', orgId: 'orgA', filePath: makeLocalFile(), provider: 'whisperx' });
+    trackCreates();
+    assert.strictEqual(fx.artifactOpts[0].meetingDateIso, new Date().toISOString().slice(0, 10), 'no meeting date: today');
+});
+
+test('a note that covers one of several recordings says so', async () => {
+    resetFx();
+    await ingestLocalRecording({
+        userId: 'u1', orgId: 'orgA', filePath: makeLocalFile(), provider: 'whisperx', language: 'en', extraRecordings: 1,
+    });
+    trackCreates();
+    assert.match(fx.creates[0].summary, /recorded in 2 parts/);
+});
+
+test('the Talk roster keeps people only: no groups, no e-mail addresses', async () => {
+    resetFx();
+    fx.rosterOverride = [
+        { actorType: 'users', actorId: 'alice', displayName: 'Alice' },
+        { actorType: 'groups', actorId: 'sales', displayName: 'Sales' },
+        { actorType: 'circles', actorId: 'c1', displayName: 'Team Circle' },
+        { actorType: 'emails', actorId: 'guest@example.com', displayName: 'guest@example.com' },
+        { actorType: 'guests', actorId: 'g-7f3a', displayName: 'g-7f3a' },
+        { actorType: 'guests', actorId: 'g-8b1c', displayName: 'Bob Guest' },
+    ];
+    await ingestNextcloudRecording({
+        userId: 'u1', session: {}, orgId: 'orgA', ncPath: '/Talk/tok1/rec.mp4', talkRoomToken: 'tok1', source: 'talk',
+    });
+    trackCreates();
+    assert.deepStrictEqual(fx.creates[0].attendees, ['Alice', 'Bob Guest']);
+});
+
+test('a requested engine the workspace does not allow is refused before the download', async () => {
+    resetFx();
+    const original = MOCKS['../../stores/configStore'].getConfig;
+    MOCKS['../../stores/configStore'].getConfig = async (k) => {
+        if (k === 'transcription_provider') return 'whisperx';
+        if (k === 'transcription_providers_allowed') return ['whisperx'];
+        return null;
+    };
+    try {
+        await assert.rejects(
+            () => ingestNextcloudRecording({ userId: 'u1', session: {}, ncPath: '/Recordings/y.mp3', provider: 'azure' }),
+            (err) => err.code === 'provider_not_allowed' && err.status === 403,
+        );
+        assert.strictEqual(fx.downloads.length, 0);
+        assert.strictEqual(fx.azureCalls.length, 0);
+    } finally {
+        MOCKS['../../stores/configStore'].getConfig = original;
+    }
 });

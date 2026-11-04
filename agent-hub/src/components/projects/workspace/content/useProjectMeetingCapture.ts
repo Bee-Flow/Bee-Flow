@@ -21,8 +21,9 @@
 //     numbers every opening for this;
 //   - a result someone else already took (the meeting notes page claims every
 //     result while it is open) disarms it;
-//   - closing the capture modal without starting anything disarms it, and an
-//     arm older than ARM_TTL_MS is dropped.
+//   - closing the capture modal without starting anything disarms it, and so
+//     does an upload that fails after the modal was closed; an arm older than
+//     ARM_TTL_MS is dropped.
 // When in doubt the meeting stays where it is, private to its owner, who can
 // still add it to the project by hand.
 
@@ -31,7 +32,7 @@ import { useAttachResource } from '@/api/queries/projects';
 import useTranslation from '@/hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
 import { useCapture } from '@/pages/meeting-notes/capture/CaptureContext';
-import { useRecorder } from '@/pages/meeting-notes/hooks/RecorderContext';
+import { useRecorder, type RecorderValue } from '@/pages/meeting-notes/hooks/RecorderContext';
 
 export const ARM_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -87,6 +88,34 @@ export interface ProjectMeetingCapture {
     savedId?: string | null;
 }
 
+/**
+ * Calls `cancel` when the armed capture can no longer produce a result: the modal was closed
+ * with nothing recording or uploading, or an upload (or import) ended while the modal was
+ * closed. A failed upload leaves the recorder's counters untouched, so without the second
+ * case the arm would outlive it and block "Record or upload" with nothing to dismiss; a retry
+ * is only possible from the modal, and reopening it starts a new capture session anyway.
+ * `cancel` itself checks that the recorder's completion counter did not move (a success is
+ * claimed, not cancelled).
+ */
+function useCancelWhenIdle(captureOpen: boolean, recorder: Pick<RecorderValue, 'recorder' | 'uploading'>, cancel: () => void): void {
+    const wasOpen = useRef(captureOpen);
+    const wasUploading = useRef(!!recorder.uploading);
+    const onIdle = useEffectEvent(() => {
+        if (recorder.recorder?.state === 'idle' && !recorder.uploading) cancel();
+    });
+    const onModal = useEffectEvent(() => {
+        if (wasOpen.current && !captureOpen) onIdle();
+        wasOpen.current = captureOpen;
+    });
+    useEffect(() => { onModal(); }, [captureOpen]);
+    const onUpload = useEffectEvent(() => {
+        const ended = wasUploading.current && !recorder.uploading;
+        wasUploading.current = !!recorder.uploading;
+        if (ended && !captureOpen) onIdle();
+    });
+    useEffect(() => { onUpload(); }, [recorder.uploading]);
+}
+
 export function useCaptureWorker(projectId: string, onFiled: (meetingId: string) => void, disabled = false): ProjectMeetingCapture {
     const { t } = useTranslation();
     const { open: captureOpen, openCapture, session: captureSession = 0 } = useCapture();
@@ -96,7 +125,6 @@ export function useCaptureWorker(projectId: string, onFiled: (meetingId: string)
     const [filing, setFiling] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [savedId, setSavedId] = useState<string | null>(null);
-    const wasOpen = useRef(captureOpen);
     const mine = arm?.projectId === projectId;
 
     const start = () => {
@@ -134,20 +162,12 @@ export function useCaptureWorker(projectId: string, onFiled: (meetingId: string)
 
     useEffect(() => { claim(); }, [recorder.version, recorder.lastResultId, captureSession]);
 
-    // Closing the modal with nothing recorded, uploading or finished is a cancel.
-    const onModalClosed = useEffectEvent(() => {
-        const idle = recorder.recorder?.state === 'idle' && !recorder.uploading;
-        if (!disabled && arm?.projectId === projectId && idle && recorder.version === arm.version) {
+    useCancelWhenIdle(captureOpen, recorder, () => {
+        if (!disabled && arm?.projectId === projectId && recorder.version === arm.version) {
             arm = null;
             rerender(n => n + 1);
         }
     });
-
-    const runSharedEffect = useEffectEvent(() => {
-        if (wasOpen.current && !captureOpen) onModalClosed();
-        wasOpen.current = captureOpen;
-    });
-    useEffect(() => { return runSharedEffect(); }, [captureOpen]);
 
     return {
         start,
@@ -180,6 +200,7 @@ export default function useProjectMeetingCapture(projectId: string, onFiled: (id
     const mine = shared.projectId === projectId;
     return { ...shared.capture, start: () => shared.start(projectId),
         pending: mine && shared.capture.pending, uploading: mine && shared.capture.uploading,
-        filing: mine && shared.capture.filing, error: mine ? shared.capture.error : null,
+        // The provider shows a filing error itself, with retry and open: a second alert here only repeats it.
+        filing: mine && shared.capture.filing, error: null,
         savedId: mine ? shared.capture.savedId : null };
 }

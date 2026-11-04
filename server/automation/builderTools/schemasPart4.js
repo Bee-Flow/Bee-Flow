@@ -362,7 +362,7 @@ Use it for: a resolved support ticket becoming an article; a meeting's decisions
 
 \`content\`, \`title\` and \`sourceUri\` are TEMPLATE STRINGS, not binding objects: write "{{steps.summary.output.text}}" directly, the same way generate_document takes its content.
 
-\`sourceUri\` is what makes the step idempotent. The same sourceUri REPLACES its own document instead of adding a second, so give it something stable and unique per subject — a ticket URL, a record id, "meeting:{{trigger.output.id}}". Without one, an automation that runs nightly leaves a new document every night and nobody can tell why the base grew.
+\`sourceUri\` is what makes the step idempotent. The same sourceUri REPLACES its own document instead of adding a second, so give it something stable and unique per subject — a ticket URL, a record id, "meeting:{{trigger.output.transcriptionId}}". Without one, an automation that runs nightly leaves a new document every night and nobody can tell why the base grew.
 
 A run where \`content\` resolves to nothing SKIPS rather than storing an empty document. A dry run reports what it WOULD write and stores nothing.
 

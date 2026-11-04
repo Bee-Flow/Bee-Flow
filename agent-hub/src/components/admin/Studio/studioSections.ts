@@ -740,11 +740,14 @@ export const STUDIO_SECTIONS: StudioSectionDescriptor[] = [
         // (MeetingNotesPage → openCapture), not a new empty thing. "new" is the
         // page's cue to open it.
         create: { labelKey: 'studio.new.meeting', labelFallback: 'Record or upload a meeting', onCreate: navigateTo('studio/meeting-notes/new') },
-        getProps: ({ user, initialMeetingId }) => ({
+        // onNavigate lets the page write the selected meeting into the URL
+        // (and drop the "new" cue once the capture flow is open).
+        getProps: ({ user, initialMeetingId, onNavigate }) => ({
             user,
             embedded: true,
             onBack: null,
             initialMeetingId,
+            onNavigate,
         }),
     },
 ];

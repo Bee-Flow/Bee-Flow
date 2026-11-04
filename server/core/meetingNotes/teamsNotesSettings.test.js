@@ -63,3 +63,21 @@ test('save keeps an explicit null and coerces the rest', async () => {
     assert.strictEqual(saved.lookbackHours, 1);
     assert.strictEqual(saved.updatedBy, 'admin');
 });
+
+test('REGRESSION: saving the org panel only to switch auto-record on keeps members\' own auto-import, language and lookback', async () => {
+    await s.saveUserSettings('u7', { autoImport: true, language: 'en', lookbackHours: 72 });
+    const loaded = await s.getOrgSettings('o7');
+    assert.deepStrictEqual(
+        [loaded.autoImport, loaded.autoRecordConfig, loaded.language, loaded.lookbackHours],
+        [null, null, null, null], 'an unset org field is "no opinion", not the default');
+    await s.saveOrgSettings('o7', { ...JSON.parse(JSON.stringify(loaded)), autoRecordConfig: true }, 'admin');
+    const eff = await s.resolveTeamsNotesSettings({ orgId: 'o7', userId: 'u7' });
+    assert.deepStrictEqual(eff, { autoImport: true, autoRecordConfig: true, language: 'en', lookbackHours: 72 });
+});
+
+test('a partial org body stores no opinion for the fields it leaves out', async () => {
+    const saved = await s.saveOrgSettings('o8', { autoRecordConfig: true }, 'admin');
+    assert.strictEqual(saved.autoImport, null);
+    assert.strictEqual(saved.language, null);
+    assert.strictEqual(saved.lookbackHours, null);
+});

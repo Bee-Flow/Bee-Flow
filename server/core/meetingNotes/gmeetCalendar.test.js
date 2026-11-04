@@ -22,6 +22,10 @@ const fakeCalendar = {
     events: {
         list: async (params) => {
             fx.listCalls.push(params);
+            if (fx.pages) {
+                const i = params.pageToken ? Number(params.pageToken) : 0;
+                return { data: { items: fx.pages[i], ...(i + 1 < fx.pages.length ? { nextPageToken: String(i + 1) } : {}) } };
+            }
             return { data: { items: fx.items } };
         },
     },
@@ -119,7 +123,7 @@ test('listUpcomingMeetMeetings: filters to Meet events, maps hangoutLink and ent
             ],
         },
         {
-            id: 'e2', summary: 'Client call',
+            id: 'e2', summary: 'Client call', recurringEventId: 'series-9',
             conferenceData: { entryPoints: [{ uri: 'https://meet.google.com/zzz-zzzz-zzz?hs=122' }] },
             start: { dateTime: new Date(start).toISOString() },
             end: { dateTime: new Date(start + 3600_000).toISOString() },
@@ -139,14 +143,15 @@ test('listUpcomingMeetMeetings: filters to Meet events, maps hangoutLink and ent
     assert.deepEqual(rows[0], {
         eventId: 'e1',
         iCalUID: 'ical-1',
+        recurringEventId: null,
         title: 'Standup',
         start: fx.items[0].start.dateTime,
         end: fx.items[0].end.dateTime,
         organizerEmail: 'tom@example.com',
         organizerSelf: true,
         attendees: [
-            { email: 'tom@example.com', displayName: 'Tom', self: true },
-            { email: 'ext@example.org', displayName: null, self: false },
+            { email: 'tom@example.com', displayName: 'Tom', self: true, responseStatus: null, resource: false },
+            { email: 'ext@example.org', displayName: null, self: false, responseStatus: null, resource: false },
         ],
         meetingCode: 'abc-defg-hij',
         meetLink: 'https://meet.google.com/abc-defg-hij',
@@ -154,6 +159,7 @@ test('listUpcomingMeetMeetings: filters to Meet events, maps hangoutLink and ent
     assert.equal(rows[1].meetingCode, 'zzz-zzzz-zzz');
     assert.equal(rows[1].organizerSelf, false);
     assert.equal(rows[1].iCalUID, null);
+    assert.equal(rows[1].recurringEventId, 'series-9', 'an occurrence names its series');
 
     assert.deepEqual(fx.clientOpts && { api: fx.clientOpts.api, version: fx.clientOpts.version }, { api: 'calendar', version: 'v3' });
     const params = fx.listCalls[0];
@@ -198,4 +204,23 @@ test('list functions propagate not-connected errors', async () => {
         () => listRecentlyEndedMeetMeetings({ session: {} }),
         /Not connected to Google/,
     );
+});
+
+test('listRecentlyEndedMeetMeetings follows every page, so a busy calendar keeps its NEWEST meetings', async () => {
+    resetFx();
+    const ended = (i) => ({
+        id: `ev${i}`, summary: `m${i}`, hangoutLink: 'https://meet.google.com/abc-defg-hij',
+        start: { dateTime: new Date(Date.now() - (300 - i) * 1800_000 - 3600_000).toISOString() },
+        end: { dateTime: new Date(Date.now() - (300 - i) * 1800_000 - 1800_000).toISOString() },
+    });
+    const all = Array.from({ length: 300 }, (_, i) => ended(i));
+    fx.pages = [all.slice(0, 250), all.slice(250)];
+    try {
+        const rows = await listRecentlyEndedMeetMeetings({ session, lookbackHours: 168, graceMinutes: 0 });
+        assert.ok(rows.some((r) => r.eventId === 'ev299'), 'the newest meeting is listed');
+        assert.strictEqual(fx.listCalls.length, 2);
+        assert.strictEqual(fx.listCalls[1].pageToken, '1');
+    } finally {
+        fx.pages = null;
+    }
 });

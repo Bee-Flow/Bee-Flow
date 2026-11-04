@@ -13,7 +13,7 @@ const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const transcriptionStore = require('../../stores/transcriptionStore');
 const { requireAuth } = require('../../auth/permissions');
-const { resolveAccessContext, resolveUserOrgFromReq } = require('./shared');
+const { resolveAccessContext, resolveUserOrgFromReq, MEETING_LLM_TIMEOUT_MS } = require('./shared');
 const { resolveSmartModel, SUMMARY_MAX_TOKENS } = require('../../core/meetingNotes/summaryHelpers');
 const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, idList, NO_QUERY } = require('./schemas');
@@ -92,7 +92,7 @@ router.post('/report', requireAuth, validate({ body: ReportBody, query: NO_QUERY
     const digest = /** @param {(typeof notes)[number]} n */ (n) => [
         n.summary || '',
         (n.decisions || []).length ? `Decisions:\n${n.decisions.map(/** @param {{ text: string }} d */ (d) => `- ${d.text}`).join('\n')}` : '',
-        (n.actionItems || []).length ? `Action items:\n${n.actionItems.map(/** @param {{ done?: boolean, text: string, assignee?: string }} a */ (a) => `- [${a.done ? 'x' : ' '}] ${a.text} (${a.assignee})`).join('\n')}` : '',
+        (n.actionItems || []).length ? `Action items:\n${n.actionItems.map(/** @param {{ done?: boolean, text: string, assignee?: string }} a */ (a) => `- [${a.done ? 'x' : ' '}] ${a.text}${typeof a.assignee === 'string' && a.assignee.trim() ? ` (${a.assignee.trim()})` : ''}`).join('\n')}` : '',
     ].filter(Boolean).join('\n\n');
     let truncatedNotes = 0;
     const sections = notes.map((n) => {
@@ -148,6 +148,10 @@ ${useTranscripts ? '' : '\nNote: you received meeting summaries and artifacts, n
                 orgId: userOrgId,
                 conversationId: dlpConversationId,
                 providerConfig: { providerType: 'llm', displayName: 'meeting-report' },
+                // One request is the whole conversation: no row to persist
+                // the map to, and a map that could not be persisted is never
+                // evicted (dlpTokenMaps keeps dirty entries).
+                ephemeral: true,
             });
             if (scan.action === 'block') {
                 return res.status(403).json({ error: 'Blocked by your organization\'s data-protection policy' });
@@ -156,7 +160,7 @@ ${useTranscripts ? '' : '\nNote: you received meeting summaries and artifacts, n
                 userContent = scan.redactedText || userContent;
                 tokenMap = scan.tokenMap || null;
             } else if (scan.action === 'ask') {
-                const applied = await dlpRunner.applyRedactionChoice({ conversationId: dlpConversationId, text: userContent, findings: scan.findings });
+                const applied = await dlpRunner.applyRedactionChoice({ conversationId: dlpConversationId, text: userContent, findings: scan.findings, ephemeral: true });
                 userContent = applied.tokenizedText || userContent;
                 tokenMap = applied.tokenMap || null;
             }
@@ -172,25 +176,30 @@ ${useTranscripts ? '' : '\nNote: you received meeting summaries and artifacts, n
         }
     }
 
-    const modelId = await resolveSmartModel(userOrgId);
-    const result = await llmClient.chat(modelId, [
-        { role: 'system', content: system },
-        { role: 'user', content: userContent },
-    ], { maxTokens: SUMMARY_MAX_TOKENS, temperature: 0.2 });
+    let report;
+    try {
+        const modelId = await resolveSmartModel(userOrgId);
+        const result = await llmClient.chat(modelId, [
+            { role: 'system', content: system },
+            { role: 'user', content: userContent },
+        ], { maxTokens: SUMMARY_MAX_TOKENS, temperature: 0.2, timeoutMs: MEETING_LLM_TIMEOUT_MS });
 
-    let report = (result.content || '').trim();
-    // The caller may read every source note, so the report they see is
-    // detokenised back to the original values.
-    if (tokenMap) {
-        for (const [token, original] of Object.entries(tokenMap)) {
-            report = report.split(token).join(original);
+        report = (result.content || '').trim();
+        // The caller may read every source note, so the report they see is
+        // detokenised back to the original values.
+        if (tokenMap) {
+            for (const [token, original] of Object.entries(tokenMap)) {
+                report = report.split(token).join(original);
+            }
         }
-    }
-    // This "conversation" lasted one request. Drop its token map instead of
-    // leaving {token → raw PII} in process memory for the pod's lifetime —
-    // nothing will ever look it up again.
-    if (dlpConversationId) {
-        try { require('../../core/dlp/dlpRunner').clearConversationState(dlpConversationId); } catch (_) { log.warn('could not clear the DLP token map, it stays in memory until restart', _); }
+    } finally {
+        // This "conversation" lasted one request. Drop its token map instead of
+        // leaving {token → raw PII} in process memory for the pod's lifetime —
+        // nothing will ever look it up again. In a finally: a provider error
+        // (a 429, a time-out) must not skip this and leave the map behind.
+        if (dlpConversationId) {
+            try { require('../../core/dlp/dlpRunner').clearConversationState(dlpConversationId, { ephemeral: true }); } catch (_) { log.warn('could not clear the DLP token map, it stays in memory until restart', _); }
+        }
     }
 
     res.json({

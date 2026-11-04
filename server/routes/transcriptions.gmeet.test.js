@@ -79,6 +79,9 @@ function resetFx() {
     fx.failures.length = 0;
     fx.fresh = null;
     fx.credQueue = null;
+    fx.codeLookups = [];
+    fx.deletedNotes = new Set();
+    fx.recentlyEndedThrows = false;
     require('../core/meetingNotes/manualImportRunner')._resetForTests();
 }
 resetFx();
@@ -91,7 +94,14 @@ function stub(p, exports) {
 
 stub('../stores/transcriptionStore', {
     getTranscription: async () => null,
-    getTranscriptionByMeetMeetingCode: async (code) => fx.noteByCode[code] || null,
+    getTranscriptionByMeetMeetingCode: async (code, userId, opts) => {
+        fx.codeLookups.push({ code, since: opts?.since || null });
+        const note = fx.noteByCode[code] || null;
+        // As the store does: with `since`, only a note made from then on.
+        if (note && opts?.since && note.created_at && new Date(note.created_at) < new Date(opts.since)) return null;
+        return note;
+    },
+    canReadTranscription: async (id) => !fx.deletedNotes.has(id),
 });
 stub('../stores/configStore', { getConfig: async () => null, getSecret: async () => null });
 stub('../core/llm/llmClient', {});
@@ -183,7 +193,7 @@ stub('../core/meetingNotes/gmeetCalendar', {
         return m ? m[1] : null;
     },
     listUpcomingMeetMeetings: async ({ session }) => { fx.upcomingCalls++; fx.lastUpcomingSession = session; return fx.upcoming; },
-    listRecentlyEndedMeetMeetings: async () => fx.recentlyEnded,
+    listRecentlyEndedMeetMeetings: async () => { if (fx.recentlyEndedThrows) throw new Error('calendar 503'); return fx.recentlyEnded; },
 });
 stub('../core/meetingNotes/gmeetArtifacts', {
     getSpaceByMeetingCode: async (session, code) => fx.spaceByCode[code] || null,
@@ -582,7 +592,7 @@ test('from-gmeet: happy path — seeds a job and returns the saved note', async 
     // Answers at once; the ingest runs after the response.
     assert.strictEqual(res.statusCode, 202);
     assert.deepStrictEqual(res.body, { jobId: 'job-new', status: 'pending' });
-    assert.deepStrictEqual(fx.updates[0].fields, { status: 'pending', errorCode: null, lastError: null });
+    assert.deepStrictEqual(fx.updates[0].fields, { status: 'pending', errorCode: null, lastError: null, requestedByUser: true, requestedLanguage: 'en' });
     await settle(() => fx.inlineCalls.length === 1);
 
     assert.strictEqual(fx.seeded.length, 1, 'job seeded');
@@ -611,6 +621,11 @@ test('from-gmeet: request language and context terms reach the ingest (not silen
     // settings language with no context terms.
     assert.strictEqual(fx.inlineCalls[0].language, 'en');
     assert.strictEqual(fx.inlineCalls[0].contextTerms, 'Bee Flow, Kapsule');
+    // A run the user watches is final and keeps its code, and a dedup hit is
+    // checked against what THIS user may read.
+    assert.strictEqual(fx.inlineCalls[0].manual, true);
+    assert.ok(fx.inlineCalls[0].accessCtx && typeof fx.inlineCalls[0].accessCtx === 'object', 'access context passed');
+    assert.strictEqual(fx.inlineCalls[0].job.requestedByUser, true);
 });
 
 test('from-gmeet: existing poller job is reused instead of reseeding', async () => {
@@ -683,4 +698,134 @@ test('from-gmeet: unresolvable meeting reference → 400', async () => {
     const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { event_id: 'ev-unknown' } });
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(fx.inlineCalls.length, 0);
+});
+
+
+// ═══ Fixes ═════════════════════════════════════════════════════════════
+
+test('gmeet-meetings: an earlier occurrence\'s note does not make the next one "imported"', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.settings.autoImport = true;
+    fx.noteByCode['abc-defg-hij'] = { id: 't-last-week', created_at: '2026-07-10T11:05:00Z' };
+    fx.upcoming = [meeting({ eventId: 'ev-next', start: '2026-07-17T10:00:00Z' })];
+    const res = await dispatch({ url: '/gmeet-meetings', session: liveSession() });
+    const row = res.body.meetings[0];
+    assert.strictEqual(row.importedNoteId, null);
+    assert.strictEqual(row.status, 'will_import');
+    assert.strictEqual(fx.codeLookups[0].since, '2026-07-17T10:00:00Z', 'the lookup is bounded to this occurrence');
+});
+
+test('gmeet-recordings: each occurrence gets its own note, from its import job', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEnded = [
+        meeting({ eventId: 'ev-mon', start: '2026-07-13T10:00:00Z', end: '2026-07-13T10:30:00Z' }),
+        meeting({ eventId: 'ev-wed', start: '2026-07-15T10:00:00Z', end: '2026-07-15T10:30:00Z' }),
+    ];
+    fx.jobs = [{ id: 'j1', calendarEventId: 'ev-mon', meetingCode: 'abc-defg-hij', status: 'ingested', transcriptionId: 't-mon' }];
+    // A note made after Monday's start but after Wednesday started too: Wednesday's, not Monday's.
+    fx.noteByCode['abc-defg-hij'] = { id: 't-wed', created_at: '2026-07-15T11:00:00Z' };
+    const res = await dispatch({ url: '/gmeet-recordings', session: liveSession() });
+    const by = Object.fromEntries(res.body.items.map(i => [i.eventId, i.importedNoteId]));
+    assert.strictEqual(by['ev-mon'], 't-mon');
+    assert.strictEqual(by['ev-wed'], 't-wed');
+});
+
+test('gmeet-meetings: under the organizer scope a colleague\'s meeting says not_organizer', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.settings.autoImport = true;
+    fx.upcoming = [meeting({ organizerSelf: false })];
+    let res = await dispatch({ url: '/gmeet-meetings', session: liveSession() });
+    assert.strictEqual(res.body.meetings[0].status, 'not_organizer');
+    assert.strictEqual(res.body.importScope, 'organizer');
+    fx.settings.importScope = 'calendar';
+    res = await dispatch({ url: '/gmeet-meetings', session: liveSession() });
+    assert.strictEqual(res.body.meetings[0].status, 'will_import');
+});
+
+test('from-gmeet: the clicked occurrence wins over an older one on the same code', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEnded = [
+        meeting({ eventId: 'ev-last-tue', start: '2026-07-07T10:00:00Z', end: '2026-07-07T10:30:00Z' }),
+        meeting({ eventId: 'ev-today', start: '2026-07-14T10:00:00Z', end: '2026-07-14T10:30:00Z' }),
+    ];
+    await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { event_id: 'ev-today', meeting_code: 'abc-defg-hij' } });
+    assert.strictEqual(fx.seeded[0].calendarEventId, 'ev-today');
+    assert.strictEqual(fx.seeded[0].meetingStart, '2026-07-14T10:00:00Z');
+
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEnded = [
+        meeting({ eventId: 'ev-last-tue', start: '2026-07-07T10:00:00Z' }),
+        meeting({ eventId: 'ev-today', start: '2026-07-14T10:00:00Z' }),
+    ];
+    await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { meet_link: 'https://meet.google.com/abc-defg-hij' } });
+    assert.strictEqual(fx.seeded[0].calendarEventId, 'ev-today', 'a code alone picks the latest ended occurrence');
+});
+
+test('from-gmeet: a code with no calendar event is refused up front, a calendar outage is a 503', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEnded = [];
+    const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { meet_link: 'https://meet.google.com/abc-defg-hij' } });
+    assert.strictEqual(res.statusCode, 404);
+    assert.strictEqual(res.body.code, 'no_calendar_event');
+    assert.strictEqual(fx.seeded.length, 0, 'no job that could never find its conference');
+
+    fx.recentlyEndedThrows = true;
+    await assert.rejects(dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { event_id: 'ev1' } }),
+        (err) => err.status === 503 && err.code === 'calendar_unavailable');
+});
+
+test('from-gmeet: a reused job without times gets them before it runs', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEnded = [meeting()];
+    fx.jobs = [{ id: 'job-blind', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij', status: 'pending', meetingStart: null, meetingEnd: null }];
+    await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { event_id: 'ev1' } });
+    await settle(() => fx.inlineCalls.length === 1);
+    assert.deepStrictEqual(fx.updates[0], { id: 'job-blind', fields: { meetingStart: '2026-07-17T10:00:00Z', meetingEnd: '2026-07-17T11:00:00Z' } });
+    assert.strictEqual(fx.inlineCalls[0].job.meetingStart, '2026-07-17T10:00:00Z');
+});
+
+test('from-gmeet: a meeting whose note was deleted can be imported again', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEnded = [meeting()];
+    fx.jobs = [{ id: 'job-old', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij', status: 'ingested', transcriptionId: 't-gone', meetingStart: '2026-07-17T10:00:00Z' }];
+    fx.deletedNotes.add('t-gone');
+    const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { event_id: 'ev1' } });
+    assert.strictEqual(res.statusCode, 202);
+});
+
+test('PATCH gmeet-meetings: switching off switches Meet auto-recording off; one occurrence of a series leaves it alone', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.settings.autoRecordConfig = true;
+    fx.upcoming = [meeting()];
+    await dispatch({ method: 'PATCH', url: '/gmeet-meetings/ev1', session: liveSession(), body: { record: true, meetingCode: 'abc-defg-hij', organizerSelf: true } });
+    const off = await dispatch({ method: 'PATCH', url: '/gmeet-meetings/ev1', session: liveSession(), body: { record: false, meetingCode: 'abc-defg-hij', organizerSelf: true } });
+    assert.strictEqual(off.body.autoRecordingConfig, 'unset');
+    assert.deepStrictEqual(fx.autoRecordCalls.map(c => c.enabled), [true, false]);
+
+    fx.autoRecordCalls.length = 0;
+    fx.upcoming = [meeting({ recurringEventId: 'series-1' })];
+    const one = await dispatch({ method: 'PATCH', url: '/gmeet-meetings/ev1', session: liveSession(), body: { record: true, meetingCode: 'abc-defg-hij', organizerSelf: true } });
+    assert.strictEqual(one.body.autoRecordingConfig, 'series_only');
+    assert.strictEqual(fx.autoRecordCalls.length, 0);
+});
+
+test('PATCH gmeet-meetings: a click overridden by a series opt-out does not arm Meet', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.settings.autoRecordConfig = true;
+    fx.prefs['code:abc-defg-hij'] = false;
+    fx.upcoming = [meeting()];
+    const res = await dispatch({ method: 'PATCH', url: '/gmeet-meetings/ev1', session: liveSession(), body: { record: true, meetingCode: 'abc-defg-hij', organizerSelf: true } });
+    assert.strictEqual(res.body.overridden, true);
+    assert.strictEqual(res.body.autoRecordingConfig, 'overridden');
+    assert.strictEqual(fx.autoRecordCalls.length, 0);
 });

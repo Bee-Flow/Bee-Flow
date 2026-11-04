@@ -1,7 +1,8 @@
 /**
  * What stands between a provider and its meetings, one banner per reason, in
- * the web's words: Talk's recording backend missing, Google not connected or
- * connected without the Meet permissions, or a provider that did not answer.
+ * the web's words: Talk's recording backend missing, Google access expired,
+ * Google not connected or connected without the Meet permissions, or a
+ * provider that did not answer.
  *
  * The web reconnects Google in a popup; the phone sends the person to
  * Integrations, where Google is connected.
@@ -46,12 +47,20 @@ export function UpcomingBanners({ upcoming }: { upcoming: Upcoming }) {
                     )}
                 </Banner>
             ) : null}
-            {connection && !connection.googleConnected ? (
+            {connection && connection.needsReauth ? (
+                <Banner tone="warning" action={toIntegrations(t('meetings.upcoming_reconnect', 'Reconnect'))}>
+                    {t(
+                        'mobile.recording.gmeet_access_expired',
+                        'Your Google access expired. Reconnect Google to see and import your Meet meetings.',
+                    )}
+                </Banner>
+            ) : null}
+            {connection && !connection.needsReauth && !connection.googleConnected ? (
                 <Banner tone="info" icon="Video" action={toIntegrations(t('meetings.upcoming_settings_integrations', 'Settings → Connections'))}>
                     {t('meetings.upcoming_connect_google', 'Connect Google Workspace to see your Meet meetings here —')}
                 </Banner>
             ) : null}
-            {connection && connection.googleConnected && !connection.meetScopesGranted ? (
+            {connection && !connection.needsReauth && connection.googleConnected && !connection.meetScopesGranted ? (
                 <Banner tone="warning" action={toIntegrations(t('meetings.upcoming_reconnect', 'Reconnect'))}>
                     {t(
                         'meetings.upcoming_meet_scopes',

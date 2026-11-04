@@ -103,3 +103,21 @@ export async function downloadToCache(
     part.moveSync(file);
     return { uri: file.uri, contentType: res.headers.get('content-type') };
 }
+
+/**
+ * Delete a cached copy (and any `.part` of it) that must not be reused: the
+ * note it came from was deleted, or the caller lost access to it. A reused copy
+ * never asks the server again, so only this or a session wipe removes it.
+ * Never throws: nothing left to delete is the goal.
+ */
+export function removeCachedDownload(fileName: string, opts: Pick<DownloadOptions, 'sessionScoped'> = {}): void {
+    const name = safeFileName(fileName);
+    for (const candidate of [name, `${name}.part`]) {
+        try {
+            const file = new File(opts.sessionScoped ? sessionCacheDir() : Paths.cache, candidate);
+            if (file.exists) file.delete();
+        } catch {
+            // Already gone, or the cache folder is unreadable: the OS reclaims it in the end.
+        }
+    }
+}

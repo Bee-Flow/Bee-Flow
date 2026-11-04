@@ -141,9 +141,13 @@ test('every sub-router on disk answers through the composed router', () => {
     // every request schema is built from, `audioUpload.js` the multer instance and the
     // router's error middleware, and the upload/reprocess pipeline parts
     // (`uploadIntake.js`, `uploadPipeline.js`, `reprocessPipeline.js`,
-    // `speakerNaming.js`) that their routers call. Named rather than detected, so a sub-router that stopped
-    // declaring routes still fails loudly here.
-    const NOT_ROUTERS = new Set(['shared.js', 'schemas.js', 'audioUpload.js', 'uploadIntake.js', 'uploadPipeline.js', 'reprocessPipeline.js', 'speakerNaming.js']);
+    // `speakerNaming.js`) that their routers call, and the helpers split out of
+    // the note, Meet and Teams routers. Named rather than detected, so a
+    // sub-router that stopped declaring routes still fails loudly here.
+    const NOT_ROUTERS = new Set([
+        'shared.js', 'schemas.js', 'audioUpload.js', 'uploadIntake.js', 'uploadPipeline.js', 'reprocessPipeline.js', 'speakerNaming.js',
+        'regenerateHelpers.js', 'noteSideEffects.js', 'noteExport.js', 'gmeetHelpers.js', 'teamsHelpers.js',
+    ]);
     const missing = [];
     for (const file of fs.readdirSync(dir)) {
         if (!file.endsWith('.js') || file.includes('.test.') || NOT_ROUTERS.has(file)) continue;

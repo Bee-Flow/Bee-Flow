@@ -102,18 +102,27 @@ test('the bus tap is wired, or none of this ever runs', async () => {
     }
 });
 
-test('the arming query respects the mode somebody chose', () => {
+test('the arming query respects the mode somebody chose', async () => {
     // `manual` said "I will press the button" and `schedule` said "nightly is
-    // fine". A meeting happening is not a reason to override either.
-    // Deliberately source text: armMeetingSources first calls initDB()/ensureSchema()
-    // (FK to knowledge_bases), so ACTUALLY calling it depends on the Postgres integration suite of
-    // stores/kbSources.test.js (skips without a DB, and pglite would also have to set up the parent
-    // store) — too heavy for this light unit test file, which tests the rest of these two taps with fakes.
-    // What is pinned here is the literal WHERE clause.
-    const src = require('node:fs').readFileSync(require.resolve('../stores/kbSources'), 'utf8');
-    const fn = src.slice(src.indexOf('armMeetingSources'), src.indexOf('requestCancel:'));
-    assert.match(fn, /refresh_mode = 'after_meeting'/);
-    assert.match(fn, /kind = 'meeting_tag'/);
-    assert.match(fn, /status <> 'refreshing'/, 'a pass already running is not re-armed under itself');
-    assert.match(fn, /next_refresh_at = now\(\)/);
+    // fine". A meeting happening is not a reason to override either; a meeting
+    // LEAVING a tag is, in every mode. The arms take their db through a seam.
+    const { meetingArms } = require('../stores/kbSourcesMeetingArm');
+    const sql = [];
+    const arms = meetingArms({
+        initDB: async () => {},
+        run: async (q, params) => { sql.push({ q: q.replace(/\s+/g, ' '), params }); return { rowCount: 2 }; },
+    });
+    assert.strictEqual(await arms.armMeetingSources(['sales', ' ', 7]), 2);
+    assert.match(sql[0].q, /refresh_mode = 'after_meeting'/);
+    assert.match(sql[0].q, /kind = 'meeting_tag'/);
+    // A running pass IS armed: its enumerate may already have run without this
+    // meeting, and finish() keeps the arm (stores/kbSources.meetingArm.pg.test.js).
+    assert.doesNotMatch(sql[0].q, /status <> 'refreshing'/, 'a meeting during a running pass still arms the source');
+    assert.match(sql[0].q, /next_refresh_at = now\(\)/);
+    assert.deepStrictEqual(sql[0].params, [['sales']]);
+
+    await arms.armMeetingSourcesForRemoval(['sales']);
+    assert.doesNotMatch(sql[1].q, /refresh_mode/, 'a removal arms every mode');
+    assert.strictEqual(await arms.armMeetingSources([]), 0);
+    assert.strictEqual(sql.length, 2, 'no tags, no query');
 });

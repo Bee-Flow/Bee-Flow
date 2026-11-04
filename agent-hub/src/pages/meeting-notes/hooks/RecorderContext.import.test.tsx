@@ -72,4 +72,56 @@ describe('a Teams import answered with 202', () => {
         const result = await outcome;
         expect(result).toMatchObject({ ok: false, pending: true });
     }, 15000);
+
+    it('a retry after a failure follows the new attempt, not the failed row it got the same job id for', async () => {
+        // The server reuses the job row on a retry: the second 202 carries the same id.
+        let attempt = 1;
+        let pollsAfterRetry = 0;
+        fetchMock.mockImplementation(async (url: string) => {
+            if (String(url).includes('/from-teams')) return json(202, { jobId: 'j1', status: 'pending' });
+            if (attempt === 1) return jobs({ id: 'j1', status: 'failed', errorCode: 'graph_error', transcriptionId: null });
+            pollsAfterRetry += 1;
+            return pollsAfterRetry < 2
+                ? jobs({ id: 'j1', status: 'pending', errorCode: null, transcriptionId: null })
+                : jobs({ id: 'j1', status: 'ingested', errorCode: null, transcriptionId: 'n2' });
+        });
+        mount();
+        let first: Promise<UploadOutcome> | undefined;
+        act(() => { first = recorder.importFromTeams({ eventId: 'e1' }); });
+        expect((await first)?.ok).toBe(false);
+
+        attempt = 2;
+        let second: Promise<UploadOutcome> | undefined;
+        act(() => { second = recorder.importFromTeams({ eventId: 'e1' }); });
+        const result = await second;
+        expect(result).toMatchObject({ ok: true, result: { id: 'n2' } });
+        expect(pollsAfterRetry).toBeGreaterThanOrEqual(2);
+        await waitFor(() => expect(recorder.uploading).toBe(false));
+        expect(recorder.consumeLastResult().id).toBe('n2');
+    }, 15000);
+});
+
+describe('the language of a manual Teams / Meet import', () => {
+    const bodyOf = (path: string) => {
+        const call = fetchMock.mock.calls.filter(([url]) => String(url).includes(path)).at(-1);
+        return JSON.parse(String((call?.[1] as RequestInit | undefined)?.body ?? '{}')) as Record<string, unknown>;
+    };
+    beforeEach(() => { fetchMock.mockImplementation(async () => json(201, { id: 'n1' })); });
+
+    it('is left to the Teams / Meet notes settings while the user has not picked one', async () => {
+        mount();
+        await act(async () => { await recorder.importFromTeams({ eventId: 'e1' }); });
+        expect(bodyOf('/from-teams')).not.toHaveProperty('language');
+        await act(async () => { await recorder.importFromGoogleMeet({ eventId: 'e2' }); });
+        expect(bodyOf('/from-gmeet')).not.toHaveProperty('language');
+    });
+
+    it('is the capture language once the user picked one', async () => {
+        mount();
+        act(() => { recorder.setSettings((s) => ({ ...s, language: 'en' })); });
+        await act(async () => { await recorder.importFromTeams({ eventId: 'e1' }); });
+        expect(bodyOf('/from-teams').language).toBe('en');
+        await act(async () => { await recorder.importFromGoogleMeet({ eventId: 'e2' }); });
+        expect(bodyOf('/from-gmeet').language).toBe('en');
+    });
 });

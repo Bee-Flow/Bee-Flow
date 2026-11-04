@@ -28,6 +28,12 @@ describe('reprocessFailureMessage', () => {
         expect(reprocessFailureMessage('audio_storage_unavailable', 'fallback')).toMatch(/briefly unavailable/);
     });
 
+    it('an imported meeting is not told to import the original again', () => {
+        const text = reprocessFailureMessage('audio_gone_imported', 'fallback');
+        expect(text).toMatch(/imported, and Bee Flow holds no copy of its audio/);
+        expect(text).not.toMatch(/original/i);
+    });
+
     it('falls back for no code and for a code it does not know', () => {
         expect(reprocessFailureMessage(null, 'The server said no.')).toBe('The server said no.');
         expect(reprocessFailureMessage('toString', 'The server said no.')).toBe('The server said no.');

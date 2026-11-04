@@ -64,7 +64,7 @@ describe('TeamsImportPanel', () => {
         render(<TeamsImportPanel onComplete={onComplete} />);
         await user.click(screen.getAllByRole('button', { name: 'Transcribe' })[0]);
         const importFromTeams = recorderMock.current!.importFromTeams as ReturnType<typeof vi.fn>;
-        expect(importFromTeams).toHaveBeenCalledWith(ITEMS[0], { language: 'nl', contextTerms: 'AFAS' });
+        expect(importFromTeams).toHaveBeenCalledWith(ITEMS[0], { contextTerms: 'AFAS' });
         expect(onComplete).toHaveBeenCalled();
     });
 
@@ -88,6 +88,24 @@ describe('TeamsImportPanel', () => {
         await user.click(screen.getByRole('button', { name: 'Reconnect Microsoft 365' }));
         expect(openMicrosoftOAuthPopup).toHaveBeenCalled();
         expect(invalidate).toHaveBeenCalled();
+    });
+
+    it('an expired grant (needsReauth) → reconnect, not an empty "no meetings" list', async () => {
+        const user = userEvent.setup();
+        queryState.current = query({ data: { connection: { ...CONNECTED, needsReauth: true }, items: [] } });
+        vi.mocked(openMicrosoftOAuthPopup).mockResolvedValue({ success: true });
+        render(<TeamsImportPanel />);
+        expect(screen.getByText('Your Microsoft 365 connection has expired')).toBeTruthy();
+        expect(screen.queryByText('No Teams meetings found')).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Reconnect Microsoft 365' }));
+        expect(openMicrosoftOAuthPopup).toHaveBeenCalled();
+        expect(invalidate).toHaveBeenCalled();
+    });
+
+    it('an import refused with needs_reauth (409) also offers the reconnect', () => {
+        recorderMock.current = recorder({ uploadError: Object.assign(new Error('Microsoft 365 access expired'), { status: 409, code: 'needs_reauth' }) });
+        render(<TeamsImportPanel />);
+        expect(screen.getByTestId('teams-reauth')).toBeTruthy();
     });
 
     it('empty and error states', () => {

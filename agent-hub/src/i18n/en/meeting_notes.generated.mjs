@@ -195,6 +195,7 @@ export default {
     "meeting_notes.audio_gone_detail": "It was recorded in your browser, so no other copy of the audio exists. The transcript and summary below are what remains.",
     "meeting_notes.audio_saved_gone_title": "The saved audio is no longer available",
     "meeting_notes.audio_saved_gone_detail": "Upload the original file again to restore playback and re-transcribe it.",
+    "meeting_notes.audio_imported_gone_detail": "This meeting was imported from {source}, and Bee Flow holds no copy of its audio. The transcript and summary below are what remains.",
     "meeting_notes.speaker_editor_desc": "Rename a speaker, or merge two speakers into one. Changes apply to the transcript, speaker list and exports.",
     "meeting_notes.speaker_autodetect": "Auto-detect names",
     "meeting_notes.speaker_autodetect_desc": "Let AI map the speakers to real names using the transcript. Add who was in the meeting to make it reliable.",

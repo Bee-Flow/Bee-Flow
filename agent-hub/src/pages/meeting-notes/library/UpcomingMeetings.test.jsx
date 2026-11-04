@@ -217,7 +217,7 @@ describe('UpcomingMeetings', () => {
         expect(onOpenNote).toHaveBeenCalledWith(42);
     });
 
-    it('keeps the Talk toggle flow: optimistic, silent revert-by-reload, no row error', async () => {
+    it('keeps the Talk toggle flow: optimistic, revert-by-reload, and says why on the row', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
         setMeetingRecord.mockRejectedValue(new Error('boom'));
         const { container } = render(<UpcomingMeetings />);
@@ -229,15 +229,134 @@ describe('UpcomingMeetings', () => {
         fireEvent.click(toggle);
         expect(toggle).toHaveAttribute('aria-pressed', 'false'); // optimistic OFF
 
-        await waitFor(() => expect(listTalkMeetings).toHaveBeenCalledTimes(2)); // silent revert-by-reload
+        await waitFor(() => expect(listTalkMeetings).toHaveBeenCalledTimes(2)); // revert-by-reload
         expect(setMeetingRecord).toHaveBeenCalledWith('tok1', false, 'uid1');
-        expect(screen.queryByText('boom')).not.toBeInTheDocument();
         await waitFor(() => expect(toggles(container)[0]).toHaveAttribute('aria-pressed', 'true'));
+        // An uncoded failure gets the plain fallback, never the raw message.
+        expect(screen.getByText("Couldn't update this meeting.")).toBeInTheDocument();
+        expect(screen.queryByText('boom')).not.toBeInTheDocument();
+    });
+
+    it('explains a Meet toggle that failed without an error code (network TypeError)', async () => {
+        const user = userEvent.setup();
+        listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ excluded: true, status: 'excluded' })]));
+        setGoogleMeetMeetingRecord.mockRejectedValue(new TypeError('Failed to fetch'));
+        const { container } = render(<UpcomingMeetings />);
+        await screen.findByText('Meet planning');
+
+        await user.click(toggles(container)[0]);
+        await screen.findByText("Couldn't update this meeting.");
+        expect(listGoogleMeetMeetings).toHaveBeenCalledTimes(2); // revert-by-reload
+        await waitFor(() => expect(toggles(container)[0]).toHaveAttribute('aria-pressed', 'false'));
+    });
+
+    it('explains a Teams toggle that failed with a generic 500 (no code)', async () => {
+        const user = userEvent.setup();
+        listTeamsMeetings.mockResolvedValue(teamsPayload([teamsMeeting({ excluded: true, status: 'excluded' })]));
+        setTeamsMeetingRecord.mockRejectedValue(Object.assign(new Error('Internal server error'), { status: 500 }));
+        const { container } = render(<UpcomingMeetings />);
+        await screen.findByText('Teams review');
+
+        await user.click(toggles(container)[0]);
+        await screen.findByText("Couldn't update this meeting.");
+        expect(screen.queryByText('Internal server error')).not.toBeInTheDocument();
+        expect(listTeamsMeetings).toHaveBeenCalledTimes(2); // revert-by-reload
+    });
+
+    it('clears a Talk row error when the toggle is tried again and succeeds', async () => {
+        const user = userEvent.setup();
+        listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
+        setMeetingRecord.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce({ effectiveRecord: false });
+        const { container } = render(<UpcomingMeetings />);
+        await screen.findByText('Talk standup');
+
+        await user.click(toggles(container)[0]);
+        await screen.findByText("Couldn't update this meeting.");
+        await waitFor(() => expect(toggles(container)[0]).toHaveAttribute('aria-pressed', 'true'));
+        await user.click(toggles(container)[0]);
+        await waitFor(() => expect(screen.queryByText("Couldn't update this meeting.")).not.toBeInTheDocument());
     });
 
     it('keeps the Talk recording-backend banner', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([], { recordingEnabled: false }));
         render(<UpcomingMeetings />);
         await screen.findByText(/Nextcloud Talk recording backend isn't configured/);
+    });
+
+    it('keeps the Talk recording-backend banner for an account with Nextcloud connected', async () => {
+        listTalkMeetings.mockResolvedValue(talkPayload([], { recordingEnabled: false }));
+        render(<UpcomingMeetings talkConnected />);
+        await screen.findByText(/Nextcloud Talk recording backend isn't configured/);
+    });
+
+    it('does not warn about the Talk recording backend to an account without Nextcloud', async () => {
+        // What the route answers when resolveAuth fails: 200, recordingEnabled false, no meetings.
+        listTalkMeetings.mockResolvedValue({ recordingEnabled: false, autoRecord: true, recordingMode: 'audio', count: 0, meetings: [] });
+        listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()]));
+        render(<UpcomingMeetings talkConnected={false} />);
+        await screen.findByText('Meet planning');
+        expect(screen.queryByText(/Nextcloud Talk recording backend isn't configured/)).not.toBeInTheDocument();
+    });
+});
+
+describe('UpcomingMeetings: derived chips, occurrences, expired grants, auto-recording outcomes', () => {
+    beforeEach(() => {
+        listTalkMeetings.mockReset().mockResolvedValue(talkPayload());
+        setMeetingRecord.mockReset().mockResolvedValue({});
+        listGoogleMeetMeetings.mockReset().mockResolvedValue(gmeetPayload());
+        setGoogleMeetMeetingRecord.mockReset().mockResolvedValue({});
+        listTeamsMeetings.mockReset().mockResolvedValue(teamsPayload([], { connection: { microsoftConnected: false } }));
+        setTeamsMeetingRecord.mockReset().mockResolvedValue({});
+        openMicrosoftOAuthPopup.mockReset().mockResolvedValue({ success: true });
+    });
+
+    it('a will_record Talk row switched off drops "Will record" and the post-back footer at once', async () => {
+        const user = userEvent.setup();
+        listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()], { autoRecord: true, postSummaryBack: true }));
+        let answer;
+        setMeetingRecord.mockImplementation(() => new Promise((resolve) => { answer = resolve; }));
+        const { container } = render(<UpcomingMeetings />);
+        await screen.findByText('Will record');
+        expect(screen.getByTestId('upcoming-notice')).toHaveTextContent(/posted back into the conversation/);
+
+        await user.click(toggles(container)[0]);
+        expect(screen.queryByText('Will record')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('upcoming-notice')).not.toBeInTheDocument();
+        answer({ effectiveRecord: false });
+    });
+
+    it('lists every occurrence of a recurring Talk meeting under its own key', async () => {
+        listTalkMeetings.mockResolvedValue(talkPayload([
+            talkMeeting({ title: 'Weekly A', start: '2026-07-18T09:00:00Z', recurrenceId: '2026-07-18T09:00:00Z' }),
+            talkMeeting({ title: 'Weekly B', start: '2026-07-25T09:00:00Z', recurrenceId: '2026-07-25T09:00:00Z' }),
+        ]));
+        render(<UpcomingMeetings />);
+        expect(await screen.findByText('Weekly A')).toBeInTheDocument();
+        expect(screen.getByText('Weekly B')).toBeInTheDocument();
+    });
+
+    it('a Meet row of a colleague under organizer scope cannot be switched', async () => {
+        listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ status: 'not_organizer', organizerSelf: false })]));
+        const { container } = render(<UpcomingMeetings />);
+        await screen.findByText('Organizer only');
+        expect(toggles(container)[0]).toBeDisabled();
+    });
+
+    it('an expired Microsoft grant shows the reconnect banner, not an empty list in silence', async () => {
+        listTeamsMeetings.mockResolvedValue(teamsPayload([], {
+            connection: { microsoftConnected: true, teamsScopesGranted: true, hasMeetingWriteScope: true, needsReauth: true },
+        }));
+        render(<UpcomingMeetings />);
+        expect(await screen.findByTestId('upcoming-teams-reauth')).toHaveTextContent(/connection has expired/);
+    });
+
+    it('says when a switch left the provider recording alone for one occurrence of a series', async () => {
+        const user = userEvent.setup();
+        listTeamsMeetings.mockResolvedValue(teamsPayload([teamsMeeting({ excluded: true, status: 'excluded' })]));
+        setTeamsMeetingRecord.mockResolvedValue({ effectiveRecord: true, overridden: false, autoRecordingConfig: 'series_only' });
+        const { container } = render(<UpcomingMeetings />);
+        await screen.findByText('Teams review');
+        await user.click(toggles(container)[0]);
+        expect(await screen.findByTestId('upcoming-row-notice')).toHaveTextContent(/Teams records a series as a whole/);
     });
 });

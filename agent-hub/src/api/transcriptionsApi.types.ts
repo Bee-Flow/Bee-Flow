@@ -10,6 +10,11 @@ export interface UploadAudioArgs {
     provider?: string;
     /** 'recording' | 'upload' */
     captureMode?: string;
+    /**
+     * One id per upload attempt ([A-Za-z0-9_-]{8,100}): a repeat of the same
+     * POST (a lost 202, a resend) answers with the first note instead of a second one.
+     */
+    clientUploadId?: string;
     signal?: AbortSignal;
 }
 
@@ -35,14 +40,16 @@ export interface ImportGoogleMeetArgs {
     eventId: string;
     meetingCode?: string;
     meetLink?: string;
-    language: string;
+    /** Omitted: the server uses the Teams / Meet notes settings language. */
+    language?: string;
     title?: string;
     contextTerms?: string;
 }
 
 export interface ImportTeamsArgs {
     eventId: string;
-    language: string;
+    /** Omitted: the server uses the Teams / Meet notes settings language. */
+    language?: string;
     contextTerms?: string;
 }
 
