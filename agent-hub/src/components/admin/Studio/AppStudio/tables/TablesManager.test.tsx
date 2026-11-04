@@ -5,7 +5,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../studioAppsApi', () => {
-    const studioAppsApi = { getSchema: vi.fn(), saveSchema: vi.fn() };
+    const studioAppsApi = { getSchema: vi.fn(), saveSchema: vi.fn(), previewSchema: vi.fn() };
     return { studioAppsApi, default: studioAppsApi };
 });
 vi.mock('@/components/shared/Toast', () => {
@@ -122,6 +122,38 @@ describe('TablesManager', () => {
 
         await waitFor(() => expect((saveButton as HTMLInputElement).disabled).toBe(false));
         expect((screen.getByPlaceholderText('Invoices') as HTMLInputElement).value).toBe('Bills 2026');
+    });
+
+    it('a refused type conversion opens the dialog with counts and examples; clearing saves again with onUnconvertible clear', async () => {
+        const user = userEvent.setup();
+        const refused = { ok: false, conversionRefused: true, conversions: [{ table: 'invoices', field: 'amount', from: 'text', to: 'number', rows: 5, unconvertible: 2 }] };
+        asMock(studioAppsApi.saveSchema).mockResolvedValueOnce(refused).mockResolvedValueOnce({ ok: true, version: 5, report: { converted: [{ rows: 5 }] } });
+        asMock(studioAppsApi.previewSchema).mockResolvedValue({ dryRun: true, report: { converted: [{ ...refused.conversions[0], samples: ['12,50', 'n/a'] }] } });
+        renderManager();
+        await screen.findByPlaceholderText('Invoices');
+        editTableName('Bills');
+        await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+        expect(await screen.findByText('invoices.amount: 2 of 5 values cannot become number')).toBeTruthy();
+        expect(screen.getByText('For example: “12,50”, “n/a”')).toBeTruthy();
+        const confirm = screen.getByRole('button', { name: /save and clear them/i }) as HTMLButtonElement;
+        expect(confirm.disabled).toBe(true);
+        await user.click(screen.getByLabelText(/clear the values that cannot be converted/i));
+        await user.click(confirm);
+
+        await waitFor(() => expect(studioAppsApi.saveSchema).toHaveBeenCalledTimes(2));
+        expect(asMock(studioAppsApi.saveSchema).mock.calls[1][3]).toEqual({ onUnconvertible: 'clear' });
+        await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Data model saved — 5 row values updated.'));
+        expect(asMock(studioAppsApi.saveSchema).mock.calls[0][3]).toEqual({});
+    });
+
+    it('a failed recompute says which field and why, in fixed words', async () => {
+        asMock(studioAppsApi.saveSchema).mockResolvedValue({ ok: false, migrationFailed: true, failure: { reason: 'division_by_zero', table: 'invoices', field: 'ratio' } });
+        renderManager();
+        await screen.findByPlaceholderText('Invoices');
+        editTableName('Bills');
+        await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith('invoices.ratio: the expression divides by zero for at least one row. Nothing was saved.'));
     });
 
     it('opens the saved table’s rows on the Rows tab', async () => {

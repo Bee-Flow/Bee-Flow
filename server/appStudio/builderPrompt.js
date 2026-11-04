@@ -25,6 +25,7 @@ const { LIMITS } = require('./componentSpecs/limits');
 const { renderCatalogText, renderCompactCatalogText } = require('./builderPrompt/catalogRender');
 const { buildCoreSystemPrompt } = require('./builderPrompt/corePrompt');
 const { buildFewShotMessages } = require('./builderPrompt/fewShots');
+const { computedBits } = require('./builderPrompt/computedMarks');
 
 // The machine note that carries the owner's automations and documents. Defined
 // here (with the renderer) and listed in routes/ai/appStudioBuilder/turnLoop.js
@@ -583,7 +584,7 @@ function renderDataField(f, withId = false) {
         bits.push(`options=[${vals.join(',')}]`);
     }
     if (f.type === 'relation' && f.relation) bits.push(`→${f.relation.table || f.relation.tableId || '?'}`);
-    if (f.type === 'computed') bits.push('(read-only)');
+    bits.push(...computedBits(f, withId));
     return bits.join(' ');
 }
 

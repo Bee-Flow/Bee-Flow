@@ -91,9 +91,9 @@ function columnType(field, dialect) {
     return resolveDialect({ dialect }) === 'pg' ? pgType(field) : sqliteType(field);
 }
 
-// A field's expression can only be materialised as a physical STORED column at
-// CREATE-TABLE time (see security note). read-time computed fields have no
-// column at all.
+// A stored computed field is a GENERATED ALWAYS column: STORED at CREATE TABLE,
+// added later by ddlForStoredComputedColumn (VIRTUAL on SQLite). read-time
+// computed fields have no column at all.
 /**
  * @param {ModelField} field
  */
@@ -110,9 +110,9 @@ function isCreatePhysical(field) {
     return true;
 }
 
-// Is this field eligible for ADD/DROP COLUMN during a migration? All physical
-// fields except computed — a stored-computed only materialises at table create,
-// and a read-time computed is never physical.
+// Is this field eligible for the plain ADD/DROP COLUMN path during a migration?
+// All physical fields except computed — a stored-computed has its own add/drop
+// steps in the planner (4 and 4b), and a read-time computed is never physical.
 /**
  * @param {ModelField} field
  */
@@ -290,11 +290,17 @@ function ddlForTable(table, ctx = {}) {
 // GENERATED ALWAYS branch in ddlForTable, sharing the same dialect translation
 // so a column added later cannot mean something different from the same field
 // created up front.
+//
+// SQLite refuses `ADD COLUMN … STORED` ("cannot add a STORED column"); only a
+// VIRTUAL generated column can be added to an existing table. A VIRTUAL column
+// reads, filters and sorts exactly like a STORED one (it is computed on read),
+// so the ALTER path emits VIRTUAL there; CREATE TABLE keeps STORED. Postgres
+// adds STORED and fills every row inside the migration transaction.
 function ddlForStoredComputedColumn(tableKey, field, dialectOpt) {
     const dialect = resolveDialect({ dialect: dialectOpt });
     const addClause = dialect === 'pg' ? 'ADD COLUMN IF NOT EXISTS' : 'ADD COLUMN';
     return `ALTER TABLE ${qi(tableKey)} ${addClause} ${qi(field.key)} ${columnType(field, dialect)} `
-        + `GENERATED ALWAYS AS (${computedExprFor(field.computed.expr, dialect)}) STORED`;
+        + `GENERATED ALWAYS AS (${computedExprFor(field.computed.expr, dialect)}) ${dialect === 'pg' ? 'STORED' : 'VIRTUAL'}`;
 }
 
 /**

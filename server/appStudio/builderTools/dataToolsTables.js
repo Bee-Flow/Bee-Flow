@@ -1,5 +1,6 @@
 // @typecheck
-const { DATA_LIMITS, KEY_RE: DATA_KEY_RE, newTableId, canonicalizeDataModel, validateDataModel, migrationPlan } = require('../dataModel');
+const { DATA_LIMITS, KEY_RE: DATA_KEY_RE, newTableId, canonicalizeDataModel, validateDataModel, fieldConversion, migrationPlan } = require('../dataModel');
+const { summariseMigration } = require('../../stores/studioAppData/migrationPreview.mts');
 const { isDatatableBacked } = require('../datatableSource');
 const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
 const { pickClosestId, linkedTableRefusal, currentDataModel, findModelTable, tableIdHint, persistDataModel, dataModelPersistError } = require('./dataToolsShared');
@@ -100,16 +101,15 @@ function mergeTableOp(model, args, rowCounts = {}) {
         const prior = priorField(raw, at, { byId, byKey, oldFields, tableId });
         if (prior.error) return prior;
         const old = prior.old;
-        if (old && old.type !== raw.type) {
-            return {
-                error: `Field "${raw.key}" is ${old.type} — DDL v1 cannot convert a column's type in place (to ${raw.type}).`,
-                _fixHint: 'Add a NEW field (different key) with the new type and migrate values there, or drop the old field first (its data is lost) and re-add it.',
-            };
-        }
 
         const built = buildField(raw, old, at, model);
         if (built.error) return built;
         const field = built.field;
+        const conversion = conversionCheck(old, field, rowCount);
+        if (conversion.error) return conversion;
+        if (conversion.hint) hints.push(conversion.hint);
+        const readTime = readTimeHint(old, field);
+        if (readTime) hints.push(readTime);
 
         // DDL v1: a NOT NULL column can't be ADDed to a populated table without
         // a default — the column lands nullable; teach instead of surprising.
@@ -161,12 +161,29 @@ function mergeTableOp(model, args, rowCounts = {}) {
     return { model: { ...model, tables: nextTables }, table, hints };
 }
 
-/** Compact human summary of a migration plan for the tool result. */
-function summariseMigration(plan) {
-    if (!Array.isArray(plan) || !plan.length) return 'no schema change';
-    const shown = plan.slice(0, 8).map((s) => String(s).replace(/\s+/g, ' ').trim().slice(0, 80));
-    if (plan.length > 8) shown.push(`… +${plan.length - 8} more`);
-    return shown.join('; ');
+/**
+ * A field whose type changes: an error for a pair that does not convert in
+ * place, a hint for one that does (the save converts every row).
+ * @returns {{ error?: string, _fixHint?: string, hint?: string }}
+ */
+function conversionCheck(old, field, rowCount) {
+    const conv = old ? fieldConversion(old, field) : null;
+    if (!conv) return {};
+    if (!conv.safe) {
+        return {
+            error: `Field "${field.key}" is ${conv.from} — only text↔select, number↔text, integer↔text and integer↔number convert in place (not to ${conv.to}).`,
+            _fixHint: 'Add a NEW field (different key) with the new type and fill it from the old one, or drop the old field first (its data is lost) and re-add it. dryRun:true shows what a change does to the rows.',
+        };
+    }
+    return {
+        hint: `Field "${field.key}" converts ${conv.from} → ${conv.to} on save${rowCount ? ` (${rowCount} row(s))` : ''}. Values that cannot convert refuse the save unless onUnconvertible:"clear"; dryRun:true counts them first.`,
+    };
+}
+
+/** A NEW read-time computed field reads empty (it is not evaluated): say so once, when it is added. */
+function readTimeHint(old, field) {
+    if (old || field.type !== 'computed' || !field.computed || field.computed.stored === true) return null;
+    return `Field "${field.key}" is a read-time computed field: it is not evaluated yet and reads empty. Pass computed.stored:true to compute it into a column you can show, filter and sort.`;
 }
 
 async function applyUpsertTable(draftWrap, args) {
@@ -202,7 +219,8 @@ async function applyUpsertTable(draftWrap, args) {
             _fixHint: 'A row filter compares record.<field> / viewer.<attr> / literals with == != < <= > >= combined by && || ! — no function calls, arithmetic or bracket access.',
         };
     }
-    const plan = migrationPlan(base, canonical);
+    const onUnconvertible = args.onUnconvertible === 'clear' ? 'clear' : 'refuse';
+    if (args.dryRun === true) return dryRunUpsert(draftWrap, canonical, merged, onUnconvertible);
 
     const persisted = await persistDataModel(draftWrap, canonical, {
         rebase: (serverModel) => {
@@ -210,21 +228,55 @@ async function applyUpsertTable(draftWrap, args) {
             if (re.error) return re;
             return canonicalizeDataModel(re.model).model;
         },
+        saveOpts: { convertTypes: true, onUnconvertible },
     });
     const failed = dataModelPersistError(persisted);
     if (failed) return failed;
 
     const saved = findModelTable(draftWrap.dataModel, merged.table.id) || merged.table;
+    const report = /** @type {{ report?: import('../../stores/studioAppData/migrationPreview.mts').MigrationReport | null }} */ (persisted).report || null;
+    /** @type {Record<string, unknown>} */
     const result = {
         tableId: saved.id,
         key: saved.key,
         fields: (saved.fields || []).map((f) => ({ fieldId: f.id, key: f.key, type: f.type })),
         modelVersion: draftWrap.dataModelVersion,
-        migration: summariseMigration(plan),
+        // A store without a report (an older stub) gets the plan line as before.
+        migration: report ? report.summary : summariseMigration(migrationPlan(base, canonical)),
         rowCount: (draftWrap.rowCounts && draftWrap.rowCounts[saved.id]) || 0,
+        ...reportLists(report),
     };
     if (merged.hints.length) result._hints = merged.hints;
     return result;
+}
+
+/** The non-empty recomputed / converted / unsupported lists of a migration report. */
+function reportLists(report) {
+    const out = {};
+    for (const k of ['recomputed', 'converted', 'unsupported']) {
+        if (report && Array.isArray(report[k]) && report[k].length) out[k] = report[k];
+    }
+    return out;
+}
+
+/** app_upsert_table { dryRun:true }: what the save would do to the rows; nothing is written. */
+async function dryRunUpsert(draftWrap, canonical, merged, onUnconvertible) {
+    if (!draftWrap.appId) {
+        return { dryRun: true, migration: 'no schema change (the app has no rows yet)', recomputed: [], converted: [], unsupported: [] };
+    }
+    const studioAppDataStore = require('../../stores/studioAppDataStore');
+    const res = await studioAppDataStore.previewDataModelChange(draftWrap.appId, draftWrap.userId, canonical, { onUnconvertible });
+    if (!res.ok) return dataModelPersistError({ invalid: true, errors: res.errors || [] });
+    const r = res.report;
+    const out = {
+        dryRun: true, saved: false, tableId: merged.table.id, modelVersion: res.currentVersion,
+        migration: r.summary, recomputed: r.recomputed, converted: r.converted, unsupported: r.unsupported,
+    };
+    if (r.converted.some((c) => c.unconvertible)) {
+        out._fixHint = 'Some values cannot convert: fix those rows first (app_update_records), or save with onUnconvertible:"clear" to empty them.';
+    }
+    if (merged.hints.length) out._hints = merged.hints;
+    return out;
 }
 
 module.exports = { mergeTableOp, applyUpsertTable, findTableRefs, applyRemoveTable, applySetRoles };

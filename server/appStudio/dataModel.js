@@ -111,7 +111,8 @@ const {
     ddlForTable,
     addColumnDdl,
 } = require('./dataModel/ddl');
-const { migrationPlan } = require('./dataModel/migrationPlan');
+const { migrationPlan, planMigration } = require('./dataModel/migrationPlan');
+const { fieldConversion, logicalType, SAFE_CONVERSIONS, unconvertibleWhere } = require('../core/dataEngine/dataModel/fieldConversion.mts');
 const { applyPlanTolerantly } = require('./dataModel/tolerantDdl');
 const { validateDataModel } = require('./dataModel/modelValidate');
 const { canonicalizeDataModel, emptyDataModel } = require('./dataModel/canonicalize');
@@ -170,6 +171,11 @@ module.exports = {
     pgType,
     ddlForTable,
     migrationPlan,
+    planMigration,
+    fieldConversion,
+    logicalType,
+    SAFE_CONVERSIONS,
+    unconvertibleWhere,
     applyPlanTolerantly,
     RESERVED_KEY_PREFIX_RE,
     // Internal helpers (exported for tests)

@@ -139,13 +139,16 @@ function buildField(raw, old, at, model) {
         required: raw.required === true,
         unique: raw.unique === true,
     };
-    if (raw.subtype !== undefined) field.subtype = raw.subtype;
-    else if (old && old.subtype !== undefined) field.subtype = old.subtype;
+    // A field whose type changes (a conversion) inherits neither: the old
+    // subtype and default belong to the old type. subtype null clears it.
+    const sameType = !!old && old.type === raw.type;
+    const subtype = raw.subtype !== undefined ? raw.subtype : (sameType ? old.subtype : undefined);
+    if (subtype) field.subtype = subtype;
     if (raw.default !== undefined) {
         const coerced = coerceFieldDefault(raw.default, raw.type, at);
         if (coerced.error) return { error: coerced.error };
         field.default = coerced.value;
-    } else if (old && old.default !== undefined) {
+    } else if (sameType && old.default !== undefined) {
         field.default = old.default;
     }
     const typed = applyTypedProps(field, raw, old, at, model);

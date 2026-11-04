@@ -131,8 +131,16 @@ async function putSchema(req, res) {
         const allErrors = [...errors, ...rowFilterErrors];
         if (allErrors.length) return res.status(422).json({ error: 'Data model failed validation', errors: allErrors });
 
+        const onUnconvertible = body.onUnconvertible === 'clear' ? 'clear' : 'refuse';
+        // A dry run answers what the save would do to the rows; nothing is written.
+        if (body.dryRun === true) {
+            const preview = await studioAppDataStore.previewDataModelChange(app.id, app.userId, model, { onUnconvertible });
+            if (!preview.ok) return res.status(422).json({ error: 'Data model failed validation', errors: preview.errors || [] });
+            return res.json({ dryRun: true, currentVersion: preview.currentVersion, report: preview.report });
+        }
         const expectedVersion = Number.isInteger(body.expectedVersion) ? body.expectedVersion : null;
-        const result = await studioAppDataStore.saveDataModel(app.id, app.userId, model, { expectedVersion });
+        const result = await studioAppDataStore.saveDataModel(app.id, app.userId, model, { expectedVersion, convertTypes: true, onUnconvertible });
+        if (migrationRefusal(res, result)) return;
         if (result.invalid) return res.status(422).json({ error: 'Data model failed validation', errors: result.errors });
         if (result.notFound) return res.status(404).json({ error: 'App not found' });
         if (result.conflict) {
@@ -158,8 +166,27 @@ async function putSchema(req, res) {
             log.warn(`[StudioAppData] sync scheduling failed for app ${app.id}: ${/** @type {Error} */ (e).message}`);
         }
 
-        res.json({ success: true, version: result.version });
+        res.json({ success: true, version: result.version, report: result.report });
     } catch (err) { handleErr(res, err, 'schema.put'); }
+}
+
+/**
+ * The save's own refusals, answered here (handleErr drops an HttpError's
+ * details): 422 conversion_refused with the counted conversions, 422
+ * migration_failed with the fixed reason. True when answered.
+ * @param {import('express').Response} res
+ * @param {{ conversionRefused?: boolean, conversions?: unknown[], migrationFailed?: boolean, failure?: { message?: string } }} result
+ */
+function migrationRefusal(res, result) {
+    if (result && result.conversionRefused) {
+        res.status(422).json({ error: 'Some values cannot be converted to the new field type', code: 'conversion_refused', conversions: result.conversions });
+        return true;
+    }
+    if (result && result.migrationFailed) {
+        res.status(422).json({ error: result.failure && result.failure.message ? result.failure.message : 'The database refused the change.', code: 'migration_failed', failure: result.failure });
+        return true;
+    }
+    return false;
 }
 
 /**

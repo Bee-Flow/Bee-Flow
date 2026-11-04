@@ -16,6 +16,23 @@ const {
 } = require('./pgAppEngineHelpers');
 const { bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * A mapped engine error keeps the plan index of the migration statement that
+ * failed (or the op index of the probe that failed) and its SQLSTATE (the
+ * store maps both to a fixed reason).
+ * @param {Error & { migrationStatementIndex?: number, migrationOpIndex?: number, sqlState?: string }} mapped
+ * @param {{ migrationStatementIndex?: unknown, migrationOpIndex?: unknown, code?: unknown }} original
+ */
+function keepStatementIndex(mapped, original) {
+    if (!mapped || !original || mapped === original) return mapped;
+    const hasStatement = Number.isInteger(original.migrationStatementIndex);
+    const hasOp = Number.isInteger(original.migrationOpIndex);
+    if (hasStatement) mapped.migrationStatementIndex = /** @type {number} */ (original.migrationStatementIndex);
+    if (hasOp) mapped.migrationOpIndex = /** @type {number} */ (original.migrationOpIndex);
+    if ((hasStatement || hasOp) && typeof original.code === 'string') mapped.sqlState = original.code;
+    return mapped;
+}
+
 /** Ownership/interlock check + the app-scoped transaction wrapper. */
 function makeTx({ getClient, entityLabel, schemaFor, assertAccessFn, ownershipCache }) {
     function schemaIdent(appId) {
@@ -73,7 +90,7 @@ function makeTx({ getClient, entityLabel, schemaFor, assertAccessFn, ownershipCa
             return out;
         } catch (err) {
             try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/lib/pgAppEnginePartsTx:withAppTx', err); /* connection-level failure */ }
-            throw mapPgError(err);
+            throw keepStatementIndex(mapPgError(err), err);
         } finally {
             client.release();
         }
@@ -172,6 +189,58 @@ function makeStatements({ withAppTx }) {
     return { query, exec, batch };
 }
 
+/**
+ * The refusal of a plan whose refusing probes counted unconvertible values: the
+ * same error the SQLite engine throws (core/dataEngine/dataModel/tolerantDdl.js;
+ * stores may not reach up into core, so it is spelled here too).
+ * @param {Array<{ refuse: boolean, bad: number }>} probed
+ */
+function throwIfRefused(probed) {
+    if (!probed.some((p) => p.refuse && p.bad > 0)) return;
+    /** @type {Error & { code?: string, probed?: unknown[] }} */
+    const err = new Error('A field type conversion found values that cannot be converted');
+    err.code = 'migration_precondition';
+    err.probed = probed;
+    throw err;
+}
+
+/**
+ * The COUNT probes of a planned migration (planMigration's), run on the
+ * migration's own client right before the statement each names. A refusing
+ * probe first locks its table against writers until COMMIT, so its count stays
+ * exact.
+ * @param {{ query: (sql: string) => Promise<any> }} c
+ * @param {Array<{ sql: string, at: number, opIndex: number, refuse?: boolean, tableKey?: string }>} probes
+ */
+function probeRunner(c, probes) {
+    const probeList = Array.isArray(probes) ? probes : [];
+    /** @type {Array<{ opIndex: number, refuse: boolean, n: number, bad: number }>} */
+    const probed = [];
+    const locked = new Set();
+    /** @param {number} at */
+    const runProbes = async (at) => {
+        for (const pr of probeList) {
+            if (pr.at !== at) continue;
+            validateSql(pr.sql);
+            if (pr.refuse && pr.tableKey && !locked.has(pr.tableKey)) {
+                locked.add(pr.tableKey);
+                await c.query(`LOCK TABLE ${quoteIdent(pr.tableKey)} IN SHARE ROW EXCLUSIVE MODE`);
+            }
+            let r;
+            try {
+                r = await c.query(pr.sql);
+            } catch (e) {
+                // A failing probe belongs to its op: the caller reports it as that op's failure.
+                if (e && typeof e === 'object') e.migrationOpIndex = pr.opIndex;
+                throw e;
+            }
+            const row = r.rows?.[0] || {};
+            probed.push({ opIndex: pr.opIndex, refuse: pr.refuse === true, n: Number(row.n) || 0, bad: Number(row.bad) || 0 });
+        }
+    };
+    return { probed, runProbes };
+}
+
 /** applyMigration / getSchemaStamp: DDL replay and the schema stamp. */
 function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
     /**
@@ -188,7 +257,7 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
      * search_path then lives until the caller's COMMIT). Without it, the
      * engine opens its own transaction.
      */
-    async function applyMigration(ownerId, appId, orderedDDL, { targetVersion = null, client = null } = {}) {
+    async function applyMigration(ownerId, appId, orderedDDL, { targetVersion = null, client = null, probes = [] } = {}) {
         if (!Array.isArray(orderedDDL)) {
             throw new Error('applyMigration requires an array of DDL strings');
         }
@@ -207,11 +276,13 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
             /** @type {{ sql: string; reason: string; }[]} */
             const skipped = [];
             let applied = 0;
-            for (const ddl of orderedDDL) {
+            const { probed, runProbes } = probeRunner(c, probes);
+            for (const [i, ddl] of orderedDDL.entries()) {
                 if (typeof ddl !== 'string' || !ddl.trim()) {
                     throw new Error('DDL statement must be a non-empty string');
                 }
                 validateSql(ddl);
+                await runProbes(i);
                 await c.query('SAVEPOINT sp_migrate');
                 try {
                     await c.query(ddl); // may be multi-statement (CREATE TABLE + its indexes)
@@ -225,9 +296,12 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
                         log.warn(`[${logPrefix}] tolerant DDL skipped (${reason}): ${String(ddl).replace(/\s+/g, ' ').slice(0, 200)}`);
                         continue;
                     }
+                    if (e && typeof e === 'object') e.migrationStatementIndex = i;
                     throw e;
                 }
             }
+            await runProbes(orderedDDL.length);
+            throwIfRefused(probed);
             if (stampVersion !== null) {
                 await c.query('CREATE TABLE IF NOT EXISTS "_meta" (key TEXT PRIMARY KEY, value TEXT)');
                 // GREATEST, not EXCLUDED.value: two replicas can apply plans in
@@ -246,7 +320,7 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
                     [String(stampVersion)],
                 );
             }
-            return { applied, skipped };
+            return { applied, skipped, probed };
         };
 
         if (client) {
@@ -268,7 +342,7 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
             try {
                 return await work(client);
             } catch (err) {
-                throw mapPgError(err);
+                throw keepStatementIndex(mapPgError(err), err);
             } finally {
                 // DEFAULT = the session's configured path, for the rest of
                 // this transaction. A failure here is swallowed: if the

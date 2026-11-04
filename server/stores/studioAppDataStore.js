@@ -62,6 +62,7 @@ module.exports = {
     // Data model
     getDataModel: dataModel.getDataModel,
     saveDataModel: dataModel.saveDataModel,
+    previewDataModelChange: dataModel.previewDataModelChange,
     makeDataModelSaver: dataModel.makeDataModelSaver,
     additiveModel: dataModel.additiveModel,
     reconcileDataModel: dataModel.reconcileDataModel,

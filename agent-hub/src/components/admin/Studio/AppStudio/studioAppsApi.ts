@@ -204,21 +204,35 @@ export const studioAppsApi = {
      *   { ok:false, managed, error }                           // 409 managed_part
      *   { ok:false, conflict:true, currentVersion, model }     // 409
      *   { ok:false, invalid:true, errors }                     // 422
+     *   { ok:false, conversionRefused:true, conversions }      // 422 conversion_refused
+     *   { ok:false, migrationFailed:true, failure }            // 422 migration_failed
+     * A saved field whose type changes is converted in place (safe pairs);
+     * `onUnconvertible: 'clear'` empties the values that cannot convert.
      */
-    saveSchema: async (id: string, model: Record<string, unknown>, expectedVersion: number | string | null | undefined) => {
+    saveSchema: async (id: string, model: Record<string, unknown>, expectedVersion: number | string | null | undefined, opts: { onUnconvertible?: 'refuse' | 'clear' } = {}) => {
         try {
             const body = await request(`${base}/${enc(id)}/schema`, {
                 method: 'PUT',
-                body: JSON.stringify({ model, expectedVersion }),
+                body: JSON.stringify({ model, expectedVersion, ...(opts.onUnconvertible ? { onUnconvertible: opts.onUnconvertible } : {}) }),
             });
             return { ok: true, ...body };
         } catch (err) {
             const refused = managedResult(err);
             if (refused) return refused;
             if (errorStatus(err) === 409) return { ok: false, conflict: true, ...(errorBodyRecord(err) ?? {}) };
-            if (errorStatus(err) === 422) return { ok: false, invalid: true, ...(errorBodyRecord(err) ?? {}) };
+            if (errorStatus(err) === 422) {
+                const rec = errorBodyRecord(err) ?? {};
+                if (rec.code === 'conversion_refused') return { ok: false, conversionRefused: true, ...rec };
+                if (rec.code === 'migration_failed') return { ok: false, migrationFailed: true, ...rec };
+                return { ok: false, invalid: true, ...rec };
+            }
             throw err;
         }
     },
+    /** Dry run of saveSchema: { dryRun, currentVersion, report } — nothing is saved. */
+    previewSchema: (id: string, model: Record<string, unknown>, opts: { onUnconvertible?: 'refuse' | 'clear' } = {}) => request(`${base}/${enc(id)}/schema`, {
+        method: 'PUT',
+        body: JSON.stringify({ model, dryRun: true, ...(opts.onUnconvertible ? { onUnconvertible: opts.onUnconvertible } : {}) }),
+    }),
 };
 

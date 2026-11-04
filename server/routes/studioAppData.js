@@ -21,7 +21,8 @@
  *   DELETE /:id/data/tables/:tableId/records/:recordId — delete (0 rows = 404)
  *   POST   /:id/data/query                            — saved dataset OR inline aggregate descriptor
  *   POST   /:id/data/batch                            — many reads, one request (per-read statuses)
- *   GET/PUT /:id/schema                               — owner-only data model (with rowFilter validation)
+ *   GET/PUT /:id/schema                               — owner-only data model (with rowFilter validation;
+ *                                                       PUT { dryRun } previews, safe type conversions run)
  *   POST   /:id/data/empty                            — owner-only: delete all rows, keep the tables
  *   GET/POST/DELETE /:id/members                      — owner-only role assignment
  *
@@ -44,7 +45,7 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z, worded, idList, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
+const { z, worded, idList, bodyOf, queryOf, choice, flag, wholeNumber, typeError } = require('../core/http/schemaParts');
 // The runtime's own request shapes, shared with the public app routes.
 const R = require('./studio/appRuntimeSchemas');
 
@@ -73,6 +74,10 @@ const DatasetBody = bodyOf(datasetShape, 'A dataset');
 const SchemaBody = bodyOf({
     model: z.record(z.string(), z.unknown(), { error: typeError({ required: 'model (object) is required', invalid: 'model (object) is required' }) }),
     expectedVersion: wholeNumber('expectedVersion is the version you loaded.').nullish(),
+    // true: save nothing, answer what the change would do to the rows.
+    dryRun: flag('dryRun is true or false.').optional(),
+    // A type conversion meets values that cannot convert: refuse (default) or clear them.
+    onUnconvertible: choice(['refuse', 'clear'], 'onUnconvertible is "refuse" or "clear".').optional(),
 }, 'A data model');
 const EmptyBody = bodyOf({
     // Ids of model tables; omitted or empty means every table the app owns.

@@ -223,6 +223,11 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * 57_000 → 58_000 (App Studio package 5, bulk writes, measured 2026-11-04): filter + limit on
  * update/delete_record and one line on filter writes, writeTo upsertKey and replaceWhere took the
  * catalog to 57_012 (the compact form leaves the two fields out). ~990 headroom.
+ *
+ * Package 4 (data model changes with data, measured 2026-11-04 on top of 1, 2, 3 and 5): two
+ * full-only lines on changing a table that holds rows (stored vs read-time computed, the safe
+ * type conversions with dryRun and onUnconvertible) took the catalog to 57_567, within 58_000.
+ * The compact form is unchanged.
  */
 const CATALOG_CHAR_CEILING = 58_000;
 
@@ -535,7 +540,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-11-04, package 5 (bulk writes) on top of package 3 (background / lockKey / progressVar):
 // filter + limit on update/delete_record, recordId no longer REQUIRED (one of the two), and one
 // line on filter writes, upsertKey and replaceWhere — 57_076 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'ac2d031992a84d40c9af83cac7d1e52c1b0fab8109dfee6dd4611668023cfd14';
+// 2026-11-04, package 4 (data model changes with data): stored vs read-time computed and the safe
+// type conversions — 57_567 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '6d1df5f2f7ad2361e1a50e2eb8993de35c369f93a43a341ae273581883bddcb0';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

@@ -57,6 +57,32 @@ describe('TableDesigner', () => {
         expect(last().fields[0].key).toBe('invoice_date');
     });
 
+    it('offers a SAVED field only the types it converts to in place', () => {
+        const { getByLabelText } = renderDesigner();
+        const options = Array.from((getByLabelText('Field type') as HTMLSelectElement).options).map((o) => o.value);
+        expect(options).toEqual(['text', 'number']);
+    });
+
+    it('says that saving converts a saved field whose type changed', async () => {
+        const user = userEvent.setup();
+        const field = { id: 'fld_ddd444', key: 'status', name: 'Status', type: 'text' };
+        const { getByLabelText, last, rerender, getByText } = renderDesigner({ fields: [field], savedTable: { id: 'tbl_a', fields: [field] } });
+        await user.selectOptions(getByLabelText('Field type'), 'select');
+        const changed = last().fields[0];
+        expect(changed.type).toBe('select');
+        const table = { id: 'tbl_a', key: 'invoices', name: 'Invoices', fields: [changed] };
+        rerender(<TableDesigner table={table} tables={[table]} savedTable={partial<ComponentProps<typeof TableDesigner>['savedTable']>({ id: 'tbl_a', fields: [field] })} onChange={vi.fn()} />);
+        expect(getByText(/saving converts the existing values/i)).toBeTruthy();
+    });
+
+    it('lets a computed field be saved as a column', async () => {
+        const user = userEvent.setup();
+        const draft = { id: 'fld_eee555', key: 'total', name: 'Total', type: 'computed', computed: { expr: 'qty * 2' } };
+        const { getByLabelText, last } = renderDesigner(stub<Parameters<typeof renderDesigner>[0]>({ fields: [draft], savedTable: null }));
+        await user.click(getByLabelText(/save as a column/i));
+        expect(last().fields[0].computed).toEqual({ expr: 'qty * 2', stored: true });
+    });
+
     it('lets a choice field carry its choices (the shape the server requires)', async () => {
         const user = userEvent.setup();
         const draft = { id: 'fld_ccc333', key: 'status', name: 'Status', type: 'text' };

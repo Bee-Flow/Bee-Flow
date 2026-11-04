@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { ComponentType, Dispatch } from 'react';
 import EmptyTablesDialog from './EmptyTablesDialog';
+import MigrationPreviewDialog from './MigrationPreviewDialog';
 import type { EmptyTablesResult } from './recordsApi';
 import RowsTabJs from './RowsTab';
 import TableDetail, { NoTableSelected } from './TableDetail';
@@ -268,6 +269,13 @@ export default function TablesManager(props: TablesManagerProps) {
                     }}
                 />
             ) : null}
+
+            <MigrationPreviewDialog
+                conversions={data.refusal}
+                saving={saving}
+                onCancel={data.dismissRefusal}
+                onClearAndSave={() => void save({ onUnconvertible: 'clear' })}
+            />
 
             <ConfirmDialog
                 open={!!data.confirmDeleteId}

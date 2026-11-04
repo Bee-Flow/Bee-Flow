@@ -1595,15 +1595,15 @@ test('app_upsert_table evolves in place: same-key fields keep ids, omitted field
     assert.ok((r._hints || []).some((h) => /dropped field/i.test(h) && h.includes('status')), `drop hint present: ${JSON.stringify(r._hints)}`);
     assert.strictEqual(r.modelVersion, 2);
 
-    // Type conversion is a DDL-v1 limit — reject with a teaching hint.
+    // Only the safe pairs convert in place — text → bool rejects with a teaching hint.
     const bad = await applyToolCall('app_upsert_table', {
         tableId: first.tableId,
         fields: [
-            { key: 'title', type: 'number' },
+            { key: 'title', type: 'bool' },
             { key: 'priority', type: 'number' },
         ],
     }, wrap);
-    assert.ok(bad.error && /cannot convert/i.test(bad.error), JSON.stringify(bad));
+    assert.ok(bad.error && /only text↔select, number↔text, integer↔text and integer↔number convert in place/.test(bad.error), JSON.stringify(bad));
     assert.ok(bad._fixHint && /new field/i.test(bad._fixHint));
 
     // Unknown tableId rejects with suggestions.

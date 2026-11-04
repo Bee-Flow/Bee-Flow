@@ -33,6 +33,8 @@ const models = new Map();      // appId → { model, modelVersion }
 const membership = new Map();  // `${appId}:${userId}` → roleKey
 const dbCalls = [];            // every studioAppDbStore call (IDOR audit)
 const saveModelCalls = [];
+const previewCalls = [];
+let nextSaveResult = null;
 const memberMutations = [];
 const rowCountsByApp = new Map(); // appId → row_counts map (quota reads)
 const rowBumps = [];              // bumpRowCount calls
@@ -88,7 +90,12 @@ stub('../stores/studioAppDataStore', {
     deleteAttachment: async () => true,
     saveDataModel: async (appId, ownerId, model, opts) => {
         saveModelCalls.push({ appId, ownerId, model, opts });
+        if (nextSaveResult) { const r = nextSaveResult; nextSaveResult = null; return r; }
         return { ok: true, version: (models.get(appId)?.modelVersion || 0) + 1 };
+    },
+    previewDataModelChange: async (appId, ownerId, model, opts) => {
+        previewCalls.push({ appId, ownerId, opts });
+        return { ok: true, dryRun: true, currentVersion: 3, report: { statements: 0, summary: 'no schema change', recomputed: [], converted: [{ table: 't', field: 'f', from: 'text', to: 'select', rows: 4, unconvertible: 2, samples: ['x'], action: 'refuse' }], unsupported: [] } };
     },
     getDataset: async () => null,
     listMembers: async (appId, ownerId) => { memberMutations.push({ op: 'list', appId, ownerId }); return []; },
@@ -560,6 +567,40 @@ test('owner PUT schema validates rowFilters before saving', async () => {
     const ok = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: okModel } });
     assert.strictEqual(ok.statusCode, 200);
     assert.strictEqual(saveModelCalls.length, 1);
+});
+
+test('owner PUT schema { dryRun } answers the preview and saves nothing; conversions are on for a save', async () => {
+    const app = makeApp();
+    const before = saveModelCalls.length;
+    const dry = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel(), dryRun: true, onUnconvertible: 'clear' } });
+    assert.strictEqual(dry.statusCode, 200);
+    assert.strictEqual(dry.body.dryRun, true);
+    assert.strictEqual(dry.body.report.converted[0].unconvertible, 2);
+    assert.strictEqual(saveModelCalls.length, before, 'a dry run never saves');
+    assert.deepStrictEqual(previewCalls.at(-1).opts, { onUnconvertible: 'clear' });
+
+    const ok = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel() } });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.strictEqual(saveModelCalls.at(-1).opts.convertTypes, true);
+    assert.strictEqual(saveModelCalls.at(-1).opts.onUnconvertible, 'refuse');
+
+    const badFlag = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel(), onUnconvertible: 'drop' } });
+    assert.strictEqual(badFlag.statusCode, 400);
+});
+
+test('owner PUT schema: refused conversion and failed migration are 422 with their code and details', async () => {
+    const app = makeApp();
+    nextSaveResult = { ok: false, conversionRefused: true, conversions: [{ table: 't', field: 'f', unconvertible: 2 }] };
+    const refused = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel() } });
+    assert.strictEqual(refused.statusCode, 422);
+    assert.strictEqual(refused.body.code, 'conversion_refused');
+    assert.strictEqual(refused.body.conversions[0].unconvertible, 2);
+
+    nextSaveResult = { ok: false, migrationFailed: true, failure: { reason: 'division_by_zero', message: 'The expression divides by zero for at least one row.' } };
+    const failed = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel() } });
+    assert.strictEqual(failed.statusCode, 422);
+    assert.strictEqual(failed.body.code, 'migration_failed');
+    assert.strictEqual(failed.body.error, 'The expression divides by zero for at least one row.');
 });
 
 test('owner can add + remove members', async () => {

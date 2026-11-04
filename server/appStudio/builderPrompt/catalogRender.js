@@ -441,11 +441,11 @@ function buildCatalogSections() {
         `Caps: ${DATA_LIMITS.MAX_TABLES_PER_APP} tables/app, ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} fields/table, ${DATA_LIMITS.MAX_ROWS_PER_TABLE} rows/table, ${DATA_LIMITS.MAX_ROWS_PER_APP} rows/app, ${Math.round(DATA_LIMITS.MAX_DB_BYTES / (1024 * 1024))}MB per app database.`,
     ].join('\n');
 
+    const dataModelChanges = `Tables that hold rows: a stored computed field (computed.stored:true) is a real column — a new one, or a changed expr, is computed for every existing row on save. A read-time computed field is not evaluated (reads empty): use stored:true for a value you show.\nA field's type converts in place only text↔select, number↔text, integer↔text, integer↔number. app_upsert_table dryRun:true counts the values that cannot convert; the save refuses them unless onUnconvertible:"clear" (empties them).`; // full catalog only
     const limits = `${LIMITS.MAX_SCREENS} screens; ${LIMITS.MAX_SECTIONS_PER_SCREEN} sections/screen; ${LIMITS.MAX_TOTAL_NODES} total sections+components; ${LIMITS.MAX_ACTIONS} actions; nesting depth ${LIMITS.MAX_DEPTH} (section=1, each container +1); strings ≤${LIMITS.MAX_STRING} chars; formulas ≤${LIMITS.MAX_FORMULA_LEN} chars.`;
 
     _sections = {
-        theme, design, knobs, advancedSizing, screen, components, nodeLogic, actions, steps,
-        bindings, formulas, variables, dataModel, limits,
+        theme, design, knobs, advancedSizing, screen, components, nodeLogic, actions, steps, bindings, formulas, variables, dataModel, dataModelChanges, limits,
         // The line lists the compact form composes from: it keeps the shapes
         // that ARE the contract (bindings, node logic) and drops the lines
         // that name a tool or a kind the core menu cannot reach.
@@ -503,7 +503,7 @@ ${s.formulas}
 ${s.variables}
 
 ### Data model (the app's own database)
-${s.dataModel}
+${s.dataModel}\n${s.dataModelChanges}
 
 ### Limits
 ${s.limits}`;
@@ -779,5 +779,5 @@ module.exports = {
  * @typedef {Record<string, { mutatesData?: boolean, fields: Record<string, FieldSpec> }>} KindSpecs
  * @typedef {{ theme: string, design: string, knobs: string, advancedSizing: string, screen: string, components: string,
  *   nodeLogic: string, actions: string, steps: string, bindings: string, formulas: string, variables: string,
- *   dataModel: string, limits: string, _nodeLogicLines: string[], _bindingLines: string[], _stepsLead: string[] }} CatalogSections
+ *   dataModel: string, dataModelChanges: string, limits: string, _nodeLogicLines: string[], _bindingLines: string[], _stepsLead: string[] }} CatalogSections
  */

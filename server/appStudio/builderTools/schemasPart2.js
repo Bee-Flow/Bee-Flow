@@ -31,7 +31,7 @@ const TOOL_SCHEMAS_PART_2 = [
         type: 'function',
         function: {
             name: 'app_upsert_table',
-            description: 'Create or evolve ONE data table in the app\'s database (the app\'s OWN storage — for a table that already exists in Studio use app_link_datatable instead). Omit `tableId` to create; pass an existing tbl_… id to evolve it. `fields` is the table\'s COMPLETE field list: existing fields are matched by fieldId (or by key) and keep their stable ids; fields you leave out are DROPPED with their column data. Returns the real tbl_/fld_ ids to use in bindings and app_seed_records, plus a migration summary. DDL limits: a field\'s type can never be converted in place (add a new field instead), and a required field added to a populated table needs a `default` to backfill.',
+            description: 'Create or evolve ONE data table in the app\'s database (the app\'s OWN storage — for a table that already exists in Studio use app_link_datatable instead). Omit `tableId` to create; pass an existing tbl_… id to evolve it. `fields` is the table\'s COMPLETE field list: existing fields are matched by fieldId (or by key) and keep their stable ids; fields you leave out are DROPPED with their column data. Returns the real tbl_/fld_ ids to use in bindings and app_seed_records, plus a migration summary with row counts. A field\'s type converts in place only for text↔select, number↔text, integer↔text and integer↔number (otherwise add a new field); values that cannot convert refuse the save unless onUnconvertible:"clear" — check first with dryRun:true. A stored computed field with a new expression is recomputed for every row. A required field added to a populated table needs a `default` to backfill.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -39,6 +39,8 @@ const TOOL_SCHEMAS_PART_2 = [
                     key: { type: 'string', description: 'Physical table key: lowercase snake_case, starts with a letter (e.g. "tasks"). Derived from `name` when omitted on create; pass a new key on evolve to RENAME the table.' },
                     name: { type: 'string', description: 'Human table name (e.g. "Tasks") — on create, the key is derived from it when you give none.' },
                     icon: { type: 'string', description: 'Lucide icon name for the table.' },
+                    dryRun: { type: 'boolean', description: 'true: save nothing, answer what the change would do to the rows (recomputed rows, conversions with the count and examples of values that cannot convert).' },
+                    onUnconvertible: { type: 'string', enum: ['refuse', 'clear'], description: 'A type conversion meets values that cannot convert: "refuse" (default) keeps everything as it was, "clear" empties those values.' },
                     fields: {
                         type: 'array',
                         description: 'The COMPLETE field list, in order.',
@@ -49,7 +51,7 @@ const TOOL_SCHEMAS_PART_2 = [
                                 key: { type: 'string', description: 'Column key: lowercase snake_case (derived from `name` when omitted). Never a system column (id, created_at, updated_at, created_by, org_id — those exist automatically).' },
                                 name: { type: 'string', description: 'Human label (defaults to the key; a key is derived from it when the key is omitted).' },
                                 type: { type: 'string', enum: [...FIELD_TYPES] },
-                                subtype: { type: 'string', description: 'number only: "integer" for whole numbers.' },
+                                subtype: { type: 'string', nullable: true, description: 'number only: "integer" for whole numbers; null turns an integer field back into a plain number.' },
                                 required: { type: 'boolean' },
                                 unique: { type: 'boolean' },
                                 default: { type: 'string', description: 'Default for new records, written as a string and read by the field\'s type: "false" on a bool, "0" on a number, "2026-01-01" on a date (a JSON boolean or number is accepted too); also backfills when adding a required field to a populated table.' },
@@ -76,7 +78,7 @@ const TOOL_SCHEMAS_PART_2 = [
                                         // filtered or aggregated on it then failed with "is a
                                         // read-time computed field and cannot be queried", from a
                                         // call whose only intent was to edit a different field.
-                                        stored: { type: 'boolean', description: 'true materialises a real column, so the field can be FILTERED, SORTED and AGGREGATED on (a read-time expression can only be read). Set at table creation; adding one to a populated table backfills it.' },
+                                        stored: { type: 'boolean', description: 'true materialises a real column, so the field can be FILTERED, SORTED and AGGREGATED on (a read-time expression can only be read). Adding one to a populated table, or changing its expr, computes it for every row. Without stored the field is read-time: it is not evaluated yet, so use stored:true for a value you show.' },
                                     },
                                     required: ['expr'],
                                 },
@@ -277,7 +279,7 @@ const TOOL_SCHEMAS_PART_2 = [
         type: 'function',
         function: {
             name: 'app_get_data_model',
-            description: 'Read the app\'s current data model: every table with its real tbl_/fld_ ids, field keys/types, row counts, datasets and roles. Use it to re-check ids before binding; the same block is also injected into the conversation each turn.',
+            description: 'Read the app\'s current data model: every table with its real tbl_/fld_ ids, field keys/types, row counts, datasets and roles, and for computed fields whether they are stored and their expr. Use it to re-check ids before binding; the same block (without ids and expressions) is also injected into the conversation each turn.',
             parameters: { type: 'object', properties: {} },
         },
     },

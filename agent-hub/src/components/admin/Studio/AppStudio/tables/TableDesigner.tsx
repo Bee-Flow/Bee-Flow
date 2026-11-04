@@ -4,6 +4,7 @@ import useTranslation from '@/hooks/useTranslation';
 import { RepeatableList } from '@/components/admin/product-website/fields';
 import FormulaField from '../inspector/logic/FormulaField';
 import { NumberField, TextField } from '../inspector/panels/kit';
+import { safeTargetTypes } from './fieldConversions';
 import type { ModelField, ModelTable } from './tablesManagerModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -92,10 +93,20 @@ interface FieldEditorProps {
     tables?: ModelTable[] | null;
     currentTableId?: string;
     saved: boolean;
+    /** The type the server has for a saved field: only safe conversions from it are offered. */
+    savedType?: string;
     disabled: boolean;
 }
 
-function FieldEditor({ field, update, tables, currentTableId, saved, disabled }: FieldEditorProps) {
+/** The type options a field may take: all of them for a new field, the safe conversions for a saved one. */
+function typeOptions(t: TranslateFn, field: ModelField, saved: boolean, savedType: string | undefined) {
+    const all = fieldTypes(t);
+    if (!saved) return all;
+    const allowed = new Set([...safeTargetTypes(savedType), field.type || 'text']);
+    return all.filter((ft) => allowed.has(ft.value));
+}
+
+function FieldEditor({ field, update, tables, currentTableId, saved, savedType, disabled }: FieldEditorProps) {
     const { t } = useTranslation();
     const set = (patch: Partial<ModelField>) => update({ ...field, ...patch });
     // While a key is still auto-derived (blank or matches the name's slug), keep
@@ -162,8 +173,13 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled }:
                     disabled={disabled}
                     aria-label={t('studio_apps_tables.designer.field_type', 'Field type')}
                 >
-                    {fieldTypes(t).map((ft) => <option key={ft.value} value={ft.value}>{ft.label}</option>)}
+                    {typeOptions(t, field, saved, savedType).map((ft) => <option key={ft.value} value={ft.value}>{ft.label}</option>)}
                 </select>
+                {saved && field.type !== savedType ? (
+                    <span className="text-[11px] font-normal text-[var(--text-tertiary)]">
+                        {t('studio_apps_tables.designer.converts', 'Saving converts the existing values; you are asked first if some cannot be converted.')}
+                    </span>
+                ) : null}
             </label>
 
             {field.type === 'select' || field.type === 'multiselect' ? (
@@ -226,6 +242,11 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled }:
                         placeholder={t('studio_apps_tables.designer.computed_placeholder', 'e.g. price * quantity')}
                         disabled={disabled}
                     />
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs text-[var(--text-secondary)]">
+                        <input type="checkbox" className={CHECK_CLS} checked={field.computed?.stored === true} disabled={disabled}
+                            onChange={(e) => set({ computed: { ...(field.computed || {}), stored: e.target.checked } })} />
+                        {t('studio_apps_tables.designer.computed_stored', 'Save as a column (filter and sort on it)')}
+                    </label>
                 </div>
             ) : field.type !== 'bool' && field.type !== 'file' ? (
                 field.type === 'number' ? (
@@ -261,7 +282,8 @@ export default function TableDesigner({ table, tables, savedTable = null, onChan
     if (!table) return null;
     const set = (patch: Partial<ModelTable>) => onChange({ ...table, ...patch });
     const fields = Array.isArray(table.fields) ? table.fields : [];
-    const savedFieldIds = new Set((Array.isArray(savedTable?.fields) ? savedTable.fields : []).map((f) => f.id));
+    const savedFields = Array.isArray(savedTable?.fields) ? savedTable.fields : [];
+    const savedTypeById = new Map(savedFields.map((f) => [f.id, f.type || 'text']));
 
     return (
         <div className="flex flex-col gap-3">
@@ -288,7 +310,8 @@ export default function TableDesigner({ table, tables, savedTable = null, onChan
                         update={update}
                         tables={tables}
                         currentTableId={table.id}
-                        saved={savedFieldIds.has(field.id)}
+                        saved={savedTypeById.has(field.id)}
+                        savedType={savedTypeById.get(field.id)}
                         disabled={disabled}
                     />
                 )}

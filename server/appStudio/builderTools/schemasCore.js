@@ -69,7 +69,8 @@ const CORE_PRUNE = {
         description: 'Link an EXISTING Studio table (a Nextcloud Tables mirror, any organisation table) into this app by name, key or id. Its rows stay where they are and the app reads them LIVE; the result carries the tbl_ id and the exact field keys to bind ("Excl. btw" is excl_btw). Prefer this over app_upsert_table when the ask names a table that already exists. Never seed a linked table. Calling it again for the same table refreshes its field copy.',
     },
     app_upsert_table: {
-        description: 'Create or evolve ONE table in the app\'s OWN database (a table that already exists in Studio is linked with app_link_datatable instead). Omit `tableId` to create; pass an existing tbl_… id to evolve. `fields` is the COMPLETE field list — fields you leave out are dropped. Returns the real tbl_ id and field keys to bind and seed with. A field\'s type never converts in place; a required field added to a populated table needs a `default`.',
+        description: 'Create or evolve ONE table in the app\'s OWN database (a table that already exists in Studio is linked with app_link_datatable instead). Omit `tableId` to create; pass an existing tbl_… id to evolve. `fields` is the COMPLETE field list — fields you leave out are dropped. Returns the real tbl_ id and field keys to bind and seed with. A field\'s type converts in place only text↔select, number↔text, integer↔text and integer↔number; a required field added to a populated table needs a `default`.',
+        drop: ['dryRun', 'onUnconvertible'],
         at: {
             'fields.items': { drop: ['fieldId', 'computed'] },
             access: { keep: ['default'], description: 'Row access. default "app": everyone with the app reads/writes (use it for demo/shared data — seeded rows are invisible to members under "owner"); "owner": each user sees only their own rows.' },

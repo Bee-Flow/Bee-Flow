@@ -736,6 +736,8 @@ No request schema.
 |-------|------|:--------:|-------|
 | `model` | object | yes |  |
 | `expectedVersion` | integer or null |  |  |
+| `dryRun` | boolean |  |  |
+| `onUnconvertible` | one of `"refuse"`, `"clear"` |  |  |
 
 ### `POST /api/studio-apps/:id/template-upgrade`
 
