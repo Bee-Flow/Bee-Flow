@@ -14,8 +14,13 @@ const { safeParse } = require('./rowMappers');
 // automations.builder_session at the end of every turn. On SSE reconnect the
 // client rehydrates from the latest snapshot so the chat history isn't lost
 // when the connection drops, and the next turn's prompt replays `catalogOrder`
-// (the app order the session's system prompt is rendered in) and `todos`.
-// Unknown keys are written verbatim — adding one needs no migration.
+// (the app order the session's system prompt is rendered in) and `todos`,
+// and its memory: `inspectedTools` (string[], the tool names inspected so far,
+// newest last) and `lastDryRunHints` ({ [stepId]: hint }, the last test run's
+// per-step shape hints, no values, ≤ 4 KB) — both bounded by their writer
+// (routes/ai/automationBuilder/turnClosing.js sessionMemory), so the byte cap
+// below never needs to touch them. Unknown keys are written verbatim — adding
+// one needs no migration.
 //
 // `version` is a monotonically-increasing integer used for optimistic
 // locking: setBuilderSession only succeeds when the caller's expected

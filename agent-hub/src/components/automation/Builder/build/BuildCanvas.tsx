@@ -76,6 +76,8 @@ export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, pr
                     runId={p.formTest.runId}
                     runKind={p.formTest.runId ? formRunKindOf(state.dryRun) : null}
                     triggerStepId={p.formTest.triggerStepId ?? null}
+                    untilStepId={p.formTest.untilStepId}
+                    untilLabel={p.formTest.untilLabel}
                     onStartRun={p.onFormTestRun}
                     startMode={p.formTest.mode}
                     onFollowRun={p.onFollowRun}
@@ -246,6 +248,8 @@ function canvasEditProps(p: BuildTabProps, m: CanvasModel): DiagramPaneProps {
         // assistant one click away.
         onAddTrigger: readOnly ? null : m.surfaces.handleAddNode,
         onOpenAssistant: assistantReachable ? () => (onAskAssistant ? onAskAssistant() : p.setAssistantOpen(true)) : null,
+        // An example brief goes straight to the assistant, which opens to show it working.
+        onSendBrief: assistantReachable ? (text: string) => { p.setAssistantOpen(true); p.onSend(text); } : null,
         onAskAssistant: assistantReachable ? onAskAssistant : null,
         // Marks the edited card, its source (dashed) and what comes next
         // (dimmed) while the drawer is open.

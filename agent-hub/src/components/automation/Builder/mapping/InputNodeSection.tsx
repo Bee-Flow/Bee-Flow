@@ -29,6 +29,16 @@ const FieldRow = FieldRowJs;
 interface Field { key: string; path: string; sample?: unknown; children?: Field[] }
 export interface InputGroup { id: string; label: string; kind?: string; basePath: string; sample?: unknown; fields?: Field[]; hasRealData?: boolean }
 
+/**
+ * A step's or a trigger's group whose values are still the design-time
+ * examples (a form's "Your name", "visitor@example.com"): no run or pin has
+ * given it real data. Its values carry a "sample" chip. The loop item and
+ * "Trigger info" are left unmarked: what they hold is resolved elsewhere.
+ */
+export function isPlaceholderGroup(g: InputGroup): boolean {
+    return !g.hasRealData && g.kind !== 'trigger_meta' && !String(g.basePath || '').startsWith('loop.');
+}
+
 export default function InputNodeSection({
     group, family, number, used, usedPaths, previewSample, onPick, defaultOpen, onOpenTable,
     iteration = null, searching = false,
@@ -69,8 +79,9 @@ export default function InputNodeSection({
         ...(used > 0 ? [t('automations.mapping.in_use', '{n} in use', { n: used })] : []),
     ].join(' · ');
     const capped = !!(iteration?.truncated && (iteration.skipped || 0) > 0);
+    const placeholder = isPlaceholderGroup(group);
     const row = (f: Field) => (
-        <FieldRow key={f.path} field={f} onInsert={onPick} depth={0} previewSample={previewSample} inUse={usedPaths} human />
+        <FieldRow key={f.path} field={f} onInsert={onPick} depth={0} previewSample={previewSample} inUse={usedPaths} human sample={placeholder} />
     );
 
     return (

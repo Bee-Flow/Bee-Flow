@@ -1154,11 +1154,6 @@
       "count": 1
     }
   },
-  "automation/builderPrompt/triggerBlock.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "automation/builderTools.js": {
     "complexity": {
       "count": 4
@@ -1738,7 +1733,7 @@
   },
   "automation/summarise.js": {
     "complexity": {
-      "count": 4
+      "count": 3
     },
     "max-lines-per-function": {
       "count": 1

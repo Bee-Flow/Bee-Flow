@@ -49,6 +49,7 @@ export interface DiagramPaneProps {
     onRequestOpenPalette?: Callback;
     onAddTrigger?: Callback<[payload: AddStepPayload | null]>;
     onOpenAssistant?: Callback;
+    onSendBrief?: Callback<[text: string]>;
     onAskAssistant?: Callback<[stepId?: string, field?: AssistantField | null]>;
     editingStepId?: string | null;
     onRequestAddAfter?: Callback<[nodeId: string | null]>;

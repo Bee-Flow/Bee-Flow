@@ -199,3 +199,12 @@ test('builder_update_step lists limits among the patchable code keys, as stepEdi
         assert.ok(new RegExp(`\\b${key}\\b`).test(codeKeys[1]), `the code entry names the patchable key ${key}`);
     }
 });
+
+test('the "What you can build" line keeps code last and says nothing about it when it is off', () => {
+    const line = (p) => p.split('\n').find((l) => l.startsWith('- Code [code] — '));
+    for (const p of [fullOn(), leanOn()]) assert.match(line(p), /last resort, after an app action and the steps here/);
+    for (const p of [fullOff(), leanOff()]) {
+        assert.equal(line(p), '- Code [code] — switched off on this server; never propose it.');
+        assert.ok(!/JavaScript/.test(line(p)), 'the disabled line does not describe the step it bans');
+    }
+});

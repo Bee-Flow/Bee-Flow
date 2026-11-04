@@ -147,7 +147,7 @@ function createBuilderStream() {
     // chatStream destructures getAdapter at require time, so the seam has to
     // be one stable function that reads the run's adapter.
     swap('core/providers', { getAdapter: () => script.adapter });
-    swap('automation/builderCatalog', { async buildCatalogForUser() { return snapshot(script.catalog); } });
+    swap('automation/builderCatalog', { ...require(resolveInServer('automation/builderCatalog')), async buildCatalogForUser() { return snapshot(script.catalog); } }); // real pure helpers
     swap('automation/builderDatatableCatalog', { async buildDatatableCatalogForUser() { return script.datatables; } });
     swap('automation/builderDocumentCatalog', { async buildDocumentCatalogForUser() { return script.documents; } });
     // Agents / knowledge bases / app_event providers: scripted per run (`pickers`),

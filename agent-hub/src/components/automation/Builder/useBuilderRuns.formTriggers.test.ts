@@ -85,4 +85,46 @@ describe('useBuilderRuns — form triggers', () => {
         await act(async () => { await h.result.current.onFormTestRun({ naam: 'C' }, { mode: 'live' }); });
         expect(h.deps.confirm).toHaveBeenCalledTimes(2);
     });
+
+    it('Test step on a step after a bare form nobody answered opens the form in dry mode, bounded to that step', async () => {
+        const h = renderBuilderRuns(runDefinition());
+        await act(async () => { await h.result.current.handleExecuteStep('s1'); });
+        expect(h.result.current.formTest).toEqual({ form: PRIMARY_FORM, triggerStepId: 'trg', mode: 'dry', untilStepId: 's1', untilLabel: 'Mail the customer' });
+        expect(h.deps.executeStep).not.toHaveBeenCalled();
+        expect(h.deps.setTab).toHaveBeenCalledWith('build');
+
+        // Page one's submit posts the bound with the answers: the dry run ends after s1.
+        h.deps.api.formTest.mockResolvedValue({ accepted: true, pending: true, runId: 'r5' });
+        await act(async () => { await h.result.current.onFormTestRun({ naam: 'Ada' }, { mode: 'dry' }); });
+        expect(h.deps.api.formTest).toHaveBeenCalledWith('a1', { values: { naam: 'Ada' }, mode: 'dry', untilStepId: 's1', respond: 'created' });
+        expect(h.deps.api.dryRun).not.toHaveBeenCalled();
+    });
+
+    it('"Run up to here" is bounded the same way; "Retry from here" runs the form\'s whole dry run', async () => {
+        const h = renderBuilderRuns(runDefinition());
+        await act(async () => { await h.result.current.handleExecuteStep('s1', { mode: 'upTo' }); });
+        expect(h.result.current.formTest).toMatchObject({ mode: 'dry', untilStepId: 's1' });
+        act(() => { h.result.current.closeFormTest(); });
+        await act(async () => { await h.result.current.handleRetryFromStep('s1'); });
+        expect(h.result.current.formTest).toEqual({ form: PRIMARY_FORM, triggerStepId: 'trg', mode: 'dry' });
+        expect(h.deps.executeStep).not.toHaveBeenCalled();
+    });
+
+    it('with the answers a run entered the form with, Test step replays them instead of opening the form', async () => {
+        const dryRun = { id: 'r9', status: 'success', rootStepId: 'trg', triggerPayload: { naam: 'Ada' } };
+        const h = renderBuilderRuns(runDefinition(), { state: { dryRun, steps: [], executingStepId: null } });
+        await act(async () => { await h.result.current.handleExecuteStep('s1'); });
+        expect(h.result.current.formTest).toBeNull();
+        expect(h.deps.executeStep).toHaveBeenCalledWith('s1', { triggerPayload: { naam: 'Ada' } });
+    });
+
+    it('a recorded trigger row counts as the answers too; a caller\'s own payload still wins', async () => {
+        const steps = [{ stepId: 'trg', status: 'success', output: { naam: 'Row' } }];
+        const h = renderBuilderRuns(runDefinition(), { state: { dryRun: null, steps, executingStepId: null } });
+        await act(async () => { await h.result.current.handleExecuteStep('s1', { mode: 'upTo' }); });
+        expect(h.deps.executeStep).toHaveBeenLastCalledWith('s1', { triggerPayload: { naam: 'Row' }, mode: 'upTo' });
+        await act(async () => { await h.result.current.handleExecuteStep('s1', { triggerPayload: { naam: 'Mine' } }); });
+        expect(h.deps.executeStep).toHaveBeenLastCalledWith('s1', { triggerPayload: { naam: 'Mine' } });
+    });
 });
+

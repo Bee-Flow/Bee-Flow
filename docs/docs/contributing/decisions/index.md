@@ -26,3 +26,4 @@ decision that changes gets a new record that supersedes the old one.
 | [0011](./tests-next-to-the-source.md) | Tests live next to the source and run one file per process |
 | [0012](./route-contract-and-tenant-matrix.md) | Every route declares its gate; tenant isolation is tested by matrix |
 | [0013](./run-profile.md) | One run profile, decided when a run starts, says what the run may do |
+| [0014](./assistant-sees-what-the-canvas-shows.md) | The assistant sees what the canvas shows: every step type, building block and connected tool, in the canvas's words, on every model band |

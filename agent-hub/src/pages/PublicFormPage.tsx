@@ -4,8 +4,9 @@ import useFormResultActions from './useFormResultActions';
 import { FormNotLiveView, FormWaitingDecisionView, TestLinkBanner } from './PublicFormNotices';
 import PublicFormRenderer, { FormEndingView, FormWaitingView } from '../components/forms/PublicFormRenderer';
 import useTranslation from '../hooks/useTranslation';
-import { FORM_API as API, applySessionState, fetchSession, randomNonce, readSessionFromUrl, workingPatch, writeSessionToUrl, type PageState } from './publicFormSession';
+import { FORM_API as API, applySessionState, currentLook, fetchSession, journeyLook, randomNonce, readSessionFromUrl, workingPatch, writeSessionToUrl, type PageState } from './publicFormSession';
 import type { FormDef, FormFieldDef } from '../components/forms/PublicFormRenderer.types';
+import { canvasVars, formWidthClass } from '../components/forms/formStyleVars';
 
 // Poll cadence while the automation works. Starts sub-second so a fast automation
 // feels instant, then eases off so a slow one is not hammered.
@@ -114,7 +115,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
                     return;
                 }
                 setNotice({ test: body.test === true, notLive: null });
-                setState({ status: 'form', form: body.form, csrf: body.csrf, issuedAt: body.issuedAt || Date.now(), ending: null, theme: body.form?.theme || null });
+                setState({ status: 'form', form: body.form, csrf: body.csrf, issuedAt: body.issuedAt || Date.now(), ending: null, ...journeyLook({}, body.form) });
             } catch {
                 if (alive) setState({ status: 'offline', form: null, csrf: null, issuedAt: 0, ending: null });
             }
@@ -153,13 +154,9 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
         return () => { alive = false; if (timer) clearTimeout(timer); };
     }, [state.status, sessionId, token, setSession]);
 
-    // The author's theme, remembered.
-    //
-    // It used to be read off `state.form`, which submit() clears — so the whole
-    // waiting stretch, the longest part of a multi-page form, fell back to
-    // 'auto' and a light form went dark the moment someone answered a question.
-    // Every screen of one journey should look like the same product.
-    const theme = state.theme || (state.form || state.ending)?.theme || null;
+    // The author's theme and style, remembered: every screen of one journey
+    // should look like the same product (publicFormSession.currentLook).
+    const { theme, formStyle } = currentLook(state);
     const appearance = (theme?.appearance || 'auto') as string;
     useEffect(() => {
         if (typeof document === 'undefined') return undefined;
@@ -298,13 +295,13 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
     const startAgain = useCallback(() => {
         setSession(null);
         fileSidRef.current = null;
-        setState(s => ({ status: 'loading', form: null, csrf: null, issuedAt: 0, ending: null, theme: s.theme || null }));
+        setState(s => ({ status: 'loading', form: null, csrf: null, issuedAt: 0, ending: null, ...journeyLook(s) }));
         setRestart(n => n + 1);
     }, [setSession]);
 
     return (
-        <div className="min-h-screen w-full flex items-start justify-center px-4 py-10 sm:py-16 bg-[var(--bg-primary)]">
-            <div className="w-full max-w-xl">
+        <div style={canvasVars(theme)} className="min-h-screen w-full flex items-start justify-center px-4 py-10 sm:py-16 bg-[var(--app-canvas,var(--bg-primary))]">
+            <div className={`w-full ${formWidthClass(formStyle)}`}>
                 {(notice.test || state.test) && <TestLinkBanner />}
                 {state.status === 'loading' && (
                     <div className="flex items-center justify-center gap-2 py-24 text-sm text-[var(--text-secondary)]">
@@ -312,7 +309,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
                     </div>
                 )}
                 {state.status === 'working' && (
-                    <FormWaitingView theme={theme} progress={state.progress} note={state.progressNote} typicalSeconds={state.typicalSeconds} />
+                    <FormWaitingView theme={theme} formStyle={formStyle} progress={state.progress} note={state.progressNote} typicalSeconds={state.typicalSeconds} />
                 )}
                 {state.status === 'waiting_decision' && <FormWaitingDecisionView notify={state.notify === true} onCheckAgain={retry} />}
                 {state.status === 'slow' && (

@@ -48,6 +48,15 @@ export interface AutomationBuilderState {
     dryRun: DryRun | null;
     steps: Array<Record<string, unknown>>;
     finalizedId: string | null;
+    /**
+     * The last `finalized` event whole: which automation, and what it still
+     * needs before it is of use (`needs`, from the server's finalize result:
+     * 'activate' | 'share-form' | 'run-once' | 'connect:<app id>'; null from a
+     * server that does not send it). The hand-over card reads it, and only
+     * while it names `finalizedId`, which reset() clears. Optional: the hook's
+     * initial state leaves it out.
+     */
+    finalized?: BuilderFinalized | null;
     running: boolean;
     /** Id of the step currently mid partial-execute (n8n-style ▶). */
     executingStepId: string | null;
@@ -90,6 +99,13 @@ export interface AutomationBuilderState {
      *  reason, so the composer can disable the switch instead of offering a
      *  dead one. Null until a turn reported it. */
     webSearch: BuilderWebSearchStatus | null;
+}
+
+/** What the builder saved at finalize, and what it still needs (design point 5's hand-over). */
+export interface BuilderFinalized {
+    automationId: string;
+    needs: string[] | null;
+    autoFinalized: boolean;
 }
 
 export interface BuilderWebSearchStatus {

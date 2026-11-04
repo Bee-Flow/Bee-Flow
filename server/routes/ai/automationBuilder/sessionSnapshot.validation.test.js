@@ -22,11 +22,17 @@ const pass = (req, res, next) => next();
 // requireActiveOrgForMutations() is called once per route that carries it.
 let activeOrgGates = 0;
 
+// The session memory turnClosing.js writes (sessionMemory): hints only.
+const MEMORY = {
+    inspectedTools: ['gmail_search'],
+    lastDryRunHints: { fetch: { outputType: 'object', shape: '{ value[*]: { id } }', status: 'success', stepType: 'integration_action' } },
+};
+
 const MOCKS = {
     '../../../stores/automationStore': {
         getBuilderSession: async (automationId, userId) => {
             touched.push({ automationId, userId });
-            if (automationId === 'a2') return { sessionId: 's2', version: 5, proposal: { id: 'prop1' }, reviewPlan: { id: 'plan1' } };
+            if (automationId === 'a2') return { sessionId: 's2', version: 5, proposal: { id: 'prop1' }, reviewPlan: { id: 'plan1' }, ...MEMORY };
             if (automationId === 'a3') return { sessionId: 's3', version: 7, approvedDatatableIds: ['tbl_old'], reviewQuestions: [{ id: 'q', prompt: 'P', options: ['A', 'B'], choice: { kind: 'datatable' } }], proposal: { id: 'prop3', applying: { token: 'secret', at: 't' }, pendingDatatables: [{ ref: 'pending:1', name: 'Facturen', createdId: 'tbl_made' }, { ref: 'pending:2', name: 'Klanten' }] } };
             return automationId === 'a1' ? { sessionId: 's1', version: 2 } : null;
         },
@@ -148,4 +154,14 @@ test('the snapshot the client reads has neither the question `choice` nor the Ap
     assert.ok(!('choice' in res.body.snapshot.reviewQuestions[0]));
     assert.ok(!('applying' in res.body.snapshot.proposal));
     assert.strictEqual(res.body.snapshot.proposal.pendingDatatables.length, 2);
+});
+
+test('a review keeps the session memory (inspected tools, last test run hints) for the next turn', async () => {
+    for (const [action, revisionId] of [['applyProposal', 'prop1'], ['discardProposal', 'prop1'], ['rejectPlan', 'plan1']]) {
+        written.length = 0;
+        const res = await dispatch({ method: 'POST', url: '/session/a2/review', body: { action, revisionId } });
+        assert.strictEqual(res.statusCode, 200, action);
+        assert.deepStrictEqual(written[0].snapshot.inspectedTools, MEMORY.inspectedTools, action);
+        assert.deepStrictEqual(written[0].snapshot.lastDryRunHints, MEMORY.lastDryRunHints, action);
+    }
 });

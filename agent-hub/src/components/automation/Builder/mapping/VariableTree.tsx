@@ -232,6 +232,22 @@ interface FieldRowProps {
     previewSample: unknown;
     inUse?: Set<string> | null;
     human?: boolean;
+    /** The value is a design-time example, not one a run produced: it carries a "sample" chip. */
+    sample?: boolean;
+}
+
+/** Beside a value no run has produced: an example, never to be read as run data. */
+function SampleChip() {
+    const { t } = useTranslation();
+    return (
+        <span
+            className="ml-auto shrink-0 px-1 rounded text-[9px] leading-[14px] uppercase tracking-wider bg-amber-500/15 text-amber-500 border border-amber-500/30"
+            title={t('automations.mapping.sample_chip_title', 'An example value. No run has shown this field yet: test a step to see the real one.')}
+            data-testid="field-sample-chip"
+        >
+            {t('automations.mapping.sample_chip', 'sample')}
+        </span>
+    );
 }
 
 /**
@@ -240,7 +256,7 @@ interface FieldRowProps {
  * path. Shared with the NDV's INPUT panel — the tree IS the input panel now
  * (BFSF-329), so this is the single row implementation for both.
  */
-export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, human = false }: FieldRowProps) {
+export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, human = false, sample = false }: FieldRowProps) {
     const [open, setOpen] = useState(false);
     const { t } = useTranslation();
     const indent = 12 + depth * 14;
@@ -326,7 +342,8 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                         {t('automations.mapping.use_whole_group', 'use the whole group')}
                     </button>
                 )}
-                <span className="ml-auto shrink-0 text-[10px] text-[var(--text-tertiary)] truncate max-w-[40%] text-right">
+                {sample && desc.kind !== 'unknown' && <SampleChip />}
+                <span className={`${sample && desc.kind !== 'unknown' ? '' : 'ml-auto '}shrink-0 text-[10px] text-[var(--text-tertiary)] truncate max-w-[40%] text-right`}>
                     {desc.kind === 'unknown'
                         ? <span className="italic" title={t('automations.kind.unknown_hint', 'not seen yet — run the step above')}>{t('automations.kind.unknown_short', 'not seen yet')}</span>
                         : valueLabel(desc, value)}
@@ -334,7 +351,7 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 <GripVertical size={11} className="shrink-0 text-[var(--text-tertiary)] opacity-40 group-hover:opacity-100" />
             </div>
             {hasChildren && open && (field.children as RowField[]).map((c: RowField) => (
-                <FieldRow key={c.path} field={c} onInsert={onInsert} depth={depth + 1} previewSample={previewSample} inUse={inUse} human={human} />
+                <FieldRow key={c.path} field={c} onInsert={onInsert} depth={depth + 1} previewSample={previewSample} inUse={inUse} human={human} sample={sample} />
             ))}
         </div>
     );

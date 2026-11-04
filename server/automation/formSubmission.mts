@@ -77,6 +77,8 @@ export interface SubmitWork {
     isTest?: true;
     origin?: SubmissionOrigin;
     mode?: 'dry_run';
+    /** The run ends after this step (a builder test of one step, stoppingAfter). */
+    untilStepId?: string;
 }
 
 /** Refused (400, the fields that need attention) or accepted (the session and the work to run). */
@@ -185,6 +187,17 @@ export async function acceptSubmission(found: FoundForm, body: Row, caller: Subm
         ...(profile.kind === 'dry' ? { mode: 'dry_run' as const } : {}),
     };
     return { ok: true, session, work };
+}
+
+/**
+ * The accepted work, bounded to end after `untilStepId`: the builder's "Test
+ * step" / "Run up to here" on a step after a form nobody has filled in yet
+ * starts the form's own run and stops once that step is done. The runner
+ * records the bound on the run's profile (stopAfterStepId), so a resume after
+ * a pause on the way stops there too. No step: the work as it was.
+ */
+export function stoppingAfter<A extends { work: SubmitWork }>(accepted: A, untilStepId: string | null | undefined): A {
+    return untilStepId ? { ...accepted, work: { ...accepted.work, untilStepId } } : accepted;
 }
 
 /**

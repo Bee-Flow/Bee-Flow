@@ -24,17 +24,17 @@ describe('WorkModePicker', () => {
         render(<WorkModePicker value="plan" onChange={vi.fn()} />);
         const trigger = screen.getByRole('button');
         await user.click(trigger);
-        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /plan first/i }));
+        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /ask, plan, then build/i }));
         await user.keyboard('{ArrowDown}');
-        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /build directly/i }));
+        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /change it right away/i }));
         await user.keyboard('{ArrowDown}');                      // wraps
-        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /only discuss/i }));
+        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /just advise/i }));
         await user.keyboard('{ArrowUp}');                        // and back
-        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /build directly/i }));
+        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /change it right away/i }));
         await user.keyboard('{Home}');
-        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /only discuss/i }));
+        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /just advise/i }));
         await user.keyboard('{End}');
-        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /build directly/i }));
+        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /change it right away/i }));
         await user.keyboard('{Escape}');
         expect(screen.queryByRole('menu')).toBeNull();
         expect(document.activeElement).toBe(trigger);
@@ -79,16 +79,39 @@ describe('WorkModePicker', () => {
     });
 });
 
+describe('WorkModePicker — plain words', () => {
+    it('asks "How should I work?" and names each mode by what the assistant does', async () => {
+        const user = userEvent.setup();
+        render(<WorkModePicker value="approve" onChange={vi.fn()} alwaysPlanLarge onAlwaysPlanLargeChange={vi.fn()} />);
+        expect(screen.getByRole('button').textContent).toContain('Show me before changing');
+        await user.click(screen.getByRole('button'));
+        expect(screen.getByRole('menu', { name: 'How should I work?' })).toBeTruthy();
+        expect(screen.getAllByRole('menuitemradio').map((el) => el.querySelector('span span')?.textContent)).toEqual([
+            'Just advise', 'Show me before changing', 'Ask, plan, then build', 'Change it right away',
+        ]);
+        expect(screen.getByRole('checkbox', { name: 'Check with me for big changes' })).toBeTruthy();
+    });
+
+    it('the checkbox reports the choice', async () => {
+        const user = userEvent.setup();
+        const onAlwaysPlanLargeChange = vi.fn();
+        render(<WorkModePicker value="approve" onChange={vi.fn()} alwaysPlanLarge onAlwaysPlanLargeChange={onAlwaysPlanLargeChange} />);
+        await user.click(screen.getByRole('button'));
+        await user.click(screen.getByRole('checkbox', { name: 'Check with me for big changes' }));
+        expect(onAlwaysPlanLargeChange).toHaveBeenCalledWith(false);
+    });
+});
+
 describe('WorkModePicker — an approved plan is being built', () => {
     it('shows "Building plan v2" instead of the chosen mode while the plan is open, and the chosen mode again once it is built', () => {
         const { rerender } = render(<WorkModePicker value="plan" onChange={vi.fn()} planStatus="building" planVersion={2} />);
         expect(screen.getByRole('button').textContent).toContain('Building plan v2');
-        expect(screen.getByRole('button').textContent).not.toContain('Plan first');
+        expect(screen.getByRole('button').textContent).not.toContain('Ask, plan, then build');
         rerender(<WorkModePicker value="plan" onChange={vi.fn()} planStatus="paused" planVersion={2} />);
         expect(screen.getByRole('button').textContent).toContain('Building plan v2');
         rerender(<WorkModePicker value="plan" onChange={vi.fn()} planStatus="built" planVersion={2} />);
-        expect(screen.getByRole('button').textContent).toContain('Plan first');
+        expect(screen.getByRole('button').textContent).toContain('Ask, plan, then build');
         rerender(<WorkModePicker value="plan" onChange={vi.fn()} planStatus="review" planVersion={2} />);
-        expect(screen.getByRole('button').textContent).toContain('Plan first');
+        expect(screen.getByRole('button').textContent).toContain('Ask, plan, then build');
     });
 });

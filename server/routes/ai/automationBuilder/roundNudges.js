@@ -10,6 +10,21 @@
 
 const log = require('../../../telemetry/log');
 const { isTruncatedStop, truncationRetryMessages, emptyReplyRetryMessages, isBlankReply } = require('./chatTurnLoop');
+const { isBlankDraft } = require('./workMode');
+const { briefGaps, briefText } = require('./briefGaps.mts');
+
+// A reply that ends by asking the user something waits for the user: a
+// question mark at the end, after closing quotes, brackets or emphasis.
+const ENDS_IN_QUESTION = /[?\uFF1F][\s"'`*_)\]\u201D\u2019]*$/u;
+
+/**
+ * Does this reply end in a question to the user? Such a reply is never pinned
+ * to a tool call or pushed on: the user answers it next.
+ * @param {unknown} content
+ */
+function endsInQuestion(content) {
+    return typeof content === 'string' && ENDS_IN_QUESTION.test(content.trim());
+}
 
 // Repair rounds spent on unparseable tool arguments. Bounded: a model
 // that cannot write valid JSON twice will not manage it on the tenth
@@ -28,7 +43,7 @@ const INVALID_ARGS_MAX_RETRIES = 2;
  * @returns {'continue'|'break'}
  */
 function afterToolLessRound(turn, loop, { iter, response, thinkingForReplay, recoveredRound }) {
-    const { send, messages, draftWrap, turnMode, approvedPlan, answerTurn, profile } = turn;
+    const { send, messages, draftWrap, turnMode, approvedPlan, answerTurn, profile, questionsClosed } = turn;
     // No tool calls. Either the assistant produced its final message —
     // or it was cut off at max_tokens before getting to a tool call,
     // which on a thinking model means reasoning that never converged
@@ -87,6 +102,12 @@ function afterToolLessRound(turn, loop, { iter, response, thinkingForReplay, rec
         send('error', { error: 'The model stopped twice without calling a tool or saying anything — it wrote its next step as text instead of a call. Your draft is saved; send the message again, or switch the builder to another tier.', transient: false });
         return 'break';
     }
+    // A reply that asks the user something is the end of the turn: the user
+    // answers it. Pinning it to a tool call made the model build on a guess
+    // instead (the assistant asks first). After the user's answers in Plan
+    // first the plan is due, so there the guard below still applies.
+    const asksUser = endsInQuestion(response.content) && !answerTurn;
+    if (asksUser || turn.reviewQuestions) return 'break';
     // Prose while the draft is still empty is not "done" — it is the
     // model talking about the build instead of doing it. Pin the next
     // round to a tool call once; if it talks again, let it through so a
@@ -113,11 +134,16 @@ function afterToolLessRound(turn, loop, { iter, response, thinkingForReplay, rec
         loop.repinToolChoice = answerTurn && !!profile.forceFirstToolCall;
         log.warn(`[AutomationBuilder] round ${iter} ended a plan turn in prose without a plan — nudging once${answerTurn ? ' (answer turn)' : ''}`);
         messages.push({ role: 'assistant', content: response.content });
+        // A new automation from a brief that leaves out where the data comes
+        // from, where it goes or who is involved: the questions come first.
+        const askFirst = !answerTurn && !questionsClosed && isBlankDraft(draftWrap?.def) && briefGaps(briefText(turn.message, turn.history)).length > 0;
         messages.push({
             role: 'user',
             content: answerTurn
                 ? '[Instructions from the system — not written by the user]\nThe user answered your questions. End this turn by CALLING builder_write_plan now; put anything still open under assumptions.'
-                : '[Instructions from the system — not written by the user]\nPlan first: if the user asked for a change or a new automation, end this turn by calling builder_write_plan. If they only asked a question, your answer is complete: reply with nothing more.',
+                : askFirst
+                    ? '[Instructions from the system — not written by the user]\nPlan first, new automation: if the user asked for one, call builder_ask_questions now (at most 4 questions, each with suggested answers) about what the request leaves open: where it starts, where the data comes from, who is involved, what should exist at the end. If they only asked a question, your answer is complete: reply with nothing more.'
+                    : '[Instructions from the system — not written by the user]\nPlan first: if the user asked for a change or a new automation, end this turn by calling builder_write_plan. If they only asked a question, your answer is complete: reply with nothing more.',
         });
         return 'continue';
     }
@@ -139,4 +165,4 @@ function afterToolLessRound(turn, loop, { iter, response, thinkingForReplay, rec
     return 'break';
 }
 
-module.exports = { afterToolLessRound, INVALID_ARGS_MAX_RETRIES };
+module.exports = { afterToolLessRound, endsInQuestion, INVALID_ARGS_MAX_RETRIES };

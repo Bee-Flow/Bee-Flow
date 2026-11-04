@@ -1,8 +1,10 @@
 /**
- * A form page's styling — presets and five knobs, no CSS, ever (the web's
- * ThemeEditor in FormBuilderFields.jsx; the knobs are the platform's shared
- * THEME_SPEC). A later page matches the first one by default, so a form does
- * not change its look halfway through; overriding is one switch.
+ * A form page's styling — presets and five knobs (the theme half of the
+ * web's FormStyleEditor, flow/settings/formStyle/; the knobs are the
+ * platform's shared THEME_SPEC). The web's form-only style knobs and custom
+ * CSS are not on the phone. A later page matches the first one by default,
+ * so a form does not change its look halfway through; overriding is one
+ * switch.
  */
 
 import React from 'react';
@@ -32,6 +34,7 @@ export interface ThemeEditorProps {
 function Swatches({ theme, onChange }: { theme: FormTheme; onChange: (next: FormTheme) => void }) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
+    const name = t('forms.style.primary', 'Main colour');
     return (
         <View style={styles.swatches}>
             {COLOR_PRESETS.map((hex) => (
@@ -40,7 +43,7 @@ function Swatches({ theme, onChange }: { theme: FormTheme; onChange: (next: Form
                     onPress={() => onChange({ ...theme, primary: hex })}
                     accessibilityRole="button"
                     accessibilityState={{ selected: theme.primary === hex }}
-                    accessibilityLabel={t('mobile.flow.form.accent', 'Accent {hex}', { hex })}
+                    accessibilityLabel={t('forms.style.swatch', '{name}: {hex}', { name, hex })}
                     style={[styles.swatch, SWATCH[hex], theme.primary === hex ? styles.swatchOn : null]}
                 />
             ))}
@@ -55,7 +58,7 @@ export function ThemeEditor({ theme, inherits, canInherit, onChange, disabled = 
     return (
         <View style={styles.box}>
             <Text variant="label" tone="tertiary">
-                {t('automations.form_builder_fields.styling', 'Styling')}
+                {t('forms.style.heading', 'Design')}
             </Text>
             {canInherit ? (
                 <ToggleField
@@ -80,7 +83,7 @@ export function ThemeEditor({ theme, inherits, canInherit, onChange, disabled = 
                         ))}
                     </View>
                     <Text variant="label" tone="tertiary">
-                        {t('automations.form_builder_fields.accent_colour', 'Accent colour')}
+                        {t('forms.style.primary', 'Main colour')}
                     </Text>
                     <Swatches theme={theme} onChange={onChange} />
                     {THEME_KNOBS.map((knob) => (

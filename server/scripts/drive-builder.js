@@ -26,7 +26,7 @@
  *   node /tmp/drive-builder.js --brief-json /tmp/brief.json [--out /tmp/run.json] [--print-calls] [--cleanup]
  *   node /tmp/drive-builder.js --brief-file /tmp/brief.txt [--tier fast]
  *
- *   --brief-json <file>  { brief, tier?, expect? }; --tier on the command line wins over the file
+ *   --brief-json <file>  { brief, tier?, workMode?, expect? }; --tier on the command line wins; a workMode is sent as the web builder sends it
  *   --print-calls        one line per tool call as it arrives: r<round> <name> ok|ERR repeat=<n> <error>
  *   --cleanup            on a pass, DELETE the draft automation; on any failure the draft stays and its id is printed
  *
@@ -484,7 +484,7 @@ function readBrief() {
         if (!parsed || typeof parsed.brief !== 'string' || !parsed.brief.trim()) {
             throw new Error(`${jsonFile} has no "brief" string`);
         }
-        return { brief: parsed.brief.trim(), tier: arg('tier', parsed.tier || 'fast'), expect: parsed.expect || null };
+        return { brief: parsed.brief.trim(), tier: arg('tier', parsed.tier || 'fast'), expect: parsed.expect || null, workMode: parsed.workMode || null };
     }
     const briefFile = arg('brief-file', null);
     const brief = briefFile ? fs.readFileSync(briefFile, 'utf8').trim() : arg('brief', null);
@@ -492,7 +492,7 @@ function readBrief() {
 }
 
 async function main() {
-    const { brief, tier, expect } = readBrief();
+    const { brief, tier, expect, workMode = null } = readBrief();
     if (!brief) { console.error('need --brief-json <file>, --brief-file <path> or --brief "<text>"'); return EXIT.HARNESS; }
     const outPath = arg('out', '/tmp/builder-run.json');
     const printCalls = flag('print-calls');
@@ -515,7 +515,7 @@ async function main() {
         'Accept': 'text/event-stream',
     };
 
-    const body = JSON.stringify({ message: brief, modelTier: tier, timezone: 'Europe/Amsterdam', history: [] });
+    const body = JSON.stringify({ message: brief, modelTier: tier, timezone: 'Europe/Amsterdam', history: [], ...(workMode ? { workMode } : {}) });
 
     // Rounds are counted from round_start, which chatStream sends BEFORE the
     // model call — so a call printed under r3 was made in the third round

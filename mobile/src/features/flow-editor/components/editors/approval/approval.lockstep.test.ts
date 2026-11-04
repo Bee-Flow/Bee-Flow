@@ -15,7 +15,7 @@ import path from 'node:path';
 
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState, type FormDraft } from '@/features/flow-editor/formState';
-import { loadWebFunctions } from '@/shared/testing/webModule';
+import { loadWebFunctions, loadWebModule } from '@/shared/testing/webModule';
 
 import { addQuestion, addStage, approvalQuestionName, CLOCK_CHOICES, chooseEscalation, DEADLINE_CHOICES, deadlineChoices, joinChoices, oneRoundFrom, splitChoices, stagesFrom, startPanel } from './approvalModel';
 
@@ -25,7 +25,6 @@ const SETTINGS = path.resolve(__dirname, '../../../../../../../agent-hub/src/com
 const stateSrc = fs.readFileSync(path.join(SETTINGS, 'approvalState.ts'), 'utf8');
 const clocksSrc = fs.readFileSync(path.join(SETTINGS, 'approvalClocks.tsx'), 'utf8');
 const questionsSrc = fs.readFileSync(path.join(SETTINGS, 'approvalQuestions.tsx'), 'utf8');
-const formSrc = fs.readFileSync(path.join(SETTINGS, 'FormBuilderFields.jsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const webState = require(path.join(SETTINGS, 'formState'));
 
@@ -34,14 +33,14 @@ const between = (text: string, start: string, end: string) => {
     if (at < 0) throw new Error(`${start} is gone`);
     return text.slice(at, text.indexOf(end, at) + end.length);
 };
-const fn = (text: string, name: string) => between(text, `function ${name}(`, '\n}\n').replace(/^export /, '');
 
 const WEB_SETTINGS = 'components/automation/Builder/flow/settings';
 const naming = loadWebFunctions<{ approvalQuestionName: (question: unknown, index: number, questions: unknown[]) => string }>(
     `${WEB_SETTINGS}/approvalQuestions.tsx`,
     ['storedQuestionName', 'approvalQuestionName'],
     {
-        slugifyFieldName: new Function(`${fn(formSrc, 'slugifyFieldName')}\nreturn slugifyFieldName;`)(),
+        // The form builder's own label → name rule, from its pure module (formDeclarations.ts).
+        slugifyFieldName: loadWebModule<{ slugifyFieldName: unknown }>(path.join(SETTINGS, 'formDeclarations.ts')).slugifyFieldName,
         PLACEHOLDER_QUESTION_NAME: new Function(`${between(questionsSrc, 'const PLACEHOLDER_QUESTION_NAME', ';\n')}\nreturn PLACEHOLDER_QUESTION_NAME;`)(),
     },
 );

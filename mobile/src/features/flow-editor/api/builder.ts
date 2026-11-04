@@ -38,6 +38,10 @@ export interface BuilderToolCall {
     batch?: boolean;
     /** builder_add_array_op's `op` (`flatten`, …): its row's word while no step names it. */
     op?: string;
+    /** A web search's query (`agent_search`): its row's detail. */
+    query?: string;
+    /** A read web page's address (`read_url`): its row's detail. */
+    url?: string;
 }
 
 export interface BuilderMessage {
@@ -89,12 +93,17 @@ export function readToolCall(raw: unknown): BuilderToolCall {
     const added = pick(result, 'added');
     const steps = (Array.isArray(added) ? added : isRecord(added) ? [added] : []).filter(isRecord).map(readAddedStep);
     const hint = field.strOrNull(pick(result, '_fixHint'));
-    const op = field.strOrNull(pick(pick(raw, 'arguments'), 'op'));
+    const args = pick(raw, 'arguments');
+    const op = field.strOrNull(pick(args, 'op'));
+    const query = field.strOrNull(pick(args, 'query'));
+    const url = field.strOrNull(pick(args, 'url'));
     return {
         name: field.str('')(pick(raw, 'name')),
         error: field.strOrNull(pick(result, 'error')),
         ...(hint ? { hint } : {}),
         ...(op ? { op } : {}),
+        ...(query ? { query } : {}),
+        ...(url ? { url } : {}),
         ...(steps.length ? { added: steps, batch: Array.isArray(added) } : {}),
     };
 }

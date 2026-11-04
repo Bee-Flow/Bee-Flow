@@ -302,3 +302,22 @@ test('maxFirstRoundPromptTokens reads the FIRST usage event and fails without on
     assert.match(matchExpectation(passingDef(), evs, { maxFirstRoundPromptTokens: 14_000 }).failures.join('\n'), /expected at most 14000, got 14200/);
     assert.match(matchExpectation(passingDef(), passingEvents(), { maxFirstRoundPromptTokens: 14_000 }).failures.join('\n'), /no usage event carried prompt_tokens/);
 });
+
+// ── The Plan first brief: one turn in workMode "plan" ───────────────────────
+
+const planFirstBrief = require('./builder-briefs/plan-first-contact-form.json');
+
+test('the Plan first brief: a turn that only asks passes; a build, or a plan refused for asking too late, fails', () => {
+    assert.strictEqual(planFirstBrief.workMode, 'plan', 'the driver sends it; without it the server builds directly');
+    const asked = [
+        { event: 'round_start', data: {} },
+        { event: 'tool_call', data: { name: 'builder_ask_questions', result: { ok: true } } },
+        { event: 'usage', data: {} },
+        { event: 'done', data: { finalized: false, iterations: 1 } },
+    ];
+    assert.deepStrictEqual(matchExpectation(null, asked, planFirstBrief.expect), { ok: true, failures: [] });
+    const built = [...asked.slice(0, 3), { event: 'done', data: { finalized: true, iterations: 3 } }];
+    assert.match(matchExpectation(null, built, planFirstBrief.expect).failures.join('\n'), /finalized: expected false, got true/);
+    const refused = [{ event: 'tool_call', data: { name: 'builder_write_plan', result: { error: 'Plan not written yet: ask first' } } }, ...asked];
+    assert.match(matchExpectation(null, refused, planFirstBrief.expect).failures.join('\n'), /failed calls: expected at most 0, got 1/);
+});

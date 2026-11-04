@@ -40,8 +40,18 @@ describe('DiagramPane — the empty canvas', () => {
         const user = userEvent.setup();
         const onOpenAssistant = vi.fn();
         render(<DiagramPane definition={stub<ComponentProps<typeof DiagramPane>['definition']>(null)} editable onAddTrigger={vi.fn()} onOpenAssistant={onOpenAssistant} />);
-        await user.click(screen.getByRole('button', { name: 'Assistant' }));
+        // With the assistant wired, it asks first and the trigger cards come second.
+        expect(screen.getByText('What should happen? Tell me in your own words.')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Describe it to the assistant' }));
         expect(onOpenAssistant).toHaveBeenCalledTimes(1);
+    });
+
+    it('passes an example brief through to the host', async () => {
+        const user = userEvent.setup();
+        const onSendBrief = vi.fn();
+        render(<DiagramPane definition={stub<ComponentProps<typeof DiagramPane>['definition']>(null)} editable onAddTrigger={vi.fn()} onSendBrief={onSendBrief} />);
+        await user.click(screen.getAllByTestId('empty-brief')[1]);
+        expect(onSendBrief).toHaveBeenCalledWith(expect.stringMatching(/Every Monday/));
     });
 
     it('still points at the ribbon, for the people who reach there first', () => {

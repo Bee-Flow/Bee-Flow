@@ -92,8 +92,9 @@ describe('FormsStudio.jsx and FormPage.jsx', () => {
     });
 });
 
-describe('PublicFormRenderer.tsx and PublicFormPage.jsx', () => {
-    const rendererSrc = readWeb('components/forms/PublicFormRenderer.tsx');
+describe('the public form renderer and PublicFormPage', () => {
+    // The closing page (and its long-text threshold) moved to its own view.
+    const endingSrc = readWeb('components/forms/FormEndingView.tsx');
     // fileSize / fileKind live with the download fields, initialValues with the form rules.
     const web = {
         ...cut('components/forms/fields/DownloadFields.tsx', ['fileSize', 'fileKind']),
@@ -128,7 +129,7 @@ describe('PublicFormRenderer.tsx and PublicFormPage.jsx', () => {
         expect(POLL_CEILING_MS).toBe(new Function(`return ${constText(page, 'POLL_CEILING_MS')};`)());
         // The session id's shape moved to publicFormSession.ts with the resume logic.
         expect(SESSION_RE.toString()).toBe(constText(readWeb('pages/publicFormSession.ts'), 'SESSION_RE'));
-        expect(LONG_ENDING_CHARS).toBe(Number(constText(rendererSrc, 'LONG_ENDING_CHARS')));
+        expect(LONG_ENDING_CHARS).toBe(Number(constText(endingSrc, 'LONG_ENDING_CHARS')));
     });
 });
 

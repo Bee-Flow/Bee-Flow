@@ -74,7 +74,7 @@ export default function AppPickField({ field, value, disabled, onChange, onSearc
     };
 
     return (
-        <div className="flex flex-col gap-2" data-testid={`form-apppick-${field.name}`}>
+        <div className="bf-form__pick flex flex-col gap-2" data-testid={`form-apppick-${field.name}`}>
             {picked.map(p => (
                 <div
                     key={p.recordId}

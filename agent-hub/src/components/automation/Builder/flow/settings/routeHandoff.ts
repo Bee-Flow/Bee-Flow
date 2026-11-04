@@ -62,7 +62,7 @@
 // other author-named field in this builder. Importing across to the form
 // builder for it is cheaper than a second slugifier that agrees with it today
 // and drifts the first time either side learns a new character class.
-import { slugifyFieldName } from './FormBuilderFields';
+import { slugifyFieldName } from './formDeclarations';
 import { uniqueRuleName } from '../routeModel';
 import { slugName } from './routeIntents';
 import type { DiagramDefinition, DiagramEdge, DiagramStep } from '../diagramPaneTypes';

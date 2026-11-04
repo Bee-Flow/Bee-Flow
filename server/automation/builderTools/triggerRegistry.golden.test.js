@@ -144,3 +144,28 @@ test('events listed but unlisted-yet-resolvable both survive', () => {
     const msgraph = buildAppEventProviders(FULL_CTX).find(p => p.id === 'msgraph');
     assert.ok(!msgraph.events.some(e => e.id === 'event.updated'), 'hidden event is not offered');
 });
+
+test('every event the dropdowns offer is one the builder model is taught (or told never to propose)', () => {
+    // The trigger catalogue left builder_propose_trigger's description; the
+    // model now learns each event from the per-user "App events you may use"
+    // lines (builderPrompt/triggerBlock.js). This catalogue and those lines
+    // must not drift apart: an event the person can pick in the dropdown but
+    // the assistant was never told about is one it cannot build with.
+    const { renderAppEventProviderLines } = require('../builderPrompt/triggerBlock');
+    const { PUSH_PENDING } = require('../deliverableEvents');
+    const providers = buildAppEventProviders(FULL_CTX);
+    const lines = renderAppEventProviderLines(providers).split('\n');
+    for (const p of providers) {
+        const start = lines.findIndex(l => l.startsWith(`- ${p.id} (`));
+        assert.ok(start !== -1, `${p.id} has no section`);
+        const end = lines.findIndex((l, i) => i > start && l.startsWith('- '));
+        const section = lines.slice(start + 1, end === -1 ? undefined : end);
+        for (const e of p.events) {
+            const pending = PUSH_PENDING[p.id] && PUSH_PENDING[p.id].has(e.id);
+            const taught = pending
+                ? section.some(l => l.startsWith('  NEVER propose') && l.includes(e.id))
+                : section.some(l => l.startsWith('  - ') && l.slice(4).split(' [')[0].split(' → ')[0].split(' / ').includes(e.id));
+            assert.ok(taught, `${p.id}.${e.id} is offered in the dropdown but not ${pending ? 'named as never-firing' : 'taught'} to the model`);
+        }
+    }
+});

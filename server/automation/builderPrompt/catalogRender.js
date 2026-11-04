@@ -5,6 +5,7 @@
  * Catalog renderers for the builder system prompt (§WS5, extracted verbatim
  * from builderPrompt.js). Pure functions; lazy-require outputSchemas.
  */
+const { renderBlocksBlock } = require('./blocksBlock');
 
 /**
  * The apps the catalog cap cut (rankApps.js APP_CAP), said in the render.
@@ -30,8 +31,7 @@ function emptyCatalogLine(catalog) {
         : '_(user has no integrations connected)_';
 }
 
-// Per-app caps of the two older renderers (the flowlet sub-agent uses
-// renderCatalog, the legacy lean prompt renderCatalogLean). Above the largest
+// Per-app caps of renderCatalog and renderCatalogLean (the prompts and the flowlet use Slim). Above the largest
 // real app, and when one bites the render SAYS so: a list that stops at 30 and
 // looks complete is how a sub-agent concludes an action does not exist.
 const ACTIONS_PER_APP_FULL = 30;
@@ -86,7 +86,8 @@ function renderCatalogLean(catalog) {
 }
 
 /**
- * Slim catalog rendering used by BOTH prompt variants (§B progressive context).
+ * Slim catalog rendering used by BOTH prompt variants and the flowlet sub-agent
+ * (§B progressive context). Every row, incl. builderCatalog's extraAppRows (MCP, custom, Step tools…).
  * Signals only that integrations exist — name, side-effect/[list] tags, a
  * one-line description, and an input COUNT — never the full input param schema
  * or the output shape. The agent fetches those on demand with
@@ -337,7 +338,6 @@ A fill_document step: {type:"fill_document", spec:{documentId:"${ex.id}", values
 // and the system prompt is the front of the prompt cache.
 const AGENTS_CAP = 30;
 const KNOWLEDGE_BASES_CAP = 30;
-const PROVIDER_EVENTS_CAP = 40;
 const DESCRIPTION_CHARS = 100;
 
 /**
@@ -398,29 +398,24 @@ function renderAppEventProvidersBlock(catalog) {
     if (!catalog || catalog.appEventProviders === undefined || catalog.appEventProviders === null) return '';
     const head = '## App events you may use';
     if (catalog.appEventProvidersError) {
-        return `${head}\n\n_(the list of event sources could not be read just now. Use the providers named in the builder_propose_trigger description, and tell the user if the trigger is refused.)_`;
+        return `${head}\n\n_(the list of event sources could not be read just now. Prefer a schedule, manual, webhook or form trigger; if you do propose an app event, tell the user it may be refused.)_`;
     }
     const list = Array.isArray(catalog.appEventProviders) ? catalog.appEventProviders.filter(p => p && p.id) : [];
     if (!list.length) {
         return `${head}\n\n_(none — no service this user has emits events. Use a schedule, manual, webhook or form trigger instead of app_event.)_`;
     }
-    const lines = list.map(p => {
-        const events = Array.isArray(p.events) ? p.events : [];
-        const shown = events.slice(0, PROVIDER_EVENTS_CAP)
-            .map(e => `${e.id}${e.deliverability === 'connector' ? ' [needs the connector]' : ''}`);
-        const more = events.length - shown.length;
-        return `- ${p.id} (${oneLine(p.label || p.id, 40)}): ${shown.join(', ')}${more > 0 ? `, …and ${more} more events` : ''}`;
-    });
-    return `${head} (appProvider: appEvent — only these providers fire for this user)\n\n${lines.join('\n')}\n\nAn event marked [needs the connector] only fires when the user's connector delivers it; say so when you pick one.`;
+    // Lazy: triggerBlock reads the trigger registry, which this pure module must not load for the lean band.
+    const { renderAppEventProviderLines } = require('./triggerBlock');
+    return `${head} (appProvider: appEvent — only these providers fire for this user)\n\n${renderAppEventProviderLines(list)}\n\nAn event marked [needs the connector] only fires when the user's connector delivers it; say so when you pick one.`;
 }
 
-/** All three, for the late dynamic message; '' blocks drop out. */
+/** All four (building blocks: ./blocksBlock.js), for the late dynamic message; '' blocks drop out. */
 function renderPickerBlocks(catalog) {
-    return [renderAgentsBlock(catalog), renderKnowledgeBasesBlock(catalog), renderAppEventProvidersBlock(catalog)]
+    return [renderAgentsBlock(catalog), renderKnowledgeBasesBlock(catalog), renderBlocksBlock(catalog), renderAppEventProvidersBlock(catalog)]
         .filter(Boolean).join('\n\n');
 }
 
-module.exports = { renderCatalog, renderCatalogLean, renderCatalogSlim, emptyCatalogLine, renderAgentsBlock, renderKnowledgeBasesBlock, renderAppEventProvidersBlock, renderPickerBlocks, scoreRelevantTools, renderRelevantToolSchemas, renderDatatablesBlock, renderDocumentsBlock };
+module.exports = { renderCatalog, renderCatalogLean, renderCatalogSlim, emptyCatalogLine, renderAgentsBlock, renderKnowledgeBasesBlock, renderBlocksBlock, renderAppEventProvidersBlock, renderPickerBlocks, scoreRelevantTools, renderRelevantToolSchemas, renderDatatablesBlock, renderDocumentsBlock };
 
 /** @typedef {{ type?: string, description?: string, enum?: unknown[] }} ToolInputProp */
 
@@ -439,6 +434,8 @@ module.exports = { renderCatalog, renderCatalogLean, renderCatalogSlim, emptyCat
  * @property {string|null} [agentsError]
  * @property {Awaited<ReturnType<typeof import('../builderPickerCatalog').listKnowledgeBasePicker>>|null} [knowledgeBases]
  * @property {string|null} [knowledgeBasesError]
+ * @property {import('../builderPickerCatalog').BlockRow[]|null} [blocks]
+ * @property {string|null} [blocksError]
  * @property {Awaited<ReturnType<typeof import('../builderPickerCatalog').buildAppEventProvidersFor>>|null} [appEventProviders]
  * @property {string|null} [appEventProvidersError]
  */

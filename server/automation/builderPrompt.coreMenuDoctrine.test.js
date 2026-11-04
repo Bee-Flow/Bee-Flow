@@ -70,3 +70,22 @@ test('the gap list does not silence a tool the prompt stopped naming', () => {
     assert.deepStrictEqual(stale, [],
         `the lean prompt no longer names ${stale.join(', ')} — remove it from KNOWN_PROMPT_MENU_GAPS.`);
 });
+
+test('every step type the lean prompt offers can be built from the lean menu', () => {
+    // "What you can build" names every batch type on the small band too, so the
+    // lean builder_add_steps enum must carry each one it does not mark as
+    // switched off or canvas only: a name the enum lacks cannot be emitted.
+    const { projectToolSchemas } = require('./builderTools/schemaProjection');
+    const prompt = buildLeanSystemPrompt({ catalog: { apps: [] }, batchTools: true });
+    const menu = projectToolSchemas(TOOL_SCHEMAS.filter((t) => CORE_TOOL_NAMES.has(t.function.name)), { variant: 'lean' });
+    const addSteps = menu.find((t) => t.function.name === 'builder_add_steps');
+    assert.ok(addSteps, 'builder_add_steps is on the lean menu');
+    const enumTypes = new Set(addSteps.function.parameters.properties.steps.items.properties.type.enum);
+    const offered = [...prompt.matchAll(/^- [^\n]*?\[([a-z_]+)\] — ([^\n]*)$/gm)]
+        .filter(([, , rest]) => !/^canvas only|^switched off|Not on your tool menu/.test(rest))
+        .map(([, type]) => type)
+        .filter((type) => type !== 'trigger');
+    assert.ok(offered.length > 30, 'the block is there');
+    const unbuildable = offered.filter((t) => !enumTypes.has(t));
+    assert.deepEqual(unbuildable, [], `the lean prompt offers ${unbuildable.join(', ')}, which the lean batch enum cannot emit`);
+});

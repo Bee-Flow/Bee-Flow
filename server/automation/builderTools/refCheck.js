@@ -161,9 +161,23 @@ function ownOutputShape(step, graph, draftWrap, depth) {
             return codeOutputShape(step);
         case 'approval':
             return require('./approvalOutputShape').approvalOutputShape(step);
+        case 'call_block':
+            return blockOutputShape(step, draftWrap);
         default:
             return require('./tableOutputShapes').tableStepOutputShape(step) || ANY;   // the table steps
     }
+}
+
+/**
+ * A call_block returns its block's layer_output fields (execFlow.execCallLayer),
+ * named in the "Building blocks" list (draftWrap._blocks). Not `sure`: the block
+ * can be republished with other outputs, so a miss is a note with the real names.
+ */
+function blockOutputShape(step, draftWrap) {
+    const list = draftWrap && Array.isArray(draftWrap._blocks) ? draftWrap._blocks : [];
+    const block = list.find(b => b && b.id === step.blockId);
+    const outputs = block && Array.isArray(block.outputs) ? block.outputs.filter(f => typeof f === 'string' && f) : [];
+    return outputs.length ? obj(outputs.map(f => [f, ANY]), { sure: false }) : ANY;
 }
 
 /**
@@ -652,6 +666,7 @@ module.exports = {
  *     placeholders?: Array<{ key: string }> }> | null,
  *   _documentContracts?: Record<string, { versionId?: string }>,
  *   _inputSchemasByTool?: Record<string, { properties?: Record<string, unknown>, required?: string[] }>,
+ *   _blocks?: Array<{ id: string, name?: string, inputs?: Array<{ name: string, type?: string, required?: boolean }>, outputs?: string[], available?: boolean }> | null,
  * }} BuilderWrap
  * @typedef {{ tokens: PathToken[], why: string, envelope?: string }} RefFix
  */

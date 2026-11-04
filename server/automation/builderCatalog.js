@@ -54,13 +54,15 @@ const { fallback } = require('../utils/bestEffort');
  * @param {string} userId
  * @param {Partial<Express.Session> | null} session  Live request session, or the offline session
  *   from automation/triggerBus loadSession() for unattended/MCP callers.
+ * @param {{ deps?: Pick<typeof import('../core/integrations/integrationTools'), 'getIntegrationTools' | 'getUserPermittedApps'> | null }} [opts]
+ *   `deps` replaces the resolver (tests).
  */
-async function buildCatalogForUser(userId, session) {
+async function buildCatalogForUser(userId, session, { deps = null } = {}) {
     try {
         const { TOOL_REGISTRY, loadTools } = require('./toolRegistry');
         const { getOutputSchema, OUTPUT_SCHEMAS } = require('./outputSchemas');
         const { isSideEffect, isMemoisable } = require('./sideEffectMap');
-        const { getIntegrationTools, getUserPermittedApps } = require('../core/integrations/integrationTools');
+        const { getIntegrationTools, getUserPermittedApps } = deps || require('../core/integrations/integrationTools');
         const { buildTriggerOutputsCatalog } = require('./builderTools');
 
         // The authoritative per-user answer: org ∩ group ∩ toggle ∩ entitlement
@@ -140,13 +142,17 @@ async function buildCatalogForUser(userId, session) {
                 actions: runnable,
             };
         });
-        // `toolNames` is deliberately WIDER than anything in `apps`: it is the
-        // raw resolved set, so it carries the four classes no registry entry
-        // owns — MCP server tools, org custom integrations, agent-callable
-        // automations and Step tools — plus inline ones like browse_web. The
-        // add-time gate must authorise against THIS, not against `apps`, or it
-        // would refuse a tool the user genuinely has purely because
-        // TOOL_REGISTRY has no home for it.
+        // The runnable tools no registry entry owns — MCP server tools, org
+        // custom integrations, agent-callable automations, Step tools and any
+        // inline one — as rows of their own after the registry apps, so the
+        // model sees every tool it may use and builder_inspect_tool can answer
+        // their inputs.
+        const registryNames = new Set();
+        for (const app of apps) for (const a of app.actions) registryNames.add(a.name);
+        /** @type {CatalogApp[]} */ (apps).push(...extraAppRows(userToolDefs, registryNames, { isSideEffect, isMemoisable, getOutputSchema }));
+        // `toolNames` stays the raw resolved set and the authority: the add-time
+        // gate authorises against THIS, not against `apps`, so a tool is never
+        // refused because a row could not be built for it.
         const result = { apps, toolNames: userToolNames, triggerOutputs: buildTriggerOutputsCatalog() };
         Object.defineProperty(result, 'toolDefs', { value: userToolDefs, enumerable: false });
         return result;
@@ -164,14 +170,156 @@ async function buildCatalogForUser(userId, session) {
     }
 }
 
-module.exports = { buildCatalogForUser };
+// ── Rows for the tools TOOL_REGISTRY has no home for ─────────────────────
+// Grouped by where the tool comes from, in this order, each group one row:
+// one row per MCP server ("MCP · <server>"), then org custom integrations,
+// agent-callable automations, Step tools, and whatever else the resolver
+// added inline. Ids are stable (`mcp:<serverId>` is the integration id the
+// resolver gates on), because the session stores the catalogue ORDER by id
+// (rankApps.applyCatalogOrder) and replays it on later turns.
+const EXTRA_KIND_ORDER = ['mcp', 'custom', 'automation', 'step', 'other'];
+
+/** @typedef {ToolDef & { _mcp?: { serverId?: string, serverName?: string | null }, _cint?: object, __automation?: object, __step?: object }} ExtraToolDef */
+
+// The groups after MCP, each with the routing metadata that marks it. A custom
+// integration's cached definitions may carry no `_cint`; their names always
+// start with `cint_`.
+/** @type {Array<{ kind: string, id: string, label: string, test: (def: ExtraToolDef, name: string) => boolean }>} */
+const EXTRA_GROUPS = [
+    { kind: 'custom', id: 'custom-integrations', label: 'Custom integrations', test: (def, name) => !!def._cint || name.startsWith('cint_') },
+    { kind: 'automation', id: 'agent-automations', label: 'Agent-callable automations', test: def => !!def.__automation },
+    { kind: 'step', id: 'step-tools', label: 'Step tools', test: def => !!def.__step },
+];
+const OTHER_GROUP = { kind: 'other', id: 'other-tools', label: 'Other tools' };
+
+/**
+ * Which group a resolved tool definition belongs to, read from the routing
+ * metadata the injectors stamp on it (never sent to a model).
+ * @param {ExtraToolDef} def
+ * @returns {{ kind: string, id: string, label: string }}
+ */
+function extraGroupOf(def) {
+    const d = def || /** @type {ExtraToolDef} */ ({});
+    const mcp = d._mcp || {};
+    if (mcp.serverId) return { kind: 'mcp', id: `mcp:${mcp.serverId}`, label: `MCP · ${mcp.serverName || mcp.serverId}` };
+    const name = String((d.function && d.function.name) || '');
+    const hit = EXTRA_GROUPS.find(g => g.test(d, name));
+    return hit ? { kind: hit.kind, id: hit.id, label: hit.label } : { ...OTHER_GROUP };
+}
+
+/**
+ * Catalog rows for every resolved tool that no registry row carries, with the
+ * input schema of the definition itself.
+ * @param {ToolDef[]} defs  the resolved definitions (getIntegrationTools)
+ * @param {Set<string>} registryNames  the names the registry rows already carry
+ * @param {{ isSideEffect: (n: string) => boolean, isMemoisable: (n: string) => boolean, getOutputSchema: (n: string) => CatalogAction['outputSchema'] }} classify
+ * @returns {CatalogApp[]}
+ */
+function extraAppRows(defs, registryNames, { isSideEffect, isMemoisable, getOutputSchema }) {
+    /** @type {Map<string, CatalogApp & { kind: string }>} */
+    const rows = new Map();
+    const seen = new Set(registryNames);
+    for (const def of Array.isArray(defs) ? defs : []) {
+        const name = def?.function?.name;
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        const group = extraGroupOf(def);
+        let row = rows.get(group.id);
+        if (!row) {
+            row = { id: group.id, label: group.label, kind: group.kind, available: true, connected: true, permitted: true, actions: [] };
+            rows.set(group.id, row);
+        }
+        const params = def.function?.parameters;
+        row.actions.push({
+            name,
+            description: def.function?.description,
+            // Unknown names are side effects (fail closed), as in the runner.
+            sideEffect: isSideEffect(name),
+            askOnceable: isMemoisable(name),
+            outputSchema: getOutputSchema(name),
+            inputSchema: params && typeof params === 'object' ? /** @type {CatalogAction['inputSchema']} */ (params) : null,
+            outputSample: null,
+        });
+    }
+    const rank = (/** @type {string} */ k) => EXTRA_KIND_ORDER.indexOf(k);
+    return [...rows.values()].sort((a, b) => (rank(a.kind) - rank(b.kind)) || a.label.localeCompare(b.label));
+}
+
+/**
+ * Every input schema the catalog knows, by tool name: what builder_inspect_tool
+ * answers and what the inspect-before-bind gate checks. From the rows first
+ * (the registry's own `parameters`), then from the resolved definitions for
+ * anything a row did not carry. Both come from the RESOLVED set, never the full
+ * TOOL_REGISTRY: a schema here must not read as "the user has this tool".
+ * @param {BuilderCatalog | null | undefined} catalog
+ * @returns {Record<string, NonNullable<CatalogAction['inputSchema']>>}
+ */
+function inputSchemasByTool(catalog) {
+    /** @type {Record<string, NonNullable<CatalogAction['inputSchema']>>} */
+    const out = {};
+    for (const app of (catalog?.apps || [])) addRowSchemas(out, app?.actions);
+    addDefSchemas(out, /** @type {{ toolDefs?: ToolDef[] } | null | undefined} */ (catalog)?.toolDefs);
+    return out;
+}
+
+/**
+ * @param {Record<string, NonNullable<CatalogAction['inputSchema']>>} out
+ * @param {CatalogAction[] | undefined} actions
+ */
+function addRowSchemas(out, actions) {
+    for (const act of (actions || [])) {
+        if (act && act.name && act.inputSchema) out[act.name] = act.inputSchema;
+    }
+}
+
+/**
+ * @param {Record<string, NonNullable<CatalogAction['inputSchema']>>} out
+ * @param {ToolDef[] | undefined} defs
+ */
+function addDefSchemas(out, defs) {
+    for (const def of Array.isArray(defs) ? defs : []) {
+        const fn = def && def.function;
+        const params = fn && fn.parameters;
+        if (fn && fn.name && !out[fn.name] && params && typeof params === 'object') {
+            out[fn.name] = /** @type {NonNullable<CatalogAction['inputSchema']>} */ (params);
+        }
+    }
+}
+
+// Far above any real session; a stored list longer than this is not ours.
+const INSPECTED_TOOLS_CAP = 500;
+
+/**
+ * The tools a builder session already inspected (the stored session's
+ * `inspectedTools`), as the per-turn set the inspect-before-bind gate reads.
+ * Only names the user can still run survive: marking a tool disarms the gate,
+ * and a tool that left the resolved set must meet the full refusal again.
+ * Anything unreadable gives an empty set, which is today's per-turn reset.
+ * @param {unknown} stored  `snapshot.inspectedTools`
+ * @param {Set<string> | null | undefined} available  `catalog.toolNames` (absent: could not tell, keep the names)
+ * @returns {Set<string>}
+ */
+function inspectedToolsFrom(stored, available) {
+    /** @type {Set<string>} */
+    const out = new Set();
+    if (!Array.isArray(stored)) return out;
+    for (const name of stored.slice(0, INSPECTED_TOOLS_CAP)) {
+        if (typeof name !== 'string' || !name) continue;
+        if (available instanceof Set && !available.has(name)) continue;
+        out.add(name);
+    }
+    return out;
+}
+
+module.exports = { buildCatalogForUser, inputSchemasByTool, inspectedToolsFrom, _internals: { extraAppRows, extraGroupOf } };
 
 /**
  * @typedef {{ name: string, description?: string, sideEffect: boolean, askOnceable: boolean,
  *   outputSchema: ReturnType<typeof import('./outputSchemas').getOutputSchema>,
  *   inputSchema: { type?: string, properties?: Record<string, unknown>, required?: string[] } | null,
  *   outputSample: unknown }} CatalogAction
- * @typedef {{ id: string, label: string, available: boolean, connected: boolean, permitted: boolean, actions: CatalogAction[] }} CatalogApp
+ * @typedef {{ id: string, label: string, available: boolean, connected: boolean, permitted: boolean, actions: CatalogAction[],
+ *   kind?: string }} CatalogApp  `kind` is set on the rows of tools no registry entry owns (extraAppRows)
  * `toolNames` is absent when the catalog could not be built (`catalogError` set); `datatables` and
  * `documents` are attached by the callers that need them.
  * @typedef {{ apps: CatalogApp[], toolNames?: Set<string>, triggerOutputs: Record<string, unknown>, catalogError?: string,

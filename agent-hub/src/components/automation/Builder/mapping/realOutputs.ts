@@ -9,7 +9,7 @@
  * and the new node still says "no list picked yet" because the auto-mapper
  * never saw the records. This module is the single shared source:
  *
- *   buildRealOutputMap(definition, runSteps)  → Map<stepId, output>
+ *   buildRealOutputMap(definition, runSteps, run?)  → Map<stepId, output>
  *
  * built once per render by the canvas owner (BuildTab) and threaded into
  * computeUpstreamGroups / autoMapStep / NodeDetailView, so every consumer of
@@ -37,6 +37,15 @@ export interface RealOutputDefinition {
 }
 
 type Rec = Record<string, unknown>;
+
+/** The run on the canvas, as far as the output map reads it (rowToRun's fields). */
+export interface EnteredRun {
+    /** The trigger node the run entered through. */
+    rootStepId?: unknown;
+    /** The data the run entered that trigger with: a form's answers, a webhook's body. */
+    triggerPayload?: unknown;
+    [key: string]: unknown;
+}
 
 /** The upstream group fields buildSampleRoot reads. */
 export interface SampleRootGroup {
@@ -88,6 +97,24 @@ function usableOutput(v: unknown): unknown {
 }
 
 /**
+ * What the run on the canvas entered its trigger with, as that trigger's real
+ * output. A whole run writes no row for its trigger (only ▶ on the trigger
+ * itself does, partialTriggerRun.js): the run row's `triggerPayload` IS what
+ * `trigger.output` held during the run, so after a form test the answers the
+ * run used are the trigger's real data. Null without a payload, for an empty
+ * one (a manual start enters with `{}`, which says nothing about the fields),
+ * and for a run whose `rootStepId` is not recorded: a flowlet's own test run
+ * enters its input, never the root's trigger.
+ */
+export function enteredTriggerOutput(run: EnteredRun | null | undefined): { id: string; output: unknown } | null {
+    const id = run?.rootStepId;
+    const payload = usableOutput(run?.triggerPayload);
+    if (typeof id !== 'string' || !id || payload === undefined) return null;
+    if (payload && typeof payload === 'object' && !Array.isArray(payload) && !Object.keys(payload).length) return null;
+    return { id, output: payload };
+}
+
+/**
  * The freshest real output per node id.
  *
  *   - Only ids that exist in the definition (trigger, secondary triggers,
@@ -97,10 +124,12 @@ function usableOutput(v: unknown): unknown {
  *     calls), non-null output; a truncated one counts by its preview only.
  *     First match wins, matching the long-standing NodeDetailView lookup
  *     semantics.
+ *   - A trigger without a row of its own: what `run` (the run on the canvas)
+ *     entered it with (enteredTriggerOutput).
  *   - Pinned output (stored on the step in the definition) OVERRIDES a run
  *     row — a pin is the user saying "this is the data I'm building against".
  */
-export function buildRealOutputMap(definition: RealOutputDefinition | null | undefined, runSteps: RunStepRow[] | null | undefined): Map<string, unknown> {
+export function buildRealOutputMap(definition: RealOutputDefinition | null | undefined, runSteps: RunStepRow[] | null | undefined, run: EnteredRun | null = null): Map<string, unknown> {
     const map = new Map<string, unknown>();
     if (!definition) return map;
 
@@ -115,6 +144,9 @@ export function buildRealOutputMap(definition: RealOutputDefinition | null | und
         const out = usableOutput(r.output);
         if (out !== undefined && !map.has(r.stepId as string)) map.set(r.stepId as string, out);
     }
+
+    const entered = enteredTriggerOutput(run);
+    if (entered && knownIds.has(entered.id) && !map.has(entered.id)) map.set(entered.id, entered.output);
 
     for (const node of nodes) {
         const out = usableOutput(node.pinnedOutput);

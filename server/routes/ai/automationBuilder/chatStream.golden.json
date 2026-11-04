@@ -434,11 +434,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -535,11 +530,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -905,11 +895,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -1261,11 +1246,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -1362,11 +1342,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -2071,11 +2046,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -2171,11 +2141,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -2283,11 +2248,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -2412,11 +2372,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -2860,11 +2815,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -3026,11 +2976,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -3282,11 +3227,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -3524,11 +3464,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -3622,11 +3557,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -3720,11 +3650,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -3985,11 +3910,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -4085,11 +4005,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -4337,11 +4252,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -4437,11 +4347,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -6017,11 +5922,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -6404,11 +6304,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -6503,11 +6398,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -7103,11 +6993,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -7201,11 +7086,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -7608,11 +7488,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -7705,11 +7580,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -7824,7 +7694,7 @@
       "stepId": "s1"
      },
      "result": {
-      "error": "Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \"Approve each change\" to have it staged."
+      "error": "Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \"Show me before changing\" to have it staged."
      }
     }
    },
@@ -7918,7 +7788,7 @@
           "stepId": "s1"
          },
          "result": {
-          "error": "Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \"Approve each change\" to have it staged."
+          "error": "Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \"Show me before changing\" to have it staged."
          }
         }
        ]
@@ -8015,7 +7885,7 @@
      {
       "role": "tool",
       "tool_call_id": "call_0",
-      "content": "{\"error\":\"Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \\\"Approve each change\\\" to have it staged.\"}"
+      "content": "{\"error\":\"Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \\\"Show me before changing\\\" to have it staged.\"}"
      }
     ]
    }
@@ -8352,11 +8222,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -8451,11 +8316,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -8551,11 +8411,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -8927,11 +8782,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -9027,11 +8877,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -9729,11 +9574,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -9840,11 +9680,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -9983,11 +9818,6 @@
      "builder_add_form_page",
      "builder_add_stop_error",
      "builder_add_switch",
-     "builder_add_filter",
-     "builder_add_limit",
-     "builder_add_dedupe",
-     "builder_add_aggregate",
-     "builder_add_summarize",
      "builder_add_array_op",
      "builder_add_datatable",
      "builder_create_datatable",
@@ -10063,6 +9893,347 @@
      {
       "role": "user",
       "content": "[VALIDATION REPORT — machine-generated, not from the human user]\nFix the errors below before calling builder_finalize. Each record has {code, path, message, hint}; the hint tells you what to do next.\n[{\"code\":\"trigger.missing\",\"severity\":\"error\",\"path\":\"layers.sub.trigger\",\"message\":\"Missing or invalid `trigger`.\",\"hint\":\"Every Layer needs a layer_input trigger declaring its params.\",\"kind\":\"automation\",\"targetRef\":{\"kind\":\"automation\",\"id\":null,\"path\":\"layers.sub.trigger\"}},{\"code\":\"edges.not_array\",\"severity\":\"error\",\"path\":\"layers.sub.edges\",\"message\":\"`edges` must be an array.\",\"hint\":\"Initialise the draft via builder_propose_trigger so the shape is correct.\",\"kind\":\"automation\",\"targetRef\":{\"kind\":\"automation\",\"id\":null,\"path\":\"layers.sub.edges\"}}]\nwarnings(1): layers.orphaned"
+     }
+    ]
+   }
+  ]
+ },
+ "plan-ask-first": {
+  "events": [
+   {
+    "event": "builder_session",
+    "data": {
+     "builderSessionId": "bs_<id>",
+     "automationId": null
+    }
+   },
+   {
+    "event": "plan",
+    "data": {
+     "todos": []
+    }
+   },
+   {
+    "event": "model_selected",
+    "data": {
+     "tier": "fast",
+     "modelId": "claude-sonnet-4-5"
+    }
+   },
+   {
+    "event": "web_search",
+    "data": {
+     "requested": true,
+     "available": false,
+     "reason": "unavailable"
+    }
+   },
+   {
+    "event": "round_start",
+    "data": {
+     "iter": 0,
+     "modelId": "claude-sonnet-4-5",
+     "promptChars": "<n>",
+     "effort": "medium",
+     "local": false,
+     "providerType": "claude"
+    }
+   },
+   {
+    "event": "tool_call",
+    "data": {
+     "name": "builder_write_plan",
+     "arguments": {
+      "title": "Plan",
+      "goal": "Doel",
+      "steps": [
+       "Stap"
+      ]
+     },
+     "result": {
+      "error": "Plan not written yet: this is a new automation and the request does not say where it starts or where the data comes from, where the result goes or who is involved. Ask first: call builder_ask_questions with at most 4 questions about exactly that, each with suggested answers. If the request and the context already settle it, call builder_write_plan again unchanged."
+     }
+    }
+   },
+   {
+    "event": "round_start",
+    "data": {
+     "iter": 2,
+     "modelId": "claude-sonnet-4-5",
+     "promptChars": "<n>",
+     "effort": "medium",
+     "local": false,
+     "providerType": "claude"
+    }
+   },
+   {
+    "event": "review_questions",
+    "data": {
+     "questions": [
+      {
+       "id": "<uuid>",
+       "prompt": "Waar komen de facturen binnen?",
+       "options": [
+        "Gmail",
+        "Outlook"
+       ]
+      },
+      {
+       "id": "<uuid>",
+       "prompt": "Wie keurt ze goed?",
+       "options": [
+        "Ik",
+        "Finance"
+       ]
+      }
+     ],
+     "planId": null
+    }
+   },
+   {
+    "event": "tool_call",
+    "data": {
+     "name": "builder_ask_questions",
+     "arguments": {
+      "questions": [
+       {
+        "prompt": "Waar komen de facturen binnen?",
+        "options": [
+         "Gmail",
+         "Outlook"
+        ]
+       },
+       {
+        "prompt": "Wie keurt ze goed?",
+        "options": [
+         "Ik",
+         "Finance"
+        ]
+       }
+      ]
+     },
+     "result": {
+      "ok": true,
+      "awaitingAnswers": true
+     }
+    }
+   },
+   {
+    "event": "builder_session",
+    "data": {
+     "builderSessionId": "bs_<id>",
+     "automationId": "auto_minted"
+    }
+   },
+   {
+    "event": "done",
+    "data": {
+     "automationId": "auto_minted",
+     "finalized": false,
+     "iterations": 2,
+     "usage": {
+      "prompt": 0,
+      "completion": 0,
+      "cached": 0,
+      "cacheCreation": 0,
+      "rounds": 0
+     }
+    }
+   }
+  ],
+  "toolCalls": [],
+  "persists": [
+   {
+    "automationId": "auto_minted",
+    "title": "Untitled automation",
+    "def": {
+     "schemaVersion": 1,
+     "trigger": {
+      "id": "trg",
+      "type": "trigger",
+      "kind": "manual",
+      "output": {}
+     },
+     "steps": [],
+     "edges": [],
+     "vars": {}
+    }
+   }
+  ],
+  "storedSessions": [
+   {
+    "automationId": "auto_minted",
+    "userId": "u1",
+    "payload": {
+     "sessionId": "bs_<id>",
+     "draft": {
+      "schemaVersion": 1,
+      "trigger": {
+       "id": "trg",
+       "type": "trigger",
+       "kind": "manual",
+       "output": {}
+      },
+      "steps": [],
+      "edges": [],
+      "vars": {}
+     },
+     "lastValidation": null,
+     "summary": "**Trigger:** When run manually.\n\n**Steps:**\n_(no steps yet)_",
+     "conversation": [
+      {
+       "role": "user",
+       "content": "Automatiseer mijn facturen"
+      },
+      {
+       "role": "assistant",
+       "content": "",
+       "toolCalls": [
+        {
+         "name": "builder_ask_questions",
+         "arguments": {
+          "questions": [
+           {
+            "prompt": "Waar komen de facturen binnen?",
+            "options": [
+             "Gmail",
+             "Outlook"
+            ]
+           },
+           {
+            "prompt": "Wie keurt ze goed?",
+            "options": [
+             "Ik",
+             "Finance"
+            ]
+           }
+          ]
+         },
+         "result": {
+          "ok": true,
+          "awaitingAnswers": true
+         }
+        }
+       ]
+      }
+     ],
+     "reviewPlan": null,
+     "reviewQuestions": [
+      {
+       "id": "<uuid>",
+       "prompt": "Waar komen de facturen binnen?",
+       "options": [
+        "Gmail",
+        "Outlook"
+       ]
+      },
+      {
+       "id": "<uuid>",
+       "prompt": "Wie keurt ze goed?",
+       "options": [
+        "Ik",
+        "Finance"
+       ]
+      }
+     ],
+     "proposal": null,
+     "questionsMeta": {
+      "round": 1,
+      "planId": null,
+      "mode": "plan"
+     },
+     "approvedDatatableIds": [],
+     "todos": [],
+     "updatedAt": "<ts>"
+    },
+    "opts": {
+     "trimBlock": 6
+    }
+   }
+  ],
+  "rounds": [
+   {
+    "roles": [
+     "system",
+     "system",
+     "user",
+     "system"
+    ],
+    "tools": [
+     "builder_inspect_tool",
+     "builder_summarise",
+     "builder_request_dry_run",
+     "builder_search_documents",
+     "builder_read_document",
+     "builder_inspect_step",
+     "builder_inspect_mapping",
+     "builder_inspect_run",
+     "builder_ask_questions",
+     "builder_write_plan"
+    ],
+    "toolChoice": "auto",
+    "maxTokens": 8192,
+    "temperature": 0.2,
+    "reasoningEffort": "medium",
+    "reasoningSummary": "auto",
+    "promptCacheKey": "bs_<id>",
+    "tail": [
+     {
+      "role": "user",
+      "content": "Automatiseer mijn facturen"
+     }
+    ]
+   },
+   {
+    "roles": [
+     "system",
+     "system",
+     "user",
+     "system",
+     "assistant",
+     "tool"
+    ],
+    "tools": [
+     "builder_inspect_tool",
+     "builder_summarise",
+     "builder_request_dry_run",
+     "builder_search_documents",
+     "builder_read_document",
+     "builder_inspect_step",
+     "builder_inspect_mapping",
+     "builder_inspect_run",
+     "builder_ask_questions",
+     "builder_write_plan"
+    ],
+    "toolChoice": "auto",
+    "maxTokens": 8192,
+    "temperature": 0.2,
+    "reasoningEffort": "medium",
+    "reasoningSummary": "auto",
+    "promptCacheKey": "bs_<id>",
+    "tail": [
+     {
+      "role": "user",
+      "content": "Automatiseer mijn facturen"
+     },
+     {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+       {
+        "id": "call_0",
+        "type": "function",
+        "function": {
+         "name": "builder_write_plan",
+         "arguments": "{\"title\":\"Plan\",\"goal\":\"Doel\",\"steps\":[\"Stap\"]}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_0",
+      "content": "{\"error\":\"Plan not written yet: this is a new automation and the request does not say where it starts or where the data comes from, where the result goes or who is involved. Ask first: call builder_ask_questions with at most 4 questions about exactly that, each with suggested answers. If the request and the context already settle it, call builder_write_plan again unchanged.\"}"
      }
     ]
    }

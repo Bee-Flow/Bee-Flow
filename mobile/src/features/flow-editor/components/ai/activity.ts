@@ -18,7 +18,15 @@ import type { BuilderAddedStep, BuilderToolCall, FlowCatalog } from '@/features/
 import { humanizeToolName, nodeTypeLabel, typeGroupOf, type NodeFamily, type Translate } from '@/features/flow-editor/model';
 
 const VERBS: Readonly<Record<string, readonly [string, string]>> = {
-    builder_propose_trigger: ['automations.builder.act.trigger', 'Set the trigger'],
+    builder_ask_questions: ['automations.assistant.act.questions', 'Asked questions before continuing'],
+    builder_inspect_step: ['automations.assistant.act.read_step', 'Read the step'],
+    builder_inspect_mapping: ['handover.act.read_mapping', 'Checked which data each step uses'],
+    builder_inspect_run: ['automations.assistant.act.read_run', 'Checked values from the latest run'],
+    builder_write_plan: ['automations.assistant.act.write_plan', 'Wrote the plan for review'],
+    // Web research (the composer's web search): reads the web, makes no step.
+    agent_search: ['automations.assistant.act.web_search', 'Searched the web'],
+    read_url: ['automations.assistant.act.read_url', 'Read a web page'],
+    builder_propose_trigger: ['handover.act.trigger', 'Set how it starts'],
     builder_remove_step: ['automations.builder.act.remove', 'Removed a step'],
     builder_update_step: ['automations.builder.act.update', 'Adjusted a step'],
     builder_update_steps: ['automations.builder.act.update', 'Adjusted a step'],
@@ -28,12 +36,15 @@ const VERBS: Readonly<Record<string, readonly [string, string]>> = {
     builder_set_metadata: ['automations.builder.act.metadata', 'Named the automation'],
     builder_inspect_tool: ['automations.builder.act.inspect', 'Looked up how an app works'],
     builder_summarise: ['automations.builder.act.summarise', 'Reviewed the automation'],
-    builder_request_dry_run: ['automations.builder.act.dry_run', 'Tested the automation'],
-    builder_finalize: ['automations.builder.act.finalize', 'Finished and saved'],
+    builder_request_dry_run: ['handover.act.dry_run', 'Did a test run'],
+    builder_finalize: ['handover.act.finalize', 'Saved, not switched on yet'],
     builder_set_plan: ['automations.builder.act.plan', 'Updated the plan'],
     builder_create_datatable: ['automations.builder.act.create_datatable', 'Created a table'],
     builder_propose_plan: ['automations.builder.act.plan', 'Updated the plan'],
 };
+
+/** The web tools' row names what was searched or read: the query, or the URL. */
+const WEB_TOOLS = new Set(['agent_search', 'read_url']);
 
 /** `builder_add_array_op` ops with a word of their own while no step names them yet. */
 const ARRAY_OP_VERBS: Readonly<Record<string, readonly [string, string]>> = {
@@ -100,6 +111,9 @@ function batchTitle(n: number, t: Translate): string {
     return n === 1 ? t('automations.builder.act.add_step_one', 'Added 1 step') : t('automations.builder.act.add_steps', 'Added {n} steps', { n });
 }
 
+/** What a web tool searched for or read; null for every other tool. */
+const webToolDetail = (call: BuilderToolCall): string | null => (WEB_TOOLS.has(call.name) ? str(call.query) || str(call.url) : null);
+
 export function describeToolCall(call: BuilderToolCall, t: Translate, appLabel: AppLabel = () => null): ActivityRow {
     const name = call.name || '';
     const error = str(call.error);
@@ -119,7 +133,7 @@ export function describeToolCall(call: BuilderToolCall, t: Translate, appLabel: 
     const type = added ? str(added.type) : null;
     return {
         title: titleFor(name, type, t, str(call.op)),
-        detail: (added && str(added.label)) || '',
+        detail: (added && str(added.label)) || webToolDetail(call) || '',
         type,
         family: type ? typeGroupOf(type) : null,
         status, error, hint, steps,

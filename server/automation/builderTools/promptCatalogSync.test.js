@@ -23,67 +23,70 @@ const path = require('node:path');
 const { TOOL_SCHEMAS } = require('./schemas');
 const { TRIGGER_SOURCES } = require('../triggerSources/declared/nextcloud');
 const { PUSH_PENDING } = require('../deliverableEvents');
+const { buildAppEventProviders } = require('./triggerProviders');
+const { renderAppEventProviderLines } = require('../builderPrompt/triggerBlock');
 
 const NC_EVENTS = new Set(TRIGGER_SOURCES[0].events.map(e => e.id));
 
 /**
- * The prompt prose lives in a template literal inside schemas.js, so the source
- * text IS the prompt — reading the file avoids fighting JSON escaping and keeps
- * the assertions readable.
+ * Where the app_event prose lives now. It used to be the template literal of
+ * builder_propose_trigger's description (schemasPart1.js), ~16k characters of
+ * every provider sent to every user; that description is one paragraph since
+ * the prompt diet, and the per-provider knowledge renders in the per-user
+ * "App events you may use" block (builderPrompt/triggerBlock.js,
+ * renderAppEventProviderLines). The full band and the MCP guide read exactly
+ * these lines, so they are what this file checks, for a user who has every
+ * provider.
  */
-function promptSource() {
+const ALL_PROVIDERS = buildAppEventProviders({
+    availableAppIds: new Set(['gmail', 'google-calendar', 'google-drive', 'nextcloud', 'outlook']),
+    checks: { support: true, approvals: true, meeting_notes: true },
+    publicBaseUrl: true,
+});
+const PROSE = renderAppEventProviderLines(ALL_PROVIDERS, { band: 'full' });
+
+/** The schema SOURCE (what the MCP surface ships verbatim), for the filter wording. */
+function schemaSource() {
     assert.ok(TOOL_SCHEMAS, 'schemas module still exports TOOL_SCHEMAS');
-    // The entries sit in schemasPart1..N.js (schemas.js only concatenates them).
     return ['schemas.js', ...fs.readdirSync(__dirname).filter(f => /^schemasPart\d+\.js$/.test(f)).sort()]
         .map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
 }
 
-/**
- * The top-level provider headings in the app_event catalogue, in order.
- *
- * Kept BY HAND and checked below, because indentation cannot tell a provider
- * heading from a sub-heading — `── Files (webhook…) ──` and `── Nextcloud ──`
- * are both two spaces in. Nextcloud used to be assumed the LAST section and
- * was bounded on the trailing GENERAL note alone; that stopped being true when
- * Meeting Notes was added below it, and the Nextcloud slice silently swallowed
- * another provider's prose. The event-id regex would then read, say,
- * `calendar.event.upcoming` out of a Meeting-Notes sentence and fail the
- * Nextcloud drift test with a message pointing at the wrong file.
- */
-const PROVIDER_HEADINGS = ['Gmail', 'Google Calendar', 'Google Drive', 'Nextcloud', 'Meeting Notes'];
+/** The provider ids this file slices on. */
+const PROVIDER_IDS = ['gmail', 'google-calendar', 'google-drive', 'nextcloud', 'meeting-notes'];
 
-test('the provider headings this file slices on are the ones the prompt has', () => {
-    const raw = promptSource();
-    const start = raw.indexOf('── Gmail ──');
-    const end = raw.indexOf('GENERAL: bind the trigger payload', start);
-    const catalogue = raw.slice(start, end === -1 ? undefined : end);
-    const found = (catalogue.match(/── ([^─\n]+?) ──/g) || []).map(h => h.replace(/── | ──/g, ''));
-    for (const heading of PROVIDER_HEADINGS) {
-        assert.ok(found.includes(heading), `the prompt lost the ${heading} section`);
+test('the providers this file slices on each have a section in the per-user lines', () => {
+    for (const id of PROVIDER_IDS) {
+        assert.ok(PROSE.split('\n').some(l => l.startsWith(`- ${id} (`)), `the per-user lines lost the ${id} section`);
     }
-    // A NEW top-level provider that is not in the list would make every slice
-    // below run past its own section again. Sub-headings are allowed, so this
-    // only checks that the ones we do slice on are still there and in order.
-    const order = PROVIDER_HEADINGS.map(h => catalogue.indexOf(`── ${h} ──`));
-    assert.deepEqual([...order].sort((a, b) => a - b), order, 'the sections moved around');
 });
 
-/** The prose of ONE provider: its heading up to the next provider or GENERAL. */
-function providerSection(/** @type {string} */ heading) {
-    const raw = promptSource();
-    const start = raw.indexOf(`── ${heading} ──`);
-    assert.ok(start !== -1, `the prompt has a ${heading} section`);
-    const bounds = PROVIDER_HEADINGS
-        .filter(h => h !== heading)
-        .map(h => raw.indexOf(`── ${h} ──`, start + 1))
-        .concat([raw.indexOf('GENERAL: bind the trigger payload', start)])
-        .filter(i => i !== -1);
-    const end = bounds.length ? Math.min(...bounds) : -1;
-    return raw.slice(start, end === -1 ? undefined : end);
+/** The lines of ONE provider: its header line up to the next provider's. */
+function providerSection(/** @type {string} */ id) {
+    const lines = PROSE.split('\n');
+    const start = lines.findIndex(l => l.startsWith(`- ${id} (`));
+    assert.ok(start !== -1, `the per-user lines have a ${id} section`);
+    const end = lines.findIndex((l, i) => i > start && l.startsWith('- '));
+    return lines.slice(start, end === -1 ? undefined : end).join('\n');
 }
 
+test('builder_propose_trigger no longer ships the global catalogue: one paragraph that points at the block', () => {
+    const propose = TOOL_SCHEMAS.find(t => t.function.name === 'builder_propose_trigger');
+    assert.ok(propose, 'the tool exists');
+    const desc = propose.function.description;
+    assert.ok(desc.length < 2500, `the description is the diet, not the catalogue: ${desc.length} chars`);
+    assert.ok(!desc.includes('\n'), 'one paragraph');
+    assert.ok(!/── [A-Z]/.test(desc), 'no per-provider headings');
+    for (const ev of ['mail.new', 'file.tagged', 'meeting.processed', 'tables.row.updated']) {
+        assert.ok(!desc.includes(ev), `${ev}: a provider's event in the global schema`);
+    }
+    assert.match(desc, /"App events you may use" block/);
+    const props = /** @type {{ properties: Record<string, { description: string }> }} */ (propose.function.parameters).properties;
+    assert.ok(!/gmail|nextcloud/.test(props.appProvider.description + props.appEvent.description), 'no global provider or event list in the parameters');
+});
+
 function nextcloudSection() {
-    return providerSection('Nextcloud');
+    return providerSection('nextcloud');
 }
 
 test('every Nextcloud event named in the prompt exists in the trigger source', () => {
@@ -117,42 +120,46 @@ test('every deliverable Nextcloud event is described in the prompt', () => {
 
 test('the prompt warns the model off the events that have no producer', () => {
     const section = nextcloudSection();
-    // Share, Deck and Talk cannot be delivered: their event classes are not
-    // IWebhookCompatibleEvent and there is no poller. The model must be told,
-    // or it will keep proposing them.
-    assert.match(section, /NEVER FIRE|NO PRODUCER/,
+    // Share cannot be delivered: its event class is not IWebhookCompatibleEvent
+    // and there is no poller. Deck is pushed by the connector and Talk by the
+    // bot, which the model must say needs adding to the conversation.
+    assert.match(section, /NEVER propose share\.created \(nothing produces it/,
         'the prompt states plainly that some events cannot fire');
     for (const family of ['deck.card', 'talk.message', 'share.created']) {
         assert.ok(section.includes(family), `${family} is addressed rather than silently omitted`);
     }
+    assert.match(section, /bot must be in the room/, 'Talk: the bot must be added');
 });
 
 test('the prompt does not teach filters the matcher cannot honour', () => {
     const section = nextcloudSection();
     // `tagName` was the specific regression: Nextcloud's TagAssignedEvent has
     // ids only, so a tagName filter silently matches nothing.
-    const tagBlock = section.slice(section.indexOf('file.tagged'), section.indexOf('── Forms'));
-    assert.ok(!/Filters:[^\n]*tagName/.test(tagBlock), 'file.tagged must not advertise a tagName filter');
-    assert.match(tagBlock, /tagId/, 'file.tagged documents the numeric tagId filter instead');
+    const lineOf = (/** @type {string} */ ev) => section.split('\n').find(l => l.startsWith('  - ') && l.slice(4).split(' [')[0].split(' / ').includes(ev)) || '';
+    const filtersOf = (/** @type {string} */ ev) => lineOf(ev).split(' → ')[0];
+    assert.ok(!/tagName/.test(filtersOf('file.tagged')), 'file.tagged must not advertise a tagName filter');
+    assert.match(filtersOf('file.tagged'), /tagId/, 'file.tagged documents the numeric tagId filter instead');
 
     // Calendar push carries no VEVENT body, so summaryContains never matches.
-    const calBlock = section.slice(section.indexOf('calendar.event.created'), section.indexOf('── Generic'));
-    assert.ok(!/Filters:[^\n]*summaryContains/.test(calBlock),
-        'calendar.event.created/changed must not advertise summaryContains — the payload has no summary');
+    for (const ev of ['calendar.event.created', 'calendar.event.changed']) {
+        assert.ok(lineOf(ev), `${ev} has a line`);
+        assert.ok(!/summaryContains/.test(filtersOf(ev)),
+            `${ev} must not advertise summaryContains — the payload has no summary`);
+    }
 });
 
 // ── Meeting Notes ───────────────────────────────────────────────────
 //
 // Same drift risk as Nextcloud, and it went uncovered when the section was
-// written: the whole block could be cut out of schemas.js and every test in
-// this directory stayed green. The prompt IS the MCP tool description
-// (mcpBuilder.js ships TOOL_SCHEMAS verbatim), so a prompt that has drifted
-// from the declaration teaches an external client a contract that is not real.
+// written: the whole block could be cut out and every test in this directory
+// stayed green. These lines are also the MCP guide's (automations_get_guide
+// appends the per-user block), so prose that has drifted from the declaration
+// teaches an external client a contract that is not real.
 
 const MEETING_SOURCE = require('../triggerSources/declared/meeting-notes').TRIGGER_SOURCES[0];
 
 test('the Meeting Notes section describes the declaration that exists', () => {
-    const section = providerSection('Meeting Notes');
+    const section = providerSection('meeting-notes');
     for (const ev of MEETING_SOURCE.events) {
         assert.ok(section.includes(ev.id), `the prompt never mentions ${ev.id}`);
         for (const field of ev.fields) {
@@ -171,7 +178,7 @@ test('the Meeting Notes section describes the declaration that exists', () => {
 test('the Meeting Notes section states that an empty tag list means EVERY meeting', () => {
     // The one sentence that keeps the model from writing a tag it invented, and
     // the one the matcher's own header calls the choice that must not be hidden.
-    const section = providerSection('Meeting Notes');
+    const section = providerSection('meeting-notes');
     assert.match(section, /EVERY FINISHED MEETING|every finished meeting/,
         'without this the model reads an empty filter as "match nothing"');
 });
@@ -181,7 +188,7 @@ test('the prompt does not promise a step that reads a note by id', () => {
     // processes an UPLOADED file. A prompt that told the model to "follow the
     // trigger with a Meeting Notes action" made it add a tool that does not
     // exist, which applyAddAction then rejects.
-    const section = providerSection('Meeting Notes');
+    const section = providerSection('meeting-notes');
     assert.ok(!/Meeting Notes action/.test(section),
         'the prompt names an action the catalogue does not have');
     assert.match(section, /NO STEP THAT READS\s+A NOTE BY ID|no action takes a transcriptionId/,
@@ -191,7 +198,7 @@ test('the prompt does not promise a step that reads a note by id', () => {
 test('the generic filter description does not claim a shallow match', () => {
     // Several events (gmail, nextcloud, meeting-notes) have their own matcher,
     // so "must shallowly match the event payload" was untrue for all of them.
-    const raw = promptSource();
+    const raw = schemaSource();
     assert.ok(!/shallowly match the event payload/.test(raw));
     assert.match(raw, /An omitted or empty filter means "every event of this kind", never "no events"\./);
 });

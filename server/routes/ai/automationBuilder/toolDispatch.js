@@ -108,7 +108,8 @@ async function dispatchToolCall(turn, round, tc) {
                 validation: finalCheck,
             };
         } else {
-            send('finalized', { automationId: toolResult.automation.id });
+            // `needs` (builderTools finalize) feeds the chat's hand-over card.
+            send('finalized', { automationId: toolResult.automation.id, ...(Array.isArray(toolResult.needs) ? { needs: toolResult.needs } : {}) });
             turn.lastFinalized = true;
         }
         if (titled && titled.derived && toolResult && typeof toolResult === 'object') {

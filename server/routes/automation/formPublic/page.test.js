@@ -45,6 +45,27 @@ test('GET returns the render config, a CSRF token and no-store headers', async (
     assert.match(res.headers['x-robots-tag'], /noindex/);
 });
 
+test('GET carries the form\'s style, canonical and with its custom CSS sanitised; none set, no key', async () => {
+    state.definitionOverride = {
+        trigger: { id: 'trg', type: 'trigger', kind: 'form', form: {
+            ...FORM,
+            style: {
+                font: 'serif', width: 'wide', secret: 'x', logoUrl: '//cdn.example/logo.png',
+                customCss: '@import url(https://fonts.example/x.css); .bf-form__card { padding: 2rem } & ~ * { display: none }',
+            },
+        } },
+    };
+    const res = makeRes();
+    await getForm(makeReq(), res);
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.form.style, { font: 'serif', width: 'wide', customCss: ' .bf-form__card { padding: 2rem }' });
+
+    state.definitionOverride = null;
+    const plain = makeRes();
+    await getForm(makeReq(), plain);
+    assert.strictEqual('style' in plain.body.form, false);
+});
+
 // ── BFSF-437: multiPage must see a form_page inside a flowlet ────────────────
 //
 // A form_page can live inside definition.layers[key].steps (an inline flowlet

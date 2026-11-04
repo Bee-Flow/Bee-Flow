@@ -318,11 +318,7 @@ const NL_TRANSLATIONS = {
     'automations.ndv.tables_row.whole_label': 'Rijwaarden',
     // ── Het lege canvas (artboard 1e) ───────────────────────────────────────
     'automations.canvas.empty_title': 'Waarmee begint deze automatisering?',
-    'automations.canvas.empty_sub': 'Elke automatisering heeft precies één trigger. Kies er een, of laat de assistent de automatisering schrijven.',
     'automations.canvas.empty_static': 'Begin met een trigger.',
-    'automations.canvas.empty_describe': 'Of beschrijf de automatisering:',
-    'automations.canvas.empty_example': '“jaarrekening via een formulier → analyse per bank → memorandum”',
-    'automations.canvas.empty_assistant': 'Assistent',
     'automations.canvas.empty_hint': '…of kies er een uit de balk hierboven, of sleep hem op het canvas.',
 
     // ── De stappenlade (artboard 1h/2a/2b) ──────────────────────────────────

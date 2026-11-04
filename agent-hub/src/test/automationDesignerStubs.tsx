@@ -9,6 +9,7 @@ export interface Row { id: string; title: string; isActive?: boolean; triggerTyp
 export interface BuilderStubProps {
     mode?: string; automationId: string | null; initialTab: string | null; initialChatInput?: string;
     autoSendInput?: string | null; initialScopeKey?: string | null;
+    seedMetadata?: { title: string } | null;
     onBack: () => void; onOpenList: () => void; onAutomationIdResolved: (id: string) => void;
     onScopeChange?: (key: string | null) => void; onExportJson?: () => void;
 }
@@ -25,7 +26,7 @@ export function BuilderStub(p: BuilderStubProps) {
     return (
         <div data-testid="builder" data-mode={p.mode ?? 'automation'} data-id={String(p.automationId)} data-tab={String(p.initialTab)}
             data-chat={p.initialChatInput ?? ''} data-auto-send={p.autoSendInput ?? ''} data-scope={String(p.initialScopeKey ?? null)}
-            data-can-export={String(!!p.onExportJson)}>
+            data-seed-title={p.seedMetadata?.title ?? ''} data-can-export={String(!!p.onExportJson)}>
             <button onClick={p.onBack}>stub-back</button>
             <button onClick={p.onOpenList}>stub-open-list</button>
             <button onClick={() => p.onAutomationIdResolved('live-1')}>stub-resolve</button>

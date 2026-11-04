@@ -105,3 +105,10 @@ test('an info block without a label keeps it blank; other types fall back to the
     assert.equal(note.label, '');
     assert.equal(plain.label, 'city');
 });
+
+test('the theme and the style travel with the form; a style that is no object does not', () => {
+    const form = buildForm({ title: 'Request', fields: [], theme: { primary: '#0F766E' }, style: { font: 'serif', customCss: '.bf-form__card { padding: 2rem }' } });
+    assert.deepEqual(form.theme, { primary: '#0F766E' });
+    assert.deepEqual(form.style, { font: 'serif', customCss: '.bf-form__card { padding: 2rem }' });
+    assert.equal('style' in buildForm({ title: 'Request', fields: [], style: ['serif'] }), false);
+});

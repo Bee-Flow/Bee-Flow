@@ -466,7 +466,7 @@ t('the lean prompt names no loop container, flowlet, switch or other tool the le
         assert.ok(!p.includes(n), `${n} is not taught`);
     }
     assert.ok(!/## Flowlets|## Additional triggers|delegate|Delegate/.test(p), 'the three removed sections are gone');
-    assert.ok(/There is no loop container on this menu/.test(p), 'loop bullets rewritten');
+    assert.ok(/Per-item work is `forEach` on the step, not a loop container: nothing on this menu can change a loop's body/.test(p), 'loop bullets steer to forEach');
     assert.ok(/## Placing steps/.test(p) && /## Triggers \(builder_propose_trigger/.test(p) && /## Naming/.test(p) && p.includes('## Plan\n'), 'the new sections');
     assert.ok(/NEVER propose nextcloud share\.created/.test(p), 'the trigger block is rendered into the prompt');
     assert.ok(/ONE `builder_update_step` per failing step/.test(p), 'dry-run repair is one update_step per failing step');
@@ -480,7 +480,7 @@ t('menu:"full" — the reasoning band reads the lean prose beside the FULL menu,
     const lean = buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true });
     const full = buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true, menu: 'full' });
     assert.strictEqual(lean, buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true, menu: 'lean' }), 'lean is the default');
-    assert.ok(!/There is no loop container/.test(full), 'the claim is not made beside builder_add_loop');
+    assert.ok(!/not a loop container: nothing on this menu/.test(full), 'the claim is not made beside builder_add_loop');
     assert.ok(/PREFER `forEach` ON THE STEP over a `loop` container/.test(full) && /A `loop` container is for the rare case/.test(full), 'the loop bullets say when the container is right');
     for (const n of ['builder_add_loop', 'builder_add_set', 'builder_add_form_page', 'builder_update_steps', 'builder_add_switch', 'builder_add_trigger', 'builder_create_layer', 'builder_set_layer_contract', 'builder_add_call_layer', 'builder_generate_layer', 'builder_generate_layers']) {
         assert.ok(full.includes(n), `full menu: ${n} is taught`);
@@ -545,7 +545,7 @@ console.log('condition doctrine');
 
 t('both prompts say a condition decides ONCE and name the filter that keeps items', () => {
     const full = buildFullSystemPrompt({ catalog: CATALOG, codeStepEnabled: false });
-    assert.ok(full.includes('A condition decides ONCE for the whole run; to keep the matching items\n  of a list use builder_add_filter'), 'full prompt doctrine line');
+    assert.ok(full.includes('A condition decides ONCE for the whole run; to keep the matching items\n  of a list use `builder_add_array_op({op:"filter"})`'), 'full prompt doctrine line');
     const lean = buildLeanSystemPrompt({ catalog: CATALOG, codeStepEnabled: false, batchTools: true });
     assert.ok(lean.includes('A condition decides ONCE for the whole run; to keep the matching items of a list use `builder_add_array_op({op:"filter"})`'), 'lean prompt doctrine line');
 });

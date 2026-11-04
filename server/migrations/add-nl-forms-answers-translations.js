@@ -29,6 +29,8 @@ const NL_TRANSLATIONS = {
     // The validation messages live in their own migration so an instance that already
     // ran this one still gets them; they are listed here so the catalogue test sees them.
     ...require('./add-nl-forms-validation-translations').NL_TRANSLATIONS,
+    // The form's look (forms.style.*) likewise: its own migration, listed here for the catalogue test.
+    ...require('./add-nl-forms-style-translations').NL_TRANSLATIONS,
     // ── the directory (Studio → Forms) and its sidebar row ─────────────
     'sidebar.forms': 'Formulieren',
     'sidebar.all_forms': 'Alle formulieren',
@@ -341,6 +343,8 @@ const SAME_AS_ENGLISH = [
     'datatables.frm_tab_dashboard',
     // "Test", the chip on a form opened from its test link.
     'forms.public_test_title',
+    // The form's look: its own migration, listed here for the catalogue test.
+    ...require('./add-nl-forms-style-translations').SAME_AS_ENGLISH,
 ];
 
 async function up() {

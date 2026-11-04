@@ -22,6 +22,8 @@
 import { INTEGRATION_META, resolveIntegrationFromTool } from '../../../../utils/integrationIcons';
 import { humanizeToolName } from '../flow/displayHelpers';
 import { nodeTypeLabel } from '../flow/nodeDefs';
+import { plainText } from './plainVocabulary';
+import type { StepLabels } from './plainVocabulary';
 import { typeGroupOf } from '../flow/nodeTypeColors';
 /** The translator the builder passes: a key, its English fallback and optional params. */
 export type Translator = (key: string, fallback: string, params?: Record<string, unknown>) => string;
@@ -93,13 +95,13 @@ export interface LiveRunFocus {
 const VERBS: Record<string, Verb> = {
     builder_ask_questions: { key: 'automations.assistant.act.questions', en: 'Asked questions before continuing' },
     builder_inspect_step: { key: 'automations.assistant.act.read_step', en: 'Read the step' },
-    builder_inspect_mapping: { key: 'automations.assistant.act.read_mapping', en: 'Checked bindings and available fields' },
+    builder_inspect_mapping: { key: 'handover.act.read_mapping', en: 'Checked which data each step uses' },
     builder_inspect_run: { key: 'automations.assistant.act.read_run', en: 'Checked values from the latest run' },
     builder_write_plan: { key: 'automations.assistant.act.write_plan', en: 'Wrote the plan for review' },
     // Web research (the composer's Web search switch): reads the web, no step.
     agent_search: { key: 'automations.assistant.act.web_search', en: 'Searched the web' },
     read_url: { key: 'automations.assistant.act.read_url', en: 'Read a web page' },
-    builder_propose_trigger: { key: 'automations.builder.act.trigger', en: 'Set the trigger' },
+    builder_propose_trigger: { key: 'handover.act.trigger', en: 'Set how it starts' },
     builder_remove_step: { key: 'automations.builder.act.remove', en: 'Removed a step' },
     builder_update_step: { key: 'automations.builder.act.update', en: 'Adjusted a step' },
     builder_update_steps: { key: 'automations.builder.act.update', en: 'Adjusted a step' },
@@ -109,8 +111,8 @@ const VERBS: Record<string, Verb> = {
     builder_set_metadata: { key: 'automations.builder.act.metadata', en: 'Named the automation' },
     builder_inspect_tool: { key: 'automations.builder.act.inspect', en: 'Looked up how an app works' },
     builder_summarise: { key: 'automations.builder.act.summarise', en: 'Reviewed the automation' },
-    builder_request_dry_run: { key: 'automations.builder.act.dry_run', en: 'Tested the automation' },
-    builder_finalize: { key: 'automations.builder.act.finalize', en: 'Finished and saved' },
+    builder_request_dry_run: { key: 'handover.act.dry_run', en: 'Did a test run' },
+    builder_finalize: { key: 'handover.act.finalize', en: 'Saved, not switched on yet' },
     builder_set_plan: { key: 'automations.builder.act.plan', en: 'Updated the plan' },
     // A table made at design time — a side effect outside the draft, no step.
     builder_create_datatable: { key: 'automations.builder.act.create_datatable', en: 'Created a table' },
@@ -159,6 +161,9 @@ export function addedStepsOf(result: unknown): AddedStep[] {
     if (Array.isArray(added)) return added.filter(isPlainObject);
     return isPlainObject(added) ? [added] : [];
 }
+
+/** A step id as its label, or null when the id is unknown. */
+const labelOf = (id: unknown, labels: StepLabels | null) => (typeof id === 'string' && labels?.get(id)) || null;
 
 /** `builder_add_steps` reports its steps as an array; every single-step tool as one object. */
 const isBatch = (result: unknown) => isPlainObject(result) && Array.isArray(result.added);
@@ -230,11 +235,11 @@ function batchTitle(n: number, t: Translator | null) {
  * every entry is an app, so the tile is never one family's colour for a
  * mixed batch.
  */
-export function describeToolCall(tc: ToolCall | null | undefined, t: Translator | null = null): ToolCallRow {
+export function describeToolCall(tc: ToolCall | null | undefined, t: Translator | null = null, labels: StepLabels | null = null): ToolCallRow {
     const name = str(tc?.name) || '';
     const result = tc?.result;
-    const error = isPlainObject(result) ? str(result.error) : null;
-    const hint = isPlainObject(result) ? str(result._fixHint) : null;
+    const error = plainText(isPlainObject(result) ? str(result.error) : null, labels, t);
+    const hint = plainText(isPlainObject(result) ? str(result._fixHint) : null, labels, t);
     const raw = addedStepsOf(result);
     const steps = stepsOf(raw, t);
     const status = error ? 'failed' : 'done';
@@ -262,7 +267,9 @@ export function describeToolCall(tc: ToolCall | null | undefined, t: Translator 
     }
     return {
         title: titleFor(name, type, t, tc),
-        detail: (added && str(added.label)) || str(result?.step?.label) || str(tc?.arguments?.stepId)
+        // A bare step id is no name: the step's label, or nothing (the id
+        // stays in the details).
+        detail: (added && str(added.label)) || str(result?.step?.label) || labelOf(tc?.arguments?.stepId, labels)
             || (WEB_TOOLS.has(name) ? str(tc?.arguments?.query) || str(tc?.arguments?.url) : null) || '',
         type,
         family: type ? typeGroupOf(type) : null,

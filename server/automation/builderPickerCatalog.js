@@ -1,14 +1,17 @@
+// @typecheck
 /**
  * The id lists the builder model needs to FILL an id: the agents an ai_step may
- * hand its thinking to, the knowledge bases a step may read or write, and the
- * app_event providers THIS user has.
+ * hand its thinking to, the knowledge bases a step may read or write, the
+ * reusable building blocks a call_block step may run, and the app_event
+ * providers THIS user has.
  *
  * ── ONE SOURCE WITH THE CANVAS ──────────────────────────────────────
  * routes/automation/catalog.js (the canvas pickers) and the AI builder read
  * these from here, so the two can never offer different sets. The permission
  * filters are the canvas ones, unchanged: `agentPickerRows` for agents,
- * `canUserManageKB` for the write ability of a knowledge base, the user's own
- * resolved tool set for the providers. A list the model reads is a menu, not a
+ * `canUserManageKB` for the write ability of a knowledge base,
+ * `getCallableStepsForUser` plus the apps gate of the palette's Steps group for
+ * building blocks, the user's own resolved tool set for the providers. A list the model reads is a menu, not a
  * discovery surface, so nothing here is wider than the canvas picker.
  *
  * ── "COULD NOT READ" IS NOT "NONE" ──────────────────────────────────
@@ -49,6 +52,8 @@ function defaultDeps() {
         listInboxes: (/** @type {string} */ orgId) => require('../stores/supportInboxStore').listInboxes(orgId),
         publicBaseUrl: () => require('./triggerBus').getPublicBaseUrl(),
         availableMcpServerIds: (names, userId) => require('../core/integrations/integrationTools').availableMcpServerIds(names, userId),
+        stepStore: () => require('../stores/automationStore'),
+        resolveIntegration: (/** @type {string} */ tool) => require('../core/integrations/integrationToolMap').resolveIntegration(tool),
     };
 }
 const depsOf = (deps) => ({ ...defaultDeps(), ...(deps || {}) });
@@ -59,7 +64,7 @@ const depsOf = (deps) => ({ ...defaultDeps(), ...(deps || {}) });
  * reason when not. Own-first, because `agentPickerRows` dedupes first-wins.
  *
  * @param {string} userId
- * @param {{ principal?: object|null }} [opts]  the canvas already resolved the
+ * @param {{ principal?: object|null, deps?: PickerDeps|null }} [opts]  the canvas already resolved the
  *   principal from its request; the builder resolves it from the user id.
  * @returns {Promise<{agents: Array, agentsError: string|null}>}
  */
@@ -142,6 +147,77 @@ async function buildKnowledgeBasePickerForUser(userId, { deps = null } = {}) {
 }
 
 /**
+ * The integration ids this user can use right now, from the catalog's runnable
+ * apps: the gate routes/automation/catalogApps.buildSteps puts on the palette's
+ * Steps group (a block that touches an app the user lacks fails mid-run).
+ * @param {Array<{ id: string, available?: boolean, actions?: Array<{ name?: string }> }>} apps
+ * @param {(tool: string) => { integration?: string } | null} resolve
+ */
+function availableIntegrationIds(apps, resolve) {
+    const ids = new Set();
+    for (const app of apps || []) {
+        if (!app || !app.available) continue;
+        ids.add(app.id);
+        for (const a of app.actions || []) {
+            let owner = null;
+            try { owner = a && a.name ? resolve(a.name) : null; } catch (err) { fallback('automation/builderPickerCatalog:availableIntegrationIds', err); }
+            if (owner && owner.integration) ids.add(owner.integration);
+        }
+    }
+    return ids;
+}
+
+/**
+ * The reusable building blocks (published Steps, kind='block') a call_block
+ * step may run: the published, shared-with-me set the canvas palette lists
+ * (`getCallableStepsForUser`, the org and group scope resolved off-request the
+ * way the knowledge-base list does), each with its contract (inputs, outputs)
+ * and `available`, false when the block touches an app this user has not
+ * connected. A catalog that could not be built (`catalogError`) cannot tell, so
+ * every block stays available and the run decides, the permissive posture of
+ * the other gates.
+ *
+ * @param {string} userId
+ * @param {{ apps?: Array<{ id: string, available?: boolean, actions?: Array<{ name?: string }> }>, catalogError?: string } | null} catalog
+ * @returns {Promise<{ blocks: BlockRow[], blocksError: string | null }>}
+ */
+async function buildBlockPickerForUser(userId, catalog, { deps = null } = {}) {
+    const d = depsOf(deps);
+    try {
+        const { orgIds, userGroups } = await d.askerContext(userId);
+        const orgIdList = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+        const callable = await d.stepStore().getCallableStepsForUser(userId, { orgIds: orgIdList, userGroups: userGroups || [] });
+        const known = catalog && !catalog.catalogError ? availableIntegrationIds(catalog.apps || [], d.resolveIntegration) : null;
+        const blocks = (callable || []).filter(s => s && s.id).map(s => ({
+            id: s.id,
+            name: s.title || s.id,
+            description: s.description || '',
+            category: s.category || null,
+            inputs: (Array.isArray(s.params) ? s.params : []).map(p => ({
+                name: p.name, type: p.type || 'string', required: !!p.required, description: p.description || '',
+            })),
+            outputs: Array.isArray(s.outputFields) ? s.outputFields.filter(f => typeof f === 'string') : [],
+            available: !known || (s.requiredIntegrations || []).every(i => known.has(i)),
+        }));
+        return { blocks, blocksError: null };
+    } catch (e) {
+        const blocksError = /** @type {Error} */ (e).message || 'building block list unavailable';
+        log.warn('[automation/pickerCatalog] building blocks unavailable:', blocksError);
+        return { blocks: [], blocksError };
+    }
+}
+
+/**
+ * The list a step builder checks a call_block against (draftWrap._blocks):
+ * null when the read failed (could not tell, so the builder stays permissive).
+ * @param {{ blocks?: BlockRow[], blocksError?: string | null } | null | undefined} picker
+ * @returns {BlockRow[] | null}
+ */
+function blockCatalogOf(picker) {
+    return picker && !picker.blocksError && Array.isArray(picker.blocks) ? picker.blocks : null;
+}
+
+/**
  * The app_event providers THIS user has, catalog-ready (see
  * builderTools/triggerProviders.buildAppEventProviders). Availability derives
  * only from the user's resolved tool set plus connection-backed checks; the
@@ -209,10 +285,10 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
  * throws: each list fails on its own into its own error marker.
  *
  * @param {string} userId
- * @param {object|null} session
+ * @param {{ user?: { organizationId?: string | null } } | null} session
  * @param {Awaited<ReturnType<typeof import('./builderCatalog').buildCatalogForUser>>} catalog   from buildCatalogForUser
  * @param {{providers?: boolean, deps?: object}} [opts]  `providers:false` skips the app_event list; `deps` replaces collaborators (tests)
- * @returns {Promise<{agents, agentsError: unknown, knowledgeBases, knowledgeBasesError: unknown, appEventProviders: unknown, appEventProvidersError: unknown}>}
+ * @returns {Promise<{agents, agentsError: unknown, knowledgeBases, knowledgeBasesError: unknown, blocks: BlockRow[], blocksError: string | null, appEventProviders?: unknown, appEventProvidersError?: unknown}>}
  */
 async function buildPickerCatalogsForUser(userId, session, catalog, { providers: withProviders = true, deps = null } = {}) {
     const providers = (async () => {
@@ -233,18 +309,28 @@ async function buildPickerCatalogsForUser(userId, session, catalog, { providers:
             return { appEventProviders: [], appEventProvidersError: /** @type {Error} */ (e).message || 'providers unavailable' };
         }
     })();
-    const [agents, kbs, prov] = await Promise.all([
-        buildAgentPickerForUser(userId, { deps }), buildKnowledgeBasePickerForUser(userId, { deps }), providers,
+    const [agents, kbs, blocks, prov] = await Promise.all([
+        buildAgentPickerForUser(userId, { deps }), buildKnowledgeBasePickerForUser(userId, { deps }),
+        buildBlockPickerForUser(userId, catalog, { deps }), providers,
     ]);
-    return { ...agents, ...kbs, ...prov };
+    return { ...agents, ...kbs, ...blocks, ...prov };
 }
 
 module.exports = {
     buildAgentPickerForUser,
     listKnowledgeBasePicker,
     buildKnowledgeBasePickerForUser,
+    buildBlockPickerForUser,
+    blockCatalogOf,
     buildAppEventProvidersFor,
     buildPickerCatalogsForUser,
 };
 
 /** @typedef {Partial<ReturnType<typeof defaultDeps>>} PickerDeps */
+
+/**
+ * One building block as the model and the call_block builder read it.
+ * @typedef {{ id: string, name: string, description: string, category: string | null,
+ *   inputs: Array<{ name: string, type: string, required: boolean, description: string }>,
+ *   outputs: string[], available: boolean }} BlockRow
+ */

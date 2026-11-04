@@ -27,6 +27,15 @@ const AUTOMATIONS = {
     au1: { id: 'au1', userId: 'owner1', organizationId: 'org1', definition: { trigger: { id: 't', kind: 'form', form: FORM } } },
     files: { id: 'files', userId: 'owner1', organizationId: 'org1', definition: { trigger: { id: 't', kind: 'form', form: { fields: [{ name: 'doc', type: 'file', label: 'Doc', maxSizeMb: 5 }] } } } },
     manual: { id: 'manual', userId: 'owner1', organizationId: 'org1', definition: { trigger: { id: 't', kind: 'manual' } } },
+    // t → s1 → s2; `loose` is a step nothing leads to.
+    flow: {
+        id: 'flow', userId: 'owner1', organizationId: 'org1',
+        definition: {
+            trigger: { id: 't', kind: 'form', form: FORM },
+            steps: [{ id: 's1', type: 'set' }, { id: 's2', type: 'set' }, { id: 'loose', type: 'set' }],
+            edges: [{ from: 't', to: 's1' }, { from: 's1', to: 's2' }],
+        },
+    },
 };
 
 let w;
@@ -139,4 +148,30 @@ test('an editor\'s upload goes through the form\'s own upload path (its file que
     assert.strictEqual(none.status, 400);
     assert.match(none.body.error, /does not accept files/);
     assert.strictEqual(w.uploadsParsed, 1);
+});
+
+test('untilStepId: the dry run is bounded to end after that step, recorded as a root "up to" scope', async () => {
+    const res = await api.call('POST', '/api/automation/flow/form-test', { body: { values: { email: 'a@b.nl' }, untilStepId: 's1', respond: 'created' } });
+    assert.strictEqual(res.status, 202, res.text);
+    const { opts } = w.runs[0];
+    assert.strictEqual(opts.mode, 'dry_run');
+    assert.strictEqual(opts.untilStepId, 's1');
+    assert.deepStrictEqual(opts.partial, { mode: 'upTo', targetStepId: 's1', scope: 'root' });
+    assert.strictEqual(opts.triggerPayload.email, 'a@b.nl', 'the answers are the trigger payload');
+});
+
+test('without untilStepId the whole flow runs, unbounded', async () => {
+    await api.call('POST', '/api/automation/flow/form-test', { body: { values: { email: 'a@b.nl' }, respond: 'created' } });
+    assert.strictEqual(w.runs[0].opts.untilStepId, undefined);
+    assert.strictEqual(w.runs[0].opts.partial, undefined);
+});
+
+test('untilStepId that is no step after the form is a 400 and nothing runs or is accepted', async () => {
+    for (const untilStepId of ['nope', 't', 'loose']) {
+        const res = await api.call('POST', '/api/automation/flow/form-test', { body: { values: { email: 'a@b.nl' }, untilStepId } });
+        assert.strictEqual(res.status, 400, `${untilStepId}: ${res.text}`);
+        assert.strictEqual(res.body.code, 'invalid_until_step');
+    }
+    assert.strictEqual(w.runs.length, 0);
+    assert.strictEqual(w.sessions.length, 0, 'no session opened for a refused bound');
 });

@@ -8,7 +8,7 @@
  * original request would have made.
  */
 
-const { lostToConcurrency, answersRefOf, runKindOf } = require('./formQueueShared');
+const { lostToConcurrency, answersRefOf, runKindOf, stopAfterOf } = require('./formQueueShared');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 
 /**
@@ -51,7 +51,7 @@ function createFormWork({ automationStore, runner, formAnswers }) {
     // recovered row makes is exactly the call the original request would have
     // made. `work` is what sits in pending_work:
     //
-    //   { kind: 'submit', payload, submitterId, publicForm, isTest?, origin?, mode? }
+    //   { kind: 'submit', payload, submitterId, publicForm, isTest?, origin?, mode?, untilStepId? }
     //   { kind: 'resume', parentRunId, stepId, values, submitterId, isTest? }
     // isTest / origin / mode (automation/formSubmission.mts) become the runner's
     // options through runKindOf; a resume keeps the profile its run started with.
@@ -72,8 +72,9 @@ function createFormWork({ automationStore, runner, formAnswers }) {
             triggerKind: 'form',
             triggerPayload: { ...(work.payload || {}) },
             triggerHeaders: session.triggerHeaders,
-            // Who started it, and what kind of run it is (formQueueShared.runKindOf).
-            ...runKindOf(work),
+            // Who started it, what kind of run it is, and the step a builder
+            // test of one step ends after (formQueueShared runKindOf, stopAfterOf).
+            ...runKindOf(work), ...stopAfterOf(work),
             rootStepId: session.rootStepId || null,
             // Point the session at the run the MOMENT it exists, not when it
             // returns. executeAutomation resolves only once the automation has

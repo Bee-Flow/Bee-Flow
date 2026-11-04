@@ -22,6 +22,101 @@ const { LARGE_CHANGE_STEPS, changedSteps, pendingProposal } = require('./workMod
 const { proposalPreviewPayload, clientProposal } = require('./datatableTurn');
 const { sanitizeHistory, collectAssistantTurn } = require('./chatTurnLoop');
 const { bestEffort } = require('../../../utils/bestEffort');
+const { hintsFromDryRun, mergeDryRunHints, stepIdsOf } = require('../../../automation/builderPrompt/lastTestRun.mts');
+
+// The inspected-tool memory: at most this many names, newest last.
+const MAX_INSPECTED_TOOLS = 100;
+const MAX_TOOL_NAME = 200;
+
+/**
+ * @typedef {{ role?: string, content?: unknown, tool_call_id?: string,
+ *   tool_calls?: Array<{ id?: string, function?: { name?: string } }> }} LoopMessage
+ */
+
+/**
+ * The parsed answer to one dry-run call, when it is a run (a refused call or
+ * an unparseable copy is null).
+ * @param {LoopMessage[]} after  the messages after the call
+ * @param {string | undefined} callId
+ * @returns {{ run: unknown, steps: unknown[] } | null}
+ */
+function dryRunAnswer(after, callId) {
+    const answer = after.find((r) => r?.role === 'tool' && r.tool_call_id === callId);
+    if (typeof answer?.content !== 'string') return null;
+    /** @type {{ run?: unknown, steps?: unknown } | null} */
+    let parsed = null;
+    try { parsed = JSON.parse(answer.content); } catch { return null; }
+    return parsed && parsed.run && Array.isArray(parsed.steps) ? { run: parsed.run, steps: parsed.steps } : null;
+}
+
+/**
+ * The hints of the LAST dry run this turn ran (its compact model copy in the
+ * loop's messages), or null when the turn ran none that answered. The
+ * few-shot examples carry synthetic dry runs of their own: they are skipped.
+ * @param {unknown[]} messages
+ * @param {Set<unknown>} skip
+ */
+function lastDryRunHintsOf(messages, skip) {
+    const list = /** @type {LoopMessage[]} */ (Array.isArray(messages) ? messages : []);
+    for (let i = list.length - 1; i >= 0; i--) {
+        const m = list[i];
+        if (m?.role !== 'assistant' || skip.has(m) || !Array.isArray(m.tool_calls)) continue;
+        const calls = m.tool_calls.filter((tc) => tc?.function?.name === 'builder_request_dry_run').reverse();
+        for (const tc of calls) {
+            const run = dryRunAnswer(list.slice(i + 1), tc.id);
+            if (run) return hintsFromDryRun(run);
+        }
+    }
+    return null;
+}
+
+/**
+ * The inspected tool names to remember: the stored ones, then this turn's,
+ * deduplicated with the newest last, only those the user can still run (all
+ * of them when that could not be told), at most MAX_INSPECTED_TOOLS.
+ * @param {unknown} prior
+ * @param {Set<string> | undefined} now
+ * @param {Set<string> | null | undefined} available
+ */
+function rememberedTools(prior, now, available) {
+    /** @type {string[]} */
+    const names = [];
+    const all = [...(Array.isArray(prior) ? prior : []), ...(now instanceof Set ? now : [])];
+    for (const n of all) {
+        if (typeof n !== 'string' || !n || n.length > MAX_TOOL_NAME) continue;
+        if (available instanceof Set && !available.has(n)) continue;
+        const at = names.indexOf(n);
+        if (at >= 0) names.splice(at, 1);
+        names.push(n);
+    }
+    return names.slice(-MAX_INSPECTED_TOOLS);
+}
+
+/**
+ * What the builder session remembers for the next turn besides the draft
+ * (F7): the tool names inspected so far (`inspectedTools`, newest last; the
+ * next turn seeds `_inspectedTools` from it, turnSetup.js) and the last test
+ * run's per-step shape hints (`lastDryRunHints`, rendered as "## Last test
+ * run" by builderPrompt/lastTestRun.mts). Hints only, never a value; both
+ * bounded. A turn without a dry run keeps the hints it had, minus the steps
+ * that left the draft. An empty field is left out.
+ * @param {{ messages: unknown[], fewShotMessages?: unknown[], snapshot: any, draftWrap: BuilderTurn['draftWrap'], proposal?: { definition?: unknown } | null }} p
+ * @returns {{ inspectedTools?: string[], lastDryRunHints?: import('../../../automation/builderPrompt/lastTestRun.mts').DryRunHints }}
+ */
+function sessionMemory({ messages, fewShotMessages, snapshot, draftWrap, proposal }) {
+    const inspectedTools = rememberedTools(snapshot?.inspectedTools, draftWrap?._inspectedTools, draftWrap?._availableToolNames);
+    // Steps of the draft, and of a waiting proposal the next turn works on.
+    const keep = stepIdsOf(draftWrap?.def);
+    for (const id of stepIdsOf(proposal?.definition)) keep.add(id);
+    const fresh = lastDryRunHintsOf(messages, new Set(Array.isArray(fewShotMessages) ? fewShotMessages : []));
+    const lastDryRunHints = mergeDryRunHints(snapshot?.lastDryRunHints, fresh, { keep });
+    // An empty memory is left out: the snapshot is rebuilt field by field
+    // every turn, so a missing key reads (and clears) as empty.
+    return {
+        ...(inspectedTools.length ? { inspectedTools } : {}),
+        ...(Object.keys(lastDryRunHints).length ? { lastDryRunHints } : {}),
+    };
+}
 
 /**
  * @param {BuilderTurn} turn
@@ -75,7 +170,7 @@ async function closeTurn(turn) {
             try {
                 const finalized = await applyToolCall('builder_finalize', {}, draftWrap);
                 if (finalized?.automation) {
-                    send('finalized', { automationId: finalized.automation.id, autoFinalized: true });
+                    send('finalized', { automationId: finalized.automation.id, autoFinalized: true, ...(Array.isArray(finalized.needs) ? { needs: finalized.needs } : {}) });
                     if (titled.derived) sendMetadata();
                     send('message', { content: 'I ran out of conversational turns but your draft validates — finalising as-is. Activate when ready.' });
                     turn.lastFinalized = true;
@@ -178,7 +273,8 @@ async function closeTurn(turn) {
     // time bounds what the model sees), the assistant's reply with its
     // tool calls, the latest draft, the structured validation, any
     // summary, the to-do list, and the catalogue order this session
-    // renders its system prompt in. The store trims oldest tool results
+    // renders its system prompt in, and the session's memory (sessionMemory:
+    // inspected tool names, the last test run's shape hints). The store trims oldest tool results
     // and then oldest messages past 64KB, in blocks of HISTORY_EVICT_BLOCK
     // so its trim lands on the same boundaries as the prompt window.
     if (draftWrap.automationId) {
@@ -201,8 +297,9 @@ async function closeTurn(turn) {
                 // rebuilds the snapshot field by field.
                 approvedDatatableIds: [...new Set([...(snapshot?.approvedDatatableIds || []), ...(tableChoice?.approvedIds || []), ...(draftWrap._createdDatatableIds || [])])].slice(-200),
                 todos: Array.isArray(draftWrap._todos) ? draftWrap._todos : [],
-                ...(catalogOrder ? { catalogOrder } : {}),
                 updatedAt: new Date().toISOString(),
+                ...(catalogOrder ? { catalogOrder } : {}),
+                ...sessionMemory({ messages, fewShotMessages: turn.fewShotMessages, snapshot, draftWrap, proposal }),
             }, { trimBlock: HISTORY_EVICT_BLOCK });
         } catch (err) { bestEffort('routes/ai/automationBuilder/turnClosing:closeTurn', err); /* non-fatal */ }
     }
@@ -212,4 +309,4 @@ async function closeTurn(turn) {
     }
 }
 
-module.exports = { closeTurn };
+module.exports = { closeTurn, sessionMemory };
