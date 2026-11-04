@@ -53,6 +53,7 @@ module.exports = {
     claimForProcessing: writes.claimForProcessing,
     finishProcessing: writes.finishProcessing,
     timeoutStuckTranscriptions: lifecycle.timeoutStuckTranscriptions,
+    heartbeatProcessing: lifecycle.heartbeatProcessing,
     setPublished: lifecycle.setPublished,
     deleteTranscription: lifecycle.deleteTranscription,
     setTranscriptionProject: projects.setTranscriptionProject,

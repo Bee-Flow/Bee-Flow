@@ -21,7 +21,7 @@ vi.mock('@/components/automation/Builder/flow/settings/FormBuilderFields', () =>
 }));
 
 import { STUDIO_APPS, resolveStudioNav } from '../studioApps';
-import { destinationForKind, kindLabel, parkSeed, takeSeed, SEED_KEY, SEED_SUPPORT, NAME_SUPPORT } from './handoff';
+import { destinationForKind, kindLabel, parkSeed, takeSeed, takeSeedEntry, SEED_KEY, SEED_SUPPORT, NAME_SUPPORT, AUTOMATION_WITH_BRIEF_PATH } from './handoff';
 
 const t = (key, fallback, params) => {
     let value = typeof fallback === 'string' ? fallback : key;
@@ -93,6 +93,23 @@ describe('destinationForKind — run opent dezelfde deur als het "Nieuw"-menu', 
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/auto-9');
     });
 
+    it('an automation WITH a brief creates no row: brief and name wait for the builder at studio/automations/new', async () => {
+        const onNavigate = vi.fn();
+        const result = await destinationForKind('automation', { sections: allOpen(), t }).run({ onNavigate, t, name: ' Weekly report ', seed: 'send a report every Monday' });
+        expect(result).toBe(null);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(onNavigate).toHaveBeenCalledWith(AUTOMATION_WITH_BRIEF_PATH);
+        expect(AUTOMATION_WITH_BRIEF_PATH).toBe('studio/automations/new');
+        expect(takeSeedEntry('automation')).toEqual({ seed: 'send a report every Monday', name: 'Weekly report' });
+        // read once
+        expect(takeSeedEntry('automation')).toBe(null);
+    });
+
+    it('a brief without a name travels on its own', async () => {
+        await destinationForKind('automation', { sections: allOpen(), t }).run({ onNavigate: vi.fn(), t, seed: 'tidy my inbox' });
+        expect(takeSeedEntry('automation')).toEqual({ seed: 'tidy my inbox', name: '' });
+    });
+
     it('zonder naam blijft de eigen standaardtitel van de bouwer staan', async () => {
         fetchMock.mockResolvedValue(created());
         await destinationForKind('automation', { sections: allOpen(), t }).run({ onNavigate: vi.fn(), t, name: '   ' });
@@ -124,11 +141,12 @@ describe('destinationForKind — run opent dezelfde deur als het "Nieuw"-menu', 
 // first round: automation carried the NAME, so it was marked "seedable", and the
 // screen concealed the BRIEF there.
 describe('destinationForKind — de brief en de naam zijn twee beloften', () => {
-    it('alleen form draagt de brief naar zijn bouwer', () => {
+    it('automation and form carry the brief to their builder, nothing else does', () => {
         const seedable = Object.entries(SEED_SUPPORT).filter(([, v]) => v).map(([k]) => k);
-        expect(seedable).toEqual(['form']);
+        expect(seedable).toEqual(['automation', 'form']);
         expect(destinationForKind('form', { sections: allOpen(), t }).seedable).toBe(true);
-        for (const kind of ['automation', 'kb', 'agent', 'skill', 'app', 'webpage', 'datatable', 'solution']) {
+        expect(destinationForKind('automation', { sections: allOpen(), t }).seedable).toBe(true);
+        for (const kind of ['kb', 'agent', 'skill', 'app', 'webpage', 'datatable', 'solution']) {
             expect(destinationForKind(kind, { sections: allOpen(), t }).seedable).toBe(false);
         }
     });
@@ -138,7 +156,6 @@ describe('destinationForKind — de brief en de naam zijn twee beloften', () => 
         expect(named).toEqual(['automation', 'form']);
         const auto = destinationForKind('automation', { sections: allOpen(), t });
         expect(auto.carriesName).toBe(true);
-        expect(auto.seedable).toBe(false);
         for (const kind of ['kb', 'skill', 'agent', 'app']) {
             expect(destinationForKind(kind, { sections: allOpen(), t }).carriesName).toBe(false);
         }

@@ -35,6 +35,10 @@ const fx = {
     disarmed: [],
     session: { pseudo: true },
     existingBySourceUri: {},
+    scopeDenied: new Set(),   // tool names the scope guard denies
+    scopeChecks: [],
+    mayProcess: true,
+    talkFolder: null,         // Talk's own recordings folder (capability)
 };
 
 function resetFx() {
@@ -48,6 +52,10 @@ function resetFx() {
     fx.disarmed.length = 0;
     fx.session = { pseudo: true };
     fx.existingBySourceUri = {};
+    fx.scopeDenied = new Set();
+    fx.scopeChecks = [];
+    fx.mayProcess = true;
+    fx.talkFolder = null;
 }
 resetFx();
 
@@ -79,7 +87,19 @@ stub('../../stores/userStore', {
 stub('../../automation/triggerBus', { loadSession: async () => fx.session });
 stub('./talkAutoRecord', {
     isArmed: async (userId, token) => fx.armed.has(`${userId}:${token}`),
-    disarmToken: async (userId, token) => { fx.disarmed.push(`${userId}:${token}`); },
+    disarmToken: async (userId, token) => { fx.disarmed.push(`${userId}:${token}`); fx.armed.delete(`${userId}:${token}`); },
+    mayAutoProcess: async () => fx.mayProcess,
+});
+stub('../integrations/ncScopeGuard', {
+    checkToolCall: async ({ toolName, toolArgs }) => {
+        fx.scopeChecks.push({ toolName, toolArgs });
+        return fx.scopeDenied.has(toolName) ? { error: 'outside scope', nc_scope_denied: true } : null;
+    },
+});
+require('../integrations/integrationClients').registerIntegrationClients({
+    nextcloudTalk: () => ({
+        getTalkRecordingCapability: async () => ({ recordingEnabled: true, recordingFolder: fx.talkFolder }),
+    }),
 });
 
 const { maybeIngest } = require('./talkAutoIngest');
@@ -129,12 +149,20 @@ test('a mapped event actor still wins over the file owner', async () => {
     assert.strictEqual(fx.ingests[0].userId, 'u-bob');
 });
 
-test('an unmappable owner falls back to the org default owner', async () => {
+test('REGRESSION: a file in the Files of an unmapped Nextcloud user is not "downloaded" as the default owner', async () => {
     resetFx();
     fx.orgSettings.autoTranscribe = true;
     fx.orgSettings.defaultOwnerUserId = 'u-bob';
+    // The path is relative to someone-federated's Files root; as u-bob it 404s.
     await maybeIngest({ payload: payload({ owner: 'someone-federated' }), userId: null, orgId: 'orgA' });
+    assert.strictEqual(fx.ingests.length, 0);
+});
 
+test('a file in nobody\'s Files root still falls back to the org default owner', async () => {
+    resetFx();
+    fx.orgSettings.autoTranscribe = true;
+    fx.orgSettings.defaultOwnerUserId = 'u-bob';
+    await maybeIngest({ payload: payload({ owner: null }), userId: null, orgId: 'orgA' });
     assert.strictEqual(fx.ingests[0].userId, 'u-bob');
 });
 
@@ -188,4 +216,60 @@ test('an already-ingested recording is not ingested twice', async () => {
     fx.existingBySourceUri['talk://orgA/a1b2c3d4/recording-20260813-140000.ogg'] = { id: 'note-old' };
     await maybeIngest({ payload: payload(), userId: null, orgId: 'orgA' });
     assert.strictEqual(fx.ingests.length, 0);
+});
+
+// ── Arm lifetime, scope, licence, Talk's own folder ──────────────────
+
+test('REGRESSION: an armed room is disarmed even when the recording was already imported', async () => {
+    resetFx();
+    fx.armed.add('u-alice:a1b2c3d4');
+    fx.existingBySourceUri['talk://orgA/a1b2c3d4/recording-20260813-140000.ogg'] = { id: 'note-old' };
+    await maybeIngest({ payload: payload(), userId: null, orgId: 'orgA' });
+    assert.deepStrictEqual(fx.disarmed, ['u-alice:a1b2c3d4']);
+});
+
+test('REGRESSION: an armed room is disarmed even when the owner has no Nextcloud session', async () => {
+    resetFx();
+    fx.armed.add('u-alice:a1b2c3d4');
+    fx.session = null;
+    await maybeIngest({ payload: payload(), userId: null, orgId: 'orgA' });
+    assert.deepStrictEqual(fx.disarmed, ['u-alice:a1b2c3d4']);
+    // So the room's next, manual recording is not auto-transcribed.
+    fx.session = { pseudo: true };
+    await maybeIngest({ payload: payload({ path: '/Talk/Recording/a1b2c3d4/recording-20260813-160000.ogg' }), userId: null, orgId: 'orgA' });
+    assert.strictEqual(fx.ingests.length, 0);
+});
+
+test('REGRESSION: a recording of a conversation outside the user\'s Nextcloud scope is not ingested', async () => {
+    resetFx();
+    fx.orgSettings.autoTranscribe = true;
+    fx.scopeDenied.add('nextcloud_talk_get_room');
+    await maybeIngest({ payload: payload(), userId: null, orgId: 'orgA' });
+    assert.strictEqual(fx.ingests.length, 0);
+    assert.deepStrictEqual(fx.scopeChecks[0], { toolName: 'nextcloud_talk_get_room', toolArgs: { token: 'a1b2c3d4' } });
+});
+
+test('a recording file outside the shared Files folders is not ingested', async () => {
+    resetFx();
+    fx.orgSettings.autoTranscribe = true;
+    fx.scopeDenied.add('nextcloud_read_file');
+    await maybeIngest({ payload: payload(), userId: null, orgId: 'orgA' });
+    assert.strictEqual(fx.ingests.length, 0);
+});
+
+test('an owner who is not active or not licensed for Meeting Notes is not transcribed', async () => {
+    resetFx();
+    fx.orgSettings.autoTranscribe = true;
+    fx.mayProcess = false;
+    await maybeIngest({ payload: payload(), userId: null, orgId: 'orgA' });
+    assert.strictEqual(fx.ingests.length, 0);
+});
+
+test('REGRESSION: a recording in Talk\'s own (moved) attachment folder is still found', async () => {
+    resetFx();
+    fx.armed.add('u-alice:abc');
+    fx.talkFolder = '/Meetings/Recording';
+    await maybeIngest({ payload: payload({ path: '/Meetings/Recording/abc/x.ogg' }), userId: null, orgId: 'orgA' });
+    assert.strictEqual(fx.ingests.length, 1);
+    assert.strictEqual(fx.ingests[0].talkRoomToken, 'abc');
 });

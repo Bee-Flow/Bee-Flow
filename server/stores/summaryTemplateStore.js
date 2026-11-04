@@ -254,6 +254,7 @@ async function remove(id) {
  * or null if none is set. Used by the first-generation summary path so a saved
  * default also styles new meetings. Best-effort — callers fall back to the
  * built-in prompt on null/throw.
+ * @param {{ userId?: string | null, orgIds?: string[], groupIds?: string[] }} viewer
  */
 async function resolveDefaultTemplate({ userId = null, orgIds = [], groupIds = [] }) {
     await initDB();

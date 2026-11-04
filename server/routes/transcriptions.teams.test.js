@@ -39,6 +39,10 @@ function resetFx() {
     fx.fresh = null;
     fx.msSessions = null;
     fx.accessCalls = 0;
+    fx.deletedNotes = new Set();
+    fx.resolveOpts = [];
+    fx.upcomingThrows = null;
+    fx.endedThrows = null;
     require('../core/meetingNotes/manualImportRunner')._resetForTests();
 }
 resetFx();
@@ -51,9 +55,15 @@ router.init({
         resolveAccessContext: async () => { fx.accessCalls++; return { orgIds: new Set(['orgA']) }; },
     },
     credentialStore: { getCredential: async () => fx.cred },
-    resolveMicrosoftSession: async () => (fx.msSessions ? (fx.msSessions.shift() || null) : fx.msSession),
+    resolveMicrosoftSession: async (session, userId, opts) => {
+        fx.resolveOpts.push(opts);
+        if (fx.msSession === 'live') return session;
+        return fx.msSessions ? (fx.msSessions.shift() || null) : fx.msSession;
+    },
+    transcriptions: { canReadTranscription: async (id) => !fx.deletedNotes.has(id) },
     settings: {
         deriveConnectionStatus: require('../core/meetingNotes/teamsNotesSettings').deriveConnectionStatus,
+        hasTeamsScopes: require('../core/meetingNotes/teamsNotesSettings').hasTeamsScopes,
         resolveTeamsNotesSettings: async () => ({ ...fx.settings }),
     },
     meetingPrefs: {
@@ -85,8 +95,8 @@ router.init({
         },
     },
     calendar: {
-        listUpcomingTeamsMeetings: async () => fx.upcoming,
-        listRecentlyEndedTeamsMeetings: async () => fx.ended,
+        listUpcomingTeamsMeetings: async () => { if (fx.upcomingThrows) throw fx.upcomingThrows; return fx.upcoming; },
+        listRecentlyEndedTeamsMeetings: async () => { if (fx.endedThrows) throw fx.endedThrows; return fx.ended; },
     },
     artifacts: {
         getOnlineMeetingByJoinUrl: async () => ({ id: 'MSo1' }),
@@ -239,15 +249,22 @@ test('from-teams: answers 202 with the job id before the import finishes, then t
     fx.ended = [meeting()];
     let finish;
     fx.inline = () => new Promise((resolve) => { finish = () => resolve({ transcription: { id: 't-new' } }); });
-    const res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1', language: 'en' } });
+    const res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1', language: 'en', context_terms: 'Foo' } });
     assert.strictEqual(res.statusCode, 202);
     assert.deepStrictEqual(res.body, { jobId: 'job-ev1', status: 'pending' });
     assert.strictEqual(fx.seeded[0].joinUrl, 'https://teams.microsoft.com/l/x');
-    // The previous outcome is cleared before the client starts polling.
-    assert.deepStrictEqual(fx.updates[0].fields, { status: 'pending', errorCode: null, lastError: null });
+    // The previous outcome is cleared before the client starts polling, and the
+    // request is kept on the job: the poller finishing it later must not skip it
+    // under the auto-import rules, and uses the language and terms asked for.
+    assert.deepStrictEqual(fx.updates[0].fields, {
+        status: 'pending', errorCode: null, lastError: null,
+        requestedByUser: true, requestedLanguage: 'en', contextTerms: 'Foo',
+    });
     await settle(() => fx.inlineCalls.length === 1);
     assert.strictEqual(fx.inlineCalls[0].language, 'en');
     assert.strictEqual(fx.inlineCalls[0].transcriptAllowed, true);
+    assert.strictEqual(fx.inlineCalls[0].manual, true, 'a run the user watches is final and keeps its code');
+    assert.strictEqual(fx.inlineCalls[0].job.requestedByUser, true);
     assert.strictEqual(fx.accessCalls, 1, 'access context re-resolved when the job runs');
     finish();
     await settle(() => fx.failures.length === 0);
@@ -330,4 +347,108 @@ test('teams-recordings: organizer meetings only, newest first, with artifact sta
     assert.deepStrictEqual(res.body.items.map(i => [i.eventId, i.recordingState, i.importedNoteId]), [
         ['new', 'available', null], ['old', 'available', 't-old'],
     ]);
+});
+
+
+// ═══ Fixes ═════════════════════════════════════════════════════════════
+
+test('from-teams: a meeting whose note was deleted can be imported again', async () => {
+    connected();
+    fx.ended = [meeting()];
+    fx.jobs.ev1 = { id: 'job-1', status: 'ingested', transcriptionId: 't-deleted' };
+    fx.deletedNotes.add('t-deleted');
+    const res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+    assert.strictEqual(res.statusCode, 202, 'a fresh import, not a dedup to a note that 404s');
+    await settle(() => fx.inlineCalls.length === 1);
+});
+
+test('teams-recordings: a deleted note is not shown as "Note created"', async () => {
+    connected();
+    fx.ended = [meeting()];
+    fx.jobs.ev1 = { transcriptionId: 't-deleted' };
+    fx.deletedNotes.add('t-deleted');
+    const res = await dispatch({ url: '/teams-recordings' });
+    assert.strictEqual(res.body.items[0].importedNoteId, null);
+});
+
+test('from-teams: the run gets the job as reset, so an earlier failure does not use up its retries', async () => {
+    connected();
+    fx.ended = [meeting()];
+    fx.jobs.ev1 = { id: 'job-1', status: 'failed', errorCode: 'failed', lastError: 'attempt 2/3: boom', transcriptionId: null };
+    await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+    await settle(() => fx.inlineCalls.length === 1);
+    const job = fx.inlineCalls[0].job;
+    assert.deepStrictEqual([job.status, job.errorCode, job.lastError], ['pending', null, null]);
+});
+
+test('from-teams: the background run gets a detached copy of the live login session', async () => {
+    connected();
+    fx.msSession = 'live';
+    fx.ended = [meeting()];
+    const live = { user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'at', oauthScope: FULL_SCOPE };
+    // express-session keeps save() on the prototype: a copy must not carry it.
+    Object.setPrototypeOf(live, { save() { throw new Error('the live session must not be saved from the background'); } });
+    const res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' }, session: live });
+    assert.strictEqual(res.statusCode, 202);
+    await settle(() => fx.inlineCalls.length === 1);
+    const used = fx.inlineCalls[0].session;
+    assert.notStrictEqual(used, live, 'not the express-session object a refresh would write back');
+    assert.strictEqual(used.accessToken, 'at');
+    assert.strictEqual(typeof used.save, 'undefined', 'a refresh on the copy writes nothing back to the session store');
+});
+
+test('the scope flags come from the session the calls carry, and the vault grant may replace a stale login', async () => {
+    // The vault has the Teams grant (after Reconnect); the live login token has none of it.
+    fx.cred = { status: 'active', scope: FULL_SCOPE };
+    fx.msSession = 'live';
+    fx.upcoming = [meeting()];
+    const live = { user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'old', oauthScope: 'openid Mail.Read' };
+    const res = await dispatch({ url: '/teams-meetings', session: live });
+    assert.strictEqual(typeof fx.resolveOpts[0].scopeSatisfies, 'function', 'the resolver may swap in the vault grant');
+    assert.strictEqual(res.body.connection.teamsScopesGranted, false, 'never "granted" for a token that has none of it');
+    assert.deepStrictEqual(res.body.meetings, []);
+});
+
+test('an expired Microsoft grant is the reconnect state, not a 500', async () => {
+    connected();
+    fx.upcomingThrows = new Error('NOT_CONNECTED');
+    fx.endedThrows = new Error('NOT_CONNECTED');
+    let res = await dispatch({ url: '/teams-meetings' });
+    assert.strictEqual(res.body.connection.needsReauth, true);
+    assert.deepStrictEqual(res.body.meetings, []);
+    res = await dispatch({ url: '/teams-recordings' });
+    assert.strictEqual(res.body.connection.needsReauth, true);
+    assert.deepStrictEqual(res.body.items, []);
+    await assert.rejects(dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } }),
+        (err) => err.status === 409 && err.code === 'needs_reauth');
+});
+
+test('PATCH: switching a meeting off switches Teams auto-record off again', async () => {
+    connected();
+    fx.settings.autoRecordConfig = true;
+    fx.upcoming = [meeting({ seriesMasterId: null })];
+    await dispatch({ method: 'PATCH', url: '/teams-meetings/ev1', body: { record: true } });
+    const res = await dispatch({ method: 'PATCH', url: '/teams-meetings/ev1', body: { record: false } });
+    assert.strictEqual(res.body.autoRecordingConfig, 'unset');
+    assert.deepStrictEqual(fx.autoRecordCalls.map(c => c.enabled), [true, false]);
+});
+
+test('PATCH: one occurrence of a series never arms the series-wide Teams recording', async () => {
+    connected();
+    fx.settings.autoRecordConfig = true;
+    fx.upcoming = [meeting()];   // seriesMasterId sm1
+    const res = await dispatch({ method: 'PATCH', url: '/teams-meetings/ev1', body: { record: true, seriesMasterId: 'sm1' } });
+    assert.strictEqual(res.body.autoRecordingConfig, 'series_only');
+    assert.strictEqual(fx.autoRecordCalls.length, 0);
+});
+
+test('PATCH: a click overridden by a series opt-out does not arm Teams', async () => {
+    connected();
+    fx.settings.autoRecordConfig = true;
+    fx.upcoming = [meeting({ seriesMasterId: null })];
+    fx.prefs['code:sm9'] = false;
+    const res = await dispatch({ method: 'PATCH', url: '/teams-meetings/ev1', body: { record: true, seriesMasterId: 'sm9', applyToSeries: false } });
+    assert.strictEqual(res.body.overridden, true);
+    assert.notStrictEqual(res.body.autoRecordingConfig, 'set');
+    assert.ok(fx.autoRecordCalls.every(c => c.enabled === false));
 });

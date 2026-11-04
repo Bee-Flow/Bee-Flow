@@ -42,6 +42,20 @@ describe('AudioUnavailable', () => {
     });
 });
 
+describe('AudioUnavailable for an imported meeting', () => {
+    it('says where it came from and does not ask for a file nobody holds', () => {
+        render(<AudioUnavailable audio={{ available: false, recoverable: false, capture: 'teams' }} />);
+        expect(screen.getByText(/imported from Microsoft Teams/)).toBeTruthy();
+        expect(screen.getByText(/holds no copy of its audio/)).toBeTruthy();
+        expect(document.body.textContent).not.toMatch(/upload the original/i);
+    });
+
+    it('a Talk auto-recording counts as an import too', () => {
+        render(<AudioUnavailable audio={{ available: false, recoverable: false, capture: 'talk-auto' }} />);
+        expect(screen.getByText(/imported from Nextcloud Talk/)).toBeTruthy();
+    });
+});
+
 describe('AudioNotBackedUp', () => {
     it('warns about the missing backup and offers the download escape hatch', () => {
         render(<AudioNotBackedUp downloadUrl="/api/transcriptions/t-1/audio?download=1" />);

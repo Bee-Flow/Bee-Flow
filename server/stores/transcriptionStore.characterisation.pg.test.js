@@ -85,7 +85,7 @@ test('the exported surface is exactly this', () => {
         'canReadTranscription', 'getTranscriptionsByAudioPaths', 'getTranscriptionBySourceUri',
         'getTranscriptionByTalkRoomToken', 'getTranscriptionByMeetMeetingCode', 'getSeriesPrevious',
         'updateTranscription', 'claimForProcessing', 'finishProcessing', 'timeoutStuckTranscriptions',
-        'setPublished', 'deleteTranscription', 'setTranscriptionProject', 'detachTranscriptionFromProject',
+        'heartbeatProcessing', 'setPublished', 'deleteTranscription', 'setTranscriptionProject', 'detachTranscriptionFromProject',
         'listProjectMeetings', 'countProjectMeetings', 'clearProjectFromTranscriptions', 'initDB',
     ]);
     for (const k of Object.keys(store)) assert.strictEqual(typeof store[k], 'function', k);
@@ -160,6 +160,22 @@ test('listByTag applies the same read rule, with the reader as the KB owner', as
     ]);
 });
 
+test('listByTag pages in creation order with a keyset cursor: every note once', async () => {
+    const all = (await store.listByTag('sales', 'alice')).map(r => r.id).sort();
+    const seen = [];
+    let after = null;
+    for (let page = 0; page < 10; page++) {
+        const rows = await store.listByTag('sales', 'alice', { limit: 2, order: 'created', after });
+        if (!rows.length) break;
+        assert.ok(rows.length <= 2);
+        seen.push(...rows.map(r => r.id));
+        const last = rows[rows.length - 1];
+        after = { createdAt: last.createdAt, id: last.id };
+    }
+    assert.strictEqual(new Set(seen).size, seen.length, 'no note twice');
+    assert.deepStrictEqual([...seen].sort(), all, 'every note once');
+});
+
 test('lookups by source uri, talk room and meet code; the series card', async () => {
     const a = await store.createTranscription({ userId: 'alice', organizationId: 'org1', title: 'S1', sourceUri: 'talk://r/1', talkRoomToken: 'room', meetMeetingCode: 'abc-defg-hij' });
     const dup = await store.createTranscription({ userId: 'bob', title: 'S1 again', sourceUri: 'talk://r/1' });
@@ -210,6 +226,13 @@ test('updates are owner-only and report what landed', async () => {
     assert.strictEqual(landed.ok, true);
     assert.deepStrictEqual(landed.actionItems.map(r => r.id), ['x']);
     assert.deepStrictEqual(landed.decisions, []);
+    assert.deepStrictEqual(landed.tags, [], 'an artifact write also returns the stored tags');
+    // tagsIfEmpty keeps tags a person set meanwhile: the write returns what the
+    // column holds, not what the caller sent, and no artifact keys it never wrote.
+    const typed = await store.updateTranscription(id, 'alice', { tags: ['typed'] });
+    assert.deepStrictEqual(typed, { ok: true, tags: ['typed'] });
+    const auto = await store.updateTranscription(id, 'alice', { tagsIfEmpty: ['auto'] });
+    assert.deepStrictEqual(auto, { ok: true, tags: ['typed'] });
 });
 
 test('publish stamps a missing org and never moves one; delete is owner-only', async () => {

@@ -97,6 +97,7 @@ function resetFx() {
     fx.ingestCalls = [];
     fx.ingestError = null;
     fx.ingestResult = { id: 't-new', title: 'Notitie' };
+    fx.graphAttendees = null;
 }
 resetFx();
 
@@ -106,7 +107,7 @@ auto.init({
     teamsImportStore: new Proxy({}, { get: (_t, k) => (...a) => fx.store[k](...a) }),
     configStore: { getAllConfig: async () => fx.configAll },
     userStore: {
-        getUser: async (id) => fx.usersById[id] || null,
+        getUser: async (id) => { if (fx.userLookupError) throw fx.userLookupError; return fx.usersById[id] || null; },
         getAllUsers: async () => fx.users,
     },
     recordOptIn: {
@@ -140,7 +141,7 @@ auto.init({
     automationAuth: { getProviderAuth: async (userId) => { fx.authCalls++; return fx.authByUser[userId] || null; } },
     resolveMicrosoftSession: async (s, userId) => (s?.automationProviders?.microsoft ? { userId, accessToken: s.automationProviders.microsoft.accessToken } : null),
     hasCapability: async (_c, { userId }) => fx.entitled[userId] !== false,
-    graphFetch: async () => ({ attendees: [{ emailAddress: { address: 'an@x.nl', name: 'An' } }] }),
+    graphFetch: async () => ({ attendees: fx.graphAttendees || [{ emailAddress: { address: 'an@x.nl', name: 'An' } }] }),
     resolveTeamsNotesSettings: async ({ orgId = null, userId = null } = {}) => ({
         ...DEFAULTS, ...(orgId ? fx.settingsByOrg[orgId] : null), ...(userId ? fx.settingsByUser[userId] : null),
     }),
@@ -395,4 +396,119 @@ test('processJobInline (manual route): pending while Teams is still processing',
     assert.strictEqual(done.transcription.id, 't-new');
     assert.strictEqual(fx.ingestCalls[0].language, 'en');
     assert.strictEqual(fx.ingestCalls[0].contextTerms, 'AFAS');
+});
+
+// ── Bounded lookups, claim-time entitlement, manual imports ───────────
+
+test('a lookup that keeps failing freezes as failed once the meeting is past the deadline', async () => {
+    await seeded({ meetingStart: hoursAgo(30 * 24 + 1), meetingEnd: hoursAgo(30 * 24) });
+    // A meeting deleted after it was found: Graph answers 404 for good.
+    fx.lookupError = coded('gone', 'not_found');
+    await auto.processDue();
+    const job = fx.store.jobs[0];
+    assert.strictEqual(job.status, 'failed');
+    assert.strictEqual(job.errorCode, 'failed');
+    assert.match(job.lastError, /gone/);
+});
+
+test('a recent meeting whose lookup fails still retries with backoff', async () => {
+    await seeded();
+    fx.lookupError = coded('Graph 503', 'failed');
+    await auto.processDue();
+    const job = fx.store.jobs[0];
+    assert.strictEqual(job.status, 'pending');
+    assert.strictEqual(job.errorCode, null);
+});
+
+test('NOT_CONNECTED from the Graph client parks the job as needs_reauth instead of retrying forever', async () => {
+    await seeded();
+    fx.lookupError = new Error('NOT_CONNECTED');
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'needs_reauth');
+});
+
+test('a job whose owner was deactivated after seeding is skipped, not ingested', async () => {
+    await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    fx.usersById.u1 = { id: 'u1', organizationId: 'orgA', status: 'suspended' };
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.strictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
+test('a failed owner lookup at claim time leaves the job for the next claim, never skipped', async () => {
+    await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    fx.userLookupError = new Error('connection terminated');
+    try { await auto.processDue(); } finally { fx.userLookupError = null; }
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.notStrictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
+test('a job whose owner lost the Meeting Notes licence after seeding is skipped, not ingested', async () => {
+    await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    fx.entitled.u1 = false;
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.strictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
+test('a manual import that had to wait for Teams is finished by the poller even with autoImport off', async () => {
+    fx.settingsByUser.u1 = { autoImport: false };
+    const job = await seeded();
+    fx.store.jobs[0].requestedByUser = true;
+    const first = await auto.processJobInline({ job, session: { accessToken: 'at' }, manual: true });
+    assert.deepStrictEqual(first, { pending: true, status: 'awaiting_artifacts' });
+    fx.recordings = [{ id: 'R1' }];
+    fx.store.jobs[0].nextAttemptAt = new Date(Date.now() - 1000).toISOString();
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls.length, 1);
+    assert.strictEqual(fx.store.jobs[0].status, 'ingested');
+});
+
+test('a manual import that fails is final with its own code, not a silent background retry', async () => {
+    const job = await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    fx.ingestError = coded('download broke', 'download_failed');
+    await assert.rejects(auto.processJobInline({ job, session: { accessToken: 'at' }, manual: true }), (e) => e.code === 'download_failed');
+    assert.strictEqual(fx.store.jobs[0].status, 'download_failed');
+    assert.strictEqual(fx.store.jobs[0].errorCode, 'download_failed');
+});
+
+test('already_imported freezes the job instead of three pointless retries', async () => {
+    await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    fx.ingestError = coded('someone else imported it', 'already_imported');
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'already_imported');
+});
+
+test('declined invitees and rooms are no attendees: not shared with, not speaker candidates', async () => {
+    await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    fx.graphAttendees = [
+        { emailAddress: { address: 'an@x.nl', name: 'An' }, status: { response: 'accepted' }, type: 'required' },
+        { emailAddress: { address: 'bob@x.nl', name: 'Bob' }, status: { response: 'declined' }, type: 'required' },
+        { emailAddress: { address: 'room1@x.nl', name: 'Room 1.01' }, status: { response: 'accepted' }, type: 'resource' },
+    ];
+    await auto.processDue();
+    assert.deepStrictEqual(fx.ingestCalls[0].attendees.map((a) => a.email), ['an@x.nl']);
+});
+
+test('the meeting start reaches the ingest (deadlines resolve against the meeting date)', async () => {
+    const job = await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls[0].meetingStart, job.meetingStart);
+});
+
+test('a recording stopped and restarted: the ingest learns how many other parts exist', async () => {
+    await seeded({ meetingStart: '2026-11-03T09:00:00Z', meetingEnd: '2026-11-03T11:00:00Z' });
+    fx.recordings = [
+        { id: 'R1', createdDateTime: '2026-11-03T09:01:00Z', endDateTime: '2026-11-03T10:10:00Z' },
+        { id: 'R2', createdDateTime: '2026-11-03T10:40:00Z', endDateTime: '2026-11-03T10:59:00Z' },
+    ];
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls[0].artifact.extraRecordings, 1);
 });

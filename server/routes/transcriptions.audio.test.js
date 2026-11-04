@@ -225,3 +225,17 @@ test('without ?download the file plays inline', async () => {
     const res = await dispatch({ url: '/t-1/audio' });
     assert.match(res.headers['content-disposition'], /^inline;/);
 });
+
+test('a meeting title outside Latin-1 still plays, from the local and the durable copy', async () => {
+    const http = require('http');
+    storedNote.fileName = 'Weekly sync – Product 🚀.m4a';
+    fx.objects.set(KEY, LOCAL_BYTES);
+    for (const audioPath of [localFile, GONE]) {
+        storedNote.audioPath = audioPath;
+        const res = await dispatch({ url: '/t-1/audio' });
+        assert.strictEqual(res.statusCode, 200, `served from ${audioPath === GONE ? 'storage' : 'disk'}`);
+        const header = res.headers['content-disposition'];
+        assert.match(header, /^inline; filename="Weekly sync _ Product __\.m4a"; filename\*=UTF-8''Weekly%20sync%20%E2%80%93/);
+        assert.doesNotThrow(() => http.validateHeaderValue('Content-Disposition', header));
+    }
+});

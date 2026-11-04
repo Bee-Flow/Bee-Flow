@@ -75,6 +75,26 @@ test('polling reports working, then the next page, then done', async () => {
     assert.strictEqual(res.body.ending.description, 'Ticket T-9');
 });
 
+test('the next page and the closing page carry the style the runner rendered on them', async () => {
+    state.runQueue = [{ id: 'runS' }];
+    const sid = await startSession();
+    const style = { font: 'serif', cardColor: '#FFF8E7', customCss: '.bf-form__card { padding: 2rem }' };
+
+    awaitingRun('runS', 'fp1', { ...PAGE_2, style });
+    let res = makeRes();
+    await getSession(makeReq({ sid }), res);
+    assert.strictEqual(res.body.state, 'form');
+    assert.deepStrictEqual(res.body.form.style, style);
+
+    putRun('runS', 'success', {
+        steps: [{ stepId: 'bye', status: 'success', output: { mode: 'ending', form: { title: 'All done', style: { ...style, width: 'narrow' } } } }],
+    });
+    res = makeRes();
+    await getSession(makeReq({ sid }), res);
+    assert.strictEqual(res.body.state, 'done');
+    assert.deepStrictEqual(res.body.ending.style, { ...style, width: 'narrow' });
+});
+
 test('a finished run with no closing page still reports done, with no ending', async () => {
     state.runQueue = [{ id: 'runB' }];
     const sid = await startSession();

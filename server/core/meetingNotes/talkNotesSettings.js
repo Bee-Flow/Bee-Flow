@@ -115,12 +115,26 @@ async function resolveTalkNotesSettings(/** @type {{ orgId?: string | null, user
     };
 }
 
+// The fields a member may set for themselves (an org value overrides them).
+// defaultOwnerUserId and insightsPerPersonStats are org-only: they keep their
+// defaults in the org document.
+const MEMBER_FIELDS = ['autoTranscribe', 'postSummaryBack', 'recordingFolder', 'language', 'autoRecord', 'autoRecordScope', 'recordingMode'];
+
 /**
+ * The org document as stored, for the admin screen: a member-overridable field
+ * the org never set is `null` ("no opinion, each member decides"), NOT the
+ * default. Merging the defaults in made every field look set, the admin form
+ * posted them all back, and one Save pinned every member's own choice to the
+ * defaults.
  * @param {string} orgId
  */
 async function getOrgSettings(orgId) {
     const stored = orgId ? await configStore.getConfig(orgKey(orgId)) : null;
-    return { ...DEFAULTS, ...(stored || {}) };
+    const doc = stored || {};
+    /** @type {Record<string, unknown>} */
+    const out = { ...DEFAULTS, ...doc };
+    for (const k of MEMBER_FIELDS) out[k] = doc[k] ?? null;
+    return out;
 }
 
 /**
@@ -141,12 +155,12 @@ function sanitizeFolder(folder) {
 
 /**
  * An explicit `null` in the patch stores `null` — "inherit", the third state
- * resolveTalkNotesSettings reads. A field that is simply ABSENT keeps the old
- * coercion, so an existing client that posts a partial body behaves exactly as
- * before and only a caller that deliberately sends null opts in.
+ * resolveTalkNotesSettings reads. On the ORG document an ABSENT field is null
+ * too: a save that leaves a field out hands it back to the members instead of
+ * pinning it to the default.
  */
 function orNull(value, coerce) {
-    return value === null ? null : coerce(value);
+    return value === null || value === undefined ? null : coerce(value);
 }
 
 async function saveOrgSettings(orgId, patch, updatedBy) {

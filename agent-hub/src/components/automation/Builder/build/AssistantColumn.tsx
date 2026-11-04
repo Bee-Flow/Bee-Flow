@@ -1,7 +1,12 @@
+// The hand-over card shows once per save: a lazy chunk, so the canvas does not carry it.
+const HandoverCard = lazyWithI18n(() => import('../chat/HandoverCard'));
+
 // The assistant column of the build tab: header, message thread and composer.
 // Split out of BuildTab without a change in behaviour.
 import { Sparkles, X } from 'lucide-react';
+import { Suspense } from 'react';
 import type { ReactNode, RefObject, UIEvent } from 'react';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { isWaitingForFirstToken } from './buildTabTypes';
 import type { AssistantContext, BuilderTabState } from './buildTabTypes';
 import type { BuilderQuestion } from '../chat/QuestionsCard';
@@ -12,12 +17,16 @@ import {
 } from './jsComponents';
 import { useTranslation } from '@/hooks/useTranslation';
 import BuilderWaitingCard from '../chat/BuilderWaitingCard';
+import type { HandoverLifecycle } from '../chat/HandoverCard';
 import PlanInlineCard from '../chat/PlanInlineCard';
 import QuestionsCard from '../chat/QuestionsCard';
 import { webSearchUnavailableHint } from '../chat/webSearchStatus';
+import { imageStatusHint } from '../chat/imageStatus';
 import { WORK_MODES } from '../chat/WorkModePicker';
 import { isWorkModeShortcut, nextWorkMode } from '../chat/workModeShortcut';
+import { stepLabelsOf } from '../chat/plainVocabulary';
 import type { LiveRunFocus } from '../chat/toolCallDisplay';
+import type { BuilderFinalized } from '@/hooks/automationBuilder/types';
 import type { OutputLookup } from '../chat/ProposalCard';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 
@@ -43,6 +52,8 @@ export interface AssistantColumnProps {
     onPreviewProposal: () => void;
     realOutputById: OutputLookup | null;
     liveRunFocus: LiveRunFocus | null;
+    /** Activate / Run a test for the hand-over card: the header's own handlers. */
+    handover?: HandoverLifecycle | null;
     onFocusStep: (id: string) => void;
     messagesContainerRef: RefObject<HTMLDivElement | null>;
     messagesBodyRef?: RefObject<HTMLDivElement | null> | null;
@@ -56,6 +67,7 @@ export default function AssistantColumn({ messagesContainerRef, messagesBodyRef,
     const { t } = useTranslation();
     const { state } = p;
     const approve = (pauseAfterStep: boolean) => { p.setReviewOpen(false); p.onApprovePlan?.(pauseAfterStep); };
+    const stepLabels = stepLabelsOf(p.flatDef, t);
     return (
         <div
             style={{ width: p.chatWidth }}
@@ -86,7 +98,9 @@ export default function AssistantColumn({ messagesContainerRef, messagesBodyRef,
                         triggerKind={p.scopedDef?.trigger?.kind}
                         definition={p.scopedDef}
                         selectedStep={p.ndvStep || p.stepById(p.assistantContext?.id)}
-                        onPick={(text) => p.composer.setChatInput(text)}
+                        onPick={(text) => p.composer.onSend(text)}
+                        workMode={p.composer.workMode}
+                        onWorkModeChange={p.composer.setWorkMode}
                     />
                 )}
                 <div ref={messagesBodyRef} className="flex flex-col gap-4 w-full max-w-[900px] mx-auto">
@@ -95,6 +109,7 @@ export default function AssistantColumn({ messagesContainerRef, messagesBodyRef,
                             key={i}
                             msg={m}
                             onFocusStep={p.onFocusStep}
+                            stepLabels={stepLabels}
                             // Only the message being streamed — a run belongs
                             // to the turn that started it.
                             liveRun={i === state.messages.length - 1 ? p.liveRunFocus : null}
@@ -111,12 +126,27 @@ export default function AssistantColumn({ messagesContainerRef, messagesBodyRef,
                     <QuestionsCard key={(state.reviewQuestions as BuilderQuestion[] | null | undefined)?.[0]?.id || 'questions'} questions={state.reviewQuestions as BuilderQuestion[] | null | undefined} onAnswer={(text, answers) => p.composer.onSend(text, [], { answers })} />
                     {!state.reviewQuestions?.length && <PlanInlineCard plan={state.reviewPlan} running={state.running} onOpen={() => p.setReviewOpen(true)} onApprove={approve} />}
                     <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={p.realOutputById} proposal={state.proposal} running={state.running} applying={p.applyingProposal} onApply={p.onApplyProposal} onDiscard={p.onDiscardProposal} onPreview={p.onPreviewProposal} />
+                    <HandoverSlot state={state} definition={p.scopedDef} lifecycle={p.handover} />
                     <div ref={messagesEndRef} />
                 </div>
             </div>
             <AssistantComposer {...p.composer} />
         </div>
     );
+}
+
+type HandoverState = BuilderTabState & { finalized?: BuilderFinalized | null; finalizedId?: string | null; lastDone?: Record<string, unknown> | null };
+
+/**
+ * The hand-over card, for the turn that just ended with a save: the
+ * `finalized` event of that turn. Gone again as soon as the next turn starts
+ * (`lastDone` is cleared on send) or the builder is reset (`finalizedId`).
+ */
+function HandoverSlot({ state, definition, lifecycle }: { state: HandoverState; definition: FlowDefinition | null; lifecycle?: HandoverLifecycle | null }) {
+    const f = state.finalized;
+    if (!f || state.running || f.automationId !== state.finalizedId || !state.lastDone?.finalized) return null;
+    const l = lifecycle || {};
+    return <Suspense fallback={null}><HandoverCard finalized={f} definition={definition} isActive={l.isActive} busy={l.busy} canActivate={l.canActivate} onActivate={l.onActivate} onDryRun={l.onDryRun} /></Suspense>;
 }
 
 interface AssistantComposerProps {
@@ -144,6 +174,7 @@ interface AssistantComposerProps {
 function AssistantComposer(p: AssistantComposerProps) {
     const { t } = useTranslation();
     const { state, setWorkMode } = p;
+    const imageHint = imageStatusHint(state.images, t);
     let toolbarExtra: ReactNode = null;
     if (setWorkMode) {
         toolbarExtra = <WorkModePicker anchor="composer" alwaysPlanLarge={p.alwaysPlanLarge} onAlwaysPlanLargeChange={p.setAlwaysPlanLarge} value={p.workMode} onChange={setWorkMode} disabled={state.running} planStatus={state.reviewPlan?.status} planVersion={state.reviewPlan?.version} />;
@@ -158,6 +189,7 @@ function AssistantComposer(p: AssistantComposerProps) {
             {p.assistantContext && <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] text-[var(--type-ai)]"><Sparkles size={12} /><span className="flex-1 min-w-0 truncate">@{p.assistantContext.label}</span><button type="button" onClick={p.onClearAssistantContext || undefined} aria-label={t('automations.assistant.clear_context', 'Clear step context')}><X size={12} /></button></div>}
             {/(?:^|\s)@[^@\s]*$/.test(p.chatInput) && <StepMentionList {...p} />}
             {p.applyingProposal && <p role="status" className="mb-2 text-[11px] text-[var(--text-tertiary)]">{t('automations.assistant.applying_hint', 'Applying the proposal. You can write again in a moment.')}</p>}
+            {imageHint && <p role="status" className="mb-2 text-[11px] text-[var(--text-tertiary)]">{imageHint}</p>}
             <InputArea
                 compact
                 placeholder={t('automations.assistant.placeholder', 'Describe what you want…')}

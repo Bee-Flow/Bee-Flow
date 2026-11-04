@@ -3,9 +3,9 @@ import { Video } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useGmeetNotesUserSettings, settingsOptionalKeys } from '../../api/queries/settingsOptionalRead';
 import { useQueryClient } from '@tanstack/react-query';
-import { LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
+import { languageOptions, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
-import { useTranslation } from '../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
 import { errorMessage, messageOf } from '../../utils/caughtError';
 import { RefusedError, mutate, errorBody } from '../../api/mutate';
 
@@ -20,6 +20,8 @@ interface GmeetConfig {
 interface GmeetConnection {
     googleConnected?: boolean;
     meetScopesGranted?: boolean;
+    /** The stored Google credential needs reauth (googleConnected is then false unless a live session holds). */
+    needsReauth?: boolean;
 }
 
 interface SaveMessage {
@@ -39,11 +41,35 @@ function splitLoaded(data: (Partial<GmeetConfig> & { connection?: GmeetConnectio
 }
 
 /**
+ * What the section shows for this connection block: nothing (no Google
+ * connection), the re-authorize card (the Meet scopes are missing, or the
+ * stored credential needs reauth and no live Google session holds), or the rows.
+ */
+function connectionView(connection: GmeetConnection | null): 'hidden' | 'expired' | 'reconsent' | 'rows' {
+    if (!connection) return 'hidden';
+    if (!connection.googleConnected) return connection.needsReauth ? 'expired' : 'hidden';
+    return connection.meetScopesGranted ? 'rows' : 'reconsent';
+}
+
+/**
+ * The message for a failed re-authorization. The popup helper rejects with an
+ * empty message when the auth-url request failed and an English one when the
+ * popup was blocked, so both get a translated text here.
+ */
+function reauthErrorText(e: unknown, t: TranslateFn): string | undefined {
+    if ((e as { code?: string } | null)?.code === 'popup_blocked') {
+        return t('settings.gmeet_notes.popup_blocked', 'The Google sign-in popup was blocked — allow popups for this site and try again.');
+    }
+    return messageOf(e, t('settings.gmeet_notes.reauth_failed', 'Could not start the Google re-authorization. Try again.'));
+}
+
+/**
  * Personal Google Meet → Meeting Notes settings. Rendered for every account
  * that has the Meeting Notes feature; self-hides (renders null) when the
  * feature isn't licensed (the API returns a non-OK status) or Google isn't
- * connected. When Google is connected but the Meet scopes are missing it
- * renders a re-consent prompt instead of the settings rows. Org-level
+ * connected. When Google is connected but the Meet scopes are missing, or the
+ * stored connection expired (needs reauth), it renders a re-consent prompt
+ * instead of the settings rows. Org-level
  * settings, when present, take precedence over these per field.
  */
 export default function GoogleMeetNotesSection() {
@@ -89,14 +115,18 @@ export default function GoogleMeetNotesSection() {
         try {
             const result = await openGoogleOAuthPopup({ authFetch, apiBase: API_BASE });
             if (result.success) await load();
-        } catch (e) { setMessage({ type: 'error', text: messageOf(e, 'Could not start the Google re-authorization. Try again.') }); }
+        } catch (e) { setMessage({ type: 'error', text: reauthErrorText(e, t) }); }
         finally { setReauthing(false); }
     };
 
     // Render nothing until we know — avoids flashing the section for accounts
     // that turn out to lack the feature or a Google connection.
     if (loading) return null;
-    if (!available || !connection?.googleConnected) return null;
+    // A stored credential that needs reauth arrives as googleConnected=false
+    // plus needsReauth: the re-authorize card then, not a vanished section, so
+    // the person sees why imports stopped.
+    const view = connectionView(connection);
+    if (!available || view === 'hidden') return null;
 
     return (
         <div>
@@ -110,10 +140,12 @@ export default function GoogleMeetNotesSection() {
                 {t('settings.gmeet_notes.intro', "Turn your recorded Google Meet meetings into Meeting Notes — transcript, summary and action items. Per-meeting record toggles live in the Upcoming tab of Meeting Notes. Your organisation's settings, where set, take precedence.")}
             </p>
 
-            {!connection.meetScopesGranted ? (
+            {view !== 'rows' ? (
                 <div className="rounded-xl px-5 py-4 border bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] border-[color-mix(in_srgb,var(--warning)_35%,transparent)]">
                     <p className="text-[12px] text-[var(--warning-ink)]">
-                        {t('settings.gmeet_notes.reauth_notice', "Your Google account is connected, but Meeting Notes needs extra Google Meet permissions to import your meeting recordings. Re-authorize to grant them — your existing Gmail, Calendar and Drive access is kept.")}
+                        {view === 'expired'
+                            ? t('settings.gmeet_notes.expired_notice', 'Your Google connection has expired, so Meeting Notes cannot import your Meet recordings. Re-authorize to continue — your settings are kept.')
+                            : t('settings.gmeet_notes.reauth_notice', "Your Google account is connected, but Meeting Notes needs extra Google Meet permissions to import your meeting recordings. Re-authorize to grant them — your existing Gmail, Calendar and Drive access is kept.")}
                     </p>
                     <button
                         type="button" onClick={reauthorize} disabled={reauthing}
@@ -145,7 +177,7 @@ export default function GoogleMeetNotesSection() {
                                 aria-label={t('settings.gmeet_notes.language_title', 'Default language')}
                                 className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                             >
-                                {LANGS.map((l: { code: string; label: string }) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                                {languageOptions(cfg.language).map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
                             </select>
                         </Row>
                     </div>

@@ -7,19 +7,19 @@
  *                 The web's integration table is emptied (and the phone given
  *                 no catalog), so an app action falls back to its type on both
  *                 sides; lucide is a name proxy, as in the canvas tests.
- *   DIFFERENTIAL  welcome.ts ↔ chat/AssistantWelcome.jsx: the suggestion
- *                 logic, cut out of the web component and run beside the
- *                 port for each trigger, step count and selected step.
+ *   DIFFERENTIAL  welcome.ts ↔ chat/AssistantWelcome.tsx (welcomeIdeas),
+ *                 chat/exampleBriefs.ts and emptyDraft.ts: the ideas logic,
+ *                 cut out of the web component and run beside the port for
+ *                 each trigger, step count, selected step and kind of step.
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
-import ts from 'typescript';
 
 import { readToolCall } from '@/features/flow-editor/api/builder';
+import { loadWebFunctions, loadWebModule } from '@/shared/testing/webModule';
 
 import { describeLiveRun, describeToolCall } from './activity';
-import { welcomeSuggestions } from './welcome';
+import { exampleBriefs, isEmptyDraft, welcomeOffers, welcomeSuggestions, type WelcomeDefinition, type WelcomeStep } from './welcome';
 
 jest.mock('lucide-react', () => new Proxy({}, { get: (_t, name) => (name === '__esModule' ? false : String(name)) }), { virtual: true });
 jest.mock('../../../../../../agent-hub/src/utils/integrationIcons', () => ({
@@ -51,6 +51,13 @@ const CALLS: unknown[] = [
     { name: 'builder_add_array_op', arguments: { op: 'flatten' }, result: { error: 'No list called attachments' } },
     { name: 'builder_add_array_op', arguments: { op: 'flatten' }, result: { added: { id: 'f1', type: 'flatten', label: 'One row per attachment' } } },
     { name: 'builder_add_array_op', arguments: { op: 'limit' }, result: { error: 'x' } },
+    { name: 'builder_propose_trigger', result: {} },
+    { name: 'builder_request_dry_run', result: {} },
+    { name: 'builder_ask_questions', result: {} },
+    { name: 'builder_inspect_mapping', result: {} },
+    { name: 'agent_search', arguments: { query: 'opening hours' }, result: {} },
+    { name: 'read_url', arguments: { url: 'https://example.com/a' }, result: {} },
+    { name: 'read_url', result: {} },
 ];
 
 describe('the activity rows', () => {
@@ -68,36 +75,60 @@ describe('the activity rows', () => {
 });
 
 describe('the welcome', () => {
-    const src = fs.readFileSync(`${CHAT}/AssistantWelcome.tsx`, 'utf8');
-    // The web's chip logic, cut out of its component and run beside the port:
-    // from `const steps` to the JSX, with its icons as plain names.
-    const body = ts.transpileModule(src.slice(src.indexOf('const steps ='), src.indexOf('return <div')), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-    const icons = (/import \{([^}]+)\} from 'lucide-react'/.exec(src)?.[1] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-    const webChips = new Function('triggerKind', 'definition', 'selectedStep', 't', ...icons, `${body}\nreturn chips.slice(0, 4).map((c) => c.text);`) as (
-        triggerKind: string,
-        definition: unknown,
-        selectedStep: unknown,
-        tr: typeof t,
-        ...names: string[]
-    ) => string[];
+    // The web's idea logic, run as the web wrote it: welcomeIdeas and the
+    // helper it calls, cut out of the component file (which also holds JSX).
+    const WELCOME = 'components/automation/Builder/chat/AssistantWelcome.tsx';
+    const webWelcome = loadWebFunctions<{ welcomeIdeas: (definition: unknown, selectedStep: unknown, tr: typeof t) => string[] }>(WELCOME, ['notifies', 'welcomeIdeas']);
+    const { exampleBriefs: webBriefs } = loadWebModule<{ exampleBriefs: (tr: typeof t) => string[] }>('components/automation/Builder/chat/exampleBriefs.ts');
+    const { isEmptyDraft: webIsEmpty } = loadWebModule<{ isEmptyDraft: (definition: unknown) => boolean }>('components/automation/Builder/emptyDraft.ts');
+    const flow = (kind: string, steps: WelcomeStep[]) => ({ trigger: { id: 'trg', type: 'trigger', kind }, steps, edges: [] });
+    const many = (count: number, type: string) => Array.from({ length: count }, (_, i) => ({ id: `s${i}`, type }));
 
     it('reads the web suggestions at all', () => {
-        expect(icons.length).toBeGreaterThan(3);
-        expect(body).toContain('chips');
+        expect(webWelcome.welcomeIdeas(flow('schedule', []), null, t)).toEqual(['Summarise the latest activity and email me a digest']);
+        expect(webWelcome.welcomeIdeas(flow('manual', many(3, 'set')), null, t)).toHaveLength(3);
+        expect(webBriefs(t)).toHaveLength(3);
     });
 
     it.each(['schedule', 'app_event', 'webhook', 'manual', 'form'])('offers the web suggestions for a %s trigger, empty or with steps', (kind) => {
         for (const steps of [0, 1, 3]) {
-            const definition = { steps: Array.from({ length: steps }, (_, i) => ({ id: `s${i}`, type: 'set' })) };
-            expect(welcomeSuggestions(kind, t, { steps })).toEqual(webChips(kind, definition, null, t, ...icons));
+            const definition = flow(kind, many(steps, 'set'));
+            expect(welcomeSuggestions(definition, t)).toEqual(webWelcome.welcomeIdeas(definition, null, t));
         }
     });
 
     it.each(['code', 'ai_step', 'set'])('offers the web suggestions for a selected %s step', (type) => {
         for (const steps of [0, 2]) {
-            const definition = { steps: Array.from({ length: steps }, (_, i) => ({ id: `s${i}`, type })) };
+            const definition = flow('schedule', many(steps, type));
             const selectedStep = { id: 's0', type };
-            expect(welcomeSuggestions('schedule', t, { steps, selectedStep })).toEqual(webChips('schedule', definition, selectedStep, t, ...icons));
+            expect(welcomeSuggestions(definition, t, selectedStep)).toEqual(webWelcome.welcomeIdeas(definition, selectedStep, t));
+        }
+    });
+
+    it.each([
+        ['a notification', [{ id: 'a', type: 'notification' }]],
+        ['an app action that sends mail', [{ id: 'a', type: 'integration_action', tool: 'GMAIL_Send_Email' }]],
+        ['an app action that only reads', [{ id: 'a', type: 'integration_action', tool: 'drive_list' }]],
+        ['a condition', [{ id: 'a', type: 'condition' }]],
+        ['a switch', [{ id: 'a', type: 'switch' }]],
+        ['a table write', [{ id: 'a', type: 'datatable' }]],
+    ] as const)('reads a flow with %s as the web does', (_label, steps) => {
+        for (const kind of ['form', 'schedule']) {
+            const definition = flow(kind, [...steps]);
+            expect(welcomeSuggestions(definition, t)).toEqual(webWelcome.welcomeIdeas(definition, null, t));
+        }
+    });
+
+    it('offers the web’s example briefs on a draft nobody has built in yet', () => {
+        expect(exampleBriefs(t)).toEqual(webBriefs(t));
+        const drafts: unknown[] = [
+            null, {}, { steps: [] }, flow('manual', []), flow('form', []), flow('manual', many(1, 'set')),
+            { ...flow('manual', []), triggers: [{ id: 't2', type: 'trigger', kind: 'webhook' }] }, { trigger: { id: 'trg', type: 'trigger' }, steps: [] },
+        ];
+        for (const definition of drafts) {
+            expect(isEmptyDraft(definition as WelcomeDefinition)).toBe(webIsEmpty(definition));
+            const web = webIsEmpty(definition) ? webBriefs(t) : webWelcome.welcomeIdeas(definition, null, t);
+            expect(welcomeOffers(definition as WelcomeDefinition, t)).toEqual(web);
         }
     });
 });

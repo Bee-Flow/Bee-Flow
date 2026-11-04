@@ -162,8 +162,11 @@ export default function useBuildTabModel(p: BuildTabProps) {
     const { flatDef, inlineSidecar, inlineShift, onVisualEditFlat } = flowlets;
     const buildCue = useBuildCue({ state, flatDef, t });
 
-    // What each node ACTUALLY produced (pinned > last run, hygiene-filtered).
-    const realOutputById = useMemo(() => buildRealOutputMap(scopedDef, state.steps), [scopedDef, state.steps]);
+    // What each node ACTUALLY produced (pinned > last run, hygiene-filtered),
+    // the trigger's included: what the run on the canvas entered it with. Not
+    // inside a flowlet, whose input is not the root's trigger.
+    const enteredRun = scopeKey ? null : state.dryRun;
+    const realOutputById = useMemo(() => buildRealOutputMap(scopedDef, state.steps, enteredRun), [scopedDef, state.steps, enteredRun]);
 
     // Auto-map-on-connect preference (on by default), per-user — read on mount.
     // The toggle lives in Profile › Preferences › Editor preferences.

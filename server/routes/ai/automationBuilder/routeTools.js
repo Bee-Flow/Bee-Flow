@@ -14,10 +14,17 @@ const { persistDraftWrap } = require('./builderDraft');
 const { runDelegationTool } = require('./layerDelegation');
 const { INSPECTION_NAMES, inspect } = require('./inspectionTools');
 const { runWebResearchTool, isWebResearchTool } = require('./webResearch');
-const { MAX_QUESTIONS, writeQuestions, toolAllowed, previewRefusal, planCoversRemoval, resolveRemovalTarget, writePlan, markStagedView } = require('./workMode');
+const { MAX_QUESTIONS, isBlankDraft, writeQuestions, toolAllowed, previewRefusal, planCoversRemoval, resolveRemovalTarget, writePlan, markStagedView } = require('./workMode');
 const { proposalPreviewPayload } = require('./datatableTurn');
 const { applyPlanMarkDone, normalizePlanTodos } = require('./chatTurnLoop');
 const { rejectedCallLabel } = require('./turnStop');
+const { askFirstRefusal, questionLimit } = require('./modeRules.mts');
+const { briefGaps, briefText } = require('./briefGaps.mts');
+
+// The turns whose plan on a new automation was already sent back once to ask
+// first: the nudge happens once, the model's second plan stands.
+/** @type {WeakSet<object>} */
+const askedFirst = new WeakSet();
 
 /**
  * Answer one tool call the route handles itself. True when it did (the call
@@ -116,11 +123,12 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
             round.refusedThisIter = true;
             return true;
         }
-        const written = writeQuestions(args, { datatables: draftWrap._datatables });
+        const limit = questionLimit(turnMode, approvedPlan, MAX_QUESTIONS, req.body.workMode);
+        const written = writeQuestions(args, { datatables: draftWrap._datatables, max: limit });
         turn.reviewQuestions = written ? written.questions : null;
         toolResult = written
-            ? { ok: true, awaitingAnswers: true, ...(written.dropped ? { _note: `${written.dropped} question(s) were not shown (limit ${MAX_QUESTIONS}). Put what they would have settled under assumptions.` } : {}) }
-            : { error: `Provide 1–${MAX_QUESTIONS} questions, each with 2–4 short answers (a table question: datatableIds from the Datatables block, plus createLabel).` };
+            ? { ok: true, awaitingAnswers: true, ...(written.dropped ? { _note: `${written.dropped} question(s) were not shown (limit ${limit}). Put what they would have settled under assumptions.` } : {}) }
+            : { error: `Provide 1–${limit} questions, each with 2–4 short answers (a table question: datatableIds from the Datatables block, plus createLabel).` };
         if (turn.reviewQuestions) send('review_questions', { questions: turn.reviewQuestions.map(({ choice, ...q }) => q), planId: approvedPlan?.id || null });
         send('tool_call', { name, arguments: args, result: toolResult });
         messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
@@ -159,6 +167,21 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
         if (toolResult.error) { round.refusedThisIter = true; round.lastRefusal = { tool: name, error: String(toolResult.error), label: name }; }
         else round.acceptedThisIter = true;
         return true;
+    }
+    // Plan first (and Describe it, which runs as 'plan': modeRules turnModeOf)
+    // on a new automation: a plan from a brief that does not say where the
+    // data comes from, where it goes or who is involved goes back once with
+    // "ask first" (modeRules ASK_FIRST_RULE says the same up front).
+    if (name === 'builder_write_plan' && turnMode === 'plan' && !questionsClosed && !askedFirst.has(turn) && isBlankDraft(baseDraft)) {
+        const gaps = briefGaps(briefText(turn.message, turn.history));
+        if (gaps.length) {
+            askedFirst.add(turn);
+            toolResult = { error: askFirstRefusal(gaps) };
+            send('tool_call', { name, arguments: args, result: toolResult });
+            messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+            round.refusedThisIter = true;
+            return true;
+        }
     }
     if (name === 'builder_write_plan' && turnMode === 'plan') {
         const nextPlan = writePlan(args, turn.reviewPlan, { datatables: draftWrap._datatables });

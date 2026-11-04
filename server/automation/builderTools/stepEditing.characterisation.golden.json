@@ -1012,7 +1012,7 @@
  },
  "update: invalid type change": {
   "result": {
-   "error": "Cannot change a step's type to \"bogus_type\". Allowed types: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize, read_table, table."
+   "error": "Cannot change a step's type to \"bogus_type\". Allowed types: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize, read_table, table, call_block."
   },
   "steps": [
    {
@@ -6433,7 +6433,7 @@
  },
  "replace: unknown type": {
   "result": {
-   "error": "Cannot replace into type \"nope\". Allowed: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize, read_table, table."
+   "error": "Cannot replace into type \"nope\". Allowed: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize, read_table, table, call_block."
   },
   "steps": [
    {
@@ -8312,6 +8312,10 @@
    "keepFields"
   ],
   "call_layer": [
+   "inputs",
+   "label"
+  ],
+  "call_block": [
    "inputs",
    "label"
   ],

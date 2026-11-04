@@ -3128,3 +3128,33 @@ automations.canvas.run_waiting_form
 automations.header.test_title
 automations.header.test_from_title
 automations.header.dry_run_hint
+
+# Automation builder opening journey (2026-11-04): the assistant welcome, the
+# work-mode words ("How should I work?") and the empty canvas got plain words;
+# the old keys were renamed so the Dutch is translated again, not left stale.
+automations.assistant.watching
+automations.assistant.matches
+automations.assistant.steps_short
+automations.assistant.welcome
+automations.assistant.welcome_hint
+automations.assistant.suggest.loop
+automations.assistant.suggest.mapping
+automations.assistant.suggest.invoices
+automations.assistant.suggest.summary
+automations.assistant.work_mode
+automations.assistant.large_plan
+automations.assistant.rights.plan
+automations.assistant.rights.proposal
+automations.assistant.rights.hint
+automations.assistant.mode.discuss
+automations.assistant.mode.discuss_hint
+automations.assistant.mode.approve
+automations.assistant.mode.approve_hint
+automations.assistant.mode.plan
+automations.assistant.mode.plan_hint
+automations.assistant.mode.build
+automations.assistant.mode.build_hint
+automations.canvas.empty_sub
+automations.canvas.empty_describe
+automations.canvas.empty_example
+automations.canvas.empty_assistant

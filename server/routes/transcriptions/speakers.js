@@ -128,14 +128,22 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
     // A row the user touched becomes `manual`: their correction is the most
     // authoritative signal there is, and must survive a later reprocess or
     // auto re-identify. Untouched rows keep whatever named them.
-    /** @type {Record<string, { id: string, speakingSeconds: number, segments: number, source?: string }>} */
+    //
+    // The per-speaker prose (`summary`) is dropped for a row that was renamed
+    // or merged, so it cannot stay attached to the wrong person; the regenerate
+    // offer that follows a speaker edit writes it again. A row that keeps its
+    // name and absorbs nobody else is the same person with the same turns, so
+    // its prose stays.
+    /** @type {Record<string, { id: string, speakingSeconds: number, segments: number, source?: string, summary?: string }>} */
     const collected = {};
+    const keptRows = keptSpeakerIds(transcription.speakers || [], remap);
     for (const s of (transcription.speakers || [])) {
         const newId = remap(s.id);
         const edited = newId !== s.id;
         if (!collected[newId]) {
             collected[newId] = { id: newId, speakingSeconds: 0, segments: 0, ...(s.source ? { source: s.source } : {}) };
         }
+        if (keptRows.has(s.id) && typeof s.summary === 'string' && s.summary) collected[newId].summary = s.summary;
         if (edited) collected[newId].source = 'manual';
         collected[newId].speakingSeconds += Number(s.speakingSeconds || 0);
         collected[newId].segments += Number(s.segments || 0);
@@ -164,6 +172,7 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
         segments,
         speakers,
         transcript,
+        ...assigneePatch(transcription, remap),
     });
 
     const updated = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
@@ -171,6 +180,61 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
     // Insights policy along or a disabled org silently gets it back.
     res.json(await withInsightsPolicy(updated));
 });
+
+/**
+ * The speaker ids whose row survives an edit unchanged: same name, and no
+ * other row folds into it. Only those keep their per-speaker prose.
+ * @param {StoredSpeaker[]} rows
+ * @param {(name: string) => string} remap
+ * @returns {Set<string>}
+ */
+function keptSpeakerIds(rows, remap) {
+    /** @type {Map<string, number>} */
+    const landing = new Map();
+    for (const s of rows) {
+        if (!s?.id) continue;
+        const to = remap(s.id);
+        landing.set(to, (landing.get(to) || 0) + 1);
+    }
+    const kept = new Set();
+    for (const s of rows) {
+        if (s?.id && remap(s.id) === s.id && landing.get(s.id) === 1) kept.add(s.id);
+    }
+    return kept;
+}
+
+/**
+ * The action items with their assignees moved along with a speaker edit.
+ *
+ * An AI action item names its assignee by the speaker label of the moment
+ * ("Spreker 1"). A rename that leaves those behind makes the regenerate the UI
+ * offers next extract the same item under the new name: its anchor (timestamp
+ * plus assignee) then matches nothing, so every ticked or corrected item came
+ * back twice, once kept as orphaned with its tick and once fresh and unticked.
+ *
+ * Only exact speaker labels move; a free-text assignee nobody renamed stays.
+ * The write goes through the artifact window (the snapshot's readAt), so an
+ * item someone ticks while this request runs is not undone.
+ * @param {{ actionItems?: unknown, readAt?: string | null }} transcription
+ * @param {(name: string) => string} remap
+ * @returns {{ actionItems?: object[], artifactsSince?: string }}
+ */
+function assigneePatch(transcription, remap) {
+    const items = Array.isArray(transcription.actionItems) ? transcription.actionItems : [];
+    let changed = false;
+    const moved = items.map((item) => {
+        if (!item || typeof item !== 'object' || typeof item.assignee !== 'string' || !item.assignee) return item;
+        const to = remap(item.assignee);
+        if (to === item.assignee) return item;
+        changed = true;
+        return { ...item, assignee: to };
+    });
+    if (!changed) return {};
+    return {
+        actionItems: moved,
+        ...(typeof transcription.readAt === 'string' && transcription.readAt ? { artifactsSince: transcription.readAt } : {}),
+    };
+}
 
 // ── Auto re-identify speakers ────────────────────────────
 //
@@ -247,22 +311,41 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
             expectedSpeakers: transcription.numSpeakers || null,
         },
     );
-    if (!nameMapping || Object.keys(nameMapping).length === 0) {
+    // The locked names are merged back into the answer, so on their own they
+    // make it non-empty: a model that named nobody (an empty reply, a time-out,
+    // an unparseable answer) would come back as a 200 that rewrote the note
+    // unchanged, and the user would not get the hint that actually helps.
+    // What counts is a name for a speaker that was NOT locked.
+    const namedSomeone = !!nameMapping && Object.entries(nameMapping)
+        .some(([from, to]) => !(from in lockedNames) && typeof to === 'string' && to && to !== from);
+    if (!namedSomeone) {
         return res.status(422).json({ error: 'Could not confidently identify names. Add who was in the meeting and try again.' });
     }
+    /** @param {string} name */
+    const renamed = (name) => (typeof nameMapping[name] === 'string' && nameMapping[name] ? nameMapping[name] : name);
     const { merged, transcript, speakers } = applySpeakerNames(segments, nameMapping);
 
     // applySpeakerNames rebuilds the stat rows from the segments, so it
     // drops `source`. Carry the old provenance across for the rows that
     // kept their name — those are exactly the locked ones, and losing the
-    // marker would let the NEXT re-identify overwrite them.
+    // marker would let the NEXT re-identify overwrite them. The per-speaker
+    // prose comes along for a row that kept its name and absorbed nobody.
     const priorSource = new Map(speakerRows.filter(s => s?.id && s.source).map(s => [s.id, s.source]));
-    const finalSpeakers = speakers.map(s => (priorSource.has(s.id) ? { ...s, source: priorSource.get(s.id) } : s));
+    const keptRows = keptSpeakerIds(speakerRows, renamed);
+    const priorSummary = new Map(speakerRows
+        .filter(s => s?.id && keptRows.has(s.id) && typeof s.summary === 'string' && s.summary)
+        .map(s => [s.id, s.summary]));
+    const finalSpeakers = speakers.map(s => ({
+        ...s,
+        ...(priorSource.has(s.id) ? { source: priorSource.get(s.id) } : {}),
+        ...(priorSummary.has(s.id) ? { summary: priorSummary.get(s.id) } : {}),
+    }));
 
     await transcriptionStore.updateTranscription(req.params.id, userId, {
         segments: merged,
         speakers: finalSpeakers,
         transcript,
+        ...assigneePatch(transcription, renamed),
         // Persist the roster used so it's remembered for next time.
         ...(suppliedRoster.length ? { attendees: roster } : {}),
     });
@@ -276,4 +359,4 @@ module.exports = router;
 
 /** @typedef {import('../../core/meetingNotes/transcriptArtifacts').MergedTranscriptSegment} StoredSegment */
 
-/** @typedef {{ id: string, source?: string, speakingSeconds?: number, segments?: number }} StoredSpeaker */
+/** @typedef {{ id: string, source?: string, speakingSeconds?: number, segments?: number, summary?: string }} StoredSpeaker */

@@ -5,8 +5,9 @@
  * composer. The flow changes behind the sheet as the drafts arrive; edits
  * are paused meanwhile, and one undo takes a whole turn back.
  *
- * Before the first message it offers suggestions that fill the composer
- * (never send), fitting the automation's steps or, while it has none, its trigger.
+ * Before the first message it offers whole messages a tap sends: example
+ * briefs on a draft nobody has built in yet, otherwise ideas read off the
+ * automation's trigger and steps (the web's AssistantWelcome).
  */
 
 import React, { createContext, useContext, useRef } from 'react';
@@ -27,7 +28,7 @@ import { PlanCard } from './PlanCard';
 import { SummaryCard } from './SummaryCard';
 import { messageActivity, planOf } from './turnModel';
 import type { Assistant } from './useAssistant';
-import { welcomeSuggestions } from './welcome';
+import { welcomeOffers, type WelcomeDefinition } from './welcome';
 
 const makeStyles = (theme: Theme) => ({
     list: { paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.md } satisfies ViewStyle,
@@ -44,7 +45,7 @@ function Message({ message }: { message: BuilderMessage }) {
 const renderMessage: ListRenderItem<BuilderMessage> = ({ item }) => <Message message={item} />;
 const keyOf = (_m: BuilderMessage, index: number) => String(index);
 
-function Welcome({ triggerKind, steps, onPick }: { triggerKind: string | null; steps: number; onPick: (text: string) => void }) {
+function Welcome({ definition, onPick }: { definition: WelcomeDefinition | null; onPick: (text: string) => void }) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
@@ -55,7 +56,7 @@ function Welcome({ triggerKind, steps, onPick }: { triggerKind: string | null; s
                 message={t('mobile.flow.ai.welcome_hint', 'Describe what you want and it wires the trigger and steps for you.')}
             />
             <View style={styles.chips}>
-                {welcomeSuggestions(triggerKind, t, { steps }).map((s) => (
+                {welcomeOffers(definition, t).map((s) => (
                     <Chip key={s} label={s} onPress={() => onPick(s)} />
                 ))}
             </View>
@@ -76,8 +77,7 @@ export function AiBuilderSheet({ assistant, draft, onFindings, appLabel }: AiBui
     const list = useRef<FlatList<BuilderMessage>>(null);
     const { ai } = assistant;
     const automationId = useDraftState(draft.store, (s) => s.automationId);
-    const triggerKind = useDraftState(draft.store, (s) => s.definition?.trigger?.kind ?? null);
-    const stepCount = useDraftState(draft.store, (s) => s.definition?.steps?.length ?? 0);
+    const definition = useDraftState(draft.store, (s) => s.definition ?? null);
     const snapshot = useBuilderSession(automationId).data ?? null;
     const liveTodos = useTurn(ai.turn, (s) => s.todos);
     const todos = planOf(liveTodos, snapshot);
@@ -114,7 +114,7 @@ export function AiBuilderSheet({ assistant, draft, onFindings, appLabel }: AiBui
                     renderItem={renderMessage}
                     keyExtractor={keyOf}
                     ListHeaderComponent={header}
-                    ListEmptyComponent={ai.streaming ? null : <Welcome triggerKind={triggerKind} steps={stepCount} onPick={assistant.setText} />}
+                    ListEmptyComponent={ai.streaming ? null : <Welcome definition={definition} onPick={assistant.send} />}
                     ListFooterComponent={<LiveTurn turn={ai.turn} streaming={ai.streaming} store={draft.store} onFindings={onFindings} appLabel={appLabel} />}
                     onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
                     keyboardShouldPersistTaps="handled"

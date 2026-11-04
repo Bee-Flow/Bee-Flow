@@ -365,6 +365,18 @@ test('listing, counting and detaching reach the content stores', async (t) => {
     ]);
 });
 
+test('meeting: a project with more meetings than one store page lists every one of them', async (t) => {
+    const { swap, restore } = makeSwaps();
+    t.after(restore);
+    const filed = Array.from({ length: 340 }, (_, n) => ({ id: `m-${n}` }));
+    // The store's own shape: one page of at most `limit` rows from `offset`, 100 when no limit is given.
+    swap(require('../stores/transcriptionStore'), 'listProjectMeetings',
+        async (_projectId, { limit = 100, offset = 0 } = {}) => filed.slice(offset, offset + Math.min(limit, 200)));
+    const listed = await membership.getKind('meeting').list('p1', { userId: 'u1' });
+    assert.strictEqual(listed.length, 340, 'not just the newest page');
+    assert.strictEqual(listed.at(-1).id, 'm-339', 'the oldest meeting is in the list');
+});
+
 // ═══ The Solution-stage gate ═════════════════════════════════════════
 
 test('every movable kind can say where an item comes from, so the stage gate knows its source', () => {

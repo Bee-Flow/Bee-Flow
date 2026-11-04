@@ -368,7 +368,8 @@ const RAW_KINDS = [
         detaches: true,
         projectOf: projectColumnOf('transcriptions'),
         ownerOf: ownerColumnOf('transcriptions', 'user_id'),
-        list: (projectId) => require('../stores/transcriptionStore').listProjectMeetings(projectId),
+        // Every page, not the store's first 100: the Meetings tab counts, searches and marks "filed" over all.
+        list: (projectId) => require('./catalogue').allPages((options) => require('../stores/transcriptionStore').listProjectMeetings(projectId, options)),
         countIn: (projectIds) => require('../stores/transcriptionStore').countProjectMeetings(projectIds),
         setProject: (id, userId, projectId, ctx) => fileOwnedContent(meetings(), id, userId, projectId, ctx),
         clearProject: (projectId) => require('../stores/transcriptionStore').clearProjectFromTranscriptions(projectId),
@@ -382,9 +383,8 @@ const RAW_KINDS = [
         ownerOf: ownerColumnOf('automations', 'user_id'),
         list: (projectId) => require('../stores/automationStore').getAutomationsForProject(projectId),
         countIn: (projectIds) => require('../stores/automationStore').countAutomationsForProject(projectIds),
-        // The automation update path has no owner predicate of its own, so the
-        // ownership check every other kind gets from its UPDATE ... AND
-        // user_id = $n is made explicit here instead.
+        // The automation update path has no owner predicate of its own, so the ownership
+        // check every other kind gets from its UPDATE ... AND user_id = $n is made here.
         setProject: async (id, userId, projectId, ctx) => {
             const store = require('../stores/automationStore');
             const automation = await store.getAutomation(id);

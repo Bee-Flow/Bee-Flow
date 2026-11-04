@@ -11,12 +11,14 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 const fs = require('fs');
 const configStore = require('../../stores/configStore');
 const { asM4aIfAdts } = require('../../core/voice/audioPreprocess');
 const { resolveDefaultTemplateForReq, VOXTRAL_TIMEOUT_MS } = require('./shared');
 const { lookupUserName, nameSpeakers, buildTranscriptOrThrow } = require('./speakerNaming');
 const { stampForTemplate } = require('../../core/meetingNotes/summaryStamp');
+const { leadingNotices, withNotices, summaryFailedNotice } = require('./noteText.mts');
 const {
     generateMeetingSummary,
     extractMeetingArtifacts,
@@ -153,6 +155,56 @@ function mergeArtifactLists(transcription, artifacts, usable) {
 }
 
 /**
+ * The summary a reprocess writes, and its template stamp.
+ *
+ * generateMeetingSummary answers '' when its call failed (a 429, a time-out):
+ * that is a failed step, not an empty meeting. Writing it through replaced a
+ * completed note's summary with nothing, under status 'completed' and without
+ * a word. The previous summary (its own notices stripped: they describe the
+ * replaced run) then stays, and the caller adds a notice that says so.
+ *
+ * The summary is rewritten otherwise, so the template stamp is set again, also
+ * when the answer is "no template": a stale stamp would put a template name on
+ * text that template never produced. A summary kept from before keeps the
+ * stamp of the template that DID write it.
+ * @param {string} generated
+ * @param {{ transcript?: string, summary?: string, summaryTemplateId?: string | null, summaryTemplateVersion?: number | null }} transcription
+ * @param {Parameters<typeof stampForTemplate>[0]} defaultTemplate
+ */
+function summaryOrPrevious(generated, transcription, defaultTemplate) {
+    if (String(generated || '').trim()) {
+        return { summary: generated, summaryStamp: stampForTemplate(defaultTemplate), summaryFailed: false, keptPrevious: false };
+    }
+    const previous = transcription.transcript ? leadingNotices(transcription.summary).body : '';
+    if (!previous) {
+        return { summary: '', summaryStamp: stampForTemplate(defaultTemplate), summaryFailed: true, keptPrevious: false };
+    }
+    return {
+        summary: previous,
+        summaryStamp: { summaryTemplateId: transcription.summaryTemplateId || null, summaryTemplateVersion: transcription.summaryTemplateVersion || null },
+        summaryFailed: true,
+        keptPrevious: true,
+    };
+}
+
+/**
+ * Report that this run is still alive (transcriptionStore.heartbeatProcessing)
+ * and stop it when its claim is gone: reaped as stuck, or the note deleted
+ * meanwhile. Throws `claim_lost`; the route's catch then writes nothing,
+ * because finishProcessing only lands while the claim is held. A database
+ * hiccup on the heartbeat itself does not stop the run.
+ * @param {string | null | undefined} transcriptionId
+ */
+async function keepClaim(transcriptionId) {
+    if (!transcriptionId) return;
+    const held = await require('../../stores/transcriptionStore').heartbeatProcessing(transcriptionId)
+        .catch((e) => fallback('routes/transcriptions/reprocessPipeline:heartbeat', e, true));
+    if (!held) {
+        throw Object.assign(new Error(`Reprocess of ${transcriptionId}: the claim was lost (reaped or deleted)`), { code: 'claim_lost' });
+    }
+}
+
+/**
  * Speaker naming, summary, chapters and artifacts for a fresh transcription.
  * @returns the transcript pieces plus everything the conditional write needs.
  */
@@ -165,33 +217,37 @@ async function analyseTranscript({ req, transcriptionId, transcription, userId, 
     // participants from short diarization fragments.
     const reprocessUserName = await lookupUserName(userId);
     // Reuse the roster captured at upload: reprocessing without it would throw
-    // away the strongest naming signal we have. Names the OWNER typed count
-    // for more than anything the model guessed, because the previous run's
-    // diarization is discarded here.
+    // away the strongest naming signal we have. The roster is the attendee
+    // list (plus voiceprint names): a closed list. Names the OWNER typed go
+    // separately as `knownNames`: candidates the model weighs, not attendees,
+    // so a typo or a partial name never closes the list to the real attendees.
     const reprocessRoster = [...new Set([
-        ...manualSpeakerNames(transcription),
         ...(transcription.attendees || []),
         ...voiceprintRoster,
     ])];
     ({ merged, transcript, speakers } = await nameSpeakers({
         merged, speakers, language, userName: reprocessUserName, userOrgId,
         roster: reprocessRoster, voiceprintMapping, voiceprintRuledOut, numSpeakers,
+        knownNames: manualSpeakerNames(transcription),
     }));
 
     // Summary + timeline chapters + structured artifacts. The artifacts are
     // re-extracted too: the transcript is brand new, so the old items point at
     // timestamps that no longer exist.
+    // A heartbeat between the LLM passes: the reaper measures silence, not
+    // meeting length, and a run whose claim is gone stops spending here.
+    await keepClaim(transcriptionId);
     const defaultTemplate = await resolveDefaultTemplateForReq(req, userId, userOrgId);
-    const summary = await generateMeetingSummary(transcript, language, userOrgId, { templatePrompt: defaultTemplate?.prompt || null });
-    // The summary is rewritten here, so the template stamp is set again, also
-    // when the answer is "no template": a stale stamp would put a template name
-    // on text that template never produced.
-    const summaryStamp = stampForTemplate(defaultTemplate);
+    const generated = await generateMeetingSummary(transcript, language, userOrgId, { templatePrompt: defaultTemplate?.prompt || null });
+    const { summary, summaryStamp, summaryFailed, keptPrevious } = summaryOrPrevious(generated, transcription, defaultTemplate);
+    await keepClaim(transcriptionId);
     const chapters = await generateChapters(transcript, language, userOrgId);
+    await keepClaim(transcriptionId);
     const artifacts = await extractMeetingArtifacts(transcript, language, userOrgId, {
         meetingDateIso: (transcription.createdAt || '').slice(0, 10) || null,
         personNames: [...speakers.map((s) => s.id), ...(transcription.attendees || [])],
     });
+    await keepClaim(transcriptionId);
     const speakerSummaries = await generateSpeakerSummaries(transcript, speakers.map((s) => s.id), language, userOrgId);
 
     // A failed extraction is not an empty meeting. extractMeetingArtifacts has
@@ -208,7 +264,8 @@ async function analyseTranscript({ req, transcriptionId, transcription, userId, 
     // Saving is half of it; saying so is the other half. Without this line a
     // failed pass is indistinguishable from a meeting where nothing was agreed.
     const notices = buildPipelineNotices({ truncated: truncationNotice, voiceprint: voiceprintInfo, artifactsFailed: !usable, language });
-    const finalSummary = notices.length ? `${notices.join('\n')}\n\n${summary || ''}`.trim() : summary;
+    if (summaryFailed) notices.push(summaryFailedNotice(language, keptPrevious));
+    const finalSummary = withNotices(notices, summary || '');
 
     return {
         merged, transcript, speakers, totalDuration, chapters, artifacts, usable,
@@ -217,6 +274,6 @@ async function analyseTranscript({ req, transcriptionId, transcription, userId, 
     };
 }
 
-module.exports = { transcribeStoredAudio, analyseTranscript };
+module.exports = { transcribeStoredAudio, analyseTranscript, keepClaim };
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/transcriptionStore').getTranscription>>>} TranscriptionNote */

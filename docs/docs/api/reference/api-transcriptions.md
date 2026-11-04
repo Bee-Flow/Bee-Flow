@@ -40,6 +40,7 @@ toc_max_heading_level: 2
 | `num_speakers` | integer |  | min -9007199254740991; max 9007199254740991 |
 | `provider` | string |  | min length 1 |
 | `projectId` | string |  | max length 200 |
+| `client_upload_id` | string |  | pattern `^[A-Za-z0-9_-]{8,100}$` |
 
 ### `GET /api/transcriptions/:id`
 

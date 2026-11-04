@@ -283,21 +283,33 @@ function createWrites({ transcriptCrypto }) {
         // columns (an audio-key repair, say) does not drag them back either.
         // The return value stays falsy when nothing was written, so
         // `if (!updated) 404` at the callers does not change.
+        // `tags` comes back too whenever this write could have touched it (a
+        // direct write, tagsIfEmpty, or next to the artifacts): tagsIfEmpty keeps
+        // tags someone set meanwhile, and the caller reports and announces the
+        // tags the note ACTUALLY carries. The artifact keys stay absent when the
+        // write did not touch them, so `stored.actionItems || fallback` holds.
+        const returnsTags = writesArtifacts || updates.tags !== undefined || updates.tagsIfEmpty !== undefined;
+        const returning = [
+            ...(writesArtifacts ? ['action_items', 'decisions', 'questions'] : []),
+            ...(returnsTags ? ['tags'] : []),
+        ];
         const { rowCount, rows } = await run(
             `${setSql} WHERE id = $${params.length - 1} AND user_id = $${params.length}`
-            + (writesArtifacts ? ` RETURNING action_items, decisions, questions` : ''),
+            + (returning.length ? ` RETURNING ${returning.join(', ')}` : ''),
             params
         );
         if (!(rowCount > 0)) return false;
         const written = rows && rows[0];
-        return written
-            ? {
-                ok: true,
+        if (!written) return true;
+        return {
+            ok: true,
+            ...(writesArtifacts ? {
                 actionItems: parseJsonArray(written.action_items),
                 decisions: parseJsonArray(written.decisions),
                 questions: parseJsonArray(written.questions),
-            }
-            : true;
+            } : {}),
+            ...(returnsTags ? { tags: parseJsonArray(written.tags) } : {}),
+        };
     }
 
     return { createTranscription, claimForProcessing, finishProcessing, updateTranscription };

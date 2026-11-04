@@ -34,7 +34,7 @@ test('de declaratie is geldig en volgt de vorm van de andere declaraties', () =>
     assert.strictEqual(DECL.id, 'meeting-notes', 'kebab-case; een underscore werd door PROVIDER_ID_RE geweigerd');
     assert.strictEqual(EVENT.id, 'meeting.processed');
     assert.strictEqual(EVENT.source.kind, 'push');
-    assert.strictEqual(EVENT.scope, 'org');
+    assert.strictEqual(EVENT.scope, 'user', 'owner-only: emitMeetingProcessed always names the owner');
 });
 
 test('`tags` is een gedeclareerd uitvoerveld MET voorbeeld — daar filtert een abonnement op', () => {
@@ -58,7 +58,7 @@ test('de payload draagt GEEN inhoud van de notitie', () => {
 test('de declaratie registreert zichzelf en declareert haar tenancy', () => {
     const reg = freshRegistry();
     assert.ok(reg.getTriggerSource('meeting-notes'), 'gevonden door de readdir-sweep bij boot');
-    assert.strictEqual(reg.getProviderScope('meeting-notes'), 'org',
+    assert.strictEqual(reg.getProviderScope('meeting-notes'), 'user',
         'dispatchEvent scoopt de fan-out hierop; zonder scope wordt het event gedropt');
     assert.ok(reg.getEventDef('meeting-notes', 'meeting.processed'));
 });

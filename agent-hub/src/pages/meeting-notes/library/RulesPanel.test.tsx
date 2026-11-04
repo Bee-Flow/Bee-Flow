@@ -23,7 +23,7 @@ vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import { consequenceParts, runLabel } from './RuleCard';
-import RulesPanel from './RulesPanel';
+import RulesPanel, { licenceMessage } from './RulesPanel';
 import { COMPOSER_SEED } from '../lib/meetingRules';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import { partial, stub } from '@/test/mocks';
@@ -84,6 +84,21 @@ describe('consequenceParts', () => {
             .toEqual(['3 steps that only prepare data — nothing leaves the run']);
         expect(consequenceParts({ readable: true, kb: false, notify: false, table: false, other: 0, steps: 1 }, t))
             .toEqual(['1 step that only prepares data — nothing leaves the run']);
+    });
+});
+
+describe('licenceMessage', () => {
+    const tt = t as unknown as Parameters<typeof licenceMessage>[1];
+    const refused = (status: number, code?: string) => Object.assign(new Error('Forbidden'), { status, ...(code ? { code } : {}) });
+
+    it('a 403 for another reason (training_required) is not a licence sentence', () => {
+        expect(licenceMessage(refused(403, 'training_required'), tt)).toBeNull();
+    });
+
+    it('a licence code, or an uncoded 402/403, is', () => {
+        expect(licenceMessage(refused(403, 'feature_locked'), tt)).toMatch(/not part of this plan/);
+        expect(licenceMessage(refused(403), tt)).toMatch(/not part of this plan/);
+        expect(licenceMessage(refused(402), tt)).toMatch(/not part of this plan/);
     });
 });
 

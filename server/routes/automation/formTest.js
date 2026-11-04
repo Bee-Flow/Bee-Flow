@@ -7,11 +7,16 @@
  * notice, trigger.headers (submitted_at, form_page_id, test) and a session. So
  * what the builder shows is what a visitor's run would see (critic gap 3).
  *
- *   POST /:id/form-test          { values, triggerStepId?, mode: 'dry' | 'live', respond? }
+ *   POST /:id/form-test          { values, triggerStepId?, mode: 'dry' | 'live', untilStepId?, respond? }
  *        dry (default): a dry run that pauses for real at approvals and form
  *        pages, writes simulated; live: a test run with real effects. Both run
  *        the working copy, started by the tester (their sandbox approval seat),
  *        never write an answers row and never count as a submission.
+ *        untilStepId: the run ends after that step ("Test step" / "Run up to
+ *        here" on a step after a form nobody has filled in yet). It must be a
+ *        step of the flow the form starts (400 invalid_until_step otherwise);
+ *        the bound is kept on the run's profile, so a resume after a pause on
+ *        the way stops there too.
  *        202 { runId, sessionId } while it runs (respond 'created' answers at once),
  *        else 200 { run, steps, sessionId }. 400 with `fields` when answers need
  *        attention, 409 not_a_form for a trigger that is no form.
@@ -40,14 +45,42 @@ const { Respond } = require('./runSchemas');
 const { envCap } = require('../../automation/mcpRunReadCaps');
 
 const TRIGGER_TEXT = 'triggerStepId is the id of a trigger on this automation.';
+const UNTIL_TEXT = 'untilStepId is the id of a step after this form.';
 const FormTestBody = z.object({
     // The answers to page one, as the overlay collected them: the same shape a
     // visitor's browser posts (a file question carries its fileId).
     values: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'values is an object of answers.' }) }).optional(),
     triggerStepId: worded(TRIGGER_TEXT).trim().min(1, TRIGGER_TEXT).max(200, TRIGGER_TEXT).nullish(),
     mode: z.enum(['dry', 'live'], { error: () => 'mode is "dry" or "live".' }).default('dry'),
+    // The step the run ends after; left out, the whole flow runs.
+    untilStepId: worded(UNTIL_TEXT).trim().min(1, UNTIL_TEXT).max(200, UNTIL_TEXT).nullish(),
     respond: Respond,
 }).strict();
+
+/**
+ * The step a bounded form test ends after: a step of the root graph that the
+ * entered form trigger reaches (runDag stops only on such a step; anywhere
+ * else the bound would silently run the whole flow). Null when none was asked.
+ * @param {{ steps?: Array<{ id?: string } | null>, edges?: Array<{ from?: string, to?: string } | null> } | null | undefined} definition
+ * @param {string | null | undefined} triggerId
+ * @param {string | null | undefined} untilStepId
+ * @returns {string | null}
+ */
+function untilStepOf(definition, triggerId, untilStepId) {
+    if (!untilStepId) return null;
+    const isStep = (definition?.steps || []).some(s => s?.id === untilStepId);
+    const edges = definition?.edges || [];
+    const seen = new Set([triggerId]);
+    const queue = [triggerId];
+    while (isStep && queue.length) {
+        const cur = queue.shift();
+        if (cur === untilStepId) return untilStepId;
+        for (const e of edges) {
+            if (e && e.from === cur && !seen.has(e.to)) { seen.add(e.to); queue.push(e.to); }
+        }
+    }
+    throw new HttpError(400, 'invalid_until_step', `untilStepId "${untilStepId}" is not a step after this form.`);
+}
 
 /** @typedef {typeof import('../../stores/automationStore')} AutomationStore */
 /** @typedef {NonNullable<Awaited<ReturnType<AutomationStore['getAutomation']>>>} StoredAutomation */
@@ -109,6 +142,7 @@ function makeFormTestRouter(overrides = {}) {
         if (!a) return undefined;
         const mode = req.body.mode;
         const found = await builderForm(a, req.body.triggerStepId, mode);
+        const untilStepId = untilStepOf(found.automation.definition, found.trigger?.id, req.body.untilStepId);
         const sub = submission();
         const accepted = await sub.acceptSubmission(found, { ...(req.body.values || {}) }, {
             userId: req.session.user?.id || null,
@@ -118,8 +152,9 @@ function makeFormTestRouter(overrides = {}) {
         }, mode === 'dry' ? sub.BUILDER_DRY_SUBMISSION : sub.BUILDER_LIVE_SUBMISSION);
         if (!accepted.ok) return res.status(accepted.status).json(accepted.body);
         const sessionId = accepted.session.id;
+        const bounded = sub.stoppingAfter(accepted, untilStepId);
         const { startCapped, pendingRunBody } = require('../../core/automationRunner/startCapped.mts');
-        const outcome = await startCapped((/** @type {(run: Record<string, unknown>) => void} */ onRunCreated) => sub.startSubmission(found, accepted, onRunCreated), {
+        const outcome = await startCapped((/** @type {(run: Record<string, unknown>) => void} */ onRunCreated) => sub.startSubmission(found, bounded, onRunCreated), {
             respond: req.body.respond, label: 'automation/form-test',
         });
         if (outcome.kind === 'pending') return res.status(202).json({ ...pendingRunBody(outcome.runId), sessionId });
@@ -138,4 +173,4 @@ function makeFormTestRouter(overrides = {}) {
     return router;
 }
 
-module.exports = { makeFormTestRouter, FormTestBody };
+module.exports = { makeFormTestRouter, FormTestBody, untilStepOf };

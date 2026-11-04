@@ -4292,6 +4292,9 @@
     "POST /api/automation/:id/form/:token/rotate": {
       "gate": "auth"
     },
+    "POST /api/automation/:id/forms/style-assist": {
+      "gate": "auth"
+    },
     "POST /api/automation/:id/goldens/replay": {
       "gate": "auth"
     },

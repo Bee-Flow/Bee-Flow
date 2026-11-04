@@ -39,6 +39,7 @@ const {
 } = require('./builderTools/layers');
 const { applyInlineLayer } = require('./builderTools/inlineLayer');
 const { resolveStoredOutput } = require('./builderTools/storedOutput.mts');
+const { handoverNeeds } = require('./builderTools/handoverNeeds.mts');
 const { applyAddApproval } = require('./builderTools/approval');
 const { applyCreateDatatable } = require('./builderTools/datatableCreate');
 const { applyAddTrigger, applyUpdateTrigger } = require('./builderTools/triggers');
@@ -611,10 +612,15 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
             if (!automation?.id) return { ok: false, error: automation?.error || 'The automation could not be saved.' }; // store answered false
             // Slim echo: the full automation row embeds the entire definition JSON the model already has in
             // context. Callers only read `.automation.id` / `.title`; validation errors stay structured.
+            // `needs`: what the person still does before it is of use (switch it
+            // on, share the form link, run it once, connect an app the draft
+            // uses). The chat's hand-over card and the closing "To use it" line
+            // both read it.
             return {
                 automation: { id: automation.id, title: automation.title },
                 ok: !automation.validationErrors,
                 ...(automation.validationErrors ? { validationErrors: automation.validationErrors } : {}),
+                needs: handoverNeeds(draftWrap.def, { availableToolNames: draftWrap._availableToolNames }),
             };
         }
         default:

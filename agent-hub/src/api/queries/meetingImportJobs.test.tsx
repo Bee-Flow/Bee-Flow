@@ -20,7 +20,7 @@ describe('importJobPhase', () => {
         expect(importJobPhase(job({ status: 'awaiting_artifacts' }))).toBe('waiting');
         expect(importJobPhase(job({ status: 'ingested', transcriptionId: 'n1' }))).toBe('done');
         expect(importJobPhase(job({ status: 'no_recording', errorCode: 'no_recording' }))).toBe('failed');
-        expect(importJobPhase(job({ status: 'pending', errorCode: 'failed' }))).toBe('failed');
+        expect(importJobPhase(job({ status: 'pending', errorCode: 'failed' }))).toBe('running');
         expect(importJobPhase(null)).toBe('failed');
         expect(importJobPhase(undefined)).toBe('running');
     });
@@ -69,6 +69,19 @@ describe('useMeetingImportJob', () => {
         const calls = fetchMock.mock.calls.length;
         await new Promise((r) => setTimeout(r, 60));
         expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(calls + 1);
+    });
+
+    it('a retry of the same job id is a new follow: its own time limit, polled again', async () => {
+        fetchMock.mockResolvedValue(listOf(job()));
+        const { result, rerender } = renderHook(
+            ({ attempt }: { attempt: number }) => useMeetingImportJob('teams', 'j1', { intervalMs: 10, giveUpMs: 80, attempt }),
+            { wrapper: queryWrapper(), initialProps: { attempt: 1 } },
+        );
+        await waitFor(() => expect(result.current.timedOut).toBe(true));
+        rerender({ attempt: 2 });
+        expect(result.current.timedOut).toBe(false);
+        const calls = fetchMock.mock.calls.length;
+        await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(calls));
     });
 
     it('does nothing without a job id', async () => {

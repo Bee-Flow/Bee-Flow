@@ -1,4 +1,5 @@
 import React from 'react';
+import { LANGUAGES } from '@/config/meetingNotesConfig';
 
 /**
  * Small presentational atoms shared by the org-level (admin) and personal
@@ -13,10 +14,25 @@ import React from 'react';
 
 export const NC_BLUE = '#0082C9';
 
-export const LANGS = [
-    { code: 'nl', label: 'Dutch' }, { code: 'en', label: 'English' }, { code: 'de', label: 'German' },
-    { code: 'fr', label: 'French' }, { code: 'es', label: 'Spanish' }, { code: 'it', label: 'Italian' }, { code: 'pt', label: 'Portuguese' },
-];
+export interface LangOption { code: string; label: string }
+
+/**
+ * The meeting-notes transcription languages, the same list the recorder and
+ * the mobile app offer (config/meetingNotesConfig LANGUAGES), without the flag.
+ */
+export const LANGS: readonly LangOption[] = LANGUAGES.map(l => ({ code: l.code, label: l.label.slice(l.label.indexOf(' ') + 1) }));
+
+/**
+ * The options of a language select for a stored value. The server accepts more
+ * than LANGS ('auto', a region code, any code the API was sent), and a
+ * controlled select whose value matches no option shows the FIRST option
+ * ('Dutch'). A code the list does not know is therefore kept and shown as
+ * itself, like mobile's NotesLanguageGroup.
+ */
+export function languageOptions(current?: string | null): readonly LangOption[] {
+    if (!current || LANGS.some(l => l.code === current)) return LANGS;
+    return [{ code: current, label: current }, ...LANGS];
+}
 
 /**
  * On/off switch. Pass the row title as `ariaLabel`: the switch has no visible

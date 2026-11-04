@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Hammer, Hand, ListChecks, MessageCircleQuestion } from 'lucide-react';
+import { Check, ChevronDown, Hammer, Hand, ListChecks, MessageCircleQuestion, MessageSquareText } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import { useEffect, useRef, useState } from 'react';
@@ -25,11 +25,17 @@ interface Props {
     planVersion?: number | string | null;
 }
 
+// Plain words (owner, 2026-11-04): the menu answers "How should I work?", and
+// each mode says what the assistant will do, not how it is implemented. The
+// ids are what is stored and sent; only `key` (the i18n key) and the words changed.
+// 'describe' comes first: the mode for someone who only knows what should happen
+// (recommended on an empty draft, and where a Studio "Describe it" brief starts).
 export const WORK_MODES: WorkMode[] = [
-    { id: 'discuss', Icon: MessageCircleQuestion, key: 'discuss', label: 'Only discuss', description: 'Explains and advises. Leaves the flow unchanged.' },
-    { id: 'approve', Icon: Hand, key: 'approve', label: 'Approve each change', description: 'Shows a proposal. You choose whether to apply it.' },
-    { id: 'plan', Icon: ListChecks, key: 'plan', label: 'Plan first', description: 'Explores, asks questions and writes a plan. Builds after your approval.' },
-    { id: 'build', Icon: Hammer, key: 'build', label: 'Build directly', description: 'Builds immediately. Changes can be undone.' },
+    { id: 'describe', Icon: MessageSquareText, key: 'describe', label: 'Describe it', description: 'Tell me what should happen, in your own words. I ask a few questions, write a plan, build it, test it and hand it over.' },
+    { id: 'discuss', Icon: MessageCircleQuestion, key: 'advise', label: 'Just advise', description: 'Answers and gives advice. Leaves the automation as it is.' },
+    { id: 'approve', Icon: Hand, key: 'show_first', label: 'Show me before changing', description: 'Shows each change first. You decide whether to make it.' },
+    { id: 'plan', Icon: ListChecks, key: 'ask_plan', label: 'Ask, plan, then build', description: 'Asks a few questions, writes a plan in plain words, and builds after your OK.' },
+    { id: 'build', Icon: Hammer, key: 'right_away', label: 'Change it right away', description: 'Makes the changes straight away. You can undo them.' },
 ];
 
 // `planStatus` / `planVersion` describe the plan the builder is working through.
@@ -73,7 +79,7 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
         e.preventDefault();
         items[to].focus();
     };
-    const selected = WORK_MODES.find((m: WorkMode) => m.id === value) || WORK_MODES[1];
+    const selected = WORK_MODES.find((m: WorkMode) => m.id === value) || WORK_MODES.find((m: WorkMode) => m.id === 'approve') || WORK_MODES[0];
     const buildingPlan = isPlanStatusInProgress(planStatus);
     const triggerLabel = buildingPlan ? t('automations.assistant.mode.building_plan', 'Building plan v{version}', { version: planVersion ?? '' }) : t(`automations.assistant.mode.${selected.key}`, selected.label);
     const TriggerIcon = buildingPlan ? Hammer : selected.Icon;
@@ -83,9 +89,9 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
             className="flex items-center gap-1.5 min-w-0 rounded-lg px-2 py-1.5 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50">
             <TriggerIcon size={13} className="shrink-0" /><span className="truncate">{triggerLabel}</span><ChevronDown size={11} className="shrink-0" />
         </button>
-        {open && <div ref={menuRef} role="menu" aria-label={t('automations.assistant.work_mode', 'Work mode')} onKeyDown={onMenuKeyDown}
+        {open && <div ref={menuRef} role="menu" aria-label={t('automations.assistant.how_to_work', 'How should I work?')} onKeyDown={onMenuKeyDown}
             className={`absolute bottom-full mb-2 z-50 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1.5 shadow-lg ${anchor === 'composer' ? 'inset-x-0 max-w-full' : 'left-0 w-[min(320px,calc(100vw-48px))] max-w-[calc(100cqw-24px)]'}`}>
-            <div className="flex justify-between p-2 text-[11px] text-[var(--text-tertiary)]"><span>{t('automations.assistant.work_mode', 'Work mode')}</span><kbd title={t('automations.assistant.work_mode_shortcut', 'Alt+M switches the work mode')} className="font-sans">{WORK_MODE_SHORTCUT_LABEL}</kbd></div>
+            <div className="flex justify-between p-2 text-[11px] text-[var(--text-tertiary)]"><span>{t('automations.assistant.how_to_work', 'How should I work?')}</span><kbd title={t('automations.assistant.work_mode_shortcut', 'Alt+M switches the work mode')} className="font-sans">{WORK_MODE_SHORTCUT_LABEL}</kbd></div>
             {buildingPlan && <p className="px-2 pb-2 text-[11px] leading-4 text-[var(--text-tertiary)]">{t('automations.assistant.mode.building_plan_hint', 'Follow-up messages continue this plan. Your own work mode applies again when it is done.')}</p>}
             {WORK_MODES.map((m: WorkMode) => <button key={m.id} type="button" role="menuitemradio" aria-checked={value === m.id}
                 onClick={() => { onChange(m.id); closeToTrigger(); }} className={`flex w-full gap-2.5 rounded-lg p-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--type-ai)] ${value === m.id ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}>
@@ -93,7 +99,7 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
                 <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-primary)]">{t(`automations.assistant.mode.${m.key}`, m.label)}</span><span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-tertiary)]">{t(`automations.assistant.mode.${m.key}_hint`, m.description)}</span></span>
                 {value === m.id && <Check size={13} className="shrink-0 mt-0.5" />}
             </button>)}
-            {onAlwaysPlanLargeChange && <label className="flex items-center gap-2 border-t border-[var(--border-default)] mt-1 p-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1">{t('automations.assistant.large_plan', 'Ask before applying large changes (4+ steps)')}</span><input type="checkbox" checked={alwaysPlanLarge} onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAlwaysPlanLargeChange(e.target.checked)} /></label>}
+            {onAlwaysPlanLargeChange && <label className="flex items-center gap-2 border-t border-[var(--border-default)] mt-1 p-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1">{t('automations.assistant.check_big_changes', 'Check with me for big changes')}</span><input type="checkbox" checked={alwaysPlanLarge} onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAlwaysPlanLargeChange(e.target.checked)} /></label>}
         </div>}
     </div>;
 }

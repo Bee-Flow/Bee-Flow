@@ -31,13 +31,13 @@ describe('describeToolCall', () => {
     });
 
     it('gives a past-tense verb to tools that create no step', () => {
-        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(call('builder_finalize', {}, { ok: true }))).title).toBe('Finished and saved');
-        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(call('builder_propose_trigger', {}, { ok: true }))).title).toBe('Set the trigger');
-        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(call('builder_request_dry_run', {}, { run: {} }))).title).toBe('Tested the automation');
+        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(call('builder_finalize', {}, { ok: true }))).title).toBe('Saved, not switched on yet');
+        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(call('builder_propose_trigger', {}, { ok: true }))).title).toBe('Set how it starts');
+        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(call('builder_request_dry_run', {}, { run: {} }))).title).toBe('Did a test run');
     });
 
     it('uses the translator when one is supplied, and its key', () => {
-        const t = (key: string, en: string) => (key === 'automations.builder.act.finalize' ? 'Afgerond en opgeslagen' : en);
+        const t = (key: string, en: string) => (key === 'handover.act.finalize' ? 'Afgerond en opgeslagen' : en);
         expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(call('builder_finalize', {}, {})), t).title).toBe('Afgerond en opgeslagen');
     });
 
@@ -244,5 +244,17 @@ describe('a staged table', () => {
         const d = describeToolCall(tc);
         expect(d.title).toBe('Proposed new table "Facturen" (created on Apply)');
         expect(d.status).toBe('done');
+    });
+});
+
+describe('describeToolCall in plain words', () => {
+    const labels = new Map([['trg', 'How it starts'], ['read_1', 'Read the form'], ['mail_2', 'Send the reply']]);
+
+    it('a row never shows a bare step id as its detail: the label, or nothing', () => {
+        const tc = call('builder_update_step', { stepId: 'mail_2' }, { ok: true });
+        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(tc)).detail).toBe('');
+        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(tc), null, labels).detail).toBe('Send the reply');
+        const refused = call('builder_update_step', {}, { error: 'mail_2: binding steps.read_1.output.mail does not exist.' });
+        expect(describeToolCall(stub<Parameters<typeof describeToolCall>[0]>(refused), null, labels).error).toBe('"Send the reply": binding Mail from "Read the form" does not exist.');
     });
 });

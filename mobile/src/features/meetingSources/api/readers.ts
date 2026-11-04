@@ -14,7 +14,8 @@
  *   /gmeet-recordings           `{ connection, items: [...] }`
  *   /gmeet-imports              `{ items: [...] }`
  *   /from-nextcloud             the ingested note (`{ id, title, … }`)
- *   /from-gmeet                 the note, or 202 `{ jobId, status }`
+ *   /from-gmeet                 the note when already ingested, else 202 `{ jobId, status }`
+ *                               (the import runs in the background; follow /gmeet-imports)
  */
 
 import { field, pick, shapeListOf, shapeOf } from '@/core/api/contract';
@@ -95,9 +96,11 @@ export const readMeetMeetings: (raw: unknown) => MeetMeetings = shapeOf({
  */
 export function readRecordAnswer(raw: unknown, asked: boolean): RecordAnswer {
     const effective = pick(raw, 'effectiveRecord');
+    const autoRecording = pick(raw, 'autoRecordingConfig');
     return {
         effectiveRecord: typeof effective === 'boolean' ? effective : asked,
         overridden: pick(raw, 'overridden') === true,
+        ...(typeof autoRecording === 'string' ? { autoRecordingConfig: autoRecording } : {}),
     };
 }
 
@@ -157,9 +160,19 @@ export function readMeetImports(raw: unknown): MeetImportJob[] {
     return readJobs(pick(raw, 'items'));
 }
 
-/** A note id, or — for a Meet recording Google has not finished — a pending job. */
-export function readImportResult(raw: unknown): ImportResult {
+/** What an import answers, with the job a background (Meet) import runs as. */
+export interface ImportAnswer extends ImportResult {
+    /** Set with `pending`: the job to follow on GET /gmeet-imports. */
+    jobId: string | null;
+}
+
+/**
+ * A note id, or — for a Meet import, which the server runs in the background
+ * and answers 202 `{ jobId, status }` for — the job that will make the note.
+ */
+export function readImportResult(raw: unknown): ImportAnswer {
     const id = pick(raw, 'id');
-    if (typeof id === 'string' && id) return { id, pending: false };
-    return { id: null, pending: typeof pick(raw, 'jobId') === 'string' };
+    if (typeof id === 'string' && id) return { id, pending: false, jobId: null };
+    const jobId = pick(raw, 'jobId');
+    return typeof jobId === 'string' && jobId ? { id: null, pending: true, jobId } : { id: null, pending: false, jobId: null };
 }

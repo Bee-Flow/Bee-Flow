@@ -2,6 +2,7 @@ import { Check, ChevronRight, FlaskConical, Hammer, Layers, Loader2, TriangleAle
 import React from 'react';
 import type { CSSProperties } from 'react';
 import { describeLiveRun, describeToolCall, detailPayload } from './toolCallDisplay';
+import type { StepLabels } from './plainVocabulary';
 import type { LiveRunFocus, ToolCall, ToolCallRow, Translator } from './toolCallDisplay';
 import { StepBadge, TimelineRail } from '@/components/chat/MessageItem/timelineParts';
 import { typeColorVar, typeTileStyle } from '../flow/nodeTypeColors';
@@ -13,6 +14,8 @@ interface BuilderActivityProps {
     liveRun?: LiveRunFocus | null;
     t?: Translator | null;
     onFocusStep?: ((id: string) => void) | null;
+    /** Step id → label: rows and refusals name steps, not ids. */
+    stepLabels?: StepLabels | null;
 }
 
 interface RowGlyphProps {
@@ -71,11 +74,11 @@ function tr(t: BuilderActivityProps['t'], key: string, fallback: string): string
     return t ? t(key, fallback) : fallback;
 }
 
-export default function BuilderActivity({ toolCalls, running = false, liveRun = null, t = null, onFocusStep = null }: BuilderActivityProps) {
+export default function BuilderActivity({ toolCalls, running = false, liveRun = null, t = null, onFocusStep = null, stepLabels = null }: BuilderActivityProps) {
     const calls = Array.isArray(toolCalls) ? toolCalls : [];
     if (calls.length === 0) return null;
 
-    const rows = calls.map(tc => describeToolCall(tc, t));
+    const rows = calls.map(tc => describeToolCall(tc, t, stepLabels));
     const failed = rows.filter(r => r.status === 'failed').length;
     // Only while the turn runs: a manual run after the build is the canvas's
     // story, not this list's.
@@ -184,7 +187,6 @@ function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t =
                                 {row.detail}
                             </span>
                         )}
-                        {tc?.name && <span className="font-mono text-[10px] text-[var(--text-tertiary)] break-all">{tc.name}</span>}
                     </span>
                     {active
                         ? <Loader2 size={12} className="flex-shrink-0 animate-spin" style={{ color: typeColorVar(row.family) }} />
@@ -222,6 +224,9 @@ function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t =
                 )}
                 {/* The live row has no call yet — its payload is the run the
                     canvas is following, not something to print here. */}
+                {/* The builder's own name for the call: for whoever reads the
+                    payload, not part of what the row says (plain vocabulary). */}
+                {!live && tc?.name && <div className="mb-1 font-mono text-[10px] text-[var(--text-tertiary)] break-all">{tc.name}</div>}
                 {!live && (
                     <pre className="bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-md p-2 max-h-60 overflow-auto whitespace-pre-wrap text-[var(--text-primary)]">
                         {JSON.stringify(detailPayload(tc), null, 2)}

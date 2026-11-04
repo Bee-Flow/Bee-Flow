@@ -18,7 +18,7 @@ const { test } = require('node:test');
 const assert = require('assert');
 
 const { installDispatchStubs, tick } = require('./triggerBus.testkit');
-const { dispatchedRuns, storePath } = installDispatchStubs();
+const { dispatchedRuns, storePath, USERS } = installDispatchStubs();
 
 const { registerTriggerSource } = require('./triggerSources');
 const { dispatchEvent, dispatchOrgScopedEvent } = require('./triggerBus/dispatch');
@@ -107,5 +107,41 @@ test('org-scoped dispatch honours the rich filter DSL like every other path', as
         assert.deepStrictEqual(dispatchedRuns, ['auto-orgA'], 'anything else still fires');
     } finally {
         store.getSubscriptionsForProvider = original;
+    }
+});
+
+test('meeting-notes: "Meeting note ready" reaches only the note owner\'s automations, never the org', async () => {
+    // Owner-only is the runtime contract (emitMeetingProcessed always passes the
+    // owner's userId) and the declaration now says so: `scope: 'user'`. Under the
+    // old `scope: 'org'` an event without a userId fanned out to every
+    // subscriber in the organisation, so a colleague's automation ran on my note.
+    const kbPath = require.resolve('../jobs/kbSourceRefresh');
+    const kbBefore = require.cache[kbPath];
+    require.cache[kbPath] = /** @type {NodeJS.Module} */ ({ id: kbPath, filename: kbPath, loaded: true, exports: { onMeetingProcessed: async () => {} } });
+    USERS['user-colleague'] = { id: 'user-colleague', organizationId: 'org-A' };
+    const store = require.cache[storePath].exports;
+    const original = store.getSubscriptionsForProvider;
+    store.getSubscriptionsForProvider = async () => [
+        { id: 'sub-owner', automationId: 'auto-owner', userId: 'user-orgA', filter: { tags: ['klant'] } },
+        { id: 'sub-colleague', automationId: 'auto-colleague', userId: 'user-colleague', filter: { tags: ['klant'] } },
+    ];
+    const payload = { transcriptionId: 't-1', tags: ['klant'], orgId: 'org-A' };
+    try {
+        assert.strictEqual(require('./triggerSources').getProviderScope('meeting-notes'), 'user');
+
+        dispatchedRuns.length = 0;
+        await dispatchEvent({ provider: 'meeting-notes', event: 'meeting.processed', payload, userId: 'user-orgA', orgId: 'org-A' });
+        await tick();
+        assert.deepStrictEqual(dispatchedRuns, ['auto-owner'], 'only the owner\'s own automation runs');
+
+        dispatchedRuns.length = 0;
+        const runs = await dispatchEvent({ provider: 'meeting-notes', event: 'meeting.processed', payload, orgId: 'org-A' });
+        await tick();
+        assert.deepStrictEqual(runs, [], 'an event that names no owner is dropped, not fanned out to the org');
+        assert.deepStrictEqual(dispatchedRuns, []);
+    } finally {
+        store.getSubscriptionsForProvider = original;
+        delete USERS['user-colleague'];
+        if (kbBefore) require.cache[kbPath] = kbBefore; else delete require.cache[kbPath];
     }
 });

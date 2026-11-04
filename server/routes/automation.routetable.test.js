@@ -148,6 +148,7 @@ const EXPECTED = [
     // table" action — keyed by the automation id, never the page token.
     // Draft or revise a form's questions from a brief; nothing is stored.
     'POST /forms/ai/draft',
+        'POST /:id/forms/style-assist',
     'GET /forms/:automationId',
     // Who may fill the form in: everyone in the organisation, or the people
     // and groups the owner lists. Owner only.

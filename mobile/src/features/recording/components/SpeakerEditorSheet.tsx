@@ -45,8 +45,11 @@ export function SpeakerEditorSheetBody({
     onReidentify,
     reidentifying,
     attendees,
+    perPersonInsights,
 }: {
     speakers: Speaker[];
+    /** The organisation's per-person switch: off hides each speaker's airtime and turns. */
+    perPersonInsights: boolean;
     saving: boolean;
     error: string | null;
     onSave: (edit: SpeakerEdit) => void;
@@ -82,6 +85,7 @@ export function SpeakerEditorSheetBody({
                     <SpeakerNameRow
                         key={speaker.id}
                         speaker={speaker}
+                        showStats={perPersonInsights}
                         colour={colours[speaker.id] ?? theme.colors.textMuted}
                         name={names[speaker.id] ?? speaker.id}
                         onRename={(value) => setNames((prev) => ({ ...prev, [speaker.id]: value }))}

@@ -28,7 +28,7 @@ describe('assistant review controls', () => {
         await user.click(screen.getByRole('button'));
         await user.click(screen.getByRole('checkbox'));
         expect(onAlwaysPlanLargeChange).toHaveBeenCalledWith(false);
-        await user.click(screen.getByRole('menuitemradio', { name: /only discuss/i }));
+        await user.click(screen.getByRole('menuitemradio', { name: /just advise/i }));
         expect(onChange).toHaveBeenCalledWith('discuss');
         expect(screen.queryByRole('menu')).toBeNull();
     });
@@ -54,8 +54,13 @@ describe('assistant review controls', () => {
         render(<ProposalCard proposal={stub<ComponentProps<typeof ProposalCard>['proposal']>({ id: 'p', baseDefinition, definition })} onApply={onApply} onDiscard={vi.fn()} onPreview={vi.fn()} realOutputById={new Map([['t', { sender: 'sender@example.test', recipient: 'recipient@example.test' }]])} />);
         expect(screen.getByText(/↳ sender@example.test/)).toBeTruthy();
         expect(screen.getByText(/↳ recipient@example.test/)).toBeTruthy();
-        await user.click(screen.getByRole('checkbox', { name: 'settings.to' }));
-        await user.click(screen.getByRole('button', { name: 'Apply' }));
+        // Plain words: the field by its name, the reference as "uses … from …";
+        // the stored path only behind Details.
+        expect(screen.getByText('uses Sender from how it starts')).toBeTruthy();
+        expect(screen.getByText('→ uses Recipient from how it starts')).toBeTruthy();
+        expect(screen.getAllByTestId('proposal-change-details')[0].textContent).toContain('trigger.output.recipient');
+        await user.click(screen.getByRole('checkbox', { name: 'To' }));
+        await user.click(screen.getByRole('button', { name: 'Make the change' }));
         // The card hands over the unticked fields; the shell reverts them on the
         // definition the server answers with (which holds the real table ids).
         const excluded = onApply.mock.calls[0][0];
@@ -66,17 +71,34 @@ describe('assistant review controls', () => {
 });
 
 describe('proposal card', () => {
-    it('says a yes in the chat applies nothing, and offers Apply and Discard (BFSF-486)', async () => {
+    it('says a yes in the chat applies nothing, and offers Make the change and Discard (BFSF-486)', async () => {
         const user = userEvent.setup();
         const onApply = vi.fn(), onDiscard = vi.fn();
         const baseDefinition = { trigger: { id: 't', kind: 'manual' }, steps: [] };
         const definition = { ...baseDefinition, steps: [{ id: 's1', type: 'set', label: 'Email totals' }] };
         render(<ProposalCard proposal={stub<ComponentProps<typeof ProposalCard>['proposal']>({ id: 'p', baseDefinition, definition })} onApply={onApply} onDiscard={onDiscard} onPreview={vi.fn()} />);
-        expect(screen.getByText(/does not apply this\. Press Apply/)).toBeTruthy();
+        expect(screen.getByText(/does not make this change\. Press Make the change/)).toBeTruthy();
+        expect(screen.getByText('Preview of the change')).toBeTruthy();
         await user.click(screen.getByRole('button', { name: 'Discard' }));
         expect(onDiscard).toHaveBeenCalledTimes(1);
-        await user.click(screen.getByRole('button', { name: 'Apply' }));
+        await user.click(screen.getByRole('button', { name: 'Make the change' }));
         expect(onApply.mock.calls[0][0]).toBeInstanceOf(Set);
         expect(onApply.mock.calls[0][0].size).toBe(0);
+    });
+});
+
+describe('proposal card: no ids in what the person reads', () => {
+    it('names an unlabelled step by its palette label and a trigger as "How it starts"; the id sits in Details', () => {
+        const baseDefinition = { trigger: { id: 'trg_7f', type: 'trigger', kind: 'manual' }, steps: [{ id: 'http_9a', type: 'http_request', settings: { url: 'https://a.example.test' } }] };
+        const definition = { trigger: { ...baseDefinition.trigger, kind: 'schedule' }, steps: [{ ...baseDefinition.steps[0], settings: { url: 'https://b.example.test' } }] };
+        const { container } = render(<ProposalCard proposal={stub<ComponentProps<typeof ProposalCard>['proposal']>({ id: 'p', baseDefinition, definition })} onApply={vi.fn()} />);
+        expect(screen.getByText('How it starts')).toBeTruthy();
+        const details = [...container.querySelectorAll('[data-testid="proposal-change-details"]')];
+        expect(details.map((d) => d.textContent).join(' ')).toContain('http_9a');
+        // Outside the Details the ids do not appear.
+        const visible = container.cloneNode(true) as HTMLElement;
+        visible.querySelectorAll('[data-testid="proposal-change-details"]').forEach((d) => d.remove());
+        expect(visible.textContent).not.toContain('http_9a');
+        expect(visible.textContent).not.toContain('trg_7f');
     });
 });

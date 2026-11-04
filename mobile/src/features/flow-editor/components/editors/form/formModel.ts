@@ -1,9 +1,9 @@
 /**
  * One hosted form page — the declaration a form trigger (page one) and every
  * `form_page` step (page two on, and the closing page) carry — pure. From
- * agent-hub `Builder/flow/settings/FormBuilderFields.jsx`, a component file
- * the phone cannot load; form.lockstep.test.ts cuts the web's functions and
- * lists out of its text and compares.
+ * agent-hub `Builder/flow/settings/` (FormBuilderFields.jsx, a component file
+ * the phone cannot load; formDeclarations.ts; formStyle/); form.lockstep.test.ts
+ * runs the web's pure functions, reads its lists, and compares.
  *
  * The author edits a question's LABEL; its `name` is minted once, when the
  * question is created, and never re-derived — re-deriving it would silently
@@ -41,11 +41,15 @@ export const isFileField = (f: { type?: unknown } | null | undefined): boolean =
 export const CHOICE_FIELD_TYPES: readonly string[] = ['select', 'radio', 'multiselect'];
 export const isChoiceField = (f: { type?: unknown } | null | undefined): boolean => CHOICE_FIELD_TYPES.includes(String(f?.type));
 
+/**
+ * The theme's knobs, in the order the web's style editor shows them (its Look
+ * group, then its Layout group), each with the web's own label key.
+ */
 export const THEME_KNOBS: readonly { key: keyof FormTheme; label: Msg; values: readonly string[] }[] = [
-    { key: 'radius', label: msg('mobile.flow.form.knob_radius', 'Corners'), values: ['none', 'sm', 'md', 'lg', 'xl'] },
-    { key: 'density', label: msg('mobile.flow.form.knob_density', 'Spacing'), values: ['compact', 'comfortable', 'spacious'] },
-    { key: 'fontScale', label: msg('mobile.flow.form.knob_font', 'Text size'), values: ['sm', 'md', 'lg'] },
-    { key: 'appearance', label: msg('mobile.flow.form.knob_appearance', 'Appearance'), values: ['light', 'dark', 'auto'] },
+    { key: 'appearance', label: msg('forms.style.appearance', 'Appearance'), values: ['light', 'dark', 'auto'] },
+    { key: 'radius', label: msg('forms.style.radius', 'Corners'), values: ['none', 'sm', 'md', 'lg', 'xl'] },
+    { key: 'density', label: msg('forms.style.density', 'Spacing'), values: ['compact', 'comfortable', 'spacious'] },
+    { key: 'fontScale', label: msg('forms.style.text_size', 'Text size'), values: ['sm', 'md', 'lg'] },
 ];
 
 export const COLOR_PRESETS: readonly string[] = [

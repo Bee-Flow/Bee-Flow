@@ -51,6 +51,7 @@ function resetFx() {
     fx.metaError = null;
     fx.mediaError = null;
     fx.mediaBody = 'mp4-bytes';
+    fx.mediaStream = null;
     fx.ffmpegExitCode = 0;
     fx.spawnError = null;
     fx.calls = { spacesGet: [], spacesPatch: [], recordsList: [], recordingsList: [], participantsList: [], driveMeta: [], driveMedia: [], spawns: [] };
@@ -97,6 +98,7 @@ const fakeDrive = {
             if (params.alt === 'media') {
                 fx.calls.driveMedia.push({ params, opts });
                 if (fx.mediaError) throw fx.mediaError;
+                if (fx.mediaStream) return { data: fx.mediaStream };
                 return { data: Readable.from([Buffer.from(fx.mediaBody)]) };
             }
             fx.calls.driveMeta.push(params);
@@ -287,6 +289,22 @@ test('findGeneratedRecording: recordings without a generated file → notReady',
     assert.deepEqual(await findGeneratedRecording(session, 'conferenceRecords/cr1'), { notReady: true });
 });
 
+test('findGeneratedRecording: a recording stopped and restarted reports its other parts, and which are still processing', async () => {
+    resetFx();
+    fx.recordings = [
+        { name: 'conferenceRecords/cr1/recordings/r2', state: 'ENDED', startTime: '2026-11-03T10:15:00Z' },
+        { name: 'conferenceRecords/cr1/recordings/r1', state: 'FILE_GENERATED', startTime: '2026-11-03T09:00:00Z', driveDestination: { file: 'drive-part-1' } },
+    ];
+    assert.deepEqual(await findGeneratedRecording(session, 'conferenceRecords/cr1'), {
+        recordingName: 'conferenceRecords/cr1/recordings/r1', driveFileId: 'drive-part-1',
+        extraRecordings: 1, pendingRecordings: 1,
+    });
+    fx.recordings[0] = { ...fx.recordings[0], state: 'FILE_GENERATED', driveDestination: { file: 'drive-part-2' } };
+    assert.deepEqual(await findGeneratedRecording(session, 'conferenceRecords/cr1'), {
+        recordingName: 'conferenceRecords/cr1/recordings/r1', driveFileId: 'drive-part-1', extraRecordings: 1,
+    });
+});
+
 test('findGeneratedRecording: no recordings at all → none', async () => {
     resetFx();
     fx.recordings = [];
@@ -371,7 +389,8 @@ test('downloadRecordingToFile: streams the file to disk', async () => {
     const media = fx.calls.driveMedia[0];
     assert.equal(media.params.alt, 'media');
     assert.equal(media.params.fileId, 'drive-file-1');
-    assert.deepEqual(media.opts, { responseType: 'stream' });
+    assert.equal(media.opts.responseType, 'stream');
+    assert.ok(media.opts.signal instanceof AbortSignal, 'the media request can be aborted on a stall');
 });
 
 test('downloadRecordingToFile: 403 on media → no_drive_access, 404 on metadata too', async () => {
@@ -415,4 +434,18 @@ test('extractAudioTrack: non-zero exit rejects', async () => {
     resetFx();
     fx.ffmpegExitCode = 1;
     await assert.rejects(() => extractAudioTrack('/videos/in.mp4', '/videos/out.m4a'), /ffmpeg exited with code 1/);
+});
+
+test('downloadRecordingToFile: a media stream that goes silent is aborted as download_failed, not awaited forever', async () => {
+    resetFx();
+    const { PassThrough } = require('stream');
+    const stream = new PassThrough();
+    stream.write(Buffer.from('first-bytes'));
+    fx.mediaStream = stream; // never ends, never errors: a half-open connection
+    const dest = path.join(tmpDir, 'stalled.mp4');
+    await assert.rejects(
+        () => downloadRecordingToFile(session, 'drive-file-1', dest, { maxBytes: 500 * 1024 * 1024, idleTimeoutMs: 100 }),
+        (err) => err.code === 'download_failed' && /no data/.test(err.message),
+    );
+    assert.equal(fs.existsSync(dest), false, 'the partial file is removed');
 });

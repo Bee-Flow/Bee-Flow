@@ -11,6 +11,7 @@ import { loadWebModule } from '@/shared/testing/webModule';
 import {
     attendeeCountOf,
     attendeeNotices,
+    autoRecordingHint,
     durationPhrase,
     meetingTags,
     metaSegments,
@@ -74,6 +75,16 @@ describe('upcomingMeta.ts matches upcomingMeta.js', () => {
                 expect(toggleStateLabel(record, decided, t)).toBe(web.toggleStateLabel(record, decided, t));
             }
         }
+    });
+
+    it('says the same about what a switch did to the provider\'s own auto-recording', () => {
+        for (const outcome of ['set', 'unset', 'series_only', 'overridden', 'skipped', 'error', null, undefined]) {
+            for (const provider of ['teams', 'gmeet'] as const) {
+                expect(autoRecordingHint(outcome, provider, t)).toBe(web.autoRecordingHint(outcome, provider, t));
+            }
+        }
+        expect(autoRecordingHint('series_only', 'gmeet', t)).toMatch(/shares one Meet link/);
+        expect(autoRecordingHint('set', 'gmeet', t)).toBeUndefined();
     });
 
     it('picks the same footer notices', () => {

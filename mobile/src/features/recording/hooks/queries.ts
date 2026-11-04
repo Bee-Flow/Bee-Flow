@@ -2,7 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { getTranscription, listTranscriptions } from '../api/endpoints';
+import { ApiError } from '@/core/api/client';
+
+import { forgetMeetingAudio, getTranscription, listTranscriptions } from '../api/endpoints';
 import { recordingKeys } from '../api/keys';
 
 /**
@@ -31,7 +33,16 @@ export function useTranscriptions() {
 export function useTranscription(id: string) {
     return useQuery({
         queryKey: recordingKeys.detail(id),
-        queryFn: ({ signal }) => getTranscription(id, signal),
+        queryFn: async ({ signal }) => {
+            try {
+                return await getTranscription(id, signal);
+            } catch (err) {
+                // Gone, or no longer shared with us: a copy of its recording
+                // left in the cache must not outlive that access.
+                if (err instanceof ApiError && err.status === 404) forgetMeetingAudio(id);
+                throw err;
+            }
+        },
         enabled: Boolean(id),
         // Same reasoning as the list, and only while this note is processing.
         refetchInterval: (q) => (q.state.data?.status === 'processing' ? PROCESSING_POLL_MS : false),

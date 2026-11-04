@@ -25,7 +25,9 @@ const meetingFiling = require('../../projects/meetingFiling');
 const { toContextBias } = require('../../core/meetingNotes/summaryHelpers');
 const { lookupUserName } = require('./speakerNaming');
 const { resolveProjectFiling, resolveUploadProvider, persistUploadAudio } = require('./uploadIntake');
-const { transcribeUpload, analyseUpload, finishUpload } = require('./uploadPipeline');
+const { transcribeUpload, analyseUpload, finishUpload, beatProcessing } = require('./uploadPipeline');
+const { failureSummary } = require('./noteText.mts');
+const { discardSavedAudio } = require('../../core/meetingNotes/savedAudioStore');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice } = require('./schemas');
@@ -49,6 +51,7 @@ const { worded, bodyOf, choice } = require('./schemas');
 //
 // Everything is text: FormData carries no other types.
 const CAPTURE_TEXT = 'capture_mode is "recording" of "upload".';
+const CLIENT_UPLOAD_ID_TEXT = 'client_upload_id is an id of 8 to 100 letters, digits, - or _.';
 const UploadBody = bodyOf({
     capture_mode: choice(['recording', 'upload'], CAPTURE_TEXT).optional(),
     language: worded('language is een taalcode.').trim().min(1).optional(),
@@ -63,6 +66,12 @@ const UploadBody = bodyOf({
     // Files the new note into a collaborative project (editor or owner there;
     // see projects/meetingFiling.js). Empty means none: a form field is always text.
     projectId: worded('projectId is the id of a project.').trim().max(200, 'projectId is the id of a project.').optional(),
+    // The client's own id for this recording (the phone's outbox entry). A
+    // retry of the same recording after a lost 202 answers with the note the
+    // first attempt created, instead of making a second note and paying for a
+    // second transcription.
+    client_upload_id: worded(CLIENT_UPLOAD_ID_TEXT).trim()
+        .regex(/^[A-Za-z0-9_-]{8,100}$/, CLIENT_UPLOAD_ID_TEXT).optional(),
 });
 
 // ── Upload & transcribe ──────────────────────────────────
@@ -71,6 +80,70 @@ const UploadBody = bodyOf({
 // paid provider). TRANSCRIPTION_UPLOAD_RPM sets it (0 = no limit). Before the
 // multipart parser, so a refused request never buffers its file.
 const uploadLimiter = spendLimiter({ env: 'TRANSCRIPTION_UPLOAD_RPM', fallback: 20, name: 'transcription-upload' });
+
+/**
+ * The note an earlier attempt of the same upload created (same user, same
+ * client_upload_id), or null.
+ * @param {string | null} sourceUri
+ * @param {string} userId
+ */
+async function earlierUpload(sourceUri, userId) {
+    if (!sourceUri) return null;
+    const earlier = await transcriptionStore.getTranscriptionBySourceUri(sourceUri);
+    return earlier && earlier.user_id === userId ? earlier : null;
+}
+
+/**
+ * Create the 'processing' note for the copies just made. The copies are
+ * thrown away when no note will point at them: the INSERT failed (with no row
+ * they could never be found, played or deleted again; the backfill keeps such
+ * files on purpose), or a concurrent attempt with the same client_upload_id
+ * won it (`dedup`).
+ * @param {Parameters<typeof transcriptionStore.createTranscription>[0]} fields  the createTranscription row
+ * @returns {Promise<{ id: string, dedup?: boolean }>}
+ */
+async function createProcessingNote(fields) {
+    const copies = { audioPath: fields.audioPath || null, audioStorageKey: fields.audioStorageKey || null };
+    let note;
+    try {
+        note = await transcriptionStore.createTranscription(fields);
+    } catch (err) {
+        await discardSavedAudio(copies);
+        throw err;
+    }
+    if (note.dedup) await discardSavedAudio(copies);
+    return note;
+}
+
+/**
+ * A run that failed after the 202: flip the note to 'failed' with the reason
+ * in `summary`; saved audio stays so it can be reprocessed. The reason is read
+ * by everyone the note reaches, so it is the redacted one line
+ * (noteText.failureSummary), never an upstream response body; the full error
+ * is in the log. Before the note existed there is nothing to flip: the client
+ * still waits, and gets a 500.
+ * @param {string | null} transcriptionId
+ * @param {string} userId
+ * @param {unknown} err
+ * @param {import('express').Response} res
+ * @returns {Promise<InstanceType<typeof HttpError> | null>} the error to answer with, if any
+ */
+async function recordUploadFailure(transcriptionId, userId, err, res) {
+    try {
+        if (transcriptionId) {
+            await transcriptionStore.updateTranscription(transcriptionId, userId, {
+                status: 'failed',
+                summary: failureSummary(err),
+            });
+        } else if (!res.headersSent) {
+            // Failed before the processing note / 202 — surface synchronously.
+            return new HttpError(500, 'transcription_failed', 'Transcription failed');
+        }
+    } catch (dbErr) {
+        log.error('[Transcriptions] Failed to record transcription failure:', /** @type {Error} */ (dbErr).message);
+    }
+    return null;
+}
 
 router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
@@ -101,6 +174,13 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
     // Once the 'processing' note is created and the 202 sent, transcriptionId is
     // set and all further outcomes are written to the note, not the HTTP response.
     let transcriptionId = null;
+    const dropScratch = () => {
+        try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { log.warn('temp upload could not be removed', _); }
+    };
+    // A retry of a recording this user already sent (see client_upload_id).
+    const sourceUri = req.body.client_upload_id ? `upload://${userId}/${req.body.client_upload_id}` : null;
+    /** @param {{ id: string }} note */
+    const answerRepeat = (note) => res.status(202).json({ id: note.id, status: 'processing', title, fileName: req.file.originalname || 'audio.mp3', projectId, dedup: true });
 
     try {
         // The transcription pipeline (transcribe → diarize → summarise) can take
@@ -117,6 +197,13 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
         const fileName = req.file.originalname || 'audio.mp3';
         const uploadBytes = req.file.size || 0;
 
+        const earlier = await earlierUpload(sourceUri, userId);
+        if (earlier) {
+            log.info(`[Transcriptions] Upload ${req.body.client_upload_id} was already accepted as ${earlier.id} — answering with that note`);
+            dropScratch();
+            return answerRepeat(earlier);
+        }
+
         // Fetch the logged-in user's display name for speaker ID anchoring
         const userName = await lookupUserName(userId);
 
@@ -132,24 +219,21 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
         // and writes its result to this note (or marks it 'failed' in the catch). ──
         const { savedAudioPath, audioStorageKey } = await persistUploadAudio(req.file, userId, fileName);
 
-        const processingNote = await transcriptionStore.createTranscription({
-            userId,
-            organizationId: userOrgId,
-            title,
-            fileName,
-            language,
-            status: 'processing',
-            audioPath: savedAudioPath,
-            audioStorageKey,
-            provider,
-            attendees,
-            numSpeakers,
+        // No note for the copies (failed INSERT, or a repeat that lost the race): they go.
+        const processingNote = await createProcessingNote({
+            userId, organizationId: userOrgId, title, fileName, language, status: 'processing',
+            audioPath: savedAudioPath, audioStorageKey, provider, attendees, numSpeakers,
             // Both used to be 'upload'. The distinction matters only when the
             // audio is later missing: for a recording there is no original file
             // anywhere, so "upload it again" is not something the user can do.
             source: req.body.capture_mode || 'upload',
             projectId,
+            ...(sourceUri ? { sourceUri } : {}),
         });
+        if (processingNote.dedup) {
+            dropScratch();
+            return answerRepeat(processingNote);
+        }
         transcriptionId = processingNote.id;
         // Members see the note appear (still processing) the moment it exists.
         if (projectId) await meetingFiling.announce(projectId, userId, transcriptionId);
@@ -162,36 +246,24 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
         const transcribed = await transcribeUpload({
             provider, filePath: req.file.path, fileName, language, contextTerms, numSpeakers, userOrgId, userId, attendees,
         });
+        // Heartbeats between the phases: the stuck-note reaper measures silence,
+        // not meeting length. Best-effort.
+        await beatProcessing(transcriptionId);
         const analysis = await analyseUpload({
             req, transcriptionId, userId, userOrgId, userName, language, attendees, numSpeakers, title, transcribed,
         });
+        await beatProcessing(transcriptionId);
 
         // Audio was persisted up front (savedAudioPath); clean up the temp upload.
-        try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { log.warn('temp upload could not be removed', _); }
+        dropScratch();
 
         await finishUpload({
             transcriptionId, userId, userOrgId, transcribed, analysis, provider: transcribed.provider, placeholderTitle,
         });
     } catch (err) {
         log.error('[Transcriptions] Transcribe error:', /** @type {Error} */ (err).message);
-        /** @type {HttpError | null} */
-        let failure = null;
-        try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { log.warn('temp upload could not be removed', _); }
-        try {
-            if (transcriptionId) {
-                // Already responded 202: flip the note to 'failed' with the reason
-                // in `summary`; saved audio stays so it can be reprocessed.
-                await transcriptionStore.updateTranscription(transcriptionId, userId, {
-                    status: 'failed',
-                    summary: `Transcription failed: ${/** @type {Error} */ (err).message}`,
-                });
-            } else if (!res.headersSent) {
-                // Failed before the processing note / 202 — surface synchronously.
-                failure = new HttpError(500, 'transcription_failed', 'Transcription failed');
-            }
-        } catch (dbErr) {
-            log.error('[Transcriptions] Failed to record transcription failure:', /** @type {Error} */ (dbErr).message);
-        }
+        dropScratch();
+        const failure = await recordUploadFailure(transcriptionId, userId, err, res);
         if (failure) throw failure;
     }
 });

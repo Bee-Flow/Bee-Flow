@@ -23,6 +23,7 @@
  *   datatableStep.js       datatable reads and writes
  *   outboundSteps.js       http_request, notification, knowledge_write
  *   tableSteps.js          read_table, table
+ *   callBlock.js           call_block: a reusable building block from the picker list
  *   noteStep.js            the free-floating canvas note
  */
 
@@ -68,6 +69,7 @@ const {
 } = require('./outboundSteps');
 const { sanitizeNoteSize, applyAddNote, NOTE_MAX_TEXT_LENGTH, NOTE_COLOR_KEYS } = require('./noteStep');
 const { applyAddReadTable, applyAddTable } = require('./tableSteps');
+const { applyAddCallBlock } = require('./callBlock');
 
 // The apply* builder of every type the builder can create. Reused by
 // builder_replace_step and builder_add_steps so a swapped or batched step inherits
@@ -91,6 +93,7 @@ const BUILDERS = {
     flatten: applyAddFlatten,
     read_table: applyAddReadTable,
     table: applyAddTable,
+    call_block: applyAddCallBlock,
 };
 
 // Map a step type to its builder — DRIVEN BY the step-type table
@@ -175,6 +178,7 @@ module.exports = {
     applyAddArrayOp,
     applyAddReadTable,
     applyAddTable,
+    applyAddCallBlock,
     applyAddNote,
     NOTE_MAX_TEXT_LENGTH,
     NOTE_COLOR_KEYS,

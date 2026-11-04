@@ -45,6 +45,10 @@ export interface CanAutoSendArgs {
 //   patternOrigin — the "Find repeating work" pattern this new build
 //     was opened from ({ signature?, suggestion }); usePatternOrigin
 //     records `built` for it once the build is done.
+//   initialWorkMode — the work mode a new build opens in instead of the
+//     remembered one ('describe' for a Studio "Describe it" brief). A
+//     forced tier still opens in 'build'; the remembered default for the
+//     next new automation is not touched.
 export interface BuilderShellProps {
     user?: AppUserLike | null;
     autoSendInput?: string | null;
@@ -69,6 +73,7 @@ export interface BuilderShellProps {
     forceAssistantOpen?: boolean;
     seedMetadata?: { title: string; } | null;
     patternOrigin?: PatternOrigin | null;
+    initialWorkMode?: string | null;
 }
 
 /**

@@ -76,13 +76,14 @@ function valueOfItem(item, valuePath) {
 
 /**
  * The allowed values of one list spec `{ ref, value? }`, from RAW run data.
- * @returns {{ ok: boolean, values: string[] }} ok is false when the ref is not a list
+ * @returns {{ ok: boolean, values: string[], unset?: boolean }} ok is false when the ref is not a list;
+ *   unset is true when nothing at all sits there (no step or variable set it)
  * @param {{ field: string; ref: string; value?: string; ignoreCase?: boolean; allowEmpty?: boolean; }} spec
  * @param {BindRunState} runState
  */
 function listValuesOf(spec, runState) {
     const list = walkList(spec.ref, { ...runState, secrets: {} });
-    if (!Array.isArray(list)) return { ok: false, values: [] };
+    if (!Array.isArray(list)) return { ok: false, values: [], unset: list === undefined || list === null };
     const seen = new Set();
     for (const item of list) {
         const v = valueOfItem(item, spec.value);
@@ -96,21 +97,21 @@ function listValuesOf(spec, runState) {
  * @param {Array<{ field: string, ref: string, value?: string, ignoreCase?: boolean, allowEmpty?: boolean }>} entries
  * @param {import('../automationModel/bind').BindRunState} runState
  * @param {{ mode: string, ctx: any }} env
- * @returns {Array<{ field: string, ignoreCase: boolean, allowEmpty: boolean, ok: boolean, values: string[], sendable: boolean }>}
+ * @returns {Array<{ field: string, ref: string, ignoreCase: boolean, allowEmpty: boolean, ok: boolean, unset: boolean, values: string[], sendable: boolean }>}
  *   `sendable` is false for a list over the cap: it is still checked, never sent.
  */
 function resolveLists(entries, runState, { mode, ctx }) {
     const cap = enumCap();
-    /** @type {{ field: string; ignoreCase: boolean; allowEmpty: boolean; ok: boolean; values: string[]; sendable: boolean; }[]} */
+    /** @type {{ field: string; ref: string; ignoreCase: boolean; allowEmpty: boolean; ok: boolean; unset: boolean; values: string[]; sendable: boolean; }[]} */
     const out = [];
     for (const e of entries || []) {
         if (mode === 'dry_run' && refIsSynthetic(e.ref, runState, ctx || {})) continue;
-        const { ok, values } = listValuesOf(e, runState);
+        const { ok, values, unset = false } = listValuesOf(e, runState);
         const sendable = ok && values.length > 0 && (cap === 0 || values.length <= cap);
         if (ok && !sendable && values.length > 0) {
             log.warn(`[AutomationRunner] ai_step: the allowed values for "${e.field}" are over AUTOMATION_AI_ENUM_MAX_VALUES (${values.length} > ${cap}); they are checked afterwards but not sent to the model`);
         }
-        out.push({ field: e.field, ignoreCase: e.ignoreCase !== false, allowEmpty: e.allowEmpty === true, ok, values, sendable });
+        out.push({ field: e.field, ref: e.ref, ignoreCase: e.ignoreCase !== false, allowEmpty: e.allowEmpty === true, ok, unset, values, sendable });
     }
     return out;
 }

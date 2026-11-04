@@ -332,7 +332,7 @@ const batch = (items) => call('POST', '/api/projects/p1/tasks/batch', { body: { 
 const src = (itemId) => ({ kind: 'meeting', id: 'mt-1', itemId });
 const suggestions = async () => (await call('GET', '/api/projects/p1/meetings/mt-1/task-suggestions')).body.suggestions;
 
-test('after the summary is regenerated a position holding another item is not "already a task"', async () => {
+test('after the summary is regenerated a position holding another item is not "already a task", and a renumbered item is', async () => {
     const made = await withItems([{ id: 'ai-7', text: 'Draft the plan' }, { id: 'ai-8', text: 'Call the bank' }], async () => {
         const res = await batch([{ title: 'Draft the plan', source: src('ai-7') }]);
         assert.strictEqual(res.status, 201, res.text);
@@ -345,7 +345,9 @@ test('after the summary is regenerated a position holding another item is not "a
         assert.deepStrictEqual([res.body.tasks.length, res.body.skipped], [1, 0]);
     });
     await withItems([{ id: 'ai-9', text: 'Draft the plan' }], async () => {
-        assert.strictEqual((await suggestions())[0].createdTaskId, null, 'the same words at another position count as another item');
+        // A regenerate renumbers its items: the same words at another position are the same task, not a second one.
+        assert.strictEqual((await suggestions())[0].createdTaskId, made.id, 'the same words at another position are the same task');
+        assert.strictEqual((await batch([{ title: 'Draft the plan', source: src('ai-9') }])).body.skipped, 1, 'and "Create all" does not make it twice');
     });
     await withItems([{ id: 'ai-7', text: 'draft the  plan' }], async () => {
         assert.strictEqual((await suggestions())[0].createdTaskId, made.id, 'same item, same position');

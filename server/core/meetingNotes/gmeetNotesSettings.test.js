@@ -174,7 +174,7 @@ test('org GET: 403 for non-members, config for members (null orgIds = all)', asy
     resetFx();
     res = await dispatch({ url: '/orgA', session: makeSession() });
     assert.strictEqual(res.statusCode, 200);
-    assert.strictEqual(res.body.autoImport, false, 'defaults returned for an unconfigured org');
+    assert.strictEqual(res.body.autoImport, null, 'an unconfigured org has no opinion: each member decides');
 
     resetFx();
     fx.orgIds = null; // super admin
@@ -300,4 +300,28 @@ test('a null on both docs lands on the built-in default', async () => {
 
     const eff = await gmeetNotes.resolveGmeetNotesSettings({ orgId: 'org1', userId: 'u1' });
     assert.strictEqual(eff.language, 'nl');
+});
+
+test('REGRESSION: saving the org form only to change the language leaves members their own auto-import', async () => {
+    resetFx();
+    await gmeetNotes.saveUserSettings('u1', { autoImport: true, importScope: 'calendar' });
+    // The admin panel loads the GET, changes one field and PUTs the whole object back.
+    const loaded = await gmeetNotes.getOrgSettings('o1');
+    assert.strictEqual(loaded.autoImport, null);
+    assert.strictEqual(loaded.importScope, null);
+    await gmeetNotes.saveOrgSettings('o1', { ...JSON.parse(JSON.stringify(loaded)), language: 'en' }, 'admin');
+    const eff = await gmeetNotes.resolveGmeetNotesSettings({ orgId: 'o1', userId: 'u1' });
+    assert.strictEqual(eff.autoImport, true);
+    assert.strictEqual(eff.importScope, 'calendar');
+    assert.strictEqual(eff.language, 'en');
+});
+
+test('an org save that leaves a field out stores no opinion for it', async () => {
+    resetFx();
+    const saved = await gmeetNotes.saveOrgSettings('o2', { language: 'en' }, 'admin');
+    assert.strictEqual(saved.autoImport, null);
+    assert.strictEqual(saved.lookbackHours, null);
+    // A member's own save still coerces an absent field (their own document).
+    const mine = await gmeetNotes.saveUserSettings('u9', { language: 'en' });
+    assert.strictEqual(mine.autoImport, false);
 });

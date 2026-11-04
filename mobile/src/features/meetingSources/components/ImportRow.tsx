@@ -23,9 +23,11 @@ export interface ImportRowProps {
     onOpenNote: (id: string) => void;
     /** Shown instead of the button when there is nothing to import. */
     state?: string;
+    /** Makes the state chip a button: the way out of that state (Reconnect Google, say). */
+    onStatePress?: () => void;
 }
 
-export function ImportRow({ title, subtitle, icon, busy, locked, noteId, onImport, onOpenNote, state }: ImportRowProps) {
+export function ImportRow({ title, subtitle, icon, busy, locked, noteId, onImport, onOpenNote, state, onStatePress }: ImportRowProps) {
     const t = useTranslation();
     const theme = useTheme();
     let trailing: React.ReactNode = null;
@@ -45,7 +47,7 @@ export function ImportRow({ title, subtitle, icon, busy, locked, noteId, onImpor
             />
         );
     } else if (state) {
-        trailing = <Chip label={state} tone="muted" />;
+        trailing = <Chip label={state} tone={onStatePress ? 'warning' : 'muted'} onPress={onStatePress} />;
     }
     return (
         <ListRow

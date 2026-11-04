@@ -24,9 +24,9 @@ interface ChoiceProps {
     onBlur?: () => void;
 }
 
-const ERROR_TEXT = 'text-xs text-[var(--error)]';
-const HELP_TEXT = 'text-xs text-[var(--text-muted)]';
-const OPTION_ROW = 'flex items-start gap-2 text-sm cursor-pointer text-[var(--text-primary)]';
+const ERROR_TEXT = 'bf-form__error text-xs text-[var(--error)]';
+const HELP_TEXT = 'bf-form__hint text-xs text-[var(--text-muted)]';
+const OPTION_ROW = 'bf-form__choice-option flex items-start gap-2 text-sm cursor-pointer text-[var(--text-primary)]';
 
 /** "Choose up to 3" / "Choose at least 2" / "Choose 2 to 4": what a multiselect asks for, or ''. */
 function choiceCountHint(field: FormFieldDef, t: ReturnType<typeof useTranslation>['t']): string {
@@ -61,9 +61,9 @@ function ChoiceShell({ field, error, role, onBlur, hint, children }: {
             aria-describedby={describedBy}
             aria-invalid={role === 'radiogroup' && error ? true : undefined}
             onBlur={onBlur}
-            className="flex flex-col gap-1.5 text-left min-w-0 m-0 p-0 border-0"
+            className="bf-form__choice flex flex-col gap-1.5 text-left min-w-0 m-0 p-0 border-0"
         >
-            <legend className="p-0 mb-1 text-sm font-medium text-[var(--text-primary)]">
+            <legend className="bf-form__label p-0 mb-1 text-sm font-medium text-[var(--bf-label,var(--text-primary))]">
                 {field.label}
                 {field.required && !field.noOptions ? <span aria-hidden="true" className="text-[var(--error)]"> *</span> : null}
             </legend>

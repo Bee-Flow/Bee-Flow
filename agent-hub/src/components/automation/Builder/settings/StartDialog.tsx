@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useTriggerProvidersQuery } from '@/api/queries/automation/settings';
 import Modal from '@/components/shared/Modal';
-import { defaultFormDeclaration } from '../flow/settings/FormBuilderFields';
+import { defaultFormDeclaration } from '../flow/settings/formDeclarations';
 import ScheduleInWords from './ScheduleInWords';
 import { PRIMARY_BTN, SECONDARY_BTN } from './settingsUi';
 import { START_CARDS, cardFromTrigger, cronFromWords, triggerFromChoice, wordsFromCron } from './startChoice';

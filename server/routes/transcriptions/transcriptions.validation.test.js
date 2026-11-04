@@ -324,6 +324,18 @@ test('de bladwijzer die de app echt verstuurt bladert nog steeds', async () => {
     assert.strictEqual(touched.find((x) => x.what === 'getTranscriptions').args[1].limit, 100);
 });
 
+test('a negative limit is a 400, never a LIMIT -1 for Postgres', async () => {
+    await refuses({ method: 'GET', url: '/?limit=-1' }, 'query.limit');
+    await refuses({ method: 'GET', url: '/?limit=0' }, 'query.limit');
+    await refuses({ method: 'GET', url: '/?offset=-5' }, 'query.offset');
+});
+
+test('an empty limit is the default page, not an empty library', async () => {
+    const res = await dispatch({ method: 'GET', url: '/?limit=' });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(touched.find((x) => x.what === 'getTranscriptions').args[1].limit, 50);
+});
+
 test('een rapport zonder vraag of zonder vergaderingen houdt dezelfde zinnen', async () => {
     const noIds = await dispatch({ method: 'POST', url: '/report', body: { prompt: 'Wat besloten we?' } });
     assert.strictEqual(noIds.statusCode, 400);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Video, Loader2, RefreshCw, Download, Check } from 'lucide-react';
+import { Video, Loader2, RefreshCw, Download, Check, Clock } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
@@ -17,6 +17,8 @@ interface MeetRecording {
     importedNoteId?: string | null;
     recordingState?: string;
 }
+
+interface ImportOutcome { ok?: boolean; pending?: boolean }
 
 /**
  * Meet keeps its green, but as the THEME's green — the token the source chip
@@ -41,6 +43,51 @@ function fmtDuration(start: string, end: string) {
     return m ? `${h} h ${m} min` : `${h} h`;
 }
 
+interface RecordingActionProps {
+    item: MeetRecording;
+    pending: boolean;
+    busy: boolean;
+    uploading: boolean;
+    onImport: () => void;
+    t: ReturnType<typeof useTranslation>['t'];
+}
+
+/** The trailing part of a recording row: what the user can do with it now. */
+function RecordingAction({ item, pending, busy, uploading, onImport, t }: RecordingActionProps) {
+    return (
+        item.importedNoteId ? (
+            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0" style={{ background: `color-mix(in srgb, ${MEET_GREEN} 14%, transparent)`, color: 'var(--success-ink)' }}>
+                <Check className="w-3.5 h-3.5" /> {t('meetings.upcoming_note_created', 'Note created')}
+            </span>
+        ) : pending ? (
+            <span className="flex items-center gap-1 text-xs flex-shrink-0 text-[var(--text-muted)]"
+                title={t('meetings.gmeet_pending_hint', 'Google has not finished this recording yet. Bee Flow keeps checking and creates the note when it is ready.')}>
+                <Clock className="w-3.5 h-3.5" /> {t('meetings.gmeet_pending', 'Waiting for Google')}
+            </span>
+        ) : item.recordingState === 'available' ? (
+            <button
+                type="button"
+                onClick={onImport}
+                disabled={uploading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 flex-shrink-0 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
+            >
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                {busy ? t('meetings.transcribing', 'Transcribing…') : t('meetings.transcribe', 'Transcribe')}
+            </button>
+        ) : item.recordingState === 'processing' ? (
+            <button
+                type="button"
+                disabled
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border opacity-60 flex-shrink-0 border-[var(--border-default)] text-[var(--text-secondary)]"
+            >
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('meetings.gmeet_processing', 'Processing…')}
+            </button>
+        ) : (
+            <span className="text-xs flex-shrink-0 text-[var(--text-muted)]">{t('meetings.gmeet_no_recording', 'No recording')}</span>
+        )
+    );
+}
+
 export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
     const { importFromGoogleMeet, settings, uploading, uploadStage, uploadError, clearError } = useRecorder();
@@ -49,6 +96,9 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
     const [error, setError] = useState<unknown>(null);
     const [items, setItems] = useState<MeetRecording[]>([]);
     const [busyKey, setBusyKey] = useState<string | null | undefined>(null);
+    // Imports the server parked as awaiting_artifacts: the job keeps polling
+    // server-side, so the row says so instead of offering Transcribe again.
+    const [pendingKeys, setPendingKeys] = useState<Set<string>>(() => new Set());
     const [reauthorized, setReauthorized] = useState(false);
     const [reauthBusy, setReauthBusy] = useState(false);
     const [reauthError, setReauthError] = useState<unknown>(null);
@@ -70,10 +120,12 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
 
     const handleImport = async (item: MeetRecording) => {
         clearError();
-        setBusyKey(item.eventId || item.meetingCode);
+        const key = item.eventId || item.meetingCode;
+        setBusyKey(key);
         try {
-            const outcome = await importFromGoogleMeet(item, { language: settings.language, contextTerms: settings.contextTerms });
+            const outcome = (await importFromGoogleMeet(item, { contextTerms: settings.contextTerms })) as ImportOutcome;
             if (outcome?.ok) onComplete?.();
+            else if (outcome?.pending && key) setPendingKeys((prev) => new Set(prev).add(key));
         } finally {
             setBusyKey(null);
         }
@@ -187,31 +239,10 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
                                         {[fmtDate(item.start), fmtDuration(item.start, item.end)].filter(Boolean).join(' · ')}
                                     </div>
                                 </div>
-                                {item.importedNoteId ? (
-                                    <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0" style={{ background: `color-mix(in srgb, ${MEET_GREEN} 14%, transparent)`, color: 'var(--success-ink)' }}>
-                                        <Check className="w-3.5 h-3.5" /> {t('meetings.upcoming_note_created', 'Note created')}
-                                    </span>
-                                ) : item.recordingState === 'available' ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleImport(item)}
-                                        disabled={uploading}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 flex-shrink-0 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
-                                    >
-                                        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                        {busy ? t('meetings.transcribing', 'Transcribing…') : t('meetings.transcribe', 'Transcribe')}
-                                    </button>
-                                ) : item.recordingState === 'processing' ? (
-                                    <button
-                                        type="button"
-                                        disabled
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border opacity-60 flex-shrink-0 border-[var(--border-default)] text-[var(--text-secondary)]"
-                                    >
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('meetings.gmeet_processing', 'Processing…')}
-                                    </button>
-                                ) : (
-                                    <span className="text-xs flex-shrink-0 text-[var(--text-muted)]">{t('meetings.gmeet_no_recording', 'No recording')}</span>
-                                )}
+                                <RecordingAction
+                                    item={item} pending={!!key && pendingKeys.has(key)} busy={busy} uploading={uploading}
+                                    onImport={() => handleImport(item)} t={t}
+                                />
                             </div>
                         );
                     })}

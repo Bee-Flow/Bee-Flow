@@ -21,6 +21,7 @@
 'use strict';
 
 const configStore = require('../stores/configStore');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -157,26 +158,16 @@ async function handleVoxtralTranscription(args, context) {
         };
     }
 
-    /** @type {NonSharedBuffer} */
     let audioData, audioFileName;
-    // If called directly from the upload route, args.filePath is the temp file on disk
-    if (args.filePath) {
-        try {
-            audioData = await fs.promises.readFile(args.filePath);
-            audioFileName = args.fileName || require('path').basename(args.filePath);
-        } catch (e) {
-            return { error: `Could not read audio file: ${/** @type {Error} */ (e).message}` };
-        }
-    } else {
-        try {
-            ({ audioData, audioFileName } = await resolveAudioAttachment(context));
-        } catch (errMsg) {
-            return { error: errMsg };
-        }
+    try {
+        ({ audioData, audioFileName } = await resolveAudioAttachment(context));
+    } catch (errMsg) {
+        return { error: errMsg };
     }
 
     const language = args.language || 'nl';
-    const contextTerms = args.context_terms || '';
+    const { toContextBias } = require('../core/meetingNotes/transcriptArtifacts');
+    const contextBias = toContextBias(args.context_terms || '');
     const granularity = args.timestamp_granularity || 'segment';
 
     log.info(
@@ -192,8 +183,11 @@ async function handleVoxtralTranscription(args, context) {
             diarize: true,
             language,
             timestampGranularities: [granularity],
+            // The Mistral audio API takes a glossary only as `contextBias`
+            // (string[]); the SDK's outbound schema silently drops any other
+            // key, so a free-text `prompt` never reached the engine.
+            ...(contextBias.length ? { contextBias } : {}),
         };
-        if (contextTerms) transcriptionOptions.prompt = contextTerms;
 
         const response = await client.audio.transcriptions.complete(transcriptionOptions);
         log.info(
@@ -231,22 +225,14 @@ async function handleVoxtralTranscription(args, context) {
  * out; the upload/reprocess routes call the core directly.
  */
 async function handleAzureTranscription(args, context) {
-    let inputPath = args.filePath || null;
-    /** @type {string | null} */
-    let tempInputPath = null;
-    let audioFileName = args.fileName || (inputPath ? path.basename(inputPath) : 'audio.mp3');
-
-    if (!inputPath) {
-        let audioData;
-        try {
-            ({ audioData, audioFileName } = await resolveAudioAttachment(context));
-        } catch (errMsg) {
-            return { error: errMsg };
-        }
-        tempInputPath = path.join(os.tmpdir(), `azure-in-${Date.now()}`);
-        await fs.promises.writeFile(tempInputPath, audioData);
-        inputPath = tempInputPath;
+    let audioData, audioFileName;
+    try {
+        ({ audioData, audioFileName } = await resolveAudioAttachment(context));
+    } catch (errMsg) {
+        return { error: errMsg };
     }
+    const inputPath = path.join(os.tmpdir(), `azure-in-${crypto.randomUUID()}`);
+    await fs.promises.writeFile(inputPath, audioData);
 
     const language = args.language || 'nl';
     log.info(`[Transcription:Azure] Transcribing ${log.nameForLog(audioFileName)}, lang: ${language}`);
@@ -276,7 +262,7 @@ async function handleAzureTranscription(args, context) {
         log.error('[Transcription:Azure] Error:', safeMsg);
         return { error: `Azure transcription failed: ${safeMsg}` };
     } finally {
-        if (tempInputPath) { try { fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); } }
+        try { fs.unlinkSync(inputPath); } catch (_) { log.debug('temp input file already gone', _); }
     }
 }
 
@@ -289,22 +275,14 @@ async function handleAzureTranscription(args, context) {
  * → chat-tool shape out; the upload/reprocess routes call the core directly.
  */
 async function handlePyannoteTranscription(args, context) {
-    let inputPath = args.filePath || null;
-    /** @type {string | null} */
-    let tempInputPath = null;
-    let audioFileName = args.fileName || (inputPath ? path.basename(inputPath) : 'audio.mp3');
-
-    if (!inputPath) {
-        let audioData;
-        try {
-            ({ audioData, audioFileName } = await resolveAudioAttachment(context));
-        } catch (errMsg) {
-            return { error: errMsg };
-        }
-        tempInputPath = path.join(os.tmpdir(), `pyannote-in-${Date.now()}`);
-        await fs.promises.writeFile(tempInputPath, audioData);
-        inputPath = tempInputPath;
+    let audioData, audioFileName;
+    try {
+        ({ audioData, audioFileName } = await resolveAudioAttachment(context));
+    } catch (errMsg) {
+        return { error: errMsg };
     }
+    const inputPath = path.join(os.tmpdir(), `pyannote-in-${crypto.randomUUID()}`);
+    await fs.promises.writeFile(inputPath, audioData);
 
     const language = args.language || 'nl';
     try {
@@ -340,7 +318,7 @@ async function handlePyannoteTranscription(args, context) {
         log.error('[Transcription:Pyannote] Error:', safeMsg);
         return { error: `Pyannote transcription failed: ${safeMsg}` };
     } finally {
-        if (tempInputPath) { try { fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); } }
+        try { fs.unlinkSync(inputPath); } catch (_) { log.debug('temp input file already gone', _); }
     }
 }
 
@@ -351,21 +329,16 @@ async function handlePyannoteTranscription(args, context) {
  * Chat-tool wrapper: attachment → runAzureWhisperBatch → chat-tool shape.
  */
 async function handleAzureWhisperTranscription(args, context) {
-    let filePath = args.filePath || null;
-    let audioData = null;
-    let audioFileName = args.fileName || (filePath ? path.basename(filePath) : 'audio.mp3');
-
-    if (!filePath) {
-        try {
-            ({ audioData, audioFileName } = await resolveAudioAttachment(context));
-        } catch (errMsg) {
-            return { error: errMsg };
-        }
+    let audioData, audioFileName;
+    try {
+        ({ audioData, audioFileName } = await resolveAudioAttachment(context));
+    } catch (errMsg) {
+        return { error: errMsg };
     }
     const language = args.language || 'nl';
 
     try {
-        const batch = await runAzureWhisperBatch({ filePath, audioData, fileName: audioFileName, language });
+        const batch = await runAzureWhisperBatch({ filePath: null, audioData, fileName: audioFileName, language });
 
         return await finalizeTranscript({
             segments: batch.segments,
@@ -398,11 +371,14 @@ async function handleAzureWhisperTranscription(args, context) {
  * Also compatible with the OpenAI-compatible /v1/audio/transcriptions endpoint
  * when running locally (e.g. Faster Whisper Server).
  *
- * Security: URL is stored via configStore secret. No API key required for
- * internal/private deployments, but an optional bearer token is supported.
+ * URL and credential resolution match the meeting-notes transport
+ * (core/meetingNotes/transcribeWhisperX.js): the deployment's WHISPERX_URL
+ * wins over the admin secret, and SERVICES_API_KEY goes out as `X-API-Key`
+ * (the shared gate of the Bee Flow services). An optional admin bearer token
+ * is still sent for third-party WhisperX servers.
  */
 async function handleWhisperXTranscription(args, context) {
-    const whisperUrl = await configStore.getSecret('whisperx_url');
+    const whisperUrl = process.env.WHISPERX_URL || await configStore.getSecret('whisperx_url');
     if (!whisperUrl || !whisperUrl.trim()) {
         return {
             error:
@@ -451,6 +427,8 @@ async function handleWhisperXTranscription(args, context) {
         form.append('model', 'whisper-1');
 
         const headers = { ...form.getHeaders() };
+        const servicesApiKey = process.env.SERVICES_API_KEY;
+        if (servicesApiKey) headers['X-API-Key'] = servicesApiKey;
         if (whisperToken) {
             headers['Authorization'] = `Bearer ${whisperToken}`;
         }
@@ -551,7 +529,7 @@ async function handleScalewayTranscription(args, context) {
     try {
         fs.writeFileSync(tmpPath, audioData);
         const { transcribeWithScaleway } = require('../core/meetingNotes/summaryHelpers');
-        const response = await transcribeWithScaleway(tmpPath, audioFileName, language, args.contextTerms || '');
+        const response = await transcribeWithScaleway(tmpPath, audioFileName, language, args.context_terms || '');
 
         const rawSegments = (response.segments || []).map((seg) => ({
             speakerId: seg.speakerId || 'Unknown',
@@ -642,25 +620,40 @@ async function handleLocalTranscription(args, context) {
 
 // ─── Tool Dispatch ─────────────────────────────────────────────────────────────
 
-/** Providers an internal caller may force via `args.provider`. */
-const KNOWN_PROVIDERS = ['voxtral', 'azure', 'whisper_azure', 'whisperx', 'scaleway', 'pyannote', 'local'];
+/**
+ * The arguments a caller may set: exactly the tool's declared parameters.
+ *
+ * Every caller of this tool is untrusted (a model's tool call, an automation
+ * step's free-form inputs), and nothing upstream drops undeclared keys. A
+ * `filePath` let a caller have the server read any local file and send it to
+ * a cloud provider; a `provider` bypassed the admin's choice of engine, which
+ * decides which third party the audio goes to. The upload and reprocess
+ * routes call the transcription cores directly, so nobody needs either.
+ * @param {unknown} raw
+ * @returns {TranscriptionArgs}
+ */
+function declaredArgs(raw) {
+    const src = /** @type {Record<string, unknown>} */ (raw && typeof raw === 'object' ? raw : {});
+    const declared = Object.keys(TRANSCRIPTION_TOOLS[0].function.parameters.properties);
+    /** @type {Record<string, string>} */
+    const out = {};
+    for (const key of declared) {
+        if (typeof src[key] === 'string') out[key] = /** @type {string} */ (src[key]);
+    }
+    return /** @type {TranscriptionArgs} */ (out);
+}
 
 /**
  * @param {string} toolName
  */
-async function executeTranscriptionTool(toolName, args, context = {}) {
+async function executeTranscriptionTool(toolName, rawArgs, context = {}) {
     const { userId } = context;
     if (!userId) return { error: 'User context required for transcription.' };
 
     if (toolName === 'transcribe_audio') {
-        // Honor an explicitly requested provider. The chat-tool schema does not
-        // expose `provider`, so only trusted internal callers (upload/reprocess
-        // routes) can set it — the admin default no longer silently overrides a
-        // note's stored provider.
-        const requested = String(args?.provider || '').trim().toLowerCase();
-        const provider = KNOWN_PROVIDERS.includes(requested)
-            ? requested
-            : ((await configStore.getConfig('transcription_provider')) || 'voxtral');
+        const args = declaredArgs(rawArgs);
+        // Always the admin's engine: the caller cannot pick one.
+        const provider = (await configStore.getConfig('transcription_provider')) || 'voxtral';
         if (provider === 'azure') return handleAzureTranscription(args, context);
         if (provider === 'whisper_azure') return handleAzureWhisperTranscription(args, context);
         if (provider === 'whisperx') return handleWhisperXTranscription(args, context);
@@ -702,7 +695,9 @@ module.exports = {
 /** @typedef {{ userId?: string, session?: unknown, attachments?: AudioAttachment[], req?: unknown }} TranscriptionContext */
 
 /**
- * The tool arguments: the model's, plus the upload routes' file and provider.
- * @typedef {{ language?: string, context_terms?: string, contextTerms?: string, timestamp_granularity?: 'segment' | 'word',
- *   filePath?: string, fileName?: string, userName?: string, provider?: string }} TranscriptionArgs
+ * The tool arguments after `declaredArgs`: only the declared parameters.
+ * `userName` is never set by a caller (it stays undefined); the handlers keep
+ * passing it to the speaker-name step, which treats it as optional.
+ * @typedef {{ language?: string, context_terms?: string, timestamp_granularity?: 'segment' | 'word',
+ *   userName?: string }} TranscriptionArgs
  */

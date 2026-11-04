@@ -104,13 +104,19 @@ export function useInvalidateTeamsMeetingNotes() {
     ]);
 }
 
-/** The organisation's Teams settings (admin panel). `null` per field = each member decides. */
+/**
+ * The organisation's Teams settings (admin panel). `null` per field = each member decides.
+ * An empty or unreadable answer is an ERROR, never stand-in defaults: the panel PUTs its
+ * whole form back and the server stores it with no merge, so defaults shown as the org's
+ * settings would overwrite them (`lookbackHours` has no field in the panel at all).
+ */
 export function useTeamsNotesOrgSettings(orgId: string | null | undefined) {
     return useQuery<TeamsNotesSettings, Error>({
         queryKey: ['teamsMeetingNotes', 'orgSettings', orgId],
         queryFn: async ({ signal }) => {
-            const body = await apiClient.get<TeamsNotesSettings>(`/api/teams-notes-settings/${encodeURIComponent(String(orgId))}`, { signal, retry: false });
-            return body || { autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 };
+            const body: unknown = await apiClient.get<TeamsNotesSettings>(`/api/teams-notes-settings/${encodeURIComponent(String(orgId))}`, { signal, retry: false });
+            if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Unreadable Teams settings answer');
+            return body as TeamsNotesSettings;
         },
         enabled: !!orgId,
         retry: false,

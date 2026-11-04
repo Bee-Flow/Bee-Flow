@@ -227,13 +227,11 @@ async function loadDraft(automationId, userId) {
     // refused (see builderDatatableCatalog.js).
     try { draftWrap._datatables = await buildDatatableCatalogForUser(userId); }
     catch (_) { draftWrap._datatables = null; }
-    // The designed documents, for builder_add_fill_document's id check; re-read
-    // per call too, so a template designed a minute ago is fillable now.
+    // The designed documents, for builder_add_fill_document's id check; re-read per call too (a new template is fillable now).
     try { draftWrap._documents = await require('./builderDocumentCatalog').buildDocumentCatalogForUser(userId); }
     catch (_) { draftWrap._documents = null; }
-    // The tools this user can run and their input schemas, from the same catalog
-    // the chat route uses: without them builder_inspect_tool answered `inputs: null`
-    // for every tool and input names went unchecked. Unknown → permissive (null).
+    // The tools this user can run and their input schemas, from the chat route's catalog (else builder_inspect_tool
+    // answered `inputs: null`), and the building blocks a call_block may run. Unknown → permissive (null).
     try {
         const { buildCatalogForUser } = require('./builderCatalog');
         const catalog = await buildCatalogForUser(userId, await offlineSession(userId));
@@ -244,6 +242,8 @@ async function loadDraft(automationId, userId) {
             }
         }
         draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
+        const pickers = require('./builderPickerCatalog');
+        draftWrap._blocks = pickers.blockCatalogOf(await pickers.buildBlockPickerForUser(userId, catalog));
     } catch (err) { fallback('automation/mcpBuilder:loadDraft', err); /* permissive, as before */ }
     // What the draft's tools really returned on this user's last live run, for
     // the builder's path checks — the same read the chat route makes per turn.

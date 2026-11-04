@@ -1149,11 +1149,6 @@
       "count": 1
     }
   },
-  "automation/builderPrompt/triggerBlock.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "automation/builderTools.js": {
     "complexity": {
       "count": 4
@@ -1733,7 +1728,7 @@
   },
   "automation/summarise.js": {
     "complexity": {
-      "count": 4
+      "count": 3
     },
     "max-lines-per-function": {
       "count": 1
@@ -5982,7 +5977,7 @@
   },
   "integrations/transcriptionTools.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -8512,11 +8507,6 @@
   "routes/transcriptions/speakers.js": {
     "complexity": {
       "count": 2
-    }
-  },
-  "routes/transcriptions/teams.js": {
-    "max-depth": {
-      "count": 1
     }
   },
   "routes/transcriptions/upload.js": {

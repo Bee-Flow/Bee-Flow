@@ -10,6 +10,8 @@ export interface TalkMeeting extends UpcomingMeeting {
     talkToken: string;
     excluded: boolean;
     recordedNoteId?: string | null;
+    /** The occurrence of a recurring series (talkCalendar); null for a single event. */
+    recurrenceId?: string | null;
 }
 
 export interface GmeetMeeting extends UpcomingMeeting {
@@ -25,6 +27,7 @@ export interface TeamsMeeting extends UpcomingMeeting {
 
 export interface TalkData {
     recordingEnabled?: boolean;
+    autoRecord?: boolean;
     recordingMode?: string;
     postSummaryBack?: boolean;
     meetings: TalkMeeting[];
@@ -47,6 +50,8 @@ interface TeamsConnection {
     microsoftConnected?: boolean;
     teamsScopesGranted?: boolean;
     hasMeetingWriteScope?: boolean;
+    /** The grant expired or was revoked: the list is empty until a reconnect. */
+    needsReauth?: boolean;
 }
 
 export interface TeamsData {
@@ -104,6 +109,8 @@ export interface UpcomingMeetingRowProps {
     toggleDisabled: boolean;
     onToggle: () => void;
     error?: string;
+    /** What the toggle did to the provider's own auto-recording (autoRecordingHint), when a person must know it. */
+    notice?: string;
     overridden: boolean;
     t: TranslateFn;
 }
@@ -111,4 +118,10 @@ export interface UpcomingMeetingRowProps {
 export interface UpcomingMeetingsProps {
     onOpenNote?: (id: string) => void;
     onRowsChange?: (count: number | null) => void;
+    /**
+     * Whether this account has Nextcloud connected at all (useMeetingSources().talk).
+     * `false` hides the "Talk recording backend isn't configured" banner;
+     * undefined (not known yet / not passed) keeps it.
+     */
+    talkConnected?: boolean;
 }

@@ -373,13 +373,10 @@ function sanitizeTimestamp(raw, { starts = [], lastEnd = 0 } = {}) {
  *      (unparseable answer, time-out, call that fell over — nothing was
  *       read, so there is nothing to replace)
  *
- * Outcome 2 and 3 once looked identical: four empty lists. The difference was carried by a
- * LOOSE FLAG next to those lists (`ok`), and that is exactly the kind of distinction a
- * writer forgets to take along — two of the four writers did that too, and a handful of test fixtures.
- *
- * Therefore the VALUE now carries it itself: a failed pass has no lists at all. Whoever still passes them
- * to `updateTranscription` passes `undefined`, which there means "do not touch this column" —
- * the safe outcome is the outcome you get by accident.
+ * Outcome 2 and 3 must never look alike, and a LOOSE FLAG next to four empty lists (`ok`) is the
+ * kind of distinction a writer forgets to take along. So the VALUE carries it: a failed pass has no
+ * lists at all, and whoever passes them to `updateTranscription` passes `undefined`, which there
+ * means "do not touch this column": the safe outcome is the outcome you get by accident.
  */
 const ARTIFACTS_FAILED = Object.freeze({ ok: false });
 
@@ -398,27 +395,26 @@ function artifactsUsable(artifacts) {
         && Array.isArray(artifacts.questions);
 }
 
-/** Human label for a transcription provider id, for user-facing notices. */
-/** @type {Record<string, string>} */
+/** @type {Record<string, string>} Human label of a transcription provider id, for notices. */
 const PROVIDER_LABELS = {
     voxtral: 'Voxtral', whisperx: 'WhisperX', scaleway: 'Scaleway',
     azure: 'Azure Speech', whisper_azure: 'Azure Whisper', local: 'local transcription',
 };
 
 /**
- * User-facing notice lines for pipeline events that happen after the 202 was
- * sent (engine fallback, truncated transcription). The note itself is the only
- * channel left to the user at that point, so these are prepended to the
- * summary by the caller.
+ * User-facing notice lines for pipeline events after the 202 was sent (engine
+ * fallback, truncated transcription, a meeting recorded in several parts): the
+ * note is the only channel left then, so the caller prepends them to the summary.
  *
  * @param {{providerFallback?: {to: string}|null,
  *          truncated?: {atSeconds: number}|null,
  *          voiceprint?: {failed?: boolean, truncated?: boolean}|null,
  *          artifactsFailed?: boolean,
+ *          extraRecordings?: number,
  *          language?: string}} [opts]
  * @returns {string[]} zero or more notice lines
  */
-function buildPipelineNotices({ providerFallback = null, truncated = null, voiceprint = null, artifactsFailed = false, language = 'nl' } = {}) {
+function buildPipelineNotices({ providerFallback = null, truncated = null, voiceprint = null, artifactsFailed = false, extraRecordings = 0, language = 'nl' } = {}) {
     const nl = String(language).toLowerCase().startsWith('nl');
     /** @type {string[]} */
     const lines = [];
@@ -434,10 +430,8 @@ function buildPipelineNotices({ providerFallback = null, truncated = null, voice
             ? `⚠️ De transcriptie is voortijdig gestopt op ${at} — de rest van de opname ontbreekt. Probeer 'Opnieuw transcriberen' of een andere provider.`
             : `⚠️ Transcription stopped early at ${at} — the rest of the recording is missing. Try 'Re-transcribe' or another provider.`);
     }
-    // Voiceprint identification is optional and best-effort, so a SUCCESSFUL
-    // match gets no notice — the real names in the transcript are the notice.
-    // Only the two cases where the user might otherwise wonder why a colleague
-    // wasn't recognised are surfaced.
+    // Voiceprint identification is best-effort: a SUCCESSFUL match gets no notice (the names
+    // are the notice), only the two cases where a colleague was not recognised.
     if (voiceprint?.failed) {
         lines.push(nl
             ? `ℹ️ Automatische stemherkenning is niet gelukt voor deze opname; sprekers zijn uit het gesprek zelf herkend.`
@@ -447,10 +441,15 @@ function buildPipelineNotices({ providerFallback = null, truncated = null, voice
             ? `ℹ️ Je organisatie heeft meer dan 50 stemprofielen; voor deze opname zijn de 50 meest waarschijnlijke gebruikt.`
             : `ℹ️ Your organisation has more than 50 voice profiles; the 50 most likely ones were used for this recording.`);
     }
-    // A FAILED artifact pass must say so. Without this line the result is not
-    // distinguishable from a meeting in which nothing was agreed: no action items, no decisions, no
-    // questions — and nobody presses 'Retry', because nothing seems wrong. What was already there
-    // is kept; that is the other half, and that is in there too.
+    // A note that covers one of several recordings (stopped and restarted) must not look complete.
+    const parts = (Number(extraRecordings) || 0) + 1;
+    if (parts > 1) {
+        lines.push(nl
+            ? `⚠️ Deze vergadering is in ${parts} delen opgenomen; deze notitie bevat er één. De andere opnames staan nog bij de bron en zijn hier niet verwerkt.`
+            : `⚠️ This meeting was recorded in ${parts} parts; this note covers one of them. The other recordings are still at the source and were not processed here.`);
+    }
+    // A FAILED artifact pass must say so, or it reads as a meeting in which nothing was agreed and
+    // nobody presses 'Retry'. What was already there is kept.
     if (artifactsFailed) {
         lines.push(nl
             ? `⚠️ Het bepalen van actiepunten, besluiten en vragen is niet gelukt voor deze opname; wat er al stond is bewaard. Probeer 'Opnieuw'.`

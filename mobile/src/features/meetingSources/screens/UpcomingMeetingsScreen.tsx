@@ -84,9 +84,10 @@ export function UpcomingMeetingsScreen() {
                     <UpcomingRow
                         row={item}
                         talkMode={upcoming.talk.data?.recordingMode ?? 'audio'}
-                        busy={upcoming.busy === item.key}
+                        busy={upcoming.isBusy(item.key)}
                         overridden={upcoming.overridden[item.key] === true}
                         error={upcoming.errors[item.key]}
+                        notice={upcoming.autoRecording[item.key]}
                         onToggle={() => upcoming.toggle(item)}
                         onOpenNote={(id) => router.push(`/recordings/${id}`)}
                     />

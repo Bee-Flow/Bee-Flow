@@ -26,6 +26,24 @@ require.cache[clientPath] = {
     exports: { createVoxtralClient: (apiKey) => new Mistral({ apiKey, serverURL, retryConfig: { strategy: 'none' } }) },
 };
 
+// The ADTS repack needs ffmpeg; stand in for it so the test checks what the
+// Voxtral leg SENDS, not ffmpeg. Non-.aac files pass through untouched, as in
+// the real asM4aIfAdts.
+const repackCalls = [];
+const preprocessPath = require.resolve('../voice/audioPreprocess');
+require.cache[preprocessPath] = {
+    id: preprocessPath, filename: preprocessPath, loaded: true,
+    exports: {
+        asM4aIfAdts: async (inputPath, fileName) => {
+            repackCalls.push(fileName);
+            if (!/\.aac$/i.test(fileName)) return { path: inputPath, fileName, cleanup: () => {} };
+            const out = `${inputPath}.m4a`;
+            fs.copyFileSync(inputPath, out);
+            return { path: out, fileName: fileName.replace(/\.aac$/i, '.m4a'), cleanup: () => fs.rmSync(out, { force: true }) };
+        },
+    },
+};
+
 const { transcribe } = require('./ingestTranscription');
 
 test('voxtral sends the on-disk recording as a named, typed multipart file', async () => {
@@ -53,6 +71,34 @@ test('voxtral sends the on-disk recording as a named, typed multipart file', asy
         const text = body.toString('latin1');
         assert.match(text, /name="file"; filename="rec\.mp3"/);
         assert.match(text, /Content-Type: audio\/mpeg/i);
+    } finally {
+        server.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('an .aac recording from a Nextcloud/Talk import is repacked to .m4a before it goes to Voxtral', async () => {
+    const received = [];
+    const server = http.createServer((req, res) => {
+        const chunks = [];
+        req.on('data', (c) => chunks.push(c));
+        req.on('end', () => {
+            received.push(Buffer.concat(chunks));
+            res.setHeader('content-type', 'application/json');
+            res.end(JSON.stringify({ model: 'voxtral-mini-2602', text: 'hi', segments: [], language: 'en', usage: {} }));
+        });
+    });
+    await new Promise((r) => server.listen(0, '127.0.0.1', r));
+    serverURL = `http://127.0.0.1:${server.address().port}`;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'voxtral-aac-'));
+    const file = path.join(dir, 'phone-meeting.aac');
+    fs.writeFileSync(file, Buffer.from('ADTS-BYTES'));
+    try {
+        await transcribe('voxtral', { filePath: file, fileName: 'phone-meeting.aac', language: 'en', contextTerms: [] });
+        const text = received[0].toString('latin1');
+        assert.match(text, /filename="phone-meeting\.m4a"/);
+        assert.doesNotMatch(text, /audio\/aac/i);
+        assert.ok(!fs.existsSync(`${file}.m4a`), 'the repacked temp file is cleaned up');
     } finally {
         server.close();
         fs.rmSync(dir, { recursive: true, force: true });

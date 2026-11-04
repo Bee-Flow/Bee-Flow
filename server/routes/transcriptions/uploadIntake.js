@@ -17,31 +17,12 @@ const configStore = require('../../stores/configStore');
 const meetingFiling = require('../../projects/meetingFiling');
 const { bestEffort } = require('../../utils/bestEffort');
 
-// Every engine the pipeline knows how to drive. A request may name one of
-// these; anything else is rejected rather than silently falling through to the
+// Every engine the pipeline knows how to drive, and which of them this
+// workspace lets a user pick per upload: the one policy every ingest path
+// asks (core/meetingNotes/transcriptionProviderPolicy). A request naming
+// anything else is rejected rather than silently falling through to the
 // configured default (which made a typo look like it had been honoured).
-const KNOWN_PROVIDERS = ['voxtral', 'whisperx', 'scaleway', 'azure', 'whisper_azure', 'pyannote', 'local'];
-
-/**
- * Which engines this workspace lets a user pick per upload.
- *
- * Admins set `transcription_providers_allowed` (an array). Unset means "any
- * known engine", which is the historical behaviour — narrowing it is opt-in so
- * an upgrade never breaks the "Switch engine & retry" button. The configured
- * default is always allowed, and `local` additionally requires
- * `local_whisper_enabled`.
- * @param {boolean} localEnabled
- */
-async function resolveAllowedProviders(localEnabled) {
-    const configured = await configStore.getConfig('transcription_provider') || 'voxtral';
-    const raw = await configStore.getConfig('transcription_providers_allowed');
-    let allowed = Array.isArray(raw) && raw.length
-        ? raw.map(p => String(p).trim().toLowerCase()).filter(p => KNOWN_PROVIDERS.includes(p))
-        : [...KNOWN_PROVIDERS];
-    if (!allowed.includes(configured)) allowed.push(configured);
-    if (!localEnabled) allowed = allowed.filter(p => p !== 'local');
-    return allowed;
-}
+const { KNOWN_PROVIDERS, resolveAllowedProviders } = require('../../core/meetingNotes/transcriptionProviderPolicy');
 
 /**
  * File the new note into a project, when one was asked for. Checked BEFORE
@@ -154,4 +135,4 @@ async function persistUploadAudio(file, userId, fileName) {
     return { savedAudioPath, audioStorageKey };
 }
 
-module.exports = { resolveProjectFiling, resolveUploadProvider, persistUploadAudio };
+module.exports = { resolveProjectFiling, resolveUploadProvider, persistUploadAudio, resolveAllowedProviders, KNOWN_PROVIDERS };

@@ -40,15 +40,23 @@ const OWNED_PREFIXES = [
 // add-nl-builder-mapping-translations.
 // The run bar of the automation test journey (2026-11) did the same; its Dutch
 // ships in add-nl-automation-testing-translations.
+// The empty canvas of the assistant-first opening (2026-11-04) did the same;
+// its Dutch ships in add-nl-builder-fixes-2026-10 (this file is at its line ceiling).
 const handoff5 = require('./add-nl-builder-handoff5-translations');
+const fixes = require('./add-nl-builder-fixes-2026-10');
 const mapping = require('./add-nl-builder-mapping-translations');
 const testing = require('./add-nl-automation-testing-translations');
+// The mapping panel's sample chips (2026-11-04) did the same; their Dutch ships
+// in add-nl-hardcoded-automation-builder-2026-10 (data file).
+const hardcoded = require('./add-nl-hardcoded-automation-builder-2026-10-translations');
 const OWNED_ELSEWHERE = new Set([
     'automations.kind.choice',
     ...Object.keys(handoff5.NL_TRANSLATIONS),
     ...handoff5.SAME_AS_ENGLISH,
     ...Object.keys(mapping.NL_TRANSLATIONS),
     ...Object.keys(testing.NL_TRANSLATIONS),
+    ...Object.keys(fixes.NL_TRANSLATIONS),
+    ...Object.keys(hardcoded.NL_TRANSLATIONS),
 ]);
 
 function owned(key) {

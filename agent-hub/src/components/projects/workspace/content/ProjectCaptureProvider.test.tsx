@@ -11,6 +11,7 @@ vi.mock('@/pages/meeting-notes/capture/CaptureContext', () => ({ useCapture: () 
 vi.mock('@/pages/meeting-notes/hooks/RecorderContext', () => ({ useRecorder: () => fake.recorder }));
 vi.mock('@/api/queries/projects', () => ({ useAttachResource: (projectId: string) => ({ mutateAsync: (body: unknown) => fake.attach(projectId, body) }) }));
 vi.mock('@/components/shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+import { toast } from '@/components/shared/Toast';
 import ProjectCaptureProvider from './ProjectCaptureProvider';
 import useProjectMeetingCapture, { resetCaptureArm } from './useProjectMeetingCapture';
 function Tab() {
@@ -21,7 +22,7 @@ beforeEach(() => {
     resetCaptureArm();
     fake.capture.open = false; fake.capture.session = 0;
     fake.recorder.version = 0; fake.recorder.lastResultId = null; fake.recorder.uploading = false;
-    fake.attach.mockReset().mockResolvedValue({}); fake.filed.mockReset();
+    fake.attach.mockReset().mockResolvedValue({}); fake.filed.mockReset(); vi.mocked(toast.error).mockReset();
     fake.capture.openCapture.mockReset().mockImplementation(() => { fake.capture.open = true; return ++fake.capture.session; });
     fake.recorder.consumeLastResult.mockReset().mockImplementation(() => { const id = fake.recorder.lastResultId; fake.recorder.lastResultId = null; return { id }; });
 });
@@ -53,5 +54,33 @@ describe('project capture lifecycle', () => {
         await waitFor(() => expect(fake.attach).toHaveBeenCalledTimes(2));
         expect(fake.attach.mock.calls[1]).toEqual(['p1', { kind: 'meeting', id: 'meeting-1', attach: true }]);
         expect(fake.recorder.consumeLastResult).toHaveBeenCalledTimes(1);
+    });
+    it('lets a new capture start after an upload fails behind a closed modal', async () => {
+        const user = userEvent.setup();
+        const ui = () => <ProjectCaptureProvider onNavigate={vi.fn()}><Tab /></ProjectCaptureProvider>;
+        const view = render(ui());
+        await user.click(screen.getByText('Record'));
+        await waitFor(() => expect(fake.capture.openCapture).toHaveBeenCalledTimes(1));
+        fake.recorder.uploading = true; view.rerender(ui());
+        // The member closes the modal while the file uploads; the upload then fails.
+        fake.capture.open = false; view.rerender(ui());
+        fake.recorder.uploading = false; view.rerender(ui());
+        await user.click(screen.getByText('Record'));
+        expect(toast.error).not.toHaveBeenCalled();
+        expect(fake.capture.openCapture).toHaveBeenCalledTimes(2);
+    });
+    it('keeps the capture armed when an upload fails with the modal still open, so a retry is filed', async () => {
+        const user = userEvent.setup();
+        const ui = () => <ProjectCaptureProvider onNavigate={vi.fn()}><Tab /></ProjectCaptureProvider>;
+        const view = render(ui());
+        await user.click(screen.getByText('Record'));
+        await waitFor(() => expect(fake.capture.openCapture).toHaveBeenCalledTimes(1));
+        fake.recorder.uploading = true; view.rerender(ui());
+        fake.recorder.uploading = false; view.rerender(ui());
+        // Retried from the modal, then closed while the retry uploads; the retry succeeds.
+        fake.recorder.uploading = true; view.rerender(ui());
+        fake.capture.open = false; view.rerender(ui());
+        fake.recorder.uploading = false; fake.recorder.version = 1; fake.recorder.lastResultId = 'meeting-1'; view.rerender(ui());
+        await waitFor(() => expect(fake.attach).toHaveBeenCalledWith('p1', { kind: 'meeting', id: 'meeting-1', attach: true }));
     });
 });

@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import {
-    acceptSubmission, startSubmission, profileForFound,
+    acceptSubmission, startSubmission, stoppingAfter, profileForFound,
     PUBLIC_SUBMISSION, TEST_LINK_SUBMISSION, BUILDER_DRY_SUBMISSION, BUILDER_LIVE_SUBMISSION,
 } from './formSubmission.mts';
 
@@ -163,4 +163,24 @@ test('startSubmission runs the queue\'s own submit call with the kind of run, an
     assert.equal(calls[1].isTest, true);
     assert.equal(calls[1].origin, 'test_link');
     assert.equal(calls[1].mode, undefined);
+});
+
+test('stoppingAfter bounds the run to one step (untilStepId + a root "up to" scope); no step leaves the work as it was', async () => {
+    const calls = [];
+    const runner = { executeAutomation: async (automation, opts) => { calls.push(opts); return { id: 'run1', status: 'success' }; } };
+    const formWork = createFormWork({ automationStore: { attachFormSessionRun: async () => {}, updateRun: async () => true }, runner: () => runner, formAnswers: () => ({}) });
+    const { deps, caller } = world();
+    const f = found({ test: true });
+    const dry = await acceptSubmission(f, { ...BODY }, caller, BUILDER_DRY_SUBMISSION, deps);
+    assert.equal(stoppingAfter(dry, null), dry);
+    const bounded = stoppingAfter(dry, 'step2');
+    assert.equal(bounded.work.untilStepId, 'step2');
+    assert.equal(dry.work.untilStepId, undefined, 'the accepted work itself is not changed');
+    await startSubmission(f, bounded, null, formWork);
+    assert.equal(calls[0].untilStepId, 'step2');
+    assert.deepEqual(calls[0].partial, { mode: 'upTo', targetStepId: 'step2', scope: 'root' });
+    assert.equal(calls[0].mode, 'dry_run');
+    await startSubmission(f, dry, null, formWork);
+    assert.equal(calls[1].untilStepId, undefined);
+    assert.equal(calls[1].partial, undefined);
 });

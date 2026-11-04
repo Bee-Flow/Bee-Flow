@@ -187,7 +187,7 @@ describe('SettingsForm — form trigger', () => {
         expect(screen.queryByTestId('form-preview')).toBeNull();
         await user.click(screen.getByText('Preview the form'));
         const preview = screen.getByTestId('form-preview');
-        expect(within(preview).getByText('Get in touch')).toBeTruthy();
+        expect(await within(preview).findByText('Get in touch')).toBeTruthy();
         expect(within(preview).getByRole('button', { name: 'Submit' })).toBeTruthy();
     });
 

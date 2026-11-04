@@ -10,6 +10,7 @@
  */
 
 const { lazyDeps } = require('./lazyDeps');
+const log = require('../../telemetry/log');
 
 /** Collaborators; tests swap them through init(). */
 const { deps, init } = lazyDeps({
@@ -21,7 +22,10 @@ const EVENT_FIELDS = [
     'id', 'iCalUId', 'subject', 'start', 'end', 'organizer', 'attendees', 'isOrganizer',
     'isOnlineMeeting', 'onlineMeeting', 'onlineMeetingProvider', 'seriesMasterId', 'isCancelled',
 ].join(',');
-const MAX_PAGES = 3;
+// Pages of 100 calendar instances followed per scan. Non-Teams appointments
+// count too (the Teams filter runs after the fetch), so three pages dropped
+// meetings on any calendar with more than ~43 entries a day.
+const MAX_PAGES = 20;
 
 /**
  * True for a Teams meeting join URL (work/school or personal Teams).
@@ -72,13 +76,15 @@ function formatTeamsEvent(event) {
 
 /**
  * @param {object | undefined} session
- * @param {{ timeMin: Date, timeMax: Date }} range
+ * @param {{ timeMin: Date, timeMax: Date, newestFirst?: boolean }} range
  */
-async function listTeamsEvents(session, { timeMin, timeMax }) {
+async function listTeamsEvents(session, { timeMin, timeMax, newestFirst = false }) {
     const out = [];
+    // A "recently ended" scan reads newest first, so if the page bound is ever
+    // reached it is the OLDEST meetings that are left out, not today's.
     let next = `/me/calendarView?startDateTime=${encodeURIComponent(timeMin.toISOString())}`
         + `&endDateTime=${encodeURIComponent(timeMax.toISOString())}`
-        + `&$top=100&$orderby=start/dateTime&$select=${EVENT_FIELDS}`;
+        + `&$top=100&$orderby=${newestFirst ? 'start/dateTime%20desc' : 'start/dateTime'}&$select=${EVENT_FIELDS}`;
     for (let page = 0; next && page < MAX_PAGES; page++) {
         const data = await deps.graphFetch(next, session, { headers: { Prefer: 'outlook.timezone="UTC"' } });
         for (const event of data?.value || []) {
@@ -87,6 +93,7 @@ async function listTeamsEvents(session, { timeMin, timeMax }) {
         }
         next = data?.['@odata.nextLink'] || null;
     }
+    if (next) log.warn(`[TeamsCalendar] calendar window holds more than ${MAX_PAGES * 100} events; the rest is not listed`);
     return out;
 }
 
@@ -115,6 +122,7 @@ async function listRecentlyEndedTeamsMeetings({ session, lookbackHours = 24, gra
     const meetings = await listTeamsEvents(session, {
         timeMin: new Date(floor),
         timeMax: new Date(now),
+        newestFirst: true,
     });
     const cutoff = now - graceMinutes * 60_000;
     return meetings.filter((m) => {

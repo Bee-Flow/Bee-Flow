@@ -159,7 +159,7 @@ test('happy path: leaves the provider to the workspace setting and wires source/
     t.after(cleanupTempFiles);
     resetFx();
     fx.participantNames = ['Sanne Jansen', 'Externe Gast'];
-    fx.users = [{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }];
+    fx.users = [{ id: 'u1', organizationId: 'orgA' }, { id: 'u2', organizationId: 'orgA' }, { id: 'u3', organizationId: 'orgA' }];
     fx.configs = {
         google_workspace_email_user_u1: 'tom@beeflow.nl',   // owner — excluded
         google_workspace_email_user_u2: 'sanne@beeflow.nl', // connected attendee
@@ -261,7 +261,7 @@ test('extraction failure: classified as failed, video deleted, core never called
 test('sharedWith: two attendees, one connected non-owner user', async (t) => {
     t.after(cleanupTempFiles);
     resetFx();
-    fx.users = [{ id: 'owner' }, { id: 'u5' }, { id: 'u6' }];
+    fx.users = [{ id: 'owner', organizationId: 'orgA' }, { id: 'u5', organizationId: 'orgA' }, { id: 'u6', organizationId: 'orgA' }];
     fx.configs = {
         google_workspace_email_user_owner: 'a@x.nl', // attendee, but the owner
         google_workspace_email_user_u5: 'b@x.nl',    // attendee + connected
@@ -284,4 +284,61 @@ test('sharedWith: user lookup failure degrades to [] without failing the ingest'
     }));
     assert.deepStrictEqual(fx.ingestCalls[0].extraStoreFields.sharedWith, []);
     assert.strictEqual(out.id, 'new-id');
+});
+
+test('sharedWith: a user in ANOTHER organisation who connected an invited address gets no access', async (t) => {
+    t.after(cleanupTempFiles);
+    resetFx();
+    fx.users = [
+        { id: 'u1', organizationId: 'orgA' },
+        { id: 'uB', organizationId: 'orgB' },
+        { id: 'uA2', organizationId: 'orgA' },
+        { id: 'uA3', organizationId: 'orgA' },
+    ];
+    fx.configs = {
+        google_workspace_email_user_uB: 'partner@other.com',
+        google_workspace_email_user_uA2: 'colleague@orga.com',
+        google_workspace_email_user_uA3: 'colleague@orga.com', // same Google account, both in orgA
+    };
+    await ingestGmeetRecording(baseOpts({
+        conferenceRecordName: 'conferenceRecords/cr-x',
+        attendees: [{ email: 'partner@other.com' }, { email: 'colleague@orga.com' }],
+    }));
+    assert.deepStrictEqual(fx.ingestCalls[0].extraStoreFields.sharedWith, ['uA2', 'uA3']);
+});
+
+test('sharedWith: no organisation, no automatic share', async (t) => {
+    t.after(cleanupTempFiles);
+    resetFx();
+    fx.users = [{ id: 'u2', organizationId: 'orgA' }];
+    fx.configs = { google_workspace_email_user_u2: 'sanne@beeflow.nl' };
+    await ingestGmeetRecording(baseOpts({ orgId: null, conferenceRecordName: 'conferenceRecords/cr-n', attendees: [{ email: 'sanne@beeflow.nl' }] }));
+    assert.deepStrictEqual(fx.ingestCalls[0].extraStoreFields.sharedWith, []);
+});
+
+test('an invitee who declined, and a room, are neither shared with nor speaker candidates', async (t) => {
+    t.after(cleanupTempFiles);
+    resetFx();
+    fx.users = [{ id: 'u2', organizationId: 'orgA' }, { id: 'u3', organizationId: 'orgA' }];
+    fx.configs = { google_workspace_email_user_u2: 'sanne@beeflow.nl', google_workspace_email_user_u3: 'bob@beeflow.nl' };
+    await ingestGmeetRecording(baseOpts({
+        conferenceRecordName: 'conferenceRecords/cr-d',
+        attendees: [
+            { email: 'sanne@beeflow.nl', displayName: 'Sanne', responseStatus: 'accepted' },
+            { email: 'bob@beeflow.nl', displayName: 'Bob', responseStatus: 'declined' },
+            { email: 'room@resource.calendar.google.com', displayName: 'Room 1', resource: true },
+        ],
+    }));
+    assert.deepStrictEqual(fx.ingestCalls[0].extraStoreFields.sharedWith, ['u2']);
+    assert.deepStrictEqual(fx.ingestCalls[0].participantNames, ['Sanne']);
+});
+
+test('the meeting start and the other recording parts reach the core', async (t) => {
+    t.after(cleanupTempFiles);
+    resetFx();
+    await ingestGmeetRecording(baseOpts({
+        conferenceRecordName: 'conferenceRecords/cr-m', meetingStart: '2026-10-29T09:00:00Z', extraRecordings: 2,
+    }));
+    assert.strictEqual(fx.ingestCalls[0].meetingDate, '2026-10-29T09:00:00Z');
+    assert.strictEqual(fx.ingestCalls[0].extraRecordings, 2);
 });

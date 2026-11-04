@@ -6,6 +6,7 @@ import {
     INVOICES, entitlements, mountDesigner, res, scenario, useDesignerHarness,
 } from '../../test/automationDesignerHarness';
 import { toast } from '../shared/Toast';
+import { parkSeed, takeSeed } from '../admin/Studio/studioAi/handoff';
 
 /**
  * AITasksDesigner's sidebar list as a user sees it, pinned before the long
@@ -267,6 +268,43 @@ describe('AITasksDesigner — automation builder pane', () => {
     });
 });
 
+describe('AITasksDesigner — a brief from Studio "Describe it"', () => {
+    it('studio/automations/new with a parked brief opens a NEW builder that sends it, under the parked name', async () => {
+        parkSeed('automation', 'send a report every Monday', 'Weekly report');
+        mountDesigner({ initialTaskId: 'new' });
+        const builder = await screen.findByTestId('builder');
+        expect(builder).toHaveAttribute('data-id', 'null');
+        expect(builder).toHaveAttribute('data-auto-send', 'send a report every Monday');
+        expect(builder).toHaveAttribute('data-seed-title', 'Weekly report');
+        // it opens in "Describe it": questions, a plan in plain words, then the build
+        expect(builder).toHaveAttribute('data-work-mode', 'describe');
+        // read once: a reload of the same URL is just the list
+        expect(takeSeed('automation')).toBe(null);
+    });
+
+    it('waits for the entitlements before taking the brief', async () => {
+        parkSeed('automation', 'tidy my inbox');
+        mountDesigner({ initialTaskId: 'new' }, entitlements(false, true));
+        expect(screen.queryByTestId('builder')).toBeNull();
+        expect(takeSeed('automation')).toBe('tidy my inbox');
+    });
+
+    it('a brief without a name still opens in "Describe it", with no title for the draft', async () => {
+        parkSeed('automation', 'tidy my inbox');
+        mountDesigner({ initialTaskId: 'new' });
+        const builder = await screen.findByTestId('builder');
+        expect(builder).toHaveAttribute('data-auto-send', 'tidy my inbox');
+        expect(builder).toHaveAttribute('data-seed-title', '');
+        expect(builder).toHaveAttribute('data-work-mode', 'describe');
+    });
+
+    it('without a brief, studio/automations/new is the list', async () => {
+        mountDesigner({ initialTaskId: 'new' });
+        expect(await screen.findByText('Invoice sync')).toBeInTheDocument();
+        expect(screen.queryByTestId('builder')).toBeNull();
+    });
+});
+
 describe('AITasksDesigner — launcher paths', () => {
     it('the launcher opens and creates, and a suggestion is sent directly or only prefilled', async () => {
         const user = userEvent.setup();
@@ -281,6 +319,7 @@ describe('AITasksDesigner — launcher paths', () => {
         expect(b).toHaveAttribute('data-id', 'null');
         expect(b.getAttribute('data-auto-send')).toContain('Log every invoice');
         expect(b).toHaveAttribute('data-chat', '');
+        expect(b).toHaveAttribute('data-work-mode', ''); // a suggestion is built directly, not described
         await user.click(screen.getByRole('button', { name: 'stub-back' }));
 
         await user.click(await screen.findByRole('button', { name: 'stub-ask' }));

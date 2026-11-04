@@ -12,6 +12,7 @@ const { LAYER_KEY_RE, MAX_STEPS, MAX_EDGES, MAX_TOTAL_NODES } = require('./const
 const { COMPLETENESS_CODES } = require('./completenessCodes');
 const { validateGraph } = require('./graph');
 const { validateLayerGraph } = require('./layerGraph');
+const { varsWrittenBy } = require('./varsWriters.mts');
 
 /**
  * Validate a definition. Returns { ok, errors[], warnings[] } where each
@@ -184,7 +185,10 @@ function validateDefinitionStrict(def, { availableTools = null, toolRequiredPara
     // Handoff 5: the buttons that start this automation from another app. A
     // root-document concern only; Steps and layers are never started that way.
 
-    const graphOpts = { errors, warnings, layers: layersMap, availableTools, toolRequiredParams, deliverableEvents, availableBlocks, knownConnectionIds, knownVarNames, availableAgents, topicClassifier };
+    // The `vars.<name>` the document itself sets, for the root and every layer
+    // alike (a flowlet reads the root's vars at run time).
+    const writtenVars = varsWrittenBy(def);
+    const graphOpts = { errors, warnings, layers: layersMap, availableTools, toolRequiredParams, deliverableEvents, availableBlocks, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier };
 
     // Root graph. Preserve the original early-return semantics: a root
     // whose basic shape is broken returns immediately (the layer graphs

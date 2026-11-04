@@ -20,6 +20,7 @@ import Tabs from '../../components/shared/Tabs';
 import { API_BASE } from '../../utils/helpers';
 import { useHasGoogleMapsKey } from '../../api/queries/settingsConsumer';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useEntitlements } from '../../components/licensing/EntitlementsContext';
 import type { FormMessage, OrgInfoSaveState } from '../../components/admin/org/orgInfo/useOrgInfoForm';
 import type { SettingsUser } from './shell/settingsShellTypes';
 import { mutate, ApiError } from '../../api/mutate';
@@ -132,6 +133,13 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
     // NC-bound orgs get an additional org-admin panel for Nextcloud
     // integration management (Fase G). Standalone orgs never see it.
     const isNcOrg = !!user?.ncOrg?.instanceId;
+    // Talk Meeting Notes sits under Nextcloud Sync, a row every NC-bound org
+    // gets, but its API needs the Meeting Notes module and licence. Same
+    // predicate as the Meeting Templates row (shell/orgSubItems.ts): hidden
+    // while the snapshot loads, open when the snapshot failed or is degraded.
+    const entitlements = useEntitlements();
+    const meetingNotesInPlan = !entitlements.loading
+        && (!!entitlements.error || entitlements.degraded || entitlements.inCeiling('meeting_notes'));
 
     const isInfoSection = INFO_SECTIONS.some(s => s.id === activeSection);
     // The generic save bar serves only the sections whose fields live in
@@ -302,7 +310,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                 <>
                     <NextcloudSyncPanel user={user} />
                     {(isNcOrg || isFullAdmin) && <div className="mt-6"><OrgNcPairingPanel /></div>}
-                    <MeetingNotesAdminPanel user={user} />
+                    {meetingNotesInPlan && <MeetingNotesAdminPanel user={user} />}
                 </>
             )}
 

@@ -48,8 +48,18 @@ const defaultMode = 'after_meeting';
 const FIELDS = Object.freeze(['summary', 'decisions', 'questions', 'actions']);
 const DEFAULT_FIELDS = Object.freeze(['summary', 'decisions']);
 
-/** One pass will not enumerate more meetings than this, whatever the tag matches. */
-const MAX_MEETINGS = 500;
+/**
+ * One pass will not enumerate more meetings than this, whatever the tag matches.
+ *
+ * Also the source's `maxItems`: the engine's own default (500) is a cap on
+ * work per pass, and a tag a busy team has used for two years is past it. An
+ * unchanged meeting costs one timestamp compare, and the time budget still
+ * bounds the passes that do ingest, so the whole tag fits in one pass.
+ */
+const MAX_MEETINGS = 5000;
+const maxItems = MAX_MEETINGS;
+/** Meetings per store read; the store clamps a read to 1000. */
+const PAGE_SIZE = 500;
 
 /** @typedef {Awaited<ReturnType<typeof import('../../../stores/transcriptionStore').listByTag>>[number]} TaggedMeeting */
 /** @typedef {{ externalId: string, meeting: TaggedMeeting, title: string, sourceModifiedAt: string | Date | null }} MeetingItem */
@@ -90,8 +100,12 @@ async function enumerate(source, ctx, deps) {
         userGroupIds = asker.userGroups;
     } catch (err) { fallback('core/kb/sources/meetingTag:enumerate', err); }
 
-    const meetings = await store.listByTag(tag, owner, { orgIds, userGroupIds, limit: MAX_MEETINGS });
-    return (meetings || []).map(m => ({
+    const { meetings, complete } = await readAllTagged(store, tag, owner, { orgIds, userGroupIds });
+    // A list that stopped short is not the whole tag. The engine deletes the
+    // documents of every meeting it did not see, so it has to know: "I did not
+    // look" must never read as "it is gone".
+    if (!complete) ctx.partial = true;
+    return meetings.map(m => ({
         externalId: String(m.id),
         meeting: m,
         title: m.title || 'Meeting',
@@ -99,6 +113,48 @@ async function enumerate(source, ctx, deps) {
         // moves this, which is what makes a re-ingest happen.
         sourceModifiedAt: m.updatedAt || m.createdAt || null,
     }));
+}
+
+/**
+ * Every meeting carrying the tag that the owner may read, page by page.
+ *
+ * Paged in creation order with a keyset cursor, not by `updated_at`: a summary
+ * regenerated mid-pass would jump to the top of an `updated_at` order, past
+ * the cursor, and that meeting would be missing from a pass that thinks it is
+ * complete. `created_at` never moves.
+ *
+ * `complete` is false when the tag holds more than MAX_MEETINGS, and when the
+ * store hands back a full page that brings nothing new (a cursor it did not
+ * honour): in both cases the meetings past this point were never looked at.
+ * @param {Pick<typeof import('../../../stores/transcriptionStore'), 'listByTag'>} store
+ * @param {string} tag
+ * @param {string} owner
+ * @param {{ orgIds: string[], userGroupIds: string[] }} acl
+ * @returns {Promise<{ meetings: TaggedMeeting[], complete: boolean }>}
+ */
+async function readAllTagged(store, tag, owner, { orgIds, userGroupIds }) {
+    /** @type {TaggedMeeting[]} */
+    const meetings = [];
+    const ids = new Set();
+    /** @type {{ createdAt: any, id: string } | null} */
+    let after = null;
+    for (;;) {
+        /** @type {TaggedMeeting[]} */
+        const page = (await store.listByTag(tag, owner, { orgIds, userGroupIds, limit: PAGE_SIZE, order: 'created', after })) || [];
+        let fresh = 0;
+        for (const m of page) {
+            const id = String(m.id);
+            if (ids.has(id)) continue;
+            if (meetings.length >= MAX_MEETINGS) return { meetings, complete: false };
+            ids.add(id);
+            meetings.push(m);
+            fresh += 1;
+        }
+        if (page.length < PAGE_SIZE) return { meetings, complete: true };
+        const last = page[page.length - 1];
+        if (fresh === 0 || !last?.createdAt) return { meetings, complete: false };
+        after = { createdAt: last.createdAt, id: String(last.id) };
+    }
 }
 
 /**
@@ -183,4 +239,4 @@ function textsOf(list) {
         .filter(Boolean);
 }
 
-module.exports = { enumerate, fetch, isUnchanged, supportsModes, defaultMode, fieldsOf, textsOf, FIELDS, DEFAULT_FIELDS, MAX_MEETINGS };
+module.exports = { enumerate, fetch, isUnchanged, supportsModes, defaultMode, maxItems, fieldsOf, textsOf, FIELDS, DEFAULT_FIELDS, MAX_MEETINGS, PAGE_SIZE };

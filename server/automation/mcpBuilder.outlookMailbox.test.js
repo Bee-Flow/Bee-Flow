@@ -2,7 +2,9 @@
 /**
  * The automations MCP can build Outlook flows on a shared mailbox: the field
  * is in every Outlook tool's schema as builder_inspect_tool returns it, in the
- * trigger docs of builder_propose_trigger, and in the guide.
+ * per-user app-event lines the guide appends (builder_propose_trigger's
+ * description points there since the per-provider catalogue left it), and in
+ * the guide.
  *
  * Run: cd server && node --test automation/mcpBuilder.outlookMailbox.test.js
  */
@@ -40,13 +42,18 @@ test('builder_inspect_tool over MCP offers the optional mailbox on every Outlook
     }
 });
 
-test('builder_propose_trigger over MCP documents the shared-mailbox trigger', () => {
+test('the shared-mailbox trigger is documented where builder_propose_trigger sends an MCP client', () => {
     const propose = mcpBuilder.buildToolList().find(t => t.name === 'builder_propose_trigger');
     assert.ok(propose);
-    const text = JSON.stringify(propose);
+    assert.match(JSON.stringify(propose), /over MCP at the end of automations_get_guide/);
+    // The lines the guide's "App events you may use" block renders for a user with Microsoft 365.
+    const { renderAppEventProviderLines } = require('./builderPrompt/triggerBlock');
+    const msgraph = { id: 'msgraph', label: 'Microsoft 365 (Outlook)', events: [{ id: 'mail.new', deliverability: 'ok' }] };
+    const text = renderAppEventProviderLines([msgraph]);
     assert.match(text, /Microsoft 365 \(Outlook\)/);
-    assert.match(text, /filter:\{mailbox:\\"support@example\.com\\"\}/);
+    assert.match(text, /mail\.new \[mailbox \(a shared mailbox address; omit = the user's own inbox\)\]/);
     assert.match(text, /mailbox: trigger\.output\.mailbox/);
+    assert.match(text, /goes out FROM the shared mailbox/);
 });
 
 test('the guide tells the builder that every outlook_* tool takes a mailbox', () => {

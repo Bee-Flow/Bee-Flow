@@ -4,9 +4,10 @@
  * web capture modal's Talk and Meet panels and the Nextcloud side of its
  * upload panel, one source per segment.
  *
- * An import is synchronous on the server (download, transcribe, summarise)
- * and can take minutes; the row keeps its spinner until the note exists and
- * then opens it. One import at a time, as on the web.
+ * An import (download, transcribe, summarise) can take minutes: a Nextcloud
+ * one inside the request, a Meet one as a background job the screen follows
+ * (useImportFlow). The row keeps its spinner until the note exists and then
+ * opens it, or the failure says why. One import at a time, as on the web.
  */
 
 import { useRouter } from 'expo-router';

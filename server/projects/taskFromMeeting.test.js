@@ -3,7 +3,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { matchAssignee, suggestionsFromNote, clock, itemKey, itemTextHash, createdTaskFor } = require('./taskFromMeeting');
+const { matchAssignee, suggestionsFromNote, clock, atOf, itemKey, itemTextHash, createdTaskFor } = require('./taskFromMeeting');
 
 const PEOPLE = [
     { id: 'u1', name: 'Anna de Vries' },
@@ -52,11 +52,11 @@ test('a first name is matched only when the note holds just a first name', () =>
     assert.strictEqual(matchAssignee('Bram de Boer', [{ id: 'u2', name: 'Bram Jansen' }]), null);
 });
 
-test('a made task is found by the item\'s words, so a shifted position is not "already a task"', () => {
+test('a made task is found by the item\'s words, so another item at its old position is not "already a task"', () => {
     const made = new Map([[itemKey('ai-2', 'Send the offer'), 't-1']]);
     assert.strictEqual(createdTaskFor(made, 'ai-2', '  send the  OFFER '), 't-1', 'same words, same item');
     assert.strictEqual(createdTaskFor(made, 'ai-2', 'Book a room'), null, 'the position now holds another item');
-    assert.strictEqual(createdTaskFor(made, 'ai-3', 'Send the offer'), null, 'the same words at another position are not matched');
+    assert.strictEqual(createdTaskFor(made, 'ai-3', 'Send the offer'), 't-1', 'the same words at another position are the same task');
     const legacy = new Map([['ai-2', 't-0']]);
     assert.strictEqual(createdTaskFor(legacy, 'ai-2', 'anything'), 't-0', 'a task made before the hash existed is found by its id');
     assert.strictEqual(itemTextHash(''), '');
@@ -64,4 +64,27 @@ test('a made task is found by the item\'s words, so a shifted position is not "a
     const note = { id: 'm1', actionItems: [{ id: 'ai-1', text: 'Book a room' }] };
     assert.strictEqual(suggestionsFromNote(note, PEOPLE, made)[0].createdTaskId, null);
     assert.strictEqual(suggestionsFromNote({ ...note, actionItems: [{ id: 'ai-2', text: 'Send the offer' }] }, PEOPLE, made)[0].createdTaskId, 't-1');
+});
+
+test('a regenerated summary that renumbers an item does not offer its task again', () => {
+    // 'Send the quote' was ai-3 when its task was made; the regenerate dropped an earlier point, so it is ai-2 now.
+    const made = new Map([[itemKey('ai-3', 'Send the quote'), 't-1']]);
+    const note = { id: 'm1', actionItems: [{ id: 'ai-1', text: 'Book the venue' }, { id: 'ai-2', text: 'send the  quote' }] };
+    const out = suggestionsFromNote(note, PEOPLE, made);
+    assert.deepStrictEqual(out.map((s) => [s.itemId, s.createdTaskId]), [['ai-1', null], ['ai-2', 't-1']]);
+});
+
+test('a stored action item\'s clock string is where in the meeting it was said', () => {
+    // What the extractor stores (sanitizeTimestamp / formatTime) and what the PATCH shaper keeps: a string.
+    const note = { id: 'm1', actionItems: [
+        { id: 'ai-0', text: 'Send the offer', timestamp: '12:05' },
+        { id: 'ai-1', text: 'Book a room', timestamp: '01:02:03' },
+        { id: 'ai-2', text: 'Call back', timestamp: 'later' },
+        { id: 'ai-3', text: 'Plan', timestamp: '' },
+    ] };
+    assert.deepStrictEqual(suggestionsFromNote(note, PEOPLE, new Map()).map((s) => s.at), ['12:05', '01:02:03', '', '']);
+    assert.strictEqual(atOf(125), '2:05', 'a number of seconds is still formatted');
+    assert.strictEqual(atOf('  7:30 '), '7:30');
+    assert.strictEqual(atOf('7:75'), '');
+    assert.strictEqual(atOf(null), '');
 });

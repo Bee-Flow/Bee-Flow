@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
     deleteTranscription,
+    forgetMeetingAudio,
     regenerateSummary,
     reidentifySpeakers,
     renameTranscription,
@@ -17,6 +18,7 @@ import {
     updateSpeakers,
 } from '../api/endpoints';
 import { recordingKeys } from '../api/keys';
+import { toggleActionItem } from '../model/actionItems';
 import type { RegenerateResult } from '../model/regenerate';
 import { reprocessErrorCode } from '../model/reprocess';
 import type { ActionItem, SpeakerEdit, Transcription } from '../model/types';
@@ -107,13 +109,45 @@ export function useReprocessTranscription(id: string, handlers: Handlers = {}) {
     });
 }
 
-export function useSetActionItems(id: string, handlers: Handlers = {}) {
+/**
+ * Tick or untick one action item.
+ *
+ * The PATCH replaces the WHOLE list, so a tap built from a list the previous
+ * tap had not changed yet would send that item back unticked, and the last
+ * PATCH to land would win. So each tap starts from the cached note, writes its
+ * list into the cache at once (the checkbox moves on the tap, and the next tap
+ * starts from it), and the PATCHes go out one at a time in tap order (a
+ * mutation scope): the last one carries every tick. The note is read back only
+ * once no tick is still waiting, because a refetch that lands between two
+ * PATCHes would bring back a list without the ticks still queued. A failed
+ * PATCH ends in that read-back too, so the screen shows what the server kept.
+ */
+export function useToggleActionItem(id: string, handlers: Handlers = {}) {
+    const queryClient = useQueryClient();
     const invalidate = useInvalidate(id);
-    return useMutation({
+    const mutationKey = ['transcriptions', 'action-items', id];
+    const mutation = useMutation({
+        mutationKey,
+        scope: { id: `transcriptions:action-items:${id}` },
         mutationFn: (items: ActionItem[]) => setActionItems(id, items),
-        onSuccess: invalidate.both,
         onError: handlers.onError,
+        // This mutation still counts as pending while its own onSettled runs.
+        onSettled: () => {
+            if (queryClient.isMutating({ mutationKey }) <= 1) invalidate.both();
+        },
     });
+    return (index: number, fallback: readonly ActionItem[] = []) => {
+        const key = recordingKeys.detail(id);
+        const note = queryClient.getQueryData<Transcription | null>(key);
+        const items = toggleActionItem(note?.actionItems ?? fallback, index);
+        if (note) {
+            // A refetch already on its way carries the list from before this tap.
+            void queryClient.cancelQueries({ queryKey: key });
+            const next: Transcription = { ...note, actionItems: items };
+            queryClient.setQueryData(key, next);
+        }
+        mutation.mutate(items);
+    };
 }
 
 /** `true` sends `?confirm=1` — only ever after the guard's answer was shown. */
@@ -122,6 +156,8 @@ export function useDeleteTranscription(id: string, handlers: Handlers = {}) {
     return useMutation({
         mutationFn: (confirmedBreaking: boolean) => deleteTranscription(id, { confirmedBreaking }),
         onSuccess: () => {
+            // The confirm promised the saved audio goes too: that includes the phone's copy.
+            forgetMeetingAudio(id);
             invalidate.list();
             handlers.onSuccess?.();
         },

@@ -45,6 +45,26 @@ describe('buildSpeakerEdit', () => {
         ]);
     });
 
+    it('drops the rename of a speaker that is merged away, so the merge happens', () => {
+        expect(
+            buildSpeakerEdit(SPEAKERS, { ...same, 'Speaker 2': 'Bob' }, ['Speaker 1', 'Speaker 2'], 'Speaker 1'),
+        ).toEqual({ renames: {}, merges: [{ from: ['Speaker 2'], into: 'Speaker 1' }] });
+    });
+
+    it('names the merged group after the target, renamed or not', () => {
+        expect(
+            buildSpeakerEdit(
+                SPEAKERS,
+                { ...same, 'Speaker 1': 'Bob', 'Speaker 2': 'Robert', Tom: 'Thomas' },
+                ['Speaker 1', 'Speaker 2'],
+                'Speaker 1',
+            ),
+        ).toEqual({
+            renames: { 'Speaker 1': 'Bob', Tom: 'Thomas' },
+            merges: [{ from: ['Speaker 2'], into: 'Speaker 1' }],
+        });
+    });
+
     it('does not merge a single selection', () => {
         expect(buildSpeakerEdit(SPEAKERS, same, ['Tom'], 'Tom').merges).toEqual([]);
     });

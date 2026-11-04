@@ -17,10 +17,11 @@ const { summariseDefinition, renderAgentDraftState } = require('../../../automat
 // Lives in automation/ rather than here because the MCP surface
 // (automation/mcpBuilder.js) needs the same catalog, and automation/ may not
 // require routes/ (server/layering.test.js).
-const { buildCatalogForUser } = require('../../../automation/builderCatalog');
+const { buildCatalogForUser, inputSchemasByTool, inspectedToolsFrom } = require('../../../automation/builderCatalog');
 const { loadOrCreateDraft } = require('./builderDraft');
 const { MODES, isBlankDraft, planMentionsRemoval, pendingProposal } = require('./workMode');
 const { setupDatatableTurn, clientSnapshot } = require('./datatableTurn');
+const { turnModeOf } = require('./modeRules.mts');
 const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = require('../../../core/http/schemaParts');
 
 /**
@@ -127,7 +128,7 @@ const TurnBody = bodyOf({
     modelTier: text('modelTier is the name of a model tier.').nullish(),
     alwaysPlanLarge: flag('alwaysPlanLarge is true or false.').optional(),
     pauseAfterStep: flag('pauseAfterStep is true or false.').optional(),
-    workMode: choice(MODES, 'workMode is discuss, approve, plan or build.').optional(),
+    workMode: choice(MODES, 'workMode is describe, discuss, approve, plan or build.').optional(),
     approvedPlanId: text('approvedPlanId is the exact plan revision approved by the user.').nullish(),
     selectedStepId: text('selectedStepId is the step the user is asking about.').nullish(),
     history: z.array(z.unknown(), { error: typeError({ invalid: 'history is the list of earlier turns.' }) }).nullish(),
@@ -224,7 +225,7 @@ async function setupTurn(turn) {
         send('error', { error: 'This plan revision is no longer available. Review and approve the latest plan.' });
         res.end(); return false;
     }
-    const turnMode = approvedPlan ? 'build' : workMode;
+    const turnMode = turnModeOf(workMode, approvedPlan);
     // A new or empty draft is built directly: the size check is for
     // changes to a flow that already exists.
     const bufferedBuild = turnMode === 'build' && alwaysPlanLarge && !approvedPlan && !isBlankDraft(draftWrap.def);
@@ -315,25 +316,23 @@ async function setupTurn(turn) {
     // add-action gate can require an inspect before binding non-trivial
     // params. `_inspectedTools` tracks what the agent inspected this turn.
     //
-    // Built from the catalog's `actions`, which buildCatalogForUser has
-    // already narrowed to what this user can RUN. It must not be built from
-    // the full TOOL_REGISTRY, or `unknownToolError` would read
-    // "the catalog knows this tool's schema" as "the user has this tool".
+    // Built from the catalog's rows and resolved definitions, which
+    // buildCatalogForUser has already narrowed to what this user can RUN
+    // (MCP, custom-integration, automation and Step tools included). It must
+    // not be built from the full TOOL_REGISTRY, or `unknownToolError` would
+    // read "the catalog knows this tool's schema" as "the user has this tool".
     // The two lists must come from one source or they drift back apart.
-    draftWrap._inputSchemasByTool = {};
-    for (const app of (catalog?.apps || [])) {
-        for (const act of (app.actions || [])) {
-            if (act && act.name && act.inputSchema) draftWrap._inputSchemasByTool[act.name] = act.inputSchema;
-        }
-    }
-    // The authorisation set, and deliberately NOT derived from `apps`: the
-    // resolved set also carries MCP, org-custom, agent-callable-automation and
-    // Step tools, which own no TOOL_REGISTRY entry and so never appear in
-    // `apps`. Gating on `apps` would refuse tools the user really has.
+    draftWrap._inputSchemasByTool = inputSchemasByTool(catalog);
+    // The authorisation set, and deliberately NOT derived from `apps`: it is
+    // the raw resolved set, and a row that could not be built for a tool
+    // must not turn into a refusal of a tool the user really has.
     // Nor is `_inputSchemasByTool` the authority — it is keyed on tools
     // that HAVE an input schema, so a parameterless tool would vanish.
     draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
-    draftWrap._inspectedTools = new Set();
+    // What this session already inspected (the stored session's
+    // `inspectedTools`, when it carries them), narrowed to tools the user can
+    // still run; otherwise empty, and the gate asks again this turn.
+    draftWrap._inspectedTools = inspectedToolsFrom(/** @type {{ inspectedTools?: unknown } | null} */ (snapshot)?.inspectedTools, draftWrap._availableToolNames);
     // What the draft's tools really returned on this user's last live run
     // (shapeCache), read by the path checks (builderTools/refCheck.js,
     // outputFields.js) before the curated shapes. One cache read per tool,
@@ -380,8 +379,9 @@ async function setupTurn(turn) {
     // permission filters. Each fails into its own "could not read" marker
     // (never into "none"), and none of them throws. They are rendered into
     // the late dynamic message, not the cached system prompt.
-    Object.assign(catalog, await require('../../../automation/builderPickerCatalog')
-        .buildPickerCatalogsForUser(userId, req.session, catalog));
+    const picked = await require('../../../automation/builderPickerCatalog').buildPickerCatalogsForUser(userId, req.session, catalog);
+    Object.assign(catalog, picked);
+    draftWrap._blocks = !picked.blocksError && Array.isArray(picked.blocks) ? picked.blocks : null; // call_block's gate; null = could not read
 
     // Human-readable summary — seeds `lastSummary` (the "What this
     // automation does" panel + builder_session snapshot). User-facing, so

@@ -45,6 +45,7 @@ const { deps: d, init } = lazyDeps({
     listRecordings: () => require('./teamsArtifacts').listRecordings,
     listTranscripts: () => require('./teamsArtifacts').listTranscripts,
     pickArtifactForSlot: () => require('./teamsArtifacts').pickArtifactForSlot,
+    artifactsForSlot: () => require('./teamsArtifacts').artifactsForSlot,
     ingestTeamsMeeting: () => require('./ingestTeamsRecording').ingestTeamsMeeting,
 });
 
@@ -67,6 +68,10 @@ const TERMINAL_CODES = new Set([
     'not_organizer', 'no_recording', 'recording_too_large',
     'transcript_access_disabled', 'speaker_attribution_disabled', 'needs_teams_scopes',
     'empty_transcription',
+    // A colleague's note for this recording that this user cannot read: no
+    // retry changes that, and the 409's sentence (ask them to share it) is the
+    // answer the user needs instead of "try again in a moment".
+    'already_imported', 'provider_not_allowed',
 ]);
 const QUIET_CODES = new Set(['no_recording', 'not_organizer']);
 
@@ -160,14 +165,22 @@ const discover = kit.makeDiscovery({
     discoverUser,
 });
 
-/** Attendees of the job's calendar event (speaker roster + sharing). [] on failure. */
+/**
+ * Attendees of the job's calendar event (speaker roster + sharing). [] on
+ * failure. Rooms and other resources are no participants, and an invitee who
+ * DECLINED was not there: neither gets the note shared nor becomes a speaker
+ * candidate.
+ */
 async function fetchEventAttendees(session, job) {
     try {
         const event = await d.graphFetch(`/me/events/${encodeURIComponent(job.calendarEventId)}?$select=attendees`, session);
-        return (event?.attendees || []).map(a => ({
-            email: a.emailAddress?.address || null,
-            displayName: a.emailAddress?.name || null,
-        }));
+        return (event?.attendees || [])
+            .filter(a => String(a?.type || '').toLowerCase() !== 'resource'
+                && String(a?.status?.response || '').toLowerCase() !== 'declined')
+            .map(a => ({
+                email: a.emailAddress?.address || null,
+                displayName: a.emailAddress?.name || null,
+            }));
     } catch (err) {
         log.warn(`[TeamsAutoImport] attendee lookup failed for job ${job.id}: ${/** @type {Error} */ (err).message}`);
         return [];
@@ -178,30 +191,49 @@ async function fetchEventAttendees(session, job) {
  * The artifact to ingest for this occurrence: its recording, else (when the
  * transcript scope was granted) its transcript, else null. Transcript access
  * switched off by the tenant counts as "no transcript", not as a failure.
- * @returns {Promise<{ kind: 'recording'|'transcript', id: string }|null>}
+ * `extraRecordings` counts the OTHER artifacts of the same occurrence (a
+ * recording stopped and restarted makes one per part), so the note can say it
+ * covers only one of them.
+ * @returns {Promise<{ kind: 'recording'|'transcript', id: string, extraRecordings?: number }|null>}
  * @param {string} meetingId
  */
 async function findArtifact(session, meetingId, job, { transcriptAllowed }) {
     const slot = { meetingStart: job.meetingStart, meetingEnd: job.meetingEnd };
-    const recording = d.pickArtifactForSlot(await d.listRecordings(session, meetingId), slot);
-    if (recording?.id) return { kind: 'recording', id: recording.id };
+    const recordings = await d.listRecordings(session, meetingId);
+    const recording = d.pickArtifactForSlot(recordings, slot);
+    if (recording?.id) return withExtras({ kind: 'recording', id: recording.id }, recordings, slot);
     if (!transcriptAllowed) return null;
     try {
-        const transcript = d.pickArtifactForSlot(await d.listTranscripts(session, meetingId), slot);
-        if (transcript?.id) return { kind: 'transcript', id: transcript.id };
+        const transcripts = await d.listTranscripts(session, meetingId);
+        const transcript = d.pickArtifactForSlot(transcripts, slot);
+        if (transcript?.id) return withExtras({ kind: 'transcript', id: transcript.id }, transcripts, slot);
     } catch (err) {
         if (err?.code !== 'transcript_access_disabled') throw err;
     }
     return null;
 }
 
+/**
+ * The picked artifact, plus how many others of `items` fall in this occurrence's window.
+ * @param {{ kind: 'recording' | 'transcript', id: string }} artifact
+ * @param {any[]} items
+ * @param {{ meetingStart?: string | null, meetingEnd?: string | null }} slot
+ */
+function withExtras(artifact, items, slot) {
+    const extra = d.artifactsForSlot(items, slot).filter((/** @type {{ id?: string }} */ a) => a?.id && a.id !== artifact.id).length;
+    return extra > 0 ? { ...artifact, extraRecordings: extra } : artifact;
+}
+
 // Always throws: classified codes freeze the job; anything else retries up to
-// MAX_INGEST_ATTEMPTS, then freezes as 'failed'.
-async function failIngest(job, err) {
+// MAX_INGEST_ATTEMPTS, then freezes as 'failed'. A run the user is watching
+// (`manual`) is not retried behind their back: its failure is final and keeps
+// its own code, so the screen and the job agree.
+async function failIngest(job, err, { manual = false } = {}) {
     return kit.failIngest({
         store: d.teamsImportStore, job, err,
         terminalCodes: TERMINAL_CODES,
-        maxAttempts: MAX_INGEST_ATTEMPTS,
+        maxAttempts: manual ? 1 : MAX_INGEST_ATTEMPTS,
+        keepCode: manual,
         fallbackMessage: 'Teams import failed',
     });
 }
@@ -212,13 +244,14 @@ async function failIngest(job, err) {
  *   { pending: true, status }  no artifact yet; the job stays claimable
  * and throws an Error with a stable `.code` for classified failures, after
  * recording the outcome on the job row.
- * @param {{ job: any, session: any, settings?: any, language?: string|null, contextTerms?: string, transcriptAllowed?: boolean, accessCtx?: any }} args
+ * `manual`: the run a user started and is watching (the /from-teams route).
+ * @param {{ job: any, session: any, settings?: any, language?: string|null, contextTerms?: string, transcriptAllowed?: boolean, accessCtx?: any, manual?: boolean }} args
  */
-async function processJobInline({ job, session, settings = null, language = null, contextTerms = '', transcriptAllowed = true, accessCtx = undefined }) {
+async function processJobInline({ job, session, settings = null, language = null, contextTerms = '', transcriptAllowed = true, accessCtx = undefined, manual = false }) {
     const effective = settings || await d.resolveTeamsNotesSettings({ orgId: job.orgId, userId: job.userId });
 
     let meetingId = job.onlineMeetingId;
-    /** @type {{ kind: 'recording' | 'transcript'; id: string; } | null} */
+    /** @type {{ kind: 'recording' | 'transcript'; id: string; extraRecordings?: number } | null} */
     let artifact;
     try {
         if (!meetingId) {
@@ -229,15 +262,22 @@ async function processJobInline({ job, session, settings = null, language = null
         }
         artifact = await findArtifact(session, meetingId, job, { transcriptAllowed });
     } catch (err) {
-        if (err?.code && TERMINAL_CODES.has(err.code)) {
-            await d.teamsImportStore.failJob(job.id, { errorCode: err.code, terminal: true, lastError: /** @type {Error} */ (err).message });
-            throw err;
+        // The Graph client signals a session it could not use (no token, a
+        // refresh Microsoft refused) with a bare NOT_CONNECTED: that is a
+        // reconnect, not a retry.
+        if (!err?.code && /** @type {Error} */ (err)?.message === 'NOT_CONNECTED') {
+            await d.teamsImportStore.parkNeedsReauth(job.id);
+            throw codedError('Reconnect your Microsoft account to import this meeting', 'needs_reauth');
         }
-        await d.teamsImportStore.failJob(job.id, {
-            errorCode: null, lastError: String(/** @type {Error} */ (err)?.message || err).slice(0, 500),
-            terminal: false, status: job.status, backoffMs: backoffMsFor(job.attempts),
+        // Classified codes freeze; anything else (a 404 on a cached meeting,
+        // a lasting 5xx) retries with backoff until the same 48 h deadline as
+        // a missing recording, then freezes as 'failed' with the last error.
+        return kit.failLookup({
+            store: d.teamsImportStore, job, err,
+            terminalCodes: TERMINAL_CODES,
+            deadlineMs: NO_RECORDING_DEADLINE_MS,
+            fallbackMessage: 'Teams lookup failed',
         });
-        throw codedError(/** @type {Error} */ (err)?.message || 'Teams lookup failed', 'failed');
     }
 
     if (!artifact) {
@@ -255,33 +295,56 @@ async function processJobInline({ job, session, settings = null, language = null
     }
 
     const attendees = await fetchEventAttendees(session, job);
-    // The ingest outlives the 10-minute claim lease by far; extend it so the
-    // next tick does not start the same meeting again on another replica.
-    await d.teamsImportStore.heartbeatJob(job.id, INGEST_LEASE_MINUTES)
-        .catch(e => log.warn('[TeamsAutoImport] lease extension failed:', e.message));
 
     let saved;
     try {
-        saved = await d.ingestTeamsMeeting({
-            userId: job.userId,
-            session,
-            orgId: job.orgId,
-            meetingId,
-            artifact,
-            title: job.title,
-            language: language || effective.language,
-            contextTerms,
-            attendees,
-            accessCtx,
+        // The ingest outlives the 10-minute claim lease by far; the lease is
+        // extended and kept renewed for as long as it runs, so no tick on
+        // another replica starts the same meeting again mid-ingest.
+        saved = await kit.withLeaseHeartbeat({
+            store: d.teamsImportStore, jobId: job.id, leaseMinutes: INGEST_LEASE_MINUTES, label: 'TeamsAutoImport',
+            work: () => d.ingestTeamsMeeting({
+                userId: job.userId,
+                session,
+                orgId: job.orgId,
+                meetingId,
+                artifact,
+                title: job.title,
+                meetingStart: job.meetingStart,
+                language: language || job.requestedLanguage || effective.language,
+                contextTerms: contextTerms || job.contextTerms || '',
+                attendees,
+                accessCtx,
+            }),
         });
     } catch (err) {
-        return failIngest(job, err);
+        return failIngest(job, err, { manual });
     }
     await d.teamsImportStore.completeJob(job.id, saved.id);
     return { transcription: saved };
 }
 
+/**
+ * May this job's owner still have a meeting imported? Checked again at claim
+ * time, not only at discovery: a job can wait up to 48 h for its recording,
+ * and a user deactivated, or an org whose licence lapsed, in that window must
+ * not still get a note transcribed, stored and shared.
+ * @returns {Promise<string | null>} why not, or null when they may
+ */
+async function ownerBarredReason(job) {
+    // A failed lookup throws: the claim lease retries the job instead of skipping it for good.
+    const user = await d.userStore.getUser(job.userId);
+    if (!user || (user.status ?? 'active') !== 'active') return 'the account is no longer active';
+    if (!await d.hasCapability('meeting_notes', { userId: job.userId, orgId: job.orgId })) return 'Meeting Notes is not licensed for this account';
+    return null;
+}
+
 async function processClaimedJob(job) {
+    const barred = await ownerBarredReason(job);
+    if (barred) {
+        await d.teamsImportStore.updateJob(job.id, { status: 'skipped', lastError: `Skipped: ${barred}` });
+        return;
+    }
     // Re-read the settings and the explicit per-meeting choice: an opt-out
     // made after seeding must still win.
     const settings = await d.resolveTeamsNotesSettings({ orgId: job.orgId, userId: job.userId });
@@ -290,8 +353,11 @@ async function processClaimedJob(job) {
     const opinion = prefs.opinionFor(
         meetingPrefs.teamsIds({ eventId: job.calendarEventId, seriesMasterId: job.seriesMasterId }),
     );
-    // An explicit opt-out always wins; with autoImport off an explicit opt-in is required.
-    if (opinion === false || (!settings.autoImport && opinion !== true)) {
+    // An explicit opt-out always wins; with autoImport off an explicit opt-in
+    // is required — and a meeting the user asked to import BY HAND is one
+    // (`requestedByUser`): the poller finishing a manual import that had to
+    // wait for Teams must not skip it because auto-import is off.
+    if (opinion === false || (!settings.autoImport && opinion !== true && !job.requestedByUser)) {
         await d.teamsImportStore.updateJob(job.id, { status: 'skipped' });
         return;
     }

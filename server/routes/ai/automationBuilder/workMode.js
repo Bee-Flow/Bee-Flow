@@ -5,7 +5,7 @@ const { lookupTable, normaliseKey } = require('../../../automation/builderTools/
 const { normaliseFieldArgs } = require('../../../automation/builderTools/datatableCreate');
 const { boundDatatableIds } = require('../../../automation/builderTools/pendingDatatables');
 const { parseAnswersText } = require('../../../automation/builderTools/questionAnswers');
-const { QUESTIONS_RULE, TABLE_CONSENT_RULE, EVIDENCE_RULE } = require('./modeRules.mts');
+const { QUESTIONS_RULE, TABLE_CONSENT_RULE, EVIDENCE_RULE, ASK_FIRST_RULE, PLAIN_PLAN_RULE, HANDOVER_RULE, ONE_QUESTION_RULE, DESCRIBE_RULE, asksFirst } = require('./modeRules.mts');
 // @typecheck
 // These tools only inspect the draft, a schema or the document library. Unknown
 // tools fail closed.
@@ -14,7 +14,7 @@ const { QUESTIONS_RULE, TABLE_CONSENT_RULE, EVIDENCE_RULE } = require('./modeRul
 // here: documentDiscovery.inspectBindings refuses a fill_document step until
 // builder_read_document ran for its document, and the "Documents you may fill"
 // block tells the model to call the search. They were in neither set below, so
-// in the default work mode ("Approve each change") fill_document could never be
+// in the default work mode ("Show me before changing") fill_document could never be
 // built: the refusal named a tool the mode did not offer.
 const READ_TOOLS = new Set(['builder_inspect_tool', 'builder_summarise',
     'builder_ask_questions', 'builder_write_plan', 'builder_inspect_step', 'builder_inspect_mapping', 'builder_inspect_run',
@@ -42,7 +42,7 @@ const PREVIEW_BLOCKED = new Set(['builder_finalize',
 // the checklist: a card with no Build button. In Plan first the plan is
 // builder_write_plan and nothing else; the checklist belongs to a build.
 const CHECKLIST_TOOLS = new Set(['builder_set_plan']);
-const MODES = ['discuss', 'approve', 'plan', 'build'];
+const MODES = ['describe', 'discuss', 'approve', 'plan', 'build']; // describe runs as plan (modeRules turnModeOf)
 
 // One question round holds at most this many questions, each with at most this
 // many answers. More are cut, never rejected: a rejected call cost a round and
@@ -127,7 +127,7 @@ function toolAllowed(name, mode, { planAllowsRemoval = false } = {}) {
     if (name === 'builder_create_datatable') return mode === 'approve';
     if (CHECKLIST_TOOLS.has(name)) return mode === 'approve';
     if (READ_TOOLS.has(name)) return true;
-    if (STAGED_CHECK_TOOLS.has(name)) return mode === 'approve' || mode === 'plan';
+    if (STAGED_CHECK_TOOLS.has(name)) return mode === 'approve' || asksFirst(mode);
     return mode === 'approve' && MUTATING_TOOLS.has(name) && !PREVIEW_BLOCKED.has(name);
 }
 
@@ -136,20 +136,22 @@ function toolAllowed(name, mode, { planAllowsRemoval = false } = {}) {
 // table belongs in the plan, and is created when the user approves it and the
 // build runs.
 function previewRefusal(name, mode) {
-    if (name === 'builder_create_datatable' && mode === 'plan') {
+    if (name === 'builder_create_datatable' && asksFirst(mode)) {
         return 'No table was created in Plan first. Put it in builder_write_plan\'s "datatables" list (name and typed columns); it is created when the user approves the plan and the build runs.';
     }
-    if (CHECKLIST_TOOLS.has(name) && (mode === 'plan' || mode === 'discuss')) {
+    if (CHECKLIST_TOOLS.has(name) && (asksFirst(mode) || mode === 'discuss')) {
         return 'In Plan first the plan is builder_write_plan; the checklist is only for building. Do not track progress in this turn.';
     }
     if (mode === 'discuss') {
-        return 'Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to "Approve each change" to have it staged.';
+        return 'Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to "Show me before changing" to have it staged.';
     }
     return `This tool is not permitted in ${mode} mode. Read, explain or propose a plan instead. Removing a step needs a human-approved proposal.`;
 }
 
-function modeInstruction(mode, plan = null) {
-    return withTableRule(modeBody(mode, plan));
+// `workMode` is the mode the user chose; Describe it adds its rule to the plan turn and to the build of its approved plan.
+function modeInstruction(mode, plan = null, workMode = mode) {
+    const body = modeBody(asksFirst(mode) ? 'plan' : mode, plan);
+    return withTableRule(workMode === 'describe' ? `${body} ${DESCRIBE_RULE}` : body);
 }
 
 const withTableRule = (text) => `${text} ${TABLE_CONSENT_RULE}`;
@@ -157,11 +159,12 @@ const withTableRule = (text) => `${text} ${TABLE_CONSENT_RULE}`;
 function modeBody(mode, plan = null) {
     const common = `\nASSISTANT WORK MODE (overrides build-first instructions and examples above): ${EVIDENCE_RULE} `;
     if (mode === 'discuss') return common + 'DISCUSS ONLY. Explain and advise. Read the draft and schemas. Never change anything. '
-        + 'You cannot stage, apply or test changes in this mode. When a change is needed, describe it as a suggestion, say clearly that nothing was changed, and tell the user to switch to "Approve each change" (or "Build directly") to have it staged. Never say a fix is ready, done or applied. Ask only questions you cannot infer from the available context. ' + QUESTIONS_RULE;
+        + 'You cannot stage, apply or test changes in this mode. When a change is needed, describe it as a suggestion, say clearly that nothing was changed, and tell the user to switch to "Show me before changing" (or "Change it right away") to have it staged. Never say a fix is ready, done or applied. Ask only questions you cannot infer from the available context. ' + QUESTIONS_RULE;
     if (mode === 'plan') return common + 'PLAN FIRST. Explore the draft and schemas without changing anything. You may read the document library (builder_search_documents, builder_read_document) and run builder_request_dry_run on the current draft (side effects are simulated) when the plan depends on what they return. '
+        + ASK_FIRST_RULE + ' '
         + 'If something essential is unclear, ask ALL your questions in ONE builder_ask_questions call; you get one question round for this plan. Otherwise go straight to builder_write_plan. ' + QUESTIONS_RULE + ' '
         + 'Do not call builder_set_plan and do not track progress: nothing is built in this turn. End this turn with exactly one of: builder_ask_questions or builder_write_plan. Only answer in prose when the user merely asked a question. '
-        + 'builder_write_plan takes a readable title, goal, assumptions, steps, prerequisites and tests. '
+        + 'builder_write_plan takes a readable title, goal, assumptions, steps, prerequisites and tests. ' + PLAIN_PLAN_RULE + ' '
         + 'Write every line of the plan as one plain sentence, without numbering or bullet characters: the plan view numbers the steps itself. Wait for explicit plan approval. A todo checklist is not approval. Never build in this turn. '
         + 'List new tables (name and typed columns) in builder_write_plan.datatables and the existing tables you will use in useDatatables.';
     if (mode === 'approve') return common + 'PROPOSE CHANGES. Draft tools change an isolated preview only. Describe exactly what changed, including field mappings (old → new), and why. Do not claim changes are applied. The human applies or discards the proposal. '
@@ -173,7 +176,8 @@ function modeBody(mode, plan = null) {
         + '. Never activate or publish. '
         + (plan ? `The user has APPROVED this plan: build it now, do not wait for approval again. Follow this approved plan; report any deviation and ask before changing its scope: ${JSON.stringify(plan)}. `
             + 'The checklist is the approved plan\'s steps; mark them done with builder_set_plan({markDone}) and do not replace the list. '
-            + 'If the plan asks to fold a flowlet into the main flow, use builder_inline_layer. When the last step is done, say the plan is complete.' : '');
+            + 'If the plan asks to fold a flowlet into the main flow, use builder_inline_layer. When the last step is done, say the plan is complete. ' + HANDOVER_RULE
+            : ONE_QUESTION_RULE);
 }
 
 const PLAN_TOOL = { type: 'function', function: {
@@ -254,11 +258,11 @@ function withHeader(question, q) {
  * fifth answer used to be rejected as a whole, which cost a round and, with
  * one question round per plan, the whole round. Unusable questions are dropped,
  * the rest is cut to the limits. Returns { questions, dropped } (dropped = how
- * many valid questions were cut past MAX_QUESTIONS), or null when no question
+ * many valid questions were cut past `max`), or null when no question
  * is usable. A table question's fields (datatableIds, createLabel, and the
  * server-only `choice` it yields) pass through tableQuestion untouched.
  */
-function writeQuestions(args, { datatables = null } = {}) {
+function writeQuestions(args, { datatables = null, max = MAX_QUESTIONS } = {}) {
     if (!Array.isArray(args?.questions)) return null;
     const seen = new Set();
     const valid = [];
@@ -280,7 +284,8 @@ function writeQuestions(args, { datatables = null } = {}) {
         valid.push(withHeader({ id: randomUUID(), prompt, options }, q));
     }
     if (!valid.length) return null;
-    return { questions: valid.slice(0, MAX_QUESTIONS), dropped: Math.max(0, valid.length - MAX_QUESTIONS) };
+    const limit = Math.max(1, Math.min(MAX_QUESTIONS, max));
+    return { questions: valid.slice(0, limit), dropped: Math.max(0, valid.length - limit) };
 }
 
 // The plan view numbers the steps (01, 02, ...) and draws its own bullet, so a
@@ -398,7 +403,7 @@ function questionStatusNote({ prior = null, answeredText = '', mode = 'plan', ap
     if (matched > 0) {
         const head = `\nThe user answered the ${matched} question${matched === 1 ? '' : 's'} you asked (Q/A in their message). Do not ask them again. `;
         if (approvedPlan) return `${head}Continue the approved plan.`;
-        if (mode === 'plan') return `${head}Call builder_write_plan now; put anything still open under assumptions.`;
+        if (asksFirst(mode)) return `${head}Call builder_write_plan now; put anything still open under assumptions.`;
         return head.trimEnd();
     }
     const list = asked.map((q, i) => `${i + 1}) ${q.prompt}${Array.isArray(q.options) && q.options.length ? ` (suggested: ${q.options[0]})` : ''}`).join(' ');

@@ -14,7 +14,9 @@
  * Run: cd mobile && ./node_modules/.bin/jest src/features/recording/model/regenerate.test.ts
  */
 
-import { describeRegenerateOutcome, type RegenerateResult } from './regenerate';
+import { ApiError } from '@/core/api/client';
+
+import { describeRegenerateOutcome, regenerateFailureMessage, type RegenerateResult } from './regenerate';
 
 const OK: RegenerateResult = {
     summary: 'Verse samenvatting',
@@ -73,5 +75,22 @@ describe('describeRegenerateOutcome', () => {
     it('een antwoord zonder lijst valt niet om', () => {
         const outcome = describeRegenerateOutcome({ ...OK, actionItems: undefined as unknown as [] });
         expect(outcome.kind).toBe('success');
+    });
+});
+
+describe('regenerateFailureMessage', () => {
+    const refused = (status: number, code: string) => new ApiError('server text', { status, body: { code } });
+
+    it('an empty model answer says nothing was changed', () => {
+        expect(regenerateFailureMessage(refused(502, 'summary_empty'), 'fallback')).toMatch(/no summary, so nothing was changed/);
+    });
+
+    it('a re-transcription that runs or ran says to rewrite again afterwards', () => {
+        expect(regenerateFailureMessage(refused(409, 'already_processing'), 'fallback')).toMatch(/re-transcribed/);
+        expect(regenerateFailureMessage(refused(409, 'transcript_changed'), 'fallback')).toMatch(/re-transcribed/);
+    });
+
+    it('anything else keeps the fallback', () => {
+        expect(regenerateFailureMessage(new Error('boom'), 'The server said no.')).toBe('The server said no.');
     });
 });

@@ -212,3 +212,38 @@ test('setRecordAutomatically PATCHes the organizer\'s meeting and never throws',
     fx.handler = () => { throw new Error('network'); };
     assert.deepStrictEqual(await artifacts.setRecordAutomatically(session, { joinUrl: 'x', enabled: true }), { error: 'error' });
 });
+
+// ── a busy calendar, several recordings, a 403 that is not about scopes ──
+
+test('the recently-ended scan reads newest first and follows more than three pages', async () => {
+    let page = 0;
+    const ended = (id, minsAgo) => ({
+        id, onlineMeeting: { joinUrl: `https://teams.microsoft.com/l/${id}` },
+        start: { dateTime: new Date(Date.now() - (minsAgo + 30) * 60_000).toISOString() },
+        end: { dateTime: new Date(Date.now() - minsAgo * 60_000).toISOString() },
+    });
+    fx.handler = () => {
+        page += 1;
+        return json(page < 5
+            ? { value: [ended(`m${page}`, 60 * page)], '@odata.nextLink': `https://graph.microsoft.com/v1.0/next${page}` }
+            : { value: [ended('m5', 60 * 5)] });
+    };
+    const out = await calendar.listRecentlyEndedTeamsMeetings({ session, lookbackHours: 168, graceMinutes: 0 });
+    assert.deepStrictEqual(out.map((m) => m.eventId), ['m1', 'm2', 'm3', 'm4', 'm5']);
+    assert.match(decodeURIComponent(fx.calls[0].path), /\$orderby=start\/dateTime desc/);
+});
+
+test('a 403 that mentions "permission" but no scope or consent is not labelled "reconnect"', async () => {
+    fx.handler = () => graphError(403, 'Forbidden', 'You do not have permission to access this file');
+    await assert.rejects(() => artifacts.listRecordings(session, 'MSo1'), (err) => err.code === 'not_organizer');
+});
+
+test('artifactsForSlot lists every part of a recording that was stopped and restarted', () => {
+    const slot = { meetingStart: '2026-11-03T09:00:00Z', meetingEnd: '2026-11-03T11:00:00Z' };
+    const items = [
+        { id: 'R2', createdDateTime: '2026-11-03T10:40:00Z', endDateTime: '2026-11-03T10:59:00Z' },
+        { id: 'R1', createdDateTime: '2026-11-03T09:01:00Z', endDateTime: '2026-11-03T10:10:00Z' },
+        { id: 'OTHER', createdDateTime: '2026-11-10T09:01:00Z', endDateTime: '2026-11-10T10:10:00Z' },
+    ];
+    assert.deepStrictEqual(artifacts.artifactsForSlot(items, slot).map((a) => a.id), ['R1', 'R2']);
+});

@@ -44,11 +44,11 @@ const { checkComplianceFindings } = require('./complianceRules');
  */
 function createStepChecker({
     graph, trigger, ids, seenSoFar, pushE, pushW,
-    availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier, isContractScope,
+    availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, isContractScope,
 }) {
     const base = createStepContext({
         graph, trigger, ids, seenSoFar, pushE, pushW,
-        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier, isContractScope,
+        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, isContractScope,
     });
     const { outgoingLabelsFor } = base;
 

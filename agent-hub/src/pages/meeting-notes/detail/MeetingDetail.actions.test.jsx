@@ -10,7 +10,7 @@
  * in between has to send the WHOLE list, because the PATCH replaces the
  * column.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,13 +19,18 @@ const H = vi.hoisted(() => ({
     patchTranscription: vi.fn(),
     regenerateSummary: vi.fn(),
     refresh: vi.fn(),
+    refetchUsage: vi.fn(),
+    updateSpeakers: vi.fn(),
+    getTranscription: vi.fn(),
+    reprocessTranscription: vi.fn(),
+    setData: null,
     state: { meeting: null },
 }));
 
 vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 vi.mock('@/hooks/useUsage', () => ({
-    default: () => ({ usage: [], unchecked: [], error: null, loading: false, refetch: () => {}, setUsage: () => {} }),
+    default: () => ({ usage: [], unchecked: [], error: null, loading: false, refetch: H.refetchUsage, setUsage: () => {} }),
     USAGE_KIND_PATH: {},
 }));
 
@@ -35,6 +40,8 @@ vi.mock('../hooks/useTranscription', async () => {
     const React2 = await import('react');
     function useTranscriptionStub() {
         const [data, setData] = React2.useState(() => H.state.meeting);
+        // The detail's own poll, by hand: a test moves the note on through this.
+        React2.useEffect(() => { H.setData = setData; });
         return {
             data,
             loading: false,
@@ -50,7 +57,9 @@ vi.mock('@/api/transcriptionsApi', () => ({
     patchTranscription: (...a) => H.patchTranscription(...a),
     regenerateSummary: (...a) => H.regenerateSummary(...a),
     deleteTranscription: vi.fn(async () => ({ success: true })),
-    reprocessTranscription: vi.fn(async () => ({})),
+    reprocessTranscription: (...a) => H.reprocessTranscription(...a),
+    updateSpeakers: (...a) => H.updateSpeakers(...a),
+    getTranscription: (...a) => H.getTranscription(...a),
     exportTranscription: vi.fn(async () => new Blob()),
     listSummaryTemplates: vi.fn(async () => []),
     getSeriesPrevious: vi.fn(async () => null),
@@ -59,7 +68,12 @@ vi.mock('@/api/transcriptionsApi', () => ({
 
 vi.mock('./WaveformPlayer', () => ({ default: () => <div data-testid="player" /> }));
 vi.mock('./AssistantSidebar', () => ({ default: () => null }));
-vi.mock('./SpeakerEditor', () => ({ default: () => null }));
+// The editor's save, as one button: what matters is the banner it leads to.
+vi.mock('./SpeakerEditor', () => ({
+    default: ({ onSave }) => (
+        <button type="button" onClick={() => onSave({ renames: { 'Spreker 2': 'Anna' } })}>harness-save-speakers</button>
+    ),
+}));
 vi.mock('./TemplateEditor', () => ({ default: () => null }));
 vi.mock('./MeetingVisibility', () => ({ default: () => null }));
 vi.mock('@/components/shared/Toast', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
@@ -92,12 +106,13 @@ vi.mock('./SummaryActionsLayout', () => ({
             >
                 harness-set-destination
             </button>
-            <button type="button" onClick={() => onToggleActionItem?.('ai-0')}>harness-toggle</button>
+            {onToggleActionItem && <button type="button" onClick={() => onToggleActionItem('ai-0')}>harness-toggle</button>}
         </div>
     ),
 }));
 
 import MeetingDetail from './MeetingDetail';
+import makeMeetingEdits from './useMeetingEdits';
 
 const AI_ITEM = { id: 'ai-0', text: 'Filter inbouwen', assignee: 'Tom', done: false, source: 'ai' };
 const USER_ITEM = {
@@ -121,6 +136,12 @@ beforeEach(() => {
     H.patchTranscription.mockReset();
     H.regenerateSummary.mockReset();
     H.refresh.mockReset();
+    H.refetchUsage.mockReset();
+    H.updateSpeakers.mockReset();
+    H.getTranscription.mockReset();
+    H.getTranscription.mockResolvedValue({ tags: [] });
+    H.reprocessTranscription.mockReset();
+    H.reprocessTranscription.mockResolvedValue({ id: 'm-1', status: 'processing' });
     H.patchTranscription.mockImplementation(async (_id, patch) => ({ success: true, ...patch }));
     H.state.meeting = note([AI_ITEM, USER_ITEM]);
 });
@@ -383,5 +404,204 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
         expect(toast.info).not.toHaveBeenCalled();
+    });
+});
+
+
+// ── "SPEAKERS UPDATED, REGENERATE?" KEEPS THE NOTE'S TEMPLATE (MN-026) ──
+
+describe('MeetingDetail — the rename banner regenerates with the note’s own template', () => {
+    async function acceptBanner(stamp) {
+        const user = userEvent.setup();
+        H.state.meeting = { ...note([AI_ITEM]), ...stamp };
+        H.updateSpeakers.mockResolvedValue({ ...H.state.meeting, speakers: [{ id: 'Anna' }] });
+        H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], ...stamp });
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        await user.click(screen.getByText('harness-save-speakers'));
+        await user.click(await screen.findByRole('button', { name: 'Regenerate' }));
+        await waitFor(() => expect(H.regenerateSummary).toHaveBeenCalled());
+        return H.regenerateSummary.mock.calls[0];
+    }
+
+    it('a saved template', async () => {
+        expect(await acceptBanner({ summaryTemplateId: 'tpl-sales-v3', summaryTemplateVersion: 3 })).toEqual(['m-1', { templateId: 'tpl-sales-v3' }]);
+    });
+
+    it('a built-in other than General', async () => {
+        expect(await acceptBanner({ summaryTemplateId: 'builtin:sales', summaryTemplateVersion: null })).toEqual(['m-1', { template: 'sales' }]);
+    });
+});
+
+
+// ── WHAT ONLY THE OWNER MAY DO (MN-117, MN-125) ─────────────────────
+
+describe('MeetingDetail — a reader of a shared note', () => {
+    it('gets no action-item checkbox handler', () => {
+        H.state.meeting = { ...note([AI_ITEM]), isOwner: false };
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        expect(screen.queryByText('harness-toggle')).toBeNull();
+    });
+
+    it('is not offered Re-transcribe, which the server refuses with a 403', async () => {
+        const user = userEvent.setup();
+        H.state.meeting = { ...note([AI_ITEM]), isOwner: false };
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        await user.click(screen.getByTestId('meeting-more'));
+        expect(screen.queryByText('Re-transcribe')).toBeNull();
+        expect(screen.getByText('Copy transcript')).toBeTruthy();
+    });
+
+    it('is not offered Re-transcribe on a failed note either', () => {
+        H.state.meeting = { ...note([]), isOwner: false, status: 'failed', failureReason: 'boom' };
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        expect(screen.queryByTestId('meeting-more')).toBeNull();
+    });
+});
+
+describe('MeetingDetail — a checkbox the server refused (MN-117)', () => {
+    it('puts the rail count back and says so', async () => {
+        const user = userEvent.setup();
+        const { toast } = await import('@/components/shared/Toast');
+        toast.error.mockClear();
+        const onChanged = vi.fn();
+        H.patchTranscription.mockRejectedValue(new Error('Not found'));
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
+        await user.click(screen.getByText('harness-toggle'));
+        await waitFor(() => expect(toast.error).toHaveBeenCalled());
+        expect(onChanged).toHaveBeenLastCalledWith('m-1', { actionsTotal: 2, actionsOpen: 2 });
+        expect(H.refresh).toHaveBeenCalled();
+    });
+});
+
+
+// ── THE LIBRARY ROW AND THE USAGE LIST FOLLOW THE NOTE (MN-116, MN-118, MN-124) ──
+
+describe('MeetingDetail — re-transcribe keeps the library row current (MN-116)', () => {
+    it('marks the row processing, then hands it the finished note', async () => {
+        const user = userEvent.setup();
+        const onChanged = vi.fn();
+        H.state.meeting = { ...note([AI_ITEM]), status: 'failed', failureReason: 'boom' };
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
+        await user.click(screen.getByTestId('meeting-more'));
+        await user.click(screen.getByText('Re-transcribe'));
+        const dialog = await screen.findByRole('dialog');
+        await user.click(within(dialog).getByRole('button', { name: 'Re-transcribe' }));
+        await waitFor(() => expect(onChanged).toHaveBeenCalledWith('m-1', { status: 'processing', failureReason: null }));
+
+        act(() => H.setData((p) => ({ ...p, status: 'processing' })));
+        act(() => H.setData((p) => ({ ...p, status: 'completed', failureReason: undefined, tags: ['sales'], actionItems: [AI_ITEM, USER_ITEM] })));
+        await waitFor(() => expect(onChanged).toHaveBeenLastCalledWith('m-1', expect.objectContaining({
+            status: 'completed', failureReason: null, tags: ['sales'], actionsTotal: 2, actionsOpen: 2,
+        })));
+        expect(H.refetchUsage).toHaveBeenCalled();
+    });
+});
+
+describe('MeetingDetail — what uses this meeting is re-read after a tag change (MN-118)', () => {
+    it('after a tag is removed', async () => {
+        const user = userEvent.setup();
+        H.state.meeting = { ...note([AI_ITEM]), tags: ['sales'] };
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        await user.click(screen.getByLabelText('Remove tag sales'));
+        await waitFor(() => expect(H.refetchUsage).toHaveBeenCalledTimes(1));
+    });
+});
+
+describe('MeetingDetail — tags a regenerate wrote (MN-124)', () => {
+    it('shows them, so the next tag edit does not PATCH over them', async () => {
+        const user = userEvent.setup();
+        const onChanged = vi.fn();
+        H.state.meeting = note([AI_ITEM]);
+        H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], artifactsRegenerated: true });
+        H.getTranscription.mockResolvedValue({ ...note([AI_ITEM]), tags: ['budget', 'q3'] });
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
+        await user.click(screen.getByText('harness-regenerate'));
+        await waitFor(() => expect(within(screen.getByTestId('meeting-tags')).getByText('budget')).toBeTruthy());
+        expect(onChanged).toHaveBeenCalledWith('m-1', { tags: ['budget', 'q3'] });
+        expect(H.refetchUsage).toHaveBeenCalled();
+    });
+
+    it('takes them from the answer when it carries them', async () => {
+        const user = userEvent.setup();
+        H.state.meeting = note([AI_ITEM]);
+        H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], tags: ['planning'] });
+        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        await user.click(screen.getByText('harness-regenerate'));
+        await waitFor(() => expect(within(screen.getByTestId('meeting-tags')).getByText('planning')).toBeTruthy());
+        expect(H.getTranscription).not.toHaveBeenCalled();
+    });
+});
+
+// The hook is a plain factory of handlers, called here outside a component.
+function edits(data) {
+    let local = data;
+    const onChanged = vi.fn();
+    const onTagsSaved = vi.fn();
+    const api = makeMeetingEdits({
+        data,
+        setLocal: (next) => { local = typeof next === 'function' ? next(local) : next; },
+        refresh: vi.fn(),
+        onChanged,
+        onTagsSaved,
+        offerRegenerate: vi.fn(),
+        notifyDestinationNotSaved: vi.fn(),
+    });
+    return { api, onChanged, onTagsSaved, local: () => local };
+}
+
+describe('useMeetingEdits — legacy action items without an id (MN-126)', () => {
+    const legacy = () => ({
+        id: 'm1',
+        actionItems: [{ text: 'A', done: false }, { text: 'B', done: false }, { id: 'ai-2', text: 'C', done: false }],
+    });
+
+    it('ticks only the item whose position was handed back', async () => {
+        const { api } = edits(legacy());
+        await api.handleToggleActionItem('legacy-index:0');
+        const sent = H.patchTranscription.mock.calls[0][1].actionItems;
+        expect(sent.map((ai) => ai.done)).toEqual([true, false, false]);
+    });
+
+    it('rewrites only that item’s text', async () => {
+        const { api } = edits(legacy());
+        await api.handleEditActionItem('legacy-index:1', 'X');
+        const sent = H.patchTranscription.mock.calls[0][1].actionItems;
+        expect(sent.map((ai) => ai.text)).toEqual(['A', 'X', 'C']);
+    });
+
+    it('sets a destination on that item alone', async () => {
+        const { api } = edits(legacy());
+        await api.handleSetActionDestination('legacy-index:0', { kind: 'automation', ref: 'a-1', label: 'L' });
+        const sent = H.patchTranscription.mock.calls[0][1].actionItems;
+        expect(sent.map((ai) => !!ai.destination)).toEqual([true, false, false]);
+    });
+
+    it('changes nothing for an undefined handle', async () => {
+        const { api } = edits(legacy());
+        await api.handleToggleActionItem(undefined);
+        const sent = H.patchTranscription.mock.calls[0][1].actionItems;
+        expect(sent.map((ai) => ai.done)).toEqual([false, false, false]);
+    });
+});
+
+describe('useMeetingEdits — tags take the server’s cleaned list (MN-130)', () => {
+    it('shows and reports the stored tag, not the typed one', async () => {
+        const long = 'x'.repeat(120);
+        H.patchTranscription.mockImplementation(async (_id, patch) => ({
+            success: true, tags: patch.tags.map((t) => t.slice(0, 80)),
+        }));
+        const { api, onChanged, onTagsSaved, local } = edits({ id: 'm1', tags: ['a'] });
+        await api.handleAddTag(long);
+        expect(local().tags).toEqual(['a', 'x'.repeat(80)]);
+        expect(onChanged).toHaveBeenLastCalledWith('m1', { tags: ['a', 'x'.repeat(80)] });
+        // What picks the meeting up is derived from its tags (MN-118).
+        expect(onTagsSaved).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps its own list when the answer carries none', async () => {
+        H.patchTranscription.mockResolvedValue({ success: true });
+        const { api, local } = edits({ id: 'm1', tags: ['a'] });
+        await api.handleAddTag('b');
+        expect(local().tags).toEqual(['a', 'b']);
     });
 });

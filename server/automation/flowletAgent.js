@@ -32,7 +32,9 @@ const {
     TOOL_SCHEMAS, MUTATING_TOOLS, SCOPED_GRAPH_TOOLS, applyToolCall,
     generateLayerKey, makeLayerSkeleton, truncateToolResultJson,
 } = require('./builderTools');
-const { renderCatalog, renderDatatablesBlock, renderDocumentsBlock, renderAgentsBlock, renderKnowledgeBasesBlock } = require('./builderPrompt');
+const { renderDatatablesBlock, renderDocumentsBlock, renderAgentsBlock, renderKnowledgeBasesBlock } = require('./builderPrompt');
+const { renderCatalogSlim, emptyCatalogLine } = require('./builderPrompt/catalogRender');
+const { inputSchemasByTool } = require('./builderCatalog');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -149,7 +151,10 @@ function layerValidation(def, layerKey) {
  * @param {{ catalog?: Def | null, mode?: string, layerKey: string, instruction: string, contract?: Contract | null }} p
  */
 function buildLayerAgentPrompt({ catalog, mode, layerKey, instruction, contract }) {
-    const apps = renderCatalog(catalog);
+    // The main builder's renderer: every runnable tool (MCP, custom
+    // integration and Step tools included) with an input count; the exact
+    // params come from builder_inspect_tool, which this sub-agent has.
+    const apps = renderCatalogSlim(catalog) || emptyCatalogLine(catalog);
     // The same "Datatables you may use" block the main builder gets: a
     // flowlet that saves rows needs the real table id and column keys too,
     // and '' when the caller could not build the list (see catalogRender).
@@ -218,6 +223,12 @@ async function runLayerAgent({
     if (!draftWrap?.def?.layers?.[layerKey]) {
         throw new Error(`runLayerAgent: flowlet "${layerKey}" does not exist on the draft.`);
     }
+    // The standalone flowlet route (layerAgent.js) hands a bare draft: give it
+    // the inspect map and set the main builder's turn would have, so
+    // builder_inspect_tool answers real inputs here too.
+    const wrap = /** @type {{ _inputSchemasByTool?: Record<string, object>, _inspectedTools?: Set<string> }} */ (draftWrap);
+    if (!wrap._inputSchemasByTool && catalog) wrap._inputSchemasByTool = inputSchemasByTool(/** @type {Parameters<typeof inputSchemasByTool>[0]} */ (catalog));
+    if (!(wrap._inspectedTools instanceof Set)) wrap._inspectedTools = new Set();
     const tools = layerAgentTools();
     const sys = buildLayerAgentPrompt({ catalog, mode, layerKey, instruction, contract });
     const userMsg = mode === 'refine'

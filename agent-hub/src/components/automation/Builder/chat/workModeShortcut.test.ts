@@ -1,6 +1,6 @@
-// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { isWorkModeShortcut, nextWorkMode } from './workModeShortcut';
+import { WORK_MODES } from './WorkModePicker';
 
 const ev = (over: Record<string, unknown>) => ({ altKey: false, ctrlKey: false, metaKey: false, shiftKey: false, ...over });
 
@@ -20,10 +20,19 @@ describe('isWorkModeShortcut', () => {
 });
 
 describe('nextWorkMode', () => {
-    const modes = [{ id: 'discuss' }, { id: 'approve' }, { id: 'plan' }, { id: 'build' }];
+    const modes = [{ id: 'describe' }, { id: 'discuss' }, { id: 'approve' }, { id: 'plan' }, { id: 'build' }];
     it('cycles and wraps', () => {
+        expect(nextWorkMode(modes, 'describe')).toBe('discuss');
         expect(nextWorkMode(modes, 'discuss')).toBe('approve');
-        expect(nextWorkMode(modes, 'build')).toBe('discuss');
-        expect(nextWorkMode(modes, 'nonsense')).toBe('discuss');
+        expect(nextWorkMode(modes, 'build')).toBe('describe');
+        expect(nextWorkMode(modes, 'nonsense')).toBe('describe');
+    });
+
+    it('Alt+M cycles through every mode of the picker, "Describe it" first', () => {
+        expect(WORK_MODES.map(m => m.id)).toEqual(['describe', 'discuss', 'approve', 'plan', 'build']);
+        const seen = [WORK_MODES[0].id];
+        while (seen.length < WORK_MODES.length) seen.push(nextWorkMode(WORK_MODES, seen[seen.length - 1]));
+        expect(nextWorkMode(WORK_MODES, seen[seen.length - 1])).toBe('describe');
+        expect(new Set(seen).size).toBe(WORK_MODES.length);
     });
 });

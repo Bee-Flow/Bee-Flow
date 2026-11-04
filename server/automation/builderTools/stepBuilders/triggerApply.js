@@ -47,6 +47,8 @@ function buildForm(raw) {
         fields: buildFormFields(f.fields),
         ...(typeof f.collect === 'boolean' ? { collect: f.collect } : {}),
         ...(f.theme && typeof f.theme === 'object' ? { theme: f.theme } : {}),
+        // The form-only look (core/forms/formStyle.mts); validate.js checks it on save.
+        ...(f.style && typeof f.style === 'object' && !Array.isArray(f.style) ? { style: f.style } : {}),
     };
 }
 

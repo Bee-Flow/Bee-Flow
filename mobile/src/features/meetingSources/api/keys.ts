@@ -8,4 +8,11 @@ export const sourceKeys = {
     nextcloudFiles: (folder: string) => ['meeting-sources', 'nextcloud-files', folder] as const,
     meetRecordings: ['meeting-sources', 'gmeet-recordings'] as const,
     meetImports: ['meeting-sources', 'gmeet-imports'] as const,
+    /** One followed Meet import; `attempt` gives a re-import of the same job its own entry. */
+    meetImportJob: (jobId: string, attempt: number) => ['meeting-sources', 'gmeet-import-job', jobId, attempt] as const,
+};
+
+/** Mutation keys, so a screen mounted again still sees an import that is running. */
+export const importMutationKeys = {
+    nextcloud: ['meeting-sources', 'import', 'nextcloud'] as const,
 };

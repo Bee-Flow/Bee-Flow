@@ -3,15 +3,15 @@ import { useMeetingSourcesQuery } from '@/api/queries/meetingNotesConnections';
 /**
  * useMeetingSources — which live-meeting sources can actually feed Meeting
  * Notes for this account: Nextcloud Talk (any connection: connector / OAuth /
- * app-password) and Google Meet (Google connected).
+ * app-password), Google Meet (Google connected) and Microsoft Teams
+ * (Microsoft connected with the Teams calendar/recording scopes).
  *
- * Gates the "Upcoming" tab on the Meeting Notes page: an org on e.g. Outlook
- * calendar + Teams has neither source, and a tab that can never show a
- * meeting shouldn't exist for them. Uses the two cheap settings endpoints
- * (no calendar scans). Best-effort, so any error or non-OK (e.g. unlicensed
- * 403) counts as unavailable.
+ * The result decides only whether the "Upcoming" pane is pre-mounted, so its
+ * count badge is there before anyone opens it; the segment itself is always
+ * shown. Uses the cheap settings endpoints (no calendar scans). Best-effort,
+ * so any error or non-OK (e.g. unlicensed 403) counts as unavailable.
  *
- * @returns {{ talk: boolean, gmeet: boolean, loading: boolean }}
+ * @returns {{ talk: boolean, gmeet: boolean, teams: boolean, loading: boolean }}
  */
 export default function useMeetingSources() {
     return useMeetingSourcesQuery();

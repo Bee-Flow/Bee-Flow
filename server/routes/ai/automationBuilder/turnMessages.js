@@ -37,7 +37,8 @@
  * for the session. The id lists (agents, knowledge bases, the user's app_event
  * providers) sit in `dyn` on EVERY band: they change when somebody creates an
  * agent, which the cached system prompt must not feel. Order inside `dyn`:
- * catalog → id lists → schemas → preferences → draft state LAST, so the part
+ * catalog → id lists → schemas → last test run → last run → image note →
+ * preferences → draft state LAST, so the part
  * that changes every round sits closest to the end.
  */
 
@@ -48,6 +49,7 @@ const {
 const { windowHistory, HISTORY_EVICT_BLOCK } = require('../../../core/llm/historyWindow');
 const { isGemini3Model } = require('../builderShared');
 const { historyForModel } = require('./chatTurnLoop');
+const { userTurnContent } = require('./turnImages.mts');
 
 /**
  * Attachments are NOT executed (the Builder is a design-time agent, not a
@@ -73,6 +75,10 @@ function attachmentSummaryText(attachments) {
  *   draftIsEmpty: boolean,
  *   canvasScope?: string,
  *   schemaPart?: string|null, // pre-inspected schemas (§WS8) or null
+ *   lastTestRun?: string|null, // the "## Last test run" block (builderPrompt/lastTestRun.mts) or null
+ *   lastRun?: string|null, // the "## Last run" block (./lastRunContext.mts) or null
+ *   images?: Array<import('./turnImages.mts').TurnImage>, // this turn's pictures for a model that sees them (./turnImages.mts)
+ *   imageNote?: string|null, // the line for a model that cannot see the attached pictures, or null
  *   turnPrefs?: { userTimezone?: string, webSearchEnabled?: boolean, webResearchLine?: string|null, disabledMedia?: Record<string, unknown>, allowedModelTiers?: string[] },
  *   title?: string, // the draft's title (draftWrap.title) for the draft-state message
  *   workMode?: string|null }} p  workMode: the turn's work mode; plan and discuss get no few-shots
@@ -81,7 +87,8 @@ function attachmentSummaryText(attachments) {
 function composeTurnMessages({
     profile, modelId, promptCatalog, codeStepEnabled, batchTools,
     history, message, attachments,
-    agentDraftState, draftIsEmpty, canvasScope, schemaPart, turnPrefs, title, workMode = null,
+    agentDraftState, draftIsEmpty, canvasScope, schemaPart, lastTestRun = null, turnPrefs, title, workMode = null,
+    lastRun = null, images = [], imageNote = null,
 }) {
     const prof = profile || {};
     const buildPrompt = prof.promptVariant === 'lean' ? buildLeanSystemPrompt : buildFullSystemPrompt;
@@ -145,6 +152,15 @@ function composeTurnMessages({
         // change between turns, and the system prompt must not.
         renderPickerContextMessage({ catalog: promptCatalog }),
         schemaPart || null,
+        // What the last test run showed per step (session memory, F7): it
+        // changes only when a turn dry-runs, so it sits before the
+        // preferences and the draft state.
+        lastTestRun || null,
+        // The automation's latest run when it is newer than the session
+        // (a run the person started from the canvas), and the line for a
+        // model that cannot see the pictures attached to this message.
+        lastRun || null,
+        imageNote || null,
         renderTurnPreferences(turnPrefs || {}),
         draftIsEmpty ? null : renderDraftStateSystemMessage({ agentDraftState, canvasScope, title }),
     ].filter(Boolean).join('\n\n');
@@ -154,7 +170,8 @@ function composeTurnMessages({
         ...fewShotMessages,
         ...windowedHistory,
         ...(dynamicContext ? [{ role: 'system', content: dynamicContext }] : []),
-        { role: 'user', content: (carried ? `${carried}\n\n` : '') + (message || '') + attachmentSummaryText(attachments) },
+        // Pictures ride this message only: never the history, never the prefix.
+        { role: 'user', content: userTurnContent((carried ? `${carried}\n\n` : '') + (message || '') + attachmentSummaryText(attachments), Array.isArray(images) ? images : []) },
     ];
 
     return { sys, fewShotMessages, windowedHistory, dynamicContext, messages };

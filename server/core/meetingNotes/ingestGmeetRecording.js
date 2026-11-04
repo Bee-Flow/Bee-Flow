@@ -43,13 +43,16 @@ const MAX_SHARED_WITH = 50;
  * @param {{ accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, userId: string,
  *   session: import('./gmeetArtifacts').GoogleSession, orgId?: string, conferenceRecordName: string,
  *   driveFileId: string, meetingCode?: string, title?: string, language?: string, contextTerms?: string,
- *   attendees?: Array<{ email?: string, displayName?: string | null }> }} opts `accessCtx`: the
+ *   attendees?: Array<{ email?: string, displayName?: string | null, responseStatus?: string | null, resource?: boolean }>,
+ *   meetingStart?: string | Date | null, extraRecordings?: number }} opts `accessCtx`: the
  *   caller's access context, for a dedup hit it must be able to read; `userId`: Bee Flow user who owns
  *   the note; `session`: req.session OR vault pseudo-session; `orgId`: org id (model-tier + EU
  *   resolution); `conferenceRecordName`: `conferenceRecords/{record}` (dedup key); `driveFileId`: Drive
  *   file id of the recording MP4; `meetingCode`: typeable meeting code (`abc-defg-hij`); `title`:
  *   calendar event title (titleHint); `language`: BCP-47-ish lang code (default 'nl'); `contextTerms`:
- *   bias terms for the transcriber; `attendees`: calendar attendees ({email, displayName})
+ *   bias terms for the transcriber; `attendees`: calendar attendees ({email, displayName}); `meetingStart`:
+ *   when the meeting took place (anchors relative deadlines); `extraRecordings`: other recordings of this
+ *   conference the note does not cover
  * @returns {Promise<{ id: string, title?: string | null, dedup?: boolean, sourceUri?: string }>} the saved-note payload (+ `dedup`)
  */
 async function ingestGmeetRecording(opts) {
@@ -57,8 +60,12 @@ async function ingestGmeetRecording(opts) {
         userId, session, orgId = null,
         conferenceRecordName, driveFileId, meetingCode = null,
         title = null, language = 'nl', contextTerms = '',
-        attendees = [],
+        attendees: allAttendees = [], meetingStart = null, extraRecordings = 0,
     } = opts || {};
+    // Rooms are no participants, and an invitee who declined was not there:
+    // neither gets the note shared nor becomes a speaker candidate.
+    const attendees = (Array.isArray(allAttendees) ? allAttendees : [])
+        .filter((a) => a && a.resource !== true && String(a.responseStatus || '').toLowerCase() !== 'declined');
 
     if (!userId) throw new IngestError('userId is required', { code: 'failed', status: 400 });
     if (!conferenceRecordName || typeof conferenceRecordName !== 'string') {
@@ -129,8 +136,9 @@ async function ingestGmeetRecording(opts) {
     // participant list (only the latter sees signed-out/phone participants).
     const participantNames = await resolveRoster(session, conferenceRecordName, attendees);
 
-    // Attendees who also connected Google on this instance get read access.
-    const sharedWith = await resolveSharedWith(userId, attendees);
+    // Attendees in the owner's organisation who also connected Google on this
+    // instance get read access.
+    const sharedWith = await resolveSharedWith(userId, orgId, attendees);
 
     // ── Transcribe → diarize → summarize → persist (shared core) ──
     const baseName = driveName ? driveName.replace(/\.[^/.]+$/, '') : '';
@@ -141,6 +149,10 @@ async function ingestGmeetRecording(opts) {
         contextTerms, titleHint: title,
         participantNames, source: 'gmeet', sourceUri,
         extraStoreFields: { meetMeetingCode: meetingCode, sharedWith },
+        // The core checks the dedup key again just before it saves.
+        accessCtx: opts.accessCtx,
+        meetingDate: meetingStart,
+        extraRecordings: Number(extraRecordings) || 0,
     });
 }
 
@@ -171,12 +183,18 @@ async function resolveRoster(session, conferenceRecordName, attendees) {
  * `google_workspace_email_user_<userId>`), so attendees on this instance can
  * see the note without a manual share. There is no reverse (email → user)
  * index for those configs, so batch-read the per-user keys in one SELECT and
- * invert. Excludes the owner, capped at MAX_SHARED_WITH. Best-effort: [] on
- * any error.
+ * invert. ONLY users in the owner's organisation, like the Teams import: an
+ * external guest who happens to have an account in another tenant of this
+ * instance must not get another organisation's meeting in their library.
+ * No organisation, no share. Every member who connected an attendee's
+ * address gets it (not an arbitrary first one). Excludes the owner, capped at
+ * MAX_SHARED_WITH. Best-effort: [] on any error.
  * @param {string} ownerId
+ * @param {string | null} orgId
  * @param {Array<{ email?: string, displayName?: string | null }>} attendees
  */
-async function resolveSharedWith(ownerId, attendees) {
+async function resolveSharedWith(ownerId, orgId, attendees) {
+    if (!orgId) return [];
     try {
         /** @type {string[]} */
         const emails = [];
@@ -188,23 +206,27 @@ async function resolveSharedWith(ownerId, attendees) {
 
         const { getAllUsers } = require('../../stores/userStore');
         const configStore = require('../../stores/configStore');
-        const users = await getAllUsers();
+        const users = (await getAllUsers()).filter((u) => u?.organizationId && String(u.organizationId) === String(orgId));
+        if (!users.length) return [];
         /** @type {Record<string, unknown>} */
         const configs = await configStore.getConfigsByKeys(users.map(u => `google_workspace_email_user_${u.id}`));
 
-        const userByEmail = new Map();
+        /** @type {Map<string, string[]>} */
+        const usersByEmail = new Map();
         for (const u of users) {
             const email = String(configs[`google_workspace_email_user_${u.id}`] || '').trim().toLowerCase();
-            if (email && !userByEmail.has(email)) userByEmail.set(email, u.id);
+            if (!email) continue;
+            usersByEmail.set(email, [...(usersByEmail.get(email) || []), u.id]);
         }
 
         /** @type {string[]} */
         const ids = [];
         for (const email of emails) {
-            const uid = userByEmail.get(email);
-            if (!uid || String(uid) === String(ownerId) || ids.includes(uid)) continue;
-            ids.push(uid);
-            if (ids.length >= MAX_SHARED_WITH) break;
+            for (const uid of usersByEmail.get(email) || []) {
+                if (String(uid) === String(ownerId) || ids.includes(uid)) continue;
+                ids.push(uid);
+                if (ids.length >= MAX_SHARED_WITH) return ids;
+            }
         }
         return ids;
     } catch (err) {

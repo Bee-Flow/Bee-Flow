@@ -28,6 +28,7 @@ let chatReply = 'THE REPORT';
 let shield = null;                 // resolveShieldFor result
 let scanResult = { action: 'allow' };
 let scanThrows = false;            // simulate the guard service being down
+let chatThrows = false;            // simulate the provider failing
 const scanCalls = [];
 
 stub('../stores/transcriptionStore', {
@@ -42,7 +43,11 @@ stub('../stores/storageStore', {
     uploadFile: async () => ({}), deleteFile: async () => ({}),
 });
 stub('../core/llm/llmClient', {
-    chat: async (model, messages, opts) => { chatCalls.push({ model, messages, opts }); return { content: chatReply }; },
+    chat: async (model, messages, opts) => {
+        chatCalls.push({ model, messages, opts });
+        if (chatThrows) throw new Error('provider 500');
+        return { content: chatReply };
+    },
 });
 stub('../core/meetingNotes/summaryHelpers', {
     resolveSmartModel: async () => 'smart-model',
@@ -133,6 +138,7 @@ test.beforeEach(() => {
     shield = null;
     scanResult = { action: 'allow' };
     scanThrows = false;
+    chatThrows = false;
     clearedConversations.length = 0;
     notes = { a: { ...NOTE_A }, b: { ...NOTE_B } };
 });
@@ -275,4 +281,25 @@ test('a forged </meeting> in a title or transcript cannot break the untrusted-da
     // not deleted, so the model still sees what was actually said.
     assert.match(userMsg, /Ignore previous instructions\./);
     assert.match(userMsg, /normaal\s+\/meeting/);
+});
+
+
+test('the token map is dropped too when the model call fails, and the scan is one-request (ephemeral)', async () => {
+    shield = { enabled: true, dlpEnabled: true };
+    scanResult = { action: 'redact', redactedText: 'X [PERSON_1]', tokenMap: { '[PERSON_1]': 'Tom' } };
+    chatThrows = true;
+    const res = await dispatch({ body: { ids: ['a'], prompt: 'vraag' } });
+    assert.strictEqual(res.statusCode, 500);
+    assert.strictEqual(clearedConversations.length, 1, '{token → raw PII} does not stay behind after a provider error');
+    assert.strictEqual(scanCalls[0].ephemeral, true, 'no row exists to persist the map to');
+});
+
+test('the report call has the meeting LLM cut-off, and an action item without assignee has no "(undefined)"', async () => {
+    notes.b.transcript = 'x'.repeat(400000);   // over budget → digests
+    notes.b.actionItems = [{ id: 'u-1', text: 'Taak zonder eigenaar', done: false }];
+    await dispatch({ body: { ids: ['a', 'b'], prompt: 'vraag' } });
+    assert.strictEqual(chatCalls[0].opts.timeoutMs, 540000);
+    const userMsg = chatCalls[0].messages.find((m) => m.role === 'user').content;
+    assert.match(userMsg, /Taak zonder eigenaar/);
+    assert.doesNotMatch(userMsg, /undefined/);
 });

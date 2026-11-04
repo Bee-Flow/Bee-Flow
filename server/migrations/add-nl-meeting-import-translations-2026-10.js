@@ -11,6 +11,7 @@
 
 const NL_TRANSLATIONS = Object.freeze({
     'meetings.import_error_access_disabled': 'Je organisatie staat toegang tot deze opname niet toe.',
+    'meetings.import_error_already_imported': 'Iemand anders heeft deze vergadering al geïmporteerd. Vraag of die de vergadernotitie met je deelt.',
     'meetings.import_error_empty': 'De opname bevatte geen spraak om te transcriberen.',
     'meetings.import_error_failed': 'De import is mislukt. Probeer het zo meteen opnieuw.',
     'meetings.import_error_needs_reauth': 'De toegang is verlopen. Koppel je account opnieuw en probeer het nog eens.',
@@ -18,6 +19,7 @@ const NL_TRANSLATIONS = Object.freeze({
     'meetings.import_error_no_recording': 'Deze vergadering heeft geen opname of transcript.',
     'meetings.import_error_not_connected': 'Je account is niet meer gekoppeld. Koppel het opnieuw en probeer het nog eens.',
     'meetings.import_error_not_organizer': 'Alleen de organisator van een vergadering kan die importeren.',
+    'meetings.import_error_provider_not_allowed': 'Die transcriptie-engine is niet ingeschakeld voor deze werkruimte.',
     'meetings.import_error_timeout': 'De import duurde te lang. Bekijk de vergadernotities later, of probeer het opnieuw.',
     'meetings.import_error_too_large': 'De opname is te groot om te importeren.',
     'meetings.import_running': 'De vergadering wordt geïmporteerd. Dit kan enkele minuten duren…',

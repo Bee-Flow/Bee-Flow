@@ -133,6 +133,7 @@ interface DiagramPaneInnerProps {
     flowletCount?: number;
     onAddTrigger?: ((payload: typeof TRIGGERS[number]['payload']) => void) | null;
     onOpenAssistant?: (() => void) | null;
+    onSendBrief?: ((text: string) => void) | null;
     editingStepId?: string | null;
     formUrl?: string | null;
     onOpenFormOverlay?: (() => void) | null;
@@ -204,6 +205,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     onFocusStep = null,       // (stepId) — a validation record was clicked
     onAddTrigger = null,      // (payload) — the empty canvas's trigger cards
     onOpenAssistant = null,   // () — the empty canvas's Assistant button
+    onSendBrief = null,       // (text) — the empty canvas's example briefs
     editingStepId = null,     // the step open in the drawer (design 1h)
     // The automation's public form page. Only ever used by the run banner, and
     // only while a run is parked on a form (design 1d, "Formulier openen").
@@ -306,6 +308,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                 onRequestOpenPalette={onRequestOpenPalette}
                 onAddTrigger={onAddTrigger}
                 onOpenAssistant={onOpenAssistant}
+                onSendBrief={onSendBrief}
                 building={!!(structuralEditsBlocked && buildCue?.running)}
                 caption={buildCue?.narration || null}
                 startedAt={buildCue?.startedAt || null}

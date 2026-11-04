@@ -10,9 +10,11 @@ import SpeakerEditor from './SpeakerEditor';
 import SummaryActionsLayout from './SummaryActionsLayout';
 import TagRow from './TagRow';
 import TemplateEditor from './TemplateEditor';
+import { regenerateArgForNote } from './regenerateArg';
 import useMeetingCommands from './useMeetingCommands';
 import useMeetingEdits from './useMeetingEdits';
 import useMeetingPaneState from './useMeetingPaneState';
+import useMeetingUsage, { useProcessingSettled } from './useMeetingUsage';
 import WaveformPlayer from './WaveformPlayer';
 import DangerZone from '@/components/shared/DangerZone';
 import Modal from '@/components/shared/Modal';
@@ -20,31 +22,12 @@ import { toast } from '@/components/shared/Toast';
 import useConfirm from '@/components/shared/useConfirm';
 import { kindLabelFor } from '@/components/shared/UsedByTab';
 import useTranslation from '@/hooks/useTranslation';
-import useUsage from '@/hooks/useUsage';
 import useMediaQuery from '../hooks/useMediaQuery';
 import useTranscription from '../hooks/useTranscription';
 import * as api from '@/api/transcriptionsApi';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { ApiError, MeetingNote, MeetingRowPatch } from './meetingDetailTypes';
 import type { UsageRow } from '@/hooks/useUsage';
-
-/**
- * "Used by n" — ONE fetch for the tab badge, the tab body, the outputs bar
- * under the tags and the delete confirmation (Track 0.4, endpoint M2). Four
- * consumers, one list: a bar that says a knowledge base collects this meeting
- * while the delete dialog says nothing depends on it would be worse than
- * either being absent.
- *
- * `unchecked` names the kinds the server could NOT answer for. It is not
- * decoration: an incomplete list must never be presented as a complete one,
- * and the count in the tab badge stays blank rather than under-reporting.
- */
-function useMeetingUsage(meetingId: string | undefined) {
-    const { usage, unchecked, error: usageError, loading: usageLoading } = useUsage('meeting', meetingId || null);
-    const uncheckedKinds = usageError ? [] : (unchecked || []);
-    const usedByCount = (usageError || uncheckedKinds.length > 0) ? undefined : (usage === null ? undefined : usage.length);
-    return { usage, uncheckedKinds, usageError, usageLoading, usedByCount };
-}
 
 /** The shared danger zone for this note, with the "could not check" notice. */
 interface MeetingDangerZoneProps {
@@ -92,8 +75,10 @@ function useMeetingDetail({ id, currentUserName, onChanged, onDeleted }: UseMeet
     const { confirm, confirmDialog } = useConfirm();
     const { data, loading, error, refresh, setLocal } = useTranscription(id);
     const usage = useMeetingUsage(data?.id);
+    useProcessingSettled(data, onChanged, usage.refetch);
     const commands = useMeetingCommands({
         data, setLocal, refresh, onChanged, onDeleted, confirm, t, uncheckedKinds: usage.uncheckedKinds,
+        onTagsMayHaveChanged: usage.refetch,
     });
     const { setBusy, setRegenerating } = commands;
     const panes = useMeetingPaneState(id, data, currentUserName, () => { setBusy(false); setRegenerating(false); });
@@ -101,6 +86,8 @@ function useMeetingDetail({ id, currentUserName, onChanged, onDeleted }: UseMeet
         data, setLocal, refresh, onChanged,
         offerRegenerate: () => panes.setRegenerateOffer(true),
         notifyDestinationNotSaved: () => toast.error(t('meetings.destination_not_saved', 'That worked, but the note could not be updated. Refresh and try again.')),
+        notifyNoteNotSaved: () => toast.error(t('meetings.line_not_saved', 'The note could not be updated.')),
+        onTagsSaved: usage.refetch,
     });
     // No audio and nothing to recover it from. Used to gate Re-transcribe, which
     // otherwise leads straight to a dead end.
@@ -162,7 +149,10 @@ export default function MeetingDetail({ id, currentUserId, currentUserName, onBa
                     meeting={data}
                     onBack={isMobile ? onBack : undefined}
                     onRename={edits.handleRename}
-                    onReprocess={commands.handleReprocess}
+                    // Owner-only, like the server (403 'Only the owner can
+                    // reprocess'): a reader would confirm a destructive-sounding
+                    // dialog only to be refused.
+                    onReprocess={isOwner ? commands.handleReprocess : undefined}
                     onExport={commands.handleExport}
                     onCopyTranscript={commands.handleCopyTranscript}
                     onEditSpeakers={isOwner ? () => panes.setSpeakerEditorOpen(true) : undefined}
@@ -180,7 +170,13 @@ export default function MeetingDetail({ id, currentUserId, currentUserName, onBa
                     <RegenerateOfferBanner
                         t={t}
                         regenerating={commands.regenerating}
-                        onRegenerate={async () => { panes.setRegenerateOffer(false); await commands.handleRegenerateSummary('general'); }}
+                        // With the template that wrote the summary that is
+                        // there now: the banner is about the new NAMES, and a
+                        // fixed 'general' silently replaced the note's layout.
+                        onRegenerate={async () => {
+                            panes.setRegenerateOffer(false);
+                            await commands.handleRegenerateSummary(regenerateArgForNote(data.summaryTemplateId, panes.templates.templates));
+                        }}
                         onDismiss={() => panes.setRegenerateOffer(false)}
                     />
                 )}
@@ -200,7 +196,9 @@ export default function MeetingDetail({ id, currentUserId, currentUserName, onBa
                         onShowInsights={() => panes.setTab(TABS.INSIGHTS)}
                         onSeek={panes.player.seek}
                         onEditSpeakers={isOwner ? () => panes.setSpeakerEditorOpen(true) : undefined}
-                        onToggleActionItem={edits.handleToggleActionItem}
+                        // Owner-only like every other write here: the PATCH is
+                        // owner-scoped, and a reader's tick only flipped back.
+                        onToggleActionItem={isOwner ? edits.handleToggleActionItem : undefined}
                         onEditActionItem={isOwner ? edits.handleEditActionItem : undefined}
                         // Owner-only, and the chip is not drawn at all without
                         // it: a destination names an automation, a table or a
@@ -361,7 +359,7 @@ function MeetingProcessingView({ m, isOwner, onBack, dangerZone }: MeetingProces
                 meeting={data}
                 onBack={onBack}
                 onRename={edits.handleRename}
-                onReprocess={failed ? commands.handleReprocess : undefined}
+                onReprocess={failed && isOwner ? commands.handleReprocess : undefined}
                 audioGone={audioGone}
             />
             <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-3">

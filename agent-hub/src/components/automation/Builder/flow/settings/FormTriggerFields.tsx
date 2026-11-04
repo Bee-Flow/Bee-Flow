@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Plus, Copy, Check, Link2, RefreshCw, Loader2 } from 'lucide-react';
 import { denseInputClass } from './formPrimitives';
-import { defaultFormDeclaration } from './FormBuilderFields';
+import { defaultFormDeclaration } from './formDeclarations';
 import FormPageEditor from './FormPageEditor';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useBuilderConfirm } from '../../BuilderConfirmContext';
@@ -22,7 +22,8 @@ import { errorMessage } from '../../../../../utils/caughtError';
  */
 
 // Re-exported so existing importers (DiagramPane, tests) keep one entry point.
-export { defaultFormDeclaration, slugifyFieldName, THEME_PRESETS } from './FormBuilderFields';
+export { defaultFormDeclaration, slugifyFieldName } from './formDeclarations';
+export { THEME_PRESETS } from './formStyle/stylePresets';
 
 /** See the note in FormTriggerFields: Forms owns the public link for now. */
 export const SHOW_PUBLIC_LINK_IN_BUILDER = false;

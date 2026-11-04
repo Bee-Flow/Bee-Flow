@@ -6,7 +6,9 @@
  * toasts when a run finishes or waits, the confirmations before real actions,
  * and the overlay that shows a test form or a waiting approval. Only those
  * prefixes (header., run_live., execute_confirm., run_phase., start., toast.,
- * overlay.); the code-step test cases elsewhere in the namespace are not here.
+ * overlay., assistant_images.: the line under the assistant's composer when it
+ * could not see an attached picture); the code-step test cases elsewhere in
+ * the namespace are not here.
  * Also the run bar's automations.canvas.run_* keys of the same round, here
  * rather than in add-nl-builder-redesign-translations, which is at its line
  * ceiling.
@@ -55,6 +57,11 @@ const NL_TRANSLATIONS = Object.freeze({
     'automation_testing.start.needs_steps': 'Voeg eerst een trigger en minstens één stap toe.',
     'automation_testing.start.no_run': 'De run is niet gestart.',
     'automation_testing.start.nothing_to_run': 'Nog niets om mee te draaien.',
+
+    // ── The assistant and a picture it could not see ───────────────────
+    'automation_testing.assistant_images.blind': 'Dit model kan geen afbeeldingen zien, dus de assistent heeft je bijlage niet gezien. Beschrijf het in woorden, of kies een model dat afbeeldingen kan zien.',
+    'automation_testing.assistant_images.skipped_many': '{count} afbeeldingen waren te groot of te veel, dus de assistent heeft ze niet gezien.',
+    'automation_testing.assistant_images.skipped_one': 'Eén afbeelding was te groot of één te veel, dus de assistent heeft hem niet gezien.',
 
     // ── Toasts ─────────────────────────────────────────────────────────
     'automation_testing.toast.done': 'Run voltooid. Open een stap om de uitvoer te zien.',

@@ -66,6 +66,10 @@ const COMPLETENESS_CODES = new Set([
     'knowledge_write.kb_required',
     'knowledge_write.content_required',
     'ai_step.prompt_missing',
+    // An AI step whose list of allowed values reads a vars.<name> nothing sets
+    // can never pass. Saved while the flow is a draft (a Solution variable, or
+    // the step that should hold the list, often comes later), never live.
+    'ai_check.list_unset',
     // Stored automations carry ai_steps without an outputSchema whose fields a
     // fan-out reads — the builder agent often forgot it (execAi.js's
     // inferred-schema safety net exists for that) and they validated green

@@ -159,3 +159,49 @@ test('the cache is keyed per user, not just per instance', async () => {
         client.resolveAuth = original;
     }
 });
+
+test('a failed capabilities answer is held briefly, not for the full ten minutes', async (t) => {
+    // A 502/504 from a proxy, or a 503 (maintenance mode) that outlasts the
+    // client's retries, used to be cached as "cannot record" for 10 minutes,
+    // and the auto-record scanner skipped the user until it expired.
+    const client = require('./nextcloudClient');
+    const original = client.resolveAuth;
+    const realNow = Date.now;
+    let now = realNow();
+    let status = 503;
+    let fetches = 0;
+    client.resolveAuth = async () => ({
+        baseUrl: 'https://flaky.example.test',
+        uid: 'carol',
+        authError: 'nc auth failed',
+        fetch: async () => {
+            fetches++;
+            return {
+                ok: status >= 200 && status < 300, status,
+                text: async () => JSON.stringify({ ocs: { data: { capabilities: { spreed: {
+                    features: FEATURES, config: { call: { recording: true } },
+                } } } } }),
+            };
+        },
+    });
+    Date.now = () => now;
+    t.after(() => { client.resolveAuth = original; Date.now = realNow; });
+
+    assert.strictEqual((await getTalkRecordingCapability({}, 'u3')).recordingEnabled, false);
+    // Within the short window the failure is shared, not re-fetched.
+    now += 10_000;
+    assert.strictEqual((await getTalkRecordingCapability({}, 'u3')).recordingEnabled, false);
+    assert.strictEqual(fetches, 1);
+
+    // Nextcloud is back by the next scanner tick: recording is available again.
+    status = 200;
+    now += 50_000;
+    assert.strictEqual((await getTalkRecordingCapability({}, 'u3')).recordingEnabled, true);
+    assert.strictEqual(fetches, 2);
+
+    // A definite answer keeps the full TTL.
+    status = 503;
+    now += 8 * 60_000;
+    assert.strictEqual((await getTalkRecordingCapability({}, 'u3')).recordingEnabled, true);
+    assert.strictEqual(fetches, 2);
+});

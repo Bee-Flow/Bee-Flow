@@ -7,8 +7,9 @@
  *
  * Three web imports cannot load here and are replaced: Lucide (a canvas-only
  * dependency of the layout chain) by names, inlineFlowlets (it holds a React
- * hook) by its id helpers, and the two form components by their default
- * declarations evaluated from source — the same cut formDefaults.lockstep does.
+ * hook) by its id helpers, and the form trigger component (which re-exports
+ * defaultFormDeclaration) by formDeclarations.ts, the web's pure declarations,
+ * evaluated from source as formDefaults.lockstep does.
  */
 
 import fs from 'node:fs';
@@ -24,24 +25,14 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/inlin
     parseInlineId: (id: string) => ({ prefix: id.slice(0, id.lastIndexOf('/')), localId: id.slice(id.lastIndexOf('/') + 1) }),
     toDisplayPosition: (p: unknown) => p,
 }));
-jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/settings/FormBuilderFields', () => {
+jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/settings/formDeclarations', () => {
+    // The web's own declarations, its types stripped and THEME_PRESETS bound from stylePresets.ts.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const src: string = require('node:fs').readFileSync(
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require('node:path').resolve(__dirname, '../../../../../agent-hub/src/components/automation/Builder/flow/settings/FormBuilderFields.jsx'),
-        'utf8',
-    );
-    const cut = (start: string, end: string) => src.slice(src.indexOf(start), src.indexOf(end, src.indexOf(start)) + end.length);
-    const presets = new Function(cut('export const THEME_PRESETS = [', '\n];').replace('export const THEME_PRESETS = ', 'return '))();
-    const fn = (name: string) => new Function('THEME_PRESETS', `${cut(`export function ${name}() {`, '\n}\n').replace('export function', 'function')}\nreturn ${name};`)(presets);
-    return {
-        defaultFormDeclaration: fn('defaultFormDeclaration'),
-        defaultFormPageDeclaration: fn('defaultFormPageDeclaration'),
-        defaultFormEndingDeclaration: fn('defaultFormEndingDeclaration'),
-    };
+    const { loadWebModule } = require('@/shared/testing/webModule');
+    return loadWebModule('components/automation/Builder/flow/settings/formDeclarations.ts');
 });
 jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/settings/FormTriggerFields', () =>
-    jest.requireMock('../../../../../agent-hub/src/components/automation/Builder/flow/settings/FormBuilderFields'),
+    jest.requireMock('../../../../../agent-hub/src/components/automation/Builder/flow/settings/formDeclarations'),
 );
 
 /* eslint-disable @typescript-eslint/no-require-imports */

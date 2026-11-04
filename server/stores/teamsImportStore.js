@@ -53,6 +53,15 @@ async function _initDB() {
         CREATE INDEX IF NOT EXISTS idx_teams_jobs_due
             ON teams_import_jobs(next_attempt_at) WHERE status IN ('pending', 'awaiting_artifacts');
     `);
+    // Additive migrations. requested_by_user: a meeting the person asked to
+    // import by hand (the auto-import rules do not skip it);
+    // requested_language / context_terms: what that request asked for, kept for
+    // a later claim by the poller.
+    await exec(`
+        ALTER TABLE teams_import_jobs ADD COLUMN IF NOT EXISTS requested_by_user BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE teams_import_jobs ADD COLUMN IF NOT EXISTS requested_language TEXT;
+        ALTER TABLE teams_import_jobs ADD COLUMN IF NOT EXISTS context_terms TEXT;
+    `);
     log.info('[TeamsImportStore] PostgreSQL initialized');
 }
 
@@ -83,6 +92,9 @@ function mapJob(r) {
         attempts: r.attempts || 0,
         nextAttemptAt: iso(r.next_attempt_at),
         transcriptionId: r.transcription_id || null,
+        requestedByUser: !!r.requested_by_user,
+        requestedLanguage: r.requested_language || null,
+        contextTerms: r.context_terms || null,
         createdAt: iso(r.created_at),
         updatedAt: iso(r.updated_at),
     };
@@ -126,6 +138,9 @@ const UPDATABLE_FIELDS = {
     transcriptionId: 'transcription_id',
     onlineMeetingId: 'online_meeting_id',
     title: 'title',
+    requestedByUser: 'requested_by_user',
+    requestedLanguage: 'requested_language',
+    contextTerms: 'context_terms',
 };
 
 /**

@@ -2,6 +2,7 @@ import React, { Suspense, useMemo, useState } from 'react';
 import { lazyWithI18n } from '@/utils/lazyWithReload';
 import FormBuilderFields from './FormBuilderFields';
 import type { FormPageEntry } from './formPages';
+import { styleAssistFor } from '@/api/formStyleAssist';
 
 // The full-screen editor carries the live form preview; load it when it is opened.
 const FormEditorModal = lazyWithI18n(() => import('./FormEditorModal'));
@@ -17,6 +18,8 @@ export interface FormEditorContext {
     savePage: (id: string, form: Record<string, unknown>) => unknown;
     /** Trigger only: open the form over the canvas and run it. */
     onTestForm?: (() => void) | null;
+    /** The saved automation, for "Describe the look"; null before the first save. */
+    automationId?: string | null;
 }
 
 type Form = Record<string, unknown>;
@@ -37,6 +40,11 @@ export default function FormPageEditor({ form, onChange, stepId = null, formEdit
     [key: string]: unknown;
 }) {
     const [open, setOpen] = useState(false);
+    // "Describe the look" asks about this automation; a trigger names itself,
+    // so a second trigger's form is the one described.
+    const isTrigger = rest.bindingBase === 'trigger.output';
+    const automationId = formEditor?.automationId ?? null;
+    const onStyleAssist = useMemo(() => styleAssistFor(automationId, isTrigger ? stepId : null), [automationId, isTrigger, stepId]);
     const canOpen = !!formEditor && formEditor.pages.length > 0 && !!stepId;
     // The side panel's draft is newer than the saved definition: show it.
     const pages = useMemo(
@@ -50,6 +58,7 @@ export default function FormPageEditor({ form, onChange, stepId = null, formEdit
                 onChange={onChange}
                 onOpenEditor={canOpen ? () => setOpen(true) : null}
                 onTestForm={formEditor?.onTestForm || null}
+                onStyleAssist={onStyleAssist}
                 {...rest}
             />
             {open && formEditor && (
@@ -62,6 +71,7 @@ export default function FormPageEditor({ form, onChange, stepId = null, formEdit
                     previewSample={rest.previewSample}
                     onFocusField={rest.onFocusField as ((h: unknown) => void) | null | undefined}
                     onRenameField={rest.onRenameField as ((a: string, b: string) => number | undefined) | null | undefined}
+                    automationId={automationId}
                 />
                 </Suspense>
             )}

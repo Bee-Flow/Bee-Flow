@@ -15,6 +15,18 @@ const { collectPendingRefs } = require('./pendingDatatables');
 const { fallback } = require('../../utils/bestEffort');
 
 /**
+ * validateDefinition's `availableBlocks` map from the picker list on the draft
+ * wrapper (builderPickerCatalog.buildBlockPickerForUser); null when the list
+ * was not read, which leaves the call_block check structural.
+ * @param {unknown} list
+ */
+function blocksByIdOf(list) {
+    if (!Array.isArray(list)) return null;
+    return Object.fromEntries(list.filter(b => b && typeof b.id === 'string')
+        .map(b => [b.id, { title: b.name, params: b.inputs || [], outputFields: b.outputs || [] }]));
+}
+
+/**
  * Persist the draft to the automations table. Creates a row on the first
  * call and updates thereafter. Setting `finalize:true` flips is_draft to
  * false (still inactive — user must Activate explicitly).
@@ -60,7 +72,22 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
             log.warn(`[builderTools] agent check skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
-    const validation = validateDefinition(def, { deliverableEvents: getDeliverableEvents(), availableAgents });
+    // A Solution's variables are set at run time (stageVars.runVarsFor), so a
+    // `vars.<name>` that reads one is not unset (validate/varsWriters.mts); the
+    // names come from the automation's project, which only a saved row knows.
+    /** @type {Set<string> | null} */
+    let knownVarNames = null;
+    if (draftWrap.automationId) {
+        try {
+            const row = await automationStore.getAutomation(draftWrap.automationId);
+            knownVarNames = row ? await require('../liveSideEffects').knownVarNamesFor(def, row) : null;
+        } catch (e) {
+            log.warn(`[builderTools] variable names skipped: ${/** @type {Error} */ (e).message}`);
+        }
+    }
+    // The call_block gate (validate/callBlock.js) reads the same "Building blocks"
+    // list the builder checked against; without one only the structure is checked.
+    const validation = validateDefinition(def, { deliverableEvents: getDeliverableEvents(), availableAgents, availableBlocks: blocksByIdOf(draftWrap._blocks), knownVarNames });
     // Approval assignees must belong to the owner's org — the DB half of the
     // rule (shape lives in validate.js). Reported like any other validation
     // error so the model self-corrects instead of persisting a stranger.
@@ -211,4 +238,5 @@ async function resyncLiveTriggers(draftWrap, prior, saved, def) {
 
 module.exports = {
     persistDraft,
+    blocksByIdOf,
 };

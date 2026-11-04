@@ -28,6 +28,7 @@ const reset = () => {
         mine: [], published: [], agentsThrow: null, identityError: null, orgId: 'org1', groups: ['g1'],
         kbs: [], kbThrow: null, canManage: false, isOrgAdmin: false, orgIds: new Set(['org1']), seenOrgIds: null,
         features: { support_inbox: false, meeting_notes: false }, inboxes: [], publicBase: null, mcpIds: new Set(),
+        steps: [], stepsThrow: null, stepArgs: null,
     };
 };
 reset();
@@ -51,6 +52,10 @@ const deps = {
     listInboxes: async () => state.inboxes,
     publicBaseUrl: () => state.publicBase,
     availableMcpServerIds: async () => state.mcpIds,
+    stepStore: () => ({
+        async getCallableStepsForUser(userId, opts) { state.stepArgs = { userId, ...opts }; if (state.stepsThrow) throw new Error(state.stepsThrow); return state.steps; },
+    }),
+    resolveIntegration: (tool) => (tool.startsWith('gmail_') ? { integration: 'gmail' } : null),
 };
 
 beforeEach(reset);
@@ -174,4 +179,54 @@ test('rows carry ids, names and descriptions and nothing else', async () => {
     state.mine = [agent({ id: 'own', name: 'Mine', description: 'D', owner_id: 'u1', config: { secret: 'x' }, shared_groups: ['g1'] })];
     const { agents } = await picker.buildAgentPickerForUser('u1', { deps });
     assert.deepEqual(Object.keys(agents[0]).sort(), ['canUse', 'description', 'id', 'name', 'reason', 'scope']);
+});
+
+// ── Building blocks (call_block) ─────────────────────────────────────────
+
+const step = (over) => ({
+    id: 'blk1', title: 'Check VAT', description: 'Looks it up', icon: 'x', category: 'Finance', publishedVersion: 3,
+    exposeAsTool: false, ownerId: 'u2', organizationId: 'org1', requiredIntegrations: [],
+    params: [{ name: 'vat', type: 'string', required: true, description: 'The number' }], outputFields: ['valid'], ...over,
+});
+const GMAIL_CATALOG = { apps: [{ id: 'gmail', label: 'Gmail', available: true, actions: [{ name: 'gmail_search' }] }, { id: 'slack', label: 'Slack', available: false, actions: [] }] };
+
+test('building blocks: the callable set in the person\'s org and groups, with their contract', async () => {
+    state.steps = [step()];
+    const { blocks, blocksError } = await picker.buildBlockPickerForUser('u1', GMAIL_CATALOG, { deps });
+    assert.equal(blocksError, null);
+    assert.deepEqual(state.stepArgs, { userId: 'u1', orgIds: ['org1'], userGroups: ['g1'] }, 'the org Set becomes the list the store takes');
+    assert.deepEqual(blocks, [{
+        id: 'blk1', name: 'Check VAT', description: 'Looks it up', category: 'Finance',
+        inputs: [{ name: 'vat', type: 'string', required: true, description: 'The number' }], outputs: ['valid'], available: true,
+    }]);
+});
+
+test('building blocks: a block on an app the user lacks is unavailable, as the palette hides it', async () => {
+    state.steps = [step({ id: 'ok', requiredIntegrations: ['gmail'] }), step({ id: 'no', requiredIntegrations: ['gmail', 'slack'] })];
+    const { blocks } = await picker.buildBlockPickerForUser('u1', GMAIL_CATALOG, { deps });
+    assert.deepEqual(blocks.map(b => [b.id, b.available]), [['ok', true], ['no', false]]);
+    // A catalog that could not be built cannot tell: the run decides.
+    const unknown = await picker.buildBlockPickerForUser('u1', { apps: [], catalogError: 'down' }, { deps });
+    assert.deepEqual(unknown.blocks.map(b => b.available), [true, true]);
+});
+
+test('building blocks: a failed read is an error beside an empty list, and blockCatalogOf says "could not tell"', async () => {
+    state.stepsThrow = 'db down';
+    const r = await picker.buildBlockPickerForUser('u1', GMAIL_CATALOG, { deps });
+    assert.deepEqual(r, { blocks: [], blocksError: 'db down' });
+    assert.equal(picker.blockCatalogOf(r), null);
+    assert.deepEqual(picker.blockCatalogOf({ blocks: [], blocksError: null }), [], 'none is not the same as unknown');
+});
+
+test('buildPickerCatalogsForUser carries the building blocks beside the other lists', async () => {
+    state.steps = [step()];
+    const out = await picker.buildPickerCatalogsForUser('u1', {}, GMAIL_CATALOG, { providers: false, deps });
+    assert.equal(out.blocksError, null);
+    assert.deepEqual(out.blocks.map(b => b.id), ['blk1']);
+});
+
+test('building block rows carry the contract and nothing about the owner or the sharing', async () => {
+    state.steps = [step({ sharedGroups: ['g9'] })];
+    const { blocks } = await picker.buildBlockPickerForUser('u1', GMAIL_CATALOG, { deps });
+    assert.deepEqual(Object.keys(blocks[0]).sort(), ['available', 'category', 'description', 'id', 'inputs', 'name', 'outputs']);
 });

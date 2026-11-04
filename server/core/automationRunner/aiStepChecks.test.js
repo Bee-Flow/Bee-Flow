@@ -81,7 +81,17 @@ test('a list that is not a list is a missing error with its own message', () => 
     const [e] = run({ category: 'x' }, { lists });
     assert.strictEqual(e.code, 'missing');
     assert.strictEqual(e.path, 'category');
-    assert.strictEqual(e.message, 'the list of allowed values is empty');
+    assert.strictEqual(e.message, 'the list of allowed values (steps.src.output.total) is empty: it is not a list');
+});
+
+test('a list nothing set names its binding and says nothing set it (an enumFrom list and an allowedFrom check)', () => {
+    const lists = resolveLists([{ field: 'prioriteit', ref: 'vars.prioriteitOpties' }], RUN(), { mode: 'live', ctx: {} });
+    const [e] = run({ prioriteit: 'Hoog' }, { lists });
+    assert.strictEqual(e.code, 'missing');
+    assert.strictEqual(e.message, 'the list of allowed values (vars.prioriteitOpties) is empty: nothing set it before this step');
+    const check = { kind: 'allowedFrom', field: 'prioriteit', ref: 'vars.prioriteitOpties' };
+    assert.strictEqual(errorSummary(run({ prioriteit: 'Hoog' }, { rel: rel([check]) })),
+        'prioriteit: the list of allowed values (vars.prioriteitOpties) is empty: nothing set it before this step');
 });
 
 test('allowedFrom reads its list from run data at check time', () => {

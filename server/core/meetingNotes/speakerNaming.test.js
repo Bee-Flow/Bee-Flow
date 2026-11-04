@@ -203,6 +203,33 @@ test('voiceprint names alone do NOT claim a complete attendee list', async () =>
     assert.match(assignment.sys, /NAMES PEOPLE USED IN THIS MEETING: .*Ewald de Groot/);
 });
 
+test('REGRESSION: one renamed speaker and no attendees is not a closed set of one (re-identify)', async () => {
+    // The re-identify route folds the locked (manual) names into
+    // participantNames. With no attendee list that used to tell the model the
+    // room held only Tom, and every other speaker was merged into him.
+    assignmentResponse = '{}';
+    const rows = [{ id: 'Tom', speakingSeconds: 30 }, { id: 'Spreker 2', speakingSeconds: 30 }, { id: 'Spreker 3', speakingSeconds: 30 }];
+    await identifySpeakerNames(SEGMENTS, rows, 'nl', 'Tom', 'org-1', ['Tom'], { lockedNames: { Tom: 'Tom' } });
+    const assignment = chatCalls.find(c => /transcript analyst/.test(c.sys));
+    assert.ok(!/COMPLETE SET OF PEOPLE IN THE ROOM/.test(assignment.sys));
+    assert.match(assignment.sys, /NAMES PEOPLE USED IN THIS MEETING: .*Tom/);
+});
+
+test('REGRESSION: manual names passed as knownNames are candidates, not a closed set (re-transcribe)', async () => {
+    assignmentResponse = '{}';
+    await identifySpeakerNames(SEGMENTS, SPEAKERS, 'nl', null, 'org-1', [], { knownNames: ['Tom'] });
+    const assignment = chatCalls.find(c => /transcript analyst/.test(c.sys));
+    assert.ok(!/COMPLETE SET OF PEOPLE IN THE ROOM/.test(assignment.sys));
+    assert.match(assignment.sys, /NAMES PEOPLE USED IN THIS MEETING: .*Tom/);
+});
+
+test('real attendees plus a renamed speaker still make the closed set', async () => {
+    assignmentResponse = '{}';
+    await identifySpeakerNames(SEGMENTS, SPEAKERS, 'nl', null, 'org-1', ['Ewald', 'Anna'], { knownNames: ['Tom'] });
+    const assignment = chatCalls.find(c => /transcript analyst/.test(c.sys));
+    assert.match(assignment.sys, /COMPLETE SET OF PEOPLE IN THE ROOM: .*Ewald.*Anna.*Tom/);
+});
+
 // ── Voiceprint NEGATIVE evidence (opts.ruledOutNames) ────────────────
 
 test('REGRESSION: a ruled-out name is stripped even when the model insists', async () => {

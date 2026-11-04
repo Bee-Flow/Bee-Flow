@@ -51,6 +51,7 @@ const S = require('./shapeTree');
 const { splice, indexFixes, firstIterationAdvice, pairIndexAdvice } = require('./pathAdvice.mts');
 const { normalizeAiPath } = require('./aiPaths');
 const { CODE_PAYLOAD_KEY, CODE_DIAGNOSTIC_KEYS } = require('../codeOutput');
+const { unsetVarProblem, describeUnsetVar } = require('../validate/varsWriters.mts');
 
 const { ANY } = S;
 const MAX_REF_DEPTH = 3;
@@ -161,9 +162,23 @@ function ownOutputShape(step, graph, draftWrap, depth) {
             return codeOutputShape(step);
         case 'approval':
             return require('./approvalOutputShape').approvalOutputShape(step);
+        case 'call_block':
+            return blockOutputShape(step, draftWrap);
         default:
             return require('./tableOutputShapes').tableStepOutputShape(step) || ANY;   // the table steps
     }
+}
+
+/**
+ * A call_block returns its block's layer_output fields (execFlow.execCallLayer),
+ * named in the "Building blocks" list (draftWrap._blocks). Not `sure`: the block
+ * can be republished with other outputs, so a miss is a note with the real names.
+ */
+function blockOutputShape(step, draftWrap) {
+    const list = draftWrap && Array.isArray(draftWrap._blocks) ? draftWrap._blocks : [];
+    const block = list.find(b => b && b.id === step.blockId);
+    const outputs = block && Array.isArray(block.outputs) ? block.outputs.filter(f => typeof f === 'string' && f) : [];
+    return outputs.length ? obj(outputs.map(f => [f, ANY]), { sure: false }) : ANY;
 }
 
 /**
@@ -566,6 +581,7 @@ function checkAgainst(root, tokens, from, opts = {}) {
 
 /** One readable sentence for a problem checkAgainst found. */
 function describeProblem(problem, path) {
+    if (problem.kind === 'unset-var') return describeUnsetVar(problem, path);
     if (problem.kind === 'ambiguous') {
         const first = problem.firstIteration ? ' A [0] reads only the first iteration of a step that runs once per item; [*] reads every iteration.' : '';
         return `"${path}" could mean ${problem.candidates.map(t => formatPath(t)).join(' or ')} — bind the one you mean.${first}`;
@@ -592,8 +608,8 @@ function describeProblem(problem, path) {
  * rewrite; `advice` is said without rewriting anything (an index into a
  * name/value list); a problem with `sure` refuses the binding, one without
  * is a warning.
- * Roots other than steps.<id> and trigger are not this module's business
- * (loop.<var> is checked against its forEach by outputFields.checkLoopRef).
+ * A vars.<name> nothing in the draft (draftWrap.def) sets is refused (varsWriters.mts); other roots are
+ * not this module's business (loop.<var> is checked against its forEach by outputFields.checkLoopRef).
  *
  * opts: { draftWrap, wantList }
  */
@@ -609,6 +625,7 @@ function checkRefTokens(graph, tokens, opts = {}) {
         cur = splice(cur, 1, 0, { type: 'prop', key: 'output' });
         fixes.push('the trigger\'s data sits under trigger.output');
     }
+    if (head === 'vars') { const unset = unsetVarProblem(opts.draftWrap && opts.draftWrap.def, cur, !!opts.wantList); if (unset) return { tokens: cur, fixes, problem: unset }; }
     const root = rootFor(graph, cur, opts.draftWrap);
     if (!root || root.node.t === 'any') return { tokens: cur, fixes };
     const res = checkAgainst(root.node, cur, root.from, opts);
@@ -652,6 +669,7 @@ module.exports = {
  *     placeholders?: Array<{ key: string }> }> | null,
  *   _documentContracts?: Record<string, { versionId?: string }>,
  *   _inputSchemasByTool?: Record<string, { properties?: Record<string, unknown>, required?: string[] }>,
+ *   _blocks?: Array<{ id: string, name?: string, inputs?: Array<{ name: string, type?: string, required?: boolean }>, outputs?: string[], available?: boolean }> | null,
  * }} BuilderWrap
  * @typedef {{ tokens: PathToken[], why: string, envelope?: string }} RefFix
  */

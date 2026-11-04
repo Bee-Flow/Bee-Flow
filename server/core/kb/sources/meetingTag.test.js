@@ -177,3 +177,117 @@ test('it is registered, or the engine stands down on every refresh', async () =>
     const { supportedKinds } = require('./index');
     assert.ok(supportedKinds().includes('meeting_tag'));
 });
+
+// ── A tag larger than one read ──────────────────────────────────────
+
+/** `count` meetings, m0000 the oldest, each created one minute after the last. */
+function manyMeetings(count) {
+    return Array.from({ length: count }, (_, i) => {
+        const at = new Date(Date.UTC(2025, 0, 1) + i * 60_000).toISOString();
+        return meeting({ id: `m${String(i).padStart(4, '0')}`, title: `Overleg ${i}`, createdAt: at, updatedAt: at });
+    });
+}
+
+/**
+ * listByTag as the SQL does it: `order: 'created'` is newest-created first with
+ * a `(created_at, id)` keyset cursor; anything else is `updated_at DESC` and
+ * ignores the cursor. `honoursCursor: false` is a store that predates it.
+ */
+function pagedStore(all, { honoursCursor = true, calls = [] } = {}) {
+    const byCreated = [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+    const byUpdated = [...all].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return {
+        calls,
+        listByTag: async (tag, reader, opts) => {
+            calls.push(opts);
+            const limit = Math.min(Math.max(Number(opts.limit) || 200, 1), 1000);
+            if (!honoursCursor || opts.order !== 'created') return byUpdated.slice(0, limit);
+            const after = opts.after;
+            const rows = after
+                ? byCreated.filter(m => m.createdAt < after.createdAt || (m.createdAt === after.createdAt && m.id < after.id))
+                : byCreated;
+            return rows.slice(0, limit);
+        },
+    };
+}
+
+/** The engine's deps, with the knowledge base already holding one document per meeting. */
+function engineDeps(store, storedMeetings, extraStored = []) {
+    const stored = [
+        ...storedMeetings.map(m => ({ id: `d_${m.id}`, external_id: m.id, status: 'processed', source_modified_at: m.updatedAt })),
+        ...extraStored,
+    ];
+    const deleted = [];
+    return {
+        deleted,
+        deps: {
+            transcriptionStore: store,
+            kbStore: {
+                getKB: async () => ({ id: 'kb1', tenant_id: 'owner1' }),
+                listDocuments: async (kbId, { limit, offset = 0 }) => stored.slice(offset, offset + limit),
+                bumpKBVersion: async () => {},
+            },
+            kbSourcesStore: { isCancelRequested: async () => false },
+            helpers: {
+                ingestDocument: async () => { throw new Error('nothing is new'); },
+                reingestDocument: async () => { throw new Error('nothing changed'); },
+                deleteDocumentChunks: async (kbId, docId) => { deleted.push(docId); },
+            },
+        },
+    };
+}
+
+const SOURCE_ROW = { id: 's1', knowledgeBaseId: 'kb1', kind: 'meeting_tag', config: { tag: 'sales' } };
+
+test('a tag with more meetings than one read is read to the end, oldest included', async () => {
+    const all = manyMeetings(1200);
+    const store = pagedStore(all);
+    const c = ctx();
+    const items = await adapter.enumerate(source(), c, { transcriptionStore: store });
+    assert.strictEqual(items.length, 1200);
+    assert.ok(items.some(i => i.externalId === 'm0000'), 'the oldest meeting is part of the source');
+    assert.strictEqual(c.partial, undefined, 'a list read to the end is complete');
+    assert.ok(store.calls.every(o => o.order === 'created'), 'paged in creation order, which never moves');
+});
+
+test('a tag with more than 500 meetings keeps the knowledge-base documents of the oldest ones', async () => {
+    // The pass used to read the newest 500, call itself complete, and delete
+    // the documents of every older meeting as "gone".
+    const { syncSource } = require('./index');
+    const all = manyMeetings(520);
+    const { deps, deleted } = engineDeps(pagedStore(all), all);
+    const r = await syncSource(SOURCE_ROW, { deps });
+    assert.deepStrictEqual(deleted, []);
+    assert.strictEqual(r.removed, 0);
+    assert.strictEqual(r.unchanged, 520);
+    assert.strictEqual(r.truncated, false, 'a complete read is not a truncated pass, so the source keeps its schedule');
+});
+
+test('a meeting that left the tag is still removed when the tag spans several reads', async () => {
+    // Untagged, deleted, or no longer readable by the owner: its summary must
+    // leave the knowledge base, however large the tag is.
+    const { syncSource } = require('./index');
+    const all = manyMeetings(520);
+    const gone = { id: 'd_untagged', external_id: 'm_untagged', status: 'processed', source_modified_at: null };
+    const { deps, deleted } = engineDeps(pagedStore(all), all, [gone]);
+    const r = await syncSource(SOURCE_ROW, { deps });
+    assert.deepStrictEqual(deleted, ['d_untagged']);
+    assert.strictEqual(r.removed, 1);
+});
+
+test('a store that does not move the cursor leaves the list partial, and nothing is removed', async () => {
+    const { syncSource } = require('./index');
+    const all = manyMeetings(520);
+    const { deps, deleted } = engineDeps(pagedStore(all, { honoursCursor: false }), all);
+    const r = await syncSource(SOURCE_ROW, { deps });
+    assert.deepStrictEqual(deleted, [], 'meetings that were never looked at are not gone');
+    assert.strictEqual(r.truncated, false, 'running again at once would read the same list');
+});
+
+test('past the cap the list is partial, never silently complete', async () => {
+    const all = manyMeetings(adapter.MAX_MEETINGS + 1);
+    const c = ctx();
+    const items = await adapter.enumerate(source(), c, { transcriptionStore: pagedStore(all) });
+    assert.strictEqual(items.length, adapter.MAX_MEETINGS);
+    assert.strictEqual(c.partial, true);
+});

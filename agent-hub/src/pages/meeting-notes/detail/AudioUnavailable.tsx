@@ -17,12 +17,25 @@ import type { MeetingNote } from './meetingDetailTypes';
  *                        unreachable → offer Retry
  *   capture 'recording'  the bytes existed only here and are gone → say so, and
  *                        do NOT ask for a file the user cannot produce
+ *   an import            Teams / Meet / Talk / Nextcloud: there was never a file
+ *                        the user held, and Bee Flow keeps no copy → say so
  *   otherwise            an uploaded file → asking for the original is fair
  */
+
+/** Where an imported note came from (`audio.capture` is the note's source), as the reprocess 410 names it. */
+const IMPORT_SOURCES: Record<string, string> = {
+    teams: 'Microsoft Teams',
+    gmeet: 'Google Meet',
+    talk: 'Nextcloud Talk',
+    'talk-auto': 'Nextcloud Talk',
+    nextcloud: 'Nextcloud',
+};
 export default function AudioUnavailable({ audio, onRetry }: { audio?: MeetingNote['audio']; onRetry?: () => void }) {
     const { t } = useTranslation();
     const recoverable = !!audio?.recoverable;
     const wasRecorded = audio?.capture === 'recording';
+    const capture = typeof audio?.capture === 'string' ? audio.capture : '';
+    const importedFrom = capture && Object.prototype.hasOwnProperty.call(IMPORT_SOURCES, capture) ? IMPORT_SOURCES[capture] : null;
 
     let title: string;
     let detail: string;
@@ -32,6 +45,9 @@ export default function AudioUnavailable({ audio, onRetry }: { audio?: MeetingNo
     } else if (wasRecorded) {
         title = t('meeting_notes.audio_gone_title', 'This recording is no longer available');
         detail = t('meeting_notes.audio_gone_detail', 'It was recorded in your browser, so no other copy of the audio exists. The transcript and summary below are what remains.');
+    } else if (importedFrom) {
+        title = t('meeting_notes.audio_saved_gone_title', 'The saved audio is no longer available');
+        detail = t('meeting_notes.audio_imported_gone_detail', 'This meeting was imported from {source}, and Bee Flow holds no copy of its audio. The transcript and summary below are what remains.', { source: importedFrom });
     } else {
         title = t('meeting_notes.audio_saved_gone_title', 'The saved audio is no longer available');
         detail = t('meeting_notes.audio_saved_gone_detail', 'Upload the original file again to restore playback and re-transcribe it.');

@@ -213,3 +213,15 @@ test('builder_update_step performs a type change and builder_replace_step shows 
     assert.match(tool('builder_replace_step').description, /EXAMPLE — a Nextcloud Tables row step into a Bee Flow table step: \{stepId:"act_1", newType:"datatable", spec:\{op:"add_row"/);
     assert.match(tool('builder_replace_step').description, /Readers of the old output fields must be re-pointed \(row, id, created\)\./);
 });
+
+test('the knowledge_write meeting sourceUri example keys on a field meeting.processed actually carries', () => {
+    // A field the payload lacks renders as '' at run time, so the example
+    // would collapse every meeting onto the one sourceUri "meeting:" and each
+    // new meeting would replace the previous one's document (MN-112).
+    const { getEventDef } = require('../triggerSources');
+    const { fields } = getEventDef('meeting-notes', 'meeting.processed');
+    const text = [tool('builder_add_knowledge_write').description, props('builder_add_knowledge_write').sourceUri.description].join('\n');
+    const refs = [...text.matchAll(/meeting:\{\{trigger\.output\.([A-Za-z_]+)\}\}/g)].map(m => m[1]);
+    assert.ok(refs.length > 0, 'the meeting example is gone; keep one that shows a per-meeting key');
+    for (const f of refs) assert.ok(fields.includes(f), `trigger.output.${f} is not a meeting.processed field (${fields.join(', ')})`);
+});

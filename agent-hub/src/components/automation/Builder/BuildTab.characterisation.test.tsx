@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BuildTab from './BuildTab';
@@ -273,5 +273,38 @@ describe('BuildTab — expanded flowlets on the canvas', () => {
         act(() => { diagram.onCollapseAllFlowlets(); });
         act(() => { diagram.onDefinitionChange(root); });
         expect(props.onVisualEdit).toHaveBeenCalledWith(root);
+    });
+});
+
+describe('BuildTab — the hand-over after the assistant saved', () => {
+    const finalized = { automationId: 'a1', needs: ['activate'], autoFinalized: false };
+    const done = (over: Record<string, unknown> = {}) => baseState({
+        messages: [{ role: 'user', content: 'Build it' }, { role: 'assistant', content: 'Done.' }],
+        finalizedId: 'a1', finalized, lastDone: { finalized: true, automationId: 'a1' }, ...over,
+    });
+
+    it('shows the card under the turn that saved, with the header\'s own Activate', async () => {
+        const onActivate = vi.fn();
+        const { container } = renderTab({ assistantOpen: true, state: done(), headerProps: { onActivate, onDryRun: vi.fn(), isActive: false } });
+        await flush();
+        // The card is a lazy chunk: wait for it rather than read the first paint.
+        const card = await waitFor(() => {
+            const el = container.querySelector('[data-testid="assistant-handover"]');
+            if (!el) throw new Error('no hand-over card yet');
+            return el;
+        });
+        expect(card.textContent).toContain('Ready — saved, not switched on yet. To use it:');
+        act(() => { (card.querySelector('button') as HTMLButtonElement).click(); });
+        expect(onActivate).toHaveBeenCalledTimes(1);
+    });
+
+    it('is gone while the next turn runs, and for a turn that did not save', async () => {
+        const running = renderTab({ assistantOpen: true, state: done({ running: true }) });
+        await flush();
+        expect(running.container.querySelector('[data-testid="assistant-handover"]')).toBeNull();
+        running.unmount();
+        const other = renderTab({ assistantOpen: true, state: done({ lastDone: { finalized: false } }) });
+        await flush();
+        expect(other.container.querySelector('[data-testid="assistant-handover"]')).toBeNull();
     });
 });

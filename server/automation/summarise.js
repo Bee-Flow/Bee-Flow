@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Deterministic plain-English summary of an automation definition.
  *
@@ -10,7 +11,7 @@
 const { isSideEffect } = require('./sideEffectMap');
 const { flattenSentenceParts } = require('./expr');
 const { agentCallParams } = require('./agentCallContract');
-const { declaredTriggerFields } = require('./builderTools/triggerCatalog');
+const { triggerStateLine } = require('./summariseTriggerLine');
 
 function describeTrigger(trigger) {
     if (!trigger) return 'When triggered';
@@ -103,6 +104,7 @@ function describeStep(step, idx) {
                 .join(', ');
             return `${n} Run flowlet \`${key}\`${inputs ? ` with ${inputs}` : ''}${step.label && step.label !== 'Call layer' ? ` — ${step.label}` : ''}.`;
         }
+        case 'call_block': return `${n} Run the building block "${step.label || 'Step'}"${Object.keys(step.inputs || {}).length ? ` with ${Object.entries(step.inputs).map(([k, v]) => `${k}=${describeRef(v)}`).join(', ')}` : ''}.`;
         case 'generate_document': {
             const kind = step.format === 'docx' ? 'Word document' : 'PDF';
             const named = step.fileName || step.title;
@@ -321,6 +323,7 @@ function renderStepState(step, opts = {}) {
         case 'parse_json':         detail = ` (${step.mode === 'ai' ? 'ai' : 'paths'}) fields=[${(Array.isArray(step.fields) ? step.fields : []).map(f => f && f.name).filter(Boolean).join(', ')}]${step.sourceRef ? ` src=\`${step.sourceRef}\`` : ''}`; break;
         case 'layer_output':       detail = ` returns=${bindingMap(step.fields)}`; break;
         case 'call_layer':         detail = ` layer=\`${step.layerKey || '?'}\``; inputs = bindingMap(step.inputs); break;
+        case 'call_block':         detail = ` block=\`${step.blockId || '?'}\``; inputs = bindingMap(step.inputs); break;
         case 'notification':       detail = ` ${(step.channels || ['notification']).join(',')}${step.title ? ` "${step.title}"` : ''}`; break;
         case 'code':               detail = describeCodeStep(step, opts.codeParams); inputs = bindingMap(step.inputs); break;
         case 'datetime':           detail = ` op=${step.op || 'now'}${typeof step.arrayRef === 'string' ? ' (per row)' : ''}`; break;
@@ -370,21 +373,7 @@ function describeFlatten(step) {
  * @param {{ codeParams?: (code: string) => Array<object> | null; }} [opts]
  */
 function renderGraphState(graph, out, opts = {}) {
-    const t = graph.trigger;
-    if (t) {
-        if (t.kind === 'layer_input') {
-            const params = (t.params || []).map(p => (typeof p === 'string' ? p : p.name)).filter(Boolean);
-            out.push(`  - \`${t.id || 'trg'}\` trigger:layer_input  inputs: ${params.join(', ') || '(none)'}  (bind inside as trigger.output.<name>)`);
-        } else {
-            // The inputs an author declared are the only place their names are
-            // written down: list them with the path the steps bind, or the
-            // model has to guess (and invent) what trigger.output holds.
-            const declared = declaredTriggerFields(t).map(f => f.name);
-            const tool = t.kind === 'agent_call' && t.toolName ? `  tool: ${t.toolName}` : '';
-            const inputs = declared.length ? `  inputs: ${declared.join(', ')}  (bind as trigger.output.<name>)` : '';
-            out.push(`  - \`${t.id || 'trg'}\` trigger:${t.kind || 'manual'}${tool}${inputs}`);
-        }
-    }
+    if (graph.trigger) out.push(triggerStateLine(graph.trigger, graph));
     for (const x of (Array.isArray(graph.triggers) ? graph.triggers : [])) {
         if (!x || typeof x !== 'object') continue;
         const detail = x.appEvent ? ` ${x.appEvent.provider}.${x.appEvent.event}` : (x.schedule?.cron ? ` ${x.schedule.cron}` : '');
@@ -420,6 +409,8 @@ module.exports = { summariseDefinition, renderAgentDraftState };
 /** @typedef {{ kind?: string, path?: string, value?: unknown } | string | number | boolean | null | undefined} SummaryBinding */
 
 /** @typedef {{ name?: string, required?: boolean, default?: unknown }} CodeParam */
+
+/** @typedef {{ id?: string, type?: string, label?: string } & Record<string, unknown>} SummaryStep */
 
 /**
  * @typedef {{ kind?: string, id?: string, label?: string, toolName?: string, schedule?: { cron?: string, tz?: string },

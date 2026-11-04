@@ -1,32 +1,29 @@
 /**
  * The form defaults are the web's, evaluated from their own source.
  *
- * They live in agent-hub's settings/FormBuilderFields.jsx, a component file
- * (React, Lucide, the form renderer) that neither Metro nor this Jest can
- * load. So this test cuts the three functions and THEME_PRESETS out of the
- * text, evaluates them, and compares their results with the port's.
+ * They live in agent-hub's settings/formDeclarations.ts (pure, TypeScript),
+ * which takes THEME_PRESETS from settings/formStyle/stylePresets.ts. Both are
+ * run here as the web wrote them (types stripped, the preset list bound from
+ * its own file) and their results compared with the port's.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { loadWebModule } from '@/shared/testing/webModule';
+
 import { defaultFormDeclaration, defaultFormEndingDeclaration, defaultFormPageDeclaration, THEME_PRESETS, themePresetLabel } from './formDefaults';
 
 const SETTINGS = path.resolve(__dirname, '../../../../../agent-hub/src/components/automation/Builder/flow/settings');
-const src = fs.readFileSync(path.join(SETTINGS, 'FormBuilderFields.jsx'), 'utf8');
 
-/** The text from `start` to the end of its top-level block. */
-function cut(start: string, end: string): string {
-    const at = src.indexOf(start);
-    if (at < 0) throw new Error(`${start} is gone from FormBuilderFields.jsx`);
-    return src.slice(at, src.indexOf(end, at) + end.length);
-}
-
-const presetsSrc = cut('export const THEME_PRESETS = [', '\n];').replace('export const THEME_PRESETS = ', 'return ');
-const fnSrc = (name: string) => cut(`export function ${name}() {`, '\n}\n').replace('export function', 'function');
-
-const WEB_PRESETS = new Function(presetsSrc)();
-const web = (name: string) => new Function('THEME_PRESETS', `${fnSrc(name)}\nreturn ${name}();`)(WEB_PRESETS);
+type Declaration = () => unknown;
+const declarations = loadWebModule<Record<string, Declaration>>(path.join(SETTINGS, 'formDeclarations.ts'));
+const { THEME_PRESETS: WEB_PRESETS } = loadWebModule<{ THEME_PRESETS: unknown[] }>(path.join(SETTINGS, 'formStyle/stylePresets.ts'));
+const web = (name: string) => {
+    const fn = declarations[name];
+    if (typeof fn !== 'function') throw new Error(`${name} is gone from formDeclarations.ts`);
+    return fn();
+};
 
 describe('form defaults', () => {
     it('THEME_PRESETS is the web list', () => {
@@ -55,8 +52,8 @@ describe('form defaults', () => {
         expect(THEME_PRESETS[0]?.theme.primary).toBe('#0F766E');
     });
 
-    it('the web trigger form still takes its default from FormBuilderFields', () => {
+    it('the web trigger form still takes its default from formDeclarations', () => {
         const trigger = fs.readFileSync(path.join(SETTINGS, 'FormTriggerFields.tsx'), 'utf8');
-        expect(trigger).toMatch(/import (?:FormBuilderFields, )?\{ defaultFormDeclaration \} from '\.\/FormBuilderFields'/);
+        expect(trigger).toMatch(/import \{ defaultFormDeclaration \} from '\.\/formDeclarations'/);
     });
 });

@@ -53,3 +53,42 @@ test('everything else goes on to the terminal handler, never echoed here', () =>
         assert.strictEqual(res.body, undefined);
     }
 });
+
+test('an error after the parser removes the scratch file multer wrote', async () => {
+    const fs = require('fs');
+    const os = require('os');
+    const path = require('path');
+    const scratch = path.join(os.tmpdir(), `audio-upload-scratch-${Date.now()}`);
+    fs.writeFileSync(scratch, 'meeting audio');
+    const err = new HttpError(400, 'invalid_request', 'num_speakers is een getal.');
+    let forwarded;
+    uploadErrorHandler(err, { file: { path: scratch } }, {}, (e) => { forwarded = e; });
+    assert.strictEqual(forwarded, err, 'the refusal itself still goes to the terminal handler');
+    for (let i = 0; i < 50 && fs.existsSync(scratch); i++) await new Promise((r) => setTimeout(r, 10));
+    assert.strictEqual(fs.existsSync(scratch), false, 'no meeting audio is left behind in the scratch dir');
+});
+
+test('a non-ASCII file name arrives as UTF-8, not as latin1 mojibake', async () => {
+    const http = require('http');
+    const express = require('express');
+    const { upload } = require('./audioUpload');
+    const app = express();
+    let seen = null;
+    app.post('/', upload.single('audio'), (req, res) => {
+        seen = req.file.originalname;
+        require('fs').unlink(req.file.path, () => {});
+        res.json({ ok: true });
+    });
+    const server = http.createServer(app);
+    await new Promise((r) => server.listen(0, () => r(undefined)));
+    try {
+        const form = new FormData();
+        form.append('audio', new Blob([Buffer.from('x')], { type: 'audio/webm' }), 'Overleg café – Q3.m4a');
+        const { port } = /** @type {import('net').AddressInfo} */ (server.address());
+        const r = await fetch(`http://127.0.0.1:${port}/`, { method: 'POST', body: form });
+        assert.strictEqual(r.status, 200);
+        assert.strictEqual(seen, 'Overleg café – Q3.m4a');
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});

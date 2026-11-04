@@ -6,7 +6,21 @@
  */
 
 const fs = require('fs');
+const { fetch: undiciFetch, Agent, FormData: UndiciFormData } = require('undici');
 const log = require('../../telemetry/log');
+
+// /transcribe runs ASR AND diarization on the whole recording in one request;
+// on a CPU WhisperX a long meeting takes far longer than 10 minutes (the
+// /diarize call alone gets 30). Configurable, 0 = no limit.
+const DEFAULT_WHISPERX_TIMEOUT_MS = 30 * 60_000;
+
+/** @returns {number} ms; 0 means unlimited */
+function whisperxTimeoutMs() {
+    const raw = process.env.WHISPERX_TIMEOUT_MS;
+    if (raw === undefined || raw === '') return DEFAULT_WHISPERX_TIMEOUT_MS;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : DEFAULT_WHISPERX_TIMEOUT_MS;
+}
 
 /**
  * Transcribe with the self-hosted WhisperX service. Returns a
@@ -36,7 +50,7 @@ async function transcribeWithWhisperX(filePath, fileName, language, contextTerms
         );
     }
 
-    const form = new FormData();
+    const form = new UndiciFormData();
     form.append('file', await fs.openAsBlob(filePath), fileName);
     form.append('language', language);
     form.append('diarize', 'true');
@@ -45,19 +59,30 @@ async function transcribeWithWhisperX(filePath, fileName, language, contextTerms
     log.info(`[Transcriptions] Sending to WhisperX at ${whisperxUrl}/transcribe ...`);
 
     const apiKey = process.env.SERVICES_API_KEY;
-    const resp = await fetch(`${whisperxUrl}/transcribe`, {
-        method: 'POST',
-        body: form,
-        headers: apiKey ? { 'X-API-Key': apiKey } : {},
-        signal: AbortSignal.timeout(600000), // 10 minutes for long files
-    });
+    const timeoutMs = whisperxTimeoutMs();
+    // The service answers only when it is done, so the HTTP client's own
+    // header/body timeouts (5 minutes by default) must follow the same budget,
+    // or they cut the request off long before the deadline above.
+    const dispatcher = new Agent({ headersTimeout: timeoutMs, bodyTimeout: timeoutMs });
+    /** @type {{ segments?: Array<Record<string, any>>, text?: string, device?: string, processingTime?: number, [key: string]: any }} WhisperX /transcribe */
+    let data;
+    try {
+        const resp = await undiciFetch(`${whisperxUrl}/transcribe`, {
+            method: 'POST',
+            body: form,
+            headers: apiKey ? { 'X-API-Key': apiKey } : {},
+            dispatcher,
+            ...(timeoutMs > 0 ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
+        });
 
-    if (!resp.ok) {
-        const errText = await resp.text().catch(() => resp.statusText);
-        throw new Error(`WhisperX service error (${resp.status}): ${errText}`);
+        if (!resp.ok) {
+            const errText = await resp.text().catch(() => resp.statusText);
+            throw new Error(`WhisperX service error (${resp.status}): ${errText}`);
+        }
+        data = /** @type {typeof data} */ (await resp.json());
+    } finally {
+        dispatcher.close().catch((err) => log.debug('whisperx dispatcher close', err));
     }
-
-    const data = /** @type {{ segments?: Array<Record<string, any>>, text?: string, device?: string, processingTime?: number, [key: string]: any }} WhisperX /transcribe */ (await resp.json());
     log.info(`[Transcriptions] WhisperX: ${data.segments?.length || 0} segments, ${data.device}, processed in ${data.processingTime}s`);
 
     return {
@@ -71,4 +96,4 @@ async function transcribeWithWhisperX(filePath, fileName, language, contextTerms
     };
 }
 
-module.exports = { transcribeWithWhisperX };
+module.exports = { transcribeWithWhisperX, whisperxTimeoutMs };

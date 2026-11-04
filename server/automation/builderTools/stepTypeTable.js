@@ -19,6 +19,15 @@
  *     VALID_STEP_TYPES, so a new runtime step type cannot be added without
  *     deciding, here, whether the builder can make it.
  *
+ * `family` and `userLabel` say where a person finds the step and what it is
+ * called there: the canvas ribbon's tab (agent-hub flow/ribbon/ribbonCategories.ts
+ * CATEGORY_DEFS, in that order; `start` is the empty canvas's "how it starts"
+ * cards, `apps` the suite and Other apps tabs) and the palette's label
+ * (flow/nodeDefs.ts, flow/stepPalette.ts). Kept by hand: the client is ESM
+ * TypeScript the server cannot load. builderPrompt/stepFamilies.js renders the
+ * "What you can build" block from them, so the model speaks the user's words.
+ * `opFamily: 'array_op'` marks the list operations `array_op` dispatches on `op`.
+ *
  * `authoring`:
  *   batch        creatable in builder_add_steps (and builder_replace_step, except
  *                `array_op`, which is a family dispatched on `op`);
@@ -38,74 +47,76 @@
 // Order = the order the batch enum has always had, then the Privacy Shield
 // steps. `replace: false` keeps a type out of builder_replace_step's enum.
 /**
- * @typedef {{ type: string, authoring: string, replace?: boolean, family?: string, builderOnly?: boolean,
+ * @typedef {'start' | 'ai' | 'logic' | 'people' | 'data' | 'apps' | 'blocks'} StepFamily
+ * @typedef {{ type: string, authoring: string, replace?: boolean, opFamily?: string, builderOnly?: boolean,
+ *   family?: StepFamily, userLabel?: string, tool?: string, via?: string,
  *   reason?: string, behaviour?: string }} StepTypeEntry
  */
 
 /** @type {readonly StepTypeEntry[]} */
 const STEP_TYPE_TABLE = Object.freeze([
-    { type: 'integration_action', authoring: 'batch' },
-    { type: 'ai_step', authoring: 'batch' },
-    { type: 'data_extraction', authoring: 'batch' },
-    { type: 'condition', authoring: 'batch' },
-    { type: 'switch', authoring: 'batch' },
-    { type: 'notification', authoring: 'batch' },
-    { type: 'set', authoring: 'batch' },
-    { type: 'http_request', authoring: 'batch' },
-    { type: 'datatable', authoring: 'batch' },
-    { type: 'generate_document', authoring: 'batch' },
-    { type: 'fill_document', authoring: 'batch' },
-    { type: 'slide', authoring: 'batch' },
-    { type: 'presentation', authoring: 'batch' },
+    { type: 'integration_action', authoring: 'batch', family: 'apps', userLabel: 'An app\'s action' },
+    { type: 'ai_step', authoring: 'batch', family: 'ai', userLabel: 'AI step' },
+    { type: 'data_extraction', authoring: 'batch', family: 'ai', userLabel: 'Extract data' },
+    { type: 'condition', authoring: 'batch', family: 'logic', userLabel: 'Condition' },
+    { type: 'switch', authoring: 'batch', family: 'logic', userLabel: 'Condition' },
+    { type: 'notification', authoring: 'batch', family: 'people', userLabel: 'Notification' },
+    { type: 'set', authoring: 'batch', family: 'data', userLabel: 'Edit data' },
+    { type: 'http_request', authoring: 'batch', family: 'logic', userLabel: 'Call a web service' },
+    { type: 'datatable', authoring: 'batch', family: 'data', userLabel: 'Datatable' },
+    { type: 'generate_document', authoring: 'batch', family: 'data', userLabel: 'Make a document' },
+    { type: 'fill_document', authoring: 'batch', family: 'data', userLabel: 'Fill a document' },
+    { type: 'slide', authoring: 'batch', family: 'data', userLabel: 'Slide' },
+    { type: 'presentation', authoring: 'batch', family: 'data', userLabel: 'Presentation' },
     // `builderOnly`: a family the builder dispatches on `op` (filter, limit, ...),
-    // not a runtime step type of its own.
-    { type: 'array_op', authoring: 'batch', replace: false, builderOnly: true },
-    { type: 'code', authoring: 'batch' },
-    { type: 'datetime', authoring: 'batch' },
-    { type: 'wait', authoring: 'batch' },
-    { type: 'stop_error', authoring: 'batch' },
-    { type: 'form_page', authoring: 'batch' },
-    { type: 'approval', authoring: 'batch' },
-    { type: 'call_layer', authoring: 'batch' },
-    { type: 'knowledge_write', authoring: 'batch' },
-    { type: 'loop', authoring: 'batch' },
-    { type: 'filter', authoring: 'batch', family: 'array_op' },
-    { type: 'limit', authoring: 'batch', family: 'array_op' },
-    { type: 'dedupe', authoring: 'batch', family: 'array_op' },
-    { type: 'aggregate', authoring: 'batch', family: 'array_op' },
-    { type: 'summarize', authoring: 'batch', family: 'array_op' },
-    { type: 'flatten', authoring: 'batch', family: 'array_op' },
+    // not a runtime step type of its own. The ribbon's "Lists" pill holds its members.
+    { type: 'array_op', authoring: 'batch', replace: false, builderOnly: true, family: 'data', userLabel: 'Lists' },
+    { type: 'code', authoring: 'batch', family: 'logic', userLabel: 'Code' },
+    { type: 'datetime', authoring: 'batch', family: 'data', userLabel: 'Date & time' },
+    { type: 'wait', authoring: 'batch', family: 'people', userLabel: 'Wait' },
+    { type: 'stop_error', authoring: 'batch', family: 'logic', userLabel: 'Stop with an error' },
+    { type: 'form_page', authoring: 'batch', family: 'people', userLabel: 'Form page' },
+    { type: 'approval', authoring: 'batch', family: 'people', userLabel: 'Ask someone to approve' },
+    { type: 'call_layer', authoring: 'batch', family: 'blocks', userLabel: 'Flowlet' },
+    { type: 'knowledge_write', authoring: 'batch', family: 'data', userLabel: 'To knowledge base' },
+    { type: 'loop', authoring: 'batch', family: 'logic', userLabel: 'Repeat for each' },
+    { type: 'filter', authoring: 'batch', opFamily: 'array_op', family: 'data', userLabel: 'Filter a list' },
+    { type: 'limit', authoring: 'batch', opFamily: 'array_op', family: 'data', userLabel: 'Shorten list' },
+    { type: 'dedupe', authoring: 'batch', opFamily: 'array_op', family: 'data', userLabel: 'Remove duplicates' },
+    { type: 'aggregate', authoring: 'batch', opFamily: 'array_op', family: 'data', userLabel: 'Collect one field' },
+    { type: 'summarize', authoring: 'batch', opFamily: 'array_op', family: 'data', userLabel: 'Add up or count' },
+    { type: 'flatten', authoring: 'batch', opFamily: 'array_op', family: 'data', userLabel: 'Flatten a list' },
     // The Privacy Shield steps (core/automationRunner/execPrivacy.js): a plain
-    // `sourceRef` path string, no binding object.
-    { type: 'guard', authoring: 'batch' },
-    { type: 'tokenize', authoring: 'batch' },
-    { type: 'untokenize', authoring: 'batch' },
+    // `sourceRef` path string, no binding object. One "Privacy Shield" entry on
+    // the canvas, three modes in its editor.
+    { type: 'guard', authoring: 'batch', family: 'logic', userLabel: 'Privacy Shield: find personal data' },
+    { type: 'tokenize', authoring: 'batch', family: 'logic', userLabel: 'Privacy Shield: hide personal data' },
+    { type: 'untokenize', authoring: 'batch', family: 'logic', userLabel: 'Privacy Shield: show real values again' },
     // Tables as first-class data: open an uploaded spreadsheet / CSV as tables,
     // and edit a table without code (builderTools/stepBuilders/tableSteps.js).
-    { type: 'read_table', authoring: 'batch' },
-    { type: 'table', authoring: 'batch' },
+    { type: 'read_table', authoring: 'batch', family: 'data', userLabel: 'Read table' },
+    { type: 'table', authoring: 'batch', family: 'data', userLabel: 'Edit table' },
+    // A reusable building block (a published Step, kind='block') by its id, from
+    // the "Building blocks you may use" list (builderPickerCatalog.js); no
+    // single-step tool (stepBuilders/callBlock.js).
+    { type: 'call_block', authoring: 'batch', family: 'blocks', userLabel: 'Step' },
 
-    { type: 'note', authoring: 'tool', tool: 'builder_add_note' },
+    { type: 'note', authoring: 'tool', tool: 'builder_add_note', family: 'logic', userLabel: 'Note' },
 
-    { type: 'trigger', authoring: 'managed', via: 'builder_propose_trigger / builder_add_trigger' },
-    { type: 'layer_output', authoring: 'managed', via: 'builder_create_layer / builder_set_layer_contract' },
+    { type: 'trigger', authoring: 'managed', via: 'builder_propose_trigger / builder_add_trigger', family: 'start', userLabel: 'How it starts' },
+    { type: 'layer_output', authoring: 'managed', via: 'builder_create_layer / builder_set_layer_contract', family: 'blocks', userLabel: 'Flowlet output' },
 
     { type: 'parse_json', authoring: 'retired' },
 
     // `reason` = why the builder cannot make it; `behaviour` = what an existing
     // one does, so the model reads a draft that holds one correctly.
     {
-        type: 'parallel', authoring: 'canvas_only',
+        type: 'parallel', authoring: 'canvas_only', family: 'logic', userLabel: 'Parallel',
         reason: 'branches are drawn on the canvas; no builder tool lays them out',
         behaviour: 'its branches run side by side. Two steps wired from the same step already do that.',
     },
     {
-        type: 'call_block', authoring: 'canvas_only',
-        reason: 'the builder is not given the list of reusable Steps (ids and parameters), so it could only guess',
-        behaviour: 'it calls a reusable Step and returns that Step\'s outputs.',
-    },
-    {
-        type: 'return_to_app', authoring: 'canvas_only',
+        type: 'return_to_app', authoring: 'canvas_only', family: 'logic', userLabel: 'Back to the app',
         reason: 'it names screens of the Studio App that started the run, and the builder is not given the app\'s screen ids',
         behaviour: 'TERMINAL: it ends the run and hands the app a screen to open, a message and what to refresh. Nothing after it ever runs, so never wire anything to its output; never inside a loop, a parallel branch or a flowlet.',
     },
@@ -138,7 +149,7 @@ function canvasOnlyMenu() {
 }
 
 /** The step types the single `builder_add_array_op` tool covers by `op`. */
-const ARRAY_OP_FAMILY = Object.freeze(typesWhere((e) => e.family === 'array_op'));
+const ARRAY_OP_FAMILY = Object.freeze(typesWhere((e) => e.opFamily === 'array_op'));
 
 module.exports = {
     STEP_TYPE_TABLE,

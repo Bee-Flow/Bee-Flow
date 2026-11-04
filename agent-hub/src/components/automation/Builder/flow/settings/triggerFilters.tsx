@@ -539,7 +539,7 @@ export function MeetingNotesProcessedFilterFields({ filter, setFilter }: FilterF
                 {tags.length === 0
                     ? (
                         <div className={`${AMBER_NOTE} mt-1 leading-snug`}>
-                            {t('meetings.trigger_tags_empty_means_all', 'No tags: this rule runs after EVERY finished meeting note. Name a tag to narrow it.')}
+                            {t('meetings.trigger_tags_empty_means_all', 'No tags: this rule runs after EVERY finished meeting note of yours. Name a tag to narrow it.')}
                         </div>
                     )
                     : (

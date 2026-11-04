@@ -6,7 +6,8 @@
  * Shape (written by chatStream.js at the end of every turn, trimmed by
  * stores/automationStore/builderSessions.js): {sessionId, version, draft,
  * lastValidation, summary, conversation, todos, catalogOrder, updatedAt,
- * reviewPlan, reviewQuestions, questionsMeta, proposal}. `questionsMeta` is
+ * reviewPlan, reviewQuestions, questionsMeta, proposal, inspectedTools,
+ * lastDryRunHints}. `questionsMeta` is
  * { round, planId, mode } | null: the question round of the current plan cycle
  * (round 1 = the card was shown; the next plan turn must write the plan) and
  * the approved plan a card asked during a build paused (planId).
@@ -14,7 +15,14 @@
  * toolCalls; it is unsliced, and the store trims its HEAD in blocks that match
  * the prompt window so a rehydrated client re-sends a history the server's
  * prompt-prefix cache still recognises. `catalogOrder` is server-internal: the
- * app order this session's system prompt is rendered in.
+ * app order this session's system prompt is rendered in. The session's memory
+ * is server-internal too (turnClosing.js sessionMemory): `inspectedTools:
+ * string[]` (tool names inspected so far, newest last; the next turn seeds its
+ * inspect gate from it) and `lastDryRunHints: { [stepId]: { outputType?,
+ * topKeys?, shape?, note?, status?, stepType? } }` (the last test run's
+ * per-step shape hints, keys and types only, ≤ 4 KB; replayed as "## Last test
+ * run", automation/builderPrompt/lastTestRun.mts). A review below rebuilds the
+ * snapshot from the stored one, so both survive it.
  *
  * There is one snapshot per automation and this route returns it whole, so it
  * reads nothing from the query: a `?version=` or `?since=` that looks like it

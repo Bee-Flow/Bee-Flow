@@ -120,7 +120,7 @@ export default function NodeDetailView({
         () => (typeof onExecuteStep === 'function' && step?.type === 'trigger' && step?.kind === 'form' ? () => { onExecuteStep(step.id, { openForm: true }); } : null),
         [onExecuteStep, step],
     );
-    const formEditor = useFormEditor({ definition, step, onSaveStep, onTest: onTestForm });
+    const formEditor = useFormEditor({ definition, step, onSaveStep, onTest: onTestForm, automationId: automation?.id ?? null });
 
     const outputPinned = step?.pinnedOutput !== undefined && step?.pinnedOutput !== null;
     // Typed by the author, not captured from a run: the badge says so.

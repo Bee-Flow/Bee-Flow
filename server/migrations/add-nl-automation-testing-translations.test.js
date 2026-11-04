@@ -15,7 +15,7 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 // The parts of automation_testing.* this catalogue owns: trying a whole
 // automation from the builder. The code-step test cases (case., assertions.,
 // panel., ...) predate it and have no Dutch catalogue yet.
-const OWNED_PREFIXES = ['header.', 'run_live.', 'execute_confirm.', 'run_phase.', 'start.', 'toast.', 'overlay.']
+const OWNED_PREFIXES = ['header.', 'run_live.', 'execute_confirm.', 'run_phase.', 'start.', 'toast.', 'overlay.', 'assistant_images.']
     .map((p) => `automation_testing.${p}`);
 // The run bar keys of the same round (automations.canvas.* is otherwise
 // add-nl-builder-redesign's, whose test skips the keys seeded here).

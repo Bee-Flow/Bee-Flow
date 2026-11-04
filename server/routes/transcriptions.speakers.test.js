@@ -169,3 +169,54 @@ test('a user-touched row is marked manual so later passes cannot undo it', async
     const saved = updates.at(-1);
     assert.strictEqual(saved.speakers.find(s => s.id === 'Anneke').source, 'manual');
 });
+
+test('a rename moves the action-item assignees along, so a regenerate can still match the ticked items', async () => {
+    storedNote = {
+        ...twoSpeakerNote(),
+        readAt: '2026-11-04T10:00:00.000000Z',
+        actionItems: [
+            { id: 'ai-0', source: 'ai', text: 'Send the quote', aiText: 'Send the quote', assignee: 'Ans', timestamp: '00:05', done: true },
+            { id: 'ai-1', source: 'ai', text: 'Book the room', assignee: 'Bert', timestamp: '00:12', done: false },
+            { id: 'u-1', source: 'user', text: 'Call the client', done: false },
+        ],
+    };
+    const res = await dispatch({ url: '/t-1/speakers', body: { renames: { Ans: 'Tom' }, merges: [] } });
+    assert.strictEqual(res.statusCode, 200);
+    const saved = updates.at(-1);
+    assert.deepStrictEqual(saved.actionItems.map(a => a.assignee), ['Tom', 'Bert', undefined]);
+    assert.strictEqual(saved.actionItems[0].done, true, 'the tick stays on the item');
+    assert.strictEqual(saved.artifactsSince, '2026-11-04T10:00:00.000000Z', 'written through the artifact window');
+});
+
+test('a rename that touches no assignee does not rewrite the action items', async () => {
+    storedNote = { ...twoSpeakerNote(), actionItems: [{ id: 'ai-0', text: 'x', assignee: 'Unassigned' }] };
+    await dispatch({ url: '/t-1/speakers', body: { renames: { Ans: 'Tom' }, merges: [] } });
+    assert.strictEqual('actionItems' in updates.at(-1), false);
+});
+
+test('a speaker edit keeps the per-speaker prose of the rows it did not change', async () => {
+    storedNote = {
+        ...twoSpeakerNote(),
+        segments: [
+            { speaker: 'Ans', start: 0, end: 10, text: 'a' },
+            { speaker: 'Bert', start: 10, end: 20, text: 'b' },
+            { speaker: 'Cees', start: 20, end: 30, text: 'c' },
+        ],
+        speakers: [
+            { id: 'Ans', speakingSeconds: 10, segments: 1, summary: 'Ans prose' },
+            { id: 'Bert', speakingSeconds: 10, segments: 1, summary: 'Bert prose' },
+            { id: 'Cees', speakingSeconds: 10, segments: 1, summary: 'Cees prose' },
+        ],
+    };
+    await dispatch({ url: '/t-1/speakers', body: { renames: { Cees: 'Carla' }, merges: [] } });
+    const byId = Object.fromEntries(updates.at(-1).speakers.map(s => [s.id, s]));
+    assert.strictEqual(byId.Ans.summary, 'Ans prose');
+    assert.strictEqual(byId.Bert.summary, 'Bert prose');
+    assert.strictEqual(byId.Carla.summary, undefined, 'the renamed row loses its prose');
+
+    updates.length = 0;
+    await dispatch({ url: '/t-1/speakers', body: { renames: {}, merges: [{ from: ['Ans', 'Bert'], into: 'Ans' }] } });
+    const merged = Object.fromEntries(updates.at(-1).speakers.map(s => [s.id, s]));
+    assert.strictEqual(merged.Ans.summary, undefined, 'a merge target covers more turns now: its prose goes');
+    assert.strictEqual(merged.Cees.summary, 'Cees prose');
+});

@@ -130,3 +130,19 @@ test('a snapshot with no conversation at all is left alone apart from a normalis
     assert.deepStrictEqual(out.conversation, [], 'nothing to trim — the draft is the bulk and is never touched');
     assert.deepStrictEqual(out.draft, snap.draft);
 });
+
+// The session memory (routes/ai/automationBuilder/turnClosing.js sessionMemory):
+// bounded by its writer, so the byte cap never has to touch it.
+test('the memory fields survive a trim verbatim: only the conversation shrinks', () => {
+    const conversation = [];
+    for (let i = 0; i < 40; i++) conversation.push(user(i, 2000), assistant(i, { resultChars: 2000 }));
+    const memory = {
+        inspectedTools: ['gmail_search', 'mcp:srv1:lookup'],
+        lastDryRunHints: { fetch: { outputType: 'object', shape: '{ value[*]: { id } }', status: 'success', stepType: 'integration_action' } },
+    };
+    const snap = { ...base(conversation), ...memory };
+    const out = trimSnapshot(snap, { block: BLOCK });
+    assert.ok(out && size(out) <= SNAPSHOT_MAX_BYTES);
+    assert.deepStrictEqual(out.inspectedTools, memory.inspectedTools);
+    assert.deepStrictEqual(out.lastDryRunHints, memory.lastDryRunHints);
+});

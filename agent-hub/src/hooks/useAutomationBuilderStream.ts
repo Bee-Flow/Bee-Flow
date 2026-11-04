@@ -11,7 +11,7 @@ import useRunControls from './automationBuilder/useRunControls';
 import { runPhase } from '../components/automation/Builder/runs/runPhase';
 import { logger } from '../utils/logger';
 
-export type { AutomationBuilderSendOptions, AutomationBuilderInitial, AutomationBuilderState, BuilderWebSearchStatus } from './automationBuilder/types';
+export type { AutomationBuilderSendOptions, AutomationBuilderInitial, AutomationBuilderState, BuilderImageStatus, BuilderWebSearchStatus } from './automationBuilder/types';
 
 // Shown when the build stream drops mid-flight (gateway timeout / network cut).
 // The draft is persisted server-side after every step, so the build may have
@@ -58,6 +58,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
         title: initial.title || null,
         metadataSeq: 0,
         webSearch: null,
+        images: null,
     });
     const abortRef = useRef<AbortController | null>(null);
     const { executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, settleRun, hydrateLastRun, setRunResult, followRun, continueRun } = useRunControls(state, setState, { phaseOf: runPhase });
@@ -169,7 +170,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
             // phase however well the build had gone.
             aborted: null,
             lastDone: null,
-            proposal: null, reviewQuestions: null, reviewQuestionsPlanId: null,
+            proposal: null, reviewQuestions: null, reviewQuestionsPlanId: null, images: null,
             turn: openTurn(modelTier),
             toolDraft: null,
             // Clear any stale isStreaming on prior messages (e.g. an aborted

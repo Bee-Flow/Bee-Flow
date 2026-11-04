@@ -3,12 +3,13 @@
  * must not show twice ("011."), and the line's inline markdown must render.
  */
 import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PlanReview from './PlanReview';
 
 vi.mock('@/hooks/useTranslation', () => ({
-    default: () => ({ t: (_k: string, d: string) => d }),
-    useTranslation: () => ({ t: (_k: string, d: string) => d }),
+    default: () => ({ t: (_k: string, d: string, p?: Record<string, unknown>) => d.replace(/\{(\w+)\}/g, (_m, k) => String(p?.[k] ?? `{${k}}`)) }),
+    useTranslation: () => ({ t: (_k: string, d: string, p?: Record<string, unknown>) => d.replace(/\{(\w+)\}/g, (_m, k) => String(p?.[k] ?? `{${k}}`)) }),
 }));
 
 afterEach(cleanup);
@@ -55,5 +56,35 @@ describe('PlanReview tables', () => {
         expect(screen.getByTestId('plan-new-table')).toHaveTextContent('Facturen');
         expect(screen.getByTestId('plan-new-table')).toHaveTextContent('Datum · date');
         expect(screen.getByTestId('plan-used-table')).toHaveTextContent('Klanten');
+    });
+});
+
+describe('PlanReview after the build', () => {
+    const buttons = () => screen.queryAllByRole('button').map(b => b.textContent || b.getAttribute('aria-label'));
+
+    it('a built plan says so and offers Close only, never a build button', async () => {
+        const user = userEvent.setup();
+        const onClose = vi.fn();
+        render(<PlanReview plan={plan({ status: 'built' })} onApprove={vi.fn()} onClose={onClose} onReject={vi.fn()} />);
+        expect(screen.getByText('Plan v1 built')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Build this plan|Continue plan|Discard/ })).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        expect(onClose).toHaveBeenCalled();
+        expect(buttons().filter(Boolean)).not.toContain('Build this plan');
+    });
+
+    it('a build that stopped says so and offers Continue plan only (no Build, no Discard)', async () => {
+        const user = userEvent.setup();
+        const onApprove = vi.fn();
+        render(<PlanReview plan={plan({ status: 'building' })} onApprove={onApprove} onClose={vi.fn()} onReject={vi.fn()} />);
+        expect(screen.getByText(/build stopped/i)).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Build this plan|Discard/ })).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Continue plan' }));
+        expect(onApprove).toHaveBeenCalledWith(false);
+    });
+
+    it('a build that is running offers no button to start it again', () => {
+        render(<PlanReview plan={plan({ status: 'building' })} running onApprove={vi.fn()} onClose={vi.fn()} />);
+        expect(screen.queryByRole('button', { name: /Build this plan|Continue plan/ })).toBeNull();
     });
 });

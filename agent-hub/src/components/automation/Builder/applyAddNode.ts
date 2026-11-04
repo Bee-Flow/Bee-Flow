@@ -2,7 +2,7 @@ import { branchFromHandle } from './flow/branchEdges';
 import { applyCollectionScaffold } from './flow/collectionScaffolds';
 import { seedPositions } from './flow/layout';
 import { normalizeDefinitionShape, emptyGraph } from './flow/normalizeDefinition';
-import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './flow/settings/FormBuilderFields';
+import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './flow/settings/formDeclarations';
 import { MAX_AI_STEP_SKILL_IDS } from './flow/settings/formState';
 import { defaultFormDeclaration } from './flow/settings/FormTriggerFields';
 import { defaultTriggerLabel } from './flow/triggerLabels';

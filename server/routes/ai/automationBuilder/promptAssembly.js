@@ -11,6 +11,9 @@ const { rankAppsForMessage, applyCatalogOrder, catalogOrderOf } = require('../..
 const { resolveWebResearch, webResearchPromptLine } = require('./webResearch');
 const { LARGE_CHANGE_STEPS, modeInstruction, reviewStatusNote, questionStatusNote } = require('./workMode');
 const { composeTurnMessages } = require('./turnMessages');
+const { renderLastTestRun, stepIdsOf } = require('../../../automation/builderPrompt/lastTestRun.mts');
+const { lastRunBlock } = require('./lastRunContext.mts');
+const { splitTurnImages, blindImageLine } = require('./turnImages.mts');
 
 // Catalog ORDERING for profiles that ask for it — see
 // automation/builderPrompt/rankApps.js. It used to be a catalog FILTER, and
@@ -41,7 +44,7 @@ async function assembleTurnPrompt(turn) {
         req, send, userId, message, history, attachments, webSearchEnabled, disabledMedia, timezone, canvasScope,
         pauseAfterStep, selectedStepId, codeStepEnabled, userOrgForTiers, draftWrap, reviewPlan, planCurrent,
         approvedPlan, turnMode, bufferedBuild, isolated, baseDraft, savedProposal, reviewOutcome, priorQuestions,
-        storedCatalogOrder, catalog, tableChoice, agentDraftState, modelId, profile,
+        storedCatalogOrder, catalog, tableChoice, agentDraftState, modelId, profile, snapshot, adapter,
     } = turn;
     // The catalogue in the profile's order. 'filtered' is a misnomer kept
     // for the profile field: relevance ORDERS the catalogue, it never
@@ -98,10 +101,26 @@ async function assembleTurnPrompt(turn) {
     // draft state, pre-inspected schemas and this turn's preferences
     // (timezone, web search, disabled media, allowed tiers — all read per
     // request) ride in the late dynamic message. See turnMessages.js.
+    // The pictures attached to this message go to a model that can see them
+    // (./turnImages.mts); for one that cannot, the other attachments' name
+    // line keeps them, the dynamic message says so and the client hears it.
+    const pictures = splitTurnImages(attachments);
+    const seesImages = pictures.images.length > 0 && typeof adapter?.supportsVision === 'function' && !!adapter.supportsVision(modelId);
+    if (pictures.images.length || pictures.skipped) send('images', { attached: pictures.images.length + pictures.skipped, shown: seesImages ? pictures.images.length : 0, skipped: pictures.skipped, blind: pictures.images.length > 0 && !seesImages });
+    // The automation's latest run, when the person started one after the
+    // session's last turn (a canvas test): its failed step's code and masked
+    // message, so "fix this" needs no description of the error.
+    const lastRun = await lastRunBlock({ automationId: draftWrap.automationId, userId, since: snapshot?.updatedAt, canInspect: !!req.body.workMode });
     const { sys, fewShotMessages, windowedHistory, messages } = composeTurnMessages({
         profile, modelId, promptCatalog, codeStepEnabled,
-        history, message, attachments,
+        history, message, attachments: seesImages ? pictures.others : attachments,
+        images: seesImages ? pictures.images : [],
+        imageNote: pictures.images.length && !seesImages ? blindImageLine(pictures.images.length) : null,
+        lastRun,
         agentDraftState, draftIsEmpty, canvasScope, schemaPart,
+        // What the session's last test run showed per step (turnClosing.js
+        // sessionMemory), for the steps the draft in front of the model has.
+        lastTestRun: renderLastTestRun(snapshot?.lastDryRunHints, { keep: stepIdsOf(draftWrap.def) }) || null,
         workMode: req.body.workMode ? turnMode : null,
         // The draft-state message opens with the name, or with the fact
         // that there is none yet (renderDraftStateSystemMessage).
@@ -117,7 +136,7 @@ async function assembleTurnPrompt(turn) {
         },
     });
 
-    if (req.body.workMode) messages.push({ role: 'system', content: modeInstruction(turnMode, approvedPlan) + (bufferedBuild ? `\nChanges are staged to check their size. Fewer than ${LARGE_CHANGE_STEPS} changed steps are applied at the end of this turn; ${LARGE_CHANGE_STEPS} or more become a proposal the user applies with one click. Do not claim staged changes are applied. You may dry-run them: the run uses the staged definition and saves nothing.` : '') + reviewStatusNote({ outcome: reviewOutcome, pending: savedProposal, isolated, liveDef: baseDraft, choice: tableChoice, plan: turnMode === 'plan' ? reviewPlan : null, planCurrent }) + questionStatusNote({ prior: priorQuestions, answeredText: message, mode: turnMode, approvedPlan }) + (approvedPlan && pauseAfterStep ? '\nPause after ONE step change. Avoid batches; the user must explicitly continue before the next step. Read the current draft to avoid repeating completed changes.' : '') + (selectedStepId ? `\nThe user's selected step is ${selectedStepId}. Resolve its label and settings from the draft above.` : '') });
+    if (req.body.workMode) messages.push({ role: 'system', content: modeInstruction(turnMode, approvedPlan, req.body.workMode) + (bufferedBuild ? `\nChanges are staged to check their size. Fewer than ${LARGE_CHANGE_STEPS} changed steps are applied at the end of this turn; ${LARGE_CHANGE_STEPS} or more become a proposal the user applies with one click. Do not claim staged changes are applied. You may dry-run them: the run uses the staged definition and saves nothing.` : '') + reviewStatusNote({ outcome: reviewOutcome, pending: savedProposal, isolated, liveDef: baseDraft, choice: tableChoice, plan: turnMode === 'plan' ? reviewPlan : null, planCurrent }) + questionStatusNote({ prior: priorQuestions, answeredText: message, mode: turnMode, approvedPlan }) + (approvedPlan && pauseAfterStep ? '\nPause after ONE step change. Avoid batches; the user must explicitly continue before the next step. Read the current draft to avoid repeating completed changes.' : '') + (selectedStepId ? `\nThe user's selected step is ${selectedStepId}. Resolve its label and settings from the draft above.` : '') });
 
     Object.assign(turn, { catalogOrder, webResearch, sys, fewShotMessages, windowedHistory, messages });
 }

@@ -104,3 +104,57 @@ describe('BuilderShell — follow-ups during an approved plan', () => {
         expect(body.workMode).toBe('plan');     // the user\'s choice, with no approved plan
     });
 });
+
+describe('BuilderShell — the "Describe it" work mode', () => {
+    beforeEach(() => {
+        buildTab = null; bodies = []; nextStream = [];
+        setCurrentUser('u1');
+        vi.mocked(authFetch).mockReset();
+        vi.mocked(authFetch).mockImplementation(((url: string, opts: { method?: string; body?: string } = {}) => {
+            const method = opts.method || 'GET';
+            if (url.startsWith('/api/automation/builder/stream') && method === 'POST') {
+                bodies.push(JSON.parse(opts.body as string));
+                return Promise.resolve(sseResponse(nextStream));
+            }
+            if (url === '/api/automation/_runs/active') return Promise.resolve(json({ active: [] }));
+            if (url.startsWith('/api/automation/builder/session/')) return Promise.resolve(json({}, { ok: false, status: 404 }));
+            if (url.startsWith('/ai/config/tiers-for-user')) return Promise.resolve(json({ auto: { label: 'Auto' }, fast: { label: 'Fast' } }));
+            if (url === '/api/automation/a9' && method === 'GET') return Promise.resolve(json({ automation: { id: 'a9', title: 'T', definition: { trigger: { kind: 'manual' }, steps: [], edges: [] } } }));
+            return Promise.resolve(json({}));
+        }) as never);
+    });
+    afterEach(cleanup);
+
+    it('keeps sending describe on every turn, the plan approval and its follow-ups included', async () => {
+        scopedStorage.setItem('automationWorkMode:new', 'describe');
+        const followUpBody = await followUp([planEvent('building')], 'continue');
+        expect(bodies[0]).toMatchObject({ workMode: 'describe', approvedPlanId: null });
+        expect(followUpBody).toMatchObject({ approvedPlanId: 'p1', workMode: 'describe' });
+        nextStream = [sse('done', { automationId: 'a9', finalized: false })];
+        await act(async () => { await buildTab!.onSend('Build this plan', [], { approvedPlanId: 'p1' }); });
+        await waitFor(() => expect(bodies.length).toBe(3));
+        expect(bodies[2]).toMatchObject({ approvedPlanId: 'p1', workMode: 'describe' });
+    });
+
+    it('a Studio "Describe it" brief opens and sends in describe, without changing the remembered mode for new automations', async () => {
+        scopedStorage.setItem('automationWorkMode:new', 'approve');
+        nextStream = [sse('done', { finalized: false })];
+        render(<BuilderShell automationId={null} onBack={() => {}} user={{ id: 'u1' }} autoSendInput="Email me each new answer" initialWorkMode="describe" />);
+        await waitFor(() => expect(bodies.length).toBe(1));
+        expect(bodies[0]).toMatchObject({ message: 'Email me each new answer', workMode: 'describe' });
+        expect(scopedStorage.getItem('automationWorkMode:new')).toBe('approve');
+    });
+
+    it('a Playbook stage (forced tier) and a plain auto-send still open in build', async () => {
+        scopedStorage.setItem('automationWorkMode:new', 'approve');
+        nextStream = [sse('done', { finalized: false })];
+        const stage = render(<BuilderShell automationId={null} onBack={() => {}} user={{ id: 'u1' }} autoSendInput="Build the intake flow" forcedTier="fast" />);
+        await waitFor(() => expect(bodies.length).toBe(1));
+        expect(bodies[0]).toMatchObject({ workMode: 'build' });
+        stage.unmount();
+        render(<BuilderShell automationId={null} onBack={() => {}} user={{ id: 'u1' }} autoSendInput="Log every invoice" />);
+        await waitFor(() => expect(bodies.length).toBe(2));
+        expect(bodies[1]).toMatchObject({ workMode: 'build' });
+        expect(scopedStorage.getItem('automationWorkMode:new')).toBe('approve');
+    });
+});

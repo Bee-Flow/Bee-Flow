@@ -9,11 +9,10 @@
  */
 // @typecheck
 const express = require('express');
-const log = require('../../telemetry/log');
 const router = express.Router();
-const transcriptionStore = require('../../stores/transcriptionStore');
 const { requireAuth } = require('../../auth/permissions');
-const { resolveUserOrgFromReq } = require('./shared');
+const { resolveUserOrgFromReq, resolveAccessContext } = require('./shared');
+const { HttpError } = require('../../core/http/errors');
 
 // ── Google Meet meetings (calendar-linked) ───────────────
 //
@@ -35,6 +34,11 @@ const GMEET_ERROR_STATUS = {
     no_drive_access: 403,
     recording_too_large: 413,
     unsupported_edition: 400,
+    no_calendar_event: 404,
+    // A colleague's note of the same conference this user may not read.
+    already_imported: 409,
+    // The workspace engine is not on the organisation's allow-list.
+    provider_not_allowed: 403,
 };
 
 const { gmeetError, resolveGmeetSession, requireMeetAccess } = require('../../core/meetingNotes/gmeetSession');
@@ -42,6 +46,7 @@ const { gmeetError, resolveGmeetSession, requireMeetAccess } = require('../../co
 const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+const { occurrenceNoteId, noteStillExists, configureMeetAutoRecording } = require('./gmeetHelpers');
 
 // ── Wat de Meet-routes mogen dragen ─────────────────────────────────
 //
@@ -89,6 +94,10 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
     const meetingPrefs = require('../../stores/meetingPrefsStore');
     const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'gmeet', userId, orgId: userOrgId });
 
+    // The import jobs of these calendar events (one read for the whole list).
+    const { listRecentJobsForUser } = require('../../stores/gmeetImportStore');
+    const jobs = await listRecentJobsForUser(userId, 7).catch((e) => fallbackSwallowed('routes/transcriptions/gmeet:jobs', e, []));
+
     const out = [];
     for (const m of meetings) {
         const ids = meetingPrefs.gmeetIds({ eventId: m.eventId, meetingCode: m.meetingCode });
@@ -103,15 +112,15 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
         // With Meet, the calendar is the ONLY source for the participant count — there is no live count as with Talk, because nothing is started here but harvested. The outcome here is therefore always decided, and the route says so explicitly: the screen may not show "we are still looking" for a provider that is no longer going to look.
         const recordDecided = true;
         const organizerSelf = m.organizerSelf === true;
-        let importedNoteId = null;
-        try {
-            const t = await transcriptionStore.getTranscriptionByMeetMeetingCode(m.meetingCode, userId);
-            if (t) importedNoteId = t.id;
-        } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon', err); /* ignore */ }
+        const importedNoteId = await occurrenceNoteId(m, userId, { jobs });
 
         /** @type {string} */
         let status;
         if (importedNoteId) status = 'imported';
+        // Under the default scope only meetings the user organises are
+        // imported (gmeetAutoImport skips the rest): a colleague's meeting
+        // must not say "Record in Meet, it will be imported afterwards".
+        else if (settings.importScope !== 'calendar' && !organizerSelf) status = 'not_organizer';
         else if (excluded) status = 'excluded';
         else if (settings.autoImport && connection.meetScopesGranted) status = 'will_import';
         else status = 'upcoming';
@@ -134,6 +143,7 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
     res.json({
         connection,
         autoImport: settings.autoImport,
+        importScope: settings.importScope === 'calendar' ? 'calendar' : 'organizer',
         // The footer line must be able to say that THIS button can also switch on Meet's OWN auto-recording — and Meet always announces an ongoing recording to all participants. Without this field the sentence ended on "They are not notified" while the button beneath it could cause exactly that. `hasSettingsScope` is already in `connection`.
         autoRecordConfig: settings.autoRecordConfig === true,
         count: out.length,
@@ -143,14 +153,13 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
 
 // Toggle a single Meet meeting's auto-import on/off (writes the user's
 // exclusions; `applyToSeries` also toggles the meeting code → whole series).
-// When import is turned ON for a meeting the user organizes, best-effort
-// pre-configure Meet's auto-recording — the outcome is reported in
-// `autoRecordingConfig` and never fails the PATCH.
+// For a meeting the user organizes, best-effort keep Meet's own
+// auto-recording in step with the choice (configureMeetAutoRecording) — the
+// outcome is reported in `autoRecordingConfig` and never fails the PATCH.
 router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPrefBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ eventId: string }, any, import('zod').infer<typeof GmeetPrefBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const eventId = req.params.eventId;
     const { record, meetingCode, applyToSeries, organizerSelf } = req.body;
-    const { resolveGmeetNotesSettings } = require('../../core/meetingNotes/gmeetNotesSettings');
     // Writes the preference of THIS user (meeting_prefs); another participant in the same meeting keeps their own row. `applyToSeries` also sets it on the meetingCode — the whole series.
     const meetingPrefs = require('../../stores/meetingPrefsStore');
     await meetingPrefs.setRecord({
@@ -169,33 +178,9 @@ router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPref
     const opinion = after.opinionFor(meetingPrefs.gmeetIds({ eventId, meetingCode: meetingCode || null }));
     const effectiveRecord = opinion === true;
 
-    let autoRecordingConfig = 'skipped';
-    if (record && meetingCode) {
-        try {
-            const userOrgId = await resolveUserOrgFromReq(req);
-            const settings = await resolveGmeetNotesSettings({ orgId: userOrgId, userId });
-            const { session, connection } = await resolveGmeetSession(req);
-            if (settings.autoRecordConfig && session) {
-                let isOrganizer = typeof organizerSelf === 'boolean' ? organizerSelf : null;
-                if (isOrganizer === null) {
-                    const { listUpcomingMeetMeetings } = require('../../core/meetingNotes/gmeetCalendar');
-                    const match = (await listUpcomingMeetMeetings({ session, windowHours: 48 }))
-                        .find(m => m.eventId === eventId);
-                    isOrganizer = match ? match.organizerSelf === true : false;
-                }
-                if (!isOrganizer) autoRecordingConfig = 'not_host';
-                else if (!connection.hasSettingsScope) autoRecordingConfig = 'no_scope';
-                else {
-                    const { setAutoRecording } = require('../../core/meetingNotes/gmeetArtifacts');
-                    const result = await setAutoRecording(session, { meetingCode, enabled: true });
-                    autoRecordingConfig = result.ok ? 'set' : result.error;
-                }
-            }
-        } catch (err) {
-            log.warn('[Transcriptions] gmeet auto-record config failed:', /** @type {Error} */ (err).message);
-            autoRecordingConfig = 'error';
-        }
-    }
+    const autoRecordingConfig = meetingCode
+        ? await configureMeetAutoRecording(req, { userId, eventId, meetingCode, record: !!record, effectiveRecord, applyToSeries: !!applyToSeries, organizerSelf })
+        : 'skipped';
 
     res.json({
         ok: true, eventId,
@@ -239,6 +224,18 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
     const meetings = await listRecentlyEndedMeetMeetings({ session, lookbackHours: 24 * 7 });
     meetings.sort((a, b) => new Date(b.end || 0).getTime() - new Date(a.end || 0).getTime());
 
+    const { listRecentJobsForUser } = require('../../stores/gmeetImportStore');
+    const jobs = await listRecentJobsForUser(userId, 7).catch((e) => fallbackSwallowed('routes/transcriptions/gmeet:jobs#2', e, []));
+    /**
+     * The start of the next occurrence on the same code, if listed: a note
+     * created after it belongs to that one.
+     * @param {{ meetingCode?: string, start?: string | null }} m
+     */
+    const nextStartOnCode = (m) => meetings
+        .filter((o) => o.meetingCode === m.meetingCode && o.start && m.start && new Date(o.start).getTime() > new Date(m.start).getTime())
+        .map((o) => /** @type {string} */ (o.start))
+        .sort()[0] || null;
+
     const items = [];
     for (const m of meetings.slice(0, 10)) {
         let recordingState = 'none';
@@ -249,15 +246,11 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
                 : null;
             if (record) {
                 const rec = await findGeneratedRecording(session, record.name);
-                if (rec.recordingName) recordingState = 'available';
+                if ('recordingName' in rec && rec.recordingName) recordingState = 'available';
                 else if (rec.notReady) recordingState = 'processing';
             }
         } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon#2', err); /* best-effort — leave 'none' */ }
-        let importedNoteId = null;
-        try {
-            const t = await transcriptionStore.getTranscriptionByMeetMeetingCode(m.meetingCode, userId);
-            if (t) importedNoteId = t.id;
-        } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon#3', err); /* ignore */ }
+        const importedNoteId = await occurrenceNoteId(m, userId, { jobs, until: nextStartOnCode(m) });
         items.push({
             eventId: m.eventId,
             meetingCode: m.meetingCode,
@@ -271,6 +264,26 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
 
     res.json({ connection, items });
 });
+
+/**
+ * The import itself, run after the 202. Access is checked again here: the
+ * session may have changed since the request was accepted. Shared with the
+ * background poller (processJobInline), so manual and auto imports behave
+ * identically (dedup, artifact waits, failure classification).
+ * `manual`: the user is watching, so a failure is final and keeps its code.
+ * The run gets the job as reset (requestedByUser, no previous outcome).
+ * `accessCtx`: a dedup hit is handed over only when this user may read it.
+ * @param {{ req: import('express').Request<any, any, any, any>, job: import('../../stores/gmeetImportStore').GmeetJob, language: string | null, contextTerms: string }} args
+ */
+async function runGmeetImport({ req, job, language, contextTerms }) {
+    const { session } = await requireMeetAccess(req);
+    const { processJobInline } = require('../../core/meetingNotes/gmeetAutoImport');
+    await processJobInline({
+        job: { ...job, status: 'pending', errorCode: null, lastError: null, requestedByUser: true },
+        session, language, contextTerms,
+        manual: true, accessCtx: await resolveAccessContext(req),
+    });
+}
 
 // Manual import of a finished Meet recording. Minutes of Drive download and
 // transcription do not fit in a proxied request (ingress 504), so this seeds
@@ -288,60 +301,80 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
         const { extractMeetCode, listRecentlyEndedMeetMeetings } = require('../../core/meetingNotes/gmeetCalendar');
         let meetingCode = extractMeetCode(meet_link || meeting_code);
         let meeting = null;
-        // Look up the calendar event (by id, else by code) so the job carries
-        // the title + start/end that conference-record matching needs.
+        let calendarFailed = false;
+        // Look up the calendar event so the job carries the title + start/end
+        // that conference-record matching needs. The event id the client
+        // clicked wins; a code alone picks the LATEST ended occurrence. One
+        // `find` over both would pick the oldest occurrence in the 7 days
+        // (the list is in start order), so clicking today's stand-up would
+        // import last week's.
         try {
             const recent = await listRecentlyEndedMeetMeetings({ session, lookbackHours: 24 * 7 });
-            meeting = recent.find(m => (event_id && m.eventId === event_id) || (meetingCode && m.meetingCode === meetingCode)) || null;
-        } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon#4', err); /* best-effort — a code-only import can still proceed */ }
+            meeting = (event_id && recent.find(m => m.eventId === event_id))
+                || (meetingCode && [...recent].reverse().find(m => m.meetingCode === meetingCode))
+                || null;
+        } catch (err) {
+            calendarFailed = true;
+            fallbackSwallowed('routes/transcriptions/gmeet:anon#4', err);
+        }
         if (meeting && !meetingCode) meetingCode = meeting.meetingCode;
+        if (!meeting && calendarFailed) {
+            throw new HttpError(503, 'calendar_unavailable', 'Your Google Calendar could not be read just now. Try again in a moment.');
+        }
         if (!meetingCode) {
             const e = gmeetError('Provide a Google Meet link, meeting code or calendar event id of a recently ended meeting', 'bad_request');
             e.status = 400;
             throw e;
         }
+        // Without the event there is no start time, and without one the
+        // conference record can never be found: such a job would answer 202,
+        // sit pending and end as no_conference two days later.
+        if (!meeting) {
+            const e = gmeetError('No Google Meet meeting with this link ended in your calendar in the last 7 days. Import it from the list of recent meetings.', 'no_calendar_event');
+            e.status = 404;
+            throw e;
+        }
 
-        const { seedJob, listRecentJobsForUser } = require('../../stores/gmeetImportStore');
-        const eventId = meeting?.eventId || event_id || null;
+        const { seedJob, listRecentJobsForUser, updateJob } = require('../../stores/gmeetImportStore');
+        const eventId = meeting.eventId || event_id || null;
 
         // Find-or-seed: the poller may already own a row for this meeting.
         const recentJobs = await listRecentJobsForUser(userId, 30);
-        let job = eventId
-            ? recentJobs.find(j => j.calendarEventId === eventId) || null
-            : recentJobs.find(j => j.meetingCode === meetingCode) || null;
+        let job = recentJobs.find(j => j.calendarEventId === eventId) || null;
         if (!job) {
             job = await seedJob({
                 userId,
                 orgId: userOrgId,
                 calendarEventId: eventId,
-                icalUid: meeting?.iCalUID || null,
+                icalUid: meeting.iCalUID || null,
                 meetingCode,
-                title: title || meeting?.title || null,
-                meetingStart: meeting?.start || null,
-                meetingEnd: meeting?.end || null,
-                preferred: meeting?.organizerSelf === true,
+                title: title || meeting.title || null,
+                meetingStart: meeting.start || null,
+                meetingEnd: meeting.end || null,
+                preferred: meeting.organizerSelf === true,
             });
             // Unique-index conflict (another job already owns this meeting) —
-            // fall back to that row instead of failing the import.
-            if (!job) job = recentJobs.find(j => j.meetingCode === meetingCode) || null;
+            // fall back to that row instead of failing the import. Same event
+            // only: another occurrence on the code is another meeting.
+            if (!job) job = (await listRecentJobsForUser(userId, 30)).find(j => j.calendarEventId === eventId) || null;
         }
         if (!job) throw gmeetError('Could not create an import job for this meeting', 'failed');
 
-        if (job.status === 'ingested' && job.transcriptionId) {
+        if (job.status === 'ingested' && job.transcriptionId && await noteStillExists(job.transcriptionId, userId)) {
             return res.json({ id: job.transcriptionId, dedup: true });
+        }
+        // A job seeded while the calendar could not be read carries no times,
+        // and could never be matched to its conference: fill them in now.
+        if (!job.meetingStart && meeting.start) {
+            await updateJob(job.id, { meetingStart: meeting.start, meetingEnd: meeting.end || null });
+            job = { ...job, meetingStart: meeting.start, meetingEnd: meeting.end || null };
         }
 
         const { startBackgroundImport } = require('../../core/meetingNotes/gmeetManualImport');
         const outcome = await startBackgroundImport({
             job, userId, orgId: userOrgId, knownCodes: GMEET_ERROR_STATUS,
-            work: async () => {
-                // Access is checked again: the session may have changed since the 202.
-                const { session: freshSession } = await requireMeetAccess(req);
-                // Lazy — shared with the background poller so manual and auto imports
-                // behave identically (dedup, artifact waits, failure classification).
-                const { processJobInline } = require('../../core/meetingNotes/gmeetAutoImport');
-                await processJobInline({ job, session: freshSession, language, contextTerms: context_terms || '' });
-            },
+            language: language || null, contextTerms: context_terms || null,
+            work: () => runGmeetImport({ req, job, language: language || null, contextTerms: context_terms || '' }),
             accept: () => res.status(202).json({ jobId: job.id, status: 'pending' }),
             tooMany: () => Object.assign(gmeetError('Too many meeting imports are running; wait for one to finish', 'too_many_imports'), { status: 429 }),
         });

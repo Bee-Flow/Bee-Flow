@@ -88,6 +88,26 @@ describe('LibraryFilters — counted tag chips', () => {
         expect(onTagChange).toHaveBeenCalledWith(null);
     });
 
+    it('keeps a selected tag the vocabulary dropped (short list) so it can be switched off', async () => {
+        const user = userEvent.setup();
+        // The last note carrying 'draft' lost the tag: the server no longer counts it.
+        const { onTagChange } = setup({ tag: 'draft', tags: [{ tag: 'other', count: 1 }] });
+        const selected = chip('draft');
+        expect(selected).toBeTruthy();
+        expect(selected!.getAttribute('aria-pressed')).toBe('true');
+        expect(within(selected!).getByText('0')).toBeTruthy();
+
+        await user.click(selected!);
+        expect(onTagChange).toHaveBeenCalledWith(null);
+    });
+
+    it('keeps a selected tag the vocabulary dropped (folded list) visible', () => {
+        setup({ tag: 'draft' });
+        const selected = chip('draft');
+        expect(selected).toBeTruthy();
+        expect(selected!.getAttribute('aria-pressed')).toBe('true');
+    });
+
     it('clicking an unselected tag filters by it', async () => {
         const user = userEvent.setup();
         const { onTagChange } = setup();

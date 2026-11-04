@@ -5,6 +5,7 @@ import { patternOriginOf } from './Builder/usePatternOrigin';
 import { buildMessageFromPattern } from './patternMessage';
 import useAutomationLibrary from './useAutomationLibrary';
 import useAutomationRouting from './useAutomationRouting';
+import useDescribedBrief from './useDescribedBrief';
 import { useDesignerList } from './useDesignerList';
 import { createFromTemplate, useDesignerState, type DesignerState, useQuickSwitcher, useStudioChromeSync } from './useDesignerShell';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -89,11 +90,15 @@ interface DesignerRightPaneProps {
     initialFlowletKey: string | null;
     user: AppUserLike | null;
     rowProps: (a: AutomationListRow) => AutomationRowProps;
+    /** The title a "Describe it" brief was given, for the draft its first send creates. */
+    seedMetadata: { title: string } | null;
+    /** 'describe' while the open build is a Studio "Describe it" brief. */
+    initialWorkMode: string | null;
 }
 
 function DesignerRightPane({
     designer: d, library, routing, automationsAllowed, selectedAutomationId, activeAppRef, initialBuilderView,
-    initialRunId, initialRunStepId, initialFlowletKey, user, visibleAutomations, query, rowProps,
+    initialRunId, initialRunStepId, initialFlowletKey, user, visibleAutomations, query, rowProps, seedMetadata, initialWorkMode,
 }: DesignerRightPaneProps) {
     const onNewBlock = automationsAllowed ? d.onNewBlock : null;
     const stepBuilderOpen = d.builderStepId !== null && automationsAllowed;
@@ -161,6 +166,8 @@ function DesignerRightPane({
                 autoSendInput={d.autoSendInput}
                 // Only a new build can be the one a pattern opened.
                 patternOrigin={d.builderAutomationId ? null : d.patternOrigin}
+                seedMetadata={seedMetadata}
+                initialWorkMode={initialWorkMode}
             />
         );
     }
@@ -272,6 +279,8 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
         setBuilderAutomationId, setBuilderStepId, setOpeningBuilder, setLiveAutomationId,
     });
 
+    const { seedMetadata, initialWorkMode } = useDescribedBrief(initialTaskId, automationsAllowed, designer);
+
     const { quickSwitcherOpen, setQuickSwitcherOpen, quickSwitcherItems, onPickFromSwitcher } = useQuickSwitcher({
         embedded, automations, setBuilderInitialTab, setBuilderStepId, setBuilderAutomationId,
         stepUrlAdoptedRef: routing.stepUrlAdoptedRef,
@@ -329,6 +338,8 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                     visibleAutomations={visibleAutomations}
                     query={q}
                     rowProps={(a: AutomationListRow) => makeAutomationRowProps(a)}
+                    seedMetadata={seedMetadata}
+                    initialWorkMode={initialWorkMode}
                 />
             </section>
             {/* BFSF-404: the sidebar above is gone from the tree the moment

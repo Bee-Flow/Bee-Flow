@@ -39,7 +39,7 @@ const { chooseProvider, transcribe } = require('./ingestTranscription');
 const log = require('../../telemetry/log');
 // The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
 const { runnerPort } = require('../automationRunner/featurePorts');
-const { fallback } = require('../../utils/bestEffort');
+const { resolveUserFirstName, resolveOwnerDefaultTemplate } = require('./ingestOwnerDefaults');
 
 const savedDir = path.resolve(__dirname, '../../data/uploads/saved-recordings');
 
@@ -92,7 +92,7 @@ async function nameSpeakers(built, { speakersNamed, language, userName, orgId, p
 }
 
 /** ── Summary, title, action items, chapters, per-speaker summaries ── */
-async function writeSummary(named, { userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated }) {
+async function writeSummary(named, { userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated, meetingDate, extraRecordings }) {
     const { transcript } = named;
     const defaultTemplate = await resolveOwnerDefaultTemplate(userId, orgId);
     const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null });
@@ -103,7 +103,10 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     // report that — there is no screen watching.
     /** @type {{ ok?: boolean, actionItems?: any[], decisions?: any[], questions?: any[], tags?: string[] }} */
     const artifacts = await extractMeetingArtifacts(transcript, language, orgId, {
-        meetingDateIso: new Date().toISOString().slice(0, 10),
+        // The MEETING's date when the import knows it (Teams/Meet calendar
+        // event): "by Friday" in a meeting imported days later must resolve
+        // against the meeting week, not the import day.
+        meetingDateIso: meetingDateIsoOf(meetingDate),
         personNames: [...named.speakers.map((s) => s.id), ...(participantNames || [])],
     });
     const usable = artifactsUsable(artifacts);
@@ -113,17 +116,30 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     // An auto-import has no UI to report to, so the note's summary is the
     // only place to explain why voice recognition didn't name everyone —
     // and why this note has no action items.
-    const notices = buildPipelineNotices({ truncated, voiceprint: voiceprint.info, artifactsFailed: !usable, language });
+    const notices = buildPipelineNotices({ truncated, voiceprint: voiceprint.info, artifactsFailed: !usable, extraRecordings, language });
     const summary = notices.length ? `${notices.join('\n')}\n\n${rawSummary || ''}`.trim() : rawSummary;
     let title = titleHint || fileName.replace(/\.[^/.]+$/, '');
-    if (summary) {
-        const aiTitle = await generateMeetingTitle(summary, language, orgId);
+    // Titled from the summary ALONE, like the upload pipeline: the notice lines
+    // are warnings about the pipeline, not about the meeting. With no summary
+    // there is nothing to title from, and the hint (room / event name) stays.
+    if (rawSummary) {
+        const aiTitle = await generateMeetingTitle(rawSummary, language, orgId);
         if (aiTitle) title = aiTitle;
     }
     const chapters = await generateChapters(transcript, language, orgId);
     const speakerSummaries = await generateSpeakerSummaries(transcript, named.speakers.map((s) => s.id), language, orgId);
     const speakers = applySpeakerSummaries(named.speakers, speakerSummaries);
     return { defaultTemplate, artifacts, usable, summary, title, chapters, speakers };
+}
+
+/**
+ * YYYY-MM-DD of the meeting, else today (an upload or a file import knows no
+ * meeting date of its own).
+ * @param {string | Date | null | undefined} meetingDate
+ */
+function meetingDateIsoOf(meetingDate) {
+    const t = meetingDate ? new Date(meetingDate).getTime() : NaN;
+    return (Number.isFinite(t) ? new Date(t) : new Date()).toISOString().slice(0, 10);
 }
 
 /**
@@ -144,7 +160,8 @@ async function saveNote(row, savedAudio) {
  * @param {{ userId: string, orgId?: string | null, filePath?: string, fileName?: string, language?: string,
  *   provider?: string | null, contextTerms?: string | null, titleHint?: string | null,
  *   userName?: string | null, participantNames?: string[], source?: string, sourceUri?: string,
- *   extraStoreFields?: Record<string, unknown>, transcriptResponse?: {text?: string, segments: any[]}, speakersNamed?: boolean }} opts
+ *   extraStoreFields?: Record<string, unknown>, transcriptResponse?: {text?: string, segments: any[]}, speakersNamed?: boolean,
+ *   accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, meetingDate?: string | Date | null, extraRecordings?: number }} opts
  *   `userId`: Bee Flow user who owns the note; `orgId`: org id (model-tier + EU resolution);
  *   `filePath`: local recording file (consumed); absent only with transcriptResponse; `fileName`:
  *   display name (default: basename); `language`: BCP-47-ish lang code (default 'nl'); `provider`:
@@ -154,7 +171,9 @@ async function saveNote(row, savedAudio) {
  *   key; `extraStoreFields`: extra createTranscription fields; `transcriptResponse`: an already-made
  *   transcript (Teams VTT): transcription is skipped and `filePath` may be absent, in which case the
  *   note has no audio; `speakersNamed`: the segments' speakerIds are real names (from the platform), so
- *   the LLM naming pass is skipped
+ *   the LLM naming pass is skipped; `accessCtx`: the caller's access context, a dedup hit it cannot read is
+ *   refused (409 already_imported); `meetingDate`: when the meeting took place (anchors relative deadlines);
+ *   `extraRecordings`: recordings of the same meeting this note does NOT cover (a notice says so)
  * @returns {Promise<any>} the saved-note payload (+ `dedup`)
  */
 async function ingestLocalRecording(opts) {
@@ -164,6 +183,7 @@ async function ingestLocalRecording(opts) {
         titleHint = null, userName: userNameArg, participantNames = [],
         source = 'upload', sourceUri = null, extraStoreFields = {},
         transcriptResponse = null, speakersNamed = false,
+        accessCtx = undefined, meetingDate = null, extraRecordings = 0,
     } = opts || {};
 
     if (!userId) throw new IngestError('userId is required', { code: 'missing_user', status: 400 });
@@ -179,6 +199,10 @@ async function ingestLocalRecording(opts) {
         const existing = await transcriptionStore.getTranscriptionBySourceUri(sourceUri);
         if (existing) {
             safeUnlink(filePath);
+            // A hit proves the recording was imported, not that this caller may
+            // read the note: a colleague's row that appeared during the
+            // wrapper's download must not hand back their title and an id.
+            await assertDedupHitReadable(existing, userId, accessCtx);
             return { id: existing.id, title: existing.title, dedup: true, sourceUri };
         }
     }
@@ -200,11 +224,19 @@ async function ingestLocalRecording(opts) {
             safeUnlink(filePath);
             throw new IngestError('Transcription returned no segments.', { code: 'empty_transcription', status: 502 });
         }
+        // Segments without a single word are the same outcome (a diarizer can
+        // return speaker turns while its speech-to-text leg found nothing), as
+        // routes/transcriptions/speakerNaming.buildTranscriptOrThrow says.
+        // Completing that note runs the summary over bare speaker lines.
+        if (!built.merged.some((seg) => typeof seg.text === 'string' && seg.text.trim())) {
+            safeUnlink(filePath);
+            throw new IngestError('Transcription returned no words. The recording may be silent, or in a language the engine could not transcribe.', { code: 'empty_transcription', status: 502 });
+        }
         const totalDuration = built.totalDuration;
         const named = await nameSpeakers(built, { speakersNamed, language, userName, orgId, participantNames, voiceprint });
         const { merged, transcript } = named;
         const { defaultTemplate, artifacts, usable, summary, title, chapters, speakers } = await writeSummary(named, {
-            userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated,
+            userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated, meetingDate, extraRecordings,
         });
 
         // ── Persist audio for playback ───────────────────────
@@ -248,6 +280,10 @@ async function ingestLocalRecording(opts) {
         // belong to nothing: the winner has its own.
         if (saved.dedup) {
             await discardSavedAudio(savedAudio);
+            // The winner may be a colleague's note this caller cannot open:
+            // refuse with the classified 409 instead of an id that 404s.
+            const winner = sourceUri ? await transcriptionStore.getTranscriptionBySourceUri(sourceUri) : null;
+            await assertDedupHitReadable(winner, userId, accessCtx);
             return { id: saved.id, title, dedup: true, sourceUri };
         }
 
@@ -350,8 +386,7 @@ async function persistAudioCopy(filePath, userId, ext) {
     const audioPath = path.join(savedDir, savedBase);
     try { fs.copyFileSync(filePath, audioPath); }
     catch (e) {
-        // Was an empty catch with no log at all: the note then quietly got an
-        // empty audio_path and nobody knew until a replay failed.
+        // Logged: the note gets an empty audio_path, unnoticed until a replay fails.
         log.error(`[IngestCore] local audio copy failed (${audioPath}): ${e.message}`);
     }
     // Durable object-storage copy (when configured) so replay + reprocess
@@ -370,40 +405,6 @@ async function persistAudioCopy(filePath, userId, ext) {
     } catch (e) { log.error('[IngestCore] durable audio copy failed:', e.message); }
     safeUnlink(filePath);
     return { audioPath, audioStorageKey };
-}
-
-async function resolveUserFirstName(userId) {
-    try {
-        const { getUser } = require('../../stores/userStore');
-        const u = await getUser(userId);
-        return u?.firstName || u?.displayName || null;
-    } catch (_) { return null; }
-}
-
-/**
- * Resolve the note owner's default summary TEMPLATE (personal ▸ group ▸ org) so
- * a saved default also styles auto-ingested (Talk / Meet) notes.
- * Best-effort: returns null (→ built-in first-generation prompt) on any failure.
- *
- * The whole row, because the note is stamped with it (which template, which
- * version): no id can be recovered from a prompt string. null stamps
- * nothing: the built-in first-generation prompt is none of the five built-in
- * templates, so there is nothing true to report.
- */
-async function resolveOwnerDefaultTemplate(userId, orgId) {
-    try {
-        const { getUser } = require('../../stores/userStore');
-        const summaryTemplateStore = require('../../stores/summaryTemplateStore');
-        const u = await getUser(userId);
-        let groupIds = [];
-        if (u) {
-            if (Array.isArray(u.groups)) groupIds = u.groups;
-            else { try { groupIds = JSON.parse(u.groups || '[]'); } catch (err) { fallback('core/meetingNotes/ingestRecordingCore:resolveOwnerDefaultTemplate', err); /* ignore */ } }
-        }
-        return await summaryTemplateStore.resolveDefaultTemplate({ userId, orgIds: orgId ? [orgId] : [], groupIds });
-    } catch (_) {
-        return null;
-    }
 }
 
 module.exports = {

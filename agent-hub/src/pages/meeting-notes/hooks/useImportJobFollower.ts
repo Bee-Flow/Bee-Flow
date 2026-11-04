@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import useTranslation from '@/hooks/useTranslation';
 import { useMeetingImportJob, type MeetingImportProvider } from '@/api/queries/meetingImportJobs';
 import { importJobPhase } from '@/utils/meetingImportJob';
@@ -24,9 +25,13 @@ export function useImportJobFollower(callbacks: Callbacks) {
     // Latest callbacks, so callers can pass inline functions without the effect and the returned function changing identity every render.
     const latest = useRef(callbacks);
     useEffect(() => { latest.current = callbacks; });
-    const [watched, setWatched] = useState<{ provider: MeetingImportProvider; jobId: string } | null>(null);
+    const queryClient = useQueryClient();
+    // `attempt` counts the follows: a retry of a failed import gets the SAME job id back from the server
+    // (teams.js / gmeet.js reuse the row), and is still a new follow.
+    const [watched, setWatched] = useState<{ provider: MeetingImportProvider; jobId: string; attempt: number } | null>(null);
+    const attempts = useRef(0);
     const settleWatched = useRef<((outcome: UploadOutcome) => void) | null>(null);
-    const importJob = useMeetingImportJob(watched?.provider ?? null, watched?.jobId ?? null);
+    const importJob = useMeetingImportJob(watched?.provider ?? null, watched?.jobId ?? null, { attempt: watched?.attempt ?? 0 });
 
     useEffect(() => {
         if (!watched || !settleWatched.current) return;
@@ -51,9 +56,17 @@ export function useImportJobFollower(callbacks: Callbacks) {
 
     return useCallback((provider: MeetingImportProvider, jobId: string): Promise<UploadOutcome> => {
         latest.current.onUploading(t('meetings.import_running', 'Importing the meeting. This can take a few minutes…'));
+        // Drop what the cache still holds for this job from an earlier follow. The observer stays
+        // subscribed between follows, so that row survives gcTime 0, and the key does not change on a
+        // retry: without this the effect settles the new follow at once with the OLD failure (or the old
+        // "waiting"), and nothing polls the import the server just restarted. The key prefix is
+        // importJobKeys.job in api/queries/meetingImportJobs.ts; RecorderContext.import.test pins it.
+        queryClient.removeQueries({ queryKey: ['meetingImportJob', provider, jobId] });
+        attempts.current += 1;
+        const attempt = attempts.current;
         return new Promise<UploadOutcome>((resolve) => {
             settleWatched.current = resolve;
-            setWatched({ provider, jobId });
+            setWatched({ provider, jobId, attempt });
         });
-    }, [t]);
+    }, [t, queryClient]);
 }

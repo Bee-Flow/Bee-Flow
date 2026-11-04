@@ -11,7 +11,7 @@ import FieldDesigner from './fieldDesigner';
 import FormPageEditor from './FormPageEditor';
 import FormPageWaiting from './FormPageWaiting';
 import FormPageWhen from './FormPageWhen';
-import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './FormBuilderFields';
+import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './formDeclarations';
 import { FormRow, inputClass } from './formPrimitives';
 import FormTriggerFields from './FormTriggerFields';
 import type { FormPageFieldsProps, ParamFieldsProps, TriggerFieldsProps } from './triggerEditors.types';

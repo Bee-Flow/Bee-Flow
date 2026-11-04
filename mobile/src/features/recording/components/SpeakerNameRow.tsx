@@ -1,7 +1,7 @@
 /**
  * One speaker in the editor: their colour, their name as a field, how much
- * they spoke, where the name came from, and the chip that selects them for a
- * merge.
+ * they spoke (only while the organisation allows per-person statistics), where
+ * the name came from, and the chip that selects them for a merge.
  */
 
 import React from 'react';
@@ -23,6 +23,7 @@ const makeStyles = (theme: Theme) =>
 
 export function SpeakerNameRow({
     speaker,
+    showStats,
     colour,
     name,
     onRename,
@@ -30,6 +31,8 @@ export function SpeakerNameRow({
     onToggleSelected,
 }: {
     speaker: Speaker;
+    /** False when the organisation switched per-person statistics off. */
+    showStats: boolean;
     colour: string;
     name: string;
     onRename: (next: string) => void;
@@ -50,10 +53,12 @@ export function SpeakerNameRow({
                     autoCorrect={false}
                 />
                 <View style={styles.meta}>
-                    <Text variant="caption" tone="tertiary">
-                        {speaker.speakingTime ?? '—'}
-                        {speaker.segments ? ` · ${t('mobile.recording.speaker_turns', '{count} turns', { count: speaker.segments })}` : ''}
-                    </Text>
+                    {showStats ? (
+                        <Text variant="caption" tone="tertiary">
+                            {speaker.speakingTime ?? '—'}
+                            {speaker.segments ? ` · ${t('mobile.recording.speaker_turns', '{count} turns', { count: speaker.segments })}` : ''}
+                        </Text>
+                    ) : null}
                     {/* 'voiceprint': an acoustic match settled it; 'manual': a person did. */}
                     {speaker.source === 'voiceprint' ? <Badge label={t('mobile.recording.speaker_voice_match', 'Voice match')} tone="success" /> : null}
                     {speaker.source === 'manual' ? <Badge label={t('automations.ndv.edited', 'Edited')} /> : null}

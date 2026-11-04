@@ -93,7 +93,7 @@ describe('FormBuilderFields: the inline test preview', () => {
         const user = userEvent.setup();
         const onTestSubmit = vi.fn().mockResolvedValue({});
         render(<FormBuilderFields form={form([q('name', 'Your name')])} onChange={() => {}} onTestSubmit={onTestSubmit} />);
-        await user.type(screen.getByLabelText(/Your name/, { selector: 'input[type="text"]:not([aria-label])' }), 'Ada');
+        await user.type(await screen.findByLabelText(/Your name/, { selector: 'input[type="text"]:not([aria-label])' }), 'Ada');
         await user.click(screen.getByRole('button', { name: 'Submit' }));
         expect(onTestSubmit).toHaveBeenCalled();
         expect(onTestSubmit.mock.calls[0][0]).toMatchObject({ name: 'Ada' });

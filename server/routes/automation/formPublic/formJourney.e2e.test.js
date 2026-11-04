@@ -40,14 +40,19 @@ const HOUR = 3600_000;
 const DEFINITION = {
     trigger: {
         id: 'trg', kind: 'form',
-        form: { title: 'Request a quote', fields: [{ name: 'item', type: 'text', label: 'What do you need?', required: true }] },
+        form: {
+            title: 'Request a quote', fields: [{ name: 'item', type: 'text', label: 'What do you need?', required: true }],
+            // The look every page of the journey inherits (core/forms/formStyle.mts).
+            style: { font: 'serif', customCss: '@import url(https://fonts.example/x.css); .bf-form__card { padding: 2rem }' },
+        },
     },
     steps: [
         { id: 'gate', type: 'approval', prompt: 'Quote for {{trigger.output.item}}?' },
-        { id: 'fp2', type: 'form_page', mode: 'input', form: { title: 'Delivery', fields: [{ name: 'address', type: 'text', label: 'Delivery address', required: true }] } },
+        { id: 'fp2', type: 'form_page', mode: 'input', form: { title: 'Delivery', style: { width: 'narrow' }, fields: [{ name: 'address', type: 'text', label: 'Delivery address', required: true }] } },
         { id: 'done', type: 'set', fields: { address: { kind: 'ref', path: 'steps.fp2.output.address' } } },
+        { id: 'bye', type: 'form_page', mode: 'ending', form: { title: 'On its way' } },
     ],
-    edges: [{ from: 'trg', to: 'gate' }, { from: 'gate', to: 'fp2' }, { from: 'fp2', to: 'done' }],
+    edges: [{ from: 'trg', to: 'gate' }, { from: 'gate', to: 'fp2' }, { from: 'fp2', to: 'done' }, { from: 'done', to: 'bye' }],
 };
 
 const { swap, restore } = makeSwaps();
@@ -132,6 +137,8 @@ test('form -> approval -> 9 h -> approve -> page 2 on the same link -> done; the
     // ── Page one ─────────────────────────────────────────────────────────
     const form = await api.call('GET', `/api/automation/form/${token}`);
     assert.strictEqual(form.status, 200, form.text);
+    const LOOK = { font: 'serif', customCss: ' .bf-form__card { padding: 2rem }' };
+    assert.deepStrictEqual(form.body.form.style, LOOK, 'page one: the style, its CSS sanitised');
     const submitted = await api.call('POST', `/api/automation/form/${token}`, {
         body: { item: 'Ten pallets', csrf: form.body.csrf, issuedAt: Date.now() - 10_000, nonce: 'journey-page-one' },
     });
@@ -165,6 +172,7 @@ test('form -> approval -> 9 h -> approve -> page 2 on the same link -> done; the
     // ── Page two on the same link ────────────────────────────────────────
     const page2 = await pollUntil(sid, (b) => b.state === 'form', 'after the approval');
     assert.strictEqual(page2.form.title, 'Delivery');
+    assert.deepStrictEqual(page2.form.style, { ...LOOK, width: 'narrow' }, 'page two inherits the style; its own key wins');
     const leg2 = await automationStore.getLatestRunInChain(root.id);
     assert.strictEqual(leg2.status, 'awaiting_form');
     // A page due after a decision waits days, not the step default of one hour.
@@ -191,6 +199,8 @@ test('form -> approval -> 9 h -> approve -> page 2 on the same link -> done; the
     assert.strictEqual(answered.status, 202, answered.text);
     const end = await pollUntil(sid, (b) => b.state !== 'working', 'page two');
     assert.strictEqual(end.state, 'done', JSON.stringify(end));
+    assert.strictEqual(end.ending?.title, 'On its way');
+    assert.deepStrictEqual(end.ending.style, LOOK, 'the closing page inherits the style too');
     const last = await automationStore.getLatestRunInChain(root.id);
     const steps = await automationStore.getRunSteps(last.id);
     assert.deepStrictEqual(steps.find((s) => s.stepId === 'done')?.output, { address: 'Dock 4' });

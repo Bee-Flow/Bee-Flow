@@ -11,7 +11,7 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { importFromMeet, importFromNextcloud, setMeetRecord, setTalkRecord } from '../api/endpoints';
-import { sourceKeys } from '../api/keys';
+import { importMutationKeys, sourceKeys } from '../api/keys';
 import { applyRecordAnswer } from '../model/rows';
 import type { MeetMeeting, MeetRecording, RecordAnswer, TalkMeeting } from '../model/types';
 
@@ -66,15 +66,23 @@ export function useToggleMeetRecord() {
     });
 }
 
-/** A Nextcloud file (Talk recording or any audio) into Meeting Notes. */
+/**
+ * A Nextcloud file (Talk recording or any audio) into Meeting Notes. Keyed, so
+ * a screen mounted while it runs can see it (useImportFlow).
+ */
 export function useImportFromNextcloud(onDone: () => void) {
     return useMutation({
+        mutationKey: importMutationKeys.nextcloud,
         mutationFn: ({ path, title }: { path: string; title: string }) => importFromNextcloud(path, title),
         onSuccess: onDone,
     });
 }
 
-/** A Meet recording into Meeting Notes; the recordings list learns it was imported. */
+/**
+ * A Meet recording into Meeting Notes. The server answers 202 with the job it
+ * runs in the background (useImportFlow follows it); both lists are re-read
+ * so the jobs footer shows it running.
+ */
 export function useImportFromMeet(onDone: () => void) {
     const queryClient = useQueryClient();
     return useMutation({

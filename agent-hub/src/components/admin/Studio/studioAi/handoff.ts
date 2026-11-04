@@ -39,9 +39,9 @@ type StudioAppDescriptor = NonNullable<ReturnType<typeof studioAppForKind>>;
  *   SEED_SUPPORT[kind]  does the BRIEF (the description) arrive at the builder?
  *   NAME_SUPPORT[kind]  does the NAME of the card arrive at the new thing?
  *
- * SEED_SUPPORT is false for every kind except `form` (see the table), and that
- * is not carelessness but the state of play: only the Form page reads a prompt
- * from outside today. For the rest, the chain that would carry one runs through
+ * SEED_SUPPORT is false for every kind except `automation` and `form` (see the
+ * table), and that is not carelessness but the state of play: only the
+ * automation builder and the Form page read a prompt from outside today. For the rest, the chain that would carry one runs through
  * six files, none of which are inside H4's fence (useNavigateToPage → AuthedApp
  * → AgentHub → Studio/index → studioApps → the builder itself). A `?seed=` that
  * nobody reads is not seeding, so it is not suggested here. Set the line to true
@@ -52,14 +52,16 @@ type StudioAppDescriptor = NonNullable<ReturnType<typeof studioAppForKind>>;
 /**
  * Per kind: does the BRIEF arrive at the builder?
  *
- * Only `form` YES (the Questions tab of the Form page reads `takeSeed` under
- * `form:<id>`). For the rest NO, and per kind why:
+ * `automation` and `form` YES. For the rest NO, and per kind why:
  *
- * automation — the assistant reads presetChatInput/autoSendInput, and those are
- *              only set internally (components/automation/index.jsx): no prop,
- *              no URL parameter. (BuilderShell.canAutoSend moreover requires
- *              `!automationId`, while createAutomationDraft creates the row
- *              first — so the channel must go that way too.)
+ * automation — YES (2026-11-04): the brief and the name are parked under
+ *              `automation` and the router opens `studio/automations/new`. The
+ *              designer (components/automation/index.tsx) takes them there and
+ *              opens a NEW builder with the brief as its auto-send input and the
+ *              name as the draft's title, so the assistant is open and already
+ *              working. No row is created first: BuilderShell.canAutoSend fires
+ *              only into a builder without an id, and the first send creates the
+ *              draft under the parked name.
  * form       — YES: createFormFromRouter creates the form, parks the brief under
  *              `form:<id>` and opens the Questions tab, which immediately offers
  *              it to "Build it with AI".
@@ -77,7 +79,7 @@ type StudioAppDescriptor = NonNullable<ReturnType<typeof studioAppForKind>>;
  * meeting    — a recording/upload starts from a file, not from text.
  */
 const SEED_SUPPORT: Readonly<Record<string, boolean>> = Object.freeze({
-    automation: false,
+    automation: true,
     // The Form page (Forms/form/QuestionsTab.jsx) reads it: the brief is parked UNDER THE ID
     // of the form just created (`form:<automationId>`, see run below), and the Questions tab
     // immediately drafts the questions from it — the "Build it with AI" panel.
@@ -95,8 +97,10 @@ const SEED_SUPPORT: Readonly<Record<string, boolean>> = Object.freeze({
 /**
  * Per kind: does the NAME of the card arrive at the thing that comes into being?
  *
- * automation — YES: createAutomationDraft(ctx, { title }) POSTs the title along,
- *              so the new automation carries the name of the schedule card.
+ * automation — YES: with a brief, the name is parked beside it and becomes the
+ *              title of the draft the first send creates (BuilderShell
+ *              `seedMetadata`); without one, createAutomationDraft(ctx, { title })
+ *              POSTs it along.
  * form       — NO, and this is the sharpest: createFormAutomation today takes only
  *              `ctx` and sets the title itself to "Untitled form". We already pass
  *              `{ title }` (ready for the day studioApps accepts it), but as long
@@ -210,8 +214,8 @@ export function destinationForKind(kind: string|null|undefined, { sections = nul
             // read it: parking is the caller's choice, but whoever calls run() directly
             // may pass it along.
             if (kind === 'form') return createFormFromRouter(ctx, { title, seed });
+            if (kind === 'automation') return createAutomationFromRouter(ctx, { title, seed });
             if (seed) parkSeed(kind, seed);
-            if (kind === 'automation') return createAutomationDraft(ctx, title ? { title } : undefined);
             return app.create?.onCreate(ctx);
         },
     };
@@ -232,10 +236,29 @@ async function createFormFromRouter(ctx: StudioCreateCtx, { title = '', seed = '
     return id;
 }
 
+/** Where the router sends a described automation; the designer reads the parked brief there. */
+export const AUTOMATION_WITH_BRIEF_PATH = 'studio/automations/new';
+
+/**
+ * An automation from the AI router, with a brief: no row yet. The brief and the name wait
+ * under `automation`, and `studio/automations/new` tells the designer to open a
+ * new builder that sends the brief at once (see SEED_SUPPORT).
+ */
+function createAutomationFromRouter(ctx: StudioCreateCtx, { title, seed }: { title: string; seed: string }) {
+    if (seed && ctx.onNavigate) {
+        parkSeed('automation', seed, title);
+        ctx.onNavigate(AUTOMATION_WITH_BRIEF_PATH);
+        return Promise.resolve(null);
+    }
+    // No brief, or nowhere to open it: the row the "New" menu would create, under the name.
+    if (seed) parkSeed('automation', seed, title);
+    return createAutomationDraft(ctx, title ? { title } : undefined);
+}
+
 // ── The seeding channel ───────────────────────────────────────────────────
 //
-// One key, one brief, read once. The receiving side does NOT exist today (see
-// SEED_SUPPORT), and that must be visible in the behaviour: whoever does not
+// One key, one brief, read once. Only the kinds SEED_SUPPORT marks have a
+// receiving side, and that must be visible in the behaviour: whoever does not
 // read gets nothing, and the brief does not silently linger for a next screen
 // that happens to pass by.
 //
@@ -251,15 +274,16 @@ const store = () => {
     try { return window.sessionStorage; } catch { return null; }
 };
 
-/** Parkeer de brief voor `kind`. Stilletjes niets doen als dat niet kan. */
-export function parkSeed(kind: string | null | undefined, seed: string) {
+/** Park the brief (and, optionally, the name it was given) for `kind`. Silently does nothing when that cannot be done. */
+export function parkSeed(kind: string | null | undefined, seed: string, name: string = '') {
     const text = typeof seed === 'string' ? seed.trim() : '';
     const key = typeof kind === 'string' ? kind : '';
+    const title = typeof name === 'string' ? name.trim() : '';
     try {
         const s = store();
         if (!s) return false;
         if (!key || !text) { s.removeItem(SEED_KEY); return false; }
-        s.setItem(SEED_KEY, JSON.stringify({ kind: key, seed: text }));
+        s.setItem(SEED_KEY, JSON.stringify(title ? { kind: key, seed: text, name: title } : { kind: key, seed: text }));
         return true;
     } catch {
         return false;
@@ -272,6 +296,11 @@ export function parkSeed(kind: string | null | undefined, seed: string) {
  * and therefore does not linger here either.
  */
 export function takeSeed(kind: string) {
+    return takeSeedEntry(kind)?.seed ?? null;
+}
+
+/** As takeSeed, with the name that was parked beside the brief ('' when none). */
+export function takeSeedEntry(kind: string): { seed: string; name: string } | null {
     let raw: string | null = null;
     try {
         const s = store();
@@ -287,7 +316,7 @@ export function takeSeed(kind: string) {
     if (!parsed || typeof parsed !== 'object') return null;
     if (typeof parsed.seed !== 'string' || !parsed.seed) return null;
     if (kind && parsed.kind !== kind) return null;
-    return parsed.seed;
+    return { seed: parsed.seed, name: typeof parsed.name === 'string' ? parsed.name : '' };
 }
 
 export { SEED_KEY, SEED_SUPPORT, NAME_SUPPORT };
