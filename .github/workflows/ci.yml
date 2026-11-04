@@ -381,6 +381,8 @@ jobs:
               - 'agent-hub/src/components/admin/security/guardrails/Info.tsx'
               - 'agent-hub/src/components/automation/Builder/BuilderConfirmContext.tsx'
               - 'agent-hub/src/components/forms/{PublicFormRenderer.tsx,PublicFormRenderer.types.ts,resultFile.ts,prefill.ts,formRules.ts}'
+              # the form's look (style, custom CSS), required by PublicFormRenderer.tsx
+              - 'agent-hub/src/components/forms/{FormChrome.tsx,FormEndingView.tsx,FormWaitingView.tsx,formLook.ts,formStyleVars.ts,formCssSanitizer.ts}'
               - 'agent-hub/src/components/forms/fields/*'
               - 'agent-hub/src/utils/lazyWithReload.*'
               - 'agent-hub/src/components/shared/{AnchoredMenu.tsx,illustrations.tsx}'

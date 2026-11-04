@@ -16,7 +16,6 @@ import { bestContrast } from '../admin/Studio/AppStudio/runtime/themeVars';
 import { sanitizeFormCssClient, FORM_CSS_MAX } from './formCssSanitizer';
 
 export { sanitizeFormCssClient, FORM_CSS_MAX };
-export type { SanitizedCss } from './formCssSanitizer';
 
 export const FORM_FONTS = ['system', 'inter', 'serif', 'mono', 'rounded'] as const;
 export const FORM_WIDTHS = ['narrow', 'medium', 'wide'] as const;
@@ -29,7 +28,7 @@ export const FORM_BUTTON_SHAPES = ['square', 'rounded', 'pill'] as const;
 export const FORM_LOGO_URL_MAX = 512;
 export const FORM_FOOTER_MAX = 300;
 
-export interface FormButtonStyle {
+interface FormButtonStyle {
     width?: typeof FORM_BUTTON_WIDTHS[number];
     shape?: typeof FORM_BUTTON_SHAPES[number];
     textColor?: string | null;

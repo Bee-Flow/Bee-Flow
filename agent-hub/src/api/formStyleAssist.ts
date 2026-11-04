@@ -9,7 +9,7 @@
 
 import { apiClient } from './client';
 
-export interface StyleAssistInput {
+interface StyleAssistInput {
     prompt: string;
     style?: Record<string, unknown> | null;
     theme?: Record<string, unknown> | null;

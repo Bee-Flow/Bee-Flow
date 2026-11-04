@@ -12,7 +12,7 @@ const CHIP = 'px-1.5 py-0.5 rounded text-[10px] border transition';
 const CHIP_ON = 'border-[var(--accent)] text-[var(--text-primary)] bg-[var(--accent)]/10';
 const CHIP_OFF = 'border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]';
 
-export const chipClass = (on: boolean): string => `${CHIP} ${on ? CHIP_ON : CHIP_OFF}`;
+const chipClass = (on: boolean): string => `${CHIP} ${on ? CHIP_ON : CHIP_OFF}`;
 
 /** A swatch's colour as a CSS variable: the `style` prop carries the variable, a class paints it. */
 export const swatchVars = (hex: string): CSSProperties => ({ '--bf-swatch': hex } as CSSProperties);

@@ -51,7 +51,7 @@ const DECLARATION_RULES: Array<[RegExp, string]> = [
 ];
 
 /** Decode the escapes that could spell a keyword (letters and '-'); leave every other escape alone. */
-export function decodeKeywordEscapes(css: string): string {
+function decodeKeywordEscapes(css: string): string {
     return css.replace(/\\([0-9a-fA-F]{1,6})(?:\r\n|[ \t\r\n\f])?|\\([^\r\n\f0-9a-fA-F])/g, (m: string, hex: string | undefined, ch: string | undefined) => {
         let c = ch ?? '';
         if (hex) {
@@ -83,7 +83,7 @@ function isOutsideAddressString(raw: string): boolean {
 }
 
 /** Why a segment (declaration or prelude, escapes decoded) must go, or null when it may stay. */
-export function segmentProblem(segment: string): string | null {
+function segmentProblem(segment: string): string | null {
     const decoded = decodeKeywordEscapes(segment);
     const at = STATEMENT_AT_RULE.exec(decoded);
     if (at) return `@${at[1].toLowerCase()}`;

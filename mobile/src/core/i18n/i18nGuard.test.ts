@@ -285,7 +285,14 @@ const OTHER_DISCARD = "automations.assistant.discard throws away the assistant's
 const OTHER_DOCUMENTS = "automations.ribbon.data_documents is a row of the step ribbon, and documents.title heads Studio Documents; this is the knowledge documents";
 const PAGE_SPECIFIC_AUTOMATION = "the web's only bare 'Automation' is the versions list's row label, not a screen title or a block subtitle";
 const OTHER_FORM_WIZARD = "automations.form_wizard.* words a choice or a list field of the form wizard; this is a Studio document's parameter";
+const FORM_LOOK = "forms.style.* are the hosted form's design controls (its heading, a theme preset, the font family, the AI button); these name something else";
 const SAME_WORDS_OWN_KEY = new Map<string, string>([
+    ['mobile.appearance.night', FORM_LOOK],
+    ['mobile.flow.ai.title', FORM_LOOK],
+    ['mobile.knowledge.system', FORM_LOOK],
+    ['mobile.support.author_system', FORM_LOOK],
+    ['mobile.studio_documents.design.font', FORM_LOOK],
+    ['mobile.studio_documents.tab.design', FORM_LOOK],
     ['mobile.studio_documents.param.label', OTHER_FORM_WIZARD],
     ['mobile.studio_documents.param.list', OTHER_FORM_WIZARD],
     ['mobile.automations.one', PAGE_SPECIFIC_AUTOMATION],

@@ -46,6 +46,9 @@ const handoff5 = require('./add-nl-builder-handoff5-translations');
 const fixes = require('./add-nl-builder-fixes-2026-10');
 const mapping = require('./add-nl-builder-mapping-translations');
 const testing = require('./add-nl-automation-testing-translations');
+// The mapping panel's sample chips (2026-11-04) did the same; their Dutch ships
+// in add-nl-hardcoded-automation-builder-2026-10 (data file).
+const hardcoded = require('./add-nl-hardcoded-automation-builder-2026-10-translations');
 const OWNED_ELSEWHERE = new Set([
     'automations.kind.choice',
     ...Object.keys(handoff5.NL_TRANSLATIONS),
@@ -53,6 +56,7 @@ const OWNED_ELSEWHERE = new Set([
     ...Object.keys(mapping.NL_TRANSLATIONS),
     ...Object.keys(testing.NL_TRANSLATIONS),
     ...Object.keys(fixes.NL_TRANSLATIONS),
+    ...Object.keys(hardcoded.NL_TRANSLATIONS),
 ]);
 
 function owned(key) {
