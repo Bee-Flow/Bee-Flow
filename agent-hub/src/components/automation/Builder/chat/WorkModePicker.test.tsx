@@ -28,11 +28,11 @@ describe('WorkModePicker', () => {
         await user.keyboard('{ArrowDown}');
         expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /change it right away/i }));
         await user.keyboard('{ArrowDown}');                      // wraps
-        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /just advise/i }));
+        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /describe it/i }));
         await user.keyboard('{ArrowUp}');                        // and back
         expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /change it right away/i }));
         await user.keyboard('{Home}');
-        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /just advise/i }));
+        expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /describe it/i }));
         await user.keyboard('{End}');
         expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: /change it right away/i }));
         await user.keyboard('{Escape}');
@@ -87,9 +87,23 @@ describe('WorkModePicker — plain words', () => {
         await user.click(screen.getByRole('button'));
         expect(screen.getByRole('menu', { name: 'How should I work?' })).toBeTruthy();
         expect(screen.getAllByRole('menuitemradio').map((el) => el.querySelector('span span')?.textContent)).toEqual([
-            'Just advise', 'Show me before changing', 'Ask, plan, then build', 'Change it right away',
+            'Describe it', 'Just advise', 'Show me before changing', 'Ask, plan, then build', 'Change it right away',
         ]);
+        expect(screen.getByRole('menuitemradio', { name: /describe it/i }).textContent).toContain('Tell me what should happen, in your own words. I ask a few questions, write a plan, build it, test it and hand it over.');
         expect(screen.getByRole('checkbox', { name: 'Check with me for big changes' })).toBeTruthy();
+    });
+
+    it('chooses "Describe it" as the describe mode, and an unknown value still shows the default', async () => {
+        const user = userEvent.setup();
+        const onChange = vi.fn();
+        const { rerender } = render(<WorkModePicker value="approve" onChange={onChange} />);
+        await user.click(screen.getByRole('button'));
+        await user.click(screen.getByRole('menuitemradio', { name: /describe it/i }));
+        expect(onChange).toHaveBeenCalledWith('describe');
+        rerender(<WorkModePicker value="describe" onChange={onChange} />);
+        expect(screen.getByRole('button').textContent).toContain('Describe it');
+        rerender(<WorkModePicker value="nonsense" onChange={onChange} />);
+        expect(screen.getByRole('button').textContent).toContain('Show me before changing');
     });
 
     it('the checkbox reports the choice', async () => {

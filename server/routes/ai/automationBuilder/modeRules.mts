@@ -41,13 +41,43 @@ export const HANDOVER_RULE = 'When every step is built, test it with builder_req
 // BuilderShell startInBuild) must not stall on a question round.
 export const ONE_QUESTION_RULE = 'Ask at most ONE question, and only when nothing can be built without its answer; otherwise build on the most likely reading and say what you assumed.';
 
+// Describe it is Plan first for a person without technical knowledge: the
+// same ask, plan, build, test and hand-over loop, in everyday words and with a
+// smaller question round. Every Plan-first gate reads the turn mode, so a
+// Describe it turn runs as 'plan' (turnModeOf); only this rule and the question
+// cap read the work mode itself, which the client also sends with the approval
+// of the plan.
+export const DESCRIBE_QUESTIONS = 4;
+export const DESCRIBE_RULE = 'DESCRIBE IT: the person describes in their own words what should happen and has no technical background. '
+    + `Ask at most ${DESCRIBE_QUESTIONS} questions. Talk in their language and in everyday words, in your messages, the plan and the hand-over alike: no step ids, tool names, step type names, paths, bindings, field keys or JSON. `
+    + 'Use only the apps in the catalog: they are the ones switched on and connected for this person. '
+    + 'When the request needs an app that is not there, say so in one sentence (for example: "Your Gmail is not connected yet; connect it under Settings → Connections, then I can send the mail.") '
+    + 'and offer the nearest thing that works without it: a notification, an e-mail from Bee Flow or a form. Name only the app the person asked for, and never invent an app or an app action.';
+
+/** Does this work mode ask first and plan before it builds? Plan first and Describe it do. */
+export function asksFirst(mode: unknown): boolean {
+    return mode === 'plan' || mode === 'describe';
+}
+
+/**
+ * The mode a turn runs in: 'build' when it executes an approved plan, 'plan'
+ * for a Describe it turn (asksFirst), the work mode itself otherwise.
+ */
+export function turnModeOf(workMode: string, approvedPlan: unknown): string {
+    if (approvedPlan) return 'build';
+    return asksFirst(workMode) ? 'plan' : workMode;
+}
+
 /**
  * How many questions one builder_ask_questions call may show this turn: one in
- * a direct build without an approved plan (ONE_QUESTION_RULE), `max` otherwise.
- * `mode` is the turn's mode; an approved plan builds in 'build'.
+ * a direct build without an approved plan (ONE_QUESTION_RULE), at most
+ * DESCRIBE_QUESTIONS when the work mode is Describe it, `max` otherwise.
+ * `mode` is the turn's mode (an approved plan builds in 'build'), `workMode`
+ * the one the user chose.
  */
-export function questionLimit(mode: string, approvedPlan: unknown, max: number): number {
-    return mode === 'build' && !approvedPlan ? 1 : max;
+export function questionLimit(mode: string, approvedPlan: unknown, max: number, workMode: unknown = mode): number {
+    if (mode === 'build' && !approvedPlan) return 1;
+    return workMode === 'describe' ? Math.min(max, DESCRIBE_QUESTIONS) : max;
 }
 
 const GAP_WORDS = { source: 'where it starts or where the data comes from', destination: 'where the result goes', people: 'who is involved' } as const;

@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Hammer, Hand, ListChecks, MessageCircleQuestion } from 'lucide-react';
+import { Check, ChevronDown, Hammer, Hand, ListChecks, MessageCircleQuestion, MessageSquareText } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import { useEffect, useRef, useState } from 'react';
@@ -28,7 +28,10 @@ interface Props {
 // Plain words (owner, 2026-11-04): the menu answers "How should I work?", and
 // each mode says what the assistant will do, not how it is implemented. The
 // ids are what is stored and sent; only `key` (the i18n key) and the words changed.
+// 'describe' comes first: the mode for someone who only knows what should happen
+// (recommended on an empty draft, and where a Studio "Describe it" brief starts).
 export const WORK_MODES: WorkMode[] = [
+    { id: 'describe', Icon: MessageSquareText, key: 'describe', label: 'Describe it', description: 'Tell me what should happen, in your own words. I ask a few questions, write a plan, build it, test it and hand it over.' },
     { id: 'discuss', Icon: MessageCircleQuestion, key: 'advise', label: 'Just advise', description: 'Answers and gives advice. Leaves the automation as it is.' },
     { id: 'approve', Icon: Hand, key: 'show_first', label: 'Show me before changing', description: 'Shows each change first. You decide whether to make it.' },
     { id: 'plan', Icon: ListChecks, key: 'ask_plan', label: 'Ask, plan, then build', description: 'Asks a few questions, writes a plan in plain words, and builds after your OK.' },
@@ -76,7 +79,7 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
         e.preventDefault();
         items[to].focus();
     };
-    const selected = WORK_MODES.find((m: WorkMode) => m.id === value) || WORK_MODES[1];
+    const selected = WORK_MODES.find((m: WorkMode) => m.id === value) || WORK_MODES.find((m: WorkMode) => m.id === 'approve') || WORK_MODES[0];
     const buildingPlan = isPlanStatusInProgress(planStatus);
     const triggerLabel = buildingPlan ? t('automations.assistant.mode.building_plan', 'Building plan v{version}', { version: planVersion ?? '' }) : t(`automations.assistant.mode.${selected.key}`, selected.label);
     const TriggerIcon = buildingPlan ? Hammer : selected.Icon;

@@ -5,7 +5,7 @@ const { lookupTable, normaliseKey } = require('../../../automation/builderTools/
 const { normaliseFieldArgs } = require('../../../automation/builderTools/datatableCreate');
 const { boundDatatableIds } = require('../../../automation/builderTools/pendingDatatables');
 const { parseAnswersText } = require('../../../automation/builderTools/questionAnswers');
-const { QUESTIONS_RULE, TABLE_CONSENT_RULE, EVIDENCE_RULE, ASK_FIRST_RULE, PLAIN_PLAN_RULE, HANDOVER_RULE, ONE_QUESTION_RULE } = require('./modeRules.mts');
+const { QUESTIONS_RULE, TABLE_CONSENT_RULE, EVIDENCE_RULE, ASK_FIRST_RULE, PLAIN_PLAN_RULE, HANDOVER_RULE, ONE_QUESTION_RULE, DESCRIBE_RULE, asksFirst } = require('./modeRules.mts');
 // @typecheck
 // These tools only inspect the draft, a schema or the document library. Unknown
 // tools fail closed.
@@ -42,7 +42,7 @@ const PREVIEW_BLOCKED = new Set(['builder_finalize',
 // the checklist: a card with no Build button. In Plan first the plan is
 // builder_write_plan and nothing else; the checklist belongs to a build.
 const CHECKLIST_TOOLS = new Set(['builder_set_plan']);
-const MODES = ['discuss', 'approve', 'plan', 'build'];
+const MODES = ['describe', 'discuss', 'approve', 'plan', 'build']; // describe runs as plan (modeRules turnModeOf)
 
 // One question round holds at most this many questions, each with at most this
 // many answers. More are cut, never rejected: a rejected call cost a round and
@@ -127,7 +127,7 @@ function toolAllowed(name, mode, { planAllowsRemoval = false } = {}) {
     if (name === 'builder_create_datatable') return mode === 'approve';
     if (CHECKLIST_TOOLS.has(name)) return mode === 'approve';
     if (READ_TOOLS.has(name)) return true;
-    if (STAGED_CHECK_TOOLS.has(name)) return mode === 'approve' || mode === 'plan';
+    if (STAGED_CHECK_TOOLS.has(name)) return mode === 'approve' || asksFirst(mode);
     return mode === 'approve' && MUTATING_TOOLS.has(name) && !PREVIEW_BLOCKED.has(name);
 }
 
@@ -136,10 +136,10 @@ function toolAllowed(name, mode, { planAllowsRemoval = false } = {}) {
 // table belongs in the plan, and is created when the user approves it and the
 // build runs.
 function previewRefusal(name, mode) {
-    if (name === 'builder_create_datatable' && mode === 'plan') {
+    if (name === 'builder_create_datatable' && asksFirst(mode)) {
         return 'No table was created in Plan first. Put it in builder_write_plan\'s "datatables" list (name and typed columns); it is created when the user approves the plan and the build runs.';
     }
-    if (CHECKLIST_TOOLS.has(name) && (mode === 'plan' || mode === 'discuss')) {
+    if (CHECKLIST_TOOLS.has(name) && (asksFirst(mode) || mode === 'discuss')) {
         return 'In Plan first the plan is builder_write_plan; the checklist is only for building. Do not track progress in this turn.';
     }
     if (mode === 'discuss') {
@@ -148,8 +148,10 @@ function previewRefusal(name, mode) {
     return `This tool is not permitted in ${mode} mode. Read, explain or propose a plan instead. Removing a step needs a human-approved proposal.`;
 }
 
-function modeInstruction(mode, plan = null) {
-    return withTableRule(modeBody(mode, plan));
+// `workMode` is the mode the user chose; Describe it adds its rule to the plan turn and to the build of its approved plan.
+function modeInstruction(mode, plan = null, workMode = mode) {
+    const body = modeBody(asksFirst(mode) ? 'plan' : mode, plan);
+    return withTableRule(workMode === 'describe' ? `${body} ${DESCRIBE_RULE}` : body);
 }
 
 const withTableRule = (text) => `${text} ${TABLE_CONSENT_RULE}`;
@@ -401,7 +403,7 @@ function questionStatusNote({ prior = null, answeredText = '', mode = 'plan', ap
     if (matched > 0) {
         const head = `\nThe user answered the ${matched} question${matched === 1 ? '' : 's'} you asked (Q/A in their message). Do not ask them again. `;
         if (approvedPlan) return `${head}Continue the approved plan.`;
-        if (mode === 'plan') return `${head}Call builder_write_plan now; put anything still open under assumptions.`;
+        if (asksFirst(mode)) return `${head}Call builder_write_plan now; put anything still open under assumptions.`;
         return head.trimEnd();
     }
     const list = asked.map((q, i) => `${i + 1}) ${q.prompt}${Array.isArray(q.options) && q.options.length ? ` (suggested: ${q.options[0]})` : ''}`).join(' ');
