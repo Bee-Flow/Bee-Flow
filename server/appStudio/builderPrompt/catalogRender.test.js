@@ -511,7 +511,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-11-02, page_header.tagsFrom and list.tagsKey (mail categories as chips) — 54_476 chars.
 // 2026-11-02, file_preview got viewer/textLayer props — 54_571 chars.
 // 2026-11-03, MAX_ACTION_STEPS 60 -> 120 ("max 120 steps") — 54_572 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '1087e095cc81d785c241b439faeaf162024d8ec64edc216617831b4f9c55a054';
+// 2026-11-04, package 9 (limits): 200 actions, depth 8, prompt <=32000, aiSchema/contextSources limits
+// named in the field lists — 54_716 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'c07fdde793c9d458a3157f2936bab3800e4c38b588ad67d20a0a69c5a3b336f2';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();
@@ -664,4 +666,12 @@ test('renderComponentEntry / renderStepEntry serve the full entry the compact li
     assert.ok(full.includes(renderStepEntry('request_approval')));
     assert.match(renderStepEntry('request_approval'), /^request_approval \[SERVER\]: \{/);
     assert.strictEqual(renderStepEntry('nope'), null);
+});
+
+test('the catalog names the AI step limits: prompt, schema description, context sources', () => {
+    const text = renderCatalogText();
+    assert.ok(text.includes(`≤${LIMITS.MAX_AI_PROMPT_LEN}`), 'ai_generate prompt maxLen is rendered');
+    assert.ok(text.includes(`description? ≤${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}`));
+    assert.ok(text.includes(`[{ label? ≤${LIMITS.MAX_CONTEXT_SOURCE_LABEL}, source: binding }] (≤${LIMITS.MAX_CONTEXT_SOURCES})`));
+    assert.ok(text.includes('≤32000'));
 });

@@ -2,7 +2,7 @@
 'use strict';
 // Part 1 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
-const { THEME_SPEC, DESIGN_SPEC, NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL, STYLE_KNOBS, SCREEN_SPEC, EVENT_NAMES } = require('../componentSpecs');
+const { THEME_SPEC, DESIGN_SPEC, NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL, STYLE_KNOBS, SCREEN_SPEC, EVENT_NAMES, LIMITS } = require('../componentSpecs');
 const { MAX_COMPONENTS_PER_CALL, TEMP_ID_MAX, MAX_BATCH_PATCHES_PER_CALL, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_SCHEMA, batchHint } = require('./schemaFragments');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
@@ -276,7 +276,7 @@ const TOOL_SCHEMAS_PART_1 = [
         type: 'function',
         function: {
             name: 'app_set_action',
-            description: `Create or update named actions. Omit \`actionId\` to create (the result returns the new id); pass an existing id to update it in place. Actions are the app's behaviours — wire them onto buttons/forms with app_bind_action, and bind their results into components via {kind:"actionResult", actionId, path} bindings. ${batchHint('actions', '{ actionId?, action }')}`,
+            description: `Create or update named actions. Limits (${LIMITS.MAX_ACTIONS} actions per app, AI prompt ≤${LIMITS.MAX_AI_PROMPT_LEN} chars, ≤${LIMITS.MAX_CONTEXT_SOURCES} contextSources, schema descriptions ≤${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}) are errors with a _fixHint, never silently cut. Omit \`actionId\` to create (the result returns the new id); pass an existing id to update it in place. Actions are the app's behaviours — wire them onto buttons/forms with app_bind_action, and bind their results into components via {kind:"actionResult", actionId, path} bindings. ${batchHint('actions', '{ actionId?, action }')}`,
             parameters: {
                 type: 'object',
                 properties: {

@@ -49,7 +49,7 @@ const CASES = [
     ['unknown field', [{ kind: 'toast', message: 'hi', bogus: 1 }], {}, [`E action.step_unknown_field @${P}[0].bogus`]],
     ['client step carrying a data-mutation field', [{ kind: 'toast', message: 'hi', tableId: 'tbl_a' }], {}, [`E action.step_partition @${P}[0].tableId`]],
     ['too many steps (reported once)', Array.from({ length: LIMITS.MAX_ACTION_STEPS + 3 }, () => ({ kind: 'toast', message: 'x' })), {}, [`E action.too_many_steps @${P}[${LIMITS.MAX_ACTION_STEPS}]`]],
-    ['nesting too deep', [(function nest(d) { return d === 0 ? { kind: 'toast', message: 'x' } : { kind: 'condition', expr: 'true', then: [nest(d - 1)] }; })(LIMITS.MAX_ACTION_DEPTH + 2)], {}, [`E action.step_too_deep @${P}[0].then[0].then[0].then[0].then[0].then[0].then`]],
+    ['nesting too deep', [(function nest(d) { return d === 0 ? { kind: 'toast', message: 'x' } : { kind: 'condition', expr: 'true', then: [nest(d - 1)] }; })(LIMITS.MAX_ACTION_DEPTH + 2)], {}, [`E action.step_too_deep @${P}[0]${'.then[0]'.repeat(LIMITS.MAX_ACTION_DEPTH - 1)}.then`]],
     ['send_email in loop', [loopOf(mail())], {}, [`E action.send_email_in_loop @${P}[0].steps`]],
     ['send_email buried in loop condition branch', [loopOf({ kind: 'condition', expr: 'true', then: [], else: [mail()] })], {}, [`E action.send_email_in_loop @${P}[0].steps`]],
     ['send_email buried in loop switch case', [loopOf({ kind: 'switch', expr: 'true', cases: [{ value: 1, steps: [mail()] }], default: [mail()] })], {}, [`E action.send_email_in_loop @${P}[0].steps`]],
@@ -92,3 +92,58 @@ for (const [name, steps, over, expected] of CASES) {
         assert.deepEqual(got, expected);
     });
 }
+
+// ── Limits name the limit AND the current value ──────────────────────────────
+
+function errorsOf(steps) {
+    const errors = [];
+    const ctx = {
+        pushE: (r) => errors.push(r), pushW: () => {}, screenIds: new Set(['scr_a']),
+        dataTables: new Map([['tbl_a', new Set(['name'])]]), dataMailboxConnectors: new Set(), ownedDocuments: new Map(),
+        aiBrowsingEnabled: false,
+    };
+    validateAction('act_1', { kind: 'sequence', steps }, 'actions.act_1', ctx);
+    return errors;
+}
+const extract = (schema) => att('ai_extract', { source: st('x'), schema });
+const generate = (extra = {}) => att('ai_generate', { prompt: 'p', resultVar: 'r', ...extra });
+const srcs = (n) => Array.from({ length: n }, (_, i) => ({ label: `L${i}`, source: st([i]) }));
+
+test('schema field description: 2000 is legal, 2001 names both numbers', () => {
+    assert.deepEqual(errorsOf([extract([{ name: 'a', type: 'string', description: 'x'.repeat(2000) }])]), []);
+    const [e, ...rest] = errorsOf([extract([{ name: 'a', type: 'string', description: 'x'.repeat(2001) }])]);
+    assert.equal(rest.length, 0);
+    assert.equal(e.code, 'action.ai_schema_invalid');
+    assert.match(e.message, /is 2001 chars — the maximum is 2000/);
+});
+
+test('schema field description that is not a string is its own message', () => {
+    const [e] = errorsOf([extract([{ name: 'a', type: 'string', description: 5 }])]);
+    assert.match(e.message, /must be a string\./);
+});
+
+test('ai_generate prompt: the limit is LIMITS.MAX_AI_PROMPT_LEN and the message names it', () => {
+    assert.deepEqual(errorsOf([generate({ prompt: 'x'.repeat(LIMITS.MAX_AI_PROMPT_LEN) })]), []);
+    const [e] = errorsOf([generate({ prompt: 'x'.repeat(LIMITS.MAX_AI_PROMPT_LEN + 1) })]);
+    assert.match(e.message, new RegExp(`is ${LIMITS.MAX_AI_PROMPT_LEN + 1} chars — the maximum is ${LIMITS.MAX_AI_PROMPT_LEN}`));
+});
+
+test('contextSources: 12 are legal, a 13th is refused with both numbers', () => {
+    assert.deepEqual(errorsOf([generate({ contextSources: srcs(12) })]), []);
+    const [e, ...rest] = errorsOf([generate({ contextSources: srcs(13) })]);
+    assert.equal(rest.length, 0);
+    assert.match(e.message, /13 context sources — the maximum is 12/);
+});
+
+test('contextSources label: 120 is legal, 121 is refused', () => {
+    assert.deepEqual(errorsOf([generate({ contextSources: [{ label: 'x'.repeat(120), source: st(1) }] })]), []);
+    const [e] = errorsOf([generate({ contextSources: [{ label: 'x'.repeat(121), source: st(1) }] })]);
+    assert.match(e.message, /label is 121 chars — the maximum is 120/);
+});
+
+test('aiSchema with more than 40 fields names the count and the maximum', () => {
+    const fields = Array.from({ length: 41 }, (_, i) => ({ name: `f${i}`, type: 'string' }));
+    const [e] = errorsOf([extract(fields)]);
+    assert.equal(e.code, 'action.ai_schema_too_large');
+    assert.match(e.message, /has 41 fields — the maximum is 40/);
+});

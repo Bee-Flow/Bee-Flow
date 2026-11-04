@@ -1,8 +1,8 @@
 // @typecheck strict
 const DECK_LOOK = require('../../core/documents/deckThemeOptions');
+const { LIMITS } = require('./limits');
 
-// Top-level action kinds (definition.actions map values). A v1 bare action or
-// a v2 { kind:'sequence', steps:[Step] }. `open_modal` is new in v2.
+// Top-level action kinds (definition.actions values): a v1 bare action or a v2 { kind:'sequence', steps:[Step] }.
 const ACTION_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'sequence'];
 
 // Step kinds inside a sequence. A bare v1 action is an implicit 1-step
@@ -107,7 +107,7 @@ const AI_EXTRACT_FIELDS = {
 };
 
 const AI_GENERATE_FIELDS = {
-    prompt: { type: 'string', required: true, maxLen: 8000 },
+    prompt: { type: 'string', required: true, maxLen: LIMITS.MAX_AI_PROMPT_LEN },
     // Live data appended to the prompt as context. Without it `prompt` is a
     // fixed string, so an "AI draft" button has no ticket to draft ABOUT — point
     // this at the open record or thread.

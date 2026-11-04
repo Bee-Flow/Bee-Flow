@@ -505,7 +505,7 @@ function validateAppDefinition(def, opts = {}) {
     });
     const totalNodes = countTree(screens);
     if (totalNodes > LIMITS.MAX_TOTAL_NODES) {
-        pushE({ code: 'shape.too_many_nodes', severity: 'error', path: '', message: `App has more than ${LIMITS.MAX_TOTAL_NODES} sections + components.`, hint: 'Split the app or remove components.' });
+        pushE({ code: 'shape.too_many_nodes', severity: 'error', path: '', message: `App has ${totalNodes} sections + components — the maximum is ${LIMITS.MAX_TOTAL_NODES}.`, hint: 'Split the app or remove components.' });
     }
     const actionCount = actionsObj ? Object.keys(actionsObj).length : 0;
     if (actionCount > LIMITS.MAX_ACTIONS) {

@@ -16,7 +16,7 @@ const {
     containerPassesHeightDown,
     FIXED_HEIGHT_PRESETS,
     FORMULA_SCOPE_ROOTS,
-    EVENT_NAMES, COMPONENT_SPECS, COMPONENT_TYPES,
+    COMPONENT_SPECS, COMPONENT_TYPES,
 } = require('../componentSpecs');
 const { isObject, pickClosestId } = require('./shared');
 const { validateFormula } = require('./formulas');
@@ -24,6 +24,7 @@ const { checkTableRef, checkTableSource } = require('./refs');
 const { validateBinding } = require('./bindings');
 const { checkDocumentPicker } = require('./documentPicker');
 const { checkActionWiring, checkNodeAdvisories } = require('./nodeWiring');
+const { nodeActionRefs } = require('../nodeActionRefs.mts');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -574,19 +575,7 @@ function collectReferencedActions(screens) {
     const out = new Set();
     const visit = (node) => {
         if (!isObject(node)) return;
-        for (const ev of EVENT_NAMES) {
-            if (typeof node[ev] === 'string' && node[ev]) out.add(node[ev]);
-        }
-        const props = isObject(node.props) ? node.props : {};
-        for (const key of ['itemActions', 'rowActions', 'bulkActions', 'toolbarActions']) {
-            for (const entry of (Array.isArray(props[key]) ? props[key] : [])) {
-                if (isObject(entry) && typeof entry.actionId === 'string' && entry.actionId) out.add(entry.actionId);
-            }
-        }
-        if (typeof props.addRowActionId === 'string' && props.addRowActionId) out.add(props.addRowActionId);
-        for (const col of (Array.isArray(props.columns) ? props.columns : [])) {
-            if (isObject(col) && typeof col.actionId === 'string' && col.actionId) out.add(col.actionId);
-        }
+        for (const ref of nodeActionRefs(node)) out.add(ref.actionId);
         for (const child of (Array.isArray(node.children) ? node.children : [])) visit(child);
     };
     for (const screen of (Array.isArray(screens) ? screens : [])) {

@@ -174,11 +174,6 @@
       "count": 1
     }
   },
-  "appStudio/automationRefs.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "appStudio/automationUsageSync.js": {
     "complexity": {
       "count": 2
@@ -715,7 +710,7 @@
   },
   "appStudio/validate/nodes.js": {
     "complexity": {
-      "count": 6
+      "count": 5
     },
     "max-lines-per-function": {
       "count": 2

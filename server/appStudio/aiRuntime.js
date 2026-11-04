@@ -37,6 +37,8 @@ const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // ── Caps (defence-in-depth; the attachment quota is the real byte backstop) ──
 const MAX_KB_IDS = 10;
+// KB query cap = the old prompt cap: a 32k prompt must not make the embedding call fail and lose grounding.
+const MAX_KB_QUERY_CHARS = 8000;
 // Per-request document budget. MAX_DOCS was 8, which refused a real mailed
 // order (an inkoopbestelbon + ten drawings); the real cost lever was never the
 // count but the AGGREGATE budgets below, added when the count was raised.
@@ -50,9 +52,8 @@ const MAX_TOTAL_DOC_CHARS = 200000;
 const MAX_TOTAL_DOC_BYTES = 16 * 1024 * 1024;
 const MAX_TOTAL_DOC_IMAGES = 30;
 const MAX_SYSTEM_CHARS = 24000;
-const MAX_SCHEMA_FIELDS = 40;
 // An ai_extract has no authorable prompt: these descriptions ARE the instruction.
-const MAX_SCHEMA_FIELD_DESC = 500;
+const { MAX_AI_SCHEMA_FIELDS: MAX_SCHEMA_FIELDS, MAX_AI_SCHEMA_FIELD_DESC: MAX_SCHEMA_FIELD_DESC } = require('./componentSpecs/limits').LIMITS;
 const MAX_EXTRACT_ROWS = 500;  // rows a single ai_extract may produce/insert
 
 const SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', 'object'];
@@ -259,7 +260,7 @@ function fieldsToObjectSchema(fields) {
  *
  * The caps are silent by nature and both have bitten. `ai_extract` has NO
  * authorable prompt — the field DESCRIPTIONS are the entire instruction — so a
- * description trimmed at 500 characters is an instruction cut off mid-sentence,
+ * description trimmed at the description limit is an instruction cut off mid-sentence,
  * and the part that gets lost is always the end, which is where the exceptions
  * live. A 1238-character rule once lost its whole "…and if that is empty, read
  * it from the drawing instead" clause this way, and the column it governed came
@@ -540,7 +541,7 @@ async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any
     const requested = Array.isArray(knowledgeBaseIds)
         ? knowledgeBaseIds.filter((x) => typeof x === 'string' && x).slice(0, MAX_KB_IDS)
         : [];
-    const q = (typeof query === 'string' ? query : '').trim();
+    const q = (typeof query === 'string' ? query : '').trim().slice(0, MAX_KB_QUERY_CHARS);
     if (!requested.length || !q) return { context: '', chunks: [] };
 
     const viewerId = viewer?.id || null;

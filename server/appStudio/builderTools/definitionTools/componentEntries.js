@@ -13,6 +13,8 @@
 
 'use strict';
 
+const { LIMITS } = require('../../componentSpecs/limits');
+
 /**
  * Entries that are only a wrapper — `{children:[…]}`, sometimes with a
  * `parentId` — replaced by the components inside them.
@@ -112,7 +114,7 @@ function readEntry(raw, report) {
  * @param {number} [depth]
  */
 function flattenEntries(list, at, report, depth = 0) {
-    if (!Array.isArray(list) || depth > 6) return [];
+    if (!Array.isArray(list) || depth > LIMITS.MAX_DEPTH) return [];
     return list.flatMap((raw, i) => flattenOne(raw, `${at}[${i}]`, report, depth));
 }
 

@@ -5,6 +5,7 @@
 const { LIMITS, THEME_SPEC, DESIGN_SPEC, VARIABLE_TYPES } = require('../componentSpecs');
 const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('../dataModel');
 const { MAX_SEED_RECORDS } = require('./schemaFragments');
+const { MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
@@ -296,7 +297,7 @@ const TOOL_SCHEMAS_PART_2 = [
                         items: { type: 'object' },
                     },
                     sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },
-                    limit: { type: 'number', description: 'Max rows per call (default 5, max 20; a larger value is clamped and the answer says limitClamped).' },
+                    limit: { type: 'number', description: `Max rows per call (default 5, max ${MAX_QUERY_LIMIT}; a larger value is clamped and the answer says limitClamped and requestedLimit). Page on with cursor.` },
                     cursor: { type: 'string', description: 'The nextCursor of the previous answer, to read the next page.' },
                 },
             },

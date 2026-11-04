@@ -6,7 +6,8 @@
 
 'use strict';
 
-const { isObject } = require('./shared');
+const { isObject, truncate } = require('./shared');
+const { LIMITS } = require('../componentSpecs/limits');
 const { cleanBinding } = require('./bindings');
 
 // ── Native AI field cleaners (shared by cleanStep + canonAction) ─────────────
@@ -28,23 +29,37 @@ function cleanAiSchema(v, path, push) {
     for (const f of v) {
         if (!isObject(f) || typeof f.name !== 'string' || !f.name || seen.has(f.name)) continue;
         seen.add(f.name);
-        const field = { name: f.name, type: AI_SCHEMA_TYPES.has(f.type) ? f.type : 'string' };
-        if (typeof f.description === 'string' && f.description) {
-            // NEVER silent: the description IS the extraction rulebook (ai_extract
-            // has no prompt field), so a cut here removes instructions mid-
-            // sentence while every test on the raw template keeps passing. The
-            // repair record is what lets a pin catch an overrun before install.
-            if (f.description.length > 500 && typeof push === 'function') {
-                push('ai_schema.description_truncated', `${path || 'schema'}.${f.name}`,
-                    `Schema field "${f.name}" description is ${f.description.length} chars — truncated to 500. The cut text is NOT seen by the model.`);
+        if (out.length >= LIMITS.MAX_AI_SCHEMA_FIELDS) {
+            if (typeof push === 'function') {
+                push('ai_schema.fields_truncated', path || 'schema',
+                    `Schema has more than ${LIMITS.MAX_AI_SCHEMA_FIELDS} fields — the maximum is ${LIMITS.MAX_AI_SCHEMA_FIELDS}; the rest were dropped, starting at "${f.name}".`);
             }
-            field.description = f.description.slice(0, 500);
+            break;
         }
+        const field = { name: f.name, type: AI_SCHEMA_TYPES.has(f.type) ? f.type : 'string' };
+        const description = cleanSchemaDescription(f, path, push);
+        if (description) field.description = description;
         if (f.required === true) field.required = true;
         out.push(field);
-        if (out.length >= 40) break;
     }
     return out;
+}
+
+/**
+ * NEVER silent: the description IS the extraction rulebook (ai_extract has no prompt field), so a cut
+ * here removes instructions mid-sentence while every test on the raw template keeps passing. The repair
+ * record is what lets a pin catch an overrun before install.
+ * @param {{ name: string, description?: unknown }} f
+ * @param {string} path
+ * @param {((arg0: string, arg1: string, arg2: string) => void) | undefined} push
+ */
+function cleanSchemaDescription(f, path, push) {
+    if (typeof f.description !== 'string' || !f.description) return '';
+    if (f.description.length > LIMITS.MAX_AI_SCHEMA_FIELD_DESC && typeof push === 'function') {
+        push('ai_schema.description_truncated', `${path || 'schema'}.${f.name}`,
+            `Schema field "${f.name}" description is ${f.description.length} chars — the maximum is ${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}; truncated. The cut text is NOT seen by the model.`);
+    }
+    return f.description.slice(0, LIMITS.MAX_AI_SCHEMA_FIELD_DESC);
 }
 
 /**
@@ -102,8 +117,6 @@ function cleanAiWriteTo(v, path, push) {
  * arrays. Entries without a usable source are dropped: a label alone would
  * announce a table that is not there.
  */
-const MAX_CONTEXT_SOURCES = 4;
-
 /**
  * @param {string} path
  * @param {(arg0: string, arg1: string, arg2: string) => void} push
@@ -111,9 +124,15 @@ const MAX_CONTEXT_SOURCES = 4;
 function cleanContextSources(v, path, push) {
     if (!Array.isArray(v)) return [];
     const out = [];
-    for (const entry of v) {
-        if (out.length >= MAX_CONTEXT_SOURCES) {
-            push('step.field_invalid', path, `More than ${MAX_CONTEXT_SOURCES} context sources — the rest dropped.`);
+    for (let i = 0; i < v.length; i += 1) {
+        const entry = v[i];
+        if (out.length >= LIMITS.MAX_CONTEXT_SOURCES) {
+            const dropped = v.slice(i).filter((e) => isObject(e) && isObject(e.source))
+                .map((e) => (typeof e.label === 'string' && e.label.trim() ? JSON.stringify(e.label.trim()) : '(no label)'));
+            if (dropped.length) {
+                push('step.context_sources_truncated', path,
+                    `${v.length} context sources — the maximum is ${LIMITS.MAX_CONTEXT_SOURCES}; dropped: ${dropped.join(', ')}.`);
+            }
             break;
         }
         if (!isObject(entry)) continue;
@@ -125,7 +144,9 @@ function cleanContextSources(v, path, push) {
         const source = cleanBinding(entry.source, `${path}.source`, push);
         if (source === undefined || source === null) continue;
         const item = { source };
-        if (typeof entry.label === 'string' && entry.label.trim()) item.label = entry.label.trim().slice(0, 60);
+        if (typeof entry.label === 'string' && entry.label.trim()) {
+            item.label = truncate(entry.label.trim(), LIMITS.MAX_CONTEXT_SOURCE_LABEL, `${path}[${out.length}].label`, push);
+        }
         out.push(item);
     }
     return out;

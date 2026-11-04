@@ -55,7 +55,7 @@ const FORMS_ROOT_TEST = /\bforms\.[A-Za-z_$][\w$]*\./;
 // A binding object that became a string: `{kind:\"field\",name:\"amount\"…`
 const GARBLED_BINDING_RE = /\bkind\b\s*\\{0,2}"?\s*:/;
 const GARBLED_NAME_RE = /\bname\b\s*\\{0,2}"?\s*:\s*\\{0,2}"?([A-Za-z_$][\w$]*)/;
-const MAX_DEPTH = 4;
+const MAX_DEPTH = require('../componentSpecs/limits').LIMITS.MAX_ACTION_DEPTH;
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 /**

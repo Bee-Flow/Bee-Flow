@@ -20,9 +20,25 @@ const ops = require('../../definitionOps');
 const { pickClosestId } = require('../../../automation/validate/helpers');
 const { repairAction, describeActionRefusal } = require('../actionNormalise');
 const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
-const { adoptCanonical } = require('../shared');
+const { adoptCanonical, limitRepairsUnder } = require('../shared');
+const { limitReasons } = require('../limitRefusal.mts');
 const { stepCountsByTopLevel } = require('../../actionStepCounts');
 const { readBatchArg, runPatchBatch, finishPatchBatch } = require('./patchBatch');
+
+/**
+ * The canonicalizer cuts text and lists that pass a limit. For a stored app that stays a repair; a save
+ * through this tool refuses it instead, so no input or instruction is lost unnoticed.
+ * @returns {Record<string, unknown> | null} the refusal, or null when nothing would be cut
+ */
+function refuseLimitCuts(next, actionId, existing, withNotes) {
+    const cuts = limitRepairsUnder(next, `actions.${actionId}`);
+    if (!cuts.length) return null;
+    const lines = cuts.slice(0, 5).map((r) => `${r.path.replace(`actions.${actionId}`, 'action')}: ${r.message}`);
+    return withNotes({
+        error: `This action exceeds a limit — nothing was ${existing ? 'changed' : 'created'}. ${lines.join(' | ')}`,
+        _fixHint: `Reject reason: a limit is exceeded and nothing is cut automatically. ${lines.join(' | ')} Shorten the text, merge or remove the listed entries, or split the work over two actions (app_set_action {action:{kind:"sequence"…}}), then resend the whole action.`,
+    });
+}
 
 function applySetAction(draftWrap, args) {
     const rawAction = args?.action;
@@ -51,7 +67,11 @@ function applySetAction(draftWrap, args) {
     const requestedId = typeof args?.actionId === 'string' && args.actionId ? args.actionId : null;
     const existing = requestedId ? ops.findAction(draftWrap.def, requestedId) : null;
     if (Object.keys(draftWrap.def.actions || {}).length >= LIMITS.MAX_ACTIONS && !existing) {
-        return { error: `The app already has ${LIMITS.MAX_ACTIONS} actions (the maximum). Remove unused actions first.` };
+        const count = Object.keys(draftWrap.def.actions || {}).length;
+        return {
+            error: `The app has ${count} actions — the maximum is ${LIMITS.MAX_ACTIONS}. Remove unused actions first (app_find_nodes {actionId} shows what still uses one).`,
+            _fixHint: `Reject reason: the app is at its action limit (${count} of ${LIMITS.MAX_ACTIONS}). Remove an unused action with app_remove_action, or update an existing one with app_set_action {actionId, action}.`,
+        };
     }
     // An identical action already exists → point at it instead of minting a
     // copy. A model that lost track of what it configured re-sends the same
@@ -95,6 +115,8 @@ function applySetAction(draftWrap, args) {
             // wording: actionNormalise.describeActionRefusal), and the
             // mechanical fix as a patch where the validator named one.
             const described = describeActionRefusal(mine, { actionId, action, tables });
+            const limits = limitReasons(mine, actionId);
+            if (limits.length) described._fixHint = `Reject reason: ${limits.join(' | ')}.${/^Reject reason:/.test(described._fixHint) ? ` Also: ${described._fixHint.replace(/^Reject reason: /, '')}` : ''}`;
             // Too many steps: say where they sit, per top-level step, so the agent splits the right part.
             const tooMany = mine.some((e) => e.code === 'action.too_many_steps');
             const stepCounts = tooMany ? stepCountsByTopLevel(next.actions?.[actionId]?.steps) : null;
@@ -106,6 +128,8 @@ function applySetAction(draftWrap, args) {
             });
         }
     }
+    const cut = refuseLimitCuts(next, actionId, existing, withNotes);
+    if (cut) return cut;
     if (requestedId && !existing) {
         const result = adoptCanonical(draftWrap, next, { actionId, created: true });
         result._hints = [

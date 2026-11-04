@@ -162,8 +162,7 @@ function renderComponent(type) {
 }
 
 // ---------------------------------------------------------------------------
-// Action / step field rendering — one compact fragment per field, driven by
-// the same field-spec vocabulary ACTION_SPECS and STEP_SPECS use.
+// Action / step field rendering — one fragment per field, from the ACTION_SPECS / STEP_SPECS vocabulary.
 // ---------------------------------------------------------------------------
 
 /**
@@ -187,6 +186,7 @@ function renderActionField(key, fs) {
         case 'switchCases': bits.push('[{ value, steps: [Step] }]'); break;
         case 'navParams': bits.push(`{ <key>: {kind:"static",value}|{kind:"formula",expr} } (≤${LIMITS.MAX_NAVIGATE_PARAMS}, → screen.params.<key>)`); break;
         case 'stringList': bits.push('[string]'); break;
+        case 'aiSchema': case 'contextSources': bits.push(fs.type === 'aiSchema' ? `[{ name, type, description? ≤${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}, required? }] (≤${LIMITS.MAX_AI_SCHEMA_FIELDS})` : `[{ label? ≤${LIMITS.MAX_CONTEXT_SOURCE_LABEL}, source: binding }] (≤${LIMITS.MAX_CONTEXT_SOURCES})`); break;
         case 'approvalQuestions': bits.push('[{ name, label, type: "text"|"textarea"|"number"|"date"|"email"|"select"|"checkbox", required?, options? }] (≤20 approver questions; answers reach onDecided templates as {{answers.<name>}})'); break;
         case 'approvalOnDecided': bits.push('{ tableId, recordId: binding, set: { approved?|rejected?|expired?|cancelled?: { <field key>: literal | "{{answers.<q>}}"|"{{reason}}"|"{{decidedByName}}"|"{{decision}}"|"{{context.<key>}}" } } } (the record write executed when the decision lands)'); break;
         default: bits.push(fs.type);

@@ -35,26 +35,19 @@
  * `wired:false` marks the difference, so that the screen can show "not yet wired to a button"
  * instead of an invented button name.
  *
- * ── ONE VOCABULARY, TWO WALKS ──────────────────────────────────────
+ * ── ONE VOCABULARY, ONE WALK ────────────────────────────────────────
  *
- * `collectReferencedActions` (validate/nodes.js) knows which actions are reachable, but it returns
- * only the ids, not the button. This module walks the same tree ONCE MORE to find the BUTTON, with
- * the same event names (`EVENT_NAMES`, imported) and the same four action-list props (mirrored,
- * because those are not exported there; same consideration as `NAMING_PROPS` in appRefLookup.js).
- * That the two walks do not drift apart is not a promise but a test: automationUsageSync.test.js
- * compares the key set with `collectReferencedActions` over a fixture that contains every wiring form.
+ * Which actions a node RUNS (events, the four action-list props, addRowActionId, columns) is read by
+ * `nodeActionRefs` (nodeActionRefs.mts), the same function `collectReferencedActions`
+ * (validate/nodes.js, the `action.unreachable` rule) and app_find_nodes use. This module only adds the
+ * BUTTON: the first node that names the action, its screen and its own text. The two readers cannot
+ * drift; automationUsageSync.test.js still compares the key set over a fixture with every wiring form.
  */
 
 'use strict';
 
-const { EVENT_NAMES } = require('./componentSpecs');
+const { nodeActionRefs, ACTION_LIST_PROPS } = require('./nodeActionRefs.mts');
 const { nodeOwnText } = require('./appRefLookup');
-
-/**
- * The props in which a component names an action by ID instead of via an event. Mirrored from
- * validate/nodes.js#collectReferencedActions; see the header for why that is a mirror and not an import.
- */
-const ACTION_LIST_PROPS = Object.freeze(['itemActions', 'rowActions', 'bulkActions', 'toolbarActions']);
 
 /** Het voorvoegsel van `ref_id`. Zie de kop: de ACTIE is de sleutel. */
 const REF_PREFIX = 'act:';
@@ -171,19 +164,7 @@ function collectActionSites(screens) {
      */
     const visit = (node, screenId) => {
         if (!isObject(node)) return;
-        for (const ev of EVENT_NAMES) {
-            if (typeof node[ev] === 'string' && node[ev]) remember(/** @type {string} */ (node[ev]), screenId, node);
-        }
-        const props = isObject(node.props) ? node.props : {};
-        for (const key of ACTION_LIST_PROPS) {
-            for (const entry of (Array.isArray(props[key]) ? /** @type {unknown[]} */ (props[key]) : [])) {
-                if (isObject(entry) && typeof entry.actionId === 'string') remember(entry.actionId, screenId, node);
-            }
-        }
-        if (typeof props.addRowActionId === 'string') remember(props.addRowActionId, screenId, node);
-        for (const col of (Array.isArray(props.columns) ? props.columns : [])) {
-            if (isObject(col) && typeof col.actionId === 'string') remember(col.actionId, screenId, node);
-        }
+        for (const ref of nodeActionRefs(node)) remember(ref.actionId, screenId, node);
         for (const child of (Array.isArray(node.children) ? node.children : [])) visit(child, screenId);
     };
 

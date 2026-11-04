@@ -42,6 +42,16 @@ describe('schemaFromColumns', () => {
         expect(byName.paid.required).toBe(false);
     });
 
+    it('keeps a description longer than 500 chars and cuts it at 2000', () => {
+        const options = Array.from({ length: 400 }, (_, i) => `option_${i}`);
+        const [field] = schemaFromColumns([{ key: 'status', name: 'Status', type: 'select', options } as never]);
+        expect(field.description?.length).toBe(2000);
+        const few = Array.from({ length: 60 }, (_, i) => `option_${i}`);
+        const [short] = schemaFromColumns([{ key: 'status', name: 'Status', type: 'select', options: few } as never]);
+        expect((short.description ?? '').length).toBeGreaterThan(500);
+        expect((short.description ?? '').length).toBeLessThan(2000);
+    });
+
     it('stays within the 40-field schema cap', () => {
         const many = Array.from({ length: 60 }, (_, i) => ({ key: `c${i}`, name: `C${i}`, type: 'text' }));
         expect(schemaFromColumns(many)).toHaveLength(40);

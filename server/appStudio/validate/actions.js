@@ -32,6 +32,7 @@ const {
     validateInputMapping,
 } = require('./refs');
 const { validateBinding } = require('./bindings');
+const { validateContextSources } = require('./contextSources.mts');
 const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
 const { DATASET_QUERY_OUTPUTS, KIND_CHECKS: DATA_KIND_CHECKS } = require('./stepDataChecks');
 
@@ -208,7 +209,7 @@ function validateActionSteps(steps, path, depth, counter, ctx) {
         return;
     }
     if (depth > LIMITS.MAX_ACTION_DEPTH) {
-        pushE({ code: 'action.step_too_deep', severity: 'error', path, message: `Step nesting exceeds the maximum of ${LIMITS.MAX_ACTION_DEPTH}.`, hint: 'Flatten condition/loop/switch branches.' });
+        pushE({ code: 'action.step_too_deep', severity: 'error', path, message: `Step nesting reaches level ${depth} — the maximum is ${LIMITS.MAX_ACTION_DEPTH} (a top-level step is level 1; each condition/loop/switch branch adds one).`, hint: 'Flatten condition/loop/switch branches.' });
         return;
     }
     steps.forEach((step, i) => validateStep(step, `${path}[${i}]`, depth, counter, ctx));
@@ -353,23 +354,9 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         case 'aiWriteTo':
             validateAiWriteTo(kind, value, path, ctx);
             return;
-        case 'contextSources': {
-            if (!Array.isArray(value)) {
-                pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` must be a list of { label, source }.`, hint: 'Pass an array.' });
-                return;
-            }
-            // Each source is a real binding: a typo in the table id has to fail
-            // here, not silently reach the model as an empty context that reads
-            // like "this order has no lines".
-            value.forEach((entry, i) => {
-                if (!isObject(entry)) {
-                    pushE({ code: 'action.step_field_invalid', severity: 'error', path: `${path}[${i}]`, message: 'Each context source must be an object { label, source }.', hint: 'Provide label + source.' });
-                    return;
-                }
-                validateBinding(`${field}[${i}].source`, entry.source, `${path}[${i}].source`, ctx);
-            });
+        case 'contextSources':
+            validateContextSources(field, value, path, ctx);
             return;
-        }
         case 'approvalQuestions':
             validateApprovalQuestions(field, value, path, ctx);
             return;
@@ -527,7 +514,7 @@ function validateAiSchema(field, value, path, ctx) {
     const { pushE } = ctx;
     if (!Array.isArray(value)) { pushE({ code: 'action.ai_schema_invalid', severity: 'error', path, message: `\`${field}\` must be an array of { name, type } fields.`, hint: 'Add at least one output field.' }); return; }
     if (value.length === 0) { pushE({ code: 'action.ai_schema_empty', severity: 'error', path, message: `\`${field}\` needs at least one output field.`, hint: 'Declare the fields the AI should return.' }); return; }
-    if (value.length > 40) { pushE({ code: 'action.ai_schema_too_large', severity: 'error', path, message: `\`${field}\` has too many fields (${value.length}; max 40).`, hint: 'Reduce the number of output fields.' }); return; }
+    if (value.length > LIMITS.MAX_AI_SCHEMA_FIELDS) { pushE({ code: 'action.ai_schema_too_large', severity: 'error', path, message: `\`${field}\` has ${value.length} fields — the maximum is ${LIMITS.MAX_AI_SCHEMA_FIELDS}.`, hint: 'Reduce the number of output fields.' }); return; }
     const seen = new Set();
     value.forEach((f, i) => {
         const fp = `${path}[${i}]`;
@@ -541,8 +528,10 @@ function validateAiSchema(field, value, path, ctx) {
         if (!AI_SCHEMA_FIELD_TYPES.includes(f.type)) {
             pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.type`, message: `Schema field "${f.name}" has invalid type ${JSON.stringify(f.type)}.`, hint: `Use one of: ${AI_SCHEMA_FIELD_TYPES.join(', ')}.` });
         }
-        if (f.description !== undefined && (typeof f.description !== 'string' || f.description.length > 500)) {
-            pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.description`, message: `Schema field "${f.name}" description must be a string of at most 500 chars.`, hint: 'Shorten the description.' });
+        if (f.description !== undefined && typeof f.description !== 'string') {
+            pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.description`, message: `Schema field "${f.name}" description must be a string.`, hint: 'Pass the description as plain text.' });
+        } else if (typeof f.description === 'string' && f.description.length > LIMITS.MAX_AI_SCHEMA_FIELD_DESC) {
+            pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.description`, message: `Schema field "${f.name}" description is ${f.description.length} chars — the maximum is ${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}.`, hint: 'Shorten the description.' });
         }
     });
 }

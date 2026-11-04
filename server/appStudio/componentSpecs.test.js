@@ -49,13 +49,20 @@ test('schema version is 2 and both 1 and 2 are accepted', () => {
 });
 
 test('v2 limits are present with the contracted values', () => {
-    assert.equal(LIMITS.MAX_DEPTH, 6);
+    assert.equal(LIMITS.MAX_DEPTH, 8);
+    assert.equal(LIMITS.MAX_ACTIONS, 200);
+    assert.equal(LIMITS.MAX_AI_PROMPT_LEN, 32000);
+    assert.equal(LIMITS.MAX_AI_SCHEMA_FIELDS, 40);
+    assert.equal(LIMITS.MAX_AI_SCHEMA_FIELD_DESC, 2000);
+    assert.equal(LIMITS.MAX_CONTEXT_SOURCES, 12);
+    assert.equal(LIMITS.MAX_CONTEXT_SOURCE_LABEL, 120);
+    assert.equal(specs.STEP_SPECS.ai_generate.fields.prompt.maxLen, LIMITS.MAX_AI_PROMPT_LEN);
     assert.equal(LIMITS.MAX_FORMULA_LEN, 2000);
     assert.equal(LIMITS.MAX_VALIDATIONS_PER_FIELD, 10);
     assert.equal(LIMITS.MAX_ACTION_STEPS, 120);
     // Deliberately equal to MAX_DEPTH: one answer to "how deeply may things
     // nest", for components and action branches alike.
-    assert.equal(LIMITS.MAX_ACTION_DEPTH, 6);
+    assert.equal(LIMITS.MAX_ACTION_DEPTH, 8);
     assert.equal(LIMITS.MAX_ACTION_DEPTH, LIMITS.MAX_DEPTH);
     assert.equal(LIMITS.MAX_ACTION_LOOP_ITERATIONS, 200);
 });

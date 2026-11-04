@@ -67,6 +67,9 @@ export const writableColumns = (columns: TableColumn[] | null | undefined): Tabl
 
 export const extractableColumns = (columns: TableColumn[] | null | undefined): TableColumn[] => (Array.isArray(columns) ? columns : []).filter((c) => c && c.key && COLUMN_SCHEMA_TYPE[c.type]);
 
+// Mirror of LIMITS.MAX_AI_SCHEMA_FIELD_DESC (server/appStudio/componentSpecs/limits.js).
+const MAX_SCHEMA_FIELD_DESC = 2000;
+
 /** "Invoice Number" / "invoiceNumber" / "invoice_number" all normalize alike. */
 const normalizeName = (s: unknown): string => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -86,7 +89,7 @@ export function schemaFromColumns(columns: TableColumn[] | null | undefined): Sc
         const options = Array.isArray(c.options) ? c.options.map((o) => (typeof o === 'string' ? o : o?.value)).filter(Boolean) : [];
         const label = c.name && c.name !== c.key ? c.name : '';
         const description = options.length
-            ? `${label || name}. One of: ${options.join(', ')}`.slice(0, 500)
+            ? `${label || name}. One of: ${options.join(', ')}`.slice(0, MAX_SCHEMA_FIELD_DESC)
             : label;
         out.push({ name, type: COLUMN_SCHEMA_TYPE[c.type], description, required: !!c.required });
         if (out.length >= 40) break;  // validate.js caps an aiSchema at 40 fields

@@ -21,6 +21,7 @@
 
 'use strict';
 
+const { LIMITS } = require('./componentSpecs/limits');
 const { renderCatalogText, renderCompactCatalogText } = require('./builderPrompt/catalogRender');
 const { buildCoreSystemPrompt } = require('./builderPrompt/corePrompt');
 const { buildFewShotMessages } = require('./builderPrompt/fewShots');
@@ -202,9 +203,9 @@ this list as "the ways an app passes validation and is still broken".
 - A widthValue/heightValue whose mode is still the default is INERT: the number is stored, the box
   does not change. Always send mode and value together — and to go back, \`{widthMode:"span",
   widthValue:null}\`, because clearing the mode alone strands the number.
-- Maximum depth is 6, counting the section as 1 and each container as +1. \`section → tabs → tab →
-  modal → form → input\` is EXACTLY the cap: it validates today and breaks the moment anyone wraps
-  two fields in a container. Hoist dialogs into their own section instead of nesting them in tabs.
+- Maximum depth is ${LIMITS.MAX_DEPTH}, counting the section as 1 and each container as +1. \`section → tabs → tab →
+  modal → form → input\` spends 6 of them, so two wrapper levels fit around it. Hoist dialogs into
+  their own section instead of nesting them in tabs.
 
 **Components with a contract**
 - \`filter_bar\` publishes to ONE reserved variable, \`vars.filters\`. One per screen, and never declare

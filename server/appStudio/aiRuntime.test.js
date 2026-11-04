@@ -426,3 +426,12 @@ test('coerceValue(number): locale-ambiguous separators keep their real magnitude
     assert.strictEqual(n('1.5e3'), 1500, 'exponent notation is unambiguous');
     assert.strictEqual(n('not a number'), null);
 });
+
+test('normalizeSchemaFields: a 1500-char description is kept, 2500 is cut to 2000', () => {
+    const [kept, cut] = aiRuntime.normalizeSchemaFields([
+        { name: 'a', type: 'string', description: 'x'.repeat(1500) },
+        { name: 'b', type: 'string', description: 'y'.repeat(2500) },
+    ]);
+    assert.strictEqual(kept.description.length, 1500);
+    assert.strictEqual(cut.description.length, 2000);
+});
