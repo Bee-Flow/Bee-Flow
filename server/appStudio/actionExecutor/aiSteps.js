@@ -344,7 +344,7 @@ async function aiExtractStep(app, model, step, ctx) {
         structured = (await run()).structured;
         if (!Array.isArray(structured.rows)) {
             const e = new Error(`The AI returned no records for this document (model ${aiModel.modelId}, tier ${aiModel.tierName}). Try a more capable tier or a simpler schema.`);
-            e.status = 422;
+            Object.assign(e, { status: 422, code: 'ai_no_output' }); // ai_no_output: a step retry may try again
             throw e;
         }
     }

@@ -307,3 +307,26 @@ test('an action a public root calls ships redacted, but is not a surface root', 
     assert.equal(JSON.stringify(pub).includes('tbl_secret'), false);
     assert.equal(pub.actions.act_submit.steps.at(-1).actionId, 'act_helper', 'the call step travels whole');
 });
+
+test('buildPublicDefinition: a server step keeps retry and a redacted onError; the ordinals match the server', () => {
+    const action = { kind: 'sequence', steps: [
+        { kind: 'ai_generate', prompt: 'SECRET PROMPT', resultVar: 'd', retry: { times: 2 }, onError: { steps: [
+            { kind: 'create_record', tableId: 'tbl_x', values: { v: { kind: 'static', value: 'SECRET VALUE' } } },
+            { kind: 'toast', message: 'Saved a fallback' },
+        ], stop: true } },
+        { kind: 'transaction', steps: [{ kind: 'create_record', tableId: 'tbl_x', values: {} }] },
+    ] };
+    const def = {
+        schemaVersion: 2, meta: { name: 'P' }, homeScreenId: 'scr_pub001',
+        screens: [{ id: 'scr_pub001', name: 'P', sections: [{ id: 'sec_a00001', children: [{ id: 'cmp_btn001', type: 'button', props: {}, onClick: 'act_one001' }] }] }],
+        actions: { act_one001: action },
+        publicAccess: { screenIds: ['scr_pub001'], entryScreenId: 'scr_pub001' },
+    };
+    const out = buildPublicDefinition(def, resolvePublicSurface(def));
+    const got = out.actions.act_one001;
+    const text = JSON.stringify(got);
+    assert.doesNotMatch(text, /SECRET/);
+    assert.deepEqual(got.steps[0], { kind: 'ai_generate', resultVar: 'd', retry: { times: 2 }, onError: { steps: [{ kind: 'create_record' }, { kind: 'toast', message: 'Saved a fallback' }], stop: true } });
+    assert.deepEqual(got.steps[1], { kind: 'transaction' });
+    assert.deepEqual(flattenSteps(normalizeSequence(got)).map((s) => s.kind), flattenSteps(normalizeSequence(action)).map((s) => s.kind));
+});

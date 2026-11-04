@@ -283,3 +283,194 @@ test('call_action: a failure inside the callee is the call step\'s failure', asy
     assert.match(w.failed.error, /act_bad" failed at steps\[0\]\.call\.steps\[0\]: boom/);
     assert.ok(!h.ends.some((e) => e.path === 'steps[1]'), 'the run stops');
 });
+
+// ── Error handling: onError handlers and retry (package 2) ──────────────────
+
+/** A host whose execute answers per call from `answers` (a function of step + attempt count). */
+function failingHost(answer, over = {}) {
+    const calls = [];
+    return { calls, h: host({
+        execute: async (step, _f, w) => { calls.push({ kind: step.kind, tag: step.tag ?? null, error: w.error ?? null }); return answer(step, calls.filter((c) => c.tag === (step.tag ?? null)).length, w); },
+        buildScope: (ctx) => ({ vars: ctx.vars, item: ctx.item, error: ctx.error ?? null }),
+        ctxFor: (w) => ({ vars: w.vars, item: w.item, error: w.error }),
+        ...over,
+    }) };
+}
+
+test('spec: a failing ai_generate with onError writes a fallback and the sequence continues', async () => {
+    const { h, calls } = failingHost((step) => (step.kind === 'ai_generate'
+        ? { ok: false, error: 'The AI provider had a temporary problem. Try again.', code: 'provider_unavailable', retryable: true }
+        : { ok: true, result: { saved: true } }));
+    const w = newWalkState();
+    const action = { kind: 'sequence', steps: [
+        { kind: 'ai_generate', prompt: 'x', resultVar: 'draft', onError: { steps: [
+            { kind: 'set_variable', name: 'fallback', value: { kind: 'formula', expr: 'error.message' } },
+            { kind: 'set_variable', name: 'failedStep', value: { kind: 'formula', expr: 'error.step' } },
+        ] } },
+        { kind: 'create_record', tag: 'save', values: {} },
+        { kind: 'set_variable', name: 'after', value: { kind: 'formula', expr: 'vars.fallback' } },
+    ] };
+    await walkAction(w, action, h, { actionId: 'a' });
+    const view = outcomeView(w);
+    assert.equal(view.ok, true, 'a handled failure leaves the run ok');
+    assert.equal(w.failed, null);
+    assert.equal(w.stopped, null);
+    assert.equal(w.vars.fallback, 'The AI provider had a temporary problem. Try again.');
+    assert.equal(w.vars.failedStep, 'ai_generate');
+    assert.equal(w.vars.after, w.vars.fallback, 'a later step reads the fallback');
+    assert.ok(calls.some((c) => c.tag === 'save'), 'the step after the handler ran');
+    const first = view.steps.get('steps[0]');
+    assert.equal(first.status, 'error');
+    assert.equal(first.handled, true);
+    assert.equal(view.steps.get('steps[0].onError.steps[0]').status, 'ok');
+    assert.equal(w.error, undefined, 'the error scope is restored after the handler');
+    const end = h.ends.find((e) => e.path === 'steps[0]');
+    assert.equal(end.handled, true);
+    assert.equal(end.code, 'provider_unavailable');
+});
+
+test('spec: retry succeeds on the second attempt', async () => {
+    const slept = [];
+    const { h, calls } = failingHost((_step, n) => (n === 1 ? { ok: false, error: 'busy', code: 'db_busy', retryable: true } : { ok: true, result: { id: 'r1' } }),
+        { sleep: async (ms) => { slept.push(ms); } });
+    const w = newWalkState();
+    await walkAction(w, { kind: 'sequence', steps: [{ kind: 'create_record', retry: { times: 2, delayMs: 0 }, resultVar: 'row' }] }, h, { actionId: 'a' });
+    assert.equal(calls.length, 2);
+    assert.deepEqual(slept, [], 'delayMs 0 does not wait');
+    assert.equal(w.failed, null);
+    assert.deepEqual(w.vars.row, { id: 'r1' });
+    assert.equal(w.executed, 2, 'each attempt counts as an executed step');
+    const o = w.outcomes.get('steps[0]');
+    assert.equal(o.status, 'ok');
+    assert.equal(o.attempts, 2);
+});
+
+test('retry: waits delayMs (default 1000) between attempts, stops at times, and reports the attempts', async () => {
+    const slept = [];
+    const { h, calls } = failingHost(() => ({ ok: false, error: 'busy', retryable: true }), { sleep: async (ms) => { slept.push(ms); } });
+    const w = newWalkState();
+    await walkAction(w, { kind: 'sequence', steps: [
+        { kind: 'update_record', retry: { times: 2 }, onError: { steps: [{ kind: 'set_variable', name: 'n', value: { kind: 'formula', expr: 'error.attempts' } }] } },
+    ] }, h, { actionId: 'a' });
+    assert.equal(calls.length, 3, '1 + times');
+    assert.deepEqual(slept, [1000, 1000]);
+    assert.equal(w.vars.n, 3, 'the handler sees error.attempts');
+});
+
+test('retry: a failure that says retryable:false is not tried again; nor is a kind that is never retried', async () => {
+    const { h, calls } = failingHost(() => ({ ok: false, error: 'Record not found', retryable: false }));
+    const w = newWalkState();
+    await walkAction(w, { kind: 'sequence', steps: [{ kind: 'update_record', retry: { times: 3, delayMs: 0 } }] }, h, { actionId: 'a' });
+    assert.equal(calls.length, 1);
+    assert.equal(w.failed.error, 'Record not found');
+    const mail = failingHost(() => ({ ok: false, error: 'smtp down', retryable: true }));
+    const w2 = newWalkState();
+    await walkAction(w2, { kind: 'sequence', steps: [{ kind: 'send_email', retry: { times: 3, delayMs: 0 } }] }, mail.h, { actionId: 'a' });
+    assert.equal(mail.calls.length, 1, 'send_email is never retried, whatever the definition says');
+});
+
+test('retry: a budget stop (shouldStop) ends the attempts', async () => {
+    let n = 0;
+    const { h, calls } = failingHost(() => ({ ok: false, error: 'busy', retryable: true }), { shouldStop: () => (++n > 2 ? 'budget' : null) });
+    const w = newWalkState();
+    await walkAction(w, { kind: 'sequence', steps: [{ kind: 'ai_generate', retry: { times: 3, delayMs: 0 } }] }, h, { actionId: 'a' });
+    assert.ok(calls.length < 4, `stopped early (${calls.length} attempts)`);
+});
+
+test('onError stop:true ends the run quietly after the handler', async () => {
+    const { h, calls } = failingHost((step) => (step.tag === 'boom' ? { ok: false, error: 'no' } : { ok: true, result: 1 }));
+    const w = newWalkState();
+    await walkAction(w, { kind: 'sequence', steps: [
+        { kind: 'ai_generate', tag: 'boom', onError: { steps: [{ kind: 'kb_query', tag: 'fallback' }], stop: true } },
+        { kind: 'create_record', tag: 'never' },
+    ] }, h, { actionId: 'a' });
+    assert.deepEqual(calls.map((c) => c.tag), ['boom', 'fallback']);
+    assert.equal(w.failed, null);
+    assert.match(w.stopped, /onError handler ends the run/);
+    assert.equal(outcomeView(w).ok, true);
+    assert.equal(calls[1].error.message, 'no', 'the handler\'s server step gets error in its ctx');
+});
+
+test('a failure inside a handler without its own handler stops the run as usual', async () => {
+    const { h } = failingHost(() => ({ ok: false, error: 'down' }));
+    const w = newWalkState();
+    await walkAction(w, { kind: 'sequence', steps: [
+        { kind: 'ai_generate', tag: 'a', onError: { steps: [{ kind: 'kb_query', tag: 'b' }] } },
+        { kind: 'create_record', tag: 'c' },
+    ] }, h, { actionId: 'a' });
+    assert.equal(w.failed.path, 'steps[0].onError.steps[0]');
+    assert.equal(outcomeView(w).ok, false);
+    assert.equal(w.outcomes.get('steps[1]'), undefined, 'the run stopped');
+});
+
+test('onError on call_action handles a failure inside the called action', async () => {
+    const actions = {
+        act_main: { kind: 'sequence', steps: [
+            { kind: 'call_action', actionId: 'act_sub', onError: { steps: [
+                { kind: 'set_variable', name: 'why', value: { kind: 'formula', expr: 'error.message' } },
+                { kind: 'set_variable', name: 'which', value: { kind: 'formula', expr: 'error.step' } },
+            ] } },
+            { kind: 'set_variable', name: 'done', value: { kind: 'static', value: true } },
+        ] },
+        act_sub: { kind: 'sequence', steps: [{ kind: 'ai_generate' }] },
+    };
+    const { h } = failingHost(() => ({ ok: false, error: 'model down' }), { resolveCallee: (id) => actions[id] ?? null });
+    const w = newWalkState();
+    await walkAction(w, actions.act_main, h, { actionId: 'act_main' });
+    assert.equal(w.failed, null);
+    assert.equal(w.vars.done, true);
+    assert.match(w.vars.why, /act_sub.*model down/);
+    assert.equal(w.vars.which, 'ai_generate', 'error.step is the step that failed inside the called action, as in the browser');
+    assert.equal(w.outcomes.get('steps[0].onError.steps[0]').status, 'ok');
+    assert.equal(w.outcomes.get('steps[0]').handled, true);
+});
+
+test('a transaction hands its children\'s resultVars to the steps after it (as the browser does)', async () => {
+    const h = host({
+        execute: async (step) => (step.kind === 'transaction'
+            ? { ok: true, result: { results: [{ id: 'rec_1' }], vars: { order: { id: 'rec_1' } }, count: 1 } }
+            : { ok: true, result: { ran: step.kind } }),
+    });
+    const w = newWalkState();
+    await walkAction(w, { kind: 'sequence', steps: [
+        { kind: 'transaction', steps: [{ kind: 'create_record', resultVar: 'order' }], resultVar: 'tx' },
+        { kind: 'set_variable', name: 'orderId', value: { kind: 'formula', expr: 'vars.order.id' } },
+    ] }, h, { actionId: 'act_1' });
+    assert.equal(w.failed, null);
+    assert.equal(w.vars.orderId, 'rec_1');
+    assert.equal(w.vars.tx.count, 1, 'the step\'s own resultVar still holds the whole result');
+});
+
+test('stepPaths lists handler steps; their ordinals come after the whole tree', () => {
+    const action = { kind: 'sequence', steps: [
+        { kind: 'ai_generate', onError: { steps: [{ kind: 'toast' }] } },
+        { kind: 'condition', expr: 'x', then: [{ kind: 'kb_query', onError: { steps: [{ kind: 'set_variable', name: 'a', value: { kind: 'static', value: 1 } }] } }] },
+        { kind: 'transaction', steps: [{ kind: 'create_record' }] },
+    ] };
+    const paths = stepPaths(action);
+    assert.deepEqual(paths.map((p) => [p.path, p.ordinal]), [
+        ['steps[0]', 0], ['steps[0].onError.steps[0]', 4],
+        ['steps[1]', 1], ['steps[1].then[0]', 2], ['steps[1].then[0].onError.steps[0]', 5],
+        ['steps[2]', 3],
+    ], 'a transaction\'s children get no path and no ordinal');
+});
+
+test('stepFlow: handler and transaction slots; the helpers', () => {
+    const { errorHandlerOf, retryPlanOf, clampErrorScope } = require('../shared/appDefinition/stepFlow.mjs');
+    assert.deepEqual(childStepSlots({ kind: 'ai_generate', onError: { steps: [1] } }).map((s) => [s.suffix, s.walked]), [['.onError.steps', true]]);
+    assert.deepEqual(childStepSlots({ kind: 'transaction', steps: [1], onError: { steps: [2] } }).map((s) => [s.suffix, s.steps, s.walked]),
+        [['.steps', [1], false], ['.onError.steps', [2], true]]);
+    assert.deepEqual(childStepSlots({ kind: 'kb_query', onError: [3] }).map((s) => s.steps), [[3]], 'the legacy array form');
+    assert.deepEqual(errorHandlerOf({ onError: [1] }), { steps: [1], stop: true });
+    assert.equal(errorHandlerOf({ onError: [] }), null, 'an empty legacy list never handled anything');
+    assert.deepEqual(errorHandlerOf({ onError: { steps: [] } }), { steps: [], stop: false });
+    assert.equal(errorHandlerOf({ onError: { toast: { message: 'x' } } }), null, 'an effects object is not a step handler');
+    assert.deepEqual(retryPlanOf({ kind: 'ai_generate', retry: { times: 9, delayMs: 99999 } }), { times: 3, delayMs: 30000 });
+    assert.deepEqual(retryPlanOf({ kind: 'ai_generate', retry: { times: 1 } }), { times: 1, delayMs: 1000 });
+    assert.deepEqual(retryPlanOf({ kind: 'ai_generate', retry: 2 }), { times: 2, delayMs: 1000 });
+    assert.deepEqual(retryPlanOf({ kind: 'send_email', retry: { times: 2 } }), { times: 0, delayMs: 0 });
+    assert.deepEqual(retryPlanOf({ kind: 'ai_generate' }), { times: 0, delayMs: 0 });
+    assert.deepEqual(clampErrorScope({ message: 'x'.repeat(900), step: 'ai_generate', attempts: 99, stepIndex: 2, extra: 1 }),
+        { message: 'x'.repeat(500), step: 'ai_generate', code: null, attempts: 4, stepIndex: 2 });
+    assert.equal(clampErrorScope('nope'), null);
+});

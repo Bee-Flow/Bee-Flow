@@ -66,3 +66,12 @@ test('a step inside a called action: callPath is at most 3 whole numbers, params
     const res = await post('/actions/a1/step?draft=1', { stepIndex: 0, callPath: [0, 1, 2], params: { n: 1 } });
     assert.strictEqual(res.status, 404, res.text);
 });
+
+test('a step inside an onError handler: error is { message ≤500, step ≤60, code?, attempts 1..4, stepIndex? }', async () => {
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, error: { message: 'x'.repeat(501), step: 'ai_generate', attempts: 1 } }), 'body.error.message', /onError handler/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, error: { message: 'm', step: 'ai_generate', attempts: 5 } }), 'body.error.attempts', /onError handler/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, error: 'boom' }), 'body.error', /onError handler/);
+    assert.deepStrictEqual(db.queries, []);
+    const res = await post('/actions/a1/step?draft=1', { stepIndex: 0, error: { message: 'm', step: 'ai_generate', code: null, attempts: 4, stepIndex: 2 } });
+    assert.strictEqual(res.status, 404, res.text);
+});

@@ -19,6 +19,7 @@
 
 const { MAX_FIELD_KEY_LEN, MAX_INPUT_FIELDS } = require('./actionExecutor');
 const { LIMITS } = require('./componentSpecs/limits');
+const { clampErrorScope } = require('../shared/appDefinition/stepFlow.mjs');
 
 /**
  * @param {import('./actionExecutor/shared').StepDef | null | undefined} action
@@ -31,25 +32,45 @@ function normalizeSequence(action) {
 }
 
 /**
+ * Pre-order ordinals. Error handlers (`onError.steps`, or the legacy array
+ * form) are numbered AFTER the whole main tree, in owner order, a nested
+ * handler after its owner's: so every ordinal a definition without handlers
+ * had stays the same, and an old client or a redacted public definition still
+ * names the same step. A transaction's children are not numbered: the
+ * transaction is one server step.
+ *
+ * Self-contained on purpose (the mobile lockstep test evaluates this
+ * function's own source text): the walk is an inner closure.
+ *
  * @param {import('./actionExecutor/shared').StepDef[] | null | undefined} steps
  * @param {import('./actionExecutor/shared').StepDef[]} [out]
  * @returns {import('./actionExecutor/shared').StepDef[]}
  */
 function flattenSteps(steps, out = []) {
-    for (const step of (Array.isArray(steps) ? steps : [])) {
-        if (!step || typeof step !== 'object') continue;
-        out.push(step);
-        if (step.kind === 'condition') {
-            flattenSteps(step.then, out);
-            flattenSteps(step.else, out);
-        } else if (step.kind === 'loop') {
-            flattenSteps(step.steps, out);
-        } else if (step.kind === 'switch') {
-            for (const c of (Array.isArray(step.cases) ? step.cases : [])) {
-                if (c && typeof c === 'object') flattenSteps(c.steps, out);
+    const start = out.length;
+    /** @param {unknown} list */
+    const walk = (list) => {
+        for (const step of (Array.isArray(list) ? list : [])) {
+            if (!step || typeof step !== 'object') continue;
+            out.push(step);
+            if (step.kind === 'condition') {
+                walk(step.then);
+                walk(step.else);
+            } else if (step.kind === 'loop') {
+                walk(step.steps);
+            } else if (step.kind === 'switch') {
+                for (const c of (Array.isArray(step.cases) ? step.cases : [])) {
+                    if (c && typeof c === 'object') walk(c.steps);
+                }
+                walk(step.default);
             }
-            flattenSteps(step.default, out);
         }
+    };
+    walk(steps);
+    for (let i = start; i < out.length; i++) {
+        const h = out[i] && /** @type {Record<string, unknown>} */ (out[i]).onError;
+        if (Array.isArray(h)) walk(h);
+        else if (h && typeof h === 'object' && Array.isArray(/** @type {Record<string, unknown>} */ (h).steps)) walk(/** @type {Record<string, unknown>} */ (h).steps);
     }
     return out;
 }
@@ -166,4 +187,28 @@ function stepNotes(result) {
     return notes.length ? { notes } : {};
 }
 
-module.exports = { normalizeSequence, flattenSteps, sanitizeBag, resolveRequestedStep, stepNotes };
+/**
+ * The siblings of a failed /step answer beyond its fixed fields: `retryable`
+ * (whether the browser's retry of the step can help) and the internal-error
+ * `ref` the server log carries. Conditional, so the answer's shape grows only.
+ *
+ * @param {{ retryable?: unknown, ref?: unknown } | null | undefined} result
+ * @returns {{ retryable?: boolean, ref?: string }}
+ */
+function stepFailureExtras(result) {
+    /** @type {{ retryable?: boolean, ref?: string }} */
+    const out = {};
+    if (result && typeof result.retryable === 'boolean') out.retryable = result.retryable;
+    if (result && typeof result.ref === 'string' && /^[0-9a-f]{8}$/.test(result.ref)) out.ref = result.ref;
+    return out;
+}
+
+/**
+ * The `error` scope of a /step body (a step inside an onError handler), bounded; undefined when absent.
+ * @param {unknown} raw
+ */
+function sanitizeErrorScope(raw) {
+    return clampErrorScope(raw) ?? undefined;
+}
+
+module.exports = { normalizeSequence, flattenSteps, sanitizeBag, resolveRequestedStep, stepNotes, stepFailureExtras, sanitizeErrorScope };

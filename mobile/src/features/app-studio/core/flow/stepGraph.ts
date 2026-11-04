@@ -21,7 +21,9 @@ import type { Msg } from '../msg';
 import type { ActionStep, AppAction } from '../types';
 
 export const SEP = '/';
-export const CONTAINER_KINDS: ReadonlySet<string> = new Set(['condition', 'loop', 'switch']);
+export const CONTAINER_KINDS: ReadonlySet<string> = new Set(['condition', 'loop', 'switch', 'transaction']);
+/** The scope key of a step's error handler (onError: { steps }). */
+export const ON_ERROR_SCOPE = 'on_error';
 export const ENTRY_SUFFIX = '__entry__';
 
 export interface Scope {
@@ -40,6 +42,14 @@ const LABEL_YES: Msg = { i18nKey: 'mobile.app_studio.flow.branch_yes', en: 'Yes'
 const LABEL_NO: Msg = { i18nKey: 'mobile.app_studio.flow.branch_no', en: 'No' };
 const LABEL_EACH: Msg = { i18nKey: 'mobile.app_studio.flow.branch_each', en: 'For each' };
 const LABEL_OTHERWISE: Msg = { i18nKey: 'mobile.app_studio.flow.branch_otherwise', en: 'Otherwise' };
+const LABEL_ON_ERROR: Msg = { i18nKey: 'mobile.app_studio.flow.branch_on_error', en: 'If it fails' };
+const LABEL_ALL_OR_NOTHING: Msg = { i18nKey: 'mobile.app_studio.flow.branch_all_or_nothing', en: 'All or nothing' };
+
+/** A step's handler in the { steps } shape (the legacy array form is not drawn). */
+function handlerOf(step: Record<string, unknown>): Record<string, unknown> | null {
+    const h = step.onError;
+    return isObject(h) && Array.isArray(h.steps) ? h : null;
+}
 
 /** "When it is Paid", or the position while nobody has said what it matches. */
 function caseLabel(c: unknown, i: number): Msg {
@@ -53,6 +63,13 @@ function caseLabel(c: unknown, i: number): Msg {
 /** The scopes a container step owns, in the FIXED order flattenSteps walks them. */
 export function scopesOf(step: unknown): Scope[] {
     if (!isObject(step)) return [];
+    const own = kindScopesOf(step);
+    const handler = handlerOf(step);
+    return handler ? [...own, { key: ON_ERROR_SCOPE, label: LABEL_ON_ERROR, steps: handler.steps }] : own;
+}
+
+/** The scopes of the step's own kind (branches, a loop or transaction body). */
+function kindScopesOf(step: Record<string, unknown>): Scope[] {
     switch (step.kind) {
         case 'condition':
             return [
@@ -61,6 +78,8 @@ export function scopesOf(step: unknown): Scope[] {
             ];
         case 'loop':
             return [{ key: 'body', label: LABEL_EACH, steps: step.steps }];
+        case 'transaction':
+            return [{ key: 'body', label: LABEL_ALL_OR_NOTHING, steps: step.steps }];
         case 'switch': {
             // Keyed by POSITION: case values are author-typed and may repeat or
             // be blank, and a scope key ends up inside a node id.
@@ -77,8 +96,12 @@ export function scopesOf(step: unknown): Scope[] {
 
 /** Write a scope's steps back onto its container, leaving the rest untouched. */
 function withScope(step: Step, key: string, steps: unknown): Step {
+    if (key === ON_ERROR_SCOPE) {
+        const handler = handlerOf(step);
+        return handler ? { ...step, onError: { ...handler, steps } } : step;
+    }
     if (step.kind === 'condition') return { ...step, [key]: steps };
-    if (step.kind === 'loop') return { ...step, steps };
+    if (step.kind === 'loop' || step.kind === 'transaction') return { ...step, steps };
     if (step.kind === 'switch') {
         if (key === 'case:default') return { ...step, default: steps };
         const at = Number(key.slice('case:'.length));

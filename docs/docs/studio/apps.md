@@ -68,6 +68,32 @@ Anything the AI builds, you can refine by hand:
   any role to check what that role sees. (Row security is always enforced by the
   server, not just the preview.)
 
+### When a step fails
+
+A step that fails stops its action and shows the real reason: "Record not found",
+"The AI provider had a temporary problem", or, for an unexpected fault, a short
+reference you can quote to your administrator (it is also in the server log). Three
+settings change that, per step, in the action flow editor:
+
+- **If it fails, try again** (`retry`): try the step up to 3 more times, with a wait
+  in between (1 second by default). Only failures a retry can help are tried again,
+  such as a busy database or a temporary problem at the AI provider; "not found" or
+  "not allowed" is not. Steps that reach outside the app (sending an email, running an
+  automation, asking for an approval, browsing, copying a document) are never retried,
+  because a second attempt would do it twice.
+- **If it still fails** (`onError`): run fallback steps in the step's **If it fails**
+  branch on the canvas, then carry on with the rest of the action ("Fallback, then go
+  on"), or end the action quietly after them ("Fallback, then stop"). The fallback
+  steps can read the failure as `error.message`, `error.step`, `error.code` and
+  `error.attempts`; outside that branch `error` is empty. A handled failure shows no
+  error message.
+- **All or nothing** (`transaction`): put several *Add a row*, *Change a row* and
+  *Delete a row* steps inside it (at most 50) and they are saved together: if one
+  fails (for example a row that no longer exists), none of them is kept. A row added
+  earlier in the block can be used by a later one (`vars.order.id`). It works on the
+  app's own tables; a table linked to a Studio datatable lives in another store and
+  cannot be part of it.
+
 ## Data tables, roles & access
 
 Open **Data** to design the data model directly: add tables and fields, define

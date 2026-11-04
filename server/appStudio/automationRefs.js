@@ -121,6 +121,8 @@ function automationsInAction(action) {
             // "No app button runs this automation yet" on screen, and someone
             // decides to delete it.
             walkSteps(step.default, depth + 1);
+            // A step's onError handler (stepFlow.errorHandlerOf) runs as well.
+            walkSteps(step.onError && /** @type {{ steps?: unknown }} */ (step.onError).steps, depth + 1);
         }
     };
 

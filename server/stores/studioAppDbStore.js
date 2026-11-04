@@ -46,6 +46,10 @@ const { isPg } = require('../utils/engineFlag');
 //   query(ownerId, appId, sql, params)  -> { rows, columns, truncated }
 //   exec(ownerId, appId, sql, params)   -> { changes, lastInsertRowid? }
 //   batch(ownerId, appId, statements)   -> [{ rows } | { changes }]   (one tx)
+//     A statement may carry `expectChanges: true`: when it changes no rows the
+//     whole batch rolls back with an Error { code: 'batch_no_rows',
+//     statementIndex } (the transaction step: "step N found no record").
+//     Existing callers never set it.
 //   applyMigration(ownerId, appId, ddl, { targetVersion }) -> { applied, skipped }
 //   getSchemaStamp(ownerId, appId)      -> number
 //   schema(ownerId, appId)              -> { tables: [...] }

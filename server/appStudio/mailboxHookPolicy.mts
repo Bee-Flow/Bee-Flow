@@ -5,9 +5,11 @@
  * runner (mailboxNewRecordHook.mts) all read this one module, so "what may run
  * automatically" is written down once.
  *
- * A leaf on purpose: it requires nothing, so the validators can load it without
- * pulling the action executor in.
+ * A leaf on purpose: it requires nothing but the pure step-tree helpers, so the
+ * validators can load it without pulling the action executor in.
  */
+
+import { childStepLists } from '../shared/appDefinition/stepFlow.mjs';
 
 /** What a new row means: a new conversation, or a new message that came IN. */
 export const HOOK_TARGETS = ['thread', 'inbound_message'] as const;
@@ -23,12 +25,15 @@ export type OnNewRecord = { actionId: string; target: HookTarget };
  *   delete_record                                 nothing erases data unattended
  *   ai_browse                                     it streams to a viewer
  *   copy_document                                 it needs the document pool of a viewer
+ * A `transaction` may run: its children are checked like any step (so a delete_record
+ * inside one is refused too), and so are the steps of every onError handler.
  */
 export const HOOK_STEP_KINDS: readonly string[] = Object.freeze([
     'create_record', 'update_record',
     'ai_extract', 'ai_generate', 'kb_query',
     'dataset_query', 'file_intake',
     'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf',
+    'transaction',
 ]);
 
 /** Control flow the runner evaluates itself; the rest of the client steps do not exist here. */
@@ -50,21 +55,24 @@ export function hookTopSteps(action: unknown): Step[] {
     return [action];
 }
 
-/** Every step of an action, branches included (condition then/else, switch cases/default). */
+/** Hand-written definitions can nest without end; a walk never goes deeper than this. */
+const MAX_WALK_DEPTH = 12;
+
+/**
+ * Every step of an action, every place that holds steps included (condition then/else,
+ * switch cases/default, a loop body, a transaction's children, onError handlers:
+ * stepFlow.childStepLists), so a refused kind cannot hide in a handler.
+ */
 export function hookAllSteps(action: unknown): Step[] {
     const out: Step[] = [];
-    const walk = (list: unknown): void => {
+    const walk = (list: unknown, depth: number): void => {
         for (const step of Array.isArray(list) ? list : []) {
             if (!isObject(step)) continue;
             out.push(step);
-            if (step.kind === 'condition') { walk(step.then); walk(step.else); }
-            if (step.kind === 'switch') {
-                for (const c of Array.isArray(step.cases) ? step.cases : []) if (isObject(c)) walk(c.steps);
-                walk(step.default);
-            }
+            if (depth < MAX_WALK_DEPTH) for (const child of childStepLists(step)) walk(child, depth + 1);
         }
     };
-    walk(hookTopSteps(action));
+    walk(hookTopSteps(action), 1);
     return out;
 }
 

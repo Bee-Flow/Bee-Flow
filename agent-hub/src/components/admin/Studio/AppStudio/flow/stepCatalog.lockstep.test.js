@@ -35,7 +35,7 @@ describe('stepCatalog — every server step kind is presentable', () => {
 
     it('marks exactly the kinds that hold other steps as containers', () => {
         const marked = Object.entries(STEP_CATALOG).filter(([, m]) => m.container).map(([k]) => k).sort();
-        expect(marked).toEqual(['condition', 'loop', 'switch']);
+        expect(marked).toEqual(['condition', 'loop', 'switch', 'transaction']);
     });
 
     it('the palette offers every kind exactly once', () => {

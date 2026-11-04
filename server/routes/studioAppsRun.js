@@ -131,7 +131,7 @@ const { loadVisibleApp, assertActionRoleAccess, stepDocumentContext } = require(
 // actionSequence.js: the public route (routes/studioAppPublic.js) resolves
 // steps by the same pre-order index, and two copies of that walk is two ways
 // for one index to mean two different steps. See that module's header.
-const { resolveRequestedStep, sanitizeBag, stepNotes } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
 const { validate } = require('../core/http/validate');
 const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
@@ -309,6 +309,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         value,
         // A called action's params (call_action), read as `params.<name>`.
         params: sanitizeBag(req.body?.params),
+        // Inside an onError handler: the failure it handles, read as error.message / error.step.
+        error: sanitizeErrorScope(req.body?.error),
         // The FULL viewer the row filters see (viewer.<attr> params) —
         // same shape buildViewer produces on the data route; a partial one
         // silently matches nothing.
@@ -342,6 +344,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         error: (result && result.error) || 'Step failed',
         ...(result?.code ? { code: result.code, limit: result.limit, used: result.used } : {}),
         result: result?.result ?? null,
+        ...stepFailureExtras(/** @type {{ retryable?: unknown, ref?: unknown }} */ (result)),
     });
 });
 

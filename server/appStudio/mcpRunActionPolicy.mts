@@ -91,6 +91,11 @@ export function decideStep(step: Step, dryRun: boolean, inLoop: boolean, wouldSe
             const { writeTo: _dropped, ...rest } = step;
             return { run: true, step: rest, note: 'dryRun: writeTo not applied, no rows written' };
         }
+        if (kind === 'transaction') {
+            const children = Array.isArray(step.steps) ? step.steps : [];
+            const would = children.slice(0, 50).map((c) => ({ kind: isObject(c) ? short(c.kind, 40) : null, tableId: isObject(c) ? short(c.tableId) : null }));
+            return { run: false, status: 'skipped', reason: `dryRun: would write ${children.length} record step(s) in one transaction; nothing is executed`, result: { wouldWrite: would } };
+        }
         const verb = RECORD_WRITES.includes(kind) ? 'would write' : 'would run';
         return { run: false, status: 'skipped', reason: `dryRun: ${verb} (${kind}); nothing is executed`, result: RECORD_WRITES.includes(kind) ? { wouldWrite: { kind, tableId: short(step.tableId), ...(wouldWrite ?? {}) } } : undefined };
     }

@@ -44,10 +44,9 @@
             "transform": "none",
             "exclude": [
                 "lockstep.fixture.mjs",
-                "lockstep.golden.json",
-                "stepFlow.mjs"
+                "lockstep.golden.json"
             ],
-            "why": "App Studio definition model (ids, section style, the shared definition ops, design presets, variables): the editor's state/definitionOps.js and runtime re-export it. The lockstep fixture and golden are test data and stay on the server. stepFlow.mjs (where a step holds child steps) is server-only until the editor imports it: knip (lint:dead) flags an unimported mirror file."
+            "why": "App Studio definition model (ids, section style, the shared definition ops, design presets, variables): the editor's state/definitionOps.js and runtime re-export it. The lockstep fixture and golden are test data and stay on the server. stepFlow.mjs (where a step holds child steps, the retry/onError helpers) is read by the browser action runner."
         },
         {
             "source": "server/shared/schedule",

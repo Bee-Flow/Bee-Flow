@@ -188,7 +188,8 @@ this list as "the ways an app passes validation and is still broken".
   invalidates a bound query on its own, so without it the change does not appear and the user clicks
   the button again.
 - A sequence action takes ONLY \`{kind:"sequence", steps}\`. No onError, no onSuccess — they are
-  stripped on save. The runner already toasts the real failure message.
+  stripped on save. The runner already toasts the real failure message. A server STEP inside it
+  may carry onError {steps} / retry (see ### Sequence steps).
 - Give anything you will reorder by dragging a DISTINCT rank. Two rows sharing one have no gap to
   insert between, so the drag computes the rank the card already had and it springs back on refresh.
 
@@ -555,28 +556,9 @@ function renderAction(id, action, homeless) {
     } else if (action.kind === 'open_modal' || action.kind === 'close_modal') {
         bits.push(`→modal:${action.modalId}`);
     } else if (action.kind === 'sequence') {
-        bits.push(summariseSteps(action.steps));
+        bits.push(require('./builderPrompt/summariseSteps.mts').summariseSteps(action.steps));
     }
     return bits.join(' ');
-}
-
-/** Compact one-line summary of a sequence's step tree: `steps[3]{confirm → create_record(tbl_x) → toast}`. */
-function summariseSteps(steps) {
-    if (!Array.isArray(steps) || !steps.length) return 'steps[0]';
-    const label = (s) => {
-        if (!s || typeof s !== 'object') return '?';
-        if (s.kind === 'create_record' || s.kind === 'update_record' || s.kind === 'delete_record') {
-            return `${s.kind}(${s.tableId || '?'})`;
-        }
-        if (s.kind === 'navigate') return `navigate→${s.screenId}`;
-        if (s.kind === 'run_automation') return `run_automation(${s.automationId ?? 'null'})`;
-        if (s.kind === 'call_action') return `call_action→${s.actionId}`;
-        if (s.kind === 'condition' || s.kind === 'loop' || s.kind === 'switch') return `${s.kind}{…}`;
-        return s.kind || '?';
-    };
-    const shown = steps.slice(0, 6).map(label);
-    if (steps.length > 6) shown.push('…');
-    return `steps[${steps.length}]{${shown.join(' → ')}}`;
 }
 
 // ── Data block — the app's data model rendered compact & ID-bearing ──

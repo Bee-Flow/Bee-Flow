@@ -73,6 +73,15 @@ work — the optimistic-concurrency check reports the conflict instead.
 `app_screenshot` returns a real image, so the agent can look at what it built and
 fix what is visibly wrong before finalising.
 
+`app_run_action` runs an action on the server to test it (a dry run by default). A
+step that fails and has an `onError` handler is reported as `handled: true`, its
+handler steps (paths `steps[0].onError.steps[0]`) run with `error.*` in scope, and
+the run goes on; a step with `retry` reports how many `attempts` it took. A
+`transaction` is skipped in a dry run with the record writes it would make
+(`wouldWrite`), and commits all of them or none in a live run. A mock answer of
+`{ "$sequence": [ { "$error": "…" }, "answer" ] }` gives one answer per attempt, so a
+saved test (`app_save_test`) can check that a retry recovers (`steps[0].attempts`).
+
 ## Access control
 
 Four independent gates, all of which must pass:

@@ -353,3 +353,136 @@ describe('useActionRunner — call_action', () => {
         expect(toast.error).toHaveBeenCalledWith('This step runs an action that no longer exists.');
     });
 });
+
+// ── Step error handling: onError handlers, retry, the error scope, transaction vars ──
+
+const runSeq = async (actions: Record<string, unknown>, id = 'seq') => {
+    const { result } = renderHook(() => useActionRunner('app1', stub<Parameters<typeof useActionRunner>[1]>({ schemaVersion: 2, actions })));
+    await act(async () => { await result.current.runAction(id); });
+    return result;
+};
+const AI_DOWN = { ok: false, error: 'The AI provider had a temporary problem. Try again.', code: 'provider_unavailable', retryable: true };
+
+describe('useActionRunner — step error handling', () => {
+    beforeEach(() => {
+        asMock(authFetch).mockReset();
+        asMock(toast.error).mockReset();
+        asMock(toast.success).mockReset();
+        asMock(toast.info).mockReset();
+    });
+
+    it('spec: a failing ai_generate with onError [set_variable fallback, create_record] runs the handler with error in the body and continues, no error toast', async () => {
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(200, AI_DOWN))
+            .mockResolvedValueOnce(resp(200, { ok: true, result: { id: 'rec_1' } }))
+            .mockResolvedValueOnce(resp(200, { ok: true, result: { id: 'rec_2' } }));
+        const result = await runSeq({
+            seq: { kind: 'sequence', steps: [
+                { kind: 'ai_generate', prompt: 'x', resultVar: 'draft', onError: { steps: [
+                    { kind: 'set_variable', name: 'fallback', value: { kind: 'formula', expr: 'error.message' } },
+                    { kind: 'create_record', tableId: 't', values: {} },
+                ] } },
+                { kind: 'create_record', tableId: 't', values: {} },
+            ] },
+        });
+        expect(authFetch).toHaveBeenCalledTimes(3);
+        const handlerBody = bodyOfCall(1);
+        // ordinals: ai_generate 0, the later create_record 1, then the handler: set_variable 2, create_record 3
+        expect(handlerBody.stepIndex).toBe(3);
+        expect(handlerBody.error).toEqual({ message: AI_DOWN.error, step: 'ai_generate', code: 'provider_unavailable', attempts: 1, stepIndex: 0 });
+        expect(handlerBody.vars.fallback).toBe(AI_DOWN.error);
+        const lastBody = bodyOfCall(2);
+        expect(lastBody.stepIndex).toBe(1);
+        expect(lastBody.error).toBeUndefined();
+        expect(lastBody.vars.fallback).toBe(AI_DOWN.error);
+        expect(toast.error).not.toHaveBeenCalled();
+        expect(result.current.actionState.seq?.status).toBe('success');
+    });
+
+    it('spec: retry times 1 → two POSTs and success', async () => {
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(200, { ok: false, error: 'busy', code: 'db_busy', retryable: true }))
+            .mockResolvedValueOnce(resp(200, { ok: true, result: { id: 'rec_1' } }));
+        const result = await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 't', values: {}, retry: { times: 1, delayMs: 0 }, resultVar: 'row' }] } });
+        expect(authFetch).toHaveBeenCalledTimes(2);
+        expect(bodyOfCall(1).stepIndex).toBe(0);
+        expect(result.current.actionState.seq?.status).toBe('success');
+        expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('retryable:false is posted once; a 5xx is retried, a 4xx is not', async () => {
+        asMock(authFetch).mockResolvedValue(resp(200, { ok: false, error: 'Record not found', retryable: false }));
+        await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'update_record', tableId: 't', values: {}, retry: { times: 3, delayMs: 0 } }] } });
+        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(toast.error).toHaveBeenCalledWith('Record not found');
+
+        asMock(authFetch).mockReset();
+        asMock(authFetch).mockResolvedValueOnce(resp(503, { error: 'unavailable' })).mockResolvedValueOnce(resp(200, { ok: true, result: null }));
+        await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'update_record', tableId: 't', values: {}, retry: { times: 1, delayMs: 0 } }] } });
+        expect(authFetch).toHaveBeenCalledTimes(2);
+
+        asMock(authFetch).mockReset();
+        asMock(authFetch).mockResolvedValue(resp(400, { error: 'stepIndex is the position of the step in the action.' }));
+        await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'update_record', tableId: 't', values: {}, retry: { times: 2, delayMs: 0 } }] } });
+        expect(authFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('an aborted request (unknown outcome) is never retried', async () => {
+        asMock(authFetch).mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+        const result = await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 't', values: {}, retry: { times: 3, delayMs: 0 } }] } });
+        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(result.current.actionState.seq?.status).toBe('error');
+    });
+
+    it('no onError: a failure stops the sequence with its reason, as before', async () => {
+        asMock(authFetch).mockResolvedValue(resp(200, AI_DOWN));
+        const result = await runSeq({ seq: { kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x' }, { kind: 'create_record', tableId: 't', values: {} }] } });
+        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(toast.error).toHaveBeenCalledWith(AI_DOWN.error);
+        expect(result.current.actionState.seq).toMatchObject({ status: 'error', error: AI_DOWN.error });
+    });
+
+    it('stop: true and the legacy array run the handler and then end quietly', async () => {
+        asMock(authFetch).mockResolvedValue(resp(200, AI_DOWN));
+        await runSeq({ seq: { kind: 'sequence', steps: [
+            { kind: 'ai_generate', prompt: 'x', onError: { steps: [{ kind: 'toast', message: 'We will try later', tone: 'info' }], stop: true } },
+            { kind: 'create_record', tableId: 't', values: {} },
+        ] } });
+        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(toast.info).toHaveBeenCalledWith('We will try later');
+        expect(toast.error).not.toHaveBeenCalled();
+
+        asMock(authFetch).mockClear();
+        asMock(toast.info).mockClear();
+        await runSeq({ seq: { kind: 'sequence', steps: [
+            { kind: 'ai_generate', prompt: 'x', onError: [{ kind: 'toast', message: 'Legacy', tone: 'info' }] },
+            { kind: 'create_record', tableId: 't', values: {} },
+        ] } });
+        expect(authFetch).toHaveBeenCalledTimes(1);
+        expect(toast.info).toHaveBeenCalledWith('Legacy');
+        expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('a failure inside the handler propagates like any other', async () => {
+        asMock(authFetch).mockResolvedValueOnce(resp(200, AI_DOWN)).mockResolvedValueOnce(resp(200, { ok: false, error: 'Table not found', retryable: false }));
+        const result = await runSeq({ seq: { kind: 'sequence', steps: [
+            { kind: 'ai_generate', prompt: 'x', onError: { steps: [{ kind: 'create_record', tableId: 't', values: {} }] } },
+            { kind: 'toast', message: 'never' },
+        ] } });
+        expect(toast.error).toHaveBeenCalledWith('Table not found');
+        expect(result.current.actionState.seq?.status).toBe('error');
+    });
+
+    it('a transaction\'s child resultVars land in vars for the steps after it', async () => {
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(200, { ok: true, result: { results: [{ id: 'ord_1', created: true }], vars: { order: { id: 'ord_1', created: true } }, count: 1 } }))
+            .mockResolvedValueOnce(resp(200, { ok: true, result: null }));
+        await runSeq({ seq: { kind: 'sequence', steps: [
+            { kind: 'transaction', steps: [{ kind: 'create_record', tableId: 't', values: {}, resultVar: 'order' }] },
+            { kind: 'create_record', tableId: 'lines', values: {} },
+        ] } });
+        expect(bodyOfCall(1).vars.order).toEqual({ id: 'ord_1', created: true });
+        // The transaction's children take no ordinal: the step after it is 1.
+        expect(bodyOfCall(1).stepIndex).toBe(1);
+    });
+});

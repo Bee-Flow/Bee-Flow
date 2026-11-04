@@ -6,10 +6,13 @@
  * five steps is six. When an action is over it, "more than N steps" does not say
  * which part to split, so the refusal carries the count per TOP-LEVEL step.
  * Pure: no draft, no I/O. The branches walked are the ones the validator counts
- * (condition then/else, loop steps, switch cases and default).
+ * (condition then/else, loop steps, switch cases and default, onError handlers,
+ * a transaction's children).
  */
 
 'use strict';
+
+const { childStepLists } = require('../shared/appDefinition/stepFlow.mjs');
 
 /**
  * @typedef {{ index: number, kind: string, id?: string, count: number }} StepCount
@@ -19,18 +22,14 @@
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /**
- * The steps nested under one step, in the order the validator walks them.
+ * The steps nested under one step, in the order the validator walks them:
+ * every place a step holds steps (stepFlow.childStepLists), onError handlers and
+ * a transaction's children included.
  * @param {Record<string, any>} step
  * @returns {unknown[][]}
  */
 function branchesOf(step) {
-    if (step.kind === 'condition') return [step.then, step.else];
-    if (step.kind === 'loop') return [step.steps];
-    if (step.kind === 'switch') {
-        const cases = Array.isArray(step.cases) ? step.cases : [];
-        return [...cases.map((c) => (isObject(c) ? c.steps : null)), step.default];
-    }
-    return [];
+    return childStepLists(step);
 }
 
 /**

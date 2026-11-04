@@ -48,7 +48,7 @@ const { z, typeError } = require('../utils/zod');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
-const { resolveRequestedStep, sanitizeBag } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope } = require('../appStudio/actionSequence');
 const { LIMITS } = require('../appStudio/componentSpecs/limits');
 const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate');
 const { resolveAudienceContext } = require('../auth/audience');
@@ -116,6 +116,8 @@ const BrowseBody = partOf({
     callPath: z.array(z.number().int(CALL_PATH_TEXT).min(0, CALL_PATH_TEXT), { error: () => CALL_PATH_TEXT })
         .max(LIMITS.MAX_CALL_DEPTH, CALL_PATH_TEXT).optional(),
     params: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('params') }) }).nullish(),
+    // Inside an onError handler: the failure it handles (scope root `error`).
+    error: require('./studio/appRuntimeSchemas').ErrorScope.optional(),
 });
 
 router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (/** @type {import('express').Request<{ id: string, actionId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
@@ -192,6 +194,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 index: req.body.index,
                 value: req.body.value,
                 params: sanitizeBag(req.body.params),
+                error: sanitizeErrorScope(req.body.error),
                 browse: { send: bridge, isCancelled: () => cancelled },
             }));
             send({ type: 'result', ok: !!result?.ok, result: result?.result || null, error: result?.error || null, code: result?.code || null });

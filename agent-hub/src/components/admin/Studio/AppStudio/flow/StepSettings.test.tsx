@@ -43,7 +43,10 @@ const STEP_SPECS_STUB = {
     },
     navigate: { fields: { screenId: { type: 'string', required: true }, params: { type: 'navParams' } } },
     call_action: { fields: { actionId: { type: 'string', required: true, maxLen: 80 }, params: { type: 'callParams' }, resultVar: { type: 'string', maxLen: 60 } } },
-    ai_generate: { fields: { prompt: { type: 'string', required: true }, modelTier: { type: 'tierChoice', maxLen: 60 } } },
+    ai_generate: { fields: {
+        prompt: { type: 'string', required: true }, modelTier: { type: 'tierChoice', maxLen: 60 },
+        retry: { type: 'retry', envelope: true }, onError: { type: 'errorHandler', envelope: true },
+    } },
 };
 
 vi.mock('../studioAppsApi', () => ({
@@ -357,5 +360,24 @@ describe('StepSettings — run another action, and the model tier', () => {
         expect((await screen.findByLabelText('Model tier') as HTMLInputElement).value).toBe('fast');
         await userEvent.click(screen.getByRole('radio', { name: 'Work it out with a formula' }));
         expect(last().modelTier).toEqual({ kind: 'formula', expr: '' });
+    });
+
+    it('error handling: retry tries, and onError picks the behaviour without touching its steps', async () => {
+        const { last } = renderCall({ kind: 'ai_generate', prompt: 'p' }, null);
+        await userEvent.selectOptions(await screen.findByLabelText('Times to try again'), '2');
+        expect(last().retry).toEqual({ times: 2 });
+        await userEvent.click(screen.getByRole('radio', { name: 'Fallback, then go on' }));
+        expect(last().onError).toEqual({ steps: [] });
+    });
+
+    it('error handling: switching to "then stop" keeps the fallback steps; "stop and show why" removes the handler', async () => {
+        const fallback = [{ kind: 'toast', message: 'x' }];
+        const { last } = renderCall({ kind: 'ai_generate', prompt: 'p', retry: { times: 1, delayMs: 0 }, onError: { steps: fallback } }, null);
+        await userEvent.click(await screen.findByRole('radio', { name: 'Fallback, then stop' }));
+        expect(last().onError).toEqual({ steps: fallback, stop: true });
+        await userEvent.click(screen.getByRole('radio', { name: 'Stop and show why' }));
+        expect(last().onError).toBeUndefined();
+        await userEvent.selectOptions(screen.getByLabelText('Times to try again'), '0');
+        expect(last().retry).toBeUndefined();
     });
 });

@@ -3,6 +3,8 @@ import type { ComponentProps } from 'react';
 import { paletteGroups, stepMeta } from '../stepCatalog';
 import type { StepNode } from '../stepGraph';
 import StepSettings from '../StepSettings';
+import { ON_ERROR_SCOPE, SEP } from '../stepGraph';
+import StudioScopeProvider, { errorScopeGroup } from '../../inspector/logic/StudioScopeProvider';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import IconButton from '@/components/shared/IconButton';
 import NodeContextMenu from '@/components/automation/Builder/flow/NodeContextMenu';
@@ -33,6 +35,20 @@ interface SelectedStepPanelProps {
 export function SelectedStepPanel({
     t, selected, disabled, canMoveEarlier, canMoveLater, onMove, onRemove, onPatch, definition, node, screens, formFields, actionId = null,
 }: SelectedStepPanelProps) {
+    // A step inside an "If it fails" branch reads the failure as error.*.
+    const inHandler = selected.prefix.split(SEP).includes(ON_ERROR_SCOPE);
+    const settings = (
+        <StepSettings
+            step={selected.step}
+            onChange={onPatch}
+            definition={definition}
+            node={node}
+            screens={screens}
+            formFields={formFields}
+            disabled={disabled}
+            actionId={actionId}
+        />
+    );
     return (
         <div className="flex flex-col gap-3">
             <header className="flex items-center gap-2">
@@ -65,16 +81,9 @@ export function SelectedStepPanel({
                     <Trash2 />
                 </IconButton>
             </header>
-            <StepSettings
-                step={selected.step}
-                onChange={onPatch}
-                definition={definition}
-                node={node}
-                screens={screens}
-                formFields={formFields}
-                disabled={disabled}
-                actionId={actionId}
-            />
+            {inHandler
+                ? <StudioScopeProvider definition={definition} node={node} extraGroups={[errorScopeGroup(t)]}>{settings}</StudioScopeProvider>
+                : settings}
         </div>
     );
 }

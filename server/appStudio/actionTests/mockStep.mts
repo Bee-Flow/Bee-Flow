@@ -11,6 +11,8 @@
  *   kb_query                  array or { results }     → { results, count }
  *   dataset_query             anything                 → as is
  *   any                       { "$error": text, "$code"?, "$retryable"? } → the step fails
+ *   any                       { "$sequence": [answer | {$error…}, …] } → one answer per
+ *                             attempt of a step with `retry` (the last one repeats)
  *
  * A mocked step never writes (writeTo is not applied), never reads files, a knowledge base or a
  * model, and never reaches the executor, so it costs no AI budget and no run budget.
@@ -111,7 +113,13 @@ function mockKb(answer: unknown): StepResult {
  * The step result a mocked answer gives. `prompt` is the step's interpolated prompt
  * (ai_generate), so an empty prompt fails the way the real step does.
  */
-export function mockStepResult(step: Obj, answer: unknown, opts: { prompt?: string; helpers?: MockHelpers } = {}): StepResult {
+export function mockStepResult(step: Obj, answer: unknown, opts: { prompt?: string; helpers?: MockHelpers; attempt?: number } = {}): StepResult {
+    if (isObject(answer) && Array.isArray(answer.$sequence)) {
+        const list = answer.$sequence;
+        if (!list.length) return { ok: false, error: 'A "$sequence" mock needs at least one answer', retryable: false };
+        const at = Math.min(Math.max(1, opts.attempt ?? 1), list.length) - 1;
+        return mockStepResult(step, list[at], { ...opts, attempt: 1 });
+    }
     if (isObject(answer) && Object.hasOwn(answer, '$error')) return mockedError(answer);
     const h = opts.helpers ?? defaultMockHelpers();
     switch (step.kind) {

@@ -51,6 +51,7 @@ const {
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
 } = require('../componentSpecs');
+const { ownFields, errorHandlingLines } = require('./stepErrorText.mts');
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
 const {
     FIELD_TYPES,
@@ -197,9 +198,7 @@ function renderActionField(key, fs) {
     return `${key}: ${bits.join(' ')}`;
 }
 
-function renderSpecFields(fields) {
-    return Object.entries(fields).map(([k, fs]) => renderActionField(k, fs)).join(', ');
-}
+const renderSpecFields = (fields) => Object.entries(ownFields(fields)).map(([k, fs]) => renderActionField(k, fs)).join(', '); // envelope: in the steps lead
 
 /**
  * One action kind. Nine of the eleven kinds are byte-identical twins of the
@@ -217,7 +216,7 @@ function renderSpecFields(fields) {
 function renderActionKind(kind) {
     const full = `${kind}: { ${renderSpecFields(ACTION_SPECS[kind].fields)} }`;
     const step = STEP_SPECS[kind];
-    if (step && JSON.stringify(step.fields) === JSON.stringify(ACTION_SPECS[kind].fields)) {
+    if (step && JSON.stringify(ownFields(step.fields)) === JSON.stringify(ACTION_SPECS[kind].fields)) {
         const ref = `${kind}: { …fields exactly as the ${kind} step below (### Sequence steps) }`;
         if (ref.length < full.length) return ref;
     }
@@ -376,6 +375,7 @@ function buildCatalogSections() {
     ];
     const steps = [
         ...stepsLead,
+        ...errorHandlingLines(), // the error-handling envelope and transaction: full catalog only
         ...STEP_KINDS.map(renderStepKind),
     ].join('\n');
 

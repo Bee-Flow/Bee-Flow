@@ -236,11 +236,12 @@ test('generate_file: attachTo links the ledger row to the record+field; absent â
     assert.strictEqual(ledgerCalls.addAttachment[0].row.fieldKey, null);
 });
 
-test('generate_file: a failed ledger write deletes the blob (no orphans) and fails generically', async () => {
+test('generate_file: a failed ledger write deletes the blob (no orphans) and fails with a reference, not the fault text', async () => {
     addAttachmentThrows = new Error('ledger db down');
     const r = await actionExecutor.executeDataStep(app, model, step(), ctx());
     assert.strictEqual(r.ok, false);
-    assert.strictEqual(r.error, 'Step failed', 'an internal fault collapses to the generic message');
+    assert.match(r.error, /^The generate file step could not finish because of an internal error \(reference [0-9a-f]{8}\)\.$/, 'an internal fault names the step and a reference, never its own text');
+    assert.strictEqual(r.code, 'internal');
     assert.strictEqual(uploads.length, 1);
     assert.strictEqual(deletedBlobs.length, 1, 'the blob does not outlive its ledger row');
     assert.strictEqual(deletedBlobs[0], uploads[0].key);

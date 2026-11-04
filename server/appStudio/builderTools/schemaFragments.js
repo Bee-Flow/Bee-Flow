@@ -131,7 +131,7 @@ const UPDATE_COMPONENT_PATCH_PROPS = {
     ...UPDATE_NODE_LOGIC_PROPS,
 };
 
-const ACTION_OBJECT_DESC = `{ kind, …fields of that kind } — shapes: catalog Actions / Sequence steps. SAVE A FORM: {kind:"sequence", steps:[{kind:"create_record", tableId, values:{<fieldKey>:{kind:"formula",expr:"form.<inputName>"}}}, {kind:"refresh", tableId}, {kind:"toast", message}]} wired to the form's onSubmit. {kind:"field"} exists ONLY in run_automation inputMapping. A sequence has no onError/onSuccess.`;
+const ACTION_OBJECT_DESC = `{ kind, …fields of that kind } — shapes: catalog Actions / Sequence steps. SAVE A FORM: {kind:"sequence", steps:[{kind:"create_record", tableId, values:{<fieldKey>:{kind:"formula",expr:"form.<inputName>"}}}, {kind:"refresh", tableId}, {kind:"toast", message}]} wired to the form's onSubmit. {kind:"field"} exists ONLY in run_automation inputMapping. A sequence has no onError/onSuccess; a server step in it may carry onError {steps} / retry.`;
 
 // The action object's declared shape. An object with NO `properties` renders
 // as `properties:{}` on Gemma's chat template — the model was shown an empty

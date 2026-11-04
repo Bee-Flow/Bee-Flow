@@ -146,7 +146,8 @@ function makeStatements({ withAppTx }) {
         }
         return withAppTx(ownerId, appId, {}, async (client) => {
             const results = [];
-            for (const s of statements) {
+            for (let i = 0; i < statements.length; i++) {
+                const s = statements[i];
                 validateSql(s?.sql);
                 const safeParams = normalizeParams(s?.params);
                 const converted = toDollarParams(s.sql, safeParams.length);
@@ -155,7 +156,13 @@ function makeStatements({ withAppTx }) {
                     const rows = normalizeRows(result);
                     results.push({ rows: rows.slice(0, MAX_RESULT_ROWS) });
                 } else {
-                    results.push({ changes: typeof result.rowCount === 'number' ? result.rowCount : 0 });
+                    const changes = typeof result.rowCount === 'number' ? result.rowCount : 0;
+                    // A statement that MUST change a row (a transaction step's update/delete):
+                    // none changed rolls the whole batch back (studioAppDbStore.js, batch contract).
+                    if (s.expectChanges === true && changes === 0) {
+                        throw Object.assign(new Error(`batch statement ${i} changed no rows`), { code: 'batch_no_rows', statementIndex: i });
+                    }
+                    results.push({ changes });
                 }
             }
             return results;

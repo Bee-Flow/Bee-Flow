@@ -44,6 +44,16 @@ test('readPath: a step path reads its outcome; the longest known path wins; step
     assert.equal(readPath(v, 'steps[2].steps[0].error'), 'boom');
     assert.equal(readPath(v, 'steps[2].result.iterations'), 3);
     assert.equal(readPath(v, 'steps[2]').status, 'ok');
+    assert.equal(readPath(v, 'steps[0].attempts'), 1, 'a step that ran once made one attempt');
+    assert.equal(readPath(v, 'steps[0].handled'), false);
+    assert.equal(readPath(v, 'steps[10].attempts'), 0, 'a step that did not run made none');
+});
+
+test('readPath: .attempts and .handled of a retried, handled step', () => {
+    const steps = new Map([['steps[0]', { path: 'steps[0]', kind: 'ai_generate', ordinal: 0, status: 'error', ms: 1, count: 1, attempts: 3, handled: true, error: 'down' }]]);
+    const v = { ok: true, stopped: null, failed: null, vars: {}, result: null, steps };
+    assert.equal(readPath(v, 'steps[0].attempts'), 3);
+    assert.equal(readPath(v, 'steps[0].handled'), true);
 });
 
 test('pathProblem: parseable path, known root, an outcome field after a step path', () => {

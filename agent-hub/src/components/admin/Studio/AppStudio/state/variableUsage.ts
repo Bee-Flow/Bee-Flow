@@ -54,6 +54,7 @@ function walkSteps(steps: unknown, visit: (step: Record<string, unknown>) => voi
         walkSteps(step.else, visit, depth + 1);
         walkSteps(step.steps, visit, depth + 1);
         walkSteps(step.onError, visit, depth + 1);
+        walkSteps(isObject(step.onError) ? step.onError.steps : undefined, visit, depth + 1);
         for (const c of Array.isArray(step.cases) ? step.cases : []) {
             if (isObject(c)) walkSteps(c.steps, visit, depth + 1);
         }

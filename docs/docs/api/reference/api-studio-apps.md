@@ -98,6 +98,12 @@ No request schema.
 | `value` | any |  |  |
 | `callPath` | array of integer |  | max items 3 |
 | `params` | object or null |  |  |
+| `error` | object |  |  |
+| `error.message` | string | yes | max length 500 |
+| `error.step` | string | yes | max length 60 |
+| `error.code` | string or null |  |  |
+| `error.attempts` | integer | yes | min 1; max 4 |
+| `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
 
 ### `POST /api/studio-apps/:id/actions/:actionId/step/stream`
 
@@ -121,6 +127,12 @@ No request schema.
 | `value` | any |  |  |
 | `callPath` | array of integer |  | max items 3 |
 | `params` | object or null |  |  |
+| `error` | object |  |  |
+| `error.message` | string | yes | max length 500 |
+| `error.step` | string | yes | max length 60 |
+| `error.code` | string or null |  |  |
+| `error.attempts` | integer | yes | min 1; max 4 |
+| `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
 
 ### `GET /api/studio-apps/:id/actions/runs/:runId`
 

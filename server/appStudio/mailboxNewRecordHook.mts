@@ -15,7 +15,9 @@
  *   - a failure is logged and recorded, never thrown: the sync that found the row has
  *     already succeeded and must stay so;
  *   - every step goes through the same executor a click uses, so row access, quotas and
- *     the AI budget apply exactly as they do there.
+ *     the AI budget apply exactly as they do there;
+ *   - the action is walked by the ONE server walker (sequenceWalk.mts), so a step's
+ *     `retry` and `onError` handler behave as on a click.
  *
  * Runs after the sync released its claim, so a slow model call never holds the connector.
  * A row is "new" once: it is stored by then, so a run skipped by a cap or a failure is
@@ -37,6 +39,12 @@ const policy = nodeRequire('./mailboxHookPolicy.mts') as {
     readOnNewRecord: (raw: unknown) => { actionId: string; target: HookTarget } | null;
 };
 const { hookActionProblems, hookLimits, readOnNewRecord } = policy;
+type WalkState = { vars: Record<string, unknown>; item: unknown; error?: Record<string, unknown>; executed: number; failed: { error: string } | null };
+type WalkHost = Record<string, unknown>;
+const walker = nodeRequire('./sequenceWalk.mts') as {
+    newWalkState: (init: { item?: unknown }) => WalkState;
+    walkAction: (w: WalkState, action: Record<string, unknown>, host: WalkHost, opts: { actionId: string }) => Promise<void>;
+};
 
 type Values = Record<string, unknown>;
 export type NewRecord = { id: string; values: Values };
@@ -45,7 +53,7 @@ export type NewRecords = { thread: NewRecord[]; message: NewRecord[] };
 
 type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown; publishedDefinition?: unknown };
 type Step = Record<string, unknown> & { kind?: string };
-type StepResult = { ok: boolean; result?: unknown; error?: string };
+type StepResult = { ok: boolean; result?: unknown; error?: string; code?: string; retryable?: boolean };
 type Connector = { id?: string; kind?: string; onNewRecord?: unknown };
 
 export type HookRunLog = {
@@ -62,6 +70,8 @@ export type HookDeps = {
     log: { info: (...a: unknown[]) => void; warn: (...a: unknown[]) => void; error: (...a: unknown[]) => void };
     limits: () => HookLimits;
     now: () => number;
+    /** The wait between retries of a step with `retry` (fake in tests). */
+    sleep?: (ms: number) => Promise<void>;
 };
 
 export type HookReport = { ran: number; failed: number; refused: number; skippedLimit: number };
@@ -105,52 +115,46 @@ export function resetHookWindows(): void { windows.clear(); }
 
 type Run = { vars: Record<string, unknown>; steps: number; failure: string | null };
 
-function ctxFor(app: App, def: Record<string, unknown>, actionId: string, item: unknown, run: Run): Record<string, unknown> {
+function ctxFor(app: App, def: Record<string, unknown>, actionId: string, w: WalkState): Record<string, unknown> {
     return {
         viewerId: app.userId, actionId, viewerName: null, viewerEmail: null,
         role: 'owner', orgId: app.organizationId || null,
-        formValues: {}, vars: run.vars,
+        formValues: {}, vars: w.vars,
         variables: Array.isArray(def.variables) ? def.variables : null,
-        item,
+        item: w.item,
+        ...(w.error ? { error: w.error } : {}),
         viewer: { id: app.userId, role: 'owner', organizationId: app.organizationId || null },
     };
 }
 
-const same = (a: unknown, b: unknown): boolean => a === b || (a != null && b != null && String(a) === String(b));
-
-async function walk(list: unknown, app: App, model: unknown, def: Record<string, unknown>, actionId: string, item: unknown, run: Run, deps: HookDeps): Promise<void> {
-    for (const raw of Array.isArray(list) ? list : []) {
-        if (run.failure) return;
-        const step = raw as Step | null;
-        if (!step || typeof step.kind !== 'string') continue;
-        const ctx = ctxFor(app, def, actionId, item, run);
-        if (step.kind === 'condition') {
-            const value = deps.evaluate(String(step.expr ?? ''), deps.buildScope(ctx));
-            await walk(value ? step.then : step.else, app, model, def, actionId, item, run, deps);
-        } else if (step.kind === 'switch') {
-            const value = deps.evaluate(String(step.expr ?? ''), deps.buildScope(ctx));
-            const cases = Array.isArray(step.cases) ? step.cases as Array<{ value?: unknown; steps?: unknown }> : [];
-            const hit = cases.find((c) => c && same(c.value, value));
-            await walk(hit ? hit.steps : step.default, app, model, def, actionId, item, run, deps);
-        } else {
-            run.steps += 1;
-            const res = await deps.executeStep(app, model, step, ctx);
-            if (!res || res.ok !== true) { run.failure = res?.error || 'Step failed'; return; }
-            if (typeof step.resultVar === 'string' && step.resultVar) run.vars = { ...run.vars, [step.resultVar]: res.result ?? null };
-        }
-    }
+/**
+ * The hook as a host of the shared walker. Every step the policy lets through runs
+ * (hookActionProblems refused the rest before the run), through the executor.
+ */
+function hostFor(app: App, model: unknown, def: Record<string, unknown>, actionId: string, deps: HookDeps): WalkHost {
+    const ctx = (w: WalkState): Record<string, unknown> => ctxFor(app, def, actionId, w);
+    return {
+        decide: async (step: Step) => ({ run: true, step }),
+        execute: (step: Step, _f: unknown, w: WalkState) => deps.executeStep(app, model, step, ctx(w)),
+        // set_variable, loop and call_action are refused by the policy: nothing here reads a binding.
+        resolve: async () => { throw new Error('This step cannot run on an arriving mail'); },
+        evaluate: (expr: string, scope: unknown) => deps.evaluate(expr, scope),
+        buildScope: (c: Record<string, unknown>) => deps.buildScope(c),
+        ctxFor: (w: WalkState) => ctx(w),
+        sleep: deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => { setTimeout(resolve, ms); })),
+        now: () => deps.now(),
+    };
 }
 
 /** Run the action for one new row. Never throws. */
 async function runOne(app: App, model: unknown, def: Record<string, unknown>, actionId: string, action: unknown, item: unknown, deps: HookDeps): Promise<Run> {
-    const run: Run = { vars: {}, steps: 0, failure: null };
+    const w = walker.newWalkState({ item });
     try {
-        const steps = (action as Step).kind === 'sequence' ? (action as { steps?: unknown }).steps : [action];
-        await walk(steps, app, model, def, actionId, item, run, deps);
+        await walker.walkAction(w, action as Record<string, unknown>, hostFor(app, model, def, actionId, deps), { actionId });
     } catch (e) {
-        run.failure = (e as Error)?.message || 'Step failed';
+        return { vars: w.vars, steps: w.executed, failure: (e as Error)?.message || 'The action could not run' };
     }
-    return run;
+    return { vars: w.vars, steps: w.executed, failure: w.failed ? w.failed.error : null };
 }
 
 // ── The hook ───────────────────────────────────────────────────────────────

@@ -43,6 +43,10 @@ export interface ScopeInput {
     item?: unknown;
     index?: unknown;
     value?: unknown;
+    /** call_action params inside a called action. */
+    params?: Record<string, unknown> | null;
+    /** Inside a step's onError handler: the failure it handles. */
+    error?: Record<string, unknown> | null;
     now?: string;
     today?: string;
 }
@@ -56,6 +60,8 @@ export interface ScopeRoot extends Record<string, unknown> {
     item: unknown;
     index: unknown;
     value: unknown;
+    params: Record<string, unknown>;
+    error: Record<string, unknown> | null;
     currentUser: Record<string, unknown> | null;
     records: Record<string, unknown>;
     datasets: Record<string, unknown>;
@@ -91,6 +97,13 @@ function stamps(input: ScopeInput): { now: string; today: string } {
     return { now, today: typeof input.today === 'string' ? input.today : now.slice(0, 10) };
 }
 
+const isBag = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** params (inside a called action, {} otherwise) and error (inside an onError handler, null otherwise). */
+function callRoots(input: ScopeInput): { params: Record<string, unknown>; error: Record<string, unknown> | null } {
+    return { params: isBag(input.params) ? input.params : {}, error: isBag(input.error) ? input.error : null };
+}
+
 export function buildScope(input: ScopeInput = {}): ScopeRoot {
     const { actionState = {}, dataState = {}, form = {}, forms = {}, screen = {}, vars = {} } = input;
     return {
@@ -102,6 +115,7 @@ export function buildScope(input: ScopeInput = {}): ScopeRoot {
         item: input.item,
         index: input.index,
         value: input.value,
+        ...callRoots(input),
         currentUser: input.currentUser || null,
         ...dataRoots(dataState),
         ...stamps(input),

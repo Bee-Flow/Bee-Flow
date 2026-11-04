@@ -278,7 +278,15 @@ function resolvePublicSurface(definition) {
 function redactStep(step) {
     if (!isObject(step)) return step;
     if (DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
-        return step.resultVar ? { kind: step.kind, resultVar: step.resultVar } : { kind: step.kind };
+        // The browser retries and handles a failure itself, so `retry` and the
+        // handler travel (the handler's steps redacted, so their ordinals stay);
+        // a transaction's children stay on the server.
+        return {
+            kind: step.kind,
+            ...(step.resultVar ? { resultVar: step.resultVar } : {}),
+            ...(isObject(step.retry) ? { retry: { ...step.retry } } : {}),
+            ...redactedHandler(step),
+        };
     }
     // Client steps run in the browser, so they travel whole — but their nested
     // branches carry server steps of their own.
@@ -290,7 +298,16 @@ function redactStep(step) {
         out.cases = step.cases.map((c) => (isObject(c) && Array.isArray(c.steps) ? { ...c, steps: c.steps.map(redactStep) } : c));
     }
     if (Array.isArray(step.default)) out.default = step.default.map(redactStep);
+    Object.assign(out, redactedHandler(step));
     return out;
+}
+
+/** A step's onError handler with its steps redacted ({} when it has none). */
+function redactedHandler(step) {
+    const h = step.onError;
+    if (Array.isArray(h)) return { onError: h.map(redactStep) };
+    if (isObject(h) && Array.isArray(h.steps)) return { onError: { steps: h.steps.map(redactStep), ...(h.stop === true ? { stop: true } : {}) } };
+    return {};
 }
 
 /** Redact one action for anonymous delivery, preserving step indices exactly. */

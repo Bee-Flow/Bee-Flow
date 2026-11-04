@@ -43,6 +43,8 @@ function* walk(list: unknown): Generator<HookAction> {
         yield* walk(step.steps);
         for (const c of Array.isArray(step.cases) ? step.cases : []) yield* walk(c?.steps);
         yield* walk(step.default);
+        // A refused kind cannot hide in an onError handler (the server's policy walks it too).
+        yield* walk((step as { onError?: { steps?: unknown } }).onError?.steps);
     }
 }
 

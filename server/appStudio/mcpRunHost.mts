@@ -23,6 +23,10 @@ export type StepStatus = 'ok' | 'skipped' | 'refused' | 'error' | 'deferred';
 export type StepReport = {
     path: string; kind: string; status: StepStatus; result?: unknown; error?: string; code?: string;
     ms?: number; mocked?: boolean; iteration?: number;
+    /** Attempts of a retried step (only when more than one). */
+    attempts?: number;
+    /** The step failed and its onError handler ran; the run went on. */
+    handled?: boolean;
 };
 export type RunReport = {
     ok: boolean; dryRun: boolean; actionId: string; definitionVersion?: number; steps: StepReport[]; vars?: unknown;
@@ -83,6 +87,7 @@ function ctxFor(run: Run, w: WalkState): Obj {
         viewerId: app.userId, actionId: run.opts.actionId, viewerName: null, viewerEmail: null,
         role: 'owner', orgId: app.organizationId || null,
         formValues: w.form, vars: w.vars, params: w.params,
+        ...(w.error ? { error: w.error } : {}),
         variables: Array.isArray(def.variables) ? def.variables : null,
         item: w.item, index: w.index,
         viewer: { id: app.userId, role: 'owner', organizationId: app.organizationId || null },
@@ -146,7 +151,7 @@ function wouldWriteOf(run: Run, step: Step, ctx: Obj): Obj {
 function rateLimitedStep(run: Run, f: StepEvent): StepResult {
     const { limits, opts } = run;
     return {
-        ok: false, code: 'rate_limited',
+        ok: false, code: 'rate_limited', retryable: false,
         error: `Too many ${opts.tool || 'app_run_action'} calls (limit ${limits.perMinute} per minute per user, ${limitText(limits, 'perMinute')}). ${f.path} (${f.kind}) is not mocked and would call the model; mock it to run for free.`,
     };
 }
@@ -154,7 +159,7 @@ function rateLimitedStep(run: Run, f: StepEvent): StepResult {
 async function executeFor(run: Run, step: Step, f: StepEvent, w: WalkState): Promise<StepResult> {
     const { dryRun, userId } = run.opts;
     if (step.kind === 'send_email' && (dryRun || f.loop !== null || step.mode !== 'draft')) {
-        return { ok: false, error: 'send_email is not allowed here' };
+        return { ok: false, error: 'send_email is not allowed here', retryable: false };
     }
     if (!run.charged) {
         if (!run.deps.takeBudget(userId, run.deps.now())) return rateLimitedStep(run, f);
@@ -174,6 +179,8 @@ function reportOf(e: StepEndEvent): StepReport {
         ms: e.ms,
         ...(e.mocked ? { mocked: true } : {}),
         ...(e.iteration !== null ? { iteration: e.iteration } : {}),
+        ...(e.attempts !== undefined && e.attempts > 1 ? { attempts: e.attempts } : {}),
+        ...(e.handled ? { handled: true } : {}),
     };
 }
 
@@ -189,10 +196,10 @@ export function hostFor(run: Run): WalkHost {
         },
         execute: (step, f, w) => executeFor(run, step, f, w),
         mockFor: (path) => (Object.hasOwn(opts.mock, path) ? { value: opts.mock[path] } : null),
-        mocked(step, value, ctx) {
+        mocked(step, value, ctx, attempt) {
             run.mocked += 1;
             const prompt = step.kind === 'ai_generate' ? deps.promptOf(step, ctx) : undefined;
-            return mockStepResult(step, value, { prompt, ...(deps.mockHelpers ? { helpers: deps.mockHelpers } : {}) });
+            return mockStepResult(step, value, { prompt, attempt, ...(deps.mockHelpers ? { helpers: deps.mockHelpers } : {}) });
         },
         resolve: (binding, ctx, scope) => resolveFor(run, binding, ctx, scope),
         // call_action: an own action of the draft the run read (never a prototype key).

@@ -214,8 +214,12 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * 55_000 → 56_000 (App Studio package 1, reusable logic, measured 2026-11-04): the
  * call_action step and action kind, its params field and one semantics line, and
  * modelTier as a tier name or formula, took the catalog to 55_436. ~560 headroom.
+ *
+ * 56_000 → 57_000 (App Studio package 2, error handling, measured 2026-11-04): the
+ * onError/retry envelope (one line for every server step instead of per kind) and
+ * the transaction step with its line took the catalog to 56_475. ~520 headroom.
  */
-const CATALOG_CHAR_CEILING = 56_000;
+const CATALOG_CHAR_CEILING = 57_000;
 
 test('renderCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCatalogText();
@@ -251,8 +255,10 @@ test('all action kinds are rendered — inline fields, or a pointer to an identi
     for (const kind of ACTION_KINDS) {
         assert.ok(new RegExp(`^${kind}: \\{`, 'm').test(text), `action kind ${kind} rendered with a shape`);
         const twin = STEP_SPECS[kind];
+        // The error-handling envelope (retry / onError) is step-only and taught once in the steps lead.
+        const own = twin && Object.fromEntries(Object.entries(twin.fields).filter(([, fs]) => !fs.envelope));
         const identicalTwin = twin
-            && JSON.stringify(twin.fields) === JSON.stringify(ACTION_SPECS[kind].fields);
+            && JSON.stringify(own) === JSON.stringify(ACTION_SPECS[kind].fields);
         if (!identicalTwin) {
             assert.ok(
                 !new RegExp(`^${kind}: \\{ …`, 'm').test(text),
@@ -519,7 +525,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // named in the field lists — 54_716 chars.
 // 2026-11-04, package 1 (reusable logic): call_action (step + action, params, semantics line) and
 // modelTier as tier name | formula — 55_436 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'f218648b0a4b38504a74a85953c2603b533230adc54c1bac4c4c8781be4390d5';
+// 2026-11-04, package 2 (error handling): onError/retry envelope line, the transaction step and
+// its line — 56_475 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'daade13f7710f2462fc7a72a9eba64c3013163ef129672678664e90dcdffe05d';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

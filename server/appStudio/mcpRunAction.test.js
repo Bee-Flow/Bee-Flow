@@ -553,3 +553,79 @@ test('scope.params tests a called action on its own', async () => {
     assert.equal(out.ok, true, JSON.stringify(out));
     assert.equal(out.vars.got, 7);
 });
+
+// ── Error handling (package 2) ──────────────────────────────────────────────
+
+const withError = { buildScope: (ctx) => ({ vars: ctx.vars, form: ctx.formValues, item: ctx.item, index: ctx.index, error: ctx.error ?? null }) };
+
+test('spec: a failing ai_generate with onError writes a fallback and the run continues (handled: true)', async () => {
+    failOn = 'ai_generate';
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'ai_generate', prompt: 'x', resultVar: 'draft', onError: { steps: [
+            { kind: 'set_variable', name: 'fallback', value: { kind: 'formula', expr: 'error.message' } },
+        ] } },
+        { kind: 'kb_query', query: { kind: 'formula', expr: 'vars.fallback' } },
+    ] }, {}, OWNER, withError);
+    assert.equal(out.ok, true, JSON.stringify(out.steps));
+    assert.equal(out.steps[0].status, 'error');
+    assert.equal(out.steps[0].handled, true);
+    assert.equal(out.steps[1].path, 'steps[0].onError.steps[0]');
+    assert.equal(out.vars.fallback, 'Step failed');
+    assert.deepEqual(kindsRun(), ['ai_generate', 'kb_query'], 'the step after the handler ran');
+});
+
+test('spec: retry succeeds on the second attempt, driven by a $sequence mock', async () => {
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'ai_generate', prompt: 'x', resultVar: 'draft', retry: { times: 2, delayMs: 0 } },
+    ] }, { mock: { 'steps[0]': { $sequence: [{ $error: 'overloaded', $code: 'provider_unavailable' }, 'second time lucky'] } } });
+    assert.equal(out.ok, true);
+    assert.equal(out.steps[0].status, 'ok');
+    assert.equal(out.steps[0].attempts, 2);
+    assert.deepEqual(out.vars.draft, { text: 'second time lucky', citations: [] });
+    assert.equal(out.mocked, 2, 'each attempt took its mocked answer');
+    assert.equal(executed.length, 0);
+});
+
+test('$retryable: false in a mock is not retried; the last $sequence answer repeats', async () => {
+    const once = await run({ kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x', retry: { times: 3, delayMs: 0 } }] },
+        { mock: { 'steps[0]': { $error: 'bad prompt', $retryable: false } } });
+    assert.equal(once.ok, false);
+    assert.equal(once.mocked, 1);
+    const repeat = await run({ kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x', retry: { times: 2, delayMs: 0 } }] },
+        { mock: { 'steps[0]': { $sequence: [{ $error: 'down' }] } } });
+    assert.equal(repeat.ok, false);
+    assert.equal(repeat.steps[0].attempts, 3);
+});
+
+test('a handler step is mockable by its path, and error is in its scope', async () => {
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'ai_generate', prompt: 'x', onError: { steps: [{ kind: 'ai_generate', prompt: 'apologise for {{error.message}}', resultVar: 'sorry' }] } },
+    ] }, { mock: { 'steps[0]': { $error: 'nope', $retryable: false }, 'steps[0].onError.steps[0]': 'Sorry!' } });
+    assert.equal(out.ok, true);
+    assert.deepEqual(out.vars.sorry, { text: 'Sorry!', citations: [] });
+    assert.equal(out.steps.find((s) => s.path === 'steps[0].onError.steps[0]').mocked, true);
+});
+
+test('onError stop: true ends the run quietly and ok stays true', async () => {
+    failOn = 'kb_query';
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'kb_query', onError: { steps: [{ kind: 'toast', message: 'x' }], stop: true } },
+        { kind: 'ai_generate', prompt: 'never' },
+    ] });
+    assert.equal(out.ok, true);
+    assert.match(out.stopped, /onError handler ends the run/);
+    assert.deepEqual(kindsRun(), ['kb_query']);
+});
+
+test('dryRun: a transaction is skipped with the writes it would make', async () => {
+    const out = await run({ kind: 'sequence', steps: [{ kind: 'transaction', steps: [
+        { kind: 'create_record', tableId: 'tbl_orders', values: {} },
+        { kind: 'update_record', tableId: 'tbl_lines', recordId: { kind: 'static', value: 'r' }, values: {} },
+    ] }] });
+    assert.equal(out.steps[0].status, 'skipped');
+    assert.deepEqual(out.steps[0].result, { wouldWrite: [{ kind: 'create_record', tableId: 'tbl_orders' }, { kind: 'update_record', tableId: 'tbl_lines' }] });
+    assert.equal(executed.length, 0);
+    const live = await run({ kind: 'sequence', steps: [{ kind: 'transaction', steps: [{ kind: 'create_record', tableId: 't', values: {} }] }] }, { dryRun: false });
+    assert.equal(live.steps[0].status, 'ok', 'a live run commits it through the executor');
+    assert.deepEqual(kindsRun(), ['transaction']);
+});

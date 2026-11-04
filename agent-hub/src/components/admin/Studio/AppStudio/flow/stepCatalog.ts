@@ -220,6 +220,11 @@ export const STEP_CATALOG: Record<string, StepMeta> = {
         blurb: 'Run the steps of another action here, with values you pass in.',
         blurbKey: 'studio_apps_edit.step_catalog.call_action_blurb',
     },
+    transaction: {
+        label: 'All or nothing', labelKey: 'studio_apps_edit.step_catalog.transaction_label', group: 'Data', icon: Database, server: true, container: true,
+        blurb: 'Add, change or delete several rows together: if one fails, none is saved.',
+        blurbKey: 'studio_apps_edit.step_catalog.transaction_blurb',
+    },
 };
 
 /** Fallback presentation, so an unknown kind is still readable. */
@@ -323,6 +328,8 @@ export function newStep(kind: string, { screenId = '', modalId = '', t = null }:
         case 'loop': return { kind, source: { kind: 'static', value: [] }, itemVar: 'item', steps: [] };
         // The action to run is picked next; params are added as the called action needs them.
         case 'call_action': return { kind, actionId: '', params: {} };
+        // The rows to write together are dropped into its body on the canvas.
+        case 'transaction': return { kind, steps: [] };
         default: return { kind };
     }
 }

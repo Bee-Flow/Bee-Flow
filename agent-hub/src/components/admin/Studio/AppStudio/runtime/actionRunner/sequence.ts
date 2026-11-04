@@ -2,22 +2,30 @@
  * The v2 sequence coordinator: walks a { kind:'sequence', steps } action step
  * by step. Server kinds go through ./serverSteps, client kinds through
  * ./clientSteps, and condition/switch/loop recurse here against the live
- * scope. A failure runs the step's onError branch (if any) and aborts the
- * rest of the sequence.
+ * scope.
+ *
+ * Error handling (stepFlow.mjs owns the shapes): a server step with `retry`
+ * is tried again while the server says retrying can help (never after a
+ * deadline abort or a network error: the outcome is unknown). A failing step
+ * with `onError: { steps, stop? }` runs those steps with `error` in scope and
+ * the sequence CONTINUES (`stop: true`, and the legacy array form, end it
+ * quietly); no toast, the run settles as a success. Without a handler the
+ * failure aborts the sequence as before.
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
+import { clampErrorScope, errorHandlerOf, retryPlanOf } from '@shared/appDefinition/stepFlow.mjs';
 import { resolveBinding } from '../resolveBinding';
 import { buildScope } from '../RuntimeContext';
 import { runClientStep } from './clientSteps';
 import type { ClientStepEnv, LiveBag } from './clientSteps';
 import {
     CANCELLED, MAX_LOOP_ITERATIONS, SEQ_ABORT, SERVER_STEP_KINDS, buildStepIndexMap, caseMatches, failureMessage,
-    mergeAppEffects, normalizeSequence, sequenceHasServerStep, showToast,
+    mergeAppEffects, normalizeSequence, sequenceHasServerStep, showToast, sleep,
 } from './core';
 import type { RunOpts, RunStep, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
-import { dispatchBrowseStep, dispatchServerStep } from './serverSteps';
-import type { SeqState } from './serverSteps';
+import { StepFailure, dispatchBrowseStep, dispatchServerStep } from './serverSteps';
+import type { ErrorScope, SeqState } from './serverSteps';
 import { runCallStep } from './callStep';
 
 interface SeqEnv extends ClientStepEnv {
@@ -59,6 +67,7 @@ function makeLiveBag(ctx: RunnerContext, actionId: string): LiveBag {
                 index: st.index,
                 value: st.value,
                 params: st.params || {},
+                error: (st.errorScope as Record<string, unknown> | null | undefined) || null,
                 currentUser: live.currentUser || null,
             }),
         };
@@ -68,6 +77,16 @@ function makeLiveBag(ctx: RunnerContext, actionId: string): LiveBag {
 /** Threads a server step's result into lastResult, resultVar and the control's spinner. */
 function recordServerResult(env: SeqEnv, step: RunStep, st: SeqState, result: unknown): void {
     st.lastResult = result;
+    // A transaction hands back the resultVars of its children: later steps read them as vars.<name>.
+    if (step.kind === 'transaction' && result && typeof result === 'object') {
+        const named = (result as { vars?: unknown }).vars;
+        if (named && typeof named === 'object' && !Array.isArray(named)) {
+            for (const [name, value] of Object.entries(named)) {
+                st.vars = { ...st.vars, [name]: value };
+                env.ctx.setVar(name, value);
+            }
+        }
+    }
     if (typeof step.resultVar === 'string' && step.resultVar) {
         st.vars = { ...st.vars, [step.resultVar]: result };
         env.ctx.setVar(step.resultVar, result); // persist beyond this sequence
@@ -75,8 +94,31 @@ function recordServerResult(env: SeqEnv, step: RunStep, st: SeqState, result: un
     if (env.hasServer) env.ctx.setEntry(env.actionId, { status: 'running', result, error: null });
 }
 
+/**
+ * One server step, tried again per its `retry` while the server says it can
+ * help. Each attempt is its own POST (charged by the step limiters). The
+ * failure that ends it carries the attempts made and the step's kind.
+ */
+async function dispatchWithRetry(env: SeqEnv, step: RunStep, st: SeqState): Promise<unknown> {
+    const plan = retryPlanOf(step);
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await dispatchServerStep(env.ctx, env.indexMap.get(step), st);
+        } catch (e) {
+            const again = e instanceof StepFailure && e.retryable && attempt <= plan.times;
+            if (e instanceof StepFailure) {
+                e.attempts = attempt;
+                e.stepKind = e.stepKind || String(step.kind);
+            }
+            if (!again) throw e;
+            if (plan.delayMs > 0) await sleep(plan.delayMs);
+            if (!env.ctx.alive.current) throw CANCELLED;
+        }
+    }
+}
+
 async function runServerStep(env: SeqEnv, step: RunStep, st: SeqState): Promise<void> {
-    const result = await dispatchServerStep(env.ctx, env.indexMap.get(step), st);
+    const result = await dispatchWithRetry(env, step, st);
     if (result && typeof result === 'object') {
         const effects = result as { _appEffects?: unknown; _appEffectsUnknown?: unknown };
         // A run_automation STEP carries the automation's return the same
@@ -177,6 +219,40 @@ async function execStep(env: SeqEnv, step: RunStep | null | undefined, st: SeqSt
     await runControlStep(env, step, st);
 }
 
+/** The `error` scope for a handler of `step`'s failure `e`. */
+function errorScopeFor(env: SeqEnv, step: RunStep, e: unknown): ErrorScope {
+    const failure = e instanceof StepFailure ? e : null;
+    return clampErrorScope({
+        message: failureMessage(e, env.ctx.tr),
+        step: failure?.stepKind || String(step.kind),
+        code: failure?.code ?? null,
+        attempts: failure?.attempts ?? 1,
+        stepIndex: env.indexMap.get(step),
+    }) as ErrorScope;
+}
+
+/**
+ * A step failed. With an onError handler: run it with `error` in scope, then
+ * continue (or end quietly with `stop`). Without one: record the reason and
+ * rethrow, as before. A failure inside the handler propagates like any other.
+ */
+async function handleStepFailure(env: SeqEnv, step: RunStep | null | undefined, e: unknown, st: SeqState): Promise<void> {
+    const handler = errorHandlerOf(step);
+    if (!step || !handler) {
+        st.error = failureMessage(e, env.ctx.tr);
+        throw e;
+    }
+    const saved = st.errorScope;
+    st.errorScope = errorScopeFor(env, step, e);
+    st.error = null;
+    try {
+        await execSteps(env, handler.steps, st);
+    } finally {
+        st.errorScope = saved;
+    }
+    if (handler.stop) throw SEQ_ABORT;
+}
+
 async function execSteps(env: SeqEnv, list: unknown, st: SeqState): Promise<void> {
     for (const raw of (Array.isArray(list) ? list : [])) {
         const step = raw as RunStep | null | undefined;
@@ -185,14 +261,7 @@ async function execSteps(env: SeqEnv, list: unknown, st: SeqState): Promise<void
             await execStep(env, step, st);
         } catch (e) {
             if (e === SEQ_ABORT || e === CANCELLED) throw e;
-            // A failure: run the step's optional onError branch (which
-            // handles it, then unwinds), else propagate up to abort.
-            if (step && Array.isArray(step.onError) && step.onError.length) {
-                await execSteps(env, step.onError, st);
-                throw SEQ_ABORT;
-            }
-            st.error = failureMessage(e, env.ctx.tr);
-            throw e;
+            await handleStepFailure(env, step, e, st);
         }
     }
 }

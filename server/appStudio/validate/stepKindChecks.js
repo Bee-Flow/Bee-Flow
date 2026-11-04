@@ -9,6 +9,7 @@
 const { isObject, pushDataRef } = require('./shared');
 const { checkCallAction } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
+const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
 
 /**
  * A step of `kind` under these steps, or in an action they call.
@@ -60,6 +61,8 @@ function containsStepKind(steps, kind) {
             }
         }
         if (containsStepKind(s.default, kind)) return true;
+        // A step's onError handler runs too (automationRefs.walkSteps descends into it as well).
+        if (containsStepKind(s.onError?.steps, kind)) return true;
     }
     return false;
 }
@@ -325,7 +328,42 @@ function checkCopyDocument(step, path, ctx) {
     }
 }
 
+/**
+ * A transaction holds only record writes on the app's own tables, at most
+ * MAX_TRANSACTION_STEPS, and its children carry no handler or retry of their own
+ * (the transaction is ONE step: it fails or retries as a whole).
+ * @param {string} path
+ */
+function checkTransaction(step, path, ctx) {
+    const { pushE, pushW } = ctx;
+    const children = Array.isArray(step.steps) ? step.steps : [];
+    if (!children.length) {
+        pushW({ code: 'action.transaction_empty', severity: 'warning', path: `${path}.steps`, message: 'This transaction has no steps, so it does nothing.', hint: 'Add create_record, update_record or delete_record steps, or remove it.' });
+        return;
+    }
+    if (children.length > MAX_TRANSACTION_STEPS) {
+        pushE({ code: 'action.transaction_too_many', severity: 'error', path: `${path}.steps`, message: `A transaction holds at most ${MAX_TRANSACTION_STEPS} steps (LIMITS.MAX_TRANSACTION_STEPS); this one has ${children.length}.`, hint: 'Split it, or write the rows with one step that takes a list.' });
+    }
+    children.forEach((/** @type {unknown} */ raw, /** @type {number} */ i) => {
+        if (!isObject(raw)) return; // validateStep names it
+        const c = /** @type {Record<string, unknown>} */ (raw);
+        const at = `${path}.steps[${i}]`;
+        if (!TRANSACTION_CHILD_KINDS.includes(String(c.kind))) {
+            pushE({ code: 'action.transaction_child_kind', severity: 'error', path: `${at}.kind`, message: `A transaction holds only ${TRANSACTION_CHILD_KINDS.join(', ')}; step ${i + 1} is "${String(c.kind)}".`, hint: 'Move it before or after the transaction.' });
+            return;
+        }
+        if (c.onError !== undefined || c.retry !== undefined) {
+            pushE({ code: 'action.transaction_child_handler', severity: 'error', path: at, message: `Step ${i + 1} of the transaction has its own ${c.onError !== undefined ? 'onError' : 'retry'}; the transaction fails or is retried as a whole.`, hint: 'Put onError / retry on the transaction step itself.' });
+        }
+        const source = ctx.dataTableSources && typeof c.tableId === 'string' ? ctx.dataTableSources.get(c.tableId) : null;
+        if (source !== undefined && source !== null) {
+            pushE({ code: 'action.transaction_linked_table', severity: 'error', path: `${at}.tableId`, message: `Step ${i + 1} of the transaction writes a linked table; its rows live in another store, so they cannot be rolled back with the rest.`, hint: 'Write the linked table in its own step, outside the transaction.' });
+        }
+    });
+}
+
 const KIND_CHECKS = {
+    transaction: checkTransaction,
     request_approval: checkApproval,
     send_email: checkSendEmail,
     generate_file: checkGenerateFile,

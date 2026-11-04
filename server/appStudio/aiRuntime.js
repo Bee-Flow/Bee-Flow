@@ -413,6 +413,7 @@ async function runStructured(app, model, { system, user, parameters, toolName = 
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
         e.status = 422;
+        e.code = 'ai_no_output'; // the next attempt can succeed: a step retry may try again
         throw e;
     }
     return { structured: res.structured, usage: res.usage };
@@ -486,6 +487,7 @@ async function runStructuredWithTools(app, model, { system, user, parameters, to
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
         e.status = 422;
+        e.code = 'ai_no_output'; // the next attempt can succeed: a step retry may try again
         throw e;
     }
     return { structured: res.structured, usage: res.usage, toolCallRounds: res.toolCallRounds || 0 };

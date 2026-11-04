@@ -88,7 +88,7 @@ const { uploadGuard, scanBuffer } = require('../middleware/uploadGuard');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
-const { resolveRequestedStep, sanitizeBag, stepNotes } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
@@ -372,6 +372,8 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         index: Number.isInteger(Number(req.body?.index)) && Number(req.body?.index) >= 0 ? Number(req.body.index) : undefined,
         value: req.body?.value,
         params: sanitizeBag(req.body?.params),
+        // Inside an onError handler: the failure it handles, read as error.message / error.step.
+        error: sanitizeErrorScope(req.body?.error),
         viewer: ctx.viewer,
     }));
 
@@ -396,6 +398,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         error: (result && result.error) || 'Step failed',
         ...(result?.code ? { code: result.code, limit: result.limit, used: result.used } : {}),
         result: result?.result ?? null,
+        ...stepFailureExtras(/** @type {{ retryable?: unknown, ref?: unknown }} */ (result)),
     });
 });
 

@@ -137,10 +137,79 @@ function cleanStep(raw, path, depth, push) {
             if (v !== undefined) out[field] = cleanCallParams(v, p, push);
         } else if (fs.type === 'tierChoice') {
             if (v !== undefined) { const t = cleanTierChoice(v, fs.maxLen || LIMITS.MAX_STRING, p, push); if (t !== undefined) out[field] = t; }
+        } else if (fs.type === 'errorHandler' || fs.type === 'retry') {
+            if (v !== undefined) { const e = cleanEnvelopeField(fs.type, v, p, depth, push); if (e !== undefined) out[field] = e; }
         }
     }
     const unknown = Object.keys(raw).filter((k) => k !== 'kind' && !(k in spec.fields));
     if (unknown.length) push('step.unknown_field', path, `Dropped unknown fields for step "${raw.kind}": ${unknown.join(', ')}. Legal: ${Object.keys(spec.fields).join(', ')}.`);
+    return out;
+}
+
+/**
+ * The error-handling envelope of a server step: `onError` (handler) and `retry`.
+ * undefined = drop the field (with a note).
+ *
+ * @param {string} type
+ * @param {unknown} v
+ * @param {string} path
+ * @param {number} depth
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function cleanEnvelopeField(type, v, path, depth, push) {
+    return type === 'retry' ? cleanRetry(v, path, push) : cleanErrorHandler(v, path, depth, push);
+}
+
+const ON_ERROR_SHAPE = 'onError on a step takes { steps: [...] } (add stop: true to end the action after them); a message is a toast step inside it.';
+
+/**
+ * @param {unknown} v
+ * @param {string} path
+ * @param {number} depth
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function cleanErrorHandler(v, path, depth, push) {
+    if (Array.isArray(v)) {
+        if (!v.length) { push('step.on_error_invalid', path, `An empty onError list handles nothing — dropped. ${ON_ERROR_SHAPE}`); return undefined; }
+        // The old array form ran its steps and then ended the action: the same as stop: true.
+        push('step.on_error_legacy', path, 'onError: [...] is written as { steps: [...], stop: true } (the steps run, then the action ends).');
+        return { steps: cleanSteps(v, `${path}.steps`, depth + 1, push), stop: true };
+    }
+    const h = /** @type {Record<string, unknown>} */ (v);
+    if (!isObject(v) || !Array.isArray(h.steps)) {
+        push('step.on_error_invalid', path, `${ON_ERROR_SHAPE} — dropped.`);
+        return undefined;
+    }
+    const extra = Object.keys(v).filter((k) => k !== 'steps' && k !== 'stop');
+    if (extra.length) push('step.unknown_field', path, `Dropped unknown onError fields: ${extra.join(', ')}. Legal: steps, stop.`);
+    return { steps: cleanSteps(h.steps, `${path}.steps`, depth + 1, push), ...(h.stop === true ? { stop: true } : {}) };
+}
+
+/** @param {unknown} v */
+const numeric = (v) => (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : v);
+
+/**
+ * @param {unknown} v
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function cleanRetry(v, path, push) {
+    const n = numeric(v);
+    if (typeof n === 'number') {
+        push('props.coerced', path, `retry: ${JSON.stringify(v)} is written as { times: ${n} }.`);
+        return { times: n };
+    }
+    if (!isObject(v)) {
+        push('step.field_invalid', path, 'retry takes { times: 0-3, delayMs?: 0-30000 } — dropped.');
+        return undefined;
+    }
+    const r = /** @type {Record<string, unknown>} */ (v);
+    /** @type {Record<string, unknown>} */
+    const out = {};
+    if (r.times !== undefined) out.times = numeric(r.times);
+    if (r.delayMs !== undefined) out.delayMs = numeric(r.delayMs);
+    const extra = Object.keys(v).filter((k) => k !== 'times' && k !== 'delayMs');
+    if (extra.length) push('step.unknown_field', path, `Dropped unknown retry fields: ${extra.join(', ')}. Legal: times, delayMs.`);
     return out;
 }
 

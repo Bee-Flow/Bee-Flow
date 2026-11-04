@@ -48,7 +48,7 @@ function toMeta([kind, group, icon, label, blurb, flag]: StepRow): [string, Step
         icon,
         blurb: { i18nKey: `studio_apps_edit.step_catalog.${kind}_blurb`, en: blurb },
     };
-    if (flag) meta[flag] = true;
+    for (const f of flag ? flag.split('+') as ('server' | 'container')[] : []) meta[f] = true;
     return [kind, meta];
 }
 
@@ -115,6 +115,7 @@ const FIXED_SEEDS: Readonly<Record<string, () => Record<string, unknown>>> = {
     switch: () => ({ expr: '', cases: [{ value: '', steps: [] }], default: [] }),
     loop: () => ({ source: stat([]), itemVar: 'item', steps: [] }),
     call_action: () => ({ actionId: '', params: {} }),
+    transaction: () => ({ steps: [] }),
 };
 
 export interface NewStepOptions {

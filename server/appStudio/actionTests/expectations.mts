@@ -9,7 +9,9 @@
  *   <step path>[.<field>]  one step's outcome, the longest known walker path first:
  *                          .status (ok | error | skipped | refused | not_run), .result…, .error,
  *                          .code, .prompt (an ai_generate step's filled-in prompt), .count
- *                          (how often it ran), .mocked, .ms, .note
+ *                          (how often it ran), .mocked, .ms, .note, .attempts (1, or the
+ *                          attempts of a retried step), .handled (it failed and its
+ *                          onError handler ran)
  * The rest of a path after its root uses the shared path grammar (shared/expr/path.mjs).
  *
  * ops are the rule-row vocabulary of the expression engine (TEST_OF_OP: is, isNot, contains,
@@ -32,7 +34,7 @@ export type Expectation = { path: string; op: string; value?: unknown };
 export type ExpectationResult = { path: string; op: string; expected?: unknown; actual: unknown; pass: boolean; reason?: string };
 
 /** The outcome fields a step path may read after the step itself. */
-export const OUTCOME_FIELDS: readonly string[] = Object.freeze(['status', 'result', 'error', 'code', 'prompt', 'count', 'mocked', 'ms', 'note']);
+export const OUTCOME_FIELDS: readonly string[] = Object.freeze(['status', 'result', 'error', 'code', 'prompt', 'count', 'mocked', 'ms', 'note', 'attempts', 'handled']);
 const RUN_ROOTS: readonly string[] = Object.freeze(['ok', 'stopped', 'vars', 'result']);
 
 /** Every op an expectation may use. */
@@ -82,7 +84,7 @@ function rest(path: string, root: string): string {
 
 function outcomeObject(o: Outcome): Obj {
     const { path: _p, kind: _k, ordinal: _o, ...fields } = o;
-    return { ...fields, mocked: o.mocked === true };
+    return { ...fields, mocked: o.mocked === true, attempts: o.attempts ?? (o.count ? 1 : 0), handled: o.handled === true };
 }
 
 /** The value `path` names in the run, undefined when absent. */

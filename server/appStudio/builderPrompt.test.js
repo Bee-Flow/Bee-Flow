@@ -766,8 +766,13 @@ test('the form-save shot is byte-true: theme, table (key derived from name), com
  * three compact catalog lines, one step kind named three times and one line on
  * whose documents an app may show. Product, not prose; the diet of the core
  * prose is still owed.
+ * Raised to 36_900 on 2026-11-04 (App Studio package 2): this test already measured
+ * 36_745 before package 2 (packages 9, 7 and 1 of the same round grew the compact
+ * catalog's field lists and added call_action); package 2 adds only the transaction
+ * kind name three times (~40 chars) and one clause on the step-level onError/retry
+ * (~55 chars) to 36_840. The diet of the core prose is owed.
  */
-const CORE_PROMPT_CHAR_CEILING = 35_200;
+const CORE_PROMPT_CHAR_CEILING = 36_900;
 
 test(`the core system prompt with the compact catalog stays under ${CORE_PROMPT_CHAR_CEILING} chars`, () => {
     const core = buildSystemPrompt({ toolset: 'core', catalogMode: 'filtered' });

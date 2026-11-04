@@ -33,6 +33,19 @@ const DraftQuery = queryOf({
 
 const CALL_PATH_TEXT = `callPath is the list of call_action step positions, root first (at most ${LIMITS.MAX_CALL_DEPTH}).`;
 
+const ERROR_TEXT = 'error is the failure an onError handler handles: { message, step, code, attempts, stepIndex }.';
+/**
+ * The `error` scope of a step inside an onError handler (the browser sends the
+ * failure it handles). Bounded here; clampErrorScope bounds it again in ctx.
+ */
+const ErrorScope = z.object({
+    message: z.string({ error: ERROR_TEXT }).max(500, ERROR_TEXT),
+    step: z.string({ error: ERROR_TEXT }).max(60, ERROR_TEXT),
+    code: z.string({ error: ERROR_TEXT }).max(60, ERROR_TEXT).nullish(),
+    attempts: z.number({ error: ERROR_TEXT }).int(ERROR_TEXT).min(1, ERROR_TEXT).max(LIMITS.MAX_STEP_RETRY_TIMES + 1, ERROR_TEXT),
+    stepIndex: z.number({ error: ERROR_TEXT }).int(ERROR_TEXT).min(0, ERROR_TEXT).optional(),
+}, { error: ERROR_TEXT });
+
 /** One server step of an action (…/actions/:actionId/step). */
 const StepBody = bodyOf({
     stepIndex: wholeNumber('stepIndex is the position of the step in the action.'),
@@ -47,6 +60,8 @@ const StepBody = bodyOf({
     // root first — the URL keeps the root action — and the params it reads.
     callPath: z.array(wholeNumber(CALL_PATH_TEXT), { error: CALL_PATH_TEXT }).max(LIMITS.MAX_CALL_DEPTH, CALL_PATH_TEXT).optional(),
     params: bag('params').nullish(),
+    // Inside an onError handler: the failure it handles (scope root `error`).
+    error: ErrorScope.optional(),
 }, 'An action step');
 
 /** A whole action handed to its automation (…/actions/:actionId/run). */
@@ -85,4 +100,4 @@ const RecordsQuery = queryOf({
     sample: choice(['0', '1'], 'sample is 1 for an editor preview.').optional(),
 }, 'A table page');
 
-module.exports = { DraftQuery, StepBody, RunBody, ChatBody, RecordsQuery };
+module.exports = { DraftQuery, StepBody, RunBody, ChatBody, RecordsQuery, ErrorScope };

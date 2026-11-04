@@ -10,6 +10,7 @@
 const { LIMITS } = require('./limits');
 const { ACTION_KINDS, STEP_KINDS, DATA_MUTATING_STEP_KINDS, CLIENT_STEP_KINDS, TOAST_TONES, AI_SCHEMA_FIELD_TYPES, AI_EXTRACT_FIELDS, AI_GENERATE_FIELDS, KB_QUERY_FIELDS, SEND_EMAIL_FIELDS, GENERATE_FILE_FIELDS, FILL_DOCUMENT_FIELDS, GENERATE_PRESENTATION_FORMATS, GENERATE_PRESENTATION_FIELDS, REDACT_PDF_FIELDS, FILE_INTAKE_FIELDS, DATASET_QUERY_FIELDS } = require('./actionSpecsActionKinds');
 const { COPY_DOCUMENT_FIELDS } = require('./documentSpecs');
+const { withErrorEnvelope } = require('./stepEnvelope');
 
 /**
  * call_action — run another action of the app as a subroutine. `params` is a
@@ -348,7 +349,25 @@ const STEP_SPECS = {
     },
     // Flow control too: the called action's own steps decide where they run.
     call_action: { mutatesData: false, fields: CALL_ACTION_FIELDS },
+    /**
+     * transaction — record writes (create/update/delete_record on the app's own
+     * tables) that land together or not at all. ONE server step: the children
+     * are resolved and committed in one database transaction, never dispatched
+     * one by one, so they get no ordinal and no walker path of their own. A
+     * child's resultVar is readable by the children after it (a new row's id
+     * is known before the commit) and by every step after the transaction.
+     */
+    transaction: {
+        mutatesData: true,
+        fields: {
+            steps: { type: 'steps', required: true },
+            resultVar: { type: 'string', maxLen: 60 },
+        },
+    },
 };
+
+// Every server step (and call_action) also takes the error-handling envelope (stepEnvelope.js).
+withErrorEnvelope(STEP_SPECS);
 
 module.exports = {
     ACTION_KINDS,

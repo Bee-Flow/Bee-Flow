@@ -54,3 +54,36 @@ test('stepNotes: a notes sibling only when there are any', () => {
     assert.deepEqual(stepNotes({ notes: [] }), {});
     assert.deepEqual(stepNotes({ notes: ['a', 3] }), { notes: ['a'] });
 });
+
+// ── Error handlers and transactions (package 2) ─────────────────────────────
+
+test('flattenSteps: without onError the order is unchanged; handlers follow the whole tree, nested after their owners', () => {
+    const { flattenSteps } = require('./actionSequence');
+    const plain = [{ kind: 'a' }, { kind: 'condition', then: [{ kind: 'b' }], else: [{ kind: 'c' }] }, { kind: 'loop', steps: [{ kind: 'd' }] }];
+    assert.deepEqual(flattenSteps(plain).map((s) => s.kind), ['a', 'condition', 'b', 'c', 'loop', 'd']);
+    const h2 = { kind: 'h2' };
+    const tree = [
+        { kind: 'a', onError: { steps: [{ kind: 'h1', onError: { steps: [h2] } }] } },
+        { kind: 'condition', then: [{ kind: 'b', onError: [{ kind: 'legacy' }] }] },
+        { kind: 'transaction', steps: [{ kind: 'create_record' }, { kind: 'update_record' }] },
+        { kind: 'c' },
+    ];
+    assert.deepEqual(flattenSteps(tree).map((s) => s.kind), ['a', 'condition', 'b', 'transaction', 'c', 'h1', 'legacy', 'h2'],
+        'main tree first (old ordinals unchanged), then handlers in owner order, a nested handler after its owner\'s; transaction children unnumbered');
+});
+
+test('resolveRequestedStep reaches a handler step by its ordinal', () => {
+    const { resolveRequestedStep } = require('./actionSequence');
+    const fallback = { kind: 'create_record', tableId: 't' };
+    const def = { actions: { act_x: { kind: 'sequence', steps: [{ kind: 'ai_generate', onError: { steps: [fallback] } }, { kind: 'toast' }] } } };
+    assert.deepEqual(resolveRequestedStep(def, 'act_x', 2), { step: fallback, ownerActionId: 'act_x' });
+});
+
+test('stepFailureExtras and sanitizeErrorScope', () => {
+    const { stepFailureExtras, sanitizeErrorScope } = require('./actionSequence');
+    assert.deepEqual(stepFailureExtras({ ok: false, retryable: false, ref: 'abcd1234' }), { retryable: false, ref: 'abcd1234' });
+    assert.deepEqual(stepFailureExtras({ ok: false, ref: 'not a ref' }), {});
+    assert.deepEqual(stepFailureExtras(null), {});
+    assert.equal(sanitizeErrorScope(undefined), undefined);
+    assert.deepEqual(sanitizeErrorScope({ message: 'm', step: 'ai_generate', attempts: 2 }), { message: 'm', step: 'ai_generate', code: null, attempts: 2 });
+});

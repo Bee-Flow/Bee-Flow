@@ -29,6 +29,10 @@ export type Outcome = {
     status: StepStatus | 'not_run';
     result?: unknown; error?: string; code?: string; prompt?: string; note?: string;
     mocked?: boolean; ms: number;
+    /** Attempts of a retried step (only when more than one). */
+    attempts?: number;
+    /** The step failed and its onError handler ran. */
+    handled?: boolean;
     /** How often the path ran (a loop body runs once per iteration; the outcome is the last). */
     count: number;
 };
@@ -54,7 +58,8 @@ export type WalkHost = {
     decide(step: Step, f: StepEvent, w: WalkState): Promise<Decision>;
     execute(step: Step, f: StepEvent, w: WalkState): Promise<StepResult>;
     mockFor?(path: string, step: Step): { value: unknown } | null;
-    mocked?(step: Step, value: unknown, ctx: Obj): StepResult;
+    /** `attempt` (1-based) picks the answer of a `$sequence` mock. */
+    mocked?(step: Step, value: unknown, ctx: Obj, attempt?: number): StepResult;
     resolve(binding: unknown, ctx: Obj, scope: unknown): Promise<unknown>;
     evaluate(expr: string, scope: unknown): unknown;
     buildScope(ctx: Obj): unknown;

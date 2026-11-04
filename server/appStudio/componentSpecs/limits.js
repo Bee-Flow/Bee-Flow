@@ -6,6 +6,10 @@
 
 'use strict';
 
+// The step error-handling bounds live with the step-tree helpers (mirrored to
+// the editor), so the browser coordinator and the server read one number.
+const { STEP_RETRY, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
+
 // ---------------------------------------------------------------------------
 // Hard ceilings (abuse guards; far above any real app)
 // ---------------------------------------------------------------------------
@@ -53,6 +57,11 @@ const LIMITS = {
     // levels keep a chain readable; a cycle is refused outright.
     MAX_CALL_DEPTH: 3,                 // call_action hops below the clicked action
     MAX_CALL_PARAMS: 20,               // call_action params map entries
+    // Step error handling (2026-11): `retry` on a server step, `transaction` of record writes.
+    MAX_STEP_RETRY_TIMES: STEP_RETRY.MAX_TIMES,             // retry.times
+    MAX_STEP_RETRY_DELAY_MS: STEP_RETRY.MAX_DELAY_MS,       // retry.delayMs
+    DEFAULT_STEP_RETRY_DELAY_MS: STEP_RETRY.DEFAULT_DELAY_MS,
+    MAX_TRANSACTION_STEPS,                                  // record writes in one transaction
     MAX_DATA_GRID_COLUMNS: 20,         // data_grid columns
     // AI step limits (2026-11). Plain constants, not env: they decide whether a
     // definition is valid, and that must not differ per instance.

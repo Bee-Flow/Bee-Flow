@@ -185,3 +185,20 @@ test('an unknown values column with a did-you-mean becomes a move op; anything u
     assert.equal(other._fixHint, 'Fix the fields the errors name and call app_set_action again with the whole action.');
     assert.equal(other._suggestedPatch, undefined);
 });
+
+test('onError: a step handler { steps } is kept and its steps repaired; a legacy { toast } on a record step becomes a toast handler that stops', () => {
+    const kept = repairAction({ kind: 'sequence', steps: [
+        { kind: 'create_record', tableId: 'tbl_ef34gh', values: {}, onError: { steps: [{ kind: 'navigate', screenId: 'scr_x', params: {} }] } },
+    ] }, { tables: TABLES });
+    assert.equal(kept.refusal, null);
+    assert.equal(kept.action.steps.length, 1, 'a step handler is not an effect: no refresh step added');
+    assert.ok(Array.isArray(kept.action.steps[0].onError.steps));
+    const legacy = repairAction({ kind: 'sequence', steps: [
+        { kind: 'update_record', tableId: 'tbl_ef34gh', recordId: { kind: 'formula', expr: 'item.id' }, values: {}, onError: { toast: { message: 'Could not save' } } },
+    ] }, { tables: TABLES });
+    assert.deepEqual(legacy.action.steps[0].onError, { steps: [{ kind: 'toast', message: 'Could not save', tone: 'danger' }], stop: true });
+    assert.ok(legacy.notes.some((n) => /onError \{ toast \} read as onError \{ steps: \[toast\], stop: true \}/.test(n)), legacy.notes.join('\n'));
+    const bare = repairAction({ kind: 'create_record', tableId: 'tbl_ef34gh', values: {}, retry: { times: 1 } }, { tables: TABLES });
+    assert.equal(bare.action.kind, 'sequence', 'a bare record action with retry becomes a one-step sequence');
+    assert.deepEqual(bare.action.steps[0].retry, { times: 1 });
+});

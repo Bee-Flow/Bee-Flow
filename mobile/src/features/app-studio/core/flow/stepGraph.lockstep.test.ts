@@ -31,6 +31,16 @@ const EXTRA = [
             { kind: 'condition', then: [{ kind: 'condition', then: [], else: [{ kind: 'toast' }] }], else: null },
         ],
     },
+    // Error handlers ("If it fails") and a transaction body; effects objects and the legacy array are not drawn.
+    {
+        kind: 'sequence',
+        steps: [
+            { kind: 'ai_generate', onError: { steps: [{ kind: 'toast' }, { kind: 'create_record', onError: { steps: [] } }], stop: true } },
+            { kind: 'transaction', steps: [{ kind: 'create_record' }, { kind: 'delete_record' }], onError: { steps: [{ kind: 'toast' }] } },
+            { kind: 'kb_query', onError: { toast: { message: 'x' } } },
+            { kind: 'toast', onError: [{ kind: 'toast' }] },
+        ],
+    },
 ];
 
 const actions = [...Object.values(allFixtures()).flatMap((def) => Object.values(def.actions || {})), ...EXTRA];

@@ -46,6 +46,10 @@ function validateFormula(expr, path, ctx, allowedRoots) {
             pushW({ code: 'unknown_formula_root', severity: 'warning', path, message: `Formula references unknown root "${r}" — it resolves to undefined at runtime.`, hint: `In-scope roots: ${roots.join(', ')}.` });
         }
     }
+    // `error` is only filled inside a step's onError handler.
+    if (refs.includes('error') && roots.includes('error') && !ctx.inErrorHandler) {
+        pushW({ code: 'formula.error_outside_handler', severity: 'warning', path, message: 'This formula reads `error`, which only has a value inside a step\'s onError handler — here it is null.', hint: 'Read error.message / error.step in a step of onError.steps, or set a variable there and read that.' });
+    }
     checkVariableReads(expr, path, ctx);
 }
 
@@ -127,7 +131,7 @@ function checkServerFormulas(value, path, ctx, depth = 0) {
         return;
     }
     for (const [k, v] of Object.entries(value)) {
-        if (k === 'steps' || k === 'then' || k === 'else' || k === 'cases') continue; // visited as steps
+        if (k === 'steps' || k === 'then' || k === 'else' || k === 'cases' || k === 'onError') continue; // visited as steps
         checkServerFormulas(v, `${path}.${k}`, ctx, depth + 1);
     }
 }

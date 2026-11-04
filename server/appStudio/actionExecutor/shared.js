@@ -44,9 +44,20 @@ const SERVER_CURRENT_USER_KEYS = Object.freeze([...CURRENT_USER_KEYS]);
 
 /** The scope ROOTS a server-side formula may read. */
 const SERVER_SCOPE_ROOTS = Object.freeze([
-    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value', 'params',
+    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value', 'params', 'error',
     'currentUser', 'records', 'datasets', 'now', 'today',
 ]);
+
+/**
+ * `v` when it is a plain object, else `fallback` (a client-supplied scope root).
+ * @template F
+ * @param {unknown} v
+ * @param {F} fallback
+ * @returns {Record<string, unknown> | F}
+ */
+function plainObjectOr(v, fallback) {
+    return v && typeof v === 'object' && !Array.isArray(v) ? /** @type {Record<string, unknown>} */ (v) : fallback;
+}
 
 function buildServerScope(ctx) {
     const now = new Date().toISOString();
@@ -81,7 +92,10 @@ function buildServerScope(ctx) {
         value: ctx.value,
         // call_action params inside a called action ({} otherwise). Client-supplied
         // like `item` (sanitizeBag-bounded on the /step routes).
-        params: (ctx.params && typeof ctx.params === 'object' && !Array.isArray(ctx.params)) ? ctx.params : {},
+        params: plainObjectOr(ctx.params, {}),
+        // Inside a step's onError handler: { message, step, code, attempts, stepIndex? }
+        // (null otherwise). Client-supplied on the /step routes, bounded by clampErrorScope.
+        error: plainObjectOr(ctx.error, null),
         currentUser: {
             id: ctx.viewerId ?? null,
             // A person's display name is the whole point of an audit column.

@@ -44,6 +44,8 @@ export const FIELD_LABELS: Record<string, string[]> = {
     threadKey: ['studio_apps_edit.step_settings.field_conversation', 'Conversation'],
     poPattern: ['studio_apps_edit.step_settings.field_po_pattern', 'Purchase-order filename pattern'],
     documentMode: ['studio_apps_edit.step_settings.field_document_mode', 'Read documents as'],
+    retry: ['studio_apps_edit.step_settings.field_retry', 'If it fails, try again'],
+    onError: ['studio_apps_edit.step_settings.field_on_error', 'If it still fails'],
 };
 
 export const HINTS: Record<string, string[]> = {

@@ -68,9 +68,10 @@ process.on('message', (/** @type {{ id: number, op: string, localPath: string, a
         const result = run(connectionFor(localPath), ...(Array.isArray(args) ? args : []));
         process.send({ id, ok: true, result });
     } catch (err) {
-        const e = /** @type {Error & { code?: string }} */ (err);
+        const e = /** @type {Error & { code?: string, statementIndex?: number }} */ (err);
         bestEffort('sqliteStatementChild:statement', e);
-        process.send({ id, ok: false, error: { message: e?.message || String(err), code: e?.code } });
+        // statementIndex: which batch statement changed no rows (batch_no_rows).
+        process.send({ id, ok: false, error: { message: e?.message || String(err), code: e?.code, ...(Number.isInteger(e?.statementIndex) ? { statementIndex: e.statementIndex } : {}) } });
     }
 });
 

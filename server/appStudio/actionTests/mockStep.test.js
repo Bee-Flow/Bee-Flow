@@ -91,3 +91,13 @@ test('checkMock: keys must be mockable walker paths of the action', () => {
     assert.match(checkMock({ 'steps[1].steps[0]': 'x'.repeat(70 * 1024) }, action).error, /larger than 64 KB/);
     assert.match(checkMock('x', action).error, /must be an object/);
 });
+
+test('$sequence: one answer per attempt, the last repeats; an empty list is not retried', () => {
+    const answer = { $sequence: [{ $error: 'busy', $code: 'db_busy' }, 'second'] };
+    assert.deepEqual(mockStepResult({ kind: 'ai_generate' }, answer, { attempt: 1 }), { ok: false, error: 'busy', code: 'db_busy' });
+    assert.deepEqual(mockStepResult({ kind: 'ai_generate' }, answer, { attempt: 2 }).result, { text: 'second', citations: [] });
+    assert.deepEqual(mockStepResult({ kind: 'ai_generate' }, answer, { attempt: 5 }).result, { text: 'second', citations: [] });
+    assert.deepEqual(mockStepResult({ kind: 'ai_generate' }, answer).ok, false, 'no attempt = the first');
+    assert.equal(mockStepResult({ kind: 'ai_generate' }, { $sequence: [] }).retryable, false);
+    assert.equal(mockStepResult({ kind: 'ai_generate' }, { $error: 'x', $retryable: false }).retryable, false);
+});

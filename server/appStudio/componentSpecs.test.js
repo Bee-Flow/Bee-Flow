@@ -154,10 +154,24 @@ test('action kinds add open_modal/close_modal, sequence, the native AI actions a
 
 // call_action (2026-11): one field table for the step and the bare action, a
 // client-side (flow) kind, and `params` a formula root.
+/**
+ * The step's field table is the action's (the SAME field specs, nothing forgotten on
+ * either side) plus the error-handling envelope fields (retry / onError), which only a
+ * sequence step carries.
+ */
+function assertStepTableIsActionTablePlusEnvelope(kind, envelope) {
+    const action = ACTION_SPECS[kind].fields;
+    const step = STEP_SPECS[kind].fields;
+    for (const [field, spec] of Object.entries(action)) assert.equal(step[field], spec, `${kind}.${field} is the same spec on the step`);
+    assert.deepEqual(Object.keys(step).filter((f) => !(f in action)), envelope);
+    for (const f of envelope) assert.equal(step[f].envelope, true);
+}
+
 test('call_action is an action AND a step, off one shared field table, with the params root', () => {
     const { CALL_ACTION_FIELDS, CLIENT_STEP_KINDS, FORMULA_SCOPE_ROOTS, LIMITS } = require('./componentSpecs');
-    assert.equal(ACTION_SPECS.call_action.fields, STEP_SPECS.call_action.fields);
+    // The step table is the action table plus the error-handling envelope (onError only: a call is not retried).
     assert.equal(ACTION_SPECS.call_action.fields, CALL_ACTION_FIELDS);
+    assertStepTableIsActionTablePlusEnvelope('call_action', ['onError']);
     assert.ok(CLIENT_STEP_KINDS.includes('call_action'));
     assert.ok(!DATA_MUTATING_STEP_KINDS.includes('call_action'));
     assert.equal(STEP_KINDS[STEP_KINDS.indexOf('switch') + 1], 'call_action');
@@ -173,10 +187,26 @@ test('call_action is an action AND a step, off one shared field table, with the 
 test('create_record is an action AND a step, off one shared field table', () => {
     assert.ok(ACTION_KINDS.includes('create_record'));
     assert.ok(STEP_KINDS.includes('create_record'));
-    assert.equal(ACTION_SPECS.create_record.fields, STEP_SPECS.create_record.fields);
     assert.equal(ACTION_SPECS.create_record.fields, CREATE_RECORD_FIELDS);
+    assertStepTableIsActionTablePlusEnvelope('create_record', ['retry', 'onError']);
     // It writes rows, so it stays on the server side of the partition.
     assert.ok(DATA_MUTATING_STEP_KINDS.includes('create_record'));
+});
+
+test('every server step (and call_action) carries the error-handling envelope; outside-effect kinds take no retry', () => {
+    const { RETRY_UNSAFE_KINDS } = require('../shared/appDefinition/stepFlow.mjs');
+    for (const k of DATA_MUTATING_STEP_KINDS) {
+        const f = STEP_SPECS[k].fields;
+        assert.equal(f.onError?.type, 'errorHandler', `${k} has onError`);
+        assert.equal(!!f.retry, !RETRY_UNSAFE_KINDS.includes(k), `${k} retry`);
+    }
+    for (const k of CLIENT_STEP_KINDS) {
+        assert.equal(!!STEP_SPECS[k].fields.onError, k === 'call_action', `${k} onError`);
+        assert.ok(!STEP_SPECS[k].fields.retry, `${k} has no retry`);
+    }
+    // The bare ACTION tables are untouched: run_automation keeps its onError EFFECTS.
+    assert.equal(ACTION_SPECS.run_automation.fields.onError.type, 'effects');
+    assert.ok(!ACTION_SPECS.ai_generate.fields.onError);
 });
 
 test('step kinds are partitioned into client-only and data-mutating', () => {
@@ -198,7 +228,7 @@ test('step kinds are partitioned into client-only and data-mutating', () => {
     // every record write — server by definition.
     // copy_document writes a new document into the OWNER's library, read
     // through the app's document pool: server by definition.
-    assert.deepEqual(DATA_MUTATING_STEP_KINDS, ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document']);
+    assert.deepEqual(DATA_MUTATING_STEP_KINDS, ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'transaction']);
     // …and none of the new file/dataset/browse steps is a bare v1 ACTION kind —
     // they are sequence steps only, which is what keeps the v1 action editors untouched.
     assert.ok(!ACTION_KINDS.includes('generate_file'));
@@ -208,6 +238,7 @@ test('step kinds are partitioned into client-only and data-mutating', () => {
     assert.ok(!ACTION_KINDS.includes('dataset_query'));
     assert.ok(!ACTION_KINDS.includes('ai_browse'));
     assert.ok(!ACTION_KINDS.includes('request_approval'));
+    assert.ok(!ACTION_KINDS.includes('transaction'));
     // the partition is a total, disjoint cover of STEP_KINDS
     assert.equal(new Set([...CLIENT_STEP_KINDS, ...DATA_MUTATING_STEP_KINDS]).size, STEP_KINDS.length);
     for (const k of CLIENT_STEP_KINDS) assert.ok(!DATA_MUTATING_STEP_KINDS.includes(k), `${k} cannot be both`);

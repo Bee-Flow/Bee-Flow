@@ -40,6 +40,7 @@
 'use strict';
 
 const { suggestTableId } = require('./tableHints');
+const { hasEffects, finishEffects, walkHandler, envelopeNeedsSequence } = require('./stepEnvelopeRepair.mts');
 const { parseGemmaArgs } = require('../../core/llm/leakedToolCalls');
 
 const RECORD_KINDS = new Set(['create_record', 'update_record', 'delete_record']);
@@ -225,9 +226,7 @@ function effectSteps(step, at, notes) {
         const other = Object.keys(success).filter((k) => !['toast', 'navigateTo', 'navigate'].includes(k));
         if (other.length) notes.push(`${at}: onSuccess.${other.join(', onSuccess.')} dropped — effects are a toast and/or a navigate.`);
     }
-    if (step.onError !== undefined) notes.push(`${at}: onError dropped — the runner already toasts the real failure.`);
-    delete step.onSuccess;
-    delete step.onError;
+    finishEffects(step, at, notes); // onSuccess goes; an effects onError becomes a toast handler or goes
     return out;
 }
 
@@ -248,9 +247,10 @@ function walkSteps(list, at, notes, ctx, depth) {
             out.push(raw); continue;
         }
         const step = raw;
+        walkHandler(step, stepAt, (sub, subAt) => walkSteps(sub, subAt, notes, ctx, depth + 1));
         if (RECORD_KINDS.has(step.kind)) {
             repairRecordStep(step, stepAt, notes, ctx);
-            const hadEffects = step.onSuccess !== undefined || step.onError !== undefined;
+            const hadEffects = hasEffects(step);
             const extra = hadEffects ? effectSteps(step, stepAt, notes) : [];
             out.push(step);
             if (hadEffects) {
@@ -435,11 +435,11 @@ function repairAction(action, ctx = {}) {
         if (out.kind === 'request_approval') repairApprovalStep(out, 'action', notes);
         if (RECORD_KINDS.has(out.kind)) {
             repairRecordStep(out, 'action', notes, ctx);
-            if (out.onSuccess !== undefined || out.onError !== undefined) {
+            if (envelopeNeedsSequence(out, notes)) out = { kind: 'sequence', steps: [out] };
+            else if (hasEffects(out)) {
                 const extra = effectSteps(out, 'action', notes);
-                const step = out;
-                out = { kind: 'sequence', steps: [step, ...extra] };
-                notes.push(`action: a ${step.kind} with onSuccess/onError read as a sequence [${out.steps.map((s) => s.kind).join(', ')}] — effects live on run_automation only; a record step is followed by a refresh of its table.`);
+                out = { kind: 'sequence', steps: [out, ...extra] };
+                notes.push(`action: a ${out.steps[0].kind} with onSuccess/onError read as a sequence [${out.steps.map((s) => s.kind).join(', ')}] — effects live on run_automation only; a record step is followed by a refresh of its table.`);
             }
         } else if (out.kind === 'run_automation' && isObject(out.inputMapping)) {
             // Only the corruption check: the mapping vocabulary is legal here.

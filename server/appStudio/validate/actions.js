@@ -37,6 +37,7 @@ const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
 const { checkCallAction, validateCallParams } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { validateTierChoice } = require('./tierChoice.mts');
+const { validateEnvelopeField } = require('./stepEnvelope.mts');
 const { DATASET_QUERY_OUTPUTS, KIND_CHECKS: DATA_KIND_CHECKS } = require('./stepDataChecks');
 
 // ---------------------------------------------------------------------------
@@ -372,6 +373,7 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
             return;
         case 'callParams': validateCallParams(field, value, path, ctx); return;
         case 'tierChoice': validateTierChoice(field, fs, value, path, ctx); return;
+        case 'errorHandler': case 'retry': validateEnvelopeField(fs.type, value, path, { depth, counter, ctx, validateActionSteps }); return;
         default:
             return;
     }

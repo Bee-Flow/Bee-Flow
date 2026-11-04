@@ -37,7 +37,7 @@ function rewriteActionResults(value, renameMap) {
 }
 
 // Rewrite renamed screen ids inside a sequence's navigate steps (recursing
-// condition/loop/switch branches).
+// condition/loop/switch branches and onError handlers).
 function rewriteStepScreenRefs(steps, ren) {
     if (!Array.isArray(steps)) return;
     for (const step of steps) {
@@ -45,6 +45,8 @@ function rewriteStepScreenRefs(steps, ren) {
         if (step.kind === 'navigate') { const to = ren(step.screenId); if (to) step.screenId = to; }
         for (const key of ['then', 'else', 'steps', 'default']) if (Array.isArray(step[key])) rewriteStepScreenRefs(step[key], ren);
         if (Array.isArray(step.cases)) for (const c of step.cases) if (isObject(c)) rewriteStepScreenRefs(c.steps, ren);
+        // A step's onError handler (canonicalized to { steps }) can navigate too.
+        if (isObject(step.onError) && Array.isArray(step.onError.steps)) rewriteStepScreenRefs(step.onError.steps, ren);
     }
 }
 

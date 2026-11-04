@@ -7,8 +7,15 @@
  * the walker paths and the outcome per path; the HOST owns every decision with a policy in
  * it (what may run, what it costs, how a step reaches the executor).
  *
- * Leaf order: onStepStart → decide → mock (mockFor/mocked) or execute → onStepEnd →
- * on failure: stop → resultVar, lastResult.
+ * Leaf order: onStepStart → decide → mock (mockFor/mocked) or execute, per attempt of the
+ * step's `retry` (stepErrorFlow.attemptStep; every attempt counts in `executed`) → onStepEnd →
+ * on failure: the step's onError handler or stop → resultVar, lastResult.
+ *
+ * Error handlers (`onError: { steps, stop? }`, stepFlow.errorHandlerOf): a failed leaf or
+ * call_action with a handler records `status: 'error', handled: true`, walks
+ * `<path>.onError.steps` with `w.error` set ({ message, step, code, attempts, stepIndex? }),
+ * restores it, and the walk CONTINUES (`stop: true` ends it quietly: `stopped` is set,
+ * `failed` is not). A failure inside a handler without its own handler stops the run as usual.
  *
  * Path grammar (fixed; reports, saved-test mocks and expectations read it):
  *   `steps[i]` at the top of a sequence, `action[0]` for a bare v1 action;
@@ -29,8 +36,9 @@
  */
 
 import { createRequire } from 'node:module';
-import { childStepSlots } from '../shared/appDefinition/stepFlow.mjs';
+import { childStepSlots, errorHandlerOf } from '../shared/appDefinition/stepFlow.mjs';
 import { calleeTop, ordinalMap, stepPaths, topOf } from './sequencePaths.mts';
+import { attemptStep, errorScopeOf } from './stepErrorFlow.mts';
 import type { Decision, Obj, Outcome, OutcomeView, Step, StepEndEvent, StepEvent, StepResult, WalkHost, WalkState } from './sequenceWalkTypes.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -98,6 +106,8 @@ function keepOutcome(w: WalkState, ev: StepEvent, end: Ended, ms: number): void 
         ...(end.note !== undefined ? { note: end.note } : {}),
         ...(end.mocked ? { mocked: true } : {}),
         ...(end.prompt !== undefined ? { prompt: end.prompt } : {}),
+        ...(end.attempts !== undefined && end.attempts > 1 ? { attempts: end.attempts } : {}),
+        ...(end.handled ? { handled: true } : {}),
     };
     w.outcomes.set(ev.path, outcome);
 }
@@ -110,7 +120,7 @@ async function record(fr: Frame, ev: StepEvent, end: Ended, startedAt: number): 
 }
 
 async function fail(fr: Frame, ev: StepEvent, res: { error?: string; code?: string }, startedAt: number, extra: Partial<Ended> = {}): Promise<void> {
-    const error = String(res.error || 'Step failed');
+    const error = String(res.error || 'The step failed without a reason');
     fr.w.failed = { path: ev.path, kind: ev.kind, ordinal: ev.ordinal, error, ...(res.code ? { code: res.code } : {}) };
     fr.w.stopped = `${ev.path} failed`;
     await record(fr, ev, { ...extra, status: 'error', error, ...(res.code ? { code: res.code } : {}) }, startedAt);
@@ -186,9 +196,10 @@ async function decideSafe(fr: Frame, step: Step, ev: StepEvent): Promise<Decisio
 async function executeSafe(fr: Frame, step: Step, ev: StepEvent): Promise<StepResult> {
     try {
         const res = await fr.host.execute(step, ev, fr.w);
-        return res && typeof res === 'object' ? res : { ok: false, error: 'Step failed' };
+        return res && typeof res === 'object' ? res : { ok: false, error: 'The step gave no answer', retryable: false };
     } catch (e) {
-        return { ok: false, error: (e as Error)?.message || 'Step failed' };
+        // An unknown outcome (the host itself threw): never retried.
+        return { ok: false, error: (e as Error)?.message || 'The step could not run', retryable: false };
     }
 }
 
@@ -207,21 +218,51 @@ async function walkLeaf(fr: Frame, step: Step, ev: StepEvent, startedAt: number)
     const ctx = host.ctxFor(w, ev);
     const prompt = promptFor(fr, decision.step, ctx);
     const mock = host.mockFor && host.mocked ? host.mockFor(ev.path, step) : null;
-    w.executed += 1;
-    const res = mock && host.mocked ? host.mocked(step, mock.value, ctx) : await executeSafe(fr, decision.step, ev);
-    const extra: Partial<Ended> = { ...(mock ? { mocked: true } : {}), ...(prompt !== undefined ? { prompt } : {}) };
+    const once = async (attempt: number): Promise<StepResult> => {
+        w.executed += 1;
+        return mock && host.mocked ? host.mocked(step, mock.value, ctx, attempt) : executeSafe(fr, decision.step, ev);
+    };
+    const { res, attempts } = await attemptStep(step, once, { sleep: (ms) => host.sleep(ms), stop: () => !!(host.shouldStop && host.shouldStop(w)) });
+    const extra: Partial<Ended> = { ...(mock ? { mocked: true } : {}), ...(prompt !== undefined ? { prompt } : {}), ...(attempts > 1 ? { attempts } : {}) };
     for (const note of Array.isArray(res.notes) ? res.notes : []) addNote(w, `${ev.path}: ${String(note).slice(0, 300)}`);
-    if (res.ok !== true) return fail(fr, ev, res, startedAt, extra);
+    if (res.ok !== true) return failOrHandle(fr, step, ev, { res, attempts, startedAt, extra });
+    // A transaction hands back its children's resultVars (as the browser does): later steps read vars.<name>.
+    const named = step.kind === 'transaction' && isObject(res.result) ? res.result.vars : undefined;
+    if (isObject(named)) w.vars = { ...w.vars, ...named };
     if (typeof step.resultVar === 'string' && step.resultVar) w.vars = { ...w.vars, [step.resultVar]: res.result ?? null };
     w.lastResult = res.result ?? null;
     return record(fr, ev, { ...extra, status: 'ok', result: res.result ?? null, ...(decision.note ? { note: decision.note } : {}) }, startedAt);
+}
+
+/** `kind`: the kind that really failed (inside a called action, the callee's step), for error.step. */
+type Failure = { res: StepResult; attempts: number; startedAt: number; extra: Partial<Ended>; kind?: string };
+
+/**
+ * A step failed (after its retries). With an onError handler: record it as handled, walk the
+ * handler with `w.error` in scope, restore, continue (or stop quietly). Without: stop the run.
+ */
+async function failOrHandle(fr: Frame, step: Step, ev: StepEvent, f: Failure): Promise<void> {
+    const { w } = fr;
+    const handler = errorHandlerOf(step);
+    if (!handler) return fail(fr, ev, f.res, f.startedAt, f.extra);
+    const error = String(f.res.error || 'The step failed without a reason');
+    await record(fr, ev, { ...f.extra, status: 'error', error, ...(f.res.code ? { code: f.res.code } : {}), attempts: f.attempts, handled: true }, f.startedAt);
+    const saved = w.error;
+    w.error = errorScopeOf(f.kind ?? ev.kind, f.res, f.attempts, ev.ordinal);
+    try {
+        await walkList({ ...fr, depth: fr.depth + 1 }, handler.steps, `${ev.path}.onError.steps`);
+    } finally {
+        w.error = saved;
+    }
+    if (handler.stop && !w.stopped) w.stopped = `${ev.path} failed; its onError handler ends the run`;
 }
 
 async function walkControl(fr: Frame, step: Step, ev: StepEvent, startedAt: number): Promise<void> {
     const { w, host } = fr;
     const ctx = host.ctxFor(w, ev);
     const scope = host.buildScope(ctx);
-    const slots = childStepSlots(step);
+    // The kind's own branches; a handler slot (last) is walked by failOrHandle, never as a branch.
+    const slots = childStepSlots(step).filter((sl) => sl.suffix !== '.onError.steps');
     const inner: Frame = { ...fr, depth: fr.depth + 1 };
     if (step.kind === 'condition') {
         const value = host.evaluate(String(step.expr ?? ''), scope);
@@ -319,7 +360,9 @@ async function walkCall(fr: Frame, step: Step, ev: StepEvent, startedAt: number)
     const outcome = { actionId: id, params: got.value };
     if (w.stopped && w.failed && w.failed !== saved.failed) {
         const inner = w.failed;
-        return fail(fr, ev, { error: `The called action "${id}" failed at ${inner.path}: ${inner.error}`, ...(inner.code ? { code: inner.code } : {}) }, startedAt, { result: outcome });
+        const res = { ok: false, error: `The called action "${id}" failed at ${inner.path}: ${inner.error}`, ...(inner.code ? { code: inner.code } : {}) };
+        if (errorHandlerOf(step)) { w.stopped = null; w.failed = saved.failed; }
+        return failOrHandle(fr, step, ev, { res, attempts: 1, startedAt, extra: { result: outcome }, kind: inner.kind });
     }
     return record(fr, ev, { status: 'ok', result: outcome }, startedAt);
 }
