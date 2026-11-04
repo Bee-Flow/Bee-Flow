@@ -115,7 +115,10 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
             || req.ip
             || 'anon';
         const cost = typeof costFn === 'function' ? normalizeCost(costFn(req)) : 1;
+        return spend(key, cost, res, next, onDeny);
+    }
 
+    function spend(key, cost, res, next, onDeny) {
         const redis = ns ? currentRedis() : null;
         if (!redis) return checkMemory(key, cost, res, next, onDeny);
 
@@ -159,6 +162,23 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
     // Resolves true when the request may proceed; false when a 429 was sent.
     rateLimitMiddleware.check = (req, res) => new Promise((resolve) => {
         run(req, res, () => resolve(true), () => resolve(false));
+    });
+
+    // Request-free form for work that runs after the request has gone (a background job
+    // spending the same per-(viewer, app) bucket a click spends): `key` is what keyFn would
+    // return. Resolves { ok: true } when charged, else { ok: false, retryAfterSecs }.
+    /**
+     * @param {string} key
+     * @param {number} [cost]
+     * @returns {Promise<{ ok: true } | { ok: false, retryAfterSecs: number }>}
+     */
+    rateLimitMiddleware.take = (key, cost = 1) => new Promise((resolve) => {
+        let retryAfterSecs = 1;
+        const res = {
+            set(/** @type {string} */ name, /** @type {string} */ value) { if (name === 'Retry-After') retryAfterSecs = Math.max(1, Number(value) || 1); return res; },
+            status() { return { json() { return undefined; } }; },
+        };
+        spend(String(key), normalizeCost(cost), res, () => resolve({ ok: true }), () => resolve({ ok: false, retryAfterSecs }));
     });
 
     return rateLimitMiddleware;

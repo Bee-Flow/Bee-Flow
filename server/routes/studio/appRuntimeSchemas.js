@@ -19,7 +19,7 @@
  *     every row the viewer may read, as if they were the filtered ones.
  */
 
-const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, closedObject, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
 const { LIMITS } = require('../../appStudio/componentSpecs/limits');
 
 /**
@@ -64,6 +64,33 @@ const StepBody = bodyOf({
     error: ErrorScope.optional(),
 }, 'An action step');
 
+/** A background action's start (…/actions/:actionId/background): the scope roots of the click. */
+const BackgroundBody = bodyOf({
+    formValues: bag('formValues').nullish(),
+    vars: bag('vars').nullish(),
+    item: z.unknown().optional(),
+    index: wholeNumber('index is the loop position, 0 or more.').nullish(),
+    value: z.unknown().optional(),
+}, 'A background action start');
+
+const RUN_ID_TEXT = 'jobId is the id the start answered with (sar_ and 32 hex characters).';
+/**
+ * …/actions/jobs/:jobId. Bounded here; the sar_<32 hex> shape is checked AFTER the app gate
+ * (an unknown shape is the same 404 as an unknown job), so a malformed id never tells a
+ * stranger more than "not found".
+ */
+const JobParams = closedObject({
+    id: worded('id is the app id.').min(1, 'id is the app id.').max(200, 'id is the app id.'),
+    jobId: worded(RUN_ID_TEXT).min(1, RUN_ID_TEXT).max(64, RUN_ID_TEXT),
+}, 'A background job address');
+
+/** …/actions/jobs?active=1&actionId=… : the caller's own runs. */
+const JobsQuery = queryOf({
+    active: choice(['0', '1'], 'active is 1 for running jobs only.').optional(),
+    actionId: worded('actionId is the id of an action of the app.').regex(/^[A-Za-z0-9_-]{1,80}$/, 'actionId is the id of an action of the app.').optional(),
+    draft: choice(['0', '1', 'true', 'false'], 'draft is 1 for runs of the saved draft.').optional(),
+}, 'A background job list');
+
 /** A whole action handed to its automation (…/actions/:actionId/run). */
 const RunBody = bodyOf({
     formValues: bag('formValues').nullish(),
@@ -100,4 +127,4 @@ const RecordsQuery = queryOf({
     sample: choice(['0', '1'], 'sample is 1 for an editor preview.').optional(),
 }, 'A table page');
 
-module.exports = { DraftQuery, StepBody, RunBody, ChatBody, RecordsQuery, ErrorScope };
+module.exports = { DraftQuery, StepBody, RunBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };

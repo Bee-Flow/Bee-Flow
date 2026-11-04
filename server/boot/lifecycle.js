@@ -112,12 +112,25 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
         // and wait (bounded) for running executions to finish, so a deploy doesn't
         // abandon a run mid-step and re-fire its side effects after restart. Bound
         // it under the orchestrator's termination grace (k8s default 30s).
-        try {
-            const automationRunner = deps.automationRunner || require('../core/automationRunner');
-            if (typeof automationRunner.stop === 'function') {
-                await automationRunner.stop({ timeoutMs: parseInt(process.env.AUTOMATION_DRAIN_TIMEOUT_MS, 10) || 25_000 });
-            }
-        } catch (e) { log.warn('[Server] automation runner drain failed:', /** @type {Error} */ (e).message); }
+        // App Studio background actions drain in parallel under the same bound; what does not
+        // finish in time is marked interrupted (there is no resume).
+        const drainMs = parseInt(process.env.AUTOMATION_DRAIN_TIMEOUT_MS, 10) || 25_000;
+        await Promise.all([
+            (async () => {
+                try {
+                    const automationRunner = deps.automationRunner || require('../core/automationRunner');
+                    if (typeof automationRunner.stop === 'function') {
+                        await automationRunner.stop({ timeoutMs: drainMs });
+                    }
+                } catch (e) { log.warn('[Server] automation runner drain failed:', /** @type {Error} */ (e).message); }
+            })(),
+            (async () => {
+                try {
+                    const backgroundRun = deps.backgroundRun || require('../appStudio/backgroundRun.mts');
+                    await backgroundRun.stop({ timeoutMs: Math.max(1000, drainMs - 2000) });
+                } catch (e) { log.warn('[Server] background action drain failed:', /** @type {Error} */ (e).message); }
+            })(),
+        ]);
         try { (deps.usageOpenObservePush || require('../jobs/usageOpenObservePush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
         try { (deps.opsMetricsPush || require('../jobs/opsMetricsPush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
         // Chat signals: write the last minute of counters (bounded; a lost minute is acceptable, a hung shutdown is not).

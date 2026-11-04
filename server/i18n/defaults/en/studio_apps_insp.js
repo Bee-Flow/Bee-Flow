@@ -413,4 +413,11 @@ module.exports = {
     'studio_apps_insp.wiring.also_used_one': '(also used by {count} other component)',
     'studio_apps_insp.wiring.on_error_lost': 'The "on error" part could not come across — a flow stops at the step that fails.',
     'studio_apps_insp.wiring.run_failed': 'Run failed ({status})',
+    'studio_apps_insp.actions.background_label': 'Keep running when the page is closed',
+    'studio_apps_insp.actions.background_hint': 'Runs on the server; the page shows the progress and the result. Navigation and dialogs cannot be part of it; messages and refreshes show at the end.',
+    'studio_apps_insp.actions.lock_key_label': 'Only once at a time per',
+    'studio_apps_insp.actions.lock_key_hint': 'While a run with the same value is going, a second start is refused. For example the record id.',
+    'studio_apps_insp.actions.progress_var_label': 'Progress text',
+    'studio_apps_insp.actions.progress_var_hint': 'The variable a "set variable" step writes; its text shows while the run goes.',
+    'studio_apps_insp.actions.progress_var_none': 'The current step',
 };

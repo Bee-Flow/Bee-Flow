@@ -19,6 +19,7 @@ const {
 const ops = require('../../definitionOps');
 const { pickClosestId } = require('../../../automation/validate/helpers');
 const { repairAction, describeActionRefusal } = require('../actionNormalise');
+const { repairRunOptions } = require('../../backgroundRunPolicy.mts');
 const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
 const { adoptCanonical, limitRepairsUnder } = require('../shared');
 const { limitReasons } = require('../limitRefusal.mts');
@@ -50,10 +51,11 @@ function applySetAction(draftWrap, args) {
     // vocabulary in a record step, bare scalars, a tableId that names a table
     // by handle. The notes ride `_hints` on success and on a refusal alike.
     const tables = Array.isArray(draftWrap.dataModel?.tables) ? draftWrap.dataModel.tables : [];
-    const repaired = repairAction(rawAction, { tables });
+    const optionNotes = /** @type {string[]} */ ([]); // background/lockKey/progressVar first (backgroundRunPolicy)
+    const repaired = repairAction(repairRunOptions(JSON.parse(JSON.stringify(rawAction)), optionNotes), { tables });
     if (repaired.refusal) return repaired.refusal;
     const action = /** @type {Record<string, any>} */ (repaired.action);
-    const repairNotes = repaired.notes;
+    const repairNotes = [...optionNotes, ...repaired.notes];
     const withNotes = (result) => {
         if (repairNotes.length && result && typeof result === 'object') result._hints = [...repairNotes, ...(Array.isArray(result._hints) ? result._hints : [])];
         return result;

@@ -176,6 +176,12 @@ export interface AppAction {
     inputMapping?: Record<string, InputMapping>;
     onSuccess?: ActionEffect;
     onError?: ActionEffect;
+    /** A sequence: run as a server job that survives the page. */
+    background?: boolean;
+    /** A background sequence: a binding; a second start with the same key while one runs is refused. */
+    lockKey?: unknown;
+    /** A background sequence: the variable shown as its progress text. */
+    progressVar?: string;
     [key: string]: unknown;
 }
 

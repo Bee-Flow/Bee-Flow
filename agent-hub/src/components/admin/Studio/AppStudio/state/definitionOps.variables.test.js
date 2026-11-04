@@ -89,6 +89,15 @@ describe('renameVariable', () => {
         expect(renameVariable(def, 'nope', 'x')).toBe(def);
         expect(renameVariable(def, 'a', 'a')).toBe(def);
     });
+
+    it('a background action\'s progressVar follows the rename; other actions keep their object', () => {
+        const other = { kind: 'sequence', steps: [] };
+        const def = { ...baseDef([decl('status')]), actions: { act_bg: { kind: 'sequence', steps: [], background: true, progressVar: 'status' }, act_other: other } };
+        const next = renameVariable(def, 'status', 'progress');
+        expect(next.actions.act_bg.progressVar).toBe('progress');
+        expect(next.actions.act_other).toBe(other);
+        expect(def.actions.act_bg.progressVar).toBe('status');
+    });
 });
 
 describe('removeVariable', () => {

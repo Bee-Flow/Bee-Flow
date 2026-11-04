@@ -187,9 +187,16 @@ this list as "the ways an app passes validation and is still broken".
 - Every mutation needs a following \`{kind:"refresh", tableId}\` naming the table it dirtied. Nothing
   invalidates a bound query on its own, so without it the change does not appear and the user clicks
   the button again.
-- A sequence action takes ONLY \`{kind:"sequence", steps}\`. No onError, no onSuccess — they are
-  stripped on save. The runner already toasts the real failure message. A server STEP inside it
-  may carry onError {steps} / retry (see ### Sequence steps).
+- A sequence action takes \`{kind:"sequence", steps}\` plus, for long work, \`background:true\`
+  (runs as a server job that survives closing the page; the page shows progress and the result).
+  A background sequence may use server steps, set_variable, condition/switch/loop, call_action,
+  toast/refresh (shown at the end) and a LEADING confirm; nothing else from the browser.
+  \`lockKey\` (a binding, e.g. {kind:"formula",expr:"'order:' + item.id"}) refuses a second start
+  for the same key while one runs; \`progressVar:"status"\` shows vars.status as the progress text.
+  Loops still stop at 200 iterations and a records binding reads 50 rows unless it sets limit.
+  No onError, no onSuccess on the action — they are stripped on save. The runner already toasts
+  the real failure message. A server STEP inside it may carry onError {steps} / retry (see
+  ### Sequence steps).
 - Give anything you will reorder by dragging a DISTINCT rank. Two rows sharing one have no gap to
   insert between, so the drag computes the rank the card already had and it springs back on refresh.
 
@@ -557,6 +564,8 @@ function renderAction(id, action, homeless) {
         bits.push(`→modal:${action.modalId}`);
     } else if (action.kind === 'sequence') {
         bits.push(require('./builderPrompt/summariseSteps.mts').summariseSteps(action.steps));
+        if (action.background === true) bits.push('background');
+        if (action.lockKey) bits.push('lock');
     }
     return bits.join(' ');
 }

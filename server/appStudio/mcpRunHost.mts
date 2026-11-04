@@ -35,6 +35,8 @@ export type RunReport = {
     free: boolean;
     /** How many step runs got their mocked answer. */
     mocked: number;
+    /** A background action: the lockKey this run resolved and the progress variable. */
+    background?: { lockKey: string | null; progressVar: string | null };
 };
 export type RunOutcome = RunReport | { error: string; _fixHint?: string };
 
@@ -58,6 +60,8 @@ export type RunDeps = {
     log: { warn: (...a: unknown[]) => void };
     now: () => number;
     limits: () => Partial<RunLimits>;
+    /** The run table (a live run of a background action with a lockKey takes its lock); default actionRunStore(). */
+    actionRuns?: () => import('../stores/studioAppData/actionRuns.mts').ActionRunStore;
 };
 
 export type Deps = RunDeps & Required<Pick<RunDeps, 'readData' | 'takeFreeBudget' | 'promptOf'>>;

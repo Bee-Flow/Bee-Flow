@@ -142,3 +142,42 @@ test('a pass also purges resolved document suggestions', async () => {
     await job.runOnce();
     assert.strictEqual(calls.documentSuggestions, 1);
 });
+
+test('the action-run prune runs under its own lock with the policy knobs; a failure skips nothing; 0/0 skips it', async () => {
+    const queries = [];
+    const runs = [];
+    let throwRuns = false;
+    const logs = [];
+    const deps = {
+        pool: { connect: async () => ({ query: async (sql, params) => { queries.push({ sql, params }); return { rows: [{ locked: true }] }; }, release() {} }) },
+        monitoringRetentionPass: async () => ({ deleted: {} }),
+        pruneScanLedger: async () => ({ deleted: 0 }),
+        ledgerKeyVersion: 1,
+        pruneSuggestionScans: async () => 0,
+        pruneSuggestionFeedback: async () => 0,
+        pruneDocumentSuggestions: async () => 0,
+        pruneStudioActionRuns: async (opts) => { runs.push(opts); if (throwRuns) throw new Error('runs unreachable'); return { nulled: 2, deleted: 1 }; },
+        log: { debug() {}, info: (...a) => logs.push(a.join(' ')), warn: (...a) => logs.push(a.join(' ')), error() {} },
+    };
+    job._setDeps(deps);
+    await job.runOnce();
+    assert.deepStrictEqual(runs, [{ resultTtlHours: 24, retentionDays: 30, batch: 5000 }]);
+    assert.ok(queries.some((q) => /pg_try_advisory_lock/.test(q.sql) && q.params[0] === job.ACTION_RUN_PRUNE_LOCK_KEY));
+    assert.ok(queries.some((q) => /pg_advisory_unlock/.test(q.sql) && q.params[0] === job.ACTION_RUN_PRUNE_LOCK_KEY));
+    throwRuns = true;
+    job._setDeps(deps);
+    await job.runOnce();
+    assert.ok(logs.some((l) => /action-run prune failed/.test(l)));
+    process.env.STUDIO_APP_RUN_RETENTION_DAYS = '0';
+    process.env.STUDIO_APP_RUN_RESULT_TTL_HOURS = '0';
+    try {
+        runs.length = 0;
+        job._setDeps(deps);
+        await job.runOnce();
+        assert.deepStrictEqual(runs, [], 'both knobs 0: nothing pruned');
+    } finally {
+        delete process.env.STUDIO_APP_RUN_RETENTION_DAYS;
+        delete process.env.STUDIO_APP_RUN_RESULT_TTL_HOURS;
+        job._setDeps(null);
+    }
+});

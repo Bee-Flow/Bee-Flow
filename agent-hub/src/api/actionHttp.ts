@@ -29,3 +29,45 @@ export function getAuthed(url: string): Promise<Response> {
 export function attachmentUrl(appId: string | null, fileId: string): string {
     return `${API_BASE}/api/studio-apps/${encodeURIComponent(String(appId))}/data/attachments/${encodeURIComponent(fileId)}`;
 }
+
+/** Where a background action's job lives: …/actions/jobs[/<jobId>]. */
+export function jobsUrl(appId: string | null, jobId?: string): string {
+    return `${actionsUrl(appId)}/jobs${jobId ? `/${encodeURIComponent(jobId)}` : ''}`;
+}
+
+/** The progress of a background job, as the server reports it. */
+export interface JobProgress {
+    stepIndex: number | null;
+    kind: string | null;
+    executed: number;
+    /** The text of the action's progressVar. */
+    message: string | null;
+    loop: { index: number; count: number } | null;
+    /** 'budget' while the job waits for the per-minute step budget. */
+    waiting: string | null;
+}
+
+/** A deferred toast or refresh the job recorded; the browser replays it at the end. */
+export interface JobEffect {
+    kind: 'toast' | 'refresh' | string;
+    message?: string;
+    tone?: string;
+    tableId?: string;
+    datasetId?: string;
+}
+
+/** One background job (GET …/actions/jobs/:jobId). Additive: unknown fields are ignored. */
+export interface JobView {
+    jobId: string;
+    actionId: string;
+    status: 'running' | 'success' | 'error' | 'interrupted' | 'cancelled' | string;
+    progress: JobProgress;
+    result?: unknown;
+    vars?: Record<string, unknown>;
+    effects?: JobEffect[];
+    error: string | null;
+    errorStep: { path?: string; kind?: string; stepIndex?: number | null } | null;
+    startedAt: string | null;
+    finishedAt: string | null;
+    durationMs: number | null;
+}

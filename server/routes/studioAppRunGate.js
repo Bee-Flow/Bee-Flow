@@ -202,4 +202,36 @@ function stepDocumentContext(step, def, role) {
     return { documentPool: require('../appStudio/appDocuments/pool.mts').documentPool(def, documentChecks(def, role)) };
 }
 
-module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, documentChecks, stepDocumentContext };
+/**
+ * The definition a request runs: non-owners ALWAYS the frozen published one; the working
+ * draft only for the owner with ?draft=1 (or true).
+ * @template D
+ * @param {{ userId: string, definition?: D, publishedDefinition?: D }} app
+ * @param {import('express').Request} req
+ * @param {string} userId
+ * @returns {{ def: D | undefined, isOwner: boolean, draft: boolean }}
+ */
+function pickDefinition(app, req, userId) {
+    const isOwner = app.userId === userId;
+    const draft = isOwner && ['1', 'true'].includes(String(req.query?.draft ?? ''));
+    return { def: draft ? app.definition : app.publishedDefinition, isOwner, draft };
+}
+
+/**
+ * The viewer's role in the app (its data model's role mapping) and that model, read once.
+ * @param {import('express').Request} req
+ * @param {{ id: string, userId: string }} app
+ * @param {string} userId
+ * @returns {Promise<{ role: string | null, model: unknown }>}
+ */
+async function resolveViewerRole(req, app, userId) {
+    const studioAppDataStore = require('../stores/studioAppDataStore');
+    const rlsGateway = require('../appStudio/rlsGateway');
+    const { userGroups } = await resolveAudienceContext(req);
+    const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
+    const model = (meta && meta.model) ? meta.model : null;
+    const role = await rlsGateway.resolveViewerRole(app, userId, model, { userGroups });
+    return { role: role || null, model };
+}
+
+module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };

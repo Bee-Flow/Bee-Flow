@@ -40,6 +40,10 @@ import type { ReadData } from './runBindings.mts';
 import { checkMock } from './actionTests/mockStep.mts';
 import { ownAction } from './actionCalls.mts';
 import { dryRunNote, hostFor } from './mcpRunHost.mts';
+import { backgroundActionProblems, backgroundLimits, readRunOptions } from './backgroundRunPolicy.mts';
+import { lockedMessage, resolveLockKey } from './backgroundRun.mts';
+import { newRunId } from '../stores/studioAppData/runPolicy.mts';
+import type { ActionRunStore } from '../stores/studioAppData/actionRuns.mts';
 import type { App, Deps, Run, RunDeps, RunOnceOptions, RunOutcome, RunReport, RunTarget } from './mcpRunHost.mts';
 
 export type { App, RunDeps, RunOnceOptions, RunReport, RunTarget, StepReport, StepStatus, RunOutcome } from './mcpRunHost.mts';
@@ -168,11 +172,55 @@ export async function runAction(args: unknown, userId: string, given: RunDeps = 
     const refused = takeCallBudgets(given, userId, !dryRun);
     if (refused) return refused;
 
-    const { report, executed } = await runOnce(target, { actionId, userId, dryRun, scope, mock: mock.mock, chargeUpFront: !dryRun }, given);
+    const bg = readRunOptions(action);
+    let lock: { store: ActionRunStore; id: string } | null = null;
+    let lockKey: string | null = null;
+    if (bg.background) {
+        lockKey = await resolveLockKey({
+            app, def, model: target.model, actionId, viewer: { id: userId }, role: 'owner', isOwner: true, draft: true,
+            definitionVersion: app.definitionVersion ?? null,
+            scope: { formValues: scope.form, vars: scope.vars, item: scope.item },
+        }, action, { resolveBinding: given.resolveBinding, buildScope: given.buildScope, ...(given.readData ? { readData: given.readData } : {}) });
+        if (!dryRun && lockKey) {
+            const taken = await takeMcpLock(given, app, actionId, userId, lockKey);
+            if ('error' in taken) return taken;
+            lock = taken;
+        }
+    }
+
+    const t0 = Date.now();
+    let outcome: Awaited<ReturnType<typeof runOnce>>;
+    try {
+        outcome = await runOnce(target, { actionId, userId, dryRun, scope, mock: mock.mock, chargeUpFront: !dryRun }, given);
+    } catch (e) {
+        if (lock) await lock.store.finishRun(lock.id, { status: 'error', error: 'The run stopped unexpectedly.', errorCode: 'internal', durationMs: Date.now() - t0 }).catch(() => false);
+        throw e;
+    }
+    const { report, executed } = outcome;
+    if (lock) {
+        await lock.store.finishRun(lock.id, { status: report.ok ? 'success' : 'error', error: report.ok ? null : (report.stopped ?? null), durationMs: Date.now() - t0, stepCount: executed }).catch(() => false);
+    }
+    if (bg.background) {
+        report.background = { lockKey, progressVar: bg.progressVar };
+        report.notes.push('Clicked, this runs as a background job (the page shows its progress and can be closed); here it ran inline within the time budget.');
+        for (const p of backgroundActionProblems(action, actionId, { resolveCalled: (id) => ownAction(actions, id) }).slice(0, 5)) report.notes.push(`${p.path}: ${p.message}`);
+    }
     await given.audit({
         actionId, dryRun, executed, steps: report.steps.length, failed: !report.ok, mocked: report.mocked, free: report.free,
     }, app, userId);
     return report;
+}
+
+/** A live MCP run of a background action takes its lock like a click (one run row, origin mcp). */
+async function takeMcpLock(given: RunDeps, app: App, actionId: string, userId: string, lockKey: string): Promise<{ store: ActionRunStore; id: string } | { error: string; _fixHint: string }> {
+    const store = given.actionRuns ? given.actionRuns() : (nodeRequire('../stores/studioAppData/actionRuns.mts') as { actionRunStore: () => ActionRunStore }).actionRunStore();
+    const id = newRunId();
+    const got = await store.insertRunningRun({
+        id, appId: app.id, ownerUserId: app.userId, viewerUserId: userId, actionId, origin: 'mcp', draft: true,
+        definitionVersion: app.definitionVersion ?? null, dryRun: false, lockKey, instanceId: `${process.pid}`, staleMs: backgroundLimits().staleMs,
+    });
+    if (got.ok) return { store, id };
+    return { error: lockedMessage(got.holder, Date.now()), _fixHint: 'A background run with the same lockKey is going. Wait for it, run with dryRun (takes no lock), or pass a scope that resolves another lockKey.' };
 }
 
 /** Fill the optional deps (a test passes only what it controls). */

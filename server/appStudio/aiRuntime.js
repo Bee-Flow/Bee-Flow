@@ -28,7 +28,7 @@
 'use strict';
 
 const llmClient = require('../core/llm/llmClient');
-const { guardedAiCall } = require('./aiCallGuard.mts');
+const { guardedAiCall, aiCallTimeoutMs } = require('./aiCallGuard.mts');
 const { readDocument, newReport } = require('./aiDocumentRead.mts');
 const usageStore = require('../stores/usageStore');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
@@ -390,10 +390,10 @@ function buildMessages(system, user) {
  * honour it today; on an adapter that ignores it the call still runs long, so
  * the client-side deadline below is the backstop rather than decoration.
  */
-const STUDIO_APP_AI_TIMEOUT_MS = parseInt(process.env.STUDIO_APP_AI_TIMEOUT_MS, 10) || 120_000;
+const STUDIO_APP_AI_TIMEOUT_MS = aiCallTimeoutMs(); // one knob with the guard below (read per call; 0 sends none)
 
 function withTimeout(options, extra) {
-    return { ...(options || {}), ...(extra || {}), timeoutMs: STUDIO_APP_AI_TIMEOUT_MS };
+    return { ...(options || {}), ...(extra || {}), ...(aiCallTimeoutMs() > 0 ? { timeoutMs: aiCallTimeoutMs() } : {}) };
 }
 
 /** One model call under the per-call deadline (aiCallGuard.mts): `run(extra)` gets `{ signal }` to pass on, aborted at the deadline. */

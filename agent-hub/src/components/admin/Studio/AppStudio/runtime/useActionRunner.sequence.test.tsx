@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -23,6 +23,7 @@ import useActionRunner from './useActionRunner';
 import { authFetch } from '@/utils/helpers';
 import toast from '@/components/shared/Toast';
 import { asMock, stub } from '@/test/mocks';
+import { backgroundTiming } from './actionRunner/backgroundRun';
 
 const resp = (status: number, body: unknown, ok = status >= 200 && status < 300) => ({ ok, status, json: async () => body });
 
@@ -484,5 +485,93 @@ describe('useActionRunner — step error handling', () => {
         expect(bodyOfCall(1).vars.order).toEqual({ id: 'ord_1', created: true });
         // The transaction's children take no ordinal: the step after it is 1.
         expect(bodyOfCall(1).stepIndex).toBe(1);
+    });
+});
+
+// ── Background actions ───────────────────────────────────────────────────────
+// The click starts a server job and resolves at once; the entry follows the job and ends
+// with its result, written vars and replayed toasts/refreshes; a locked start attaches to
+// the viewer's own run or says why not; a declined leading confirm starts nothing.
+
+const JOB = 'sar_0123456789abcdef0123456789abcdef';
+const progress = (over = {}) => ({ stepIndex: 1, kind: 'ai_generate', executed: 1, message: null, loop: null, waiting: null, ...over });
+
+const BG = { kind: 'sequence', background: true, progressVar: 'status', steps: [{ kind: 'ai_generate', prompt: 'x' }, { kind: 'toast', message: 'Done' }] };
+const bgDefinition = (action: unknown = BG) => stub<Parameters<typeof useActionRunner>[1]>({ schemaVersion: 2, actions: { act_bg: action } });
+
+describe('useActionRunner — background actions', () => {
+    beforeEach(() => {
+        asMock(authFetch).mockReset();
+        for (const fn of [toast.success, toast.error, toast.info]) asMock(fn).mockReset();
+        vi.spyOn(backgroundTiming, 'wait').mockResolvedValue(undefined);
+    });
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    it('starts the job, follows its progress and ends with the result, vars and replayed effects', async () => {
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(202, { jobId: JOB, status: 'running' }))
+            .mockResolvedValueOnce(resp(200, { jobId: JOB, actionId: 'act_bg', status: 'running', progress: progress({ message: 'Reading 1 of 2' }) }))
+            .mockResolvedValueOnce(resp(200, {
+                jobId: JOB, actionId: 'act_bg', status: 'success', progress: progress(), result: { text: 'ok' },
+                vars: { status: 'Finished' }, effects: [{ kind: 'toast', message: 'Done', tone: 'success' }, { kind: 'refresh', tableId: 'tbl_1' }],
+                error: null, errorStep: null, startedAt: null, finishedAt: null, durationMs: 10,
+            }));
+        const onRefresh = vi.fn();
+        const { result } = renderHook(() => useActionRunner('app1', bgDefinition(), { onRefresh }));
+        await act(async () => { await result.current.runAction('act_bg', { formValues: { id: 'o1' } }); });
+
+        const [url, init] = asMock(authFetch).mock.calls[0];
+        expect(String(url)).toBe('/api/studio-apps/app1/actions/act_bg/background');
+        expect(JSON.parse(init.body)).toMatchObject({ formValues: { id: 'o1' } });
+        await waitFor(() => expect(result.current.actionState.act_bg?.status).toBe('success'));
+        expect(String(asMock(authFetch).mock.calls[1][0])).toBe(`/api/studio-apps/app1/actions/jobs/${JOB}`);
+        expect(result.current.actionState.act_bg?.result).toEqual({ text: 'ok' });
+        expect(result.current.vars.status).toBe('Finished');
+        expect(toast.success).toHaveBeenCalledWith('Done');
+        expect(onRefresh).toHaveBeenCalledWith({ tableId: 'tbl_1', datasetId: null });
+    });
+
+    it('a failed job ends in error with the server reason and a danger toast', async () => {
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(202, { jobId: JOB, status: 'running' }))
+            .mockResolvedValueOnce(resp(200, { jobId: JOB, actionId: 'act_bg', status: 'error', progress: progress(), error: 'The AI gave no answer within 120 s', errorStep: { kind: 'ai_generate' } }));
+        const { result } = renderHook(() => useActionRunner('app1', bgDefinition()));
+        await act(async () => { await result.current.runAction('act_bg'); });
+        await waitFor(() => expect(result.current.actionState.act_bg?.status).toBe('error'));
+        expect(result.current.actionState.act_bg?.error).toBe('The AI gave no answer within 120 s');
+        expect(toast.error).toHaveBeenCalledWith('The AI gave no answer within 120 s');
+    });
+
+    it('a locked start with the viewer\'s own job attaches to it; without a job id it only says why', async () => {
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(409, { code: 'action_locked', error: 'This is already running for the same item (started 2 min ago). Wait until it finishes.', jobId: JOB }))
+            .mockResolvedValueOnce(resp(200, { jobId: JOB, actionId: 'act_bg', status: 'success', progress: progress(), result: 1 }));
+        const { result } = renderHook(() => useActionRunner('app1', bgDefinition()));
+        await act(async () => { await result.current.runAction('act_bg'); });
+        expect(toast.info).toHaveBeenCalledWith(expect.stringMatching(/already running for the same item/));
+        await waitFor(() => expect(result.current.actionState.act_bg?.status).toBe('success'));
+
+        asMock(authFetch).mockReset();
+        asMock(authFetch).mockResolvedValueOnce(resp(409, { code: 'action_locked', error: 'This is already running for the same item.' }));
+        const other = renderHook(() => useActionRunner('app1', bgDefinition()));
+        await act(async () => { await other.result.current.runAction('act_bg'); });
+        expect(other.result.current.actionState.act_bg?.status).toBe('idle');
+        expect(authFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('a declined leading confirm starts nothing', async () => {
+        const action = { ...BG, steps: [{ kind: 'confirm', message: 'Start?' }, ...BG.steps] };
+        const confirm = vi.fn(() => Promise.resolve(false));
+        const { result } = renderHook(() => useActionRunner('app1', bgDefinition(action), { confirm }));
+        await act(async () => { await result.current.runAction('act_bg'); });
+        expect(confirm).toHaveBeenCalledTimes(1);
+        expect(authFetch).not.toHaveBeenCalled();
+    });
+
+    it('a sequence without background still runs step by step in the page', async () => {
+        asMock(authFetch).mockResolvedValue(resp(200, { ok: true, result: { text: 'inline' } }));
+        const { result } = renderHook(() => useActionRunner('app1', bgDefinition({ kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x' }] })));
+        await act(async () => { await result.current.runAction('act_bg'); });
+        expect(String(asMock(authFetch).mock.calls[0][0])).toMatch(/\/actions\/act_bg\/step$/);
     });
 });

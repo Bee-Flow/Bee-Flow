@@ -94,6 +94,37 @@ settings change that, per step, in the action flow editor:
   app's own tables; a table linked to a Studio datatable lives in another store and
   cannot be part of it.
 
+### Long-running actions
+
+An action that reads many documents or calls the AI many times can take minutes. Turn
+on **Keep running when the page is closed** (`background: true` on a sequence) and a
+click starts the work on the server: the page shows its progress (the current step,
+"Item 3 of 12" in a loop, or your own text) and the result when it is done. You can
+leave or close the page; when you come back the run is shown again.
+
+- **What can be in it**: steps that run on the server (rows, AI, e-mail, files,
+  automations, approvals), *Set a variable*, conditions, loops and *Run another
+  action*. Messages and refreshes are shown when the run ends. A confirmation is only
+  possible as the first step (it is asked before the run starts). Navigation, dialogs,
+  opening a link, resetting a form, downloading a file and AI browsing need the page
+  and cannot be part of it: put them in a second action on the same button.
+- **Once at a time per item** (`lockKey`): a value such as the record id. While a run
+  with the same value is going, a second start is refused with "This is already
+  running for the same item". Use a prefix per action, for example `'order:' + item.id`.
+- **Progress text** (`progressVar`): the variable your *Set a variable* steps write,
+  for example `status` = "Reading document 2 of 5".
+- **Limits**: a loop still stops after 200 items, and a list of rows reads 50 rows
+  unless you set a limit. A run stops after 30 minutes or 5,000 steps, and each person
+  can have 3 runs of an app going at once (20 per app). Every AI call has a time-out
+  (120 seconds) with one retry. On self-hosted these are environment variables
+  (`STUDIO_APP_BACKGROUND_*`, `STUDIO_AI_CALL_TIMEOUT_MS`, see `server/.env.example`).
+- **Restarts**: when the server restarts during a run, the run ends as *interrupted*.
+  It does not continue by itself, because its steps may already have written rows or
+  sent mail; start it again when that is safe.
+
+Results and variables of a finished run are kept for 24 hours, the run itself for 30
+days.
+
 ## Data tables, roles & access
 
 Open **Data** to design the data model directly: add tables and fields, define

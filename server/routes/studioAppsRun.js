@@ -79,7 +79,7 @@ async function runBody(run) {
 }
 const { resolveAudienceContext } = require('../auth/audience');
 const { DATA_MUTATING_STEP_KINDS } = require('../appStudio/componentSpecs');
-const { actionRunLimiter, stepLimiter, sendEmailLimiter, sendEmailDailyLimiter, fileIntakeLimiter, aiStepLimiter, datasetQueryLimiter } = require('./studioAppRateLimits');
+const { actionRunLimiter, stepLimiter, jobStatusLimiter } = require('./studioAppRateLimits');
 const runEventBus = require('../core/runEventBus');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
@@ -161,23 +161,11 @@ async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
     return null;
 }
 
-// Step kinds that cost what a /run costs — a full automation, a model call, or a
-// write into the owner's storage envelope. They consume the action-run budget
-// on top of the step bucket (see the limiter's rationale in
-// studioAppRateLimits.js).
-// fill_document IS here: it renders a page in a real Chromium and stores the
-// PDF — the same cost shape as generate_file, and more expensive per call.
-// dataset_query is deliberately NOT here: it is a bounded ranged read with no
-// model call and no side effects — it gets its own 30/min bucket below instead
-// of the tight 10/min heavy budget (which would cap genome browsing at ten
-// clicks a minute for no reason).
-const HEAVY_STEP_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'copy_document'];
-
-// The subset of HEAVY_STEP_KINDS that is a model call. Still heavy — they keep
-// the role gate above, which is what stops a role-less viewer spending the
-// owner's model quota — but they are budgeted separately, because these are the
-// ones an action legitimately repeats once per document.
-const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
+// Step kinds that cost what a /run costs (a full automation, a model call, a write into the
+// owner's storage envelope), the model calls among them, and the limiters per kind: one list
+// for this route and a background job (studioAppStepBudget.mts, where the reasoning lives).
+const { HEAVY_STEP_KINDS, limitersForStep } = require('./studioAppStepBudget.mts');
+const { mountBackgroundRoutes, refuseLocked } = require('./studioAppBackground');
 
 // ── POST /:id/actions/:actionId/step ────────────────────────────────
 // Execute one server-authoritative DATA step of a v2 action sequence. Same
@@ -234,40 +222,19 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         return res.status(403).json({ error: 'You do not have access to this app yet' });
     }
 
+    // A background action with a lockKey (an older client walking it in the
+    // foreground): refused while a job holds the same key. Read only, before any budget is charged.
+    if (await refuseLocked(req, res, { app, def, dataModel, actionId, role, isOwner })) return;
+
     // The kind is only known once the step is resolved, so the heavy-step
-    // budget is charged here rather than as route middleware. The limiter
-    // answers 429 itself when the bucket is empty (the Redis-backed
-    // path is asynchronous, so the check is awaited — BFSF-459).
-    //
-    // Model calls get their own bucket. The /run bucket is sized on "one
-    // click = one run", which is exactly wrong for an action that loops a
-    // model call per document: a nine-drawing order spends a dozen of them
-    // from one press and used to die at 10/min partway through, having
-    // already paid for the calls that landed. AI_STEP_RPM is still a real
-    // ceiling — see the reasoning where it is declared.
-    if (AI_STEP_KINDS.includes(step.kind)) {
-        if (!(await aiStepLimiter.check(req, res))) return;
-    } else if (HEAVY_STEP_KINDS.includes(step.kind)) {
-        if (!(await actionRunLimiter.check(req, res))) return;
-    }
-    // Outbound mail is charged twice more: a per-minute bucket and a daily
-    // ceiling. Unlike the other heavy steps this one leaves the building —
-    // an unthrottled loop of it is somebody's mailbox getting suspended.
-    if (step.kind === 'send_email') {
-        if (!(await sendEmailLimiter.check(req, res))) return;
-        if (!(await sendEmailDailyLimiter.check(req, res))) return;
-    }
-    // Bulk intake gets its own tight bucket on top of the heavy budget:
-    // one hit is up to 25 provider fetches landing bytes in the owner's
-    // storage, so the generic step allowance is the wrong unit.
-    if (step.kind === 'file_intake') {
-        if (!(await fileIntakeLimiter.check(req, res))) return;
-    }
-    // A dataset slice is a bounded ranged read + row scan (~16 MB ceiling,
-    // no model call) — its own bucket so genome browsing cannot starve the
-    // generic step budget, and vice versa.
-    if (step.kind === 'dataset_query') {
-        if (!(await datasetQueryLimiter.check(req, res))) return;
+    // budget is charged here rather than as route middleware. Each limiter
+    // answers 429 itself when its bucket is empty (the Redis-backed path is
+    // asynchronous, so the check is awaited — BFSF-459). Model calls have their
+    // own bucket (an action loops them once per document), other heavy kinds the
+    // /run bucket; send_email is charged per minute and per day, file_intake and
+    // dataset_query on their own buckets (studioAppStepBudget.mts).
+    for (const { limiter } of limitersForStep(step.kind)) {
+        if (!(await limiter.check(req, res))) return;
     }
 
     const formValues = sanitizeBag(req.body?.formValues);
@@ -347,6 +314,10 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         ...stepFailureExtras(/** @type {{ retryable?: unknown, ref?: unknown }} */ (result)),
     });
 });
+
+// ── Background actions (routes/studioAppBackground.js) ──────────────
+// POST …/background, GET …/jobs and GET …/jobs/:jobId, on this router.
+mountBackgroundRoutes(router, { requireAuth, actionRunLimiter, jobStatusLimiter, jsonBody, bodySizeGuard });
 
 // ── POST /:id/actions/:actionId/run ─────────────────────────────────
 router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.RunBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {

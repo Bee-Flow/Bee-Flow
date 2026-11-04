@@ -8,6 +8,7 @@ import type { TranslateParams } from '@/hooks/useTranslation';
 import toast from '@/components/shared/Toast';
 import type { RunStep } from './stepWalk';
 import { errorMessage } from '@/utils/caughtError';
+import type { JobProgress } from '@/api/actionHttp';
 
 export {
     MAX_LOOP_ITERATIONS, SERVER_STEP_KINDS, buildStepIndexMap, caseMatches, normalizeSequence, resolveNavParams,
@@ -24,6 +25,10 @@ export interface ActionEntry {
     status: ActionStatus;
     result: unknown;
     error: string | null;
+    /** A background action: the server job this entry follows. */
+    jobId?: string;
+    /** A background action: the job's latest progress. */
+    progress?: JobProgress | null;
 }
 
 export type ActionState = Record<string, ActionEntry>;
@@ -68,10 +73,12 @@ export const CANCELLED = Symbol('useActionRunner.cancelled');
 // branch that already handled the failure) — no error state, no toast.
 export const SEQ_ABORT = Symbol('useActionRunner.abort');
 
-// A hard deadline on one server step. Deliberately longer than the server's own
-// AI ceiling (STUDIO_APP_AI_TIMEOUT_MS, 120s) so a real server error still wins
-// the race and the user gets the specific message rather than this generic one.
-export const STEP_DEADLINE_MS = 135_000;
+// A hard deadline on one server step. Deliberately longer than the server's
+// worst case for one AI step (STUDIO_AI_CALL_TIMEOUT_MS, 120 s, with one retry
+// after a time-out: 240 s) so a real server error still wins the race and the
+// user gets the specific message rather than this generic one. Longer work
+// belongs in a background action (background: true), which has no deadline here.
+export const STEP_DEADLINE_MS = 255_000;
 
 // A browse holds a browser slot far longer than a data step. Deadline sits
 // ABOVE the server's own 240s hard cap (routes/studioAppBrowse.js) so a

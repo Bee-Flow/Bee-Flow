@@ -2541,6 +2541,12 @@
     "GET /api/studio-apps/:id": {
       "gate": "auth"
     },
+    "GET /api/studio-apps/:id/actions/jobs": {
+      "gate": "auth"
+    },
+    "GET /api/studio-apps/:id/actions/jobs/:jobId": {
+      "gate": "auth"
+    },
     "GET /api/studio-apps/:id/actions/runs/:runId": {
       "gate": "auth"
     },
@@ -5751,6 +5757,9 @@
         "all",
         "manage_apps"
       ]
+    },
+    "POST /api/studio-apps/:id/actions/:actionId/background": {
+      "gate": "auth"
     },
     "POST /api/studio-apps/:id/actions/:actionId/run": {
       "gate": "auth"

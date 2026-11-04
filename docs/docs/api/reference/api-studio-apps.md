@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-76 routes, 40 with a request schema. Back to the [endpoint reference](../reference.md).
+79 routes, 43 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -58,6 +58,26 @@ No request schema.
 **Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
+
+### `POST /api/studio-apps/:id/actions/:actionId/background`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `formValues` | object or null |  |  |
+| `vars` | object or null |  |  |
+| `item` | any |  |  |
+| `index` | integer or null |  |  |
+| `value` | any |  |  |
 
 ### `POST /api/studio-apps/:id/actions/:actionId/run`
 
@@ -133,6 +153,29 @@ No request schema.
 | `error.code` | string or null |  |  |
 | `error.attempts` | integer | yes | min 1; max 4 |
 | `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/studio-apps/:id/actions/jobs`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `active` | one of `"0"`, `"1"` |  |  |
+| `actionId` | string |  | pattern `^[A-Za-z0-9_-]{1,80}$` |
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+
+### `GET /api/studio-apps/:id/actions/jobs/:jobId`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `jobId` | string | yes | min length 1; max length 64 |
 
 ### `GET /api/studio-apps/:id/actions/runs/:runId`
 

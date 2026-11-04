@@ -12,6 +12,11 @@
  *      and lapsed dismissed/snoozed/opened feedback. Both stores documented a
  *      30-day retention that nothing enforced. Each DELETE is idempotent and
  *      cheap, so two pods running it at once is harmless: no lock.
+ *   4. App Studio action runs (stores/studioAppData/actionRuns.mts pruneRuns): payloads
+ *      nulled after STUDIO_APP_RUN_RESULT_TTL_HOURS, rows deleted after
+ *      STUDIO_APP_RUN_RETENTION_DAYS (stores/studioAppData/runPolicy.mts; 0 = keep). Run
+ *      rows can carry customer values in their result, so this is a retention duty and
+ *      sits here, ungated, under its own advisory lock (0xBEEF115).
  *
  * ── WHY THIS IS NOT ON THE AUTOMATION RUNNER'S TICK ─────────────────
  * Both must not ride processRunRetention in core/automationRunner/scheduler/
@@ -35,6 +40,7 @@
 const telemetryLog = require('../telemetry/log');
 
 const LEDGER_PRUNE_LOCK_KEY = 0xBEEF111;
+const ACTION_RUN_PRUNE_LOCK_KEY = 0xBEEF115;
 // Accepted / rejected / stale AI suggestions on documents (stores/documentSuggestionStore.js).
 const DOCUMENT_SUGGESTION_RETENTION_DAYS = 30;
 const INTERVAL_MS = 60 * 60 * 1000;
@@ -59,6 +65,7 @@ let _running = false;
  *   pruneSuggestionScans: () => ReturnType<typeof import('../stores/suggestionScanCache').pruneExpired>,
  *   pruneSuggestionFeedback: () => ReturnType<typeof import('../stores/suggestionFeedbackStore').pruneExpired>,
  *   pruneDocumentSuggestions: () => ReturnType<typeof import('../stores/documentSuggestionStore').purgeResolved>,
+ *   pruneStudioActionRuns?: (opts: { resultTtlHours: number, retentionDays: number, batch?: number }) => Promise<{ nulled: number, deleted: number }>,
  *   log: typeof import('../telemetry/log'),
  * }} PlatformRetentionDeps
  */
@@ -74,6 +81,7 @@ function deps() {
             pruneSuggestionScans: () => require('../stores/suggestionScanCache').pruneExpired(),
             pruneSuggestionFeedback: () => require('../stores/suggestionFeedbackStore').pruneExpired(),
             pruneDocumentSuggestions: () => require('../stores/documentSuggestionStore').purgeResolved(DOCUMENT_SUGGESTION_RETENTION_DAYS),
+            pruneStudioActionRuns: (opts) => require('../stores/studioAppData/actionRuns.mts').actionRunStore().pruneRuns(opts),
             log: require('../telemetry/log'),
         };
     }
@@ -132,7 +140,37 @@ async function _pruneSuggestions(d) {
     }
 }
 
-/** One pass of all three. A failing pass never skips the ones after it. */
+/**
+ * App Studio action runs: payloads after the result TTL, rows after the retention. Skipped
+ * when both knobs are 0. One pod per pass (advisory lock).
+ * @param {PlatformRetentionDeps} d
+ */
+async function _pruneStudioActionRuns(d) {
+    if (typeof d.pruneStudioActionRuns !== 'function') return;
+    const policy = require('../stores/studioAppData/runPolicy.mts');
+    const resultTtlHours = policy.resultTtlHours();
+    const retentionDays = policy.retentionDays();
+    if (!resultTtlHours && !retentionDays) return;
+    let acquired = false;
+    let client;
+    try {
+        client = await d.pool.connect();
+        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [ACTION_RUN_PRUNE_LOCK_KEY]);
+        acquired = !!lockRes.rows[0]?.locked;
+        if (!acquired) return;
+        const { nulled, deleted } = await d.pruneStudioActionRuns({ resultTtlHours, retentionDays, batch: 5000 });
+        if (nulled || deleted) d.log.info(`[platformRetention] action runs: ${nulled} payload(s) cleared, ${deleted} row(s) deleted`);
+    } catch (e) {
+        d.log.warn('[platformRetention] action-run prune failed:', /** @type {Error} */ (e).message);
+    } finally {
+        if (client) {
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [ACTION_RUN_PRUNE_LOCK_KEY]); } catch (err) { telemetryLog.debug('best-effort', err); }
+            client.release();
+        }
+    }
+}
+
+/** One pass of all of them. A failing pass never skips the ones after it. */
 async function runOnce() {
     if (_running) return;
     _running = true;
@@ -145,6 +183,7 @@ async function runOnce() {
         }
         await _pruneScanLedger(d);
         await _pruneSuggestions(d);
+        await _pruneStudioActionRuns(d);
     } finally {
         _running = false;
     }
@@ -169,4 +208,4 @@ function stop() {
     if (_timer) { clearInterval(_timer); _timer = null; }
 }
 
-module.exports = { start, stop, runOnce, LEDGER_PRUNE_LOCK_KEY, _setDeps };
+module.exports = { start, stop, runOnce, LEDGER_PRUNE_LOCK_KEY, ACTION_RUN_PRUNE_LOCK_KEY, _setDeps };

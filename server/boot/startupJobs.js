@@ -231,6 +231,8 @@ function startSupportAndSyncJobs() {
     if (isModuleAvailable('apps')) try {
         require('../jobs/studioAppConnectorSync').start();
         require('../jobs/datasetIngest').start();
+        // Background actions: rows whose process died stop beating → interrupted.
+        require('../jobs/studioAppActionRuns').start();
     } catch (err) {
         log.warn('[Server] Studio app connector sync load failed:', err.message);
     }

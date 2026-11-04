@@ -131,7 +131,7 @@ const UPDATE_COMPONENT_PATCH_PROPS = {
     ...UPDATE_NODE_LOGIC_PROPS,
 };
 
-const ACTION_OBJECT_DESC = `{ kind, …fields of that kind } — shapes: catalog Actions / Sequence steps. SAVE A FORM: {kind:"sequence", steps:[{kind:"create_record", tableId, values:{<fieldKey>:{kind:"formula",expr:"form.<inputName>"}}}, {kind:"refresh", tableId}, {kind:"toast", message}]} wired to the form's onSubmit. {kind:"field"} exists ONLY in run_automation inputMapping. A sequence has no onError/onSuccess; a server step in it may carry onError {steps} / retry.`;
+const ACTION_OBJECT_DESC = `{ kind, …fields of that kind } — shapes: catalog Actions / Sequence steps. SAVE A FORM: {kind:"sequence", steps:[{kind:"create_record", tableId, values:{<fieldKey>:{kind:"formula",expr:"form.<inputName>"}}}, {kind:"refresh", tableId}, {kind:"toast", message}]} wired to the form's onSubmit. {kind:"field"} exists ONLY in run_automation inputMapping. A sequence has no onError/onSuccess; a server step in it may carry onError {steps} / retry. LONG WORK: background:true on the sequence runs it as a server job (no browser steps but toast/refresh and a leading confirm), lockKey refuses a second start for the same key, progressVar names the variable shown as progress.`;
 
 // The action object's declared shape. An object with NO `properties` renders
 // as `properties:{}` on Gemma's chat template — the model was shown an empty
@@ -175,6 +175,9 @@ const ACTION_OBJECT_PROPS = {
     tone: { type: 'string', enum: [...TOAST_TONES] },
     modalId: { type: 'string', description: 'open_modal / close_modal: the modal cmp_… id.' },
     url: { type: 'string', description: 'open_url: https URL.' },
+    background: { type: 'boolean', description: 'sequence: run as a server job that keeps running when the page is closed; the page shows progress and the result.' },
+    lockKey: { type: 'object', description: 'sequence with background: a binding, e.g. {kind:"formula",expr:"\'order:\' + item.id"}; a second start with the same key while one runs is refused.' },
+    progressVar: { type: 'string', description: 'sequence with background: the variable a set_variable step writes as the progress text (e.g. "status").' },
 };
 
 const ACTION_OBJECT_SCHEMA = { type: 'object', description: ACTION_OBJECT_DESC, properties: ACTION_OBJECT_PROPS, required: ['kind'] };

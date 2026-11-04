@@ -43,6 +43,8 @@ export type RunBindingEnv = {
     onNote?: (text: string) => void;
     /** The step path, for notes. */
     where?: string;
+    /** Who reads (row access): default the app owner (app_run_action); a background job reads as its viewer. */
+    reader?: { viewer: unknown; role: string | null };
 };
 
 /** What a screen gets when a binding sets no limit (queryCompilerBase DEFAULT_LIMIT). */
@@ -132,9 +134,9 @@ async function readOnce(binding: Obj, env: RunBindingEnv, resolveValue: (b: Obj)
     env.onRead?.();
     const read = env.readData ?? defaultReadData();
     try {
+        const reader = env.reader ?? { viewer: { id: env.app.userId, role: 'owner', organizationId: env.app.organizationId || null }, role: 'owner' };
         return await read(env.app, env.model, binding, {
-            viewer: { id: env.app.userId, role: 'owner', organizationId: env.app.organizationId || null },
-            role: 'owner', resolveValue, maxRows: env.maxRows,
+            viewer: reader.viewer, role: reader.role as string, resolveValue, maxRows: env.maxRows,
         });
     } catch (e) {
         const err = e as { safe?: boolean; message?: string; code?: unknown };

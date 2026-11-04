@@ -667,6 +667,8 @@ export const ROUTES = {
     },
     'POST /api/studio-apps/:id/actions/:actionId/run': () => ({ status: 'success', result: { ok: true } }),
     'GET /api/studio-apps/:id/actions/runs/:runId': () => ({ status: 'success', result: {} }),
+    // Background actions: the demo starts none, so the run surface finds no running job.
+    'GET /api/studio-apps/:id/actions/jobs': () => ({ jobs: [] }),
 
     // AudiencePicker (publish modal) reads this as a BARE array.
     'GET /auth/users': () => ([

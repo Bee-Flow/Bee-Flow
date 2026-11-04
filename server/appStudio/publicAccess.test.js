@@ -330,3 +330,16 @@ test('buildPublicDefinition: a server step keeps retry and a redacted onError; t
     assert.deepEqual(got.steps[1], { kind: 'transaction' });
     assert.deepEqual(flattenSteps(normalizeSequence(got)).map((s) => s.kind), flattenSteps(normalizeSequence(action)).map((s) => s.kind));
 });
+
+test('a background action ships without its run options; its steps (and ordinals) are unchanged', () => {
+    const def = definition();
+    def.actions.act_submit = { ...def.actions.act_submit, background: true, lockKey: { kind: 'formula', expr: "'order:' + form.naam" }, progressVar: 'stap' };
+    const pub = buildPublicDefinition(def, resolvePublicSurface(def));
+    const shipped = pub.actions.act_submit;
+    assert.equal('background' in shipped, false);
+    assert.equal('lockKey' in shipped, false);
+    assert.equal('progressVar' in shipped, false);
+    assert.equal(JSON.stringify(pub).includes("'order:'"), false);
+    const plain = buildPublicDefinition(definition(), resolvePublicSurface(definition()));
+    assert.deepEqual(shipped, plain.actions.act_submit, 'the same steps, so every ordinal stays');
+});

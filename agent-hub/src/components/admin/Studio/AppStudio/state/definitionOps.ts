@@ -394,14 +394,22 @@ export function setVariable(def: AppDefinition | null, variable: DefinitionVaria
 /**
  * Rename a variable in place, keeping its position. Nothing REWRITES the
  * formulas that read it — the manager only offers a rename while a variable is
- * unused, for exactly that reason.
+ * unused, for exactly that reason. A background action's progressVar is a plain
+ * name, not a formula, so it follows the rename.
  */
 export function renameVariable(def: AppDefinition | null, from: string, to: string) {
     if (typeof to !== 'string' || !to || from === to) return def;
     const current = listVariables(def);
     if (!current.some((v) => v?.name === from)) return def;
     if (current.some((v) => v?.name === to)) return def;   // a name is unique
-    return { ...def, variables: current.map((v) => (v?.name === from ? { ...v, name: to } : v)) };
+    const next = { ...def, variables: current.map((v) => (v?.name === from ? { ...v, name: to } : v)) };
+    const actions = def?.actions;
+    if (!actions || typeof actions !== 'object') return next;
+    const hits = Object.entries(actions).filter(([, a]) => a?.progressVar === from);
+    if (!hits.length) return next;
+    const renamed: Record<string, AppAction> = { ...actions };
+    for (const [id, a] of hits) renamed[id] = { ...a, progressVar: to };
+    return { ...next, actions: renamed };
 }
 
 /**

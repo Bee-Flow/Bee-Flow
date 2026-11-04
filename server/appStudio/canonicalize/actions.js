@@ -63,8 +63,10 @@ function canonAction(raw, path, push) {
         } else if (fs.type === 'boolean') {
             if (typeof v === 'boolean') out[field] = v;
             else {
-                out[field] = fs.default;
-                if (v !== undefined) push('action.field_invalid', p, `${field} must be a boolean — set to ${fs.default}.`);
+                // A field without a default (sequence.background) stays absent: writing
+                // `fs.default` unconditionally would add `field: undefined` to every action.
+                if (fs.default !== undefined) out[field] = fs.default;
+                if (v !== undefined) push('action.field_invalid', p, `${field} must be a boolean — ${fs.default !== undefined ? `set to ${fs.default}` : 'dropped'}.`);
             }
         } else if (fs.type === 'inputMapping') {
             if (v !== undefined) {

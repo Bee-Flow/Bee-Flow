@@ -668,7 +668,7 @@ function renderCompactCatalogText() {
     const ownKinds = ACTION_KINDS.filter((k) => !twinKinds.includes(k));
     const actions = [
         `Kinds: ${ACTION_KINDS.join(' | ')}. The actions map key IS the action id (act_…); \`kind\` is the discriminator. ${twinKinds.join(', ')} take exactly the fields of the step of the same name (### Sequence steps).`,
-        ...ownKinds.map((kind) => `${kind}: { ${renderSpecFields(ACTION_SPECS[kind].fields)} }`),
+        ...ownKinds.map((kind) => `${kind}: { ${renderSpecFields(kind === 'sequence' ? { steps: ACTION_SPECS.sequence.fields.steps } : ACTION_SPECS[kind].fields)} }`), // a sequence without its run options (budget)
         `Effects (bounded, never chain): { toast?: {message ≤500, tone ${TOAST_TONES.join('|')}}, navigateTo?: <screenId>|null }`,
         `open_modal/close_modal target a \`modal\` component's cmp_… id — end a save sequence with close_modal. A sequence runs its steps in order (max ${LIMITS.MAX_ACTION_STEPS} steps, nesting ≤${LIMITS.MAX_ACTION_DEPTH}).`,
     ].join('\n');

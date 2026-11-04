@@ -75,3 +75,12 @@ test('a step inside an onError handler: error is { message ≤500, step ≤60, c
     const res = await post('/actions/a1/step?draft=1', { stepIndex: 0, error: { message: 'm', step: 'ai_generate', code: null, attempts: 4, stepIndex: 2 } });
     assert.strictEqual(res.status, 404, res.text);
 });
+
+test('a background start takes the click scope only; a job id is sar_ + 32 hex; the job list its filters', async () => {
+    h.assertRefused(assert, await post('/actions/a1/background', { stepIndex: 0 }), 'body', /"stepIndex"/);
+    h.assertRefused(assert, await post('/actions/a1/background', { index: -1 }), 'body.index', /loop position/);
+    h.assertRefused(assert, await api.call('GET', `/api/studio-apps/app1/actions/jobs/sar_${'a'.repeat(80)}`, {}), 'params.jobId', /sar_ and 32 hex/);
+    h.assertRefused(assert, await api.call('GET', '/api/studio-apps/app1/actions/jobs?active=yes', {}), 'query.active', /active is 1/);
+    h.assertRefused(assert, await api.call('GET', '/api/studio-apps/app1/actions/jobs?actionId=a%20b', {}), 'query.actionId', /id of an action/);
+    assert.deepStrictEqual(db.queries, []);
+});

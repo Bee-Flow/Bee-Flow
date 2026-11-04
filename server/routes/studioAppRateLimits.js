@@ -16,7 +16,7 @@
  * Must be mounted AFTER requireAuth — the key generator reads req.session.user.
  */
 
-const { perUserRateLimit } = require('../utils/perUserRateLimit');
+const { perUserRateLimit, spendLimiter } = require('../utils/perUserRateLimit');
 
 // Tightest tier — every hit can trigger a full automation execution (LLM calls,
 // integration side effects) under the owner's credentials. Tunable via env;
@@ -123,13 +123,16 @@ const datasetCompleteLimiter = perUserRateLimit({ windowMs: 60_000, max: DATASET
 const datasetStatusLimiter = perUserRateLimit({ windowMs: 60_000, max: DATASET_STATUS_RPM, keyFn: actionRunKey, name: 'studio-ds-status' });
 const datasetQueryLimiter = perUserRateLimit({ windowMs: 60_000, max: DATASET_QUERY_RPM, keyFn: actionRunKey, name: 'studio-ds-query' });
 const browseStepLimiter = perUserRateLimit({ windowMs: 60_000, max: BROWSE_RPM, keyFn: actionRunKey, name: 'studio-browse' });
+// Polling a background job's status (GET /:id/actions/jobs[/:jobId]): the browser polls every
+// 1.5-5 s per running job, so this is far above one tab's need and below a scraper's.
+const jobStatusLimiter = spendLimiter({ env: 'STUDIO_APP_JOB_STATUS_RPM', fallback: 120, name: 'studio-job-status', keyFn: actionRunKey });
 
 module.exports = {
     actionRunKey,
     actionRunLimiter, stepLimiter, connectorRunLimiter, connectorSyncLimiter,
     sendEmailLimiter, sendEmailDailyLimiter, fileIntakeLimiter, aiStepLimiter,
     datasetInitLimiter, datasetPartLimiter, datasetCompleteLimiter, datasetStatusLimiter, datasetQueryLimiter,
-    browseStepLimiter,
+    browseStepLimiter, jobStatusLimiter,
     ACTION_RUN_RPM, STEP_RPM, CONNECTOR_RUN_RPM, CONNECTOR_SYNC_RPM,
     SEND_EMAIL_RPM, SEND_EMAIL_PER_DAY, FILE_INTAKE_RPM, AI_STEP_RPM,
     DATASET_INIT_RPM, DATASET_PART_RPM, DATASET_COMPLETE_RPM, DATASET_STATUS_RPM, DATASET_QUERY_RPM, BROWSE_RPM,

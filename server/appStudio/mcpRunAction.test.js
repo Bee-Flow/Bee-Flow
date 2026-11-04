@@ -629,3 +629,44 @@ test('dryRun: a transaction is skipped with the writes it would make', async () 
     assert.equal(live.steps[0].status, 'ok', 'a live run commits it through the executor');
     assert.deepEqual(kindsRun(), ['transaction']);
 });
+
+// ── Background actions ──────────────────────────────────────────────────────
+
+function fakeRuns() {
+    const rows = [];
+    return {
+        rows,
+        store: () => ({
+            insertRunningRun: async (r) => {
+                const holder = rows.find((x) => x.status === 'running' && x.lockKey && x.lockKey === r.lockKey);
+                if (holder) return { ok: false, holder: { ...holder, startedAt: new Date().toISOString() } };
+                rows.push({ ...r, status: 'running' });
+                return { ok: true };
+            },
+            finishRun: async (id, f) => { const row = rows.find((x) => x.id === id); if (row) row.status = f.status; return true; },
+        }),
+    };
+}
+
+test('a background action reports its lockKey and progressVar; a dry run takes no lock', async () => {
+    const runs = fakeRuns();
+    const action = { kind: 'sequence', background: true, lockKey: { kind: 'formula', expr: 'form.id' }, progressVar: 'status', steps: [{ kind: 'create_record', tableId: 't' }] };
+    const out = await run(action, { scope: { form: { id: 'o1' } } }, OWNER, { actionRuns: runs.store });
+    assert.deepEqual(out.background, { lockKey: 'o1', progressVar: 'status' });
+    assert.ok(out.notes.some((n) => /runs as a background job/.test(n)));
+    assert.equal(runs.rows.length, 0, 'dryRun takes no lock');
+});
+
+test('a live run of a locked background action is refused while a job holds the key, and frees it at the end', async () => {
+    const runs = fakeRuns();
+    const action = { kind: 'sequence', background: true, lockKey: { kind: 'formula', expr: 'form.id' }, steps: [{ kind: 'create_record', tableId: 't' }] };
+    runs.rows.push({ id: 'sar_held', lockKey: 'o2', status: 'running' });
+    const refused = await run(action, { dryRun: false, scope: { form: { id: 'o2' } } }, OWNER, { actionRuns: runs.store });
+    assert.match(refused.error, /already running for the same item/);
+    assert.equal(executed.length, 0);
+    const ok = await run(action, { dryRun: false, scope: { form: { id: 'o3' } } }, OWNER, { actionRuns: runs.store });
+    assert.equal(ok.ok, true);
+    const mine = runs.rows.find((r) => r.lockKey === 'o3');
+    assert.equal(mine.origin, 'mcp');
+    assert.equal(mine.status, 'success');
+});

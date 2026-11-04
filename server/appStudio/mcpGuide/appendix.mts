@@ -38,4 +38,15 @@ Example: an ai_extract at steps[0] with resultVar "ex", then set_variable "who" 
 app_save_test { "actionId": "act_intake", "name": "customer is read", "mock": { "steps[0]": { "rows": [ { "customer": "ACME" } ] } }, "expect": [ { "path": "vars.who", "op": "is", "value": "ACME" } ] }
 Rename the schema field and app_run_tests reports fail with actual null.`;
 
-export const MCP_GUIDE_SECTIONS: readonly string[] = Object.freeze([TESTING_ACTIONS]);
+const BACKGROUND_ACTIONS = `## Background actions (MCP)
+
+A sequence with background: true runs as a server job when it is clicked: the click gets a job id at once, the page shows the progress (the current step, "Item i of n" in a loop, or the text of progressVar) and the final result, and closing the page does not stop it. A server restart ends a running job as "interrupted" (no resume).
+- Allowed in a background sequence: server steps, set_variable, condition, switch, loop, call_action, toast and refresh (shown when the job ends) and confirm only as the first step(s) (asked before the job starts). navigate, open_url, open_modal, close_modal, reset_form, download_file and ai_browse are refused by the validator (action.background_step_unsupported): put them in a second action on the same control.
+- lockKey: a binding evaluated at the click; while a job with the same key runs in this app, another start is refused ("This is already running for the same item"). Namespace it: {kind:"formula", expr:"'order:' + item.id"}. A key that resolves empty locks nothing.
+- progressVar: "status" shows vars.status (written by set_variable steps) as the progress text.
+- A called action (call_action) runs inline in its caller; its own background/lockKey are ignored (warning action.background_in_called_action).
+- Formulas in a job see form, vars, item, index, value, params, currentUser, now, today; screen, forms and actions are empty there, as in any server step.
+- app_run_action runs a background action inline within its time budget and reports background: { lockKey, progressVar }. A live run (dryRun false) with a lockKey takes the lock like a click and is refused while a job holds it; a dry run takes no lock.
+- Every AI call has a time-out (STUDIO_AI_CALL_TIMEOUT_MS, default 120 s) and one retry; then the step fails with "The AI gave no answer within N s" (code ai_timeout), which a step onError can handle.`;
+
+export const MCP_GUIDE_SECTIONS: readonly string[] = Object.freeze([TESTING_ACTIONS, BACKGROUND_ACTIONS]);

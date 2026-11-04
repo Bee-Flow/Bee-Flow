@@ -169,6 +169,9 @@ const ERASURE_COVERAGE = Object.freeze({
     iso_soa_entries: { mode: 'detached', column: 'owner_user_id' },
     automation_agent_bindings: { mode: 'detached', column: 'created_by' },
     studio_app_email_log: { mode: 'detached', column: 'viewer_user_id' },
+    // An action run: the owner's rows go with the owner (their apps cascade them too); another
+    // person's run of the owner's app keeps its row with the viewer detached (payloads are nulled after 24 h).
+    studio_app_action_runs: { mode: 'deleted', column: 'owner_user_id', detach: 'viewer_user_id' },
     // A saved action test names who wrote it (an editor of someone else's app); the app keeps the test.
     studio_app_action_tests: { mode: 'detached', column: 'created_by,updated_by' },
     automation_form_scenarios: { mode: 'detached', column: 'created_by' },

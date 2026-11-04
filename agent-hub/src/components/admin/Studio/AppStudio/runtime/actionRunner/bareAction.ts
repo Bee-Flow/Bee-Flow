@@ -10,6 +10,7 @@ import { resolveNavParams, showToast } from './core';
 import type { RunOpts, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
 import { runSequence } from './sequence';
+import { runBackgroundAction } from './backgroundRun';
 
 function navigate(ctx: RunnerContext, action: RunnableAction, opts: RunOpts): void {
     const live = ctx.live.current;
@@ -83,6 +84,10 @@ export async function runActionById(ctx: RunnerContext, actionId: string, opts: 
     const action = ctx.live.current.definition?.actions?.[actionId];
     if (!action) return;
 
+    // A background sequence runs as a server job the browser follows.
+    if (action.kind === 'sequence' && action.background === true) {
+        return runBackgroundAction(ctx, actionId, action, opts);
+    }
     // v2 sequences use the coordinator; bare v1 actions keep their exact
     // legacy behaviour so existing call sites and semantics are unchanged.
     if (action.kind === 'sequence' || SERVER_STEP_KINDS.has(action.kind as string)) {

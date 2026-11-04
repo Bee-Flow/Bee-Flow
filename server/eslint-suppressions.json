@@ -2016,11 +2016,6 @@
       "count": 1
     }
   },
-  "boot/lifecycle.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "boot/startupJobs.js": {
     "complexity": {
       "count": 1
@@ -8360,7 +8355,7 @@
       "count": 3
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "routes/studioDocuments.js": {

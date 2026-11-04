@@ -111,7 +111,17 @@ const ACTION_SPECS = {
     call_action: { fields: CALL_ACTION_FIELDS },
     // A sequence runs an ordered list of Steps. Its `steps` are validated by
     // the STEP_SPECS table (see validate.js validateActionSteps).
-    sequence: { fields: { steps: { type: 'steps', required: true } } },
+    // background / lockKey / progressVar (2026-11): run the sequence as a server
+    // job that survives the page (backgroundRunPolicy.mts). All optional and
+    // absent by default, so an existing sequence canonicalizes unchanged.
+    sequence: {
+        fields: {
+            steps: { type: 'steps', required: true },
+            background: { type: 'boolean' },
+            lockKey: { type: 'binding' },
+            progressVar: { type: 'string', maxLen: 60 },
+        },
+    },
 };
 
 // ---------------------------------------------------------------------------

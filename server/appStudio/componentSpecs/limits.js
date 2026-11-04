@@ -62,6 +62,10 @@ const LIMITS = {
     MAX_STEP_RETRY_DELAY_MS: STEP_RETRY.MAX_DELAY_MS,       // retry.delayMs
     DEFAULT_STEP_RETRY_DELAY_MS: STEP_RETRY.DEFAULT_DELAY_MS,
     MAX_TRANSACTION_STEPS,                                  // record writes in one transaction
+    // Background actions (2026-11): a sequence that runs as a server job.
+    MAX_LOCK_KEY_LEN: 200,             // a resolved lockKey; longer keys are hashed
+    MAX_PROGRESS_TEXT_LEN: 200,        // the progressVar text a job shows
+    MAX_DEFERRED_EFFECTS: 10,          // toast/refresh steps a job replays at the end
     MAX_DATA_GRID_COLUMNS: 20,         // data_grid columns
     // AI step limits (2026-11). Plain constants, not env: they decide whether a
     // definition is valid, and that must not differ per instance.

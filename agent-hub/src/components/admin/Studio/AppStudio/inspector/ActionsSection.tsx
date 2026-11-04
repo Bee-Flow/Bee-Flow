@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { SetStateAction, Dispatch, useEffect, useRef, useState } from 'react';
 import ActionChoiceCards from './ActionChoiceCards';
+import ActionRunOptions from './ActionRunOptions';
 import { EDITOR_BY_KIND, defaultActionForKind } from './actionKindCatalog';
 import { stepCount } from './actionRefs';
 import AiActionEditor from './AiActionEditors';
@@ -171,7 +172,10 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                     {/* The CURRENT state is never hidden behind a disclosure —
                         a five-step flow has to say so where it is read. */}
                     {action.kind === 'sequence' ? (
-                        <SequenceSummary action={action} onOpen={() => setFlowFor(actionId)} disabled={disabled} />
+                        <>
+                            <SequenceSummary action={action} onOpen={() => setFlowFor(actionId)} disabled={disabled} />
+                            <ActionRunOptions action={action} commitAction={commitAction} definition={definition} node={node} disabled={disabled} />
+                        </>
                     ) : null}
 
                     {EDITOR_BY_KIND[action.kind] === 'ai' && (

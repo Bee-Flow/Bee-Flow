@@ -527,7 +527,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // modelTier as tier name | formula — 55_436 chars.
 // 2026-11-04, package 2 (error handling): onError/retry envelope line, the transaction step and
 // its line — 56_475 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'daade13f7710f2462fc7a72a9eba64c3013163ef129672678664e90dcdffe05d';
+// 2026-11-04, package 3 (background actions): sequence background / lockKey / progressVar fields
+// — 56_539 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '39ffeddbeef1ab1c29fcb277b377264cba57ada01ae886cc167da605026d42c4';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

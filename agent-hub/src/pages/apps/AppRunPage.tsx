@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AppDataScope from '../../components/admin/Studio/AppStudio/runtime/AppDataScope';
 import AppRenderer from '../../components/admin/Studio/AppStudio/runtime/AppRenderer';
 import AppShell from '../../components/admin/Studio/AppStudio/runtime/AppShell';
+import BackgroundRunTray from '@/components/admin/Studio/AppStudio/runtime/BackgroundRunTray';
 import { buildScope } from '../../components/admin/Studio/AppStudio/runtime/RuntimeContext';
 import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
 import { appDesignProps } from '../../components/admin/Studio/AppStudio/runtime/appDesign';
@@ -224,7 +225,7 @@ export function RunSurface({ appId, draft, definition, screenId, viewer, onNavig
                     />
                 )}
             </AppDataScope>
-            {dialog}
+            <BackgroundRunTray actionState={actionState} />{dialog}
         </BrowserRunProvider>
     );
 }

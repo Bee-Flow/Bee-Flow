@@ -55,6 +55,17 @@ function flowNodesFor({ nodes, positions, selectedId, options, t, disabled, setS
     }));
 }
 
+/** The run options of a sequence action, as written (none for any other kind). */
+function sequenceRunOptions(action: unknown): Record<string, unknown> {
+    if (!action || typeof action !== 'object' || (action as { kind?: unknown }).kind !== 'sequence') return {};
+    const out: Record<string, unknown> = {};
+    for (const key of ['background', 'lockKey', 'progressVar']) {
+        const v = (action as Record<string, unknown>)[key];
+        if (v !== undefined) out[key] = v;
+    }
+    return out;
+}
+
 export function FlowBody({ action, onChange, definition, node = null, disabled = false, formFields = [], actionId = null }: FlowBodyProps) {
     const { t } = useTranslation();
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -94,9 +105,11 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
         if (added) setSelectedId(added.id);
     }, [graph]);
 
+    // The sequence's run options (background / lockKey / progressVar) ride along: a canvas
+    // edit changes the steps, never how the action runs.
     const commitSteps = useCallback((steps: FlowStep[]) => {
-        onChange({ kind: 'sequence', steps: stripStepIds(steps) });
-    }, [onChange]);
+        onChange({ ...sequenceRunOptions(action), kind: 'sequence', steps: stripStepIds(steps) });
+    }, [onChange, action]);
 
     /** Replace one step, wherever it sits. */
     const patchStep = useCallback((id: string, patch: ActionStep) => {
