@@ -25,7 +25,16 @@ const { sessionUser } = require('../../core/http/sessionUser');
 // The bookmark of the list, and nothing else. `.strict()`, because every other
 // parameter one would expect here — a filter on tag, on status, on period — came
 // back as "the last 50 of everything", and that is a DIFFERENT answer to the question.
-const ListQuery = z.object({ limit: whole('limit'), offset: whole('offset') }).strict();
+//
+// Bounded from below as well: `?limit=-1` reached Postgres as `LIMIT -1` (a 500),
+// and an empty `?limit=` became 0, an empty library under a 200. Empty now means
+// "not given" (the default page), and a negative number is a 400.
+/** @param {unknown} v */
+const blankIsAbsent = (v) => (v === '' ? undefined : v);
+const ListQuery = z.object({
+    limit: z.preprocess(blankIsAbsent, whole('limit').pipe(z.number().min(1, 'limit is minstens 1.').optional())),
+    offset: z.preprocess(blankIsAbsent, whole('offset').pipe(z.number().min(0, 'offset is minstens 0.').optional())),
+}).strict();
 
 // ── List transcriptions ──────────────────────────────────
 

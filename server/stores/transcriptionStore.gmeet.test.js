@@ -67,6 +67,7 @@ test.beforeEach(() => {
 
 test('delete unlinks the row audio_path when it lives under uploads', async () => {
     const audioPath = path.join(UPLOADS_ROOT, 'saved-recordings', '123-u1.webm');
+    getOneResult = { audio_storage_key: null }; // the owner-scoped read before the delete
     runResult = { rowCount: 1, rows: [{ audio_path: audioPath }] };
 
     const ok = await store.deleteTranscription('t-1', 'u-1');
@@ -81,6 +82,7 @@ test('delete unlinks the row audio_path when it lives under uploads', async () =
 
 test('delete swallows ENOENT from unlink and still returns true', async () => {
     const audioPath = path.join(UPLOADS_ROOT, 'audio', 'gone.webm');
+    getOneResult = { audio_storage_key: null }; // the owner-scoped read before the delete
     runResult = { rowCount: 1, rows: [{ audio_path: audioPath }] };
     unlinkError = Object.assign(new Error('ENOENT: no such file'), { code: 'ENOENT' });
 
@@ -92,6 +94,7 @@ test('delete swallows ENOENT from unlink and still returns true', async () => {
 
 test('delete swallows non-ENOENT unlink errors too (best-effort)', async () => {
     const audioPath = path.join(UPLOADS_ROOT, 'audio', 'locked.webm');
+    getOneResult = { audio_storage_key: null }; // the owner-scoped read before the delete
     runResult = { rowCount: 1, rows: [{ audio_path: audioPath }] };
     unlinkError = Object.assign(new Error('EPERM: operation not permitted'), { code: 'EPERM' });
 
@@ -108,6 +111,7 @@ test('delete never unlinks paths outside the uploads root', async () => {
         UPLOADS_ROOT,                                             // the root itself
     ];
     for (const audioPath of outside) {
+        getOneResult = { audio_storage_key: null }; // the owner-scoped read before the delete
         runResult = { rowCount: 1, rows: [{ audio_path: audioPath }] };
         const ok = await store.deleteTranscription('t-4', 'u-1');
         assert.strictEqual(ok, true);
@@ -116,6 +120,7 @@ test('delete never unlinks paths outside the uploads root', async () => {
 });
 
 test('delete of a row without saved audio does not unlink', async () => {
+    getOneResult = { audio_storage_key: null }; // the owner-scoped read before the delete
     runResult = { rowCount: 1, rows: [{ audio_path: '' }] };
     const ok = await store.deleteTranscription('t-5', 'u-1');
     assert.strictEqual(ok, true);

@@ -35,7 +35,8 @@ const gmeetMeeting = (over = {}) => ({
     excluded: false, recordingControlledByHost: false, importedNoteId: null, status: 'will_import',
     ...over,
 });
-const talkPayload = (meetings = [], over = {}) => ({ recordingEnabled: true, recordingMode: 'audio', meetings, ...over });
+// autoRecord as the server sends it (nextcloud.js): the Talk chip is derived locally from it (talkChipStatus).
+const talkPayload = (meetings = [], over = {}) => ({ recordingEnabled: true, autoRecord: true, recordingMode: 'audio', meetings, ...over });
 const gmeetPayload = (meetings = [], over = {}) => ({
     connection: { googleConnected: true, meetScopesGranted: true, hasSettingsScope: true, needsReauth: false },
     autoImport: true, meetings,

@@ -116,10 +116,23 @@ test('failIngest: an unclassified error retries with backoff, then freezes as fa
     assert.deepStrictEqual(terminal, ['j']);
 });
 
+test('failIngest keepCode: a classified code is kept on the last attempt, a system code becomes failed', async () => {
+    const store = fakeStore();
+    const last = { id: 'j', errorCode: 'failed', lastError: 'attempt 2/3: x' };
+    const args = { store, job: last, terminalCodes: new Set(), maxAttempts: 3, fallbackMessage: 'F', keepCode: true };
+    const classified = Object.assign(new Error('empty'), { code: 'summary_empty' });
+    await assert.rejects(() => kit.failIngest({ ...args, err: classified }), (e) => e === classified);
+    assert.strictEqual(store.calls[0][1].errorCode, 'summary_empty');
+    const system = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
+    await assert.rejects(() => kit.failIngest({ ...args, err: system }), (e) => e.code === 'failed');
+    assert.strictEqual(store.calls[1][1].errorCode, 'failed');
+});
+
 test('processDueJobs runs every claimed job, survives a failing one and a failing claim', async () => {
     const ran = [];
+    const queue = [{ id: 1 }, { id: 2 }];
     await kit.processDueJobs({
-        store: { claimDueJobs: async (limit) => [{ id: 1 }, { id: 2 }].slice(0, limit) },
+        store: { claimDueJobs: async (limit) => queue.splice(0, limit) },
         limit: 2, label: 'T', describe: (j) => String(j.id), quietCodes: new Set(['quiet']),
         processClaimedJob: async (j) => { ran.push(j.id); if (j.id === 1) throw Object.assign(new Error('q'), { code: 'quiet' }); },
     });
@@ -128,4 +141,82 @@ test('processDueJobs runs every claimed job, survives a failing one and a failin
         store: { claimDueJobs: async () => { throw new Error('db'); } },
         limit: 2, label: 'T', describe: String, quietCodes: new Set(), processClaimedJob: async () => { throw new Error('never'); },
     });
+});
+
+test('processDueJobs claims the next job only when the previous one is done (no stale batch claim)', async () => {
+    const events = [];
+    const queue = [{ id: 'a' }, { id: 'b' }];
+    await kit.processDueJobs({
+        store: { claimDueJobs: async (limit) => { events.push(`claim(${limit})`); return queue.splice(0, limit); } },
+        limit: 2, label: 'T', describe: (j) => j.id, quietCodes: new Set(),
+        processClaimedJob: async (j) => { events.push(`run ${j.id}`); },
+    });
+    assert.deepStrictEqual(events, ['claim(1)', 'run a', 'claim(1)', 'run b']);
+});
+
+test('processDueJobs stops when nothing is due', async () => {
+    let claims = 0;
+    await kit.processDueJobs({
+        store: { claimDueJobs: async () => { claims++; return []; } },
+        limit: 5, label: 'T', describe: String, quietCodes: new Set(), processClaimedJob: async () => {},
+    });
+    assert.strictEqual(claims, 1);
+});
+
+test('withLeaseHeartbeat renews the lease for as long as the work runs, then stops', async (t) => {
+    t.mock.timers.enable({ apis: ['setInterval'] });
+    const beats = [];
+    let finish;
+    const running = kit.withLeaseHeartbeat({
+        store: { heartbeatJob: async (id, m) => { beats.push([id, m]); } },
+        jobId: 'j1', leaseMinutes: 120, label: 'T',
+        work: () => new Promise((r) => { finish = r; }),
+    });
+    await new Promise((r) => setImmediate(r));
+    assert.strictEqual(beats.length, 1, 'extended before the work starts');
+    t.mock.timers.tick(40 * 60_000);
+    t.mock.timers.tick(40 * 60_000);
+    t.mock.timers.tick(40 * 60_000);
+    assert.strictEqual(beats.length, 4, 'renewed every third of the lease while running');
+    finish('done');
+    assert.strictEqual(await running, 'done');
+    t.mock.timers.tick(120 * 60_000);
+    assert.strictEqual(beats.length, 4, 'no renewal after the work ended');
+});
+
+test('withLeaseHeartbeat clears its timer when the work throws', async (t) => {
+    t.mock.timers.enable({ apis: ['setInterval'] });
+    let beats = 0;
+    await assert.rejects(kit.withLeaseHeartbeat({
+        store: { heartbeatJob: async () => { beats++; } },
+        jobId: 'j', leaseMinutes: 120, label: 'T', work: async () => { throw new Error('boom'); },
+    }), /boom/);
+    t.mock.timers.tick(240 * 60_000);
+    assert.strictEqual(beats, 1);
+});
+
+test('isIngestInFlight: a freshly renewed long lease is a live run; backoff, claim lease and a dead worker are not', () => {
+    const now = Date.now();
+    const at = (min) => new Date(now + min * 60_000).toISOString();
+    assert.strictEqual(kit.isIngestInFlight({ status: 'pending', updatedAt: at(-5), nextAttemptAt: at(115) }, 120), true);
+    assert.strictEqual(kit.isIngestInFlight({ status: 'pending', updatedAt: at(-1), nextAttemptAt: at(59) }, 120), false, 'hourly backoff');
+    assert.strictEqual(kit.isIngestInFlight({ status: 'pending', updatedAt: at(-1), nextAttemptAt: at(9) }, 120), false, 'claim lease');
+    assert.strictEqual(kit.isIngestInFlight({ status: 'pending', updatedAt: at(-90), nextAttemptAt: at(30) }, 120), false, 'renewals stopped');
+    assert.strictEqual(kit.isIngestInFlight({ status: 'ingested', updatedAt: at(-1), nextAttemptAt: at(119) }, 120), false);
+});
+
+test('failLookup: retries with backoff, then freezes as failed once the meeting is past the deadline', async () => {
+    const calls = [];
+    const store = { failJob: async (id, o) => { calls.push(o); } };
+    const recent = { id: 'j', status: 'pending', attempts: 0, meetingEnd: new Date(Date.now() - 3600_000).toISOString() };
+    await assert.rejects(kit.failLookup({ store, job: recent, err: new Error('503'), terminalCodes: new Set(), deadlineMs: 48 * 3600_000, fallbackMessage: 'x' }),
+        (e) => e.code === 'failed');
+    assert.strictEqual(calls[0].terminal, false);
+    assert.strictEqual(calls[0].errorCode, null);
+    const old = { ...recent, meetingEnd: new Date(Date.now() - 30 * 86400_000).toISOString() };
+    await assert.rejects(kit.failLookup({ store, job: old, err: Object.assign(new Error('gone'), { code: 'not_found' }), terminalCodes: new Set(), deadlineMs: 48 * 3600_000, fallbackMessage: 'x' }));
+    assert.deepStrictEqual([calls[1].terminal, calls[1].errorCode], [true, 'failed']);
+    await assert.rejects(kit.failLookup({ store, job: recent, err: Object.assign(new Error('no'), { code: 'not_organizer' }), terminalCodes: new Set(['not_organizer']), deadlineMs: 1, fallbackMessage: 'x' }),
+        (e) => e.code === 'not_organizer');
+    assert.deepStrictEqual([calls[2].terminal, calls[2].errorCode], [true, 'not_organizer']);
 });

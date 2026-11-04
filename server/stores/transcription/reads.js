@@ -43,6 +43,25 @@ const LIST_AGGREGATES = `
                       WHERE COALESCE(ai->>'done', 'false') <> 'true')::int AS actions_open`;
 
 /**
+ * Keyset cursor for a walk in creation order (newest first): only rows that
+ * come after `after`. The cursor row's own created_at is read from the
+ * database: a JS Date carries milliseconds and the column microseconds, and
+ * comparing against the rounded value would skip rows in the same
+ * millisecond. The passed value only stands in when the cursor row was
+ * deleted mid-pass.
+ * @param {{ createdAt?: string | Date | null, id?: string } | null | undefined} after
+ * @param {any[]} params  appended to
+ * @param {string[]} where  appended to
+ */
+function pushCreatedCursor(after, params, where) {
+    if (!after || !after.id) return;
+    params.push(String(after.id), after.createdAt || null);
+    const idP = `$${params.length - 1}`;
+    const atP = `$${params.length}`;
+    where.push(`(created_at, id) < (COALESCE((SELECT t.created_at FROM transcriptions t WHERE t.id = ${idP}), ${atP}::timestamptz), ${idP})`);
+}
+
+/**
  * @param {{ transcriptCrypto: any, shapeRow: Function, mapRow: Function, readableThroughProject: Function }} deps
  */
 function createReads({ transcriptCrypto, shapeRow, mapRow, readableThroughProject }) {
@@ -122,9 +141,9 @@ function createReads({ transcriptCrypto, shapeRow, mapRow, readableThroughProjec
      *
      * @param {string} tag
      * @param {string} readerId
-     * @param {{ orgIds?: string[], userGroupIds?: string[], since?: string | Date | null, limit?: number }} [ctx]
+     * @param {{ orgIds?: string[], userGroupIds?: string[], since?: string | Date | null, limit?: number, order?: 'updated' | 'created', after?: { createdAt: string | Date, id: string } | null }} [ctx]
      */
-    async function listByTag(tag, readerId, { orgIds = [], userGroupIds = [], since = null, limit = 200 } = {}) {
+    async function listByTag(tag, readerId, { orgIds = [], userGroupIds = [], since = null, limit = 200, order = 'updated', after = null } = {}) {
         await initDB();
         if (!tag || !readerId) return [];
         /** @type {any[]} */
@@ -134,6 +153,8 @@ function createReads({ transcriptCrypto, shapeRow, mapRow, readableThroughProjec
             params.push(since);
             where.push(`updated_at > $${params.length}`);
         }
+        const byCreated = order === 'created';
+        if (byCreated) pushCreatedCursor(after, params, where);
         const acl = readAclClauses(readerId, { orgIds, userGroupIds }, params.length);
         params.push(...acl.params);
         where.push(`(${acl.clauses.join(' OR ')})`);
@@ -144,7 +165,7 @@ function createReads({ transcriptCrypto, shapeRow, mapRow, readableThroughProjec
                     created_at, updated_at, organization_id, user_id
                FROM transcriptions
               WHERE ${where.join(' AND ')}
-              ORDER BY updated_at DESC
+              ORDER BY ${byCreated ? 'created_at DESC, id DESC' : 'updated_at DESC'}
               LIMIT $${params.length}`,
             params,
         );

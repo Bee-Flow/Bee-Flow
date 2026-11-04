@@ -52,11 +52,21 @@ const updateCalls = [];            // Every transcriptionStore.updateTranscripti
 // Mutable, so that one test can stage that difference.
 let updateResult = null;
 
+// Per test: what the SECOND read of the note returns (the re-read just before
+// the write). null = the same note.
+let reread = null;
+let reads = 0;
+let chatContent = 'GENERATED SUMMARY';
+let chaptersResult = [{ title: 'Opening', start: '00:00' }];
 stub('../stores/transcriptionStore', {
-    getTranscription: async (id) => (storedTranscription ? { ...storedTranscription, id } : null),
+    getTranscription: async (id) => {
+        reads += 1;
+        if (reads > 1 && reread) return reread(id);
+        return storedTranscription ? { ...storedTranscription, id } : null;
+    },
     updateTranscription: async (id, userId, updates) => {
         updateCalls.push({ id, userId, updates });
-        return updateResult || { id };
+        return updateResult === null ? { id } : updateResult;
     },
 });
 stub('../stores/configStore', { getConfig: async () => null, getSecret: async () => null });
@@ -67,12 +77,12 @@ stub('../stores/storageStore', {
     uploadFile: async () => ({}), deleteFile: async () => ({}),
 });
 stub('../core/llm/llmClient', {
-    chat: async (model, messages, opts) => { chatCalls.push({ model, messages, opts }); return { content: 'GENERATED SUMMARY' }; },
+    chat: async (model, messages, opts) => { chatCalls.push({ model, messages, opts }); return { content: chatContent }; },
 });
 stub('../core/meetingNotes/summaryHelpers', {
     resolveSmartModel: async () => 'smart-model',
     extractMeetingArtifacts: async () => artifactsResult,
-    generateChapters: async () => [{ title: 'Opening', start: '00:00' }],
+    generateChapters: async () => chaptersResult,
     generateSpeakerSummaries: async () => speakerSummaries,
     // Pure — use the real merge rather than a stub that could drift.
     applySpeakerSummaries: require('../core/meetingNotes/transcriptArtifacts').applySpeakerSummaries,
@@ -136,6 +146,10 @@ test.beforeEach(() => {
     speakerSummaries = {};
     artifactsResult = GOOD_ARTIFACTS;
     updateResult = null;
+    reread = null;
+    reads = 0;
+    chatContent = 'GENERATED SUMMARY';
+    chaptersResult = [{ title: 'Opening', start: '00:00' }];
     storedTranscription = {
         isOwner: true,
         transcript: 'Hello, this is the meeting transcript.',
@@ -633,9 +647,111 @@ test('een eenmalige prompt WIST de stempel', async () => {
     assert.strictEqual(res.body.summaryTemplateId, null);
 });
 
+test('a body that names no template keeps the note\'s own: a built-in stamp, a saved one, a lost one', async () => {
+    storedTranscription.summaryTemplateId = 'builtin:standup';
+    let res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(updateCalls[0].updates.summaryTemplateId, 'builtin:standup');
+
+    updateCalls.length = 0;
+    chatCalls.length = 0;
+    storedTranscription.summaryTemplateId = 'tpl-9';
+    storedTemplate = { id: 'tpl-9', scope: 'user', userId: 'owner-1', name: 'Mijn', prompt: 'MINE', version: 2, organizationId: null, groupId: null };
+    res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(lastSystemPrompt().includes('MINE'));
+    assert.strictEqual(updateCalls[0].updates.summaryTemplateId, 'tpl-9');
+
+    // A saved template this viewer can no longer open: general, not a 404 the caller never asked for.
+    updateCalls.length = 0;
+    chatCalls.length = 0;
+    storedTemplate = { id: 'tpl-9', scope: 'user', userId: 'someone-else', name: 'Theirs', prompt: 'SECRET', organizationId: null, groupId: null };
+    res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(!lastSystemPrompt().includes('SECRET'));
+    assert.strictEqual(updateCalls[0].updates.summaryTemplateId, 'builtin:general');
+});
+
 test('een geweigerd templateId schrijft niets — ook geen stempel', async () => {
     storedTemplate = { id: 'tpl-x', scope: 'user', userId: 'someone-else', name: 'Theirs', prompt: 'SECRET', organizationId: null, groupId: null };
     const res = await dispatch({ url: '/t-1/regenerate-summary', body: { templateId: 'tpl-x' } });
     assert.strictEqual(res.statusCode, 404);
     assert.strictEqual(updateCalls.length, 0);
+});
+
+
+// ═══ Fixes: failed passes, notices, races, tags, time-outs ═══════════════
+
+test('the summary call has the meeting LLM cut-off', async () => {
+    await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(chatCalls[0].opts.timeoutMs, 540000);
+});
+
+test('an empty summary is a 502 and writes nothing', async () => {
+    chatContent = '   ';
+    const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} }).catch((err) => ({ statusCode: err.status, body: { code: err.code } }));
+    assert.strictEqual(res.statusCode, 502);
+    assert.strictEqual(res.body.code, 'summary_empty');
+    assert.strictEqual(updateCalls.length, 0);
+});
+
+test('a failed chapter pass keeps the stored chapters', async () => {
+    storedTranscription.chapters = [{ title: 'Opening', start: '00:00' }, { title: 'Budget', start: '10:00' }];
+    chaptersResult = [];
+    const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual('chapters' in updateCalls[0].updates, false, 'the timeline is not overwritten with nothing');
+    assert.deepStrictEqual(res.body.chapters, storedTranscription.chapters, 'the client keeps showing them');
+});
+
+test('the transcript notices stay on top of the regenerated summary; the artifacts-failed line does not', async () => {
+    const { buildPipelineNotices } = require('../core/meetingNotes/transcriptArtifacts');
+    const truncated = buildPipelineNotices({ truncated: { atSeconds: 2530 }, language: 'nl' })[0];
+    const artifactsFailed = buildPipelineNotices({ artifactsFailed: true, language: 'nl' })[0];
+    storedTranscription.summary = `${truncated}\n${artifactsFailed}\n\nOLD SUMMARY`;
+    const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(updateCalls[0].updates.summary, `${truncated}\n\nGENERATED SUMMARY`);
+    assert.strictEqual(res.body.summary, `${truncated}\n\nGENERATED SUMMARY`);
+});
+
+test('a note that is being re-transcribed is a 409, and nothing is generated', async () => {
+    storedTranscription.status = 'processing';
+    const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.code, 'already_processing');
+    assert.strictEqual(chatCalls.length, 0);
+});
+
+test('a transcript replaced during the run is a 409, and the old summary is not written over it', async () => {
+    reread = (id) => ({ ...storedTranscription, id, status: 'completed', transcript: 'A NEW transcript from the re-transcribe.' });
+    const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.code, 'transcript_changed');
+    assert.strictEqual(updateCalls.length, 0);
+});
+
+test('a note deleted during the run is a 404 and nothing is announced', async () => {
+    updateResult = false;
+    const res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+    assert.strictEqual(res.statusCode, 404);
+});
+
+test('the event carries the tags the note has after the write', async () => {
+    const ingest = require('../core/meetingNotes/ingestRecordingCore');
+    const real = ingest.emitMeetingProcessed;
+    const emitted = [];
+    ingest.emitMeetingProcessed = (p) => { emitted.push(p); };
+    try {
+        storedTranscription.tags = [];
+        let res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+        assert.deepStrictEqual(emitted[0].tags, ['planning'], 'an empty column was filled with the AI tags');
+        assert.deepStrictEqual(res.body.tags, ['planning'], 'and the client gets the same list');
+
+        emitted.length = 0;
+        storedTranscription.tags = ['intern'];
+        res = await dispatch({ url: '/t-1/regenerate-summary', body: {} });
+        assert.deepStrictEqual(emitted[0].tags, ['intern'], 'existing tags are kept, and announced');
+        assert.deepStrictEqual(res.body.tags, ['intern']);
+    } finally { ingest.emitMeetingProcessed = real; }
 });

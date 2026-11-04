@@ -49,11 +49,17 @@ async function resolveUserGroupIds(req) {
 async function resolveAccessContext(req) {
     const { resolveUserOrgIds } = require('../../auth');
     const orgIdsSet = await resolveUserOrgIds(req);
-    // Super admin → orgIdsSet is null. Pass through a sentinel that allows all
-    // by combining the user's actual orgs (best effort) with an org-agnostic
-    // path inside the store. For simplicity, super admins still see their own
-    // + their primary org's published items; cross-org snooping isn't a
-    // supported flow in the UI.
+    // Super admin → orgIdsSet is null, and `isSuperAdmin: true` makes the
+    // transcription store skip its read ACL ENTIRELY: the list, the detail
+    // read, the audio and the tag counts cover every note of every tenant,
+    // private and unpublished ones included, decrypted. That is the same
+    // platform-wide bypass agents and knowledge bases have
+    // (stores/transcription/reads.js, stores/kb/access.js), and the
+    // characterisation tests pin it. It is NOT "their own + their primary
+    // org's published items".
+    // Whether a platform operator should read customers' private meetings is
+    // a product decision for the super-admin model as a whole; until it is
+    // taken, this is what the flag does.
     const orgIds = orgIdsSet === null
         ? []
         : Array.from(orgIdsSet || []);
@@ -88,7 +94,25 @@ async function resolveUserOrgFromReq(req) {
 
 // Voxtral sends the whole file in one SDK call; the old 5-minute timeout was
 // routinely too tight for hour-plus recordings.
-const VOXTRAL_TIMEOUT_MS = Number(process.env.VOXTRAL_TIMEOUT_MS) || 1_800_000;
+/**
+ * A millisecond deadline from the environment; unset or empty means the
+ * default, a non-numeric or negative value is refused at boot.
+ * @param {string} name @param {number} fallback
+ */
+function envMs(name, fallback) {
+    const raw = process.env[name];
+    if (raw === undefined || raw === '') return fallback;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0) throw new Error(`${name} must be a non-negative number of milliseconds, got ${JSON.stringify(raw)}`);
+    return Math.trunc(n);
+}
+
+const VOXTRAL_TIMEOUT_MS = envMs('VOXTRAL_TIMEOUT_MS', 1_800_000);
+
+// The cut-off of one meeting-notes LLM call made from a route, the same env
+// and default as the pipeline's own calls (core/meetingNotes/summaryLlm.js).
+// Without one, a generic OpenAI-compatible adapter waits with no deadline.
+const MEETING_LLM_TIMEOUT_MS = envMs('MEETING_LLM_TIMEOUT_MS', 540_000);
 
 /**
  * Resolve the caller's default summary TEMPLATE (personal ▸ group ▸ org), so that a
@@ -206,6 +230,7 @@ module.exports = {
     resolveAccessContext,
     resolveUserOrgFromReq,
     VOXTRAL_TIMEOUT_MS,
+    MEETING_LLM_TIMEOUT_MS,
     resolveDefaultTemplateForReq,
     withInsightsPolicy,
     describeAudio,

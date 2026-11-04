@@ -83,6 +83,7 @@ vi.mock('../../components/admin/org/GroupAccessMatrix', async () => {
 import { renderWithClient as render } from '@/test/render';
 import OrganisationSection from './OrganisationSection';
 import { SECTIONS as INFO_SECTIONS } from '../../components/admin/org/OrgInfoPanel';
+import EntitlementsContext from '../../components/licensing/EntitlementsContext';
 import { authFetch } from '../../utils/helpers';
 
 // The sections read through react-query: one client per render, kept across rerender().
@@ -98,6 +99,23 @@ const ORG_ADMIN = USER({ permissions: ['org_admin'] });
 const NOBODY = USER({ permissions: [] });
 
 const mount = (props = {}) => render(<OrganisationSection user={NOBODY} {...props} />);
+
+/** An entitlements snapshot whose plan ceiling holds exactly `ceiling`. */
+const entitlements = ({ ceiling = [], loading = false, error = null, degraded = false } = {}) => ({
+    loading, error, degraded, tier: 'enterprise', mode: 'cloud',
+    effective: { core: ceiling, beta: [], integration: [] },
+    ceiling: { core: ceiling, beta: [], integration: [] },
+    can: (id) => ceiling.includes(id),
+    inCeiling: (id) => ceiling.includes(id),
+    lockReason: () => null, hasTier: () => true, reload: () => {},
+});
+
+/** mount() under a given entitlements snapshot. */
+const mountWith = (snapshot, props = {}) => render(
+    <EntitlementsContext.Provider value={snapshot}>
+        <OrganisationSection user={NOBODY} {...props} />
+    </EntitlementsContext.Provider>,
+);
 
 /** Push a new org-save-bar state through OrgInfoPanel's onStateChange prop. */
 const emit = (state) => act(() => { H.onStateChange(state); });
@@ -409,7 +427,8 @@ describe('OrganisationSection — the Integrations section', () => {
 });
 
 describe('OrganisationSection — the Nextcloud Sync section', () => {
-    const mountNc = (over = {}) => mount({ user: USER({ permissions: ['org_admin'], ...over }), activeSection: 'nextcloud_sync' });
+    const LICENSED = entitlements({ ceiling: ['meeting_notes'] });
+    const mountNc = (over = {}, snapshot = LICENSED) => mountWith(snapshot, { user: USER({ permissions: ['org_admin'], ...over }), activeSection: 'nextcloud_sync' });
 
     it('stacks sync and Talk meeting notes for an org_admin, and no Google Meet or Teams panel', () => {
         mountNc();
@@ -438,6 +457,22 @@ describe('OrganisationSection — the Nextcloud Sync section', () => {
     it('shows the pairing panel to a full admin even on a standalone org', () => {
         mount({ user: USER({ permissions: ['all'] }), activeSection: 'nextcloud_sync' });
         expect(screen.getByTestId('org-nc-pairing-panel')).toBeInTheDocument();
+    });
+
+    it('withholds Talk meeting notes from an NC-bound org whose plan or modules lack Meeting Notes', () => {
+        mountNc({ ncOrg: { instanceId: 'nc-1' } }, entitlements({ ceiling: [] }));
+        expect(screen.getByTestId('nextcloud-sync-panel')).toBeInTheDocument();
+        expect(screen.queryByTestId('meeting-notes-admin-panel')).toBeNull();
+    });
+
+    it('withholds Talk meeting notes while the entitlements snapshot is still loading', () => {
+        mountNc({}, entitlements({ ceiling: ['meeting_notes'], loading: true }));
+        expect(screen.queryByTestId('meeting-notes-admin-panel')).toBeNull();
+    });
+
+    it('shows Talk meeting notes when the entitlements snapshot failed (fails open, like the Meeting Templates row)', () => {
+        mountNc({}, entitlements({ ceiling: [], error: 'HTTP 500' }));
+        expect(screen.getByTestId('meeting-notes-admin-panel')).toBeInTheDocument();
     });
 });
 

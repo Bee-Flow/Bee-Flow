@@ -73,4 +73,17 @@ describe('TeamsMeetingNotesSection', () => {
         await user.click(screen.getByRole('button', { name: 'Reconnect Microsoft 365' }));
         expect(invalidate).toHaveBeenCalled();
     });
+
+    it('a stored connection that needs reauth → expired notice and reconnect, not a vanished section', async () => {
+        const user = userEvent.setup();
+        vi.mocked(openMicrosoftOAuthPopup).mockResolvedValue({ success: true });
+        state.query = settings({ microsoftConnected: false, teamsScopesGranted: true, hasMeetingWriteScope: false, hasTranscriptScope: false, needsReauth: true });
+        render(<TeamsMeetingNotesSection />);
+        expect(screen.getByText('Microsoft Teams Meeting Notes')).toBeTruthy();
+        expect(screen.getByText(/connection has expired/)).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Reconnect Microsoft 365' }));
+        expect(openMicrosoftOAuthPopup).toHaveBeenCalled();
+        expect(invalidate).toHaveBeenCalled();
+    });
 });

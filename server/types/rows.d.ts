@@ -1433,6 +1433,7 @@ declare namespace DbRow {
         attempts: number;
         calendar_event_id: string | null;
         conference_record: string | null;
+        context_terms: string | null;
         created_at: Date;
         error_code: string | null;
         ical_uid: string | null;
@@ -1444,6 +1445,8 @@ declare namespace DbRow {
         next_attempt_at: Date;
         org_id: string | null;
         preferred: boolean;
+        requested_by_user: boolean;
+        requested_language: string | null;
         space_name: string | null;
         status: string;
         title: string | null;
@@ -3508,6 +3511,7 @@ declare namespace DbRow {
     interface TeamsImportJobs {
         attempts: number;
         calendar_event_id: string;
+        context_terms: string | null;
         created_at: Date;
         error_code: string | null;
         id: string;
@@ -3518,6 +3522,8 @@ declare namespace DbRow {
         next_attempt_at: Date;
         online_meeting_id: string | null;
         org_id: string | null;
+        requested_by_user: boolean;
+        requested_language: string | null;
         series_master_id: string | null;
         status: string;
         title: string | null;

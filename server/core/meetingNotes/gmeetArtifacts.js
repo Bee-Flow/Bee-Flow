@@ -14,12 +14,13 @@
  * `setAutoRecording`.
  */
 
-const fs = require('fs');
-const { pipeline } = require('stream/promises');
 // The Google client is injected by integrations/ (see ../integrations/integrationClients.js).
 const { integrationClient } = require('../integrations/integrationClients');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const {
+    errStatus, codedError, driveAccessError, streamMediaToFile, downloadIdleTimeoutMs, extractTimeoutMs,
+} = require('./gmeetDownload');
 
 const NOT_CONNECTED_ERROR = 'Not connected to Google — user must log in with Google';
 
@@ -39,25 +40,6 @@ async function createMeetClient(session) {
 
 async function createDriveClient(session) {
     return integrationClient('google').createGoogleApiClient(session, { api: 'drive', version: 'v3', notConnectedError: NOT_CONNECTED_ERROR });
-}
-
-// HTTP status off a gaxios error (`.status` on current gaxios, `.response.status`
-// always, numeric `.code` on older versions).
-function errStatus(err) {
-    if (typeof err?.status === 'number') return err.status;
-    if (typeof err?.response?.status === 'number') return err.response.status;
-    if (typeof err?.code === 'number') return err.code;
-    return null;
-}
-
-/**
- * @param {string} message
- * @param {string} code
- */
-function codedError(message, code) {
-    const e = new Error(message);
-    e.code = code;
-    return e;
 }
 
 /**
@@ -153,7 +135,10 @@ async function findConferenceRecord(session, { spaceName, meetingStart, meetingE
 
 /**
  * Find the generated recording of a conference record.
- * → { recordingName, driveFileId }  when a FILE_GENERATED recording exists
+ * → { recordingName, driveFileId }  when a FILE_GENERATED recording exists,
+ *   plus `extraRecordings` (other recordings of the same conference: a
+ *   recording stopped and restarted makes one per part) and
+ *   `pendingRecordings` (those Google is still processing), each only when > 0
  * → { notReady: true }              recordings exist but no file yet
  * → { none: true }                  the conference has no recordings at all
  * @param {GoogleSession} session
@@ -161,15 +146,33 @@ async function findConferenceRecord(session, { spaceName, meetingStart, meetingE
  */
 async function findGeneratedRecording(session, conferenceRecordName) {
     const meet = await createMeetClient(session);
-    const res = await meet.conferenceRecords.recordings.list({
-        parent: conferenceRecordName,
-        pageSize: 10,
-    });
-    const recordings = res.data?.recordings || [];
+    /** @type {Array<{ name?: string, state?: string, startTime?: string, driveDestination?: { file?: string } }>} */
+    const recordings = [];
+    let pageToken = null;
+    // Every page is read: a conference can have more than ten parts.
+    for (let page = 0; page < 10; page++) {
+        const res = await meet.conferenceRecords.recordings.list({
+            parent: conferenceRecordName,
+            pageSize: 100,
+            ...(pageToken ? { pageToken } : {}),
+        });
+        recordings.push(...(res.data?.recordings || []));
+        pageToken = res.data?.nextPageToken || null;
+        if (!pageToken) break;
+    }
     if (!recordings.length) return { none: true };
-    const generated = recordings.find(r => r.state === 'FILE_GENERATED' && r.driveDestination?.file);
-    if (generated) return { recordingName: generated.name, driveFileId: generated.driveDestination.file };
-    return { notReady: true };
+    recordings.sort((a, b) => String(a.startTime || '').localeCompare(String(b.startTime || '')));
+    const ready = (/** @type {typeof recordings[number]} */ r) => r.state === 'FILE_GENERATED' && !!r.driveDestination?.file;
+    const generated = recordings.find(ready);
+    if (!generated) return { notReady: true };
+    const extraRecordings = recordings.length - 1;
+    const pendingRecordings = recordings.filter((r) => !ready(r)).length;
+    return {
+        recordingName: generated.name,
+        driveFileId: generated.driveDestination?.file,
+        ...(extraRecordings > 0 ? { extraRecordings } : {}),
+        ...(pendingRecordings > 0 ? { pendingRecordings } : {}),
+    };
 }
 
 /**
@@ -248,16 +251,6 @@ async function setAutoRecording(session, { meetingCode, enabled } = {}) {
     }
 }
 
-// 403/404 on the recording file both mean "this account can't fetch it" —
-// usually only the organizer's Drive has the MP4 (expected terminal state).
-function driveAccessError(err) {
-    const status = errStatus(err);
-    if (status === 403 || status === 404) {
-        return codedError('Recording file is not accessible with this Google account (organizer-only Drive access)', 'no_drive_access');
-    }
-    return codedError(`Recording download failed: ${err.message}`, 'download_failed');
-}
-
 /**
  * Stream a recording MP4 from Drive to `destPath`. Checks the file size via
  * metadata BEFORE requesting any media (Meet recordings are 0.4–1 GB/h).
@@ -269,9 +262,10 @@ function driveAccessError(err) {
  * @param session
  * @param driveFileId
  * @param destPath
- * @param {{ maxBytes?: number }} [opts]
+ * @param {{ maxBytes?: number, idleTimeoutMs?: number }} [opts] `idleTimeoutMs`: abort when no byte
+ *   arrives for this long (GMEET_DOWNLOAD_IDLE_TIMEOUT_MS, default 5 min, 0 = no limit)
  */
-async function downloadRecordingToFile(session, driveFileId, destPath, { maxBytes } = {}) {
+async function downloadRecordingToFile(session, driveFileId, destPath, { maxBytes, idleTimeoutMs = downloadIdleTimeoutMs() } = {}) {
     const drive = await createDriveClient(session);
 
     let meta;
@@ -289,21 +283,7 @@ async function downloadRecordingToFile(session, driveFileId, destPath, { maxByte
         throw codedError(`Recording is ${size} bytes — exceeds the ${maxBytes} byte limit`, 'recording_too_large');
     }
 
-    let res;
-    try {
-        res = await drive.files.get(
-            { fileId: driveFileId, alt: 'media', supportsAllDrives: true },
-            { responseType: 'stream' },
-        );
-    } catch (err) {
-        throw driveAccessError(err);
-    }
-    try {
-        await pipeline(res.data, fs.createWriteStream(destPath));
-    } catch (err) {
-        try { fs.unlinkSync(destPath); } catch (_) { log.debug('partial download already gone', _); }
-        throw codedError(`Recording download failed: ${/** @type {Error} */ (err).message}`, 'download_failed');
-    }
+    await streamMediaToFile(drive, driveFileId, destPath, idleTimeoutMs);
     return { size, name: meta.data?.name || null, mimeType: meta.data?.mimeType || null };
 }
 
@@ -319,13 +299,20 @@ async function extractAudioTrack(videoPath, audioPath) {
     const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
     const { spawn } = require('child_process');
     const args = ['-y', '-i', videoPath, '-vn', '-ac', '1', '-c:a', 'aac', '-b:a', '64k', audioPath];
+    const limitMs = extractTimeoutMs();
     await /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
         const proc = spawn(ffmpegPath, args, { windowsHide: true });
         let stderr = '';
+        let killed = false;
+        // A hung ffmpeg must not hold the import (and the tick) for good.
+        const timer = limitMs ? setTimeout(() => { killed = true; proc.kill('SIGKILL'); }, limitMs) : null;
+        timer?.unref?.();
         proc.stderr?.on('data', (chunk) => { stderr = (stderr + chunk).slice(-4096); });
-        proc.on('error', reject);
+        proc.on('error', (err) => { if (timer) clearTimeout(timer); reject(err); });
         proc.on('close', (code) => {
+            if (timer) clearTimeout(timer);
             if (code === 0) resolve();
+            else if (killed) reject(new Error(`ffmpeg did not finish within ${Math.round(limitMs / 60_000)} min`));
             else reject(new Error(`ffmpeg exited with code ${code}${stderr ? `: ${stderr.trim().slice(-500)}` : ''}`));
         });
     }));

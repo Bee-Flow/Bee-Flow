@@ -134,10 +134,21 @@ async function resolveTeamsNotesSettings({ orgId = null, userId = null } = {}) {
     };
 }
 
-/** @param {string} orgId */
+/**
+ * The org document as stored, for the admin screen: a member-overridable field
+ * the org never set is `null` ("no opinion, each member decides"), NOT the
+ * default. Merging the defaults in made every field look set, the admin form
+ * posted them all back, and one Save pinned every member's own choice to the
+ * defaults.
+ * @param {string} orgId
+ */
 async function getOrgSettings(orgId) {
     const stored = orgId ? await deps.configStore.getConfig(orgKey(orgId)) : null;
-    return { ...DEFAULTS, ...(stored || {}) };
+    const doc = stored || {};
+    /** @type {Record<string, unknown>} */
+    const out = { ...doc };
+    for (const k of Object.keys(DEFAULTS)) out[k] = doc[k] ?? null;
+    return out;
 }
 
 /** @param {string} userId */
@@ -146,7 +157,10 @@ async function getUserSettings(userId) {
     return { ...DEFAULTS, ...(stored || {}) };
 }
 
-// An explicit null stores null (inherit); an absent field takes the coercion.
+// An explicit null stores null (inherit). An absent field takes the coercion on
+// the USER document; on the ORG document it is null too (`absentIsNull`), so a
+// save that leaves a field out hands it back to the members instead of pinning
+// it to the default.
 /**
  * @template T, R
  * @param {T | null} value
@@ -159,13 +173,18 @@ function orNull(value, coerce) { return value === null ? null : coerce(value); }
  * A settings patch from the API body; a field may be absent or an explicit null ("inherit").
  * @typedef {{ autoImport?: boolean | null, autoRecordConfig?: boolean | null, language?: string | null, lookbackHours?: number | string | null }} TeamsNotesPatch
  */
-/** @param {TeamsNotesPatch} patch */
-function sanitizePatch(patch) {
+/**
+ * @param {TeamsNotesPatch} patch
+ * @param {{ absentIsNull?: boolean }} [opts]
+ */
+function sanitizePatch(patch, { absentIsNull = false } = {}) {
+    /** @type {(v: any) => any} */
+    const field = (v) => (absentIsNull && v === undefined ? null : v);
     return {
-        autoImport: orNull(patch.autoImport, v => !!v),
-        autoRecordConfig: orNull(patch.autoRecordConfig, v => !!v),
-        language: orNull(patch.language, asLanguage),
-        lookbackHours: orNull(patch.lookbackHours, asLookback),
+        autoImport: orNull(field(patch.autoImport), v => !!v),
+        autoRecordConfig: orNull(field(patch.autoRecordConfig), v => !!v),
+        language: orNull(field(patch.language), asLanguage),
+        lookbackHours: orNull(field(patch.lookbackHours), asLookback),
     };
 }
 
@@ -175,7 +194,7 @@ function sanitizePatch(patch) {
  * @param {string | null} [updatedBy]
  */
 async function saveOrgSettings(orgId, patch, updatedBy) {
-    const config = { ...sanitizePatch(patch), updatedAt: new Date().toISOString(), updatedBy: updatedBy || null };
+    const config = { ...sanitizePatch(patch, { absentIsNull: true }), updatedAt: new Date().toISOString(), updatedBy: updatedBy || null };
     await deps.configStore.setConfig(orgKey(orgId), config);
     return config;
 }

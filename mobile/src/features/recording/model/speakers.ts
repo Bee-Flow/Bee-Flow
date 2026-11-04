@@ -39,6 +39,13 @@ export function speakerCollision(
 /**
  * The renames that actually change something, plus — when `mergeInto` is one
  * of two or more selected speakers — the merge of the others into it.
+ *
+ * A speaker being merged away sends no rename of its own. The server looks a
+ * rename up by the ORIGINAL name before it follows the merge
+ * (routes/transcriptions/speakers.js `remap`), so a typed name on a merged-away
+ * row would win and keep it a separate speaker: the merge silently skipped,
+ * under a success toast. The merged group takes the target's name, renamed
+ * or not, through the target's own rename.
  */
 export function buildSpeakerEdit(
     speakers: readonly Speaker[],
@@ -46,12 +53,13 @@ export function buildSpeakerEdit(
     selected: readonly string[],
     mergeInto: string | null,
 ): SpeakerEdit {
+    const mergedAway = mergeInto && selected.length > 1 ? selected.filter((id) => id !== mergeInto) : [];
     const renames: Record<string, string> = {};
     for (const speaker of speakers) {
+        if (mergedAway.includes(speaker.id)) continue;
         const next = (names[speaker.id] ?? speaker.id).trim();
         if (next && next !== speaker.id) renames[speaker.id] = next;
     }
-    const merges =
-        mergeInto && selected.length > 1 ? [{ from: selected.filter((id) => id !== mergeInto), into: mergeInto }] : [];
+    const merges = mergeInto && mergedAway.length ? [{ from: mergedAway, into: mergeInto }] : [];
     return { renames, merges };
 }

@@ -152,7 +152,11 @@ Keep it concise and actionable. Skip empty sections.`,
     },
 ];
 
-const BUILTIN_BY_ID = Object.fromEntries(BUILTIN_TEMPLATES.map(t => [t.id, t]));
+// Null prototype: the key comes from the wire, and on a plain object a name inherited from
+// Object.prototype ('constructor', '__proto__', 'toString', ...) would look like a template and get
+// past the 'general' fallback here and in summaryStamp.stampForBuiltin.
+/** @type {Readonly<Record<string, typeof BUILTIN_TEMPLATES[number]>>} */
+const BUILTIN_BY_ID = Object.freeze(Object.assign(Object.create(null), Object.fromEntries(BUILTIN_TEMPLATES.map(t => [t.id, t]))));
 
 /**
  * Resolve the built-in prompt for a wire `template` key, falling back to general.
@@ -209,6 +213,8 @@ function pickDefaultTemplate(templates, { userId = null, orgIds = [], groupIds =
  * Whether a user (given their org + group context) may see/use a custom
  * template. Pure — used by both the CRUD list filter and the Regenerate route
  * before it applies a `templateId`.
+ * @param {SummaryTemplateRow | null | undefined} template
+ * @param {TemplateAccessContext} [viewer]
  */
 function canAccessTemplate(template, { userId = null, orgIds = [], groupIds = [] } = {}) {
     if (!template) return false;

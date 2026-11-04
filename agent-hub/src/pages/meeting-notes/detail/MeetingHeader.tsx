@@ -206,8 +206,9 @@ function OverflowMenu({ t, canEdit, busy, audioGone, onCopyTranscript, onEditSpe
         onExport && { id: 'txt', icon: Download, label: t('meetings.export_txt', 'Export as Text'), onClick: () => onExport('txt') },
         // Disabled when the audio is gone for good. Leaving it enabled is what
         // produced the original complaint: a click, a spinner, then a message
-        // telling the user to upload a file that never existed.
-        onReprocess && {
+        // telling the user to upload a file that never existed. Owner-only:
+        // the server refuses everyone else.
+        canEdit && onReprocess && {
             id: 'reprocess', icon: RefreshCw, label: t('meetings.retranscribe', 'Re-transcribe'), onClick: onReprocess,
             disabled: busy || audioGone,
             title: audioGone ? t('meetings.audio_gone', 'The audio for this meeting is no longer available') : undefined,

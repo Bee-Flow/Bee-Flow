@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { API_BASE } from '../../utils/helpers';
 import { useTalkNotesUserSettings } from '../../api/queries/settingsOptionalRead';
-import { NC_BLUE, LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
+import { NC_BLUE, languageOptions, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
@@ -122,7 +122,7 @@ export default function MeetingNotesSection() {
                         aria-label={t('settings.talk_notes.language_title', "Default language")}
                         className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                     >
-                        {LANGS.map((l: { code: string; label: string }) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                        {languageOptions(cfg.language).map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
                     </select>
                 </Row>
             </div>

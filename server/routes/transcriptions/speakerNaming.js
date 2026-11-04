@@ -31,14 +31,19 @@ async function lookupUserName(userId) {
  * Pass the stats rows, not bare IDs: the speaking times are what let the model
  * separate real participants from short diarization fragments. IDs already
  * pinned by a voiceprint are `lockedNames`: the model is not asked about them,
- * and its answer cannot override them.
+ * and its answer cannot override them. `knownNames` are names known to be in
+ * the meeting (a speaker the owner named by hand): candidates for the model,
+ * not part of the closed attendee `roster`.
  * @returns {Promise<{ merged: any[], transcript: string, speakers: any[], filledMapping: object }>}
  */
-async function nameSpeakers({ merged, speakers, language, userName, userOrgId, roster, voiceprintMapping, voiceprintRuledOut, numSpeakers }) {
+async function nameSpeakers({ merged, speakers, language, userName, userOrgId, roster, voiceprintMapping, voiceprintRuledOut, numSpeakers, knownNames = undefined }) {
     const nameMapping = await identifySpeakerNames(
         merged, speakers, language, userName, userOrgId,
         roster,
-        { lockedNames: voiceprintMapping, ruledOutNames: voiceprintRuledOut, expectedSpeakers: numSpeakers },
+        {
+            lockedNames: voiceprintMapping, ruledOutNames: voiceprintRuledOut, expectedSpeakers: numSpeakers,
+            ...(knownNames && knownNames.length ? { knownNames } : {}),
+        },
     );
 
     // Floor: any ID the model couldn't confidently name gets a clean,
@@ -67,6 +72,15 @@ function buildTranscriptOrThrow(response) {
     const built = buildTranscriptArtifacts(response.segments || []);
     if (!built.merged.length) {
         throw new Error('Transcription returned no segments.');
+    }
+    // Segments without a single word are the same outcome. A diarizer can
+    // return speaker turns while its speech-to-text leg found nothing (pyannote
+    // maps a diarization-only result to rows with empty text, on purpose, so
+    // speaker lanes survive). Completing that note ran the summary, title,
+    // chapters and artifacts over bare "[S1] 00:00 - 00:12:" lines, and the
+    // user got an invented summary with no hint to retry.
+    if (!built.merged.some((seg) => typeof seg.text === 'string' && seg.text.trim())) {
+        throw new Error('Transcription returned no words. The recording may be silent, or in a language the engine could not transcribe.');
     }
     return built;
 }

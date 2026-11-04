@@ -5,6 +5,7 @@ import useTranslation from '@/hooks/useTranslation';
 // an unreadable model timestamp must lose its chip, not seek to 0:00.
 import { toSeconds } from '../lib/timelineMarkers';
 import DestinationPicker from './DestinationPicker';
+import { actionItemKey } from './actionItemKey';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DestinationRecord } from '../lib/actionDestinations';
 import type { MeetingActionItem, MeetingNote } from './meetingDetailTypes';
@@ -20,10 +21,13 @@ interface ActionItemsListProps {
 
 interface ActionItemRowProps {
     item: MeetingActionItem;
+    itemKey: string;
     editing: boolean;
     draft: string;
     onDraftChange: (draft: string) => void;
     onToggle: () => void;
+    /** False for a reader: the checkbox is drawn, but not as something to press. */
+    canToggle: boolean;
     onStartEdit: () => void;
     onCommit: () => void;
     onCancel: () => void;
@@ -36,6 +40,7 @@ interface ActionItemRowProps {
 
 interface ActionItemMetaProps {
     item: MeetingActionItem;
+    itemKey: string;
     onSeek?: (seconds: number) => void;
     meeting: MeetingNote | null;
     onSetDestination?: (id: string | undefined, destination: DestinationRecord | null) => void;
@@ -56,34 +61,38 @@ interface ActionItemMetaProps {
  */
 export default function ActionItemsList({ items = [], meeting = null, onToggle, onEdit, onSeek, onSetDestination }: ActionItemsListProps) {
     const { t } = useTranslation();
-    const [editingId, setEditingId] = useState<string | null | undefined>(null);
+    // Keyed by actionItemKey (the id, or the position for a legacy item
+    // without one), never by `item.id` alone: id-less items all share
+    // `undefined`, and one edit would open, and rewrite, every one of them.
+    const [editingKey, setEditingKey] = useState<string | null>(null);
     const [draft, setDraft] = useState('');
 
     // When any item carries a spoken deadline, dated items float up in due
     // order; undated ones keep their original (discussion) order below.
     // Stable sort, so toggling done never reshuffles rows.
     const sorted = useMemo(() => {
-        if (!items.some((i) => i && i.due)) return items;
-        return [...items].sort((a, b) => (a.due && b.due
+        const keyed = items.map((item, index) => ({ item, key: actionItemKey(item, index) }));
+        if (!items.some((i) => i && i.due)) return keyed;
+        return keyed.sort(({ item: a }, { item: b }) => (a.due && b.due
             ? a.due.localeCompare(b.due)
             : a.due ? -1 : b.due ? 1 : 0));
     }, [items]);
 
-    const startEdit = (item: MeetingActionItem) => {
+    const startEdit = (item: MeetingActionItem, key: string) => {
         if (!onEdit) return;
-        setEditingId(item.id);
+        setEditingKey(key);
         setDraft(item.text || '');
     };
 
     const cancelEdit = () => {
-        setEditingId(null);
+        setEditingKey(null);
         setDraft('');
     };
 
-    const commitEdit = (item: MeetingActionItem) => {
+    const commitEdit = (item: MeetingActionItem, key: string) => {
         const trimmed = draft.trim();
         if (trimmed && trimmed !== item.text) {
-            onEdit?.(item.id, trimmed);
+            onEdit?.(key, trimmed);
         }
         cancelEdit();
     };
@@ -104,16 +113,18 @@ export default function ActionItemsList({ items = [], meeting = null, onToggle, 
                     </div>
                 ) : (
                     <ul className="divide-y border-[var(--border-subtle)]">
-                        {sorted.map((item) => (
+                        {sorted.map(({ item, key }) => (
                             <ActionItemRow
-                                key={item.id}
+                                key={key}
                                 item={item}
-                                editing={editingId === item.id}
+                                itemKey={key}
+                                editing={editingKey === key}
                                 draft={draft}
                                 onDraftChange={setDraft}
-                                onToggle={() => onToggle?.(item.id)}
-                                onStartEdit={() => startEdit(item)}
-                                onCommit={() => commitEdit(item)}
+                                onToggle={() => onToggle?.(key)}
+                                canToggle={!!onToggle}
+                                onStartEdit={() => startEdit(item, key)}
+                                onCommit={() => commitEdit(item, key)}
                                 onCancel={cancelEdit}
                                 onSeek={onSeek}
                                 canEdit={!!onEdit}
@@ -129,7 +140,7 @@ export default function ActionItemsList({ items = [], meeting = null, onToggle, 
     );
 }
 
-function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartEdit, onCommit, onCancel, onSeek, canEdit, meeting, onSetDestination, t }: ActionItemRowProps) {
+function ActionItemRow({ item, itemKey, editing, draft, onDraftChange, onToggle, canToggle, onStartEdit, onCommit, onCancel, onSeek, canEdit, meeting, onSetDestination, t }: ActionItemRowProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         if (editing && inputRef.current) {
@@ -143,8 +154,9 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
             <button
                 type="button"
                 onClick={onToggle}
+                disabled={!canToggle}
                 aria-label={item.done ? t('meetings.mark_not_done', 'Mark not done') : t('meetings.mark_done', 'Mark done')}
-                className="mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors"
+                className="mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors disabled:cursor-default"
                 style={{
                     background: item.done ? 'var(--accent-primary)' : 'transparent',
                     borderColor: item.done ? 'var(--accent-primary)' : 'var(--border-default)',
@@ -180,6 +192,7 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
                 )}
                 <ActionItemMeta
                     item={item}
+                    itemKey={itemKey}
                     onSeek={onSeek}
                     meeting={meeting}
                     onSetDestination={onSetDestination}
@@ -191,7 +204,7 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
 }
 
 /** The line under the sentence: who, when, by when — and where it went. */
-function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }: ActionItemMetaProps) {
+function ActionItemMeta({ item, itemKey, onSeek, meeting, onSetDestination, t }: ActionItemMetaProps) {
     return (
         <div className="flex items-center gap-2 mt-1 text-[11px] text-[var(--text-muted)]">
             {item.assignee && (
@@ -220,7 +233,7 @@ function ActionItemMeta({ item, onSeek, meeting, onSetDestination, t }: ActionIt
                 <DestinationPicker
                     item={item}
                     meeting={meeting}
-                    onPicked={(destination: DestinationRecord | null) => onSetDestination(item.id, destination)}
+                    onPicked={(destination: DestinationRecord | null) => onSetDestination(itemKey, destination)}
                 />
             )}
         </div>

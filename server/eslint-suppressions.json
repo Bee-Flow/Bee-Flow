@@ -5992,7 +5992,7 @@
   },
   "integrations/transcriptionTools.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -8522,11 +8522,6 @@
   "routes/transcriptions/speakers.js": {
     "complexity": {
       "count": 2
-    }
-  },
-  "routes/transcriptions/teams.js": {
-    "max-depth": {
-      "count": 1
     }
   },
   "routes/transcriptions/upload.js": {

@@ -18,6 +18,7 @@ const { hasWritePrivilege } = require('./nextcloudDavProps');
 const { extractReason } = require('./nextcloudHttpError');
 const { CalendarInputError, buildVCalendarEvent, updateVCalendarEvent } = require('./nextcloudCalendarIcs');
 const { fallback } = require('../utils/bestEffort');
+const { PROPFIND_CALENDARS, calendarQueryReport } = require('./nextcloudCalDavQueries');
 
 const xmlParser = new XMLParser({
     ignoreAttributes: false,
@@ -27,40 +28,6 @@ const xmlParser = new XMLParser({
     trimValues: true,
     htmlEntities: true,
 });
-
-const PROPFIND_CALENDARS = `<?xml version="1.0" encoding="utf-8" ?>
-<d:propfind xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:oc="http://owncloud.org/ns">
-  <d:prop>
-    <d:displayname/>
-    <d:resourcetype/>
-    <c:supported-calendar-component-set/>
-    <cs:getctag/>
-    <oc:owner-principal/>
-    <d:current-user-privilege-set/>
-  </d:prop>
-</d:propfind>`;
-
-/**
- * @param {string | null} rangeStart
- * @param {string | null} rangeEnd
- */
-function calendarQueryReport(rangeStart, rangeEnd) {
-    const range = (rangeStart && rangeEnd)
-        ? `<c:time-range start="${rangeStart}" end="${rangeEnd}"/>`
-        : '';
-    return `<?xml version="1.0" encoding="utf-8" ?>
-<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-  <d:prop>
-    <d:getetag/>
-    <c:calendar-data/>
-  </d:prop>
-  <c:filter>
-    <c:comp-filter name="VCALENDAR">
-      <c:comp-filter name="VEVENT">${range}</c:comp-filter>
-    </c:comp-filter>
-  </c:filter>
-</c:calendar-query>`;
-}
 
 const NEXTCLOUD_CALENDAR_TOOLS = [
     {
@@ -251,6 +218,9 @@ function eventFromIcal(vevent) {
         attendees,
         dtstart: icsTimeToISO(ev.startDate),
         dtend: icsTimeToISO(ev.endDate),
+        // Set on one occurrence of a series (an expanded REPORT, or a moved
+        // occurrence): uid + recurrenceId tells the occurrences apart.
+        recurrenceId: icsTimeToISO(ev.recurrenceId),
         organizer,
         allDay: !!(ev.startDate && ev.startDate.isDate),
         // Talk room token if this event is linked to a Talk conversation.

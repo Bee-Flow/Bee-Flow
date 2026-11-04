@@ -15,6 +15,7 @@ import { downloadToCache } from '@/core/api/downloadFile';
 import {
     deleteTranscription,
     downloadMeetingAudio,
+    listTranscriptions,
     listTranscriptionTags,
     reportMeetings,
     setTranscriptionTags,
@@ -42,6 +43,42 @@ describe('deleteTranscription', () => {
     it('sends ?confirm=1 once the guard’s answer has been confirmed', async () => {
         await deleteTranscription('t1', { confirmedBreaking: true });
         expect(del).toHaveBeenCalledWith('/api/transcriptions/t1', { query: { confirm: '1' } });
+    });
+});
+
+describe('listTranscriptions', () => {
+    const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `n${i + 1}`, title: `Meeting ${i + 1}` }));
+    /** Pages like routes/transcriptions/notes.js: limit 50 by default, at most 100, offset. */
+    const serve = (all: ReturnType<typeof rows>, { ignoreOffset = false } = {}) =>
+        (api.get as jest.Mock).mockImplementation(async (_path: string, opts: { query?: { limit?: number; offset?: number } }) => {
+            const limit = Math.min(opts?.query?.limit ?? 50, 100);
+            const offset = ignoreOffset ? 0 : opts?.query?.offset ?? 0;
+            return { transcriptions: all.slice(offset, offset + limit) };
+        });
+
+    beforeEach(() => (api.get as jest.Mock).mockReset());
+    afterEach(() => (api.get as jest.Mock).mockReset());
+
+    it('reads every page, so notes past the newest 50 reach the library', async () => {
+        serve(rows(230));
+        const list = await listTranscriptions();
+        expect(list).toHaveLength(230);
+        expect(list.map((n) => n.id)).toContain('n171');
+        expect((api.get as jest.Mock).mock.calls.map((c) => c[1].query)).toEqual([
+            { limit: 100, offset: 0 }, { limit: 100, offset: 100 }, { limit: 100, offset: 200 },
+        ]);
+    });
+
+    it('stops on a page that adds nothing new (a server that ignores offset)', async () => {
+        serve(rows(300), { ignoreOffset: true });
+        expect(await listTranscriptions()).toHaveLength(100);
+        expect(api.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('with a limit reads only the newest page', async () => {
+        serve(rows(300));
+        expect(await listTranscriptions(undefined, 100)).toHaveLength(100);
+        expect(api.get).toHaveBeenCalledTimes(1);
     });
 });
 

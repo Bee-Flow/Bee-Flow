@@ -122,3 +122,67 @@ test('a 403 on write becomes a readable read-only message', async () => {
     assert.match(out.error, /read-only|permission/i);
     assert.doesNotMatch(out.error, /<d:error>/);
 });
+
+// ── Recurring events in a range: one entry per occurrence ────────────────────
+
+// What SabreDAV answers to a calendar-query WITH <c:expand>: every occurrence
+// in the range its own VEVENT in UTC, with a RECURRENCE-ID; a moved
+// occurrence keeps its RECURRENCE-ID and carries the new start.
+const EXPANDED = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Sabre//EN',
+    'BEGIN:VEVENT', 'UID:weekly@nc.test', 'DTSTAMP:20260101T000000Z',
+    'DTSTART:20261104T090000Z', 'DTEND:20261104T100000Z', 'RECURRENCE-ID:20261104T090000Z',
+    'SUMMARY:Daily sync', 'DESCRIPTION:https://nc.test/call/abc123', 'END:VEVENT',
+    'BEGIN:VEVENT', 'UID:weekly@nc.test', 'DTSTAMP:20260101T000000Z',
+    'DTSTART:20261105T140000Z', 'DTEND:20261105T150000Z', 'RECURRENCE-ID:20261105T090000Z',
+    'SUMMARY:Daily sync', 'DESCRIPTION:https://nc.test/call/abc123', 'END:VEVENT',
+    'END:VCALENDAR', '',
+].join('\r\n');
+
+const multistatus = (ics) => `<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav">
+  <d:response><d:href>/remote.php/dav/calendars/u1/personal/weekly.ics</d:href>
+    <d:propstat><d:prop><d:getetag>"e1"</d:getetag><cal:calendar-data>${ics.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</cal:calendar-data></d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
+</d:multistatus>`;
+
+async function report(tool, args, ics) {
+    const bodies = [];
+    const orig = ncClient.resolveAuth;
+    ncClient.resolveAuth = async () => ({
+        baseUrl: BASE, uid: 'u1', authError: 'AUTH',
+        fetch: async (url, options = {}) => {
+            if (options.method === 'REPORT') bodies.push(options.body);
+            return { status: 207, ok: true, headers: { get: () => null }, text: async () => multistatus(ics) };
+        },
+    });
+    try {
+        return { out: await executeNextcloudCalendarTool(tool, args, 'u1', {}), bodies };
+    } finally {
+        ncClient.resolveAuth = orig;
+    }
+}
+
+test('list_events asks the server to expand recurrences over the requested range', async () => {
+    const { bodies } = await report('nextcloud_calendar_list_events',
+        { calendar: 'personal', start: '2026-11-04T00:00:00Z', end: '2026-11-06T00:00:00Z' }, EXPANDED);
+    assert.equal(bodies.length, 1);
+    assert.match(bodies[0], /<c:calendar-data><c:expand start="20261104T000000Z" end="20261106T000000Z"\/><\/c:calendar-data>/);
+    assert.match(bodies[0], /<c:time-range start="20261104T000000Z" end="20261106T000000Z"\/>/);
+});
+
+test('list_events returns each occurrence with its own start and recurrence id', async () => {
+    const { out } = await report('nextcloud_calendar_list_events',
+        { calendar: 'personal', start: '2026-11-04T00:00:00Z', end: '2026-11-06T00:00:00Z' }, EXPANDED);
+    assert.deepEqual(out.events.map((e) => [e.uid, e.dtstart, e.recurrenceId, e.talkToken]), [
+        ['weekly@nc.test', '2026-11-04T09:00:00.000Z', '2026-11-04T09:00:00.000Z', 'abc123'],
+        ['weekly@nc.test', '2026-11-05T14:00:00.000Z', '2026-11-05T09:00:00.000Z', 'abc123'],
+    ]);
+});
+
+test('a search without a range asks for the stored objects, unexpanded', async () => {
+    const { out, bodies } = await report('nextcloud_calendar_search_events', { query: 'sync', calendar: 'personal' }, STORED);
+    assert.match(bodies[0], /<c:calendar-data\/>/);
+    assert.doesNotMatch(bodies[0], /expand/);
+    assert.equal(out.events[0].recurrenceId, null, 'a master VEVENT has no recurrence id');
+});

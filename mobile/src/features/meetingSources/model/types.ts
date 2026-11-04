@@ -5,9 +5,14 @@
  *
  * Traced to server/routes/transcriptions/nextcloud.js and gmeet.js; a Talk
  * meeting's calendar fields are core/meetingNotes/talkCalendar.js, a Meet
- * one's gmeetCalendar.js. Microsoft Teams has no source here: the server has
- * no Teams recording source and no teams-meetings route (see the header of
- * agent-hub UpcomingMeetings.jsx), so a Teams row would switch nothing on.
+ * one's gmeetCalendar.js.
+ *
+ * Microsoft Teams is not mirrored here YET. The server does have it
+ * (routes/transcriptions/teams.js: GET and PATCH /teams-meetings, GET
+ * /teams-imports, GET /teams-recordings, POST /from-teams) and agent-hub
+ * UpcomingMeetings.tsx lists Teams rows (organizer-only toggles), so a Teams
+ * meeting shows on the web and not in this app. Adding it means a reader and
+ * endpoints for those routes plus a Teams row kind next to Talk and Meet.
  */
 
 /** Why a meeting is (not) recorded by default: meetingPrefsStore `decide`. */
@@ -87,6 +92,11 @@ export interface RecordAnswer {
     effectiveRecord: boolean;
     /** A wider rule (org-wide, or the series) kept it from what was asked. */
     overridden: boolean;
+    /**
+     * What the PATCH did to Meet's own auto-recording ('set', 'unset',
+     * 'series_only', 'overridden', ...); absent when the server sent none.
+     */
+    autoRecordingConfig?: string;
 }
 
 export interface TalkRecording {

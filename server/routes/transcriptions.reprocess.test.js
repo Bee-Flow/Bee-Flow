@@ -55,6 +55,7 @@ stub('../stores/transcriptionStore', {
     getTranscription: async (id) => (storedTranscription ? { ...storedTranscription, id } : null),
     updateTranscription: async (id, userId, updates) => { statusUpdates.push({ id, userId, updates }); return { id }; },
     claimForProcessing: async (id, userId) => { claimCalls.push({ id, userId }); return claimAllowed; },
+    heartbeatProcessing: async () => true,
     // Mirrors the real one: only writes while the claim is still held.
     finishProcessing: async (id, userId, updates) => {
         if (!claimAllowed) return false;
@@ -555,6 +556,43 @@ test('re-identify with no confident mapping → 422, note untouched', async () =
     const res = await dispatch({ method: 'POST', url: '/t-9/reidentify-speakers', body: {} });
     assert.strictEqual(res.statusCode, 422);
     assert.strictEqual(statusUpdates.length, 0);
+});
+
+test('re-identify answers 422 when the model only echoes the locked names back', async () => {
+    storedTranscription.segments = [
+        { speaker: 'Tom', start: 0, end: 4, text: 'hoi' },
+        { speaker: 'Spreker 1', start: 4, end: 8, text: 'dag' },
+    ];
+    storedTranscription.speakers = [
+        { id: 'Tom', source: 'manual', speakingSeconds: 4, segments: 1 },
+        { id: 'Spreker 1', speakingSeconds: 4, segments: 1 },
+    ];
+    // What identifySpeakerNames returns after an empty reply or a time-out:
+    // only the locked names, merged back in.
+    providerStubs.identify = async () => ({ Tom: 'Tom' });
+    const res = await dispatch({ method: 'POST', url: '/t-9/reidentify-speakers', body: {} });
+    assert.strictEqual(res.statusCode, 422);
+    assert.strictEqual(statusUpdates.length, 0, 'the note is not rewritten');
+});
+
+test('re-identify moves assignees and keeps the prose of a speaker that kept its name', async () => {
+    storedTranscription.segments = [
+        { speaker: 'Tom', start: 0, end: 4, text: 'hoi' },
+        { speaker: 'Spreker 1', start: 4, end: 8, text: 'dag' },
+    ];
+    storedTranscription.speakers = [
+        { id: 'Tom', source: 'manual', speakingSeconds: 4, segments: 1, summary: 'Tom prose' },
+        { id: 'Spreker 1', speakingSeconds: 4, segments: 1, summary: 'Spreker prose' },
+    ];
+    storedTranscription.actionItems = [{ id: 'ai-0', text: 'Quote', assignee: 'Spreker 1', timestamp: '00:05', done: true }];
+    providerStubs.identify = async () => ({ Tom: 'Tom', 'Spreker 1': 'Anna' });
+    const res = await dispatch({ method: 'POST', url: '/t-9/reidentify-speakers', body: {} });
+    assert.strictEqual(res.statusCode, 200);
+    const upd = statusUpdates.find(u => u.updates.segments).updates;
+    const byId = Object.fromEntries(upd.speakers.map(s => [s.id, s]));
+    assert.strictEqual(byId.Tom.summary, 'Tom prose');
+    assert.strictEqual(byId.Anna.summary, undefined);
+    assert.deepStrictEqual(upd.actionItems.map(a => a.assignee), ['Anna']);
 });
 
 test('re-identify on a note with no segments → 400', async () => {

@@ -14,7 +14,13 @@ const router = express.Router();
 const transcriptionStore = require('../../stores/transcriptionStore');
 const llmClient = require('../../core/llm/llmClient');
 const { requireAuth } = require('../../auth/permissions');
-const { resolveAccessContext, resolveUserOrgFromReq } = require('./shared');
+const { resolveAccessContext, resolveUserOrgFromReq, MEETING_LLM_TIMEOUT_MS } = require('./shared');
+const { withNotices } = require('./noteText.mts');
+const { transcriptNotices, chooseRegenerateTemplate, tagsAfterWrite, transcriptUnchanged } = require('./regenerateHelpers');
+const { rearmMeetingSources, storedTags, narrowsReaders } = require('./noteSideEffects');
+const { formatDuration, assigneeSuffix } = require('./noteExport');
+const { HttpError } = require('../../core/http/errors');
+const { contentDisposition } = require('../../core/http/contentDisposition');
 const {
     resolveSmartModel,
     extractMeetingArtifacts,
@@ -35,13 +41,8 @@ const {
     normalizeActionItems,
 } = require('../../core/meetingNotes/actionItems');
 
-// Built-in summary templates + the shared prompt builder live in
-// core/meetingNotes/summaryTemplates.js so the /api/summary-templates CRUD and
-// this route share one source. Custom (saved) templates come from the store.
-const summaryTemplateStore = require("../../stores/summaryTemplateStore");
-const { builtinPrompt, buildSummarySystemPrompt, canAccessTemplate } = require("../../core/meetingNotes/summaryTemplates");
-// Welke stempel de notitie krijgt: welk sjabloon, welke versie ervan.
-const { stampForBuiltin, stampForTemplate, EMPTY_STAMP } = require("../../core/meetingNotes/summaryStamp");
+// The shared prompt builder (core/meetingNotes/summaryTemplates.js); the template choice: ./regenerateHelpers.js.
+const { buildSummarySystemPrompt } = require("../../core/meetingNotes/summaryTemplates");
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, flag, idList, bool, NOTHING, NO_QUERY } = require('./schemas');
@@ -93,17 +94,6 @@ const PublishBody = bodyOf({
     isPublished: bool(PUBLISHED_TEXT),
     sharedGroups: idList(GROUPS_TEXT).optional(),
 });
-
-/**
- * @param {number} seconds
- */
-function formatDuration(seconds) {
-    if (!seconds) return '0:00';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
-}
 
 // ── Rename / update transcription ────────────────────────
 
@@ -166,8 +156,12 @@ router.patch('/:id', requireAuth, validate({ body: PatchBody, query: NO_QUERY })
             .filter(Boolean);
         updates.tags = [...new Set(cleaned)].slice(0, 50);
     }
+    // A tag change can take the meeting out of a knowledge source: remember
+    // what it carried, so those sources can look again.
+    const previousTags = await storedTags(req, req.params.id, userId, updates.tags !== undefined);
     const updated = await transcriptionStore.updateTranscription(req.params.id, userId, updates);
     if (!updated) return res.status(404).json({ error: 'Not found' });
+    await rearmMeetingSources(previousTags.filter((t) => !updates.tags.includes(t)), req.params.id);
     // Give the cleaned lists back: the client's optimistic copy holds items
     // it minted itself (no id yet, a destination it just picked), and
     // without the server's version it would keep rendering them until the
@@ -180,44 +174,20 @@ router.patch('/:id', requireAuth, validate({ body: PatchBody, query: NO_QUERY })
 router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof RegenerateBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = await resolveUserOrgFromReq(req);
-    const { template = 'general', templateId = null, customPrompt = null } = req.body;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
     if (!transcription) return res.status(404).json({ error: 'Not found' });
     if (!transcription.isOwner) return res.status(403).json({ error: 'Only the owner can regenerate the summary' });
     if (!transcription.transcript) return res.status(400).json({ error: 'No transcript available' });
-
-    // Which prompt drives the summary, in precedence order:
-    //   templateId  — a saved custom template (visibility-checked)
-    //   customPrompt — an ephemeral "try before saving" prompt (owner-only, already gated above)
-    //   template     — a built-in key (default 'general'; unknown keys fall back to general)
-    //
-    // ── WHICH STAMP THAT YIELDS (M4 step 3) ─────────────────────────
-    // Every branch sets `stamp`, including the one-off prompt — which sets it
-    // EMPTY. The summary is overwritten here; leaving a stamp of the previous
-    // template in place would paste a template name onto text that template never
-    // wrote. An empty stamp is therefore not a "forgotten field" but the answer.
-    /** @type {string} */
-    let templatePrompt;
-    let stamp;
-    if (templateId) {
-        const tpl = await summaryTemplateStore.getById(templateId);
-        if (!tpl || !canAccessTemplate(tpl, { userId, orgIds, groupIds: userGroupIds })) {
-            return res.status(404).json({ error: 'Template not found' });
-        }
-        templatePrompt = tpl.prompt;
-        // The version of THIS moment, not that of the moment when someone later
-        // opens the note.
-        stamp = stampForTemplate(tpl);
-    } else if (typeof customPrompt === 'string' && customPrompt.trim()) {
-        templatePrompt = customPrompt.trim().slice(0, 20000);
-        stamp = { ...EMPTY_STAMP };
-    } else {
-        templatePrompt = builtinPrompt(template);
-        // The same fallback as builtinPrompt: an unknown key stamps 'general',
-        // because that prompt wrote it.
-        stamp = stampForBuiltin(template);
+    // A re-transcription is running: its transcript replaces the one this
+    // would summarise, and its write would land under this one's.
+    if (transcription.status === 'processing') {
+        return res.status(409).json({ error: 'This recording is being processed. Wait for it to finish.', code: 'already_processing' });
     }
+
+    const chosen = await chooseRegenerateTemplate(req.body, transcription, { userId, orgIds, groupIds: userGroupIds });
+    if (!chosen) return res.status(404).json({ error: 'Template not found' });
+    const { templatePrompt, stamp } = chosen;
 
     const modelId = await resolveSmartModel(userOrgId);
     const result = await llmClient.chat(modelId, [
@@ -225,28 +195,38 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         { role: 'user', content: transcription.transcript },
         // Same budget as the original generateMeetingSummary pass — 4096
         // used to make REgenerating a long meeting truncate harder than the
-        // first generation did.
-    ], { maxTokens: SUMMARY_MAX_TOKENS, temperature: 0.3 });
+        // first generation did. And the same cut-off: without one, an
+        // OpenAI-compatible adapter waits with no deadline at all.
+    ], { maxTokens: SUMMARY_MAX_TOKENS, temperature: 0.3, timeoutMs: MEETING_LLM_TIMEOUT_MS });
 
-    const summary = (result.content || '').trim();
-    // Also re-extract the structured artifacts and timeline chapters.
-    // Chapters here is deliberate: it's the upgrade path that gives meetings
-    // recorded before the chapter strip existed a timeline without
-    // re-transcribing audio — and the same now goes for decisions/questions
-    // on notes that predate those columns.
-    const artifacts = await extractMeetingArtifacts(transcription.transcript, transcription.language, userOrgId, {
-        meetingDateIso: (transcription.createdAt || '').slice(0, 10) || null,
-        personNames: [...(transcription.speakers || []).map((s) => s.id), ...(transcription.attendees || [])],
-    });
-    const chapters = await generateChapters(transcription.transcript, transcription.language, userOrgId);
-
-    // Per-speaker prose too — this is also the upgrade path for notes that
-    // predate it, and the repair after a speaker rename dropped them.
+    const generated = (result.content || '').trim();
+    // An empty answer (a reply spent on reasoning, a safety stop) is a failed regenerate,
+    // not an empty meeting: nothing is written, and the passes below are not paid for.
+    if (!generated) {
+        throw new HttpError(502, 'summary_empty', 'The model returned no summary. Nothing was changed; try again.');
+    }
+    // The TRANSCRIPT notices (stopped early, engine fallback, voice recognition) stay on
+    // top: they still describe the transcript this summary was written from.
+    const summary = withNotices(transcriptNotices(transcription.summary), generated);
+    // Also re-extract the artifacts, the chapters and the per-speaker prose (the upgrade
+    // path for older notes, the repair after a rename). They read only the transcript, so
+    // they run side by side, which keeps a long meeting inside the proxy's read timeout.
     const storedSpeakers = Array.isArray(transcription.speakers) ? transcription.speakers : [];
-    const speakerSummaries = await generateSpeakerSummaries(
-        transcription.transcript, storedSpeakers.map((s) => s.id), transcription.language, userOrgId,
-    );
+    const [artifacts, generatedChapters, speakerSummaries] = await Promise.all([
+        extractMeetingArtifacts(transcription.transcript, transcription.language, userOrgId, {
+            meetingDateIso: (transcription.createdAt || '').slice(0, 10) || null,
+            personNames: [...storedSpeakers.map((s) => s.id), ...(transcription.attendees || [])],
+        }),
+        generateChapters(transcription.transcript, transcription.language, userOrgId),
+        generateSpeakerSummaries(
+            transcription.transcript, storedSpeakers.map((s) => s.id), transcription.language, userOrgId,
+        ),
+    ]);
     const speakers = applySpeakerSummaries(storedSpeakers, speakerSummaries);
+    // generateChapters answers [] for a failed pass as well as for a meeting
+    // without chapters: an empty pass leaves the stored timeline alone.
+    const chaptersWritten = Array.isArray(generatedChapters) && generatedChapters.length > 0;
+    const chapters = chaptersWritten ? generatedChapters : (transcription.chapters || []);
 
     // ── "Opnieuw" REPLACES THE AI'S ITEMS, NOT THE PERSON'S ───────────
     // This write used to be `actionItems: artifacts.actionItems` — a total
@@ -306,21 +286,34 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
     // more conservative). Never Date.now() of this node: that would be the second
     // clock that such a window breaks down on.
     const artifactsSince = transcription.readAt || transcription.updatedAt || null;
+
+    // A re-transcription may have replaced the transcript meanwhile (transcriptUnchanged).
+    const current = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
+    if (!current) return res.status(404).json({ error: 'Not found' });
+    if (!transcriptUnchanged(current, transcription)) {
+        return res.status(409).json({
+            error: 'The transcript changed while the summary was being written. Regenerate again to summarise the new transcript.',
+            code: 'transcript_changed',
+        });
+    }
+
     const written = await transcriptionStore.updateTranscription(req.params.id, userId, {
         summary,
         actionItems: mergedActionItems,
         ...(usable ? { decisions: mergedDecisions, questions: mergedQuestions } : {}),
         ...(usable && artifacts.tags.length ? { tagsIfEmpty: artifacts.tags } : {}),
         ...(artifactsSince ? { artifactsSince } : {}),
-        chapters,
+        ...(chaptersWritten ? { chapters } : {}),
         ...(Object.keys(speakerSummaries).length ? { speakers } : {}),
         ...stamp,
     });
+    if (!written) return res.status(404).json({ error: 'Not found' }); // deleted during the run
     // What is ACTUALLY in the column after that write. That can differ from what
     // we sent — a row that came into being during the run stays — and then the
     // answer below is the only place where the client sees it. If it is missing (an
     // older store), each field falls back to what it always was.
     const stored = written && typeof written === 'object' ? written : {};
+    const storedTags = tagsAfterWrite(stored, transcription, usable ? artifacts.tags : []);
 
     // The summary IS what a meeting-tag knowledge source stores, so a
     // regenerate has to reach the same subscribers an ingest does — one
@@ -328,7 +321,7 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
     // would be able to say why the answer was stale.
     require('../../core/meetingNotes/ingestRecordingCore').emitMeetingProcessed({
         transcriptionId: req.params.id,
-        tags: Array.isArray(transcription.tags) ? transcription.tags : [],
+        tags: storedTags,
         userId,
         orgId: userOrgId,
         reprocessed: true,
@@ -356,6 +349,10 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         // The screen must be ABLE to say so: without this field, a failed pass is
         // indistinguishable from "nothing new came out", and nobody presses Again once more.
         artifactsRegenerated: usable,
+        // The tags the note carries after this write (tagsIfEmpty keeps tags a
+        // person set), the same list meeting.processed announced: the client
+        // takes these and skips its extra fetch.
+        tags: storedTags,
         chapters,
         speakers,
         // The stamp goes back too, so that the card can show it immediately. Without
@@ -375,7 +372,7 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
     // value already was.
     const format = req.query.format || 'md';
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
-    const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
+    const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin }); // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- a markdown or plain-text attachment with its own Content-Type, never HTML; the title reaches the header through contentDisposition
     if (!transcription) return res.status(404).json({ error: 'Not found' });
 
     const title = transcription.title || 'Meeting Notes';
@@ -385,18 +382,18 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
 
     // Build action items section
     const actionItemsText = (transcription.actionItems || []).length > 0
-        ? '## 📌 Action Items\n' + transcription.actionItems.map(ai => `- [${ai.done ? 'x' : ' '}] ${ai.text} (${ai.assignee})${ai.timestamp ? ` — ${ai.timestamp}` : ''}`).join('\n')
+        ? '## 📌 Action Items\n' + transcription.actionItems.map(ai => `- [${ai.done ? 'x' : ' '}] ${ai.text}${assigneeSuffix(ai)}${ai.timestamp ? ` — ${ai.timestamp}` : ''}`).join('\n')
         : '';
 
     if (format === 'md') {
         const md = `# ${title}\n\n**Date:** ${date}  \n**Duration:** ${duration}  \n**Speakers:** ${speakers}\n\n---\n\n${transcription.summary || ''}\n\n${actionItemsText}\n\n---\n\n## Transcript\n\n${transcription.transcript || transcription.fullText || ''}`;
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="${title.replace(/[^a-zA-Z0-9 ]/g, '')}.md"`);
+        res.setHeader('Content-Disposition', contentDisposition(`${title}.md`));
         res.send(md);
     } else if (format === 'txt') {
-        const txt = `${title}\nDate: ${date}\nDuration: ${duration}\nSpeakers: ${speakers}\n\n${'='.repeat(50)}\n\n${(transcription.summary || '').replace(/[#*]/g, '')}\n\n${'='.repeat(50)}\n\n${(transcription.actionItems || []).length > 0 ? 'ACTION ITEMS:\n' + transcription.actionItems.map(ai => `[${ai.done ? 'X' : ' '}] ${ai.text} (${ai.assignee})`).join('\n') + '\n\n' + '='.repeat(50) + '\n\n' : ''}TRANSCRIPT:\n\n${transcription.transcript || transcription.fullText || ''}`;
+        const txt = `${title}\nDate: ${date}\nDuration: ${duration}\nSpeakers: ${speakers}\n\n${'='.repeat(50)}\n\n${(transcription.summary || '').replace(/[#*]/g, '')}\n\n${'='.repeat(50)}\n\n${(transcription.actionItems || []).length > 0 ? 'ACTION ITEMS:\n' + transcription.actionItems.map(ai => `[${ai.done ? 'X' : ' '}] ${ai.text}${assigneeSuffix(ai)}`).join('\n') + '\n\n' + '='.repeat(50) + '\n\n' : ''}TRANSCRIPT:\n\n${transcription.transcript || transcription.fullText || ''}`;
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="${title.replace(/[^a-zA-Z0-9 ]/g, '')}.txt"`);
+        res.setHeader('Content-Disposition', contentDisposition(`${title}.txt`));
         res.send(txt);
     } else {
         res.status(400).json({ error: 'Unsupported format. Use: md, txt' });
@@ -427,10 +424,10 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
 router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof DeleteQuery>>} */ req, res) => {
     const userId = req.session.user.id;
     const confirmed = req.query.confirm === true;
+    const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
+    const note = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
 
     if (!confirmed) {
-        const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
-        const note = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
         // Not readable → not deletable, and the store would have said 404
         // anyway. Answering here keeps the two paths on one story.
         if (!note) return res.status(404).json({ error: 'Not found' });
@@ -452,6 +449,8 @@ router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery 
     // A task that linked this meeting keeps existing; the link goes (in every project).
     try { await require('../../stores/projectTaskStore').dropLinksTo(null, 'meeting', req.params.id); }
     catch (err) { log.warn(`[Transcriptions] task links to meeting ${req.params.id} not dropped: ${/** @type {Error} */ (err).message}`); }
+    // A knowledge source that collected this meeting by tag holds its summary until it runs again.
+    await rearmMeetingSources(note?.tags, req.params.id);
     res.json({ success: true });
 });
 
@@ -502,6 +501,7 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: N
     }
 
     await transcriptionStore.setPublished(req.params.id, userId, isPublished, cleanedGroups, orgIdForValidation);
+    if (narrowsReaders(transcription, isPublished, cleanedGroups)) await rearmMeetingSources(transcription.tags, req.params.id);
     res.json({ success: true, isPublished, sharedGroups: cleanedGroups });
 });
 

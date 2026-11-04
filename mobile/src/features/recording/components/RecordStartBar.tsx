@@ -41,7 +41,12 @@ export function RecordStartBar({
     return (
         <View style={styles.bar}>
             {askFirst ? (
-                <MicPermissionCard permission={recorder.permission} onRequest={onRequestPermission} busy={requesting} />
+                <MicPermissionCard
+                    permission={recorder.permission}
+                    onRequest={onRequestPermission}
+                    onRefresh={recorder.refreshPermission}
+                    busy={requesting}
+                />
             ) : (
                 <>
                     <Button

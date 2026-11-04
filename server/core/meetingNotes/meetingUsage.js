@@ -53,20 +53,22 @@
  *    built on its own tag rules would show automations that never run, or hide
  *    automations that do. The next change to the matcher lands here for free too.
  *
- * ── THE FAN-OUT IS OWNER-ONLY, WHATEVER THE DECLARATION SAYS ────────
- * `declared/meeting-notes.js` declares `scope: 'org'`, but
- * `emitMeetingProcessed` always passes the owner's `userId` and
+ * ── THE FAN-OUT IS OWNER-ONLY ───────────────────────────────────────
+ * `declared/meeting-notes.js` declares `scope: 'user'`: `emitMeetingProcessed`
+ * always passes the owner's `userId` and
  * `triggerBus/dispatch.js` then skips every subscription belonging to anyone
  * else. A colleague's automation on tag `sales` never fires on my meeting. The
  * automation scan is therefore scoped to the meeting's OWNER — showing the
  * org's automations would be a list of things that will not happen. If the
- * dispatch is ever widened to the declared org scope, widen this with it;
+ * dispatch is ever widened to the org (with a per-subscriber read-ACL check), widen this with it;
  * changing one without the other makes the bar untrue in one direction or
  * the other.
  */
 
 const { pool } = require('../../db');
 const log = require('../../telemetry/log');
+const { tableExists, columnExists } = require('./schemaProbe');
+const { scanNotebook } = require('./meetingUsageNotebook');
 // The meeting triggers on a definition and whether their filters fire.
 const {
     MEETING_PROVIDER,
@@ -105,45 +107,6 @@ const MEETING_SOURCE_CONFIG_KEY = 'meetingId';
  * other cannot delete.
  */
 const FILED_LINE_ORIGIN_SQL = `s.config->'metadata'->>'transcriptionId'`;
-
-/**
- * @param {string} name
- */
-async function tableExists(name, client) {
-    try {
-        const r = await (client || pool).query('SELECT to_regclass($1) AS t', [name]);
-        return !!r.rows[0]?.t;
-    } catch (_) {
-        return false;
-    }
-}
-
-/**
- * Does `table` have `column` on THIS database?
- *
- * Via `pg_attribute` keyed on `to_regclass`, not `information_schema.columns`
- * filtered by name: the latter matches a same-named table in any schema on
- * the search path, so it can answer "yes" about a table this connection will
- * never read. Both a missing table and a missing column answer false, and so
- * does a probe that throws — every one of those is "I could not check", which
- * the caller records as `partial`.
- * @param {string} table
- * @param {string} column
- */
-async function columnExists(table, column, client) {
-    try {
-        const r = await (client || pool).query(
-            `SELECT 1 FROM pg_attribute
-              WHERE attrelid = to_regclass($1) AND attname = $2
-                AND attnum > 0 AND NOT attisdropped
-              LIMIT 1`,
-            [table, column],
-        );
-        return (r.rows || []).length > 0;
-    } catch (_) {
-        return false;
-    }
-}
 
 /**
  * Knowledge sources that collect this meeting.
@@ -187,9 +150,14 @@ async function scanKb(meeting, db) {
     /** @type {string[]} */
     const where = [];
     const params = [];
-    if (tags.length > 0) {
+    const ownerId = meeting?.ownerId || meeting?.userId || null;
+    const orgId = meeting?.organizationId || null;
+    /** @type {number | null} */
+    let tagIdx = null;
+    if (tags.length > 0 && ownerId) {
         params.push(tags);
-        where.push(`(s.kind = 'meeting_tag' AND s.config->>'tag' = ANY($${params.length}::text[]))`);
+        tagIdx = params.length;
+        where.push('');   // the meeting_tag clause; its reach parameters come last (below)
     }
     if (id) {
         // The config KEY goes in as a bound parameter too. It is a module
@@ -207,6 +175,21 @@ async function scanKb(meeting, db) {
         // where this transcript ended up.
         params.push(id);
         where.push(`(s.kind = 'text' AND ${FILED_LINE_ORIGIN_SQL} = $${params.length})`);
+    }
+    if (tagIdx !== null) {
+        // Only bases that COULD hold this meeting: the owner's own, or one
+        // whose owner is in the meeting's organisation. A base in another
+        // tenant that follows the same tag word can never ingest it
+        // (meetingTag.enumerate reads as the base's owner), yet it showed as
+        // "contains this meeting", forced the delete confirmation and handed
+        // back that tenant's base id, owner id and timestamp.
+        params.push(String(ownerId));
+        let reach = `kb.tenant_id::text = $${params.length}`;
+        if (orgId) {
+            params.push(String(orgId));
+            reach += ` OR EXISTS (SELECT 1 FROM users u WHERE u.id::text = kb.tenant_id::text AND u."organizationId"::text = $${params.length})`;
+        }
+        where[0] = `(s.kind = 'meeting_tag' AND s.config->>'tag' = ANY($${tagIdx}::text[]) AND (${reach}))`;
     }
     if (where.length === 0) return [];
 
@@ -394,69 +377,6 @@ function parseDefinition(value) {
         try { return JSON.parse(value); } catch (_) { return null; }
     }
     return null;
-}
-
-/**
- * Notebooks holding a copy of this meeting.
- *
- * `notebook_sources` has no owner column of its own — the notebook is the
- * only ownership anchor, which is why this joins rather than filtering.
- *
- * ── WHY THIS KIND IS SO OFTEN `partial` ─────────────────────────────
- * `POST /notebooks/:id/sources/meeting` records the text and the name
- * `Meeting Note: <title>`, and recorded nothing else: no column said
- * WHICH meeting it came from. `source_ref_id` fixes it (notebookStore adds the
- * column and the route fills it), but the rows written before it cannot be
- * backfilled — a title is not an id, two meetings share one every week, and
- * renaming a meeting rewrites nothing. So:
- *
- *   - column present  → an exact answer for every row that carries a ref;
- *   - any `type='meeting'` row with a NULL ref → the kind is `partial`,
- *     because those rows might be this meeting and there is no way to tell;
- *   - column absent   → every meeting source is such a row: `partial`, no
- *     rows.
- *
- * Matching on the name instead was considered and rejected: it would claim a
- * notebook holds this meeting on the strength of a title two meetings share,
- * and a wrong row in the delete dialog is a person deciding against a real
- * consequence that is not there.
- */
-async function scanNotebook(meeting, db) {
-    const id = meeting?.id != null ? String(meeting.id) : null;
-    if (!id) return { rows: [], undecided: true };
-
-    const hasRef = await columnExists('notebook_sources', 'source_ref_id', db);
-    if (!hasRef) return { rows: [], undecided: true };
-
-    const r = await db.query(
-        `SELECT ns.id AS source_id, ns.name AS source_name, ns.updated_at AS last_at,
-                nb.id AS notebook_id, nb.name AS notebook_name, nb.user_id AS owner_id
-           FROM notebook_sources ns
-           JOIN notebooks nb ON nb.id = ns.notebook_id
-          WHERE ns.source_ref_id = $1`,
-        [id],
-    );
-    const rows = (r.rows || []).map((row) => ({
-        kind: 'notebook',
-        id: row.notebook_id,
-        title: row.notebook_name || null,
-        role: 'contains',
-        siteLabel: row.source_name || undefined,
-        lastAt: row.last_at || null,
-        ownerId: row.owner_id || null,
-    }));
-
-    // The unbackfillable remainder: is ANY pre-column meeting source still
-    // around? `LIMIT 1` stops at the first hit, so the common case — an
-    // install that still has some — is cheap. The expensive case is the happy
-    // one (none left), which reads the table to prove a negative; the column
-    // migration should carry a partial index
-    // `(source_ref_id) WHERE type = 'meeting' AND source_ref_id IS NULL` so
-    // this stays an index probe on a large notebook_sources.
-    const legacy = await db.query(
-        `SELECT 1 FROM notebook_sources WHERE type = 'meeting' AND source_ref_id IS NULL LIMIT 1`,
-    );
-    return { rows, undecided: (legacy.rows || []).length > 0 };
 }
 
 /**

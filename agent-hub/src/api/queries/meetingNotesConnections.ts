@@ -1,5 +1,5 @@
-// Which meeting sources (Nextcloud Talk, Google Meet) the signed-in user has
-// connected, read from the two cheap per-user settings endpoints. Best-effort:
+// Which meeting sources (Nextcloud Talk, Google Meet, Microsoft Teams) the
+// signed-in user has connected, read from the cheap per-user settings endpoints. Best-effort:
 // a non-ok answer or a network failure is a STATE ("not connected"), never an
 // exception, so the queryFns swallow both. The probes are lazy (`enabled`).
 
@@ -21,6 +21,7 @@ const meetingNotesConnectionKeys = {
 
 interface TalkSettings { nextcloudConnected?: boolean }
 interface GmeetSettings { connection?: { googleConnected?: boolean; meetScopesGranted?: boolean } | null }
+interface TeamsSettings { connection?: { microsoftConnected?: boolean; teamsScopesGranted?: boolean } | null }
 
 async function readTalkSettings(): Promise<TalkSettings> {
     const res = await authFetch(`${API_BASE}/api/talk-notes-settings/user/me`);
@@ -29,6 +30,11 @@ async function readTalkSettings(): Promise<TalkSettings> {
 
 async function readGmeetSettings(): Promise<GmeetSettings> {
     const res = await authFetch(`${API_BASE}/api/gmeet-notes-settings/user/me`);
+    return res.ok ? await res.json() : {};
+}
+
+async function readTeamsSettings(): Promise<TeamsSettings> {
+    const res = await authFetch(`${API_BASE}/api/teams-notes-settings/user/me`);
     return res.ok ? await res.json() : {};
 }
 
@@ -79,19 +85,29 @@ export function useGoogleMeetConnectedQuery(enabled: boolean) {
     };
 }
 
-/** Both sources at once, for the "Upcoming" tab gate. `loading` is true until the first answer. */
+/**
+ * Every source the Upcoming tab lists, for its pre-mount (and so its count badge).
+ * Teams counts only with the calendar and recording scopes granted: without them
+ * the Teams meeting list is empty. `loading` is true until the first answer.
+ */
 export function useMeetingSourcesQuery() {
-    const query = useQuery<{ talk: boolean; gmeet: boolean }>({
+    const query = useQuery<{ talk: boolean; gmeet: boolean; teams: boolean }>({
         queryKey: ['meetingNotes', 'sources'] as const,
         queryFn: async () => {
-            const [talk, gmeet] = await Promise.all([
+            const [talk, gmeet, teams] = await Promise.all([
                 readTalkSettings().then(d => d.nextcloudConnected === true).catch(() => false),
                 readGmeetSettings().then(d => d.connection?.googleConnected === true).catch(() => false),
+                readTeamsSettings().then(d => d.connection?.microsoftConnected === true && d.connection?.teamsScopesGranted === true).catch(() => false),
             ]);
-            return { talk, gmeet };
+            return { talk, gmeet, teams };
         },
         staleTime: 0,
         retry: false,
     });
-    return { talk: query.data?.talk ?? false, gmeet: query.data?.gmeet ?? false, loading: query.isPending };
+    return {
+        talk: query.data?.talk ?? false,
+        gmeet: query.data?.gmeet ?? false,
+        teams: query.data?.teams ?? false,
+        loading: query.isPending,
+    };
 }

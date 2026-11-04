@@ -32,8 +32,10 @@ const pure = require('../../core/meetingNotes/transcriptArtifacts');
 const calls = {
     getTranscription: [], claim: [], finish: [], run: [], emitted: [], repair: [],
     identify: [], extract: [], summary: [], pyannote: [], whisperx: [], local: [],
-    cleanup: 0, warn: [], mistralClient: [],
+    cleanup: 0, warn: [], mistralClient: [], heartbeat: [],
 };
+/** The answer of the n-th heartbeat (1-based); true = the claim is still held. */
+let heartbeatResult = () => true;
 let note;
 let audio;
 let claimResult;
@@ -53,6 +55,7 @@ stub('../../telemetry/log', {
 stub('../../stores/transcriptionStore', {
     getTranscription: async (...a) => { calls.getTranscription.push(a); return note; },
     claimForProcessing: async (...a) => { calls.claim.push(a); return claimResult; },
+    heartbeatProcessing: async (...a) => { calls.heartbeat.push(a); return heartbeatResult(calls.heartbeat.length); },
     finishProcessing: async (...a) => { calls.finish.push(a); return finishResult; },
 });
 stub('../../stores/configStore', {
@@ -76,7 +79,7 @@ stub('../../core/meetingNotes/savedAudioStore', {
     repairSavedAudio: async (a) => { calls.repair.push(a); },
 });
 stub('../../core/meetingNotes/summaryHelpers', {
-    transcribeWithWhisperX: async (...a) => { calls.whisperx.push(a); return whisperxResult; },
+    transcribeWithWhisperX: async (...a) => { calls.whisperx.push(a); if (whisperxResult instanceof Error) throw whisperxResult; return whisperxResult; },
     transcribeWithScaleway: async () => ({ segments: [] }),
     identifySpeakerNames: async (...a) => { calls.identify.push(a); return null; },
     generateMeetingSummary: async (...a) => { calls.summary.push(a); return 'Nieuwe samenvatting.'; },
@@ -157,6 +160,7 @@ test.beforeEach(() => {
     audio = { path: AUDIO_PATH, fromStorage: false, cleanup() { calls.cleanup += 1; } };
     claimResult = true;
     finishResult = true;
+    heartbeatResult = () => true;
     runResult = { rowCount: 1 };
     provider = 'voxtral';
     mistralKey = 'key';
@@ -284,13 +288,13 @@ test('the 202 answers first, then the whisperx run completes the note and announ
     await waitFor(() => calls.emitted.length > 0);
 
     assert.deepStrictEqual(calls.whisperx[0], [AUDIO_PATH, 'standup.webm', 'en', '']);
-    // speaker hint, roster (manual names first, then attendees) and locks reach the namer
+    // speaker hint, roster (the attendees: a closed list), the owner's names as candidates, and locks reach the namer
     const id = calls.identify[0];
     assert.strictEqual(id[2], 'en');
     assert.strictEqual(id[3], 'Tom');
     assert.strictEqual(id[4], 'org-1');
-    assert.deepStrictEqual(id[5], ['Piet', 'Anna']);
-    assert.deepStrictEqual(id[6], { lockedNames: null, ruledOutNames: null, expectedSpeakers: 3 });
+    assert.deepStrictEqual(id[5], ['Anna']);
+    assert.deepStrictEqual(id[6], { lockedNames: null, ruledOutNames: null, expectedSpeakers: 3, knownNames: ['Piet'] });
     assert.strictEqual(calls.summary[0][3].templatePrompt, 'TPL-PROMPT');
     assert.strictEqual(calls.extract[0][3].meetingDateIso, '2026-03-04');
     assert.ok(calls.extract[0][3].personNames.includes('Anna'));
@@ -346,6 +350,38 @@ test('a lost claim at the write announces nothing and writes no failure', async 
     assert.strictEqual(calls.finish.length, 0);
     assert.ok(calls.warn.some(w => /claim was lost/.test(w)));
     assert.strictEqual(calls.cleanup, 1);
+});
+
+test('the run reports between its phases, so the reaper measures silence and not meeting length', async () => {
+    await dispatch();
+    await waitFor(() => calls.emitted.length > 0);
+    // After the transcription, between the LLM passes, and before the write.
+    assert.ok(calls.heartbeat.length >= 3, `heartbeats: ${calls.heartbeat.length}`);
+    assert.ok(calls.heartbeat.every(([id]) => id === 't-1'));
+});
+
+test('a claim lost DURING the LLM passes stops the run: no more passes, no write, no failure stamp', async () => {
+    // The first heartbeat (after the transcription) still holds, the second
+    // (after speaker naming) finds the note reaped or deleted.
+    heartbeatResult = (n) => n < 2;
+    await dispatch();
+    await waitFor(() => calls.heartbeat.length >= 2);
+    await settle();
+    assert.strictEqual(calls.summary.length, 0, 'no summary pass is paid for');
+    assert.strictEqual(calls.extract.length, 0);
+    assert.strictEqual(calls.run.length, 0, 'nothing written');
+    assert.strictEqual(calls.finish.length, 0, 'no failure stamped over the note');
+    assert.strictEqual(calls.emitted.length, 0);
+    assert.ok(calls.warn.some(w => /claim was lost/.test(w)));
+    assert.strictEqual(calls.cleanup, 1);
+});
+
+test('names the owner typed are candidates for the naming, not part of the closed attendee roster', async () => {
+    await dispatch();
+    await waitFor(() => calls.identify.length > 0);
+    const [, , , , , roster, opts] = calls.identify[0];
+    assert.deepStrictEqual(roster, ['Anna'], 'the roster is the attendees (plus voiceprint names)');
+    assert.deepStrictEqual(opts.knownNames, ['Piet']);
 });
 
 test('no segments after the claim fails the note: a completed note keeps its status', async () => {
@@ -425,7 +461,91 @@ test('pyannote: org comes from the note and the voiceprint results reach naming,
         language: 'en', numSpeakers: 3, orgId: 'org-9', recorderUserId: 'owner-1', attendees: ['Anna'],
     }]);
     const id = calls.identify[0];
-    assert.deepStrictEqual(id[5], ['Piet', 'Anna', 'Bert']);
-    assert.deepStrictEqual(id[6], { lockedNames: { speaker_0: 'Anna' }, ruledOutNames: ['Carl'], expectedSpeakers: 3 });
+    assert.deepStrictEqual(id[5], ['Anna', 'Bert']);
+    assert.deepStrictEqual(id[6], { lockedNames: { speaker_0: 'Anna' }, ruledOutNames: ['Carl'], expectedSpeakers: 3, knownNames: ['Piet'] });
     assert.strictEqual(calls.run[0].params[14], JSON.stringify([{ speaker: 'speaker_0', name: 'Anna' }]));
+});
+
+// ═══ Fixes ═════════════════════════════════════════════════════════════
+
+test('gone audio of an imported note says where it came from, not "upload it again"', async () => {
+    note.source = 'teams';
+    audio = { path: null, reason: 'never_durable' };
+    const res = await dispatch();
+    assert.strictEqual(res.statusCode, 410);
+    assert.strictEqual(res.body.code, 'audio_gone_imported');
+    assert.strictEqual(res.body.importedFrom, 'teams');
+    assert.match(res.body.error, /imported from Microsoft Teams/);
+    assert.doesNotMatch(res.body.error, /Upload the original file/);
+    assert.strictEqual(calls.claim.length, 0);
+});
+
+test('a failed retry on a reaped note that still holds content leaves its summary alone', async () => {
+    // The reaper sets status 'failed' and nothing else: transcript and summary are intact.
+    note.status = 'failed';
+    note.transcript = '[Anna] 00:00 - 00:05: the whole transcript';
+    note.summary = 'GOOD SUMMARY';
+    whisperxResult = { text: '', segments: [] };
+    await dispatch();
+    await waitFor(() => calls.finish.length > 0);
+    assert.deepStrictEqual(calls.finish[0], ['t-1', 'owner-1', { status: 'completed' }]);
+});
+
+test('the reason on a failed note is redacted of the upstream body', async () => {
+    note.status = 'failed';
+    whisperxResult = new Error('WhisperX service error (502): <html>bad gateway at http://whisperx.internal:9000</html>');
+    await dispatch();
+    await waitFor(() => calls.finish.length > 0);
+    assert.deepStrictEqual(calls.finish[0][2], { status: 'failed', summary: 'Transcription failed: WhisperX service error (502)' });
+});
+
+test('the artifact columns are written through the window of the snapshot read, and the stored tags are announced', async () => {
+    note.readAt = '2026-11-04T10:00:00.123456Z';
+    note.tags = ['intern'];
+    runResult = { rowCount: 1, rows: [{ tags: ['intern'] }] };
+    await dispatch();
+    await waitFor(() => calls.emitted.length > 0);
+    const { sql, params } = calls.run[0];
+    assert.strictEqual(params.length, 22);
+    assert.strictEqual(params[21], '2026-11-04T10:00:00.123456Z');
+    assert.match(sql, /action_items = \(SELECT COALESCE\(jsonb_agg/);
+    assert.match(sql, /'touchedAt' > \$22::text/, 'rows touched after the read survive');
+    assert.match(sql, /RETURNING tags/);
+    assert.deepStrictEqual(calls.emitted[0].tags, ['intern'], 'the note keeps its tags, the event says so');
+});
+
+test('a summary step that fails keeps the previous summary and says so', async () => {
+    note.transcript = '[Anna] 00:00 - 00:05: old transcript';
+    note.summary = 'ℹ️ Automatic voice recognition failed for this recording.\n\nOLD GOOD SUMMARY';
+    note.summaryTemplateId = 'tpl-old';
+    note.summaryTemplateVersion = 2;
+    const helpers = require('../../core/meetingNotes/summaryHelpers');
+    const real = helpers.generateMeetingSummary;
+    helpers.generateMeetingSummary = async () => '';
+    let restored = false;
+    try {
+        // The pipeline destructured the helper at load: reload it to pick up the stub.
+        delete require.cache[require.resolve('./reprocessPipeline')];
+        delete require.cache[require.resolve('./reprocess')];
+        const freshRouter = require('./reprocess');
+        const req = {
+            method: 'POST', url: '/t-1/reprocess', query: {}, headers: {}, body: {}, params: { id: 't-1' },
+            session: { isAuthenticated: true, user: { id: 'owner-1' } },
+            get() { return undefined; },
+        };
+        const res = { statusCode: 200, headersSent: false, status(c) { this.statusCode = c; return this; }, json() { this.headersSent = true; return this; }, setHeader() {}, set() { return this; } };
+        freshRouter(req, res, () => {});
+        await waitFor(() => calls.run.length > 0);
+        helpers.generateMeetingSummary = real;
+        restored = true;
+        const { params } = calls.run[0];
+        const summary = params[8].sealed;
+        assert.match(summary, /^⚠️ Writing a new summary failed; the previous summary has been kept/);
+        assert.ok(summary.endsWith('OLD GOOD SUMMARY'));
+        assert.doesNotMatch(summary, /voice recognition/, 'the old run\'s notices do not come along');
+        assert.strictEqual(params[15], 'tpl-old', 'the kept summary keeps the stamp of the template that wrote it');
+        assert.strictEqual(params[16], 2);
+    } finally {
+        if (!restored) helpers.generateMeetingSummary = real;
+    }
 });

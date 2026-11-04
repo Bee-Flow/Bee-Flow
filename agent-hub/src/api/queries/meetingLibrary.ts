@@ -18,7 +18,9 @@ export const meetingNotesKey = meetingLibraryKeys.notes();
 type Note = Awaited<ReturnType<typeof api.listTranscriptions>>[number];
 
 /**
- * The library's notes. While any note is still transcribing (an async
+ * The library's notes: EVERY note the caller may read (listTranscriptions walks
+ * the server's pages), so search and the tag filter see the same population the
+ * tag chips count. While any note is still transcribing (an async
  * pipeline) the list re-reads itself every 4 s, so a spinner flips to the
  * finished note without a manual refresh; the interval stops with the last
  * processing note.

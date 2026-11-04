@@ -71,7 +71,10 @@ const SCHEMA = `
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
     CREATE TABLE notebooks (
-        id TEXT PRIMARY KEY, user_id TEXT, name TEXT
+        id TEXT PRIMARY KEY, user_id TEXT, name TEXT, organization_id TEXT
+    );
+    CREATE TABLE users (
+        id TEXT PRIMARY KEY, "organizationId" TEXT
     );
     CREATE TABLE notebook_sources (
         id TEXT PRIMARY KEY,
@@ -91,6 +94,8 @@ const appEvent = (filter) => ({
 
 before(async () => {
     await pg.exec(SCHEMA);
+    // The owner and the colleague share org-1; a tenant on the same install is org-2.
+    await q(`INSERT INTO users (id, "organizationId") VALUES ($1,'org-1'),('someone-else','org-1'),('other-tenant','org-2')`, [OWNER]);
 
     await q(`INSERT INTO knowledge_bases (id, tenant_id, name) VALUES ($1,$2,$3),($4,$5,$6)`,
         ['kb-1', OWNER, 'Sales knowledge', 'kb-2', 'someone-else', 'Board minutes']);
@@ -357,3 +362,27 @@ test('een query die omvalt GOOIT — "ik kon niet kijken" is geen "er stond niet
 
 // pglite holds the process open until it is closed.
 after(async () => { await pg.close(); });
+
+test('REGRESSION: a knowledge base in ANOTHER organisation that follows the same tag is not "in use"', async () => {
+    await q(`INSERT INTO knowledge_bases (id, tenant_id, name) VALUES ('kb-x','other-tenant','Their secret KB')`);
+    await q(`INSERT INTO kb_sources (id, knowledge_base_id, kind, config) VALUES ('sx','kb-x','meeting_tag',$1::jsonb)`,
+        [JSON.stringify({ tag: 'sales' })]);
+    try {
+        const { rows } = await usageForMeeting(meeting(), { db });
+        assert.ok(!rows.some((r) => r.id === 'kb-x'), 'another tenant\'s base is never listed');
+        assert.ok(rows.some((r) => r.id === 'kb-2'), 'a colleague in the same organisation still is');
+    } finally {
+        await q(`DELETE FROM knowledge_bases WHERE id = 'kb-x'`);
+    }
+});
+
+test('REGRESSION: a ref-less notebook source in ANOTHER tenant does not make this meeting "unchecked"', async () => {
+    await q(`INSERT INTO notebooks (id, user_id, name, organization_id) VALUES ('nb-x','other-tenant','Theirs','org-2')`);
+    await q(`INSERT INTO notebook_sources (id, notebook_id, type, name, source_ref_id) VALUES ('ns-x','nb-x','meeting','Meeting Note: theirs',NULL)`);
+    try {
+        const { partial } = await usageForMeeting(meeting(), { db });
+        assert.ok(!partial.includes('notebook'));
+    } finally {
+        await q(`DELETE FROM notebooks WHERE id = 'nb-x'`);
+    }
+});

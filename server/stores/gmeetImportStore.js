@@ -64,9 +64,14 @@ async function _initDB() {
             ON gmeet_import_jobs(next_attempt_at) WHERE status IN ('pending', 'awaiting_artifacts');
     `);
 
-    // Migrations — additive, idempotent `ALTER TABLE ... ADD COLUMN IF NOT
-    // EXISTS` statements go here so old deployments pick up new columns on
-    // boot (pattern: transcriptionStore). None yet — the table is new.
+    // Additive, idempotent migrations, so old deployments pick up new columns on
+    // boot. requested_by_user: imported by hand (the auto-import rules do not
+    // skip it); requested_language / context_terms: what that request asked for.
+    await exec(`
+        ALTER TABLE gmeet_import_jobs ADD COLUMN IF NOT EXISTS requested_by_user BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE gmeet_import_jobs ADD COLUMN IF NOT EXISTS requested_language TEXT;
+        ALTER TABLE gmeet_import_jobs ADD COLUMN IF NOT EXISTS context_terms TEXT;
+    `);
     log.info('[GmeetImportStore] PostgreSQL initialized');
 }
 
@@ -75,6 +80,7 @@ async function _initDB() {
  *   meetingCode: string, spaceName: string|null, conferenceRecord: string|null, title: string|null,
  *   meetingStart: string|null, meetingEnd: string|null, preferred: boolean, status: string, errorCode: string|null,
  *   lastError: string|null, attempts: number, nextAttemptAt: string|null, transcriptionId: string|null,
+ *   requestedByUser: boolean, requestedLanguage: string|null, contextTerms: string|null,
  *   createdAt: string|null, updatedAt: string|null }} GmeetJob
  */
 
@@ -103,6 +109,9 @@ function mapJob(r) {
         attempts: r.attempts || 0,
         nextAttemptAt: r.next_attempt_at ? new Date(r.next_attempt_at).toISOString() : null,
         transcriptionId: r.transcription_id || null,
+        requestedByUser: !!r.requested_by_user,
+        requestedLanguage: r.requested_language || null,
+        contextTerms: r.context_terms || null,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
         updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
     };
@@ -258,6 +267,9 @@ const UPDATABLE_FIELDS = {
     conferenceRecord: 'conference_record',
     preferred: 'preferred',
     icalUid: 'ical_uid',
+    requestedByUser: 'requested_by_user',
+    requestedLanguage: 'requested_language',
+    contextTerms: 'context_terms',
 };
 
 /**
@@ -279,6 +291,12 @@ async function updateJob(id, fields) {
 }
 
 /**
+ * Mark a job ingested, and return the org siblings parked behind it
+ * (`duplicate`, no note of their own) to the queue. They re-run
+ * resolveDuplicate, which checks whether each one may READ the note: a sibling
+ * that can gets the link, one that cannot gets `already_imported`. The note id
+ * is deliberately not copied onto them here, which would hand a link to people
+ * the note is not shared with. Same shape as releaseConferenceClaim.
  * @param {string} id
  * @param {string} transcriptionId
  */
@@ -294,7 +312,21 @@ async function completeJob(id, transcriptionId) {
           WHERE id = $1`,
         [id, transcriptionId],
     );
-    return rowCount > 0;
+    if (!(rowCount > 0)) return false;
+    await run(
+        `UPDATE gmeet_import_jobs
+            SET status = 'pending',
+                next_attempt_at = NOW(),
+                updated_at = NOW()
+          WHERE id <> $1
+            AND status = 'duplicate'
+            AND transcription_id IS NULL
+            AND org_id = (SELECT org_id FROM gmeet_import_jobs WHERE id = $1)
+            AND (meeting_code = (SELECT meeting_code FROM gmeet_import_jobs WHERE id = $1)
+                 OR space_name = (SELECT space_name FROM gmeet_import_jobs WHERE id = $1))`,
+        [id],
+    );
+    return true;
 }
 
 /**

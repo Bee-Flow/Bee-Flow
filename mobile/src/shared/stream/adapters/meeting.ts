@@ -5,6 +5,8 @@
  * other frame is left alone and, on this surface, not reported.
  */
 
+import { translate } from '@/core/i18n';
+
 import type { FrameAdapter } from '../chatFrameReducer';
 import { failed, replaceText, str } from '../handlers';
 import type { TurnBase } from '../types';
@@ -19,7 +21,7 @@ export function emptyMeetingTurn(): MeetingTurn {
 
 /** A refusal ends this turn as an error: the sheet has no separate refusal UI. */
 const refused = (turn: MeetingTurn) => {
-    turn.error = 'That answer was stopped by your organisation’s privacy rules.';
+    turn.error = translate('mobile.recording.chat_blocked', 'That answer was stopped by your organisation’s privacy rules.');
 };
 
 export const MEETING_FRAMES: FrameAdapter<MeetingTurn> = {

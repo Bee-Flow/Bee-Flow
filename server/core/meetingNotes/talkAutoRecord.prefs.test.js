@@ -34,6 +34,8 @@ function resetFx() {
     fx.started = [];
     fx.config = { user_talk_notes_u1: {} };
     fx.talkCalls = [];
+    fx.entitled = true;
+    fx.userStatus = null;
 }
 resetFx();
 
@@ -42,12 +44,16 @@ const MOCKS = {
         getConfig: async (k) => (k in fx.config ? fx.config[k] : null),
         setConfig: async (k, v) => { fx.config[k] = v; },
         getAllConfig: async () => ({ ...fx.config }),
+        mutateConfig: async (k, fn) => { fx.config[k] = fn(k in fx.config ? fx.config[k] : null); return fx.config[k]; },
+    },
+    '../entitlements/entitlements': {
+        hasCapability: async () => fx.entitled !== false,
     },
     './talkNotesSettings': {
         resolveTalkNotesSettings: async () => ({ ...fx.settings }),
     },
     '../../stores/userStore': {
-        getUser: async () => ({ id: 'u1', organizationId: 'orgA' }),
+        getUser: async () => ({ id: 'u1', organizationId: 'orgA', ...(fx.userStatus ? { status: fx.userStatus } : {}) }),
         getAllUsers: async () => [{ id: 'u1', organizationId: 'orgA' }],
     },
     '../../automation/triggerBus': {
@@ -274,4 +280,44 @@ test('scope "all": de agenda telt niet mee, ook niet als hij er is', async () =>
     assert.deepEqual(fx.started, []);
     assert.equal(fx.talkCalls.some(c => c.name === 'nextcloud_talk_list_participants'), true,
         'de engine vraagt het na in plaats van de agenda te gebruiken');
+});
+
+// ── A stop by the moderator stands; the licence and the account are checked ──
+
+test('REGRESSION: a call the moderator stopped by hand is not auto-recorded again', async (t) => {
+    resetFx();
+    const now = Date.now();
+    t.mock.timers.enable({ apis: ['Date'], now });
+    const three = { participants: [{ inCall: 1 }, { inCall: 1 }, { inCall: 1 }] };
+    fx.rooms = [activeRoom('t-stop', { callStartTime: 1000 })];
+    fx.participants['t-stop'] = three;
+    await scanAndRecord();
+    assert.equal(fx.started.length, 1, 'auto-started once');
+    // Twenty minutes later the moderator stopped it: the call runs on, not recording.
+    t.mock.timers.setTime(now + 21 * 60_000);
+    await scanAndRecord();
+    assert.equal(fx.started.length, 1, 'the stop stands');
+    // The next call in the same room is a new call and is recorded.
+    fx.rooms = [activeRoom('t-stop', { callStartTime: 9000 })];
+    t.mock.timers.setTime(now + 90 * 60_000);
+    await scanAndRecord();
+    assert.equal(fx.started.length, 2);
+});
+
+test('a member without the Meeting Notes capability is not auto-recorded', async () => {
+    resetFx();
+    fx.entitled = false;
+    fx.rooms = [activeRoom('t-unlicensed')];
+    fx.participants['t-unlicensed'] = { participants: [{ inCall: 1 }, { inCall: 1 }, { inCall: 1 }] };
+    await scanAndRecord();
+    assert.equal(fx.started.length, 0);
+});
+
+test('a suspended account is not auto-recorded', async () => {
+    resetFx();
+    fx.userStatus = 'suspended';
+    fx.rooms = [activeRoom('t-suspended')];
+    fx.participants['t-suspended'] = { participants: [{ inCall: 1 }, { inCall: 1 }, { inCall: 1 }] };
+    await scanAndRecord();
+    assert.equal(fx.started.length, 0);
 });

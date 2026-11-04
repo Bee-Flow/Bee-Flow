@@ -7,8 +7,12 @@
  *    dead-end: the poll loop used to throw away properties.error.{code,message}.
  *  - Fixed 10-min poll cap / 15-min URL: long recordings need duration-scaled
  *    limits (computeWhisperBatchTimeouts).
- *  - executeTranscriptionTool ignored args.provider and re-read the admin
- *    default — a reprocess of an azure note could silently run voxtral.
+ *  - The tool honoured undeclared `filePath` / `provider` arguments from a
+ *    model or automation step: any local file was read and sent to a cloud
+ *    engine, and the admin's choice of engine was bypassed. Only the declared
+ *    parameters survive now, and the engine is always the admin's.
+ *  - context_terms never reached Voxtral (`prompt` is not a field of the SDK)
+ *    nor Scaleway (the handler read camelCase `contextTerms`).
  *
  * DB-free: configStore and the provider cores are require-cache stubbed. Run:
  *   cd server && node --test integrations/transcriptionTools.test.js
@@ -29,11 +33,19 @@ function stub(p, exports) {
 // No secrets configured; admin default provider = voxtral. Each provider then
 // fails on its own distinctive missing-credential error, which is exactly what
 // the dispatch tests use to prove WHICH handler was reached.
+// The admin's engine; each test that needs another one sets it.
+let adminProvider = 'voxtral';
+let mistralKey = null;
 stub('../stores/configStore', {
     // Only Scaleway gets a key: its handler is driven to a full result below.
-    getSecret: async (key) => (key === 'scaleway_api_key' ? 'test-key' : null),
-    getConfig: async (key) => (key === 'transcription_provider' ? 'voxtral' : null),
+    getSecret: async (key) => {
+        if (key === 'scaleway_api_key') return 'test-key';
+        if (key === 'mistral_api_key') return mistralKey;
+        return null;
+    },
+    getConfig: async (key) => (key === 'transcription_provider' ? adminProvider : null),
 });
+const withAdminProvider = (t, provider) => { adminProvider = provider; t.after(() => { adminProvider = 'voxtral'; }); };
 
 // Provider cores for the end-to-end result tests at the bottom. Pyannote
 // without a staged answer fails like the real core does without a key.
@@ -48,7 +60,12 @@ stub('../core/voice/pyannoteClient', {
 });
 stub('../stores/userStore', { getUser: async () => ({ organizationId: 'o1' }) });
 const scwPaths = [];
-stub('../core/meetingNotes/summaryHelpers', { transcribeWithScaleway: async (p) => { scwPaths.push(p); return scwOut; } });
+const scwTerms = [];
+stub('../core/meetingNotes/summaryHelpers', { transcribeWithScaleway: async (p, _n, _l, terms) => { scwPaths.push(p); scwTerms.push(terms); return scwOut; } });
+const voxtralCalls = [];
+stub('../core/meetingNotes/voxtralClient', {
+    createVoxtralClient: () => ({ audio: { transcriptions: { complete: async (opts) => { voxtralCalls.push(opts); return { segments: [] }; } } } }),
+});
 stub('../core/voice/localWhisper', { transcribeLocally: async () => localOut });
 
 const { formatAzureBatchFailure, computeWhisperBatchTimeouts, executeTranscriptionTool, azureDiarizationSpeakers } = require('./transcriptionTools');
@@ -129,50 +146,73 @@ test('unknown format → 30-min default; env override wins; URL TTL covers queue
 // Each provider fails fast on its own distinctive missing-credential message,
 // which proves which handler the dispatch reached — no network involved.
 
-const AUDIO_FIXTURE = path.join(os.tmpdir(), `tt-dispatch-${Date.now()}.mp3`);
-test.before(() => fs.writeFileSync(AUDIO_FIXTURE, 'fake-audio'));
-test.after(() => { try { fs.unlinkSync(AUDIO_FIXTURE); } catch (_) {} });
+const AUDIO_CTX = { userId: 'u1', attachments: [{ name: 'a.mp3', data: Buffer.from('abc').toString('base64') }] };
 
-test('args.provider is honored over the admin default', async () => {
-    const res = await executeTranscriptionTool(
-        'transcribe_audio',
-        { provider: 'whisper_azure', filePath: AUDIO_FIXTURE },
-        { userId: 'u1' },
-    );
-    // whisper_azure path → Azure Speech credential error, NOT the voxtral
-    // "Mistral API key" error the admin default would produce.
-    assert.match(res.error, /Azure Speech key or region not configured/);
-});
-
-test('azure provider reaches the shared Speech core', async () => {
-    const res = await executeTranscriptionTool(
-        'transcribe_audio',
-        { provider: 'azure', filePath: AUDIO_FIXTURE },
-        { userId: 'u1' },
-    );
-    assert.match(res.error, /Azure Speech credentials not configured/);
-});
-
-test('absent or bogus args.provider falls back to the admin default (voxtral)', async () => {
-    for (const args of [{ filePath: AUDIO_FIXTURE }, { provider: 'nonsense', filePath: AUDIO_FIXTURE }]) {
-        const res = await executeTranscriptionTool('transcribe_audio', args, { userId: 'u1' });
-        assert.match(res.error, /Mistral API key not configured/);
+test('the admin engine is used for each provider', async (t) => {
+    const cases = {
+        whisper_azure: /Azure Speech key or region not configured/,
+        azure: /Azure Speech credentials not configured/,
+        voxtral: /Mistral API key not configured/,
+        pyannote: /Pyannote (API key not configured|transcription failed)/,
+    };
+    t.after(() => { adminProvider = 'voxtral'; });
+    for (const [provider, expected] of Object.entries(cases)) {
+        adminProvider = provider;
+        const res = await executeTranscriptionTool('transcribe_audio', {}, AUDIO_CTX);
+        assert.match(res.error, expected, provider);
     }
 });
 
-test('pyannote provider reaches the pyannote core', async () => {
-    const res = await executeTranscriptionTool(
-        'transcribe_audio',
-        { provider: 'pyannote', filePath: AUDIO_FIXTURE },
-        { userId: 'u1' },
-    );
-    // pyannote path → its own "not configured" error, NOT voxtral's.
-    assert.match(res.error, /Pyannote (API key not configured|transcription failed)/);
-    assert.doesNotMatch(res.error, /Mistral/);
+test('a caller-supplied provider is ignored: the admin engine wins', async (t) => {
+    withAdminProvider(t, 'scaleway');
+    scwPaths.length = 0;
+    for (const provider of ['azure', 'whisper_azure', 'voxtral', 'pyannote', 'local']) {
+        const res = await executeTranscriptionTool('transcribe_audio', { provider }, AUDIO_CTX);
+        assert.doesNotMatch(String(res.error), /Azure|Mistral|Pyannote|Local/, provider);
+    }
+    assert.strictEqual(scwPaths.length, 5, 'every call went to the admin engine (scaleway)');
+});
+
+test('a caller-supplied filePath is never read, for any provider', async (t) => {
+    const secret = path.join(os.tmpdir(), `tt-filepath-${process.pid}-${Date.now()}.webm`);
+    fs.writeFileSync(secret, 'OTHER-USER-AUDIO-BYTES');
+    t.after(() => { fs.rmSync(secret, { force: true }); mistralKey = null; });
+    mistralKey = 'mk';
+    for (const provider of ['voxtral', 'azure', 'whisper_azure', 'pyannote', 'scaleway', 'local']) {
+        withAdminProvider(t, provider);
+        voxtralCalls.length = 0; scwPaths.length = 0;
+        const res = await executeTranscriptionTool('transcribe_audio', { filePath: secret, fileName: 'x.webm' }, { userId: 'u1', attachments: [] });
+        assert.match(String(res.error), /No audio file found/, provider);
+        assert.strictEqual(voxtralCalls.length, 0, provider);
+        assert.strictEqual(scwPaths.length, 0, provider);
+    }
+});
+
+test('context_terms reach Voxtral as contextBias (the SDK has no prompt field)', async (t) => {
+    t.after(() => { mistralKey = null; });
+    mistralKey = 'mk';
+    voxtralCalls.length = 0;
+    await executeTranscriptionTool('transcribe_audio', { context_terms: 'AFAS, Bflow;  ' }, AUDIO_CTX);
+    assert.strictEqual(voxtralCalls.length, 1);
+    assert.deepStrictEqual(voxtralCalls[0].contextBias, ['AFAS', 'Bflow']);
+    assert.ok(!('prompt' in voxtralCalls[0]));
+
+    voxtralCalls.length = 0;
+    await executeTranscriptionTool('transcribe_audio', {}, AUDIO_CTX);
+    assert.ok(!('contextBias' in voxtralCalls[0]), 'no empty glossary is sent');
+});
+
+test('context_terms reach Scaleway', async (t) => {
+    withAdminProvider(t, 'scaleway');
+    t.after(() => { scwOut = null; });
+    scwOut = { segments: [] };
+    scwTerms.length = 0;
+    await executeTranscriptionTool('transcribe_audio', { context_terms: 'AFAS, Bflow' }, AUDIO_CTX);
+    assert.deepStrictEqual(scwTerms, ['AFAS, Bflow']);
 });
 
 test('missing user context is rejected before any provider work', async () => {
-    const res = await executeTranscriptionTool('transcribe_audio', { provider: 'azure' }, {});
+    const res = await executeTranscriptionTool('transcribe_audio', {}, {});
     assert.match(res.error, /User context required/);
 });
 
@@ -205,7 +245,8 @@ const SEGS = [
     { speakerId: 'S1', start: 70, end: 3700, text: 'bye' },
 ];
 const ATTACH_CTX = { userId: 'u1', attachments: [{ name: 'meet.mp3', data: Buffer.from('abc').toString('base64') }] };
-const runProvider = (provider) => executeTranscriptionTool('transcribe_audio', { provider, userName: 'Tom' }, ATTACH_CTX);
+const runProvider = (provider) => { adminProvider = provider; return executeTranscriptionTool('transcribe_audio', {}, ATTACH_CTX).finally(() => { adminProvider = 'voxtral'; }); };
+const executeTranscriptionScaleway = (ctx) => { adminProvider = 'scaleway'; return executeTranscriptionTool('transcribe_audio', {}, ctx).finally(() => { adminProvider = 'voxtral'; }); };
 const LINES = [
     '[S1] 00:00 - 00:09: hello there',
     '[S2] 00:09 - 01:10: long answer',
@@ -274,7 +315,7 @@ test('an attachment path from the request body is never read', async () => {
     const file = path.join(os.tmpdir(), `bf-transcribe-path-${process.pid}.mp3`);
     fs.writeFileSync(file, 'secret');
     try {
-        const res = await executeTranscriptionTool('transcribe_audio', { provider: 'scaleway' },
+        const res = await executeTranscriptionScaleway(
             { userId: 'u1', attachments: [{ name: 'a.mp3', type: 'audio/mpeg', path: file }] });
         assert.ok(res.error, 'no audio is read from a client-supplied path');
         assert.match(res.error, /Could not read audio data/);
@@ -287,7 +328,7 @@ test('an attachment url to a private or metadata address is refused without a ba
     globalThis.fetch = async () => { fetched += 1; return new Response('x'); };
     t.after(() => { globalThis.fetch = original; });
     for (const url of ['http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1:3101/api/health', 'https://10.0.0.5/a.mp3']) {
-        const res = await executeTranscriptionTool('transcribe_audio', { provider: 'scaleway' },
+        const res = await executeTranscriptionScaleway(
             { userId: 'u1', attachments: [{ name: 'a.mp3', type: 'audio/mpeg', url }] });
         assert.match(String(res.error), /Could not download the audio file/, url);
     }
@@ -296,7 +337,7 @@ test('an attachment url to a private or metadata address is refused without a ba
 
 test('a storage key outside the caller\'s own prefix is refused', async () => {
     for (const storageKey of ['users/u2/audio/x.mp3', 'users/u1/../u2/audio/x.mp3', 'shared/avatars/x.mp3']) {
-        const res = await executeTranscriptionTool('transcribe_audio', { provider: 'scaleway' },
+        const res = await executeTranscriptionScaleway(
             { userId: 'u1', attachments: [{ name: 'a.mp3', type: 'audio/mpeg', storageKey }] });
         assert.match(String(res.error), /Could not read the audio file/, storageKey);
     }
@@ -306,7 +347,7 @@ test('an attachment name with directory parts stays inside the temp directory', 
     t.after(() => { scwOut = null; });
     scwOut = { segments: [] };
     scwPaths.length = 0;
-    await executeTranscriptionTool('transcribe_audio', { provider: 'scaleway' },
+    await executeTranscriptionScaleway(
         { userId: 'u1', attachments: [{ name: '../../../../tmp/evil/x.mp3', type: 'audio/mpeg', data: Buffer.from('abc').toString('base64') }] });
     assert.strictEqual(scwPaths.length, 1);
     assert.strictEqual(path.dirname(scwPaths[0]), os.tmpdir());

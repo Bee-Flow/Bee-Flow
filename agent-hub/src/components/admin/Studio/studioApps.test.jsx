@@ -568,6 +568,13 @@ describe('create — the universal "New" menu contract', () => {
         expect(onNavigate).toHaveBeenLastCalledWith('studio/agents');
     });
 
+    it('Meeting Notes gets the router, so it can write the selected meeting into the URL', () => {
+        const onNavigate = vi.fn();
+        const props = app('meetingNotes').getProps({ user: null, initialMeetingId: 'm1', onNavigate });
+        expect(props.onNavigate).toBe(onNavigate);
+        expect(props.initialMeetingId).toBe('m1');
+    });
+
     describe('creates that post first', () => {
         beforeEach(() => fetchMock.mockReset());
 

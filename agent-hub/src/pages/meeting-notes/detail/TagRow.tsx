@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Loader2, Tag, X } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 
@@ -20,12 +20,18 @@ export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveT
     const { t } = useTranslation();
     const [draft, setDraft] = useState<string>('');
     const [showInput, setShowInput] = useState<boolean>(false);
+    // Set once Enter, Escape or a blur has dealt with this draft. Closing the
+    // field can fire a blur of its own, which still sees the old draft in its
+    // closure: without this, Escape would save after all and Enter twice.
+    const settled = useRef(false);
 
+    const open = () => { settled.current = false; setShowInput(true); };
+    const close = () => { settled.current = true; setDraft(''); setShowInput(false); };
     const commit = () => {
+        if (settled.current) return;
         const next = draft.trim();
         if (next && !tags.includes(next)) onAddTag?.(next);
-        setDraft('');
-        setShowInput(false);
+        close();
     };
 
     return (
@@ -52,10 +58,12 @@ export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveT
                 <input
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    onBlur={() => { setShowInput(false); setDraft(''); }}
+                    // Clicking or tapping away keeps what was typed, like the
+                    // action items' inline editor; only Escape cancels.
+                    onBlur={commit}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') { e.preventDefault(); commit(); }
-                        if (e.key === 'Escape') { setShowInput(false); setDraft(''); }
+                        if (e.key === 'Escape') { e.preventDefault(); close(); }
                     }}
                     autoFocus
                     placeholder={t('meetings.add_tag_placeholder', 'Add tag…')}
@@ -66,7 +74,7 @@ export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveT
                 canEdit && (
                     <button
                         type="button"
-                        onClick={() => setShowInput(true)}
+                        onClick={open}
                         className="px-2 py-0.5 rounded-full border border-dashed inline-flex items-center gap-1 hover:bg-[var(--bg-tertiary)] transition-colors border-[var(--border-default)] text-[var(--text-tertiary)]"
                     >
                         <Tag className="w-3 h-3" aria-hidden="true" />

@@ -76,7 +76,7 @@ export default function MeetingCommandPalette({ user, onNavigate }: MeetingComma
     useAdjustOnChange([open], () => { if (open) { setQuery(''); setActiveIdx(0); } });
     useEffect(() => {
         if (!open) return;
-        api.listTranscriptions().then((list) => setRecent(list.slice(0, 8))).catch(() => {});
+        api.listTranscriptions({ limit: 8 }).then((list) => setRecent(list.slice(0, 8))).catch(() => {});
         const timer = setTimeout(() => inputRef.current?.focus(), 30);
         return () => clearTimeout(timer);
     }, [open]);
@@ -107,8 +107,9 @@ export default function MeetingCommandPalette({ user, onNavigate }: MeetingComma
     const runItem = (item: PaletteItem) => {
         if (item.kind === 'action') item.payload.run();
         else {
-            window.__beeflowPendingMeetingId = item.payload.id;
-            onNavigate?.('meetingNotes');
+            // A deep link, not the window handoff: the page adopts a route
+            // change while it is mounted, and only reads the handoff on mount.
+            onNavigate?.(`studio/meeting-notes/${item.payload.id}`);
             setOpen(false);
         }
     };

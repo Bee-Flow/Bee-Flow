@@ -1,4 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -93,5 +94,48 @@ describe('ActionItemsList kept-from-an-earlier-pass marker', () => {
     it('explains why it is still there', () => {
         render(<ActionItemsList items={[{ id: 'ai-gen-1', text: 'Contract tekenen', done: true, orphaned: true }]} />);
         expect(screen.getByTitle(/no longer/i)).toBeTruthy();
+    });
+});
+
+/** Who may tick an item, and which item a tick or an edit addresses (MN-117, MN-126). */
+describe('ActionItemsList checkbox and item handles', () => {
+    afterEach(cleanup);
+
+    it('draws the checkbox read-only when there is no onToggle (a reader of a shared note)', () => {
+        render(<ActionItemsList items={[{ id: 'ai-0', text: 'Lezen' }]} />);
+        expect((screen.getByLabelText('Mark done') as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('keeps the checkbox pressable for the owner', async () => {
+        const onToggle = vi.fn();
+        render(<ActionItemsList items={[{ id: 'ai-0', text: 'Doen' }]} onToggle={onToggle} />);
+        await userEvent.setup().click(screen.getByLabelText('Mark done'));
+        expect(onToggle).toHaveBeenCalledWith('ai-0');
+    });
+
+    it('hands back a distinct handle per legacy item without an id, by its place in the note', async () => {
+        const user = userEvent.setup();
+        const onToggle = vi.fn();
+        render(<ActionItemsList
+            items={[{ text: 'A' }, { text: 'B', due: '2026-08-01' }]}
+            onToggle={onToggle}
+        />);
+        // B sorts first (it has a deadline) but keeps its position in the note.
+        const rows = screen.getAllByRole('listitem');
+        expect(rows[0].textContent).toContain('B');
+        await user.click(within(rows[0]).getByLabelText('Mark done'));
+        await user.click(within(rows[1]).getByLabelText('Mark done'));
+        expect(onToggle.mock.calls).toEqual([['legacy-index:1'], ['legacy-index:0']]);
+    });
+
+    it('opens one legacy item for editing, not every id-less one', async () => {
+        const user = userEvent.setup();
+        const onEdit = vi.fn();
+        render(<ActionItemsList items={[{ text: 'A' }, { text: 'B' }]} onEdit={onEdit} />);
+        await user.click(screen.getByText('A'));
+        expect(screen.getAllByLabelText('Edit action item')).toHaveLength(1);
+        await user.clear(screen.getByLabelText('Edit action item'));
+        await user.type(screen.getByLabelText('Edit action item'), 'X{Enter}');
+        expect(onEdit).toHaveBeenCalledWith('legacy-index:0', 'X');
     });
 });

@@ -38,7 +38,8 @@ interface SummaryActionsLayoutProps {
     onShowInsights: () => void;
     onSeek: (tsOrSec: number | string) => void;
     onEditSpeakers: (() => void) | undefined;
-    onToggleActionItem: (itemId: string | undefined) => Promise<void>;
+    // Owner-only: without it the checkbox is drawn read-only.
+    onToggleActionItem: ((itemId: string | undefined) => Promise<void>) | undefined;
     onEditActionItem: ((itemId: string | undefined, nextText: string) => Promise<void>) | undefined;
     onSetActionDestination: ((id: string | undefined, destination: DestinationRecord | null) => void) | undefined;
     onAddLineAction: ((item: MeetingActionItem | null) => Promise<boolean>) | undefined;

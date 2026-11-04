@@ -68,19 +68,22 @@ export default function LibraryFilters({
     };
 
     // Ordered by count DESC, then name; the active tag is pinned into the
-    // visible slice so it can always be deselected.
-    const { shown, hiddenCount } = useMemo(() => {
-        const ordered = tags
-            .filter((r) => r && typeof r.tag === 'string' && r.tag)
-            .slice()
+    // visible slice so it can always be deselected. An active tag the
+    // vocabulary no longer carries (its last note lost the tag or was
+    // deleted) joins with count 0, or the filter would be stuck on.
+    const { shown, hiddenCount, total } = useMemo(() => {
+        const valid = tags.filter((r) => r && typeof r.tag === 'string' && r.tag);
+        if (tag && !valid.some((r) => r.tag === tag)) valid.push({ tag, count: 0 });
+        const ordered = valid
             .sort((a, b) => (b.count || 0) - (a.count || 0) || a.tag.localeCompare(b.tag));
-        if (expanded || ordered.length <= VISIBLE_TAGS) return { shown: ordered, hiddenCount: 0 };
+        const total = ordered.length;
+        if (expanded || total <= VISIBLE_TAGS) return { shown: ordered, hiddenCount: 0, total };
         const head = ordered.slice(0, VISIBLE_TAGS);
         if (tag && !head.some((r) => r.tag === tag)) {
             const pinned = ordered.find((r) => r.tag === tag);
             if (pinned) head.splice(VISIBLE_TAGS - 1, 1, pinned);
         }
-        return { shown: head, hiddenCount: ordered.length - head.length };
+        return { shown: head, hiddenCount: total - head.length, total };
     }, [tags, tag, expanded]);
 
     return (
@@ -140,7 +143,7 @@ export default function LibraryFilters({
                         {t('meetings.more_tags', '+{count} tags', { count: hiddenCount })}
                     </button>
                 )}
-                {expanded && tags.length > VISIBLE_TAGS && (
+                {expanded && total > VISIBLE_TAGS && (
                     <button
                         type="button"
                         onClick={() => setExpanded(false)}

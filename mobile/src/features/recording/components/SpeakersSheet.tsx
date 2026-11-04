@@ -41,6 +41,7 @@ export function SpeakersSheet({
         >
             <SpeakerEditorSheetBody
                 speakers={meeting.speakers}
+                perPersonInsights={meeting.perPersonInsights}
                 attendees={meeting.attendees}
                 saving={saving}
                 reidentifying={reidentifying}

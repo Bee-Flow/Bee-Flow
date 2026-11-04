@@ -49,7 +49,7 @@ export const SUPPORT_TICKET_RESOLVED: FilterForm = {
 /** The standing sentence under the tags: every note, or which ones. */
 function tagsWords(draft: FormDraft): Msg {
     const n = splitList(filterOf(draft).tags).length;
-    if (n === 0) return msg('meetings.trigger_tags_empty_means_all', 'No tags: this rule runs after EVERY finished meeting note. Name a tag to narrow it.');
+    if (n === 0) return msg('meetings.trigger_tags_empty_means_all', 'No tags: this rule runs after EVERY finished meeting note of yours. Name a tag to narrow it.');
     return n === 1
         ? msg('meetings.trigger_tags_match', 'Runs only for a note carrying this tag.')
         : msg('meetings.trigger_tags_match_plural', 'Runs only for a note carrying any of these {count} tags.', { count: n });

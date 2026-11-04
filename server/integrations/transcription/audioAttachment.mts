@@ -4,8 +4,9 @@
  * Chat attachments come from the request body, so only three sources count:
  * inline data/content, a storage key under the caller's own prefix, and a
  * URL fetched through the public-target guard (safeFetch). A local file path
- * in an attachment is never read; the upload routes pass theirs as
- * args.filePath instead. A refusal is thrown as the user-facing sentence.
+ * in an attachment is never read, and neither is a path in the tool's
+ * arguments (the upload routes call the transcription cores directly). A
+ * refusal is thrown as the user-facing sentence.
  */
 
 import path from 'node:path';

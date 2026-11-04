@@ -27,8 +27,10 @@ const configStore = require('../../stores/configStore');
 const gmeetImportStore = require('../../stores/gmeetImportStore');
 const { resolveGmeetNotesSettings, hasMeetScopes } = require('./gmeetNotesSettings');
 const { listRecentlyEndedMeetMeetings } = require('./gmeetCalendar');
-const { getSpaceByMeetingCode, findConferenceRecord, findGeneratedRecording } = require('./gmeetArtifacts');
 const { ingestGmeetRecording } = require('./ingestGmeetRecording');
+const {
+    NO_CONFERENCE_DEADLINE_MS, fetchEventAttendees, awaitConference, resolveDuplicate, isAuthFailure, discoverArtifacts, ownerBarredReason,
+} = require('./gmeetDiscovery');
 const log = require('../../telemetry/log');
 const kit = require('./importJobKit');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
@@ -38,14 +40,13 @@ const { codedError, backoffMsFor, meetingEndMs } = kit;
 /** @typedef {import('../../stores/gmeetImportStore').GmeetJob} GmeetJob */
 /** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../auth/automationAuth').getProviderAuth>>>} ProviderAuth */
 /** @typedef {{ accessToken?: string, refreshToken?: string }} GoogleSession  a live web session or the vault shim */
+/** @typedef {import('./gmeetDiscovery').GmeetPending} GmeetPending */
+/** @typedef {import('./gmeetDiscovery').GmeetImported} GmeetImported */
 
 // Recording artifacts appear "soon after" the meeting ends (no SLA). A meeting
 // still without a FILE_GENERATED recording 24h past its end simply wasn't
 // recorded (the common case) — quiet terminal, no notification.
 const NO_RECORDING_DEADLINE_MS = 24 * 3600_000;
-// No conference record at all 48h past the end: the meeting never happened on
-// Meet (or under a different code) — terminal no_conference.
-const NO_CONFERENCE_DEADLINE_MS = 48 * 3600_000;
 // Parked needs_reauth jobs re-enter the queue when discovery sees a working
 // credential again; the park horizon itself is informational.
 const REAUTH_PARK_MS = 6 * 3600_000;
@@ -63,6 +64,9 @@ const USER_JITTER_MS = 250;
 const TERMINAL_CODES = new Set([
     'no_conference', 'no_recording', 'no_drive_access',
     'recording_too_large', 'unsupported_edition',
+    // A colleague's note for this conference that this user cannot read, or
+    // an engine the workspace does not allow: no retry changes either.
+    'already_imported', 'provider_not_allowed',
 ]);
 // Expected outcomes, not incidents — logged without alarm.
 const QUIET_CODES = new Set(['no_recording', 'no_conference', 'no_drive_access']);
@@ -188,81 +192,6 @@ const discover = kit.makeDiscovery({
     discoverUser,
 });
 
-/**
- * Best-effort calendar attendee list for a claimed job (used for the speaker
- * roster + the attendee → connected-user sharing map). The job table doesn't
- * carry attendees, so re-read the event from the user's calendar window
- * around the meeting. [] on any failure.
- * @param {GoogleSession} session
- * @param {GmeetJob} job
- */
-async function fetchEventAttendees(session, job) {
-    if (!job.calendarEventId) return [];
-    try {
-        const startMs = job.meetingStart ? new Date(job.meetingStart).getTime() : meetingEndMs(job);
-        const hours = Math.min(Math.max(Math.ceil((Date.now() - startMs) / 3600_000) + 1, 1), 168);
-        const meetings = await listRecentlyEndedMeetMeetings({ session, lookbackHours: hours, graceMinutes: 0 });
-        return meetings.find((/** @type {{ eventId?: string, attendees?: Array<{ email?: string, displayName?: string | null, self?: boolean }> }} */ m) => m.eventId === job.calendarEventId)?.attendees || [];
-    } catch (err) {
-        log.warn(`[GmeetAutoImport] attendee lookup failed for job ${job.id}: ${/** @type {Error} */ (err).message}`);
-        return [];
-    }
-}
-
-// No conference record (or even no space) yet: retry with backoff until the
-// 48h post-end deadline, then freeze as no_conference.
-/**
- * A job that is not ready yet: it stays claimable.
- * @typedef {{ pending: true, status: string, transcription?: undefined }} GmeetPending
- */
-/**
- * A finished import: the note (made here, or by an org sibling).
- * @typedef {{ pending?: false, transcription: unknown }} GmeetImported
- */
-/**
- * @param {GmeetJob} job
- * @param {string | null} [spaceName]
- * @returns {Promise<GmeetPending>}
- */
-async function awaitConference(job, spaceName = null) {
-    if (Date.now() > meetingEndMs(job) + NO_CONFERENCE_DEADLINE_MS) {
-        await gmeetImportStore.failJob(job.id, {
-            errorCode: 'no_conference', terminal: true,
-            lastError: 'No Meet conference record appeared for this meeting',
-        });
-        throw codedError('No Meet conference was found for this meeting', 'no_conference');
-    }
-    if (spaceName && spaceName !== job.spaceName) {
-        await gmeetImportStore.updateJob(job.id, { spaceName });
-    }
-    await gmeetImportStore.failJob(job.id, {
-        terminal: false, status: 'pending',
-        backoffMs: backoffMsFor(job.attempts),
-    });
-    return { pending: true, status: 'pending' };
-}
-
-/**
- * The (org_id, conference_record) claim index rejected the attach — another
- * attendee's job in the same org owns this conference. Freeze quietly
- * (organizer-first seeding makes the organizer's job win the race) and
- * surface the sibling's note when it already exists.
- * @param {GmeetJob} job
- * @param {string} conferenceRecordName
- * @returns {Promise<GmeetPending | GmeetImported>}
- */
-async function resolveDuplicate(job, conferenceRecordName) {
-    await gmeetImportStore.updateJob(job.id, { status: 'duplicate', errorCode: null });
-    const sourceUri = `gmeet://${job.orgId || `user:${job.userId}`}/${conferenceRecordName}`;
-    const existing = await require('../../stores/transcriptionStore')
-        .getTranscriptionBySourceUri(sourceUri).catch((e) => fallbackSwallowed('core/meetingNotes/gmeetAutoImport:resolveDuplicate', e, null));
-    if (existing) {
-        await gmeetImportStore.updateJob(job.id, { transcriptionId: existing.id });
-        return { transcription: existing };
-    }
-    return { pending: true, status: 'duplicate' };
-}
-
 // Always throws: classified codes freeze the job per code; anything else
 // retries up to MAX_INGEST_ATTEMPTS, then freezes as 'failed'.
 /**
@@ -293,11 +222,14 @@ async function releaseClaimAfterTerminalFailure(job) {
  * @param {GmeetJob} job
  * @param {Error & { code?: string }} err
  */
-async function failIngest(job, err) {
+async function failIngest(job, err, { manual = false } = {}) {
+    // A run the user is watching (`manual`) is not retried behind their back:
+    // its failure is final and keeps its own code, so screen and job agree.
     return kit.failIngest({
         store: gmeetImportStore, job, err,
         terminalCodes: TERMINAL_CODES,
-        maxAttempts: MAX_INGEST_ATTEMPTS,
+        maxAttempts: manual ? 1 : MAX_INGEST_ATTEMPTS,
+        keepCode: manual,
         fallbackMessage: 'Google Meet import failed',
         onTerminal: releaseClaimAfterTerminalFailure,
     });
@@ -312,44 +244,53 @@ async function failIngest(job, err) {
  *                                stays claimable and the poller carries on
  * Throws an Error with `.code` set to a stable failure code for classified
  * failures (the job row is already updated by the time it throws).
+ * `manual`: the run a user started and is watching (the /from-gmeet route).
  * @param {{ job: GmeetJob, session: GoogleSession, settings?: Awaited<ReturnType<typeof resolveGmeetNotesSettings>> | null,
- *   language?: string | null, contextTerms?: string }} args
+ *   language?: string | null, contextTerms?: string, manual?: boolean,
+ *   accessCtx?: import('../../stores/transcription/acl').ReadAclCtx }} args
  * @returns {Promise<GmeetPending | GmeetImported>}
  */
-async function processJobInline({ job, session, settings = null, language = null, contextTerms = '' }) {
+async function processJobInline({ job, session, settings = null, language = null, contextTerms = '', manual = false, accessCtx = undefined }) {
     // `language`/`contextTerms` come from the manual from-gmeet route's request
-    // body; the background poller passes neither and runs on the settings.
+    // body; a later claim of a manual job reads them off the job row.
     const effective = settings || await resolveGmeetNotesSettings({ orgId: job.orgId, userId: job.userId });
 
-    let spaceName = job.spaceName;
-    let conferenceRecordName = job.conferenceRecord;
-
-    if (!conferenceRecordName) {
-        if (!spaceName) {
-            const space = await getSpaceByMeetingCode(session, job.meetingCode);
-            spaceName = space?.name || null;
-            if (!spaceName) return awaitConference(job);
+    let found;
+    try {
+        found = await discoverArtifacts(job, session);
+    } catch (err) {
+        // Unhandled, a Google failure here was only logged: the job kept its
+        // status with no error and no attempt counted, and was re-claimed
+        // every 10 minutes for good — a 403 from a project without the Meet
+        // API looped forever. Now: a dead grant parks for a reconnect,
+        // anything else retries with backoff and freezes as 'failed' once
+        // the meeting is past the no-conference deadline.
+        if (isAuthFailure(err)) {
+            await gmeetImportStore.parkNeedsReauth(job.id, new Date(Date.now() + REAUTH_PARK_MS).toISOString());
+            throw codedError('Reconnect your Google account to import this meeting', 'needs_reauth');
         }
-        const record = await findConferenceRecord(session, {
-            spaceName,
-            meetingStart: job.meetingStart,
-            meetingEnd: job.meetingEnd,
+        return kit.failLookup({
+            store: gmeetImportStore, job, err,
+            terminalCodes: TERMINAL_CODES,
+            deadlineMs: NO_CONFERENCE_DEADLINE_MS,
+            fallbackMessage: 'Google Meet lookup failed',
         });
-        if (!record) return awaitConference(job, spaceName);
-
-        const attached = await gmeetImportStore.attachConferenceRecord(job.id, {
-            spaceName, conferenceRecord: record.name,
-        });
-        if (attached && attached.duplicate) return resolveDuplicate(job, record.name);
-        conferenceRecordName = record.name;
     }
+    if (found.next === 'await') return awaitConference(job, found.spaceName || null);
+    if (found.next === 'duplicate') return resolveDuplicate(job, found.record, accessCtx);
+    const { conferenceRecordName, recording } = found;
 
-    const recording = await findGeneratedRecording(session, conferenceRecordName);
-    if (!recording.driveFileId) {
+    // A recording stopped and restarted is several recordings of one
+    // conference. While a later part is still being processed by Google, wait
+    // for it (until the deadline) rather than import half the meeting and
+    // close the job.
+    const stillProcessing = Number(recording.pendingRecordings) || 0;
+    const pastDeadline = Date.now() > meetingEndMs(job) + NO_RECORDING_DEADLINE_MS;
+    if (!recording.driveFileId || (stillProcessing > 0 && !pastDeadline)) {
         // No FILE_GENERATED artifact (yet) — covers both "recordings exist but
         // no file" and "no recordings at all". Past the deadline the meeting
         // simply wasn't recorded: terminal and quiet (the common case).
-        if (Date.now() > meetingEndMs(job) + NO_RECORDING_DEADLINE_MS) {
+        if (!recording.driveFileId && pastDeadline) {
             await gmeetImportStore.failJob(job.id, {
                 errorCode: 'no_recording', terminal: true,
                 lastError: 'No recording was generated for this meeting',
@@ -373,28 +314,32 @@ async function processJobInline({ job, session, settings = null, language = null
     // pipeline again — every copy but the first thrown away by the source_uri
     // dedup, after being paid for in full.
     //
-    // Extend the lease to cover the long stage. A crashed worker still loses
-    // it (nothing renews it), so genuinely stuck jobs are still recovered.
-    await gmeetImportStore.heartbeatJob(job.id, INGEST_LEASE_MINUTES)
-        .catch(e => log.warn('[GmeetAutoImport] lease extension failed:', e.message));
-
+    // The lease is extended and kept renewed for as long as the ingest runs
+    // (one extension ran out on a meeting longer than the lease). A crashed
+    // worker stops renewing, so genuinely stuck jobs are still recovered.
     /** @type {{ id: string; title?: string | null; dedup?: boolean; sourceUri?: string; }} */
     let saved;
     try {
-        saved = await ingestGmeetRecording({
-            userId: job.userId,
-            session,
-            orgId: job.orgId,
-            conferenceRecordName,
-            driveFileId: recording.driveFileId,
-            meetingCode: job.meetingCode,
-            title: job.title,
-            language: language || effective.language,
-            contextTerms,
-            attendees,
+        saved = await kit.withLeaseHeartbeat({
+            store: gmeetImportStore, jobId: job.id, leaseMinutes: INGEST_LEASE_MINUTES, label: 'GmeetAutoImport',
+            work: () => ingestGmeetRecording({
+                userId: job.userId,
+                session,
+                orgId: job.orgId,
+                conferenceRecordName,
+                driveFileId: /** @type {string} */ (recording.driveFileId),
+                meetingCode: job.meetingCode,
+                title: job.title,
+                meetingStart: job.meetingStart,
+                extraRecordings: Number(recording.extraRecordings) || 0,
+                language: language || job.requestedLanguage || effective.language,
+                contextTerms: contextTerms || job.contextTerms || '',
+                attendees,
+                accessCtx,
+            }),
         });
     } catch (err) {
-        return failIngest(job, err); // always throws
+        return failIngest(job, err, { manual }); // always throws
     }
     await gmeetImportStore.completeJob(job.id, saved.id);
     return { transcription: saved };
@@ -402,6 +347,11 @@ async function processJobInline({ job, session, settings = null, language = null
 
 /** @param {GmeetJob} job */
 async function processClaimedJob(job) {
+    const barred = await ownerBarredReason(job);
+    if (barred) {
+        await gmeetImportStore.updateJob(job.id, { status: 'skipped', lastError: `Skipped: ${barred}` });
+        return;
+    }
     // Re-resolve settings at claim time — an exclusion or opt-out flipped
     // after seeding must still win.
     const settings = await resolveGmeetNotesSettings({ orgId: job.orgId, userId: job.userId });
@@ -414,7 +364,12 @@ async function processClaimedJob(job) {
     const excluded = prefs.opinionFor(
         meetingPrefs.gmeetIds({ eventId: job.calendarEventId, meetingCode: job.meetingCode }),
     ) === false;
-    if (!settings.autoImport || excluded || (settings.importScope === 'organizer' && !job.preferred)) {
+    // A meeting the user asked to import BY HAND (`requestedByUser`) is their
+    // explicit choice: the poller finishing it after Google was not ready must
+    // not skip it for the auto-import rules (autoImport off, organizer scope).
+    // An explicit opt-out still wins.
+    const autoRulesSkip = !settings.autoImport || (settings.importScope === 'organizer' && !job.preferred);
+    if (excluded || (autoRulesSkip && !job.requestedByUser)) {
         await gmeetImportStore.updateJob(job.id, { status: 'skipped' });
         return;
     }
@@ -422,6 +377,20 @@ async function processClaimedJob(job) {
     const { getProviderAuth } = require('../../auth/automationAuth');
     const auth = await getProviderAuth(job.userId, 'google');
     if (!auth) {
+        // getProviderAuth also answers null when a refresh failed for a
+        // passing reason (Google 503); the credential is then still active.
+        // That is a retry, not a reconnect: parking it showed "Access
+        // expired, reconnect" while nothing was wrong.
+        let stored = null;
+        try { stored = await require('../../stores/automationCredentialStore').getCredential(job.userId, 'google'); }
+        catch (e) { fallbackSwallowed('core/meetingNotes/gmeetAutoImport:processClaimedJob', e); }
+        if (stored && stored.status === 'active') {
+            await gmeetImportStore.failJob(job.id, {
+                errorCode: null, lastError: 'Google token refresh failed, retrying',
+                terminal: false, status: job.status, backoffMs: backoffMsFor(job.attempts),
+            });
+            return;
+        }
         // automationAuth pauses+notifies on definitive rejections; park the job so
         // it stops burning claim slots until discovery unparks it post-reauth.
         await gmeetImportStore.parkNeedsReauth(job.id, new Date(Date.now() + REAUTH_PARK_MS).toISOString());

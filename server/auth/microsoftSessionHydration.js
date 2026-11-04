@@ -73,22 +73,31 @@ async function hydrateMicrosoftSessionFromVault(session) {
  * the user reconnected Microsoft in Settings → Connections precisely to get
  * them, and the login session would otherwise keep answering 403.
  *
+ * `scopeSatisfies` is the same rule for any other feature: a predicate over a
+ * scope string (the Teams meeting-notes routes pass hasTeamsScopes). A live
+ * session whose recorded grant fails it gives way to a vault credential whose
+ * grant passes. Reconnecting Microsoft 365 updates only the vault when a
+ * Microsoft session already exists, so without this the routes kept calling
+ * Graph with the old token while the connection status said "granted".
+ *
  * @param {any} session - the caller's session (Express or automation shim)
  * @param {string|null} [userId] - who the credential belongs to; defaults to
  *   the session's user
- * @param {{ needsSharedMailbox?: boolean }} [opts]
+ * @param {{ needsSharedMailbox?: boolean, scopeSatisfies?: (scope: string | null | undefined) => boolean }} [opts]
  * @returns {Promise<any|null>} a session-shaped object, or null when the user
  *   has no working Microsoft credential
  */
 async function resolveMicrosoftSession(session, userId = null, opts = {}) {
     if (session?.oauthProvider === 'microsoft' && session?.accessToken) {
-        if (!opts.needsSharedMailbox) return session;
-        const { hasSharedMailboxScopes } = require('./permissionsOAuth');
+        /** @type {((scope: string | null | undefined) => boolean) | null} */
+        let satisfies = typeof opts.scopeSatisfies === 'function' ? opts.scopeSatisfies : null;
+        if (!satisfies && opts.needsSharedMailbox) satisfies = require('./permissionsOAuth').hasSharedMailboxScopes;
+        if (!satisfies) return session;
         const scope = typeof session.oauthScope === 'string' && session.oauthScope.trim() ? session.oauthScope : null;
-        if (scope === null || hasSharedMailboxScopes(scope)) return session;
+        if (scope === null || satisfies(scope)) return session;
         const ownerId = userId || session?.user?.id || session?.userId || null;
         const vault = ownerId ? await vaultCredential(ownerId) : null;
-        if (vault?.accessToken && hasSharedMailboxScopes(vault.scope)) {
+        if (vault?.accessToken && satisfies(vault.scope)) {
             return buildMicrosoftShim(vault, { userId: vault.userId || ownerId, user: session?.user || null });
         }
         return session;

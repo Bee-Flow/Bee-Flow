@@ -22,9 +22,10 @@ const { isMissingTable } = require('../utils/isMissingTable');
  * @param {string} userId
  */
 async function eraseTranscriptions(userId) {
-    const rows = await getAll('SELECT id FROM transcriptions WHERE user_id = $1', [userId]);
+    const rows = await getAll('SELECT id, tags FROM transcriptions WHERE user_id = $1', [userId]);
     const { deleteTranscription } = require('../stores/transcriptionStore');
     for (const r of rows) await deleteTranscription(r.id, userId);
+    await rearmMeetingSourcesFor(rows);
     return rows.length;
 }
 
@@ -34,10 +35,31 @@ async function eraseTranscriptions(userId) {
  * @param {string} orgId
  */
 async function eraseOrgTranscriptions(orgId) {
-    const rows = await getAll('SELECT id, user_id FROM transcriptions WHERE organization_id = $1', [orgId]);
+    const rows = await getAll('SELECT id, user_id, tags FROM transcriptions WHERE organization_id = $1', [orgId]);
     const { deleteTranscription } = require('../stores/transcriptionStore');
     for (const r of rows) await deleteTranscription(r.id, r.user_id);
+    await rearmMeetingSourcesFor(rows);
     return rows.length;
+}
+
+/**
+ * A meeting_tag source in a colleague's knowledge base holds the summaries of
+ * the erased notes until its next pass: arm every source watching one of
+ * their tags, so that pass comes now and drops them. Best-effort: the erasure
+ * itself already happened, and a source left unarmed still catches up at its
+ * own next refresh.
+ * @param {Array<{ tags?: unknown }>} rows
+ */
+async function rearmMeetingSourcesFor(rows) {
+    /** @type {string[]} */
+    const tags = [...new Set(rows.flatMap((r) => (Array.isArray(r.tags) ? r.tags : []))
+        .filter((t) => typeof t === 'string' && t.trim()))];
+    if (!tags.length) return;
+    try {
+        await require('../stores/kbSources').armMeetingSourcesForRemoval(tags);
+    } catch (err) {
+        require('../utils/bestEffort').bestEffort('projects/accountContentErasure:rearmMeetingSources', err);
+    }
 }
 
 /**

@@ -16,30 +16,35 @@ const IMPORT_POLL_MS = 3000;
 const IMPORT_GIVE_UP_MS = 2 * 60 * 60 * 1000;
 
 const importJobKeys = {
-    job: (provider: MeetingImportProvider, jobId: string) => ['meetingImportJob', provider, jobId] as const,
+    job: (provider: MeetingImportProvider, jobId: string, attempt = 0) => ['meetingImportJob', provider, jobId, attempt] as const,
 };
 
 /**
  * Poll one import job. `data` is the job, or `null` when the list no longer
  * has it. Polling stops by itself once the job is done, failed or waiting.
- * `timedOut` turns true after IMPORT_GIVE_UP_MS of polling.
+ * `timedOut` turns true after IMPORT_GIVE_UP_MS of polling. `attempt` counts the
+ * follows of one job: a retry gets the SAME job id back from the server, and
+ * every follow gets its own time limit (and query), so a job that timed out
+ * once is not reported as timed out, unpolled, for every retry after it.
  */
 export function useMeetingImportJob(
     provider: MeetingImportProvider | null,
     jobId: string | null,
-    { intervalMs = IMPORT_POLL_MS, giveUpMs = IMPORT_GIVE_UP_MS }: { intervalMs?: number; giveUpMs?: number } = {},
+    { intervalMs = IMPORT_POLL_MS, giveUpMs = IMPORT_GIVE_UP_MS, attempt = 0 }: { intervalMs?: number; giveUpMs?: number; attempt?: number } = {},
 ) {
-    // The id the time limit ran out for; a new job id starts with a clean slate.
+    // The follow the time limit ran out for; a new job id, or a new follow of
+    // the same one, starts with a clean slate.
     const [timedOutFor, setTimedOutFor] = useState<string | null>(null);
+    const timerKey = jobId ? `${jobId}#${attempt}` : null;
     useEffect(() => {
-        if (!jobId) return undefined;
-        const timer = setTimeout(() => setTimedOutFor(jobId), giveUpMs);
+        if (!timerKey) return undefined;
+        const timer = setTimeout(() => setTimedOutFor(timerKey), giveUpMs);
         return () => clearTimeout(timer);
-    }, [jobId, giveUpMs]);
-    const timedOut = !!jobId && timedOutFor === jobId;
+    }, [timerKey, giveUpMs]);
+    const timedOut = !!timerKey && timedOutFor === timerKey;
 
     const query = useQuery<MeetingImportJob | null, Error>({
-        queryKey: importJobKeys.job(provider ?? 'teams', jobId ?? ''),
+        queryKey: importJobKeys.job(provider ?? 'teams', jobId ?? '', attempt),
         queryFn: async ({ signal }) => {
             const body = await apiClient.get<{ items?: Array<MeetingImportJob & Record<string, unknown>> }>(
                 `/api/transcriptions/${provider}-imports`, { signal, retry: false },

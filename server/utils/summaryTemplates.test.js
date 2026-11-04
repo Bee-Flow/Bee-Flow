@@ -15,6 +15,7 @@ const {
     pickDefaultTemplate,
     canAccessTemplate,
 } = require('./summaryTemplates');
+const { stampForBuiltin } = require('../core/meetingNotes/summaryStamp');
 
 test('BUILTIN_TEMPLATES holds the five known styles with non-empty prompts', () => {
     const ids = BUILTIN_TEMPLATES.map(t => t.id);
@@ -28,6 +29,14 @@ test('builtinPrompt returns the matching prompt, and falls back to general for u
     assert.strictEqual(builtinPrompt('standup'), BUILTIN_TEMPLATES.find(t => t.id === 'standup').prompt);
     assert.strictEqual(builtinPrompt('does-not-exist'), BUILTIN_TEMPLATES.find(t => t.id === 'general').prompt);
     assert.strictEqual(builtinPrompt(undefined), BUILTIN_TEMPLATES.find(t => t.id === 'general').prompt);
+});
+
+test('builtinPrompt and the built-in stamp fall back to general for names inherited from Object.prototype', () => {
+    const general = BUILTIN_TEMPLATES.find(t => t.id === 'general').prompt;
+    for (const key of ['constructor', '__proto__', 'toString', 'valueOf', 'hasOwnProperty']) {
+        assert.strictEqual(builtinPrompt(key), general, key);
+        assert.deepStrictEqual(stampForBuiltin(key), { summaryTemplateId: 'builtin:general', summaryTemplateVersion: null }, key);
+    }
 });
 
 test('buildSummarySystemPrompt names the language and appends the template body', () => {

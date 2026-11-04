@@ -20,6 +20,7 @@ const { z } = require('../../utils/zod');
 const { flag } = require('./schemas');
 const { bestEffort } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { contentDisposition } = require('../../core/http/contentDisposition');
 
 // `?download=1` is the rescue-hatch parameter and the only one this route reads. Strict, because `?downlaod=1` streamed the recording back `inline`: the browser played it instead of saving it, and for a browser recording without a durable copy, saving it is the only way out.
 const DOWNLOAD_TEXT = 'download is true of false.';
@@ -47,7 +48,12 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (/*
     const sendHeaders = /** @param {string} contentType @param {string} fileName */ (contentType, fileName) => {
         res.setHeader('Accept-Ranges', 'bytes');
         res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Disposition', `${asAttachment ? 'attachment' : 'inline'}; filename="${fileName}"`);
+        // The name is the meeting title (a Teams subject, a Drive file name), so
+        // it can hold any character. Raw in a quoted header, an en dash or an
+        // emoji made setHeader throw: a 500 for the local copy and a false
+        // "Audio file not available" for the durable one. ASCII fallback plus
+        // the real name in filename*.
+        res.setHeader('Content-Disposition', contentDisposition(fileName, { inline: !asAttachment }));
         res.setHeader('Cache-Control', 'private, max-age=3600');
     };
 

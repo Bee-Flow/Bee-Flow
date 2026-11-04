@@ -524,8 +524,8 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
             const recordDecided = decision.reason !== 'unknown_size' || !engineWillLook;
             let recordedNoteId = null;
             try {
-                const t = await transcriptionStore.getTranscriptionByTalkRoomToken(m.talkToken, userId);
-                if (t) recordedNoteId = t.id;
+                // This occurrence's note only: every meeting of a series reuses the Talk room.
+                if (m.start) recordedNoteId = (await transcriptionStore.getTranscriptionByTalkRoomToken(m.talkToken, userId, { since: m.start }))?.id || null;
             } catch (err) { fallbackSwallowed('routes/transcriptions/nextcloud:anon#2', err); /* ignore */ }
 
             let status;

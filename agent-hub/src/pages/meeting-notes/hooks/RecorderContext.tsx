@@ -76,6 +76,11 @@ export interface RecorderValue {
 
 const RecorderContext = createContext<RecorderValue | null>(null);
 
+/** A fresh upload attempt id, or undefined where the browser has no randomUUID (an insecure origin). */
+function newClientUploadId(): string | undefined {
+    return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : undefined;
+}
+
 const STAGES = [
     'Uploading audio…',
     'Converting audio format…',
@@ -95,12 +100,32 @@ const STAGES = [
 const DEFAULT_SETTINGS: CaptureSettings = { language: 'nl', provider: '', contextTerms: '', attendees: '', numSpeakers: '' };
 
 /**
+ * The capture settings plus whether the user picked the language.
+ *
+ * `languageChosen`: the user picked a language in the capture controls. Until then the
+ * language is only the default ('nl'), which a recording or an upload needs, but which must
+ * not override the language configured in the Teams / Meet notes settings on a manual import.
+ * `chosenLanguage` is the fallback language of such an import: the capture language when the
+ * user chose one, else none, so the server uses the provider's configured notes language.
+ */
+function useCaptureSettings() {
+    const [capture, setCapture] = useState({ settings: DEFAULT_SETTINGS, languageChosen: false });
+    const setSettings = useCallback<Dispatch<SetStateAction<CaptureSettings>>>((next) => {
+        setCapture((prev) => {
+            const nextSettings = typeof next === 'function' ? next(prev.settings) : next;
+            return { settings: nextSettings, languageChosen: prev.languageChosen || nextSettings.language !== prev.settings.language };
+        });
+    }, []);
+    return { settings: capture.settings, setSettings, chosenLanguage: capture.languageChosen ? capture.settings.language : undefined };
+}
+
+/**
  * Shell-level provider. One MediaRecorder for the whole app — survives modal
  * close and page navigation. Pages call `useRecorder()` to read state and
  * trigger start/stop.
  */
 export function RecorderProvider({ children }: { children?: ReactNode }) {
-    const [settings, setSettings] = useState<CaptureSettings>(DEFAULT_SETTINGS);
+    const { settings, setSettings, chosenLanguage } = useCaptureSettings();
     const [uploading, setUploading] = useState(false);
     const [uploadStage, setUploadStage] = useState('');
     const [uploadError, setUploadError] = useState<unknown>(null);
@@ -148,6 +173,9 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
                 // browser recording cannot possibly follow, because those bytes
                 // never existed anywhere else.
                 captureMode,
+                // One id per attempt: a repeat of this same POST dedups on the
+                // server. A retry with another engine is a new attempt, a new id.
+                clientUploadId: newClientUploadId(),
                 signal: controller.signal,
             });
             clearTimeout(tid);
@@ -212,7 +240,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
             const result = await api.importGoogleMeetRecording({
                 eventId: item.eventId,
                 meetingCode: item.meetingCode,
-                language: language || settings.language,
+                language: language || chosenLanguage,
                 title: item.title || undefined,
                 contextTerms: contextTerms ?? settings.contextTerms,
             });
@@ -229,7 +257,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
             setUploading(false);
             setUploadStage('');
         }
-    }, [settings.language, settings.contextTerms, followImportJob]);
+    }, [chosenLanguage, settings.contextTerms, followImportJob]);
 
     const importFromTeams = useCallback(async (item: { eventId: string }, { language, contextTerms }: ImportOptions = {}): Promise<UploadOutcome> => {
         setUploading(true);
@@ -238,7 +266,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
         try {
             const result = await api.importTeamsMeeting({
                 eventId: item.eventId,
-                language: language || settings.language,
+                language: language || chosenLanguage,
                 contextTerms: contextTerms ?? settings.contextTerms,
             });
             // 202: the import runs on the server (a long recording takes far
@@ -255,7 +283,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
             setUploading(false);
             setUploadStage('');
         }
-    }, [settings.language, settings.contextTerms, followImportJob]);
+    }, [chosenLanguage, settings.contextTerms, followImportJob]);
 
     const consumeLastResult = useCallback(() => {
         const id = lastResultId;
@@ -287,7 +315,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
         canRetry: !!lastFailedFile && errorCode(uploadError) !== 'payload_too_large',
         version,
         clearError: () => { setUploadError(null); setLastFailedFile(null); },
-    }), [recorder, settings, uploading, uploadStage, uploadError, lastResultId, lastResultMeta, consumeLastResult, uploadFile, uploadFromNextcloud, importFromGoogleMeet, importFromTeams, retryWithProvider, lastFailedFile, version]);
+    }), [recorder, settings, setSettings, uploading, uploadStage, uploadError, lastResultId, lastResultMeta, consumeLastResult, uploadFile, uploadFromNextcloud, importFromGoogleMeet, importFromTeams, retryWithProvider, lastFailedFile, version]);
 
     return <RecorderContext.Provider value={value}>{children}</RecorderContext.Provider>;
 }

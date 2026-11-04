@@ -56,15 +56,24 @@ function itemKey(itemId, /** @type {unknown} */ text) {
 }
 
 /**
- * The task an action item already became, or null. A task made with the text hash only counts when the
- * item's words are still the same; one made before the hash was kept is found by its id alone.
+ * The task an action item already became, or null. A task made with the text hash is found by the item's
+ * words anywhere in this meeting: a regenerated summary renumbers its items (`ai-3` becomes `ai-2` when an
+ * earlier point drops out), and the same words are still the same task. One made before the hash was kept
+ * is found by its id alone.
  * @param {Map<string, string>} created  store tasksFromMeeting
  * @param {string} itemId
  * @param {unknown} text
  * @returns {string|null}
  */
 function createdTaskFor(created, itemId, text) {
-    return created.get(itemKey(itemId, text)) || created.get(itemId) || null;
+    const exact = created.get(itemKey(itemId, text));
+    if (exact) return exact;
+    const hash = itemTextHash(text);
+    if (hash) {
+        const suffix = `#${hash}`;
+        for (const [key, taskId] of created) if (key.endsWith(suffix)) return taskId;
+    }
+    return created.get(itemId) || null;
 }
 
 /**
@@ -81,6 +90,21 @@ function clock(seconds) {
      */
     const pad = (n) => String(n).padStart(2, '0');
     return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
+}
+
+/** A clock the extractor stored (`sanitizeTimestamp`: `12:05`, `1:02:03`). */
+const CLOCK = /^\d{1,3}:[0-5]\d(:[0-5]\d)?$/;
+
+/**
+ * Where in the meeting an action item was said, as `12:05` / `1:02:03`, or ''. A stored item holds the
+ * clock as a string; a number of seconds is formatted.
+ * @param {unknown} timestamp
+ */
+function atOf(timestamp) {
+    if (typeof timestamp === 'number') return clock(timestamp);
+    if (typeof timestamp !== 'string') return '';
+    const t = timestamp.trim();
+    return CLOCK.test(t) ? t : '';
 }
 
 /**
@@ -101,7 +125,7 @@ function suggestionsFromNote(note, people, created) {
             assigneeName: typeof item.assignee === 'string' ? item.assignee : '',
             suggestedAssigneeId: matchAssignee(item.assignee, people),
             dueDate: typeof item.due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.due) ? item.due : null,
-            at: clock(item.timestamp),
+            at: atOf(item.timestamp),
             done: item.done === true,
             createdTaskId: createdTaskFor(created, itemId, text),
         });
@@ -109,4 +133,4 @@ function suggestionsFromNote(note, people, created) {
     return out;
 }
 
-module.exports = { matchAssignee, suggestionsFromNote, clock, itemTextHash, itemKey, createdTaskFor };
+module.exports = { matchAssignee, suggestionsFromNote, clock, atOf, itemTextHash, itemKey, createdTaskFor };

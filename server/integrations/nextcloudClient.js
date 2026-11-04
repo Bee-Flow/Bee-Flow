@@ -12,6 +12,7 @@ const configStore = require('../stores/configStore');
 const { assertAllowedNextcloudHost, isMetadataHost, nextcloudFetch } = require('./nextcloudTarget');
 const { signedConnectorHeaders, connectorWireUrl } = require('./ncSigning');
 const log = require('../telemetry/log');
+const { DOWNLOAD_TOO_LARGE, refuseDeclaredOversize, writeBodyToFile } = require('./nextcloudDownload');
 
 const REQUEST_TIMEOUT_MS = 20000;
 
@@ -613,13 +614,21 @@ const CORS_AUTH_ERROR = 'Nextcloud\'s Notes/Deck APIs use CORS protection that r
  * Used for audio/video imports where loading the whole file into memory
  * would be wasteful — meeting recordings can easily exceed 100 MB.
  *
+ * A `maxBytes` cap is enforced before and during the download, not after it:
+ * a declared Content-Length over the cap is refused before a byte is written,
+ * and a body that grows past it (no or a wrong Content-Length) is cut off and
+ * the partial file removed (nextcloudDownload.js), so a multi-GB recording never
+ * fills the shared scratch directory. Both throw with code `DOWNLOAD_TOO_LARGE`.
+ *
  * @param {Partial<Express.Session> | null | undefined} session  Express session (used to resolve auth).
  * @param {string} userId   For app-password fallback.
  * @param {string} ncPath   Path within the user's Files root, e.g. "/Recordings/2026-05-08.mp3".
  * @param {string} destPath Local filesystem path to write to.
- * @returns {Promise<{ size, contentType }>}
+ * @param {{ maxBytes?: number }} [opts] `maxBytes` > 0 caps the download; absent or 0 means no cap.
+ * @returns {Promise<{ size: number, contentType: string }>}
  */
-async function downloadBinary(session, userId, ncPath, destPath) {
+async function downloadBinary(session, userId, ncPath, destPath, opts = {}) {
+    const maxBytes = Number(opts.maxBytes) > 0 ? Number(opts.maxBytes) : 0;
     const ctx = await resolveAuth(session, userId);
     const root = webdavRoot(ctx.baseUrl, ctx.uid);
     // Build the WebDAV URL — encode each segment so spaces and unicode
@@ -637,19 +646,10 @@ async function downloadBinary(session, userId, ncPath, destPath) {
     if (res.status === 401) throw new Error(ctx.authError || 'Nextcloud auth failed');
     if (!res.ok) throw new Error(`Nextcloud download failed (${res.status})`);
 
-    const fs = require('fs');
-    const { Readable } = require('stream');
-    const { pipeline } = require('stream/promises');
+    if (maxBytes) await refuseDeclaredOversize(res, maxBytes);
+    await writeBodyToFile(res, destPath, maxBytes);
 
-    // Node's fetch returns a Web ReadableStream — convert to a Node stream
-    // so .pipe() works and we don't keep the entire body in memory.
-    const nodeStream = res.body && typeof Readable.fromWeb === 'function'
-        ? Readable.fromWeb(res.body)
-        : res.body;
-    const out = fs.createWriteStream(destPath);
-    await pipeline(nodeStream, out);
-
-    const stat = fs.statSync(destPath);
+    const stat = require('fs').statSync(destPath);
     return {
         size: stat.size,
         contentType: res.headers.get('content-type') || 'application/octet-stream',
@@ -669,6 +669,7 @@ module.exports = {
     resolveBasicAuthOrNull,
     ncFetch,
     downloadBinary,
+    DOWNLOAD_TOO_LARGE,
     REQUEST_TIMEOUT_MS,
     CORS_AUTH_ERROR,
 };

@@ -33,6 +33,7 @@ const { run, getOne, getAll, exec } = require('../db');
 const { runDdl } = require('./lib/_ddl');
 const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
+const { meetingArms } = require('./kbSourcesMeetingArm');
 
 const SOURCE_KINDS = Object.freeze([
     'upload', 'text', 'webpage', 'nextcloud_folder', 'datatable', 'meeting_tag', 'automation', 'legacy',
@@ -428,7 +429,17 @@ const KbSourcesStore = {
                     last_refresh_at = CASE WHEN $3 THEN now() ELSE last_refresh_at END,
                     last_refresh_error = $4,
                     consecutive_errors = CASE WHEN $3 THEN 0 ELSE consecutive_errors + 1 END,
-                    next_refresh_at = $5,
+                    -- An arm that landed DURING this pass (armMeetingSources
+                    -- moves next_refresh_at past the claim's stamp) asked for
+                    -- a pass this one cannot give: its enumerate already ran.
+                    -- A good pass keeps that earlier due time instead of
+                    -- pushing it out to the schedule; a failed one keeps its
+                    -- backoff (the retry enumerates afresh anyway).
+                    next_refresh_at = CASE
+                        WHEN $3 AND last_refresh_started_at IS NOT NULL
+                             AND next_refresh_at > last_refresh_started_at
+                        THEN LEAST(next_refresh_at, COALESCE($5::timestamptz, next_refresh_at))
+                        ELSE $5::timestamptz END,
                     updated_at = now()
               WHERE id = $1
               RETURNING *`,
@@ -469,52 +480,8 @@ const KbSourcesStore = {
         return out;
     },
 
-    /**
-     * Ask a running refresh to stop at its next document boundary.
-     *
-     * Cooperative, and deliberately so: a worker is mid-way through writing
-     * chunks for one document, and the only safe place to stop is between
-     * documents — everything before it is committed, everything after it has
-     * not started. A hard stop would leave a half-embedded document that
-     * looks processed.
-     *
-     * Returns false when the source is not actually refreshing, so a caller
-     * can tell "asked" from "there was nothing to ask".
-     */
-    /**
-     * Arm every `meeting_tag` source watching one of these tags.
-     *
-     * Sets `next_refresh_at = now()` so the refresh job picks them up on its
-     * next tick — rather than refreshing inline. A meeting finishing must not
-     * make the ingest that saved it wait on an embedding pass, and the job
-     * already has the lock, the concurrency limit and the time budget that
-     * keep a burst of meetings from becoming a burst of embedding calls.
-     *
-     * Only sources in `after_meeting` mode. A source somebody deliberately set
-     * to `manual` said "I will press the button", and `schedule` said "nightly
-     * is fine" — overriding either because a meeting happened would ignore
-     * what they asked for.
-     *
-     * @param {string[]} tags
-     * @returns {Promise<number>} how many sources were armed
-     */
-    armMeetingSources: async (tags) => {
-        await initDB();
-        const list = Array.isArray(tags) ? tags.filter(t => typeof t === 'string' && t.trim()) : [];
-        if (list.length === 0) return 0;
-        // `config->>'tag'` rather than a containment operator: a meeting_tag
-        // source watches exactly one tag, stored as a scalar.
-        const r = await run(
-            `UPDATE kb_sources
-                SET next_refresh_at = now(), updated_at = now()
-              WHERE kind = 'meeting_tag'
-                AND refresh_mode = 'after_meeting'
-                AND config->>'tag' = ANY($1::text[])
-                AND status <> 'refreshing'`,
-            [list],
-        );
-        return r?.rowCount || 0;
-    },
+    // armMeetingSources / armMeetingSourcesForRemoval: ./kbSourcesMeetingArm.js.
+    ...meetingArms({ initDB, run }),
 
     /**
      * Arm every `live` datatable source watching one table (K8).
@@ -624,6 +591,18 @@ const KbSourcesStore = {
         ));
     },
 
+    /**
+     * Ask a running refresh to stop at its next document boundary.
+     *
+     * Cooperative, and deliberately so: a worker is mid-way through writing
+     * chunks for one document, and the only safe place to stop is between
+     * documents — everything before it is committed, everything after it has
+     * not started. A hard stop would leave a half-embedded document that
+     * looks processed.
+     *
+     * Returns false when the source is not actually refreshing, so a caller
+     * can tell "asked" from "there was nothing to ask".
+     */
     requestCancel: async (id) => {
         await initDB();
         if (!id) return false;

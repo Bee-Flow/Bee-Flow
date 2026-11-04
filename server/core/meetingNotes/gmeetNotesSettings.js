@@ -103,6 +103,9 @@ function asLookback(v) {
     if (!Number.isFinite(n)) return DEFAULTS.lookbackHours;
     return Math.min(Math.max(Math.round(n), 1), 168);
 }
+// The fields a member may set for themselves (an org value overrides them).
+const MEMBER_FIELDS = ['autoImport', 'autoRecordConfig', 'importScope', 'language', 'lookbackHours'];
+
 /** @param {unknown} v */
 function asStrArray(v) { return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x) : []; }
 
@@ -134,10 +137,21 @@ async function resolveGmeetNotesSettings({ orgId = null, userId = null } = {}) {
     };
 }
 
-/** @param {string} orgId */
+/**
+ * The org document as stored, for the admin screen: a member-overridable field
+ * the org never set is `null` ("no opinion, each member decides"), NOT the
+ * default. Merging the defaults in made every field look set, the admin form
+ * posted them all back, and one Save pinned every member's own choice to the
+ * defaults.
+ * @param {string} orgId
+ */
 async function getOrgSettings(orgId) {
     const stored = orgId ? await configStore.getConfig(orgKey(orgId)) : null;
-    return { ...DEFAULTS, ...(stored || {}) };
+    const doc = stored || {};
+    /** @type {Record<string, unknown>} */
+    const out = { ...DEFAULTS, ...doc };
+    for (const k of MEMBER_FIELDS) out[k] = doc[k] ?? null;
+    return out;
 }
 
 /** @param {string} userId */
@@ -148,9 +162,9 @@ async function getUserSettings(userId) {
 
 /**
  * An explicit `null` stores `null` — the "inherit" state resolve reads. A field
- * that is simply ABSENT keeps the old coercion, so an existing client posting a
- * partial body behaves exactly as before and only a caller that deliberately
- * sends null opts in.
+ * that is simply ABSENT keeps the coercion on the USER document; on the ORG
+ * document it is `null` too (`absentIsNull`), so an admin save that leaves a
+ * field out hands it back to the members instead of pinning the default.
  * @template T, R
  * @param {T | null} value
  * @param {(v: T) => R} coerce
@@ -159,14 +173,18 @@ function orNull(value, coerce) {
     return value === null ? null : coerce(value);
 }
 
-/** @param {Record<string, unknown>} patch */
-function sanitizePatch(patch) {
+/**
+ * @param {Record<string, unknown>} patch
+ * @param {{ absentIsNull?: boolean }} [opts]
+ */
+function sanitizePatch(patch, { absentIsNull = false } = {}) {
+    const field = (/** @type {unknown} */ v) => (absentIsNull && v === undefined ? null : v);
     return {
-        autoImport: orNull(patch.autoImport, (/** @type {unknown} */ v) => !!v),
-        autoRecordConfig: orNull(patch.autoRecordConfig, (/** @type {unknown} */ v) => !!v),
-        importScope: orNull(patch.importScope, asImportScope),
-        language: orNull(patch.language, asLanguage),
-        lookbackHours: orNull(patch.lookbackHours, asLookback),
+        autoImport: orNull(field(patch.autoImport), (/** @type {unknown} */ v) => !!v),
+        autoRecordConfig: orNull(field(patch.autoRecordConfig), (/** @type {unknown} */ v) => !!v),
+        importScope: orNull(field(patch.importScope), asImportScope),
+        language: orNull(field(patch.language), asLanguage),
+        lookbackHours: orNull(field(patch.lookbackHours), asLookback),
         excludedEventIds: asStrArray(patch.excludedEventIds),
         excludedMeetingCodes: asStrArray(patch.excludedMeetingCodes),
     };
@@ -179,7 +197,7 @@ function sanitizePatch(patch) {
  */
 async function saveOrgSettings(orgId, patch, updatedBy) {
     const config = {
-        ...sanitizePatch(patch),
+        ...sanitizePatch(patch, { absentIsNull: true }),
         updatedAt: new Date().toISOString(),
         updatedBy: updatedBy || null,
     };

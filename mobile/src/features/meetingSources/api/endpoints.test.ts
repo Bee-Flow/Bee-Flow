@@ -111,7 +111,7 @@ describe('recordings to import', () => {
 describe('imports', () => {
     it('imports a Nextcloud file with the long deadline and no retry', async () => {
         post.mockResolvedValue({ id: 'n1', title: 'memo' });
-        expect(await importFromNextcloud('/Recordings/memo.m4a', 'memo')).toEqual({ id: 'n1', pending: false });
+        expect(await importFromNextcloud('/Recordings/memo.m4a', 'memo')).toEqual({ id: 'n1', pending: false, jobId: null });
         expect(post).toHaveBeenCalledWith(
             '/api/transcriptions/from-nextcloud',
             { nextcloud_path: '/Recordings/memo.m4a', title: 'memo' },
@@ -119,11 +119,12 @@ describe('imports', () => {
         );
     });
 
-    it('reads a 202 from Meet as pending', async () => {
-        post.mockResolvedValue({ jobId: 'j1', status: 'awaiting_artifacts' });
+    it('reads a 202 from Meet as a pending job to follow', async () => {
+        post.mockResolvedValue({ jobId: 'j1', status: 'pending' });
         expect(await importFromMeet({ eventId: 'e1', meetingCode: 'abc-defg-hij', title: 'Sync' })).toEqual({
             id: null,
             pending: true,
+            jobId: 'j1',
         });
         expect(post.mock.calls[0][1]).toEqual({ event_id: 'e1', meeting_code: 'abc-defg-hij', title: 'Sync' });
     });

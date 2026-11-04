@@ -20,6 +20,12 @@ const stubConfigStore = {
     getConfig: async (k) => (k in store ? store[k] : null),
     setConfig: async (k, v) => { store[k] = v; },
     getAllConfig: async () => ({ ...store }),
+    // The real one runs the mutator inside an advisory-locked transaction.
+    mutateConfig: async (k, fn) => {
+        await new Promise((r) => setImmediate(r));
+        store[k] = fn(k in store ? store[k] : null);
+        return store[k];
+    },
 };
 
 const configResolved = require.resolve(path.join(__dirname, '..', '..', 'stores', 'configStore.js'));
@@ -78,4 +84,22 @@ test('arming the same room twice refreshes rather than duplicating', async () =>
     await armToken('u1', 'tok1');
     await armToken('u1', 'tok1');
     assert.strictEqual(store[KEY].length, 1);
+});
+
+test('REGRESSION: the file of an earlier call does not disarm the next call in the same room', async () => {
+    for (const k of Object.keys(store)) delete store[k];
+    await armToken('u1', 'room1', 1000);          // the 10:00 call
+    await armToken('u1', 'room1', 2000);          // the 10:30 call, armed before the first file is in
+    await disarmToken('u1', 'room1');             // the 10:00 recording arrives
+    assert.strictEqual(await isArmed('u1', 'room1'), true, 'the 10:30 call is still armed');
+    await disarmToken('u1', 'room1');             // the 10:30 recording arrives
+    assert.strictEqual(await isArmed('u1', 'room1'), false);
+});
+
+test('REGRESSION: arming one room while disarming another loses neither write', async () => {
+    for (const k of Object.keys(store)) delete store[k];
+    await armToken('u1', 'roomY');
+    await Promise.all([armToken('u1', 'roomX'), disarmToken('u1', 'roomY')]);
+    assert.strictEqual(await isArmed('u1', 'roomX'), true);
+    assert.strictEqual(await isArmed('u1', 'roomY'), false);
 });

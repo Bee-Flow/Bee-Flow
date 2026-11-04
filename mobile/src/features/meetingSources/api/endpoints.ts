@@ -2,11 +2,13 @@
  * Meeting-source endpoints, all under /api/transcriptions (so behind the
  * Meeting Notes module and capability, like the rest of the feature).
  *
- * The two imports are SYNCHRONOUS on the server — it downloads, transcribes
- * and summarises before it answers (the route raises its own timeout to ten
- * minutes) — so they get the same deadline and never retry: a retried import
- * is a second transcription run. The server dedups a recording it already
- * ingested and answers with that note instead.
+ * The Nextcloud import is SYNCHRONOUS on the server — it downloads,
+ * transcribes and summarises before it answers (the route raises its own
+ * timeout to ten minutes) — so it gets that deadline and never retries: a
+ * retried import is a second transcription run. The Meet import runs in the
+ * background: the server answers 202 with a job id at once and the job row on
+ * GET /gmeet-imports carries the outcome (hooks/useMeetImportFollow). Both
+ * dedup a recording already ingested and answer with that note instead.
  */
 
 import { api } from '@/core/api/client';
@@ -14,6 +16,7 @@ import { api } from '@/core/api/client';
 import {
     readImportResult,
     readMeetImports,
+    type ImportAnswer,
     readMeetMeetings,
     readMeetRecordings,
     readNextcloudFiles,
@@ -22,7 +25,6 @@ import {
     readTalkRooms,
 } from './readers';
 import type {
-    ImportResult,
     MeetConnection,
     MeetImportJob,
     MeetMeetings,
@@ -85,7 +87,7 @@ export async function listMeetImports(signal?: AbortSignal): Promise<MeetImportJ
 }
 
 /** Pull one Nextcloud file (a Talk recording or any audio file) into the pipeline. */
-export async function importFromNextcloud(path: string, title: string): Promise<ImportResult> {
+export async function importFromNextcloud(path: string, title: string): Promise<ImportAnswer> {
     const res = await api.post<unknown>(`${BASE}/from-nextcloud`, { nextcloud_path: path, title }, {
         retry: false,
         timeoutMs: IMPORT_DEADLINE,
@@ -93,8 +95,11 @@ export async function importFromNextcloud(path: string, title: string): Promise<
     return readImportResult(res);
 }
 
-/** Import one Meet recording; 202 (pending) while Google is still generating it. */
-export async function importFromMeet(recording: Pick<MeetRecording, 'eventId' | 'meetingCode' | 'title'>): Promise<ImportResult> {
+/**
+ * Import one Meet recording: the note when it was already imported, else a
+ * 202 with the background job (`pending`, `jobId`) to follow.
+ */
+export async function importFromMeet(recording: Pick<MeetRecording, 'eventId' | 'meetingCode' | 'title'>): Promise<ImportAnswer> {
     const body = {
         event_id: recording.eventId,
         ...(recording.meetingCode ? { meeting_code: recording.meetingCode } : {}),

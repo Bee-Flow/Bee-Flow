@@ -148,6 +148,34 @@ export function toggleStateLabel(record: boolean, recordDecided: boolean | undef
     return t('meetings.upcoming_skip', 'Skip');
 }
 
+/**
+ * What a record/skip PATCH did to the provider's own auto-recording, from its
+ * `autoRecordingConfig` (web: upcomingMeta autoRecordingHint). Only the
+ * outcomes a person has to act on, or would otherwise misread, get a sentence:
+ * 'unset' (switched off again), 'series_only' (one occurrence of a series, so
+ * the provider's setting was left as it is) and 'overridden' (a wider opt-out
+ * wins, nothing armed).
+ */
+export function autoRecordingHint(outcome: string | null | undefined, provider: 'teams' | 'gmeet', t: TranslateFn): string | undefined {
+    const teams = provider === 'teams';
+    switch (outcome) {
+        case 'unset':
+            return teams
+                ? t('meetings.upcoming_autorec_unset_teams', 'Teams no longer records this meeting automatically.')
+                : t('meetings.upcoming_autorec_unset_meet', 'Google Meet no longer records this meeting automatically.');
+        case 'series_only':
+            return teams
+                ? t('meetings.upcoming_autorec_series_teams', 'Teams records a series as a whole, so its recording setting was left as it is. Start the recording in Teams; Bee Flow imports it afterwards.')
+                : t('meetings.upcoming_autorec_series_meet', 'Every occurrence of this series shares one Meet link, so its recording setting was left as it is. Start the recording in Meet; Bee Flow imports it afterwards.');
+        case 'overridden':
+            return teams
+                ? t('meetings.upcoming_autorec_overridden_teams', 'A wider rule keeps this meeting off, so Teams recording was not switched on.')
+                : t('meetings.upcoming_autorec_overridden_meet', 'A wider rule keeps this meeting off, so Meet recording was not switched on.');
+        default:
+            return undefined;
+    }
+}
+
 /** A footer sentence, carried as its catalogue key and English. */
 export interface Notice {
     i18nKey: string;

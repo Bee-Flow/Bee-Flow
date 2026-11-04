@@ -1,3 +1,5 @@
+import { apiErrorFromBody } from '@/core/api/client';
+
 import { consequencesOf, triggerConditionOf } from './rules';
 import { conditionSentence, consequenceParts, licenceMessage, narrowingParts, ruleState, runLabel } from './sentences';
 
@@ -72,5 +74,18 @@ describe('state and licence', () => {
         expect(licenceMessage({ message: 'x', status: 403 }, t)).toMatch(/not part of this plan/);
         expect(licenceMessage({ message: 'Server exploded', status: 500 }, t)).toBeNull();
         expect(licenceMessage(null, t)).toBeNull();
+    });
+
+    it('leaves a 403 with a non-licence code to its own sentence (training required)', () => {
+        const training = apiErrorFromBody(403, {
+            error: 'training_required',
+            message: 'Finish the course "Automations basics" before using this.',
+        });
+        expect(training.code).toBe('training_required');
+        expect(licenceMessage(training, t)).toBeNull();
+        expect(licenceMessage(apiErrorFromBody(403, { error: 'feature_locked' }), t)).toMatch(/not part of this plan/);
+        expect(licenceMessage({ message: 'Licence expired', status: 403, code: 'tier_required' }, t)).toMatch(
+            /not part of this plan/,
+        );
     });
 });

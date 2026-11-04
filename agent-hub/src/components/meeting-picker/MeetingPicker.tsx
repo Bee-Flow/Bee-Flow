@@ -3,6 +3,7 @@ import { Search, Check, Clock, Users, FileAudio, Loader2 } from 'lucide-react';
 import * as api from '../../api/transcriptionsApi';
 import { formatDuration, formatRelativeDate } from '../../pages/meeting-notes/lib/format';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import useTranslation from '@/hooks/useTranslation';
 
 export interface PickerMeeting {
     id: string;
@@ -11,11 +12,19 @@ export interface PickerMeeting {
     createdAt: string;
     durationSeconds: number;
     speakerCount: number;
+    /** 'processing' | 'completed' | 'failed' on list payloads. */
+    status?: string;
+    /** A prefix of the summary, carried by the list payload. */
+    summarySnippet?: string;
 }
 
-interface MeetingPreview {
-    summary: string;
-    title?: string;
+/**
+ * A note still transcribing has no text yet, and a failed one keeps the
+ * failure reason in its summary: neither may become a notebook source or
+ * template context. Same rule as MeetingLibrary's select mode.
+ */
+function isUnusable(m: PickerMeeting): boolean {
+    return m.status === 'processing' || m.status === 'failed';
 }
 
 interface MeetingPickerProps {
@@ -55,7 +64,7 @@ export default function MeetingPicker({
     const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState('');
     const [hoveredId, setHoveredId] = useState<string | null>(null);
-    const [previews, setPreviews] = useState<Record<string, MeetingPreview>>({}); // id -> { summary, title }
+    const { t } = useTranslation();
 
     useAdjustOnChange([autoLoad], () => { if (autoLoad) setLoading(true); });
     useEffect(() => {
@@ -66,15 +75,6 @@ export default function MeetingPicker({
             .finally(() => setLoading(false));
     }, [autoLoad]);
 
-    useEffect(() => {
-        if (!hoveredId || previews[hoveredId]) return;
-        let cancelled = false;
-        api.getTranscription(hoveredId)
-            .then((d: { summary?: string; title?: string }) => { if (!cancelled) setPreviews((p: Record<string, MeetingPreview>) => ({ ...p, [hoveredId]: { summary: d.summary || '', title: d.title } })); })
-            .catch(() => {});
-        return () => { cancelled = true; };
-    }, [hoveredId, previews]);
-
     const filtered = useMemo(() => {
         if (!query) return meetings;
         const q = query.toLowerCase();
@@ -82,6 +82,7 @@ export default function MeetingPicker({
     }, [meetings, query]);
 
     const toggle = (m: PickerMeeting) => {
+        if (isUnusable(m)) return;
         if (mode === 'single') { onSelect?.(m); return; }
         if (!onChange) return;
         const set = new Set(value);
@@ -120,7 +121,8 @@ export default function MeetingPicker({
                 )}
                 {filtered.map((m: PickerMeeting) => {
                     const selected = value.includes(m.id);
-                    const preview = previews[m.id];
+                    const unusable = isUnusable(m);
+                    const summary = unusable ? '' : (m.summarySnippet || '');
                     return (
                         <div
                             key={m.id}
@@ -131,7 +133,9 @@ export default function MeetingPicker({
                             <button
                                 type="button"
                                 onClick={() => toggle(m)}
-                                className="w-full flex items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-[var(--bg-tertiary)]"
+                                disabled={unusable}
+                                title={unusable ? t('meetings.not_ready', 'This meeting is not ready yet') : undefined}
+                                className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${unusable ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[var(--bg-tertiary)]'}`}
                             >
                                 {mode === 'multi' && (
                                     <span
@@ -156,12 +160,12 @@ export default function MeetingPicker({
                                     </div>
                                 </div>
                             </button>
-                            {hoveredId === m.id && preview && preview.summary && (
+                            {hoveredId === m.id && summary && (
                                 <div
                                     className="absolute left-full top-0 ml-2 z-20 w-72 p-3 rounded-xl border shadow-lg text-[11px] leading-relaxed pointer-events-none hidden xl:block bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                                 >
-                                    <div className="font-semibold text-[12px] mb-1 text-[var(--text-primary)]">{preview.title}</div>
-                                    <div className="line-clamp-6">{stripMd(preview.summary).slice(0, 220)}{preview.summary.length > 220 ? '…' : ''}</div>
+                                    <div className="font-semibold text-[12px] mb-1 text-[var(--text-primary)]">{m.title}</div>
+                                    <div className="line-clamp-6">{stripMd(summary).slice(0, 220)}{summary.length > 220 ? '…' : ''}</div>
                                 </div>
                             )}
                         </div>

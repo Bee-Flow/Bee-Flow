@@ -296,4 +296,12 @@ export interface PendingRecording {
     attempts: number;
     /** Last failure, in words a person can act on. */
     error: string | null;
+    /**
+     * The person asked for this upload ("Transcribe now", "Upload now", "Try
+     * again"), so coming back online may retry it on its own. Absent or false
+     * for a recording still waiting for its details, one kept on the phone, a
+     * cancelled upload and one the server refused for good (a 4xx such as a
+     * plan limit): those wait for the person, never for the network.
+     */
+    autoUpload?: boolean;
 }

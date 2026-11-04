@@ -10,13 +10,17 @@
  *
  * The denied state is not a dead end either: it says what is missing, and
  * `Linking.openSettings()` opens this app's own permission screen directly.
+ * Nothing tells the app that the person allowed it there, and a grant does not
+ * restart the app, so while the card is blocked it reads the permission again
+ * each time the app comes back to the front (`onRefresh`).
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Linking, View } from 'react-native';
 
 import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
+import { useOnForeground } from '@/shared/device/appSettings';
 import { MicPermissionHead } from '@/shared/device/MicPermissionHead';
 import { micBlocked, type MicPermission } from '@/shared/device/useMicPermission';
 import { Button, Card, Icon, Text, type IconName } from '@/shared/ui';
@@ -24,15 +28,20 @@ import { Button, Card, Icon, Text, type IconName } from '@/shared/ui';
 export function MicPermissionCard({
     permission,
     onRequest,
+    onRefresh,
     busy = false,
 }: {
     permission: MicPermission;
     onRequest: () => void;
+    /** Reads the permission again without prompting. */
+    onRefresh: () => Promise<unknown>;
     busy?: boolean;
 }) {
     const t = useTranslation();
     const theme = useTheme();
     const blocked = micBlocked(permission);
+    const refresh = useCallback(() => void onRefresh(), [onRefresh]);
+    useOnForeground(refresh, blocked);
 
     return (
         <Card>

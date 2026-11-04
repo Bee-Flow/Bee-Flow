@@ -37,6 +37,7 @@ vi.mock('@/pages/meeting-notes/detail/MeetingDetail', () => ({
 }));
 
 import MeetingsTab from './MeetingsTab';
+import ProjectCaptureProvider from './ProjectCaptureProvider';
 import { resetCaptureArm } from './useProjectMeetingCapture';
 
 const MEETINGS = [
@@ -326,5 +327,24 @@ describe('MeetingsTab: adding a meeting that is already shared', () => {
         expect(screen.queryByTestId('picker-blocked-own-1')).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Add Org note' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Add Personal note' })).toBeEnabled();
+    });
+});
+
+describe('MeetingsTab: inside the app capture provider', () => {
+    it('shows a failed filing once, in the alert that can retry it', async () => {
+        const user = userEvent.setup();
+        client.put.mockRejectedValue(Object.assign(new Error('Forbidden'), { status: 403 }));
+        const handlers = { onOpenSub: vi.fn(), onNavigate: vi.fn() };
+        const ui = () => withQueryClient(<ProjectCaptureProvider onNavigate={vi.fn()}><MeetingsTab {...tabProps('editor', handlers)} /></ProjectCaptureProvider>);
+        const view = render(ui());
+        await user.click(await screen.findByTestId('meetings-capture'));
+        Object.assign(recorder, { version: 1, lastResultId: 'm-new' });
+        view.rerender(ui());
+        await waitFor(() => expect(client.put).toHaveBeenCalledWith(
+            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-new', attach: true },
+        ));
+        const alert = await screen.findByRole('alert');
+        expect(screen.getAllByRole('alert')).toHaveLength(1);
+        expect(within(alert).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     });
 });

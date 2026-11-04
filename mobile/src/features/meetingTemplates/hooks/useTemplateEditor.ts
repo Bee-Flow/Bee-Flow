@@ -27,10 +27,15 @@ export function useTemplateEditor(
         onSubmit: (draft) => save.mutateAsync({ id: template?.id ?? null, draft }),
     });
     const { reset } = form;
+    const { reset: resetDelete } = remove;
 
     // Re-seed whenever the sheet opens on another template (or a new one).
+    // The sheet stays mounted between opens, so a failed delete's error is
+    // cleared here too; a save error lives in the form and `reset` clears it.
     useEffect(() => {
-        if (visible) reset(template ? draftFrom(template) : emptyDraft(defaultScope));
+        if (!visible) return;
+        reset(template ? draftFrom(template) : emptyDraft(defaultScope));
+        resetDelete();
         // `reset` is a fresh closure each render; the trigger is the target.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visible, template]);

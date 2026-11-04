@@ -7,6 +7,7 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -124,19 +125,26 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         throw new Error('Azure Whisper needs a publicly reachable SERVER_PUBLIC_HOST so Azure can download the audio. It is unset or points at localhost. Set SERVER_PUBLIC_HOST, or use the pyannote provider (no public URL required).');
     }
 
-    if (!audioData) {
-        if (!filePath) throw new Error('runAzureWhisperBatch requires filePath or audioData.');
-        audioData = await fs.promises.readFile(filePath);
-    }
+    if (!audioData && !filePath) throw new Error('runAzureWhisperBatch requires filePath or audioData.');
+    const inputBytes = audioData ? audioData.length : (await fs.promises.stat(/** @type {string} */ (filePath))).size;
     const audioFileName = fileName || (filePath ? path.basename(filePath) : 'audio.mp3');
 
     const { AZURE_LOCALE_MAP } = require('./azureSpeech');
     const locale = AZURE_LOCALE_MAP[language] || `${language}-${language.toUpperCase()}`;
 
-    log.info(`[Transcription:AzureWhisper] Transcribing ${log.nameForLog(audioFileName)} (${(audioData.length / (1024 * 1024)).toFixed(1)} MB), locale: ${locale}`);
+    log.info(`[Transcription:AzureWhisper] Transcribing ${log.nameForLog(audioFileName)} (${(inputBytes / (1024 * 1024)).toFixed(1)} MB), locale: ${locale}`);
 
-    const tempInputPath = path.join(os.tmpdir(), `azwhi-in-${Date.now()}`);
-    await fs.promises.writeFile(tempInputPath, audioData);
+    // A file on disk goes to ffmpeg as it is; only a buffer needs a temp copy.
+    // Both temp names are random: several jobs run at once in one process, and a
+    // millisecond stamp let two of them share a file (one job transcribed the
+    // other's audio, and its cleanup deleted the file under the other).
+    /** @type {string | null} */
+    let tempInputPath = null;
+    if (audioData) {
+        tempInputPath = path.join(os.tmpdir(), `azwhi-in-${crypto.randomUUID()}`);
+        await fs.promises.writeFile(tempInputPath, audioData);
+    }
+    const sttInputPath = tempInputPath || /** @type {string} */ (filePath);
     let audioCleanup = () => {};
     /** @type {string | null} */
     let rustfsKey = null;
@@ -152,16 +160,16 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         // lossless, compact, audio-only (strips any video track) and reliably
         // decodable by Azure batch.
         const { preprocessForStt } = require('./audioPreprocess');
-        const conditioned = await preprocessForStt(tempInputPath, { format: 'flac', label: 'azwhi' });
+        const conditioned = await preprocessForStt(sttInputPath, { format: 'flac', label: 'azwhi' });
         audioCleanup = conditioned.cleanup;
         if (!conditioned.preprocessed) {
             throw new Error('Could not transcode the audio to a format Azure can decode (ffmpeg unavailable). Try another provider.');
         }
         const uploadBuffer = await fs.promises.readFile(conditioned.path);
-        const uploadKey = `transcription-tmp/${Date.now()}-${audioFileName.replace(/[^a-zA-Z0-9._-]/g, '_')}.flac`;
+        const uploadKey = `transcription-tmp/${crypto.randomUUID()}-${audioFileName.replace(/[^a-zA-Z0-9._-]/g, '_')}.flac`;
         const uploadMime = 'audio/flac';
         const uploadExt = '.flac';
-        log.info(`[Transcription:AzureWhisper] Conditioned to FLAC: ${(audioData.length / 1024).toFixed(0)} KB → ${(uploadBuffer.length / 1024).toFixed(0)} KB`);
+        log.info(`[Transcription:AzureWhisper] Conditioned to FLAC: ${(inputBytes / 1024).toFixed(0)} KB → ${(uploadBuffer.length / 1024).toFixed(0)} KB`);
 
         const { pollCapMs, urlTtlSeconds, estimatedSeconds } = computeWhisperBatchTimeouts({ bytes: uploadBuffer.length, ext: uploadExt });
 
@@ -294,7 +302,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
             durationSeconds: Math.round(totalDuration),
         };
     } finally {
-        try { fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); }
+        try { if (tempInputPath) fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); }
         try { audioCleanup(); } catch (_) { bestEffort('core/voice/azureWhisperBatch:runAzureWhisperBatch', _); /* audio cleanup already done */ }
         try {
             if (rustfsKey) { const ss = require('../../stores/storageStore'); await ss.deleteFile(rustfsKey); log.info('[Transcription:AzureWhisper] Temp audio deleted from RustFS'); }

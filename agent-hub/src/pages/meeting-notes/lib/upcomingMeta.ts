@@ -202,6 +202,37 @@ export function toggleStateLabel(record: boolean, recordDecided: boolean | undef
 }
 
 /**
+ * What a record/skip PATCH did to the provider's OWN auto-recording (Teams'
+ * "record automatically", Meet's space setting), from its `autoRecordingConfig`.
+ * Only the outcomes a person has to act on, or would otherwise misread, get a
+ * sentence; 'set', 'skipped' and the rest say nothing here.
+ *   - 'unset': switched off again, so the meeting no longer records by itself.
+ *   - 'series_only': one occurrence of a series. The provider's setting covers
+ *     every occurrence (Teams: one onlineMeeting; Meet: one space per link), so
+ *     it was left as it is: whoever hosts starts the recording.
+ *   - 'overridden': switched on, but a wider opt-out wins, so nothing was armed.
+ */
+export function autoRecordingHint(outcome: string | null | undefined, provider: 'teams' | 'gmeet', t: TranslateFn): string | undefined {
+    const teams = provider === 'teams';
+    switch (outcome) {
+        case 'unset':
+            return teams
+                ? t('meetings.upcoming_autorec_unset_teams', 'Teams no longer records this meeting automatically.')
+                : t('meetings.upcoming_autorec_unset_meet', 'Google Meet no longer records this meeting automatically.');
+        case 'series_only':
+            return teams
+                ? t('meetings.upcoming_autorec_series_teams', 'Teams records a series as a whole, so its recording setting was left as it is. Start the recording in Teams; Bee Flow imports it afterwards.')
+                : t('meetings.upcoming_autorec_series_meet', 'Every occurrence of this series shares one Meet link, so its recording setting was left as it is. Start the recording in Meet; Bee Flow imports it afterwards.');
+        case 'overridden':
+            return teams
+                ? t('meetings.upcoming_autorec_overridden_teams', 'A wider rule keeps this meeting off, so Teams recording was not switched on.')
+                : t('meetings.upcoming_autorec_overridden_meet', 'A wider rule keeps this meeting off, so Meet recording was not switched on.');
+        default:
+            return undefined;
+    }
+}
+
+/**
  * What happens to the OTHER participants, and only what is true.
  *
  * Claim / deny / stay silent:

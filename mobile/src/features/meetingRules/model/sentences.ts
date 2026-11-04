@@ -103,14 +103,21 @@ const LICENCE_TOKENS = new Set(['feature_locked', 'tier_required', 'license_requ
 /**
  * The licence gate answers in machine tokens (`feature_locked`), not prose;
  * shown raw they read as a bug. Null when this is not a licence refusal.
+ *
+ * The code decides first: `/api/automation` also refuses with a 403 behind the
+ * licence gate (`training_required` from requireTraining), and that one has
+ * its own sentence in describeError. Only a refusal without a code falls back
+ * to the bare status.
  */
 export function licenceMessage(error: { message?: string; status?: number; code?: string } | null, t: TranslateFn) {
     if (!error) return null;
+    const code = String(error.code ?? '');
+    if (code && !LICENCE_TOKENS.has(code)) return null;
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the only regex below, \blicen[cs]e\b|\bforbidden\b, has no nested or overlapping quantifier, so it runs in linear time
     const message = String(error.message ?? '').trim();
     const locked =
         LICENCE_TOKENS.has(message) ||
-        LICENCE_TOKENS.has(String(error.code ?? '')) ||
+        LICENCE_TOKENS.has(code) ||
         error.status === 402 ||
         error.status === 403 ||
         /\blicen[cs]e\b|\bforbidden\b/i.test(message);

@@ -231,6 +231,56 @@ describe('MeetingTasksDialog: items that are already tasks', () => {
     });
 });
 
+describe('MeetingTasksDialog: a refetch keeps the work in the rows', () => {
+    const OLD_TASK = { id: 't-9', title: 'Old news', description: '', status: 'todo', priority: 'normal', labels: [], checklist: [], sortOrder: 1, source: null, assigneeIds: [], links: [], dueDate: null, createdBy: OWNER_ID, completedAt: null, createdAt: 'x', updatedAt: 'x' };
+    const fresh = () => [
+        { itemId: 'ai-1', text: 'Send the offer', assigneeName: '', suggestedAssigneeId: null, dueDate: null, at: '', done: false, createdTaskId: null as string | null },
+        { itemId: 'ai-4', text: 'Old news', assigneeName: '', suggestedAssigneeId: null, dueDate: null, at: '', done: false, createdTaskId: 't-9' as string | null },
+    ];
+
+    it('keeps the AI expansions and ticks when a task PATCH fails after the batch create refetched the suggestions', async () => {
+        let suggestions = fresh();
+        let suggestionReads = 0;
+        client.get.mockImplementation(getRouter({
+            '/api/projects/p1/meetings/mt-1/task-suggestions': () => { suggestionReads += 1; return { meeting: { id: 'mt-1', title: 'Weekly' }, suggestions }; },
+            '/api/projects/p1/members': MEMBERS,
+            '/api/projects/p1/tasks': { tasks: [OLD_TASK], role: 'editor' },
+        }));
+        client.post.mockImplementation(async (path: string, body: { items: unknown[] }) => {
+            if (path.endsWith('/improve')) {
+                return { items: [
+                    { ...IMPROVED[0], itemId: 'ai-1' },
+                    { itemId: 'ai-4', title: 'Old news, fuller', description: 'Close the old thread.', priority: 'normal', labels: ['ops'], checklist: [], assigneeId: OWNER_ID },
+                ] };
+            }
+            // The create lands: from now on the server says ai-1 is a task.
+            suggestions = suggestions.map(s => (s.itemId === 'ai-1' ? { ...s, createdTaskId: 't-new' } : s));
+            return { tasks: body.items, skipped: 0 };
+        });
+        client.patch.mockRejectedValue(new Error('403 forbidden'));
+        const user = userEvent.setup();
+        const { onClose } = renderDialog();
+
+        const old = await screen.findByTestId('suggestion-ai-4');
+        await waitFor(() => expect(within(old).getByRole('checkbox')).toBeEnabled());
+        await user.click(within(old).getByRole('checkbox'));
+        expect(within(old).getByText('ops')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Make 1 tasks and improve 1' }));
+
+        await waitFor(() => expect(client.patch).toHaveBeenCalled());
+        await waitFor(() => expect(suggestionReads).toBeGreaterThan(1));
+        await waitFor(() => expect(within(screen.getByTestId('suggestion-ai-1')).getByText(/Already a task/)).toBeInTheDocument());
+        expect(onClose).not.toHaveBeenCalled();
+        // The improvement of the task that was not saved is still there, still ticked, and can be tried again.
+        const after = screen.getByTestId('suggestion-ai-4');
+        expect(within(after).getByText('ops')).toBeInTheDocument();
+        expect(within(after).getByRole('checkbox')).toBeChecked();
+        // The item that was just made is not offered again.
+        expect(within(screen.getByTestId('suggestion-ai-1')).getByRole('checkbox')).not.toBeChecked();
+        expect(screen.getByRole('button', { name: 'Improve 1 tasks' })).toBeEnabled();
+    });
+});
+
 describe('descriptionFor', () => {
     const t = ((_k: string, d: string, v?: Record<string, unknown>) => d.replace(/\{(\w+)\}/g, (_m, k) => String(v?.[k] ?? ''))) as unknown as TranslateFn;
     it('names the meeting and where in it, and who the notes gave it to when that was no member', () => {

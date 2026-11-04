@@ -54,9 +54,12 @@ const SEGMENTS = () => ([
     { start: 280, end: 291, speaker: 'Casey Hayes', text: 'Good. Thanks everyone.' },
 ]);
 
-const FULL_TEXT = () => SEGMENTS()
-    .map(s => `${SPEAKERS().find(sp => sp.id === s.speaker)?.name || s.speaker}: ${s.text}`)
+/** The plain transcript, rebuilt from segments so it follows every rename. */
+const transcriptOf = (segments: Array<{ speaker: string; text: string }>) => segments
+    .map(s => `${s.speaker}: ${s.text}`)
     .join('\n\n');
+
+const FULL_TEXT = () => transcriptOf(SEGMENTS());
 
 const SUMMARY = `**Decision:** the new intake flow goes org-wide the sprint after next, once the approval audit trail is in place.
 
@@ -225,7 +228,12 @@ function toListItem(t: Detail) {
 }
 
 type State = { transcriptions: Detail[]; templates: unknown[]; agents: unknown[] };
-type Ctx = { state: State; params: Record<string, string>; body: ({ renames?: Record<string, string> } & Record<string, unknown>) | null };
+type SpeakerMerge = { from?: unknown; into?: unknown };
+type Ctx = {
+    state: State;
+    params: Record<string, string>;
+    body: ({ renames?: Record<string, unknown>; merges?: SpeakerMerge[]; template?: string; templateId?: string; customPrompt?: string } & Record<string, unknown>) | null;
+};
 
 export function createState(): State {
     const all = [detail(), ...siblings()];
@@ -234,6 +242,104 @@ export function createState(): State {
 
 const find = (state: State, id: string) => state.transcriptions.find((t: Detail) => t.id === id) || null;
 const notFound = () => new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+const badRequest = (error: string, code: string) => new Response(JSON.stringify({ error, code }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+
+/**
+ * The built-in summary templates, in the shape GET /api/summary-templates
+ * answers (server/utils/summaryTemplates.js): the regenerate menu lists
+ * them and the template editor offers them as a starting point. The prompts
+ * are short stand-ins; the demo never sends one to a model.
+ */
+const BUILTIN_TEMPLATES = [
+    { id: 'general', nameKey: 'meeting_notes.template_general', name: 'General meeting', prompt: 'Summarise the meeting: purpose, decisions, action items with owners, open questions.' },
+    { id: 'standup', nameKey: 'meeting_notes.template_standup', name: 'Stand-up', prompt: 'Per person: what they did, what they will do next, what blocks them.' },
+    { id: 'sales', nameKey: 'meeting_notes.template_sales', name: 'Sales call', prompt: 'The customer\'s needs, objections, budget and timeline, and the agreed next steps.' },
+    { id: 'interview', nameKey: 'meeting_notes.template_interview', name: 'Interview', prompt: 'The questions asked, the key answers, strengths, concerns and a recommendation.' },
+    { id: 'retrospective', nameKey: 'meeting_notes.template_retrospective', name: 'Retrospective', prompt: 'What went well, what did not, and the improvements the team agreed on.' },
+];
+
+/**
+ * The speaker edit the real PATCH /:id/speakers performs
+ * (server/routes/transcriptions/speakers.js), on the in-memory note:
+ * merges first, then renames, both keyed on the ORIGINAL label and applied
+ * as one substitution. The label IS the speaker id (see SPEAKERS), so the
+ * segments, the speaker rows, the transcript text and the action-item
+ * assignees all move together. Answers the whole note, as the server does,
+ * or a 400 when two speakers would end up with one name.
+ */
+function editSpeakers(t: Detail, body: Ctx['body']): Detail | Response {
+    const { mergeOf, remap } = speakerRemap(body);
+    const collision = speakerCollision(t.speakers, mergeOf, remap);
+    if (collision) return badRequest(collision, 'speaker_name_collision');
+    return relabel(t, remap);
+}
+
+/** One simultaneous substitution over the ORIGINAL labels, never a chain. */
+function speakerRemap(body: Ctx['body']) {
+    const mergeOf = mergeTargets(body?.merges || []);
+    const renameOf = new Map<string, string>();
+    for (const [oldName, newName] of Object.entries(body?.renames || {})) {
+        if (typeof newName === 'string' && newName.trim()) renameOf.set(oldName, newName.trim());
+    }
+    const remap = (name: string) => {
+        const merged = mergeOf.get(name) ?? name;
+        return renameOf.get(name) ?? renameOf.get(merged) ?? merged;
+    };
+    return { mergeOf, remap };
+}
+
+/** Each merged-away label and the label it folds into. */
+function mergeTargets(merges: SpeakerMerge[]) {
+    const mergeOf = new Map<string, string>();
+    for (const merge of merges) {
+        const into = typeof merge?.into === 'string' ? merge.into.trim() : '';
+        const from = Array.isArray(merge?.from) ? merge.from : [];
+        for (const name of from) if (into && typeof name === 'string' && name.trim()) mergeOf.set(name, into);
+    }
+    return mergeOf;
+}
+
+/** The refusal when two surviving speakers would end up with one name, or null. */
+function speakerCollision(speakers: Speaker[], mergeOf: Map<string, string>, remap: (name: string) => string) {
+    const survivors = new Map<string, string>();
+    for (const s of speakers) {
+        if (mergeOf.has(s.id)) continue;
+        const to = remap(s.id);
+        const taken = survivors.get(to);
+        if (taken && taken !== s.id) {
+            return `"${taken}" and "${s.id}" would both become "${to}". Rename them to different names, or merge them explicitly.`;
+        }
+        survivors.set(to, s.id);
+    }
+    return null;
+}
+
+/** Move every place that names a speaker to its new label. */
+function relabel(t: Detail, remap: (name: string) => string): Detail {
+    const speakers: Speaker[] = [];
+    for (const s of t.speakers) {
+        const id = remap(s.id);
+        if (!speakers.some(x => x.id === id)) speakers.push({ ...s, id, name: id });
+    }
+    t.speakers = speakers;
+    t.segments = t.segments.map(seg => ({ ...seg, speaker: remap(seg.speaker) }));
+    t.actionItems = t.actionItems.map(ai => (ai.assignee ? { ...ai, assignee: remap(ai.assignee) } : ai));
+    t.attendees = t.attendees.map(remap).filter((name, i, all) => all.indexOf(name) === i);
+    t.fullText = transcriptOf(t.segments);
+    t.transcript = t.fullText;
+    t.speakerCount = speakers.length;
+    t.numSpeakers = speakers.length;
+    return t;
+}
+
+/** The stamp the real route writes: which template wrote the summary. */
+function regenerateStamp(body: Ctx['body']) {
+    if (body?.templateId || (typeof body?.customPrompt === 'string' && body.customPrompt.trim())) {
+        return { summaryTemplateId: null, summaryTemplateVersion: null };
+    }
+    const key = BUILTIN_TEMPLATES.some(b => b.id === body?.template) ? body?.template : 'general';
+    return { summaryTemplateId: `builtin:${key}`, summaryTemplateVersion: null };
+}
 
 export const ROUTES = {
     ...COMMON_ROUTES,
@@ -255,19 +361,36 @@ export const ROUTES = {
     },
 
     // Speaker renames land in memory so the transcript really does re-label.
-    'POST /api/transcriptions/:id/speakers': ({ state, params, body }: Ctx) => {
+    // Same method, path and answer (the whole note) as the real route.
+    'PATCH /api/transcriptions/:id/speakers': ({ state, params, body }: Ctx) => {
         const t = find(state, params.id);
         if (!t) return notFound();
-        const renames = body?.renames || {};
-        t.speakers = t.speakers.map((s: Speaker) => (renames[s.id] ? { ...s, name: renames[s.id] } : s));
-        return { success: true, transcription: t };
+        return editSpeakers(t, body);
     },
+    // Auto-detect in the speaker editor. Every demo speaker already carries
+    // its real name, so a re-run of the naming step lands on the same names.
+    'POST /api/transcriptions/:id/reidentify-speakers': ({ state, params }: Ctx) => find(state, params.id) || notFound(),
 
-    // Regeneration is scripted — no model is called, and we say so.
-    'POST /api/transcriptions/:id/summary': ({ state, params }: Ctx) => {
+    // Regeneration is scripted — no model is called, and we say so. The
+    // answer has the real route's shape, so the screen merges it the same way.
+    'POST /api/transcriptions/:id/regenerate-summary': ({ state, params, body }: Ctx) => {
         const t = find(state, params.id);
         if (!t) return notFound();
-        return { success: true, summary: t.summary, demo: true };
+        // There are no saved templates in the demo, so a template id is
+        // unknown here: the real route's answer for that.
+        if (body?.templateId) return new Response(JSON.stringify({ error: 'Template not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+        return {
+            success: true,
+            summary: t.summary,
+            actionItems: t.actionItems,
+            decisions: t.decisions,
+            questions: t.questions,
+            artifactsRegenerated: true,
+            chapters: t.chapters,
+            speakers: t.speakers,
+            ...regenerateStamp(body),
+            demo: true,
+        };
     },
 
     // Sources the library offers to import from. Empty in the demo: there is
@@ -306,10 +429,19 @@ export const ROUTES = {
         };
     },
 
-    'GET /api/summary-templates': ({ state }: Ctx) => ({ templates: state.templates }),
-    'GET /api/summary-templates/org': ({ state }: Ctx) => ({ templates: state.templates }),
+    // The shapes of server/routes/summaryTemplates.js. No saved templates in
+    // the demo: the built-ins only.
+    'GET /api/summary-templates': ({ state }: Ctx) => ({
+        builtins: BUILTIN_TEMPLATES,
+        custom: state.templates,
+        defaultTemplateId: null,
+        canManageOrg: false,
+        primaryOrgId: 'demo-org',
+    }),
+    'GET /api/summary-templates/org': ({ state }: Ctx) => ({ orgId: 'demo-org', templates: state.templates, groups: [] }),
     'GET /api/talk-notes-settings/user/me': () => ({ enabled: false }),
     'GET /api/gmeet-notes-settings/user/me': () => ({ enabled: false }),
+    'GET /api/teams-notes-settings/user/me': () => ({ enabled: false }),
     'GET /api/org/users': () => ({ users: [] }),
     'GET /api/org/groups': () => ({ groups: [] }),
 };
