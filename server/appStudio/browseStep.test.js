@@ -85,6 +85,10 @@ test('happy path: enabled app reaches the browser with the effective allowlist',
     assert.strictEqual(u.user_id, 'owner-1');
     assert.strictEqual(u.organization_id, 'org-1');
     assert.strictEqual(u.agent_type, 'studio_app');
+    // The app is the Studio object; the viewer who ran it is the actor.
+    assert.strictEqual(u.agent_id, APP.id);
+    assert.strictEqual(u.actor_user_id, 'viewer-1');
+    assert.notStrictEqual(require('../shared/usageAreas').areaOf(u.source), 'other');
 });
 
 test('gate 1: a disabled app never reaches the browser', async () => {

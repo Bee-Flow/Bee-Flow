@@ -80,7 +80,13 @@ async function chatStructured(modelId, messages, baseOptions, schema) {
     return { result, structured };
 }
 
-function logBridgeUsage(ctx, webpageId, modelId, fields, t0) {
+/**
+ * One ledger row of a bridge call: the author pays (`user_id`), the signed-in
+ * viewer of the page is the actor (null for an anonymous visitor).
+ * @param {{ webpageId: string, viewerUserId?: string | null }} claims the preview token's claims
+ */
+function logBridgeUsage(ctx, claims, modelId, fields, t0) {
+    const { webpageId } = claims;
     usageStore.logUsage({
         user_id: ctx.authorUserId,
         organization_id: ctx.authorOrgId,
@@ -92,6 +98,7 @@ function logBridgeUsage(ctx, webpageId, modelId, fields, t0) {
         duration_ms: Date.now() - t0,
         source: 'webpage_bridge_ai',
         conversation_id: webpageId,
+        actor_user_id: claims.viewerUserId || null,
     }).catch((e) => bestEffort('routes/webpagesPreviewAi:logBridgeUsage', e));
 }
 
@@ -119,7 +126,7 @@ async function chat(/** @type {import('express').Request} */ req, /** @type {imp
         result = await llmClient.chat(modelId, messages, baseOptions);
     }
 
-    logBridgeUsage(ctx, webpageId, modelId, usageLogFields(result?.usage), t0);
+    logBridgeUsage(ctx, req.previewClaims, modelId, usageLogFields(result?.usage), t0);
 
     if (structured !== null) {
         res.json({ json: structured });
@@ -167,7 +174,7 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
             else if (type === 'error') send('error', { error: data?.error || 'stream error' });
         });
 
-        logBridgeUsage(ctx, webpageId, modelId, {
+        logBridgeUsage(ctx, req.previewClaims, modelId, {
             prompt_tokens: promptTokens,
             completion_tokens: completionTokens,
             total_tokens: promptTokens + completionTokens,
@@ -184,4 +191,4 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
     }
 }
 
-module.exports = { chat, stream, resolveBridgeModel, loadAiContext };
+module.exports = { chat, stream, resolveBridgeModel, loadAiContext, _logBridgeUsage: logBridgeUsage };

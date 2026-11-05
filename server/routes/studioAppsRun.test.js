@@ -744,6 +744,9 @@ test('usage is logged under the OWNER with source studio_app_action', async () =
     assert.strictEqual(entry.source, 'studio_app_action');
     assert.strictEqual(entry.agent_id, app.id);
     assert.strictEqual(entry.agent_type, 'studio_app');
+    // The viewer who clicked is the actor; the automation run is the run.
+    assert.strictEqual(entry.actor_user_id, 'viewer-1');
+    assert.strictEqual(entry.run_id, 'run-default');
 });
 
 // ── Body cap ────────────────────────────────────────────────────────────────
@@ -1014,6 +1017,22 @@ test('step: usage is logged under the OWNER', async () => {
     assert.strictEqual(usageEntries.length, 1);
     assert.strictEqual(usageEntries[0].user_id, OWNER);
     assert.strictEqual(usageEntries[0].source, 'studio_app_action');
+    assert.strictEqual(usageEntries[0].actor_user_id, 'viewer-1', 'the viewer who clicked is the actor');
+});
+
+test('step: the AI calls inside the step are attributed to the viewer who clicked', async () => {
+    const { usageAttributionFields } = require('../appStudio/usageAttribution');
+    const seen = [];
+    const original = actionExecutor.executeDataStep;
+    actionExecutor.executeDataStep = async () => { seen.push(usageAttributionFields()); return stepResult; };
+    try {
+        const app = makeApp({ actionsPub: { seq: SEQ_ACTION } });
+        const r = await dispatch({ url: `/${app.id}/actions/seq/step`, orgIds: [ORG], body: { stepIndex: 1 } });
+        assert.strictEqual(r.statusCode, 200);
+    } finally {
+        actionExecutor.executeDataStep = original;
+    }
+    assert.deepStrictEqual(seen, [{ actor_user_id: 'viewer-1', run_id: null }]);
 });
 
 test('step: the executor gets the FULL viewer row filters read (id + role + org)', async () => {

@@ -168,6 +168,7 @@ const { HEAVY_STEP_KINDS, limitersForStepDef } = require('./studioAppStepBudget.
 const { mountBackgroundRoutes, refuseLocked } = require('./studioAppBackground');
 // The run log of a browser run (package 8): the step envelope and the end report.
 const { loggedSignedInStep, logAutomationRun, signedInClick, endClickRun } = require('../appStudio/runLog/clickRuns.mts');
+const { withUsageAttribution } = require('../appStudio/usageAttribution');
 
 // ── POST /:id/actions/:actionId/step ────────────────────────────────
 // Execute one server-authoritative DATA step of a v2 action sequence. Same
@@ -257,7 +258,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
 
     const t0 = Date.now();
     // The run log (appStudio/runLog/clickRuns.mts): the steps of one click share the browser's runKey.
-    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await loggedSignedInStep({ app, actionId, userId, draft: isOwner && wantDraft, def, step, body: req.body, ownerActionId }, () => actionExecutor.executeDataStep(app, dataModel, step, {
+    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await loggedSignedInStep({ app, actionId, userId, draft: isOwner && wantDraft, def, step, body: req.body, ownerActionId }, () => withUsageAttribution({ actorUserId: userId }, () => actionExecutor.executeDataStep(app, dataModel, step, {
         viewerId: userId,
         // Audit stamp for steps that create durable records (request_approval):
         // the action that holds the step (a called action's own id).
@@ -287,10 +288,11 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // same shape buildViewer produces on the data route; a partial one
         // silently matches nothing.
         viewer: { id: userId, role: role || null, organizationId: req.session.user.organizationId || null },
-    })));
+    }))));
 
     // Real work happened under the OWNER (record write or owner-scoped run)
-    // regardless of the viewer — attribute usage to the owner (as /run does).
+    // regardless of the viewer — attribute usage to the owner (as /run does);
+    // the viewer who clicked is the actor.
     usageStore.logUsage({
         user_id: app.userId,
         organization_id: app.organizationId || null,
@@ -303,6 +305,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         duration_ms: Date.now() - t0,
         source: 'studio_app_action',
         conversation_id: app.id,
+        actor_user_id: userId,
     }).catch((e) => bestEffort('routes/studioAppsRun:anon', e));
 
     if (result && result.ok) {
@@ -439,7 +442,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // webpage bridge's usage logging).
     // The run log: a run of one step, finished from the automation's outcome (also after a 202).
     logAutomationRun(signedInClick(app, actionId, userId, isOwner && wantDraft, null), runPromise, t0);
-    runPromise.then(() => {
+    runPromise.then((/** @type {{ id?: string } | null} */ settledRun) => {
         usageStore.logUsage({
             user_id: app.userId,
             organization_id: app.organizationId || null,
@@ -452,6 +455,9 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
             duration_ms: Date.now() - t0,
             source: 'studio_app_action',
             conversation_id: app.id,
+            // The viewer who clicked, and the automation run the click started.
+            actor_user_id: userId,
+            run_id: settledRun?.id ?? null,
         }).catch((e) => bestEffort('routes/studioAppsRun:anon#2', e));
     });
 

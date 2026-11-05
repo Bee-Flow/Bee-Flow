@@ -75,6 +75,11 @@ function buildRunContext({
         userOrgIds: runOrgId ? [runOrgId] : [],
         session,
         runId: run.id,
+        // The person who caused this run when that is not the owner: who
+        // pressed Run / Test, or who submitted the form. The ledger rows of
+        // the run's AI steps carry it as actor_user_id (user_id stays the
+        // owner, who pays), so "who uses this automation" is answerable.
+        actorUserId: run.startedByUserId ?? run.submittedByUserId ?? null,
         // The journey this run belongs to (a resumed form/approval leg has a
         // root). Tool executors read it to resolve `generated_file` handles
         // against exactly the runs this journey may see.

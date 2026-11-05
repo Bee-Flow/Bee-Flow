@@ -379,6 +379,8 @@ async function ask(req, res) {
             duration_ms: Date.now() - t0,
             source: 'webpage_bridge_ai_agentic',
             conversation_id: webpageId,
+            // The author pays; the signed-in viewer who asked is the actor.
+            actor_user_id: viewerUserId || null,
         }).catch((e) => bestEffort('routes/webpagesPreviewAsk:ask', e));
 
         send('done', { rounds, truncated, prompt_tokens: usageAcc.total().prompt_tokens, completion_tokens: usageAcc.total().completion_tokens });

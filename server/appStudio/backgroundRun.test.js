@@ -293,3 +293,23 @@ test('run log: the job row itself gets the step rows (no second row), the failin
     assert.equal(logged.origin, 'background');
     assert.equal(logged.failedSteps, 1);
 });
+
+test('usage: the owner pays, the viewer is the actor and the job is the run, also for the AI calls inside a step', async () => {
+    const { usageAttributionFields } = require('./usageAttribution');
+    const { areaOf } = require('../shared/usageAreas');
+    const rows = [];
+    const inside = [];
+    execute = async () => { inside.push(usageAttributionFields()); return { ok: true, result: null }; };
+    const row = await startAndSettle({ kind: 'sequence', background: true, steps: [{ kind: 'create_record', tableId: 't' }] }, {},
+        deps({ logUsage: async (entry) => { rows.push(entry); } }));
+    assert.equal(row.status, 'success');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].user_id, 'owner');
+    assert.equal(rows[0].organization_id, 'org_1');
+    assert.equal(rows[0].agent_id, 'app_1');
+    assert.equal(rows[0].actor_user_id, 'viewer1');
+    assert.equal(rows[0].run_id, row.id);
+    assert.notEqual(areaOf(rows[0].source), 'other');
+    // What aiRuntime's usage entry reads while the step runs.
+    assert.deepEqual(inside, [{ actor_user_id: 'viewer1', run_id: row.id }]);
+});

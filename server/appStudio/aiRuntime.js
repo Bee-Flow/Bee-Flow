@@ -32,6 +32,7 @@ const { guardedAiCall, aiCallTimeoutMs } = require('./aiCallGuard.mts');
 const { readDocument, newReport } = require('./aiDocumentRead.mts');
 const usageStore = require('../stores/usageStore');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
+const { usageAttributionFields } = require('./usageAttribution');
 const log = require('../telemetry/log');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 
@@ -128,6 +129,9 @@ function usageEntry(app, modelId, usage, t0, source) {
         duration_ms: Date.now() - t0,
         source,
         conversation_id: app.id,
+        // The viewer whose click caused the call and the run it belongs to,
+        // when the runner set them (usageAttribution.js); the owner pays.
+        ...usageAttributionFields(),
     };
 }
 

@@ -26,7 +26,7 @@ const {
 } = require('./requestClient');
 
 test('accepts exactly the known clients', () => {
-    for (const name of ['web', 'android', 'api']) {
+    for (const name of ['web', 'android', 'desktop', 'api']) {
         assert.strictEqual(normalizeClient(name), name);
     }
 });
@@ -83,4 +83,24 @@ test('unknown is never itself a member of the enum', () => {
     // Otherwise "we could not tell" and "a client called unknown" become the
     // same row.
     assert.ok(!CLIENTS.has('unknown'));
+});
+
+test('the desktop client is its own value, not unknown', () => {
+    // The desktop app sends `X-Beeflow-Client: desktop` on every request
+    // (desktop/src/main/security/sessionHeaders.ts); before it was in the enum
+    // every desktop turn landed in `unknown`, mixed with machine-initiated rows.
+    assert.strictEqual(normalizeClient('desktop'), 'desktop');
+    assert.strictEqual(normalizeClient('Desktop'), 'desktop');
+});
+
+test('the interactive denominator is the vocabulary\'s interactive sources', () => {
+    const { SOURCES, INTERACTIVE_SOURCES: fromVocabulary } = require('../shared/usageAreas');
+    assert.deepStrictEqual([...INTERACTIVE_SOURCES], [...fromVocabulary]);
+    for (const source of INTERACTIVE_SOURCES) {
+        assert.ok(SOURCES[source], `${source} is a declared source`);
+    }
+    // Sources no writer emits are gone from the denominator.
+    for (const dead of ['notebook', 'webpage_chat']) {
+        assert.ok(!INTERACTIVE_SOURCES.includes(dead), `${dead} is not written by anyone`);
+    }
 });

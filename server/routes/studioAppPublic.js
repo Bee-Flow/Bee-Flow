@@ -390,6 +390,8 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         duration_ms: Date.now() - t0,
         source: 'studio_app_public',
         conversation_id: found.app.id,
+        // A public visitor is nobody's account: no actor, never a guessed one.
+        actor_user_id: null,
     }).catch((e) => bestEffort('routes/studioAppPublic:anon', e));
 
     if (result && result.ok) return res.json({ ok: true, result: result.result ?? null, ...stepNotes(result) });

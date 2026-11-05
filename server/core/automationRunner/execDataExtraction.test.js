@@ -303,6 +303,26 @@ test('live: the admin model, the fixed options, thinking off, the shaped output'
     assert.strictEqual(usageRows[0].source, 'automation');
 });
 
+test('live: the usage row names the run and the person who started it, the owner stays user_id', async () => {
+    reset();
+    await execDataExtraction(step(), { ...CTX, actorUserId: 'starter-7' }, state(), 'live');
+    assert.strictEqual(usageRows.length, 1);
+    const row = usageRows[0];
+    assert.strictEqual(row.user_id, 'u1', 'the owner pays');
+    assert.strictEqual(row.organization_id, 'org1');
+    assert.strictEqual(row.actor_user_id, 'starter-7');
+    assert.strictEqual(row.run_id, 'r1');
+    assert.strictEqual(row.agent_id, 'a1', 'the automation stays the Studio object');
+    assert.notStrictEqual(require('../../shared/usageAreas').areaOf(row.source), 'other');
+});
+
+test('live: a run nobody started by hand logs a null actor, not the owner twice', async () => {
+    reset();
+    await execDataExtraction(step(), CTX, state(), 'live');
+    assert.strictEqual(usageRows[0].actor_user_id, null);
+    assert.strictEqual(usageRows[0].run_id, 'r1');
+});
+
 test('live: unset config falls back to the fast tier MODEL only — its options are still not used', async () => {
     reset();
     configuredModel = null;

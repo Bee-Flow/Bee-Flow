@@ -131,8 +131,11 @@ async function executeBrowseStep(app, def, step, ctx, helpers) {
         usageStore.logUsage({
             user_id: app.userId,
             organization_id: app.organizationId || null,
+            agent_id: app.id,
+            agent_name: `App: ${app.name || 'Untitled app'}`,
             agent_type: 'studio_app',
             source: 'studio_app_browse',
+            actor_user_id: ctx.viewerId || null,
             model: null,
             prompt_tokens: 0, completion_tokens: 0, total_tokens: 0,
             duration_ms: Date.now() - t0,

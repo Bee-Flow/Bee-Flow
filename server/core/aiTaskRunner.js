@@ -218,11 +218,13 @@ async function executeTask(task, { manual = false, store = require('../stores/co
     // iteration 19 has paid for 18 real model rounds. One accumulator over
     // every round of the loop (providers/usageNormalizer.js): tokens, cache
     // read/write (with the 5m/1h split), tier and tool counts.
-    const run = { userOrgForTier: null, modelId: null, usageAcc: createUsageAccumulator(), lastIter: 0, usageLogged: false };
+    const run = { userOrgForTier: null, modelId: null, usageAcc: createUsageAccumulator(), lastIter: 0, usageLogged: false, runId: null };
 
     try {
         // coworkStore labels the history row it opens for this attempt with it.
-        await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' });
+        // The id of that row is the run the ledger row names (run_id), when
+        // the store hands it back.
+        run.runId = historyRunId(await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' }));
 
         const prep = await prepareTaskRun(task, run);
         const terminationBase = () => ({
@@ -298,6 +300,20 @@ async function executeTask(task, { manual = false, store = require('../stores/co
 }
 
 /**
+ * The id of the history row markRunning opened: a string id, or a row with
+ * one; null when the store returns nothing (an older store, a test fake).
+ * @param {unknown} opened
+ * @returns {string | null}
+ */
+function historyRunId(opened) {
+    if (typeof opened === 'string' && opened) return opened;
+    if (opened && typeof opened === 'object' && typeof (/** @type {{ id?: unknown }} */ (opened)).id === 'string') {
+        return /** @type {{ id: string }} */ (opened).id;
+    }
+    return null;
+}
+
+/**
  * Log this run's spend through the SAME sink as interactive chats
  * (usageStore.logUsage → ai_usage_log; it derives cost, FX and PAYG itself),
  * so scheduled work shows up on the org dashboard and counts against quota
@@ -325,6 +341,7 @@ function logRunUsage(task, run, startTime) {
             model: run.modelId,
             source: SOURCE,
             conversation_id: task.id || null,
+            run_id: run.runId || null,
             ...usageLogFields(run.usageAcc.total()),
             duration_ms: Date.now() - startTime,
             organization_id: run.userOrgForTier || null,

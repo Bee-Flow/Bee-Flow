@@ -24,6 +24,7 @@
  * provider's error text.
  */
 
+import { createRequire } from 'node:module';
 import { newWalkState, outcomeView, walkAction } from './sequenceWalk.mts';
 import type { Obj, Step, StepEvent, StepResult, WalkHost, WalkState } from './sequenceWalk.mts';
 import { resolveRunBinding } from './runBindings.mts';
@@ -38,6 +39,10 @@ import { newRunId } from '../stores/studioAppData/runPolicy.mts';
 import type { ActionRunRow } from '../stores/studioAppData/actionRuns.mts';
 import { lockedMessage, toJobView, trimToBytes, withDefaults, writtenVars } from './backgroundRunParts.mts';
 import type { App, JobView, RunnerDeps, RunScopeInput, StartInput, StartResult, Viewer } from './backgroundRunParts.mts';
+
+const nodeRequire = createRequire(import.meta.url);
+type Attribution = { withUsageAttribution: <T>(a: { actorUserId?: string | null; runId?: string | null }, fn: () => T) => T };
+const { withUsageAttribution } = nodeRequire('./usageAttribution') as Attribution;
 
 const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
 const LOOP_ROWS = 200;
@@ -216,12 +221,16 @@ async function executeFor(job: Job, step: Step, f: StepEvent, w: WalkState): Pro
     if (refused) return refused;
     const ctx = { ...baseCtx(input, w, f.ownerActionId), ...deps.stepDocumentContext(step, input.def, input.role) };
     const t0 = deps.now();
-    const res = await deps.executeStep(input.app, input.model, step, ctx);
+    // The owner pays; the viewer who started the job is the actor of every
+    // ledger row of this step, and the job's id is the run (usageAttribution.js).
+    const attribution = { actorUserId: input.viewer.id || null, runId: job.jobId };
+    const res = await withUsageAttribution(attribution, () => deps.executeStep(input.app, input.model, step, ctx));
     deps.logUsage({
         user_id: input.app.userId, organization_id: input.app.organizationId || null, agent_id: input.app.id,
         agent_name: `App: ${input.app.name || 'Untitled app'}`, agent_type: 'studio_app',
         prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, duration_ms: deps.now() - t0,
         source: 'studio_app_action', conversation_id: input.app.id,
+        actor_user_id: attribution.actorUserId, run_id: attribution.runId,
     }).catch(() => {});
     return res;
 }

@@ -520,6 +520,7 @@ async function parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
             agent_type: 'automation', model: modelId, source: 'automation',
             conversation_id: ctx.automationId,
+            actor_user_id: ctx.actorUserId ?? null, run_id: ctx.runId ?? null,
             // Normalised by the adapter (cache read/write included).
             ...usageLogFields(result.usage),
         }).catch((e) => bestEffort('core/automationRunner/execData:execParseJson', e));
