@@ -24,6 +24,9 @@ const path = require('node:path');
 const usageStore = require('./usageStore');
 
 const RUN_ROUTE = fs.readFileSync(path.join(__dirname, '..', 'routes', 'studioAppsRun.js'), 'utf8');
+// The row itself is built in one place now (routes/studioAppsRunUsage.js); the
+// route's two action endpoints call it.
+const USAGE_MODULE = fs.readFileSync(path.join(__dirname, '..', 'routes', 'studioAppsRunUsage.js'), 'utf8');
 
 function fakeDb(rows, capture = []) {
     return {
@@ -32,22 +35,23 @@ function fakeDb(rows, capture = []) {
 }
 
 test('the store and the run bridge name the SAME source', () => {
-    // Genuinely textual: routes/studioAppsRun.js hardcodes the literal string
-    // on purpose, at both its call sites (the 'step' and the 'run' actions),
-    // rather than importing usageStore.STUDIO_APP_ACTION_SOURCE — so a store
-    // does not need to pull anything from the runtime. There is no shared
-    // reference to check by identity; the two literals only have to agree by
-    // VALUE, and reading the source is the only way to compare them.
+    // Genuinely textual: routes/studioAppsRunUsage.js hardcodes the literal
+    // string on purpose (the default `source` of actionUsageRow) rather than
+    // importing usageStore.STUDIO_APP_ACTION_SOURCE — so a store does not need
+    // to pull anything from the runtime. There is no shared reference to check
+    // by identity; the two literals only have to agree by VALUE, and reading
+    // the source is the only way to compare them.
     //
-    // Counted, not just matched: `assert.match` only proves ONE call site
-    // still says it, so a rename at one and not the other stayed green here.
+    // Counted, not just matched: the route has two action endpoints (the
+    // 'step' and the 'run' actions) and both must write their row through the
+    // one builder, so a second copy with its own literal cannot creep back in.
     assert.strictEqual(usageStore.STUDIO_APP_ACTION_SOURCE, 'studio_app_action');
-    const sourceHits = RUN_ROUTE.match(/source: 'studio_app_action'/g) || [];
-    const agentIdHits = RUN_ROUTE.match(/agent_id: app\.id/g) || [];
-    assert.strictEqual(sourceHits.length, 2,
-        'de actierun-route heeft twee actie-eindpunten; allebei moeten hun verbruiksrij onder deze bron wegschrijven');
-    assert.strictEqual(agentIdHits.length, 2,
-        'allebei de rijen moeten de APP als agent_id dragen — daar telt deze query op');
+    const sourceHits = USAGE_MODULE.match(/source = 'studio_app_action'/g) || [];
+    const agentIdHits = USAGE_MODULE.match(/agent_id: app\.id/g) || [];
+    const callSites = RUN_ROUTE.match(/logActionUsage\(/g) || [];
+    assert.strictEqual(sourceHits.length, 1, 'the row builder names this source as its default, once');
+    assert.strictEqual(agentIdHits.length, 1, 'the row carries the APP as agent_id: that is what this query sums');
+    assert.strictEqual(callSites.length, 2, 'both action endpoints of the run route write their row through the builder');
 });
 
 test('counts action runs of the asked apps, and NEVER filters on the viewer', async () => {
