@@ -2,13 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const usageStore = require('../stores/usageStore');
-const userStore = require('../stores/userStore');
-const { resolveUserOrgIds } = require('../auth');
 const { computeCostSplit } = require('../core/llm/modelCosts');
 const { validate } = require('../core/http/validate');
 const { worded, queryOf, choice, wholeNumber } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
-const { isPlatformOperator } = require('../auth/platformOperator');
 
 // ── What the usage dashboards may ask ────────────────────────────────
 // Every route below reads its filters through buildRequestFilters (plus a
@@ -47,59 +44,8 @@ const UsageQuery = queryOf({
     message: 'Send startDate and endDate together, or neither.', path: ['startDate'],
 });
 
-// Resolve the markup factor to apply when redacting customer-facing usage
-// responses. Admin callers see raw figures; org / consumer callers see
-// total_estimated_cost × (1 + markup_percent/100) and have token / message
-// counts stripped from the payload.
-// A failed lookup propagates (500): a 0% markup would show the customer the
-// raw provider cost as if it were their bill.
-async function getCustomerMarkup(req) {
-    const orgIds = await resolveUserOrgIds(req);
-    const sub = orgIds === null || orgIds.size === 0
-        ? (req.session?.user?.id ? await userStore.getConsumerSubscription(req.session.user.id) : null)
-        : await userStore.getOrgSubscription(Array.from(orgIds)[0]);
-    if (!sub?.plan_id) return 0;
-    const plan = await userStore.getPlan(sub.plan_id);
-    return Number(plan?.markup_percent) || 0;
-}
-
-async function isAdminCaller(req) {
-    // Privacy gate, not an operational permission: only the hardcoded
-    // platform-operator account ("admin" credential from loginRoutes) sees
-    // raw token/message counts and estimated_cost. Everyone else — org
-    // admins, RBAC role-holders with `all`, every customer — gets the
-    // redacted, marked-up cost-only view. Delegating this via the standard
-    // hasPermission helper is a leak because `all` resolves any permission
-    // query truthy, and org admins routinely receive `all` via their role.
-    return isPlatformOperator(req.session?.user);
-}
-
-// The customer view of a row (allow-list, see usageCustomerView.js): usage*
-// markup is the only AI figure customers see.
-const { redactRow, redactRows } = require('./usageCustomerView');
-
-// Apply customer redaction unless the caller is an admin. Use as the last
-// step before res.json — returns the redacted payload (or the original).
-/**
- * @param {string} kind
- */
-async function maybeRedact(/** @type {import('express').Request} */ req, payload, kind) {
-    // Self-hosted: no Stripe markup/reselling exists, so there's nothing to
-    // redact — the operator sees raw tokens/cost. Redaction is purely a cloud
-    // billing concern (serverLicenseGovernsOrgs() === self-hosted). The license
-    // module is lazy-required (never at module top-level) to preserve boot
-    // ordering — it pulls in heavy userStore DB init that must load after this
-    // route module, not during it.
-    const { serverLicenseGovernsOrgs } = require('../license');
-    if (serverLicenseGovernsOrgs()) return payload;
-    if (await isAdminCaller(req)) return payload;
-    const markup = await getCustomerMarkup(req);
-    const factor = 1 + markup / 100;
-    if (kind === 'summary') return redactRow(payload, factor);
-    if (kind === 'rows') return redactRows(payload, factor);
-    return payload;
-}
-
+// The customer view of the figures (markup, no tokens on cloud): routes/usageRedact.js.
+const { isAdminCaller, maybeRedact } = require('./usageRedact');
 const { attachOrgFilter } = require('./usageScope');
 
 // The session first, so an anonymous caller hears 401 rather than 400.
