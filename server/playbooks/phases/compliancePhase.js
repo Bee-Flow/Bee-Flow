@@ -690,11 +690,18 @@ function meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt }) {
     deps.logUsage({ source: 'playbook', userId, orgId: userOrgId, model: modelId, usage, startedAt });
 }
 
-function defaultDeps() {
+function modelDeps() {
     return {
         resolveModel: (opts) => require('../../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
         chatForcedTool: (...args) => /** @type {Function} */ (require('../../core/llm/llmClient').chatForcedTool)(...args),
-        logUsage: (/** @type {import('../../core/llm/surfaceUsage').SurfaceCall} */ call) => require('../../core/llm/surfaceUsage').logSurfaceUsage(call),
+    };
+}
+
+/** @returns {ReturnType<typeof modelDeps> & { logUsage?: (call: import('../../core/llm/surfaceUsage').SurfaceCall) => void }} */
+function defaultDeps() {
+    return {
+        ...modelDeps(),
+        logUsage: (call) => require('../../core/llm/surfaceUsage').logSurfaceUsage(call),
     };
 }
 

@@ -291,7 +291,7 @@ function sanitizeTags(raw, personNames = []) {
  * @param {string} transcript
  * @param {string} language
  * @param {string|null} userOrgId
- * @param {{meetingDateIso?: string|null, personNames?: string[]}} [opts]
+ * @param {{meetingDateIso?: string|null, personNames?: string[], userId?: string|null}} [opts] `userId`: the meeting's owner, for the usage row
  *   meetingDateIso anchors relative deadlines ("by Friday"); personNames
  *   (speakers + attendees) keeps names out of the auto-tags.
  * @returns {Promise<{actionItems: Array, decisions: Array, questions: Array, tags: string[], ok: true}|typeof ARTIFACTS_FAILED>}
