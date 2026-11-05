@@ -180,6 +180,7 @@ declare namespace DbRow {
     }
     /** Row of `ai_usage_log`. */
     interface AiUsageLog {
+        actor_user_id: string | null;
         agent_id: string | null;
         agent_name: string | null;
         agent_type: string | null;
@@ -208,6 +209,7 @@ declare namespace DbRow {
         price_source: string | null;
         prompt_tokens: number | null;
         reasoning_tokens: number | null;
+        run_id: string | null;
         service_tier: string | null;
         source: string | null;
         stop_reason: string | null;
