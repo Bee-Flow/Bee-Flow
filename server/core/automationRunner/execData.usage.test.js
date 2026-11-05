@@ -1,26 +1,27 @@
 /**
  * The ledger row of a parse_json step in AI mode: the owner pays (`user_id`),
  * the person who started the run is `actor_user_id`, the run is `run_id`, and
- * the automation stays the Studio object (`agent_id`).
+ * the automation stays the Studio object (`agent_id`). The model, the guard
+ * and the ledger sink go in through execParseJson's deps.
  *
  * Run: node --test core/automationRunner/execData.usage.test.js
  */
 
 'use strict';
 
-const { test, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
 const { areaOf } = require('../../shared/usageAreas');
+const { execParseJson } = require('./execData');
 
 const usageRows = [];
-const restore = installResolveStub({
-    '../llm/modelResolver': { async resolveModelForTierName() { return 'model-fast'; } },
-    '../llm/llmClient': {
+const deps = {
+    modelResolver: { async resolveModelForTierName() { return 'model-fast'; } },
+    llmClient: {
         async chatForcedTool() { return { structured: { naam: 'Acme' }, usage: { promptTokens: 20, completionTokens: 4 } }; },
     },
-    './safety': {
+    safety: {
         async resolveAutomationPolicy() { return { action: 'off' }; },
         buildAuditBase() { return {}; },
         async guardAiInput() { return { blocked: false }; },
@@ -28,11 +29,8 @@ const restore = installResolveStub({
         restoreForRunState: (v) => v,
         buildPiiSummary() { return null; },
     },
-    '../../stores/usageStore': { async logUsage(row) { usageRows.push(row); } },
-});
-after(() => restore());
-
-const { execParseJson } = require('./execData');
+    usageStore: { async logUsage(row) { usageRows.push(row); } },
+};
 
 const step = {
     id: 'p1', type: 'parse_json', mode: 'ai', sourceRef: 'steps.s1.output.doc',
@@ -46,7 +44,7 @@ const state = () => ({
 test('parse_json (ai): the usage row names the run and its starter', async () => {
     usageRows.length = 0;
     const ctx = { userId: 'owner-1', orgId: 'org-1', automationId: 'auto-1', automationTitle: 'Inbox', runId: 'run-3', actorUserId: 'starter-4' };
-    const out = await execParseJson(step, ctx, state(), 'live');
+    const out = await execParseJson(step, ctx, state(), 'live', deps);
     assert.deepStrictEqual(out.output, { naam: 'Acme' });
     assert.strictEqual(usageRows.length, 1);
     const row = usageRows[0];

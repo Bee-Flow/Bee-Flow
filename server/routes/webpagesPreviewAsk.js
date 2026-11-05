@@ -33,9 +33,9 @@ const { executeTool } = require('../core/tools/toolDispatcher');
 const { getProviderForModel } = require('../core/aiAgent');
 const { getAdapter } = require('../core/providers');
 const { openSse } = require('../core/http/sseHelpers');
-const { resolveBridgeModel, loadAiContext } = require('./webpagesPreviewAi');
+const { resolveBridgeModel, loadAiContext, writeBridgeUsage } = require('./webpagesPreviewAi');
 const { compactToolResultForLLM, buildAskToolSurface, automationToolName } = require('./webpagesPreviewAskTools');
-const { fallback, bestEffort } = require('../utils/bestEffort');
+const { fallback } = require('../utils/bestEffort');
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof loadAiContext>>>} AiCtx */
 /** @typedef {ReturnType<typeof buildAskToolSurface>} AskSurface */
@@ -315,6 +315,20 @@ async function resolveAskLlm(ctx, body) {
     return { tierName, modelId, adapter, apiKey, apiUrl, maxTokens, maxRounds, temperature: tierDefaults.temperature };
 }
 
+/**
+ * The ledger row of one ask, every round's tokens: the author pays, the
+ * signed-in viewer who asked is the actor, the webpage is the object.
+ * @param {{ ctx: AiCtx, webpageId: string, viewerUserId?: string | null, modelId: string,
+ *   usage: Parameters<typeof usageLogFields>[0], t0: number }} call
+ * @param {{ logUsage: (entry: object) => Promise<unknown> }} [sink] the ledger sink (default: the usage store)
+ */
+function logAskUsage({ ctx, webpageId, viewerUserId, modelId, usage, t0 }, sink = usageStore) {
+    writeBridgeUsage({
+        ctx, claims: { webpageId, viewerUserId }, modelId, fields: usageLogFields(usage), t0,
+        source: 'webpage_bridge_ai_agentic',
+    }, sink);
+}
+
 // POST /:id/ai/ask
 /**
  * @param {import('express').Request} req
@@ -368,20 +382,7 @@ async function ask(req, res) {
 
         // Logged regardless of client disconnect — real tokens were spent
         // either way, so the usage record should reflect that.
-        usageStore.logUsage({
-            user_id: ctx.authorUserId,
-            organization_id: ctx.authorOrgId,
-            agent_id: webpageId,
-            agent_name: `Webpage: ${ctx.webpage.name || 'Untitled'}`,
-            agent_type: 'webpage_bridge',
-            model: llm.modelId,
-            ...usageLogFields(usageAcc.total()),
-            duration_ms: Date.now() - t0,
-            source: 'webpage_bridge_ai_agentic',
-            conversation_id: webpageId,
-            // The author pays; the signed-in viewer who asked is the actor.
-            actor_user_id: viewerUserId || null,
-        }).catch((e) => bestEffort('routes/webpagesPreviewAsk:ask', e));
+        logAskUsage({ ctx, webpageId, viewerUserId, modelId: llm.modelId, usage: usageAcc.total(), t0 });
 
         send('done', { rounds, truncated, prompt_tokens: usageAcc.total().prompt_tokens, completion_tokens: usageAcc.total().completion_tokens });
         stopHeartbeat();
@@ -393,4 +394,4 @@ async function ask(req, res) {
     }
 }
 
-module.exports = { ask };
+module.exports = { ask, logAskUsage };

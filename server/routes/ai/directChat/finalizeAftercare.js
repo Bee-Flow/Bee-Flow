@@ -15,6 +15,14 @@ const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
 const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 /**
+ * What the title path reads and writes, injectable; each defaults to the real
+ * store (the ledger sink to the usage store behind core/llm/surfaceUsage.js).
+ * @typedef {{ agentStore?: Pick<typeof agentStore, 'getSystemAgent' | 'updateDirectConversationTitle'>,
+ *   configStore?: Pick<typeof configStore, 'getConfig'>,
+ *   logUsage?: (entry: object) => Promise<unknown> }} TitleDeps
+ */
+
+/**
  * @typedef {{ modelId?: string,
  *   titleAgent: unknown,
  *   tiers: unknown,
@@ -28,9 +36,10 @@ const { bestEffort, fallback } = require('../../../utils/bestEffort');
  * else this conversation's model. Resolved exactly like the tier path; the
  * conversation's provider is reused when the model matches.
  * @param {ResolveTitleModelArgs} param0
+ * @param {TitleDeps} [deps]
  */
-async function resolveTitleModel({ titleAgent, tiers, modelId, adapter, apiKey, apiUrl }) {
-    const titleModelCfg = await configStore.getConfig('title_generation_model');
+async function resolveTitleModel({ titleAgent, tiers, modelId, adapter, apiKey, apiUrl }, deps = {}) {
+    const titleModelCfg = await (deps.configStore || configStore).getConfig('title_generation_model');
     /** @type {string} */
     let titleModelId;
     if (typeof titleModelCfg === 'string' && titleModelCfg.trim()) {
@@ -51,12 +60,16 @@ async function resolveTitleModel({ titleAgent, tiers, modelId, adapter, apiKey, 
     return { adapter: tAdapter, apiKey: tApiKey, apiUrl: tApiUrl, modelId: titleModelId };
 }
 
-/** Generate and store the title; on failure fall back to "New Chat" so the sidebar isn't blank. */
-async function generateTitle({ convId, userId, userOrgId, savedMessages, send, ...modelCtx }) {
+/**
+ * Generate and store the title; on failure fall back to "New Chat" so the sidebar isn't blank.
+ * @param {TitleDeps} [deps]
+ */
+async function generateTitle({ convId, userId, userOrgId, savedMessages, send, ...modelCtx }, deps = {}) {
+    const agents = deps.agentStore || agentStore;
     try {
         const llmClient = require('../../../core/llm/llmClient');
-        const titleAgent = await agentStore.getSystemAgent('system-title-generator');
-        const provider = await resolveTitleModel({ titleAgent, ...modelCtx });
+        const titleAgent = await agents.getSystemAgent('system-title-generator');
+        const provider = await resolveTitleModel({ titleAgent, ...modelCtx }, deps);
         // Tool-free transcript of the first two exchanges.
         const transcript = buildTitleTranscript(savedMessages);
         if (transcript && transcript.trim()) {
@@ -73,15 +86,15 @@ async function generateTitle({ convId, userId, userOrgId, savedMessages, send, .
             // model and zero tokens: it still says the call happened.
             require('../../../core/llm/surfaceUsage').logSurfaceUsage({
                 source: 'chat_title', userId, orgId: userOrgId, model: provider.modelId, startedAt, conversationId: convId,
-            });
+            }, deps.logUsage ? { logUsage: deps.logUsage } : undefined);
             // The title is an encryption surface (CONVERSATION_TITLE): its length only.
             log.info(`[DirectChat] Title generated (${String(title).length} chars) for conv ${convId}`);
-            await agentStore.updateDirectConversationTitle(convId, title, userId);
+            await agents.updateDirectConversationTitle(convId, title, userId);
             send('title', { title, conversationId: convId });
         }
     } catch (e) {
         log.error('[DirectChat] Title generation failed:', /** @type {Error} */ (e).message, /** @type {Error} */ (e).stack);
-        try { await agentStore.updateDirectConversationTitle(convId, 'New Chat', userId); send('title', { title: 'New Chat', conversationId: convId }); } catch (err) { bestEffort('routes/ai/directChat/finalizeAftercare:generateTitle', err); /* non-fatal */ }
+        try { await agents.updateDirectConversationTitle(convId, 'New Chat', userId); send('title', { title: 'New Chat', conversationId: convId }); } catch (err) { bestEffort('routes/ai/directChat/finalizeAftercare:generateTitle', err); /* non-fatal */ }
     }
 }
 
@@ -96,18 +109,19 @@ async function generateTitle({ convId, userId, userOrgId, savedMessages, send, .
  * bounded, after `done`. Resolves to `{ pendingTitle }`: the (unawaited)
  * generation promise, or null. Wrapped in an object so awaiting this
  * function never waits for the title itself.
+ * @param {TitleDeps} [deps] the stores and the ledger sink (default: the real ones)
  */
-async function scheduleTitle({ conv, savedMessages, moderationViolation, convId, userId, userOrgId, send, tiers, modelId, adapter, apiKey, apiUrl }) {
+async function scheduleTitle({ conv, savedMessages, moderationViolation, convId, userId, userOrgId, send, tiers, modelId, adapter, apiKey, apiUrl }, deps = {}) {
     const assistantReplies = savedMessages.filter(m => m && m.role === 'assistant').length;
     const titleIsPlaceholder = !conv.title || !String(conv.title).trim() || /^new chat$/i.test(String(conv.title).trim());
     log.info(`[DirectChat] Title check: assistantReplies=${assistantReplies}, hasTitle=${!!conv.title}, placeholder=${titleIsPlaceholder}, moderationViolation=${!!moderationViolation}`);
     if (!(assistantReplies >= 1 && titleIsPlaceholder)) return { pendingTitle: null };
     if (!moderationViolation) {
-        return { pendingTitle: generateTitle({ convId, userId, userOrgId, savedMessages, send, tiers, modelId, adapter, apiKey, apiUrl }) };
+        return { pendingTitle: generateTitle({ convId, userId, userOrgId, savedMessages, send, tiers, modelId, adapter, apiKey, apiUrl }, deps) };
     }
     // Moderation violation on a still-unnamed chat: safe generic title.
     const safeTitle = 'New Chat';
-    try { await agentStore.updateDirectConversationTitle(convId, safeTitle, userId); } catch (err) { bestEffort('routes/ai/directChat/finalizeAftercare:scheduleTitle', err); /* non-fatal */ }
+    try { await (deps.agentStore || agentStore).updateDirectConversationTitle(convId, safeTitle, userId); } catch (err) { bestEffort('routes/ai/directChat/finalizeAftercare:scheduleTitle', err); /* non-fatal */ }
     send('title', { title: safeTitle, conversationId: convId });
     return { pendingTitle: null };
 }

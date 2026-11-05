@@ -5,31 +5,26 @@
  * pressed Run / Test or submitted the form is `actor_user_id`, and the run is
  * `run_id`, so "who uses this automation" and "what did this run cost" can be
  * read from the ledger. The automation stays the Studio object (`agent_id`).
+ * The ledger sink is handed to logAiStepUsage.
  */
 
 'use strict';
 
-const { test, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
 const { areaOf } = require('../../shared/usageAreas');
+const { logAiStepUsage } = require('./aiStepMessages');
 
 const usageRows = [];
-const restore = installResolveStub({
-    '../../stores/usageStore': { async logUsage(row) { usageRows.push(row); } },
-    '../../stores/terminationStore': { async logTermination() {} },
-});
-after(() => restore());
-
-const { logAiStepUsage } = require('./aiStepMessages');
+const sink = { async logUsage(row) { usageRows.push(row); } };
 
 const acc = { total: () => ({ promptTokens: 12, completionTokens: 3 }) };
 
 test('the row carries the owner, the starter as actor and the run id', () => {
     usageRows.length = 0;
     const ctx = { userId: 'owner-1', orgId: 'org-1', automationId: 'auto-1', automationTitle: 'Invoices', runId: 'run-9', actorUserId: 'starter-2' };
-    logAiStepUsage(ctx, 'model-x', acc, false);
+    logAiStepUsage(ctx, 'model-x', acc, false, sink);
     assert.strictEqual(usageRows.length, 1);
     const row = usageRows[0];
     assert.strictEqual(row.user_id, 'owner-1');
@@ -43,7 +38,7 @@ test('the row carries the owner, the starter as actor and the run id', () => {
 
 test('a scheduled run (nobody started it) has a null actor', () => {
     usageRows.length = 0;
-    logAiStepUsage({ userId: 'owner-1', orgId: 'org-1', automationId: 'auto-1', runId: 'run-10' }, 'model-x', acc, false);
+    logAiStepUsage({ userId: 'owner-1', orgId: 'org-1', automationId: 'auto-1', runId: 'run-10' }, 'model-x', acc, false, sink);
     assert.strictEqual(usageRows[0].actor_user_id, null);
     assert.strictEqual(usageRows[0].run_id, 'run-10');
 });

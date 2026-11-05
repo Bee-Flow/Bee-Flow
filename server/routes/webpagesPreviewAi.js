@@ -86,8 +86,20 @@ async function chatStructured(modelId, messages, baseOptions, schema) {
  * @param {{ webpageId: string, viewerUserId?: string | null }} claims the preview token's claims
  */
 function logBridgeUsage(ctx, claims, modelId, fields, t0) {
+    writeBridgeUsage({ ctx, claims, modelId, fields, t0 });
+}
+
+/**
+ * The row behind logBridgeUsage, for every bridge call (chat, stream and the
+ * agentic ask, which names its own `source`). Fire-and-forget.
+ * @param {{ ctx: { authorUserId: string, authorOrgId: string | null, webpage: { name?: string } },
+ *   claims: { webpageId: string, viewerUserId?: string | null },
+ *   modelId: string, fields: Record<string, unknown>, t0: number, source?: string }} call
+ * @param {{ logUsage: (entry: object) => Promise<unknown> }} [sink] the ledger sink (default: the usage store)
+ */
+function writeBridgeUsage({ ctx, claims, modelId, fields, t0, source = 'webpage_bridge_ai' }, sink = usageStore) {
     const { webpageId } = claims;
-    usageStore.logUsage({
+    sink.logUsage({
         user_id: ctx.authorUserId,
         organization_id: ctx.authorOrgId,
         agent_id: webpageId,
@@ -96,10 +108,10 @@ function logBridgeUsage(ctx, claims, modelId, fields, t0) {
         model: modelId,
         ...fields,
         duration_ms: Date.now() - t0,
-        source: 'webpage_bridge_ai',
+        source,
         conversation_id: webpageId,
         actor_user_id: claims.viewerUserId || null,
-    }).catch((e) => bestEffort('routes/webpagesPreviewAi:logBridgeUsage', e));
+    }).catch((e) => bestEffort('routes/webpagesPreviewAi:writeBridgeUsage', e));
 }
 
 // POST /:id/ai/chat
@@ -191,4 +203,4 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
     }
 }
 
-module.exports = { chat, stream, resolveBridgeModel, loadAiContext, _logBridgeUsage: logBridgeUsage };
+module.exports = { chat, stream, resolveBridgeModel, loadAiContext, _logBridgeUsage: logBridgeUsage, writeBridgeUsage };

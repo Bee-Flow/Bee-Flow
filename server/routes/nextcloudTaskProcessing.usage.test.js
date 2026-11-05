@@ -10,16 +10,14 @@
 
 const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../testUtils/stubRequire');
 const { areaOf } = require('../shared/usageAreas');
+const surfaceUsage = require('../core/llm/surfaceUsage');
+const { meterAssistantCall } = require('./nextcloudTaskProcessing');
 
 const rows = [];
-const restore = installResolveStub({
-    '../../stores/usageStore': { logUsage: async (row) => { rows.push(row); } },
-});
-after(() => restore());
-
-const { meterAssistantCall } = require('./nextcloudTaskProcessing');
+// The assistant writes through the shared surface-usage sink; the test reads it there.
+surfaceUsage._setDepsForTests({ logUsage: async (row) => { rows.push(row); } });
+after(() => surfaceUsage._setDepsForTests(null));
 
 test('a call is billed to the linked user and the organisation', () => {
     rows.length = 0;

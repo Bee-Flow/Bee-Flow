@@ -115,20 +115,7 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings, caller =
         log.warn('[MusicGen Tool] Failed to save audio to disk:', /** @type {Error} */ (e).message);
     }
 
-    // Log usage
-    try {
-        const usageStore = require('../../stores/usageStore');
-        await usageStore.logUsage({
-            ...mediaUsageFields(req, caller),
-            model: 'lyria-realtime-exp',
-            prompt_tokens: prompt.length,
-            completion_tokens: 0,
-            total_tokens: prompt.length,
-            source: 'music_generation',
-        });
-    } catch (e) {
-        log.warn('[MusicGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
-    }
+    await logMusicUsage(req, caller, prompt);
 
     return {
         success: true,
@@ -140,4 +127,28 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings, caller =
     };
 }
 
-module.exports = { MUSIC_GEN_TOOLS, isMusicGenTool, executeMusicGenTool };
+/**
+ * The ledger row of one generation, billed to the caller (core/tools/mediaUsage.js).
+ * Never throws: a failed write is logged.
+ * @param {{ session?: { user?: { id?: unknown, organizationId?: unknown } } } | null | undefined} req
+ * @param {import('../../core/tools/mediaUsage').MediaCaller | null | undefined} caller
+ * @param {string} prompt
+ * @param {{ logUsage: (entry: object) => Promise<unknown> }} [sink] the ledger sink (default: the usage store)
+ */
+async function logMusicUsage(req, caller, prompt, sink) {
+    try {
+        const usageStore = sink || require('../../stores/usageStore');
+        await usageStore.logUsage({
+            ...mediaUsageFields(req, caller),
+            model: 'lyria-realtime-exp',
+            prompt_tokens: prompt.length,
+            completion_tokens: 0,
+            total_tokens: prompt.length,
+            source: 'music_generation',
+        });
+    } catch (e) {
+        log.warn('[MusicGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
+    }
+}
+
+module.exports = { MUSIC_GEN_TOOLS, isMusicGenTool, executeMusicGenTool, logMusicUsage };

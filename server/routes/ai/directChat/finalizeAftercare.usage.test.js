@@ -4,6 +4,9 @@
  * conversation. The provider path returns the title only, so the row has zero
  * tokens; it still says the call happened.
  *
+ * The stores and the ledger sink go in through scheduleTitle's deps; the
+ * model call is the real llmClient on a stand-in adapter.
+ *
  * Run: cd server && node --test routes/ai/directChat/finalizeAftercare.usage.test.js
  */
 
@@ -11,31 +14,27 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
 const { areaOf } = require('../../../shared/usageAreas');
+const { scheduleTitle } = require('./finalizeAftercare');
 
 const rows = [];
 const titles = [];
-const restore = installResolveStub({
-    '../../../stores/agentStore': {
+const deps = {
+    agentStore: {
         getSystemAgent: async () => null,
         updateDirectConversationTitle: async (convId, title) => { titles.push(title); },
     },
-    '../../../stores/configStore': { getConfig: async () => null },
-    '../../../core/llm/llmClient': { generateTitleWithProvider: async () => 'Planning the offsite' },
-    // The sink as core/llm/surfaceUsage.js requires it.
-    '../../stores/usageStore': { logUsage: async (row) => { rows.push(row); } },
-});
-test.after(() => restore());
-
-const { scheduleTitle } = require('./finalizeAftercare');
+    configStore: { getConfig: async () => null },
+    logUsage: async (row) => { rows.push(row); },
+};
+const adapter = { chat: async () => ({ content: 'Planning the offsite' }) };
 
 test('the title call is logged as chat_title under the user and the turn\'s organisation', async () => {
     const { pendingTitle } = await scheduleTitle({
         conv: { title: '' }, moderationViolation: false, convId: 'c1', userId: 'u1', userOrgId: 'org-1', send: () => {},
         savedMessages: [{ role: 'user', content: 'Plan the offsite' }, { role: 'assistant', content: 'Sure.' }],
-        tiers: {}, modelId: 'model-fast', adapter: {}, apiKey: 'k', apiUrl: '',
-    });
+        tiers: {}, modelId: 'model-fast', adapter, apiKey: 'k', apiUrl: '',
+    }, deps);
     await pendingTitle;
     await new Promise((r) => setImmediate(r));
     assert.deepStrictEqual(titles, ['Planning the offsite']);

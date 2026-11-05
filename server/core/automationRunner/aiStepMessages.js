@@ -56,10 +56,11 @@ function buildAiStepMessages(step, { agent, grounding, effectiveSchema, resolved
  * Usage + termination logging (source='automation') — automation LLM spend
  * is recorded in ai_usage_log / ai_task_termination_log.
  * @param {boolean} hitIterationCap
+ * @param {{ logUsage: (entry: object) => Promise<unknown> }} [sink] the ledger sink (default: the usage store)
  */
-function logAiStepUsage(ctx, modelId, usageAcc, hitIterationCap) {
+function logAiStepUsage(ctx, modelId, usageAcc, hitIterationCap, sink = usageStore) {
     try {
-        usageStore.logUsage({
+        sink.logUsage({
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
             agent_type: 'automation', model: modelId, source: 'automation',
