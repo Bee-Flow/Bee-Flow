@@ -14,22 +14,25 @@
  *
  * An organisation report: the chain is session → query → admin_monitoring
  * (org admins hold it through `all`, the DPO role holds it) → the
- * organisation from the session. A caller without an organisation is refused;
- * the organisation never comes from the query, and `?group=` only narrows
- * within it. Parameter-free paths, so isolation is proven by the tests next to
+ * organisation from the session (a super admin: the one on their record) →
+ * admin_monitoring held IN that organisation (routes/usageAdoptionAccess.js).
+ * A caller without an organisation is refused; the organisation never comes
+ * from the query, and `?group=` only narrows within it. Parameter-free paths, so isolation is proven by the tests next to
  * this file, not by the tenant matrix.
  *
  * Privacy: people are pseudonymous by default (core/privacy/pseudonym.js); a
  * reveal is one audited request, the record written BEFORE the answer is
  * built (routes/dsr.js dsr.subject_viewed). The people who use a Studio kind
- * most are always pseudonymous. Owners are named: building something is
+ * most are always pseudonymous, under a pseudonym key of their own that the
+ * people reveal does not unlock. Owners are named: building something is
  * organisational metadata, using it is behaviour. Cost figures go through the
  * same customer view as the Overview tab (routes/usageRedact.js): on cloud a
  * customer sees marked-up cost and no call counts.
  *
  * Mounted in index.js behind the advanced_usage_monitoring capability, before
- * /api/usage. Cached 60 s in memory per organisation and query, never a
- * partial answer, and `Cache-Control: private, no-store` (the server cache is
+ * /api/usage. Cached 60 s in memory per organisation and query (the limit as
+ * clamped; people pages as the fields they show, bounded by their row count),
+ * never a partial answer, and `Cache-Control: private, no-store` (the server cache is
  * the only cache), like routes/studio/counts.js.
  *
  * Dependencies are injectable (`createAdoptionRouter(deps)`) so the
@@ -45,11 +48,14 @@ const { HttpError } = require('../core/http/errors');
 const log = require('../telemetry/log');
 const { makeLazyDeps } = require('./studio/shared');
 const {
-    shapeSummary, shapeAreas, shapeStudio, shapeItems, shapeGroups, shapePerson,
+    shapeSummary, shapeAreas, shapeStudio, shapeItems, shapeGroups, shapePerson, compactPeople,
 } = require('./usageAdoptionShape');
+const access = require('./usageAdoptionAccess');
 
 const CACHE_TTL_MS = 60_000;
 const CACHE_MAX_ENTRIES = 2000;
+/** The people rows the cache may hold over all its entries (an entry of any other route weighs 1). */
+const CACHE_MAX_ROWS = 20_000;
 const ITEMS_DEFAULT = 50;
 const ITEMS_MAX = 200;
 const PEOPLE_DEFAULT = 50;
@@ -62,6 +68,8 @@ const DEFAULT_LOADERS = {
     scope: () => require('./usageScope'),
     redact: () => require('./usageRedact'),
     pseudonym: () => require('../core/privacy/pseudonym'),
+    orgRoles: () => require('../auth/orgRolePolicy'),
+    catalog: () => require('../auth/permissionsCatalog'),
     now: () => Date.now,
 };
 
@@ -99,23 +107,6 @@ const requireSession = (req, res, next) => (req.session?.isAuthenticated && req.
     : res.status(401).json({ error: 'Not authenticated' }));
 
 /**
- * After attachOrgFilter: an organisation report needs an organisation. A
- * personal account (its filter narrowed to its own rows) and a super admin
- * without one are refused rather than shown something else.
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-function requireOrganisation(req, res, next) {
-    const filters = req.usageFilters;
-    if (!filters?.organizationId) {
-        return res.status(403).json({ error: 'The adoption report belongs to an organisation; this account has none.', code: 'no_organisation' });
-    }
-    filters.excludeDryRun = true;
-    next();
-}
-
-/**
  * @param {unknown} value
  * @param {number} fallback
  * @param {number} max
@@ -125,16 +116,42 @@ function clamp(value, fallback, max) {
     return Number.isFinite(n) && n >= 1 ? Math.min(Math.floor(n), max) : fallback;
 }
 
-/** @param {AdoptionRouteDeps} d */
-function createCache(d) {
-    /** @type {Map<string, { at: number, body: unknown }>} */
+/** @param {unknown} body The rows an answer holds: a people page its rows, anything else 1. */
+function weightOf(body) {
+    const rows = /** @type {{ people?: unknown }} */ (body).people;
+    return Array.isArray(rows) ? Math.max(1, rows.length) : 1;
+}
+
+/**
+ * The 60 s answer cache, bounded by its entries and by the people rows they
+ * hold. Entries are kept in the order they were written, so the oldest go
+ * first: the expired ones on every write, then as many as a new one needs.
+ * @param {() => number} now
+ * @param {{ maxEntries?: number, maxRows?: number }} [limits]
+ */
+function createCache(now, { maxEntries = CACHE_MAX_ENTRIES, maxRows = CACHE_MAX_ROWS } = {}) {
+    /** @type {Map<string, { at: number, body: unknown, weight: number }>} */
     const cache = new Map();
-    const now = () => d.now();
+    let rows = 0;
+    /** @param {string} key */
+    const drop = (key) => {
+        const e = cache.get(key);
+        if (e) { rows -= e.weight; cache.delete(key); }
+    };
+    /** @param {number} weight */
+    const makeRoom = (weight) => {
+        const t = now();
+        for (const [key, e] of cache) {
+            if (cache.size < maxEntries && rows + weight <= maxRows && t - e.at <= CACHE_TTL_MS) break;
+            drop(key);
+        }
+    };
     return {
-        clear: () => cache.clear(),
+        clear: () => { cache.clear(); rows = 0; },
+        stats: () => ({ entries: cache.size, rows }),
         /**
-         * The store's answer for this organisation and query, from the cache
-         * when fresh. A partial answer is never kept.
+         * The answer for this organisation and query, from the cache when
+         * fresh. A partial answer is never kept.
          * @template T
          * @param {string} key
          * @param {() => Promise<T>} load
@@ -143,30 +160,34 @@ function createCache(d) {
         async get(key, load) {
             const hit = cache.get(key);
             if (hit && now() - hit.at <= CACHE_TTL_MS) return /** @type {T} */ (hit.body);
-            if (hit) cache.delete(key);
+            drop(key);
             const body = await load();
-            if (body && !(/** @type {{ partial?: boolean }} */ (body)).partial) {
-                if (cache.size >= CACHE_MAX_ENTRIES) {
-                    const oldest = cache.keys().next().value;
-                    if (oldest !== undefined) cache.delete(oldest);
-                }
-                cache.set(key, { at: now(), body });
-            }
+            if (!body || (/** @type {{ partial?: boolean }} */ (body)).partial) return body;
+            const weight = weightOf(body);
+            if (weight > maxRows) return body;
+            drop(key);
+            makeRoom(weight);
+            cache.set(key, { at: now(), body, weight });
+            rows += weight;
             return body;
         },
     };
 }
 
 /**
- * The cache key: organisation, route and the query as sent (a relative period
- * keys on `days`, not on the instants it resolves to, or it would never hit).
+ * The cache key: organisation, route, the period as sent (a relative period
+ * keys on `days`, not on the instants it resolves to, or it would never hit),
+ * the group and kind, and the page as the route clamped it. `reveal` is not
+ * in it: the store's answer is the same, and the reveal is shaped after.
  * @param {import('express').Request} req
  * @param {string} route
+ * @param {{ limit?: number, cursor?: number }} [page]
  */
-function cacheKey(req, route) {
+function cacheKey(req, route, page = {}) {
     const q = /** @type {Record<string, unknown>} */ (req.query || {});
-    return JSON.stringify([req.usageFilters?.organizationId, route, q.days ?? null, q.startDate ?? null, q.endDate ?? null,
-        q.group ?? null, q.kind ?? null, q.reveal ?? null, q.limit ?? null, q.cursor ?? null]);
+    const period = q.startDate && q.endDate ? [null, q.startDate, q.endDate] : [Number(q.days ?? 30), null, null];
+    return JSON.stringify([req.usageFilters?.organizationId, route, ...period,
+        q.group ?? null, q.kind ?? null, page.limit ?? null, page.cursor ?? null]);
 }
 
 /**
@@ -190,13 +211,28 @@ function scopeOf(req, d) {
 // ── The handlers ──────────────────────────────────────────────────────────
 
 /**
- * The pseudonym of a person in the caller's organisation.
+ * The pseudonym of a person in the caller's organisation: an opaque row id
+ * and the label, both from the people table's key domain.
  * @param {AdoptionRouteDeps} d
  * @param {string} orgId
  */
 function pseudonymizer(d, orgId) {
     const secret = d.pseudonym.pseudonymSecret();
-    return (/** @type {string} */ userId) => d.pseudonym.pseudonymFor(userId, orgId, secret);
+    return (/** @type {string} */ userId) => ({
+        id: d.pseudonym.pseudonymId(userId, orgId, secret),
+        name: d.pseudonym.pseudonymFor(userId, orgId, secret),
+    });
+}
+
+/**
+ * The label of a top user of a Studio kind: a key domain of its own, so it
+ * never equals the people-table label a reveal names.
+ * @param {AdoptionRouteDeps} d
+ * @param {string} orgId
+ */
+function topPeopleLabel(d, orgId) {
+    const secret = d.pseudonym.pseudonymSecret();
+    return (/** @type {string} */ userId) => d.pseudonym.pseudonymFor(userId, orgId, secret, { domain: 'top-people' });
 }
 
 /**
@@ -265,9 +301,9 @@ function makeHandlers(d, cache) {
             if (!kind) throw new HttpError(400, 'invalid_request', `The drill-down needs a kind: one of ${KIND_KEYS.join(', ')}.`);
             const scope = scopeOf(req, d);
             const limit = clamp(req.query.limit, ITEMS_DEFAULT, ITEMS_MAX);
-            const body = await cache.get(cacheKey(req, 'studio/items'), () => d.store.studioItems(scope, kind, limit));
+            const body = await cache.get(cacheKey(req, 'studio/items', { limit }), () => d.store.studioItems(scope, kind, limit));
             if (!body) throw new HttpError(400, 'invalid_request', `kind is one of ${KIND_KEYS.join(', ')}.`);
-            res.json(shapeItems(body, await d.redact.costLens(req), pseudonymizer(d, scope.orgId)));
+            res.json(shapeItems(body, await d.redact.costLens(req), topPeopleLabel(d, scope.orgId)));
         },
         /** @param {import('express').Request} req @param {import('express').Response} res */
         groups: async (req, res) => {
@@ -282,12 +318,13 @@ function makeHandlers(d, cache) {
             const limit = clamp(req.query.limit, PEOPLE_DEFAULT, PEOPLE_MAX);
             const cursor = Math.max(0, Number(req.query.cursor) || 0);
             if (reveal) await recordReveal(req, d, scope, limit);
-            const out = await cache.get(cacheKey(req, 'people'), () => d.store.people(scope, { limit, cursor }));
+            const out = await cache.get(cacheKey(req, 'people', { limit, cursor }),
+                async () => compactPeople(await d.store.people(scope, { limit, cursor })));
             const ctx = {
                 lens: await d.redact.costLens(req), reveal,
                 avatars: reveal ? await avatarsOf(d, out.people.map((p) => p.id)) : new Map(),
                 pseudonym: pseudonymizer(d, scope.orgId),
-                groupNames: new Map(out.groups.map((g) => [String(g.id), String(g.name || g.id)])),
+                groupNames: new Map(out.groupNames),
             };
             res.json({
                 reveal, auditRecorded: reveal,
@@ -302,14 +339,15 @@ function makeHandlers(d, cache) {
 function createAdoptionRouter(deps = null) {
     const d = deps || makeDefaultDeps();
     const router = express.Router();
-    const cache = createCache(d);
+    const cache = createCache(() => d.now());
     const h = makeHandlers(d, cache);
 
     router.use(requireSession);
     router.use(validate({ query: AdoptionQuery }));
     router.use(d.permissions.requirePermission('admin_monitoring'));
     router.use(d.scope.attachOrgFilter);
-    router.use(requireOrganisation);
+    router.use(access.requireOrganisation(d));
+    router.use(access.requireMonitoringInOrg(d));
     // The server cache is the only cache.
     router.use((/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         res.set('Cache-Control', 'private, no-store');
@@ -323,15 +361,18 @@ function createAdoptionRouter(deps = null) {
     router.get('/groups', h.groups);
     router.get('/people', h.people);
 
-    /** @type {import('express').Router & { __clearCacheForTests?: () => void }} */ (router).__clearCacheForTests = () => cache.clear();
+    const testable = /** @type {import('express').Router & { __clearCacheForTests?: () => void, __cacheStatsForTests?: () => { entries: number, rows: number } }} */ (router);
+    testable.__clearCacheForTests = () => cache.clear();
+    testable.__cacheStatsForTests = () => cache.stats();
     return router;
 }
 
-/** @typedef {ReturnType<typeof createAdoptionRouter> & { createAdoptionRouter: typeof createAdoptionRouter, KIND_KEYS: typeof KIND_KEYS, CACHE_TTL_MS: typeof CACHE_TTL_MS, AdoptionQuery: typeof AdoptionQuery }} AdoptionRouter */
+/** @typedef {ReturnType<typeof createAdoptionRouter> & { createAdoptionRouter: typeof createAdoptionRouter, createCache: typeof createCache, KIND_KEYS: typeof KIND_KEYS, CACHE_TTL_MS: typeof CACHE_TTL_MS, AdoptionQuery: typeof AdoptionQuery }} AdoptionRouter */
 const router = createAdoptionRouter();
 
 module.exports = /** @type {AdoptionRouter} */ (router);
 /** @type {AdoptionRouter} */ (module.exports).createAdoptionRouter = createAdoptionRouter;
+/** @type {AdoptionRouter} */ (module.exports).createCache = createCache;
 /** @type {AdoptionRouter} */ (module.exports).KIND_KEYS = KIND_KEYS;
 /** @type {AdoptionRouter} */ (module.exports).CACHE_TTL_MS = CACHE_TTL_MS;
 /** @type {AdoptionRouter} */ (module.exports).AdoptionQuery = AdoptionQuery;

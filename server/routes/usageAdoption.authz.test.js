@@ -7,12 +7,18 @@
  * PGlite (stores/adoption/adoption.testkit.js: two organisations, A and B).
  * Injected: the permission lookup (a table per user, behind the same 401/403
  * answers as auth/permissions requirePermission), the cost lens and the clock.
+ * The check that admin_monitoring is held IN the reported organisation runs
+ * for real (routes/usageAdoptionAccess.js over the users, groups and roles).
  *
  *   - an org admin and an admin_monitoring holder get 200, a plain member 403,
  *     an account without an organisation 403 `no_organisation`;
+ *   - a super admin reads the organisation on their record, or is refused
+ *     without one;
+ *   - a role held only through a group of another organisation opens nothing;
  *   - nothing of organisation B reaches a caller of A;
- *   - people are pseudonymous by default, stable across calls, and differ per
- *     organisation; `?reveal=true` writes exactly one access-audit row with the
+ *   - people are pseudonymous by default (an opaque row id and the label),
+ *     stable across calls, and differ per organisation; the top users of a
+ *     Studio kind never carry their people-table label; `?reveal=true` writes exactly one access-audit row with the
  *     allow-listed payload, then shows names; a failed write answers 503 and
  *     shows nothing;
  *   - a customer lens shows marked-up cost and no call counts.
@@ -61,12 +67,17 @@ before(async () => {
             return target[prop];
         },
     });
+    // The roles the report's own check reads: the owner administers org A, the colleague is its DPO.
+    await setRow('users', 'a-owner', 'orgRole', 'org_admin');
+    await setRow('users', 'a-colleague', 'orgRole', 'dpo');
     const { createAdoptionRouter } = require('./usageAdoption');
     router = createAdoptionRouter({
         store, userStore, permissions,
         scope: require('./usageScope'),
         redact: { costLens: (req) => lens.costLens(req) },
         pseudonym: require('../core/privacy/pseudonym'),
+        orgRoles: require('../auth/orgRolePolicy'),
+        catalog: require('../auth/permissionsCatalog'),
         now: () => kit.NOW,
     });
     api = h.serve('/api/usage/adoption', router);
@@ -84,6 +95,24 @@ beforeEach(() => {
 });
 
 const as = (id, orgId = kit.ORG_A) => ({ id, username: id, organizationId: orgId, role: 'user' });
+const ID = /^[0-9a-f]{16}$/;
+const LABEL = /^Member · [A-HJ-NP-Z2-9]{4}$/;
+
+/** Set one column of a users or groups row (the test's own setup, restored by the test that changes it). */
+async function setRow(table, id, column, value) {
+    const { run } = require('../db');
+    await run(`UPDATE ${table} SET "${column}" = $2 WHERE id = $1`, [id, value]);
+}
+
+function pseudonyms() {
+    const { pseudonymFor, pseudonymId, pseudonymSecret } = require('../core/privacy/pseudonym');
+    const secret = pseudonymSecret();
+    return {
+        id: (userId, orgId = kit.ORG_A) => pseudonymId(userId, orgId, secret),
+        label: (userId, orgId = kit.ORG_A) => pseudonymFor(userId, orgId, secret),
+        top: (userId, orgId = kit.ORG_A) => pseudonymFor(userId, orgId, secret, { domain: 'top-people' }),
+    };
+}
 const get = (url, user) => api.call('GET', `/api/usage/adoption${url}`, { user });
 
 async function revealRows() {
@@ -109,6 +138,48 @@ test('a plain member is refused; an account without an organisation too', async 
     assert.equal(solo.body.code, 'no_organisation');
 });
 
+test('a super admin reads the organisation on their record; without one they are refused', async () => {
+    const root = await get('/summary?days=30', { ...as('a-owner'), role: 'admin' });
+    assert.equal(root.status, 200, root.text);
+    assert.equal(root.body.members.total, 5, 'organisation A, from the record');
+    assert.equal(root.body.spend.cost, 3.6);
+    const people = await get('/people?days=30&reveal=true', { ...as('a-owner'), role: 'admin' });
+    assert.equal(people.status, 200, people.text);
+    assert.ok(people.body.people.every((p) => p.id.startsWith('a-')), 'no member of organisation B');
+    const none = await get('/summary', { id: 'solo', username: 'solo', role: 'admin' });
+    assert.equal(none.status, 403);
+    assert.equal(none.body.code, 'no_organisation');
+});
+
+test('admin_monitoring from a group of another organisation opens nothing here', async () => {
+    // a-seen is a plain member of A (home org) and sits in a group of B whose orgRole is dpo:
+    // the union of permissions holds admin_monitoring, organisation A does not grant it.
+    PERMS['a-seen'] = ['page_chat', 'admin_monitoring'];
+    await setRow('groups', 'b-grp-small', 'orgRole', 'dpo');
+    await setRow('users', 'a-seen', 'groups', JSON.stringify(['a-grp-big', 'b-grp-small']));
+    try {
+        const audits = (await revealRows()).length;
+        for (const url of ['/summary', '/people?reveal=true', '/studio/items?kind=app']) {
+            const res = await get(url, as('a-seen'));
+            assert.equal(res.status, 403, `${url}: ${res.text}`);
+            assert.equal(res.body.code, 'not_in_organisation');
+            assert.equal(res.body.people, undefined);
+        }
+        assert.equal((await revealRows()).length, audits, 'a refused reveal writes no audit row');
+
+        // The same role from a group of A itself does count.
+        await setRow('groups', 'a-grp-small', 'orgRole', 'dpo');
+        await setRow('users', 'a-seen', 'groups', JSON.stringify(['a-grp-big', 'a-grp-small']));
+        const own = await get('/summary', as('a-seen'));
+        assert.equal(own.status, 200, own.text);
+    } finally {
+        PERMS['a-seen'] = ['page_chat'];
+        await setRow('groups', 'b-grp-small', 'orgRole', null);
+        await setRow('groups', 'a-grp-small', 'orgRole', null);
+        await setRow('users', 'a-seen', 'groups', JSON.stringify(['a-grp-big']));
+    }
+});
+
 test('the summary counts organisation A only, and the colleague as AI-active', async () => {
     const res = await get('/summary?days=30', as('a-owner'));
     const s = res.body;
@@ -129,23 +200,26 @@ test('people are pseudonymous, stable, and different per organisation', async ()
     assert.equal(first.status, 200, first.text);
     assert.equal(first.body.reveal, false);
     assert.equal(first.body.auditRecorded, false);
+    const ps = pseudonyms();
     for (const p of first.body.people) {
-        assert.match(p.id, /^Member · [A-HJ-NP-Z2-9]{4}$/);
-        assert.equal(p.name, p.id);
+        assert.match(p.id, ID, 'an opaque row id, not the four-symbol label');
+        assert.match(p.name, LABEL);
         assert.equal(p.avatar, null);
     }
+    assert.equal(new Set(first.body.people.map((p) => p.id)).size, first.body.people.length);
     assert.ok(!JSON.stringify(first.body).includes('Owner A'), 'no name');
     assert.ok(!JSON.stringify(first.body).includes('a-owner'), 'no user id');
     router.__clearCacheForTests();
     const again = await get('/people?days=30', as('a-owner'));
     assert.deepEqual(again.body.people.map((p) => p.id), first.body.people.map((p) => p.id));
 
-    const { pseudonymFor, pseudonymSecret } = require('../core/privacy/pseudonym');
-    assert.notEqual(pseudonymFor('a-owner', kit.ORG_A, pseudonymSecret()), pseudonymFor('a-owner', kit.ORG_B, pseudonymSecret()));
+    assert.notEqual(ps.label('a-owner', kit.ORG_A), ps.label('a-owner', kit.ORG_B));
+    assert.notEqual(ps.id('a-owner', kit.ORG_A), ps.id('a-owner', kit.ORG_B));
     assert.equal(first.body.audit, undefined);
     assert.equal(first.body.total, 5);
     // The colleague's runs are theirs: the top row is the colleague, at 2.5.
-    assert.equal(first.body.people[0].id, pseudonymFor('a-colleague', kit.ORG_A, pseudonymSecret()));
+    assert.equal(first.body.people[0].id, ps.id('a-colleague'));
+    assert.equal(first.body.people[0].name, ps.label('a-colleague'));
     assert.equal(first.body.people[0].cost, 2.5);
     assert.deepEqual(first.body.people[0].areas, ['apps', 'automations']);
     assert.equal(first.body.people[0].status, 'ai_active');
@@ -212,7 +286,30 @@ test('groups fold the small ones, and the drill-down names owners but not users'
     assert.equal(groups.body.folded.members, 5);
     const items = await get('/studio/items?kind=app', as('a-owner'));
     assert.equal(items.body.items[0].ownerName, 'Owner A');
-    assert.match(items.body.topPeople[0].person, /^Member · /);
+    assert.match(items.body.topPeople[0].person, LABEL);
+});
+
+test('a top user of a kind never carries the label a people reveal names', async () => {
+    const ps = pseudonyms();
+    const items = await get('/studio/items?kind=app', as('a-owner'));
+    assert.equal(items.status, 200, items.text);
+    assert.deepEqual(items.body.topPeople.map((p) => p.person), [ps.top('a-colleague')]);
+    const people = await get('/people?days=30', as('a-owner'));
+    const tableLabels = new Set(people.body.people.map((p) => p.name));
+    assert.ok(tableLabels.has(ps.label('a-colleague')));
+    for (const p of items.body.topPeople) assert.ok(!tableLabels.has(p.person), `${p.person} is also a people-table label`);
+});
+
+test('the cache keys on the clamped page and holds people as rows, not as member records', async () => {
+    router.__clearCacheForTests();
+    const a = await get('/people?days=30&limit=500', as('a-owner'));
+    const b = await get('/people?days=30&limit=9999', as('a-owner'));
+    const c = await get('/people?days=30&limit=500&reveal=true', as('a-owner'));
+    assert.equal(a.status, 200);
+    assert.deepEqual(b.body.people, a.body.people);
+    assert.equal(c.status, 200);
+    assert.deepEqual(router.__cacheStatsForTests(), { entries: 1, rows: 5 }, 'one entry for the three requests');
+    assert.ok(!JSON.stringify(c.body).includes('@adopt.test'), 'no e-mail address reaches the answer');
 });
 
 test('the drill-down needs a kind', async () => {
