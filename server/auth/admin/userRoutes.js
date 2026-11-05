@@ -13,7 +13,7 @@ const { receiveImage } = require('../../middleware/uploadedImage');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { isPlatformOperator } = require('../platformOperator');
-const { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor } = require('./userSupportRoutes');
+const { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor } = require('./userSupportRoutes');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -246,8 +246,8 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     // failed one, and a failed one for a real escalation. Sibling refusals in
     // this file (role='admin' → 403 'Cannot assign super admin role') already
     // name what they reject; this does the same.
-    const unknownFields = unknownFieldsRefusal(body);
-    if (unknownFields) return res.status(400).json(unknownFields);
+    const refusal = unknownFieldsRefusal(body) || costLimitRefusal(body);
+    if (refusal) return res.status(400).json(refusal);
 
     // Everything else is read through `updates` below, which is built from
     // USER_UPDATE_FIELDS so it cannot fall out of step with the allow-list.

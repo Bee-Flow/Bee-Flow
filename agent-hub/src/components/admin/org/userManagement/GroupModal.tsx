@@ -18,13 +18,15 @@ export interface GroupModalProps {
     roles: AdminRole[];
     isFullAdmin: boolean | undefined;
     currentUser?: AdminCurrentUser | null;
+    /** Self-hosted server: the per-member AI budget field is shown. */
+    isSelfHosted?: boolean;
     onSubmitAdd: () => void;
     onSubmitUpdate: () => void;
     t: TranslateFn;
 }
 
 export default function GroupModal({
-    open, onClose, showEditGroup, groupData, setGroupData, organizations, permissions, roles, isFullAdmin, currentUser, onSubmitAdd, onSubmitUpdate, t,
+    open, onClose, showEditGroup, groupData, setGroupData, organizations, permissions, roles, isFullAdmin, currentUser, isSelfHosted = false, onSubmitAdd, onSubmitUpdate, t,
 }: GroupModalProps) {
     return (
         <Modal
@@ -64,6 +66,7 @@ export default function GroupModal({
                 </div>
 
                 <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_description', 'Description')}</label><input type="text" value={groupData.description} onChange={e => setGroupData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.group_modal_desc_ph', 'Can edit agents')} /></div>
+                {isSelfHosted && <GroupCostLimitField value={groupData.perUserCostLimit} onChange={v => setGroupData(p => ({ ...p, perUserCostLimit: v }))} t={t} />}
                 <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.group_modal_permissions', 'Permissions')}</label>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto p-2 rounded border border-[var(--border-subtle)]">
                         {permissions.filter(p => isFullAdmin || (currentUser?.permissions || []).includes(p.id)).map(p => (
@@ -97,5 +100,26 @@ export default function GroupModal({
                 </div>
             </div>
         </Modal>
+    );
+}
+
+/** Self-hosted only: the AI budget EVERY member of the group gets for themselves. */
+function GroupCostLimitField({ value, onChange, t }: { value: string; onChange: (value: string) => void; t: TranslateFn }) {
+    return (
+        <div>
+            <label htmlFor="group-per-user-cost-limit" className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_cost_limit', 'AI budget per member per month (€)')}</label>
+            <input
+                id="group-per-user-cost-limit"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
+                placeholder={t('admin_org.cost_limit_placeholder', 'No limit')}
+            />
+            <p className="text-xs mt-1 text-[var(--text-muted)]">{t('admin_org.group_modal_cost_limit_hint', "Every member of this group gets this amount for themselves; it is not shared between them. A member's own budget takes precedence. Leave empty for no limit.")}</p>
+        </div>
     );
 }

@@ -19,6 +19,7 @@ async function getAllGroups() {
         allowedTiers: parseJSON(g.allowedTiers, []),
         disabled_integrations: parseJSON(g.disabled_integrations, []),
         granted_capabilities: parseJSON(g.granted_capabilities, []),
+        perUserCostLimit: g.per_user_cost_limit ?? null,
     }));
 }
 
@@ -44,12 +45,34 @@ async function getGroup(groupId) {
         allowedTiers: parseJSON(g.allowedTiers, []),
         disabled_integrations: parseJSON(g.disabled_integrations, []),
         granted_capabilities: parseJSON(g.granted_capabilities, []),
+        perUserCostLimit: g.per_user_cost_limit ?? null,
     };
+}
+
+/**
+ * What the self-hosted monthly AI budget needs for one user: their own limit
+ * and the per-member limit of every group they belong to (groups without a
+ * limit are left out). `core/entitlements/costLimit.mts` picks the winner.
+ * @param {string} userId
+ * @returns {Promise<{ userLimit: number | null, groupLimits: number[] }>}
+ */
+async function getCostLimitInputs(userId) {
+    await initDB();
+    const u = await getOne('SELECT monthly_cost_limit, groups FROM users WHERE id = $1', [userId]);
+    if (!u) return { userLimit: null, groupLimits: [] };
+    /** @type {string[]} */
+    const groupIds = parseJSON(u.groups, []);
+    let groupLimits = [];
+    if (Array.isArray(groupIds) && groupIds.length > 0) {
+        const rows = await getAll('SELECT per_user_cost_limit FROM groups WHERE id = ANY($1) AND per_user_cost_limit IS NOT NULL', [groupIds]);
+        groupLimits = rows.map(r => Number(r.per_user_cost_limit));
+    }
+    return { userLimit: u.monthly_cost_limit ?? null, groupLimits };
 }
 
 async function createGroup(groupData) {
     await initDB();
-    const { id, organizationId, name, description, permissions, roles, allowedAgentTypes, azureGroupId, azureTenantId, source, lastSyncedAt, orgRole } = groupData;
+    const { id, organizationId, name, description, permissions, roles, allowedAgentTypes, azureGroupId, azureTenantId, source, lastSyncedAt, orgRole, perUserCostLimit } = groupData;
     const ex = await getOne('SELECT id FROM groups WHERE id = $1', [id]);
     if (ex) return false;
     try {
@@ -57,8 +80,8 @@ async function createGroup(groupData) {
         // immediately have a sensible role baseline. The legacy default of
         // '' meant org-admins had to manually pick a role for every synced
         // group before users in those groups could do anything.
-        await run('INSERT INTO groups (id, "organizationId", name, description, permissions, roles, "userCount", "allowedAgentTypes", "azureGroupId", "source", "lastSyncedAt", "orgRole", "azureTenantId") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
-            [id, organizationId || null, name, description || '', JSON.stringify(permissions || []), JSON.stringify(roles || []), 0, JSON.stringify(allowedAgentTypes || []), azureGroupId || null, source || 'manual', lastSyncedAt || null, orgRole || 'member', azureTenantId || null]);
+        await run('INSERT INTO groups (id, "organizationId", name, description, permissions, roles, "userCount", "allowedAgentTypes", "azureGroupId", "source", "lastSyncedAt", "orgRole", "azureTenantId", "per_user_cost_limit") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
+            [id, organizationId || null, name, description || '', JSON.stringify(permissions || []), JSON.stringify(roles || []), 0, JSON.stringify(allowedAgentTypes || []), azureGroupId || null, source || 'manual', lastSyncedAt || null, orgRole || 'member', azureTenantId || null, perUserCostLimit ?? null]);
         return true;
     } catch (e) { log.error(e); return false; }
 }
@@ -76,8 +99,9 @@ async function updateGroup(groupId, updates) {
     if (updates.allowedAgentTypes !== undefined) updateMap.allowedAgentTypes = JSON.stringify(updates.allowedAgentTypes);
     if (updates.allowedTiers !== undefined) updateMap.allowedTiers = JSON.stringify(updates.allowedTiers);
     if (updates.disabledIntegrations !== undefined) updateMap.disabledIntegrations = JSON.stringify(updates.disabledIntegrations);
+    if (updates.perUserCostLimit !== undefined) updateMap.perUserCostLimit = updates.perUserCostLimit;
     if (updates.grantedCapabilities !== undefined) updateMap.grantedCapabilities = JSON.stringify(updates.grantedCapabilities);
-    const fullColMap = { ...colMap, organizationId: 'organizationId', permissions: 'permissions', roles: 'roles', allowedAgentTypes: 'allowedAgentTypes', allowedTiers: 'allowedTiers', disabledIntegrations: 'disabled_integrations', grantedCapabilities: 'granted_capabilities' };
+    const fullColMap = { ...colMap, organizationId: 'organizationId', permissions: 'permissions', roles: 'roles', allowedAgentTypes: 'allowedAgentTypes', allowedTiers: 'allowedTiers', disabledIntegrations: 'disabled_integrations', grantedCapabilities: 'granted_capabilities', perUserCostLimit: 'per_user_cost_limit' };
     try {
         const q = dynamicUpdate('groups', groupId, updateMap, fullColMap);
         if (q) await run(q.sql, q.params);
@@ -153,5 +177,5 @@ async function initDefaultGroups() {
 initDefaultGroups().catch(err => log.error('[UserStore] initDefaultGroups error:', err.message));
 
 module.exports = {
-    getAllGroups, getGroup, createGroup, updateGroup, deleteGroup, getGroupByAzureId, getUserByAzureId,
+    getAllGroups, getGroup, getCostLimitInputs, createGroup, updateGroup, deleteGroup, getGroupByAzureId, getUserByAzureId,
 };

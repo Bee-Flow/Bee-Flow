@@ -3,10 +3,36 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import type { AdminGroup, AdminMessage, AskConfirm, GroupFormData } from './types';
+import { costLimitToInput, parseCostLimitInput } from './costLimitInput';
 
 const EMPTY_GROUP: GroupFormData = {
-    id: '', name: '', description: '', permissions: [], roles: [], organizationId: '', allowedAgentTypes: [],
+    id: '', name: '', description: '', permissions: [], roles: [], organizationId: '', allowedAgentTypes: [], perUserCostLimit: '',
 };
+
+function groupToForm(group: AdminGroup): GroupFormData {
+    return {
+        id: group.id,
+        name: group.name || '',
+        description: group.description || '',
+        permissions: group.permissions || [],
+        roles: group.roles || [],
+        organizationId: group.organizationId || '',
+        allowedAgentTypes: group.allowedAgentTypes || [],
+        perUserCostLimit: costLimitToInput(group.perUserCostLimit),
+    };
+}
+
+/**
+ * The request body: the form, with the budget as a number (self-hosted) or left out.
+ * An unusable budget text is reported in the status line and gives null.
+ */
+function requestBody({ perUserCostLimit: typed, ...rest }: GroupFormData, isSelfHosted: boolean, setMessage: Dispatch<SetStateAction<AdminMessage | null>>, t: TranslateFn) {
+    if (!isSelfHosted) return rest;
+    const parsed = parseCostLimitInput(typed);
+    if (parsed !== undefined) return { ...rest, perUserCostLimit: parsed };
+    setMessage({ type: 'error', text: t('admin_org.cost_limit_invalid', 'Enter a budget above zero, or leave the field empty.') });
+    return null;
+}
 
 export interface GroupActions {
     groupData: GroupFormData;
@@ -26,9 +52,11 @@ export interface UseGroupActionsOptions {
     setMessage: Dispatch<SetStateAction<AdminMessage | null>>;
     askConfirm: AskConfirm;
     t: TranslateFn;
+    /** The per-member AI budget only exists on a self-hosted server. */
+    isSelfHosted?: boolean;
 }
 
-export default function useGroupActions({ loadData, setMessage, askConfirm, t }: UseGroupActionsOptions): GroupActions {
+export default function useGroupActions({ loadData, setMessage, askConfirm, t, isSelfHosted = false }: UseGroupActionsOptions): GroupActions {
     const [showAddGroup, setShowAddGroup] = useState(false);
     const [showEditGroup, setShowEditGroup] = useState(false);
     const [groupData, setGroupData] = useState<GroupFormData>(EMPTY_GROUP);
@@ -41,24 +69,18 @@ export default function useGroupActions({ loadData, setMessage, askConfirm, t }:
     };
 
     const openEditGroup = (group: AdminGroup) => {
-        setGroupData({
-            id: group.id,
-            name: group.name || '',
-            description: group.description || '',
-            permissions: group.permissions || [],
-            roles: group.roles || [],
-            organizationId: group.organizationId || '',
-            allowedAgentTypes: group.allowedAgentTypes || [],
-        });
+        setGroupData(groupToForm(group));
         setShowEditGroup(true);
     };
 
     const handleAddGroup = async () => {
         if (!groupData.name) return;
+        const body = requestBody(groupData, isSelfHosted, setMessage, t);
+        if (!body) return;
         try {
             const res = await authFetch(`${API_BASE}/auth/groups`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(groupData),
+                body: JSON.stringify(body),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Group created successfully' });
@@ -72,10 +94,12 @@ export default function useGroupActions({ loadData, setMessage, askConfirm, t }:
     };
 
     const handleUpdateGroup = async () => {
+        const body = requestBody(groupData, isSelfHosted, setMessage, t);
+        if (!body) return;
         try {
             const res = await authFetch(`${API_BASE}/auth/groups/${groupData.id}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(groupData),
+                body: JSON.stringify(body),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Group updated successfully' });

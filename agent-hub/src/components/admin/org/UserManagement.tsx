@@ -18,6 +18,7 @@ import useRoleActions from './userManagement/useRoleActions';
 import useUserActions from './userManagement/useUserActions';
 import useUserManagementData, { type UserManagementData } from './userManagement/useUserManagementData';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
 
@@ -71,8 +72,9 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     // the org-actions hook, which seeds its form from it.
     const myOrg = organizations.find(o => userOrgIds.includes(o.id));
 
-    const userActions = useUserActions({ loadData, setMessage, askConfirm, t });
-    const groupActions = useGroupActions({ loadData, setMessage, askConfirm, t });
+    const { isSelfHosted } = useDeploymentMode();
+    const userActions = useUserActions({ loadData, setMessage, askConfirm, t, isSelfHosted });
+    const groupActions = useGroupActions({ loadData, setMessage, askConfirm, t, isSelfHosted });
     const roleActions = useRoleActions({ loadData, setMessage, askConfirm, t });
     const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg });
 
@@ -235,6 +237,7 @@ function UserManagementModals({
     userActions, orgActions, groupActions, roleActions, groups, organizations, permissions, roles,
     isFullAdmin, isPlatformAdmin, currentUser, t,
 }: UserManagementModalsProps) {
+    const { isSelfHosted } = useDeploymentMode();
     return (
         <>
         <UserModal
@@ -248,6 +251,7 @@ function UserManagementModals({
             groups={groups}
             organizations={organizations}
             isPlatformAdmin={isPlatformAdmin}
+            isSelfHosted={isSelfHosted}
             onSubmitAdd={userActions.handleAddUser}
             onSubmitUpdate={userActions.handleUpdateUser}
             onUploadAvatar={userActions.handleAvatarUpload}
@@ -281,6 +285,7 @@ function UserManagementModals({
             roles={roles}
             isFullAdmin={isFullAdmin}
             currentUser={currentUser}
+            isSelfHosted={isSelfHosted}
             onSubmitAdd={groupActions.handleAddGroup}
             onSubmitUpdate={groupActions.handleUpdateGroup}
             t={t}

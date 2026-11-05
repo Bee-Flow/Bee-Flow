@@ -20,6 +20,7 @@ const orgHealth = require('../../services/orgHealth');
 const log = require('../../telemetry/log');
 const { unavailable } = require('../../shared/httpErrors');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { checkSelfHostedUserLimit } = require('./selfHostedBudget.mts');
 
 // One-shot 80 %-of-cap notification. Sends a single email to the org's
 // admin(s) per billing period. Idempotency is enforced via the
@@ -163,11 +164,12 @@ async function checkConsumerResourceLimits(userId, resourceType, currentCount) {
  * @returns {Promise<string|null>} Error message if limit exceeded, null otherwise
  */
 async function checkSubscriptionLimits(orgId, agentType, userId = null) {
-    // Self-hosted installs don't have Stripe-backed subscriptions. Any non-cloud
-    // mode (self-hosted; the retired 'private-cloud' value belongs here too)
-    // skips the whole limit-check stack so a misconfigured DEPLOYMENT_MODE can't
-    // silently activate cloud billing on a self-hosted server.
-    if ((process.env.DEPLOYMENT_MODE || 'cloud') !== 'cloud') return null;
+    // No Stripe subscriptions off the cloud: every non-cloud mode (the retired
+    // 'private-cloud' too) skips the limit stack, so a misconfigured
+    // DEPLOYMENT_MODE can't activate cloud billing. Self-hosted only checks the
+    // per-user AI budget (selfHostedBudget.js).
+    const mode = process.env.DEPLOYMENT_MODE || 'cloud';
+    if (mode !== 'cloud') return mode === 'self-hosted' && userId ? checkSelfHostedUserLimit(userId) : null;
 
     // A server-wide licence makes the entire install run at the licence tier
     // — every org/user is covered by it, so no Stripe subscription is needed.

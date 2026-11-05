@@ -15,6 +15,10 @@ import { asMock } from '@/test/mocks';
  * the swap is safe to make in a 1200-line file with no prior coverage.
  */
 
+const mode = vi.hoisted(() => ({ selfHosted: false }));
+vi.mock('@/hooks/useDeploymentMode', () => ({
+    useDeploymentMode: () => ({ mode: mode.selfHosted ? 'self-hosted' : 'cloud', isCloud: !mode.selfHosted, isSelfHosted: mode.selfHosted }),
+}));
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
@@ -45,6 +49,7 @@ const renderPanel = async () => {
 describe('UserManagement — modals and confirmations', () => {
     beforeEach(() => {
         cleanup();
+        mode.selfHosted = false;
         asMock(authFetch).mockReset();
         asMock(authFetch).mockImplementation((url: string) => {
             const hit = Object.keys(FIXTURES).find((p) => url === p);
@@ -160,5 +165,67 @@ describe('UserManagement — modals and confirmations', () => {
         await screen.findByRole('dialog');
         expect(confirmSpy).not.toHaveBeenCalled();
         confirmSpy.mockRestore();
+    });
+});
+
+describe('UserManagement: user monthly AI budget (self-hosted)', () => {
+    const putCall = () => asMock(authFetch).mock.calls.find(([, init]) => init?.method === 'PUT');
+    const saved = async (user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) => {
+        await user.click(within(dialog).getByText('Save'));
+        await waitFor(() => expect(putCall()).toBeDefined());
+        return JSON.parse(putCall()![1].body);
+    };
+
+    beforeEach(() => {
+        cleanup();
+        mode.selfHosted = true;
+        asMock(authFetch).mockReset();
+        asMock(authFetch).mockImplementation((url: string, init?: { method?: string }) => {
+            if (init?.method === 'PUT') return jsonRes({ success: true });
+            if (url === '/auth/users') return jsonRes([{ ...JAN, monthlyCostLimit: 12.5 }]);
+            return jsonRes(FIXTURES[url] ?? {});
+        });
+    });
+
+    const openEdit = async () => {
+        const user = userEvent.setup();
+        await renderPanel();
+        await user.click(screen.getByLabelText('Edit Jan de Vries'));
+        return { user, dialog: await screen.findByRole('dialog') };
+    };
+
+    it('shows the field with the stored amount', async () => {
+        const { dialog } = await openEdit();
+        expect(within(dialog).getByLabelText('Monthly AI budget (€)')).toHaveValue(12.5);
+    });
+
+    it('hides the field outside self-hosted mode and does not send it', async () => {
+        mode.selfHosted = false;
+        const { user, dialog } = await openEdit();
+        expect(within(dialog).queryByLabelText('Monthly AI budget (€)')).not.toBeInTheDocument();
+        expect(await saved(user, dialog)).not.toHaveProperty('monthlyCostLimit');
+    });
+
+    it('sends the amount as a number', async () => {
+        const { user, dialog } = await openEdit();
+        const field = within(dialog).getByLabelText('Monthly AI budget (€)');
+        await user.clear(field);
+        await user.type(field, '30');
+        expect((await saved(user, dialog)).monthlyCostLimit).toBe(30);
+    });
+
+    it('sends null when the field is emptied', async () => {
+        const { user, dialog } = await openEdit();
+        await user.clear(within(dialog).getByLabelText('Monthly AI budget (€)'));
+        expect((await saved(user, dialog)).monthlyCostLimit).toBeNull();
+    });
+
+    it('refuses zero without calling the server', async () => {
+        const { user, dialog } = await openEdit();
+        const field = within(dialog).getByLabelText('Monthly AI budget (€)');
+        await user.clear(field);
+        await user.type(field, '0');
+        await user.click(within(dialog).getByText('Save'));
+        expect(putCall()).toBeUndefined();
     });
 });
