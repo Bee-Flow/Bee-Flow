@@ -194,6 +194,19 @@ const AGENT_SYSTEM = 'You are Bee Flow, an assistant working inside the user\'s 
     + `${LANGUAGE_RULE}`;
 
 /**
+ * One usage row per model call of the Nextcloud assistant (source
+ * `nextcloud_assistant`): the linked Bee Flow user, the organisation, the
+ * model and the tokens the provider reported (core/llm/surfaceUsage.js).
+ * @param {{ userId: string | null, org: { id?: string } | null | undefined, modelId: string, completion: unknown, startedAt: number }} call
+ */
+function meterAssistantCall({ userId, org, modelId, completion, startedAt }) {
+    const usage = completion && typeof completion === 'object' ? /** @type {{ usage?: unknown }} */ (completion).usage : null;
+    require('../core/llm/surfaceUsage').logSurfaceUsage({
+        source: 'nextcloud_assistant', userId, orgId: org?.id || null, model: modelId, usage, startedAt,
+    });
+}
+
+/**
  * Run one agent turn.
  *
  * READ-ONLY TOOLS ONLY, and this is a deliberate safety bound rather than an
@@ -276,7 +289,9 @@ async function runAgentTurn({ input, org, user, ncUid }) {
     for (let step = 0; step < AGENT_MAX_STEPS; step++) {
         // Capped: each step of this loop is a full prompt evaluation on the
         // provider, and a tool-calling round never needs more than this.
+        const startedAt = Date.now();
         const completion = await llmClient.chat(modelId, messages, { stream: false, tools, maxTokens: 4096 });
+        meterAssistantCall({ userId, org, modelId, completion, startedAt });
         const calls = completion?.toolCalls || completion?.tool_calls || [];
         const text = typeof completion === 'string'
             ? completion
@@ -433,6 +448,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
     });
 
     const llmClient = require('../core/llm/llmClient');
+    const startedAt = Date.now();
     const completion = await llmClient.chat(modelId, messages, {
         // Task Processing is a background API — nothing is streaming this
         // to a browser, and Nextcloud wants the whole answer in one reply.
@@ -440,6 +456,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
         // Bounded so one runaway generation cannot hold a self-hosted slot.
         maxTokens: 8192,
     });
+    meterAssistantCall({ userId: user?.id || null, org, modelId, completion, startedAt });
 
     const text = typeof completion === 'string'
         ? completion
@@ -449,7 +466,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
     return res.json({ output: { output: text } });
 });
 
-module.exports = Object.assign(router, { HANDLERS, AGENT_TASK_TYPE, runAgentTurn, LANGUAGE_RULE });
+module.exports = Object.assign(router, { HANDLERS, AGENT_TASK_TYPE, runAgentTurn, LANGUAGE_RULE, meterAssistantCall });
 
 /** @typedef {Record<string, unknown>} TaskInput  the task input object Nextcloud sent (ExecuteBody.input) */
 

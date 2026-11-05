@@ -9,6 +9,7 @@
  */
 
 const llmClient = require('../llm/llmClient');
+const { logSurfaceUsage } = require('../llm/surfaceUsage');
 const {
     formatTime,
     artifactsUsable,
@@ -78,22 +79,52 @@ async function resolveFastModel(userOrgId = null) {
     }
 }
 /**
+ * The usage meta of one step: its source, the organisation and, when the
+ * caller named one, the meeting's owner.
+ * @param {string} source
+ * @param {string | null | undefined} orgId
+ * @param {{ userId?: string | null } | null | undefined} opts
+ */
+function meetingMeta(source, orgId, opts) {
+    return { source, orgId: orgId ?? null, userId: opts?.userId ?? null };
+}
+
+/**
+ * llmClient.chat with one ledger row for the call (core/llm/surfaceUsage.js):
+ * the meeting's owner when the caller names them, the organisation, the
+ * source (`meeting_summary` or `meeting_actions`), the model and the tokens.
+ * @param {{ source: string, orgId?: string | null, userId?: string | null }} meta
+ * @param {string} modelId
+ * @param {any[]} messages
+ * @param {Record<string, unknown>} options
+ */
+async function meteredChat(meta, modelId, messages, options) {
+    const startedAt = Date.now();
+    const result = await llmClient.chat(modelId, messages, options);
+    logSurfaceUsage({ source: meta.source, userId: meta.userId, orgId: meta.orgId, model: modelId, usage: result?.usage, startedAt });
+    return result;
+}
+
+/**
  * Generate a structured meeting summary using the smart-tier LLM.
  *
  * When `opts.templatePrompt` is supplied (a user's/org's default summary
  * template), it drives the output using the same construction the Regenerate
  * route uses, so a saved default styles new meetings too. Without one, the
  * built-in localized prompt below runs — no behaviour change.
+ * `opts.userId` (the meeting's owner) is who the usage row names.
  * @param {string | null} [userOrgId]
+ * @param {{ templatePrompt?: string | null, userId?: string | null }} [opts]
  */
 async function generateMeetingSummary(transcript, language, userOrgId = null, opts = {}) {
     const { templatePrompt = null } = opts || {};
+    const meta = meetingMeta('meeting_summary', userOrgId, opts);
     try {
         const modelId = await resolveSmartModel(userOrgId);
         const langName = LANG_NAMES[language] || language;
 
         if (templatePrompt) {
-            const result = await llmClient.chat(modelId, [
+            const result = await meteredChat(meta, modelId, [
                 { role: 'system', content: buildSummarySystemPrompt(templatePrompt, language) },
                 { role: 'user', content: transcript },
             ], { maxTokens: SUMMARY_MAX_TOKENS, temperature: 0.3, timeoutMs: MEETING_LLM_TIMEOUT_MS });
@@ -114,7 +145,7 @@ async function generateMeetingSummary(transcript, language, userOrgId = null, op
         };
         const h = HEADERS[language] || HEADERS.en;
 
-        const result = await llmClient.chat(modelId, [
+        const result = await meteredChat(meta, modelId, [
             {
                 role: 'system',
                 content: `You are a meeting assistant. Create a concise, well-structured summary of the meeting transcript. Write the entire summary in ${langName} — do not mix languages.
@@ -155,13 +186,15 @@ Keep it concise and actionable. Skip empty sections rather than writing "none".`
 
 /**
  * Generate a short, descriptive meeting title using the fast-tier LLM.
+ * @param {{ userId?: string | null }} [opts] the meeting's owner, for the usage row
  */
-async function generateMeetingTitle(summary, language, userOrgId = null) {
+async function generateMeetingTitle(summary, language, userOrgId = null, opts) {
+    const meta = meetingMeta('meeting_summary', userOrgId, opts);
     try {
         const modelId = await resolveFastModel(userOrgId);
         const langName = LANG_NAMES[language] || language;
 
-        const result = await llmClient.chat(modelId, [
+        const result = await meteredChat(meta, modelId, [
             { role: 'system', content: `Generate a short, descriptive title (max 8 words) for this meeting based on the summary. Write in ${langName}. Return ONLY the title, nothing else. No quotes, no prefixes.` },
             { role: 'user', content: summary.substring(0, 1000) },
         ], { maxTokens: 50, temperature: 0, timeoutMs: MEETING_LLM_TIMEOUT_MS });
@@ -266,7 +299,8 @@ function sanitizeTags(raw, personNames = []) {
  *   pass is ARTIFACTS_FAILED and has none. See transcriptArtifacts.js for why the distinction lies in the
  *   value and not in a separate flag beside it; `artifactsUsable` is the question that every writer asks.
  */
-async function extractMeetingArtifacts(transcript, language, userOrgId = null, { meetingDateIso = null, personNames = [] } = {}) {
+async function extractMeetingArtifacts(transcript, language, userOrgId = null, { meetingDateIso = null, personNames = [], userId } = {}) {
+    const meta = meetingMeta('meeting_actions', userOrgId, { userId });
     try {
         const modelId = await resolveSmartModel(userOrgId);
         const langName = LANG_NAMES[language] || language;
@@ -278,7 +312,7 @@ Voorbeelden van Nederlandse actiepunten:
 - "Tom belt klant volgende week maandag" → text: "Klant bellen", assignee: "Tom", timestamp: "12:30"
 - "Sandra stuurt het rapport voor vrijdag op" → text: "Rapport opsturen", assignee: "Sandra", timestamp: "08:15"` : '';
 
-        const result = await llmClient.chat(modelId, [
+        const result = await meteredChat(meta, modelId, [
             {
                 role: 'system',
                 content: `You are a meeting analyst. Extract the structured artifacts from the meeting transcript.
@@ -417,13 +451,15 @@ async function extractActionItems(transcript, language, userOrgId = null) {
  * timestamp must disappear, not masquerade as a moment at 0:00).
  * @param {string} transcript
  * @param {string | null} [userOrgId]
+ * @param {{ userId?: string | null }} [opts] the meeting's owner, for the usage row
  */
-async function generateChapters(transcript, language, userOrgId = null) {
+async function generateChapters(transcript, language, userOrgId = null, opts) {
+    const meta = meetingMeta('meeting_summary', userOrgId, opts);
     try {
         const modelId = await resolveSmartModel(userOrgId);
         const langName = LANG_NAMES[language] || language;
 
-        const result = await llmClient.chat(modelId, [
+        const result = await meteredChat(meta, modelId, [
             {
                 role: 'system',
                 content: `You are a meeting analyst. Divide the transcript into 4-10 chapters — the natural topic sections of the meeting.
@@ -517,9 +553,11 @@ const SPEAKER_SUMMARY_MAX_CHARS = 800;
  * @param {Array<string>} speakerIds  Display names exactly as stored on speakers[].
  * @param {string} language
  * @param {string|null} userOrgId
+ * @param {{ userId?: string | null }} [opts] the meeting's owner, for the usage row
  * @returns {Promise<Record<string, string>>} speakerId → prose. `{}` on any failure.
  */
-async function generateSpeakerSummaries(transcript, speakerIds, language, userOrgId = null) {
+async function generateSpeakerSummaries(transcript, speakerIds, language, userOrgId = null, opts) {
+    const meta = meetingMeta('meeting_summary', userOrgId, opts);
     const names = (Array.isArray(speakerIds) ? speakerIds : [])
         .map(id => String(id || '').trim())
         .filter(Boolean);
@@ -529,7 +567,7 @@ async function generateSpeakerSummaries(transcript, speakerIds, language, userOr
         const modelId = await resolveSmartModel(userOrgId);
         const langName = LANG_NAMES[language] || language;
 
-        const result = await llmClient.chat(modelId, [
+        const result = await meteredChat(meta, modelId, [
             {
                 role: 'system',
                 content: `You are a meeting analyst. For each participant listed by the user, describe what THAT PERSON contributed to the meeting: the points they raised, the positions they took, the questions they asked, and anything they took on.

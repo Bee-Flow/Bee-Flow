@@ -52,7 +52,7 @@ async function resolveTitleModel({ titleAgent, tiers, modelId, adapter, apiKey, 
 }
 
 /** Generate and store the title; on failure fall back to "New Chat" so the sidebar isn't blank. */
-async function generateTitle({ convId, userId, savedMessages, send, ...modelCtx }) {
+async function generateTitle({ convId, userId, userOrgId, savedMessages, send, ...modelCtx }) {
     try {
         const llmClient = require('../../../core/llm/llmClient');
         const titleAgent = await agentStore.getSystemAgent('system-title-generator');
@@ -61,12 +61,19 @@ async function generateTitle({ convId, userId, savedMessages, send, ...modelCtx 
         const transcript = buildTitleTranscript(savedMessages);
         if (transcript && transcript.trim()) {
             log.info(`[DirectChat] Title: generating with model=${provider.modelId}`);
+            const startedAt = Date.now();
             const title = await llmClient.generateTitleWithProvider(
                 provider,
                 transcript,
                 titleAgent?.system_prompt,
                 { maxInputChars: 1600 },
             );
+            // The title call is a model call too (source chat_title). The
+            // provider path hands back the title only, so the row carries the
+            // model and zero tokens: it still says the call happened.
+            require('../../../core/llm/surfaceUsage').logSurfaceUsage({
+                source: 'chat_title', userId, orgId: userOrgId, model: provider.modelId, startedAt, conversationId: convId,
+            });
             // The title is an encryption surface (CONVERSATION_TITLE): its length only.
             log.info(`[DirectChat] Title generated (${String(title).length} chars) for conv ${convId}`);
             await agentStore.updateDirectConversationTitle(convId, title, userId);
@@ -90,13 +97,13 @@ async function generateTitle({ convId, userId, savedMessages, send, ...modelCtx 
  * generation promise, or null. Wrapped in an object so awaiting this
  * function never waits for the title itself.
  */
-async function scheduleTitle({ conv, savedMessages, moderationViolation, convId, userId, send, tiers, modelId, adapter, apiKey, apiUrl }) {
+async function scheduleTitle({ conv, savedMessages, moderationViolation, convId, userId, userOrgId, send, tiers, modelId, adapter, apiKey, apiUrl }) {
     const assistantReplies = savedMessages.filter(m => m && m.role === 'assistant').length;
     const titleIsPlaceholder = !conv.title || !String(conv.title).trim() || /^new chat$/i.test(String(conv.title).trim());
     log.info(`[DirectChat] Title check: assistantReplies=${assistantReplies}, hasTitle=${!!conv.title}, placeholder=${titleIsPlaceholder}, moderationViolation=${!!moderationViolation}`);
     if (!(assistantReplies >= 1 && titleIsPlaceholder)) return { pendingTitle: null };
     if (!moderationViolation) {
-        return { pendingTitle: generateTitle({ convId, userId, savedMessages, send, tiers, modelId, adapter, apiKey, apiUrl }) };
+        return { pendingTitle: generateTitle({ convId, userId, userOrgId, savedMessages, send, tiers, modelId, adapter, apiKey, apiUrl }) };
     }
     // Moderation violation on a still-unnamed chat: safe generic title.
     const safeTitle = 'New Chat';

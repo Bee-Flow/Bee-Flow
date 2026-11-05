@@ -68,9 +68,13 @@ stub('../llm/modelResolver', {
     },
 });
 
+// The ledger sink (core/llm/surfaceUsage.js): every model call writes a row.
+const usageRows = [];
+stub('../../stores/usageStore', { logUsage: async (row) => { usageRows.push(row); } });
 
 const {
     resolveSmartModel, generateChapters, extractMeetingArtifacts, generateSpeakerSummaries,
+    generateMeetingSummary, generateMeetingTitle,
 } = require('./summaryLlm');
 const { applySpeakerSummaries, artifactsUsable, ARTIFACTS_FAILED } = require('./transcriptArtifacts');
 
@@ -326,4 +330,32 @@ test('generateChapters distributes titled chapters evenly when every timestamp i
     assert.strictEqual(chapters[0].summary, 'sa');
     assert.strictEqual(chapters[1].summary, 'sb');
     assert.ok(!('summary' in chapters[2]));
+});
+
+// ── The usage ledger ─────────────────────────────────────────────────
+
+test('every meeting LLM step writes a usage row: owner, org, source, model', async () => {
+    const { areaOf } = require('../../shared/usageAreas');
+    usageRows.length = 0;
+    await generateMeetingSummary('A: hello', 'en', 'org-1', { userId: 'u1' });
+    await generateMeetingTitle('A summary', 'en', 'org-1', { userId: 'u1' });
+    await extractMeetingArtifacts('A: hello', 'en', 'org-1', { userId: 'u1' });
+    await generateChapters('A: hello', 'en', 'org-1', { userId: 'u1' });
+    await generateSpeakerSummaries('A: hello', ['A'], 'en', 'org-1', { userId: 'u1' });
+    assert.deepStrictEqual(usageRows.map((r) => r.source),
+        ['meeting_summary', 'meeting_summary', 'meeting_actions', 'meeting_summary', 'meeting_summary']);
+    for (const row of usageRows) {
+        assert.strictEqual(row.user_id, 'u1');
+        assert.strictEqual(row.organization_id, 'org-1');
+        assert.ok(row.model, 'the model is named');
+        assert.strictEqual(row.prompt_tokens, 0, 'a reply without usage is a zero-token row, not no row');
+        assert.notStrictEqual(areaOf(row.source), 'other');
+    }
+});
+
+test('a caller that names no owner still logs the organisation', async () => {
+    usageRows.length = 0;
+    await generateChapters('A: hello', 'en', 'org-1');
+    assert.strictEqual(usageRows[0].user_id, null);
+    assert.strictEqual(usageRows[0].organization_id, 'org-1');
 });
