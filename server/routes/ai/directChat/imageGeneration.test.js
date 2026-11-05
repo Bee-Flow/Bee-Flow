@@ -25,7 +25,9 @@ stub('../../../core/providers', {
     },
 });
 stub('../../../auth/permissions', { requireAuth: (req, res, next) => next() });
-stub('../../../stores/usageStore', { logUsage: async () => {} });
+const usageRows = [];
+stub('../../../stores/usageStore', { logUsage: async (row) => { usageRows.push(row); } });
+stub('../../../auth', { resolveUserOrgIds: async () => new Set(['org-1']) });
 
 const router = require('./imageGeneration');
 // A schema refusal travels as an error to the terminal handler, so the
@@ -68,4 +70,18 @@ test('a missing prompt is a 400, not a call', async () => {
     const res = await dispatch({});
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(calls.length, 0);
+});
+
+test('the image is billed to the signed-in user and their organisation, in the conversation', async () => {
+    usageRows.length = 0;
+    const res = await dispatch({ prompt: 'a bee', conversationId: 'conv-1' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(usageRows.length, 1);
+    const row = usageRows[0];
+    assert.strictEqual(row.user_id, 'u1');
+    assert.strictEqual(row.organization_id, 'org-1');
+    assert.strictEqual(row.conversation_id, 'conv-1');
+    assert.strictEqual(row.agent_id, null);
+    assert.strictEqual(row.agent_name, 'direct-chat');
+    assert.notStrictEqual(require('../../../shared/usageAreas').areaOf(row.source), 'other');
 });

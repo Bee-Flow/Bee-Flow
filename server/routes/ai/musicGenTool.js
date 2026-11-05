@@ -11,6 +11,7 @@ const path = require('path');
 const configStore = require('../../stores/configStore');
 const { googleAdapter } = require('../../core/providers');
 const log = require('../../telemetry/log');
+const { mediaUsageFields } = require('../../core/tools/mediaUsage');
 
 const MUSIC_GEN_TOOLS = [
     {
@@ -52,8 +53,9 @@ function isMusicGenTool(name) {
  * @param {(arg0: string, arg1: { data: string; mimeType: string; }) => void} send
  * @param {import('express').Request} req
  * @param {{ lyria?: { bpm?: number, durationSeconds?: number, density?: number, brightness?: number, guidance?: number, mode?: string, muteBass?: boolean, muteDrums?: boolean } } | null} nanoBananaSettings
+ * @param {import('../../core/tools/mediaUsage').MediaCaller | null} [caller] the dispatch context: who and which agent/conversation
  */
-async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
+async function executeMusicGenTool(args, send, req, nanoBananaSettings, caller = null) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
         return { error: 'Google API key not configured. Add it in Admin → AI Config → API Keys.' };
@@ -117,8 +119,7 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
     try {
         const usageStore = require('../../stores/usageStore');
         await usageStore.logUsage({
-            agent_id: null,
-            agent_name: 'direct-chat',
+            ...mediaUsageFields(req, caller),
             model: 'lyria-realtime-exp',
             prompt_tokens: prompt.length,
             completion_tokens: 0,

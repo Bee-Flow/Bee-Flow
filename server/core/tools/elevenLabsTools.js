@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const configStore = require('../../stores/configStore');
 const elevenlabsProvider = require('../providers/elevenlabs');
 const log = require('../../telemetry/log');
+const { mediaUsageFields } = require('./mediaUsage');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // ─── Tool Definitions ──────────────────────────────────────────
@@ -171,13 +172,13 @@ async function _saveAudioToStorage(buffer, ext, prefix, mimeType, userId) {
 /**
  * @param {string} source
  * @param {string} model
+ * @param {ReturnType<typeof mediaUsageFields>} who
  */
-function _logUsage(source, model, promptLen) {
+function _logUsage(source, model, promptLen, who) {
     try {
         const usageStore = require('../../stores/usageStore');
         usageStore.logUsage({
-            agent_id: null,
-            agent_name: 'direct-chat',
+            ...who,
             model,
             prompt_tokens: promptLen,
             completion_tokens: 0,
@@ -189,7 +190,22 @@ function _logUsage(source, model, promptLen) {
 
 // ─── Executor ───────────────────────────────────────────────────
 
-async function executeElevenLabsTool(toolName, toolArgs, send, /** @type {import('express').Request} */ req, nanoBananaSettings) {
+/**
+ * The tool dispatcher's entry point.
+ * @param {import('express').Request} req
+ */
+function executeElevenLabsTool(toolName, toolArgs, send, req, nanoBananaSettings) {
+    return runElevenLabsTool({ toolName, toolArgs, send, req, nanoBananaSettings });
+}
+
+/**
+ * Run one ElevenLabs tool. `caller` is the dispatch context (who, which
+ * agent and conversation) the usage row is billed to; without it the
+ * signed-in session on `req` is.
+ * @param {{ toolName: string, toolArgs: any, send: any, req: import('express').Request,
+ *   nanoBananaSettings: any, caller?: import('./mediaUsage').MediaCaller | null }} call
+ */
+async function runElevenLabsTool({ toolName, toolArgs, send, req, nanoBananaSettings, caller = null }) {
     const apiKey = await configStore.getSecret('elevenlabs_api_key');
     if (!apiKey) {
         return { error: 'ElevenLabs API key not configured. Add it in Admin → AI Config → API Keys.' };
@@ -273,7 +289,7 @@ async function executeElevenLabsTool(toolName, toolArgs, send, /** @type {import
     }
 
     // Log usage
-    _logUsage(source, model, (promptText || '').length);
+    _logUsage(source, model, (promptText || '').length, mediaUsageFields(req, caller));
 
     const typeLabel = toolName === 'elevenlabs_music' ? 'Song' : toolName === 'elevenlabs_tts' ? 'Speech' : 'Sound effect';
     return {
@@ -283,4 +299,4 @@ async function executeElevenLabsTool(toolName, toolArgs, send, /** @type {import
     };
 }
 
-module.exports = { ELEVENLABS_TOOLS, isElevenLabsTool, executeElevenLabsTool };
+module.exports = { ELEVENLABS_TOOLS, isElevenLabsTool, executeElevenLabsTool, runElevenLabsTool };

@@ -22,6 +22,8 @@ const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const { z, typeError } = require('../../../utils/zod');
 const { sessionUser } = require('../../../core/http/sessionUser');
+const { mediaUsageFields } = require('../../../core/tools/mediaUsage');
+const { resolveTurnOrgId } = require('./inputShield');
 
 const PROMPT_TEXT = 'Prompt is required';
 const RATIO_TEXT = "aspectRatio is width:height, like '1:1' or '16:9'.";
@@ -62,14 +64,12 @@ router.post('/chat/generate-image', requireAuth, imageGenLimiter, validate({ bod
     try {
         const usageStore = require('../../../stores/usageStore');
         await usageStore.logUsage({
-            agent_id: null,
-            agent_name: 'direct-chat',
+            ...mediaUsageFields(req, { userId, orgId: await resolveTurnOrgId(req), conversationId: conversationId || null }),
             model: 'gemini-3.1-flash-image-preview',
             prompt_tokens: prompt.length,
             completion_tokens: 0,
             total_tokens: prompt.length,
             source: 'image_generation',
-            conversation_id: conversationId || null,
         });
     } catch (e) {
         log.warn('[ImageGen] Failed to log usage:', e.message);
