@@ -83,7 +83,8 @@ const agentStore = require('../../stores/agentStore');
 const { requireAuth } = require('../../auth/permissions');
 const { bestEffort } = require('../../utils/bestEffort');
 const { createUsageAccumulator } = require('../../core/providers/usageNormalizer');
-const { logSurfaceUsage } = require('../../core/llm/surfaceUsage');
+// One usage row per voice turn (voiceUsage.js), re-exported on the router.
+const { meterVoiceTurn } = require('./voiceUsage');
 
 /**
  * @param {NextFunction} next
@@ -301,21 +302,6 @@ function summarizeToolResult(name, result) {
         if (Array.isArray(result[key])) return `${result[key].length} ${key}`;
     }
     return 'ok';
-}
-
-/**
- * One usage row per voice turn (source `voice`, core/llm/surfaceUsage.js): the
- * signed-in person, their organisation, the agent when one was chosen, the
- * model and the tokens of every round.
- * @param {import('express').Request<any, any, any, any>} req
- * @param {{ model: string, usage: unknown, startedAt: number, agentId: string | null }} turn
- */
-function meterVoiceTurn(req, { model, usage, startedAt, agentId }) {
-    const user = req.session?.user;
-    logSurfaceUsage({
-        source: 'voice', userId: user?.id || null, orgId: user?.organizationId || null,
-        agentId, model, usage, startedAt,
-    });
 }
 
 // ─── GET /ai/voice/availability ───────────────────────────────────
