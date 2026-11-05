@@ -601,6 +601,26 @@
       "references": [
         "https://security-tracker.debian.org/tracker/CVE-2026-119373"
       ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-11-05",
+      "expires": "2026-12-05",
+      "requiredUser": "node",
+      "id": "CVE-2026-76844",
+      "packages": [
+        "zlib1g"
+      ],
+      "versions": [
+        "1:1.3.dfsg+really1.3.1-1+b1"
+      ],
+      "reason": "Debian has not yet triaged this CVE for trixie (open, no fixed build, no no-dsa decision; sid has 1:1.3.dfsg+really1.3.2-4). The overflow is in zlib's gzFile write path (gz_write after a failed write()). Short expiry: revisit when Debian ships the trixie fix.",
+      "reachability": "The server process is the official Node 22 binary, which links its own bundled zlib (node_shared_zlib false, no libz.so.1 in its link map), so no request path reaches the system zlib1g. libz.so.1 is loaded only by Debian tooling (apt, dpkg and their helpers), which the server never runs and which cannot install anything as the default process, UID 1000 (node).",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-76844"
+      ]
     }
   ]
 }
