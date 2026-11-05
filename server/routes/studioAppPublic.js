@@ -351,7 +351,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     if (!(await budget.check(req, res))) return undefined;
 
     const ctx = await publicDataContext(found, req, res);
-    if (!ctx) return undefined;
+    if (!ctx || await require('./studioAppBackground').refusePublicLocked(req, res, found, ctx, actionId)) return undefined; // a held lockKey refuses the visitor's foreground walk (#590)
 
     const t0 = Date.now();
     const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number, notes?: unknown }} */ (await require('../appStudio/runLog/clickRuns.mts').loggedPublicStep({ app: found.app, actionId, viewerId: ctx.viewerId, def: found.definition, step, body: req.body, ownerActionId }, () => actionExecutor.executeDataStep(found.app, ctx.model, step, {
