@@ -9,7 +9,7 @@
 // adoption.types.ts); this layer may not import from pages/, so the hooks
 // take the shape as a type parameter, as api/queries/orgReports.ts does.
 
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery, type InfiniteData } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
 
 const BASE = `${API_BASE}/api/usage/adoption`;
@@ -121,11 +121,25 @@ async function readPeoplePage<P>(qs: string, reveal: boolean, cursor: number, si
     try { return (await res.json()) as PeoplePageShape<P>; } catch { return null; }
 }
 
+type PeopleData<P> = InfiniteData<PeoplePageShape<P> | null, number>;
+
+/**
+ * What a hidden read may show while its own answer loads: the previous
+ * answer, but only when no page of it carries names. TanStack hands over the
+ * last data the observer had, whatever its key, so after a reveal that would
+ * be the revealed page.
+ */
+export function pseudonymousPlaceholder<P>(prev: PeopleData<P> | undefined): PeopleData<P> | undefined {
+    return prev && prev.pages.every(p => !p || !p.reveal) ? prev : undefined;
+}
+
 /**
  * GET /people, paged by `nextCursor`; the pages are merged into one list.
  * A revealed read is never retried and never refetched on focus: each request
  * with `reveal=true` writes an access-audit row, so only the person's own
- * click (and the pages they ask for) may cause one.
+ * click (and the pages they ask for) may cause one. It is also dropped from
+ * the cache as soon as nothing shows it (`gcTime: 0`), so the next "Reveal
+ * names" asks the server again and is recorded again.
  */
 export function useAdoptionPeople<P>(qs: string, reveal: boolean) {
     return useInfiniteQuery({
@@ -143,9 +157,10 @@ export function useAdoptionPeople<P>(qs: string, reveal: boolean) {
                 total: pages[0].total,
             };
         },
-        placeholderData: reveal ? undefined : keepPreviousData,
+        placeholderData: reveal ? undefined : pseudonymousPlaceholder<P>,
         retry: false,
         refetchOnWindowFocus: !reveal,
         staleTime: reveal ? Infinity : 0,
+        ...(reveal ? { gcTime: 0 } : {}),
     });
 }

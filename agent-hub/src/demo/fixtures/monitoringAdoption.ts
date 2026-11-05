@@ -178,7 +178,7 @@ const AD_GROUPS = () => ({
 
 const AD_FIRST = ['Alex', 'Sam', 'Robin', 'Jamie', 'Taylor', 'Jordan', 'Casey', 'Morgan', 'Riley', 'Drew', 'Avery', 'Quinn', 'Rowan', 'Skyler', 'Parker', 'Reese'];
 const AD_LAST = ['Morgan', 'Rivera', 'Patel', 'Chen', 'Brooks', 'Kim', 'Novak', 'Ellis', 'Hart', 'Okafor', 'Lund', 'Sato', 'Moreau'];
-const AD_ROLES = ['Member', 'Member', 'Member', 'Agent editor', 'Admin'];
+const AD_ROLES = ['member', 'member', 'member', 'agent_editor', 'org_admin'];
 
 /** A stable four-character pseudonym per member, from the server's 32-symbol alphabet. */
 function adPseudonym(i: number): string {

@@ -23,6 +23,8 @@
  *
  * Evidence is a fixed allow-list: endpoint names, booleans, the audit action
  * name, the guardrail log retention, and the AI Act date. No user, no count.
+ * The pseudonymity and reveal-audit flags carry the `adoption_` prefix: they
+ * hold for the Adoption endpoints only, the other listed views show names.
  */
 
 const ENDPOINTS = Object.freeze([
@@ -100,9 +102,9 @@ module.exports = {
                 reachable: true,
                 endpoints: [...ENDPOINTS],
                 guardrail_retention_days: days,
-                pseudonymous_default: true,
-                reveal_audited: true,
-                reveal_audit_action: REVEAL_AUDIT_ACTION,
+                adoption_pseudonymous_default: true,
+                adoption_reveal_audited: true,
+                adoption_reveal_audit_action: REVEAL_AUDIT_ACTION,
                 opt_in_gate: false,
                 ai_act_assessment_due: AI_ACT_ASSESSMENT_DUE,
             },

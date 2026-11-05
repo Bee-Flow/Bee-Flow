@@ -27,6 +27,12 @@ function install(overrides: DemoRoutes = {}) {
 }
 
 const range = deriveRangeParams({ preset: '30d' });
+
+/** The member cells of the people table (the one with a "Member" column). */
+function memberCells(): string[] {
+    const table = screen.getAllByRole('table').find(tb => within(tb).queryByRole('columnheader', { name: 'Member' }));
+    return table ? within(table).queryAllByRole('rowheader').map(h => h.textContent || '') : [];
+}
 const renderTab = () => renderWithClient(<AdoptionTab rangeParams={range} rangePreset="30d" showTokens currency="€" />);
 
 beforeEach(() => { seen.length = 0; });
@@ -86,6 +92,49 @@ describe('AdoptionTab', () => {
         await user.click(screen.getByRole('button', { name: 'Hide names' }));
         expect(await screen.findByText('Names are hidden')).toBeTruthy();
         expect((await screen.findAllByText(/^Member · /)).length).toBeGreaterThan(0);
+    });
+
+    it('never shows the revealed names as a placeholder once they are hidden again, also after a group change', async () => {
+        let release: () => void = () => {};
+        const held = new Promise<void>((resolve) => { release = resolve; });
+        install({
+            'GET /api/usage/adoption/people': async (ctx) => {
+                const q = ctx.query;
+                if (q?.get('group') === 'grp_demo_hr' && q.get('reveal') !== 'true') await held;
+                return BASE_ROUTES['GET /api/usage/adoption/people'](ctx);
+            },
+        });
+        const user = userEvent.setup();
+        renderTab();
+        await screen.findAllByText(/^Member · /);
+        await user.click(screen.getByRole('button', { name: 'Reveal names' }));
+        await screen.findByText('Names shown · recorded in the access audit log');
+        await user.selectOptions(screen.getByLabelText('Group'), 'grp_demo_hr');
+        await waitFor(() => expect(seen.some(u => u.searchParams.get('group') === 'grp_demo_hr' && u.searchParams.get('reveal') === 'true')).toBe(true));
+        await waitFor(() => expect(memberCells().length).toBeGreaterThan(0));
+        expect(memberCells().some(n => n.startsWith('Member · '))).toBe(false);
+        await user.click(screen.getByRole('button', { name: 'Hide names' }));
+        expect(await screen.findByText('Names are hidden')).toBeTruthy();
+        expect(memberCells().every(n => n.startsWith('Member · '))).toBe(true);
+        release();
+        await waitFor(() => expect(memberCells().length).toBeGreaterThan(0));
+        expect(memberCells().every(n => n.startsWith('Member · '))).toBe(true);
+    });
+
+    it('asks the server again, and so records again, on every "Reveal names"', async () => {
+        install();
+        const user = userEvent.setup();
+        renderTab();
+        await screen.findAllByText(/^Member · /);
+        const reveals = () => seen.filter(u => u.searchParams.get('reveal') === 'true').length;
+        await user.click(screen.getByRole('button', { name: 'Reveal names' }));
+        await screen.findByText('Names shown · recorded in the access audit log');
+        expect(reveals()).toBe(1);
+        await user.click(screen.getByRole('button', { name: 'Hide names' }));
+        await screen.findByText('Names are hidden');
+        await user.click(screen.getByRole('button', { name: 'Reveal names' }));
+        await screen.findByText('Names shown · recorded in the access audit log');
+        await waitFor(() => expect(reveals()).toBe(2));
     });
 
     it('shows nothing when the audit log could not record the reveal', async () => {

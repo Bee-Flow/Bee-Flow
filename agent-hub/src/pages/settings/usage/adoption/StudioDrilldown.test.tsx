@@ -40,6 +40,42 @@ describe('StudioDrilldown', () => {
         expect(within(dialog).getAllByText('no signal').length).toBe(2);
     });
 
+    it('offers no "Unused" filter for a kind nothing records the use of', async () => {
+        install();
+        const kb = kinds().find(k => k.kind === 'kb')!;
+        expect(kb.usage).toBeNull();
+        renderWithClient(<StudioDrilldown kind={kb} qs="days=30" currency="€" scopeLabel="" onClose={() => {}} />);
+        const dialog = await screen.findByRole('dialog');
+        await within(dialog).findByText(/^All items · /);
+        expect(within(dialog).queryByRole('button', { name: /^Unused/ })).toBeNull();
+    });
+
+    it('lists as unused exactly the server\'s unused items, not every item without a use', async () => {
+        const user = userEvent.setup();
+        const items = [
+            { id: 'a1', name: 'Published, unused', ownerId: 'u1', ownerName: 'Alex Morgan', audience: 'org', createdAt: '2026-09-01T00:00:00Z', lastUsedAt: null, people: 0, uses: 0, cost: 0 },
+            { id: 'a2', name: 'Private draft', ownerId: 'u1', ownerName: 'Alex Morgan', audience: 'private', createdAt: '2026-09-02T00:00:00Z', lastUsedAt: null, people: 0, uses: 0, cost: 0 },
+            { id: 'a3', name: 'Busy one', ownerId: 'u1', ownerName: 'Alex Morgan', audience: 'org', createdAt: '2026-09-03T00:00:00Z', lastUsedAt: '2026-11-01T00:00:00Z', people: 3, uses: 9, cost: 1 },
+        ];
+        install({
+            'GET /api/usage/adoption/studio/items': () => ({
+                kind: 'agent', items, topPeople: [], total: 3,
+                unused: [{ id: 'a1', name: 'Published, unused', ownerName: 'Alex Morgan', publishedAt: '2026-09-01T00:00:00Z', lastUsedAt: null }],
+            }),
+        });
+        const agent = kinds().find(k => k.kind === 'agent')!;
+        renderWithClient(<StudioDrilldown kind={agent} qs="days=30" currency="€" scopeLabel="" onClose={() => {}} />);
+        const dialog = await screen.findByRole('dialog');
+        await within(dialog).findByText('All items · 3');
+        const chip = within(dialog).getByRole('button', { name: /^Unused/ });
+        expect(chip.textContent).toContain('1');
+        await user.click(chip);
+        const table = within(dialog).getByRole('table');
+        expect(within(table).getByText('Published, unused')).toBeTruthy();
+        expect(within(table).queryByText('Private draft')).toBeNull();
+        expect(within(table).queryByText('Busy one')).toBeNull();
+    });
+
     it('filters to the unused items, exports its items, and closes', async () => {
         install();
         const user = userEvent.setup();

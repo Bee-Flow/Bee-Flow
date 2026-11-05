@@ -84,6 +84,34 @@ describe('PeopleTable', () => {
         expect(onHide).toHaveBeenCalled();
     });
 
+    it('shows no name while names are hidden, even when handed a revealed answer', () => {
+        const named = people('days=30&limit=200&reveal=true');
+        expect(named.reveal).toBe(true);
+        render(<PeopleTable {...base} loading view={named} revealed={false} onReveal={() => {}} onHide={() => {}} />);
+        expect(screen.getByText('Names are hidden')).toBeTruthy();
+        expect(screen.queryAllByRole('rowheader')).toHaveLength(0);
+        for (const p of named.people.slice(0, 5)) expect(screen.queryByText(p.name)).toBeNull();
+    });
+
+    it('names the org role, never its id', () => {
+        render(<PeopleTable {...base} view={people('days=30&limit=200')} revealed={false} onReveal={() => {}} onHide={() => {}} />);
+        const roles = screen.getAllByRole('row').slice(1).map(r => r.querySelectorAll('td')[0]?.textContent || '');
+        expect(roles).toContain('Organisation admin');
+        expect(roles).toContain('Agent editor');
+        expect(roles.some(r => /^(org_admin|agent_editor|member)$/.test(r))).toBe(false);
+    });
+
+    it('asks for the next page as soon as the filtered rows are all on screen', async () => {
+        const user = userEvent.setup();
+        const onLoadMore = vi.fn();
+        const view = people('days=30&limit=200');
+        render(<PeopleTable {...base} hasMore onLoadMore={onLoadMore} view={view} revealed={false} onReveal={() => {}} onHide={() => {}} />);
+        await user.type(screen.getByLabelText('Search people'), memberCells()[0].slice(-4));
+        expect(memberCells()).toHaveLength(1);
+        await user.click(screen.getByRole('button', { name: /Show more/ }));
+        expect(onLoadMore).toHaveBeenCalledTimes(1);
+    });
+
     it('asks for the next page when the rows on screen run out', async () => {
         const user = userEvent.setup();
         const onLoadMore = vi.fn();

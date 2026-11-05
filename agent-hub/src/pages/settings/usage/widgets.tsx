@@ -8,10 +8,12 @@ import { getIntegrationIcon, hasIntegrationIcon } from '@/config/integrationIcon
 import { usageSourceDetails } from '@/components/shared/usageAreaMeta';
 
 // ── Source details ───────────────────────────────────────────────────────────
-// A ledger `source` named by the area it rolls up to (the shared vocabulary,
-// shared/usageAreas.generated.mjs): icon, colour and name come from the area
-// meta, so this list and the Adoption report never disagree. Pass `t` for the
-// translated area name; without it the English name is used.
+// A ledger `source` with the icon and colour of the area it rolls up to (the
+// shared vocabulary, shared/usageAreas.generated.mjs), so this list and the
+// Adoption report never disagree. The name is unique per source (the area's
+// name, plus the raw source where the area has several), since the lists and
+// filters here are keyed by source. Pass `t` for the translated area name;
+// without it the English name is used.
 type SourceTranslate = (key: string, fallback: string) => string;
 export const getSourceDetails = (source: string, t?: SourceTranslate) => usageSourceDetails(source, t);
 
