@@ -12,7 +12,7 @@
 'use strict';
 
 const { buildFilters } = require('../usage/filters');
-const { SOURCES, AREAS, areaOf } = require('../../shared/usageAreas');
+const { SOURCES, AREAS, TEST_SOURCES, areaOf } = require('../../shared/usageAreas');
 const { PLATFORM_OPERATOR_ID } = require('../../auth/platformOperator');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -76,7 +76,9 @@ function periodOf(filters, query, now) {
 }
 
 /**
- * The period of the same length immediately before.
+ * The period of the same length immediately before. It ends one millisecond
+ * before this one starts: every read is inclusive at both ends, so a row at
+ * exactly the start of this period belongs to this period only.
  * @param {Period} period
  * @returns {Period}
  */
@@ -84,7 +86,7 @@ function previousPeriod(period) {
     const start = Date.parse(period.startDate);
     const end = Date.parse(period.endDate);
     const len = Math.max(0, end - start);
-    return { startDate: new Date(start - len).toISOString(), endDate: new Date(start).toISOString(), days: period.days, relative: period.relative };
+    return { startDate: new Date(start - len).toISOString(), endDate: new Date(start - 1).toISOString(), days: period.days, relative: period.relative };
 }
 
 /**
@@ -110,22 +112,27 @@ function isoWeekLabel(mondayMs) {
 
 /**
  * The ISO weeks (Monday start, UTC) that cover [start, end], oldest first,
- * clamped to the last MAX_WEEKS. `complete` is true for a week that ended by `now`.
+ * clamped to the last MAX_WEEKS. `complete` is true for a week that lies
+ * wholly inside [start, min(end, now)]: the first week of a period that starts
+ * mid-week, and the last of one that ends mid-week, hold part of their data
+ * only. `end` is inclusive (a window ends at 23:59:59.999), hence the + 1.
  * @param {string} start
  * @param {string} end
  * @param {number} now
  * @returns {IsoWeek[]}
  */
 function isoWeeksOf(start, end, now) {
+    const startMs = Date.parse(start);
     const endMs = Date.parse(end);
+    const coveredUntil = Math.min(now, endMs + 1);
     /** @type {IsoWeek[]} */
     const weeks = [];
-    for (let at = mondayOf(Date.parse(start)); at <= endMs; at += WEEK_MS) {
+    for (let at = mondayOf(startMs); at <= endMs; at += WEEK_MS) {
         weeks.push({
             week: isoWeekLabel(at),
             start: new Date(at).toISOString(),
             end: new Date(at + WEEK_MS).toISOString(),
-            complete: at + WEEK_MS <= now,
+            complete: at >= startMs && at + WEEK_MS <= coveredUntil,
         });
     }
     return weeks.slice(-MAX_WEEKS);
@@ -167,11 +174,13 @@ function groupIdsOf(groups) {
  * orgMembers applies: the organisation's own users plus the users in one of
  * its groups, without system rows, the platform operator, pending invitations
  * and guest accounts. With `groupId`, only the members of that group of THIS
- * organisation: a group of another organisation narrows to nobody.
+ * organisation: a group of another organisation narrows to nobody. `groups`
+ * is the groups in scope (the one filtered on, or all); `allGroups` is every
+ * group of the organisation, to name the other groups of a member.
  * @param {AdoptionDeps} d
  * @param {string} orgId
  * @param {string | null} [groupId]
- * @returns {Promise<{ members: Member[], groups: GroupRow[] }>}
+ * @returns {Promise<{ members: Member[], groups: GroupRow[], allGroups: GroupRow[] }>}
  */
 async function resolveMembers(d, orgId, groupId = null) {
     const [users, allGroups] = await Promise.all([d.userStore.getAllUsers(), d.userStore.getAllGroups()]);
@@ -187,11 +196,12 @@ async function resolveMembers(d, orgId, groupId = null) {
         if (u.organizationId !== orgId && groupIds.length === 0) continue;
         members.push({ member: u, groupIds });
     }
-    if (!groupId) return { members, groups };
-    if (!orgGroupIds.has(String(groupId))) return { members: [], groups: [] };
+    if (!groupId) return { members, groups, allGroups: groups };
+    if (!orgGroupIds.has(String(groupId))) return { members: [], groups: [], allGroups: groups };
     return {
         members: members.filter((m) => m.groupIds.includes(String(groupId))),
         groups: groups.filter((g) => String(g.id) === String(groupId)),
+        allGroups: groups,
     };
 }
 
@@ -214,7 +224,9 @@ function lastSeenOf(u) {
  * A member's status in the period: AI-active (a ledger row as the actor), and
  * for a relative period, seen only, dormant or never from last_seen_at. An
  * absolute window cannot be read from a "last seen" clock, so it answers
- * 'unknown' for everyone who is not AI-active.
+ * 'unknown' for everyone who is not AI-active. Dormancy is tested before
+ * "seen in the period": in a period longer than 30 days, a member last seen
+ * 60 days ago is dormant, as the report's label says.
  * @param {UserRow} u
  * @param {boolean} aiActive
  * @param {Period} period
@@ -226,8 +238,8 @@ function memberStatus(u, aiActive, period, now) {
     if (!period.relative) return 'unknown';
     const seen = lastSeenOf(u);
     const created = timeOf(u.createdAt);
-    if (seen != null && seen >= Date.parse(period.startDate)) return 'seen_only';
-    if (seen != null) return seen < now - DORMANT_AFTER_MS ? 'dormant' : 'unknown';
+    if (seen != null && seen < now - DORMANT_AFTER_MS) return 'dormant';
+    if (seen != null) return seen >= Date.parse(period.startDate) ? 'seen_only' : 'unknown';
     if (created != null && created >= now - DORMANT_AFTER_MS) return 'never';
     return 'dormant';
 }
@@ -258,20 +270,23 @@ const ACTOR_SQL = 'COALESCE(actor_user_id, user_id)';
 /**
  * The WHERE of an organisation's ledger rows in a period: buildFilters for the
  * period and organisation (tool rows out, so a call is counted once), guest
- * rows out, and with `actors` only the rows caused by those people (a group).
+ * rows, the platform operator and the builders' own test runs (TEST_SOURCES)
+ * out, and with `actors` only the rows caused by those people (a group).
  * @param {{ orgId: string, startDate: string, endDate: string, actors?: string[] | null }} opts
  * @param {number} [startIdx]
  * @returns {{ where: string, params: unknown[], nextIdx: number }}
  */
 function ledgerWhere({ orgId, startDate, endDate, actors = null }, startIdx = 1) {
     const base = buildFilters({ startDate, endDate, organizationId: orgId }, startIdx, true);
-    const params = [...base.params, PLATFORM_OPERATOR_ID];
-    let idx = base.nextIdx + 1;
+    const params = [...base.params, PLATFORM_OPERATOR_ID, [...TEST_SOURCES]];
+    let idx = base.nextIdx + 2;
     const conditions = [
         base.where.replace(/^WHERE /, ''),
         // The platform operator is nobody's member (learning/orgOverview.js).
         `${ACTOR_SQL} IS DISTINCT FROM $${base.nextIdx}`,
         `COALESCE(${ACTOR_SQL}, '') NOT LIKE 'guest\\_%'`,
+        // A test chat or grading set is the builder checking their work, not adoption.
+        `(source IS NULL OR source <> ALL($${base.nextIdx + 1}::text[]))`,
     ];
     if (actors) {
         conditions.push(`${ACTOR_SQL} = ANY($${idx++}::text[])`);

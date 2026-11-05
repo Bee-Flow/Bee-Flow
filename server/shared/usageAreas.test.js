@@ -6,7 +6,9 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { AREAS, AREA_IDS, OTHER_AREA, SOURCES, INTERACTIVE_SOURCES, areaOf, kindOfArea, isInteractiveSource } = require('./usageAreas');
+const {
+    AREAS, AREA_IDS, OTHER_AREA, SOURCES, INTERACTIVE_SOURCES, TEST_SOURCES, areaOf, kindOfArea, isInteractiveSource, isTestSource,
+} = require('./usageAreas');
 
 // The literals the writers in server/ use today (the attribution sweep of
 // 2026-11-05) and the ones the metering work adds. A writer that invents a
@@ -70,4 +72,15 @@ test('interactive sources are a subset of the table and keep the person-typed on
     assert.equal(isInteractiveSource('direct_chat'), true);
     assert.equal(isInteractiveSource('automation'), false);
     assert.equal(isInteractiveSource(null), false);
+});
+
+test('test sources: the builders\' own test runs, and nothing else', () => {
+    assert.deepEqual([...TEST_SOURCES].sort(), [
+        'agent_test_attribution', 'agent_test_chat', 'agent_test_grade', 'agent_test_suggest', 'skill_test', 'skill_test_grade',
+    ]);
+    for (const s of TEST_SOURCES) assert.ok(SOURCES[s], s);
+    assert.equal(isTestSource('agent_test_chat'), true);
+    assert.equal(isTestSource('agent_stream'), false);
+    assert.equal(isTestSource('nope'), false);
+    assert.equal(isTestSource(null), false);
 });

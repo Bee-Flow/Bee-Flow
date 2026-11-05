@@ -9,11 +9,17 @@
  * kind to zeros and marks the answer partial, never the whole answer. A kind
  * the organisation's licence leaves out is still listed, with total 0: the
  * report never answers 403 for one kind.
+ *
+ * With a group (`actors`), what people DID narrows to its members: usage
+ * evidence, cost, trend and delta. The inventory (total, published, makers,
+ * new in the period) stays organisation-wide: what exists is the
+ * organisation's, whoever in the group uses it.
  */
 
 'use strict';
 
 const log = require('../../telemetry/log');
+const { PLATFORM_OPERATOR_ID } = require('../../auth/platformOperator');
 const { KINDS } = require('./kinds');
 const { getAreaBreakdown, getAreaTimeline } = require('./areas');
 const {
@@ -32,16 +38,36 @@ const {
  * }} KindRow
  */
 
-/** A person of the evidence who is a person (guest accounts are not). */
-const REAL_PERSON = `person IS NOT NULL AND person NOT LIKE 'guest\\_%'`;
+/** @param {string} value */
+const sqlText = (value) => `'${value.replace(/'/g, "''")}'`;
 
 /**
- * The evidence of a kind between two instants ($2, $3).
- * @param {KindDef} def
+ * A person of the evidence who is a member-like person: guest accounts are
+ * not, and the platform operator is nobody's member (as in ledgerWhere).
  */
-function evidenceIn(def) {
+const REAL_PERSON = `person IS NOT NULL AND person NOT LIKE 'guest\\_%' AND person <> ${sqlText(PLATFORM_OPERATOR_ID)}`;
+
+/**
+ * The evidence of a kind between two instants ($2, $3); with `actorsIdx`,
+ * only the uses by the people in that text[] parameter (a group).
+ * @param {KindDef} def
+ * @param {number | null} [actorsIdx]
+ */
+function evidenceIn(def, actorsIdx = null) {
     if (!def.evidence) throw new Error(`${def.kind} has no evidence`);
-    return `SELECT * FROM (${def.evidence(def.objects)}) e WHERE e.ts >= $2 AND e.ts <= $3`;
+    const narrow = actorsIdx ? ` AND e.person = ANY($${actorsIdx}::text[])` : '';
+    return `SELECT * FROM (${def.evidence(def.objects)}) e WHERE e.ts >= $2 AND e.ts <= $3${narrow}`;
+}
+
+/**
+ * The parameters of an evidence read over [start, end], with the actors last.
+ * @param {string} orgId
+ * @param {string} start
+ * @param {string} end
+ * @param {string[] | null} actors
+ */
+function evidenceParams(orgId, start, end, actors) {
+    return actors ? [orgId, start, end, actors] : [orgId, start, end];
 }
 
 /**
@@ -66,14 +92,15 @@ async function inventoryOf(d, def, scope) {
  * @param {AdoptionDeps} d
  * @param {KindDef} def
  * @param {Scope} scope
+ * @param {string[] | null} actors
  */
-async function usageOf(d, def, scope) {
+async function usageOf(d, def, scope, actors) {
     const rows = await d.db.getAll(
         `SELECT ${weekBucketSql('ts')} AS wk, GROUPING(${weekBucketSql('ts')}) AS whole,
                 COUNT(*)::int AS events, COUNT(DISTINCT person) FILTER (WHERE ${REAL_PERSON})::int AS people
-           FROM (${evidenceIn(def)}) x
+           FROM (${evidenceIn(def, actors ? 4 : null)}) x
           GROUP BY GROUPING SETS ((${weekBucketSql('ts')}), ())`,
-        [scope.orgId, scope.period.startDate, scope.period.endDate],
+        evidenceParams(scope.orgId, scope.period.startDate, scope.period.endDate, actors),
     );
     const whole = rows.find((r) => num(r.whole) === 1);
     /** @type {Map<string, number>} */
@@ -86,11 +113,12 @@ async function usageOf(d, def, scope) {
  * @param {AdoptionDeps} d
  * @param {KindDef} def
  * @param {Scope} scope
+ * @param {string[] | null} actors
  */
-async function previousEventsOf(d, def, scope) {
+async function previousEventsOf(d, def, scope, actors) {
     const prev = previousPeriod(scope.period);
-    const row = await d.db.getOne(`SELECT COUNT(*)::int AS events FROM (${evidenceIn(def)}) x`,
-        [scope.orgId, prev.startDate, prev.endDate]);
+    const row = await d.db.getOne(`SELECT COUNT(*)::int AS events FROM (${evidenceIn(def, actors ? 4 : null)}) x`,
+        evidenceParams(scope.orgId, prev.startDate, prev.endDate, actors));
     return num(row?.events);
 }
 
@@ -99,13 +127,14 @@ async function previousEventsOf(d, def, scope) {
  * what the kinds without a usage signal fall back on.
  * @param {AdoptionDeps} d
  * @param {Scope} scope
+ * @param {string[] | null} actors
  */
-async function areaCosts(d, scope) {
+async function areaCosts(d, scope, actors) {
     const prevScope = { ...scope, period: previousPeriod(scope.period) };
     const [now, weeks, before] = await Promise.all([
-        getAreaBreakdown(d, scope, null),
-        getAreaTimeline(d, scope, null),
-        getAreaBreakdown(d, prevScope, null),
+        getAreaBreakdown(d, scope, actors),
+        getAreaTimeline(d, scope, actors),
+        getAreaBreakdown(d, prevScope, actors),
     ]);
     return {
         cost: new Map(now.map((a) => [a.area, a.cost])),
@@ -120,9 +149,10 @@ async function areaCosts(d, scope) {
  * @param {KindDef} def
  * @param {Scope} scope
  * @param {Awaited<ReturnType<typeof areaCosts>> | null} costs
+ * @param {string[] | null} actors
  * @returns {Promise<KindRow>}
  */
-async function kindRow(d, def, scope, costs) {
+async function kindRow(d, def, scope, costs, actors) {
     const weeks = isoWeeksOf(scope.period.startDate, scope.period.endDate, scope.now);
     const inv = await inventoryOf(d, def, scope);
     const area = areaOfKind(def.kind);
@@ -134,8 +164,8 @@ async function kindRow(d, def, scope, costs) {
         const before = area && costs ? costs.prev.get(area) ?? 0 : null;
         return { kind: def.kind, ...inv, usage: null, cost, trend, deltaPct: cost == null ? null : deltaPct(cost, before) };
     }
-    const use = await usageOf(d, def, scope);
-    const prevEvents = await previousEventsOf(d, def, scope);
+    const use = await usageOf(d, def, scope, actors);
+    const prevEvents = await previousEventsOf(d, def, scope, actors);
     return {
         kind: def.kind,
         ...inv,
@@ -164,21 +194,22 @@ function emptyRow(def, scope) {
  * The overview: every kind in report order.
  * @param {AdoptionDeps} d
  * @param {Scope} scope
+ * @param {string[] | null} [actors]  the members of the scope's group, null for the organisation
  * @returns {Promise<{ kinds: KindRow[], partial: boolean }>}
  */
-async function getStudioOverview(d, scope) {
+async function getStudioOverview(d, scope, actors = null) {
     let partial = false;
     /** @type {Awaited<ReturnType<typeof areaCosts>> | null} */
     let costs = null;
     try {
-        costs = await areaCosts(d, scope);
+        costs = await areaCosts(d, scope, actors);
     } catch (err) {
         partial = true;
         log.warn('[Adoption] studio area costs failed:', /** @type {Error} */ (err)?.message || err);
     }
     const kinds = await Promise.all(KINDS.map(async (def) => {
         try {
-            return await kindRow(d, def, scope, costs);
+            return await kindRow(d, def, scope, costs, actors);
         } catch (err) {
             partial = true;
             log.warn(`[Adoption] studio ${def.kind} failed:`, /** @type {Error} */ (err)?.message || err);
@@ -221,4 +252,4 @@ async function getOwners(d, orgId) {
     return { byOwner, failed };
 }
 
-module.exports = { getStudioOverview, getOwners, evidenceIn, REAL_PERSON };
+module.exports = { getStudioOverview, getOwners, evidenceIn, evidenceParams, REAL_PERSON };

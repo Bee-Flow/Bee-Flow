@@ -34,7 +34,8 @@ test('counts, makers, published and usage of org A only', async () => {
     assert.deepEqual(k.automation.usage, { events: 1, people: 1, label: 'runs' });
     assert.deepEqual(k.app.usage, { events: 1, people: 1, label: 'action_runs' });
     assert.deepEqual(k.skill.usage, { events: 1, people: 1, label: 'activations' });
-    assert.deepEqual(k.meeting.usage, { events: 1, people: 1, label: 'recordings' });
+    assert.deepEqual(k.meeting.usage, { events: 2, people: 1, label: 'recordings' }, 'two recordings by one colleague');
+    assert.equal(k.document.total, 1, 'a private document is counted in the inventory');
     assert.equal(k.datatable.total, 1);
     assert.equal(k.datatable.usage, null, 'no signal is said, not invented');
     assert.equal(k.webpage.usage?.people, null, 'public views name nobody');
@@ -67,4 +68,21 @@ test('a kind whose table is missing drops to zeros and marks the answer partial'
     const skill = out.kinds.find((k) => k.kind === 'skill');
     assert.equal(skill?.total, 0);
     assert.equal(out.kinds.find((k) => k.kind === 'agent')?.total, 2, 'the other kinds still answer');
+});
+
+test('with a group, usage, cost, trend and delta narrow to its members; the inventory stays organisation-wide', async () => {
+    // a-grp-small holds only the dormant member, who used nothing.
+    const out = await kit.store().studio(kit.scope(kit.ORG_A, { groupId: 'a-grp-small' }));
+    assert.equal(out.partial, false);
+    const k = Object.fromEntries(out.kinds.map((r) => [r.kind, r]));
+    assert.equal(k.agent.total, 2, 'what exists is the organisation\'s');
+    assert.equal(k.agent.makers, 1);
+    assert.deepEqual(k.agent.usage, { events: 0, people: 0, label: 'conversations' });
+    assert.equal(k.agent.cost, 0);
+    assert.equal(k.app.cost, 0);
+    assert.equal(k.agent.trend.reduce((a, b) => a + b, 0), 0);
+    const big = await kit.store().studio(kit.scope(kit.ORG_A, { groupId: 'a-grp-big' }));
+    const b = Object.fromEntries(big.kinds.map((r) => [r.kind, r]));
+    assert.equal(b.app.cost, 2, 'the colleague of the big group ran the app');
+    assert.equal(b.agent.usage?.events, 1);
 });

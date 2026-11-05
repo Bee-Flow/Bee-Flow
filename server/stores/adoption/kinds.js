@@ -16,6 +16,10 @@
  *   evidence  one row per use: object_id, person (null when the evidence has
  *             no person), ts. Joined to the objects, so a use counts for the
  *             organisation exactly when its object does.
+ *   personIsOwner  the evidence person is always the object's owner (a
+ *             recording, a Cowork run): the drill-down names no owner then.
+ *   evidenceSees   the audiences the evidence can observe at all (null: every
+ *             audience); "unused" only lists objects it could have seen used.
  *
  * Kinds without a usage signal (datatables, knowledge bases, documents,
  * playbooks) have no evidence: the report says "no signal" rather than
@@ -32,6 +36,8 @@
  *   label: string | null,
  *   peopleKnown: boolean,
  *   itemCost: boolean,
+ *   personIsOwner?: boolean,
+ *   evidenceSees?: string[],
  * }} KindDef
  */
 
@@ -178,6 +184,9 @@ const KINDS = [
             FROM webpage_public_share_views v JOIN webpage_public_shares s ON s.id = v.share_id
             JOIN (${objects}) o ON o.id = s.webpage_id`,
         label: 'public_views', peopleKnown: false, itemCost: false,
+        // Only a page with a public share can show a use: the drill-down's
+        // "published but unused" lists those, not a page published inside.
+        evidenceSees: ['public'],
     },
     {
         kind: 'document',
@@ -203,6 +212,8 @@ const KINDS = [
         // Recording a meeting is the use: one recording, by the person who made it.
         evidence: (objects) => `SELECT o.id AS object_id, o.owner AS person, o.created_at AS ts FROM (${objects}) o`,
         label: 'recordings', peopleKnown: true, itemCost: false,
+        // The use IS the owner's recording: an item names no owner next to it.
+        personIsOwner: true,
     },
     {
         kind: 'playbook',
@@ -240,6 +251,8 @@ const KINDS = [
         evidence: (objects) => `SELECT r.schedule_id AS object_id, r.user_id AS person, r.started_at AS ts
             FROM cowork_runs r JOIN (${objects}) o ON o.id = r.schedule_id`,
         label: 'cowork_runs', peopleKnown: true, itemCost: false,
+        // A Cowork job runs for its owner only: the runs are the owner's own.
+        personIsOwner: true,
     },
 ];
 

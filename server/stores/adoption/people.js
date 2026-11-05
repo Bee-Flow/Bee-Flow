@@ -15,11 +15,18 @@
 'use strict';
 
 const log = require('../../telemetry/log');
-const { areaOf, AREA_IDS } = require('../../shared/usageAreas');
+const { areaOf, AREA_IDS, TEST_SOURCES } = require('../../shared/usageAreas');
 const { getOwners } = require('./studio');
 const {
-    ACTOR_SQL, ledgerWhere, resolveMembers, memberStatus, actorsFor, lastSeenOf, num,
+    ACTOR_SQL, DAY_MS, ledgerWhere, resolveMembers, memberStatus, actorsFor, lastSeenOf, num,
 } = require('./shared');
+
+/**
+ * How far back the "caused for someone else" leg of a first use looks. The
+ * actor column is young (rows before it carry none), and an unbounded read
+ * would scan the organisation's whole ledger, which has no retention.
+ */
+const FIRST_USE_ACTOR_LOOKBACK_MS = 366 * DAY_MS;
 
 /**
  * @typedef {import('./shared').Scope} Scope
@@ -71,13 +78,13 @@ async function ledgerByActor(d, orgId, period, actors) {
  * @param {Scope} scope
  */
 async function memberActivity(d, scope) {
-    const { members, groups } = await resolveMembers(d, scope.orgId, scope.groupId || null);
+    const { members, groups, allGroups } = await resolveMembers(d, scope.orgId, scope.groupId || null);
     const actors = actorsFor(scope, members);
     const [byActor, owners] = await Promise.all([
         ledgerByActor(d, scope.orgId, scope.period, actors),
         getOwners(d, scope.orgId),
     ]);
-    return { members, groups, actors, byActor, owners: owners.byOwner, partial: owners.failed.length > 0 };
+    return { members, groups, allGroups, actors, byActor, owners: owners.byOwner, partial: owners.failed.length > 0 };
 }
 
 /**
@@ -92,20 +99,45 @@ function areasOf(use) {
 }
 
 /**
- * The first ledger row each person caused, ever: when they started using AI.
+ * The first ledger row each person caused: when they started using AI. Two
+ * bounded legs, never a scan of the organisation's whole ledger: the rows on
+ * the person's own account, one index lookup per id (idx_usage_user_timestamp,
+ * first row in time order), and the rows they caused on someone else's
+ * account, within FIRST_USE_ACTOR_LOOKBACK_MS (idx_usage_org_timestamp).
  * @param {AdoptionDeps} d
  * @param {string} orgId
  * @param {string[]} ids
+ * @param {number} now
  * @returns {Promise<Map<string, string>>}
  */
-async function firstUseOf(d, orgId, ids) {
+async function firstUseOf(d, orgId, ids, now) {
     if (ids.length === 0) return new Map();
-    const rows = await d.db.getAll(
-        `SELECT ${ACTOR_SQL} AS actor, MIN(timestamp) AS first FROM ai_usage_log
-          WHERE organization_id = $1 AND tool_name IS NULL AND ${ACTOR_SQL} = ANY($2::text[]) GROUP BY 1`,
-        [orgId, ids],
-    );
-    return new Map(rows.map((r) => [String(r.actor), new Date(/** @type {string} */ (r.first)).toISOString()]));
+    const notTest = '(source IS NULL OR source <> ALL($3::text[]))';
+    const [own, caused] = await Promise.all([
+        d.db.getAll(
+            `SELECT p.id AS actor, (SELECT l.timestamp FROM ai_usage_log l
+                     WHERE l.user_id = p.id AND l.organization_id = $1 AND l.actor_user_id IS NULL
+                       AND l.tool_name IS NULL AND ${notTest.replace(/source/g, 'l.source')}
+                     ORDER BY l.timestamp LIMIT 1) AS first
+               FROM unnest($2::text[]) AS p(id)`,
+            [orgId, ids, [...TEST_SOURCES]],
+        ),
+        d.db.getAll(
+            `SELECT actor_user_id AS actor, MIN(timestamp) AS first FROM ai_usage_log
+              WHERE organization_id = $1 AND timestamp >= $4 AND tool_name IS NULL AND ${notTest}
+                AND actor_user_id = ANY($2::text[]) GROUP BY 1`,
+            [orgId, ids, [...TEST_SOURCES], new Date(now - FIRST_USE_ACTOR_LOOKBACK_MS).toISOString()],
+        ),
+    ]);
+    /** @type {Map<string, number>} */
+    const first = new Map();
+    for (const r of [...own, ...caused]) {
+        if (r.first == null) continue;
+        const t = new Date(/** @type {string} */ (r.first)).getTime();
+        const id = String(r.actor);
+        if (!first.has(id) || t < /** @type {number} */ (first.get(id))) first.set(id, t);
+    }
+    return new Map([...first].map(([id, t]) => [id, new Date(t).toISOString()]));
 }
 
 /**
@@ -141,14 +173,17 @@ async function getPeople(d, scope, { limit, cursor }) {
     const pageRows = rows.slice(cursor, cursor + limit);
     let partial = act.partial;
     try {
-        const first = await firstUseOf(d, scope.orgId, pageRows.map((r) => r.id));
+        const first = await firstUseOf(d, scope.orgId, pageRows.map((r) => r.id), scope.now);
         for (const r of pageRows) r.firstAiUseAt = first.get(r.id) || null;
     } catch (err) {
         partial = true;
         log.warn('[Adoption] first AI use failed:', /** @type {Error} */ (err)?.message || err);
     }
     const next = cursor + limit;
-    return { people: pageRows, groups: act.groups, total: rows.length, nextCursor: next < rows.length ? next : null, partial };
+    return {
+        people: pageRows, groups: act.groups, allGroups: act.allGroups,
+        total: rows.length, nextCursor: next < rows.length ? next : null, partial,
+    };
 }
 
 module.exports = { getPeople, memberActivity, ledgerByActor, areasOf };

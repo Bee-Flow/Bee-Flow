@@ -42,24 +42,33 @@ function createAdoptionStore(overrides = {}) {
     /** @type {AdoptionDeps} */
     const d = Object.create(base);
     for (const [k, v] of Object.entries(overrides)) Object.defineProperty(d, k, { value: v, enumerable: true });
+    /**
+     * The ledger and evidence actors of a scope: null for the organisation,
+     * the members of its group with one (nobody for another organisation's group).
+     * @param {Scope} scope
+     */
+    const actorsOf = async (scope) => {
+        if (!scope.groupId) return null;
+        const { members } = await resolveMembers(d, scope.orgId, scope.groupId);
+        return actorsFor(scope, members);
+    };
     return {
         /** @param {Scope} scope */
         summary: (scope) => getSummary(d, scope),
         /** @param {Scope} scope */
         areas: async (scope) => {
-            const { members } = scope.groupId ? await resolveMembers(d, scope.orgId, scope.groupId) : { members: [] };
-            const actors = actorsFor(scope, members);
+            const actors = await actorsOf(scope);
             const [areas, weeks] = await Promise.all([getAreaBreakdown(d, scope, actors), getAreaTimeline(d, scope, actors)]);
             return { areas, timeline: { weeks }, partial: false };
         },
         /** @param {Scope} scope */
-        studio: (scope) => getStudioOverview(d, scope),
+        studio: async (scope) => getStudioOverview(d, scope, await actorsOf(scope)),
         /**
          * @param {Scope} scope
          * @param {string} kind
          * @param {number} limit
          */
-        studioItems: (scope, kind, limit) => getStudioItems(d, scope, kind, limit),
+        studioItems: async (scope, kind, limit) => getStudioItems(d, scope, kind, limit, await actorsOf(scope)),
         /** @param {Scope} scope */
         groups: (scope) => getGroups(d, scope),
         /**

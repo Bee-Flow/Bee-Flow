@@ -96,7 +96,17 @@ async function seedObjects(letter, orgId) {
         [id('apprun'), id('app'), owner, colleague, at(2)]);
     await run(`INSERT INTO skills (id, org_id, user_id, name, is_shared, created_at) VALUES ($1, $2, $3, 'Skill', TRUE, $4)`, [id('skill'), orgId, owner, at(50)]);
     await run(`INSERT INTO skill_activations (skill_id, user_id, source, at) VALUES ($1, $2, 'static', $3)`, [id('skill'), colleague, at(6)]);
+    // A private recording (the default) and one published to the organisation.
     await run(`INSERT INTO transcriptions (id, user_id, organization_id, title, created_at) VALUES ($1, $2, $3, 'Standup', $4)`, [id('meet'), colleague, orgId, at(7)]);
+    await run(`INSERT INTO transcriptions (id, user_id, organization_id, title, is_published, created_at) VALUES ($1, $2, $3, 'All hands', TRUE, $4)`,
+        [id('meet-pub'), colleague, orgId, at(8)]);
+    // A private document: counted, never listed by title.
+    await run(`INSERT INTO studio_documents (id, user_id, organization_id, name, visibility, created_at) VALUES ($1, $2, $3, 'Private notes', 'private', $4)`,
+        [id('doc-private'), owner, orgId, at(9)]);
+    // A webpage published to the organisation, without a public share: its
+    // internal visits are not recorded, so it cannot show a use.
+    await run(`INSERT INTO webpages (id, user_id, organization_id, name, is_published, created_at) VALUES ($1, $2, $3, 'Intranet page', TRUE, $4)`,
+        [id('page'), owner, orgId, at(11)]);
     await run(`INSERT INTO datatables (id, scope_id, organization_id, owner_user_id, key, name, created_at) VALUES ($1, $2, $2, $3, $1, 'Table', $4)`, [id('table'), orgId, owner, at(40)]);
 }
 
