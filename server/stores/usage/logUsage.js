@@ -245,9 +245,11 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
 
             const insertResult = await run(`
                 INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client,
-                                          price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw)
+                                          price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw,
+                                          actor_user_id, run_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-                        $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb)
+                        $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb,
+                        $37, $38)
                 RETURNING id
             `, [
                 callTimestamp,
@@ -292,6 +294,10 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
                 fxRate,
                 reportedTier,
                 _usageRaw(entry, rated, deployment),
+                // Attribution (see schema.js): the person who caused the call when
+                // that is not the billed user, and the run the call belongs to.
+                entry.actor_user_id || null,
+                entry.run_id || null,
             ]);
             if (cachedTokens > 0) {
                 log.info(`[UsageStore] 💰 Cache savings: ${cachedTokens} cached tokens (model: ${model})`);
@@ -365,6 +371,7 @@ module.exports = { createLogUsage };
  *   agent_type?: string, tool_name?: string | null, source?: string, duration_ms?: number,
  *   conversation_id?: string | null, swarm_run_id?: string | null, parent_call_id?: string | null,
  *   stop_reason?: string | null, client?: string,
+ *   actor_user_id?: string | null, run_id?: string | null,
  * }} UsageLogEntry
  */
 
