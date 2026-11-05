@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * The area meta every usage surface reads: one entry per area of the shared
  * vocabulary, a fixed chart slot per series area assigned in AREA order (no
