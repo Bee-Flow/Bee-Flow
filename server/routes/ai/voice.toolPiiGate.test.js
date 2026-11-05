@@ -26,7 +26,7 @@ const { installResolveStub } = require('../../testUtils/stubRequire');
 const SYNTH_EMAIL = 'someone@example.test';
 const pass = (req, res, next) => next();
 
-const fx = { shield: null, toolCall: null, dispatchResult: null, dispatched: [], guardrailRows: [], toolMessages: [] };
+const fx = { shield: null, toolCall: null, dispatchResult: null, dispatched: [], guardrailRows: [], toolMessages: [], usageRows: [] };
 
 const restore = installResolveStub({
     // voice.js reads its Mistral key here; the real orgShield (loaded by the
@@ -42,10 +42,12 @@ const restore = installResolveStub({
                 const toolMsgs = messages.filter(m => m.role === 'tool');
                 if (toolMsgs.length === 0) {
                     cb('tool_use', { id: 'call_1', name: fx.toolCall.name, input: fx.toolCall.args });
+                    cb('done', { prompt_tokens: 100, completion_tokens: 10 });
                     return;
                 }
                 fx.toolMessages.push(...toolMsgs);
                 cb('text', { text: 'Klaar.' });
+                cb('done', { prompt_tokens: 150, completion_tokens: 5 });
             },
         }),
     },
@@ -62,6 +64,8 @@ const restore = installResolveStub({
     },
     '../../stores/agentStore': { getForRuntime: async () => null },
     '../../stores/guardrailEventStore': { logGuardrailEvent: async (row) => { fx.guardrailRows.push(row); } },
+    // The ledger sink, as core/llm/surfaceUsage.js requires it.
+    '../../stores/usageStore': { logUsage: async (row) => { fx.usageRows.push(row); } },
     '../../core/privacy/orgShield': { resolveShieldFor: async () => fx.shield },
     '../../auth/permissions': { requireAuth: pass },
     '../../auth/audience': {
@@ -104,7 +108,7 @@ const OWN_SERVER_EMAIL = {
 };
 
 async function turn({ shield = OWN_SERVER_EMAIL, toolCall, dispatchResult = { ok: true } }) {
-    Object.assign(fx, { shield, toolCall, dispatchResult, dispatched: [], guardrailRows: [], toolMessages: [] });
+    Object.assign(fx, { shield, toolCall, dispatchResult, dispatched: [], guardrailRows: [], toolMessages: [], usageRows: [] });
     const form = new FormData();
     form.append('audio', new Blob([Buffer.from('fake-opus')], { type: 'audio/webm' }), 'turn.webm');
     form.append('history', '[]');
@@ -147,4 +151,19 @@ test('a tool name not offered this turn is never dispatched', async () => {
     assert.strictEqual(fx.dispatched.length, 0, 'an unoffered name must not reach the dispatcher');
     assert.strictEqual(fx.toolMessages.length, 1);
     assert.match(fx.toolMessages[0].content, /is not available and was not called/);
+});
+
+test('a voice turn writes one usage row: the person, the org and the tokens of every round', async () => {
+    const { areaOf } = require('../../shared/usageAreas');
+    const res = await turn({ shield: null, toolCall: { name: 'kb_search', args: { query: 'policy' } } });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(fx.usageRows.length, 1);
+    const row = fx.usageRows[0];
+    assert.strictEqual(row.source, 'voice');
+    assert.strictEqual(row.user_id, 'u1');
+    assert.strictEqual(row.organization_id, 'orgA');
+    assert.strictEqual(row.prompt_tokens, 250);
+    assert.strictEqual(row.completion_tokens, 15);
+    assert.ok(row.model, 'the model is named');
+    assert.notStrictEqual(areaOf(row.source), 'other');
 });

@@ -676,10 +676,25 @@ function withBudget(promise, ms) {
     ]).finally(() => { if (timer) clearTimeout(timer); });
 }
 
+/**
+ * One usage row for the phase's model call (source `playbook`,
+ * core/llm/surfaceUsage.js): the person, their organisation, the model and
+ * the tokens the provider reported. A test's deps without `logUsage` log
+ * nothing.
+ * @param {{ logUsage?: (call: import('../../core/llm/surfaceUsage').SurfaceCall) => void }} deps
+ * @param {{ userId: string | null, userOrgId: string | null, modelId: string, answer: unknown, startedAt: number }} call
+ */
+function meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt }) {
+    if (typeof deps.logUsage !== 'function') return;
+    const usage = answer && typeof answer === 'object' ? /** @type {{ usage?: unknown }} */ (answer).usage : null;
+    deps.logUsage({ source: 'playbook', userId, orgId: userOrgId, model: modelId, usage, startedAt });
+}
+
 function defaultDeps() {
     return {
         resolveModel: (opts) => require('../../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
         chatForcedTool: (...args) => /** @type {Function} */ (require('../../core/llm/llmClient').chatForcedTool)(...args),
+        logUsage: (/** @type {import('../../core/llm/surfaceUsage').SurfaceCall} */ call) => require('../../core/llm/surfaceUsage').logSurfaceUsage(call),
     };
 }
 
@@ -701,10 +716,13 @@ async function runCompliancePhase({ facts, locale = 'en', frameworkNames = [], u
         try {
             const modelId = await withBudget(deps.resolveModel({ userOrgId, userId, tier }), budgetMs);
             if (!modelId) throw new Error('no model is configured for this tier');
-            const { structured } = await withBudget(deps.chatForcedTool(modelId, [
+            const startedAt = Date.now();
+            const answer = await withBudget(deps.chatForcedTool(modelId, [
                 { role: 'system', content: reviewPrompt(locale, frameworkNames) },
                 { role: 'user', content: factsMessage(facts, statics, locale) },
             ], reviewTool(facts.frameworks), { maxTokens: 1800, temperature: 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: budgetMs }), budgetMs);
+            meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt });
+            const { structured } = answer;
             // No structured answer is a FAILURE, not a clean review. It must not
             // be indistinguishable from "the reviewer looked and found nothing",
             // which is the one thing this phase must never claim by accident.

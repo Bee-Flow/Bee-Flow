@@ -307,10 +307,25 @@ function designToBrief(design) {
     return text;
 }
 
+/**
+ * One usage row for the phase's model call (source `playbook`,
+ * core/llm/surfaceUsage.js): the person, their organisation, the model and
+ * the tokens the provider reported. A test's deps without `logUsage` log
+ * nothing.
+ * @param {{ logUsage?: (call: import('../../core/llm/surfaceUsage').SurfaceCall) => void }} deps
+ * @param {{ userId: string | null, userOrgId: string | null, modelId: string, answer: unknown, startedAt: number }} call
+ */
+function meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt }) {
+    if (typeof deps.logUsage !== 'function') return;
+    const usage = answer && typeof answer === 'object' ? /** @type {{ usage?: unknown }} */ (answer).usage : null;
+    deps.logUsage({ source: 'playbook', userId, orgId: userOrgId, model: modelId, usage, startedAt });
+}
+
 function defaultDeps() {
     return {
         resolveModel: (opts) => require('../../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
         chatForcedTool: (...args) => /** @type {Function} */ (require('../../core/llm/llmClient').chatForcedTool)(...args),
+        logUsage: (/** @type {import('../../core/llm/surfaceUsage').SurfaceCall} */ call) => require('../../core/llm/surfaceUsage').logSurfaceUsage(call),
     };
 }
 
@@ -339,10 +354,13 @@ async function runDesignPhase({ goal, table, sampleRows = [], approvals = false,
     const constraints = isBinding(stated) ? stated : null;
     let structured = null;
     try {
-        ({ structured } = await deps.chatForcedTool(modelId, [
+        const startedAt = Date.now();
+        const answer = await deps.chatForcedTool(modelId, [
             { role: 'system', content: designerPrompt(locale) },
             { role: 'user', content: designerUserMessage({ goal, table, sampleRows, approvals, locale, feedback, previousDesign, ask, builderBrief, constraints }) },
-        ], DESIGN_TOOL, { maxTokens: 2500, temperature: feedback ? 0.7 : 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: MODEL_BUDGET_MS }));
+        ], DESIGN_TOOL, { maxTokens: 2500, temperature: feedback ? 0.7 : 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: MODEL_BUDGET_MS });
+        meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt });
+        ({ structured } = answer);
     } catch (e) {
         // The provider's words go to the log, never into the 422 or onto the
         // playbook row as the phase's error (../modelFailure.js).

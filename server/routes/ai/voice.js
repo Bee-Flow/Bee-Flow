@@ -82,6 +82,8 @@ const agentStore = require('../../stores/agentStore');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
 const { bestEffort } = require('../../utils/bestEffort');
+const { createUsageAccumulator } = require('../../core/providers/usageNormalizer');
+const { logSurfaceUsage } = require('../../core/llm/surfaceUsage');
 
 /**
  * @param {NextFunction} next
@@ -301,6 +303,21 @@ function summarizeToolResult(name, result) {
     return 'ok';
 }
 
+/**
+ * One usage row per voice turn (source `voice`, core/llm/surfaceUsage.js): the
+ * signed-in person, their organisation, the agent when one was chosen, the
+ * model and the tokens of every round.
+ * @param {import('express').Request<any, any, any, any>} req
+ * @param {{ model: string, usage: unknown, startedAt: number, agentId: string | null }} turn
+ */
+function meterVoiceTurn(req, { model, usage, startedAt, agentId }) {
+    const user = req.session?.user;
+    logSurfaceUsage({
+        source: 'voice', userId: user?.id || null, orgId: user?.organizationId || null,
+        agentId, model, usage, startedAt,
+    });
+}
+
 // ─── GET /ai/voice/availability ───────────────────────────────────
 router.get('/availability', requireAuth, async (req, res) => {
     try {
@@ -503,6 +520,9 @@ router.post(
                 }).catch((e) => bestEffort('routes/ai/voice:logShieldEvent', e));
             };
 
+            // Every round's usage (the adapter's `done` payload): one ledger row per turn.
+            const turnUsage = createUsageAccumulator();
+            const llmStart = Date.now();
             while (round < MAX_VOICE_TOOL_ROUNDS) {
                 let roundText = '';
                 const roundToolCalls = [];
@@ -531,6 +551,8 @@ router.post(
                             name: data.name,
                             input: data.input || {},
                         });
+                    } else if (event === 'done') {
+                        turnUsage.add(data);
                     }
                 });
 
@@ -618,6 +640,7 @@ router.post(
             }
 
             send('llm_done', { rounds: roundsMetrics });
+            meterVoiceTurn(req, { model, usage: turnUsage.total(), startedAt: llmStart, agentId });
 
             // 5 ─ TTS the final reply (only non-tool assistantText).
             //      Clean stray JSON / code fragments before synthesis — the
@@ -666,4 +689,4 @@ router.post(
     }
 );
 
-module.exports = router;
+module.exports = Object.assign(router, { meterVoiceTurn });

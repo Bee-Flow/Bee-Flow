@@ -648,3 +648,20 @@ test('an automation that sends nothing personal says so, and says which columns 
     assert.equal(unlooked.carries, null);
     assert.equal(unlooked.verdict, 'unknown');
 });
+
+test('the reviewer call writes one playbook usage row for the person and the org', async () => {
+    const { areaOf } = require('../../shared/usageAreas');
+    const logged = [];
+    const deps = {
+        resolveModel: async () => 'model-fast',
+        chatForcedTool: async () => ({ structured: { findings: [] }, usage: { prompt_tokens: 500, completion_tokens: 40 } }),
+        logUsage: (call) => { logged.push(call); },
+    };
+    const out = await C.runCompliancePhase({ facts: facts(), locale: 'en', frameworkNames: ['GDPR'], userId: 'u1', userOrgId: 'org-1' }, deps);
+    assert.equal(out.ok, true);
+    assert.equal(logged.length, 1);
+    assert.equal(logged[0].source, 'playbook');
+    assert.equal(logged[0].userId, 'u1');
+    assert.equal(logged[0].orgId, 'org-1');
+    assert.notEqual(areaOf(logged[0].source), 'other');
+});

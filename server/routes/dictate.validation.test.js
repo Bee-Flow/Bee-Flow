@@ -27,11 +27,14 @@ const Module = require('module');
 
 // Every transcription lands in `heard`. A refused upload must leave it empty.
 const heard = [];
+// Every usage row the route asked for (core/llm/surfaceUsage.js).
+const metered = [];
 
 const MOCKS = {
     '../auth/permissions': {
-        requireAuth: (req, res, next) => { req.session = { user: { id: 'u1' } }; next(); },
+        requireAuth: (req, res, next) => { req.session = { user: { id: 'u1', organizationId: 'org-1' } }; next(); },
     },
+    '../core/llm/surfaceUsage': { logSurfaceUsage: (call) => { metered.push(call); } },
     '../core/voice/localWhisper': {
         transcribeLocally: async (_path, opts) => { heard.push(opts); return { text: 'hallo', provider: 'cpu', durationSec: 1 }; },
     },
@@ -73,7 +76,7 @@ test.after(async () => {
     await new Promise((resolve) => server.close(resolve));
 });
 
-test.beforeEach(() => { heard.length = 0; });
+test.beforeEach(() => { heard.length = 0; metered.length = 0; });
 
 /** A recording as the composer sends it: one audio blob plus text fields. */
 async function upload(fields) {
@@ -124,4 +127,19 @@ test('no language at all is still Dutch, the composer\'s default', async () => {
     const res = await upload({});
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(heard, [{ language: 'nl' }]);
+});
+
+test('a dictation writes one usage row for the person and the org; a refused upload none', async () => {
+    const { areaOf } = require('../shared/usageAreas');
+    await upload({ languge: 'en' });
+    assert.deepStrictEqual(metered, [], 'nothing transcribed, nothing logged');
+    const res = await upload({ language: 'nl' });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(metered.length, 1);
+    const call = metered[0];
+    assert.strictEqual(call.source, 'dictate');
+    assert.strictEqual(call.userId, 'u1');
+    assert.strictEqual(call.orgId, 'org-1');
+    assert.strictEqual(call.model, 'cpu', 'the engine that heard it');
+    assert.notStrictEqual(areaOf(call.source), 'other');
 });

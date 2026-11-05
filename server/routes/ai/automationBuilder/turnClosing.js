@@ -11,6 +11,7 @@
 const { randomUUID } = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 const log = require('../../../telemetry/log');
+const { logSurfaceUsage } = require('../../../core/llm/surfaceUsage');
 const automationStore = require('../../../stores/automationStore');
 const { applyToolCall } = require('../../../automation/builderTools');
 const { validateDefinition } = require('../../../automation/validate');
@@ -306,7 +307,26 @@ async function closeTurn(turn) {
 
     if (usageTotals.rounds > 0) {
         log.info(`[AutomationBuilder] usage session=${draftWrap.builderSessionId} model=${modelId} rounds=${usageTotals.rounds} in=${log.textForLog(usageTotals.prompt)} cached=${usageTotals.cached} cacheWrite=${usageTotals.cacheCreation} out=${usageTotals.completion}`);
+        meterBuilderTurn(turn);
     }
 }
 
-module.exports = { closeTurn, sessionMemory };
+/**
+ * One usage row per builder turn (source automation_builder,
+ * core/llm/surfaceUsage.js): the person, their organisation, the automation
+ * being built, the builder session and the tokens of every round.
+ * @param {BuilderTurn} turn
+ */
+function meterBuilderTurn(turn) {
+    const { userId, userOrgForTiers, modelId, usageTotals, draftWrap } = turn;
+    logSurfaceUsage({
+        source: 'automation_builder', userId, orgId: userOrgForTiers, model: modelId,
+        usage: {
+            prompt_tokens: usageTotals.prompt, completion_tokens: usageTotals.completion,
+            cached_tokens: usageTotals.cached, cache_creation_tokens: usageTotals.cacheCreation,
+        },
+        agentId: draftWrap.automationId || null, conversationId: draftWrap.builderSessionId || null,
+    });
+}
+
+module.exports = { closeTurn, sessionMemory, meterBuilderTurn };
