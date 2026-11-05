@@ -34,7 +34,7 @@ const router = express.Router();
 
 require('../stores/studioAppStore');
 const automationStore = require('../stores/automationStore');
-const usageStore = require('../stores/usageStore');
+const { logActionUsage } = require('./studioAppsRunUsage');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
@@ -137,7 +137,7 @@ const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
 // routes, which carry the same bodies (routes/studio/appRuntimeSchemas.js).
 const R = require('./studio/appRuntimeSchemas');
-const { fallback, bestEffort } = require('../utils/bestEffort');
+const { fallback } = require('../utils/bestEffort');
 
 // ── Pending run id (202 path) ───────────────────────────────────────
 // executeAutomation only hands back the run row when the run FINISHES, but a
@@ -292,21 +292,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
 
     // Real work happened under the OWNER (record write or owner-scoped run)
     // regardless of the viewer — attribute usage to the owner (as /run does);
-    // the viewer who clicked is the actor.
-    usageStore.logUsage({
-        user_id: app.userId,
-        organization_id: app.organizationId || null,
-        agent_id: app.id,
-        agent_name: `App: ${app.name || 'Untitled app'}`,
-        agent_type: 'studio_app',
-        prompt_tokens: 0,
-        completion_tokens: 0,
-        total_tokens: 0,
-        duration_ms: Date.now() - t0,
-        source: 'studio_app_action',
-        conversation_id: app.id,
-        actor_user_id: userId,
-    }).catch((e) => bestEffort('routes/studioAppsRun:anon', e));
+    // the viewer who clicked is the actor (studioAppsRunUsage.js).
+    logActionUsage(app, { actorUserId: userId, startedAt: t0, tag: 'routes/studioAppsRun:anon' });
 
     if (result && result.ok) {
         // Step remarks (e.g. a modelTier formula that fell back) ride along only when there are any.
@@ -443,22 +430,8 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // The run log: a run of one step, finished from the automation's outcome (also after a 202).
     logAutomationRun(signedInClick(app, actionId, userId, isOwner && wantDraft, null), runPromise, t0);
     runPromise.then((/** @type {{ id?: string } | null} */ settledRun) => {
-        usageStore.logUsage({
-            user_id: app.userId,
-            organization_id: app.organizationId || null,
-            agent_id: app.id,
-            agent_name: `App: ${app.name || 'Untitled app'}`,
-            agent_type: 'studio_app',
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
-            duration_ms: Date.now() - t0,
-            source: 'studio_app_action',
-            conversation_id: app.id,
-            // The viewer who clicked, and the automation run the click started.
-            actor_user_id: userId,
-            run_id: settledRun?.id ?? null,
-        }).catch((e) => bestEffort('routes/studioAppsRun:anon#2', e));
+        // The viewer who clicked, and the automation run the click started.
+        logActionUsage(app, { actorUserId: userId, runId: settledRun?.id ?? null, startedAt: t0, tag: 'routes/studioAppsRun:anon#2' });
     });
 
     let run;

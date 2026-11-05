@@ -12,17 +12,12 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
 const { areaOf } = require('../../../shared/usageAreas');
+const { meterBuilderTurn } = require('./turnClosing');
 
 const rows = [];
-const restore = installResolveStub({
-    // The sink as core/llm/surfaceUsage.js requires it.
-    '../../stores/usageStore': { logUsage: async (row) => { rows.push(row); } },
-});
-test.after(() => restore());
-
-const { meterBuilderTurn } = require('./turnClosing');
+// The ledger sink, handed to the meter instead of the usage store.
+const sink = { logUsage: async (row) => { rows.push(row); } };
 
 test('the turn is billed to the person and the org, under the automation and the session', () => {
     rows.length = 0;
@@ -30,7 +25,7 @@ test('the turn is billed to the person and the org, under the automation and the
         userId: 'u1', userOrgForTiers: 'org-1', modelId: 'model-build',
         usageTotals: { prompt: 900, completion: 120, cached: 400, cacheCreation: 50, rounds: 3 },
         draftWrap: { automationId: 'auto-1', builderSessionId: 'bs-1' },
-    }));
+    }), sink);
     assert.equal(rows.length, 1);
     const row = rows[0];
     assert.equal(row.source, 'automation_builder');
@@ -51,7 +46,7 @@ test('a draft with no automation yet still logs, without an object id', () => {
         userId: 'u1', userOrgForTiers: null, modelId: 'm',
         usageTotals: { prompt: 1, completion: 1, cached: 0, cacheCreation: 0, rounds: 1 },
         draftWrap: { automationId: null, builderSessionId: 'bs-2' },
-    }));
+    }), sink);
     assert.equal(rows[0].agent_id, null);
     assert.equal(rows[0].organization_id, null);
 });

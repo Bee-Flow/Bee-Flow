@@ -316,8 +316,9 @@ async function closeTurn(turn) {
  * core/llm/surfaceUsage.js): the person, their organisation, the automation
  * being built, the builder session and the tokens of every round.
  * @param {BuilderTurn} turn
+ * @param {import('../../../core/llm/surfaceUsage').UsageSink} [store] the ledger sink (default: the usage store)
  */
-function meterBuilderTurn(turn) {
+function meterBuilderTurn(turn, store) {
     const { userId, userOrgForTiers, modelId, usageTotals, draftWrap } = turn;
     logSurfaceUsage({
         source: 'automation_builder', userId, orgId: userOrgForTiers, model: modelId,
@@ -326,7 +327,7 @@ function meterBuilderTurn(turn) {
             cached_tokens: usageTotals.cached, cache_creation_tokens: usageTotals.cacheCreation,
         },
         agentId: draftWrap.automationId || null, conversationId: draftWrap.builderSessionId || null,
-    });
+    }, store);
 }
 
 module.exports = { closeTurn, sessionMemory, meterBuilderTurn };

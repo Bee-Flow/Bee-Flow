@@ -65,19 +65,57 @@ function surfaceUsageEntry(call) {
     };
 }
 
+/** @typedef {{ logUsage: (entry: object) => Promise<unknown> }} UsageSink */
+
 /**
- * Write the row; never throws, never rejects.
- * @param {SurfaceCall} call
- * @param {{ logUsage: (entry: object) => Promise<unknown> }} [store] test seam
+ * The sink the default instance writes to when a test set one
+ * (`_setDepsForTests`); null means the real usage store.
+ * @type {UsageSink | null}
  */
-function logSurfaceUsage(call, store) {
-    try {
-        const sink = store || require('../../stores/usageStore');
-        Promise.resolve(sink.logUsage(surfaceUsageEntry(call)))
-            .catch((e) => log.warn(`[SurfaceUsage] could not record ${call.source} usage:`, /** @type {Error} */ (e)?.message));
-    } catch (e) {
-        log.warn(`[SurfaceUsage] could not record ${call.source} usage:`, /** @type {Error} */ (e)?.message);
+let defaultSinkOverride = null;
+
+/** @returns {UsageSink} */
+const defaultSink = () => defaultSinkOverride || require('../../stores/usageStore');
+
+/**
+ * A surface-usage writer bound to a ledger sink. Without one it writes to the
+ * usage store (or the sink a test set through `_setDepsForTests`).
+ * @param {{ logUsage?: UsageSink['logUsage'] }} [deps]
+ */
+function createSurfaceUsage(deps = {}) {
+    const bound = deps.logUsage;
+    /** @type {() => UsageSink} */
+    const sinkOf = bound ? () => ({ logUsage: bound }) : defaultSink;
+
+    /**
+     * Write the row; never throws, never rejects.
+     * @param {SurfaceCall} call
+     * @param {UsageSink} [store] a sink for this one call
+     */
+    function logSurfaceUsage(call, store) {
+        try {
+            const sink = store || sinkOf();
+            Promise.resolve(sink.logUsage(surfaceUsageEntry(call)))
+                .catch((e) => log.warn(`[SurfaceUsage] could not record ${call.source} usage:`, /** @type {Error} */ (e)?.message));
+        } catch (e) {
+            log.warn(`[SurfaceUsage] could not record ${call.source} usage:`, /** @type {Error} */ (e)?.message);
+        }
     }
+
+    return { logSurfaceUsage, surfaceUsageEntry };
 }
 
-module.exports = { logSurfaceUsage, surfaceUsageEntry };
+const { logSurfaceUsage } = createSurfaceUsage();
+
+/**
+ * Point the default instance at another sink (null: back to the usage store).
+ * The surfaces that call `logSurfaceUsage` keep calling it; a test reads their
+ * rows here.
+ * @param {{ logUsage?: UsageSink['logUsage'] } | null} [over]
+ */
+function _setDepsForTests(over = null) {
+    const logUsage = over?.logUsage;
+    defaultSinkOverride = logUsage ? { logUsage } : null;
+}
+
+module.exports = { logSurfaceUsage, surfaceUsageEntry, createSurfaceUsage, _setDepsForTests };

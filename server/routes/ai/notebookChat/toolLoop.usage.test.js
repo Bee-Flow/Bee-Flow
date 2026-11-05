@@ -10,20 +10,18 @@
 
 const { test, after } = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
 const { areaOf } = require('../../../shared/usageAreas');
-
-const rows = [];
-const restore = installResolveStub({
-    '../../../stores/configStore': { getConfig: async () => null },
-    '../../../stores/notebookStore': {},
-    '../../../stores/guardrailEventStore': { logGuardrailEvent: async () => {} },
-    '../../../core/dlp/dlpRunner': { getConversationTokenMap: () => ({}) },
-    '../../stores/usageStore': { logUsage: async (row) => { rows.push(row); } },
-});
-after(() => restore());
-
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const surfaceUsage = require('../../../core/llm/surfaceUsage');
 const { runToolLoop } = require('./toolLoop');
+
+// The turn reads its round limit from the config store: an empty Postgres
+// (pglite behind db.js's pool) answers "not set".
+const { close } = usePglitePool();
+const rows = [];
+// The turn writes through the shared surface-usage sink; the test reads it there.
+surfaceUsage._setDepsForTests({ logUsage: async (row) => { rows.push(row); } });
+after(async () => { surfaceUsage._setDepsForTests(null); await close(); });
 
 test('one row per turn with the tokens the adapter reported', async () => {
     const adapter = {

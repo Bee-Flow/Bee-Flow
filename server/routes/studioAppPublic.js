@@ -75,7 +75,7 @@ const UploadFields = bodyOf({
 const studioAppStore = require('../stores/studioAppStore');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const storageStore = require('../stores/storageStore');
-const usageStore = require('../stores/usageStore');
+const { logPublicStepUsage } = require('./studioAppPublicParts');
 const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
 const attachmentAccess = require('../appStudio/attachmentAccess');
@@ -377,22 +377,9 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         viewer: ctx.viewer,
     })));
 
-    // The work happened under the OWNER — attribute it to them, as /step does.
-    usageStore.logUsage({
-        user_id: found.app.userId,
-        organization_id: found.app.organizationId || null,
-        agent_id: found.app.id,
-        agent_name: `App: ${found.app.name || 'Untitled app'}`,
-        agent_type: 'studio_app',
-        prompt_tokens: 0,
-        completion_tokens: 0,
-        total_tokens: 0,
-        duration_ms: Date.now() - t0,
-        source: 'studio_app_public',
-        conversation_id: found.app.id,
-        // A public visitor is nobody's account: no actor, never a guessed one.
-        actor_user_id: null,
-    }).catch((e) => bestEffort('routes/studioAppPublic:anon', e));
+    // The work happened under the OWNER — attribute it to them, as /step does
+    // (no actor: a public visitor is nobody's account; studioAppPublicParts.js).
+    logPublicStepUsage(found.app, t0);
 
     if (result && result.ok) return res.json({ ok: true, result: result.result ?? null, ...stepNotes(result) });
     return res.json({

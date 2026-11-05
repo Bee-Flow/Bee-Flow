@@ -1009,31 +1009,7 @@ test('step: form values above 64KB answer 413, executor never called', async () 
     assert.strictEqual(stepCalls.length, 0);
 });
 
-test('step: usage is logged under the OWNER', async () => {
-    const app = makeApp({ actionsPub: { seq: SEQ_ACTION } });
-    const r = await dispatch({ url: `/${app.id}/actions/seq/step`, orgIds: [ORG], body: { stepIndex: 1 } });
-    assert.strictEqual(r.statusCode, 200);
-    await new Promise(resolve => setImmediate(resolve));
-    assert.strictEqual(usageEntries.length, 1);
-    assert.strictEqual(usageEntries[0].user_id, OWNER);
-    assert.strictEqual(usageEntries[0].source, 'studio_app_action');
-    assert.strictEqual(usageEntries[0].actor_user_id, 'viewer-1', 'the viewer who clicked is the actor');
-});
-
-test('step: the AI calls inside the step are attributed to the viewer who clicked', async () => {
-    const { usageAttributionFields } = require('../appStudio/usageAttribution');
-    const seen = [];
-    const original = actionExecutor.executeDataStep;
-    actionExecutor.executeDataStep = async () => { seen.push(usageAttributionFields()); return stepResult; };
-    try {
-        const app = makeApp({ actionsPub: { seq: SEQ_ACTION } });
-        const r = await dispatch({ url: `/${app.id}/actions/seq/step`, orgIds: [ORG], body: { stepIndex: 1 } });
-        assert.strictEqual(r.statusCode, 200);
-    } finally {
-        actionExecutor.executeDataStep = original;
-    }
-    assert.deepStrictEqual(seen, [{ actor_user_id: 'viewer-1', run_id: null }]);
-});
+// The usage row of a step and the attribution of its AI calls: studioAppsRun.usage.test.js.
 
 test('step: the executor gets the FULL viewer row filters read (id + role + org)', async () => {
     const app = makeApp({ actionsPub: { seq: SEQ_ACTION } });
