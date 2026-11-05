@@ -273,7 +273,7 @@ Three checks in the GDPR framework belong to this feature:
 |-------|----------------|
 | **The Privacy Shield covers chat messages** (Art. 32) | Per chat type, over 30 days: how often messages reached an external or unknown model without a completed scan, how often a failed scan stopped a message, and how often found personal data was sent anyway. It reads only the totals, with small figures hidden, and judges a chat type only with at least 25 messages and, for employee chats, a complete week and 5 people. |
 | **Chat signals keep their safeguards** (Art. 35) | While chat signals are on: the DPIA, the works-council decision and its scope, the notice, the legal basis and the retention. It fails when a chat type is paused, and warns when the DPIA expires within 30 days, the notice link does not answer, the processing register was not reviewed since switching on, or a group is small. |
-| **Per-person Privacy Shield views are assessed** (Art. 35) | Always on, whether chat signals are on or not, wherever the per-person views in Usage & Monitoring are available. Those views rank named people by Privacy Shield events, which makes them suitable for checking the behaviour or performance of staff (WOR art. 27(1)(l)). It warns until they are covered by a DPIA, works-council consent and your staff notice. |
+| **Per-person monitoring views, including the Adoption report, are assessed** (Art. 35) | Always on, whether chat signals are on or not, wherever the per-person views in Usage & Monitoring are available. Those views rank named people by Privacy Shield events, break AI use down per person, and list every member in the [Adoption report](usage-and-adoption.md), which makes them suitable for checking the behaviour or performance of staff (WOR art. 27(1)(l)). The Adoption report is pseudonymous by default and records every name reveal in the access log, but the check warns until the views are covered by a DPIA, works-council consent and your staff notice. |
 
 While chat signals are on or scheduled, or counts are still stored, the processing
 register holds an entry **"Chat signals: checking whether the Privacy Shield works"**
@@ -292,3 +292,6 @@ together within 30 seconds. Your settings are kept.
   evidence chain.
 - [Privacy Shield](../features/privacy-shield.md): the detection that decides each
   outcome.
+- [Usage & adoption](usage-and-adoption.md): the Adoption report in Usage &
+  Monitoring, a per-person view that needs the same DPIA, works-council and notice
+  preparation.
