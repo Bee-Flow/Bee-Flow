@@ -32,6 +32,8 @@ const dlpRunner = require('../../../core/dlp/dlpRunner');
 const { createUntokeniser } = require('../../../core/dlp/untokeniseStream');
 const { applyTokenMapToMessages, untokeniseToolArgs } = require('../../../core/dlp/applyTokenMapToOutbound');
 const { fallback } = require('../../../utils/bestEffort');
+const { createUsageAccumulator } = require('../../../core/providers/usageNormalizer');
+const { logSurfaceUsage } = require('../../../core/llm/surfaceUsage');
 
 // What the model is told when a write is refused, in words it can pass on.
 const VIEWER_WRITE_REFUSAL = 'This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.';
@@ -231,6 +233,10 @@ async function runToolLoop({
         }),
     });
     let fullContent = '';
+    // Every round's usage (the adapter's `done` payload); one ledger row per
+    // turn, source notebook_chat, written when the loop is over.
+    const usageAcc = createUsageAccumulator();
+    const startedAt = Date.now();
     emitPhase(send, 'streaming_start', modelId);
 
     // Un-tokenise the streamed answer for DISPLAY (Model 1): the model emits
@@ -269,7 +275,8 @@ async function runToolLoop({
                     type: 'function',
                     function: { name: data.name, arguments: JSON.stringify(data.input || {}) },
                 });
-            } else if (type === 'error') send('error', data);
+            } else if (type === 'done') usageAcc.add(data);
+            else if (type === 'error') send('error', data);
         };
 
         const streamOptions = {
@@ -381,6 +388,10 @@ async function runToolLoop({
         }
         messages.push(...toolResults);
     }
+    logSurfaceUsage({
+        source: 'notebook_chat', userId, orgId: userOrgForTiers, model: modelId,
+        usage: usageAcc.total(), startedAt, conversationId: notebookId,
+    });
     return { fullContent, _untok };
 }
 

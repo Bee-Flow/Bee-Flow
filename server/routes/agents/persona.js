@@ -61,6 +61,7 @@ const { requirePermission, resolveUserOrgIds } = require('../../auth');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const personaPrompt = require('../../core/agentRuntime/personaPrompt');
+const { logSurfaceUsage } = require('../../core/llm/surfaceUsage');
 
 // One LLM call per request. Without a cap a logged-in user can run up the
 // org's inference bill at request rate; 20/min is far above human use of a
@@ -166,10 +167,14 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
 
     let structured;
     try {
-        ({ structured } = await llmClient.chatForcedTool(modelId, [
+        const startedAt = Date.now();
+        const result = await llmClient.chatForcedTool(modelId, [
             { role: 'system', content: SYSTEM },
             { role: 'user', content: `Agent instructions:\n\n${text}` },
-        ], PERSONA_TOOL, { maxTokens: 1500, temperature: 0.1, reasoningEffort: 'none', budgetTokens: 0 }));
+        ], PERSONA_TOOL, { maxTokens: 1500, temperature: 0.1, reasoningEffort: 'none', budgetTokens: 0 });
+        ({ structured } = result);
+        // One usage row (source agent_persona, core/llm/surfaceUsage.js).
+        logSurfaceUsage({ source: 'agent_persona', userId, orgId: userOrgId, agentId: agent.id, model: modelId, usage: result?.usage, startedAt });
     } catch (e) {
         log.error('[agents/persona/parse] inference failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'persona_parse_failed', 'Could not read the instructions right now.');

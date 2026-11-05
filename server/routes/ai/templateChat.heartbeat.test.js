@@ -28,6 +28,8 @@ const { installResolveStub } = require('../../testUtils/stubRequire');
 const pass = (req, res, next) => next();
 // The model call parks here until the test releases it.
 const fx = { started: null, release: null, fail: null, signal: null };
+/** The usage rows the turn wrote (core/llm/surfaceUsage.js requires the sink as '../../stores/usageStore'). */
+const usageRows = [];
 
 const restore = installResolveStub({
     '../../core/aiAgent': {
@@ -48,6 +50,7 @@ const restore = installResolveStub({
                     fx.started();
                 });
                 cb('text', { text: 'Filled.' });
+                cb('done', { prompt_tokens: 9, completion_tokens: 2 });
             },
         }),
     },
@@ -66,6 +69,7 @@ const restore = installResolveStub({
         TIER_DEFAULTS: { fast: { maxTokens: 100, temperature: 0 } },
     },
     '../../core/privacy/orgShield': { resolveShieldFor: async () => null },
+    '../../stores/usageStore': { logUsage: async (row) => { usageRows.push(row); } },
 });
 
 const router = require('./templateChat');
@@ -147,4 +151,20 @@ test('a failed turn reports a classified message, never the raw error text', asy
     assert.ok(joined.includes('event: error'));
     assert.ok(joined.includes('An unexpected error occurred'));
     assert.ok(!/word_templates|\/srv\/app|10\.0\.0\.5/.test(joined), 'raw error text reached the client');
+});
+
+test('a template turn writes one template_chat usage row for the user and the template', async () => {
+    const { areaOf } = require('../../shared/usageAreas');
+    usageRows.length = 0;
+    const { finished } = await startTurn();
+    fx.release();
+    await finished;
+    assert.strictEqual(usageRows.length, 1);
+    const row = usageRows[0];
+    assert.strictEqual(row.source, 'template_chat');
+    assert.strictEqual(row.user_id, 'u1');
+    assert.strictEqual(row.agent_id, 't1');
+    assert.strictEqual(row.model, 'model-1');
+    assert.strictEqual(row.prompt_tokens, 9);
+    assert.notStrictEqual(areaOf(row.source), 'other');
 });

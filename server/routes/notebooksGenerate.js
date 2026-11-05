@@ -38,6 +38,7 @@ const { asEditor, text } = require('./notebooksShared');
 const { requireAuth } = require('../auth/permissions');
 const { spendLimiter } = require('../utils/perUserRateLimit');
 const { sessionUser } = require('../core/http/sessionUser');
+const { logSurfaceUsage } = require('../core/llm/surfaceUsage');
 
 // ── What a caller may send ─────────────────────────────────────────
 // Closed bodies (see routes/notebooksShared.js).
@@ -62,6 +63,26 @@ const REMOVED_GEN_TYPES = new Set(['studyGuide', 'flashcards', 'quiz', 'audio_ov
 // Generations per user per minute (summary, quiz, ai-fill: each a model
 // call). NOTEBOOK_AI_RPM sets it (0 = no limit).
 const notebookAiLimiter = spendLimiter({ env: 'NOTEBOOK_AI_RPM', fallback: 30, name: 'notebook-ai' });
+
+/**
+ * The adapter's stream with one usage row for the call (source
+ * notebook_generate, core/llm/surfaceUsage.js): the person, the organisation,
+ * the notebook, the model and the tokens of the adapter's `done` payload.
+ * @param {{ adapter: { stream: Function }, apiKey: string, apiUrl: string, modelId: string, messages: unknown[], chatOptions: object }} call
+ * @param {{ userId: string, orgId: string | null, conversationId: string }} who
+ * @param {(type: string, data: any) => void} onEvent
+ */
+async function meteredStream(call, who, onEvent) {
+    const { adapter, apiKey, apiUrl, modelId, messages, chatOptions } = call;
+    /** @type {unknown} */
+    let usage = null;
+    const startedAt = Date.now();
+    await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (/** @type {string} */ type, /** @type {any} */ data) => {
+        if (type === 'done') usage = data;
+        onEvent(type, data);
+    });
+    logSurfaceUsage({ source: 'notebook_generate', model: modelId, usage, startedAt, ...who });
+}
 
 router.post('/:id/generate/:type', requireAuth, notebookAiLimiter, validate({ body: GenerateBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
     try {
@@ -222,7 +243,7 @@ ${shield.units[0]}${shield.addendum}`;
         };
 
 
-        await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (streamType, data) => {
+        await meteredStream({ adapter, apiKey, apiUrl, modelId, messages, chatOptions }, { userId, orgId: userOrgId, conversationId: nb.id }, (streamType, data) => {
             if (streamType === 'text') {
                 // Real values back in for the person who asked; the model saw tokens.
                 send('content', { text: shield.untokenise.push(/** @type {string} */ (data.text)) });
@@ -358,7 +379,7 @@ ${shieldedSources}${shield.addendum}`;
         const _fillDefaults = TIER_DEFAULTS[resolvedTier] || TIER_DEFAULTS['fast'];
         const chatOptions = { maxTokens: _fillDefaults.maxTokens, temperature: 0.1 };
 
-        await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (streamType, data) => {
+        await meteredStream({ adapter, apiKey, apiUrl, modelId, messages, chatOptions }, { userId, orgId: userOrgId, conversationId: nb.id }, (streamType, data) => {
             if (streamType === 'text') {
                 send('content', { text: shield.untokenise.push(/** @type {string} */ (data.text)) });
             } else if (streamType === 'error') {

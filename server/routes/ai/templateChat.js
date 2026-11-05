@@ -393,6 +393,8 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
             ? require('../../core/dlp/untokeniseStream').createUntokeniser(() => require('../../core/dlp/dlpRunner').getConversationTokenMap(_dlpConvId))
             : null;
 
+        /** @type {unknown} the adapter's `done` payload: the turn's token usage */
+        let turnUsage = null;
         const streamCallback = (type, data) => {
             if (type === 'text') {
                 const safe = _streamUntok ? _streamUntok.push(data.text) : data.text;
@@ -401,11 +403,18 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                 send('thinking', { text: data.text });
             } else if (type === 'error') {
                 send('error', data);
+            } else if (type === 'done') {
+                turnUsage = data;
             }
-            // 'done' handled after stream completes
         };
 
+        const streamStartedAt = Date.now();
         await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, streamCallback);
+        // One usage row per turn (source template_chat, core/llm/surfaceUsage.js).
+        require('../../core/llm/surfaceUsage').logSurfaceUsage({
+            source: 'template_chat', userId, orgId: userOrgId, model: modelId, usage: turnUsage,
+            startedAt: streamStartedAt, agentId: templateId, conversationId: conversationId || null,
+        });
 
         if (_streamUntok) {
             const _tail = _streamUntok.flush();
