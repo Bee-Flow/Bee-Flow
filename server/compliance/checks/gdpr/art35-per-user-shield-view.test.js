@@ -3,7 +3,8 @@
 
 /**
  * GDPR-Art35-per-user-shield-view: always on, independent of chat signals,
- * never a pass in this release, and an evidence allow-list without people.
+ * never a pass in this release, covers the Privacy Shield, consumption and
+ * Adoption per-person views, and an evidence allow-list without people.
  *
  * Run: cd server && node --test compliance/checks/gdpr/art35-per-user-shield-view.test.js
  */
@@ -31,9 +32,12 @@ test('with it: warn, whatever chat signals do (it reads no chat signals data)', 
     assert.ok(!('chat_signals' in r.evidence));
 });
 
-test('the details name all three endpoints, the retention and the 2 December 2027 date', async () => {
+test('the details name every endpoint, the retention and the 2 December 2027 date', async () => {
     const r = await check.evaluate('org1', null, deps());
     for (const s of ['/api/usage/guardrails/overview', 'top_users', '/api/usage/guardrails/recent', '/api/usage/guardrails/by-user', '400 days', '2 December 2027', 'DPIA', 'works-council']) {
+        assert.ok(r.details.includes(s), s);
+    }
+    for (const s of ['/api/usage/users', '/api/usage/by-user', '/api/usage/recent', '/api/usage/adoption/people', '/api/usage/adoption/studio/items', 'topPeople']) {
         assert.ok(r.details.includes(s), s);
     }
     const unlimited = await check.evaluate('org1', null, deps({ guardrailRetentionDays: () => 0 }));
@@ -44,11 +48,31 @@ test('the evidence is the allow-list', async () => {
     const r = await check.evaluate('org1', null, deps());
     assert.deepEqual(r.evidence, {
         reachable: true,
-        endpoints: ['guardrails.overview.top_users', 'guardrails.recent', 'guardrails.by_user'],
+        endpoints: [
+            'guardrails.overview.top_users', 'guardrails.recent', 'guardrails.by_user',
+            'usage.users', 'usage.by_user', 'usage.recent',
+            'adoption.people', 'adoption.studio.items.top_people',
+        ],
         guardrail_retention_days: 400,
+        pseudonymous_default: true,
+        reveal_audited: true,
+        reveal_audit_action: 'usage_adoption_people_revealed',
         opt_in_gate: false,
         ai_act_assessment_due: '2027-12-02',
     });
+    const leaves = Object.values(r.evidence).flat();
+    for (const v of leaves) assert.ok(['string', 'number', 'boolean'].includes(typeof v), `evidence leaf ${String(v)} is a scalar`);
+});
+
+test('the Adoption report: pseudonymous by default and an audited reveal, still a warn without the opt-in gate', async () => {
+    const r = await check.evaluate('org1', null, deps());
+    assert.equal(r.status, 'warn');
+    assert.equal(r.evidence.opt_in_gate, false);
+    assert.equal(check.REVEAL_AUDIT_ACTION, 'usage_adoption_people_revealed');
+    for (const s of ['Adoption report', 'pseudonymous by default', 'access audit log', 'usage_adoption_people_revealed', 'always pseudonymous']) {
+        assert.ok(r.details.includes(s), s);
+    }
+    assert.ok(Object.isFrozen(check.ENDPOINTS));
 });
 
 test('module fields', () => {
