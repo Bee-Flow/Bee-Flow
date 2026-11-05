@@ -9,7 +9,111 @@ toc_max_heading_level: 2
 
 # `/api/usage`
 
-45 routes, 45 with a request schema. Back to the [endpoint reference](../reference.md).
+51 routes, 51 with a request schema. Back to the [endpoint reference](../reference.md).
+
+## `adoption`
+
+### `GET /api/usage/adoption/areas`
+
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `days` | integer |  | min 1; max 36500 |
+| `startDate` | string |  | max length 64 |
+| `endDate` | string |  | max length 64 |
+| `group` | string |  | max length 200 |
+| `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
+| `reveal` | one of `"true"`, `"false"` |  |  |
+| `limit` | integer |  | min 1; max 9007199254740991 |
+| `cursor` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/usage/adoption/groups`
+
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `days` | integer |  | min 1; max 36500 |
+| `startDate` | string |  | max length 64 |
+| `endDate` | string |  | max length 64 |
+| `group` | string |  | max length 200 |
+| `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
+| `reveal` | one of `"true"`, `"false"` |  |  |
+| `limit` | integer |  | min 1; max 9007199254740991 |
+| `cursor` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/usage/adoption/people`
+
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `days` | integer |  | min 1; max 36500 |
+| `startDate` | string |  | max length 64 |
+| `endDate` | string |  | max length 64 |
+| `group` | string |  | max length 200 |
+| `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
+| `reveal` | one of `"true"`, `"false"` |  |  |
+| `limit` | integer |  | min 1; max 9007199254740991 |
+| `cursor` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/usage/adoption/studio`
+
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `days` | integer |  | min 1; max 36500 |
+| `startDate` | string |  | max length 64 |
+| `endDate` | string |  | max length 64 |
+| `group` | string |  | max length 200 |
+| `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
+| `reveal` | one of `"true"`, `"false"` |  |  |
+| `limit` | integer |  | min 1; max 9007199254740991 |
+| `cursor` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/usage/adoption/studio/items`
+
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `days` | integer |  | min 1; max 36500 |
+| `startDate` | string |  | max length 64 |
+| `endDate` | string |  | max length 64 |
+| `group` | string |  | max length 200 |
+| `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
+| `reveal` | one of `"true"`, `"false"` |  |  |
+| `limit` | integer |  | min 1; max 9007199254740991 |
+| `cursor` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/usage/adoption/summary`
+
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `days` | integer |  | min 1; max 36500 |
+| `startDate` | string |  | max length 64 |
+| `endDate` | string |  | max length 64 |
+| `group` | string |  | max length 200 |
+| `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
+| `reveal` | one of `"true"`, `"false"` |  |  |
+| `limit` | integer |  | min 1; max 9007199254740991 |
+| `cursor` | integer |  | min 0; max 9007199254740991 |
 
 ## `agents`
 

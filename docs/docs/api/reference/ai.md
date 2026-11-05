@@ -76,7 +76,7 @@ No request schema.
 
 ### `POST /ai/chat/generate-image`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 **Body**
 
