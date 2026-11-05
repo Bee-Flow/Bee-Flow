@@ -264,17 +264,19 @@ app.use('/versions', require('./routes/versions'));
 // We inject a path-aware gate that runs only for the gated sub-prefixes
 // — the same /api/usage router serves both. `requireFeature` is
 // destructured further down, so we lazy-require it here.
-const _ADV_USAGE_PREFIXES = ['/guardrails', '/integrations', '/integrations-health', '/azure-services'];
+// (`/adoption` has its own router below; listed so this is every gated prefix.)
+const _ADV_USAGE_PREFIXES = ['/guardrails', '/integrations', '/integrations-health', '/azure-services', '/adoption'];
 const _advUsagePrefixGate = (req, res, next) => {
     const path = req.path || '';
     const hit = _ADV_USAGE_PREFIXES.some(p => path === p || path.startsWith(p + '/'));
     if (!hit) return next();
     return require('./core/entitlements/entitlements').requireCapability('advanced_usage_monitoring')(req, res, next);
 };
-app.use('/api/usage', _advUsagePrefixGate, require('./routes/usage'));
-// /api/terminations and /api/feedback back the Terminations + Feedback
-// usage tabs — same advanced-monitoring gate, applied at the mount.
+// /api/usage/adoption, /api/terminations and /api/feedback back the Adoption,
+// Terminations and Feedback usage tabs — the same gate, applied at the mount.
 const _advUsageGate = (req, res, next) => require('./core/entitlements/entitlements').requireCapability('advanced_usage_monitoring')(req, res, next);
+app.use('/api/usage/adoption', _advUsageGate, require('./routes/usageAdoption')); // before /api/usage
+app.use('/api/usage', _advUsagePrefixGate, require('./routes/usage'));
 app.use('/api/terminations', _advUsageGate, require('./routes/terminations'));
 // NOT gated at the mount. Reading other people's feedback is an
 // advanced-monitoring feature; leaving a thumbs-up on your own answer is not.

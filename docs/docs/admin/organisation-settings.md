@@ -64,6 +64,10 @@ Path: **Org settings → Licence & usage**.
 | Last verified | When the server last polled the licence-server. |
 | Refresh now | Manual re-check button. |
 
+How much AI your organisation uses, where it goes and who uses it is under
+**Settings → Organisation → Usage & Monitoring**; the Adoption tab there is described in
+[Usage & adoption](usage-and-adoption.md).
+
 ## Privacy
 
 Org-level Privacy Shield settings (the same JSONB record described in [Privacy Shield](../features/privacy-shield.md)).

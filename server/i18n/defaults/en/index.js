@@ -26,6 +26,7 @@ const NAMESPACES = {
     "nc_onboarding":   require('./nc_onboarding.js'),
     "init_setup":      require('./init_setup.js'),
     "activity":        require('./activity.js'),
+    "adoption":        require('./adoption.js'),
     "admin":           require('./admin.js'),
     "agent":           require('./agent.js'),
     "agent_schedules": require('./agent_schedules.js'),

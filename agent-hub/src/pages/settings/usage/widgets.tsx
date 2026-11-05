@@ -2,22 +2,18 @@
 // Safety / Integrations). These depend on the integration-icon registry and
 // the source map, so they live here rather than in the generic `kit.jsx`.
 
-import { Bot, MessageSquare, BookOpen, Search, LayoutTemplate, Code, Globe, Cpu, type LucideIcon } from 'lucide-react';
+import { Globe, Cpu, type LucideIcon } from 'lucide-react';
 import { shortModel } from './format';
 import { getIntegrationIcon, hasIntegrationIcon } from '@/config/integrationIcons';
+import { usageSourceDetails } from '@/components/shared/usageAreaMeta';
 
-// ── Source map ───────────────────────────────────────────────────────────────
-const SOURCE_MAP: Record<string, { label: string; icon: LucideIcon; color: string }> = {
-    agent: { label: 'Agent Chat', icon: Bot, color: '#0ea5e9' },
-    chat: { label: 'Agent Chat', icon: Bot, color: '#0ea5e9' },
-    direct: { label: 'Direct Chat', icon: MessageSquare, color: '#10b981' },
-    notebook: { label: 'Notebooks', icon: BookOpen, color: '#14b8a6' },
-    research: { label: 'Research', icon: Search, color: '#f59e0b' },
-    template: { label: 'Templates', icon: LayoutTemplate, color: '#ef4444' },
-    designer: { label: 'App Designer', icon: Code, color: '#0ea5e9' },
-    agent_stream: { label: 'Agent Stream', icon: Bot, color: '#0ea5e9' },
-};
-export const getSourceDetails = (source: string) => SOURCE_MAP[source] || { label: source || 'Other', icon: Bot, color: '#94a3b8' };
+// ── Source details ───────────────────────────────────────────────────────────
+// A ledger `source` named by the area it rolls up to (the shared vocabulary,
+// shared/usageAreas.generated.mjs): icon, colour and name come from the area
+// meta, so this list and the Adoption report never disagree. Pass `t` for the
+// translated area name; without it the English name is used.
+type SourceTranslate = (key: string, fallback: string) => string;
+export const getSourceDetails = (source: string, t?: SourceTranslate) => usageSourceDetails(source, t);
 
 // ── Avatar ───────────────────────────────────────────────────────────────────
 interface AvatarProps {
@@ -60,7 +56,7 @@ interface IconBadgeProps {
 }
 
 export const IconBadge = ({ icon: Icon, color, size = 26 }: IconBadgeProps) => (
-    <div style={{ width: size, height: size, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${color}12` }}>
+    <div style={{ width: size, height: size, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `color-mix(in srgb, ${color} 7%, transparent)` }}>
         <Icon style={{ width: size * 0.5, height: size * 0.5, color }} />
     </div>
 );

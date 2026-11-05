@@ -23,6 +23,7 @@
 
 import { pick } from '../lang';
 import { COMMON_ROUTES } from './common';
+import { ADOPTION_ROUTES } from './monitoringAdoption';
 
 const dayKey = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 
@@ -425,6 +426,7 @@ type Ctx = { state: State; query: URLSearchParams };
 export const ROUTES = {
     ...COMMON_ROUTES,
     ...EMPTY_AZURE,
+    ...ADOPTION_ROUTES,
 
     // ── Overview tab ─────────────────────────────────────────────────
     'GET /api/usage/summary': ({ state }: Ctx) => state.summary,
