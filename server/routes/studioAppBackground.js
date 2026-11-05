@@ -67,9 +67,46 @@ function startInput(req, app, o) {
  * @param {{ app: RunApp, def: RunDef | null, dataModel: unknown, actionId: string, role: string | null, isOwner: boolean }} o
  */
 async function refuseLocked(req, res, o) {
-    const action = o.def && o.def.actions && Object.hasOwn(o.def.actions, o.actionId) ? o.def.actions[o.actionId] : null;
-    if (!action || action.kind !== 'sequence' || action.background !== true || !action.lockKey) return false;
-    const holder = await backgroundRun().lockHolderFor(startInput(req, o.app, o));
+    if (!hasLockKey(o.def, o.actionId)) return false;
+    return answerIfLocked(res, startInput(req, o.app, o));
+}
+
+/**
+ * The public twin of refuseLocked (issue #590): a visitor walks a background action in the
+ * foreground (public pages ship it without its run options), so its /step must be refused
+ * while a job holds the same key, as the signed-in /step is. The viewer is the anonymous
+ * visitor id: no name, no e-mail, no organisation, never the owner; the published definition.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ app: RunApp, definition: RunDef | null }} found  the public page's app and its published definition
+ * @param {{ model: unknown, role: string | null, viewerId: string }} ctx  the visitor's data context
+ * @param {string} actionId
+ */
+async function refusePublicLocked(req, res, found, ctx, actionId) {
+    if (!hasLockKey(found.definition, actionId)) return false;
+    return answerIfLocked(res, {
+        app: found.app, def: found.definition || {}, model: ctx.model, actionId, role: ctx.role, isOwner: false, draft: false,
+        definitionVersion: found.app.publishedVersion ?? null,
+        viewer: { id: ctx.viewerId, name: null, email: null, organizationId: null },
+        scope: clickScope(req),
+    });
+}
+
+/**
+ * @param {RunDef | null} def
+ * @param {string} actionId
+ */
+function hasLockKey(def, actionId) {
+    const action = def && def.actions && Object.hasOwn(def.actions, actionId) ? def.actions[actionId] : null;
+    return !!action && action.kind === 'sequence' && action.background === true && !!action.lockKey;
+}
+
+/**
+ * @param {import('express').Response} res
+ * @param {Parameters<ReturnType<typeof backgroundRun>['lockHolderFor']>[0]} input
+ */
+async function answerIfLocked(res, input) {
+    const holder = await backgroundRun().lockHolderFor(input);
     if (!holder) return false;
     res.status(409).json({ error: backgroundRun().lockedMessage(holder, Date.now()), code: 'action_locked' });
     return true;
@@ -155,4 +192,4 @@ function mountBackgroundRoutes(router, mw) {
     });
 }
 
-module.exports = { mountBackgroundRoutes, refuseLocked };
+module.exports = { mountBackgroundRoutes, refuseLocked, refusePublicLocked };

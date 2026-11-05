@@ -162,3 +162,37 @@ test('readers: the starter and the owner; another viewer gets a uniform 404; the
     release();
     await BG._settled(r.body.jobId);
 });
+
+/** The smallest response refusePublicLocked writes to. */
+function fakeRes() {
+    const res = { statusCode: 200, body: null };
+    res.status = (code) => { res.statusCode = code; return res; };
+    res.json = (body) => { res.body = body; return res; };
+    return res;
+}
+
+test('#590: a public visitor\'s /step of a background action is refused while a job holds the same lockKey', async () => {
+    const { refusePublicLocked } = require('./studioAppBackground');
+    const app = await makeApp({ act_bg: LOCKED, act_plain: { kind: 'sequence', steps: LOCKED.steps } });
+    const store = require('../stores/studioAppStore');
+    const published = (await store.getStudioApp(app.id)).publishedDefinition;
+    const release = hold();
+    const first = await start(app, 'act_bg', { formValues: { orderId: 'p1' } });
+    assert.equal(first.status, 202, first.text);
+    const visit = async (actionId, orderId) => {
+        const res = fakeRes();
+        const refused = await refusePublicLocked({ body: { stepIndex: 0, formValues: { orderId } } }, res,
+            { app, definition: published }, { model: null, role: 'public', viewerId: 'anon_0123456789abcdef01234567' }, actionId);
+        return { refused, res };
+    };
+    const same = await visit('act_bg', 'p1');
+    assert.equal(same.refused, true);
+    assert.equal(same.res.statusCode, 409);
+    assert.equal(same.res.body.code, 'action_locked');
+    assert.equal(same.res.body.jobId, undefined, 'a visitor never gets the job id to follow');
+    assert.equal((await visit('act_bg', 'p2')).refused, false, 'another key is not locked');
+    assert.equal((await visit('act_plain', 'p1')).refused, false, 'an action without background/lockKey is never refused');
+    release();
+    await BG._settled(first.body.jobId);
+    assert.equal((await visit('act_bg', 'p1')).refused, false, 'the lock ends with the job');
+});
