@@ -8343,9 +8343,6 @@
   "routes/studioAppsRun.js": {
     "complexity": {
       "count": 3
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "routes/studioDocuments.js": {

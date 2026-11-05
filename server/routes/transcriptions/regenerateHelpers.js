@@ -10,7 +10,12 @@ const { leadingNotices } = require('./noteText.mts');
 // Built-in summary templates + the shared prompt builder live in
 // core/meetingNotes/summaryTemplates.js; custom (saved) templates come from the store.
 const summaryTemplateStore = require('../../stores/summaryTemplateStore');
-const { builtinPrompt, canAccessTemplate } = require('../../core/meetingNotes/summaryTemplates');
+const { builtinPrompt, canAccessTemplate, buildSummarySystemPrompt } = require('../../core/meetingNotes/summaryTemplates');
+const { resolveSmartModel, SUMMARY_MAX_TOKENS } = require('../../core/meetingNotes/summaryHelpers');
+const llmClient = require('../../core/llm/llmClient');
+const { logSurfaceUsage } = require('../../core/llm/surfaceUsage');
+const { HttpError } = require('../../core/http/errors');
+const { MEETING_LLM_TIMEOUT_MS } = require('./shared');
 const { stampForBuiltin, stampForTemplate, EMPTY_STAMP, BUILTIN_STAMP_PREFIX } = require('../../core/meetingNotes/summaryStamp');
 
 /**
@@ -114,4 +119,32 @@ function transcriptUnchanged(current, snapshot) {
     return !!current && current.status !== 'processing' && (current.transcript || '') === (snapshot.transcript || '');
 }
 
-module.exports = { transcriptNotices, chooseTemplate, chooseRegenerateTemplate, tagsAfterWrite, transcriptUnchanged };
+/**
+ * The regenerate pass itself: one summary call under the chosen template, with
+ * the same budget and cut-off as the first generation (4096 used to make
+ * REgenerating a long meeting truncate harder than the first pass did, and
+ * without a cut-off an OpenAI-compatible adapter waits with no deadline). It
+ * writes the same ledger row the first pass writes (the owner, the
+ * organisation, the tokens), so a regenerated note is not free spend. An empty
+ * answer (a reply spent on reasoning, a safety stop) is a failed regenerate,
+ * not an empty meeting: it throws, so nothing is written and the passes that
+ * follow are not paid for.
+ * @param {{ transcription: { transcript: string, language?: string | null }, templatePrompt: string | null, userId: string, userOrgId: string | null }} p
+ * @returns {Promise<string>} the summary text
+ */
+async function regenerateSummaryText({ transcription, templatePrompt, userId, userOrgId }) {
+    const modelId = await resolveSmartModel(userOrgId);
+    const startedAt = Date.now();
+    const result = await llmClient.chat(modelId, [
+        { role: 'system', content: buildSummarySystemPrompt(templatePrompt, transcription.language) },
+        { role: 'user', content: transcription.transcript },
+    ], { maxTokens: SUMMARY_MAX_TOKENS, temperature: 0.3, timeoutMs: MEETING_LLM_TIMEOUT_MS });
+    logSurfaceUsage({ source: 'meeting_summary', userId, orgId: userOrgId, model: modelId, usage: result?.usage, startedAt });
+    const generated = (result?.content || '').trim();
+    if (!generated) {
+        throw new HttpError(502, 'summary_empty', 'The model returned no summary. Nothing was changed; try again.');
+    }
+    return generated;
+}
+
+module.exports = { transcriptNotices, chooseTemplate, chooseRegenerateTemplate, regenerateSummaryText, tagsAfterWrite, transcriptUnchanged };

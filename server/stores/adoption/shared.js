@@ -42,26 +42,7 @@ const MAX_WEEKS = 27;
  * @typedef {{ member: UserRow, groupIds: string[] }} Member
  */
 
-/**
- * A dependency object whose modules are required on first touch (the
- * routes/studio/shared.js makeLazyDeps shape, here so a store does not reach
- * up into routes/).
- * @template {Record<string, () => any>} L
- * @param {L} loaders
- * @returns {{ [K in keyof L]: ReturnType<L[K]> }}
- */
-function makeLazyDeps(loaders) {
-    /** @type {Record<string, any>} */
-    const memo = {};
-    const deps = {};
-    for (const [name, load] of Object.entries(loaders)) {
-        Object.defineProperty(deps, name, {
-            enumerable: true,
-            get() { if (!(name in memo)) memo[name] = load(); return memo[name]; },
-        });
-    }
-    return /** @type {{ [K in keyof L]: ReturnType<L[K]> }} */ (deps);
-}
+const { makeLazyDeps } = require('../lib/lazyDeps');
 
 const DEFAULT_LOADERS = {
     db: () => require('../../db'),

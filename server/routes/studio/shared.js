@@ -58,25 +58,9 @@ class GateUndecidable extends Error {
     }
 }
 
-/**
- * A dependency object whose modules are required on first touch.
- *
- * @template {Record<string, () => any>} L
- * @param {L} loaders  name → require thunk
- * @returns {{ [K in keyof L]: ReturnType<L[K]> }}
- */
-function makeLazyDeps(loaders) {
-    /** @type {Record<string, any>} */
-    const memo = {};
-    const deps = {};
-    for (const [name, load] of Object.entries(loaders)) {
-        Object.defineProperty(deps, name, {
-            enumerable: true,
-            get() { if (!(name in memo)) memo[name] = load(); return memo[name]; },
-        });
-    }
-    return /** @type {{ [K in keyof L]: ReturnType<L[K]> }} */ (deps);
-}
+// A dependency object whose modules are required on first touch; shared with
+// the adoption store, which may not reach up into routes/.
+const { makeLazyDeps } = require('../../stores/lib/lazyDeps');
 
 /**
  * The gate and scoping dependencies (see the DEFAULT_LOADERS of counts.js).

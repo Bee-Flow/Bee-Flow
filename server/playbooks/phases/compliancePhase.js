@@ -676,34 +676,8 @@ function withBudget(promise, ms) {
     ]).finally(() => { if (timer) clearTimeout(timer); });
 }
 
-/**
- * One usage row for the phase's model call (source `playbook`,
- * core/llm/surfaceUsage.js): the person, their organisation, the model and
- * the tokens the provider reported. A test's deps without `logUsage` log
- * nothing.
- * @param {{ logUsage?: (call: import('../../core/llm/surfaceUsage').SurfaceCall) => void }} deps
- * @param {{ userId: string | null, userOrgId: string | null, modelId: string, answer: unknown, startedAt: number }} call
- */
-function meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt }) {
-    if (typeof deps.logUsage !== 'function') return;
-    const usage = answer && typeof answer === 'object' ? /** @type {{ usage?: unknown }} */ (answer).usage : null;
-    deps.logUsage({ source: 'playbook', userId, orgId: userOrgId, model: modelId, usage, startedAt });
-}
-
-function modelDeps() {
-    return {
-        resolveModel: (opts) => require('../../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
-        chatForcedTool: (...args) => /** @type {Function} */ (require('../../core/llm/llmClient').chatForcedTool)(...args),
-    };
-}
-
-/** @returns {ReturnType<typeof modelDeps> & { logUsage?: (call: import('../../core/llm/surfaceUsage').SurfaceCall) => void }} */
-function defaultDeps() {
-    return {
-        ...modelDeps(),
-        logUsage: (call) => require('../../core/llm/surfaceUsage').logSurfaceUsage(call),
-    };
-}
+// The model dependencies, their metered default and the phase's usage row: ./phaseModel.js.
+const { meterPhase, defaultDeps } = require('./phaseModel');
 
 /**
  * @returns {Promise<{ ok:true, artifacts:{ findings, facts, frameworks, modelFailed, checks }, summary }>}

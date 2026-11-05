@@ -530,29 +530,20 @@ async function getDueSchedules() {
 }
 
 /**
- * Opens a history row as well as flipping the schedule to 'running'. The
- * runner calls this once per attempt, which is exactly the granularity the
- * history wants.
- */
-/**
- * Opens the history row of a run and answers its id (null for an unknown
- * schedule), so the runner can stamp `run_id` on the ledger rows of the run.
- * @param {string} id
- * @param {{ triggerKind?: string }} [opts]
+ * Opens a history row as well as flipping the schedule to 'running', once per
+ * attempt (the granularity the history wants), and answers the row's id (null
+ * for an unknown schedule) so the runner can stamp `run_id` on its ledger rows.
  * @returns {Promise<string | null>}
  */
 async function markRunning(id, { triggerKind = 'schedule' } = {}) {
     await initDB();
-    const schedule = await getOne('SELECT user_id FROM cowork_schedules WHERE id = $1', [id]);
-    if (!schedule) return null;
-    const runId = crypto.randomUUID();
-    await run(`UPDATE cowork_schedules SET last_status = 'running' WHERE id = $1`, [id]);
-    await run(
-        `INSERT INTO cowork_runs (id, schedule_id, user_id, status, trigger_kind)
-         VALUES ($1, $2, $3, 'running', $4)`,
-        [runId, id, schedule.user_id, triggerKind],
+    const res = await run(
+        `WITH flipped AS (UPDATE cowork_schedules SET last_status = 'running' WHERE id = $2 RETURNING user_id)
+         INSERT INTO cowork_runs (id, schedule_id, user_id, status, trigger_kind)
+         SELECT $1, $2, user_id, 'running', $3 FROM flipped RETURNING id`,
+        [crypto.randomUUID(), id, triggerKind],
     );
-    return runId;
+    return res?.rows?.[0]?.id ?? null;
 }
 
 /**
