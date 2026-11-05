@@ -3,7 +3,7 @@ const log = require('../../telemetry/log');
 const userStore = require('../../stores/userStore');
 const { isOrgAdminRole } = require('../permissions');
 const { z, typeError } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, costLimit } = require('../../core/http/schemaParts');
 const ORG_ROLE_DEFS = require('../../config/orgRoles.json');
 
 /**
@@ -94,8 +94,11 @@ const ChangePasswordBody = z.object({
 
 const USER_UPDATE_FIELDS = Object.freeze([
     'groups', 'displayName', 'firstName', 'lastName', 'email', 'phone',
-    'avatar', 'avatarType', 'orgRole', 'status',
+    'avatar', 'avatarType', 'orgRole', 'status', 'monthlyCostLimit',
 ]);
+
+/** The monthly AI budget of PUT /users/:id (self-hosted): a positive number or null. */
+const MonthlyCostLimit = costLimit();
 
 /**
  * Writable ONLY by a platform super-admin.
@@ -194,6 +197,17 @@ function needsAdminPasswordFloor(u) {
 }
 
 /**
+ * The refusal for a monthly AI budget (self-hosted) that is not a positive
+ * number or null, or null when it is fine or absent.
+ * @param {Record<string, unknown>} body
+ * @returns {{ error: string, code: 'invalid_cost_limit' } | null}
+ */
+function costLimitRefusal(body) {
+    const check = MonthlyCostLimit.safeParse(body.monthlyCostLimit);
+    return check.success ? null : { error: check.error.issues[0]?.message || 'Invalid monthly budget', code: 'invalid_cost_limit' };
+}
+
+/**
  * The refusal for a user update that carries a field outside the allow-list,
  * or null. Refused, never silently dropped: a 200 for a privilege change that
  * did not happen is how a real escalation gets mistaken for a failed one.
@@ -245,4 +259,4 @@ async function endSessionsFor(userId, opts = {}) {
     } catch (err) { require('../../utils/bestEffort').bestEffort('auth/admin/users:endSessions', err); }
 }
 
-module.exports = { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor };
+module.exports = { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor };

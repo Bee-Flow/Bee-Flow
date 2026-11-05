@@ -19,6 +19,8 @@ export interface UserModalProps {
     groups: AdminGroup[];
     organizations: AdminOrganization[];
     isPlatformAdmin: boolean;
+    /** Self-hosted server: the monthly AI budget field is shown. */
+    isSelfHosted?: boolean;
     onSubmitAdd: () => void;
     onSubmitUpdate: () => void;
     onUploadAvatar: (file: File) => void;
@@ -28,7 +30,7 @@ export interface UserModalProps {
 
 export default function UserModal({
     open, onClose, showEditUser, userData, setUserData, showEmojiPicker, setShowEmojiPicker,
-    groups, organizations, isPlatformAdmin, onSubmitAdd, onSubmitUpdate, onUploadAvatar, onRemoveAvatar, t,
+    groups, organizations, isPlatformAdmin, isSelfHosted = false, onSubmitAdd, onSubmitUpdate, onUploadAvatar, onRemoveAvatar, t,
 }: UserModalProps) {
     const canSubmit = showEditUser || (userData.username && userData.displayName && userData.password);
     return (
@@ -56,12 +58,12 @@ export default function UserModal({
                 </>
             }
         >
-            <UserModalSection t={t} userData={userData} setShowEmojiPicker={setShowEmojiPicker} showEmojiPicker={showEmojiPicker} onUploadAvatar={onUploadAvatar} onRemoveAvatar={onRemoveAvatar} setUserData={setUserData} showEditUser={showEditUser} isPlatformAdmin={isPlatformAdmin} organizations={organizations} groups={groups} />
+            <UserModalSection t={t} userData={userData} setShowEmojiPicker={setShowEmojiPicker} showEmojiPicker={showEmojiPicker} onUploadAvatar={onUploadAvatar} onRemoveAvatar={onRemoveAvatar} setUserData={setUserData} showEditUser={showEditUser} isPlatformAdmin={isPlatformAdmin} isSelfHosted={isSelfHosted} organizations={organizations} groups={groups} />
         </Modal>
     );
 }
 
-function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, onUploadAvatar, onRemoveAvatar, setUserData, showEditUser, isPlatformAdmin, organizations, groups }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; userData: UserFormData; setShowEmojiPicker: Dispatch<SetStateAction<boolean>>; showEmojiPicker: boolean; onUploadAvatar: (file: File) => void; onRemoveAvatar: () => void; setUserData: Dispatch<SetStateAction<UserFormData>>; showEditUser: boolean; isPlatformAdmin: boolean; organizations: AdminOrganization[]; groups: AdminGroup[]; }) {
+function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, onUploadAvatar, onRemoveAvatar, setUserData, showEditUser, isPlatformAdmin, isSelfHosted, organizations, groups }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; userData: UserFormData; setShowEmojiPicker: Dispatch<SetStateAction<boolean>>; showEmojiPicker: boolean; onUploadAvatar: (file: File) => void; onRemoveAvatar: () => void; setUserData: Dispatch<SetStateAction<UserFormData>>; showEditUser: boolean; isPlatformAdmin: boolean; isSelfHosted: boolean; organizations: AdminOrganization[]; groups: AdminGroup[]; }) {
     return <div className="space-y-4">
         {/* Avatar Picker */}
         <div>
@@ -116,6 +118,7 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
             <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_phone', 'Phone')}</label><input type="tel" value={userData.phone} onChange={e => setUserData(p => ({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="+1 555 123 4567" /></div>
         </div>
         <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{showEditUser ? t('admin_org.user_modal_password_new', 'New Password (blank to keep)') : t('admin_org.user_modal_password', 'Password')}</label><input type="password" value={userData.password} onChange={e => setUserData(p => ({ ...p, password: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="••••••••" /></div>
+        {isSelfHosted && showEditUser && <UserCostLimitField value={userData.monthlyCostLimit} onChange={v => setUserData(p => ({ ...p, monthlyCostLimit: v }))} t={t} />}
         {/* ── Organisation Assignment ── */}
         <div className="p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
             <div className="flex items-center gap-2 mb-3">
@@ -244,4 +247,25 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
             </div>
         </div>
     </div>;
+}
+
+/** Self-hosted only: the user's own monthly AI budget; empty falls back to their groups' budgets. */
+function UserCostLimitField({ value, onChange, t }: { value: string; onChange: (value: string) => void; t: TranslateFn }) {
+    return (
+        <div>
+            <label htmlFor="user-monthly-cost-limit" className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_cost_limit', 'Monthly AI budget (€)')}</label>
+            <input
+                id="user-monthly-cost-limit"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
+                placeholder={t('admin_org.cost_limit_placeholder', 'No limit')}
+            />
+            <p className="text-xs mt-1 text-[var(--text-muted)]">{t('admin_org.user_modal_cost_limit_hint', "Leave empty to use the budget of the user's groups (the highest one applies), or no limit if none of them has one.")}</p>
+        </div>
+    );
 }

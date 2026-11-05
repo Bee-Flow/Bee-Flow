@@ -111,4 +111,11 @@ const wholeNumber = (message, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) =
  */
 const idList = (message, max = 200) => z.array(worded(message).trim().min(1, message).max(200, message), { error: message }).max(max, message);
 
-module.exports = { z, typeError, onUnknownKeys, worded, closedObject, orEmpty, bodyOf, queryOf, choice, flag, wholeNumber, idList, unknownKeysText };
+/**
+ * A monthly AI budget in EUR: a positive number, or null to clear it. Zero,
+ * negative and non-finite values are refused (no limit is null, not 0).
+ */
+const costLimit = (message = 'A budget must be a number above zero, or empty for no limit.') =>
+    z.number({ error: message }).positive(message).nullable().optional();
+
+module.exports = { z, typeError, onUnknownKeys, worded, closedObject, orEmpty, bodyOf, queryOf, choice, flag, wholeNumber, idList, unknownKeysText, costLimit };

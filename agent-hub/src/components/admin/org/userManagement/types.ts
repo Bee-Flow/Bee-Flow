@@ -25,6 +25,8 @@ export interface AdminUser {
     organizationId?: string;
     orgRole?: string;
     isSystem?: boolean;
+    /** Self-hosted monthly AI budget in EUR; null = none. */
+    monthlyCostLimit?: number | null;
     [key: string]: unknown;
 }
 
@@ -37,6 +39,8 @@ export interface AdminGroup {
     roles?: string[];
     organizationId?: string;
     allowedAgentTypes?: string[];
+    /** Self-hosted AI budget in EUR that EACH member gets; null = none. */
+    perUserCostLimit?: number | null;
     [key: string]: unknown;
 }
 
@@ -115,6 +119,8 @@ export interface UserFormData {
     groups: string[];
     organizationId: string;
     orgRole: string;
+    /** Monthly AI budget as typed (self-hosted only); empty = no limit. */
+    monthlyCostLimit: string;
 }
 
 export interface OrgFormData {
@@ -144,6 +150,8 @@ export interface GroupFormData {
     roles: string[];
     organizationId: string;
     allowedAgentTypes: string[];
+    /** AI budget per member as typed (self-hosted only); empty = no limit. */
+    perUserCostLimit: string;
 }
 
 export interface RoleFormData {

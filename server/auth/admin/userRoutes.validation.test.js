@@ -215,3 +215,26 @@ test('changing your own password keeps the session you did it from and ends the 
     assert.strictEqual(calls[0][0], 'root');
     assert.ok('keepSid' in calls[0][1], 'the current session is named as the one to keep');
 });
+
+// ── Self-hosted monthly AI budget ────────────────────────────────────────
+
+test('a monthly budget of zero, a negative or a non-number is refused and nothing is written', async () => {
+    for (const bad of [0, -1, '10', false]) {
+        const res = await dispatch({ method: 'PUT', url: '/users/u2', body: { monthlyCostLimit: bad } });
+        assert.strictEqual(res.statusCode, 400, JSON.stringify(bad));
+        assert.strictEqual(res.body.code, 'invalid_cost_limit');
+    }
+    assert.deepStrictEqual(touched, []);
+});
+
+test('a monthly budget reaches the store, and null clears it', async () => {
+    await withUpdateLanding(async () => {
+        const set = await dispatch({ method: 'PUT', url: '/users/u2', body: { monthlyCostLimit: 25 } });
+        assert.strictEqual(set.statusCode, 200, JSON.stringify(set.body));
+        assert.strictEqual(touched.find((t) => t.what === 'updateUser').args[1].monthlyCostLimit, 25);
+        touched.length = 0;
+        const cleared = await dispatch({ method: 'PUT', url: '/users/u2', body: { monthlyCostLimit: null } });
+        assert.strictEqual(cleared.statusCode, 200);
+        assert.strictEqual(touched.find((t) => t.what === 'updateUser').args[1].monthlyCostLimit, null);
+    });
+});

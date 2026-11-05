@@ -144,3 +144,22 @@ test('a well-formed group edit still reaches the store', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(touched.find((t) => t.what === 'updateGroup').args[1].permissions, ['page_chat']);
 });
+
+// ── Self-hosted per-member AI budget ─────────────────────────────────────
+
+test('a per-member budget of zero, a negative or a non-number is refused', async () => {
+    for (const bad of [0, -5, '10', true]) {
+        await refuses({ method: 'PUT', url: '/groups/finance', body: { perUserCostLimit: bad } }, 'body.perUserCostLimit');
+    }
+    await refuses({ method: 'POST', url: '/groups', body: { name: 'Team', perUserCostLimit: 0 } }, 'body.perUserCostLimit');
+});
+
+test('a per-member budget reaches the store, and null clears it', async () => {
+    const set = await dispatch({ method: 'PUT', url: '/groups/finance', body: { perUserCostLimit: 12.5 } });
+    assert.strictEqual(set.statusCode, 200);
+    assert.strictEqual(touched.find((t) => t.what === 'updateGroup').args[1].perUserCostLimit, 12.5);
+    touched.length = 0;
+    const cleared = await dispatch({ method: 'PUT', url: '/groups/finance', body: { perUserCostLimit: null } });
+    assert.strictEqual(cleared.statusCode, 200);
+    assert.strictEqual(touched.find((t) => t.what === 'updateGroup').args[1].perUserCostLimit, null);
+});

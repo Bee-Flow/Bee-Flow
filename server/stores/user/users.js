@@ -48,7 +48,7 @@ async function getAllUsers() {
                "dekUnwrapFailures", "dekLockoutUntil", "kdfMode", "createdAt",
                status, "activeIconPackId", "azureUserId", "azureTenantId",
                "nc_uid", "provider", "auto_provisioned",
-               mfa_enabled, last_seen_at
+               mfa_enabled, last_seen_at, monthly_cost_limit
         FROM users
     `);
     // The raw columns stay on the row (nc_uid/provider/auto_provisioned already
@@ -60,6 +60,7 @@ async function getAllUsers() {
         groups: parseJSON(u.groups, []),
         mfaEnabled: !!u.mfa_enabled,
         lastSeenAt: u.last_seen_at || null,
+        monthlyCostLimit: u.monthly_cost_limit ?? null,
     }));
 }
 
@@ -276,6 +277,8 @@ async function updateUser(userId, updates) {
         // not through here; the mapping exists so a caller that does reach for
         // updateUser gets a write instead of silence.
         lastSeenAt: 'last_seen_at', passwordChangedAt: 'password_changed_at',
+        // Self-hosted monthly AI budget (EUR); null clears it.
+        monthlyCostLimit: 'monthly_cost_limit',
     };
 
     for (const jsKey of Object.keys(colMap)) {

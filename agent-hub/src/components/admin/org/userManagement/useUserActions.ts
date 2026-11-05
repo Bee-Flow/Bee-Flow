@@ -5,11 +5,17 @@ import { API_BASE, authFetch } from '@/utils/helpers';
 import { toast } from '@/components/shared/Toast';
 import type { AdminMessage, AdminUser, AskConfirm, UserFormData } from './types';
 import { mutate, ApiError } from '@/api/mutate';
+import { costLimitToInput, parseCostLimitInput } from './costLimitInput';
 
 const EMPTY_USER: UserFormData = {
     id: '', username: '', displayName: '', firstName: '', lastName: '', email: '', phone: '',
-    avatar: '', avatarType: '', password: '', role: 'user', groups: [], organizationId: '', orgRole: '',
+    avatar: '', avatarType: '', password: '', role: 'user', groups: [], organizationId: '', orgRole: '', monthlyCostLimit: '',
 };
+
+/** The create endpoint has no budget field; the form value stays out of its body. */
+function withoutCostLimit({ monthlyCostLimit: _typed, ...rest }: UserFormData) {
+    return rest;
+}
 
 export interface UserActions {
     userData: UserFormData;
@@ -34,9 +40,11 @@ export interface UseUserActionsOptions {
     setMessage: Dispatch<SetStateAction<AdminMessage | null>>;
     askConfirm: AskConfirm;
     t: TranslateFn;
+    /** The monthly AI budget only exists on a self-hosted server. */
+    isSelfHosted?: boolean;
 }
 
-export default function useUserActions({ loadData, setMessage, askConfirm, t }: UseUserActionsOptions): UserActions {
+export default function useUserActions({ loadData, setMessage, askConfirm, t, isSelfHosted = false }: UseUserActionsOptions): UserActions {
     const [showAddUser, setShowAddUser] = useState(false);
     const [showEditUser, setShowEditUser] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -66,6 +74,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t }: 
             groups: user.groups || [],
             organizationId: user.organizationId || '',
             orgRole: user.orgRole || '',
+            monthlyCostLimit: costLimitToInput(user.monthlyCostLimit),
         });
         setShowEmojiPicker(false);
         setShowEditUser(true);
@@ -84,7 +93,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t }: 
             const res = await authFetch(`${API_BASE}/auth/users`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData),
+                body: JSON.stringify(withoutCostLimit(userData)),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'User created successfully' });
@@ -106,11 +115,20 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t }: 
     // exactly that and left the tenant unrecoverable). The server answers 409
     // with the downgrade hint; we turn that into a real confirm and re-send.
     const handleUpdateUser = async (extra: Record<string, unknown> = {}) => {
+        let costLimit: number | null | undefined;
+        if (isSelfHosted) {
+            costLimit = parseCostLimitInput(userData.monthlyCostLimit);
+            if (costLimit === undefined) {
+                setMessage({ type: 'error', text: t('admin_org.cost_limit_invalid', 'Enter a budget above zero, or leave the field empty.') });
+                return;
+            }
+        }
         try {
+            const { monthlyCostLimit: _typed, ...rest } = userData;
             const res = await authFetch(`${API_BASE}/auth/users/${userData.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...userData, ...extra }),
+                body: JSON.stringify({ ...rest, ...(isSelfHosted ? { monthlyCostLimit: costLimit } : {}), ...extra }),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'User updated successfully' });

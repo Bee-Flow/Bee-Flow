@@ -31,6 +31,11 @@ const ACCOUNT_MIGRATIONS = [
     // matches legacy behaviour); '0' = cost cap is split evenly across
     // active seats so each user gets their own slice.
     `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "usage_pooled" TEXT DEFAULT '1'`,
+    // Self-hosted monthly AI budget in EUR. users.monthly_cost_limit is the
+    // person's own limit; groups.per_user_cost_limit is what EVERY member of the
+    // group gets for themselves (not a shared pot). NULL = no limit.
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "monthly_cost_limit" REAL`,
+    `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "per_user_cost_limit" REAL`,
     // Org lifecycle state. 'active' is the default; 'suspended' blocks all
     // mutations (read-only) and is used for payment disputes / ToS holds;
     // 'archived' hides the org from listings and locks reads to owners.

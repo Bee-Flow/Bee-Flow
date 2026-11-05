@@ -484,6 +484,7 @@ No request schema.
 | `roles` | any |  |  |
 | `organizationId` | string or null |  |  |
 | `allowedAgentTypes` | any |  |  |
+| `perUserCostLimit` | number or null |  |  |
 
 ### `PUT /auth/groups/:id`
 
@@ -500,6 +501,7 @@ No request schema.
 | `allowedAgentTypes` | any |  |  |
 | `allowedTiers` | any |  |  |
 | `orgRole` | string or null |  |  |
+| `perUserCostLimit` | number or null |  |  |
 
 ### `DELETE /auth/groups/:id`
 

@@ -1468,6 +1468,7 @@ declare namespace DbRow {
         name: string;
         organizationId: string | null;
         orgRole: string | null;
+        per_user_cost_limit: number | null;
         permissions: string | null;
         roles: string | null;
         source: string | null;
@@ -3771,6 +3772,7 @@ declare namespace DbRow {
         mfa_recovery_codes: string | null;
         mfa_recovery_codes_generated_at: Date | null;
         mfa_secret: string | null;
+        monthly_cost_limit: number | null;
         nc_uid: string | null;
         opaqueRecord: string | null;
         optional_consents: string | null;
