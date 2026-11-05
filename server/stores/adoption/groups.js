@@ -19,7 +19,7 @@ const { percent } = require('./shared');
  * @typedef {import('./shared').Scope} Scope
  * @typedef {import('./shared').AdoptionDeps} AdoptionDeps
  * @typedef {import('./shared').GroupRow} GroupRow
- * @typedef {{ members: number, aiActive: number, adoptionRate: number, makers: number, cost: number, topArea: string | null }} GroupFigures
+ * @typedef {{ members: number, aiActive: number | null, adoptionRate: number | null, makers: number | null, cost: number | null, topArea: string | null }} GroupFigures
  */
 
 /** Groups smaller than this are folded together. */
@@ -62,6 +62,19 @@ function figuresOf(ids, act) {
 }
 
 /**
+ * The figures of the merged small groups. A merged set that is itself under
+ * FOLD_BELOW people would still describe fewer than five people, so it keeps
+ * only its size; the figures come back once enough people are in it.
+ * @param {string[]} ids
+ * @param {Awaited<ReturnType<typeof memberActivity>>} act
+ * @returns {GroupFigures}
+ */
+function foldedFigures(ids, act) {
+    if (ids.length >= FOLD_BELOW) return figuresOf(ids, act);
+    return { members: ids.length, aiActive: null, adoptionRate: null, makers: null, cost: null, topArea: null };
+}
+
+/**
  * @param {AdoptionDeps} d
  * @param {Scope} scope
  */
@@ -88,7 +101,7 @@ async function getGroups(d, scope) {
     groups.sort((a, b) => b.members - a.members || a.name.localeCompare(b.name));
     return {
         groups,
-        folded: foldedCount > 0 ? { count: foldedCount, ...figuresOf([...folded], act) } : null,
+        folded: foldedCount > 0 ? { count: foldedCount, ...foldedFigures([...folded], act) } : null,
         partial: act.partial,
     };
 }

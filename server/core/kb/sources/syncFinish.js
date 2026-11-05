@@ -67,7 +67,7 @@ async function labelDocuments(items, ctx, deps) {
             // Between labels, so a cancelled refresh stops summarising too.
             if (await deps.kbSourcesStore.isCancelRequested(ctx.source.id)) return;
             try {
-                const r = await summariser.summarise({ text: item.text, title: item.title });
+                const r = await summariser.summarise({ text: item.text, title: item.title, userId: ctx.tenantId || null, orgId: ctx.kb?.organization_id || null, kbId: ctx.kbId });
                 if (r?.summary) await deps.kbStore.replaceDocumentContent(item.docId, { extractSummary: r.summary });
             } catch (e) {
                 ctx.log(`summary for ${item.docId} skipped: ${/** @type {Error} */ (e).message}`);

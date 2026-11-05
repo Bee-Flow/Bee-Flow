@@ -68,7 +68,7 @@ export const DEMO_NAMESPACES: Record<string, string[]> = {
         'time', 'usage', 'visibility',
     ],
     monitoring: [
-        'admin', 'chat', 'common', 'error', 'license', 'org', 'tier', 'usage',
+        'adoption', 'admin', 'chat', 'common', 'error', 'license', 'org', 'tier', 'usage',
     ],
     compliance: [
         'admin', 'admin_shared', 'chat_monitoring', 'common', 'compliance', 'error', 'license',

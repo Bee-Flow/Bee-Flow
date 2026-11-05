@@ -58,8 +58,9 @@ function groupsSection(g: AdoptionGroups): string {
     }));
     if (g.folded) {
         rows.push({
-            group: `other groups (${g.folded.count})`, source: '', members: g.folded.members, ai_active: g.folded.aiActive,
-            adoption_rate_pct: Math.round(g.folded.adoptionRate), makers: g.folded.makers, ai_cost: g.folded.cost, top_area: g.folded.topArea ?? '',
+            group: `other groups (${g.folded.count})`, source: '', members: g.folded.members, ai_active: g.folded.aiActive ?? '',
+            adoption_rate_pct: g.folded.adoptionRate == null ? '' : Math.round(g.folded.adoptionRate), makers: g.folded.makers ?? '',
+            ai_cost: g.folded.cost ?? '', top_area: g.folded.topArea ?? '',
         });
     }
     return section('groups', ['group', 'source', 'members', 'ai_active', 'adoption_rate_pct', 'makers', 'ai_cost', 'top_area'], rows);

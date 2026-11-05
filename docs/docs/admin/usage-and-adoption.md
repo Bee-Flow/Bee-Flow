@@ -122,7 +122,7 @@ it, and how much, is behaviour, and that part stays pseudonymous.
 One row per group (from Entra ID, Nextcloud or Bee Flow itself): members, AI-active
 members, adoption rate, makers, cost and the area where most of the group's AI goes.
 Groups with **fewer than 5 members** are merged into one row, **Other groups**, so that
-a figure cannot point at one or two people.
+a figure cannot point at one or two people. When the merged row itself holds fewer than 5 people, it shows only how many people it covers; its figures stay withheld until it does.
 
 Use the group filter above the report to narrow every section to the members of one
 group.

@@ -299,6 +299,7 @@ const EN_DEFAULTS = {
     "adoption.groups_fold_note": "groups with fewer than 5 members are folded into “Other groups”",
     "adoption.groups_folded": "Other groups ({n})",
     "adoption.groups_folded_sub": "fewer than 5 members each",
+    "adoption.groups_folded_withheld": "fewer than 5 members in total · figures withheld",
     "adoption.groups_src_entra": "Entra ID",
     "adoption.groups_src_local": "Bee Flow",
     "adoption.groups_src_nextcloud": "Nextcloud",

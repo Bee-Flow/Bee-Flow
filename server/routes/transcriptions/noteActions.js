@@ -20,6 +20,7 @@ const { transcriptNotices, chooseRegenerateTemplate, tagsAfterWrite, transcriptU
 const { rearmMeetingSources, storedTags, narrowsReaders } = require('./noteSideEffects');
 const { formatDuration, assigneeSuffix } = require('./noteExport');
 const { HttpError } = require('../../core/http/errors');
+const { logSurfaceUsage } = require('../../core/llm/surfaceUsage');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const {
     resolveSmartModel,
@@ -190,6 +191,7 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
     const { templatePrompt, stamp } = chosen;
 
     const modelId = await resolveSmartModel(userOrgId);
+    const startedAt = Date.now();
     const result = await llmClient.chat(modelId, [
         { role: 'system', content: buildSummarySystemPrompt(templatePrompt, transcription.language) },
         { role: 'user', content: transcription.transcript },
@@ -198,6 +200,9 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         // first generation did. And the same cut-off: without one, an
         // OpenAI-compatible adapter waits with no deadline at all.
     ], { maxTokens: SUMMARY_MAX_TOKENS, temperature: 0.3, timeoutMs: MEETING_LLM_TIMEOUT_MS });
+    // The same row the first summary pass writes (summaryLlm): the owner, the
+    // organisation and the tokens, so a regenerated note is not free spend.
+    logSurfaceUsage({ source: 'meeting_summary', userId, orgId: userOrgId, model: modelId, usage: result?.usage, startedAt });
 
     const generated = (result.content || '').trim();
     // An empty answer (a reply spent on reasoning, a safety stop) is a failed regenerate,
@@ -216,10 +221,11 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         extractMeetingArtifacts(transcription.transcript, transcription.language, userOrgId, {
             meetingDateIso: (transcription.createdAt || '').slice(0, 10) || null,
             personNames: [...storedSpeakers.map((s) => s.id), ...(transcription.attendees || [])],
+            userId,
         }),
-        generateChapters(transcription.transcript, transcription.language, userOrgId),
+        generateChapters(transcription.transcript, transcription.language, userOrgId, { userId }),
         generateSpeakerSummaries(
-            transcription.transcript, storedSpeakers.map((s) => s.id), transcription.language, userOrgId,
+            transcription.transcript, storedSpeakers.map((s) => s.id), transcription.language, userOrgId, { userId },
         ),
     ]);
     const speakers = applySpeakerSummaries(storedSpeakers, speakerSummaries);

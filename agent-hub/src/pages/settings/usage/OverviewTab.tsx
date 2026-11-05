@@ -267,7 +267,7 @@ export default function OverviewTab({
                         <SectionTitle icon={Activity}>{t('usage.by_app_area', 'By app area')}</SectionTitle>
                         <Card>
                             {sortedSources.length === 0 ? <EmptyInline text={t('usage.no_usage_recorded', 'No usage recorded yet')} /> : sortedSources.map((s, i) => {
-                                const d = getSourceDetails(s.source);
+                                const d = getSourceDetails(s.source, t);
                                 return (
                                     <ListRow key={i}>
                                         <div className="[display:flex] [align-items:center] [gap:8px] [flex:1] min-w-[0]">
@@ -397,7 +397,7 @@ export default function OverviewTab({
                         <SectionTitle icon={Activity}>{t('usage.by_app_area')}</SectionTitle>
                         <Card>
                             {data.sources.length === 0 ? <EmptyInline text={t('usage.no_usage_recorded')} /> : data.sources.map((s, i) => {
-                                const d = getSourceDetails(s.source);
+                                const d = getSourceDetails(s.source, t);
                                 return (
                                     <ListRow key={i} onClick={() => setFilterSource(s.source)}>
                                         <div className="[display:flex] [align-items:center] [gap:8px] [flex:1] min-w-[0]">

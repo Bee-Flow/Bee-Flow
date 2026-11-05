@@ -115,13 +115,14 @@ interface AdoptionGroupRow {
     topArea: string | null;
 }
 
+/** The small groups merged into one row; the figures are null when the merged set is itself under five people. */
 interface AdoptionFoldedGroups {
     count: number;
     members: number;
-    aiActive: number;
-    adoptionRate: number;
-    makers: number;
-    cost: number;
+    aiActive: number | null;
+    adoptionRate: number | null;
+    makers: number | null;
+    cost: number | null;
     topArea: string | null;
 }
 

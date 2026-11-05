@@ -534,16 +534,25 @@ async function getDueSchedules() {
  * runner calls this once per attempt, which is exactly the granularity the
  * history wants.
  */
+/**
+ * Opens the history row of a run and answers its id (null for an unknown
+ * schedule), so the runner can stamp `run_id` on the ledger rows of the run.
+ * @param {string} id
+ * @param {{ triggerKind?: string }} [opts]
+ * @returns {Promise<string | null>}
+ */
 async function markRunning(id, { triggerKind = 'schedule' } = {}) {
     await initDB();
     const schedule = await getOne('SELECT user_id FROM cowork_schedules WHERE id = $1', [id]);
-    if (!schedule) return;
+    if (!schedule) return null;
+    const runId = crypto.randomUUID();
     await run(`UPDATE cowork_schedules SET last_status = 'running' WHERE id = $1`, [id]);
     await run(
         `INSERT INTO cowork_runs (id, schedule_id, user_id, status, trigger_kind)
          VALUES ($1, $2, $3, 'running', $4)`,
-        [crypto.randomUUID(), id, schedule.user_id, triggerKind],
+        [runId, id, schedule.user_id, triggerKind],
     );
+    return runId;
 }
 
 /**

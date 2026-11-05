@@ -95,7 +95,7 @@ async function nameSpeakers(built, { speakersNamed, language, userName, orgId, p
 async function writeSummary(named, { userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated, meetingDate, extraRecordings }) {
     const { transcript } = named;
     const defaultTemplate = await resolveOwnerDefaultTemplate(userId, orgId);
-    const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null });
+    const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null, userId });
     // BEFORE the note's notice lines, because a failed artifact pass is one
     // of them. This writer must not pass `artifacts.*` through raw: a pass that
     // fell over or could not be parsed would then produce a finished note claiming
@@ -108,6 +108,7 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
         // against the meeting week, not the import day.
         meetingDateIso: meetingDateIsoOf(meetingDate),
         personNames: [...named.speakers.map((s) => s.id), ...(participantNames || [])],
+        userId,
     });
     const usable = artifactsUsable(artifacts);
     if (!usable) {
@@ -123,11 +124,11 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     // are warnings about the pipeline, not about the meeting. With no summary
     // there is nothing to title from, and the hint (room / event name) stays.
     if (rawSummary) {
-        const aiTitle = await generateMeetingTitle(rawSummary, language, orgId);
+        const aiTitle = await generateMeetingTitle(rawSummary, language, orgId, { userId });
         if (aiTitle) title = aiTitle;
     }
-    const chapters = await generateChapters(transcript, language, orgId);
-    const speakerSummaries = await generateSpeakerSummaries(transcript, named.speakers.map((s) => s.id), language, orgId);
+    const chapters = await generateChapters(transcript, language, orgId, { userId });
+    const speakerSummaries = await generateSpeakerSummaries(transcript, named.speakers.map((s) => s.id), language, orgId, { userId });
     const speakers = applySpeakerSummaries(named.speakers, speakerSummaries);
     return { defaultTemplate, artifacts, usable, summary, title, chapters, speakers };
 }

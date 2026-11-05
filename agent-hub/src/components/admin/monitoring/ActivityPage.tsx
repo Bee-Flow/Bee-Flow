@@ -80,7 +80,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                             style={filterSelectStyle}
                         >
                             <option value="">{t('admin_monitoring.all_sources', 'All Sources')}</option>
-                            {sourceOptions.map(s => <option key={s} value={s}>{getSourceDetails(s).label}</option>)}
+                            {sourceOptions.map(s => <option key={s} value={s}>{getSourceDetails(s, t).label}</option>)}
                         </select>
                     </div>
 
@@ -118,7 +118,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                 {/* Rows */}
                 {paged.length === 0 ? <Empty text={t('admin_monitoring.activity_empty', 'No API calls found')} /> : paged.map((r, i) => {
                     const isExpanded = expanded === (r.id || i);
-                    const src = getSourceDetails(r.source);
+                    const src = getSourceDetails(r.source, t);
 
                     return (
                         <div key={r.id || i}>

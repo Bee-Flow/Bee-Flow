@@ -37,7 +37,8 @@ test('a group of five is shown, a smaller one folded', async () => {
     assert.equal(big.makers, 2);
     assert.equal(big.cost, 3.6);
     assert.equal(big.topArea, 'apps');
-    assert.deepEqual(out.folded, { count: 1, members: 1, aiActive: 0, adoptionRate: 0, makers: 0, cost: 0, topArea: null });
+    // One person in the merged set: its size, never its figures (k = 5).
+    assert.deepEqual(out.folded, { count: 1, members: 1, aiActive: null, adoptionRate: null, makers: null, cost: null, topArea: null });
 });
 
 test('the source of a group', () => {

@@ -238,17 +238,18 @@ async function analyseTranscript({ req, transcriptionId, transcription, userId, 
     // meeting length, and a run whose claim is gone stops spending here.
     await keepClaim(transcriptionId);
     const defaultTemplate = await resolveDefaultTemplateForReq(req, userId, userOrgId);
-    const generated = await generateMeetingSummary(transcript, language, userOrgId, { templatePrompt: defaultTemplate?.prompt || null });
+    const generated = await generateMeetingSummary(transcript, language, userOrgId, { templatePrompt: defaultTemplate?.prompt || null, userId });
     const { summary, summaryStamp, summaryFailed, keptPrevious } = summaryOrPrevious(generated, transcription, defaultTemplate);
     await keepClaim(transcriptionId);
-    const chapters = await generateChapters(transcript, language, userOrgId);
+    const chapters = await generateChapters(transcript, language, userOrgId, { userId });
     await keepClaim(transcriptionId);
     const artifacts = await extractMeetingArtifacts(transcript, language, userOrgId, {
         meetingDateIso: (transcription.createdAt || '').slice(0, 10) || null,
         personNames: [...speakers.map((s) => s.id), ...(transcription.attendees || [])],
+        userId,
     });
     await keepClaim(transcriptionId);
-    const speakerSummaries = await generateSpeakerSummaries(transcript, speakers.map((s) => s.id), language, userOrgId);
+    const speakerSummaries = await generateSpeakerSummaries(transcript, speakers.map((s) => s.id), language, userOrgId, { userId });
 
     // A failed extraction is not an empty meeting. extractMeetingArtifacts has
     // three outcomes (nothing agreed, an unparseable answer, a call that fell

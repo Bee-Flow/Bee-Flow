@@ -258,12 +258,12 @@ async function analyseUpload({ req, transcriptionId, userId, userOrgId, userName
     // first-generation prompt is none of the five built-in templates, so
     // there is nothing true to report.
     const defaultTemplate = await resolveDefaultTemplateForReq(req, userId, userOrgId);
-    const summary = await generateMeetingSummary(transcript, language, userOrgId, { templatePrompt: defaultTemplate?.prompt || null });
+    const summary = await generateMeetingSummary(transcript, language, userOrgId, { templatePrompt: defaultTemplate?.prompt || null, userId });
     await beat();
 
     // Always generate AI title from summary
     if (summary) {
-        const aiTitle = await generateMeetingTitle(summary, language, userOrgId);
+        const aiTitle = await generateMeetingTitle(summary, language, userOrgId, { userId });
         if (aiTitle) title = aiTitle;
         await beat();
     }
@@ -273,12 +273,13 @@ async function analyseUpload({ req, transcriptionId, userId, userOrgId, userName
     const artifacts = await extractMeetingArtifacts(transcript, language, userOrgId, {
         meetingDateIso: new Date().toISOString().slice(0, 10),
         personNames: [...speakers.map((s) => s.id), ...(attendees || [])],
+        userId,
     });
     await beat();
-    const chapters = await generateChapters(transcript, language, userOrgId);
+    const chapters = await generateChapters(transcript, language, userOrgId, { userId });
     await beat();
     // Per-speaker prose for the Insights panel, stored on the speaker rows.
-    const speakerSummaries = await generateSpeakerSummaries(transcript, speakers.map((s) => s.id), language, userOrgId);
+    const speakerSummaries = await generateSpeakerSummaries(transcript, speakers.map((s) => s.id), language, userOrgId, { userId });
 
     // A FAILED ARTIFACT PASS IS NOT AN EMPTY MEETING. Writing
     // `artifacts.actionItems/decisions/questions` raw would turn a pass that fell

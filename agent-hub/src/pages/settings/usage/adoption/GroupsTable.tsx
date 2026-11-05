@@ -13,10 +13,10 @@ interface GroupLine {
     name: string;
     sub: string;
     members: number;
-    aiActive: number;
-    adoptionRate: number;
-    makers: number;
-    cost: number;
+    aiActive: number | null;
+    adoptionRate: number | null;
+    makers: number | null;
+    cost: number | null;
     topArea: string | null;
 }
 
@@ -35,7 +35,11 @@ function linesOf(data: AdoptionGroups, t: T): GroupLine[] {
         const f = data.folded;
         lines.push({
             key: '__folded', name: t('adoption.groups_folded', 'Other groups ({n})', { n: f.count }),
-            sub: t('adoption.groups_folded_sub', 'fewer than 5 members each'), members: f.members, aiActive: f.aiActive,
+            // A merged set that is itself under five people shows its size only.
+            sub: f.aiActive == null
+                ? t('adoption.groups_folded_withheld', 'fewer than 5 members in total · figures withheld')
+                : t('adoption.groups_folded_sub', 'fewer than 5 members each'),
+            members: f.members, aiActive: f.aiActive,
             adoptionRate: f.adoptionRate, makers: f.makers, cost: f.cost, topArea: f.topArea,
         });
     }
@@ -56,7 +60,8 @@ function AreaCell({ area }: { area: string | null }) {
 
 function GroupRow({ g, currency }: { g: GroupLine; currency: string }) {
     const cell = 'px-3 py-2.5 text-right tabular-nums text-[12px] text-[var(--text-primary)]';
-    const pct = Math.round(g.adoptionRate);
+    const pct = g.adoptionRate == null ? null : Math.round(g.adoptionRate);
+    const dash = <span className="text-[var(--text-muted)]">—</span>;
     return (
         <tr className="border-b border-[var(--border-subtle)] last:border-b-0">
             <th scope="row" className="px-3 py-2.5 text-left font-normal">
@@ -64,17 +69,19 @@ function GroupRow({ g, currency }: { g: GroupLine; currency: string }) {
                 <span className="block text-[10px] text-[var(--text-muted)]">{g.sub}</span>
             </th>
             <td className={cell}>{fInt(g.members)}</td>
-            <td className={cell}>{fInt(g.aiActive)}</td>
+            <td className={cell}>{g.aiActive == null ? dash : fInt(g.aiActive)}</td>
             <td className="px-3 py-2.5">
-                <span className="flex items-center gap-2">
-                    <span className="h-2 w-24 overflow-hidden rounded-full bg-[var(--bg-tertiary)]" aria-hidden="true">
-                        <span className="block h-full rounded-full bg-[var(--chart-3)]" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+                {pct == null ? dash : (
+                    <span className="flex items-center gap-2">
+                        <span className="h-2 w-24 overflow-hidden rounded-full bg-[var(--bg-tertiary)]" aria-hidden="true">
+                            <span className="block h-full rounded-full bg-[var(--chart-3)]" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+                        </span>
+                        <span className="text-[12px] tabular-nums text-[var(--text-primary)]">{`${pct}%`}</span>
                     </span>
-                    <span className="text-[12px] tabular-nums text-[var(--text-primary)]">{`${pct}%`}</span>
-                </span>
+                )}
             </td>
-            <td className={cell}>{fInt(g.makers)}</td>
-            <td className={cell}>{fMoney(g.cost, currency)}</td>
+            <td className={cell}>{g.makers == null ? dash : fInt(g.makers)}</td>
+            <td className={cell}>{g.cost == null ? dash : fMoney(g.cost, currency)}</td>
             <td className="px-3 py-2.5"><AreaCell area={g.topArea} /></td>
         </tr>
     );
