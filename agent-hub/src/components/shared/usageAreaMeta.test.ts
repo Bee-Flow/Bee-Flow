@@ -39,25 +39,44 @@ describe('areaMeta', () => {
 });
 
 describe('usageSourceDetails', () => {
-    it('names every known source by its area', () => {
+    const LEGACY = ['agent', 'chat', 'direct', 'notebook', 'template', 'designer'];
+
+    it('names every known source by its area, with the area\'s icon and colour', () => {
         for (const [source, { area }] of Object.entries(SOURCES)) {
             const d = usageSourceDetails(source);
             expect(d.area).toBe(area);
-            if (area !== 'other') expect(d.label).toBe(areaMeta(area).label);
+            expect(d.color).toBe(areaMeta(area).color);
+            expect(d.icon).toBe(areaMeta(area).icon);
+            if (area !== 'other') expect(d.label.startsWith(areaMeta(area).label)).toBe(true);
         }
-        expect(usageSourceDetails('studio_app_ai').label).toBe('Apps');
+        expect(usageSourceDetails('studio_app_ai').label).toBe('Apps · studio_app_ai');
         expect(usageSourceDetails('cowork').label).toBe('Cowork');
+        expect(usageSourceDetails('automation').label).toBe('Automations');
+    });
+
+    it('gives every source its own name, so a list or a filter keyed by source never shows two alike', () => {
+        const sources = [...Object.keys(SOURCES), ...LEGACY];
+        const labels = sources.map(s => usageSourceDetails(s).label);
+        expect(new Set(labels).size).toBe(sources.length);
+        expect(usageSourceDetails('agent_stream').label).not.toBe(usageSourceDetails('agent_test_chat').label);
+        expect(usageSourceDetails('automation').label).not.toBe(usageSourceDetails('automation_builder').label);
     });
 
     it('keeps the raw name of a source it does not know, and reads the old literals as their area', () => {
         expect(usageSourceDetails('brand_new_thing')).toMatchObject({ label: 'brand_new_thing', area: 'other' });
-        expect(usageSourceDetails('direct').label).toBe('Direct chat');
+        expect(usageSourceDetails('direct')).toMatchObject({ label: 'Direct chat · direct', area: 'chat' });
+        expect(usageSourceDetails('agent')).toMatchObject({ label: 'Agents', area: 'agents' });
         expect(usageSourceDetails(null).label).toBe('Other');
+    });
+
+    it('translates the area part of the name through t', () => {
+        const t = (k: string, fb: string) => (k === 'adoption.area_agents' ? 'Agenten' : fb);
+        expect(usageSourceDetails('agent_stream', t).label).toBe('Agenten · agent_stream');
     });
 
     it('is what both dashboards\' getSourceDetails answer', () => {
         expect(settingsSourceDetails('meeting_summary')).toEqual(usageSourceDetails('meeting_summary'));
         expect(adminSourceDetails('meeting_summary')).toEqual(usageSourceDetails('meeting_summary'));
-        expect(settingsSourceDetails('agent_stream').label).toBe('Agents');
+        expect(settingsSourceDetails('agent_stream').label).toBe('Agents · agent_stream');
     });
 });

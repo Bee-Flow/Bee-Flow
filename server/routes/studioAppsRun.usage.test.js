@@ -116,6 +116,38 @@ test('the row of a click that started a run names the run; a step row carries no
     assert.equal(step.agent_name, 'App: Untitled app');
 });
 
+test('ai chat: a colleague\'s chat turn is the owner\'s row with the colleague as the actor', async () => {
+    const studioAppStore = require('../stores/studioAppStore');
+    const aiRuntime = require('../appStudio/aiRuntime');
+    const llmClient = require('../core/llm/llmClient');
+    const app = await studioAppStore.createStudioApp({ userId: OWNER.id, organizationId: ORG, name: `Chat app ${++n}` });
+    const chat = { id: 'chat1', type: 'ai_chat', props: {} };
+    const def = { schemaVersion: 1, meta: {}, theme: {}, homeScreenId: 's1', screens: [{ id: 's1', name: 'Home', sections: [{ id: 'sec1', children: [chat] }] }], actions: {} };
+    const saved = await studioAppStore.saveDefinition(app.id, OWNER.id, def);
+    assert.ok(saved && saved.ok, 'definition saved');
+    assert.ok(await studioAppStore.setStudioAppPublished(app.id, true, OWNER.id, [], ORG), 'published to the org');
+    // The model the owner configured, and its answer: not what this is about.
+    const orig = { resolveOwnerModel: aiRuntime.resolveOwnerModel, stream: llmClient.stream };
+    aiRuntime.resolveOwnerModel = async () => ({ modelId: 'model-chat', options: {} });
+    llmClient.stream = async (_model, _messages, _opts, onEvent) => {
+        onEvent('text', { text: 'Hello' });
+        onEvent('done', { prompt_tokens: 12, completion_tokens: 3 });
+    };
+    try {
+        const r = await api.call('POST', `/api/studio-apps/${app.id}/ai/chat`, { body: { nodeId: 'chat1', messages: [{ role: 'user', content: 'Hi' }] }, user: VIEWER });
+        assert.equal(r.status, 200, r.text);
+        assert.match(r.text, /Hello/);
+        const rows = await usageRows(app.id);
+        assert.equal(rows.length, 1);
+        assert.equal(rows[0].source, 'studio_app_chat');
+        assert.equal(rows[0].user_id, OWNER.id, 'the owner pays');
+        assert.equal(rows[0].actor_user_id, VIEWER.id, 'the colleague who chatted is the actor');
+    } finally {
+        aiRuntime.resolveOwnerModel = orig.resolveOwnerModel;
+        llmClient.stream = orig.stream;
+    }
+});
+
 test('a public visitor\'s step row is the owner\'s, with no actor', () => {
     const { publicStepUsageRow } = require('./studioAppPublicParts');
     const row = publicStepUsageRow({ id: 'app-3', userId: OWNER.id, organizationId: ORG }, Date.now());

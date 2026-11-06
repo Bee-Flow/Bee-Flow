@@ -21,6 +21,7 @@ const { accumulateUsage, renderValidationNote, providerErrorExcerpt, recoverLeak
 const { WASTED_ROUNDS_LIMIT, stopSentence } = require('./turnStop');
 const { dispatchToolCall } = require('./toolDispatch');
 const { afterToolLessRound } = require('./roundNudges');
+const { addRoundUsage } = require('./turnClosing');
 
 /**
  * @param {BuilderTurn} turn
@@ -180,6 +181,7 @@ async function runBuildLoop(turn) {
         // (additive SSE event — clients that don't know it ignore it).
         if (response.usage) {
             accumulateUsage(usageTotals, response.usage);
+            addRoundUsage(turn, response.usage);
             send('usage', { iter, effort: turnEffort, ...response.usage, totals: { ...usageTotals } });
         }
 

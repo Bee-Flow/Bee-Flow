@@ -21,9 +21,17 @@ const INLINE_AVATAR_MAX_CHARS = 2048;
  * @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/adoption/studioItems').getStudioItems>>>} Items
  * @typedef {Awaited<ReturnType<typeof import('../stores/adoption/groups').getGroups>>} Groups
  * @typedef {import('../stores/adoption/people').PersonRow} PersonRow
- * @typedef {{ id: string, avatarType?: string | null, avatar?: string | null }} AvatarRow
+ * @typedef {import('../stores/adoption/shared').GroupRow} GroupRow
  * @typedef {{
- *   lens: CostLens, reveal: boolean, pseudonym: (userId: string) => string,
+ *   displayName: string | null, username: string | null, orgRole: string | null,
+ *   lastSeenAt: string | null, avatarType: string | null,
+ * }} MemberFields
+ * @typedef {Omit<PersonRow, 'member'> & { member: MemberFields }} CachedPerson
+ * @typedef {{ people: CachedPerson[], groupNames: [string, string][], total: number, nextCursor: number | null, partial: boolean }} CachedPeople
+ * @typedef {{ id: string, avatarType?: string | null, avatar?: string | null }} AvatarRow
+ * @typedef {{ id: string, name: string }} Pseudonym
+ * @typedef {{
+ *   lens: CostLens, reveal: boolean, pseudonym: (userId: string) => Pseudonym,
  *   groupNames: Map<string, string>, avatars: Map<string, AvatarRow>,
  * }} PersonContext
  */
@@ -106,10 +114,42 @@ function shapeItems(out, lens, pseudonym) {
             id: i.id, name: i.name, ownerId: i.ownerId, ownerName: i.ownerName, audience: i.audience,
             createdAt: i.createdAt, lastUsedAt: i.lastUsedAt, people: i.people, uses: i.uses, cost: lens.cost(i.cost),
         })),
-        // The people who use a kind most: always pseudonymous.
+        // The people who use a kind most: always pseudonymous, labelled under a
+        // key of their own (core/privacy/pseudonym.js `top-people`), so a
+        // reveal of the people table does not name them.
         topPeople: out.topPeople.map((p) => ({ person: pseudonym(p.person), uses: p.uses, cost: lens.cost(p.cost) })),
         unused: out.unused,
         total: out.total,
+    };
+}
+
+/** @param {unknown} v */
+const textOrNull = (v) => (v == null || v === '' ? null : String(v));
+
+/**
+ * What the people cache keeps of a store page: the fields shapePerson reads,
+ * not the member rows, and the names of every group of the organisation
+ * (`allGroups` when the store sends it; `groups` is narrowed by ?group=).
+ * @param {Awaited<ReturnType<typeof import('../stores/adoption/people').getPeople>> & { allGroups?: GroupRow[] }} out
+ * @returns {CachedPeople}
+ */
+function compactPeople(out) {
+    const groups = out.allGroups || out.groups || [];
+    return {
+        people: out.people.map((r) => {
+            const u = r.member;
+            const seen = u.lastSeenAt ?? u.last_seen_at ?? null;
+            return {
+                id: r.id, groupIds: r.groupIds, status: r.status, calls: r.calls, cost: r.cost,
+                areas: r.areas, built: r.built, firstAiUseAt: r.firstAiUseAt,
+                member: {
+                    displayName: textOrNull(u.displayName), username: textOrNull(u.username), orgRole: textOrNull(u.orgRole),
+                    lastSeenAt: seen ? new Date(seen).toISOString() : null, avatarType: textOrNull(u.avatarType),
+                },
+            };
+        }),
+        groupNames: groups.map((g) => [String(g.id), String(g.name || g.id)]),
+        total: out.total, nextCursor: out.nextCursor, partial: out.partial,
     };
 }
 
@@ -126,14 +166,15 @@ function shapeGroups(g, lens) {
 }
 
 /**
- * Who a row is: the pseudonym, or after a reveal the id, name and avatar.
- * @param {PersonRow} row
+ * Who a row is: the pseudonym (an opaque row id and the label), or after a
+ * reveal the id, name and avatar.
+ * @param {CachedPerson} row
  * @param {PersonContext} ctx
  */
 function identityOf(row, ctx) {
     if (!ctx.reveal) {
-        const label = ctx.pseudonym(row.id);
-        return { id: label, name: label, avatarType: null, avatar: null };
+        const p = ctx.pseudonym(row.id);
+        return { id: p.id, name: p.name, avatarType: null, avatar: null };
     }
     const u = row.member;
     const avatar = ctx.avatars.get(row.id);
@@ -147,17 +188,16 @@ function identityOf(row, ctx) {
 
 /**
  * One person as the report shows them.
- * @param {PersonRow} row
+ * @param {CachedPerson} row
  * @param {PersonContext} ctx
  */
 function shapePerson(row, ctx) {
     const u = row.member;
-    const lastSeen = u.lastSeenAt ?? u.last_seen_at ?? null;
     return {
         ...identityOf(row, ctx),
         role: String(u.orgRole || 'member'),
         groups: row.groupIds.map((gid) => ctx.groupNames.get(gid) || gid),
-        lastSeenAt: lastSeen ? new Date(lastSeen).toISOString() : null,
+        lastSeenAt: u.lastSeenAt,
         status: row.status,
         ...figures(ctx.lens, row),
         areas: row.areas,
@@ -166,4 +206,4 @@ function shapePerson(row, ctx) {
     };
 }
 
-module.exports = { inlineAvatar, shapeSummary, shapeAreas, shapeStudio, shapeItems, shapeGroups, shapePerson };
+module.exports = { inlineAvatar, shapeSummary, shapeAreas, shapeStudio, shapeItems, shapeGroups, shapePerson, compactPeople };

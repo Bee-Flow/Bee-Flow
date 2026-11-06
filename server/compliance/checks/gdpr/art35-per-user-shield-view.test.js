@@ -54,12 +54,15 @@ test('the evidence is the allow-list', async () => {
             'adoption.people', 'adoption.studio.items.top_people',
         ],
         guardrail_retention_days: 400,
-        pseudonymous_default: true,
-        reveal_audited: true,
-        reveal_audit_action: 'usage_adoption_people_revealed',
+        adoption_pseudonymous_default: true,
+        adoption_reveal_audited: true,
+        adoption_reveal_audit_action: 'usage_adoption_people_revealed',
         opt_in_gate: false,
         ai_act_assessment_due: '2027-12-02',
     });
+    for (const key of Object.keys(r.evidence)) {
+        assert.ok(!/pseudonym|reveal/.test(key) || key.startsWith('adoption_'), `${key} is scoped to the Adoption endpoints`);
+    }
     const leaves = Object.values(r.evidence).flat();
     for (const v of leaves) assert.ok(['string', 'number', 'boolean'].includes(typeof v), `evidence leaf ${String(v)} is a scalar`);
 });

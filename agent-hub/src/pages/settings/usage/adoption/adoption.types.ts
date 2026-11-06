@@ -136,7 +136,7 @@ export interface AdoptionGroups {
 export type PersonStatus = 'ai_active' | 'seen_only' | 'dormant' | 'never' | 'unknown';
 
 export interface AdoptionPerson {
-    /** The pseudonym unless the answer is revealed. */
+    /** The user id when revealed, else an opaque id that is unique in the answer (rows are keyed on it). */
     id: string;
     /** `Member · K7Q2` unless the answer is revealed. */
     name: string;

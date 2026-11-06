@@ -145,7 +145,8 @@ period, group filter and page size of the view. The entry holds no names and no
 figures. If the entry cannot be written, no names are shown and the report says the
 audit log is unavailable. Review these entries under **Compliance → ISO → Sign-in &
 access log** (see [Audit & compliance](audit-and-compliance.md)). **Hide names** returns
-to pseudonyms.
+to pseudonyms and discards the names in your browser, so revealing them again writes a
+new entry.
 
 ## How the numbers are made
 
@@ -161,7 +162,8 @@ to pseudonyms.
   started it.
 - **Guests and visitors** (public links, embedded agents, guest accounts) are not
   members. Their calls count toward an area's cost but never toward a person.
-- **Test runs** (dry runs) are left out.
+- **Test chats and skill tests** are left out: a chat in an agent's test tab, or a
+  skill test, shows that a maker checked their work, not that someone used it.
 - **Cost on Bee Flow cloud** is shown with your plan's markup, the same basis as the
   Overview tab, and without call or token counts. A self-hosted installation shows the
   raw cost and the call counts.

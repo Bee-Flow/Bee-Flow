@@ -44,11 +44,16 @@ recording screen names, navigation or route paths.
    can be followed over periods without being named, and different across
    organisations. No avatar is sent.
 2. **An audited, fail-closed reveal.** Names come back only with `?reveal=true`. Before
-   the answer is built, the route awaits
-   `logAccessAudit('usage_adoption_people_revealed', 'organization', orgId, actor, null,
-   { startDate, endDate, group, limit }, orgId)`. The payload is an allow-list of the
-   view's parameters: no names, no figures. If the row cannot be written, the route
-   answers `503 audit_unavailable` and shows nothing, as `dsr.subject_viewed` does.
+   the answer is built, the route awaits `recordReveal` in
+   `server/stores/adoption/audit.js`: a direct insert of a
+   `usage_adoption_people_revealed` row into `access_audit_log` (target type
+   `organization`, the organisation and the actor) that throws when the write fails.
+   It does not go through `userStore.logAccessAudit`, because that function swallows
+   errors and so cannot fail closed. The payload is an allow-list of the view's
+   parameters (`startDate`, `endDate`, `group`, `limit`): no names, no figures. If the
+   row cannot be written, the route answers `503 audit_unavailable` and shows nothing,
+   as `dsr.subject_viewed` does. The client keeps no revealed answer once the names are
+   hidden, so every "Reveal names" is a new request and a new row.
 3. **Who uses an item stays pseudonymous.** The top users of a Studio item are always
    pseudonyms, also after a reveal. Owners are shown by name: who built something is
    organisational metadata, who uses it and how much is behaviour.
@@ -63,9 +68,14 @@ recording screen names, navigation or route paths.
 6. **The check stays a warning.** `GDPR-Art35-per-user-shield-view` lists the Adoption
    endpoints (`adoption.people`, `adoption.studio.items.top_people`) next to the
    Privacy Shield views and the consumption views (`usage.users`, `usage.by_user`,
-   `usage.recent`), and its evidence records `pseudonymous_default`, `reveal_audited`
-   and `reveal_audit_action`. It keeps `warn` while the DPIA, works-council and notice
-   gate does not exist in the product.
+   `usage.recent`), and its evidence records `adoption_pseudonymous_default`,
+   `adoption_reveal_audited` and `adoption_reveal_audit_action`. The prefix scopes
+   those flags to the Adoption endpoints: the other listed views still show names.
+   It keeps `warn` while the DPIA, works-council and notice gate does not exist in
+   the product.
+7. **Test traffic is not adoption.** Test chats in the agent editor and skill tests
+   (the `agent_test_*` and `skill_test*` ledger sources) are left out of every
+   adoption read: they show that a maker checked their work, not that anyone used it.
 
 ## Alternatives considered
 
@@ -99,8 +109,8 @@ recording screen names, navigation or route paths.
 ## The check that enforces it
 
 - `server/compliance/checks/gdpr/art35-per-user-shield-view.test.js` pins the endpoint
-  list with the Adoption endpoints, the evidence allow-list (`pseudonymous_default: true`,
-  `reveal_audited: true`, `reveal_audit_action: 'usage_adoption_people_revealed'`, no
+  list with the Adoption endpoints, the evidence allow-list (`adoption_pseudonymous_default: true`,
+  `adoption_reveal_audited: true`, `adoption_reveal_audit_action: 'usage_adoption_people_revealed'`, no
   user and no count), and the `warn` status while `opt_in_gate` is false.
 - `server/routes/usageAdoption.authz.test.js` asserts that `?reveal=true` writes the
   `usage_adoption_people_revealed` row before any name is answered, that a failing audit

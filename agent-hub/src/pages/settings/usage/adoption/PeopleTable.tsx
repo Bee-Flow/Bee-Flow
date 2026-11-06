@@ -39,6 +39,23 @@ function statusLabel(s: PersonStatus, t: T): string {
     return '—';
 }
 
+/** The built-in org roles (server/config/orgRoles.json) and their names. */
+const ROLE_NAMES: Readonly<Record<string, readonly [string, string]>> = Object.freeze({
+    org_admin: ['adoption.role_org_admin', 'Organisation admin'],
+    dpo: ['adoption.role_dpo', 'Data protection officer'],
+    isms_auditor: ['adoption.role_isms_auditor', 'ISMS auditor'],
+    agent_admin: ['adoption.role_agent_admin', 'Agent admin'],
+    agent_editor: ['adoption.role_agent_editor', 'Agent editor'],
+    member: ['adoption.role_member', 'Member'],
+});
+
+/** An org role id as its name; a custom role keeps its id. */
+function roleLabel(role: string, t: T): string {
+    const entry = Object.hasOwn(ROLE_NAMES, role) ? ROLE_NAMES[role] : undefined;
+    if (entry) return t(entry[0], entry[1]);
+    return role || '—';
+}
+
 const builtCount = (p: AdoptionPerson) => Object.values(p.built || {}).reduce((s, n) => s + (Number(n) || 0), 0);
 
 function sortPeople(list: AdoptionPerson[], key: SortKey): AdoptionPerson[] {
@@ -69,7 +86,7 @@ function PersonRow({ p, revealed, currency, showCalls }: { p: AdoptionPerson; re
                     <span className="text-[12px] font-semibold text-[var(--text-primary)]">{p.name}</span>
                 </span>
             </th>
-            <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{p.role}</td>
+            <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{roleLabel(p.role, t)}</td>
             <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{(p.groups || []).join(', ') || '—'}</td>
             <td className="px-3 py-2 text-[11px]">
                 <span className={stale ? 'text-[var(--warning,#b45309)]' : 'text-[var(--text-secondary)]'}>{fAgo(p.lastSeenAt, t)}</span>
@@ -162,13 +179,19 @@ function PeopleBody({ rows, shown, onMore, props }: { rows: AdoptionPerson[]; sh
     );
 }
 
+/** The people answer as it may be shown: none while hidden if it carries names. */
+export function shownView(view: AdoptionPeopleView | null, revealed: boolean): AdoptionPeopleView | null {
+    return !revealed && view?.reveal ? null : view;
+}
+
 /**
  * Adoption per person. Rows are pseudonymous until the admin reveals the
  * names (one click, recorded in the access audit log by the server before it
  * answers); a reveal the log could not record shows nothing at all.
  */
-export default function PeopleTable(props: PeopleTableProps) {
+export default function PeopleTable(given: PeopleTableProps) {
     const { t } = useTranslation();
+    const props = { ...given, view: shownView(given.view, given.revealed) };
     const [query, setQuery] = useState('');
     const [sort, setSort] = useState<SortKey>('cost');
     const [inactiveOnly, setInactiveOnly] = useState(false);
@@ -176,7 +199,7 @@ export default function PeopleTable(props: PeopleTableProps) {
     const all = props.auditFailed ? [] : (props.view?.people || []);
     const inactive = all.filter(p => p.status !== 'ai_active');
     const rows = visibleRows(inactiveOnly ? inactive : all, query, sort);
-    const more = () => { setShown(n => n + PAGE); if (shown + PAGE >= all.length && props.hasMore) props.onLoadMore(); };
+    const more = () => { setShown(n => n + PAGE); if (shown + PAGE >= rows.length && props.hasMore) props.onLoadMore(); };
     return (
         <div>
             <SectionTitle icon={props.revealed ? Eye : EyeOff}>

@@ -25,6 +25,23 @@ function meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt }) {
     deps.logUsage({ source: 'playbook', userId, orgId: userOrgId, model: modelId, usage, startedAt });
 }
 
+/**
+ * Runs one model call and writes its usage row (meterPhase): for the playbook
+ * steps outside the phases (compose, resolve, access plan) that call the
+ * model through the same deps.
+ * @template R
+ * @param {MeteredDeps} deps
+ * @param {{ userId: string | null, userOrgId: string | null, modelId: string }} who
+ * @param {() => Promise<R>} call
+ * @returns {Promise<R>}
+ */
+async function meteredCall(deps, who, call) {
+    const startedAt = Date.now();
+    const answer = await call();
+    meterPhase(deps, { ...who, answer, startedAt });
+    return answer;
+}
+
 function modelDeps() {
     return {
         /** @param {{ tier?: string, userOrgId?: string | null, userId?: string | null }} opts */
@@ -42,4 +59,4 @@ function defaultDeps() {
     };
 }
 
-module.exports = { meterPhase, modelDeps, defaultDeps };
+module.exports = { meterPhase, meteredCall, modelDeps, defaultDeps };

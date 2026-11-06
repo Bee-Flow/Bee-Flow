@@ -8,7 +8,7 @@ import { waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHookWithClient } from '@/test/render';
 import {
-    AdoptionAuditUnavailableError, adoptionKeys, useAdoptionAreas, useAdoptionGroups, useAdoptionPeople,
+    AdoptionAuditUnavailableError, adoptionKeys, pseudonymousPlaceholder, useAdoptionAreas, useAdoptionGroups, useAdoptionPeople,
     useAdoptionStudio, useAdoptionStudioItems, useAdoptionSummary,
 } from './usageAdoption';
 
@@ -101,6 +101,48 @@ describe('useAdoptionPeople', () => {
         expect(result.current.error).toBeInstanceOf(AdoptionAuditUnavailableError);
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(urls()[0].searchParams.get('reveal')).toBe('true');
+    });
+
+    it('never hands a hidden read the revealed answer as its placeholder', async () => {
+        let release: (v: unknown) => void = () => {};
+        fetchMock
+            .mockResolvedValueOnce(json(page(['Alex Morgan'], null, true)))
+            .mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+        const { result, rerender } = renderHookWithClient(
+            ({ qs, reveal }: { qs: string; reveal: boolean }) => useAdoptionPeople<{ id: string }>(qs, reveal),
+            { initialProps: { qs: 'days=30', reveal: true } },
+        );
+        await waitFor(() => expect(result.current.data?.reveal).toBe(true));
+        rerender({ qs: 'days=30&group=g1', reveal: false });
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+        expect(result.current.data?.people.map(p => p.id) ?? []).not.toContain('Alex Morgan');
+        release(json(page(['Member · AAAA'], null)));
+        await waitFor(() => expect(result.current.data?.people.map(p => p.id)).toEqual(['Member · AAAA']));
+    });
+
+    it('keeps a pseudonymous answer as the placeholder of the next hidden read', () => {
+        const hidden = { pages: [page(['Member · AAAA'], null)], pageParams: [0] };
+        const named = { pages: [page(['Alex Morgan'], null, true)], pageParams: [0] };
+        expect(pseudonymousPlaceholder(hidden)).toBe(hidden);
+        expect(pseudonymousPlaceholder(named)).toBeUndefined();
+        expect(pseudonymousPlaceholder(undefined)).toBeUndefined();
+    });
+
+    it('asks the server again on a second reveal: the revealed answer is not kept once hidden', async () => {
+        fetchMock.mockImplementation(async (url: string) => {
+            const reveal = new URL(String(url), 'http://x').searchParams.get('reveal') === 'true';
+            return json(page([reveal ? 'Alex Morgan' : 'Member · AAAA'], null, reveal));
+        });
+        const { result, rerender } = renderHookWithClient(
+            ({ reveal }: { reveal: boolean }) => useAdoptionPeople<{ id: string }>('days=30', reveal),
+            { initialProps: { reveal: true } },
+        );
+        await waitFor(() => expect(result.current.data?.reveal).toBe(true));
+        rerender({ reveal: false });
+        await waitFor(() => expect(result.current.data?.reveal).toBe(false));
+        rerender({ reveal: true });
+        await waitFor(() => expect(urls().filter(u => u.searchParams.get('reveal') === 'true')).toHaveLength(2));
+        await waitFor(() => expect(result.current.data?.reveal).toBe(true));
     });
 
     it('reads any other 503 as nothing to show', async () => {

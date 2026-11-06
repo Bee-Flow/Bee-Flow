@@ -13,7 +13,7 @@ import AdoptionNotes from './AdoptionNotes';
 import AreasSection from './AreasSection';
 import { adoptionCsv } from './exportCsv';
 import GroupsTable from './GroupsTable';
-import PeopleTable from './PeopleTable';
+import PeopleTable, { shownView } from './PeopleTable';
 import StudioDrilldown from './StudioDrilldown';
 import StudioTable from './StudioTable';
 
@@ -52,7 +52,8 @@ function useAdoptionData(baseQs: string, qs: string, reveal: boolean) {
     const groups = useAdoptionGroups<AdoptionGroups>(qs);
     const groupOptions = useAdoptionGroups<AdoptionGroups>(baseQs);
     const people = useAdoptionPeople<AdoptionPerson>(qs, reveal);
-    const view = people.data ?? null;
+    // A hidden read never shows a revealed answer, not even as a placeholder.
+    const view = shownView(people.data ?? null, reveal);
     const auditFailed = reveal && (people.error instanceof AdoptionAuditUnavailableError || (!!view && view.reveal && !view.auditRecorded));
     return { summary, areas, studio, groups, groupOptions, people, view, auditFailed };
 }

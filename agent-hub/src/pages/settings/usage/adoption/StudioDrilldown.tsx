@@ -67,23 +67,29 @@ function ItemRow({ item, currency }: { item: AdoptionItem; currency: string }) {
     );
 }
 
-function ItemsTable({ data, currency }: { data: AdoptionStudioItems; currency: string }) {
+/**
+ * The item rows. "Unused" is the server's list (published or shared, no use in
+ * the period); a kind nothing records the use of has no such filter.
+ */
+function ItemsTable({ data, currency, hasSignal }: { data: AdoptionStudioItems; currency: string; hasSignal: boolean }) {
     const { t } = useTranslation();
     const [filter, setFilter] = useState<ChipValue>('all');
     const [shown, setShown] = useState(PAGE);
     const unusedIds = new Set(data.unused.map(u => u.id));
-    const rows = filter === 'unused' ? data.items.filter(i => unusedIds.has(i.id) || !i.uses) : data.items;
+    const unused = data.items.filter(i => unusedIds.has(i.id));
+    const rows = hasSignal && filter === 'unused' ? unused : data.items;
     const cols = [
         t('adoption.drill_col_name', 'Name'), t('adoption.drill_col_audience', 'Audience'), t('adoption.drill_col_created', 'Created'),
         t('adoption.drill_col_last', 'Last used'), t('adoption.drill_col_people', 'People'), t('adoption.drill_col_uses', 'Uses'), t('adoption.drill_col_cost', 'AI cost'),
     ];
     const options = [
         { value: 'all', label: t('adoption.studio_filter_all', 'All'), count: data.items.length },
-        { value: 'unused', label: t('adoption.drill_filter_unused', 'Unused'), count: data.items.filter(i => unusedIds.has(i.id) || !i.uses).length },
+        { value: 'unused', label: t('adoption.drill_filter_unused', 'Unused'), count: unused.length },
     ];
+    const chips = hasSignal ? <FilterChipBar size="sm" value={filter} onChange={(v) => { setFilter(v); setShown(PAGE); }} options={options} /> : undefined;
     return (
         <div>
-            <SectionTitle right={<FilterChipBar size="sm" value={filter} onChange={(v) => { setFilter(v); setShown(PAGE); }} options={options} />}>
+            <SectionTitle right={chips}>
                 {t('adoption.drill_items_title', 'All items · {n}', { n: fInt(data.total) })}
             </SectionTitle>
             <Card>
@@ -163,7 +169,7 @@ export default function StudioDrilldown({ kind, qs, currency, scopeLabel, onClos
                 {!query.isLoading && !data && <EmptyInline text={t('adoption.drill_error', 'The items of this kind could not be read.')} boxed />}
                 {data && (
                     <div className="grid gap-3 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_260px]">
-                        <ItemsTable data={data} currency={currency} />
+                        <ItemsTable data={data} currency={currency} hasSignal={kind.usage != null} />
                         <SidePanels data={data} currency={currency} />
                     </div>
                 )}

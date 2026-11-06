@@ -92,15 +92,28 @@ const LEGACY_SOURCE_AREA: Readonly<Record<string, string>> = Object.freeze({
 
 export interface SourceDetails { label: string; icon: LucideIcon; color: string; area: string }
 
+/** The one source an area may be named by alone: its own id, or that id without the plural s. */
+const isAreaOwnSource = (source: string, area: string) => source === area || `${source}s` === area;
+
+/** The name of a source; see usageSourceDetails. */
+function sourceLabel(source: string | null | undefined, area: string, areaLabel: string): string {
+    if (!source) return areaLabel;
+    if (area === OTHER_AREA) return source;
+    return isAreaOwnSource(source, area) ? areaLabel : `${areaLabel} · ${source}`;
+}
+
 /**
- * A ledger `source` as the UI names it: the area it rolls up to, with that
- * area's icon and colour. A source the vocabulary does not know keeps its
- * raw name (under "other"), so nothing is hidden.
+ * A ledger `source` as the UI names it, with the icon and colour of the area
+ * it rolls up to. Lists and filters are keyed by source, so the name is
+ * unique per source: the area's name alone for the area's own source
+ * (`cowork`, `automation`), else the area's name and the raw source
+ * (`Agents · agent_stream`). A source the
+ * vocabulary does not know keeps its raw name (under "other"), so nothing is
+ * hidden.
  */
 export function usageSourceDetails(source: string | null | undefined, t?: Translate): SourceDetails {
     const legacy = typeof source === 'string' ? LEGACY_SOURCE_AREA[source] : undefined;
     const area = legacy ?? areaOf(source);
     const meta = areaMeta(area, t);
-    const known = area !== OTHER_AREA;
-    return { label: known ? meta.label : (source || meta.label), icon: meta.icon, color: meta.color, area };
+    return { label: sourceLabel(source, area, meta.label), icon: meta.icon, color: meta.color, area };
 }
