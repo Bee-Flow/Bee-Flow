@@ -32445,7 +32445,6 @@ const EN_DEFAULTS = {
     "usage.tab_overview": "Overview",
     "usage.tab_spend": "Spend",
     "usage.tab_quality": "Quality",
-    "usage.compare_previous": "Compare with previous period",
     "usage.quality_sub_feedback": "Feedback",
     "usage.quality_sub_terminations": "Terminations",
     "usage.delta_same": "same",

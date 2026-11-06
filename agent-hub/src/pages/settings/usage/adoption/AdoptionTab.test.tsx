@@ -193,26 +193,6 @@ describe('AdoptionTab', () => {
         expect((await screen.findAllByText(/^Member · /)).length).toBeGreaterThan(0);
     });
 
-    it('exports a CSV with pseudonyms, and with names only after a reveal', async () => {
-        install();
-        const user = userEvent.setup();
-        const blobs: Blob[] = [];
-        vi.spyOn(URL, 'createObjectURL').mockImplementation((b: Blob | MediaSource) => { blobs.push(b as Blob); return 'blob:x'; });
-        vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-        renderPeople();
-        await screen.findAllByText(/^Member · /);
-        await user.click(screen.getByRole('button', { name: 'Export CSV' }));
-        const first = await blobs[0].text();
-        expect(first).toContain('# people (pseudonymous)');
-        expect(first).toMatch(/Member · [A-Z2-9]{4}/);
-        expect(first).not.toMatch(/Alex Morgan/);
-        await user.click(screen.getByRole('button', { name: 'Reveal names' }));
-        await screen.findByText('Names shown · recorded in the access audit log');
-        await user.click(screen.getByRole('button', { name: 'Export CSV' }));
-        const second = await blobs[1].text();
-        expect(second).toContain('# people (names revealed');
-        expect(second).not.toMatch(/Member · [A-Z2-9]{4}/);
-    });
 
     it('opens a kind\'s drill-down inline under its row with Enter', async () => {
         install();

@@ -82,12 +82,4 @@ describe('UsageSection: tabs and header', () => {
         expect(screen.getByRole('button', { name: 'Terminations' }).getAttribute('aria-pressed')).toBe('true');
     });
 
-    it('compares with the previous period by default and toggles', async () => {
-        const user = userEvent.setup();
-        renderSection([]);
-        const box = screen.getByRole('checkbox', { name: 'Compare with previous period' });
-        expect((box as HTMLInputElement).checked).toBe(true);
-        await user.click(box);
-        expect((box as HTMLInputElement).checked).toBe(false);
-    });
 });

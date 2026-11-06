@@ -139,7 +139,6 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const openTab = useCallback((tab: string, sub?: string) => setNav(n => (
         tab === n.tab && sub === undefined ? n : { tab, sub, nonce: n.nonce + 1 }
     )), []);
-    const [compare, setCompare] = useState(true);
 
     const [prevInitialReport, setPrevInitialReport] = useState(initialReport);
     if (prevInitialReport !== initialReport) {
@@ -217,7 +216,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
 
     const usageProps = {
         data, subscription, isCustomerView, showTokens, tierForModel: tierFor, modelTiers, azureServices,
-        setFilterUser, setFilterModel, setFilterSource, compare, onOpenTab: openTab,
+        setFilterUser, setFilterModel, setFilterSource, onOpenTab: openTab,
         rangeParams, rangePreset: range.preset, hasFilters: Boolean(hasFilters),
     };
 
@@ -231,13 +230,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                         {t('usage.subtitle')}{rangeLabel ? ` · ${rangeLabel}` : ''}
                     </p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                    <RangeControl range={range} onChange={setRange} t={t} />
-                    <label className="flex cursor-pointer items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-                        <input type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)} />
-                        {t('usage.compare_previous', 'Compare with previous period')}
-                    </label>
-                </div>
+                <RangeControl range={range} onChange={setRange} t={t} />
             </div>
 
             <ReportTabBar active={activeReport} onChange={openTab} t={t} tabs={visibleTabs} />
@@ -278,7 +271,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                     {activeReport === 'adoption' && (
                         <AdoptionTab
                             key={nav.nonce} rangeParams={rangeParams} rangePreset={range.preset} showTokens={showTokens}
-                            currency={currencySym(billing?.plan_currency || 'EUR')} compare={compare}
+                            currency={currencySym(billing?.plan_currency || 'EUR')}
                             initialSubTab={nav.sub}
                         />
                     )}

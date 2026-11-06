@@ -1,17 +1,15 @@
-import { Download } from 'lucide-react';
 import { useState } from 'react';
 import {
     AdoptionAuditUnavailableError, useAdoptionAreas, useAdoptionGroups, useAdoptionPeople, useAdoptionStudio, useAdoptionSummary,
 } from '@/api/queries/usageAdoption';
 import { useTranslation } from '@/hooks/useTranslation';
-import { USAGE_ALL_DAYS, downloadCsv, type RangeParams } from '@/utils/usageHelpers';
+import { USAGE_ALL_DAYS, type RangeParams } from '@/utils/usageHelpers';
 import { AlertBanner, EmptyInline } from '../kit';
 import { SubTabs } from '../shell';
 import { formatDateRange } from '../format';
 import type { AdoptionAreas, AdoptionGroups, AdoptionPerson, AdoptionStudio, AdoptionSummary } from './adoption.types';
 import AdoptionHero from './AdoptionHero';
 import AreasSection from './AreasSection';
-import { adoptionCsv } from './exportCsv';
 import GroupsTable from './GroupsTable';
 import PeopleTable, { shownView } from './PeopleTable';
 import StudioTable from './StudioTable';
@@ -83,15 +81,6 @@ function Skeleton() {
 }
 
 type Data = ReturnType<typeof useAdoptionData>;
-
-function exportAll(d: Data, reveal: boolean) {
-    const csv = adoptionCsv({
-        summary: d.summary.data ?? null, areas: d.areas.data ?? null, studio: d.studio.data ?? null,
-        groups: d.groups.data ?? null, people: d.auditFailed ? null : d.view, revealed: reveal,
-    });
-    const r = d.summary.data?.range;
-    downloadCsv(`adoption-${r ? `${r.startDate.slice(0, 10)}-${r.endDate.slice(0, 10)}` : 'report'}.csv`, csv);
-}
 
 function isPartial(d: Data): boolean {
     return [d.summary.data, d.areas.data, d.studio.data, d.groups.data].some(x => !!x?.partial);
@@ -185,10 +174,6 @@ export default function AdoptionTab(props: AdoptionTabProps) {
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                     <GroupSelect value={group} onChange={setGroup} options={d.groupOptions.data ?? null} total={group ? null : summary?.members.total ?? null} />
-                    <button type="button" onClick={() => exportAll(d, reveal)} disabled={!summary}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50">
-                        <Download className="h-3.5 w-3.5" aria-hidden="true" />{t('adoption.export_csv', 'Export CSV')}
-                    </button>
                 </div>
                 <p className="m-0 text-xs text-[var(--text-muted)]">{t('adoption.header_note', 'Names are pseudonymous (Member · K7Q2) until you reveal them; a reveal is written to the audit log.')}</p>
             </div>

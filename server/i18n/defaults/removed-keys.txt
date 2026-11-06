@@ -3164,3 +3164,4 @@ adoption.notes_how_unmetered
 adoption.notes_who_body
 adoption.notes_who_link
 adoption.notes_who_title
+usage.compare_previous
