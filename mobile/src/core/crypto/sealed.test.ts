@@ -19,8 +19,10 @@ describe('sealed storage', () => {
         const raw = await AsyncStorage.getItem('beeflow.sealed.flow.a1');
         expect(raw).not.toBeNull();
         // Checked on the decoded bytes, not the base64 text: random ciphertext
-        // spells a short word like "Jan" in base64 now and then.
-        const { ct, ...envelope } = JSON.parse(raw ?? '{}');
+        // (and the random IV) spells a short word like "Jan" in base64 now and
+        // then, so neither random field takes part in the plaintext check.
+        const { ct, iv, ...envelope } = JSON.parse(raw ?? '{}');
+        expect(typeof iv).toBe('string');
         expect(JSON.stringify(envelope)).not.toContain('Jan');
         const bytes = Buffer.from(ct, 'base64').toString('latin1');
         expect(bytes).not.toContain('Email Jan');
