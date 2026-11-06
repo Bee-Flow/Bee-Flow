@@ -21,7 +21,7 @@ export const KQL_AUDIT_ACTIONS = Object.freeze([
     'kb.query_log.exported', 'kb.query_log.content_viewed', 'kb.query_log.subject_exported', 'kb.query_log.subject_deleted',
 ]);
 
-export interface KqlPerson { id: string; name: string | null }
+interface KqlPerson { id: string; name: string | null }
 
 export interface KqlKbRow {
     id: string;
@@ -61,7 +61,7 @@ export interface KqlSubject {
 }
 
 /** One row of a person's content, shown only behind an open data-subject request. */
-export interface KqlContentRow {
+interface KqlContentRow {
     id: string;
     kbName: string | null;
     createdAt: string | null;

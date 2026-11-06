@@ -5,7 +5,7 @@ import { parseContent, type KqlContent } from '@/api/kbQueryLog.types';
 /** Why a content call was refused, in the words the page picks a sentence for. */
 export type KqlRefusal = 'dsr_request_required' | 'failed';
 
-export function refusalOf(error: unknown): KqlRefusal | null {
+function refusalOf(error: unknown): KqlRefusal | null {
     if (!error) return null;
     return (error as { code?: string }).code === 'dsr_request_required' ? 'dsr_request_required' : 'failed';
 }

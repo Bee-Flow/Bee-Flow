@@ -17,10 +17,10 @@ export const QUERY_LOG_CHANNELS = [
     'support', 'skill', 'kb_test', 'api_search',
 ] as const;
 
-export type QueryLogOutcome = typeof QUERY_LOG_OUTCOMES[number];
-export type QueryLogReviewStatus = typeof QUERY_LOG_REVIEW_STATUSES[number];
+type QueryLogOutcome = typeof QUERY_LOG_OUTCOMES[number];
+type QueryLogReviewStatus = typeof QUERY_LOG_REVIEW_STATUSES[number];
 
-export interface QueryLogChunk {
+interface QueryLogChunk {
     chunkId?: string | number | null;
     documentId?: string | null;
     sourceUri?: string | null;
@@ -98,7 +98,7 @@ const enc = encodeURIComponent;
 const kbBase = (kbId: string) => `${API_BASE}/api/kb/${enc(kbId)}/query-log`;
 
 /** `?a=1&b=2` of the filters that are set; never a bare `?`. */
-export function queryLogQuery(filters: QueryLogFilters, extra: Record<string, string | number> = {}): string {
+function queryLogQuery(filters: QueryLogFilters, extra: Record<string, string | number> = {}): string {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries({ ...filters, ...extra })) {
         if (v === undefined || v === null || v === '') continue;
