@@ -130,7 +130,12 @@ opt-in per Nextcloud and is reversible (a bad URL rolls back to the previous tar
 
 ## Reverse proxy + TLS
 
-To expose the install on a public hostname, terminate TLS in a reverse proxy.
+To expose the install on a public hostname, terminate TLS in a reverse proxy. Once a proxy is in
+front, set `CLIENT_BIND_HOST=127.0.0.1` in `.env` so the UI port is published on loopback only:
+Docker publishes ports ahead of ufw/firewalld, so a firewall rule alone does not close it.
+
+Running one stack for the internet and another for data that must never be reachable from it, on
+the same machine? See [Several stacks on one machine](multi-stack.md).
 
 :::tip Easy install topology
 With the [easy install](#easy-install), the `agent-hub` container already serves the SPA **and**

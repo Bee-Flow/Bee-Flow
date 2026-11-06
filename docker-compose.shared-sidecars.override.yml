@@ -1,0 +1,19 @@
+# Layered on top of docker-compose.from-registry.yml by selfhost.sh when
+# SHARED_SIDECARS is set: the server joins the `<stack>-sidecars` network that
+# ./selfhost-sidecars.sh created for this stack (SIDECAR_STACKS), and reaches
+# the shared guard / classifier / Ollama there by service name. Only the
+# server joins it, and the network is internal (no egress): the stack's own
+# containers stay where they were, and no other stack is on this network.
+#
+# The network must exist before the stack starts (`external: true`): a stack
+# brought up before its sidecars fails with a clear message instead of
+# creating a network of the same name that the sidecars then cannot join.
+services:
+  server:
+    networks:
+      - shared-sidecars
+
+networks:
+  shared-sidecars:
+    name: ${STACK_NAME:-beeflow}-sidecars
+    external: true

@@ -1,0 +1,168 @@
+# ══════════════════════════════════════════════════════════════════
+# Bee Flow — shared sidecars for several stacks on one machine
+# ══════════════════════════════════════════════════════════════════
+#
+# The guard (PII detection), the topic classifier and, optionally, Ollama as
+# ONE compose project that several Bee Flow stacks on the same host use. They
+# are the stateless parts of the stack: the guard caches offsets, labels and
+# scores under HMAC keys (never text), the classifier caches nothing, Ollama
+# keeps no prompts. Everything with state (Postgres, object storage, the
+# browser sidecar, sessions) stays inside each stack.
+#
+# Run it with ./selfhost-sidecars.sh, never with `docker compose` by hand:
+# the script generates docker-compose.sidecars.networks.yml next to this file
+# from SIDECAR_STACKS, one `<stack>-sidecars` network per stack, internal
+# (no egress) and attached to every sidecar here. A stack's server joins ONLY
+# its own one of those networks (SHARED_SIDECARS=… ./selfhost.sh), so the
+# sidecars see every stack and no stack ever sees another. Never put two
+# servers on one shared network: the internet-facing one could then reach
+# the other's API over it.
+#
+# No port is published: nothing on the host needs these services, and a
+# published port is the one thing a firewall rule on the host cannot close.
+#
+# Profiles are the ones of docker-compose.from-registry.yml, minus core:
+#   guard      — guard-service + guard-redis
+#   classify   — classify-service
+#   local-llm  — ollama (needs egress to download models: it keeps the
+#                project's own network, the shared ones are internal)
+#
+# The image tag is the TAG of .env.sidecars; keep it equal to the TAG of every
+# stack that uses these sidecars, and upgrade the sidecars before the stacks.
+# ══════════════════════════════════════════════════════════════════
+
+services:
+
+  guard-service:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/guard:${TAG:-latest}
+    container_name: ${SIDECARS_NAME:-beeflow-sidecars}-guard
+    profiles: [ "guard" ]
+    environment:
+      - GUARD_REDIS_URL=redis://guard-redis:6379/1
+      - GUARD_PII_ENABLED=${GUARD_PII_ENABLED:-true}
+      - GUARD_PII_MODEL=${GUARD_PII_MODEL:-E3-JSI/gliner-multi-pii-domains-v1}
+      # Offsets, labels and scores under HMAC keys; never span text.
+      - GUARD_PII_CACHE_TTL_SECONDS=${GUARD_PII_CACHE_TTL_SECONDS:-600}
+      - GUARD_PII_USE_ONNX=${GUARD_PII_USE_ONNX:-true}
+      - GUARD_PII_ONNX_FILE=${GUARD_PII_ONNX_FILE:-model.onnx}
+      - GUARD_PII_REGEX_TIER=${GUARD_PII_REGEX_TIER:-on}
+      - GUARD_PII_REGIONS=${GUARD_PII_REGIONS:-*}
+      - GUARD_PII_SCAN_BUDGET_CHARS=${GUARD_PII_SCAN_BUDGET_CHARS:-0}
+      # Several stacks queue on one guard: admit more than the single-stack
+      # default. Raise GUARD_CPUS with it.
+      - GUARD_PII_MAX_CONCURRENCY=${GUARD_PII_MAX_CONCURRENCY:-4}
+      - GUARD_PII_INFERENCE_LOCK=${GUARD_PII_INFERENCE_LOCK:-tokenizer}
+      - GUARD_PII_PREDICT_WORKERS=${GUARD_PII_PREDICT_WORKERS:-0}
+      - GUARD_PII_ORT_INTRA_OP_THREADS=${GUARD_PII_ORT_INTRA_OP_THREADS:-0}
+      # WARNING, not INFO: this one process sees the text of every stack, and
+      # its log is the one place that text could leave a stack's boundary.
+      - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-WARNING}
+      - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:?Set SERVICES_API_KEY in .env.sidecars (openssl rand -hex 24)}
+    cpus: ${GUARD_CPUS:-4}
+    mem_limit: ${GUARD_MEM:-4g}
+    depends_on:
+      guard-redis:
+        condition: service_healthy
+    networks:
+      - sidecars-internal
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Only the guard talks to it: it is on the sidecars' own network and on
+  # none of the per-stack ones.
+  guard-redis:
+    image: redis:7.4.11-alpine
+    container_name: ${SIDECARS_NAME:-beeflow-sidecars}-guard-redis
+    profiles: [ "guard" ]
+    command: [ "redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no" ]
+    networks:
+      - sidecars-internal
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  classify-service:
+    image: ${REGISTRY:-ghcr.io/bee-flow}/classify:${TAG:-latest}
+    container_name: ${SIDECARS_NAME:-beeflow-sidecars}-classify
+    profiles: [ "classify" ]
+    environment:
+      - CLASSIFY_LABEL_MODE=${CLASSIFY_LABEL_MODE:-joint}
+      - CLASSIFY_MAX_CONCURRENCY=${CLASSIFY_MAX_CONCURRENCY:-2}
+      - CLASSIFY_MAX_QUEUE=${CLASSIFY_MAX_QUEUE:-16}
+      - CLASSIFY_LOG_LEVEL=${CLASSIFY_LOG_LEVEL:-WARNING}
+      - CLASSIFY_API_KEY=${CLASSIFY_API_KEY:-}
+      - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:?Set SERVICES_API_KEY in .env.sidecars (openssl rand -hex 24)}
+    cpus: ${CLASSIFY_CPUS:-3}
+    mem_limit: ${CLASSIFY_MEM:-3g}
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - sidecars-internal
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8300/health')" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+
+  ollama:
+    image: ollama/ollama:0.40.1
+    container_name: ${SIDECARS_NAME:-beeflow-sidecars}-ollama
+    profiles: [ "local-llm" ]
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-15m}
+      - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-2}
+      - OLLAMA_CONTEXT_LENGTH=${OLLAMA_CONTEXT_LENGTH:-8192}
+    networks:
+      - sidecars-egress
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [ gpu ]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  ollama-models:
+    driver: local
+
+networks:
+  # The sidecars among themselves (guard ↔ redis). No egress: the models are
+  # baked into the images.
+  sidecars-internal:
+    name: ${SIDECARS_NAME:-beeflow-sidecars}-internal
+    internal: true
+  # Ollama downloads models, so it keeps a way out.
+  sidecars-egress:
+    name: ${SIDECARS_NAME:-beeflow-sidecars}-egress

@@ -192,3 +192,12 @@ example obs files/
 builder-run.*.json
 app-builder-run.*.json
 playbook-runs/
+
+# Several stacks on one machine (selfhost.sh STACK_NAME=…, selfhost-sidecars.sh):
+# the per-stack env files hold that stack's secrets, the networks file is
+# generated from SIDECAR_STACKS, the components dirs are per-stack mounts.
+.env.*
+!.env.example
+!.env.*.example
+components.*/
+docker-compose.sidecars.networks.yml
