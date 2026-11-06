@@ -11,7 +11,7 @@ import { IN_COLOR, OUT_COLOR, ShareBar } from './ShareBar';
 import { headlineCost, perDay } from './spendFormat';
 import { CARD } from './tableStyle';
 
-const USERS_SETTINGS_PATH = '/app/settings/organisation/users';
+const MEMBERS_SETTINGS_ROUTE = '/app/settings/organisation/users';
 
 interface SpendHeroProps {
     data: OverviewTabProps['data'];
@@ -49,7 +49,7 @@ function BudgetLine({ subscription, currency }: { subscription: Record<string, u
             </div>
             <ShareBar parts={hasCap ? [{ pct, color: budgetTone(pct) }] : []} />
             {!hasCap && (
-                <a href={USERS_SETTINGS_PATH} className="inline-flex min-h-8 items-center gap-1 text-[13px] font-medium text-[var(--accent-primary)] hover:underline">
+                <a href={MEMBERS_SETTINGS_ROUTE} className="inline-flex min-h-8 items-center gap-1 text-[13px] font-medium text-[var(--accent-primary)] hover:underline">
                     {t('usage.spend_budget_link', 'Set a budget per member or group')} <span aria-hidden="true">→</span>
                 </a>
             )}
