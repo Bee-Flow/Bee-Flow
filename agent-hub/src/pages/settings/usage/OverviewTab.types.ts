@@ -163,4 +163,8 @@ export interface OverviewTabProps {
     setFilterUser: React.Dispatch<React.SetStateAction<string | null>>;
     setFilterModel: React.Dispatch<React.SetStateAction<string | null>>;
     setFilterSource: React.Dispatch<React.SetStateAction<string | null>>;
+    /** Page-wide compare switch (not used yet). */
+    compare?: boolean;
+    /** Jump to another tab, optionally to one of its sub-tabs (not used yet). */
+    onOpenTab?: (tab: string, subTab?: string) => void;
 }

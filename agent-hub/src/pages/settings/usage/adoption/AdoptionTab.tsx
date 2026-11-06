@@ -26,6 +26,11 @@ export interface AdoptionTabProps {
     showTokens: boolean;
     /** The subscription's currency symbol; € when unknown. */
     currency?: string;
+    /** Page-wide compare switch (not used yet). */
+    compare?: boolean;
+    /** Sub-tab to open first (not used yet). */
+    initialSubTab?: string;
+    onOpenTab?: (tab: string, subTab?: string) => void;
 }
 
 /**
