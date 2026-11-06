@@ -621,6 +621,66 @@
       "references": [
         "https://security-tracker.debian.org/tracker/CVE-2026-76844"
       ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-11-06",
+      "expires": "2026-12-06",
+      "requiredUser": "node",
+      "id": "CVE-2026-119374",
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "versions": [
+        "3.46.1-7+deb13u2"
+      ],
+      "reason": "Debian lists trixie as vulnerable with no fixed build and no no-dsa decision; the overflow is in fts5DoSecureDelete(), reached only through an FTS5 table with secure-delete enabled. Short expiry: revisit when Debian triages it.",
+      "reachability": "In the server image libsqlite3-0 is pulled in only by liblastlog2-2; the only binaries linked against it are /usr/bin/lslogins and liblastlog2, which the server never runs. The application uses better-sqlite3 with its own bundled SQLite and the image has no Python. The default process is UID 1000.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-119374"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-11-06",
+      "expires": "2026-12-06",
+      "requiredUser": "node",
+      "id": "CVE-2026-119379",
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "versions": [
+        "3.46.1-7+deb13u2"
+      ],
+      "reason": "Debian lists trixie as vulnerable with no fixed build and no no-dsa decision; the overflow is in sqlite3changeset_apply() of the session extension, reached only by applying an attacker-supplied changeset. Short expiry: revisit when Debian triages it.",
+      "reachability": "In the server image libsqlite3-0 is pulled in only by liblastlog2-2; the only binaries linked against it are /usr/bin/lslogins and liblastlog2, which the server never runs. The application uses better-sqlite3 with its own bundled SQLite and the image has no Python. The default process is UID 1000.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-119379"
+      ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-11-06",
+      "expires": "2026-12-06",
+      "requiredUser": "node",
+      "id": "CVE-2026-85091",
+      "packages": [
+        "zlib1g"
+      ],
+      "versions": [
+        "1:1.3.dfsg+really1.3.1-1+b1"
+      ],
+      "reason": "Debian lists trixie as vulnerable with no fixed build and no no-dsa decision. The overflow is in gz_vacate() on a non-blocking gzwrite(), the same gzFile write path as CVE-2026-76844. Short expiry: revisit when Debian ships the trixie fix.",
+      "reachability": "The server process is the official Node 22 binary, which links its own bundled zlib (node_shared_zlib false, no libz.so.1 in its link map), so no request path reaches the system zlib1g. libz.so.1 is loaded only by Debian tooling (apt, dpkg and their helpers), which the server never runs and which cannot install anything as the default process, UID 1000 (node).",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-85091"
+      ]
     }
   ]
 }
