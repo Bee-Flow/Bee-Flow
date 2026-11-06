@@ -283,7 +283,6 @@ const EN_DEFAULTS = {
     "adoption.drill_unused_sub": "published, but nobody used them",
     "adoption.drill_unused_title": "Published but unused · {n}",
     "adoption.drill_uses": "Uses",
-    "adoption.export_csv": "Export CSV",
     "adoption.group_all": "All groups",
     "adoption.group_all_lower": "all groups",
     "adoption.group_all_n": "All groups ({n} members)",

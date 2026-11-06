@@ -1,12 +1,10 @@
-import { Activity, Download, Euro, EyeOff, Hammer, PackageOpen, Send, Users } from 'lucide-react';
+import { Activity, Euro, EyeOff, Hammer, PackageOpen, Send, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useAdoptionStudioItems } from '@/api/queries/usageAdoption';
 import { useTranslation } from '@/hooks/useTranslation';
-import { downloadCsv } from '@/utils/usageHelpers';
 import { Card, EmptyInline, FilterChipBar, MetricCard, MetricGrid, SectionTitle, ShowMore } from '../kit';
 import type { ChipValue } from '../kit.types';
 import type { AdoptionItem, AdoptionKind, AdoptionStudioItems, Audience } from './adoption.types';
-import { itemsCsv } from './exportCsv';
 import { fAgo, fDate, fInt, fMoney } from './format';
 import { kindMeta, usageNoun } from './kindMeta';
 
@@ -151,20 +149,12 @@ export default function StudioDrilldown({ kind, qs, currency, scopeLabel }: Stud
     const meta = kindMeta(kind.kind, t);
     const query = useAdoptionStudioItems<AdoptionStudioItems>(qs, kind.kind);
     const data = query.data ?? null;
-    const exportItems = () => { if (data) downloadCsv(`adoption-${kind.kind}.csv`, itemsCsv(data)); };
     const title = t('adoption.drill_title', '{kind} · {n} in the organisation', { kind: meta.label, n: fInt(kind.total) });
     return (
         <section aria-label={title} className="flex flex-col gap-4 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                    <h3 className="m-0 text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
-                    {scopeLabel && <p className="m-0 mt-0.5 text-xs text-[var(--text-muted)]">{scopeLabel}</p>}
-                </div>
-                {data && (
-                    <button type="button" onClick={exportItems} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] px-2.5 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
-                        <Download className="h-3.5 w-3.5" aria-hidden="true" />{t('adoption.export_csv', 'Export CSV')}
-                    </button>
-                )}
+            <div className="min-w-0">
+                <h3 className="m-0 text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
+                {scopeLabel && <p className="m-0 mt-0.5 text-xs text-[var(--text-muted)]">{scopeLabel}</p>}
             </div>
             <DrillKpis kind={kind} data={data} currency={currency} />
             {query.isLoading && <EmptyInline text={t('adoption.loading', 'Loading…')} />}

@@ -76,12 +76,9 @@ describe('StudioDrilldown', () => {
         expect(within(table).queryByText('Busy one')).toBeNull();
     });
 
-    it('filters to the unused items and exports its items', async () => {
+    it('filters to the unused items', async () => {
         install();
         const user = userEvent.setup();
-        const blobs: Blob[] = [];
-        vi.spyOn(URL, 'createObjectURL').mockImplementation((b: Blob | MediaSource) => { blobs.push(b as Blob); return 'blob:x'; });
-        vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
         const agent = kinds().find(k => k.kind === 'agent')!;
         renderWithClient(<StudioDrilldown kind={agent} qs="days=30" currency="€" scopeLabel="" />);
         const dialog = await screen.findByRole('region');
@@ -90,9 +87,6 @@ describe('StudioDrilldown', () => {
         const rows = within(dialog).getAllByRole('row').slice(1);
         expect(rows.length).toBeGreaterThan(0);
         expect(rows.length).toBeLessThan(25);
-        await user.click(within(dialog).getByRole('button', { name: 'Export CSV' }));
-        const csv = await blobs[0].text();
-        expect(csv.split('\n')[0]).toBe('name,owner,audience,created_at,last_used_at,people,uses,ai_cost');
     });
 
     it('says so when the items cannot be read', async () => {
