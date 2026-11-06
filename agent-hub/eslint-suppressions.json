@@ -8943,11 +8943,8 @@
     }
   },
   "src/pages/settings/OrgFeedbackPanel.tsx": {
-    "complexity": {
-      "count": 3
-    },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/pages/settings/OrgMcpConnections.tsx": {
@@ -8957,9 +8954,6 @@
   },
   "src/pages/settings/OrgTerminationsPanel.tsx": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -9116,20 +9110,6 @@
   },
   "src/pages/settings/shell/useSettingsAccess.tsx": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/pages/settings/usage/OverviewTab.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 3
-    },
-    "max-statements": {
       "count": 1
     }
   },

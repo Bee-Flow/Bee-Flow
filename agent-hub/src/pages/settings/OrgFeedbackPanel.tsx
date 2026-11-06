@@ -1,57 +1,19 @@
-import {
-    ThumbsUp, ThumbsDown, MessageCircle, MessageSquare, ChevronRight,
-    Search, Cpu, User, Bot, ExternalLink, RefreshCw, Clock, Repeat,
-} from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { shortModel, fmtTime, fmtDuration } from './usage/format';
-import { Card, MetricCard, MetricGrid, MonitorHero, TabHeader, AlertBanner, FilterChipBar, EmptyInline, TOKENS } from './usage/kit';
-import MarkdownRenderer from '../../components/renderers/MarkdownRenderer';
-import { SEMANTIC } from '../../config/analyticsConfig';
-import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
-import { feedbackRangeQuery, useOrgFeedbackQuery } from '../../api/queries/orgReports';
-import type { ChipValue } from './usage/kit.types';
-import type { RangeParams } from '../../utils/usageHelpers';
+import { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { RangeParams } from '@/utils/usageHelpers';
+import { AlertBanner, EmptyInline } from './usage/kit';
+import { FeedbackRow } from './usage/quality/FeedbackRow';
+import { feedbackCounts, filterFeedback, approvalPct, type FeedbackFilter } from './usage/quality/qualityModel';
+import { useFeedbackReport } from './usage/quality/qualityData';
 
-// Trigger the action-required banner when positive feedback drops below this
-// threshold on a meaningful sample.
+// Trigger the action-required banner when approval drops below this threshold on a meaningful sample.
 const FEEDBACK_POSITIVE_ALERT_PCT = 60;
 const FEEDBACK_MIN_SAMPLE = 5;
 const PAGE_SIZE = 10;
 const NO_FEEDBACK_SUMMARY = { total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 };
 
-// Palette (no purple/indigo) — reuse the shared semantic colours.
-const C = SEMANTIC;
-
-interface SnapshotMessage {
-    role?: string;
-    content?: unknown;
-    duration_ms?: number;
-    model?: string;
-}
-
-interface FeedbackItem {
-    id: string;
-    rating?: string;
-    comment?: string;
-    conversation_snapshot?: string;
-    conversation_id?: string;
-    message_id?: string;
-    agent_id: string;
-    agent_name?: string;
-    user_id?: string;
-    source?: string;
-    model?: string;
-    model_tier?: string;
-    created_at?: string;
-}
-
-function parseSnapshot(raw: string | undefined): SnapshotMessage[] | null {
-    if (!raw) return null;
-    try {
-        const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        return Array.isArray(data) ? data : null;
-    } catch { return null; }
-}
+const TH = 'px-3 pb-2.5 text-left text-[11px] font-semibold uppercase tracking-[.06em] whitespace-nowrap text-[var(--text-muted)]';
 
 interface OrgFeedbackPanelProps {
     rangeParams: RangeParams;
@@ -60,232 +22,105 @@ interface OrgFeedbackPanelProps {
 
 export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps) {
     const { t } = useTranslation();
-    const [filter, setFilter] = useState<ChipValue>('all');
+    const [filter, setFilter] = useState<FeedbackFilter>('all');
     const [search, setSearch] = useState('');
     const [pageNum, setPageNum] = useState(0);
-    const [expanded, setExpanded] = useState<string | null>(null);
+    const [open, setOpen] = useState<string | null>(null);
 
-    const report = useOrgFeedbackQuery<FeedbackItem>(feedbackRangeQuery(rangeParams));
-    const fetchData = () => { report.refetch(); };
+    const report = useFeedbackReport(rangeParams);
     const loading = report.isFetching;
     const feedback = useMemo(() => report.data?.feedback ?? [], [report.data]);
     const summary = report.data?.summary ?? NO_FEEDBACK_SUMMARY;
-
-    const filtered = useMemo(() => {
-        let data = feedback;
-        if (filter === 'positive') data = data.filter(f => f.rating === 'up');
-        if (filter === 'negative') data = data.filter(f => f.rating === 'down');
-        if (filter === 'comments') data = data.filter(f => f.comment);
-        if (filter === 'with_convo') data = data.filter(f => f.conversation_snapshot);
-        if (search) {
-            const qq = search.toLowerCase();
-            data = data.filter(f =>
-                f.comment?.toLowerCase().includes(qq) ||
-                f.agent_id?.toLowerCase().includes(qq) ||
-                f.user_id?.toLowerCase().includes(qq) ||
-                f.source?.toLowerCase().includes(qq) ||
-                f.conversation_id?.toLowerCase().includes(qq)
-            );
-        }
-        return data;
-    }, [feedback, filter, search]);
-
+    const counts = useMemo(() => feedbackCounts(feedback), [feedback]);
+    const filtered = useMemo(() => filterFeedback(feedback, filter, search), [feedback, filter, search]);
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const paged = filtered.slice(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE);
 
-    const posCount = Number(summary?.thumbs_up) || 0;
-    const negCount = Number(summary?.thumbs_down) || 0;
-    const total = Number(summary?.total) || 0;
-    const posPct = total > 0 ? Math.round((posCount / total) * 100) : null;
-    const withConvoCount = useMemo(() => feedback.filter(f => f.conversation_snapshot).length, [feedback]);
+    const pct = approvalPct(summary);
+    const rated = (Number(summary.thumbs_up) || 0) + (Number(summary.thumbs_down) || 0);
+    const choose = (next: FeedbackFilter) => { setFilter(next); setPageNum(0); };
 
-    const heroColor = posPct === null ? '#94a3b8' : posPct >= 80 ? '#10b981' : posPct >= 60 ? '#f59e0b' : '#ef4444';
-    const heroLabel = posPct === null ? 'No data' : posPct >= 80 ? 'Excellent' : posPct >= 60 ? 'Watch' : 'Critical';
-
-    const FILTER_CHIPS = [
-        { value: 'all', label: t('org.feedback_chip_all') },
-        { value: 'positive', label: t('org.feedback_chip_positive') },
-        { value: 'negative', label: t('org.feedback_chip_negative') },
-        { value: 'comments', label: t('org.feedback_chip_comments') },
-        { value: 'with_convo', label: t('org.feedback_chip_with_convo') },
+    const chips: { id: FeedbackFilter; label: string }[] = [
+        { id: 'all', label: t('org.feedback_chip_all', 'All') },
+        { id: 'positive', label: t('org.feedback_chip_positive', 'Positive') },
+        { id: 'negative', label: t('org.feedback_chip_negative', 'Negative') },
+        { id: 'comments', label: t('org.feedback_chip_comments', 'With comment') },
+        { id: 'with_convo', label: t('org.feedback_chip_with_convo', 'Shared conversation') },
     ];
 
-    const refreshBtn = (
-        <button onClick={fetchData} title={t('org.feedback_refresh')} className="[display:flex] [align-items:center] [justify-content:center] w-[30px] h-[30px] [border-radius:8px] [border:1px_solid_var(--border-subtle)] [background:var(--bg-secondary)] [cursor:pointer] [color:var(--text-muted)]">
-            <RefreshCw className={`[width:13px] [height:13px] ${loading ? '[animation:spin_1s_linear_infinite]' : '[animation:none]'}`} />
-        </button>
-    );
-
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: TOKENS.pagePad }}>
-            <TabHeader icon={ThumbsUp} iconColor="#10b981" title={t('org.feedback_title')} description={t('org.feedback_subtitle')} actions={refreshBtn} />
-
-            {/* Action-required banner */}
-            {posPct !== null && total >= FEEDBACK_MIN_SAMPLE && posPct < FEEDBACK_POSITIVE_ALERT_PCT && (
+        <div className="flex flex-col gap-4">
+            {pct !== null && rated >= FEEDBACK_MIN_SAMPLE && pct < FEEDBACK_POSITIVE_ALERT_PCT && (
                 <AlertBanner
-                    severity={posPct < 40 ? 'red' : 'amber'}
-                    message={`Positive rate ${posPct}% on ${total} feedback item${total === 1 ? '' : 's'} — review negative comments.`}
-                    ctaLabel="Review negatives"
-                    onCta={() => { setFilter('negative'); setPageNum(0); }}
+                    severity={pct < 40 ? 'red' : 'amber'}
+                    message={t('org.feedback_alert', 'Approval is {pct}% on {n} ratings. Review the negative comments.', { pct, n: rated })}
+                    ctaLabel={t('org.feedback_alert_cta', 'Review negatives')}
+                    onCta={() => choose('negative')}
                 />
             )}
-
-            <OrgFeedbackPanelMonitorHero heroColor={heroColor} posPct={posPct} heroLabel={heroLabel} posCount={posCount} negCount={negCount} total={total} t={t} summary={summary} withConvoCount={withConvoCount} />
-
-            <Card>
-                <div className="[display:flex] [gap:6px] [margin-bottom:12px] [flex-wrap:wrap] [align-items:center]">
-                    <FilterChipBar value={filter} onChange={(v) => { setFilter(v); setPageNum(0); }} options={FILTER_CHIPS} />
-                    <div className="[flex:1]" />
-                    <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
-                        <Search className="w-[12px] h-[12px] [color:var(--text-muted)]" />
-                        <input value={search} onChange={e => { setSearch(e.target.value); setPageNum(0); }} placeholder={t('org.feedback_search_placeholder')}
-                            className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary)] w-[160px]" />
+            <section aria-label={t('org.feedback_title', 'User Feedback')} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3 pb-1 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 pb-3.5 pt-2.5">
+                    <div role="group" aria-label={t('org.feedback_filters', 'Feedback filters')} className="flex flex-wrap items-center gap-1">
+                        {chips.map(c => (
+                            <button
+                                key={c.id}
+                                type="button"
+                                aria-pressed={filter === c.id}
+                                onClick={() => choose(c.id)}
+                                className={`h-[30px] cursor-pointer rounded-md border px-2.5 text-xs font-medium ${filter === c.id
+                                    ? 'border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)]'
+                                    : 'border-transparent bg-transparent text-[var(--text-secondary)]'}`}
+                            >
+                                {c.label} · {counts[c.id]}
+                            </button>
+                        ))}
                     </div>
+                    <label className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2.5 py-1.5">
+                        <Search className="h-3 w-3 text-[var(--text-muted)]" aria-hidden="true" />
+                        <input
+                            type="search"
+                            value={search}
+                            onChange={e => { setSearch(e.target.value); setPageNum(0); }}
+                            aria-label={t('org.feedback_search_label', 'Search feedback')}
+                            placeholder={t('org.feedback_search_placeholder', 'Search comments')}
+                            className="w-[180px] border-0 bg-transparent text-[13px] text-[var(--text-primary)] outline-none"
+                        />
+                    </label>
                 </div>
-
                 {paged.length === 0 ? (
-                    <EmptyInline boxed text={loading ? t('org.feedback_loading') : t('org.feedback_empty')} />
-                ) : paged.map((item, i) => {
-                    const isExpanded = expanded === item.id;
-                    const snapshot = parseSnapshot(item.conversation_snapshot);
-                    const hasConvo = !!snapshot && snapshot.length > 0;
-                    const isUp = item.rating === 'up';
-                    return (
-                        <div key={item.id || i} className="[border-bottom:1px_solid_var(--border-subtle)]">
-                            <div onClick={() => setExpanded(isExpanded ? null : item.id)} className="[display:flex] [align-items:center] [gap:10px] [padding:10px_2px] [cursor:pointer] [transition:background_0.12s]"
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                <span className="[font-size:18px] w-[28px] [text-align:center] [flex-shrink:0]">{isUp ? '👍' : '👎'}</span>
-                                <div className="[flex:1] min-w-[0]">
-                                    <div className="[display:flex] [align-items:center] [gap:6px] [flex-wrap:wrap]">
-                                        <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)]">{item.user_id || t('org.feedback_anonymous')}</span>
-                                        {item.source && <span className="[padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-muted)]">{item.source}</span>}
-                                        {(item.agent_name || item.agent_id) && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${C.blue}15`, color: C.blue }} title={item.agent_id || ''}>
-                                                <Bot className="w-[9px] h-[9px]" />{item.agent_name || (item.agent_id?.length > 20 ? item.agent_id.slice(0, 20) + '…' : item.agent_id)}
-                                            </span>
-                                        )}
-                                        {item.model && (
-                                            <span className="[display:flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={item.model}>
-                                                <Cpu className="w-[9px] h-[9px]" />{shortModel(item.model)}
-                                            </span>
-                                        )}
-                                        {item.model_tier && <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${C.amber}15`, color: C.amber }} title={`tier: ${item.model_tier}`}>tier: {item.model_tier}</span>}
-                                        {hasConvo && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${C.cyan}15`, color: C.cyan }}>
-                                                <MessageSquare className="w-[9px] h-[9px]" />{snapshot.length}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {item.comment && (
-                                        <div className={`[font-size:12px] [color:var(--text-secondary)] [margin-top:3px] [overflow:hidden] [text-overflow:ellipsis] ${isExpanded ? '[white-space:pre-wrap] [max-width:none]' : '[white-space:nowrap] [max-width:500px]'}`}>
-                                            "{item.comment}"
-                                        </div>
-                                    )}
-                                </div>
-                                <span className="[font-size:11px] [color:var(--text-muted)] [flex-shrink:0]">{fmtTime(item.created_at)}</span>
-                                <ChevronRight className={`[width:14px] [height:14px] [color:var(--text-muted)] [transition:transform_0.2s] [flex-shrink:0] ${isExpanded ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
-                            </div>
-
-                            {isExpanded && (
-                                <div className="[padding:10px_12px_14px_38px] [background:var(--bg-tertiary)] [border-radius:0_0_8px_8px]">
-                                    <div className="[display:flex] [gap:12px] [margin-bottom:10px] [flex-wrap:wrap] [font-size:11px] [color:var(--text-muted)]">
-                                        {item.conversation_id && <span className="[display:flex] [align-items:center] [gap:4px]"><ExternalLink className="w-[10px] h-[10px]" />Conv: {item.conversation_id.slice(0, 16)}…</span>}
-                                        {item.message_id && <span>Msg: {item.message_id.slice(0, 16)}…</span>}
-                                    </div>
-                                    {item.comment && (
-                                        <div style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 10, background: isUp ? `${C.green}10` : `${C.rose}10`, border: `1px solid ${isUp ? C.green : C.rose}25` }}>
-                                            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4, color: isUp ? C.green : C.rose }}>{t('org.feedback_user_feedback')}</div>
-                                            <div className="[font-size:13px] [color:var(--text-primary)] [white-space:pre-wrap] [line-height:1.5]">{item.comment}</div>
-                                        </div>
-                                    )}
-                                    {hasConvo ? (
-                                        <div>
-                                            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, color: C.blue, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                                <MessageSquare className="w-[11px] h-[11px]" />{t('org.feedback_conversation')} ({snapshot.length})
-                                            </div>
-                                            <div className="max-h-[360px] [overflow-y:auto] [display:flex] [flex-direction:column] [gap:6px]">
-                                                {(() => {
-                                                    let prevAssistantModel: string | null = null;
-                                                    return snapshot.map((msg, mi) => {
-                                                        const isUserMsg = msg.role === 'user';
-                                                        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-                                                        if (!content || content.trim().length === 0) return null;
-                                                        const truncated = content.length > 800 ? content.slice(0, 800) + '…' : content;
-                                                        const duration = !isUserMsg ? fmtDuration(msg.duration_ms, { invalid: null }) : null;
-                                                        const turnModel = !isUserMsg ? (msg.model || null) : null;
-                                                        const switched = !isUserMsg && turnModel && prevAssistantModel && turnModel !== prevAssistantModel;
-                                                        if (!isUserMsg) prevAssistantModel = turnModel || prevAssistantModel;
-                                                        return (
-                                                            <div key={mi} className={`[display:flex] ${isUserMsg ? '[justify-content:flex-end]' : '[justify-content:flex-start]'}`}>
-                                                                <div style={{ maxWidth: '85%', padding: '8px 12px', borderRadius: 12, background: isUserMsg ? 'var(--bg-secondary)' : 'var(--bg-primary)', border: `1px solid ${isUserMsg ? 'var(--border-subtle)' : `${C.blue}25`}` }}>
-                                                                    <div className="[display:flex] [align-items:center] [gap:5px] [margin-bottom:4px] [flex-wrap:wrap]">
-                                                                        {isUserMsg ? <User className="w-[10px] h-[10px] [color:var(--text-muted)]" /> : <Bot style={{ width: 10, height: 10, color: C.blue }} />}
-                                                                        <span style={{ fontSize: 10, fontWeight: 600, color: isUserMsg ? 'var(--text-muted)' : C.blue }}>{isUserMsg ? t('org.feedback_role_user') : t('org.feedback_role_ai')}</span>
-                                                                        {turnModel && (
-                                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: switched ? `${C.amber}20` : 'var(--bg-tertiary)', color: switched ? C.amber : 'var(--text-secondary)', border: switched ? `1px solid ${C.amber}40` : '1px solid transparent' }}
-                                                                                title={switched ? `${t('org.feedback_model_switched')}: ${prevAssistantModel} → ${turnModel}` : turnModel}>
-                                                                                {switched ? <Repeat className="w-[9px] h-[9px]" /> : <Cpu className="w-[9px] h-[9px]" />}{shortModel(turnModel)}
-                                                                            </span>
-                                                                        )}
-                                                                        {duration && (
-                                                                            <span className="[display:inline-flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={t('org.feedback_response_time')}>
-                                                                                <Clock className="w-[9px] h-[9px]" />{duration}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="prose prose-sm dark:prose-invert max-w-none [font-size:13px] [color:var(--text-primary)] [word-break:break-word] [line-height:1.6]">
-                                                                        {isUserMsg ? <span className="[white-space:pre-wrap]">{truncated}</span> : <MarkdownRenderer content={truncated} />}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    });
-                                                })()}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="[padding:14px] [border-radius:10px] [text-align:center] [background:var(--bg-primary)] [border:1px_dashed_var(--border-subtle)]">
-                                            <MessageSquare className="w-[18px] h-[18px] [color:var(--text-muted)] [margin:0_auto_4px]" />
-                                            <div className="[font-size:12px] [color:var(--text-muted)]">{t('org.feedback_no_conversation')}</div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-
-                {totalPages > 1 && (
-                    <div className="[display:flex] [justify-content:center] [gap:6px] [margin-top:12px] [align-items:center]">
-                        <button onClick={() => setPageNum(p => Math.max(0, p - 1))} disabled={pageNum === 0} style={pagBtn(pageNum === 0)}>←</button>
-                        <span className="[font-size:12px] [color:var(--text-muted)] [padding:0_8px]">{pageNum + 1} / {totalPages}</span>
-                        <button onClick={() => setPageNum(p => Math.min(totalPages - 1, p + 1))} disabled={pageNum >= totalPages - 1} style={pagBtn(pageNum >= totalPages - 1)}>→</button>
+                    <EmptyInline boxed text={loading ? t('org.feedback_loading', 'Loading feedback...') : t('org.feedback_empty', 'No feedback entries')} />
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[900px] border-collapse">
+                            <thead>
+                                <tr>
+                                    <th className={TH}>{t('org.feedback_col_rating', 'Rating')}</th>
+                                    <th className={TH}>{t('org.feedback_col_comment', 'Comment')}</th>
+                                    <th className={TH}>{t('org.feedback_col_where', 'Where')}</th>
+                                    <th className={TH}>{t('org.feedback_col_model', 'Model')}</th>
+                                    <th className={TH}>{t('org.feedback_col_member', 'Member')}</th>
+                                    <th className={`${TH} text-right`}>{t('org.feedback_col_when', 'When')}</th>
+                                    <th className={TH}><span className="sr-only">{t('org.feedback_col_conversation', 'Conversation')}</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paged.map((item, i) => (
+                                    <FeedbackRow key={item.id || i} item={item} open={open === item.id} onToggle={() => setOpen(open === item.id ? null : item.id)} />
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
-            </Card>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-1.5 py-3">
+                        <button type="button" aria-label={t('org.feedback_prev', 'Previous page')} onClick={() => setPageNum(p => Math.max(0, p - 1))} disabled={pageNum === 0} className={PAGER}>←</button>
+                        <span className="px-2 text-xs text-[var(--text-muted)]">{pageNum + 1} / {totalPages}</span>
+                        <button type="button" aria-label={t('org.feedback_next', 'Next page')} onClick={() => setPageNum(p => Math.min(totalPages - 1, p + 1))} disabled={pageNum >= totalPages - 1} className={PAGER}>→</button>
+                    </div>
+                )}
+            </section>
         </div>
     );
 }
 
-const pagBtn = (disabled: boolean) => ({
-    padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-    border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
-    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
-});
-
-function OrgFeedbackPanelMonitorHero({ heroColor, posPct, heroLabel, posCount, negCount, total, t, summary, withConvoCount }: { heroColor: string; posPct: number | null; heroLabel: string; posCount: number; negCount: number; total: number; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; summary: { total: number; thumbs_up: number; thumbs_down: number; with_comments: number; }; withConvoCount: number; }) {
-    return <MonitorHero
-        accent={heroColor}
-        eyebrow="Positive rate"
-        value={posPct === null ? '—' : `${posPct}%`}
-        valueColor={heroColor}
-        status={{ label: heroLabel, color: heroColor }}
-        subline={`${posCount} thumbs up · ${negCount} thumbs down · ${total} total`}
-        aside={<MetricGrid cols={2} gap={TOKENS.tileGap}>
-            <MetricCard size="sm" icon={ThumbsUp} color={C.green} label={t('org.feedback_positive')} value={posCount} />
-            <MetricCard size="sm" icon={ThumbsDown} color={C.rose} label={t('org.feedback_negative')} value={negCount} />
-            <MetricCard size="sm" icon={MessageCircle} color={C.amber} label={t('org.feedback_with_comments')} value={Number(summary?.with_comments) || 0} />
-            <MetricCard size="sm" icon={MessageSquare} color={C.blue} label={t('org.feedback_with_conversation')} value={withConvoCount} />
-        </MetricGrid>} />;
-}
+const PAGER = 'cursor-pointer rounded-md border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)] disabled:cursor-not-allowed disabled:opacity-40';

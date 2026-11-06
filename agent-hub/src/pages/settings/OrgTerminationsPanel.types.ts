@@ -51,3 +51,24 @@ export interface OrgTerminationsPanelProps {
     rangeParams: RangeParams;
     showTokens?: boolean;
 }
+
+export interface TerminationsSummary {
+    total: number;
+    by_type: TerminationsByType;
+}
+
+export interface TimelinePoint {
+    period: string;
+    termination_type: string;
+    count: number;
+}
+
+export interface ByAgentRow {
+    agent_id?: string;
+    agent_name?: string;
+    total: number;
+    max_tokens?: number;
+    max_iterations?: number;
+    errors?: number;
+    aborted?: number;
+}

@@ -214,6 +214,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const usageProps = {
         t, data, subscription, isCustomerView, showTokens, tierForModel: tierFor, modelTiers, azureServices,
         setFilterUser, setFilterModel, setFilterSource, compare, onOpenTab: openTab,
+        rangeParams, rangePreset: range.preset, hasFilters: Boolean(hasFilters),
     };
 
     return (
@@ -269,7 +270,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
             ) : (
                 <>
                     {activeReport === 'overview' && <OverviewTab {...usageProps} />}
-                    {activeReport === 'spend' && <SpendTab {...usageProps} />}
+                    {activeReport === 'spend' && <SpendTab {...usageProps} key={nav.nonce} initialSubTab={nav.sub} />}
                     {activeReport === 'adoption' && (
                         <AdoptionTab
                             key={nav.nonce} rangeParams={rangeParams} rangePreset={range.preset} showTokens={showTokens}
@@ -278,7 +279,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                         />
                     )}
                     {activeReport === 'quality' && (
-                        <QualityTab key={nav.nonce} rangeParams={rangeParams} showTokens={showTokens} compare={compare} initialSubTab={nav.sub} />
+                        <QualityTab key={nav.nonce} rangeParams={rangeParams} showTokens={showTokens} compare={compare} initialSubTab={nav.sub} totalCalls={data.summary?.total_calls} />
                     )}
                 </>
             )}

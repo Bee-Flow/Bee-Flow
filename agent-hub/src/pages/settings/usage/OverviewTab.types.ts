@@ -1,26 +1,7 @@
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { StarterModel } from '@/api/runtimeTypes';
 import type React from 'react';
-
-export interface InOutBarProps {
-    input: number | null | undefined;
-    output: number | null | undefined;
-    height?: number;
-    style: { marginTop: number; maxWidth: number; };
-}
-
-export interface InOutLabelProps {
-    input: number | null | undefined;
-    output: number | null | undefined;
-    inputCost: number | null | undefined;
-    outputCost: number | null | undefined;
-    showCost: boolean;
-}
-
-export interface LegendProps {
-    inputLabel: string;
-    outputLabel: string;
-}
+import type { RangeParams } from '@/utils/usageHelpers';
 
 /** One bucket of the usage timeline; which fields are there depends on the view. */
 export interface TimelineRow {
@@ -89,6 +70,7 @@ export interface AgentModelRow {
     agent_name?: string;
     agent_id?: string | null;
     model?: string | null;
+    calls?: number;
     prompt_tokens?: number | null;
     completion_tokens?: number | null;
     input_cost?: number | null;
@@ -133,15 +115,6 @@ export interface SubscriptionInfo {
     billing_period?: { startDate?: string; endDate?: string };
 }
 
-export interface TrendChartProps {
-    timeline: TimelineRow[];
-    title: string;
-    avgLabel: string;
-    noDataLabel: string;
-    valueField?: keyof TimelineRow;
-    valueFormatter?: (v: number) => string;
-}
-
 export interface OverviewTabProps {
     t: (key: string, fallback?: string, params?: TranslateParams) => string;
     data: {
@@ -163,8 +136,14 @@ export interface OverviewTabProps {
     setFilterUser: React.Dispatch<React.SetStateAction<string | null>>;
     setFilterModel: React.Dispatch<React.SetStateAction<string | null>>;
     setFilterSource: React.Dispatch<React.SetStateAction<string | null>>;
-    /** Page-wide compare switch (not used yet). */
+    /** The page range: the adoption reads the Overview and Spend deltas come from use the same window. */
+    rangeParams: RangeParams;
+    /** The range picker's preset: only a custom range is sent as an absolute window. */
+    rangePreset?: string;
+    /** A cross-cutting filter (member, agent, model, source) is set: the org-wide adoption figures no longer match. */
+    hasFilters?: boolean;
+    /** Page-wide compare switch. */
     compare?: boolean;
-    /** Jump to another tab, optionally to one of its sub-tabs (not used yet). */
+    /** Jump to another tab, optionally to one of its sub-tabs. */
     onOpenTab?: (tab: string, subTab?: string) => void;
 }

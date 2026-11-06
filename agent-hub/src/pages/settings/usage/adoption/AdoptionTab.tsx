@@ -1,11 +1,12 @@
-import { Download, Users } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useState } from 'react';
 import {
     AdoptionAuditUnavailableError, useAdoptionAreas, useAdoptionGroups, useAdoptionPeople, useAdoptionStudio, useAdoptionSummary,
 } from '@/api/queries/usageAdoption';
 import { useTranslation } from '@/hooks/useTranslation';
 import { USAGE_ALL_DAYS, downloadCsv, type RangeParams } from '@/utils/usageHelpers';
-import { AlertBanner, EmptyInline, TabHeader } from '../kit';
+import { AlertBanner, EmptyInline } from '../kit';
+import { SubTabs } from '../shell';
 import { formatDateRange } from '../format';
 import type { AdoptionAreas, AdoptionGroups, AdoptionPerson, AdoptionStudio, AdoptionSummary } from './adoption.types';
 import AdoptionHero from './AdoptionHero';
@@ -14,10 +15,7 @@ import AreasSection from './AreasSection';
 import { adoptionCsv } from './exportCsv';
 import GroupsTable from './GroupsTable';
 import PeopleTable, { shownView } from './PeopleTable';
-import StudioDrilldown from './StudioDrilldown';
 import StudioTable from './StudioTable';
-
-type T = ReturnType<typeof useTranslation>['t'];
 
 export interface AdoptionTabProps {
     rangeParams: RangeParams;
@@ -26,9 +24,9 @@ export interface AdoptionTabProps {
     showTokens: boolean;
     /** The subscription's currency symbol; € when unknown. */
     currency?: string;
-    /** Page-wide compare switch (not used yet). */
+    /** Page-wide compare switch: off hides every change against the previous period. */
     compare?: boolean;
-    /** Sub-tab to open first (not used yet). */
+    /** Sub-tab to open first (studio, people, groups or areas); Studio by default. */
     initialSubTab?: string;
     onOpenTab?: (tab: string, subTab?: string) => void;
 }
@@ -77,22 +75,6 @@ function GroupSelect({ value, onChange, options, total }: { value: string; onCha
     );
 }
 
-function trendStatus(s: AdoptionSummary | null, t: T) {
-    if (!s?.prev) return undefined;
-    const d = s.adoptionRate - s.prev.adoptionRate;
-    if (d >= 1) return { label: t('adoption.status_growing', 'Growing'), color: '#10b981' };
-    if (d <= -1) return { label: t('adoption.status_declining', 'Declining'), color: '#ef4444' };
-    return { label: t('adoption.status_steady', 'Steady'), color: '#94a3b8' };
-}
-
-function headerText(s: AdoptionSummary | null, t: T): string {
-    const base = t('adoption.description', 'Who uses Bee Flow, what they build, and where the AI spend goes');
-    if (!s) return base;
-    const range = formatDateRange(s.range.startDate, s.range.endDate);
-    const prev = s.prev && s.range.days != null ? t('adoption.description_prev', 'compared with the {n} days before', { n: s.range.days }) : null;
-    return [base, range, prev].filter(Boolean).join(' · ');
-}
-
 function Skeleton() {
     return (
         <div className="flex flex-col gap-3" aria-hidden="true">
@@ -117,30 +99,63 @@ function isPartial(d: Data): boolean {
     return [d.summary.data, d.areas.data, d.studio.data, d.groups.data].some(x => !!x?.partial);
 }
 
-interface BodyProps { d: Data; props: AdoptionTabProps; qs: string; scopeLabel: string; reveal: boolean; setReveal: (v: boolean) => void }
+interface BodyProps { sub: SubId; setSub: (s: SubId) => void; d: Data; props: AdoptionTabProps; qs: string; scopeLabel: string; reveal: boolean; setReveal: (v: boolean) => void }
 
-function AdoptionBody({ d, props, qs, scopeLabel, reveal, setReveal }: BodyProps) {
+const SUB_IDS = ['studio', 'people', 'groups', 'areas'] as const;
+type SubId = (typeof SUB_IDS)[number];
+
+function seedSubTab(id: string | undefined): SubId {
+    return SUB_IDS.find(s => s === id) ?? 'studio';
+}
+
+function subTabLabels(t: ReturnType<typeof useTranslation>['t']) {
+    return {
+        options: [
+            { id: 'studio', label: t('adoption.sub_studio', 'Studio') },
+            { id: 'people', label: t('adoption.sub_people', 'People') },
+            { id: 'groups', label: t('adoption.sub_groups', 'Groups') },
+            { id: 'areas', label: t('adoption.sub_areas', 'Areas') },
+        ],
+        descriptions: {
+            studio: t('adoption.sub_studio_desc', 'Studio: what people build in Bee Flow and whether it gets used.'),
+            people: t('adoption.sub_people_desc', 'People: who uses AI, who only signs in and who is dormant. Names stay pseudonymous until revealed.'),
+            groups: t('adoption.sub_groups_desc', 'Groups: how each group adopts AI. Small groups are folded into one row.'),
+            areas: t('adoption.sub_areas_desc', 'Areas: where the AI spend goes, by area of the product.'),
+        } satisfies Record<SubId, string>,
+    };
+}
+
+interface ViewProps extends BodyProps { currency: string; showCalls: boolean; compare: boolean }
+
+function AdoptionView({ sub, d, qs, scopeLabel, reveal, setReveal, currency, showCalls, compare }: ViewProps) {
+    if (sub === 'studio') return d.studio.data ? <StudioTable kinds={d.studio.data.kinds} currency={currency} qs={qs} scopeLabel={scopeLabel} compare={compare} /> : null;
+    if (sub === 'groups') return d.groups.data ? <GroupsTable data={d.groups.data} currency={currency} /> : null;
+    if (sub === 'areas') return d.areas.data ? <AreasSection data={d.areas.data} currency={currency} showCalls={showCalls} /> : null;
+    return (
+        <PeopleTable
+            view={d.view} loading={d.people.isFetching} revealed={reveal} auditFailed={d.auditFailed}
+            revealedAt={reveal && d.view?.reveal ? d.people.dataUpdatedAt : null} scopeLabel={scopeLabel}
+            currency={currency} showCalls={showCalls} hasMore={!!d.people.hasNextPage}
+            onLoadMore={() => { void d.people.fetchNextPage(); }} onReveal={() => setReveal(true)} onHide={() => setReveal(false)}
+        />
+    );
+}
+
+function AdoptionBody(body: BodyProps) {
     const { t } = useTranslation();
-    const [openKind, setOpenKind] = useState<string | null>(null);
-    const currency = props.currency || '€';
+    const { sub, setSub, d, props } = body;
     const summary = d.summary.data;
     if (!summary) return <EmptyInline boxed text={t('adoption.unavailable', 'The adoption report could not be read. It needs the Monitoring permission and an organisation.')} />;
+    const currency = props.currency || '€';
+    const compare = props.compare ?? true;
     const showCalls = props.showTokens && summary.spend.calls != null;
-    const kind = openKind ? d.studio.data?.kinds.find(k => k.kind === openKind) ?? null : null;
+    const { options, descriptions } = subTabLabels(t);
     return (
         <>
             {isPartial(d) && <AlertBanner severity="amber" title={t('adoption.partial_title', 'Incomplete')} message={t('adoption.partial', 'Some figures could not be read; the numbers shown leave them out.')} />}
-            <AdoptionHero summary={summary} currency={currency} showCalls={showCalls} />
-            {d.areas.data && <AreasSection data={d.areas.data} currency={currency} showCalls={showCalls} />}
-            {d.studio.data && <StudioTable kinds={d.studio.data.kinds} currency={currency} onOpen={setOpenKind} />}
-            {kind && <StudioDrilldown kind={kind} qs={qs} currency={currency} scopeLabel={scopeLabel} onClose={() => setOpenKind(null)} />}
-            {d.groups.data && <GroupsTable data={d.groups.data} currency={currency} />}
-            <PeopleTable
-                view={d.view} loading={d.people.isFetching} revealed={reveal} auditFailed={d.auditFailed}
-                revealedAt={reveal && d.view?.reveal ? d.people.dataUpdatedAt : null} scopeLabel={scopeLabel}
-                currency={currency} showCalls={showCalls} hasMore={!!d.people.hasNextPage}
-                onLoadMore={() => { void d.people.fetchNextPage(); }} onReveal={() => setReveal(true)} onHide={() => setReveal(false)}
-            />
+            <AdoptionHero summary={summary} currency={currency} showCalls={showCalls} compare={compare} onOpenAreas={sub === 'areas' ? undefined : () => setSub('areas')} />
+            <SubTabs value={sub} onChange={(id) => setSub(seedSubTab(id))} options={options} description={descriptions[sub]} aria-label={t('adoption.sub_label', 'Adoption views')} />
+            <AdoptionView {...body} currency={currency} showCalls={showCalls} compare={compare} />
             <AdoptionNotes />
         </>
     );
@@ -148,7 +163,8 @@ function AdoptionBody({ d, props, qs, scopeLabel, reveal, setReveal }: BodyProps
 
 /**
  * Settings → Organisation → Usage & Monitoring → Adoption: who uses Bee Flow,
- * what they build in Studio and where the AI spend goes, for an org admin.
+ * what they build in Studio and where the AI spend goes, for an org admin,
+ * as a hero plus four sub-tabs (Studio, People, Groups, Areas).
  * The period comes from the page's range picker; the tab has its own group
  * filter (the page's user/agent/model filters do not apply here) and a CSV
  * export of what is on screen.
@@ -157,6 +173,9 @@ export default function AdoptionTab(props: AdoptionTabProps) {
     const { t } = useTranslation();
     const [group, setGroup] = useState('');
     const [reveal, setReveal] = useState(false);
+    // The shell remounts this tab when a tile elsewhere opens a sub-tab, so the seed is read once. The state
+    // lives here, not in the body: the body unmounts while a new group loads.
+    const [sub, setSub] = useState<SubId>(() => seedSubTab(props.initialSubTab));
     const baseQs = adoptionQuery(props.rangeParams, props.rangePreset, '');
     const qs = adoptionQuery(props.rangeParams, props.rangePreset, group);
     const d = useAdoptionData(baseQs, qs, reveal);
@@ -165,18 +184,18 @@ export default function AdoptionTab(props: AdoptionTabProps) {
     const range = summary ? formatDateRange(summary.range.startDate, summary.range.endDate) : '';
     const scopeLabel = [range, groupName || t('adoption.group_all_lower', 'all groups')].filter(Boolean).join(' · ');
     return (
-        <div className="flex flex-col gap-4">
-            <TabHeader icon={Users} iconColor="#10b981" title={t('adoption.title', 'Adoption')} description={headerText(summary, t)} status={trendStatus(summary, t)}
-                actions={(
-                    <>
-                        <GroupSelect value={group} onChange={setGroup} options={d.groupOptions.data ?? null} total={group ? null : summary?.members.total ?? null} />
-                        <button type="button" onClick={() => exportAll(d, reveal)} disabled={!summary}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50">
-                            <Download className="h-3.5 w-3.5" aria-hidden="true" />{t('adoption.export_csv', 'Export CSV')}
-                        </button>
-                    </>
-                )} />
-            {d.summary.isLoading ? <Skeleton /> : <AdoptionBody d={d} props={props} qs={qs} scopeLabel={scopeLabel} reveal={reveal} setReveal={setReveal} />}
+        <div className="flex flex-col gap-5">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    <GroupSelect value={group} onChange={setGroup} options={d.groupOptions.data ?? null} total={group ? null : summary?.members.total ?? null} />
+                    <button type="button" onClick={() => exportAll(d, reveal)} disabled={!summary}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50">
+                        <Download className="h-3.5 w-3.5" aria-hidden="true" />{t('adoption.export_csv', 'Export CSV')}
+                    </button>
+                </div>
+                <p className="m-0 text-xs text-[var(--text-muted)]">{t('adoption.header_note', 'Names are pseudonymous (Member · K7Q2) until you reveal them; a reveal is written to the audit log.')}</p>
+            </div>
+            {d.summary.isLoading ? <Skeleton /> : <AdoptionBody sub={sub} setSub={setSub} d={d} props={props} qs={qs} scopeLabel={scopeLabel} reveal={reveal} setReveal={setReveal} />}
         </div>
     );
 }
