@@ -62,7 +62,7 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
         const ids = [...new Set((kbIds || []).filter((id) => typeof id === 'string' && UUID_RE.test(id)))];
         if (ids.length === 0) return [];
         const { rows } = await db.query(
-            `SELECT id, organization_id, query_log_retention_days FROM knowledge_bases WHERE id = ANY($1::uuid[]) AND query_log_enabled = true`, [ids]);
+            `SELECT id, organization_id, query_log_retention_days FROM knowledge_bases WHERE id = ANY($1::uuid[]) AND query_log_enabled = true AND query_log_attestation IS NOT NULL`, [ids]);
         return rows.map((r) => ({ id: String(r.id), organizationId: r.organization_id ?? null, retentionDays: Number(r.query_log_retention_days) || DEFAULT_RETENTION_DAYS }));
     }
 
@@ -119,7 +119,7 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
                     query_enc, chunks_enc, chunk_count, top_score, retrieval_ms, outcome, error_code, expires_at)
                  SELECT $1::text, $2::text, $3::text, $4::uuid, $5::text, $6::text, $7::jsonb, $8::timestamptz,
                     $9::text, $10::text, $11::int, $12::real, $13::int, $14::text, $15::text, $16::timestamptz
-                 WHERE EXISTS (SELECT 1 FROM knowledge_bases WHERE id = $4::uuid AND query_log_enabled = true AND organization_id IS NOT NULL)`,
+                 WHERE EXISTS (SELECT 1 FROM knowledge_bases WHERE id = $4::uuid AND query_log_enabled = true AND query_log_attestation IS NOT NULL AND organization_id IS NOT NULL)`,
                 [p.id, p.r.searchGroupId, p.r.organizationId ?? null, p.r.kbId, p.r.userId ?? null, p.r.channel,
                     JSON.stringify(p.r.channelRef || {}), p.createdAt.toISOString(), p.queryEnc, p.chunksEnc, p.chunks.length,
                     p.topScore, p.r.retrievalMs ?? null, p.r.outcome, p.r.errorCode ?? null, expiry(p.createdAt, p.r.retentionDays).toISOString()]);

@@ -13,6 +13,26 @@ import KbAttestation from './KbAttestation';
 interface OverviewTabProps {
     isMobile?: boolean;
     navigate?: (section: string, id?: string | null) => void;
+    onNavigate?: (path: string) => void;
+}
+
+/**
+ * The review itself lives on the knowledge base (its managers judge the answers; compliance sees counts).
+ * The link goes there; whether the log opens is decided by the caller's rights on that base, not here.
+ */
+function OpenSearchLog({ k, onNavigate }: { k: KqlKbRow; onNavigate?: ((path: string) => void) | undefined }) {
+    const { t } = useTranslation();
+    if (!onNavigate) return null;
+    return (
+        <button
+            type="button"
+            className="self-start text-[11px] underline text-[var(--accent-primary)]"
+            onClick={() => onNavigate(`studio/knowledge/${encodeURIComponent(k.id)}/search-log`)}
+            data-testid={`kql-open-kb-${k.id}`}
+        >
+            {t('compliance.kql_open_kb_log', 'Open the search log on the knowledge base')}
+        </button>
+    );
 }
 
 function CountList({ counts, table }: { counts: Record<string, number>; table: typeof KQL_OUTCOME }) {
@@ -57,11 +77,16 @@ function useKbFacts(k: KqlKbRow) {
     };
 }
 
-function KbRow({ k, columns }: { k: KqlKbRow; columns: TableColumn[] }) {
+function KbRow({ k, columns, onNavigate }: { k: KqlKbRow; columns: TableColumn[]; onNavigate?: ((path: string) => void) | undefined }) {
     const f = useKbFacts(k);
     return (
         <TableRow columns={columns} testId={`kql-kb-${k.id}`}>
-            <TableCell column={columns[0]}><span className="font-medium truncate">{k.name}</span></TableCell>
+            <TableCell column={columns[0]}>
+                <span className="flex flex-col gap-0.5 min-w-0">
+                    <span className="font-medium truncate">{k.name}</span>
+                    <OpenSearchLog k={k} onNavigate={onNavigate} />
+                </span>
+            </TableCell>
             <TableCell column={columns[1]}>{f.pill}</TableCell>
             <TableCell column={columns[2]}><span className="text-[var(--text-secondary)]">{f.retention}</span></TableCell>
             <TableCell column={columns[3]}><span className="text-[var(--text-secondary)] [overflow-wrap:anywhere]">{f.changed}</span></TableCell>
@@ -81,7 +106,7 @@ function KbRow({ k, columns }: { k: KqlKbRow; columns: TableColumn[] }) {
     );
 }
 
-function KbCard({ k }: { k: KqlKbRow }) {
+function KbCard({ k, onNavigate }: { k: KqlKbRow; onNavigate?: ((path: string) => void) | undefined }) {
     const f = useKbFacts(k);
     return (
         <div className="flex flex-col gap-1 min-w-0" data-testid={`kql-kb-card-${k.id}`}>
@@ -93,12 +118,13 @@ function KbCard({ k }: { k: KqlKbRow }) {
             <span className="text-[11px] tabular-nums">{f.t('compliance.kql_entries_count', '{n} entries', { n: k.total })}</span>
             <CountList counts={k.byOutcome} table={KQL_OUTCOME} />
             <CountList counts={k.byStatus} table={KQL_STATUS} />
+            <OpenSearchLog k={k} onNavigate={onNavigate} />
         </div>
     );
 }
 
 /** Per knowledge base: is the log on, for how long, who set it, and how many rows it holds. Never a question or an answer. */
-export default function OverviewTab({ isMobile = false, navigate }: OverviewTabProps) {
+export default function OverviewTab({ isMobile = false, navigate, onNavigate }: OverviewTabProps) {
     const { t, resolvedLocale } = useTranslation();
     const q = useKbQueryLogOverviewQuery();
     const overview = q.data ?? null;
@@ -151,8 +177,8 @@ export default function OverviewTab({ isMobile = false, navigate }: OverviewTabP
                         description={t('compliance.kql_overview_empty_sub', 'A knowledge base manager can switch the log on in the knowledge base settings. Until then nothing is recorded.')}
                     />
                 )}
-                renderRow={(k: KqlKbRow, ctx) => <KbRow k={k} columns={ctx.columns} />}
-                renderCard={(k: KqlKbRow) => <KbCard k={k} />}
+                renderRow={(k: KqlKbRow, ctx) => <KbRow k={k} columns={ctx.columns} onNavigate={onNavigate} />}
+                renderCard={(k: KqlKbRow) => <KbCard k={k} onNavigate={onNavigate} />}
             />
         </RegisterLayout>
     );

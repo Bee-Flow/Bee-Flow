@@ -42,7 +42,7 @@ before(async () => {
     await pg.exec(`CREATE TABLE knowledge_bases (id UUID PRIMARY KEY, tenant_id TEXT, name TEXT, organization_id TEXT);
         INSERT INTO knowledge_bases (id, organization_id) VALUES ('${KB}', 'org1');`);
     for (const sql of KB_QUERY_LOG_COLUMN_DDL) await pg.exec(sql);
-    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true`);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb)`);
     for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql);
 });
 after(async () => { job._setDeps(null); crypto._setCryptoDeps(null); await pg.close(); });

@@ -54,6 +54,7 @@ before(async () => {
     for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql);
     await pg.exec(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id, query_log_enabled, query_log_retention_days) VALUES
         ('${KB_A}', 't', 'A', 'org1', true, 30), ('${KB_B}', 't', 'B', 'org1', true, 365), ('${KB_C}', 't', 'C', 'org1', false, 90);
+        UPDATE knowledge_bases SET query_log_attestation = '{"purpose":"ai_quality"}'::jsonb WHERE query_log_enabled;
         INSERT INTO documents (id, knowledge_base_id) VALUES ('${DOC_A}', '${KB_A}'), ('${DOC_B}', '${KB_B}'), ('${DOC_C}', '${KB_C}');
         INSERT INTO kb_query_log_ack (user_id, kb_id) SELECT u, k FROM unnest(ARRAY['u1','u2']) AS u, unnest(ARRAY['${KB_A}','${KB_B}']::uuid[]) AS k;`);
 });
@@ -104,7 +105,7 @@ test('the cache says "logging" but the database says off: no row is written', as
         await h.finish({ outcome: 'answered', answer: 'x' });
         assert.equal((await raw()).length, 0);
     } finally {
-        await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${KB_A}'`);
+        await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb) WHERE id = '${KB_A}'`);
         rec.invalidateKbQueryLogCache();
     }
 });
@@ -232,7 +233,7 @@ test('the setting is cached for a short while and invalidateKbQueryLogCache drop
         await dropped?.settled();
         assert.equal((await raw()).length, before, 'dropped, now off: no new row');
     } finally {
-        await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${KB_A}'`);
+        await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb) WHERE id = '${KB_A}'`);
         rec.invalidateKbQueryLogCache();
     }
 });

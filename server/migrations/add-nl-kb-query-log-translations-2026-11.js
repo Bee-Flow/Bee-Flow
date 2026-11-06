@@ -26,7 +26,7 @@ const NL_TRANSLATIONS = Object.freeze({
     'compliance.kql_status_needs_addition': 'Aanvulling nodig',
     'compliance.kql_channel_agent_chat': 'Agentchat',
     'compliance.kql_channel_agent_chat_sync': 'Agentchat (API)',
-    'compliance.kql_channel_direct_chat': 'Chat',
+    'compliance.kql_channel_direct_chat': 'Directe chat',
     'compliance.kql_channel_template_chat': 'Sjabloonchat',
     'compliance.kql_channel_notebook': 'Notitieboek',
     'compliance.kql_channel_webpage': 'AI-webpagina',
@@ -36,14 +36,11 @@ const NL_TRANSLATIONS = Object.freeze({
     'compliance.kql_channel_studio_ai_generate': 'App: AI-generatie',
     'compliance.kql_channel_studio_ai_extract': 'App: AI-extractie',
     'compliance.kql_channel_studio_ai_chat': 'App: AI-chat',
-    'compliance.kql_channel_support': 'Support',
-    'compliance.kql_channel_skill': 'Skill',
     'compliance.kql_channel_kb_test': 'Testzoekopdracht',
     'compliance.kql_channel_api_search': 'Zoek-API',
     // Compliance Center: overview
     'compliance.kql_read_failed': 'Het overzicht van het zoeklog kon niet worden gelezen.',
     'compliance.kql_col_kb': 'Kennisbank',
-    'compliance.kql_col_logging': 'Logging',
     'compliance.kql_col_retention': 'Bewaard',
     'compliance.kql_col_changed': 'Laatst gewijzigd',
     'compliance.kql_col_managers': 'Beheerders',
@@ -55,6 +52,7 @@ const NL_TRANSLATIONS = Object.freeze({
     'compliance.kql_logging_off': 'Uit',
     'compliance.kql_overview_intro': 'Welke kennisbanken een log bijhouden van waarnaar mensen zochten en wat ze als antwoord kregen, hoe lang, en wie dat heeft besloten. Dit overzicht toont alleen aantallen: wat mensen vroegen zie je hier nooit.',
     'compliance.kql_open_audit': 'Wijzigingen in het toegangslog',
+    'compliance.kql_open_kb_log': 'Zoeklog openen bij de kennisbank',
     'compliance.kql_unlicensed': 'De licentie voor het zoeklog is afgelopen: er wordt niets nieuws gelogd. Bestaande regels blijven staan tot hun bewaartermijn om is en kun je nog steeds exporteren of wissen.',
     'compliance.kql_overview_title': 'Zoeklog per kennisbank',
     'compliance.kql_overview_empty_title': 'Geen kennisbank logt zoekopdrachten',
@@ -66,7 +64,6 @@ const NL_TRANSLATIONS = Object.freeze({
     'compliance.kql_col_person': 'Persoon',
     'compliance.kql_col_channel': 'Kanaal',
     'compliance.kql_col_outcome': 'Uitkomst',
-    'compliance.kql_col_status': 'Status',
     'compliance.kql_read_failed_entries': 'De regels konden niet worden gelezen.',
     'compliance.kql_entries_intro': 'Wanneer een zoekopdracht is gelogd, waar, door wie en hoe die afliep. Niet wat er gevraagd is: de tekst van een zoekopdracht open je alleen voor een openstaand verzoek van een betrokkene.',
     'compliance.kql_export_csv': 'Metadata exporteren (CSV)',
@@ -93,7 +90,6 @@ const NL_TRANSLATIONS = Object.freeze({
     'compliance.kql_content_count': '{n} regels',
     'compliance.kql_asked': 'Gevraagd',
     'compliance.kql_answered': 'Antwoord',
-    'compliance.kql_passages': 'Passages',
     'compliance.kql_erase_title': 'Deze regels wissen?',
     'compliance.kql_erase_body': 'Alle gelogde zoekopdrachten van deze persoon, met wat er gevraagd is en wat het antwoord was, worden definitief gewist. Dit kun je niet ongedaan maken. Het wissen en je reden worden vastgelegd in het toegangslog.',
     'compliance.kql_erase_confirm': 'Definitief wissen',
@@ -115,14 +111,14 @@ const NL_TRANSLATIONS = Object.freeze({
     // Compliance Center: attestation
     'compliance.kql_col_attestation': 'Verklaring',
     'compliance.kql_col_acknowledged': 'Kennisgenomen door',
-    'compliance.kql_ack_users': '{n} gebruikers',
+    'compliance.kql_ack_users': '{n} bevestigd',
     'compliance.kql_att_dpia_done': 'DPIA: uitgevoerd',
     'compliance.kql_att_dpia_not_required': 'DPIA: niet nodig',
     'compliance.kql_att_council': 'Ondernemingsraad: {value}',
     'compliance.kql_att_notice_yes': 'Privacyverklaring: bijgewerkt',
     'compliance.kql_att_notice_no': 'Privacyverklaring: niet bevestigd',
     'compliance.kql_att_by': 'Verklaard {when} door {who}',
-    'compliance.kql_att_missing': 'Geen verklaring vastgelegd',
+    'compliance.kql_att_missing': 'Geen bevestiging vastgelegd: logging staat op pauze, er wordt niets gelogd',
     'compliance.kql_att_names_shown': 'Beheerders zien namen',
     'compliance.kql_att_names_hidden': 'Beheerders zien pseudoniemen',
     'compliance.kql_att_high_risk': 'AI-systeem met hoog risico (AI-verordening)',
@@ -135,16 +131,14 @@ const NL_TRANSLATIONS = Object.freeze({
     'knowledge.query_log.channel.agent_chat_sync': 'Agent (synchroon)',
     'knowledge.query_log.channel.api_search': 'API-zoekopdracht',
     'knowledge.query_log.channel.automation_ai_step': 'AI-stap in een automatisering',
-    'knowledge.query_log.channel.direct_chat': 'Chat',
+    'knowledge.query_log.channel.direct_chat': 'Directe chat',
     'knowledge.query_log.channel.kb_test': 'Testvraag',
     'knowledge.query_log.channel.notebook': 'Notitieboek',
     'knowledge.query_log.channel.project_assistant': 'Projectassistent',
-    'knowledge.query_log.channel.skill': 'Skill',
     'knowledge.query_log.channel.studio_ai_chat': 'App: AI-chat',
     'knowledge.query_log.channel.studio_ai_extract': 'App: AI-extractie',
     'knowledge.query_log.channel.studio_ai_generate': 'App: AI-generatie',
     'knowledge.query_log.channel.studio_kb_query': 'App: kennisvraag',
-    'knowledge.query_log.channel.support': 'Support',
     'knowledge.query_log.channel.template_chat': 'Sjabloonchat',
     'knowledge.query_log.channel.webpage': 'Webpagina',
     'knowledge.query_log.citations': 'Bronverwijzingen',
@@ -152,12 +146,13 @@ const NL_TRANSLATIONS = Object.freeze({
     'knowledge.query_log.col_outcome': 'Uitkomst',
     'knowledge.query_log.col_person': 'Persoon',
     'knowledge.query_log.col_question': 'Vraag',
-    'knowledge.query_log.col_status': 'Status',
     'knowledge.query_log.col_time': 'Tijd',
     'knowledge.query_log.days': '{n} dagen',
     'knowledge.query_log.detail_title': 'Gelogde vraag',
     'knowledge.query_log.disable_delete': 'Uitzetten en wissen',
     'knowledge.query_log.purge_unlicensed': 'Het log uitzetten en wissen',
+    'knowledge.query_log.paused_no_attestation': 'Logging staat op pauze: de organisatie heeft de voorwaarden nog niet bevestigd. Tot dan wordt er niets gelogd.',
+    'knowledge.query_log.complete_attestation': 'Voorwaarden bevestigen',
     'knowledge.query_log.purge_unlicensed_text': 'Zonder de Enterprise-licentie wordt er niets nieuws gelogd. Dit zet de instelling uit en wist nu elke gelogde vraag en elk antwoord van deze kennisbank. Dit kun je niet ongedaan maken.',
     'knowledge.query_log.disable_delete_option': 'Alle regels nu wissen. Dit kun je niet ongedaan maken.',
     'knowledge.query_log.disable_keep': 'Uitzetten',
@@ -167,7 +162,6 @@ const NL_TRANSLATIONS = Object.freeze({
     'knowledge.query_log.empty': 'Nog niets gelogd voor deze filters.',
     'knowledge.query_log.enable_confirm': 'Logging aanzetten',
     'knowledge.query_log.enable_title': 'Vragen en antwoorden loggen?',
-    'knowledge.query_log.enterprise': 'Enterprise',
     'knowledge.query_log.err_export': 'Het log kon niet worden geëxporteerd.',
     'knowledge.query_log.err_save': 'De instellingen van het zoeklog konden niet worden opgeslagen.',
     'knowledge.query_log.export': 'CSV exporteren',
@@ -175,11 +169,9 @@ const NL_TRANSLATIONS = Object.freeze({
     'knowledge.query_log.f_outcome': 'Uitkomst',
     'knowledge.query_log.f_period': 'Periode',
     'knowledge.query_log.f_person': 'Persoon',
-    'knowledge.query_log.f_status': 'Status',
     'knowledge.query_log.f_text': 'Tekst',
     'knowledge.query_log.f_text_placeholder': 'In vraag of antwoord',
     'knowledge.query_log.hint': 'Bewaar de vragen die aan deze kennisbank zijn gesteld, de passages die zijn gevonden en de antwoorden die zijn gegeven, zodat de beheerders kunnen zien wat er ontbreekt. Standaard uit.',
-    'knowledge.query_log.model': 'Model',
     'knowledge.query_log.next': 'Volgende',
     'knowledge.query_log.no_answer': 'Er is geen antwoord gegeven.',
     'knowledge.query_log.note': 'Notitie',
@@ -204,7 +196,6 @@ const NL_TRANSLATIONS = Object.freeze({
     'knowledge.query_log.review': 'Beoordelen',
     'knowledge.query_log.save': 'Opslaan',
     'knowledge.query_log.saved': 'Opgeslagen',
-    'knowledge.query_log.score': 'score {n}',
     'knowledge.query_log.search': 'Zoeken',
     'knowledge.query_log.status.needs_addition': 'Aanvulling nodig',
     'knowledge.query_log.status.reviewed': 'Beoordeeld',
@@ -257,6 +248,26 @@ const NL_TRANSLATIONS = Object.freeze({
 });
 
 /**
+ * Keys whose Dutch IS the English text (loanwords used as-is in Dutch UI: Status, Model,
+ * Support, Skill, Enterprise, Logging, Passages, score). Declared so the catalogue checks
+ * can tell them from a key nobody translated (migrations/nlCatalogues.test.js).
+ */
+const SAME_AS_ENGLISH = Object.freeze([
+    'compliance.kql_channel_support',
+    'compliance.kql_channel_skill',
+    'compliance.kql_col_logging',
+    'compliance.kql_col_status',
+    'compliance.kql_passages',
+    'knowledge.query_log.channel.skill',
+    'knowledge.query_log.channel.support',
+    'knowledge.query_log.col_status',
+    'knowledge.query_log.enterprise',
+    'knowledge.query_log.f_status',
+    'knowledge.query_log.model',
+    'knowledge.query_log.score',
+]);
+
+/**
  * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
  * @param {Record<string, string>} merged
  */
@@ -285,7 +296,7 @@ async function up() {
     return { added };
 }
 
-module.exports = { up, applyNl, NL_TRANSLATIONS };
+module.exports = { up, applyNl, NL_TRANSLATIONS, SAME_AS_ENGLISH };
 
 if (require.main === module) {
     up().then(() => process.exit(0)).catch((e) => {

@@ -22,7 +22,7 @@ function attestationFacts(t: TranslateFn, k: KqlKbRow, locale: string): string[]
             facts.push(t('compliance.kql_att_by', 'Attested {when} by {who}', { when: fmtStamp(k.attestedAt, locale), who: k.attestedByName || k.attestedBy || '—' }));
         }
     } else if (k.enabled) {
-        facts.push(t('compliance.kql_att_missing', 'No attestation on record'));
+        facts.push(t('compliance.kql_att_missing', 'No attestation on record: logging is paused, nothing is logged'));
     }
     facts.push(k.showNames
         ? t('compliance.kql_att_names_shown', 'Managers see names')

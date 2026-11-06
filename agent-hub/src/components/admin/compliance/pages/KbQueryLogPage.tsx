@@ -16,11 +16,13 @@ interface KbQueryLogPageArgs {
     isMobile?: boolean;
     exportsEnabled?: boolean;
     navigate?: (section: string, id?: string | null) => void;
+    /** Leaves the hub (app-relative path); used for "Open the search log" on the knowledge base itself. */
+    onNavigate?: ((path: string) => void) | undefined;
     data?: { orgUsers?: OrgUser[] | null; dsr?: { requests?: DsrRequestRow[] | null } | null };
 }
 
-export default function KbQueryLogPage({ tab = 'overview', isMobile = false, exportsEnabled = true, navigate, data = {} }: KbQueryLogPageArgs) {
+export default function KbQueryLogPage({ tab = 'overview', isMobile = false, exportsEnabled = true, navigate, onNavigate, data = {} }: KbQueryLogPageArgs) {
     if (tab === 'entries') return <EntriesTab orgUsers={data.orgUsers ?? null} isMobile={isMobile} exportsEnabled={exportsEnabled} />;
     if (tab === 'requests') return <RequestsTab orgUsers={data.orgUsers ?? null} dsrRequests={data.dsr?.requests ?? null} exportsEnabled={exportsEnabled} />;
-    return <OverviewTab isMobile={isMobile} {...(navigate ? { navigate } : {})} />;
+    return <OverviewTab isMobile={isMobile} {...(navigate ? { navigate } : {})} {...(onNavigate ? { onNavigate } : {})} />;
 }

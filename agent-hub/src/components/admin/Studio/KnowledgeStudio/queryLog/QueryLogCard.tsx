@@ -28,6 +28,22 @@ type Dialog = 'enable' | 'disable' | null;
 type T = ReturnType<typeof useTranslation>['t'];
 
 /** After the licence lapsed nothing new is logged, but a manager can still switch off and purge (DELETE route, not licence-gated). */
+/**
+ * A base switched on before the attestation was required (or whose attestation is missing) logs
+ * nothing: the server only writes for an attested base. Say so, and offer to complete it.
+ */
+function PausedWithoutAttestation({ t, licensed, settings, onComplete }: { t: T; licensed: boolean; settings: { enabled: boolean; attestation: unknown }; onComplete: () => void }) {
+    if (!licensed || !settings.enabled || settings.attestation) return null;
+    return (
+        <div className="flex flex-col gap-1 rounded-md border px-3 py-2 text-xs [border-color:var(--warning)] text-[var(--text-primary)]" role="status" data-testid="kb-query-log-paused">
+            <span>{t('knowledge.query_log.paused_no_attestation', 'Logging is paused: the organisation has not confirmed the preconditions yet. Nothing is logged until it does.')}</span>
+            <button type="button" className="self-start underline text-[var(--accent-primary)]" onClick={onComplete} data-testid="kb-query-log-complete-attestation">
+                {t('knowledge.query_log.complete_attestation', 'Confirm the preconditions')}
+            </button>
+        </div>
+    );
+}
+
 function UnlicensedPurgeButton({ t, show, busy, onClick }: { t: T; show: boolean; busy: boolean; onClick: () => void }) {
     if (!show) return null;
     return (
@@ -132,6 +148,7 @@ export default function QueryLogCard({ kb, canManage, onSaved }: QueryLogCardPro
                 />
             )}
             {enabled && attestation && <QueryLogAttestationView t={t} attestation={attestation} />}
+            <PausedWithoutAttestation t={t} licensed={licensed} settings={settings} onComplete={() => { setError(null); setDialog('enable'); }} />
             <UnlicensedPurgeButton t={t} show={!licensed && enabled} busy={save.isPending} onClick={() => { setDeleteNow(true); setDialog('disable'); }} />
             <QueryLogEnableForm
                 open={dialog === 'enable'}

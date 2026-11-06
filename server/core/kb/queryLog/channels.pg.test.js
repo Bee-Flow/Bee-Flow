@@ -54,6 +54,7 @@ before(async () => {
     for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql);
     await pg.exec(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id, query_log_enabled, query_log_retention_days) VALUES
         ('${KB_ON}', 't', 'On', 'org1', true, 90), ('${KB_OFF}', 't', 'Off', 'org1', false, 90);
+        UPDATE knowledge_bases SET query_log_attestation = '{"purpose":"ai_quality"}'::jsonb WHERE query_log_enabled;
         INSERT INTO documents (id, knowledge_base_id) VALUES ('${DOC_ON}', '${KB_ON}'), ('${DOC_OFF}', '${KB_OFF}');
         INSERT INTO kb_query_log_ack (user_id, kb_id) SELECT u, '${KB_ON}'::uuid FROM unnest(ARRAY['u1','asker','u','owner','viewer','author','viewer1']) AS u;`);
 });

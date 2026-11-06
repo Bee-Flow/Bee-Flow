@@ -166,4 +166,11 @@ describe('QueryLogCard', () => {
         renderCard(<QueryLogCard kb={kb()} canManage />);
         expect(screen.queryByTestId('kb-query-log-purge')).toBeNull();
     });
+    it('says logging is paused for a base switched on without an attestation, and opens the form to complete it', async () => {
+        const user = userEvent.setup();
+        renderCard(<QueryLogCard kb={kb({ queryLogEnabled: true, queryLogAttestation: null })} canManage />);
+        expect(screen.getByTestId('kb-query-log-paused').textContent).toMatch(/paused/);
+        await user.click(screen.getByTestId('kb-query-log-complete-attestation'));
+        expect(screen.getByTestId('kql-enable-form')).toBeTruthy();
+    });
 });

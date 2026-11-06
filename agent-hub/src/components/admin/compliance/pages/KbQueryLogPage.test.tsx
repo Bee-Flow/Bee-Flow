@@ -125,7 +125,7 @@ describe('Overview', () => {
         expect(att).toContain('by Ada Admin');
         expect(att).toContain('Managers see pseudonyms');
         expect(att).toContain('High-risk AI system');
-        expect(within(row).getByTestId('kql-ack-kb1').textContent).toBe('5 users');
+        expect(within(row).getByTestId('kql-ack-kb1').textContent).toBe('5 acknowledged');
     });
 
     it('links to the access log, pre-filtered on the query-log actions', async () => {
@@ -136,6 +136,14 @@ describe('Overview', () => {
         expect(navigate).toHaveBeenCalledWith('access_log');
         expect(pendingAccessAuditActions()).toContain('kb.query_log.enabled');
         expect(pendingAccessAuditActions()).toContain('kb.query_log.subject_deleted');
+    });
+
+    it('links each base to its search log on the knowledge base itself, where its managers review', async () => {
+        route();
+        const onNavigate = vi.fn();
+        renderWithClient(<KbQueryLogPage tab="overview" onNavigate={onNavigate} />);
+        await userEvent.click(await screen.findByTestId('kql-open-kb-kb1'));
+        expect(onNavigate).toHaveBeenCalledWith('studio/knowledge/kb1/search-log');
     });
 });
 

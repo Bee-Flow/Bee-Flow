@@ -72,7 +72,7 @@ const entry = (over = {}) => ({
 const seed = async (rows) => {
     // The store only writes while the base logs; the tests seed rows for any state of the setting.
     const was = (await pg.query('SELECT id, query_log_enabled FROM knowledge_bases')).rows;
-    await pg.exec('UPDATE knowledge_bases SET query_log_enabled = true');
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb)`);
     try { return await store.insertEntries(rows.map((r) => entry(r))); } finally {
         for (const k of was) await pg.query('UPDATE knowledge_bases SET query_log_enabled = $2 WHERE id = $1', [k.id, k.query_log_enabled]);
     }
@@ -121,7 +121,7 @@ test('without the kb_query_log licence the KB routes answer with the licence err
 
 test('after the licence ran out a manager can still switch off and purge (DELETE), but not enable', async () => {
     await seed([{ id: 'f1', kbId: freeKbId, organizationId: ORG_FREE }]);
-    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${freeKbId}'`);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb) WHERE id = '${freeKbId}'`);
     const res = await api.call('DELETE', `/${freeKbId}/query-log`, as(FREE_OWNER));
     assert.equal(res.status, 200);
     assert.equal(res.body.deleted, 1);
@@ -143,7 +143,7 @@ test('a base moved to another organisation loses its log, audited as organizatio
     const kbStore = require('../../stores/knowledgeBases');
     const moving = (await kbStore.createKB(OWNER.id, 'Moving', '', ORG, {})).id;
     await seed([{ id: 'mv1', kbId: moving }]);
-    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${moving}'`);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb) WHERE id = '${moving}'`);
     await require('../../stores/projectStore').initDB();
     await kbStore.updateKB(moving, { organizationId: ORG_OTHER });
     assert.equal((await pg.query('SELECT COUNT(*)::int AS n FROM kb_query_log WHERE kb_id = $1', [moving])).rows[0].n, 0);
@@ -337,7 +337,7 @@ test('the export is rate limited per user, like the compliance export', () => {
 test('the notice names only logging bases the caller can read, and only with the licence', async () => {
     const kbStore = require('../../stores/knowledgeBases');
     const draft = (await kbStore.createKB(OWNER.id, 'Draft logging', '', ORG, { isPublished: false })).id;
-    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id IN ('${kbId}', '${draft}', '${freeKbId}')`);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb) WHERE id IN ('${kbId}', '${draft}', '${freeKbId}')`);
     const notice = async (user, ids) => (await api.call('GET', `/query-log/notice?kbIds=${ids.join(',')}`, as(user)));
 
     let res = await notice(READER, [kbId, draft, freeKbId]);
@@ -507,7 +507,7 @@ test('acknowledge: records for readable logging bases only; others (unreadable, 
     const draft = (await kbStore.createKB(OWNER.id, 'Draft ack', '', ORG, { isPublished: false })).id;
     const quiet = (await kbStore.createKB(OWNER.id, 'Quiet', '', ORG, { isPublished: true })).id;
     const foreign = (await kbStore.createKB(OUTSIDER.id, 'Foreign', '', ORG_OTHER, { isPublished: true })).id;
-    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id IN ('${kbId}', '${draft}', '${foreign}')`);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb) WHERE id IN ('${kbId}', '${draft}', '${foreign}')`);
     const ack = (user, ids) => api.call('POST', '/query-log/acknowledge', { user, body: { kbIds: ids } });
     const rowsOf = async () => (await pg.query('SELECT user_id, kb_id FROM kb_query_log_ack ORDER BY kb_id')).rows;
 

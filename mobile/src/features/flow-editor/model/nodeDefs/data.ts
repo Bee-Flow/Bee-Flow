@@ -70,7 +70,8 @@ export const DATA_DEFS: Record<string, NodeDefSource> = {
                 resultDetail: 'config',
                 entryId: 'config',
                 status: 'config',
-                note: 'config',
+                // Quoted: `note` is the step's review-note FIELD here, not copy (i18nGuard reads a bare `note:` as text).
+                'note': 'config',
             },
         },
         labelFallback: 'Knowledge base query log',

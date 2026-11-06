@@ -9,7 +9,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { NL_TRANSLATIONS, applyNl } = require('./add-nl-kb-query-log-translations-2026-11');
+const { NL_TRANSLATIONS, SAME_AS_ENGLISH, applyNl } = require('./add-nl-kb-query-log-translations-2026-11');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 const isOurs = (k) => k.startsWith('knowledge.query_log.') || k === 'knowledge.tab_search_log'
@@ -19,7 +19,7 @@ const isOurs = (k) => k.startsWith('knowledge.query_log.') || k === 'knowledge.t
 test('every English search-log key has Dutch, and every Dutch key an English one', () => {
     const english = Object.keys(GUI_DEFAULTS).filter(isOurs);
     assert.ok(english.length >= 200);
-    assert.deepStrictEqual(english.filter((k) => !(k in NL_TRANSLATIONS)), []);
+    assert.deepStrictEqual(english.filter((k) => !(k in NL_TRANSLATIONS) && !SAME_AS_ENGLISH.includes(k)), []);
     assert.deepStrictEqual(Object.keys(NL_TRANSLATIONS).filter((k) => !(k in GUI_DEFAULTS)), []);
 });
 

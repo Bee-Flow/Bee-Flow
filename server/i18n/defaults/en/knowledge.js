@@ -431,6 +431,8 @@ module.exports = {
     'knowledge.query_log.detail_title': 'Logged question',
     'knowledge.query_log.disable_delete': 'Turn off and delete',
     'knowledge.query_log.purge_unlicensed': 'Turn off and delete the log',
+    'knowledge.query_log.paused_no_attestation': 'Logging is paused: the organisation has not confirmed the preconditions yet. Nothing is logged until it does.',
+    'knowledge.query_log.complete_attestation': 'Confirm the preconditions',
     'knowledge.query_log.purge_unlicensed_text': 'Without the Enterprise licence nothing new is logged. This turns the setting off and deletes every logged question and answer of this knowledge base now. This cannot be undone.',
     'knowledge.query_log.disable_delete_option': 'Delete all entries now. This cannot be undone.',
     'knowledge.query_log.disable_keep': 'Turn off',

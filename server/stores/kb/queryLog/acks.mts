@@ -17,7 +17,7 @@ async function acknowledge(userId: string, kbIds: string[]): Promise<number> {
     if (!userId || ids.length === 0) return 0;
     const res = await db.query(
         `INSERT INTO kb_query_log_ack (user_id, kb_id, acknowledged_at)
-         SELECT $1, k.id, $3::timestamptz FROM knowledge_bases k WHERE k.id = ANY($2::uuid[]) AND k.query_log_enabled = true
+         SELECT $1, k.id, $3::timestamptz FROM knowledge_bases k WHERE k.id = ANY($2::uuid[]) AND k.query_log_enabled = true AND k.query_log_attestation IS NOT NULL
          ON CONFLICT (user_id, kb_id) DO UPDATE SET acknowledged_at = EXCLUDED.acknowledged_at`,
         [userId, ids, clock().toISOString()]);
     return res.rowCount ?? 0;

@@ -41,6 +41,7 @@ before(async () => {
     for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql); // idempotent
     await pg.exec(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id, query_log_enabled) VALUES
         ('${KB_A}', 't', 'A', '${ORG}', true), ('${KB_B}', 't', 'B', '${ORG}', true), ('${KB_OFF}', 't', 'Off', '${ORG}', false);
+        UPDATE knowledge_bases SET query_log_attestation = '{"purpose":"ai_quality"}'::jsonb WHERE query_log_enabled;
         INSERT INTO users (id, username, "displayName") VALUES ('u1', 'ann', 'Ann Jansen');`);
 });
 after(async () => { crypto._setCryptoDeps(null); await pg.close(); });
@@ -125,7 +126,7 @@ test('insertEntries is conditional at write time: logging off, or no organisatio
     try {
         assert.equal(await store.insertEntries([row({ id: 'switched-off' })]), 0, 'switched off after the recorder cached "on"');
     } finally {
-        await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${KB_A}'`);
+        await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb) WHERE id = '${KB_A}'`);
     }
     await pg.exec(`UPDATE knowledge_bases SET organization_id = NULL WHERE id = '${KB_A}'`);
     try {
@@ -257,7 +258,8 @@ test('deleteForKb and the foreign key cascade remove a KB log', async () => {
     assert.deepEqual((await raw()).map((r) => r.id), ['r1']);
     await pg.exec(`DELETE FROM knowledge_bases WHERE id = '${KB_A}'`);
     assert.equal((await raw()).length, 0, 'deleting the KB cascades');
-    await pg.exec(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id, query_log_enabled) VALUES ('${KB_A}', 't', 'A', '${ORG}', true)`);
+    await pg.exec(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id, query_log_enabled) VALUES ('${KB_A}', 't', 'A', '${ORG}', true);
+        UPDATE knowledge_bases SET query_log_attestation = '{"purpose":"ai_quality"}'::jsonb WHERE id = '${KB_A}'`);
 });
 
 test('countsByKb and countsForUser give numbers only', async () => {
@@ -362,4 +364,16 @@ test('documentVersions: hash label and the newest snapshot id; unknown documents
 test('askersOfKb lists the distinct people who asked', async () => {
     await store.insertEntries([row({ id: 'r1' }), row({ id: 'r2', searchGroupId: 'g2' }), row({ id: 'r3', searchGroupId: 'g3', userId: null })]);
     assert.deepEqual(await store.askersOfKb(KB_A), ['u1']);
+});
+
+test('a base that is on but has no organisation attestation logs nothing (switched on before the attestation was required)', async () => {
+    await pg.exec(`UPDATE knowledge_bases SET query_log_attestation = NULL WHERE id = '${KB_A}'`);
+    try {
+        assert.deepEqual(await store.getLoggingKbs([KB_A]), [], 'not offered to the recorder');
+        const before = (await raw()).length;
+        await store.insertEntries([row({ id: 'r-unattested' })]);
+        assert.equal((await raw()).length, before, 'the conditional insert refuses it');
+    } finally {
+        await pg.exec(`UPDATE knowledge_bases SET query_log_attestation = '{"purpose":"ai_quality"}'::jsonb WHERE id = '${KB_A}'`);
+    }
 });

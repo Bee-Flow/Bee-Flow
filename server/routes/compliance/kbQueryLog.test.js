@@ -89,7 +89,7 @@ const entry = (over = {}) => ({
 const seed = async (rows) => {
     // The store only writes while the base logs; the tests seed rows for any state of the setting.
     const was = (await pg.query('SELECT id, query_log_enabled FROM knowledge_bases')).rows;
-    await pg.exec('UPDATE knowledge_bases SET query_log_enabled = true');
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_attestation = COALESCE(query_log_attestation, '{"purpose":"ai_quality"}'::jsonb)`);
     try { return await store.insertEntries(rows.map((r) => entry(r))); } finally {
         for (const k of was) await pg.query('UPDATE knowledge_bases SET query_log_enabled = $2 WHERE id = $1', [k.id, k.query_log_enabled]);
     }
