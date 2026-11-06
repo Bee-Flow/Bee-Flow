@@ -35,6 +35,7 @@ get effectively published.
 |----------|---------|---------|
 | **`CORE_DATABASE_URL`** | `postgresql://beeflow:beeflow@localhost:5432/beeflow_core` | Connection string for the primary (`beeflow_core`) database — the server's runtime pool. |
 | **`DATABASE_URL`** | `postgresql://beeflow:beeflow@localhost:5432/beeflow_tasks` | Connection string for the productivity-tasks database. |
+| `DB_POOL_MAX` | `40` | Maximum Postgres connections of the core pool, per server process. A query holds a connection only while it runs, so this limits parallel queries, not users. With several replicas keep replicas × `DB_POOL_MAX` below Postgres' `max_connections` (100 in the Compose stack), or put PgBouncer in front. |
 | `MONITORING_DATABASE_URL` | derived by Compose | Monitoring database. The Compose files build all three from `DB_USER` / `DB_PASSWORD` / `DB_NAME` — see [Docker Compose → Three databases](docker-compose.md#three-databases-not-one). |
 
 The Compose stack also creates `beeflow_tasks` and `monitoring_db` on the same

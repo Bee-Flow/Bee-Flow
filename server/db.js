@@ -7,14 +7,9 @@
  *
  * All stores should import { pool, getRedis, ... } from '../db';
  *
- * Pool sizing rationale for 50 active users:
- *   - max:40  — allows concurrent AI streaming (long-held connections) +
- *               regular CRUD queries without timeouts.
- *   - statement_timeout:30s — kills runaway queries before they occupy
- *               a connection slot indefinitely.
- *   - idle_in_transaction_session_timeout:60s — guards against hung
- *               transactions that block pool slots.
- *   - application_name — visible in pg_stat_activity for monitoring.
+ * Pool size: DB_POOL_MAX (default 40) per process. A query holds a connection
+ * only while it runs (chat streaming holds none), so it caps parallel queries,
+ * not users; keep replicas x DB_POOL_MAX below Postgres' max_connections.
  */
 // @typecheck
 const { Pool } = require('pg');
@@ -42,12 +37,16 @@ const { throughLedger } = require('./stores/lib/ddlLedger');
 if (process.env.NODE_ENV === 'production' && !process.env.CORE_DATABASE_URL) {
     throw new Error('CORE_DATABASE_URL must be set in production; there is no development default to fall back to. The docker-compose files wire it from DB_USER/DB_PASSWORD/DB_NAME.');
 }
+/** @returns {number} DB_POOL_MAX, or 40 when unset or not a positive number */
+function poolMax() {
+    const n = Number(process.env.DB_POOL_MAX);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 40;
+}
+
 const pool = new Pool({
     connectionString: process.env.CORE_DATABASE_URL
         || 'postgresql://beeflow:beeflow@localhost:5432/beeflow_core',
-    // 40 connections: comfortably handles 50 concurrent users with AI
-    // streaming (which holds connections open for 30–120 s each).
-    max: 40,
+    max: poolMax(),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
     // Kill queries that run longer than 30 s — prevents stuck queries
