@@ -6,8 +6,9 @@ import { useTranslation } from '@/hooks/useTranslation';
 import type { RangeParams } from '@/utils/usageHelpers';
 import { SubTabs } from '../shell';
 import { ApprovalCard, TerminationsCard } from './QualityHero';
+import { QualityRevealBanner } from './QualityRevealBanner';
 import { largeInputCount } from './qualityModel';
-import { useFeedbackReport, useTerminationsReport } from './qualityData';
+import { useQualityReports } from './useQualityReports';
 
 export interface QualityTabProps {
     rangeParams: RangeParams;
@@ -22,8 +23,7 @@ const NO_SUMMARY = { total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 };
 export default function QualityTab({ rangeParams, showTokens, initialSubTab, totalCalls }: QualityTabProps) {
     const { t } = useTranslation();
     const [sub, setSub] = useState<string>(initialSubTab === 'terminations' ? 'terminations' : 'feedback');
-    const feedback = useFeedbackReport(rangeParams);
-    const terminations = useTerminationsReport(rangeParams);
+    const { feedback, terminations, revealFeedback, revealTerminations, banner } = useQualityReports(rangeParams, sub);
     const tData = terminations.data;
     const description = sub === 'feedback'
         ? t('org.quality_desc_feedback', 'Feedback: what people said about an answer. Messages are only shown when the person shared the conversation.')
@@ -63,9 +63,10 @@ export default function QualityTab({ rangeParams, showTokens, initialSubTab, tot
                     { id: 'terminations', label: t('usage.quality_sub_terminations', 'Terminations') },
                 ]}
             />
+            <QualityRevealBanner {...banner} />
             {sub === 'feedback'
-                ? <OrgFeedbackPanel rangeParams={rangeParams} showTokens={showTokens} />
-                : <OrgTerminationsPanel rangeParams={rangeParams} showTokens={showTokens} />}
+                ? <OrgFeedbackPanel rangeParams={rangeParams} showTokens={showTokens} reveal={revealFeedback} />
+                : <OrgTerminationsPanel rangeParams={rangeParams} showTokens={showTokens} reveal={revealTerminations} />}
         </div>
     );
 }

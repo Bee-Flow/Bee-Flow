@@ -176,6 +176,11 @@ new entry.
 - **Pseudonymous by default.** Per-person rows show pseudonyms until someone with access
   reveals names, and every reveal is recorded as `usage_adoption_people_revealed` in the
   access audit log. The top users of a Studio kind are never revealed.
+- **The Quality tab works the same way.** The person behind a rating (Feedback) or an
+  early stop (Terminations) is the same pseudonym as in the people table, so a label can
+  be matched across tabs. Its **Reveal names** is recorded as
+  `usage_quality_people_revealed`, one row per list shown; when the audit log cannot
+  record it, no names are shown.
 - **No special categories per person.** The report holds no Privacy Shield categories at
   all. Health data (GDPR Art. 9) never appears next to a person anywhere in Usage &
   Monitoring; it appears only as organisation-wide totals.

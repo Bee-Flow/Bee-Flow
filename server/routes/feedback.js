@@ -36,7 +36,8 @@ const { getAll } = require('../db');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
-const { worded } = require('../core/http/schemaParts');
+const { worded, choice } = require('../core/http/schemaParts');
+const { withPersonColumn } = require('../core/privacy/personColumn');
 
 const router = express.Router();
 
@@ -121,12 +122,14 @@ const ListQuery = RangeQuery.extend({
     // the answer to "more than that" is the most there is.
     limit: z.coerce.number({ error: typeError({ invalid: LIMIT_TEXT }) }).int(LIMIT_TEXT).min(1, LIMIT_TEXT)
         .transform((n) => Math.min(n, MAX_FEEDBACK_LIMIT)).optional(),
+    // /org only: names instead of pseudonyms, after an access-audit row.
+    reveal: choice(['true', 'false'], 'reveal is true or false.').optional(),
 }).strict();
 
 /**
  * Request after validate({ query: ListQuery }): `limit` is already a clamped number.
  * `scopedOrgId` is set by requireOwnOrgAdmin.
- * @typedef {import('express').Request<{}, any, any, { startDate?: string, endDate?: string, rating?: string, agentId?: string, source?: string, limit?: number }> & { scopedOrgId?: string }} FeedbackListReq
+ * @typedef {import('express').Request<{}, any, any, { startDate?: string, endDate?: string, rating?: string, agentId?: string, source?: string, limit?: number, reveal?: string }> & { scopedOrgId?: string }} FeedbackListReq
  */
 /**
  * @typedef {import('express').Request<{}, any, any, { startDate?: string, endDate?: string }> & { scopedOrgId?: string }} FeedbackRangeReq
@@ -324,7 +327,12 @@ router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ que
         limit ?? DEFAULT_FEEDBACK_LIMIT
     );
     const enriched = await enrichSnapshotsWithUsage(Array.isArray(data) ? data : []);
-    res.json(enriched);
+    // People are pseudonymous (the Adoption labels) unless the admin reveals them, audited first.
+    const people = await withPersonColumn(enriched, {
+        orgId: String(req.scopedOrgId), actorId: String(req.session?.user?.id),
+        reveal: req.query.reveal === 'true', startDate, endDate,
+    });
+    res.json(people);
 });
 
 // GET /org/summary — aggregated stats for the caller's organisation

@@ -236,6 +236,7 @@ No request schema.
 | `agentId` | string |  | max length 200 |
 | `source` | one of `"agent"`, `"direct"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `POST /api/feedback`
 
@@ -270,6 +271,7 @@ No request schema.
 | `agentId` | string |  | max length 200 |
 | `source` | one of `"agent"`, `"direct"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `GET /api/feedback/org/summary`
 
@@ -1634,6 +1636,7 @@ No request schema.
 | `type` | one of `"max_tokens"`, `"max_iterations"`, `"error"`, `"aborted"` |  |  |
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `GET /api/terminations/by-agent`
 
@@ -1651,6 +1654,7 @@ No request schema.
 | `type` | one of `"max_tokens"`, `"max_iterations"`, `"error"`, `"aborted"` |  |  |
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `GET /api/terminations/org`
 
@@ -1668,6 +1672,7 @@ No request schema.
 | `type` | one of `"max_tokens"`, `"max_iterations"`, `"error"`, `"aborted"` |  |  |
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `GET /api/terminations/org/by-agent`
 
@@ -1685,6 +1690,7 @@ No request schema.
 | `type` | one of `"max_tokens"`, `"max_iterations"`, `"error"`, `"aborted"` |  |  |
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `GET /api/terminations/org/summary`
 
@@ -1702,6 +1708,7 @@ No request schema.
 | `type` | one of `"max_tokens"`, `"max_iterations"`, `"error"`, `"aborted"` |  |  |
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `GET /api/terminations/org/timeline`
 
@@ -1719,6 +1726,7 @@ No request schema.
 | `type` | one of `"max_tokens"`, `"max_iterations"`, `"error"`, `"aborted"` |  |  |
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `GET /api/terminations/summary`
 
@@ -1736,6 +1744,7 @@ No request schema.
 | `type` | one of `"max_tokens"`, `"max_iterations"`, `"error"`, `"aborted"` |  |  |
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ### `GET /api/terminations/timeline`
 
@@ -1753,6 +1762,7 @@ No request schema.
 | `type` | one of `"max_tokens"`, `"max_iterations"`, `"error"`, `"aborted"` |  |  |
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
+| `reveal` | one of `"true"`, `"false"` |  |  |
 
 ## `api/voiceprints`
 

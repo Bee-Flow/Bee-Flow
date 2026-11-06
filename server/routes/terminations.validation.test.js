@@ -26,6 +26,7 @@
 'use strict';
 
 process.env.NODE_ENV = 'test';
+process.env.SESSION_SECRET = 'q'.repeat(40);
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -34,11 +35,11 @@ const Module = require('module');
 // Every store read lands in `touched`. A refused request must leave it empty.
 const touched = [];
 // Who holds `admin_monitoring`, and which org role each user has.
-const fx = { monitoring: new Set(['u1']), orgRole: { u1: 'org_admin' } };
+const fx = { monitoring: new Set(['u1']), orgRole: { u1: 'org_admin' }, rows: [] };
 
 const MOCKS = {
     '../stores/terminationStore': {
-        getList: async (filters, limit) => { touched.push({ what: 'getList', filters, limit }); return []; },
+        getList: async (filters, limit) => { touched.push({ what: 'getList', filters, limit }); return fx.rows; },
         getSummary: async (filters) => { touched.push({ what: 'getSummary', filters }); return { total: 0, by_type: {} }; },
         getTimeline: async (filters, interval) => { touched.push({ what: 'getTimeline', filters, interval }); return []; },
         getByAgent: async (filters) => { touched.push({ what: 'getByAgent', filters }); return []; },
@@ -62,8 +63,23 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
     MOCK_IDS[request] = mockId;
     require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
 }
+
+// The person column (core/privacy/personColumn.js) reaches the database for the audit row and the names.
+const audit = { rows: [], fail: false };
+const PERSON_MOCKS = {
+    '../../db': { run: async (sql, params) => { if (audit.fail) throw new Error('db down'); audit.rows.push(params); } },
+    '../../stores/userStore': { getUserAvatarsByIds: async () => [{ id: 'u1', username: 'kim', displayName: 'Kim Jansen' }] },
+};
+for (const [request, exportsObj] of Object.entries(PERSON_MOCKS)) {
+    const mockId = `mock:terminations-validation:person:${request}`;
+    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
+}
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
+    if (parent && /core[\\/]privacy[\\/]personColumn\.js$/.test(parent.filename)
+        && Object.prototype.hasOwnProperty.call(PERSON_MOCKS, request)) {
+        return `mock:terminations-validation:person:${request}`;
+    }
     if (parent && /routes[\\/]terminations\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
@@ -107,6 +123,9 @@ test.beforeEach(() => {
     touched.length = 0;
     fx.monitoring = new Set(['u1']);
     fx.orgRole = { u1: 'org_admin' };
+    fx.rows = [];
+    audit.rows.length = 0;
+    audit.fail = false;
 });
 
 async function refuses(url, field) {
@@ -227,4 +246,57 @@ test('the org admin\'s own view is unchanged: the org-admin role, not the permis
     const member = await dispatch('/org/summary', MEMBER);
     assert.strictEqual(member.statusCode, 403);
     assert.deepStrictEqual(touched, []);
+});
+
+// ═══ The person behind a row ═════════════════════════════════════════
+
+const pseudonym = require('../core/privacy/pseudonym');
+const ORG_LABEL = pseudonym.pseudonymFor('u1', 'org-1', process.env.SESSION_SECRET);
+const ORG_ID = pseudonym.pseudonymId('u1', 'org-1', process.env.SESSION_SECRET);
+
+test('terminations: rows carry the Adoption pseudonym and no user id by default', async () => {
+    fx.rows = [{ id: 't1', user_id: 'u1' }, { id: 't2', user_id: null }];
+    const res = dispatch('/org');
+    const out = await res;
+    assert.strictEqual(out.statusCode, 200);
+    const rows = out.body.rows;
+    assert.deepStrictEqual(rows[0].person, { id: ORG_ID, name: ORG_LABEL });
+    assert.match(rows[0].person.name, /^Member · [A-Z2-9]{4}$/);
+    assert.strictEqual(rows[1].person, null, 'an anonymous row stays null');
+    assert.ok(rows.every((r) => !('user_id' in r)));
+    assert.strictEqual(audit.rows.length, 0, 'no reveal, no audit row');
+    assert.ok(!JSON.stringify(out.body).includes('Kim'));
+});
+
+test('terminations: reveal=true records the audit row first and names the person', async () => {
+    fx.rows = [{ id: 't1', user_id: 'u1' }, { id: 't2', user_id: null }];
+    const out = await dispatch('/org?reveal=true');
+    assert.strictEqual(out.statusCode, 200);
+    assert.strictEqual(audit.rows.length, 1);
+    assert.strictEqual(audit.rows[0][1], 'usage_quality_people_revealed');
+    assert.strictEqual(audit.rows[0][2], 'org-1');
+    const rows = out.body.rows;
+    assert.deepStrictEqual(rows[0].person, { id: 'u1', name: 'Kim Jansen' });
+    assert.strictEqual(rows[1].person, null);
+    assert.ok(rows.every((r) => !('user_id' in r)));
+});
+
+test('terminations: a failed audit write answers 503 audit_unavailable and no rows', async () => {
+    fx.rows = [{ id: 't1', user_id: 'u1' }, { id: 't2', user_id: null }];
+    audit.fail = true;
+    const out = await dispatch('/org?reveal=true');
+    assert.strictEqual(out.statusCode, 503);
+    assert.strictEqual(out.body.code, 'audit_unavailable');
+    assert.ok(!JSON.stringify(out.body).includes('Kim'));
+});
+
+test('terminations: reveal must be true or false', async () => {
+    const out = await dispatch('/org?reveal=yes');
+    assert.strictEqual(out.statusCode, 400);
+    assert.strictEqual(audit.rows.length, 0);
+});
+
+test('terminations: the envelope says whether names are shown', async () => {
+    assert.strictEqual((await dispatch('/org')).body.revealed, false);
+    assert.strictEqual((await dispatch('/org?reveal=true')).body.revealed, true);
 });

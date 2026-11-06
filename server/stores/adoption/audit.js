@@ -20,6 +20,8 @@
 const crypto = require('node:crypto');
 
 const REVEAL_ACTION = 'usage_adoption_people_revealed';
+/** The same reveal on the Quality tab (feedback and terminations lists). */
+const QUALITY_REVEAL_ACTION = 'usage_quality_people_revealed';
 
 /**
  * @typedef {{ startDate: string, endDate: string, group: string | null, limit: number }} RevealDetails
@@ -27,9 +29,10 @@ const REVEAL_ACTION = 'usage_adoption_people_revealed';
 
 /**
  * @param {{ run: (sql: string, params: unknown[]) => Promise<unknown> }} db
- * @param {{ orgId: string, actorId: string, details: RevealDetails }} reveal
+ * @param {{ orgId: string, actorId: string, details: RevealDetails, action?: string }} reveal
+ *   `action` defaults to the Adoption reveal.
  */
-async function recordReveal(db, { orgId, actorId, details }) {
+async function recordReveal(db, { orgId, actorId, details, action = REVEAL_ACTION }) {
     const payload = {
         startDate: String(details.startDate),
         endDate: String(details.endDate),
@@ -39,8 +42,8 @@ async function recordReveal(db, { orgId, actorId, details }) {
     await db.run(
         `INSERT INTO access_audit_log (id, action, target_type, target_id, organization_id, changed_by, old_values, new_values)
          VALUES ($1, $2, 'organization', $3, $3, $4, NULL, $5)`,
-        [crypto.randomUUID(), REVEAL_ACTION, orgId, actorId, JSON.stringify(payload)],
+        [crypto.randomUUID(), action, orgId, actorId, JSON.stringify(payload)],
     );
 }
 
-module.exports = { recordReveal, REVEAL_ACTION };
+module.exports = { recordReveal, REVEAL_ACTION, QUALITY_REVEAL_ACTION };

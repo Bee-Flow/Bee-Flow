@@ -18,16 +18,18 @@ const TH = 'px-3 pb-2.5 text-left text-[11px] font-semibold uppercase tracking-[
 interface OrgFeedbackPanelProps {
     rangeParams: RangeParams;
     showTokens?: boolean;
+    /** Ask for names instead of pseudonyms (the page records it in the access audit log). */
+    reveal?: boolean;
 }
 
-export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps) {
+export default function OrgFeedbackPanel({ rangeParams, reveal = false }: OrgFeedbackPanelProps) {
     const { t } = useTranslation();
     const [filter, setFilter] = useState<FeedbackFilter>('all');
     const [search, setSearch] = useState('');
     const [pageNum, setPageNum] = useState(0);
     const [open, setOpen] = useState<string | null>(null);
 
-    const report = useFeedbackReport(rangeParams);
+    const report = useFeedbackReport(rangeParams, reveal);
     const loading = report.isFetching;
     const feedback = useMemo(() => report.data?.feedback ?? [], [report.data]);
     const summary = report.data?.summary ?? NO_FEEDBACK_SUMMARY;

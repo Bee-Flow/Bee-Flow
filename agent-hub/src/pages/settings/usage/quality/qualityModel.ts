@@ -42,7 +42,7 @@ export function filterFeedback(items: FeedbackItem[], filter: FeedbackFilter, se
     if (filter === 'with_convo') data = data.filter(f => parseSnapshot(f.conversation_snapshot));
     const q = search.trim().toLowerCase();
     if (!q) return data;
-    return data.filter(f => [f.comment, f.agent_id, f.agent_name, f.user_id, f.source, f.conversation_id]
+    return data.filter(f => [f.comment, f.agent_id, f.agent_name, f.person?.name, f.source, f.conversation_id]
         .some(v => v?.toLowerCase().includes(q)));
 }
 
