@@ -45,6 +45,6 @@ test('a blob without the keys gets all of them, own wording is kept, a second ru
 });
 
 test('the boot ladder runs this catalogue', () => {
-    const src = require('node:fs').readFileSync(require.resolve('../boot/bootMigrations.js'), 'utf8');
-    assert.ok(src.includes("'add-nl-kb-query-log-translations-2026-11'"));
+    const { NL_TRANSLATIONS: BOOT_LIST } = require('../boot/bootMigrations');
+    assert.ok(BOOT_LIST.includes('add-nl-kb-query-log-translations-2026-11'));
 });
