@@ -20,7 +20,7 @@ Above the list: a search box (name and purpose) and one chip per category, plus 
 
 Click **New knowledge base**. There is no create form: the base is made immediately as "New knowledge base" and opens on its Sources tab. Give it its real name in the header, or on the **Settings** tab.
 
-## The four tabs
+## The tabs
 
 | Tab | What it is |
 |---|---|
@@ -28,6 +28,7 @@ Click **New knowledge base**. There is no create form: the base is made immediat
 | **Test question** | Ask the base something and see which source answered. |
 | **Settings** | Name, purpose, where it may be used, who may see it, copy, delete. |
 | **Used by** | The agents, chats and automations that use this base. |
+| **Search log** | Enterprise, managers only, when the log is on: the questions asked, the passages found and the answers given, for review. |
 
 The header carries the name (click to rename), the visibility capsule, and a chip that reads **Updated &lt;when&gt;** — the moment content last arrived, not the last edit — or **Nothing in it yet**.
 
@@ -110,6 +111,26 @@ Two distinctions the screen makes and that are easy to get wrong:
 **Make a copy** never copies documents. A copied source reads its own files and pages again on its first refresh, so the copy gets what is there now.
 
 Deleting takes the base's documents with it. The original files, pages and folders they were read from stay where they are. When something that uses the base could not be checked, the confirmation says so rather than presenting a partial list as a complete one.
+
+## Search log (Enterprise)
+
+A base can keep a log of the questions asked to it, so the people who manage it can check whether the AI answers correctly and see what is missing. It is **off by default**, per base, and needs the Enterprise licence.
+
+**Turning it on.** On **Settings**, under **Log search queries and answers**. Only managers of the base see the card: its owner, or someone in the same organisation with the right to manage knowledge. Choose how long entries are kept (30, 90, 180 or 365 days); older entries are deleted automatically. A personal base cannot log. Switching on, switching off and changing the term are written to the organisation's access log.
+
+**What an entry holds.** The time; the person asking; the channel (agent chat, direct chat, a notebook, a webpage, a project assistant, an automation's AI step, an App Studio step or chat, the support assistant, a skill, the **Test question** tab, the search API); the question as it went into the search; the passages found (document, source, title, score and the text as it was then); and, where the channel produces one, the answer, the model, the timings, the outcome (answered, no results, error) and the citations. A question the Privacy Shield had already masked is logged masked.
+
+**Who sees it.** The managers of the base, on the **Search log** tab: filter by period, person, channel, outcome and review status, open an entry, set its status (**To review**, **Reviewed**, **Needs an addition**) with a note, and export to CSV. People who may only read the base never see the log. Compliance officers see which bases log and the counts, not the content; see the Compliance Center below.
+
+**People are told.** While a base they ask logs, chat inputs show one line: *Questions to &lt;base&gt; are logged for quality control by the knowledge base's managers.*
+
+**Encryption.** The content is encrypted with a key held by the organisation, so the base's managers can read it. On the zero-knowledge tier this means the log is **not** zero-knowledge: the card says so before you switch it on.
+
+**Switching off.** Choose to keep the entries until their term ends, or delete them now. If the licence lapses, nothing new is logged, and the card offers **Turn off and delete the log**.
+
+**For builders.** An App Studio action can read the log with `kb_log_query` and set a review with `kb_log_review`; an automation uses the `kb_query_log` step (`op: list` or `review`). Both require that the app's or automation's owner manages the base, and in an app the person using it too. They are refused on public apps and never write during a dry run. A list returns a summary unless the full detail is asked for, and an automation's run history never keeps the questions and answers.
+
+**Compliance Center.** Under **Registers → Knowledge base search log**: every base with its setting, term, managers and counts; the entries as metadata only, with a CSV export; and data-subject requests. To see, export or erase one person's entries, the officer picks an open data-subject request about that person; that access is itself logged, and the request fails if the log entry cannot be written.
 
 ## A personal base
 
