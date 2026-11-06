@@ -208,3 +208,26 @@ test('the run log lines name the task by id, never by its title (user content)',
     assert.ok(runner.some((l) => l.includes('cw-title')), 'the id is logged');
     assert.ok(!runner.some((l) => l.includes('Jan Dekker')), 'the title is not');
 });
+
+test('the usage row names the history run markRunning opened (run_id)', async () => {
+    resetScenario();
+    script = [{ content: 'Done.', usage: { prompt_tokens: 2, completion_tokens: 1 } }];
+    const store = { ...fakeStore, markRunning: async () => 'cowork-run-1' };
+
+    await executeTask({ id: 'cw9', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.' }, { store });
+    await flush();
+
+    assert.strictEqual(logged.length, 1);
+    assert.strictEqual(logged[0].run_id, 'cowork-run-1');
+    assert.strictEqual(logged[0].user_id, 'u1');
+    assert.strictEqual(logged[0].organization_id, 'org-eff');
+    assert.notStrictEqual(require('../shared/usageAreas').areaOf(logged[0].source), 'other');
+});
+
+test('a store that hands back no run id leaves run_id null', async () => {
+    resetScenario();
+    script = [{ content: 'Done.', usage: { prompt_tokens: 2, completion_tokens: 1 } }];
+    await executeTask({ id: 'cw10', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.' }, { store: fakeStore });
+    await flush();
+    assert.strictEqual(logged[0].run_id, null);
+});

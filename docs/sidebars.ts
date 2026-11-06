@@ -229,6 +229,7 @@ const sidebars: SidebarsConfig = {
           label: 'Settings',
           items: [
             'admin/organisation-settings',
+            'admin/usage-and-adoption',
             'admin/local-models',
             'admin/scaleway-models',
             'admin/limits-and-self-host',
@@ -307,6 +308,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/route-contract-and-tenant-matrix',
             'contributing/decisions/run-profile',
             'contributing/decisions/assistant-sees-what-the-canvas-shows',
+            'contributing/decisions/per-person-adoption-view',
           ],
         },
       ],

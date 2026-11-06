@@ -11,6 +11,8 @@
 const { randomUUID } = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 const log = require('../../../telemetry/log');
+const { logSurfaceUsage } = require('../../../core/llm/surfaceUsage');
+const { createUsageAccumulator } = require('../../../core/providers/usageNormalizer');
 const automationStore = require('../../../stores/automationStore');
 const { applyToolCall } = require('../../../automation/builderTools');
 const { validateDefinition } = require('../../../automation/validate');
@@ -306,7 +308,49 @@ async function closeTurn(turn) {
 
     if (usageTotals.rounds > 0) {
         log.info(`[AutomationBuilder] usage session=${draftWrap.builderSessionId} model=${modelId} rounds=${usageTotals.rounds} in=${log.textForLog(usageTotals.prompt)} cached=${usageTotals.cached} cacheWrite=${usageTotals.cacheCreation} out=${usageTotals.completion}`);
+        meterBuilderTurn(turn);
     }
 }
 
-module.exports = { closeTurn, sessionMemory };
+/**
+ * The full usage of a turn's rounds, beside the flat `usageTotals` the SSE
+ * events carry: the sum keeps `prompt_includes_cache` and the 5m/1h cache-write
+ * split, which the flat totals lose: an Anthropic prompt count rebuilt from
+ * them reads as cache-inclusive, so the uncached input is rated at zero and
+ * the 1h cache writes at the 5m rate.
+ * @type {WeakMap<BuilderTurn, ReturnType<typeof createUsageAccumulator>>}
+ */
+const roundUsage = new WeakMap();
+
+/**
+ * Adds one round's usage (the adapter's, as it reported it) to the turn.
+ * @param {BuilderTurn} turn
+ * @param {unknown} usage
+ */
+function addRoundUsage(turn, usage) {
+    let acc = roundUsage.get(turn);
+    if (!acc) { acc = createUsageAccumulator(); roundUsage.set(turn, acc); }
+    acc.add(usage);
+}
+
+/**
+ * One usage row per builder turn (source automation_builder,
+ * core/llm/surfaceUsage.js): the person, their organisation, the automation
+ * being built, the builder session and the tokens of every round.
+ * @param {BuilderTurn} turn
+ * @param {import('../../../core/llm/surfaceUsage').UsageSink} [store] the ledger sink (default: the usage store)
+ */
+function meterBuilderTurn(turn, store) {
+    const { userId, userOrgForTiers, modelId, usageTotals, draftWrap } = turn;
+    const acc = roundUsage.get(turn);
+    logSurfaceUsage({
+        source: 'automation_builder', userId, orgId: userOrgForTiers, model: modelId,
+        usage: acc && acc.hasUsage ? acc.total() : {
+            prompt_tokens: usageTotals.prompt, completion_tokens: usageTotals.completion,
+            cached_tokens: usageTotals.cached, cache_creation_tokens: usageTotals.cacheCreation,
+        },
+        agentId: draftWrap.automationId || null, conversationId: draftWrap.builderSessionId || null,
+    }, store);
+}
+
+module.exports = { closeTurn, sessionMemory, meterBuilderTurn, addRoundUsage };

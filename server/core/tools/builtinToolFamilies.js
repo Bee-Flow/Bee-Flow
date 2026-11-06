@@ -91,7 +91,7 @@ async function executeGenerateImage(toolName, toolArgs, context) {
         }
         if (send) send(type, data);
     };
-    const result = await executeImageGenTool(toolArgs, context.imageGenSettings, imgSend, context.req);
+    const result = await executeImageGenTool(toolArgs, context.imageGenSettings, imgSend, context.req, context);
     // Enrich captured image data with proxy URL for persistent storage
     if (capturedImageData && onImageGenerated) {
         if (result?.imageUrl) capturedImageData.url = result.imageUrl;
@@ -103,13 +103,16 @@ async function executeGenerateImage(toolName, toolArgs, context) {
 // ─── Video Generation ──────────────────────────────────────────
 async function executeGenerateVideo(toolName, toolArgs, context) {
     const { executeVideoGenTool } = require('./videoGenTool');
-    return await executeVideoGenTool(toolArgs, relay(context.send), context.req, context.nanoBananaSettings);
+    return await executeVideoGenTool(toolArgs, relay(context.send), context.req, context.nanoBananaSettings, context);
 }
 
 // ─── ElevenLabs Tools (Music, TTS, SFX) ────────────────────────
 async function executeElevenLabs(toolName, toolArgs, context) {
-    const { executeElevenLabsTool } = require('./elevenLabsTools');
-    return await executeElevenLabsTool(toolName, toolArgs, relay(context.send), context.req, context.nanoBananaSettings);
+    const { runElevenLabsTool } = require('./elevenLabsTools');
+    // `caller: context` so the usage row names the agent and conversation
+    // behind the call (mediaUsage.js reads userId, orgId, agentId,
+    // agentName and conversationId off it), not a generic direct chat.
+    return await runElevenLabsTool({ toolName, toolArgs, send: relay(context.send), req: context.req, nanoBananaSettings: context.nanoBananaSettings, caller: context });
 }
 
 // ─── Reminder Tool ─────────────────────────────────────────────

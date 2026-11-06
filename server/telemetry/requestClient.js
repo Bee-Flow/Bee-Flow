@@ -18,7 +18,8 @@
  * ─────────────────────────────────────────────────────────────────────────
  * WHAT THIS MAY AND MAY NOT BECOME.
  *
- * This is a closed enum of four values, stamped on a row that already exists.
+ * This is a closed enum of five values (web, android, desktop, api and
+ * unknown), stamped on a row that already exists.
  * It is not the thin end of an analytics wedge, and the contract is written
  * down in docs/docs/reference/telemetry.md so it can be held to:
  *
@@ -35,13 +36,14 @@
  */
 
 const { AsyncLocalStorage } = require('node:async_hooks');
+const usageAreas = require('../shared/usageAreas');
 
 /**
  * The closed set. An unrecognised header is `unknown`, never its own value —
  * otherwise any caller could mint a category and the column stops being an
  * enum you can GROUP BY.
  */
-const CLIENTS = new Set(['web', 'android', 'api']);
+const CLIENTS = new Set(['web', 'android', 'desktop', 'api']);
 const UNKNOWN = 'unknown';
 
 const store = new AsyncLocalStorage();
@@ -83,14 +85,11 @@ function currentClient() {
  * The denominator for any client question. Everything else in the source enum
  * — automation runs, scheduled tasks, swarm sub-calls, title generation — is
  * the server acting on its own, and including it would silently shrink every
- * client's share by however busy the instance happens to be.
+ * client's share by however busy the instance happens to be. The list is
+ * derived from the source vocabulary (shared/usageAreas.js, `interactive`),
+ * so a new source is classified once, where it is declared.
+ * @type {ReadonlyArray<string>}
  */
-const INTERACTIVE_SOURCES = [
-    'direct_chat',
-    'agent_chat',
-    'agent_stream',
-    'notebook',
-    'webpage_chat',
-];
+const INTERACTIVE_SOURCES = usageAreas.INTERACTIVE_SOURCES;
 
 module.exports = { withRequestClient, currentClient, normalizeClient, INTERACTIVE_SOURCES, CLIENTS };

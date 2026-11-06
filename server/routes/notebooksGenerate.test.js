@@ -27,10 +27,13 @@ const notebookKnowledgeSearch = require('../core/kb/notebookKnowledgeSearch');
 const modelResolver = require('../core/llm/modelResolver');
 const aiAgent = require('../core/aiAgent');
 const providers = require('../core/providers');
+const usageStore = require('../stores/usageStore');
 
 const { swap, restore } = makeSwaps();
 
 const state = { notebook: null };
+/** The usage rows the generation wrote (core/llm/surfaceUsage.js). */
+const usageRows = [];
 
 const { api } = h.routeUnderTest(test, '/api/notebooks', () => {
     // Before the router loads: it destructures these at require time.
@@ -54,8 +57,12 @@ test.before(() => {
     swap(aiAgent, 'getAIConfig', async () => ({ model: 'test-model' }));
     swap(aiAgent, 'getProviderForModel', async () => ({ apiKey: 'k', url: 'http://test.local', providerType: 'mock' }));
     swap(providers, 'getAdapter', () => ({
-        stream: async (_key, _url, _model, _messages, _opts, cb) => { cb('text', { text: 'GENERATED-OK' }); },
+        stream: async (_key, _url, _model, _messages, _opts, cb) => {
+            cb('text', { text: 'GENERATED-OK' });
+            cb('done', { prompt_tokens: 120, completion_tokens: 30 });
+        },
     }));
+    swap(usageStore, 'logUsage', async (row) => { usageRows.push(row); });
 });
 test.after(restore);
 
@@ -91,4 +98,21 @@ test('generate and ai-fill are behind the notebook-ai spend limiter (NOTEBOOK_AI
     const router = require('./notebooksGenerate');
     assert.deepStrictEqual(h.limitersOn(router, 'post', '/:id/generate/:type'), ['notebook-ai']);
     assert.deepStrictEqual(h.limitersOn(router, 'post', '/:id/ai-fill'), ['notebook-ai']);
+});
+
+test('a generation writes one notebook_generate usage row for the person and the notebook', async () => {
+    const { areaOf } = require('../shared/usageAreas');
+    seedNotebook({ id: 'nb1', documentContent: '<p>A real document body</p>' });
+    usageRows.length = 0;
+    const r = await generate();
+    assert.strictEqual(r.status, 200);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(usageRows.length, 1);
+    const row = usageRows[0];
+    assert.strictEqual(row.source, 'notebook_generate');
+    assert.strictEqual(row.user_id, 'u1');
+    assert.strictEqual(row.conversation_id, 'nb1');
+    assert.strictEqual(row.model, 'test-model');
+    assert.strictEqual(row.prompt_tokens, 120);
+    assert.notStrictEqual(areaOf(row.source), 'other');
 });

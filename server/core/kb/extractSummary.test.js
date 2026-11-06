@@ -24,10 +24,11 @@ const DEFAULT_STRUCTURED = { summary: 'Payment terms, 30-day validity, warranty'
 // so a test can hand in null or undefined ON PURPOSE — which is exactly what
 // a model returning nothing usable looks like.
 function deps({ structured = DEFAULT_STRUCTURED, chat, model = 'fast-model' } = {}) {
-    const calls = { chat: [] };
+    const calls = { chat: [], usage: [] };
     return {
         calls,
         deps: {
+            usageStore: { logUsage: async (row) => { calls.usage.push(row); } },
             resolveAgentModel: async () => model,
             getAIConfig: async () => ({}),
             llmClient: {
@@ -61,6 +62,7 @@ test('runs on the fast tier — this is a label, not an answer', async () => {
         resolveAgentModel: async (tier) => { seen.push(tier); return 'fast-model'; },
         getAIConfig: async () => ({}),
         llmClient: { chatForcedTool: async () => ({ structured: { summary: 'x' } }) },
+        usageStore: { logUsage: async () => {} },
     };
     await summarise({ text: TEXT, deps: d });
     assert.deepStrictEqual(seen, ['tier:fast']);
@@ -144,3 +146,21 @@ function describe_overlap() {
         assert.strictEqual(withOverlap('', null), null);
     });
 }
+
+test('a label writes one kb_summary usage row for the uploader, the org and the knowledge base', async () => {
+    const { areaOf } = require('../../shared/usageAreas');
+    const { deps: d, calls } = deps({
+        chat: () => ({ structured: DEFAULT_STRUCTURED, usage: { prompt_tokens: 50, completion_tokens: 8 } }),
+    });
+    await summarise({ text: TEXT, deps: d, userId: 'u1', orgId: 'org-1', kbId: 'kb-1' });
+    assert.strictEqual(calls.usage.length, 1);
+    const row = calls.usage[0];
+    assert.strictEqual(row.source, 'kb_summary');
+    assert.strictEqual(row.user_id, 'u1');
+    assert.strictEqual(row.organization_id, 'org-1');
+    assert.strictEqual(row.agent_id, 'kb-1');
+    assert.strictEqual(row.model, 'fast-model');
+    assert.strictEqual(row.prompt_tokens, 50);
+    assert.ok(!JSON.stringify(row).includes('Payment terms'), 'no document text in the row');
+    assert.notStrictEqual(areaOf(row.source), 'other');
+});

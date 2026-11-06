@@ -11,6 +11,7 @@ const path = require('path');
 const configStore = require('../../stores/configStore');
 const { googleAdapter } = require('../providers');
 const log = require('../../telemetry/log');
+const { mediaUsageFields } = require('./mediaUsage');
 
 const VIDEO_GEN_TOOLS = [
     {
@@ -61,8 +62,9 @@ function isVideoGenTool(name) {
 
 /**
  * @param {(arg0: string, arg1: { name: string; message: string; } | { url: string; mimeType: string; }) => void} send
+ * @param {import('./mediaUsage').MediaCaller | null} [caller] the dispatch context: who and which agent/conversation
  */
-async function executeVideoGenTool(args, send, /** @type {import('express').Request} */ req, nanoBananaSettings) {
+async function executeVideoGenTool(args, send, /** @type {import('express').Request} */ req, nanoBananaSettings, caller = null) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
         return { error: 'Google API key not configured. Add it in Admin → AI Config → API Keys.' };
@@ -134,8 +136,7 @@ async function executeVideoGenTool(args, send, /** @type {import('express').Requ
     try {
         const usageStore = require('../../stores/usageStore');
         await usageStore.logUsage({
-            agent_id: null,
-            agent_name: 'direct-chat',
+            ...mediaUsageFields(req, caller),
             model: 'veo-3.1-generate-001',
             prompt_tokens: prompt.length,
             completion_tokens: 0,

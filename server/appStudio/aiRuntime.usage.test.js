@@ -130,3 +130,30 @@ test('run log: outside a captured step nothing is collected', async () => {
     const empty = await captureStep(async () => 1);
     assert.strictEqual(empty.ai, null);
 });
+
+test('the usage entry names the viewer and the run when the runner set them; null outside a scope', () => {
+    const { withUsageAttribution } = require('./usageAttribution');
+    const { areaOf } = require('../shared/usageAreas');
+    const bare = aiRuntime._usageEntry(APP, 'm', {}, Date.now(), 'studio_app_ai');
+    assert.strictEqual(bare.user_id, 'owner1', 'the owner pays');
+    assert.strictEqual(bare.actor_user_id, null);
+    assert.strictEqual(bare.run_id, null);
+    const scoped = withUsageAttribution({ actorUserId: 'viewer9', runId: 'run7' },
+        () => aiRuntime._usageEntry(APP, 'm', {}, Date.now(), 'studio_app_ai'));
+    assert.strictEqual(scoped.user_id, 'owner1');
+    assert.strictEqual(scoped.organization_id, 'org1');
+    assert.strictEqual(scoped.agent_id, 'app1');
+    assert.strictEqual(scoped.actor_user_id, 'viewer9');
+    assert.strictEqual(scoped.run_id, 'run7');
+    assert.notStrictEqual(areaOf(scoped.source), 'other');
+});
+
+test('the attribution survives the awaits of a model call', async () => {
+    const { withUsageAttribution } = require('./usageAttribution');
+    await withAdapter(realClaudeAdapter([{ text: 'ok' }]), async () => {
+        await withUsageAttribution({ actorUserId: 'viewer9', runId: 'run7' }, () => aiRuntime.runText(APP, MODEL, { system: 's', user: 'u' }));
+    });
+    assert.strictEqual(usageCalls.length, 1);
+    assert.strictEqual(usageCalls[0].actor_user_id, 'viewer9');
+    assert.strictEqual(usageCalls[0].run_id, 'run7');
+});

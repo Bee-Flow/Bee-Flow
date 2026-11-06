@@ -77,6 +77,16 @@ async function _initDB() {
         // already exists; see telemetry/requestClient.js for what it may and may
         // not become.
         `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS client TEXT DEFAULT 'unknown'`,
+        // actor_user_id — the person who CAUSED the call when that is not user_id:
+        // the colleague who pressed an app's button, started or submitted an
+        // automation run, or asked a webpage. user_id stays the account the call
+        // is billed to (the owner of the app or automation); NULL means "the same
+        // person". The Adoption report groups on COALESCE(actor_user_id, user_id).
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS actor_user_id TEXT`,
+        // run_id — the automation run, app action run or cowork run this call
+        // belongs to, so the cost of one run can be summed without guessing from
+        // a time window. NULL for a call outside a run.
+        `ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS run_id TEXT`,
         // ── Rating evidence (one row = one self-contained, re-derivable cost) ──
         // A row stores the rate card it was priced with, so a cost can be explained
         // and corrected later without guessing what the price list said that day.

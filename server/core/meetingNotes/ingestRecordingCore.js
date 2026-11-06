@@ -72,7 +72,7 @@ async function assertDedupHitReadable(existing, userId, accessCtx) {
  * from short diarization fragments. The platform already named every speaker:
  * keep those names as they are.
  */
-async function nameSpeakers(built, { speakersNamed, language, userName, orgId, participantNames, voiceprint }) {
+async function nameSpeakers(built, { speakersNamed, language, userName, userId, orgId, participantNames, voiceprint }) {
     const { speakers } = built;
     const nameMapping = speakersNamed
         ? Object.fromEntries(speakers.map((s) => [s.id, s.id]))
@@ -82,7 +82,7 @@ async function nameSpeakers(built, { speakersNamed, language, userName, orgId, p
                 [...(participantNames || []), ...voiceprint.roster],
                 // No speaker-count input on the auto-import paths — Talk/Meet
                 // supply an attendee roster instead, which is stronger.
-                { lockedNames: voiceprint.mapping, ruledOutNames: voiceprint.ruledOut },
+                { lockedNames: voiceprint.mapping, ruledOutNames: voiceprint.ruledOut, userId },
             )
             : null;
     // Floor unnamed ids to clean "Spreker N"/"Speaker N" — never leak raw ids.
@@ -95,7 +95,7 @@ async function nameSpeakers(built, { speakersNamed, language, userName, orgId, p
 async function writeSummary(named, { userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated, meetingDate, extraRecordings }) {
     const { transcript } = named;
     const defaultTemplate = await resolveOwnerDefaultTemplate(userId, orgId);
-    const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null });
+    const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null, userId });
     // BEFORE the note's notice lines, because a failed artifact pass is one
     // of them. This writer must not pass `artifacts.*` through raw: a pass that
     // fell over or could not be parsed would then produce a finished note claiming
@@ -108,6 +108,7 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
         // against the meeting week, not the import day.
         meetingDateIso: meetingDateIsoOf(meetingDate),
         personNames: [...named.speakers.map((s) => s.id), ...(participantNames || [])],
+        userId,
     });
     const usable = artifactsUsable(artifacts);
     if (!usable) {
@@ -123,11 +124,11 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     // are warnings about the pipeline, not about the meeting. With no summary
     // there is nothing to title from, and the hint (room / event name) stays.
     if (rawSummary) {
-        const aiTitle = await generateMeetingTitle(rawSummary, language, orgId);
+        const aiTitle = await generateMeetingTitle(rawSummary, language, orgId, { userId });
         if (aiTitle) title = aiTitle;
     }
-    const chapters = await generateChapters(transcript, language, orgId);
-    const speakerSummaries = await generateSpeakerSummaries(transcript, named.speakers.map((s) => s.id), language, orgId);
+    const chapters = await generateChapters(transcript, language, orgId, { userId });
+    const speakerSummaries = await generateSpeakerSummaries(transcript, named.speakers.map((s) => s.id), language, orgId, { userId });
     const speakers = applySpeakerSummaries(named.speakers, speakerSummaries);
     return { defaultTemplate, artifacts, usable, summary, title, chapters, speakers };
 }
@@ -233,7 +234,7 @@ async function ingestLocalRecording(opts) {
             throw new IngestError('Transcription returned no words. The recording may be silent, or in a language the engine could not transcribe.', { code: 'empty_transcription', status: 502 });
         }
         const totalDuration = built.totalDuration;
-        const named = await nameSpeakers(built, { speakersNamed, language, userName, orgId, participantNames, voiceprint });
+        const named = await nameSpeakers(built, { speakersNamed, language, userName, userId, orgId, participantNames, voiceprint });
         const { merged, transcript } = named;
         const { defaultTemplate, artifacts, usable, summary, title, chapters, speakers } = await writeSummary(named, {
             userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated, meetingDate, extraRecordings,

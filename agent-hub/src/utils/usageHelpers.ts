@@ -27,7 +27,7 @@ export function rowsToCsv(headers: string[], rows: Array<Record<string, unknown>
     return lines.join('\n');
 }
 
-function downloadCsv(filename: string, csv: string): void {
+export function downloadCsv(filename: string, csv: string): void {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

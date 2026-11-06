@@ -55,6 +55,9 @@ stub('../llm/modelResolver', {
     resolveModelForTierName: async (tierName, { fallback } = {}) => (tierName === 'smart' ? 'smart-model' : (fallback || 'fast-model')),
 });
 
+// The ledger sink (core/llm/surfaceUsage.js seam): every naming call writes a row.
+const usageRows = [];
+require('../llm/surfaceUsage')._setDepsForTests({ logUsage: async (row) => { usageRows.push(row); } });
 
 const { identifySpeakerNames } = require('./speakerNaming');
 const { fillGenericSpeakerLabels, applySpeakerNames } = require('./transcriptArtifacts');
@@ -87,6 +90,20 @@ test('no roster + no guard → extracts introduced names, then assigns real name
     assert.match(chatCalls[1].sys, /transcript analyst/);
     // Both ran on the SMART tier, not the old fast-lite model.
     assert.ok(chatCalls.every(c => c.model === 'smart-model'));
+});
+
+test('both naming calls write a meeting_summary usage row for the owner and the org', async () => {
+    usageRows.length = 0;
+    extractionResponse = '["Ewald","Tom"]';
+    assignmentResponse = '{"SPEAKER_00":"Ewald","SPEAKER_01":"Tom"}';
+    await identifySpeakerNames(SEGMENTS, SPEAKERS, 'nl', null, 'org-1', [], { userId: 'u-owner' });
+    assert.strictEqual(usageRows.length, 2, 'the extraction pass and the assignment');
+    for (const row of usageRows) {
+        assert.strictEqual(row.source, 'meeting_summary');
+        assert.strictEqual(row.user_id, 'u-owner');
+        assert.strictEqual(row.organization_id, 'org-1');
+        assert.strictEqual(row.model, 'smart-model');
+    }
 });
 
 test('a generic label the model emits is dropped, leaving the id for the floor', async () => {

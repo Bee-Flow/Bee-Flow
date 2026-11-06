@@ -11,10 +11,11 @@ import OrgTerminationsPanel from './OrgTerminationsPanel';
 import { useLicenseContext } from '../../components/licensing/LicenseContext';
 import { useDeploymentMode } from '../../hooks/useDeploymentMode';
 import { deriveRangeParams, USAGE_ALL_DAYS, buildModelTierMap, tierForModel } from '../../utils/usageHelpers';
-import { shortModel } from './usage/format';
+import { currencySym, shortModel } from './usage/format';
 import { getSourceDetails } from './usage/widgets';
 import RangeControl, { defaultRange } from './usage/RangeControl';
 import OverviewTab from './usage/OverviewTab';
+import AdoptionTab from './usage/adoption/AdoptionTab';
 import type { StarterModel } from '../../api/runtimeTypes';
 import type { DropdownOption } from './PreferencesSection.types';
 import { logger } from '../../utils/logger';
@@ -24,16 +25,17 @@ import { logger } from '../../utils/logger';
 // "What happened" (?tab=activity) — they are shield monitoring, not
 // consumption reporting. This page keeps the money/usage reports.
 const REPORT_TABS = [
-    { id: 'overview', labelKey: 'usage.tab_overview', icon: BarChart3, color: '#0ea5e9' },
-    { id: 'feedback', labelKey: 'usage.tab_feedback', icon: ThumbsUp, color: '#10b981' },
-    { id: 'terminations', labelKey: 'usage.tab_terminations', icon: AlertTriangle, color: '#f43f5e' },
+    { id: 'overview', labelKey: 'usage.tab_overview', label: 'Overview', icon: BarChart3, color: '#0ea5e9' },
+    { id: 'adoption', labelKey: 'adoption.tab', label: 'Adoption', icon: Users, color: '#10b981' },
+    { id: 'feedback', labelKey: 'usage.tab_feedback', label: 'Feedback', icon: ThumbsUp, color: '#10b981' },
+    { id: 'terminations', labelKey: 'usage.tab_terminations', label: 'Terminations', icon: AlertTriangle, color: '#f43f5e' },
 ];
 
 interface ReportTabBarProps {
     active: string;
     onChange: React.Dispatch<React.SetStateAction<string>>;
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
-    tabs?: { id: string; labelKey: string; icon: LucideIcon; color: string; }[];
+    tabs?: { id: string; labelKey: string; label: string; icon: LucideIcon; color: string; }[];
 }
 
 const ReportTabBar = ({ active, onChange, t: translate, tabs = REPORT_TABS }: ReportTabBarProps) => (
@@ -51,7 +53,7 @@ const ReportTabBar = ({ active, onChange, t: translate, tabs = REPORT_TABS }: Re
                     onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)'; }}
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
                     <Icon style={{ width: 14, height: 14, color: isActive ? tab.color : 'var(--text-muted)' }} />
-                    {translate(tab.labelKey)}
+                    {translate(tab.labelKey, tab.label)}
                 </button>
             );
         })}
@@ -202,9 +204,13 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const userOptions = useMemo(() => data.users.map(u => ({ value: u.user_id, label: u.display_name || u.user_id })), [data.users]);
     const agentOptions = useMemo(() => data.agents.map(a => ({ value: a.agent_id || a.agent_name, label: a.agent_name || 'Direct Chat' })), [data.agents]);
     const modelOptions = useMemo(() => data.models.map(m => ({ value: m.model, label: shortModel(m.model) })), [data.models]);
-    const sourceOptions = useMemo(() => data.sources.map(s => ({ value: s.source, label: getSourceDetails(s.source).label })), [data.sources]);
+    const sourceOptions = useMemo(() => data.sources.map(s => ({ value: s.source, label: getSourceDetails(s.source, t).label })), [data.sources, t]);
 
-    const isPanelTab = activeReport === 'feedback' || activeReport === 'terminations';
+    // Feedback, Terminations and Adoption read their own endpoints: the
+    // cross-cutting user/agent/model/source filters do not apply to them, and
+    // Adoption has its own group filter.
+    const isPanelTab = activeReport === 'feedback' || activeReport === 'terminations' || activeReport === 'adoption';
+    const billing = (subscription as { billing?: { plan_currency?: string } | null } | null)?.billing;
 
     return (
         <div className="[display:flex] [flex-direction:column] [gap:16px] [padding-bottom:24px]">
@@ -257,6 +263,9 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                             showTokens={showTokens} tierForModel={tierFor} modelTiers={modelTiers} azureServices={azureServices}
                             setFilterUser={setFilterUser} setFilterModel={setFilterModel} setFilterSource={setFilterSource}
                         />
+                    )}
+                    {activeReport === 'adoption' && (
+                        <AdoptionTab rangeParams={rangeParams} rangePreset={range.preset} showTokens={showTokens} currency={currencySym(billing?.plan_currency || 'EUR')} />
                     )}
                     {activeReport === 'feedback' && <OrgFeedbackPanel rangeParams={rangeParams} showTokens={showTokens} />}
                     {activeReport === 'terminations' && <OrgTerminationsPanel rangeParams={rangeParams} showTokens={showTokens} />}

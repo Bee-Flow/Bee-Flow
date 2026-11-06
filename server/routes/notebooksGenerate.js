@@ -38,6 +38,8 @@ const { asEditor, text } = require('./notebooksShared');
 const { requireAuth } = require('../auth/permissions');
 const { spendLimiter } = require('../utils/perUserRateLimit');
 const { sessionUser } = require('../core/http/sessionUser');
+// The adapter's stream with one usage row per call (notebooksGenerateStream.js).
+const { meteredStream } = require('./notebooksGenerateStream');
 
 // ── What a caller may send ─────────────────────────────────────────
 // Closed bodies (see routes/notebooksShared.js).
@@ -222,7 +224,7 @@ ${shield.units[0]}${shield.addendum}`;
         };
 
 
-        await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (streamType, data) => {
+        await meteredStream({ adapter, apiKey, apiUrl, modelId, messages, chatOptions }, { userId, orgId: userOrgId, conversationId: nb.id }, (streamType, data) => {
             if (streamType === 'text') {
                 // Real values back in for the person who asked; the model saw tokens.
                 send('content', { text: shield.untokenise.push(/** @type {string} */ (data.text)) });
@@ -358,7 +360,7 @@ ${shieldedSources}${shield.addendum}`;
         const _fillDefaults = TIER_DEFAULTS[resolvedTier] || TIER_DEFAULTS['fast'];
         const chatOptions = { maxTokens: _fillDefaults.maxTokens, temperature: 0.1 };
 
-        await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (streamType, data) => {
+        await meteredStream({ adapter, apiKey, apiUrl, modelId, messages, chatOptions }, { userId, orgId: userOrgId, conversationId: nb.id }, (streamType, data) => {
             if (streamType === 'text') {
                 send('content', { text: shield.untokenise.push(/** @type {string} */ (data.text)) });
             } else if (streamType === 'error') {

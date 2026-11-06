@@ -69,6 +69,8 @@
    "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS swarm_run_id TEXT",
    "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS billed_cost DOUBLE PRECISION",
    "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS client TEXT DEFAULT 'unknown'",
+   "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS actor_user_id TEXT",
+   "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS run_id TEXT",
    "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_input DOUBLE PRECISION",
    "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_output DOUBLE PRECISION",
    "ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS price_cache_read DOUBLE PRECISION",
@@ -298,7 +300,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -335,7 +337,9 @@
    "USD",
    1,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -371,7 +375,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    "u1",
@@ -408,7 +412,9 @@
    "USD",
    1,
    "priority",
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000,\"completion_tokens\":500,\"cached_tokens\":50,\"cache_creation_tokens\":10,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":true,\"reasoning_tokens\":7,\"prompt_includes_cache\":false,\"cache_ttl\":\"1h\",\"service_tier\":\"priority\",\"inference_geo\":\"eu\",\"traffic_type\":null,\"tool_use\":{\"web_search\":2},\"modality\":{\"image\":1}},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"priority\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000,\"completion_tokens\":500,\"cached_tokens\":50,\"cache_creation_tokens\":10,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":true,\"reasoning_tokens\":7,\"prompt_includes_cache\":false,\"cache_ttl\":\"1h\",\"service_tier\":\"priority\",\"inference_geo\":\"eu\",\"traffic_type\":null,\"tool_use\":{\"web_search\":2},\"modality\":{\"image\":1}},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"priority\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -462,7 +468,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    "u1",
@@ -499,7 +505,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":2000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":2000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -555,7 +563,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -592,7 +600,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -667,7 +677,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -704,7 +714,9 @@
    "USD",
    1.25,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -738,7 +750,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -775,7 +787,9 @@
    "USD",
    1,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -830,7 +844,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -867,7 +881,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -915,7 +931,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    "u-payg",
@@ -952,7 +968,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1008,7 +1026,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -1045,7 +1063,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1100,7 +1120,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    "u-none",
@@ -1137,7 +1157,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1178,7 +1200,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -1215,7 +1237,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[],\"deployment\":\"my-deploy\"}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[],\"deployment\":\"my-deploy\"}}",
+   null,
+   null
   ]
  },
  {
@@ -1256,7 +1280,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -1293,7 +1317,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1327,7 +1353,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2099-01-01T00:00:00.000Z",
    null,
@@ -1364,7 +1390,9 @@
    "USD",
    1,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-05-05T00:00:00.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-05-05T00:00:00.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1398,7 +1426,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "garbage",
    null,
@@ -1435,7 +1463,9 @@
    "USD",
    1,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-05-05T00:00:00.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-05-05T00:00:00.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1469,7 +1499,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -1506,7 +1536,9 @@
    "USD",
    1,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1540,7 +1572,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -1577,7 +1609,9 @@
    "USD",
    1,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[],\"deployment\":\"my-deploy\"}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[],\"deployment\":\"my-deploy\"}}",
+   null,
+   null
   ]
  },
  {
@@ -1625,7 +1659,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -1662,7 +1696,9 @@
    "USD",
    1,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1792,7 +1828,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -1829,7 +1865,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -1911,7 +1949,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -1948,7 +1986,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {
@@ -2008,7 +2048,7 @@
  },
  {
   "via": "run",
-  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb) RETURNING id",
+  "sql": "INSERT INTO ai_usage_log (timestamp, user_id, agent_id, agent_name, agent_type, model, prompt_tokens, completion_tokens, total_tokens, cached_tokens, cache_creation_tokens, reasoning_tokens, cache_ttl, stop_reason, parent_call_id, swarm_run_id, tool_name, source, duration_ms, organization_id, estimated_cost, billed_cost, conversation_id, client, price_input, price_output, price_cache_read, price_cache_write, price_source, catalog_version, cost_basis, price_currency, currency, fx_rate, service_tier, usage_raw, actor_user_id, run_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36::jsonb, $37, $38) RETURNING id",
   "params": [
    "2026-01-02T03:04:05.000Z",
    null,
@@ -2045,7 +2085,9 @@
    "EUR",
    0.8,
    null,
-   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}"
+   "{\"v\":1,\"usage\":{\"prompt_tokens\":1000000,\"completion_tokens\":null,\"cached_tokens\":null,\"cache_creation_tokens\":null,\"cache_creation_5m_tokens\":null,\"cache_creation_1h_tokens\":null,\"cache_creation_ttl_assumed\":null,\"reasoning_tokens\":null,\"prompt_includes_cache\":null,\"cache_ttl\":null,\"service_tier\":null,\"inference_geo\":null,\"traffic_type\":null,\"tool_use\":null,\"modality\":null},\"pricing\":{\"at\":\"2026-01-02T03:04:05.000Z\",\"tier\":\"standard\",\"inference_geo\":null,\"long_context\":false,\"valid_from\":\"2026-01-01\",\"list_rates\":{\"input\":3},\"multiplier\":1,\"notes\":[]}}",
+   null,
+   null
   ]
  },
  {

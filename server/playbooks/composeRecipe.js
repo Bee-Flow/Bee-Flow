@@ -16,6 +16,7 @@
 
 const { languageName, packLocale } = require('./copy');
 const { modelUnreachable } = require('./modelFailure');
+const { meteredCall } = require('./phases/phaseModel');
 
 const { normaliseRecipeDoc, validateRecipeDoc, synthesizeTableFromPlaceholders, MAX_PHASES, MAX_FIELDS } = require('./recipeDoc');
 const { isTruncatedStop } = require('../core/llm/toolLoop');
@@ -77,6 +78,8 @@ function defaultDeps() {
         resolveModel: /** @param {{ tier?: string, userOrgId?: string | null, userId?: string | null }} opts */ (opts) => require('../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
         /** @param {Parameters<typeof import('../core/llm/llmClient').chatForcedTool>} args */
         chatForcedTool: (...args) => require('../core/llm/llmClient').chatForcedTool(...args),
+        /** @param {import('../core/llm/surfaceUsage').SurfaceCall} call */
+        logUsage: (call) => require('../core/llm/surfaceUsage').logSurfaceUsage(call),
     };
 }
 
@@ -229,6 +232,7 @@ async function composeRecipe({ description, locale = 'nl', userId = null, userOr
     ];
     const tool = recipeTool({ approvalsAllowed });
     const opts = composeOptions();
+    const who = { userId, userOrgId, modelId };
     // The document whose findings stand: the first draft, or the repair once
     // it is adopted. The repair round echoes the first; the failure log below
     // reads the shape, stop reason and round of whichever is returned.
@@ -242,7 +246,7 @@ async function composeRecipe({ description, locale = 'nl', userId = null, userOr
     // draft), `empty` (no document), `failed` (the request itself threw).
     let repair = 'none';
     try {
-        const first = /** @type {{ structured?: any, stopReason?: string | null, rawArguments?: string | null }} */ ((await deps.chatForcedTool(modelId, messages, tool, opts)) || {});
+        const first = /** @type {{ structured?: any, stopReason?: string | null, rawArguments?: string | null }} */ ((await meteredCall(deps, who, () => deps.chatForcedTool(modelId, messages, tool, opts))) || {});
         structured = first.structured || null;
         lastRaw = structured;
         lastStop = first.stopReason ?? null;
@@ -268,12 +272,13 @@ async function composeRecipe({ description, locale = 'nl', userId = null, userOr
         // refuses anything else ("must be a-z, A-Z, 0-9, with a length of 9"),
         // and a refused repair round is a first-draft refusal in disguise.
         const callId = 'repair001';
+        const echoed = echoArguments(rawArguments, lastRaw);
         try {
-            const again = await deps.chatForcedTool(modelId, [
+            const again = await meteredCall(deps, who, () => deps.chatForcedTool(modelId, [
                 ...messages,
-                { role: 'assistant', content: null, tool_calls: [{ id: callId, type: 'function', function: { name: 'return_playbook', arguments: echoArguments(rawArguments, lastRaw) } }] },
+                { role: 'assistant', content: null, tool_calls: [{ id: callId, type: 'function', function: { name: 'return_playbook', arguments: echoed } }] },
                 { role: 'tool', tool_call_id: callId, name: 'return_playbook', content: `NOT RUNNABLE. Fix exactly these and call return_playbook again with the WHOLE playbook:\n${findings}` },
-            ], tool, opts);
+            ], tool, opts));
             if (again && again.structured) {
                 // The repaired document did not fit either: the fix is a
                 // shorter description, not the first draft's findings.

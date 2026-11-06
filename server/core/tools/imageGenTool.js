@@ -8,6 +8,7 @@ const path = require('path');
 const configStore = require('../../stores/configStore');
 const { googleAdapter } = require('../providers');
 const log = require('../../telemetry/log');
+const { mediaUsageFields } = require('./mediaUsage');
 
 const IMAGE_GEN_TOOLS = [
     {
@@ -39,8 +40,9 @@ function isImageGenTool(name) {
 
 /**
  * @param {(arg0: string, arg1: { data: string; mimeType: string | null; }) => void} send
+ * @param {import('./mediaUsage').MediaCaller | null} [caller] the dispatch context: who and which agent/conversation
  */
-async function executeImageGenTool(args, imageGenSettings, send, /** @type {import('express').Request} */ req) {
+async function executeImageGenTool(args, imageGenSettings, send, /** @type {import('express').Request} */ req, caller = null) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
         return { error: 'Image generation is not available — the API key is not configured. Tell the user that image generation is currently unavailable and ask them to contact an administrator. Do NOT attempt to generate images using code, HTML, Canvas, WebGL, SVG, or any other workaround.' };
@@ -94,8 +96,7 @@ async function executeImageGenTool(args, imageGenSettings, send, /** @type {impo
     try {
         const usageStore = require('../../stores/usageStore');
         await usageStore.logUsage({
-            agent_id: null,
-            agent_name: 'direct-chat',
+            ...mediaUsageFields(req, caller),
             model: imageGenSettings?.model || 'gemini-3.1-flash-image-preview',
             prompt_tokens: prompt.length,
             completion_tokens: 0,

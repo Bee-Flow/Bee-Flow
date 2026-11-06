@@ -85,7 +85,7 @@ function withTimeout(promise, ms, label) {
  *          failure — no provider, no model, a timeout, a refusal, a malformed
  *          tool call. The caller stores the document either way.
  */
-async function summarise({ text, title = '', language = 'English', deps = {} } = /** @type {SummariseArgs} */ ({})) {
+async function summarise({ text, title = '', language = 'English', deps = {}, userId, orgId, kbId } = /** @type {SummariseArgs} */ ({})) {
     const body = String(text || '').trim();
     if (body.length < 40) return null; // nothing to say about a line of text
 
@@ -99,6 +99,7 @@ async function summarise({ text, title = '', language = 'English', deps = {} } =
         const modelId = await resolveAgentModel('tier:fast', prefix, await getAIConfig());
         if (!modelId) return null;
 
+        const startedAt = Date.now();
         const result = await withTimeout(
             llmClient.chatForcedTool(modelId, [
                 {
@@ -119,6 +120,11 @@ async function summarise({ text, title = '', language = 'English', deps = {} } =
             TIMEOUT_MS,
             'extract summary',
         );
+        // One usage row per label (source kb_summary): who uploaded, their
+        // organisation and the knowledge base, when the caller names them.
+        require('../llm/surfaceUsage').logSurfaceUsage({
+            source: 'kb_summary', userId, orgId, agentId: kbId, model: modelId, usage: result?.usage, startedAt,
+        }, deps.usageStore);
 
         return normalise(result?.structured);
     } catch (e) {
@@ -169,5 +175,7 @@ module.exports = { summarise, normalise, withOverlap, PREFIX_CHARS, TIMEOUT_MS, 
 /**
  * @typedef {{ text: string, title?: string, language?: string, deps?: { llmClient?: typeof import('../llm/llmClient'),
  *   resolveAgentModel?: typeof import('../agentRuntime/modelResolver').resolveAgentModel,
- *   getAIConfig?: typeof import('../aiAgent').getAIConfig } }} SummariseArgs
+ *   getAIConfig?: typeof import('../aiAgent').getAIConfig,
+ *   usageStore?: { logUsage: (entry: object) => Promise<unknown> } },
+ *   userId?: string | null, orgId?: string | null, kbId?: string | null }} SummariseArgs
  */

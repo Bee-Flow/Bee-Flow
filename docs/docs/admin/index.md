@@ -35,6 +35,10 @@ The first user to register on a fresh install becomes an org admin automatically
 
     Branding, defaults, integrations, License & usage.
 
+-    [Usage & adoption](usage-and-adoption.md)
+
+    The Adoption report: who uses AI, where it goes, what was built in Studio (Enterprise).
+
 -    [Beta features](beta-features.md)
 
     Feature flags — enable upcoming features per-org.
@@ -61,6 +65,7 @@ The first user to register on a fresh install becomes an org admin automatically
 | Set up SAML SSO | [Organisation settings](organisation-settings.md) → SSO (Enterprise+) |
 | Configure a custom domain (white-label) | [Organisation settings](organisation-settings.md) → Branding (Full tier) |
 | Lock Studio so users can't create their own agents | [Organisation settings](organisation-settings.md) → Studio policy |
+| See how many people use AI and where it goes | [Usage & adoption](usage-and-adoption.md) |
 
 ## Admin audit trail
 

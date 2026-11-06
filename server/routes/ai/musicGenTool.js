@@ -11,6 +11,7 @@ const path = require('path');
 const configStore = require('../../stores/configStore');
 const { googleAdapter } = require('../../core/providers');
 const log = require('../../telemetry/log');
+const { mediaUsageFields } = require('../../core/tools/mediaUsage');
 
 const MUSIC_GEN_TOOLS = [
     {
@@ -52,8 +53,9 @@ function isMusicGenTool(name) {
  * @param {(arg0: string, arg1: { data: string; mimeType: string; }) => void} send
  * @param {import('express').Request} req
  * @param {{ lyria?: { bpm?: number, durationSeconds?: number, density?: number, brightness?: number, guidance?: number, mode?: string, muteBass?: boolean, muteDrums?: boolean } } | null} nanoBananaSettings
+ * @param {import('../../core/tools/mediaUsage').MediaCaller | null} [caller] the dispatch context: who and which agent/conversation
  */
-async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
+async function executeMusicGenTool(args, send, req, nanoBananaSettings, caller = null) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
         return { error: 'Google API key not configured. Add it in Admin → AI Config → API Keys.' };
@@ -113,21 +115,7 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
         log.warn('[MusicGen Tool] Failed to save audio to disk:', /** @type {Error} */ (e).message);
     }
 
-    // Log usage
-    try {
-        const usageStore = require('../../stores/usageStore');
-        await usageStore.logUsage({
-            agent_id: null,
-            agent_name: 'direct-chat',
-            model: 'lyria-realtime-exp',
-            prompt_tokens: prompt.length,
-            completion_tokens: 0,
-            total_tokens: prompt.length,
-            source: 'music_generation',
-        });
-    } catch (e) {
-        log.warn('[MusicGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
-    }
+    await logMusicUsage(req, caller, prompt);
 
     return {
         success: true,
@@ -139,4 +127,28 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
     };
 }
 
-module.exports = { MUSIC_GEN_TOOLS, isMusicGenTool, executeMusicGenTool };
+/**
+ * The ledger row of one generation, billed to the caller (core/tools/mediaUsage.js).
+ * Never throws: a failed write is logged.
+ * @param {{ session?: { user?: { id?: unknown, organizationId?: unknown } } } | null | undefined} req
+ * @param {import('../../core/tools/mediaUsage').MediaCaller | null | undefined} caller
+ * @param {string} prompt
+ * @param {{ logUsage: (entry: object) => Promise<unknown> }} [sink] the ledger sink (default: the usage store)
+ */
+async function logMusicUsage(req, caller, prompt, sink) {
+    try {
+        const usageStore = sink || require('../../stores/usageStore');
+        await usageStore.logUsage({
+            ...mediaUsageFields(req, caller),
+            model: 'lyria-realtime-exp',
+            prompt_tokens: prompt.length,
+            completion_tokens: 0,
+            total_tokens: prompt.length,
+            source: 'music_generation',
+        });
+    } catch (e) {
+        log.warn('[MusicGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
+    }
+}
+
+module.exports = { MUSIC_GEN_TOOLS, isMusicGenTool, executeMusicGenTool, logMusicUsage };

@@ -238,6 +238,12 @@
             "why": "Themable emoji catalogue: utils/emojiCatalog.js re-exports it (plus defaultEmojiFor / labelFor) as the synchronous fallback before /api/icons/catalog loads. emojiCatalog.lockstep.test.ts deep-equals it to the source."
         },
         {
+            "source": "server/shared/usageAreas.js",
+            "target": "agent-hub/src/shared/usageAreas.generated.mjs",
+            "transform": "cjs-to-esm",
+            "why": "The source -> area table of the AI usage ledger (where the AI goes): the Adoption report, the Overview tab area labels and the client split read one vocabulary; server/shared/usageAreas.test.js pins the literals to the writers."
+        },
+        {
             "source": "agent-hub/src/components/automation/Builder/flow/settings/columnMatch.ts",
             "target": "mobile/src/features/flow-editor/bindings/mirror/columnMatch.ts",
             "transform": "none",

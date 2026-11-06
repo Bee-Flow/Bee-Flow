@@ -309,3 +309,22 @@ test('an unreachable designer is a fixed sentence and a correlation id; the erro
     assert.doesNotMatch(JSON.stringify(lookup), /10\.9\.9\.9|ECONNREFUSED/);
     assert.ok(lines.some((l) => l.includes('correlationId=req-4712') && /10\.9\.9\.9:5432/.test(l)), 'the lookup failure is logged under its id');
 });
+
+test('the designer call writes one playbook usage row for the person and the org', async () => {
+    const { areaOf } = require('../../shared/usageAreas');
+    const logged = [];
+    const deps = {
+        resolveModel: async () => 'model-fast',
+        chatForcedTool: async () => ({ structured: RAW, usage: { prompt_tokens: 300, completion_tokens: 90 } }),
+        logUsage: (call) => { logged.push(call); },
+    };
+    const out = await D.runDesignPhase({ goal: 'An invoice app', table: TABLE, locale: 'en', userId: 'u1', userOrgId: 'org-1' }, deps);
+    assert.equal(out.ok, true);
+    assert.equal(logged.length, 1);
+    assert.equal(logged[0].source, 'playbook');
+    assert.equal(logged[0].userId, 'u1');
+    assert.equal(logged[0].orgId, 'org-1');
+    assert.equal(logged[0].model, 'model-fast');
+    assert.deepEqual(logged[0].usage, { prompt_tokens: 300, completion_tokens: 90 });
+    assert.notEqual(areaOf(logged[0].source), 'other');
+});

@@ -294,7 +294,7 @@ test('the 202 answers first, then the whisperx run completes the note and announ
     assert.strictEqual(id[3], 'Tom');
     assert.strictEqual(id[4], 'org-1');
     assert.deepStrictEqual(id[5], ['Anna']);
-    assert.deepStrictEqual(id[6], { lockedNames: null, ruledOutNames: null, expectedSpeakers: 3, knownNames: ['Piet'] });
+    assert.deepStrictEqual(id[6], { lockedNames: null, ruledOutNames: null, expectedSpeakers: 3, userId: 'owner-1', knownNames: ['Piet'] });
     assert.strictEqual(calls.summary[0][3].templatePrompt, 'TPL-PROMPT');
     assert.strictEqual(calls.extract[0][3].meetingDateIso, '2026-03-04');
     assert.ok(calls.extract[0][3].personNames.includes('Anna'));
@@ -462,7 +462,7 @@ test('pyannote: org comes from the note and the voiceprint results reach naming,
     }]);
     const id = calls.identify[0];
     assert.deepStrictEqual(id[5], ['Anna', 'Bert']);
-    assert.deepStrictEqual(id[6], { lockedNames: { speaker_0: 'Anna' }, ruledOutNames: ['Carl'], expectedSpeakers: 3, knownNames: ['Piet'] });
+    assert.deepStrictEqual(id[6], { lockedNames: { speaker_0: 'Anna' }, ruledOutNames: ['Carl'], expectedSpeakers: 3, userId: 'owner-1', knownNames: ['Piet'] });
     assert.strictEqual(calls.run[0].params[14], JSON.stringify([{ speaker: 'speaker_0', name: 'Anna' }]));
 });
 

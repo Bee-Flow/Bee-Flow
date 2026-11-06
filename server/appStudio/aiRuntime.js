@@ -30,8 +30,8 @@
 const llmClient = require('../core/llm/llmClient');
 const { guardedAiCall, aiCallTimeoutMs } = require('./aiCallGuard.mts');
 const { readDocument, newReport } = require('./aiDocumentRead.mts');
-const usageStore = require('../stores/usageStore');
-const { usageLogFields } = require('../core/providers/usageNormalizer');
+// The owner-attributed ledger row of each call (aiRuntimeUsage.js).
+const { usageEntry, logUsage } = require('./aiRuntimeUsage');
 const log = require('../telemetry/log');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 
@@ -107,37 +107,6 @@ function visionByModelName(modelId) {
         return describeMistralModel(modelId).vision;
     }
     return /gpt-4o|gpt-4\.1|gpt-4\.5|gpt-5|o4|gemini/i.test(modelId);
-}
-
-/**
- * @param {number} t0
- * @param {string} source
- */
-function usageEntry(app, modelId, usage, t0, source) {
-    return {
-        user_id: app.userId,
-        organization_id: app.organizationId || null,
-        agent_id: app.id,
-        agent_name: `App: ${app.name || 'Untitled app'}`,
-        agent_type: 'studio_app',
-        model: modelId,
-        // Tokens, cache read/write (with the 5m/1h split and cache_ttl), reasoning,
-        // tier and tool counts: adapters return the normalised shape
-        // (core/providers/usageNormalizer.js); a raw provider block is read too.
-        ...usageLogFields(usage),
-        duration_ms: Date.now() - t0,
-        source,
-        conversation_id: app.id,
-    };
-}
-
-/**
- * @param {number} t0
- * @param {string} source
- */
-function logUsage(app, model, usage, t0, source) {
-    // Never let billing bookkeeping break a step (matches studioAppsRun). The run log of the step gets the call too (runLog/aiUsage.mts).
-    try { const entry = usageEntry(app, model.modelId, usage, t0, source); require('./runLog/aiUsage.mts').noteStepAiCall(model, entry); usageStore.logUsage(entry).catch((e) => bestEffort('appStudio/aiRuntime:logUsage', e)); } catch (err) { bestEffort('appStudio/aiRuntime:logUsage#2', err); /* ignore */ }
 }
 
 /**

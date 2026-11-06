@@ -402,10 +402,10 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
             } else if (type === 'error') {
                 send('error', data);
             }
-            // 'done' handled after stream completes
         };
 
-        await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, streamCallback);
+        await require('./templateChatUsage').meteredTemplateStream({ adapter, apiKey, apiUrl, modelId, messages, chatOptions },
+            { userId, orgId: userOrgId, templateId, conversationId: conversationId || null }, streamCallback);
 
         if (_streamUntok) {
             const _tail = _streamUntok.flush();

@@ -32,6 +32,7 @@ const fx = {
     modelThrows: false,
     modelCalls: [],
     orgThrows: false,
+    usageCalls: [],
 };
 
 const MOCKS = {
@@ -40,7 +41,7 @@ const MOCKS = {
         chatForcedTool: async (modelId, messages, toolDef, opts) => {
             fx.chatCalls.push({ modelId, messages, toolDef, opts });
             if (fx.chatThrows) throw new Error('provider down');
-            return { structured: fx.structured, content: null };
+            return { structured: fx.structured, content: null, usage: { prompt_tokens: 12, completion_tokens: 30 } };
         },
     },
     '../../core/llm/modelResolver': {
@@ -61,6 +62,7 @@ const MOCKS = {
     '../../utils/routeHelpers': { getEffectiveUserId: () => fx.userId },
     '../../utils/perUserRateLimit': { perUserRateLimit: mw },
     './crud': { canModifyAgent: async () => fx.canModify },
+    '../../core/llm/surfaceUsage': { logSurfaceUsage: (call) => { fx.usageCalls.push(call); } },
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -91,6 +93,7 @@ test.beforeEach(() => {
     fx.modelThrows = false;
     fx.modelCalls = [];
     fx.orgThrows = false;
+    fx.usageCalls = [];
 });
 
 function dispatch(body = {}, url = '/a1/persona/parse') {
@@ -263,4 +266,25 @@ test('a text that is not text is refused by name', async () => {
     const res = await dispatch({ text: 42 });
     assert.strictEqual(res.statusCode, 400);
     assert.ok(res.body.details.some((d) => d.path === 'body.text'), JSON.stringify(res.body.details));
+});
+
+test('a parse writes one agent_persona usage row for the user, the org and the agent', async () => {
+    const { areaOf } = require('../../shared/usageAreas');
+    const r = await dispatch({ text: 'You help with invoices. Never give tax advice.' });
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(fx.usageCalls.length, 1);
+    const call = fx.usageCalls[0];
+    assert.strictEqual(call.source, 'agent_persona');
+    assert.strictEqual(call.userId, 'owner');
+    assert.strictEqual(call.orgId, 'orgA');
+    assert.strictEqual(call.agentId, 'a1');
+    assert.strictEqual(call.model, 'fast-model');
+    assert.deepStrictEqual(call.usage, { prompt_tokens: 12, completion_tokens: 30 });
+    assert.notStrictEqual(areaOf(call.source), 'other');
+});
+
+test('a failed parse writes no usage row (nothing was spent that the provider reported)', async () => {
+    fx.chatThrows = true;
+    await dispatch({ text: 'You help with invoices.' });
+    assert.strictEqual(fx.usageCalls.length, 0);
 });

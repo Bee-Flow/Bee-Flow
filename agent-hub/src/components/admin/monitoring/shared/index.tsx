@@ -5,6 +5,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { usageSourceDetails } from '@/components/shared/usageAreaMeta';
 import type { UsageRow, ModelRate } from '../drawer/drawerTypes';
 import type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, CardProps, MetricCardProps, InOutLabelProps, DonutItem, FilterOption, FilterSelectProps, FilterState, FilterBarProps, SortableColumn, SortableTableProps, SkeletonProps, SkeletonGridProps } from '../shared.types';
 import { fmt, COLORS, Empty } from './SvgAreaChart';
@@ -71,18 +72,12 @@ export function getAgentStyle(type: string | undefined) {
     return AGENT_COLORS[String(type)] || AGENT_COLORS.chat;
 }
 
-const SOURCE_MAP: Readonly<Record<string, { label: string; icon: LucideIcon; color: string }>> = {
-    agent: { label: 'Agent Chat', icon: Bot, color: '#6366f1' },
-    chat: { label: 'Agent Chat', icon: Bot, color: '#6366f1' },
-    direct: { label: 'Direct Chat', icon: Activity, color: '#10b981' },
-    notebook: { label: 'Notebooks', icon: Activity, color: '#8b5cf6' },
-    research: { label: 'Research', icon: Activity, color: '#f59e0b' },
-    template: { label: 'Templates', icon: Activity, color: '#ef4444' },
-    designer: { label: 'App Designer', icon: Activity, color: '#0ea5e9' },
-    agent_stream: { label: 'Agent Stream', icon: Bot, color: '#6366f1' },
-};
-export const getSourceDetails = (source: string | null | undefined) =>
-    SOURCE_MAP[String(source)] || { label: source || 'Other', icon: Activity, color: '#94a3b8' };
+// A ledger `source` named by the area it rolls up to (the shared vocabulary in
+// shared/usageAreas.generated.mjs, the same meta the Settings usage pages
+// read), so the AI Monitor and Usage & Monitoring use one set of names.
+// An unknown source keeps its raw name under "Other".
+export const getSourceDetails = (source: string | null | undefined, t?: (key: string, fallback: string) => string) =>
+    usageSourceDetails(source, t);
 
 // ── Base UI Components ──────────────────────────────────────────────────────
 

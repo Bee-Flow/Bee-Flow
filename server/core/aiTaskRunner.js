@@ -24,7 +24,9 @@ const { pool } = require('../db');
 const terminationStore = require('../stores/terminationStore');
 const { sanitizeError } = require('./privacy/errorSanitizer');
 const log = require('../telemetry/log');
-const { createUsageAccumulator, usageLogFields } = require('./providers/usageNormalizer');
+const { createUsageAccumulator } = require('./providers/usageNormalizer');
+// The run id of the ledger row and the one usage row per run (aiTaskRunnerUsage.js).
+const { SOURCE, historyRunId, logRunUsage } = require('./aiTaskRunnerUsage');
 
 const { executeAgentRun } = require('./cowork/agentScheduleRun');
 const { runPromptToolLoop, MAX_TOOL_ITERATIONS } = require('./cowork/promptTaskLoop');
@@ -173,9 +175,6 @@ const NOTIFICATION = Object.freeze({
     prefix: '',
 });
 
-/** `source` and `agent_type` of the usage and termination rows a run writes. */
-const SOURCE = 'cowork';
-
 /**
  * A schedule repeats either via repeatInterval or via a daysOfWeek list —
  * cowork composes "every Monday at 09:00" as daysOfWeek with a null interval,
@@ -218,11 +217,13 @@ async function executeTask(task, { manual = false, store = require('../stores/co
     // iteration 19 has paid for 18 real model rounds. One accumulator over
     // every round of the loop (providers/usageNormalizer.js): tokens, cache
     // read/write (with the 5m/1h split), tier and tool counts.
-    const run = { userOrgForTier: null, modelId: null, usageAcc: createUsageAccumulator(), lastIter: 0, usageLogged: false };
+    const run = { userOrgForTier: null, modelId: null, usageAcc: createUsageAccumulator(), lastIter: 0, usageLogged: false, runId: null };
 
     try {
         // coworkStore labels the history row it opens for this attempt with it.
-        await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' });
+        // The id of that row is the run the ledger row names (run_id), when
+        // the store hands it back.
+        run.runId = historyRunId(await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' }));
 
         const prep = await prepareTaskRun(task, run);
         const terminationBase = () => ({
@@ -294,43 +295,6 @@ async function executeTask(task, { manual = false, store = require('../stores/co
             ...sanitizeError(err),
         }).catch((e) => bestEffort('core/aiTaskRunner:executeTask#2', e));
         await failRun(task, err, { manual, store });
-    }
-}
-
-/**
- * Log this run's spend through the SAME sink as interactive chats
- * (usageStore.logUsage → ai_usage_log; it derives cost, FX and PAYG itself),
- * so scheduled work shows up on the org dashboard and counts against quota
- * instead of running for free. Attribution is an explicit field list — the
- * allow-list form — under the owner and the effective org the tier was
- * already resolved with. SOURCE ('cowork') is both source and agent_type,
- * matching the notification and the termination log.
- *
- * Fire-and-forget with a warn (the terminationStore pattern): usage logging
- * is bookkeeping, not a gatekeeper — a failing log must never fail the run.
- * Logs once per run, and not at all before the first model call.
- * @param {number} startTime
- */
-function logRunUsage(task, run, startTime) {
-    if (run.usageLogged || run.lastIter === 0) return; // nothing spent before the first model call
-    run.usageLogged = true;
-    const warn = (err) => log.warn(
-        `[AITaskRunner] Usage log failed for cowork ${task.id} (run unaffected): ${err.message}`);
-    try {
-        require('../stores/usageStore').logUsage({
-            user_id: task.userId || null,
-            agent_id: task.agentId || null,
-            agent_name: task.title || null,
-            agent_type: SOURCE,
-            model: run.modelId,
-            source: SOURCE,
-            conversation_id: task.id || null,
-            ...usageLogFields(run.usageAcc.total()),
-            duration_ms: Date.now() - startTime,
-            organization_id: run.userOrgForTier || null,
-        }).catch(warn);
-    } catch (err) {
-        warn(err);
     }
 }
 

@@ -3060,6 +3060,48 @@
       "gate": "middleware",
       "via": "requireAuth"
     },
+    "GET /api/usage/adoption/areas": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_monitoring",
+        "all"
+      ]
+    },
+    "GET /api/usage/adoption/groups": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_monitoring",
+        "all"
+      ]
+    },
+    "GET /api/usage/adoption/people": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_monitoring",
+        "all"
+      ]
+    },
+    "GET /api/usage/adoption/studio": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_monitoring",
+        "all"
+      ]
+    },
+    "GET /api/usage/adoption/studio/items": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_monitoring",
+        "all"
+      ]
+    },
+    "GET /api/usage/adoption/summary": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_monitoring",
+        "all"
+      ]
+    },
     "GET /api/usage/agents": {
       "gate": "middleware",
       "via": "_advUsagePrefixGate"

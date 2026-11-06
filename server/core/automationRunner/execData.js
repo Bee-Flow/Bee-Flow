@@ -436,14 +436,34 @@ function applyParseJsonAiItems(structured, fields) {
         .map(row => applyParseJsonAiResult(row, fields));
 }
 
-async function execParseJson(step, ctx, runState, mode) {
+/**
+ * What the AI mode of parse_json calls, injectable; each defaults to the real
+ * module (the model resolver and the LLM client stay lazy, as before).
+ * @typedef {{ modelResolver?: Pick<typeof import('../llm/modelResolver'), 'resolveModelForTierName'>,
+ *   llmClient?: Pick<typeof import('../llm/llmClient'), 'chatForcedTool'>,
+ *   safety?: typeof safety,
+ *   usageStore?: { logUsage: (entry: object) => Promise<unknown> } }} ParseJsonAiDeps
+ */
+
+/** @param {ParseJsonAiDeps} [deps] */
+function parseJsonAiDeps(deps = {}) {
+    return {
+        modelResolver: deps.modelResolver || require('../llm/modelResolver'),
+        llmClient: deps.llmClient || require('../llm/llmClient'),
+        safety: deps.safety || safety,
+        usageStore: deps.usageStore || usageStore,
+    };
+}
+
+/** @param {ParseJsonAiDeps} [deps] the AI mode's model, guard and ledger seams */
+async function execParseJson(step, ctx, runState, mode, deps) {
     const fields = normaliseParseJsonFields(step);
     const itemsRef = typeof step.itemsRef === 'string' ? step.itemsRef.trim() : '';
     return withSyntheticSourceSkip({ step, ctx, runState, mode, fields, itemsRef },
-        () => parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef }));
+        () => parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef, deps }));
 }
 
-async function parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef }) {
+async function parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef, deps }) {
     const raw = resolveParseJsonSource(step, ctx, runState);
     const aiMode = step.mode === 'ai';
     const parsed = parseParseJsonSource(raw, { requireStructured: !aiMode });
@@ -469,8 +489,8 @@ async function parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef
     const groupedAi = !!itemsRef;
     if (groupedAi) resolveParseJsonItems(itemsRef, parsed); // fail fast on a bad path
 
-    const { resolveModelForTierName } = require('../llm/modelResolver');
-    const modelId = await resolveModelForTierName('fast', {
+    const ai = parseJsonAiDeps(deps);
+    const modelId = await ai.modelResolver.resolveModelForTierName('fast', {
         userOrgId: ctx.orgId || null, userId: ctx.userId, fallback: 'gemini-2.0-flash-lite',
     });
 
@@ -482,20 +502,19 @@ async function parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef
 
     // Safety parity with execAiStep: guard the input (userInput scope) before
     // the call; a `block` action throws here and routes to on_error.
-    const policy = await safety.resolveAutomationPolicy(ctx);
-    const auditBase = safety.buildAuditBase(ctx, step);
+    const policy = await ai.safety.resolveAutomationPolicy(ctx);
+    const auditBase = ai.safety.buildAuditBase(ctx, step);
     auditBase.model = modelId;
-    const aiGuard = await safety.guardAiInput(messages, policy, auditBase, mode, ctx);
+    const aiGuard = await ai.safety.guardAiInput(messages, policy, auditBase, mode, ctx);
     if (aiGuard.blocked) {
         // dry-run under a `block` policy: don't send the raw payload anyway.
         return { output: { _guardrailWouldBlock: aiGuard.categories || [] }, dryRunSynthesised: true, dryRunFallback: 'guardrail_block' };
     }
 
     // Dry-run intentionally calls the model too (parity with execAiStep).
-    const llmClient = require('../llm/llmClient');
     let result;
     try {
-        result = await llmClient.chatForcedTool(modelId, messages, TOOL, {
+        result = await ai.llmClient.chatForcedTool(modelId, messages, TOOL, {
             maxTokens: 2048, temperature: 0, reasoningEffort: 'none', budgetTokens: 0,
         });
     } catch (e) {
@@ -510,22 +529,23 @@ async function parseJsonFromSource(step, ctx, runState, mode, { fields, itemsRef
         : applyParseJsonAiResult(result.structured, fields);
 
     // Guard model output + restore from the run vault — same block as execAiStep.
-    const aiOut = await safety.guardAiOutput(output, policy, auditBase, mode, ctx);
-    output = safety.restoreForRunState(aiOut.content, ctx);
+    const aiOut = await ai.safety.guardAiOutput(output, policy, auditBase, mode, ctx);
+    output = ai.safety.restoreForRunState(aiOut.content, ctx);
 
     // Cost attribution (source='automation') — same shape as execAiStep.
     try {
-        usageStore.logUsage({
+        ai.usageStore.logUsage({
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
             agent_type: 'automation', model: modelId, source: 'automation',
             conversation_id: ctx.automationId,
+            actor_user_id: ctx.actorUserId ?? null, run_id: ctx.runId ?? null,
             // Normalised by the adapter (cache read/write included).
             ...usageLogFields(result.usage),
         }).catch((e) => bestEffort('core/automationRunner/execData:execParseJson', e));
     } catch (_) { log.warn('could not record AI usage of the data step', _); }
 
-    const piiSummary = safety.buildPiiSummary(aiOut.categories || []);
+    const piiSummary = ai.safety.buildPiiSummary(aiOut.categories || []);
     return { output, ...(piiSummary ? { piiSummary } : {}) };
 }
 

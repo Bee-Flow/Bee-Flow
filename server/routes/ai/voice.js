@@ -82,6 +82,9 @@ const agentStore = require('../../stores/agentStore');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
 const { bestEffort } = require('../../utils/bestEffort');
+const { createUsageAccumulator } = require('../../core/providers/usageNormalizer');
+// One usage row per voice turn (voiceUsage.js), re-exported on the router.
+const { meterVoiceTurn } = require('./voiceUsage');
 
 /**
  * @param {NextFunction} next
@@ -503,6 +506,9 @@ router.post(
                 }).catch((e) => bestEffort('routes/ai/voice:logShieldEvent', e));
             };
 
+            // Every round's usage (the adapter's `done` payload): one ledger row per turn.
+            const turnUsage = createUsageAccumulator();
+            const llmStart = Date.now();
             while (round < MAX_VOICE_TOOL_ROUNDS) {
                 let roundText = '';
                 const roundToolCalls = [];
@@ -531,6 +537,8 @@ router.post(
                             name: data.name,
                             input: data.input || {},
                         });
+                    } else if (event === 'done') {
+                        turnUsage.add(data);
                     }
                 });
 
@@ -618,6 +626,7 @@ router.post(
             }
 
             send('llm_done', { rounds: roundsMetrics });
+            meterVoiceTurn(req, { model, usage: turnUsage.total(), startedAt: llmStart, agentId });
 
             // 5 ─ TTS the final reply (only non-tool assistantText).
             //      Clean stray JSON / code fragments before synthesis — the
@@ -666,4 +675,4 @@ router.post(
     }
 );
 
-module.exports = router;
+module.exports = Object.assign(router, { meterVoiceTurn });

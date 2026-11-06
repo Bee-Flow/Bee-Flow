@@ -676,12 +676,8 @@ function withBudget(promise, ms) {
     ]).finally(() => { if (timer) clearTimeout(timer); });
 }
 
-function defaultDeps() {
-    return {
-        resolveModel: (opts) => require('../../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
-        chatForcedTool: (...args) => /** @type {Function} */ (require('../../core/llm/llmClient').chatForcedTool)(...args),
-    };
-}
+// The model dependencies, their metered default and the phase's usage row: ./phaseModel.js.
+const { meterPhase, defaultDeps } = require('./phaseModel');
 
 /**
  * @returns {Promise<{ ok:true, artifacts:{ findings, facts, frameworks, modelFailed, checks }, summary }>}
@@ -701,10 +697,13 @@ async function runCompliancePhase({ facts, locale = 'en', frameworkNames = [], u
         try {
             const modelId = await withBudget(deps.resolveModel({ userOrgId, userId, tier }), budgetMs);
             if (!modelId) throw new Error('no model is configured for this tier');
-            const { structured } = await withBudget(deps.chatForcedTool(modelId, [
+            const startedAt = Date.now();
+            const answer = await withBudget(deps.chatForcedTool(modelId, [
                 { role: 'system', content: reviewPrompt(locale, frameworkNames) },
                 { role: 'user', content: factsMessage(facts, statics, locale) },
             ], reviewTool(facts.frameworks), { maxTokens: 1800, temperature: 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: budgetMs }), budgetMs);
+            meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt });
+            const { structured } = answer;
             // No structured answer is a FAILURE, not a clean review. It must not
             // be indistinguishable from "the reviewer looked and found nothing",
             // which is the one thing this phase must never claim by accident.

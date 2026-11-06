@@ -49,6 +49,7 @@ const { validate } = require('../core/http/validate');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { bestEffort } = require('../utils/bestEffort');
+const { logSurfaceUsage } = require('../core/llm/surfaceUsage');
 
 const router = express.Router();
 
@@ -80,6 +81,23 @@ const upload = multer({
     },
 });
 
+/**
+ * One usage row per dictation (source `dictate`, core/llm/surfaceUsage.js): the
+ * signed-in person and their organisation. The engine is local and reports no
+ * tokens, so the row has zero tokens and names the engine as its model: it
+ * still says the dictation happened.
+ * @param {import('express').Request<any, any, any, any>} req
+ * @param {string | undefined} engine
+ * @param {number} startedAt
+ */
+function meterDictation(req, engine, startedAt) {
+    const user = req.session?.user;
+    logSurfaceUsage({
+        source: 'dictate', userId: user?.id || null, orgId: user?.organizationId || null,
+        model: engine || 'local-whisper', startedAt,
+    });
+}
+
 router.post('/', requireAuth, (req, res, next) => {
     upload.single('audio')(req, res, (/** @type {(Error & { code?: string }) | undefined} */ err) => {
         if (!err) return next();
@@ -105,11 +123,13 @@ router.post('/', requireAuth, (req, res, next) => {
     try {
         await fs.promises.writeFile(tmpPath, req.file.buffer);
         const { transcribeLocally } = require('../core/voice/localWhisper');
+        const startedAt = Date.now();
         const result = await transcribeLocally(tmpPath, { language });
 
         if (!result) {
             throw new HttpError(503, 'dictation_unavailable', 'Speech recognition is not available on this server right now.');
         }
+        meterDictation(req, result.provider, startedAt);
         return res.json({
             text: result.text || '',
             provider: result.provider || 'local',

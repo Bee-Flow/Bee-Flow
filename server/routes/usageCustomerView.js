@@ -25,6 +25,8 @@ const CUSTOMER_FIELDS = Object.freeze(new Set([
     // Dimensions and labels.
     'id', 'timestamp', 'period', 'user_id', 'organization_id', 'agent_id', 'agent_name', 'agent_type',
     'model', 'source', 'tool_name', 'conversation_id', 'client',
+    // Who caused the call and which run it belongs to: identifiers, never a figure.
+    'actor_user_id', 'run_id',
     'models_used', 'sources_used', 'agents_used',
     'first_call', 'last_call', 'started_at', 'ended_at',
     // Added by withUser() in the route.

@@ -64,6 +64,7 @@ const captureRaw = express.json({
 // must stay byte-identical to the connector's signing side) in auth/connectorSig.
 const { verifyConnectorSig } = require('../auth/connectorSig');
 const { fallback } = require('../utils/bestEffort');
+const { meterAssistantCall, meteredAssistantChat } = require('./nextcloudTaskProcessingUsage');
 
 /**
  * Per-task-type prompt construction.
@@ -276,7 +277,7 @@ async function runAgentTurn({ input, org, user, ncUid }) {
     for (let step = 0; step < AGENT_MAX_STEPS; step++) {
         // Capped: each step of this loop is a full prompt evaluation on the
         // provider, and a tool-calling round never needs more than this.
-        const completion = await llmClient.chat(modelId, messages, { stream: false, tools, maxTokens: 4096 });
+        const completion = await meteredAssistantChat(llmClient, modelId, messages, { stream: false, tools, maxTokens: 4096 }, { userId, org });
         const calls = completion?.toolCalls || completion?.tool_calls || [];
         const text = typeof completion === 'string'
             ? completion
@@ -432,14 +433,13 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
         userId: user?.id || null,
     });
 
-    const llmClient = require('../core/llm/llmClient');
-    const completion = await llmClient.chat(modelId, messages, {
+    const completion = await meteredAssistantChat(require('../core/llm/llmClient'), modelId, messages, {
         // Task Processing is a background API — nothing is streaming this
         // to a browser, and Nextcloud wants the whole answer in one reply.
         stream: false,
         // Bounded so one runaway generation cannot hold a self-hosted slot.
         maxTokens: 8192,
-    });
+    }, { userId: user?.id || null, org });
 
     const text = typeof completion === 'string'
         ? completion
@@ -449,7 +449,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
     return res.json({ output: { output: text } });
 });
 
-module.exports = Object.assign(router, { HANDLERS, AGENT_TASK_TYPE, runAgentTurn, LANGUAGE_RULE });
+module.exports = Object.assign(router, { HANDLERS, AGENT_TASK_TYPE, runAgentTurn, LANGUAGE_RULE, meterAssistantCall });
 
 /** @typedef {Record<string, unknown>} TaskInput  the task input object Nextcloud sent (ExecuteBody.input) */
 

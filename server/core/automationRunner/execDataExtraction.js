@@ -50,11 +50,9 @@ const {
 // guarded on the way out and the reply on the way back, exactly like an
 // ai_step's prompt (egressCoverage.test.js is the table of these routes).
 const safety = require('./safety');
-const usageStore = require('../../stores/usageStore');
-const { usageLogFields } = require('../providers/usageNormalizer');
+const { logExtractionUsage } = require('./execDataExtractionUsage');
 const { resolveDataExtractionModel, extractionRequestOptions, callExtractionModel } = require('./dataExtractionModel');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
 const { synthesiseDryRunExtraction } = require('./dataExtractionDryRun');
 
 // The contract's system prompt, verbatim. The field list, the optional
@@ -484,16 +482,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
     }
 
     // Usage bookkeeping (source='automation'), the same row an ai_step writes.
-    try {
-        usageStore.logUsage({
-            user_id: ctx.userId, organization_id: ctx.orgId || null,
-            agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
-            agent_type: 'automation', model: modelId, source: 'automation',
-            conversation_id: ctx.automationId,
-            // Normalised by the adapter (cache read/write included).
-            ...usageLogFields(response && response.usage),
-        }).catch((e) => bestEffort('core/automationRunner/execDataExtraction:execDataExtraction', e));
-    } catch (_) { log.warn('could not record AI usage of the extraction step', _); }
+    logExtractionUsage(ctx, modelId, response && response.usage);
 
     const piiSummary = safety.buildPiiSummary(aiOut.categories || []);
     return {

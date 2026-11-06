@@ -20,19 +20,16 @@ const { languageName, copyFor } = require('../copy');
 // The cap on a RENDERED brief — the same number the document writer enforces,
 // not a second one. recipeDoc requires only copy.js and the data model, so
 // there is no cycle back to here.
-const { MAX_BRIEF_CHARS, clampToLines } = require('../recipeDoc');
+const { MAX_BRIEF_CHARS } = require('../recipeDoc');
 const { deriveScreenConstraints, describeScreenConstraints, applyScreenConstraints, isBinding } = require('../../core/llm/screenConstraints');
 const { modelUnreachable, modelLookupFailed } = require('../modelFailure');
 const log = require('../../telemetry/log');
+// The design document: the caps and vocabulary, normaliseDesign and designToBrief.
+const {
+    normaliseDesign, designToBrief, checkElementWords,
+    PRESETS, ELEMENT_KINDS, ELEMENT_WORDS, MAX_SECTIONS, MAX_DESIGN_BRIEF_CHARS,
+} = require('./designDocument');
 
-const PRESETS = ['classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono'];
-const ELEMENT_KINDS = ['stat', 'chart', 'table', 'filters', 'form', 'detail', 'list', 'text', 'button', 'image'];
-const MAX_SCREENS = 6;
-const MAX_SECTIONS = 6;
-const MAX_ELEMENTS = 8;
-// Raised from 1600 with the move to markdown (2026-09-16): a heading per
-// screen and a bullet per section cost characters the prose version did not.
-const MAX_DESIGN_BRIEF_CHARS = 1800;
 // The person's own words, and the brief the app builder will receive — BOTH in
 // full. They must not be cut at 700 characters mid-word, or the designer designs
 // inside a brief whose last screen it has never seen, and then designToBrief
@@ -175,7 +172,6 @@ function designerUserMessage({ goal, table, sampleRows, approvals, locale, feedb
     return lines.join('\n');
 }
 
-/** Clamp the model's design to the shape the stage draws and the brief carries. */
 /**
  * Every value of a personal column replaced by a placeholder naming its kind.
  *
@@ -209,110 +205,8 @@ function redactPersonal(rows, fields) {
     });
 }
 
-function normaliseDesign(raw, locale = null) {
-    const screenWord = copyFor(locale).screenFallback;
-    const d = raw && typeof raw === 'object' ? raw : {};
-    const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
-    const look = d.look && typeof d.look === 'object' ? d.look : {};
-    const accent = /^#[0-9a-fA-F]{6}$/.test(String(look.accent || '')) ? String(look.accent).toLowerCase() : '#1e7f4f';
-    const screens = (Array.isArray(d.screens) ? d.screens : []).slice(0, MAX_SCREENS).map((s) => ({
-        name: str(s && s.name, 40) || screenWord,
-        purpose: str(s && s.purpose, 160),
-        sections: (Array.isArray(s && s.sections) ? s.sections : []).slice(0, MAX_SECTIONS).map((sec) => ({
-            title: str(sec && sec.title, 60),
-            layout: ['row', 'grid', 'stack', 'split'].includes(sec && sec.layout) ? sec.layout : 'stack',
-            elements: (Array.isArray(sec && sec.elements) ? sec.elements : []).slice(0, MAX_ELEMENTS).map((e) => ({
-                kind: ELEMENT_KINDS.includes(e && e.kind) ? e.kind : 'text',
-                label: str(e && e.label, 60) || '',
-                note: str(e && e.note, 160),
-            })).filter((e) => e.label),
-        })).filter((sec) => sec.elements.length),
-    })).filter((s) => s.sections.length);
-    return {
-        name: str(d.name, 60) || 'App',
-        tagline: str(d.tagline, 120),
-        look: { preset: PRESETS.includes(look.preset) ? look.preset : 'cloud', accent, mood: str(look.mood, 60) },
-        screens,
-        principles: (Array.isArray(d.principles) ? d.principles : []).map((p) => str(p, 120)).filter(Boolean).slice(0, 5),
-    };
-}
-
-/**
- * The designer's kinds in the BUILDER's own vocabulary.
- *
- * Every value here must be a type the builder will accept verbatim, because the
- * design block tells it the design outranks the brief. `stat` must not render as
- * "stat tile", which is not a component type — an invitation to emit `stat_tile`
- * and burn a round on the refusal. Checked against the real registry by
- * `checkElementWords` — the route at load, designPhase.test.js in CI — so the
- * map cannot drift from it again.
- */
-const ELEMENT_WORDS = {
-    stat: 'stat', chart: 'chart', table: 'data_grid', filters: 'filter_bar', form: 'form', detail: 'record_detail', list: 'list', text: 'text', button: 'button', image: 'image',
-};
-
-/**
- * The map keys whose word is NOT in the builder's registry — `[]` when the map
- * is sound. The registry (appStudio/componentSpecs.COMPONENT_TYPES) is handed
- * in rather than required: playbooks/ may not require appStudio/ (one feature
- * never requires another — layering.test.js), so routes/playbooks.js, which
- * may require both, runs this at load. Warns, never throws: a stale word costs
- * the builder a round, not the server its boot.
- */
-function checkElementWords(componentTypes) {
-    const real = new Set(Array.isArray(componentTypes) ? componentTypes : []);
-    if (!real.size) return [];
-    const unknown = Object.entries(ELEMENT_WORDS).filter(([, word]) => !real.has(word));
-    for (const [kind, word] of unknown) log.warn(`[playbooks/design] ELEMENT_WORDS.${kind} = "${word}" is not a component type the app builder knows`);
-    return unknown.map(([kind]) => kind);
-}
-
-/**
- * What a section's layout means to the builder, which speaks in 12-column spans.
- * `normaliseDesign` has always kept the layout and `designToBrief` never emitted
- * it, so "four tiles across" — the thing the room just approved — arrived as a
- * default stack.
- */
-const LAYOUT_SPAN = { row: '3 columns each', grid: '6 columns each', split: '8 and 4 columns', stack: 'full width' };
-
-/**
- * The design as the BUILDER reads it: the same screens and elements in the
- * builder's component words, capped so the app brief stays small. This is
- * appended to the app phase's brief.
- */
-function designToBrief(design) {
-    if (!design || !Array.isArray(design.screens) || !design.screens.length) return '';
-    const lines = [
-        '## DESIGN',
-        `Follow this; where it differs from the screens above, THIS wins. Call \`app_set_theme {preset:"${design.look.preset}", primary:"${design.look.accent}"}\` first${design.look.mood ? ` — mood: ${design.look.mood}` : ''}.`,
-        '',
-    ];
-    for (const s of design.screens) {
-        lines.push(`### Screen "${s.name}"${s.purpose ? ` — ${s.purpose}` : ''}`);
-        for (const sec of s.sections) {
-            const els = sec.elements.map((e) => `${ELEMENT_WORDS[e.kind] || e.kind} "${e.label}"${e.note ? ` (${e.note})` : ''}`).join(', ');
-            const span = LAYOUT_SPAN[sec.layout] || LAYOUT_SPAN.stack;
-            lines.push(`- ${sec.title ? `**${sec.title}**: ` : ''}${els} — ${span}`);
-        }
-    }
-    if (design.principles && design.principles.length) lines.push('', `**Principles:** ${design.principles.join('; ')}.`);
-    // The person's screen intent, once more for the builder: the design above
-    // already complies, and the builder must not add the screen back on its own.
-    const constraintLine = describeScreenConstraints(design.constraints);
-    if (constraintLine) lines.push('', `**${constraintLine}**`);
-    let text = lines.join('\n');
-    // Whole lines, never a character cut: the block must not end mid-bullet or
-    // mid-"**Principles:**", and the builder is told THIS outranks the brief.
-    if (text.length > MAX_DESIGN_BRIEF_CHARS) text = clampToLines(text, MAX_DESIGN_BRIEF_CHARS);
-    return text;
-}
-
-function defaultDeps() {
-    return {
-        resolveModel: (opts) => require('../../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
-        chatForcedTool: (...args) => /** @type {Function} */ (require('../../core/llm/llmClient').chatForcedTool)(...args),
-    };
-}
+// The model dependencies, their metered default and the phase's usage row: ./phaseModel.js.
+const { meterPhase, defaultDeps } = require('./phaseModel');
 
 /**
  * @returns {Promise<{ ok:true, artifacts:{ design, designName, screenCount, elementCount, constraintChanges? }, summary } | { ok:false, code, error, correlationId? }>}
@@ -339,10 +233,13 @@ async function runDesignPhase({ goal, table, sampleRows = [], approvals = false,
     const constraints = isBinding(stated) ? stated : null;
     let structured = null;
     try {
-        ({ structured } = await deps.chatForcedTool(modelId, [
+        const startedAt = Date.now();
+        const answer = await deps.chatForcedTool(modelId, [
             { role: 'system', content: designerPrompt(locale) },
             { role: 'user', content: designerUserMessage({ goal, table, sampleRows, approvals, locale, feedback, previousDesign, ask, builderBrief, constraints }) },
-        ], DESIGN_TOOL, { maxTokens: 2500, temperature: feedback ? 0.7 : 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: MODEL_BUDGET_MS }));
+        ], DESIGN_TOOL, { maxTokens: 2500, temperature: feedback ? 0.7 : 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: MODEL_BUDGET_MS });
+        meterPhase(deps, { userId, userOrgId, modelId, answer, startedAt });
+        ({ structured } = answer);
     } catch (e) {
         // The provider's words go to the log, never into the 422 or onto the
         // playbook row as the phase's error (../modelFailure.js).
@@ -379,11 +276,6 @@ module.exports = { runDesignPhase, normaliseDesign, designToBrief, designRecap, 
  * @typedef {{ key: string, name?: string, type?: string }} DesignField
  * @typedef {{ name: string, fields?: DesignField[], rowCount?: number }} DesignTable
  * @typedef {Record<string, unknown> | null} SampleRow
- * @typedef {{ name?: unknown, tagline?: unknown, look?: { preset?: string, accent?: unknown, mood?: unknown },
- *   screens?: Array<{ name?: unknown, purpose?: unknown, sections?: Array<{ title?: unknown, layout?: string,
- *     elements?: Array<{ kind?: string, label?: unknown, note?: unknown } | null> } | null> } | null>,
- *   principles?: unknown[] }} RawDesign
- *   The `return_design` tool's arguments as the model sent them (parsed JSON, unchecked).
  */
 
 /** @typedef {ReturnType<typeof normaliseDesign> & { constraints?: ScreenConstraints | null }} Design */

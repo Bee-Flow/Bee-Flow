@@ -32,6 +32,7 @@ const dlpRunner = require('../../../core/dlp/dlpRunner');
 const { createUntokeniser } = require('../../../core/dlp/untokeniseStream');
 const { applyTokenMapToMessages, untokeniseToolArgs } = require('../../../core/dlp/applyTokenMapToOutbound');
 const { fallback } = require('../../../utils/bestEffort');
+const { createTurnMeter } = require('./toolLoopUsage');
 
 // What the model is told when a write is refused, in words it can pass on.
 const VIEWER_WRITE_REFUSAL = 'This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.';
@@ -231,6 +232,8 @@ async function runToolLoop({
         }),
     });
     let fullContent = '';
+    // One ledger row per turn, written when the loop is over (toolLoopUsage.js).
+    const meter = createTurnMeter({ userId, orgId: userOrgForTiers, modelId, notebookId });
     emitPhase(send, 'streaming_start', modelId);
 
     // Un-tokenise the streamed answer for DISPLAY (Model 1): the model emits
@@ -269,7 +272,8 @@ async function runToolLoop({
                     type: 'function',
                     function: { name: data.name, arguments: JSON.stringify(data.input || {}) },
                 });
-            } else if (type === 'error') send('error', data);
+            } else if (type === 'done') meter.add(data);
+            else if (type === 'error') send('error', data);
         };
 
         const streamOptions = {
@@ -381,6 +385,7 @@ async function runToolLoop({
         }
         messages.push(...toolResults);
     }
+    meter.finish();
     return { fullContent, _untok };
 }
 

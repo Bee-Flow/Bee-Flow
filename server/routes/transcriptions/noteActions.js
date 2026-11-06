@@ -12,23 +12,19 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const transcriptionStore = require('../../stores/transcriptionStore');
-const llmClient = require('../../core/llm/llmClient');
 const { requireAuth } = require('../../auth/permissions');
-const { resolveAccessContext, resolveUserOrgFromReq, MEETING_LLM_TIMEOUT_MS } = require('./shared');
+const { resolveAccessContext, resolveUserOrgFromReq } = require('./shared');
 const { withNotices } = require('./noteText.mts');
-const { transcriptNotices, chooseRegenerateTemplate, tagsAfterWrite, transcriptUnchanged } = require('./regenerateHelpers');
+const { transcriptNotices, chooseRegenerateTemplate, regenerateSummaryText, tagsAfterWrite, transcriptUnchanged } = require('./regenerateHelpers');
 const { rearmMeetingSources, storedTags, narrowsReaders } = require('./noteSideEffects');
 const { formatDuration, assigneeSuffix } = require('./noteExport');
-const { HttpError } = require('../../core/http/errors');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const {
-    resolveSmartModel,
     extractMeetingArtifacts,
     artifactsUsable,
     generateChapters,
     generateSpeakerSummaries,
     applySpeakerSummaries,
-    SUMMARY_MAX_TOKENS,
 } = require('../../core/meetingNotes/summaryHelpers');
 // The write contract for the three artifact lists (M3) — validation on the way
 // in, and the rule that a regenerate replaces only what the AI produced.
@@ -41,8 +37,6 @@ const {
     normalizeActionItems,
 } = require('../../core/meetingNotes/actionItems');
 
-// The shared prompt builder (core/meetingNotes/summaryTemplates.js); the template choice: ./regenerateHelpers.js.
-const { buildSummarySystemPrompt } = require("../../core/meetingNotes/summaryTemplates");
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, flag, idList, bool, NOTHING, NO_QUERY } = require('./schemas');
@@ -189,22 +183,7 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
     if (!chosen) return res.status(404).json({ error: 'Template not found' });
     const { templatePrompt, stamp } = chosen;
 
-    const modelId = await resolveSmartModel(userOrgId);
-    const result = await llmClient.chat(modelId, [
-        { role: 'system', content: buildSummarySystemPrompt(templatePrompt, transcription.language) },
-        { role: 'user', content: transcription.transcript },
-        // Same budget as the original generateMeetingSummary pass — 4096
-        // used to make REgenerating a long meeting truncate harder than the
-        // first generation did. And the same cut-off: without one, an
-        // OpenAI-compatible adapter waits with no deadline at all.
-    ], { maxTokens: SUMMARY_MAX_TOKENS, temperature: 0.3, timeoutMs: MEETING_LLM_TIMEOUT_MS });
-
-    const generated = (result.content || '').trim();
-    // An empty answer (a reply spent on reasoning, a safety stop) is a failed regenerate,
-    // not an empty meeting: nothing is written, and the passes below are not paid for.
-    if (!generated) {
-        throw new HttpError(502, 'summary_empty', 'The model returned no summary. Nothing was changed; try again.');
-    }
+    const generated = await regenerateSummaryText({ transcription, templatePrompt, userId, userOrgId });
     // The TRANSCRIPT notices (stopped early, engine fallback, voice recognition) stay on
     // top: they still describe the transcript this summary was written from.
     const summary = withNotices(transcriptNotices(transcription.summary), generated);
@@ -216,10 +195,11 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         extractMeetingArtifacts(transcription.transcript, transcription.language, userOrgId, {
             meetingDateIso: (transcription.createdAt || '').slice(0, 10) || null,
             personNames: [...storedSpeakers.map((s) => s.id), ...(transcription.attendees || [])],
+            userId,
         }),
-        generateChapters(transcription.transcript, transcription.language, userOrgId),
+        generateChapters(transcription.transcript, transcription.language, userOrgId, { userId }),
         generateSpeakerSummaries(
-            transcription.transcript, storedSpeakers.map((s) => s.id), transcription.language, userOrgId,
+            transcription.transcript, storedSpeakers.map((s) => s.id), transcription.language, userOrgId, { userId },
         ),
     ]);
     const speakers = applySpeakerSummaries(storedSpeakers, speakerSummaries);

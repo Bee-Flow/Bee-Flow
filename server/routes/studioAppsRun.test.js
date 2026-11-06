@@ -744,6 +744,9 @@ test('usage is logged under the OWNER with source studio_app_action', async () =
     assert.strictEqual(entry.source, 'studio_app_action');
     assert.strictEqual(entry.agent_id, app.id);
     assert.strictEqual(entry.agent_type, 'studio_app');
+    // The viewer who clicked is the actor; the automation run is the run.
+    assert.strictEqual(entry.actor_user_id, 'viewer-1');
+    assert.strictEqual(entry.run_id, 'run-default');
 });
 
 // ── Body cap ────────────────────────────────────────────────────────────────
@@ -1006,15 +1009,7 @@ test('step: form values above 64KB answer 413, executor never called', async () 
     assert.strictEqual(stepCalls.length, 0);
 });
 
-test('step: usage is logged under the OWNER', async () => {
-    const app = makeApp({ actionsPub: { seq: SEQ_ACTION } });
-    const r = await dispatch({ url: `/${app.id}/actions/seq/step`, orgIds: [ORG], body: { stepIndex: 1 } });
-    assert.strictEqual(r.statusCode, 200);
-    await new Promise(resolve => setImmediate(resolve));
-    assert.strictEqual(usageEntries.length, 1);
-    assert.strictEqual(usageEntries[0].user_id, OWNER);
-    assert.strictEqual(usageEntries[0].source, 'studio_app_action');
-});
+// The usage row of a step and the attribution of its AI calls: studioAppsRun.usage.test.js.
 
 test('step: the executor gets the FULL viewer row filters read (id + role + org)', async () => {
     const app = makeApp({ actionsPub: { seq: SEQ_ACTION } });

@@ -61,7 +61,7 @@ by default.
 
 | | |
 |---|---|
-| **May be recorded** | The **client** that made a request (`web`, `android`, `api`, `unknown`) — a closed enum, on a row that already exists. The **source** of a model call (`direct_chat`, `automation`, …). The columns already on `ai_usage_log`: model, token counts, duration, cost. |
+| **May be recorded** | The **client** that made a request (`web`, `android`, `desktop`, `api`, `unknown`) — a closed enum, on a row that already exists. The **source** of a model call (`direct_chat`, `automation`, …). The columns already on `ai_usage_log`: model, token counts, duration, cost. |
 | **May NOT be recorded** | Screen names. Taps. Navigation or route paths. Session durations. Message content. Any per-user row leaving your database. |
 
 ### The client column
@@ -78,16 +78,42 @@ recording created by a background ingest — a Nextcloud Talk pickup, a Meet
 import — has no request behind it and stays `unknown`, correctly: no client made
 it.
 
+The desktop client sends `X-Beeflow-Client: desktop` and is recorded as
+`desktop`, so a laptop app and a browser tab can be told apart.
+
 Calls made with no request in flight — the automation runner, scheduled tasks,
 swarm workers, title generation — are recorded as `unknown`, which is the
 honest answer: those are the server acting on its own, not a client choice.
 
 For the same reason, any share computed from this column must use an
-**interactive denominator** (`source IN ('direct_chat', 'agent_chat',
-'agent_stream', 'notebook', 'webpage_chat')`). Counting machine-initiated turns
-would report every client's share against how busy the instance happens to be,
-so a quiet week would read as phone adoption. The canonical list is
-`INTERACTIVE_SOURCES` in `server/telemetry/requestClient.js`.
+**interactive denominator**: only the sources where a person typed or spoke
+(`direct_chat`, `agent_chat`, `agent_stream`, `project_chat` and the like).
+Counting machine-initiated turns would report every client's share against how
+busy the instance happens to be, so a quiet week would read as phone adoption.
+The canonical list is `INTERACTIVE_SOURCES` in `server/shared/usageAreas.js`
+(the sources marked `interactive`), which `server/telemetry/requestClient.js`
+reads.
+
+### Who caused a call
+
+Two nullable columns on `ai_usage_log` tie a call to a person and a run without
+recording anything new about what anyone looked at:
+
+- `actor_user_id` is the person who **caused** the call when that is not the
+  account it is billed to (`user_id`): the colleague who pressed an app's
+  button, started or submitted an automation run, or asked a webpage. Empty means
+  the same person as `user_id`.
+- `run_id` is the automation run, app action run or Cowork run the call belongs
+  to, so the cost of one run can be summed without guessing from a time window.
+
+Both are written on a row that already exists, for a model call that already
+happened. Neither is a view, a visit or a navigation event.
+
+The [Adoption report](../admin/usage-and-adoption.md) is built on this ledger
+and on records Studio already keeps (conversations, runs, submissions,
+activations). **It adds no navigation or view tracking**: no screen names, no
+opens of an app, webpage, document or meeting note, no visit counts and no
+session durations. Kinds without such a record show "no signal" instead.
 
 ### If you are researching your own installation
 

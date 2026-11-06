@@ -35,7 +35,7 @@ export const TOKENS = {
 };
 
 // ── Sparkline ────────────────────────────────────────────────────────────────
-const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }: SparklineProps) => {
+export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }: SparklineProps) => {
     if (!Array.isArray(values) || values.length < 2) return null;
     const max = Math.max(...values, 1);
     const points = values.map((v: number, i: number) => {
