@@ -1,0 +1,231 @@
+{
+  "_comment": "Every call of a knowledge search function in non-test server code. `channel` is the query-log channel the call WILL log under (or not-logged:<reason>); `hooked` flips to true when the hook is in place. Read by searchCallSites.inventory.test.js: an unlisted call fails the build, as does a stale entry.",
+  "entries": [
+    {
+      "file": "appStudio/actionExecutor/aiSteps.js",
+      "fn": "groundWithKB",
+      "channel": "studio_ai_generate",
+      "alsoChannels": [
+        "studio_ai_extract",
+        "studio_kb_query"
+      ],
+      "note": "ai_generate, ai_extract and kb_query steps each pass their own channel",
+      "hooked": false
+    },
+    {
+      "file": "appStudio/aiRuntime.js",
+      "fn": "quickKBSearch",
+      "channel": "not-logged:implementation of groundWithKB; the channel comes from its callers (aiSteps.js, studioAppsRun.js)",
+      "hooked": false
+    },
+    {
+      "file": "core/agentRuntime/contextEnrichment.js",
+      "fn": "performKnowledgeSearch",
+      "channel": "agent_chat",
+      "note": "auto-inject of the agent's knowledge bases",
+      "hooked": false
+    },
+    {
+      "file": "core/agentRuntime/contextEnrichment.js",
+      "fn": "quickKBSearch",
+      "channel": "agent_chat",
+      "note": "quick search of the agent's knowledge bases",
+      "hooked": false
+    },
+    {
+      "file": "core/agentRuntime/knowledgeRetrieval.js",
+      "fn": "searchLocally",
+      "channel": "not-logged:implementation of performKnowledgeSearch, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "core/agentRuntime/knowledgeRetrieval.js",
+      "fn": "tools/kb-search",
+      "channel": "not-logged:implementation of performKnowledgeSearch, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "core/agentRuntime/knowledgeSearch.js",
+      "fn": "searchLocally",
+      "channel": "not-logged:implementation of quickKBSearch, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "core/agentRuntime/knowledgeSearch.js",
+      "fn": "tools/kb-search",
+      "channel": "not-logged:implementation of quickKBSearch, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "core/automationRunner/aiStepGrounding.js",
+      "fn": "quickKBSearch",
+      "channel": "automation_ai_step",
+      "hooked": false
+    },
+    {
+      "file": "core/kb/notebookKnowledgeSearch.js",
+      "fn": "searchLocally",
+      "channel": "not-logged:implementation of searchNotebookKB, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "core/kb/notebookKnowledgeSearch.js",
+      "fn": "searchNotebookKB",
+      "channel": "notebook",
+      "note": "the notebook's kb_search tool",
+      "hooked": false
+    },
+    {
+      "file": "core/kb/notebookKnowledgeSearch.js",
+      "fn": "tools/kb-search",
+      "channel": "not-logged:implementation of searchNotebookKB, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "core/skills/skillSandbox.js",
+      "fn": "quickKBSearch",
+      "channel": "skill",
+      "hooked": false
+    },
+    {
+      "file": "core/webpages/webpageAiMessages.js",
+      "fn": "searchWebpageKB",
+      "channel": "webpage",
+      "hooked": false
+    },
+    {
+      "file": "core/webpages/webpageKnowledgeSearch.js",
+      "fn": "searchLocally",
+      "channel": "not-logged:implementation of searchWebpageKB, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "core/webpages/webpageKnowledgeSearch.js",
+      "fn": "searchWebpageKB",
+      "channel": "webpage",
+      "note": "the webpage's kb_search tool",
+      "hooked": false
+    },
+    {
+      "file": "core/webpages/webpageKnowledgeSearch.js",
+      "fn": "tools/kb-search",
+      "channel": "not-logged:implementation of searchWebpageKB, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "integrations/kbSearchTools.js",
+      "fn": "searchLocally",
+      "channel": "not-logged:implementation of executeKbSearchTool, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "integrations/kbSearchTools.js",
+      "fn": "tools/kb-search",
+      "channel": "not-logged:implementation of executeKbSearchTool, the function that carries the log hook",
+      "hooked": false
+    },
+    {
+      "file": "integrations/supportTools.js",
+      "fn": "quickKBSearch",
+      "channel": "support",
+      "hooked": false
+    },
+    {
+      "file": "integrations/toolFamilies.js",
+      "fn": "executeKbSearchTool",
+      "channel": "agent_chat",
+      "alsoChannels": [
+        "agent_chat_sync"
+      ],
+      "note": "the kb_search tool; agent_chat_sync when the turn comes from chatWithAgent",
+      "hooked": false
+    },
+    {
+      "file": "projects/chatAssistantSearchProjectKnowledge.js",
+      "fn": "quickKBSearch",
+      "channel": "project_assistant",
+      "hooked": false
+    },
+    {
+      "file": "routes/ai/directChat/promptContext.js",
+      "fn": "quickKBSearch",
+      "channel": "direct_chat",
+      "hooked": false
+    },
+    {
+      "file": "routes/ai/notebookChat/context.js",
+      "fn": "searchNotebookKB",
+      "channel": "notebook",
+      "hooked": false
+    },
+    {
+      "file": "routes/ai/templateChat.js",
+      "fn": "quickKBSearch",
+      "channel": "template_chat",
+      "hooked": false
+    },
+    {
+      "file": "routes/ai/webpageChat/context.js",
+      "fn": "searchWebpageKB",
+      "channel": "webpage",
+      "hooked": false
+    },
+    {
+      "file": "routes/knowledgeBases/ask.js",
+      "fn": "quickKBSearch",
+      "channel": "kb_test",
+      "hooked": false
+    },
+    {
+      "file": "routes/knowledgeBases/search.js",
+      "fn": "searchLocally",
+      "channel": "api_search",
+      "note": "POST /api/kb/search, local provider",
+      "hooked": false
+    },
+    {
+      "file": "routes/knowledgeBases/search.js",
+      "fn": "tools/kb-search",
+      "channel": "api_search",
+      "note": "POST /api/kb/search, search-service provider",
+      "hooked": false
+    },
+    {
+      "file": "routes/search.js",
+      "fn": "searchLocally",
+      "channel": "not-logged:service-to-service search endpoint of the search service, no user in scope",
+      "hooked": false
+    },
+    {
+      "file": "routes/search.js",
+      "fn": "tools/kb-search",
+      "channel": "not-logged:service-to-service search endpoint of the search service, no user in scope",
+      "hooked": false
+    },
+    {
+      "file": "routes/studioAppsRun.js",
+      "fn": "groundWithKB",
+      "channel": "studio_ai_chat",
+      "note": "grounding is effectively off today (no viewer passed, issue #599); the hook still goes in",
+      "hooked": false
+    },
+    {
+      "file": "routes/support/aiConfig.js",
+      "fn": "quickKBSearch",
+      "channel": "not-logged:admin preview of the support assistant, no end user asked the question",
+      "hooked": false
+    },
+    {
+      "file": "routes/webpagesPreviewAsk.js",
+      "fn": "searchWebpageKB",
+      "channel": "webpage",
+      "hooked": false
+    },
+    {
+      "file": "services/supportAiResponder.js",
+      "fn": "quickKBSearch",
+      "channel": "support",
+      "hooked": false
+    }
+  ]
+}

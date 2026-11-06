@@ -158,6 +158,7 @@ you'll see in 403 responses:
 | `pii_tokenize` | Enterprise | Privacy Shield "Tokenize & round-trip" PII action; community PUT clamps `piiDetectionAction` to `block` server-side |
 | `web_search_guard` | Enterprise | Privacy Shield Web Search Guard toggle + category filter; community PUT force-disables it server-side |
 | `advanced_usage_monitoring` | Enterprise | Usage & Monitoring tabs other than Overview — Adoption, Safety, Integrations, Feedback, Terminations. Gates `/api/usage/{adoption,guardrails,integrations,azure-services}/*`, `/api/feedback`, `/api/terminations`. See [Usage & adoption](../admin/usage-and-adoption.md) |
+| `kb_query_log` | Enterprise | Opt-in log of questions, retrieved passages and answers per knowledge base, for quality review by the KB managers. Gates the KB log routes, the Compliance Center views and the Studio/automation log steps; reading and deleting for GDPR and retention is not gated by it |
 | `compliance_hub_gdpr` | Enterprise | `/api/compliance`, guardrail audit log export, DSR flows |
 | `compliance_hub_aia` | Enterprise | AI Act compliance hub |
 | `sso_saml` | Enterprise | SAML 2.0 IdP config |

@@ -32,6 +32,7 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
+const { kbQueryLogFields } = require('../../stores/kb/model');
 const { requireAuth, requirePermission, validateSharedGroupsForOrg, assertUserCanUseOrg } = require('../../auth');
 const {
     getUserId,
@@ -145,6 +146,7 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {
         totalChunks: counts.totalChunks,
         sourceCount,
         lastContentAt: kb.last_content_at || null,
+        ...kbQueryLogFields(kb),
         managed: await managedOf(kb.id),
         documents,
     });

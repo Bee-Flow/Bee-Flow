@@ -179,6 +179,7 @@ function blockIfSystemKB(kb, res) {
  */
 const { ensureKbSource } = require('../../core/kb/sources/ensureSource');
 const { fallback } = require('../../utils/bestEffort');
+const { kbQueryLogFields } = require('../../stores/kb/model');
 
 /**
  * Add the K1 aggregates to KB rows for the list endpoints: numeric counters,
@@ -213,6 +214,7 @@ async function decorateKbList(kbs) {
             // last_content_at is stamped since K1; a base filled before that
             // has documents but no stamp, so its newest document stands in.
             lastContentAt: kb.last_content_at || kb.last_document_at || null,
+            ...kbQueryLogFields(kb),
         };
     });
 }

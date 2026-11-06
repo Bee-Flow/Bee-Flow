@@ -31,6 +31,7 @@ const FEATURES = [
     // Privacy Shield "Your own data" (org-defined data types + test bench).
     'custom_data_types',
     'advanced_usage_monitoring',
+    'kb_query_log',
     // n8n-style free builder: `automations` + `agent_routines` are NOT here —
     // they moved to the Community core (building is free). The paid boundary is
     // org-wide automation SHARING (`automation_sharing`, below) and team

@@ -292,6 +292,22 @@ async function assertNoSharedConversations(orgId) {
         );
     }
 
+    // Not project-keyed, but derived from the same ORK: the sealed content of the KB query log.
+    const logTable = await getOne(`SELECT to_regclass('kb_query_log') IS NOT NULL AS present`);
+    if (logTable?.present === true) {
+        const sealed = await getOne(
+            `SELECT COUNT(*)::int AS n FROM kb_query_log WHERE COALESCE(NULLIF(organization_id, ''), $2) = $1 AND query_enc LIKE '{"_bfenc"%'`,
+            [id, resolveOrgId(null)]);
+        if ((sealed?.n || 0) > 0) {
+            throw new Error(
+                `[ProjectEscrow] Refusing to rotate the org root key for ${id}: ` +
+                `${sealed.n} knowledge-base query log row(s) are encrypted with keys DERIVED from it, ` +
+                'and rotation would make their text permanently unreadable. Delete or let expire the query log ' +
+                '(turn it off with "delete now" on each knowledge base) before rotating, or implement re-encryption in rotateOrgRootKey.'
+            );
+        }
+    }
+
     for (const kind of SEALED_UNDER_PROJECT_KEYS) {
         const count = await countSealedRows(getOne, kind, id);
         if (count > 0) {

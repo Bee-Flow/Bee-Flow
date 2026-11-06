@@ -154,6 +154,20 @@ const KB_UPDATE_COLUMNS = Object.freeze({
 });
 
 /**
+ * The query-log settings of a knowledge_bases row, in camelCase. READ-ONLY on purpose: these
+ * columns are not in KB_UPDATE_COLUMNS, so PATCH /api/kb/:id can never change them; the only
+ * writer is stores/kb/queryLog (setQueryLogSettings), behind its own audited route.
+ * @param {Record<string, any> | null | undefined} row
+ * @returns {{ queryLogEnabled: boolean, queryLogRetentionDays: number }}
+ */
+function kbQueryLogFields(row) {
+    return {
+        queryLogEnabled: row?.query_log_enabled === true,
+        queryLogRetentionDays: Number(row?.query_log_retention_days) || 90,
+    };
+}
+
+/**
  * What every kb/ factory receives from the stores/knowledgeBases barrel.
  * @typedef {{
  *   run: (sql: string, params?: any[]) => Promise<any>,
@@ -183,4 +197,5 @@ module.exports = {
     buildDocumentFilters,
     DOC_CONTENT_COLUMNS,
     KB_UPDATE_COLUMNS,
+    kbQueryLogFields,
 };
