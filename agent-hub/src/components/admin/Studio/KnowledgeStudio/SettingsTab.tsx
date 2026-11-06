@@ -9,6 +9,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SettingsTabProps, NameFieldsProps } from './SettingsTab.types';
 import { SURFACE_CARDS, SettingsTabSection2 } from './SettingsTabSection2';
 import { SettingsTabSection } from './SettingsTabSection';
+import QueryLogCard from './queryLog/QueryLogCard';
 export { SURFACE_CARDS, attachedCount } from './SettingsTabSection2';
 
 /**
@@ -224,6 +225,9 @@ export default function SettingsTab({
                     onChange={(categoryId) => save({ categoryId })}
                 />
             </section>
+
+            {/* ── Query log (managers; locked without the licence) ── */}
+            <QueryLogCard kb={kb} canManage={canManage} onSaved={onSaved} />
 
             {/* ── Duplicate ─────────────────────────────────────── */}
             {canManage && kb?.id && <DuplicateSection t={t} saving={saving} duplicate={duplicate} />}

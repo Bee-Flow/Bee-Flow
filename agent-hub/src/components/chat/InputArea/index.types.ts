@@ -48,5 +48,7 @@ export interface InputAreaProps {
     sourceCount?: number | null;
     shieldApplies?: boolean;
     chatSignalsNotice?: NoticeModel | null;
+    /** Knowledge bases whose query-log notice sits under the box. Omitted: the bases picked in a direct chat. */
+    kbNoticeIds?: readonly string[] | null;
     onChatSignalsCounted?: ((counted: boolean) => Promise<void> | void) | null;
 }

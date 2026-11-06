@@ -4,6 +4,7 @@
  *
  *   GET /query-log/notice               which of these bases log (the notice under the chat input)
  *   PUT /:id/query-log/settings         switch on or off, retention, "delete now"
+ *   DELETE /:id/query-log               switch off and delete everything (no licence needed)
  *   GET /:id/query-log                  the entries, filtered
  *   GET /:id/query-log/export.csv       the same, as a file (audited, capped)
  *   GET /:id/query-log/:entryId         one entry in full
@@ -39,7 +40,10 @@ const { getUserId, canAccessKB, canManageKB, blockIfSystemKB } = require('./shar
 const { metadataShape, pagingShape, textShape, metadataFilter, auditFirst } = require('./queryLogFilters');
 const { REVIEW_STATUSES, RETENTION_DAYS } = require('../../core/kb/queryLog/vocab.mts');
 const { invalidateKbQueryLogCache } = require('../../core/kb/queryLog/recorder.mts');
-const { toCsv } = require('../../core/kb/queryLog/csvExport.mts');
+const { csvHead, csvLine } = require('../../core/kb/queryLog/csvExport.mts');
+const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { once } = require('node:events');
+const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 const queryLogStore = require('../../stores/kb/queryLog/index.mts');
 const { recordKbQueryLogEvidence } = require('../../compliance/kbQueryLogEvidence');
@@ -49,7 +53,8 @@ const PAGE_DEFAULT = 50;
 const PAGE_MAX = 200;
 /** One export holds at most this many rows; a narrower period is the way to more. */
 const EXPORT_CAP = 50_000;
-const EXPORT_PAGE = 500;
+/** Same ceiling as the compliance export: what a stolen session can carry away per hour. */
+const exportLimiter = perUserRateLimit({ windowMs: 60 * 60 * 1000, max: 20, name: 'kb-query-log-kb-export' });
 const NOTICE_MAX_IDS = 50;
 const NOTE_MAX = 4000;
 
@@ -106,6 +111,8 @@ async function loadManagedKb(req, res, next) {
 }
 tagGate(loadManagedKb, { axis: 'scope', kind: 'kbManager', param: 'id', paramDependent: true });
 const gates = [requireAuth, requireLicenseFeature(FEATURE), loadManagedKb];
+// Switching off and purging must keep working after the licence ran out: manager-gated, not licence-gated.
+const offGates = [requireAuth, loadManagedKb];
 
 /** @param {Record<string, any>} row the entry as the store returns it */
 function entryOut(row) {
@@ -136,14 +143,12 @@ router.get('/query-log/notice', requireAuth, validate({ query: NoticeQuery }), a
     res.json({ active: kbs.length > 0, kbs });
 });
 
-// ── PUT /:id/query-log/settings ─────────────────────────────────────
-
-router.put('/:id/query-log/settings', ...gates, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SettingsBody>>} */ req, res) => {
-    const kb = res.locals.kb;
-    if (blockIfSystemKB(kb, res)) return;
-    const actorId = getUserId(req);
-    const { enabled, retentionDays, deleteExisting } = req.body;
-
+/**
+ * Apply a settings change: audit first, then write, purge and record the evidence.
+ * @param {Record<string, any>} kb @param {string} actorId
+ * @param {{ enabled: boolean, retentionDays?: number, deleteExisting?: boolean }} req
+ */
+async function applySettings(kb, actorId, { enabled, retentionDays, deleteExisting }) {
     const current = await queryLogStore.getQueryLogSettings(kb.id);
     if (!current) throw new HttpError(404, 'kb_not_found', 'KB not found');
     const nextRetention = retentionDays ?? current.retentionDays;
@@ -173,7 +178,29 @@ router.put('/:id/query-log/settings', ...gates, validate({ body: SettingsBody })
         });
     }
     const after = await queryLogStore.getQueryLogSettings(kb.id);
-    res.json({ ...after, deleted });
+    return { ...after, deleted };
+}
+
+// ── PUT /:id/query-log/settings ─────────────────────────────────────
+
+router.put('/:id/query-log/settings', ...gates, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SettingsBody>>} */ req, res) => {
+    const kb = res.locals.kb;
+    if (blockIfSystemKB(kb, res)) return;
+    const actorId = getUserId(req);
+    const { enabled, retentionDays, deleteExisting } = req.body;
+    // A personal base has no organisation: nobody to manage, review or erase its log.
+    if (enabled && !kb.organization_id) throw new HttpError(400, 'kb_query_log_needs_organization', 'The query log is only available for knowledge bases that belong to an organisation.');
+
+    res.json(await applySettings(kb, actorId, { enabled, retentionDays, deleteExisting }));
+});
+
+// ── DELETE /:id/query-log ───────────────────────────────────────────
+// Purge and switch off. Not licence-gated: after the licence expired a manager can still erase.
+
+router.delete('/:id/query-log', ...offGates, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
+    const kb = res.locals.kb;
+    if (blockIfSystemKB(kb, res)) return;
+    res.json(await applySettings(kb, getUserId(req), { enabled: false, deleteExisting: true }));
 });
 
 // ── GET /:id/query-log ──────────────────────────────────────────────
@@ -194,7 +221,7 @@ router.get('/:id/query-log', ...gates, validate({ query: ListQuery }), async (/*
 
 const EXPORT_HEADERS = ['createdAt', 'user', 'channel', 'outcome', 'reviewStatus', 'query', 'answer', 'chunkCount', 'topScore', 'model', 'retrievalMs', 'answerMs', 'errorCode', 'reviewNote', 'reviewedAt'];
 
-router.get('/:id/query-log/export.csv', ...gates, validate({ query: ExportQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ExportQuery>>} */ req, res) => {
+router.get('/:id/query-log/export.csv', ...gates, exportLimiter, validate({ query: ExportQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ExportQuery>>} */ req, res) => {
     const kb = res.locals.kb;
     const filter = metadataFilter(req.query);
     const q = req.query.q || null;
@@ -204,25 +231,28 @@ router.get('/:id/query-log/export.csv', ...gates, validate({ query: ExportQuery 
         actorId: getUserId(req), newValues: { filters: filter, text: q ? true : false, cap: EXPORT_CAP },
     }]);
 
-    /** @type {Array<Record<string, string | number | null>>} */
-    const lines = [];
-    for (let offset = 0; offset < EXPORT_CAP; offset += EXPORT_PAGE) {
-        const { rows } = await queryLogStore.listEntries({
-            kbId: kb.id, orgId: kb.organization_id ?? null, ...filter, q, limit: Math.min(EXPORT_PAGE, EXPORT_CAP - offset), offset, includeContent: true,
-        });
-        for (const r of rows) {
-            lines.push({
-                createdAt: r.createdAt, user: r.userName || r.userId, channel: r.channel, outcome: r.outcome, reviewStatus: r.reviewStatus,
-                query: r.query, answer: r.answer, chunkCount: r.chunkCount, topScore: r.topScore, model: r.model,
-                retrievalMs: r.retrievalMs, answerMs: r.answerMs, errorCode: r.errorCode, reviewNote: r.reviewNote, reviewedAt: r.reviewedAt,
-            });
-        }
-        if (rows.length < EXPORT_PAGE) break;
-    }
     res.set('Content-Type', 'text/csv; charset=utf-8');
     res.set('Content-Disposition', 'attachment; filename="knowledge-base-query-log.csv"');
     res.set('Cache-Control', 'no-store');
-    res.send(toCsv(EXPORT_HEADERS, lines));
+    res.write(csvHead(EXPORT_HEADERS));
+    try {
+        // One pass over the filter, a row at a time; only the question, answer and note are ever opened.
+        for await (const r of queryLogStore.exportEntries({ kbId: kb.id, orgId: kb.organization_id ?? null, ...filter, q }, EXPORT_CAP)) {
+            if (res.destroyed) return;
+            const ok = res.write(csvLine(EXPORT_HEADERS, {
+                createdAt: r.createdAt, user: r.userName || r.userId, channel: r.channel, outcome: r.outcome, reviewStatus: r.reviewStatus,
+                query: r.query, answer: r.answer, chunkCount: r.chunkCount, topScore: r.topScore, model: r.model,
+                retrievalMs: r.retrievalMs, answerMs: r.answerMs, errorCode: r.errorCode, reviewNote: r.reviewNote, reviewedAt: r.reviewedAt,
+            }));
+            if (!ok) await once(res, 'drain');
+        }
+    } catch (err) {
+        // The head is on the wire already: cut the file off rather than hand over a short one that looks complete.
+        log.error('[KbQueryLog] export failed mid-stream:', /** @type {Error} */ (err)?.message || err);
+        res.destroy();
+        return;
+    }
+    res.end();
 });
 
 // ── GET /:id/query-log/:entryId ─────────────────────────────────────

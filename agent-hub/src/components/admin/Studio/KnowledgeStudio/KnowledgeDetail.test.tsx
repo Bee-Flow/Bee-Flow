@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -26,6 +27,11 @@ vi.mock('@/utils/helpers', () => ({
     authFetch: vi.fn(async () => ({ ok: false, status: 404, json: async () => ({ error: 'not found' }) })),
 }));
 
+let licensed = false;
+vi.mock('@/components/licensing/LicenseContext', () => ({
+    useLicenseContext: () => ({ hasFeature: (name: string) => licensed && name === 'kb_query_log' }),
+}));
+
 const KB = {
     id: 'kb1', name: 'Quote terms', is_published: false, shared_groups: [],
     lastContentAt: new Date(Date.now() - 120_000).toISOString(),
@@ -33,6 +39,7 @@ const KB = {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    licensed = false;
     asMock(knowledgeApi.get).mockResolvedValue(KB);
     asMock(knowledgeApi.listSources).mockResolvedValue({
         sources: [{ id: 's1', kind: 'upload', name: 'Uploaded files', config: {}, refreshMode: 'manual', documentCount: 3 }],
@@ -211,5 +218,30 @@ describe('KnowledgeDetail', () => {
         await screen.findByTestId('kb-tab-sources');
         expect(container.textContent).not.toMatch(/chunk/i);
         expect(container.textContent).not.toMatch(/re-?index/i);
+    });
+});
+
+describe('KnowledgeDetail search log tab', () => {
+    const open = async (props: Partial<ComponentProps<typeof KnowledgeDetail>>) => {
+        render(<KnowledgeDetail {...omitted<ComponentProps<typeof KnowledgeDetail>>()} kbId="kb1" {...props} />);
+        await screen.findByTestId('kb-detail-page');
+    };
+
+    it('is offered to a manager of a licensed install', async () => {
+        licensed = true;
+        await open({ canManage: true });
+        expect(screen.getByRole('radio', { name: /Search log/ })).toBeTruthy();
+    });
+
+    it('is absent for a reader, even with the licence', async () => {
+        licensed = true;
+        await open({ canManage: false });
+        expect(screen.queryByRole('radio', { name: /Search log/ })).toBeNull();
+    });
+
+    it('is absent for a manager without the licence, and a deep link to it shows nothing', async () => {
+        await open({ canManage: true, tab: 'search-log' });
+        expect(screen.queryByRole('radio', { name: /Search log/ })).toBeNull();
+        expect(screen.queryByTestId('kb-tab-query-log')).toBeNull();
     });
 });

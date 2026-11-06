@@ -23,6 +23,16 @@ export function csvCell(value: CsvValue): string {
     return quoteField(String(value), ',');
 }
 
+/** The header line of a streamed file: BOM first, CRLF last. */
+export function csvHead(headers: string[]): string {
+    return BOM + headers.map(csvCell).join(',') + '\r\n';
+}
+
+/** One row of a streamed file, CRLF last. */
+export function csvLine(headers: string[], row: Record<string, CsvValue>): string {
+    return headers.map((h) => csvCell(row[h])).join(',') + '\r\n';
+}
+
 /** One header line plus one line per row, CRLF separated, with a BOM. */
 export function toCsv(headers: string[], rows: Array<Record<string, CsvValue>>): string {
     const lines = [headers.map(csvCell).join(',')];

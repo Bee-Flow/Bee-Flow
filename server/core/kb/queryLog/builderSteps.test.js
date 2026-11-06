@@ -36,7 +36,7 @@ const review = (input = {}, scope = {}) => B.reviewQueryLog({ kbId: KB, entryId:
 
 test('owner and viewer who manage the KB get decrypted rows and the total', async () => {
     const calls = setup();
-    const r = await list();
+    const r = await list({ detail: 'full' });
     assert.strictEqual(r.ok, true);
     assert.strictEqual(r.result.total, 7);
     assert.strictEqual(r.result.rows[0].answer, 'a');
@@ -102,10 +102,26 @@ test('a value outside the vocabulary is an error, an empty one means no filter',
     assert.strictEqual(calls.list.at(-1).status, null);
 });
 
-test('resultDetail summary drops passages and answers', async () => {
+test('resultDetail summary drops passages, answers and the question', async () => {
     setup();
     const r = await list({ detail: 'summary' });
-    assert.deepStrictEqual([r.result.rows[0].chunks, r.result.rows[0].answer, r.result.rows[0].chunkCount], [[], null, 1]);
+    assert.deepStrictEqual([r.result.rows[0].chunks, r.result.rows[0].answer, r.result.rows[0].chunkCount, r.result.rows[0].query], [[], null, 1, null]);
+});
+
+test('without a detail the DEFAULT is the summary: no logged text leaves the store', async () => {
+    setup();
+    const r = await list();
+    assert.deepStrictEqual([r.result.rows[0].chunks, r.result.rows[0].answer, r.result.rows[0].query, r.result.rows[0].reviewNote], [[], null, null, null]);
+});
+
+test('redactLogStepOutput empties the content of a stored copy and leaves the live one alone', async () => {
+    const live = { rows: [{ id: 'e', query: 'secret question', answer: 'secret answer', chunks: [{ text: 'passage' }], citations: [1], reviewNote: 'n', chunkCount: 1, outcome: 'answered' }], total: 1, count: 1, knowledgeBaseId: KB };
+    const stored = B.redactLogStepOutput(live);
+    assert.doesNotMatch(JSON.stringify(stored), /secret|passage|"n"/);
+    assert.strictEqual(stored.rows[0].outcome, 'answered');
+    assert.strictEqual(live.rows[0].query, 'secret question');
+    const rev = B.redactLogStepOutput({ updated: true, entryId: 'e', note: 'private note', wouldUpdate: { note: 'private note' } });
+    assert.doesNotMatch(JSON.stringify(rev), /private/);
 });
 
 test('review writes status and note under the reviewer, capped', async () => {

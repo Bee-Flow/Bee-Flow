@@ -8,6 +8,29 @@
 
 const { UUID_RE, PROJECT_FILES_KIND, KB_COUNTS_SELECT } = require('./model');
 const log = require('../../telemetry/log');
+
+/**
+ * A base that moves to another organisation takes no query log along: the rows belong to the old
+ * organisation's key and consent. Logging is switched off and the rows deleted, audited as purged.
+ * @param {(sql: string, params?: unknown[]) => Promise<any>} getOne @param {string} id @param {string} fromOrg @param {string} toOrg @param {string} [actorId]
+ */
+async function purgeQueryLogOnOrgChange(getOne, id, fromOrg, toOrg, actorId) {
+    try {
+        const deleted = await getOne('SELECT COUNT(*)::int AS n FROM kb_query_log WHERE kb_id = $1', [id]);
+        const was = await getOne('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [id]);
+        if (!was?.query_log_enabled && !deleted?.n) return;
+        await getOne('UPDATE knowledge_bases SET query_log_enabled = false WHERE id = $1 RETURNING id', [id]);
+        await getOne('WITH d AS (DELETE FROM kb_query_log WHERE kb_id = $1 RETURNING 1) SELECT COUNT(*)::int AS n FROM d', [id]);
+        await require('./queryLog/audit.mts').recordKbQueryLogAudit({
+            action: 'kb.query_log.purged', targetType: 'knowledge_base', targetId: String(id), orgId: fromOrg, actorId: actorId || 'system',
+            oldValues: { enabled: !!was?.query_log_enabled, rows: deleted?.n ?? 0 },
+            newValues: { enabled: false, reason: 'organization_changed', toOrganizationId: toOrg },
+        });
+    } catch (err) {
+        log.error('[KbQueryLog] purge after an organisation change failed:', /** @type {Error} */ (err)?.message || err);
+        throw err;
+    }
+}
 const { isMissingTable } = require('../../utils/isMissingTable');
 
 /**
@@ -111,11 +134,12 @@ function makeCatalogFns(ctx) {
                 }
             }
             const usageJson = Array.isArray(usageContexts) ? JSON.stringify(usageContexts) : null;
+            const priorOrg = organizationId ? (await getOne('SELECT organization_id FROM knowledge_bases WHERE id = $1', [id]))?.organization_id ?? null : null;
             // categoryId: undefined = leave as-is, explicit null = clear back to
             // NULL — COALESCE alone can't express the clear, so a
             // boolean flag drives a CASE for that column.
             const clearCategory = categoryId === null;
-            return getOne(
+            const updated = await getOne(
                 `UPDATE knowledge_bases
              SET name = COALESCE($2, name),
                  description = COALESCE($3, description),
@@ -128,6 +152,8 @@ function makeCatalogFns(ctx) {
              RETURNING *`,
                 [id, name, description, categoryId, icon, usageJson, clearCategory, organizationId || null]
             );
+            if (priorOrg && organizationId && priorOrg !== organizationId) await purgeQueryLogOnOrgChange(getOne, id, priorOrg, organizationId, opts.actorId);
+            return updated;
         },
 
         /**

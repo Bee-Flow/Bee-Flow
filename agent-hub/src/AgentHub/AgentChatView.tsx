@@ -124,6 +124,8 @@ const AgentChatView = ({
         messages,
         onVoiceTurnComplete: handleVoiceTurnComplete,
         chatSignalsNotice: chatSignals?.notice ?? null,
+        // The bases this agent answers from: the line under the box names the ones that log.
+        kbNoticeIds: Array.isArray(selectedAgent?.config?.knowledge_base_ids) ? selectedAgent.config.knowledge_base_ids as string[] : null,
         onChatSignalsCounted: chatSignals?.setCounted ?? null,
         cowork: coworkComposer,
         coworkMode,

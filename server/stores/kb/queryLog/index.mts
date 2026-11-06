@@ -15,79 +15,24 @@ import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import {
     ANSWER_CAP, CHUNK_TEXT_CAP, DEFAULT_RETENTION_DAYS, QUERY_CAP, cap,
-    type Channel, type Outcome, type ReviewStatus,
+    type ReviewStatus,
 } from '../../../core/kb/queryLog/vocab.mts';
 import * as realCrypto from '../../../core/kb/queryLog/crypto.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
-export interface Db { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount?: number | null }> }
-export interface CryptoApi {
-    sealField: typeof realCrypto.sealField;
-    openField: typeof realCrypto.openField;
-}
-
-export interface LogChunk {
-    chunkId?: string | null; documentId?: string | null; documentVersionId?: string | null;
-    sourceUri?: string | null; title?: string | null; score?: number | null; page?: number | null; text?: string | null;
-}
-
-export interface InsertRow {
-    id?: string;
-    searchGroupId: string;
-    organizationId: string | null;
-    kbId: string;
-    userId: string | null;
-    channel: Channel;
-    channelRef?: Record<string, unknown> | null;
-    createdAt?: Date | string;
-    query: string;
-    chunks: LogChunk[];
-    retrievalMs?: number | null;
-    outcome: Outcome;
-    errorCode?: string | null;
-    retentionDays: number;
-}
-
-export interface FinishPatch {
-    answer?: string | null;
-    citations?: unknown[] | null;
-    model?: string | null;
-    answerMs?: number | null;
-    outcome: Outcome;
-    errorCode?: string | null;
-}
-
-export interface ListFilter {
-    kbId?: string;
-    orgId?: string | null;
-    from?: Date | string | null;
-    to?: Date | string | null;
-    userId?: string | null;
-    channel?: string | null;
-    outcome?: string | null;
-    status?: string | null;
-    /** Case-insensitive text filter over query and answer; decrypts in memory, so it needs includeContent. */
-    q?: string | null;
-    limit?: number;
-    offset?: number;
-    includeContent?: boolean;
-}
-
-export interface EntryRow {
-    id: string; searchGroupId: string; kbId: string; organizationId: string | null; userId: string | null; userName?: string | null;
-    channel: string; channelRef: Record<string, unknown>; createdAt: string | null;
-    query: string | null; chunks: LogChunk[]; chunkCount: number; topScore: number | null; retrievalMs: number | null;
-    answer: string | null; citations: unknown[]; model: string | null; answerMs: number | null;
-    outcome: string; errorCode: string | null; answeredAt: string | null;
-    reviewStatus: string; reviewNote: string | null; reviewedBy: string | null; reviewedAt: string | null; expiresAt: string | null;
-    decryptFailed?: boolean;
-}
+import type { Db, CryptoApi, LogChunk, InsertRow, FinishPatch, ListFilter, EntryRow } from './types.mts';
+export type { Db, CryptoApi, LogChunk, InsertRow, FinishPatch, ListFilter, EntryRow } from './types.mts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** The in-memory text filter looks at no more than this many rows. */
 export const TEXT_FILTER_ROW_CAP = 5000;
 const MAX_PAGE = 500;
+const EXPORT_BATCH = 500;
+// Columns of a read that does not need the passages or the citations.
+const META_COLS = 'id, search_group_id, organization_id, kb_id, user_id, channel, channel_ref, created_at, chunk_count, top_score, retrieval_ms, model, answer_ms, outcome, error_code, answered_at, review_status, reviewed_by, reviewed_at, expires_at';
+const MATCH_COLS = `${META_COLS}, query_enc, answer_enc`;
+const EXPORT_COLS = `${MATCH_COLS}, review_note_enc`;
 const DELETE_BATCH_DEFAULT = 1000;
 
 const iso = (v: unknown): string | null => (v instanceof Date ? v.toISOString() : v ? new Date(String(v)).toISOString() : null);
@@ -145,16 +90,22 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
                 chunksEnc: await crypto.sealField(r.organizationId, r.kbId, id, 'chunks', JSON.stringify(chunks)),
             });
         }
+        // Conditional at write time: the recorder's 30 s cache (or a search already in flight) may still say
+        // "logging", while the manager has switched it off, purged, or moved the KB out of the organisation.
+        let written = 0;
         for (const p of prepared) {
-            await db.query(
+            const res = await db.query(
                 `INSERT INTO kb_query_log (id, search_group_id, organization_id, kb_id, user_id, channel, channel_ref, created_at,
                     query_enc, chunks_enc, chunk_count, top_score, retrieval_ms, outcome, error_code, expires_at)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+                 SELECT $1::text, $2::text, $3::text, $4::uuid, $5::text, $6::text, $7::jsonb, $8::timestamptz,
+                    $9::text, $10::text, $11::int, $12::real, $13::int, $14::text, $15::text, $16::timestamptz
+                 WHERE EXISTS (SELECT 1 FROM knowledge_bases WHERE id = $4::uuid AND query_log_enabled = true AND organization_id IS NOT NULL)`,
                 [p.id, p.r.searchGroupId, p.r.organizationId ?? null, p.r.kbId, p.r.userId ?? null, p.r.channel,
                     JSON.stringify(p.r.channelRef || {}), p.createdAt.toISOString(), p.queryEnc, p.chunksEnc, p.chunks.length,
                     p.topScore, p.r.retrievalMs ?? null, p.r.outcome, p.r.errorCode ?? null, expiry(p.createdAt, p.r.retentionDays).toISOString()]);
+            written += res.rowCount ?? 1;
         }
-        return prepared.length;
+        return written;
     }
 
     /** Attach the answer to every row of one search. A KB that gave no passages keeps `no_results`. */
@@ -181,7 +132,10 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
         return sealed.length;
     }
 
-    async function decryptRow(r: any, includeContent: boolean): Promise<EntryRow> {
+    /** Which sealed fields a read opens. `true` = all of them. */
+    type Want = true | { query?: boolean; answer?: boolean; note?: boolean };
+
+    async function decryptRow(r: any, want: Want | false): Promise<EntryRow> {
         const id = String(r.id); const kbId = String(r.kb_id); const org = r.organization_id ?? null;
         let decryptFailed = false;
         const open = async (field: realCrypto.KbQueryLogField, stored: string | null): Promise<string | null> => {
@@ -195,12 +149,12 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
             outcome: r.outcome, errorCode: r.error_code ?? null, answeredAt: iso(r.answered_at),
             reviewStatus: r.review_status, reviewNote: null, reviewedBy: r.reviewed_by ?? null, reviewedAt: iso(r.reviewed_at), expiresAt: iso(r.expires_at),
         };
-        if (!includeContent) return base;
-        base.query = await open('query', r.query_enc);
-        base.chunks = parseJson<LogChunk[]>(await open('chunks', r.chunks_enc), []);
-        base.answer = await open('answer', r.answer_enc);
-        base.citations = parseJson<unknown[]>(await open('citations', r.citations_enc), []);
-        base.reviewNote = await open('review_note', r.review_note_enc);
+        if (!want) return base;
+        if (want === true || want.query) base.query = await open('query', r.query_enc);
+        if (want === true) base.chunks = parseJson<LogChunk[]>(await open('chunks', r.chunks_enc), []);
+        if (want === true || want.answer) base.answer = await open('answer', r.answer_enc);
+        if (want === true) base.citations = parseJson<unknown[]>(await open('citations', r.citations_enc), []);
+        if (want === true || want.note) base.reviewNote = await open('review_note', r.review_note_enc);
         if (decryptFailed) base.decryptFailed = true;
         return base;
     }
@@ -243,13 +197,61 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
             await addUserNames(out);
             return { rows: out, total };
         }
+        // The text filter opens only the question and the answer of up to TEXT_FILTER_ROW_CAP rows (the passages,
+        // citations and note are neither selected nor opened); the page that is returned is then read in full.
         const { rows } = await db.query(
-            `SELECT * FROM kb_query_log ${w.sql} ORDER BY created_at DESC, id LIMIT ${TEXT_FILTER_ROW_CAP}`, w.params);
-        const decrypted = await Promise.all(rows.map((r) => decryptRow(r, true)));
-        const hits = decrypted.filter((r) => `${r.query ?? ''}\n${r.answer ?? ''}`.toLowerCase().includes(text));
-        const page = hits.slice(offset, offset + limit);
+            `SELECT ${MATCH_COLS} FROM kb_query_log ${w.sql} ORDER BY created_at DESC, id LIMIT ${TEXT_FILTER_ROW_CAP}`, w.params);
+        const hitIds: string[] = [];
+        for (const r of rows) {
+            const d = await decryptRow(r, { query: true, answer: true });
+            if (`${d.query ?? ''}\n${d.answer ?? ''}`.toLowerCase().includes(text)) hitIds.push(d.id);
+        }
+        const pageIds = hitIds.slice(offset, offset + limit);
+        if (pageIds.length === 0) return { rows: [], total: hitIds.length };
+        const { rows: full } = await db.query(`SELECT * FROM kb_query_log WHERE id = ANY($1::text[])`, [pageIds]);
+        const byId = new Map(full.map((r) => [String(r.id), r]));
+        const page = await Promise.all(pageIds.map((id) => byId.get(id)).filter(Boolean).map((r) => decryptRow(r, true)));
         await addUserNames(page);
-        return { rows: page, total: hits.length };
+        return { rows: page, total: hitIds.length };
+    }
+
+    /**
+     * The rows of an export, one batch at a time: a keyset walk over the filter (no OFFSET re-scan), opening only
+     * the question, the answer and the review note, never the passages or the citations. With `q`, at most
+     * TEXT_FILTER_ROW_CAP rows are looked at (the same bound as the list) and only the matches are yielded.
+     * Stops after `cap` rows.
+     */
+    async function* exportEntries(f: ListFilter, cap: number): AsyncGenerator<EntryRow> {
+        if (f.kbId && !UUID_RE.test(f.kbId)) return;
+        const text = f.q ? String(f.q).trim().toLowerCase() : '';
+        const maxScan = text ? TEXT_FILTER_ROW_CAP : cap;
+        const w = where(f);
+        let scanned = 0, yielded = 0;
+        let after: { at: string; id: string } | null = null;
+        while (scanned < maxScan && yielded < cap) {
+            const params = [...w.params];
+            let cond = w.sql;
+            if (after) {
+                params.push(after.at, after.id);
+                cond += `${cond ? ' AND' : 'WHERE'} (created_at, id) < ($${params.length - 1}::timestamptz, $${params.length}::text)`;
+            }
+            const take = Math.min(EXPORT_BATCH, maxScan - scanned);
+            const { rows } = await db.query(
+                `SELECT ${EXPORT_COLS} FROM kb_query_log ${cond} ORDER BY created_at DESC, id DESC LIMIT ${take}`, params);
+            if (rows.length === 0) return;
+            const batch: EntryRow[] = [];
+            for (const r of rows) {
+                scanned++;
+                const d = await decryptRow(r, { query: true, answer: true, note: true });
+                if (text && !`${d.query ?? ''}\n${d.answer ?? ''}`.toLowerCase().includes(text)) continue;
+                batch.push(d);
+            }
+            await addUserNames(batch);
+            for (const d of batch) { if (yielded++ >= cap) return; yield d; }
+            const last = rows[rows.length - 1];
+            after = { at: (last.created_at instanceof Date ? last.created_at : new Date(last.created_at)).toISOString(), id: String(last.id) };
+            if (rows.length < take) return;
+        }
     }
 
     async function getEntry(kbId: string, id: string): Promise<EntryRow | null> {
@@ -343,7 +345,7 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
     }
 
     return {
-        getLoggingKbs, kbIdsForDocuments, insertEntries, finishGroup, listEntries, getEntry, setReview, deleteForKb, deleteForUser,
+        getLoggingKbs, kbIdsForDocuments, insertEntries, finishGroup, listEntries, exportEntries, getEntry, setReview, deleteForKb, deleteForUser,
         deleteExpired, recomputeExpiry, countsByKb, countsForUser, getQueryLogSettings, setQueryLogSettings,
     };
 }
@@ -361,6 +363,7 @@ export const kbIdsForDocuments: KbQueryLogStore['kbIdsForDocuments'] = (...a) =>
 export const insertEntries: KbQueryLogStore['insertEntries'] = (...a) => kbQueryLogStore().insertEntries(...a);
 export const finishGroup: KbQueryLogStore['finishGroup'] = (...a) => kbQueryLogStore().finishGroup(...a);
 export const listEntries: KbQueryLogStore['listEntries'] = (...a) => kbQueryLogStore().listEntries(...a);
+export const exportEntries: KbQueryLogStore['exportEntries'] = (...a) => kbQueryLogStore().exportEntries(...a);
 export const getEntry: KbQueryLogStore['getEntry'] = (...a) => kbQueryLogStore().getEntry(...a);
 export const setReview: KbQueryLogStore['setReview'] = (...a) => kbQueryLogStore().setReview(...a);
 export const deleteForKb: KbQueryLogStore['deleteForKb'] = (...a) => kbQueryLogStore().deleteForKb(...a);

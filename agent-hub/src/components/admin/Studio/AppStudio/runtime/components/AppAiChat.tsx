@@ -10,6 +10,7 @@ import type { AppNode } from '../../inspector/appDefinition';
 import { parseSseStream } from '../sseStream';
 import { messageOf } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
+import KbQueryLogNotice from '@/components/chat/KbQueryLogNotice';
 
 /**
  * App Studio runtime — 'ai_chat'. Spec: server/appStudio/componentSpecs.js.
@@ -33,6 +34,7 @@ interface AiChatProps {
     starters?: string[];
     greeting?: string;
     placeholder?: string;
+    knowledgeBaseIds?: string[];
 }
 
 /** One turn of the transcript. */
@@ -64,6 +66,12 @@ async function openChatStream(url: string, payload: unknown, t: TranslateFn): Pr
         throw new Error(body?.error || t('studio_apps_runtime.ai_chat.unavailable', 'The assistant is unavailable ({status})', { status: res.status }));
     }
     return res;
+}
+
+/** The query-log line for the bases this chat answers from; nothing (and no request) when it has none. */
+function ChatKbNotice({ ids }: { ids?: string[] }) {
+    const kbIds = Array.isArray(ids) ? ids.filter((id) => typeof id === 'string' && id) : [];
+    return kbIds.length > 0 ? <KbQueryLogNotice kbIds={kbIds} className="pb-1" /> : null;
 }
 
 export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
@@ -205,6 +213,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                     <Send className="w-4 h-4" />
                 </button>
             </form>
+            {live && <ChatKbNotice ids={props.knowledgeBaseIds} />}
         </div>
     );
 }

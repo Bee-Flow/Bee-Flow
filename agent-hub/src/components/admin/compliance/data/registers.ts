@@ -20,6 +20,7 @@ import type { DpiaRecord } from '../pages/dpia/DpiaDrawer';
 import type { Id, UseDpiaArgs, UseIncidentsArgs, UseSoaArgs, SoaBody, UsePoliciesArgs, UseConnectorsArgs, UseRisksArgs, UseAuditArgs, UseTrainingArgs, UseAccessAuditArgs, AccessAuditLog, AccessAuditFilter, OrgUserRow, UseOrgUsersArgs } from './registers.types';
 import { noop } from './useRopa';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { pendingAccessAuditActions, presetAccessAuditActions } from './accessAuditPreset';
 export { useDsr } from './useDsr';
 export { useRopa } from './useRopa';
 export type { OrgUserRow } from './registers.types';
@@ -331,6 +332,12 @@ export function useAccessAudit({ enabled = false }: UseAccessAuditArgs = {}) {
         return q;
     }, [filter]);
     useAdjustOnChange([enabled, query, offset], () => { if (enabled) setExportError(null); });
+    // Opened from another page with a filter (the query-log overview): applied once, when this page opens.
+    useAdjustOnChange([enabled], () => {
+        const action = enabled ? pendingAccessAuditActions() : undefined;
+        if (action) setFilter({ action });
+    });
+    useEffect(() => { if (!enabled) presetAccessAuditActions(null); }, [enabled]);
     useEffect(() => {
         if (!enabled) return undefined;
         let cancelled = false;

@@ -99,6 +99,11 @@ export type KnowledgeBase = {
     source_count?: number;
     autoRefreshCount?: number;
     auto_refresh_count?: number;
+    /** The query log: read-only here, changed through `PUT /:id/query-log/settings`. */
+    queryLogEnabled?: boolean;
+    queryLogRetentionDays?: number;
+    query_log_enabled?: boolean;
+    query_log_retention_days?: number;
 };
 
 /** One knowledge base's row of the usage summary. */

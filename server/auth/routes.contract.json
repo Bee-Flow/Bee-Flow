@@ -239,6 +239,10 @@
     "DELETE /api/kb/:id/favorite": {
       "gate": "auth"
     },
+    "DELETE /api/kb/:id/query-log": {
+      "gate": "scope",
+      "via": "kbManager"
+    },
     "DELETE /api/kb/:id/sources/:sid": {
       "gate": "permission",
       "anyOf": [

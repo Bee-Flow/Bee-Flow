@@ -39,18 +39,51 @@ interface FetchJsonError extends Error {
  */
 export async function fetchJson(url: string, init?: AuthFetchOptions) {
     const r = await authFetch(url, { ...OPTS, ...(init || {}) });
-    if (!r.ok) {
-        const err: FetchJsonError = new Error(`${r.status} ${r.statusText}`);
-        let body: { code?: unknown; error?: unknown; details?: Record<string, unknown> } | null = null;
-        try { body = typeof r.json === 'function' ? await r.json() : null; } catch { body = null; }
-        err.status = r.status;
-        err.code = body && typeof body.code === 'string' ? body.code : null;
-        err.serverMessage = body && typeof body.error === 'string' ? body.error : null;
-        err.details = body && body.details && typeof body.details === 'object' && !Array.isArray(body.details) ? body.details : null;
-        throw err;
-    }
+    if (!r.ok) throw await refusal(r);
     return r.json();
 }
+
+/** The Error for a refused request (see fetchJson). */
+async function refusal(r: Response): Promise<FetchJsonError> {
+    const err: FetchJsonError = new Error(`${r.status} ${r.statusText}`);
+    let body: { code?: unknown; error?: unknown; details?: Record<string, unknown> } | null = null;
+    try { body = typeof r.json === 'function' ? await r.json() : null; } catch { body = null; }
+    err.status = r.status;
+    err.code = body && typeof body.code === 'string' ? body.code : null;
+    err.serverMessage = body && typeof body.error === 'string' ? body.error : null;
+    err.details = body && body.details && typeof body.details === 'object' && !Array.isArray(body.details) ? body.details : null;
+    return err;
+}
+
+/**
+ * A file the server builds on request (an export with a refusal that must be
+ * worded, so not a plain `<a download>`): fetched with the session, handed to
+ * the browser as a download. A refusal throws the same Error as fetchJson.
+ */
+export async function fetchDownload(url: string, filename: string): Promise<void> {
+    const r = await authFetch(url, { ...OPTS });
+    if (!r.ok) throw await refusal(r);
+    const href = URL.createObjectURL(await r.blob());
+    try {
+        const a = document.createElement('a');
+        a.href = href;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    } finally { URL.revokeObjectURL(href); }
+}
+
+/** The knowledge-base query log (server/routes/compliance/kbQueryLog.js). */
+export const kbQueryLogUrls = Object.freeze({
+    overview: () => `${API}/kb-query-log/overview`,
+    entries: (query: URLSearchParams) => `${API}/kb-query-log/entries?${query.toString()}`,
+    entriesCsv: (query: URLSearchParams) => `${API}/kb-query-log/entries/export.csv?${query.toString()}`,
+    subject: (userId: string) => `${API}/kb-query-log/subjects/${encodeURIComponent(userId)}`,
+    content: (userId: string, dsrRequestId: string | number) => `${API}/kb-query-log/subjects/${encodeURIComponent(userId)}/content?dsrRequestId=${encodeURIComponent(String(dsrRequestId))}`,
+    subjectExport: (userId: string, dsrRequestId: string | number, format: 'json' | 'csv') => `${API}/kb-query-log/subjects/${encodeURIComponent(userId)}/export?dsrRequestId=${encodeURIComponent(String(dsrRequestId))}&format=${format}`,
+    erase: (userId: string) => `${API}/kb-query-log/subjects/${encodeURIComponent(userId)}`,
+});
 
 /**
  * Chat signals (Compliance Settings card). Every route the card talks to,

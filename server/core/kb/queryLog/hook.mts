@@ -235,7 +235,7 @@ export function supportQueryLog(
  * Empty when the turn gave no carrier, so a call outside a logged turn writes nothing.
  */
 export function agentToolLog(context: {
-    queryLog?: { carrier: object; channel: Channel } | null;
+    queryLog?: { carrier: object; channel: Channel; asker?: string | null } | null;
     agentId?: string | null; conversationId?: string | null; orgId?: string | null; askerUserId?: string | null; userId?: string | null;
 }): { log?: LogOption } {
     const turn = context.queryLog;
@@ -244,7 +244,9 @@ export function agentToolLog(context: {
         log: {
             channel: turn.channel, carrier: turn.carrier,
             channelRef: { agentId: context.agentId || null, conversationId: context.conversationId || null },
-            orgId: context.orgId || null, userId: context.askerUserId || context.userId || null,
+            orgId: context.orgId || null,
+            // An explicit asker (also null: an anonymous requester) wins over the turn's own, possibly synthetic, user id.
+            userId: 'asker' in turn ? (turn.asker ?? null) : (context.askerUserId || context.userId || null),
         },
     };
 }

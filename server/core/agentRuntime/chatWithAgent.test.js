@@ -71,7 +71,7 @@ const restore = installResolveStub({
     '../../utils/unicodeSanitizer': { sanitizeMessagesUnicode: () => ({ smugglingDetected: false }) },
     '../tools/toolExecution': {},
     '../tools/toolDispatcher': {
-        executeTool: async (name, args) => { fx.dispatched.push({ name, args }); return fx.dispatchResult; },
+        executeTool: async (name, args, context) => { fx.dispatched.push({ name, args, context }); return fx.dispatchResult; },
     },
     '../integrations/connectionResolution': { isLendingEnabled: () => false },
     './modelResolver': { resolveAgentModelWithTier: async () => ({ modelId: 'test-model', tierKey: 'fast' }) },
@@ -157,6 +157,18 @@ test('an outside tool is not held to the own-server list, and no shield changes 
     await chatWithAgent('agent-1', 'user-1', 'read it');
     assert.strictEqual(fx.dispatched.length, 1);
     assert.ok(toolMessageSeen().content.includes(SYNTH_EMAIL));
+});
+
+test('KB query log: a caller with a synthetic user id names its real asker (or nobody) for the log', async () => {
+    reset({ toolCall: { name: 'gmail_send', args: { to: SYNTH_EMAIL } }, dispatchResult: { ok: true } });
+    await chatWithAgent('agent-1', 'support-ai:inbox:t1', 'look it up', { queryLogAsker: { userId: 'u-requester' } });
+    assert.strictEqual(fx.dispatched[0].context.queryLog.asker, 'u-requester');
+    reset({ toolCall: { name: 'gmail_send', args: { to: SYNTH_EMAIL } }, dispatchResult: { ok: true } });
+    await chatWithAgent('agent-1', 'support-ai:inbox:t1', 'look it up', { queryLogAsker: { userId: null } });
+    assert.strictEqual(fx.dispatched[0].context.queryLog.asker, null, 'an external requester has no account: logged as nobody');
+    reset({ toolCall: { name: 'gmail_send', args: { to: SYNTH_EMAIL } }, dispatchResult: { ok: true } });
+    await chatWithAgent('agent-1', 'user-1', 'look it up');
+    assert.ok(!('asker' in fx.dispatched[0].context.queryLog), 'an ordinary turn keeps the asker the dispatcher derives');
 });
 
 test('a fail-closed org refuses the tool when the scan cannot run', async () => {

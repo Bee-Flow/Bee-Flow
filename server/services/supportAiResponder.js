@@ -276,7 +276,8 @@ Reply only to the customer's most recent message. If the knowledge base does not
     // guard is meant for interactive user→LLM chat, not this flow. (Tokenize is
     // not used here: non-streaming chatWithAgent doesn't de-tokenize output, so
     // tokens would leak into the customer reply.)
-    const chatAuth = { userOrgId: thread.organization_id || null, piiActionOverride: 'allow', queryLogCarrier: supportLogs };
+    // `aiUserId` is synthetic: the KB query log names the requester (null for one without an account), never that id.
+    const chatAuth = { userOrgId: thread.organization_id || null, piiActionOverride: 'allow', queryLogCarrier: supportLogs, queryLogAsker: { userId: thread.requester_user_id || null } };
     let actionPolicy = null;
     const extraTools = [...supportToolset, ...integrationTools];
     if (extraTools.length) {

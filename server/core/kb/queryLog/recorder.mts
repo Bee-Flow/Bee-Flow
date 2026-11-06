@@ -126,48 +126,72 @@ function toLogChunk(c: Record<string, any>): LogChunk {
 }
 
 /**
- * Start the log of one search. Resolves to a handle, or null when nothing is to be logged
- * (no logging KB, no licence, bad input, any failure). Never rejects.
+ * A user id that is not a person: the support responder's `support-ai:<thread>`, an embed visitor's
+ * `guest_...`. The log names a real user or nobody.
+ */
+const NOT_A_USER = /^(support-ai:|guest([_:-]|$)|embed[_:-]|anon(ymous)?([_:-]|$))/i;
+
+/** The id to log for `id`: itself when it can be a person, otherwise null. */
+export function loggableUserId(id: unknown): string | null {
+    return typeof id === 'string' && id && !NOT_A_USER.test(id) ? id : null;
+}
+
+/** True when every KB is, by a fresh cached answer, not logging: the only check the caller waits for. */
+function knownNotLogging(kbIds: string[]): boolean {
+    const now = d().now();
+    return kbIds.every((id) => { const hit = kbCache.get(id); return !!hit && now - hit.at <= CACHE_TTL_MS && hit.entry === null; });
+}
+
+/** The rows of one search: one per logging, licensed KB of an organisation. Empty = nothing to log. */
+async function prepareRows(input: BeginInput, kbIds: string[], userId: string | null, searchGroupId: string): Promise<InsertRow[]> {
+    // A KB without an organisation (a personal one) is never logged: there is nobody to manage, review or erase it.
+    const logging = (await loggingKbs(kbIds)).filter((kb) => !!kb.organizationId);
+    if (logging.length === 0) return [];
+    const permitted: typeof logging = [];
+    for (const kb of logging) if (await licensed(kb.organizationId, userId)) permitted.push(kb);
+    if (permitted.length === 0) return [];
+
+    const chunks = Array.isArray(input.chunks) ? input.chunks : [];
+    const docToKb = await d().store.kbIdsForDocuments(
+        chunks.map((c) => c.document_id ?? c.documentId).filter(Boolean), permitted.map((k) => k.id));
+    // A search over exactly one KB owns every chunk it returned, even one without a document id.
+    const soleKb = kbIds.length === 1 ? kbIds[0] : null;
+    const perKb = new Map<string, LogChunk[]>(permitted.map((k) => [k.id, []]));
+    for (const c of chunks) {
+        const kbId = docToKb.get(String(c.document_id ?? c.documentId)) ?? (soleKb && perKb.has(soleKb) ? soleKb : null);
+        if (kbId) perKb.get(kbId)?.push(toLogChunk(c));
+    }
+
+    const retrievalOnly = (RETRIEVAL_ONLY_CHANNELS as readonly string[]).includes(input.channel);
+    const createdAt = new Date(d().now());
+    return permitted.map((kb) => {
+        const own = perKb.get(kb.id) ?? [];
+        return {
+            searchGroupId, organizationId: kb.organizationId, kbId: kb.id, userId,
+            channel: input.channel, channelRef: input.channelRef ?? {}, createdAt,
+            query: cap(input.query, QUERY_CAP), chunks: own, retrievalMs: input.retrievalMs ?? null,
+            outcome: own.length > 0 && retrievalOnly ? 'answered' : 'no_results', retentionDays: kb.retentionDays,
+        };
+    });
+}
+
+/**
+ * Start the log of one search. Resolves at once, without a database round-trip: to a handle, or to
+ * null when the in-memory cache already knows nothing is to be logged (or on bad input). The lookups
+ * (which KBs log, the licence, the document-to-KB map) and the insert run behind the handle; when they
+ * conclude there is nothing to log, the handle is a no-op. Never rejects.
  */
 export async function beginKbQueryLog(input: BeginInput): Promise<Handle | null> {
     try {
         const kbIds = [...new Set((input?.kbIds || []).filter((id) => typeof id === 'string' && id))];
-        if (kbIds.length === 0) return null;
-        const logging = await loggingKbs(kbIds);
-        if (logging.length === 0) return null;
-        const userId = input.userId ?? null;
-        const permitted: typeof logging = [];
-        for (const kb of logging) if (await licensed(kb.organizationId ?? input.orgId ?? null, userId)) permitted.push(kb);
-        if (permitted.length === 0) return null;
-
-        const chunks = Array.isArray(input.chunks) ? input.chunks : [];
-        const docToKb = await d().store.kbIdsForDocuments(
-            chunks.map((c) => c.document_id ?? c.documentId).filter(Boolean), permitted.map((k) => k.id));
-        // A search over exactly one KB owns every chunk it returned, even one without a document id.
-        const soleKb = kbIds.length === 1 ? kbIds[0] : null;
-        const perKb = new Map<string, LogChunk[]>(permitted.map((k) => [k.id, []]));
-        for (const c of chunks) {
-            const kbId = docToKb.get(String(c.document_id ?? c.documentId)) ?? (soleKb && perKb.has(soleKb) ? soleKb : null);
-            if (kbId) perKb.get(kbId)?.push(toLogChunk(c));
-        }
-
+        if (kbIds.length === 0 || knownNotLogging(kbIds)) return null;
+        const userId = loggableUserId(input.userId);
         const searchGroupId = randomUUID();
-        const retrievalOnly = (RETRIEVAL_ONLY_CHANNELS as readonly string[]).includes(input.channel);
-        const createdAt = new Date(d().now());
-        const rows: InsertRow[] = permitted.map((kb) => {
-            const own = perKb.get(kb.id) ?? [];
-            return {
-                searchGroupId, organizationId: kb.organizationId ?? input.orgId ?? null, kbId: kb.id, userId,
-                channel: input.channel, channelRef: input.channelRef ?? {}, createdAt,
-                query: cap(input.query, QUERY_CAP), chunks: own, retrievalMs: input.retrievalMs ?? null,
-                outcome: own.length > 0 && retrievalOnly ? 'answered' : 'no_results', retentionDays: kb.retentionDays,
-            };
-        });
 
         // Fire and forget: the search does not wait for the log.
         const insert: Promise<boolean> = Promise.resolve()
-            .then(() => d().store.insertEntries(rows))
-            .then(() => true)
+            .then(() => prepareRows(input, kbIds, userId, searchGroupId))
+            .then(async (rows) => (rows.length > 0 && (await d().store.insertEntries(rows)) > 0))
             .catch((err) => { d().log.warn(`[KbQueryLog] not logged (${(err as Error).name}): ${(err as Error).message}`); return false; });
 
         let finished: Promise<void> | null = null;

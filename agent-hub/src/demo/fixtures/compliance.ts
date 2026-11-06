@@ -42,6 +42,7 @@ import {
     CHECK_DEFS, ISO_CONTROLS, ISO_THEMES, ISO_CONNECTORS, FRAMEWORKS, MILESTONES,
 } from './complianceCatalog';
 import { CHAT_MONITORING_ROUTES } from './complianceChatMonitoring';
+import { KB_QUERY_LOG_ROUTES } from './complianceKbQueryLog';
 import { INCIDENT_OPEN_STATUSES, incidentRoutes, incidentSeed, openDeadline, type Incident } from './complianceIncidents';
 import {
     PROJECT_CHECK_ID, projectActivities, ProjectSignal, projectSubjects, projectVerdict, ropaProjectRoutes, ropaProjectsSeed,
@@ -2985,6 +2986,7 @@ export const ROUTES = {
 
     ...ACCESS_LOG_ROUTES,
     ...CHAT_MONITORING_ROUTES,
+    ...KB_QUERY_LOG_ROUTES,
 };
 
 // Policy bodies are one short, real-sounding paragraph each rather than lorem:

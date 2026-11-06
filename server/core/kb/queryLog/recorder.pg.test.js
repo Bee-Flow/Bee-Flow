@@ -63,15 +63,73 @@ beforeEach(async () => {
     rec._setRecorderDeps({ store, hasFeature, log });
 });
 
-test('logging off for every KB asked: no handle and zero rows', async () => {
-    assert.equal(await rec.beginKbQueryLog(search({ kbIds: [KB_C] })), null);
+test('logging off for every KB asked: zero rows (a no-op handle on a cold cache, null once it is known)', async () => {
+    const h = await rec.beginKbQueryLog(search({ kbIds: [KB_C] }));
+    await h?.settled();
+    await h?.finish({ outcome: 'answered', answer: 'x' });
+    assert.equal((await raw()).length, 0);
+    assert.equal(await rec.beginKbQueryLog(search({ kbIds: [KB_C] })), null, 'cached as off: nothing to wait for');
+});
+
+test('logging on but no licence: zero rows', async () => {
+    licensed = false;
+    const h = await rec.beginKbQueryLog(search());
+    await h?.settled();
     assert.equal((await raw()).length, 0);
 });
 
-test('logging on but no licence: no handle and zero rows', async () => {
-    licensed = false;
-    assert.equal(await rec.beginKbQueryLog(search()), null);
+test('begin resolves while the lookups are still pending: no database round-trip on the search path', async () => {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    rec._setRecorderDeps({ store: { ...store, getLoggingKbs: async (ids) => { await gate; return store.getLoggingKbs(ids); } }, hasFeature, log });
+    const h = await rec.beginKbQueryLog(search());
+    assert.ok(h, 'a handle comes back although getLoggingKbs has not answered');
     assert.equal((await raw()).length, 0);
+    release();
+    await h.settled();
+    assert.equal((await raw()).length, 2);
+});
+
+test('the cache says "logging" but the database says off: no row is written', async () => {
+    const first = await rec.beginKbQueryLog(search({ kbIds: [KB_A] }));
+    await first.settled();
+    await pg.exec('DELETE FROM kb_query_log');
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = false WHERE id = '${KB_A}'`);
+    try {
+        const h = await rec.beginKbQueryLog(search({ kbIds: [KB_A] }));
+        assert.ok(h, 'still cached as logging');
+        await h.settled();
+        await h.finish({ outcome: 'answered', answer: 'x' });
+        assert.equal((await raw()).length, 0);
+    } finally {
+        await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${KB_A}'`);
+        rec.invalidateKbQueryLogCache();
+    }
+});
+
+test('a user id that is not a person is logged as nobody', async () => {
+    for (const id of ['support-ai:inbox:t1', 'guest_abc123', 'guest', 'anonymous']) {
+        rec.invalidateKbQueryLogCache();
+        await pg.exec('DELETE FROM kb_query_log');
+        const h = await rec.beginKbQueryLog(search({ kbIds: [KB_A], userId: id }));
+        await h.settled();
+        assert.equal((await raw())[0].user_id, null, id);
+    }
+    assert.equal(rec.loggableUserId('u-real-1'), 'u-real-1');
+    assert.equal(rec.loggableUserId(undefined), null);
+});
+
+test('a knowledge base without an organisation is never logged', async () => {
+    await pg.exec(`UPDATE knowledge_bases SET organization_id = NULL WHERE id = '${KB_A}'`);
+    try {
+        rec.invalidateKbQueryLogCache();
+        const h = await rec.beginKbQueryLog(search({ kbIds: [KB_A], orgId: 'org1' }));
+        await h?.settled();
+        assert.equal((await raw()).length, 0);
+    } finally {
+        await pg.exec(`UPDATE knowledge_bases SET organization_id = 'org1' WHERE id = '${KB_A}'`);
+        rec.invalidateKbQueryLogCache();
+    }
 });
 
 test('nothing to log for empty or junk input, and it never throws', async () => {
@@ -167,7 +225,10 @@ test('the setting is cached for a short while and invalidateKbQueryLogCache drop
     try {
         assert.ok(await rec.beginKbQueryLog(search({ kbIds: [KB_A] })), 'still cached as logging');
         rec.invalidateKbQueryLogCache(KB_A);
-        assert.equal(await rec.beginKbQueryLog(search({ kbIds: [KB_A] })), null, 'dropped, now off');
+        const before = (await raw()).length;
+        const dropped = await rec.beginKbQueryLog(search({ kbIds: [KB_A] }));
+        await dropped?.settled();
+        assert.equal((await raw()).length, before, 'dropped, now off: no new row');
     } finally {
         await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${KB_A}'`);
         rec.invalidateKbQueryLogCache();
@@ -177,7 +238,10 @@ test('the setting is cached for a short while and invalidateKbQueryLogCache drop
 test('a store that throws never reaches the caller', async () => {
     const boom = async () => { throw new Error('db down'); };
     rec._setRecorderDeps({ store: { ...store, getLoggingKbs: boom }, hasFeature, log });
-    assert.equal(await rec.beginKbQueryLog(search()), null);
+    const h0 = await rec.beginKbQueryLog(search());
+    await h0?.settled();
+    await h0?.finish({ outcome: 'answered' });
+    assert.equal((await raw()).length, 0);
 
     rec._setRecorderDeps({ store: { ...store, insertEntries: boom }, hasFeature, log });
     const h = await rec.beginKbQueryLog(search());

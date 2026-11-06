@@ -297,9 +297,12 @@ async function buildDatasetTools(app, step, ctx, scope) {
  * The query-log option of a Studio step: the person asking is the viewer, not the app's owner.
  * @param {'studio_ai_generate' | 'studio_ai_extract' | 'studio_kb_query'} channel
  * @param {AppRef} app
- * @param {{ viewerId?: string | null, actionId?: string | null }} ctx
+ * A dry run (app_run_action's default, and every saved test of app_run_tests) is the builder checking the
+ * app, not a person asking a question: it logs nothing.
+ * @param {{ viewerId?: string | null, actionId?: string | null, dryRun?: boolean }} ctx
  */
 function queryLogFor(channel, app, ctx) {
+    if (ctx.dryRun === true) return null;
     return { channel, channelRef: { appId: app.id, actionId: ctx.actionId ?? null }, orgId: app.organizationId || null, userId: ctx.viewerId ?? null };
 }
 
@@ -744,6 +747,7 @@ module.exports = {
     resolveContextSources,
     aiGenerateStep,
     kbQueryStep,
+    queryLogFor,
     resolveWriteMapping,
     interpolatePrompt,
     // Pure, and the place a whole order's context was quietly destroyed —

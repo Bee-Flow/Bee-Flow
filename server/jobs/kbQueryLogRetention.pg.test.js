@@ -40,8 +40,9 @@ const makeDeps = (env = {}) => ({
 before(async () => {
     crypto._setCryptoDeps({ getOrgRootKey: async () => Buffer.alloc(32, 5), sealingEnabled: async () => false });
     await pg.exec(`CREATE TABLE knowledge_bases (id UUID PRIMARY KEY, tenant_id TEXT, name TEXT, organization_id TEXT);
-        INSERT INTO knowledge_bases (id) VALUES ('${KB}');`);
+        INSERT INTO knowledge_bases (id, organization_id) VALUES ('${KB}', 'org1');`);
     for (const sql of KB_QUERY_LOG_COLUMN_DDL) await pg.exec(sql);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true`);
     for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql);
 });
 after(async () => { job._setDeps(null); crypto._setCryptoDeps(null); await pg.close(); });

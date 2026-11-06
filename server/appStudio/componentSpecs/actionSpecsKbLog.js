@@ -5,14 +5,14 @@
  * into `resultVar` as { rows, total, count }; kb_log_review sets a row's review status and note.
  * Both need a knowledge base the app OWNER and the VIEWER manage; a public app never runs them.
  * filters is { from, to, userId, channel, outcome, status }, each a binding (empty = no filter).
- * resultDetail 'summary' drops passages and answers so the result variable stays small (the 64 kB
- * step-body lesson of file_intake).
+ * resultDetail 'summary' (the default) carries no question, passage, answer or note; 'full' returns the
+ * decrypted text (keep the result variable small: the 64 kB step-body lesson of file_intake).
  */
 const KB_LOG_QUERY_FIELDS = {
     kbId: { type: 'binding', required: true },
     filters: { type: 'recordValues' },
     limit: { type: 'int', min: 1, max: 200 },
-    resultDetail: { type: 'enum', values: ['full', 'summary'], default: 'full' },
+    resultDetail: { type: 'enum', values: ['full', 'summary'], default: 'summary' },
     resultVar: { type: 'string', required: true, maxLen: 60 },
 };
 

@@ -114,6 +114,15 @@ test('dryRun is the default: client steps skipped, a record write not executed, 
     assert.deepEqual(out.steps[1].result, { wouldWrite: { kind: 'create_record', tableId: 'tbl_a' } });
 });
 
+test('the step context says dryRun, so a dry run or a test writes no KB query log', async () => {
+    const step = { kind: 'ai_generate', prompt: { kind: 'static', value: 'x' }, resultVar: 'r' };
+    await run({ kind: 'sequence', steps: [step] });
+    assert.equal(executed[0].ctx.dryRun, true);
+    executed = [];
+    await run({ kind: 'sequence', steps: [step] }, { dryRun: false });
+    assert.equal(executed[0].ctx.dryRun, false);
+});
+
 test('dryRun never executes send_email, also nested in condition, switch and loop; the report has no body', async () => {
     const out = await run({ kind: 'sequence', steps: [
         EMAIL,

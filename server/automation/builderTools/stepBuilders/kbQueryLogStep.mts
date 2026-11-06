@@ -38,7 +38,7 @@ function listFields(args: Obj): { fields: Obj } | { error: string } {
         if (!Number.isFinite(n) || n < 1) return { error: `limit must be a whole number from 1 to ${MAX_LIMIT}.` };
         out.limit = Math.min(n, MAX_LIMIT);
     }
-    if (args.resultDetail === 'summary') out.resultDetail = 'summary';
+    if (args.resultDetail === 'summary' || args.resultDetail === 'full') out.resultDetail = args.resultDetail;
     return { fields: out };
 }
 

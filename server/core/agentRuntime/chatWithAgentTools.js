@@ -74,7 +74,8 @@ async function dispatchChatTool({ toolName, toolArgs, fixedParams, identity, ctx
             agentId,
             supportThreadId: userAuth?.supportThreadId || null,
             // KB query log: the kb_search tool registers its handle on this turn's carrier.
-            queryLog: ctx.queryLogCarrier ? { carrier: ctx.queryLogCarrier, channel: 'agent_chat_sync' } : null,
+            // `asker` is set by a caller whose `userId` is synthetic (the support responder): the log names the real person, or nobody.
+            queryLog: ctx.queryLogCarrier ? { carrier: ctx.queryLogCarrier, channel: 'agent_chat_sync', ...(userAuth?.queryLogAsker ? { asker: userAuth.queryLogAsker.userId ?? null } : {}) } : null,
             lentConnection,
             // No capture context of its own here: the dispatcher's chokepoint
             // writes the egress row with these ids.

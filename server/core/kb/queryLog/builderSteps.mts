@@ -20,6 +20,9 @@
 import { createRequire } from 'node:module';
 import { REVIEW_STATUSES, isChannel, isOutcome, isReviewStatus, type ReviewStatus } from './vocab.mts';
 import type { EntryRow } from '../../../stores/kb/queryLog/index.mts';
+import { summarise } from '../../../stores/kb/queryLog/redact.mts';
+
+export { redactLogStepOutput } from '../../../stores/kb/queryLog/redact.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -108,12 +111,6 @@ export type ListInput = { kbId: unknown; filters?: unknown; limit?: unknown; det
 export type Scope = { ownerId: string | null | undefined; viewerId?: string | null };
 export type StepOut = { ok: true; result: Record<string, unknown> } | Refusal;
 
-/** Summary rows drop the passages and answer text so a result variable stays small. */
-function summarise(r: EntryRow): Record<string, unknown> {
-    const { chunks, answer, citations, ...rest } = r;
-    return { ...rest, chunks: [], answer: null, citations: [], chunkCount: r.chunkCount ?? chunks.length };
-}
-
 export async function listQueryLog(input: ListInput, scope: Scope): Promise<StepOut> {
     const access = await checkBuilderAccess(input.kbId, scope.ownerId, scope.viewerId);
     if (!access.ok) return access;
@@ -123,7 +120,7 @@ export async function listQueryLog(input: ListInput, scope: Scope): Promise<Step
     const { rows, total } = await deps().store.listEntries({
         kbId: access.kb.id, orgId: access.kb.organization_id ?? null, ...cleaned.filters, limit, offset: 0, includeContent: true,
     });
-    return { ok: true, result: { rows: input.detail === 'summary' ? rows.map(summarise) : rows, total, count: rows.length } };
+    return { ok: true, result: { rows: input.detail === 'full' ? rows : rows.map(summarise), total, count: rows.length } };
 }
 
 export type ReviewInput = { kbId: unknown; entryId: unknown; status: unknown; note?: unknown };

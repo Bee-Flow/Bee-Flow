@@ -86,7 +86,14 @@ const entry = (over = {}) => ({
     query: SECRET_QUERY, chunks: [{ chunkId: 'c1', documentId: 'd1', title: 'Pay policy', score: 0.4, text: 'Salaries are confidential passage.' }],
     retrievalMs: 5, outcome: 'answered', retentionDays: 90, ...over,
 });
-const seed = (rows) => store.insertEntries(rows.map((r) => entry(r)));
+const seed = async (rows) => {
+    // The store only writes while the base logs; the tests seed rows for any state of the setting.
+    const was = (await pg.query('SELECT id, query_log_enabled FROM knowledge_bases')).rows;
+    await pg.exec('UPDATE knowledge_bases SET query_log_enabled = true');
+    try { return await store.insertEntries(rows.map((r) => entry(r))); } finally {
+        for (const k of was) await pg.query('UPDATE knowledge_bases SET query_log_enabled = $2 WHERE id = $1', [k.id, k.query_log_enabled]);
+    }
+};
 const audit = async () => (await pg.query('SELECT action, target_type, target_id, changed_by, organization_id, new_values FROM access_audit_log ORDER BY created_at, id')).rows;
 const as = (user) => ({ user });
 const withoutAuditTable = async (fn) => {
@@ -313,7 +320,7 @@ test('erasure whose audit write fails deletes nothing', async () => {
 // ── No licence ──────────────────────────────────────────────────────
 
 test('the compliance routes keep working without the kb_query_log licence', async () => {
-    await store.insertEntries([entry({ id: 'n1', organizationId: ORG_FREE, kbId: kbIdFree, userId: ADMIN_FREE.id, searchGroupId: 'gf' })]);
+    await seed([{ id: 'n1', organizationId: ORG_FREE, kbId: kbIdFree, userId: ADMIN_FREE.id, searchGroupId: 'gf' }]);
     const overview = await api.call('GET', '/kb-query-log/overview', as(ADMIN_FREE));
     assert.equal(overview.status, 200);
     assert.equal(overview.body.licensed, false);

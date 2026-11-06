@@ -110,7 +110,7 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
     const frameworks = useFrameworks({ enabled: true, onChanged: () => { bump(); refreshCore(); } });
     const calendar = useCalendar({ enabled: isActive('overview', 'frameworks') || !!section.regulation });
 
-    const dsr = useDsr({ enabled: isActive('dsr', 'overview'), onChanged: bump, refreshCore });
+    const dsr = useDsr({ enabled: isActive('dsr', 'overview', 'kb_query_log'), onChanged: bump, refreshCore });
     const incidents = useIncidents({ enabled: isActive('incidents', 'overview'), onChanged: bump, refreshCore });
     const vulnerabilities = useIncidents({ enabled: active === 'vulnerabilities', onChanged: bump, refreshCore, kind: 'vulnerability' });
     const deadlines = useComplianceDeadlines({ enabled: active === 'overview', requests: dsr.requests, incidents: incidents.incidents });

@@ -65,11 +65,11 @@ beforeEach(async () => {
 
 const { quickKBSearch } = require('../../agentRuntime/knowledgeSearch');
 
-test('quickKBSearch (direct_chat): logging off writes nothing, and the result has no handle', async () => {
+test('quickKBSearch (direct_chat): logging off writes nothing', async () => {
     found = [{ ...found[0], document_id: DOC_OFF }];
     const out = await quickKBSearch('u1', [KB_OFF], 'notice period', { log: { channel: 'direct_chat', channelRef: {}, orgId: 'org1', userId: 'u1' } });
     assert.equal(out.length, 1);
-    assert.equal(hook.handleOf(out), null);
+    await hook.handleOf(out)?.settled();
     assert.equal((await raw()).length, 0);
 });
 

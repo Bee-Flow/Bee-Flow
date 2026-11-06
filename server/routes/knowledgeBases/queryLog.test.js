@@ -67,7 +67,14 @@ const entry = (over = {}) => ({
     query: 'how long is the notice period?', chunks: [{ chunkId: 'c1', documentId: 'd1', title: 'Contract', score: 0.9, text: 'Three months.' }],
     retrievalMs: 5, outcome: 'answered', retentionDays: 90, ...over,
 });
-const seed = (rows) => store.insertEntries(rows.map((r) => entry(r)));
+const seed = async (rows) => {
+    // The store only writes while the base logs; the tests seed rows for any state of the setting.
+    const was = (await pg.query('SELECT id, query_log_enabled FROM knowledge_bases')).rows;
+    await pg.exec('UPDATE knowledge_bases SET query_log_enabled = true');
+    try { return await store.insertEntries(rows.map((r) => entry(r))); } finally {
+        for (const k of was) await pg.query('UPDATE knowledge_bases SET query_log_enabled = $2 WHERE id = $1', [k.id, k.query_log_enabled]);
+    }
+};
 const audit = async () => (await pg.query('SELECT action, target_type, target_id, changed_by, organization_id, old_values, new_values FROM access_audit_log ORDER BY created_at, id')).rows;
 const as = (user) => ({ user });
 
@@ -77,6 +84,7 @@ const ALL_KB_ROUTES = (id, entryId = 'e1') => [
     ['GET', `/${id}/query-log/export.csv`],
     ['GET', `/${id}/query-log/${entryId}`],
     ['PATCH', `/${id}/query-log/${entryId}/review`, { status: 'reviewed' }],
+    ['DELETE', `/${id}/query-log`],
 ];
 
 // ── Who may call ────────────────────────────────────────────────────
@@ -107,6 +115,40 @@ test('without the kb_query_log licence the KB routes answer with the licence err
     const put = await api.call('PUT', `/${freeKbId}/query-log/settings`, { user: FREE_OWNER, body: { enabled: true } });
     assert.equal(put.status, 403);
     assert.equal((await pg.query(`SELECT query_log_enabled FROM knowledge_bases WHERE id = $1`, [freeKbId])).rows[0].query_log_enabled, false);
+});
+
+test('after the licence ran out a manager can still switch off and purge (DELETE), but not enable', async () => {
+    await seed([{ id: 'f1', kbId: freeKbId, organizationId: ORG_FREE }]);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${freeKbId}'`);
+    const res = await api.call('DELETE', `/${freeKbId}/query-log`, as(FREE_OWNER));
+    assert.equal(res.status, 200);
+    assert.equal(res.body.deleted, 1);
+    assert.equal(res.body.enabled, false);
+    assert.equal((await pg.query('SELECT COUNT(*)::int AS n FROM kb_query_log WHERE kb_id = $1', [freeKbId])).rows[0].n, 0);
+    assert.ok((await audit()).some((r) => r.action === 'kb.query_log.purged' && r.target_id === freeKbId));
+    assert.equal((await api.call('DELETE', `/${freeKbId}/query-log`, as(READER))).status, 404, 'still manager-gated');
+});
+
+test('logging cannot be enabled on a knowledge base without an organisation', async () => {
+    const kbStore = require('../../stores/knowledgeBases');
+    const personal = (await kbStore.createKB(OWNER.id, 'Personal', '', null, {})).id;
+    const res = await api.call('PUT', `/${personal}/query-log/settings`, { user: OWNER, body: { enabled: true } });
+    assert.equal(res.status, 400);
+    assert.equal((await pg.query('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [personal])).rows[0].query_log_enabled, false);
+});
+
+test('a base moved to another organisation loses its log, audited as organization_changed', async () => {
+    const kbStore = require('../../stores/knowledgeBases');
+    const moving = (await kbStore.createKB(OWNER.id, 'Moving', '', ORG, {})).id;
+    await seed([{ id: 'mv1', kbId: moving }]);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id = '${moving}'`);
+    await require('../../stores/projectStore').initDB();
+    await kbStore.updateKB(moving, { organizationId: ORG_OTHER });
+    assert.equal((await pg.query('SELECT COUNT(*)::int AS n FROM kb_query_log WHERE kb_id = $1', [moving])).rows[0].n, 0);
+    assert.equal((await pg.query('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [moving])).rows[0].query_log_enabled, false);
+    const row = (await audit()).find((r) => r.action === 'kb.query_log.purged' && r.target_id === moving);
+    assert.ok(row);
+    assert.equal(JSON.parse(row.new_values).reason, 'organization_changed');
 });
 
 test('no session at all is a 401', async () => {
@@ -281,6 +323,10 @@ test('an export whose audit write fails sends no file', async () => {
     } finally {
         await pg.exec('ALTER TABLE access_audit_log_off RENAME TO access_audit_log');
     }
+});
+
+test('the export is rate limited per user, like the compliance export', () => {
+    assert.deepEqual(h.limitersOn(require('./queryLog'), 'get', '/:id/query-log/export.csv'), ['kb-query-log-kb-export']);
 });
 
 // ── Notice ──────────────────────────────────────────────────────────

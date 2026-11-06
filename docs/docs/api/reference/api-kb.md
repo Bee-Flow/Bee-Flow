@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/kb`
 
-49 routes, 33 with a request schema. Back to the [endpoint reference](../reference.md).
+50 routes, 34 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -238,6 +238,12 @@ No request schema.
 | `q` | string |  | max length 200 |
 | `limit` | integer |  | min 1; max 200 |
 | `offset` | integer |  | min 0; max 9007199254740991 |
+
+### `DELETE /api/kb/:id/query-log`
+
+**Access:** Signed-in user · Scope `kbManager` · middleware `trainingGate`
+
+**Query:** object (no other keys)
 
 ### `GET /api/kb/:id/query-log/:entryId`
 
