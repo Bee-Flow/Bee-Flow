@@ -32,7 +32,7 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
-const { kbQueryLogFields } = require('../../stores/kb/model');
+const { kbQueryLogFields, withoutRawAttestation } = require('../../stores/kb/model');
 const { requireAuth, requirePermission, validateSharedGroupsForOrg, assertUserCanUseOrg } = require('../../auth');
 const {
     getUserId,
@@ -136,7 +136,7 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {
         log.warn('[KB] Source count unavailable for KB detail:', /** @type {Error} */ (e).message);
     }
     res.json({
-        ...kb,
+        ...withoutRawAttestation(kb),
         // Legacy names mobile and the pickers read — same meaning, still numbers.
         total_chunks: counts.totalChunks,
         document_count: counts.documentCount,
@@ -146,7 +146,7 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {
         totalChunks: counts.totalChunks,
         sourceCount,
         lastContentAt: kb.last_content_at || null,
-        ...kbQueryLogFields(kb),
+        ...kbQueryLogFields(kb, { manager: await canManageKB(req, kb) }),
         managed: await managedOf(kb.id),
         documents,
     });

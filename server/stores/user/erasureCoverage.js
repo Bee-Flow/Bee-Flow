@@ -53,6 +53,7 @@ const ERASURE_COVERAGE = Object.freeze({
     ai_usage_log: { mode: 'step', step: 'ai_usage_log' },
     chat_signal_objections: { mode: 'step', step: 'chat_signal_objections' },
     kb_query_log: { mode: 'step', step: 'kb_query_log' },
+    kb_query_log_ack: { mode: 'step', step: 'kb_query_log' },
     suggestion_scan_cache: { mode: 'step', step: 'suggestion traces' },
     automation_suggestion_feedback: { mode: 'step', step: 'suggestion traces' },
     automation_credentials: { mode: 'step', step: 'automation_credentials' },

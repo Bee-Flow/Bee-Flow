@@ -17,12 +17,14 @@ import {
     ANSWER_CAP, CHUNK_TEXT_CAP, DEFAULT_RETENTION_DAYS, QUERY_CAP, cap,
     type ReviewStatus,
 } from '../../../core/kb/queryLog/vocab.mts';
+import { makeAckFns } from './acks.mts';
+import { makeSettingsFns } from './settings.mts';
 import * as realCrypto from '../../../core/kb/queryLog/crypto.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
-import type { Db, CryptoApi, LogChunk, InsertRow, FinishPatch, ListFilter, EntryRow } from './types.mts';
-export type { Db, CryptoApi, LogChunk, InsertRow, FinishPatch, ListFilter, EntryRow } from './types.mts';
+import type { Db, CryptoApi, LogChunk, InsertRow, FinishPatch, ListFilter, EntryRow, QueryLogSettings, SettingsPatch } from './types.mts';
+export type { Db, CryptoApi, LogChunk, InsertRow, FinishPatch, ListFilter, EntryRow, QueryLogSettings, SettingsPatch } from './types.mts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** The in-memory text filter looks at no more than this many rows. */
@@ -47,6 +49,7 @@ function parseJson<T>(text: string | null, fallback: T): T {
 function cleanChunk(c: LogChunk): LogChunk {
     return {
         chunkId: c.chunkId ?? null, documentId: c.documentId ?? null, documentVersionId: c.documentVersionId ?? null,
+        documentVersion: c.documentVersion ?? null,
         sourceUri: c.sourceUri ?? null, title: c.title ?? null,
         score: typeof c.score === 'number' && Number.isFinite(c.score) ? c.score : null,
         page: typeof c.page === 'number' && Number.isFinite(c.page) ? c.page : null,
@@ -72,6 +75,23 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
         const { rows } = await db.query(
             `SELECT id, knowledge_base_id FROM documents WHERE id = ANY($1::uuid[]) AND knowledge_base_id = ANY($2::uuid[])`, [docs, kbs]);
         for (const r of rows) out.set(String(r.id), String(r.knowledge_base_id));
+        return out;
+    }
+
+    /**
+     * The version of each document at the moment of the search: Map(documentId -> {versionId, label}). `label` is the
+     * start of the document's content hash (what a re-ingest changes); `versionId` is the newest kb_document_versions
+     * snapshot of the document, when it has one (those are written before a delete or an overwrite).
+     */
+    async function documentVersions(documentIds: string[]): Promise<Map<string, { versionId: string | null; label: string | null }>> {
+        const docs = [...new Set((documentIds || []).filter((id) => typeof id === 'string' && UUID_RE.test(id)))];
+        const out = new Map<string, { versionId: string | null; label: string | null }>();
+        if (docs.length === 0) return out;
+        const { rows } = await db.query(
+            `SELECT d.id, d.content_hash,
+                    (SELECT v.id FROM kb_document_versions v WHERE v.document_id = d.id ORDER BY v.deleted_at DESC LIMIT 1) AS version_id
+             FROM documents d WHERE d.id = ANY($1::uuid[])`, [docs]);
+        for (const r of rows) out.set(String(r.id), { versionId: r.version_id ? String(r.version_id) : null, label: r.content_hash ? String(r.content_hash).slice(0, 12) : null });
         return out;
     }
 
@@ -276,6 +296,7 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
 
     async function deleteForKb(kbId: string): Promise<number> {
         if (!UUID_RE.test(kbId)) return 0;
+        await db.query(`DELETE FROM kb_query_log_ack WHERE kb_id = $1::uuid`, [kbId]);
         return (await db.query(`DELETE FROM kb_query_log WHERE kb_id = $1::uuid`, [kbId])).rowCount || 0;
     }
 
@@ -283,6 +304,8 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
     async function deleteForUser(orgId: string | null | undefined, userId: string): Promise<number> {
         if (!userId) return 0;
         const org = orgId ?? null;
+        // Account erasure (no organisation given) also drops the person's acknowledgements.
+        if (org === null) await db.query(`DELETE FROM kb_query_log_ack WHERE user_id = $1`, [userId]);
         const n = (await db.query(
             `DELETE FROM kb_query_log WHERE user_id = $1 AND ($2::text IS NULL OR organization_id = $2)`, [userId, org])).rowCount || 0;
         await db.query(`UPDATE kb_query_log SET reviewed_by = NULL WHERE reviewed_by = $1 AND ($2::text IS NULL OR organization_id = $2)`, [userId, org]);
@@ -293,12 +316,6 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
         const lim = Math.max(1, Math.floor(Number(limit) || DELETE_BATCH_DEFAULT));
         return (await db.query(
             `DELETE FROM kb_query_log WHERE id IN (SELECT id FROM kb_query_log WHERE expires_at < now() ORDER BY expires_at LIMIT ${lim})`)).rowCount || 0;
-    }
-
-    async function recomputeExpiry(kbId: string, retentionDays: number): Promise<number> {
-        if (!UUID_RE.test(kbId)) return 0;
-        return (await db.query(
-            `UPDATE kb_query_log SET expires_at = created_at + ($2::int * interval '1 day') WHERE kb_id = $1::uuid`, [kbId, retentionDays])).rowCount || 0;
     }
 
     async function countsByKb(orgId: string | null): Promise<Record<string, { total: number; byOutcome: Record<string, number>; byStatus: Record<string, number> }>> {
@@ -320,33 +337,19 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
         return { total, byKb };
     }
 
-    async function getQueryLogSettings(kbId: string): Promise<{ enabled: boolean; retentionDays: number; changedAt: string | null; changedBy: string | null } | null> {
-        if (!UUID_RE.test(kbId)) return null;
-        const { rows } = await db.query(
-            `SELECT query_log_enabled, query_log_retention_days, query_log_changed_at, query_log_changed_by FROM knowledge_bases WHERE id = $1::uuid`, [kbId]);
-        const r = rows[0];
-        return r ? { enabled: !!r.query_log_enabled, retentionDays: Number(r.query_log_retention_days), changedAt: iso(r.query_log_changed_at), changedBy: r.query_log_changed_by ?? null } : null;
+    /** The people who asked this base (for resolving a pseudonym in the person filter). */
+    async function askersOfKb(kbId: string): Promise<string[]> {
+        if (!UUID_RE.test(kbId)) return [];
+        const { rows } = await db.query(`SELECT DISTINCT user_id FROM kb_query_log WHERE kb_id = $1::uuid AND user_id IS NOT NULL`, [kbId]);
+        return rows.map((r) => String(r.user_id));
     }
 
-    /**
-     * Change the settings of one KB; returns the old and new values for the audit.
-     * `enabled` / `retentionDays` left undefined keep their value. A new retention
-     * term recomputes expires_at of the existing rows of that KB.
-     */
-    async function setQueryLogSettings(kbId: string, { enabled, retentionDays, changedBy }: { enabled?: boolean; retentionDays?: number; changedBy: string }) {
-        const old = await getQueryLogSettings(kbId);
-        if (!old) return null;
-        const next = { enabled: enabled ?? old.enabled, retentionDays: retentionDays ?? old.retentionDays };
-        await db.query(
-            `UPDATE knowledge_bases SET query_log_enabled = $2, query_log_retention_days = $3, query_log_changed_at = $4, query_log_changed_by = $5 WHERE id = $1::uuid`,
-            [kbId, next.enabled, next.retentionDays, clock().toISOString(), changedBy ?? null]);
-        if (next.retentionDays !== old.retentionDays) await recomputeExpiry(kbId, next.retentionDays);
-        return { old: { enabled: old.enabled, retentionDays: old.retentionDays }, new: next };
-    }
-
+    const acks = makeAckFns(db, clock);
+    const settingsFns = makeSettingsFns(db, clock);
     return {
-        getLoggingKbs, kbIdsForDocuments, insertEntries, finishGroup, listEntries, exportEntries, getEntry, setReview, deleteForKb, deleteForUser,
-        deleteExpired, recomputeExpiry, countsByKb, countsForUser, getQueryLogSettings, setQueryLogSettings,
+        getLoggingKbs, kbIdsForDocuments, documentVersions, insertEntries, finishGroup, listEntries, exportEntries, getEntry, setReview, deleteForKb, deleteForUser,
+        deleteExpired, countsByKb, countsForUser, ...settingsFns,
+        ...acks, askersOfKb,
     };
 }
 
@@ -372,5 +375,10 @@ export const deleteExpired: KbQueryLogStore['deleteExpired'] = (...a) => kbQuery
 export const recomputeExpiry: KbQueryLogStore['recomputeExpiry'] = (...a) => kbQueryLogStore().recomputeExpiry(...a);
 export const countsByKb: KbQueryLogStore['countsByKb'] = (...a) => kbQueryLogStore().countsByKb(...a);
 export const countsForUser: KbQueryLogStore['countsForUser'] = (...a) => kbQueryLogStore().countsForUser(...a);
+export const documentVersions: KbQueryLogStore['documentVersions'] = (...a) => kbQueryLogStore().documentVersions(...a);
+export const acknowledge: KbQueryLogStore['acknowledge'] = (...a) => kbQueryLogStore().acknowledge(...a);
+export const validAckKbIds: KbQueryLogStore['validAckKbIds'] = (...a) => kbQueryLogStore().validAckKbIds(...a);
+export const ackCountsByKb: KbQueryLogStore['ackCountsByKb'] = (...a) => kbQueryLogStore().ackCountsByKb(...a);
+export const askersOfKb: KbQueryLogStore['askersOfKb'] = (...a) => kbQueryLogStore().askersOfKb(...a);
 export const getQueryLogSettings: KbQueryLogStore['getQueryLogSettings'] = (...a) => kbQueryLogStore().getQueryLogSettings(...a);
 export const setQueryLogSettings: KbQueryLogStore['setQueryLogSettings'] = (...a) => kbQueryLogStore().setQueryLogSettings(...a);

@@ -17,11 +17,20 @@ export const KQL_STATUSES = ['to_review', 'reviewed', 'needs_addition'] as const
 
 /** The access-audit actions the query log writes: the overview links to the audit page filtered on these. */
 export const KQL_AUDIT_ACTIONS = Object.freeze([
-    'kb.query_log.enabled', 'kb.query_log.disabled', 'kb.query_log.retention_changed', 'kb.query_log.purged',
+    'kb.query_log.enabled', 'kb.query_log.disabled', 'kb.query_log.retention_changed', 'kb.query_log.purged', 'kb.query_log.names_changed',
+    'kb.query_log.high_risk_changed', 'kb.query_log.attested',
     'kb.query_log.exported', 'kb.query_log.content_viewed', 'kb.query_log.subject_exported', 'kb.query_log.subject_deleted',
 ]);
 
 interface KqlPerson { id: string; name: string | null }
+
+/** What the organisation attested when it switched a base's log on. */
+interface KqlAttestation {
+    dpia: string | null;
+    worksCouncil: string | null;
+    worksCouncilReason: string | null;
+    privacyNoticeUpdated: boolean;
+}
 
 export interface KqlKbRow {
     id: string;
@@ -32,6 +41,13 @@ export interface KqlKbRow {
     changedBy: string | null;
     changedByName: string | null;
     managers: KqlPerson[];
+    attestation: KqlAttestation | null;
+    attestedBy: string | null;
+    attestedByName: string | null;
+    attestedAt: string | null;
+    showNames: boolean;
+    aiActHighRisk: boolean;
+    acknowledgedUsers: number;
     total: number;
     byOutcome: Record<string, number>;
     byStatus: Record<string, number>;
@@ -89,6 +105,14 @@ const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v)
 const counts = (v: unknown): Record<string, number> => (isObj(v) ? Object.fromEntries(Object.entries(v).filter(([, n]) => typeof n === 'number').map(([k, n]) => [k, n as number])) : {});
 const people = (v: unknown): KqlPerson[] => (Array.isArray(v) ? v.filter(isObj).map((p) => ({ id: String(p.id), name: str(p.name) })) : []);
 
+function parseAttestation(v: unknown): KqlAttestation | null {
+    if (!isObj(v)) return null;
+    return {
+        dpia: str(v.dpia), worksCouncil: str(v.worksCouncil), worksCouncilReason: str(v.worksCouncilReason),
+        privacyNoticeUpdated: v.privacyNoticeUpdated === true,
+    };
+}
+
 export function parseOverview(body: unknown): KqlOverview | null {
     if (!isObj(body) || !Array.isArray(body.kbs)) return null;
     return {
@@ -98,7 +122,9 @@ export function parseOverview(body: unknown): KqlOverview | null {
             id: String(k.id), name: str(k.name) ?? String(k.id), enabled: k.enabled === true,
             retentionDays: typeof k.retentionDays === 'number' ? k.retentionDays : null,
             changedAt: str(k.changedAt), changedBy: str(k.changedBy), changedByName: str(k.changedByName),
-            managers: people(k.managers), total: num(k.total), byOutcome: counts(k.byOutcome), byStatus: counts(k.byStatus),
+            managers: people(k.managers), attestation: parseAttestation(k.attestation),
+            attestedBy: str(k.attestedBy), attestedByName: str(k.attestedByName), attestedAt: str(k.attestedAt),
+            showNames: k.showNames === true, aiActHighRisk: k.highRisk === true, acknowledgedUsers: num(k.acknowledgedUsers), total: num(k.total), byOutcome: counts(k.byOutcome), byStatus: counts(k.byStatus),
         })),
     };
 }

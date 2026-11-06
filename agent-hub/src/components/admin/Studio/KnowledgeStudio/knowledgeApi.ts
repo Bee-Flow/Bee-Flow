@@ -30,6 +30,7 @@
 import { createJsonResource } from '@/api/client';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import type { SourceConfig } from './sourceKinds';
+import type { QueryLogAttestation } from '@/api/queries/kbQueryLog';
 import { logger } from '@/utils/logger';
 
 const base = `${API_BASE}/api/kb`;
@@ -102,6 +103,11 @@ export type KnowledgeBase = {
     /** The query log: read-only here, changed through `PUT /:id/query-log/settings`. */
     queryLogEnabled?: boolean;
     queryLogRetentionDays?: number;
+    queryLogShowNames?: boolean;
+    queryLogAiActHighRisk?: boolean;
+    queryLogAttestation?: QueryLogAttestation | null;
+    queryLogAttestedBy?: string | null;
+    queryLogAttestedAt?: string | null;
     query_log_enabled?: boolean;
     query_log_retention_days?: number;
 };

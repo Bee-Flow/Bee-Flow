@@ -78,4 +78,15 @@ describe('QueryLogTab', () => {
         await user.click(screen.getByTestId('kb-ql-export'));
         await waitFor(() => expect(urls().some((u) => u.startsWith('/api/kb/kb1/query-log/export.csv?') && u.includes('status=to_review'))).toBe(true));
     });
+
+    it('shows the pseudonym instead of a name when the base hides names, and filters by it', async () => {
+        const user = userEvent.setup();
+        asMock(fetchMock).mockImplementation(async () => ok({ rows: [{ ...ROW, userId: null, userName: null, askerPseudonym: 'Employee 7F3K', askerPseudonymId: 'ps_7f3k' }], total: 1, limit: 25, offset: 0 }));
+        renderWithClient(<QueryLogTab kbId="kb1" />);
+        const row = await screen.findByTestId('kb-ql-row-e1');
+        expect(within(row).getByText('Employee 7F3K')).toBeTruthy();
+        expect(row.textContent).not.toContain('Alice');
+        await user.selectOptions(screen.getByTestId('kb-ql-person'), 'ps_7f3k');
+        await waitFor(() => expect(urls().some((u) => u.includes('userId=ps_7f3k'))).toBe(true));
+    });
 });

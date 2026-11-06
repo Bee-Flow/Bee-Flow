@@ -1,4 +1,17 @@
 import type { TranslateFn } from '@/hooks/useTranslation';
+import { QUERY_LOG_RETENTION_DAYS } from '@/api/queries/kbQueryLog';
+
+/** AI Act Art. 26(6): a deployer of a high-risk system keeps its logs at least six months. */
+export function retentionChoices(highRisk: boolean): readonly number[] {
+    return highRisk ? QUERY_LOG_RETENTION_DAYS.filter((d) => d >= 180) : QUERY_LOG_RETENTION_DAYS;
+}
+
+export function dpiaLabel(t: TranslateFn, id: string): string {
+    return id === 'done'
+        ? t('knowledge.query_log.dpia_done', 'A DPIA has been done')
+        : t('knowledge.query_log.dpia_not_required', 'A DPIA is not required');
+}
+
 
 /** Words for the vocabulary the server sends as ids. An id this client does not know is shown as it is. */
 export function channelLabel(t: TranslateFn, id: string): string {

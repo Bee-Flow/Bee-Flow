@@ -179,7 +179,7 @@ function blockIfSystemKB(kb, res) {
  */
 const { ensureKbSource } = require('../../core/kb/sources/ensureSource');
 const { fallback } = require('../../utils/bestEffort');
-const { kbQueryLogFields } = require('../../stores/kb/model');
+const { kbQueryLogFields, withoutRawAttestation } = require('../../stores/kb/model');
 
 /**
  * Add the K1 aggregates to KB rows for the list endpoints: numeric counters,
@@ -204,7 +204,7 @@ async function decorateKbList(kbs) {
     return list.map((kb) => {
         const c = counts[kb.id] || /** @type {Partial<typeof counts[string]>} */ ({});
         return {
-            ...kb,
+            ...withoutRawAttestation(kb),
             documentCount: Number(kb.document_count || 0),
             documentCountAll: Number(kb.document_count_all || kb.document_count || 0),
             totalChunks: Number(kb.total_chunks || 0),

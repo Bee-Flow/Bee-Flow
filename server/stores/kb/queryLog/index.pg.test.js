@@ -33,7 +33,8 @@ const row = (over = {}) => ({
 before(async () => {
     crypto._setCryptoDeps({ getOrgRootKey: async () => Buffer.alloc(32, 9), sealingEnabled: async () => true });
     await pg.exec(`CREATE TABLE knowledge_bases (id UUID PRIMARY KEY, tenant_id TEXT, name TEXT, organization_id TEXT);
-        CREATE TABLE documents (id UUID PRIMARY KEY, knowledge_base_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE);
+        CREATE TABLE documents (id UUID PRIMARY KEY, knowledge_base_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE, content_hash TEXT);
+        CREATE TABLE kb_document_versions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), document_id UUID NOT NULL, deleted_at TIMESTAMPTZ DEFAULT now());
         CREATE TABLE users (id TEXT PRIMARY KEY, username TEXT, "displayName" TEXT);`);
     for (const sql of KB_QUERY_LOG_COLUMN_DDL) await pg.exec(sql);
     for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql);
@@ -274,15 +275,21 @@ test('countsByKb and countsForUser give numbers only', async () => {
 test('settings: old and new values come back, a shorter term recomputes expiry, undefined keeps a value', async () => {
     const created = '2026-01-01T00:00:00Z';
     await store.insertEntries([row({ id: 'r1', createdAt: created })]);
-    assert.deepEqual(await store.getQueryLogSettings(KB_OFF), { enabled: false, retentionDays: 90, changedAt: null, changedBy: null });
+    assert.deepEqual(await store.getQueryLogSettings(KB_OFF), {
+        enabled: false, retentionDays: 90, changedAt: null, changedBy: null,
+        attestation: null, attestedBy: null, attestedAt: null, showNames: false, aiActHighRisk: false,
+    });
     const out = await store.setQueryLogSettings(KB_A, { retentionDays: 30, changedBy: 'mgr1' });
-    assert.deepEqual(out, { old: { enabled: true, retentionDays: 90 }, new: { enabled: true, retentionDays: 30 } });
+    assert.deepEqual(out, {
+        old: { enabled: true, retentionDays: 90, showNames: false, aiActHighRisk: false },
+        new: { enabled: true, retentionDays: 30, showNames: false, aiActHighRisk: false },
+    });
     const s = await store.getQueryLogSettings(KB_A);
     assert.equal(s.changedBy, 'mgr1');
     assert.ok(s.changedAt);
     assert.equal(Math.round((new Date((await raw())[0].expires_at) - new Date(created)) / 86_400_000), 30);
     const off = await store.setQueryLogSettings(KB_A, { enabled: false, changedBy: 'mgr1' });
-    assert.deepEqual(off.new, { enabled: false, retentionDays: 30 });
+    assert.deepEqual(off.new, { enabled: false, retentionDays: 30, showNames: false, aiActHighRisk: false });
     assert.deepEqual(await store.getLoggingKbs([KB_A]), []);
     await store.setQueryLogSettings(KB_A, { enabled: true, retentionDays: 90, changedBy: 'mgr1' });
     assert.equal(await store.setQueryLogSettings('dddddddd-dddd-4ddd-8ddd-dddddddddddd', { enabled: true, changedBy: 'x' }), null);
@@ -304,4 +311,55 @@ test('kbIdsForDocuments maps documents to the knowledge bases asked about', asyn
     const m = await store.kbIdsForDocuments([D1, D2, 'junk'], [KB_A]);
     assert.deepEqual([...m], [[D1, KB_A]], 'a document of a KB that was not asked about is absent');
     await pg.exec('DELETE FROM documents');
+});
+
+// ── Round 2 ─────────────────────────────────────────────────────────
+
+test('settings: the attestation, names and high-risk flag are stored; an undefined attestation keeps the old one', async () => {
+    const att = { purpose: 'ai_quality', dpia: 'not_required', dpiaId: null, worksCouncil: 'not_applicable', worksCouncilReason: 'no_works_council', privacyNoticeUpdated: true };
+    const out = await store.setQueryLogSettings(KB_B, { showNames: true, aiActHighRisk: true, retentionDays: 180, attestation: att, changedBy: 'mgr1' });
+    assert.deepEqual(out.new, { enabled: true, retentionDays: 180, showNames: true, aiActHighRisk: true });
+    let s = await store.getQueryLogSettings(KB_B);
+    assert.deepEqual(s.attestation, att);
+    assert.equal(s.attestedBy, 'mgr1');
+    assert.ok(s.attestedAt);
+    await store.setQueryLogSettings(KB_B, { showNames: false, aiActHighRisk: false, retentionDays: 90, changedBy: 'mgr2' });
+    s = await store.getQueryLogSettings(KB_B);
+    assert.deepEqual(s.attestation, att, 'kept');
+    assert.equal(s.attestedBy, 'mgr1', 'still the person who attested');
+});
+
+test('acknowledge: only logging bases, valid until the next settings change, counted per base; erasure and KB purge drop them', async () => {
+    assert.equal(await store.acknowledge('ua', [KB_A, KB_OFF, 'junk']), 1);
+    assert.deepEqual(await store.validAckKbIds('ua', [KB_A, KB_B, KB_OFF]), [KB_A]);
+    await store.acknowledge('ub', [KB_A]);
+    assert.deepEqual(await store.ackCountsByKb([KB_A, KB_B]), { [KB_A]: 2 });
+
+    await new Promise((r) => setTimeout(r, 5));
+    await store.setQueryLogSettings(KB_A, { retentionDays: 90, changedBy: 'm' });
+    assert.deepEqual(await store.validAckKbIds('ua', [KB_A]), [], 'a settings change re-asks');
+    assert.deepEqual(await store.ackCountsByKb([KB_A]), {});
+    await store.acknowledge('ua', [KB_A]);
+    assert.deepEqual(await store.validAckKbIds('ua', [KB_A]), [KB_A], 'acknowledging again renews it');
+
+    await store.deleteForUser(null, 'ua');
+    assert.deepEqual((await pg.query(`SELECT user_id FROM kb_query_log_ack ORDER BY user_id`)).rows.map((r) => r.user_id), ['ub']);
+    await store.deleteForUser(ORG, 'ub');
+    assert.equal((await pg.query(`SELECT 1 FROM kb_query_log_ack`)).rows.length, 1, 'an org-scoped erasure of rows (a subject request) keeps the proof of notice');
+    await store.deleteForKb(KB_A);
+    assert.equal((await pg.query(`SELECT 1 FROM kb_query_log_ack`)).rows.length, 0);
+});
+
+test('documentVersions: hash label and the newest snapshot id; unknown documents are absent', async () => {
+    const D = 'e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1';
+    await pg.exec(`INSERT INTO documents (id, knowledge_base_id, content_hash) VALUES ('${D}', '${KB_A}', '0123456789abcdefXYZ')`);
+    await pg.exec(`INSERT INTO kb_document_versions (id, document_id, deleted_at) VALUES ('11111111-1111-4111-8111-111111111111', '${D}', '2026-01-01'), ('22222222-2222-4222-8222-222222222222', '${D}', '2026-02-01')`);
+    const m = await store.documentVersions([D, 'junk', 'f1f1f1f1-f1f1-41f1-81f1-f1f1f1f1f1f1']);
+    assert.deepEqual([...m], [[D, { versionId: '22222222-2222-4222-8222-222222222222', label: '0123456789ab' }]]);
+    await pg.exec('DELETE FROM kb_document_versions; DELETE FROM documents');
+});
+
+test('askersOfKb lists the distinct people who asked', async () => {
+    await store.insertEntries([row({ id: 'r1' }), row({ id: 'r2', searchGroupId: 'g2' }), row({ id: 'r3', searchGroupId: 'g3', userId: null })]);
+    assert.deepEqual(await store.askersOfKb(KB_A), ['u1']);
 });

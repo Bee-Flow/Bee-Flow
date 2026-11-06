@@ -2080,6 +2080,10 @@
       "gate": "scope",
       "via": "kbManager"
     },
+    "GET /api/kb/:id/query-log/settings": {
+      "gate": "scope",
+      "via": "kbManager"
+    },
     "GET /api/kb/:id/sources": {
       "gate": "auth"
     },
@@ -2108,6 +2112,9 @@
       "gate": "auth"
     },
     "GET /api/kb/published": {
+      "gate": "auth"
+    },
+    "GET /api/kb/query-log/dpias": {
       "gate": "auth"
     },
     "GET /api/kb/query-log/notice": {
@@ -5261,6 +5268,9 @@
       ]
     },
     "POST /api/kb/favorites/bulk": {
+      "gate": "auth"
+    },
+    "POST /api/kb/query-log/acknowledge": {
       "gate": "auth"
     },
     "POST /api/kb/search": {

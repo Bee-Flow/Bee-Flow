@@ -11,6 +11,13 @@ export const KB_QUERY_LOG_COLUMN_DDL: string[] = [
     `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_retention_days INT NOT NULL DEFAULT 90`,
     `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_changed_at TIMESTAMPTZ`,
     `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_changed_by TEXT`,
+    // Round 2 (legal safeguards): the organisation's attestation of its preconditions, pseudonymous askers by
+    // default, and the AI Act high-risk flag (retention of at least six months).
+    `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_attestation JSONB`,
+    `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_attested_by TEXT`,
+    `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_attested_at TIMESTAMPTZ`,
+    `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_show_names BOOLEAN NOT NULL DEFAULT false`,
+    `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_ai_act_high_risk BOOLEAN NOT NULL DEFAULT false`,
 ];
 
 export const KB_QUERY_LOG_TABLE_DDL: string[] = [
@@ -45,4 +52,13 @@ export const KB_QUERY_LOG_TABLE_DDL: string[] = [
     `CREATE INDEX IF NOT EXISTS idx_kb_query_log_user ON kb_query_log(organization_id, user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_kb_query_log_expires ON kb_query_log(expires_at)`,
     `CREATE INDEX IF NOT EXISTS idx_kb_query_log_group ON kb_query_log(search_group_id)`,
+    // The user's recorded acknowledgement that questions to this base are logged (legal basis is legitimate
+    // interest, so this is being informed, not consent). Valid while acknowledged_at >= query_log_changed_at.
+    `CREATE TABLE IF NOT EXISTS kb_query_log_ack (
+        user_id TEXT NOT NULL,
+        kb_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE,
+        acknowledged_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, kb_id)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_kb_query_log_ack_kb ON kb_query_log_ack(kb_id)`,
 ];

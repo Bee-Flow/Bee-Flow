@@ -48,12 +48,14 @@ const settle = async (...handles) => { for (const h of handles) await h.settled(
 before(async () => {
     crypto._setCryptoDeps({ getOrgRootKey: async () => Buffer.alloc(32, 3), sealingEnabled: async () => true });
     await pg.exec(`CREATE TABLE knowledge_bases (id UUID PRIMARY KEY, tenant_id TEXT, name TEXT, organization_id TEXT);
-        CREATE TABLE documents (id UUID PRIMARY KEY, knowledge_base_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE);`);
+        CREATE TABLE documents (id UUID PRIMARY KEY, knowledge_base_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE, content_hash TEXT);
+        CREATE TABLE kb_document_versions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), document_id UUID NOT NULL, deleted_at TIMESTAMPTZ DEFAULT now());`);
     for (const sql of KB_QUERY_LOG_COLUMN_DDL) await pg.exec(sql);
     for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql);
     await pg.exec(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id, query_log_enabled, query_log_retention_days) VALUES
         ('${KB_ON}', 't', 'On', 'org1', true, 90), ('${KB_OFF}', 't', 'Off', 'org1', false, 90);
-        INSERT INTO documents (id, knowledge_base_id) VALUES ('${DOC_ON}', '${KB_ON}'), ('${DOC_OFF}', '${KB_OFF}');`);
+        INSERT INTO documents (id, knowledge_base_id) VALUES ('${DOC_ON}', '${KB_ON}'), ('${DOC_OFF}', '${KB_OFF}');
+        INSERT INTO kb_query_log_ack (user_id, kb_id) SELECT u, '${KB_ON}'::uuid FROM unnest(ARRAY['u1','asker','u','owner','viewer','author','viewer1']) AS u;`);
 });
 after(async () => { rec._setRecorderDeps(null); crypto._setCryptoDeps(null); await pg.close(); });
 beforeEach(async () => {
@@ -217,16 +219,14 @@ test('searchNotebookKB (notebook): the viewer is the user, the result carries th
     assert.equal(hook.handleOf(off), null);
 });
 
-test('searchWebpageKB (webpage): anonymous visitor is a null user; the tool registers on the carrier', async () => {
+test('searchWebpageKB (webpage): an anonymous visitor is never logged; the tool registers on the carrier', async () => {
     const { searchWebpageKB, executeWebpageKBSearchTool } = require('../../webpages/webpageKnowledgeSearch');
     const result = await searchWebpageKB({
         userId: 'author', kbIds: [KB_ON], query: 'notice period',
         log: { channel: 'webpage', channelRef: { webpageId: 'wp1', surface: 'public_share' }, orgId: 'org1', userId: null },
     });
     await settle(hook.handleOf(result));
-    let [row] = await raw();
-    assert.equal(row.channel, 'webpage');
-    assert.equal(row.user_id, null);
+    assert.equal((await raw()).length, 0, 'webpage needs an acknowledgement, an anonymous visitor cannot give one');
 
     await pg.exec('DELETE FROM kb_query_log');
     const turn = {};
@@ -235,8 +235,9 @@ test('searchWebpageKB (webpage): anonymous visitor is a null user; the tool regi
     });
     assert.equal(hook.turnLogsOf(turn).handles().length, 1);
     await settle(...hook.turnLogsOf(turn).handles());
-    [row] = await raw();
+    const [row] = await raw();
     assert.equal(row.user_id, 'author');
+    assert.equal(row.channel, 'webpage');
 });
 
 test('groundWithKB (studio_ai_generate): the viewer is the user, not the app owner; no viewer means no search and no row', async () => {

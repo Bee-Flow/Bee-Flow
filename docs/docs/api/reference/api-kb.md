@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/kb`
 
-50 routes, 34 with a request schema. Back to the [endpoint reference](../reference.md).
+53 routes, 37 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -278,6 +278,12 @@ No request schema.
 | `status` | one of `"to_review"`, `"reviewed"`, `"needs_addition"` |  |  |
 | `q` | string |  | max length 200 |
 
+### `GET /api/kb/:id/query-log/settings`
+
+**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+
+**Query:** object (no other keys)
+
 ### `PUT /api/kb/:id/query-log/settings`
 
 **Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
@@ -289,6 +295,9 @@ No request schema.
 | `enabled` | boolean | yes |  |
 | `retentionDays` | integer |  | min 0; max 9007199254740991 |
 | `deleteExisting` | boolean |  |  |
+| `attestation` | object |  |  |
+| `showNames` | boolean |  |  |
+| `aiActHighRisk` | boolean |  |  |
 
 ### `POST /api/kb/:id/reindex`
 
@@ -461,9 +470,25 @@ No request schema.
 
 ## `query-log`
 
+### `POST /api/kb/query-log/acknowledge`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `kbIds` | array of string | yes | min items 1; max items 50 |
+
+### `GET /api/kb/query-log/dpias`
+
+**Access:** Signed-in user · Licence feature `kb_query_log` · middleware `trainingGate` · the handler also checks who the caller is
+
+**Query:** object (no other keys)
+
 ### `GET /api/kb/query-log/notice`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · middleware `trainingGate`
 
 **Query**
 

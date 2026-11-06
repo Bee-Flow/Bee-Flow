@@ -21,6 +21,7 @@ import { createRequire } from 'node:module';
 import { REVIEW_STATUSES, isChannel, isOutcome, isReviewStatus, type ReviewStatus } from './vocab.mts';
 import type { EntryRow } from '../../../stores/kb/queryLog/index.mts';
 import { summarise } from '../../../stores/kb/queryLog/redact.mts';
+import { maskAsker, resolveAskerFilter } from './askers.mts';
 
 export { redactLogStepOutput } from '../../../stores/kb/queryLog/redact.mts';
 
@@ -35,13 +36,17 @@ export const LICENCE_FEATURE = 'kb_query_log';
 
 export interface Filters { from?: unknown; to?: unknown; userId?: unknown; channel?: unknown; outcome?: unknown; status?: unknown }
 
+/** The base as the steps need it; `query_log_show_names` decides whether askers are named or pseudonyms. */
+export interface KbRef { id: string; organization_id?: string | null; query_log_show_names?: boolean | null }
+
 export interface BuilderDeps {
-    getKB: (kbId: string) => Promise<{ id: string; organization_id?: string | null } | null>;
+    getKB: (kbId: string) => Promise<KbRef | null>;
     canManage: (kbId: string, userId: string) => Promise<{ ok: boolean }>;
     hasFeature: (scope: { organizationId?: string | null; userId?: string | null }, feature: string) => Promise<boolean>;
     store: {
         listEntries: (f: Record<string, unknown>) => Promise<{ rows: EntryRow[]; total: number }>;
         setReview: (kbId: string, id: string, p: { status: ReviewStatus; note?: string | null; reviewedBy: string }) => Promise<EntryRow | null>;
+        askersOfKb: (kbId: string) => Promise<string[]>;
     };
 }
 
@@ -60,7 +65,7 @@ function deps(): BuilderDeps {
 }
 
 export type Refusal = { ok: false; error: string; code: string; status: number };
-export type Granted = { ok: true; kb: { id: string; organization_id?: string | null } };
+export type Granted = { ok: true; kb: KbRef };
 
 const NOT_AVAILABLE = 'That knowledge base is not available here.';
 
@@ -117,10 +122,14 @@ export async function listQueryLog(input: ListInput, scope: Scope): Promise<Step
     const cleaned = cleanFilters(input.filters);
     if ('error' in cleaned) return refuse('kb_query_log_filter', cleaned.error, 400);
     const limit = clampLimit(input.limit);
-    const { rows, total } = await deps().store.listEntries({
-        kbId: access.kb.id, orgId: access.kb.organization_id ?? null, ...cleaned.filters, limit, offset: 0, includeContent: true,
+    const store = deps().store;
+    // Without `show_names` the person filter takes a pseudonym id, and rows carry a pseudonym instead of the person.
+    const userId = await resolveAskerFilter(cleaned.filters.userId, access.kb, (id) => store.askersOfKb(id));
+    const { rows, total } = await store.listEntries({
+        kbId: access.kb.id, orgId: access.kb.organization_id ?? null, ...cleaned.filters, userId, limit, offset: 0, includeContent: true,
     });
-    return { ok: true, result: { rows: input.detail === 'full' ? rows : rows.map(summarise), total, count: rows.length } };
+    const shown = rows.map((r) => maskAsker(r, access.kb));
+    return { ok: true, result: { rows: input.detail === 'full' ? shown : shown.map((r) => summarise(r as EntryRow)), total, count: rows.length } };
 }
 
 export type ReviewInput = { kbId: unknown; entryId: unknown; status: unknown; note?: unknown };

@@ -11,6 +11,11 @@
  * sees a passage of KB B. Nothing is written without the `kb_query_log` licence, even when
  * the setting is still on.
  *
+ * Acknowledgement: a row for a channel where a person types into a Bee Flow screen (vocab
+ * ACK_REQUIRED_CHANNELS) is written only for a known user who acknowledged the notice of THAT knowledge
+ * base after its last settings change; anonymous askers are never logged there. The lookup is one query
+ * per search, cached 30 s, and runs behind the handle like the other lookups.
+ *
  * Outcome before `finish`: `no_results` when the KB gave no passage; `answered` for the
  * retrieval-only channels (there is no answer to wait for); `no_results` for answering
  * channels until `finish` says what happened.
@@ -18,7 +23,7 @@
 
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
-import { CHUNK_TEXT_CAP, QUERY_CAP, RETRIEVAL_ONLY_CHANNELS, cap, type Channel, type Outcome } from './vocab.mts';
+import { CHUNK_TEXT_CAP, QUERY_CAP, RETRIEVAL_ONLY_CHANNELS, cap, isAckRequiredChannel, type Channel, type Outcome } from './vocab.mts';
 import type { FinishPatch, InsertRow, LogChunk } from '../../../stores/kb/queryLog/index.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -50,6 +55,8 @@ export interface RecorderDeps {
     store: {
         getLoggingKbs: (ids: string[]) => Promise<Array<{ id: string; organizationId: string | null; retentionDays: number }>>;
         kbIdsForDocuments: (docIds: string[], kbIds: string[]) => Promise<Map<string, string>>;
+        validAckKbIds: (userId: string, kbIds: string[]) => Promise<string[]>;
+        documentVersions: (docIds: string[]) => Promise<Map<string, { versionId: string | null; label: string | null }>>;
         insertEntries: (rows: InsertRow[]) => Promise<number>;
         finishGroup: (groupId: string, patch: FinishPatch) => Promise<number>;
     };
@@ -79,11 +86,30 @@ export function _setRecorderDeps(next?: Partial<RecorderDeps> | null): void {
 type KbEntry = { id: string; organizationId: string | null; retentionDays: number } | null;
 const kbCache = new Map<string, { at: number; entry: KbEntry }>();
 const licenceCache = new Map<string, { at: number; ok: boolean }>();
+/** `${userId}|${kbId}` -> does the user hold a valid acknowledgement. */
+const ackCache = new Map<string, { at: number; ok: boolean }>();
 
 /** Forget what is cached about one knowledge base, or about all of them. Call after a settings change. */
 export function invalidateKbQueryLogCache(kbId?: string): void {
-    if (kbId === undefined) { kbCache.clear(); licenceCache.clear(); return; }
+    if (kbId === undefined) { kbCache.clear(); licenceCache.clear(); ackCache.clear(); return; }
     kbCache.delete(kbId);
+    for (const key of [...ackCache.keys()]) if (key.endsWith(`|${kbId}`)) ackCache.delete(key);
+}
+
+/** Forget what is cached about the acknowledgements of one person (they just acknowledged). */
+export function invalidateKbQueryLogAck(userId: string, kbIds: string[]): void {
+    for (const kbId of kbIds) ackCache.delete(`${userId}|${kbId}`);
+}
+
+/** The bases among `kbIds` for which `userId` holds a valid acknowledgement: one query for the ones not cached. */
+async function acknowledgedKbs(userId: string, kbIds: string[]): Promise<Set<string>> {
+    const now = d().now();
+    const unknown = kbIds.filter((id) => { const hit = ackCache.get(`${userId}|${id}`); return !hit || now - hit.at > CACHE_TTL_MS; });
+    if (unknown.length) {
+        const valid = new Set(await d().store.validAckKbIds(userId, unknown));
+        for (const id of unknown) remember(ackCache, `${userId}|${id}`, { at: now, ok: valid.has(id) });
+    }
+    return new Set(kbIds.filter((id) => ackCache.get(`${userId}|${id}`)?.ok));
 }
 
 function remember<V>(map: Map<string, V>, key: string, value: V): void {
@@ -112,11 +138,16 @@ async function licensed(orgId: string | null, userId: string | null): Promise<bo
     return ok;
 }
 
-function toLogChunk(c: Record<string, any>): LogChunk {
+type DocVersions = Map<string, { versionId: string | null; label: string | null }>;
+
+function toLogChunk(c: Record<string, any>, versions: DocVersions): LogChunk {
+    const docId = c.document_id ?? c.documentId ?? null;
+    const v = docId ? versions.get(String(docId)) : undefined;
     return {
         chunkId: c.id ?? c.chunk_id ?? c.chunkId ?? null,
-        documentId: c.document_id ?? c.documentId ?? null,
-        documentVersionId: c.document_version_id ?? c.documentVersionId ?? null,
+        documentId: docId,
+        documentVersionId: c.document_version_id ?? c.documentVersionId ?? v?.versionId ?? null,
+        documentVersion: v?.label ?? null,
         sourceUri: c.source_uri ?? c.sourceUri ?? null,
         title: c.title ?? null,
         score: typeof c.score === 'number' ? c.score : null,
@@ -147,8 +178,16 @@ async function prepareRows(input: BeginInput, kbIds: string[], userId: string | 
     // A KB without an organisation (a personal one) is never logged: there is nobody to manage, review or erase it.
     const logging = (await loggingKbs(kbIds)).filter((kb) => !!kb.organizationId);
     if (logging.length === 0) return [];
+    // Where a person types the question into a Bee Flow screen, only a known user who acknowledged the notice
+    // of that base is logged. An anonymous asker (a public page, an app visitor) never is.
+    let candidates = logging;
+    if (isAckRequiredChannel(input.channel)) {
+        const acked = userId ? await acknowledgedKbs(userId, logging.map((k) => k.id)) : new Set<string>();
+        candidates = logging.filter((k) => acked.has(k.id));
+        if (candidates.length === 0) return [];
+    }
     const permitted: typeof logging = [];
-    for (const kb of logging) if (await licensed(kb.organizationId, userId)) permitted.push(kb);
+    for (const kb of candidates) if (await licensed(kb.organizationId, userId)) permitted.push(kb);
     if (permitted.length === 0) return [];
 
     const chunks = Array.isArray(input.chunks) ? input.chunks : [];
@@ -156,10 +195,14 @@ async function prepareRows(input: BeginInput, kbIds: string[], userId: string | 
         chunks.map((c) => c.document_id ?? c.documentId).filter(Boolean), permitted.map((k) => k.id));
     // A search over exactly one KB owns every chunk it returned, even one without a document id.
     const soleKb = kbIds.length === 1 ? kbIds[0] : null;
+    // The version of each document as it is now, so a later edit does not change what the log says was shown.
+    // Best effort: a failed lookup leaves the passage without a version, it does not drop the row.
+    const versions: DocVersions = await d().store.documentVersions(chunks.map((c) => c.document_id ?? c.documentId).filter(Boolean))
+        .catch(() => new Map() as DocVersions);
     const perKb = new Map<string, LogChunk[]>(permitted.map((k) => [k.id, []]));
     for (const c of chunks) {
         const kbId = docToKb.get(String(c.document_id ?? c.documentId)) ?? (soleKb && perKb.has(soleKb) ? soleKb : null);
-        if (kbId) perKb.get(kbId)?.push(toLogChunk(c));
+        if (kbId) perKb.get(kbId)?.push(toLogChunk(c, versions));
     }
 
     const retrievalOnly = (RETRIEVAL_ONLY_CHANNELS as readonly string[]).includes(input.channel);

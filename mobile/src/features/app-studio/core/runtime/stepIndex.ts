@@ -21,7 +21,7 @@ import type { ActionStep, AppAction } from '../types';
 export const STEP_KINDS = [
     'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'reset_form', 'download_file', 'confirm', 'set_variable', 'refresh',
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
-    'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document',
+    'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review',
     'condition', 'loop', 'switch', 'call_action', 'transaction',
 ] as const;
 
@@ -33,7 +33,7 @@ export const STEP_KINDS = [
 export const SERVER_STEP_KINDS: ReadonlySet<string> = new Set([
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
     'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document',
-    'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'transaction',
+    'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction',
 ]);
 
 /** Client-executed kinds (the server's CLIENT_STEP_KINDS): chrome, navigation, flow control. */

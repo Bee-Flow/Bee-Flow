@@ -7,6 +7,7 @@
 'use strict';
 
 process.env.NODE_ENV = 'test';
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'builder-test-session-secret-0123456789abcdef';
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -16,14 +17,15 @@ const KB = '11111111-1111-4111-8111-111111111111';
 const ENTRY = '22222222-2222-4222-8222-222222222222';
 
 /** @param {{ managers?: string[], licensed?: boolean }} [o] */
-function setup({ managers = ['owner', 'viewer'], licensed = true } = {}) {
+function setup({ managers = ['owner', 'viewer'], licensed = true, showNames = true, askers = ['u9'] } = {}) {
     const calls = { list: [], review: [] };
     B._setBuilderDeps({
-        getKB: async (id) => (id === KB ? { id: KB, organization_id: 'org1' } : null),
+        getKB: async (id) => (id === KB ? { id: KB, organization_id: 'org1', query_log_show_names: showNames } : null),
         canManage: async (_kb, userId) => ({ ok: managers.includes(userId) }),
         hasFeature: async () => licensed,
         store: {
-            listEntries: async (f) => { calls.list.push(f); return { rows: [{ id: ENTRY, query: 'q', chunks: [{ text: 't' }], answer: 'a', citations: [], chunkCount: 1 }], total: 7 }; },
+            askersOfKb: async () => askers,
+            listEntries: async (f) => { calls.list.push(f); return { rows: [{ id: ENTRY, userId: 'u9', userName: 'Una Nine', organizationId: 'org1', query: 'q', chunks: [{ text: 't' }], answer: 'a', citations: [], chunkCount: 1 }], total: 7 }; },
             setReview: async (kbId, id, p) => { calls.review.push({ kbId, id, ...p }); return { id, reviewStatus: p.status, reviewNote: p.note, reviewedAt: 'now' }; },
         },
     });
@@ -150,4 +152,35 @@ test('review rejects a bad status, a bad entry id and a missing row', async () =
     assert.strictEqual(calls.review.length, 0);
     B._setBuilderDeps({ store: { listEntries: async () => ({ rows: [], total: 0 }), setReview: async () => null } });
     assert.strictEqual((await review()).status, 404);
+});
+
+test('names off (the default): rows carry a stable pseudonym and no user id or name; the person filter takes the pseudonym id', async () => {
+    const { askerPseudonym } = require('./askers.mts');
+    const calls = setup({ showNames: false });
+    const p = askerPseudonym('u9', 'org1');
+    const r = await list({ detail: 'full' });
+    const row = r.result.rows[0];
+    assert.strictEqual('userId' in row, false);
+    assert.strictEqual('userName' in row, false);
+    assert.strictEqual(row.askerPseudonym, p.label);
+    assert.strictEqual(row.askerPseudonymId, p.id);
+    assert.match(row.askerPseudonym, /^Member · [A-Z2-9]{4}$/);
+    assert.strictEqual(JSON.stringify(r).includes('Una Nine'), false);
+
+    await list({ filters: { userId: p.id } });
+    assert.strictEqual(calls.list[1].userId, 'u9', 'resolved to the real person for the query');
+    await list({ filters: { userId: 'u9' } });
+    assert.notStrictEqual(calls.list[2].userId, 'u9', 'a real user id must not match when names are off');
+    await list({ filters: { userId: p.id } });
+    const summary = (await list()).result.rows[0];
+    assert.strictEqual('userId' in summary, false);
+    assert.strictEqual(summary.query, null);
+});
+
+test('names on: user id and name come through, and the filter takes the user id', async () => {
+    const calls = setup({ showNames: true });
+    const row = (await list({ detail: 'full', filters: { userId: 'u9' } })).result.rows[0];
+    assert.strictEqual(row.userId, 'u9');
+    assert.strictEqual(row.userName, 'Una Nine');
+    assert.strictEqual(calls.list[0].userId, 'u9');
 });

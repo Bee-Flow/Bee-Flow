@@ -47,7 +47,8 @@ test('every English compliance-redesign key has a Dutch one (or is declared iden
     // and seed their Dutch from their own catalogue rather than from the
     // generated map, so a key such a catalogue covers counts as covered here.
     const later = require('./add-nl-collaboration-wave2-documents-compliance-translations');
-    const same = new Set([...SAME_AS_ENGLISH, ...Object.keys(later.NL_TRANSLATIONS), ...later.SAME_AS_ENGLISH]);
+    const kql = require('./add-nl-kb-query-log-translations-2026-11');
+    const same = new Set([...SAME_AS_ENGLISH, ...Object.keys(later.NL_TRANSLATIONS), ...later.SAME_AS_ENGLISH, ...Object.keys(kql.NL_TRANSLATIONS)]);
     const untranslated = Object.keys(GUI_DEFAULTS).filter((k) => owned(k) && !(k in NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);
 });

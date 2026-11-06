@@ -20,6 +20,8 @@ async function purgeQueryLogOnOrgChange(getOne, id, fromOrg, toOrg, actorId) {
         const was = await getOne('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [id]);
         if (!was?.query_log_enabled && !deleted?.n) return;
         await getOne('UPDATE knowledge_bases SET query_log_enabled = false WHERE id = $1 RETURNING id', [id]);
+        // The acknowledgements were given for the old organisation's notice.
+        await getOne('WITH d AS (DELETE FROM kb_query_log_ack WHERE kb_id = $1 RETURNING 1) SELECT COUNT(*)::int AS n FROM d', [id]);
         await getOne('WITH d AS (DELETE FROM kb_query_log WHERE kb_id = $1 RETURNING 1) SELECT COUNT(*)::int AS n FROM d', [id]);
         await require('./queryLog/audit.mts').recordKbQueryLogAudit({
             action: 'kb.query_log.purged', targetType: 'knowledge_base', targetId: String(id), orgId: fromOrg, actorId: actorId || 'system',

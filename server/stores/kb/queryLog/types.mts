@@ -11,6 +11,7 @@ export interface CryptoApi {
 
 export interface LogChunk {
     chunkId?: string | null; documentId?: string | null; documentVersionId?: string | null;
+    documentVersion?: string | null;
     sourceUri?: string | null; title?: string | null; score?: number | null; page?: number | null; text?: string | null;
 }
 
@@ -64,4 +65,17 @@ export interface EntryRow {
     outcome: string; errorCode: string | null; answeredAt: string | null;
     reviewStatus: string; reviewNote: string | null; reviewedBy: string | null; reviewedAt: string | null; expiresAt: string | null;
     decryptFailed?: boolean;
+}
+
+export interface QueryLogSettings {
+    enabled: boolean; retentionDays: number; changedAt: string | null; changedBy: string | null;
+    attestation: Record<string, unknown> | null; attestedBy: string | null; attestedAt: string | null;
+    showNames: boolean; aiActHighRisk: boolean;
+}
+
+export interface SettingsPatch {
+    enabled?: boolean; retentionDays?: number; showNames?: boolean; aiActHighRisk?: boolean;
+    /** Replaces the stored attestation (and sets attested_by / attested_at); undefined keeps it. */
+    attestation?: object | null;
+    changedBy: string;
 }

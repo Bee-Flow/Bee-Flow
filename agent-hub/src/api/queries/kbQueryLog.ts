@@ -28,6 +28,9 @@ interface QueryLogChunk {
     score?: number | null;
     page?: number | null;
     text?: string | null;
+    /** The version of the document the passage came from (E: what the answer was based on). */
+    documentVersionId?: string | null;
+    documentVersion?: string | null;
 }
 
 /** One entry as the route sends it (decrypted; `organizationId` already dropped). */
@@ -36,6 +39,10 @@ export interface QueryLogEntry {
     kbId: string;
     userId: string | null;
     userName?: string | null;
+    /** Instead of userId / userName while the base does not show names to managers. */
+    askerPseudonym?: string | null;
+    /** What the person filter takes for that pseudonym. */
+    askerPseudonymId?: string | null;
     channel: string;
     createdAt: string;
     query: string | null;
@@ -73,17 +80,40 @@ export interface QueryLogFilters {
     q?: string;
 }
 
+/** What the organisation attests before the log may be switched on (legitimate interest, not consent). */
+export interface QueryLogAttestation {
+    purpose: 'ai_quality';
+    dpia: 'done' | 'not_required';
+    dpiaId?: string | null;
+    worksCouncil: string;
+    worksCouncilReason?: string | null;
+    privacyNoticeUpdated: boolean;
+    attestedBy?: string | null;
+    attestedAt?: string | null;
+}
+
 export interface QueryLogSettings {
     enabled: boolean;
     retentionDays: number;
     changedAt: string | null;
     changedBy: string | null;
     deleted: number;
+    showNames?: boolean;
+    aiActHighRisk?: boolean;
+    attestation?: QueryLogAttestation | null;
+}
+
+export interface QueryLogNoticeKb {
+    id: string;
+    name: string;
+    acknowledged: boolean;
+    retentionDays: number | null;
+    showNames: boolean;
 }
 
 export interface QueryLogNotice {
     active: boolean;
-    kbs: { id: string; name: string }[];
+    kbs: QueryLogNoticeKb[];
 }
 
 export const QUERY_LOG_PAGE_SIZE = 25;
@@ -125,6 +155,10 @@ export function useKbQueryLogList(kbId: string, filters: QueryLogFilters, offset
 export interface QueryLogSettingsInput {
     enabled: boolean;
     retentionDays?: number;
+    /** Required with `enabled: true`; the server answers 400 without it. */
+    attestation?: Omit<QueryLogAttestation, 'attestedBy' | 'attestedAt'>;
+    showNames?: boolean;
+    aiActHighRisk?: boolean;
     /** Only with `enabled: false`: delete what is there now instead of keeping it until the term ends. */
     deleteExisting?: boolean;
 }
@@ -183,6 +217,19 @@ export async function downloadKbQueryLogCsv(kbId: string, filters: QueryLogFilte
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+const NOTICE_URL = `${API_BASE}/api/kb/query-log/notice`;
+const ACK_URL = `${API_BASE}/api/kb/query-log/acknowledge`;
+
+function parseNotice(body: Partial<QueryLogNotice> | null): QueryLogNotice {
+    const kbs = (Array.isArray(body?.kbs) ? body.kbs : [])
+        .filter((k) => k && typeof k.name === 'string')
+        .map((k) => ({
+            id: String(k.id), name: k.name, acknowledged: k.acknowledged !== false,
+            retentionDays: typeof k.retentionDays === 'number' ? k.retentionDays : null, showNames: k.showNames === true,
+        }));
+    return { active: body?.active === true && kbs.length > 0, kbs };
+}
+
 /**
  * Which of these knowledge bases log, for the line under a chat input. An
  * unreadable answer is "nothing to announce": the line is a courtesy to the
@@ -194,10 +241,49 @@ export function useKbQueryLogNotice(kbIds: readonly string[] | null | undefined)
         queryKey: keys.notice(ids),
         enabled: ids.length > 0,
         queryFn: async ({ signal }) => {
-            const res = await request(`${API_BASE}/api/kb/query-log/notice?kbIds=${enc(ids.join(','))}`, { signal });
-            const body = await res.json() as Partial<QueryLogNotice> | null;
-            const kbs = Array.isArray(body?.kbs) ? body.kbs.filter((k) => k && typeof k.name === 'string') : [];
-            return { active: body?.active === true && kbs.length > 0, kbs };
+            const res = await request(`${NOTICE_URL}?kbIds=${enc(ids.join(','))}`, { signal });
+            return parseNotice(await res.json() as Partial<QueryLogNotice> | null);
+        },
+        staleTime: 60_000,
+        retry: false,
+    });
+}
+
+/** "Understood": records the acknowledgement for these bases and refreshes every notice. */
+export function useAcknowledgeKbQueryLog() {
+    const qc = useQueryClient();
+    return useMutation<QueryLogNotice, Error, string[]>({
+        mutationFn: async (kbIds) => {
+            const res = await request(ACK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kbIds }),
+            });
+            return parseNotice(await res.json() as Partial<QueryLogNotice> | null);
+        },
+        onSuccess: () => { void qc.invalidateQueries({ queryKey: ['kbQueryLog', 'notice'] }); },
+    });
+}
+
+/** A DPIA of the organisation, as the picker offers it. */
+export interface DpiaChoice { id: string; title: string; status: 'current' | 'expired' }
+
+/**
+ * The organisation's DPIAs for the picker (`GET /api/kb/query-log/dpias`):
+ * open to a knowledge manager, who usually cannot call the Compliance Center.
+ */
+export function useDpiaChoices(enabled: boolean) {
+    return useQuery<DpiaChoice[], Error>({
+        queryKey: ['kbQueryLog', 'dpia-choices'],
+        enabled,
+        queryFn: async ({ signal }) => {
+            try {
+                const res = await request(`${API_BASE}/api/kb/query-log/dpias`, { signal });
+                const body = await res.json() as { dpias?: Partial<DpiaChoice>[] } | null;
+                return (Array.isArray(body?.dpias) ? body.dpias : []).filter((r) => r && r.id).map((r) => ({
+                    id: String(r.id), title: String(r.title ?? ''), status: r.status === 'expired' ? 'expired' as const : 'current' as const,
+                }));
+            } catch { return []; }
         },
         staleTime: 60_000,
         retry: false,

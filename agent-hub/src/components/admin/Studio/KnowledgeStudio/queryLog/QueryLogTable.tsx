@@ -37,7 +37,7 @@ export default function QueryLogTable({ rows, selectedId, onOpen }: QueryLogTabl
                             <td className="px-3 py-2 whitespace-nowrap text-[var(--text-secondary)]">
                                 {new Date(r.createdAt).toLocaleString(resolvedLocale)}
                             </td>
-                            <td className="px-3 py-2 text-[var(--text-secondary)]">{r.userName || r.userId || '–'}</td>
+                            <td className="px-3 py-2 text-[var(--text-secondary)]">{r.askerPseudonym || r.userName || r.userId || '–'}</td>
                             <td className="px-3 py-2 text-[var(--text-secondary)]">{channelLabel(t, r.channel)}</td>
                             <td className="px-3 py-2 text-[var(--text-primary)]">
                                 <button type="button" className="text-left underline-offset-2 hover:underline" onClick={(e) => { e.stopPropagation(); onOpen(r.id); }}>

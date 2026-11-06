@@ -22,8 +22,10 @@ export default function QueryLogTab({ kbId }: { kbId: string }) {
     // People seen so far, so the person filter keeps offering them after it narrows the list.
     const [seen, setSeen] = useState<Record<string, string>>({});
     const rows = list.data?.rows ?? [];
-    const fresh = rows.filter((r) => r.userId && seen[r.userId] !== (r.userName || r.userId));
-    if (fresh.length > 0) setSeen({ ...seen, ...Object.fromEntries(fresh.map((r) => [r.userId, r.userName || r.userId])) });
+    // A base that hides names sends a pseudonym instead of the id: the person filter takes that label.
+    const who = (r: (typeof rows)[number]) => ({ id: r.askerPseudonymId || r.askerPseudonym || r.userId, name: r.askerPseudonym || r.userName || r.userId });
+    const fresh = rows.map(who).filter((p) => p.id && seen[p.id] !== p.name);
+    if (fresh.length > 0) setSeen({ ...seen, ...Object.fromEntries(fresh.map((p) => [p.id, p.name])) });
     const total = list.data?.total ?? 0;
     const last = Math.min(offset + QUERY_LOG_PAGE_SIZE, total);
 

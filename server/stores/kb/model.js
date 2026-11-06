@@ -157,14 +157,33 @@ const KB_UPDATE_COLUMNS = Object.freeze({
  * The query-log settings of a knowledge_bases row, in camelCase. READ-ONLY on purpose: these
  * columns are not in KB_UPDATE_COLUMNS, so PATCH /api/kb/:id can never change them; the only
  * writer is stores/kb/queryLog (setQueryLogSettings), behind its own audited route.
+ * The attestation (who attested what) goes to managers only: pass `{ manager: true }`.
  * @param {Record<string, any> | null | undefined} row
- * @returns {{ queryLogEnabled: boolean, queryLogRetentionDays: number }}
+ * @param {{ manager?: boolean }} [opts]
  */
-function kbQueryLogFields(row) {
+function kbQueryLogFields(row, opts = {}) {
     return {
         queryLogEnabled: row?.query_log_enabled === true,
         queryLogRetentionDays: Number(row?.query_log_retention_days) || 90,
+        queryLogShowNames: row?.query_log_show_names === true,
+        queryLogAiActHighRisk: row?.query_log_ai_act_high_risk === true,
+        ...(opts.manager ? {
+            queryLogAttestation: row?.query_log_attestation ?? null,
+            queryLogAttestedBy: row?.query_log_attested_by ?? null,
+            queryLogAttestedAt: row?.query_log_attested_at ?? null,
+        } : {}),
     };
+}
+
+/**
+ * The row without the raw attestation columns (those travel as `queryLogAttestation`, to managers only).
+ * @template {Record<string, any>} T
+ * @param {T} row
+ * @returns {Omit<T, 'query_log_attestation' | 'query_log_attested_by' | 'query_log_attested_at'>}
+ */
+function withoutRawAttestation(row) {
+    const { query_log_attestation: _a, query_log_attested_by: _b, query_log_attested_at: _c, ...rest } = row;
+    return rest;
 }
 
 /**
@@ -198,4 +217,5 @@ module.exports = {
     DOC_CONTENT_COLUMNS,
     KB_UPDATE_COLUMNS,
     kbQueryLogFields,
+    withoutRawAttestation,
 };

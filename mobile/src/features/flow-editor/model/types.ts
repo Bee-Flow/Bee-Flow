@@ -31,6 +31,7 @@ export const STEP_TYPES = [
     'data_extraction',
     'datatable',
     'knowledge_write',
+    'kb_query_log',
     'return_to_app',
     'note',
 ] as const;

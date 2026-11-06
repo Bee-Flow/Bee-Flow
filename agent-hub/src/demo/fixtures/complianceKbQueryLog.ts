@@ -51,11 +51,16 @@ function overview() {
             {
                 ...HANDBOOK, enabled: true, retentionDays: 90, changedAt: daysAgo(14),
                 changedBy: MANAGER.id, changedByName: MANAGER.name, managers: [MANAGER],
+                attestation: { purpose: 'ai_quality', dpia: 'not_required', dpiaId: null, worksCouncil: 'not_applicable', worksCouncilReason: 'no_works_council', privacyNoticeUpdated: true },
+                attestedBy: MANAGER.id, attestedByName: MANAGER.name, attestedAt: daysAgo(14),
+                showNames: false, highRisk: false, acknowledgedUsers: 3,
                 total: ENTRIES.length, byOutcome: countBy('outcome'), byStatus: countBy('reviewStatus'),
             },
             {
                 ...POLICIES, enabled: false, retentionDays: 90, changedAt: null,
                 changedBy: null, changedByName: null, managers: [MANAGER],
+                attestation: null, attestedBy: null, attestedByName: null, attestedAt: null,
+                showNames: false, highRisk: false, acknowledgedUsers: 0,
                 total: 0, byOutcome: {}, byStatus: {},
             },
         ],

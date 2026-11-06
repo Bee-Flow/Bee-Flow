@@ -16,6 +16,18 @@ export type Channel = typeof CHANNELS[number];
 /** Channels that only retrieve: there is no answer to wait for, the outcome follows from the chunks. */
 export const RETRIEVAL_ONLY_CHANNELS: readonly Channel[] = ['studio_kb_query', 'api_search'];
 
+/**
+ * Channels where a person types the question into a Bee Flow screen. A row for such a channel is written
+ * only for a known user who has acknowledged the notice for that knowledge base. The other channels
+ * (automation steps, skills, support, the search API) have nobody typing into a Bee Flow screen; they
+ * are covered by the organisation's privacy notice and the register of processing.
+ */
+export const ACK_REQUIRED_CHANNELS: readonly Channel[] = [
+    'agent_chat', 'agent_chat_sync', 'direct_chat', 'template_chat', 'notebook', 'webpage', 'project_assistant',
+    'studio_ai_chat', 'studio_kb_query', 'studio_ai_generate', 'studio_ai_extract', 'kb_test',
+];
+export const isAckRequiredChannel = (c: unknown): boolean => (ACK_REQUIRED_CHANNELS as readonly string[]).includes(c as string);
+
 export const OUTCOMES = ['answered', 'no_results', 'error'] as const;
 export type Outcome = typeof OUTCOMES[number];
 
@@ -25,6 +37,8 @@ export type ReviewStatus = typeof REVIEW_STATUSES[number];
 /** The retention choices of a knowledge base, in days. */
 export const RETENTION_DAYS = [30, 90, 180, 365] as const;
 export const DEFAULT_RETENTION_DAYS = 90;
+/** AI Act Art. 26(6): a deployer of a high-risk system keeps its logs for at least six months. */
+export const HIGH_RISK_MIN_RETENTION_DAYS = 180;
 
 /** Verbatim snapshot of a passage is cut at this many characters (the document can change later). */
 export const CHUNK_TEXT_CAP = 2000;

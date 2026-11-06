@@ -2,9 +2,10 @@ import { Lock } from 'lucide-react';
 import { useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import QueryLogEnableForm from './QueryLogEnableForm';
 import { useLicenseContext } from '@/components/licensing/LicenseContext';
-import { useSetKbQueryLogSettings } from '@/api/queries/kbQueryLog';
-import { QueryLogControls, QueryLogDisableChoice, QueryLogEnableText } from './QueryLogCardParts';
+import { useSetKbQueryLogSettings, type QueryLogSettingsInput } from '@/api/queries/kbQueryLog';
+import { QueryLogAttestationView, QueryLogControls, QueryLogDisableChoice, QueryLogOptions } from './QueryLogCardParts';
 import type { KnowledgeBase } from '../knowledgeApi';
 
 /**
@@ -42,16 +43,38 @@ function UnlicensedPurgeButton({ t, show, busy, onClick }: { t: T; show: boolean
     );
 }
 
-function readSettings(kb: KnowledgeBase): { enabled: boolean; retention: number } {
+function readSettings(kb: KnowledgeBase) {
     return {
         enabled: !!(kb.queryLogEnabled ?? kb.query_log_enabled),
         retention: Number(kb.queryLogRetentionDays ?? kb.query_log_retention_days) || 90,
+        showNames: !!kb.queryLogShowNames,
+        highRisk: !!kb.queryLogAiActHighRisk,
+        attestation: kb.queryLogAttestation ?? null,
     };
 }
 
 function DisableDescription({ t, licensed, retention, deleteNow, setDeleteNow }: { t: T; licensed: boolean; retention: number; deleteNow: boolean; setDeleteNow: (v: boolean) => void }) {
     if (licensed) return <QueryLogDisableChoice t={t} retention={retention} deleteNow={deleteNow} setDeleteNow={setDeleteNow} />;
     return <>{t('knowledge.query_log.purge_unlicensed_text', 'Without the Enterprise licence nothing new is logged. This turns the setting off and deletes every logged question and answer of this knowledge base now. This cannot be undone.')}</>;
+}
+
+type Settings = ReturnType<typeof readSettings>;
+
+/** The switch, the term and, on a base that logs, the names and AI Act choices. */
+function LicensedControls({ t, settings, busy, onToggle, change }: { t: T; settings: Settings; busy: boolean; onToggle: () => void; change: (patch: Partial<QueryLogSettingsInput>) => void }) {
+    const { enabled, retention, showNames, highRisk } = settings;
+    return (
+        <>
+            <QueryLogControls t={t} enabled={enabled} retention={retention} highRisk={highRisk} busy={busy} onToggle={onToggle} onRetention={(days) => { if (enabled) change({ retentionDays: days }); }} />
+            {enabled && (
+                <QueryLogOptions
+                    t={t} showNames={showNames} highRisk={highRisk} busy={busy}
+                    onShowNames={(v) => change({ showNames: v })}
+                    onHighRisk={(v) => change({ aiActHighRisk: v, retentionDays: v && retention < 180 ? 180 : retention })}
+                />
+            )}
+        </>
+    );
 }
 
 export default function QueryLogCard({ kb, canManage, onSaved }: QueryLogCardProps) {
@@ -64,20 +87,25 @@ export default function QueryLogCard({ kb, canManage, onSaved }: QueryLogCardPro
 
     if (!canManage || !kb?.id) return null;
 
-    const { enabled, retention } = readSettings(kb);
+    const settings = readSettings(kb);
+    const { enabled, retention, attestation } = settings;
     const licensed = hasFeature('kb_query_log');
 
-    const apply = async (input: Parameters<typeof save.mutateAsync>[0]) => {
+    const apply = async (input: QueryLogSettingsInput) => {
         setError(null);
         try {
             await save.mutateAsync(input);
             await onSaved?.();
+            setDialog(null);
+            setDeleteNow(false);
         } catch (e) {
             setError((e as Error)?.message || t('knowledge.query_log.err_save', 'Could not save the query log settings.'));
+            // The enable form stays open with its error; the small dialogs close as before.
+            if (dialog !== 'enable') { setDialog(null); setDeleteNow(false); }
         }
-        setDialog(null);
-        setDeleteNow(false);
     };
+    // A base that already logs keeps its stored attestation: only the changed setting goes along.
+    const change = (patch: Partial<QueryLogSettingsInput>) => { void apply({ enabled: true, retentionDays: retention, ...patch }); };
 
     return (
         <section className="flex flex-col gap-2" data-testid="kb-query-log-card" data-locked={licensed ? 'false' : 'true'}>
@@ -95,15 +123,22 @@ export default function QueryLogCard({ kb, canManage, onSaved }: QueryLogCardPro
             <p className="text-[11px] text-[var(--text-tertiary)]">
                 {t('knowledge.query_log.hint', 'Keep the questions asked to this knowledge base, the passages found and the answers given, so its managers can see what is missing. Off by default.')}
             </p>
-            {error && <p className="text-xs text-[var(--error)]" role="alert">{error}</p>}
-            {licensed && <QueryLogControls t={t} enabled={enabled} retention={retention} busy={save.isPending} onToggle={() => setDialog(enabled ? 'disable' : 'enable')} onRetention={(days) => { if (enabled) void apply({ enabled: true, retentionDays: days }); }} />}
+            {error && dialog !== 'enable' && <p className="text-xs text-[var(--error)]" role="alert">{error}</p>}
+            {licensed && (
+                <LicensedControls
+                    t={t} settings={settings} busy={save.isPending}
+                    onToggle={() => { setError(null); setDialog(enabled ? 'disable' : 'enable'); }}
+                    change={change}
+                />
+            )}
+            {enabled && attestation && <QueryLogAttestationView t={t} attestation={attestation} />}
             <UnlicensedPurgeButton t={t} show={!licensed && enabled} busy={save.isPending} onClick={() => { setDeleteNow(true); setDialog('disable'); }} />
-            <ConfirmDialog
+            <QueryLogEnableForm
                 open={dialog === 'enable'}
-                title={t('knowledge.query_log.enable_title', 'Log questions and answers?')}
-                description={<QueryLogEnableText t={t} retention={retention} />}
-                confirmLabel={t('knowledge.query_log.enable_confirm', 'Turn logging on')}
-                onConfirm={() => apply({ enabled: true, retentionDays: retention })}
+                retention={retention}
+                previous={attestation}
+                error={error}
+                onSubmit={apply}
                 onCancel={() => setDialog(null)}
             />
             <ConfirmDialog

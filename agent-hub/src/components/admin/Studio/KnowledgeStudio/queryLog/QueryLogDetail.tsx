@@ -63,7 +63,7 @@ function Facts({ entry }: { entry: QueryLogEntry }) {
     const { t, resolvedLocale } = useTranslation();
     const rows: [string, string][] = [
         [t('knowledge.query_log.col_time', 'Time'), new Date(entry.createdAt).toLocaleString(resolvedLocale)],
-        [t('knowledge.query_log.col_person', 'Person'), entry.userName || entry.userId || '–'],
+        [t('knowledge.query_log.col_person', 'Person'), entry.askerPseudonym || entry.userName || entry.userId || '–'],
         [t('knowledge.query_log.col_channel', 'Channel'), channelLabel(t, entry.channel)],
         [t('knowledge.query_log.col_outcome', 'Outcome'), outcomeLabel(t, entry.outcome) + (entry.errorCode ? ` (${entry.errorCode})` : '')],
         [t('knowledge.query_log.model', 'Model'), entry.model || '–'],
@@ -103,7 +103,7 @@ export default function QueryLogDetail({ kbId, entry, onClose }: QueryLogDetailP
                                 <li key={`${c.chunkId ?? i}`} className="rounded-md border p-2 [border-color:var(--border-subtle)]" data-testid="kb-ql-passage">
                                     <div className="font-medium text-[var(--text-primary)]">{c.title || c.sourceUri || '–'}</div>
                                     <div className="text-[11px] text-[var(--text-tertiary)]">
-                                        {[c.sourceUri, c.page != null ? t('knowledge.query_log.page', 'page {n}', { n: c.page }) : null, c.score != null ? t('knowledge.query_log.score', 'score {n}', { n: c.score.toFixed(2) }) : null].filter(Boolean).join(' · ')}
+                                        {[c.sourceUri, c.documentVersion ? t('knowledge.query_log.doc_version', 'version {v}', { v: c.documentVersion }) : null, c.page != null ? t('knowledge.query_log.page', 'page {n}', { n: c.page }) : null, c.score != null ? t('knowledge.query_log.score', 'score {n}', { n: c.score.toFixed(2) }) : null].filter(Boolean).join(' · ')}
                                     </div>
                                     {c.text && <p className="m-0 mt-1 whitespace-pre-wrap text-[var(--text-secondary)]">{c.text}</p>}
                                 </li>

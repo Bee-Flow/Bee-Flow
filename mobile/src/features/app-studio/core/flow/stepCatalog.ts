@@ -111,6 +111,8 @@ const FIXED_SEEDS: Readonly<Record<string, () => Record<string, unknown>>> = {
     dataset_query: () => ({ dataset: stat(''), gene: stat(''), resultVar: 'variants' }),
     ai_browse: () => ({ task: stat(''), resultVar: 'browse' }),
     copy_document: () => ({ source: formula('form.document'), resultVar: 'copy' }),
+    kb_log_query: () => ({ kbId: stat(''), filters: {}, limit: 50, resultVar: 'queue' }),
+    kb_log_review: () => ({ kbId: stat(''), entryId: formula('item.id'), status: stat('reviewed'), note: stat('') }),
     condition: () => ({ expr: '', then: [], else: [] }),
     switch: () => ({ expr: '', cases: [{ value: '', steps: [] }], default: [] }),
     loop: () => ({ source: stat([]), itemVar: 'item', steps: [] }),

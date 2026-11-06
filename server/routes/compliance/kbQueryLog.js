@@ -151,13 +151,14 @@ async function orgManagers(orgId) {
 
 router.get('/kb-query-log/overview', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await orgOf(req);
-    const [kbs, counts, managers, licensed] = await Promise.all([
-        orgViews.listOrgKbs(orgId),
+    const kbs = await orgViews.listOrgKbs(orgId);
+    const [counts, acks, managers, licensed] = await Promise.all([
         queryLogStore.countsByKb(orgId),
+        queryLogStore.ackCountsByKb(kbs.map((k) => k.id)),
         orgManagers(orgId),
         license.hasFeature({ organizationId: orgId }, FEATURE),
     ]);
-    const people = new Set(kbs.flatMap((/** @type {Record<string, any>} */ k) => [k.tenant_id, k.query_log_changed_by]).filter(Boolean).map(String));
+    const people = new Set(kbs.flatMap((/** @type {Record<string, any>} */ k) => [k.tenant_id, k.query_log_changed_by, k.query_log_attested_by]).filter(Boolean).map(String));
     /** @type {Map<string, string | null>} */
     const names = new Map(managers.map((m) => [m.id, m.name]));
     for (const id of people) {
@@ -174,6 +175,11 @@ router.get('/kb-query-log/overview', requireAuth, requirePermission('admin_compl
                 changedAt: k.query_log_changed_at, changedBy: k.query_log_changed_by || null,
                 changedByName: k.query_log_changed_by ? names.get(String(k.query_log_changed_by)) || null : null,
                 managers: managerIds.map((id) => ({ id, name: names.get(id) || null })),
+                attestation: k.query_log_attestation ?? null, attestedBy: k.query_log_attested_by || null,
+                attestedByName: k.query_log_attested_by ? names.get(String(k.query_log_attested_by)) || null : null,
+                attestedAt: k.query_log_attested_at || null,
+                showNames: k.query_log_show_names === true, highRisk: k.query_log_ai_act_high_risk === true,
+                acknowledgedUsers: acks[k.id] || 0,
                 total: c.total, byOutcome: c.byOutcome, byStatus: c.byStatus,
             };
         });

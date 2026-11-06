@@ -17,6 +17,7 @@ const nodeRequire = createRequire(import.meta.url);
 
 export const AUDIT_ACTIONS = [
     'kb.query_log.enabled', 'kb.query_log.disabled', 'kb.query_log.retention_changed', 'kb.query_log.purged',
+    'kb.query_log.names_changed', 'kb.query_log.high_risk_changed', 'kb.query_log.attested',
     'kb.query_log.exported', 'kb.query_log.content_viewed', 'kb.query_log.subject_exported', 'kb.query_log.subject_deleted',
 ] as const;
 export type AuditAction = typeof AUDIT_ACTIONS[number];

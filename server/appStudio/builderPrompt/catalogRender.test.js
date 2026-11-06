@@ -550,7 +550,7 @@ test('the validation types in the catalog are the ones the tool surface declares
 // type conversions — 57_567 chars.
 // 2026-11-04, package 6 (formulas and filters): new function signatures, the any-group filter line,
 // member access on call results, map/filter/some/every with it, the regex subset — 58_259 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '1239403ef5b42ec99050bac437206b8b0644b67a1862b38bb96157313da6f7fe';
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '4e13f17b2a1faad9faeb211079b87c9aa7ba53407d455a89f52e9fb30edfe179';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

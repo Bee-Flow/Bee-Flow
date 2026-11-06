@@ -1,4 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import KbQueryLogNotice from './KbQueryLogNotice';
 import { renderWithClient } from '@/test/render';
@@ -34,5 +35,35 @@ describe('KbQueryLogNotice', () => {
         asMock(fetchMock).mockClear();
         renderWithClient(<KbQueryLogNotice kbIds={[]} />);
         expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('asks an unacknowledged base for its acknowledgement, posts it, then shows the one-liner', async () => {
+        const user = userEvent.setup();
+        const open = { active: true, kbs: [{ id: 'a', name: 'HR', acknowledged: false, retentionDays: 180, showNames: false }] };
+        const done = { active: true, kbs: [{ id: 'a', name: 'HR', acknowledged: true, retentionDays: 180, showNames: false }] };
+        let acknowledged = false;
+        asMock(fetchMock).mockImplementation(async (url: string, init?: { method?: string }) => {
+            if (init?.method === 'POST') { acknowledged = true; return answer(done); }
+            void url;
+            return answer(acknowledged ? done : open);
+        });
+        renderWithClient(<KbQueryLogNotice kbIds={['a']} />);
+        const banner = await screen.findByTestId('kb-query-log-ack');
+        expect(banner.textContent).toContain('pseudonym');
+        expect(banner.textContent).toContain('180 days');
+        expect(screen.getByTestId('kb-query-log-not-yet').textContent).toContain('not logged');
+        expect(screen.queryByTestId('kb-query-log-notice')).toBeNull();
+        await user.click(screen.getByTestId('kb-query-log-ack-button'));
+        const post = asMock(fetchMock).mock.calls.find(([, init]) => init?.method === 'POST');
+        expect(rel(post?.[0])).toBe('/api/kb/query-log/acknowledge');
+        expect(JSON.parse(post?.[1].body as string)).toEqual({ kbIds: ['a'] });
+        expect((await screen.findByTestId('kb-query-log-notice')).textContent).toContain('HR');
+        expect(screen.queryByTestId('kb-query-log-ack')).toBeNull();
+    });
+
+    it('says the manager sees the name when the base shows names', async () => {
+        asMock(fetchMock).mockResolvedValue(answer({ active: true, kbs: [{ id: 'a', name: 'HR', acknowledged: false, retentionDays: 90, showNames: true }] }));
+        renderWithClient(<KbQueryLogNotice kbIds={['a']} />);
+        expect((await screen.findByTestId('kb-query-log-ack')).textContent).toContain('see your name');
     });
 });

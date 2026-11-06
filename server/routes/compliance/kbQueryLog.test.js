@@ -120,7 +120,10 @@ test('no session is a 401', async () => {
 // ── Overview and entries: no text ───────────────────────────────────
 
 test('the overview lists the bases with term, who changed it, managers and counts, and no text', async () => {
-    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_retention_days = 180, query_log_changed_by = '${ADMIN.id}', query_log_changed_at = now() WHERE id = '${kbId}'`);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true, query_log_retention_days = 180, query_log_changed_by = '${ADMIN.id}', query_log_changed_at = now() - interval '1 minute',
+        query_log_attestation = '{"purpose":"ai_quality","dpia":"not_required","worksCouncil":"not_applicable","worksCouncilReason":"no_works_council","privacyNoticeUpdated":true}',
+        query_log_attested_by = '${ADMIN.id}', query_log_attested_at = now(), query_log_ai_act_high_risk = true WHERE id = '${kbId}'`);
+    await pg.exec(`DELETE FROM kb_query_log_ack; INSERT INTO kb_query_log_ack (user_id, kb_id) VALUES ('${SUBJECT.id}', '${kbId}'), ('${BYSTANDER.id}', '${kbId}')`);
     await seed([{ id: 'o1' }, { id: 'o2', outcome: 'no_results' }, { id: 'o3', outcome: 'error', userId: BYSTANDER.id }]);
     const res = await api.call('GET', '/kb-query-log/overview', as(ADMIN));
     assert.equal(res.status, 200);
@@ -133,6 +136,12 @@ test('the overview lists the bases with term, who changed it, managers and count
     assert.equal(kb.retentionDays, 180);
     assert.equal(kb.changedBy, ADMIN.id);
     assert.ok(kb.managers.some((m) => m.id === ADMIN.id), 'the owner is a manager');
+    assert.equal(kb.acknowledgedUsers, 2);
+    assert.equal(kb.attestation.worksCouncil, 'not_applicable');
+    assert.equal(kb.attestedBy, ADMIN.id);
+    assert.ok(kb.attestedAt);
+    assert.equal(kb.showNames, false);
+    assert.equal(kb.highRisk, true);
     assert.equal(kb.total, 3);
     assert.deepEqual(kb.byOutcome, { answered: 1, no_results: 1, error: 1 });
     assert.equal(kb.byStatus.to_review, 3);

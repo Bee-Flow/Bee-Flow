@@ -48,12 +48,14 @@ const raw = async () => (await pg.query('SELECT * FROM kb_query_log ORDER BY kb_
 before(async () => {
     crypto._setCryptoDeps({ getOrgRootKey: async () => Buffer.alloc(32, 3), sealingEnabled: async () => true });
     await pg.exec(`CREATE TABLE knowledge_bases (id UUID PRIMARY KEY, tenant_id TEXT, name TEXT, organization_id TEXT);
-        CREATE TABLE documents (id UUID PRIMARY KEY, knowledge_base_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE);`);
+        CREATE TABLE documents (id UUID PRIMARY KEY, knowledge_base_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE, content_hash TEXT);
+        CREATE TABLE kb_document_versions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), document_id UUID NOT NULL, deleted_at TIMESTAMPTZ DEFAULT now());`);
     for (const sql of KB_QUERY_LOG_COLUMN_DDL) await pg.exec(sql);
     for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql);
     await pg.exec(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id, query_log_enabled, query_log_retention_days) VALUES
         ('${KB_A}', 't', 'A', 'org1', true, 30), ('${KB_B}', 't', 'B', 'org1', true, 365), ('${KB_C}', 't', 'C', 'org1', false, 90);
-        INSERT INTO documents (id, knowledge_base_id) VALUES ('${DOC_A}', '${KB_A}'), ('${DOC_B}', '${KB_B}'), ('${DOC_C}', '${KB_C}');`);
+        INSERT INTO documents (id, knowledge_base_id) VALUES ('${DOC_A}', '${KB_A}'), ('${DOC_B}', '${KB_B}'), ('${DOC_C}', '${KB_C}');
+        INSERT INTO kb_query_log_ack (user_id, kb_id) SELECT u, k FROM unnest(ARRAY['u1','u2']) AS u, unnest(ARRAY['${KB_A}','${KB_B}']::uuid[]) AS k;`);
 });
 after(async () => { rec._setRecorderDeps(null); crypto._setCryptoDeps(null); await pg.close(); });
 beforeEach(async () => {
@@ -111,7 +113,7 @@ test('a user id that is not a person is logged as nobody', async () => {
     for (const id of ['support-ai:inbox:t1', 'guest_abc123', 'guest', 'anonymous']) {
         rec.invalidateKbQueryLogCache();
         await pg.exec('DELETE FROM kb_query_log');
-        const h = await rec.beginKbQueryLog(search({ kbIds: [KB_A], userId: id }));
+        const h = await rec.beginKbQueryLog(search({ kbIds: [KB_A], userId: id, channel: 'support' }));
         await h.settled();
         assert.equal((await raw())[0].user_id, null, id);
     }
@@ -265,4 +267,89 @@ test('a missing encryption key skips the log and warns; the search is not affect
     } finally {
         crypto._setCryptoDeps({ getOrgRootKey: async () => Buffer.alloc(32, 3), sealingEnabled: async () => true });
     }
+});
+
+// ── Round 2: acknowledgement before logging, document version per passage ──
+
+const only = (kbIds, over = {}) => search({ kbIds, chunks: [search().chunks[0]], ...over });
+
+test('ack-required channel: without an acknowledgement nothing is stored; with a valid one the row is written', async () => {
+    let h = await rec.beginKbQueryLog(only([KB_A], { userId: 'u-new' }));
+    await h?.settled();
+    assert.equal((await raw()).length, 0, 'no ack, no row');
+
+    assert.equal(await store.acknowledge('u-new', [KB_A, KB_C]), 1, 'only a base that logs can be acknowledged');
+    rec.invalidateKbQueryLogAck('u-new', [KB_A]);
+    h = await rec.beginKbQueryLog(only([KB_A], { userId: 'u-new' }));
+    await h.settled();
+    const rows = await raw();
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].user_id, 'u-new');
+});
+
+test('the acknowledgement is per knowledge base: B is skipped while A is logged', async () => {
+    await store.acknowledge('u-ab', [KB_A]);
+    rec.invalidateKbQueryLogCache();
+    const h = await rec.beginKbQueryLog(only([KB_A, KB_B], { userId: 'u-ab' }));
+    await h.settled();
+    assert.deepEqual((await raw()).map((r) => r.kb_id), [KB_A]);
+});
+
+test('an acknowledgement older than the last settings change no longer counts', async () => {
+    await store.acknowledge('u-old', [KB_A]);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_changed_at = now() + interval '1 hour' WHERE id = '${KB_A}'`);
+    rec.invalidateKbQueryLogCache();
+    try {
+        const h = await rec.beginKbQueryLog(only([KB_A], { userId: 'u-old' }));
+        await h.settled();
+        assert.equal((await raw()).length, 0);
+    } finally {
+        await pg.exec(`UPDATE knowledge_bases SET query_log_changed_at = NULL WHERE id = '${KB_A}'`);
+        rec.invalidateKbQueryLogCache();
+    }
+});
+
+test('an anonymous asker on an ack-required channel is never logged', async () => {
+    for (const userId of [null, undefined, 'guest_1', 'anonymous']) {
+        const h = await rec.beginKbQueryLog(only([KB_A], { userId, channel: 'webpage' }));
+        await h?.settled();
+    }
+    assert.equal((await raw()).length, 0);
+});
+
+test('channels without a person at a Bee Flow screen need no acknowledgement', async () => {
+    for (const channel of ['automation_ai_step', 'skill', 'support', 'api_search']) {
+        const h = await rec.beginKbQueryLog(only([KB_A], { userId: 'u-never-acked', channel }));
+        await h.settled();
+    }
+    assert.equal((await raw()).length, 4);
+});
+
+test('an acknowledgement given after a negative lookup is picked up once the cache entry is dropped', async () => {
+    let h = await rec.beginKbQueryLog(only([KB_A], { userId: 'u-late' }));
+    await h?.settled();
+    await store.acknowledge('u-late', [KB_A]);
+    rec.invalidateKbQueryLogAck('u-late', [KB_A]);
+    h = await rec.beginKbQueryLog(only([KB_A], { userId: 'u-late' }));
+    await h.settled();
+    assert.equal((await raw()).length, 1);
+});
+
+test('each passage carries the version of its document at write time', async () => {
+    await pg.exec(`UPDATE documents SET content_hash = 'abcdef0123456789ffff' WHERE id = '${DOC_A}'`);
+    await pg.exec(`INSERT INTO kb_document_versions (id, document_id) VALUES ('99999999-9999-4999-8999-999999999999', '${DOC_A}')`);
+    const h = await rec.beginKbQueryLog(only([KB_A], { userId: 'u1' }));
+    await h.settled();
+    const [row] = await raw();
+    const entry = await store.getEntry(row.kb_id, row.id);
+    assert.equal(entry.chunks[0].documentVersion, 'abcdef012345');
+    assert.equal(entry.chunks[0].documentVersionId, '99999999-9999-4999-8999-999999999999');
+});
+
+test('a failing version lookup does not drop the row', async () => {
+    rec._setRecorderDeps({ store: { ...store, documentVersions: async () => { throw new Error('no table'); } }, hasFeature, log });
+    const h = await rec.beginKbQueryLog(only([KB_A], { userId: 'u1' }));
+    await h.settled();
+    const [row] = await raw();
+    assert.equal((await store.getEntry(row.kb_id, row.id)).chunks[0].documentVersion, null);
 });

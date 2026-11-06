@@ -47,6 +47,9 @@ const OVERVIEW = {
         id: 'kb1', name: 'HR handbook', enabled: true, retentionDays: 90, changedAt: '2026-11-01T10:00:00Z', changedBy: 'u9', changedByName: 'Ada Admin',
         managers: [{ id: 'u9', name: 'Ada Admin' }, { id: 'u8', name: 'Bob Manager' }],
         total: 12, byOutcome: { answered: 9, no_results: 3 }, byStatus: { to_review: 7, reviewed: 5 },
+        attestation: { purpose: 'ai_quality', dpia: 'done', dpiaId: '7', worksCouncil: 'consent', worksCouncilReason: null, privacyNoticeUpdated: true },
+        attestedBy: 'u9', attestedByName: 'Ada Admin', attestedAt: '2026-11-01T10:00:00Z',
+        showNames: false, highRisk: true, acknowledgedUsers: 5,
         // A text field that must never reach the screen even if the server sent it.
         query: SECRET_QUESTION, answer: SECRET_ANSWER, queries: [{ query: SECRET_QUESTION }],
     }],
@@ -109,6 +112,20 @@ describe('Overview', () => {
         expect(row.textContent).toContain('To review: 7');
         expect(container.textContent).not.toContain(SECRET_QUESTION);
         expect(container.textContent).not.toContain(SECRET_ANSWER);
+    });
+
+    it('shows the attestation, whether managers see names, the AI Act flag and how many users acknowledged', async () => {
+        route();
+        renderWithClient(<KbQueryLogPage tab="overview" />);
+        const row = await screen.findByTestId('kql-kb-kb1');
+        const att = within(row).getByTestId('kql-attestation-kb1').textContent ?? '';
+        expect(att).toContain('DPIA: done');
+        expect(att).toContain('Works council: Consent obtained');
+        expect(att).toContain('Privacy notice: updated');
+        expect(att).toContain('by Ada Admin');
+        expect(att).toContain('Managers see pseudonyms');
+        expect(att).toContain('High-risk AI system');
+        expect(within(row).getByTestId('kql-ack-kb1').textContent).toBe('5 users');
     });
 
     it('links to the access log, pre-filtered on the query-log actions', async () => {

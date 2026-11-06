@@ -61,6 +61,7 @@ export const STEP_TYPE_WORDS: Record<string, { i18nKey: string; en: string }> = 
     read_table: { i18nKey: 'automations.node.read_table.typeLabel', en: 'Read table' },
     table: { i18nKey: 'automations.node.table.typeLabel', en: 'Edit table' },
     knowledge_write: { i18nKey: 'automations.node.knowledge_write.typeLabel', en: 'To knowledge base' },
+    kb_query_log: { i18nKey: 'automations.node.kb_query_log.typeLabel', en: 'Knowledge base query log' },
     dedupe: { i18nKey: 'automations.node.dedupe.typeLabel', en: 'Remove duplicates' },
     aggregate: { i18nKey: 'automations.node.aggregate.typeLabel', en: 'Collect one field' },
     summarize: { i18nKey: 'automations.node.summarize.typeLabel', en: 'Add up or count' },

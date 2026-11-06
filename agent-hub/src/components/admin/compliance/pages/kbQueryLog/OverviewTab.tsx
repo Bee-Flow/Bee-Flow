@@ -8,6 +8,7 @@ import { KQL_AUDIT_ACTIONS, type KqlKbRow } from '@/api/kbQueryLog.types';
 import { presetAccessAuditActions } from '../../data/accessAuditPreset';
 import { ActionButton, Intro, ReadFailed, RegisterLayout, fmtStamp, labelOf } from '../audits/auditForms';
 import { KQL_OUTCOME, KQL_STATUS } from './labels';
+import KbAttestation from './KbAttestation';
 
 interface OverviewTabProps {
     isMobile?: boolean;
@@ -32,6 +33,8 @@ function overviewColumns(t: TranslateFn): TableColumn[] {
         { id: 'retention', width: '100px', label: t('compliance.kql_col_retention', 'Kept for'), foldBelow: 900 },
         { id: 'changed', width: '1fr', label: t('compliance.kql_col_changed', 'Last changed'), foldBelow: 1180 },
         { id: 'managers', width: '1fr', label: t('compliance.kql_col_managers', 'Managers'), foldBelow: 1180 },
+        { id: 'attestation', width: '1.3fr', label: t('compliance.kql_col_attestation', 'Attestation'), foldBelow: 1100 },
+        { id: 'acknowledged', width: '110px', label: t('compliance.kql_col_acknowledged', 'Acknowledged by'), foldBelow: 1000 },
         { id: 'outcomes', width: '140px', label: t('compliance.kql_col_outcomes', 'Outcomes') },
         { id: 'statuses', width: '140px', label: t('compliance.kql_col_statuses', 'Review status') },
     ];
@@ -42,6 +45,7 @@ function useKbFacts(k: KqlKbRow) {
     const { t, resolvedLocale } = useTranslation();
     return {
         t,
+        locale: resolvedLocale,
         changed: k.changedAt ? t('compliance.kql_changed', '{when} by {who}', { when: fmtStamp(k.changedAt, resolvedLocale), who: k.changedByName || k.changedBy || '—' }) : '—',
         managers: k.managers.map((m) => m.name || m.id).join(', ') || '—',
         retention: k.retentionDays === null ? '—' : t('compliance.kql_days', '{n} days', { n: k.retentionDays }),
@@ -62,13 +66,17 @@ function KbRow({ k, columns }: { k: KqlKbRow; columns: TableColumn[] }) {
             <TableCell column={columns[2]}><span className="text-[var(--text-secondary)]">{f.retention}</span></TableCell>
             <TableCell column={columns[3]}><span className="text-[var(--text-secondary)] [overflow-wrap:anywhere]">{f.changed}</span></TableCell>
             <TableCell column={columns[4]}><span className="text-[var(--text-secondary)] [overflow-wrap:anywhere]">{f.managers}</span></TableCell>
-            <TableCell column={columns[5]}>
+            <TableCell column={columns[5]}><KbAttestation t={f.t} k={k} locale={f.locale} /></TableCell>
+            <TableCell column={columns[6]}>
+                <span className="tabular-nums" data-testid={`kql-ack-${k.id}`}>{f.t('compliance.kql_ack_users', '{n} users', { n: k.acknowledgedUsers })}</span>
+            </TableCell>
+            <TableCell column={columns[7]}>
                 <span className="flex flex-col gap-0.5">
                     <span className="tabular-nums font-medium" data-testid={`kql-total-${k.id}`}>{k.total}</span>
                     <CountList counts={k.byOutcome} table={KQL_OUTCOME} />
                 </span>
             </TableCell>
-            <TableCell column={columns[6]}><CountList counts={k.byStatus} table={KQL_STATUS} /></TableCell>
+            <TableCell column={columns[8]}><CountList counts={k.byStatus} table={KQL_STATUS} /></TableCell>
         </TableRow>
     );
 }
@@ -80,6 +88,8 @@ function KbCard({ k }: { k: KqlKbRow }) {
             <span className="flex items-center gap-2"><span className="text-xs font-semibold truncate">{k.name}</span>{f.pill}</span>
             <span className="text-[11px] text-[var(--text-secondary)]">{f.retention} · {f.changed}</span>
             <span className="text-[11px] text-[var(--text-secondary)]">{f.t('compliance.kql_col_managers', 'Managers')}: {f.managers}</span>
+            <KbAttestation t={f.t} k={k} locale={f.locale} />
+            <span className="text-[11px] tabular-nums">{f.t('compliance.kql_ack_users', '{n} users', { n: k.acknowledgedUsers })}</span>
             <span className="text-[11px] tabular-nums">{f.t('compliance.kql_entries_count', '{n} entries', { n: k.total })}</span>
             <CountList counts={k.byOutcome} table={KQL_OUTCOME} />
             <CountList counts={k.byStatus} table={KQL_STATUS} />

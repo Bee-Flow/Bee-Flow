@@ -243,7 +243,7 @@ async function deleteUser(userId) {
     // Their "Don't count my chat turns" choice (chat signals, Art. 21).
     await step('chat_signal_objections', () => run('DELETE FROM chat_signal_objections WHERE user_id = $1', [userId]));
     // Their questions in the KB query log (and their name on rows they reviewed).
-    await step('kb_query_log', () => require('../kb/queryLog/index.mts').deleteForUser(null, userId));
+    await step('kb_query_log', () => require('../kb/queryLog/index.mts').makeKbQueryLogStore({ query: run }).deleteForUser(null, userId));
     // "Find repeating work": scans derived from this person's own mail, files
     // and ledger, and their feedback on them.
     await eraseSuggestionTraces(userId, { onFail: (e) => fail('suggestion traces', e) });

@@ -21,7 +21,9 @@ const OWNED_PREFIXES = [
 ];
 
 test('every English key in the Studio namespaces has Dutch (or is declared identical)', () => {
-    const same = new Set(SAME_AS_ENGLISH);
+    // Later rounds (the knowledge-base search log steps) seed their Dutch from their own catalogue.
+    const later = require('./add-nl-kb-query-log-translations-2026-11').NL_TRANSLATIONS;
+    const same = new Set([...SAME_AS_ENGLISH, ...Object.keys(later)]);
     const untranslated = Object.keys(GUI_DEFAULTS)
         .filter((k) => OWNED_PREFIXES.some((p) => k.startsWith(p)) && !(k in NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);

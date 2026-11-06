@@ -46,6 +46,8 @@ const ID_HEX = 16;
 const KEY_LABELS = Object.freeze({
     people: 'beeflow:adoption-pseudonym:v1:',
     'top-people': 'beeflow:adoption-top-people:v1:',
+    // The askers of the knowledge-base query log: unrelated to the Adoption labels, so neither view reveals the other.
+    'kb-query-log': 'beeflow:kb-query-log-asker:v1:',
 });
 
 /**

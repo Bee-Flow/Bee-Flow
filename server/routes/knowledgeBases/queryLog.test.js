@@ -17,6 +17,7 @@ const { usePglitePool } = require('../../testUtils/pglitePool');
 const { pg, close: closePg } = usePglitePool();
 const h = require('../../testUtils/routeHarness');
 const crypto = require('../../core/kb/queryLog/crypto.mts');
+const { ATTESTATION, enableBody } = require('../../testUtils/kbQueryLogAttestation');
 
 const ORG = 'org-ql';           // licensed (enterprise plan)
 const ORG_OTHER = 'org-ql-2';   // licensed, another tenant
@@ -58,8 +59,9 @@ after(async () => {
 });
 
 beforeEach(async () => {
-    await pg.exec('DELETE FROM kb_query_log; DELETE FROM access_audit_log');
-    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = false, query_log_retention_days = 90`);
+    await pg.exec('DELETE FROM kb_query_log; DELETE FROM kb_query_log_ack; DELETE FROM access_audit_log');
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = false, query_log_retention_days = 90, query_log_show_names = false,
+        query_log_ai_act_high_risk = false, query_log_attestation = NULL, query_log_attested_by = NULL, query_log_attested_at = NULL, query_log_changed_at = NULL`);
 });
 
 const entry = (over = {}) => ({
@@ -79,7 +81,7 @@ const audit = async () => (await pg.query('SELECT action, target_type, target_id
 const as = (user) => ({ user });
 
 const ALL_KB_ROUTES = (id, entryId = 'e1') => [
-    ['PUT', `/${id}/query-log/settings`, { enabled: true }],
+    ['PUT', `/${id}/query-log/settings`, enableBody()],
     ['GET', `/${id}/query-log`],
     ['GET', `/${id}/query-log/export.csv`],
     ['GET', `/${id}/query-log/${entryId}`],
@@ -112,7 +114,7 @@ test('without the kb_query_log licence the KB routes answer with the licence err
     const res = await api.call('GET', `/${freeKbId}/query-log`, as(FREE_OWNER));
     assert.equal(res.status, 403);
     assert.ok(res.body.error || res.body.code, 'a structured licence refusal');
-    const put = await api.call('PUT', `/${freeKbId}/query-log/settings`, { user: FREE_OWNER, body: { enabled: true } });
+    const put = await api.call('PUT', `/${freeKbId}/query-log/settings`, { user: FREE_OWNER, body: enableBody() });
     assert.equal(put.status, 403);
     assert.equal((await pg.query(`SELECT query_log_enabled FROM knowledge_bases WHERE id = $1`, [freeKbId])).rows[0].query_log_enabled, false);
 });
@@ -132,7 +134,7 @@ test('after the licence ran out a manager can still switch off and purge (DELETE
 test('logging cannot be enabled on a knowledge base without an organisation', async () => {
     const kbStore = require('../../stores/knowledgeBases');
     const personal = (await kbStore.createKB(OWNER.id, 'Personal', '', null, {})).id;
-    const res = await api.call('PUT', `/${personal}/query-log/settings`, { user: OWNER, body: { enabled: true } });
+    const res = await api.call('PUT', `/${personal}/query-log/settings`, { user: OWNER, body: enableBody() });
     assert.equal(res.status, 400);
     assert.equal((await pg.query('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [personal])).rows[0].query_log_enabled, false);
 });
@@ -158,13 +160,13 @@ test('no session at all is a 401', async () => {
 // ── Settings and audit ──────────────────────────────────────────────
 
 test('enable, change the term and disable each write an audit row with old and new values', async () => {
-    let res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: true, retentionDays: 30 } });
+    let res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: enableBody({ retentionDays: 30 }) });
     assert.equal(res.status, 200);
     assert.equal(res.body.enabled, true);
     assert.equal(res.body.retentionDays, 30);
     assert.equal(res.body.changedBy, OWNER.id);
 
-    res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: true, retentionDays: 180 } });
+    res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: enableBody({ retentionDays: 180 }) });
     assert.equal(res.status, 200);
     res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: false } });
     assert.equal(res.status, 200);
@@ -179,8 +181,8 @@ test('enable, change the term and disable each write an audit row with old and n
     assert.equal(enabled.target_id, kbId);
     assert.equal(enabled.changed_by, OWNER.id);
     assert.equal(enabled.organization_id, ORG);
-    assert.deepEqual(JSON.parse(enabled.old_values), { enabled: false, retentionDays: 90 });
-    assert.deepEqual(JSON.parse(enabled.new_values), { enabled: true, retentionDays: 30 });
+    assert.deepEqual(JSON.parse(enabled.old_values), { enabled: false, retentionDays: 90, showNames: false, aiActHighRisk: false });
+    assert.deepEqual(JSON.parse(enabled.new_values), { enabled: true, retentionDays: 30, showNames: false, aiActHighRisk: false, attestation: { ...ATTESTATION, dpiaId: null } });
 });
 
 test('a settings call that changes nothing writes no audit row', async () => {
@@ -192,7 +194,7 @@ test('a settings call that changes nothing writes no audit row', async () => {
 test('an audit write that fails refuses the change: nothing is switched on', async () => {
     await pg.exec('ALTER TABLE access_audit_log RENAME TO access_audit_log_off');
     try {
-        const res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: true } });
+        const res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: enableBody() });
         assert.equal(res.status, 503);
         assert.equal(res.body.code, 'audit_unavailable');
     } finally {
@@ -202,7 +204,7 @@ test('an audit write that fails refuses the change: nothing is switched on', asy
 });
 
 test('disable with deleteExisting removes the rows of that base only and audits the purge', async () => {
-    await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: true } });
+    await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: enableBody() });
     const otherKb = (await require('../../stores/knowledgeBases').createKB(OWNER.id, 'Other', '', ORG, {})).id;
     await seed([{ id: 'a1' }, { id: 'a2' }, { id: 'o1', kbId: otherKb, searchGroupId: 'g-o' }]);
     const res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: false, deleteExisting: true } });
@@ -214,7 +216,7 @@ test('disable with deleteExisting removes the rows of that base only and audits 
 });
 
 test('disable without deleteExisting keeps the rows until the term ends', async () => {
-    await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: true } });
+    await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: enableBody() });
     await seed([{ id: 'k1' }]);
     const res = await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: false } });
     assert.equal(res.body.deleted, 0);
@@ -223,7 +225,7 @@ test('disable without deleteExisting keeps the rows until the term ends', async 
 
 test('a shorter term moves expires_at of the rows that exist', async () => {
     await seed([{ id: 't1', createdAt: new Date(Date.now() - 40 * 86_400_000) }]);
-    await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: { enabled: true, retentionDays: 30 } });
+    await api.call('PUT', `/${kbId}/query-log/settings`, { ...as(OWNER), body: enableBody({ retentionDays: 30 }) });
     const { rows } = await pg.query(`SELECT expires_at < now() AS gone FROM kb_query_log WHERE id = 't1'`);
     assert.equal(rows[0].gone, true);
 });
@@ -243,6 +245,7 @@ test('the list filters on period, user, channel, outcome, status and text, and n
         { id: 'l2', createdAt: '2026-11-02T10:00:00Z', query: 'pension scheme', channel: 'agent_chat', outcome: 'no_results', chunks: [] },
         { id: 'l3', createdAt: '2026-11-03T10:00:00Z', query: 'expenses policy', userId: READER.id, outcome: 'error', errorCode: 'x' },
     ]);
+    await pg.exec(`UPDATE knowledge_bases SET query_log_show_names = true WHERE id = '${kbId}'`);
     const list = async (qs) => (await api.call('GET', `/${kbId}/query-log${qs}`, as(OWNER))).body;
     const all = await list('');
     assert.equal(all.total, 3);
@@ -297,7 +300,7 @@ test('the CSV has the columns, escapes formulas, respects filters and is audited
     assert.match(res.headers.get('content-type'), /text\/csv/);
     assert.match(res.headers.get('content-disposition'), /attachment/);
     const lines = res.text.replace(/^﻿/, '').trim().split('\r\n');
-    assert.equal(lines[0], 'createdAt,user,channel,outcome,reviewStatus,query,answer,chunkCount,topScore,model,retrievalMs,answerMs,errorCode,reviewNote,reviewedAt');
+    assert.equal(lines[0], 'createdAt,asker,channel,outcome,reviewStatus,query,answer,chunkCount,topScore,model,retrievalMs,answerMs,errorCode,reviewNote,reviewedAt');
     assert.equal(lines.length, 2, 'only the agent_chat row');
     assert.ok(lines[1].includes(`"'=HYPERLINK(""http://evil.test"",""x"")"`), lines[1]);
     assert.ok(!lines[1].includes(',=HYPERLINK'), 'no bare formula cell');
@@ -339,7 +342,7 @@ test('the notice names only logging bases the caller can read, and only with the
 
     let res = await notice(READER, [kbId, draft, freeKbId]);
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { active: true, kbs: [{ id: kbId, name: 'Handbook' }] }, 'a reader sees the published base only');
+    assert.deepEqual(res.body, { active: true, kbs: [{ id: kbId, name: 'Handbook', acknowledged: false, retentionDays: 90, showNames: false }] }, 'a reader sees the published base only');
 
     res = await notice(OWNER, [kbId, draft]);
     assert.deepEqual(res.body.kbs.map((k) => k.id).sort(), [draft, kbId].sort());
@@ -354,4 +357,199 @@ test('the notice names only logging bases the caller can read, and only with the
     res = await notice(READER, [kbId]);
     assert.equal(res.body.active, false);
     assert.equal((await api.call('GET', '/query-log/notice', as(READER))).status, 400);
+});
+
+// ── Round 2: attestation, high-risk flag, pseudonyms, acknowledgement ──
+
+const put = (body, user = OWNER, id = kbId) => api.call('PUT', `/${id}/query-log/settings`, { user, body });
+const enabledNow = async (id = kbId) => (await pg.query('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [id])).rows[0].query_log_enabled;
+
+test('enabling without an attestation, or with an invalid one, is a 400 naming the missing fields; nothing changes', async () => {
+    let res = await put({ enabled: true });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, 'kb_query_log_attestation_required');
+    assert.deepEqual(res.body.details.missing, ['attestation']);
+
+    res = await put({ enabled: true, attestation: { purpose: 'employee_review', dpia: 'done', worksCouncil: 'pending' } });
+    assert.equal(res.status, 400);
+    assert.deepEqual(res.body.details.missing.sort(), ['dpiaId', 'privacyNoticeUpdated', 'purpose', 'worksCouncil']);
+
+    res = await put({ enabled: true, attestation: { ...ATTESTATION, worksCouncil: 'not_applicable', worksCouncilReason: 'because' } });
+    assert.deepEqual(res.body.details.missing, ['worksCouncilReason']);
+    res = await put({ enabled: true, attestation: { ...ATTESTATION, privacyNoticeUpdated: false } });
+    assert.deepEqual(res.body.details.missing, ['privacyNoticeUpdated']);
+
+    assert.equal(await enabledNow(), false);
+    assert.deepEqual(await audit(), []);
+});
+
+test('a valid attestation is stored with who and when, returned by GET settings, audited and put into the evidence', async () => {
+    const res = await put(enableBody({ retentionDays: 180 }));
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body.attestation, { ...ATTESTATION, dpiaId: null });
+    assert.equal(res.body.attestedBy, OWNER.id);
+    assert.ok(res.body.attestedAt);
+    assert.equal(res.body.showNames, false);
+
+    const got = await api.call('GET', `/${kbId}/query-log/settings`, as(OWNER));
+    assert.equal(got.status, 200);
+    assert.deepEqual(got.body.attestation, { ...ATTESTATION, dpiaId: null });
+    assert.equal(got.body.acknowledgedUsers, 0);
+    assert.equal((await api.call('GET', `/${kbId}/query-log/settings`, as(READER))).status, 404);
+
+    const rows = await audit();
+    const enabled = rows.find((r) => r.action === 'kb.query_log.enabled');
+    assert.deepEqual(JSON.parse(enabled.new_values).attestation, { ...ATTESTATION, dpiaId: null });
+    const ev = (await pg.query(`SELECT payload FROM compliance_evidence WHERE check_id = 'GDPR-Art5-kb-query-log' AND subject_id = $1`, [kbId])).rows;
+    const p = typeof ev[0].payload === 'string' ? JSON.parse(ev[0].payload) : ev[0].payload;
+    assert.equal(p.attDpia, 'not_required');
+    assert.equal(p.attWorksCouncil, 'not_applicable');
+    assert.equal(p.attPrivacyNoticeUpdated, true);
+});
+
+test('dpia done needs a DPIA of THIS organisation; one of another organisation is refused', async () => {
+    const dpiaStore = require('../../stores/dpiaStore');
+    const mine = await dpiaStore.upsertAssessment(ORG, 'agent-ql', { approved_by: OWNER.id });
+    const foreign = await dpiaStore.upsertAssessment(ORG_OTHER, 'agent-ql-other', { approved_by: OUTSIDER.id });
+    const att = (dpiaId) => ({ ...ATTESTATION, dpia: 'done', dpiaId });
+
+    let res = await put({ enabled: true, attestation: att(String(foreign.id)) });
+    assert.equal(res.status, 400);
+    assert.deepEqual(res.body.details.missing, ['dpiaId']);
+    res = await put({ enabled: true, attestation: att('999999') });
+    assert.equal(res.status, 400);
+    res = await put({ enabled: true, attestation: att(undefined) });
+    assert.equal(res.status, 400);
+    assert.equal(await enabledNow(), false);
+
+    res = await put({ enabled: true, attestation: att(String(mine.id)) });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.attestation.dpiaId, String(mine.id));
+});
+
+test('the high-risk flag needs a term of 180 days or more and an attestation; 30 and 90 are refused, 180 is accepted', async () => {
+    for (const retentionDays of [30, 90]) {
+        const res = await put(enableBody({ aiActHighRisk: true, retentionDays }));
+        assert.equal(res.status, 400, String(retentionDays));
+        assert.equal(res.body.code, 'kb_query_log_retention_too_short');
+    }
+    assert.equal(await enabledNow(), false);
+    assert.equal((await put({ enabled: false, aiActHighRisk: true, retentionDays: 180 })).body.code, 'kb_query_log_attestation_required', 'no attestation on file');
+
+    let res = await put(enableBody({ aiActHighRisk: true, retentionDays: 180 }));
+    assert.equal(res.status, 200);
+    assert.equal(res.body.aiActHighRisk, true);
+    // once flagged, a shorter term is refused
+    res = await put({ enabled: true, retentionDays: 90 });
+    assert.equal(res.body.code, 'kb_query_log_retention_too_short');
+    assert.equal((await put({ enabled: true, retentionDays: 365 })).status, 200);
+    assert.ok((await audit()).some((r) => r.action === 'kb.query_log.high_risk_changed'));
+});
+
+test('names_changed is audited; showing names needs an attestation on file', async () => {
+    assert.equal((await put({ enabled: false, showNames: true })).body.code, 'kb_query_log_attestation_required');
+    const res = await put(enableBody({ showNames: true }));
+    assert.equal(res.status, 200);
+    assert.equal(res.body.showNames, true);
+    assert.ok((await audit()).some((r) => r.action === 'kb.query_log.names_changed'));
+});
+
+test('names off: list, entry, review and CSV carry a stable pseudonym and no user id or name; on: names', async () => {
+    await seed([
+        { id: 'p1', userId: ASKER.id, query: 'q one' },
+        { id: 'p2', searchGroupId: 'g2', userId: READER.id, query: 'q two' },
+        { id: 'p3', searchGroupId: 'g3', userId: ASKER.id, query: 'q three' },
+        { id: 'p4', searchGroupId: 'g4', userId: null, query: 'anonymous one', channel: 'api_search' },
+    ]);
+    const list = async (qs = '') => (await api.call('GET', `/${kbId}/query-log${qs}`, as(OWNER))).body;
+    const all = await list();
+    assert.equal(all.rows.length, 4);
+    for (const r of all.rows) {
+        assert.equal('userId' in r, false);
+        assert.equal('userName' in r, false);
+    }
+    const byId = Object.fromEntries(all.rows.map((r) => [r.id, r]));
+    assert.match(byId.p1.askerPseudonym, /^Member · [A-Z2-9]{4}$/);
+    assert.equal(byId.p1.askerPseudonym, byId.p3.askerPseudonym, 'stable per person');
+    assert.equal(byId.p1.askerPseudonymId, byId.p3.askerPseudonymId);
+    assert.notEqual(byId.p1.askerPseudonymId, byId.p2.askerPseudonymId);
+    assert.equal(byId.p4.askerPseudonym, null);
+    assert.equal(JSON.stringify(all).includes('Ada Asker'), false);
+    assert.equal(JSON.stringify(all).includes(ASKER.id), false);
+
+    // the person filter takes the pseudonym id; a real user id finds nothing
+    assert.deepEqual((await list(`?userId=${byId.p1.askerPseudonymId}`)).rows.map((r) => r.id).sort(), ['p1', 'p3']);
+    assert.equal((await list(`?userId=${ASKER.id}`)).total, 0);
+    assert.equal((await list('?userId=0000000000000000')).total, 0);
+
+    const one = (await api.call('GET', `/${kbId}/query-log/p1`, as(OWNER))).body;
+    assert.equal('userId' in one, false);
+    assert.equal(one.askerPseudonym, byId.p1.askerPseudonym);
+    const reviewed = (await api.call('PATCH', `/${kbId}/query-log/p1/review`, { ...as(OWNER), body: { status: 'reviewed' } })).body;
+    assert.equal('userId' in reviewed, false);
+
+    const csv = (await api.call('GET', `/${kbId}/query-log/export.csv`, as(OWNER))).text;
+    assert.ok(csv.includes(byId.p1.askerPseudonym));
+    assert.equal(csv.includes('Ada Asker') || csv.includes(ASKER.id), false);
+    const csvFiltered = (await api.call('GET', `/${kbId}/query-log/export.csv?userId=${byId.p2.askerPseudonymId}`, as(OWNER))).text;
+    assert.ok(csvFiltered.includes('q two') && !csvFiltered.includes('q one'));
+
+    await pg.exec(`UPDATE knowledge_bases SET query_log_show_names = true WHERE id = '${kbId}'`);
+    const named = await list();
+    assert.equal(named.rows.find((r) => r.id === 'p1').userId, ASKER.id);
+    assert.equal(named.rows.find((r) => r.id === 'p1').userName, 'Ada Asker');
+    assert.equal((await list(`?userId=${ASKER.id}`)).total, 2);
+    assert.ok((await api.call('GET', `/${kbId}/query-log/export.csv`, as(OWNER))).text.includes('Ada Asker'));
+});
+
+test('acknowledge: records for readable logging bases only; others (unreadable, not logging, other organisation, unknown) are ignored silently', async () => {
+    const kbStore = require('../../stores/knowledgeBases');
+    const draft = (await kbStore.createKB(OWNER.id, 'Draft ack', '', ORG, { isPublished: false })).id;
+    const quiet = (await kbStore.createKB(OWNER.id, 'Quiet', '', ORG, { isPublished: true })).id;
+    const foreign = (await kbStore.createKB(OUTSIDER.id, 'Foreign', '', ORG_OTHER, { isPublished: true })).id;
+    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = true WHERE id IN ('${kbId}', '${draft}', '${foreign}')`);
+    const ack = (user, ids) => api.call('POST', '/query-log/acknowledge', { user, body: { kbIds: ids } });
+    const rowsOf = async () => (await pg.query('SELECT user_id, kb_id FROM kb_query_log_ack ORDER BY kb_id')).rows;
+
+    const res = await ack(READER, [kbId, draft, quiet, foreign, '11111111-1111-4111-8111-111111111111', 'junk']);
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { active: true, kbs: [{ id: kbId, name: 'Handbook', acknowledged: true, retentionDays: 90, showNames: false }] });
+    assert.deepEqual(await rowsOf(), [{ user_id: READER.id, kb_id: kbId }]);
+
+    const none = await ack(READER, [draft, quiet, foreign]);
+    assert.deepEqual(none.body, { active: false, kbs: [] });
+    assert.equal((await rowsOf()).length, 1);
+
+    assert.equal((await ack(READER, [])).status, 400);
+    assert.equal((await api.call('POST', '/query-log/acknowledge', { user: null, body: { kbIds: [kbId] } })).status, 401);
+
+    const notice = await api.call('GET', `/query-log/notice?kbIds=${kbId}`, as(READER));
+    assert.equal(notice.body.kbs[0].acknowledged, true);
+    const other = await api.call('GET', `/query-log/notice?kbIds=${kbId}`, as(ASKER));
+    assert.equal(other.body.kbs[0].acknowledged, false, 'acknowledged per person');
+
+    // any settings change asks everyone again
+    await put(enableBody({ retentionDays: 365 }));
+    const after = await api.call('GET', `/query-log/notice?kbIds=${kbId}`, as(READER));
+    assert.equal(after.body.kbs[0].acknowledged, false);
+    assert.equal((await api.call('GET', `/${kbId}/query-log/settings`, as(OWNER))).body.acknowledgedUsers, 0);
+});
+
+test('GET /query-log/dpias: managers of the organisation get their own organisation\'s DPIAs only; others get a 404', async () => {
+    const dpiaStore = require('../../stores/dpiaStore');
+    const mine = await dpiaStore.upsertAssessment(ORG, 'agent-dpias', { approved_by: OWNER.id });
+    await dpiaStore.upsertAssessment(ORG_OTHER, 'agent-theirs', { approved_by: OUTSIDER.id });
+
+    const ok = await api.call('GET', '/query-log/dpias', as(OWNER));
+    assert.equal(ok.status, 200);
+    const ids = ok.body.dpias.map((d) => d.id);
+    assert.ok(ids.includes(String(mine.id)));
+    assert.ok(ok.body.dpias.every((d) => Object.keys(d).sort().join() === 'id,status,title'));
+    assert.ok(!JSON.stringify(ok.body).includes('agent-theirs'), 'no other organisation');
+
+    assert.equal((await api.call('GET', '/query-log/dpias', as(READER))).status, 404, 'a reader who manages nothing');
+    assert.equal((await api.call('GET', '/query-log/dpias', as(FREE_OWNER))).status, 403, 'licence');
+    assert.equal((await api.call('GET', '/query-log/dpias', { user: null })).status, 401);
+    const theirs = (await api.call('GET', '/query-log/dpias', as(OUTSIDER))).body.dpias;
+    assert.ok(!theirs.some((d) => d.id === String(mine.id)));
 });
