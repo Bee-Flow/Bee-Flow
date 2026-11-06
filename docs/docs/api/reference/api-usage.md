@@ -15,7 +15,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/adoption/areas`
 
-**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`
 
 **Query**
 
@@ -32,7 +32,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/adoption/groups`
 
-**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`
 
 **Query**
 
@@ -49,7 +49,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/adoption/people`
 
-**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`
 
 **Query**
 
@@ -66,7 +66,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/adoption/studio`
 
-**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`
 
 **Query**
 
@@ -83,7 +83,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/adoption/studio/items`
 
-**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`
 
 **Query**
 
@@ -100,7 +100,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/adoption/summary`
 
-**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`, `requireOrganisation`
+**Access:** Permission `admin_monitoring` · middleware `_advUsageGate`, `requireSession`
 
 **Query**
 

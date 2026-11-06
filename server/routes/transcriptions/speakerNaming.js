@@ -36,12 +36,12 @@ async function lookupUserName(userId) {
  * not part of the closed attendee `roster`.
  * @returns {Promise<{ merged: any[], transcript: string, speakers: any[], filledMapping: object }>}
  */
-async function nameSpeakers({ merged, speakers, language, userName, userOrgId, roster, voiceprintMapping, voiceprintRuledOut, numSpeakers, knownNames = undefined }) {
+async function nameSpeakers({ merged, speakers, language, userName, userId = null, userOrgId, roster, voiceprintMapping, voiceprintRuledOut, numSpeakers, knownNames = undefined }) {
     const nameMapping = await identifySpeakerNames(
         merged, speakers, language, userName, userOrgId,
         roster,
         {
-            lockedNames: voiceprintMapping, ruledOutNames: voiceprintRuledOut, expectedSpeakers: numSpeakers,
+            lockedNames: voiceprintMapping, ruledOutNames: voiceprintRuledOut, expectedSpeakers: numSpeakers, userId,
             ...(knownNames && knownNames.length ? { knownNames } : {}),
         },
     );

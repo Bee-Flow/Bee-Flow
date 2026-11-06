@@ -226,7 +226,7 @@ async function analyseTranscript({ req, transcriptionId, transcription, userId, 
         ...voiceprintRoster,
     ])];
     ({ merged, transcript, speakers } = await nameSpeakers({
-        merged, speakers, language, userName: reprocessUserName, userOrgId,
+        merged, speakers, language, userName: reprocessUserName, userId, userOrgId,
         roster: reprocessRoster, voiceprintMapping, voiceprintRuledOut, numSpeakers,
         knownNames: manualSpeakerNames(transcription),
     }));

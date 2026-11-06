@@ -61,18 +61,19 @@ const OTHER_AREA = 'other';
  * typed (`interactive`). A source missing here still logs — logUsage never
  * refuses a row — but it is reported under "other" with its raw name, and
  * usageAreas.test.js names the writers it knows about so a new literal is
- * added here rather than invented.
- * @type {Readonly<Record<string, { area: string, interactive?: boolean }>>}
+ * added here rather than invented. `test` marks a builder's own test run (a
+ * test chat, a grading set): spend, but not adoption.
+ * @type {Readonly<Record<string, { area: string, interactive?: boolean, test?: boolean }>>}
  */
 const SOURCES = Object.freeze({
     // Agents: a chat with an agent, its tool calls, test chats and the agent
     // test sets; a swarm is agents working together.
     agent_chat: { area: 'agents', interactive: true },
     agent_stream: { area: 'agents', interactive: true },
-    agent_test_chat: { area: 'agents', interactive: true },
-    agent_test_attribution: { area: 'agents' },
-    agent_test_grade: { area: 'agents' },
-    agent_test_suggest: { area: 'agents' },
+    agent_test_chat: { area: 'agents', interactive: true, test: true },
+    agent_test_attribution: { area: 'agents', test: true },
+    agent_test_grade: { area: 'agents', test: true },
+    agent_test_suggest: { area: 'agents', test: true },
     agent_persona: { area: 'agents' },
     swarm_orchestrator: { area: 'agents' },
     // Direct chat (no agent) and the title the server writes for it.
@@ -123,8 +124,8 @@ const SOURCES = Object.freeze({
     // Skills: drafting, improving and testing one.
     skill_ai_draft: { area: 'skills' },
     skill_ai_improve: { area: 'skills' },
-    skill_test: { area: 'skills' },
-    skill_test_grade: { area: 'skills' },
+    skill_test: { area: 'skills', test: true },
+    skill_test_grade: { area: 'skills', test: true },
     // Datatables.
     datatable_ai_draft: { area: 'datatables' },
     // Media: images, video, music, speech.
@@ -186,4 +187,23 @@ function isInteractiveSource(source) {
 /** @type {ReadonlyArray<string>} */
 const INTERACTIVE_SOURCES = Object.freeze(Object.keys(SOURCES).filter((s) => !!SOURCES[s].interactive));
 
-export { AREAS, AREA_IDS, OTHER_AREA, SOURCES, INTERACTIVE_SOURCES, areaOf, kindOfArea, isInteractiveSource };
+/**
+ * The sources of a builder testing their own work (an agent's test chat and
+ * test sets, a skill's test tab): the Adoption report leaves them out, a test
+ * is not somebody using the thing.
+ * @type {ReadonlyArray<string>}
+ */
+const TEST_SOURCES = Object.freeze(Object.keys(SOURCES).filter((s) => !!SOURCES[s].test));
+
+/**
+ * Whether a source is a builder's own test run.
+ * @param {string | null | undefined} source
+ * @returns {boolean}
+ */
+function isTestSource(source) {
+    if (typeof source !== 'string') return false;
+    const entry = SOURCES[source];
+    return !!(entry && entry.test);
+}
+
+export { AREAS, AREA_IDS, OTHER_AREA, SOURCES, INTERACTIVE_SOURCES, TEST_SOURCES, areaOf, kindOfArea, isInteractiveSource, isTestSource };

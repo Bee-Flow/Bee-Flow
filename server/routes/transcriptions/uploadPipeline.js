@@ -234,7 +234,7 @@ async function analyseUpload({ req, transcriptionId, userId, userOrgId, userName
     const beat = () => beatProcessing(transcriptionId);
 
     const named = await nameSpeakers({
-        merged, speakers, language, userName, userOrgId,
+        merged, speakers, language, userName, userId, userOrgId,
         roster: [...attendees, ...voiceprintRoster], voiceprintMapping, voiceprintRuledOut, numSpeakers,
     });
     ({ merged, transcript, speakers } = named);

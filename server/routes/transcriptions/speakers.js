@@ -309,6 +309,7 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
             lockedNames: lockedList.length ? lockedNames : null,
             ruledOutNames: Object.keys(ruledOutNames).length ? ruledOutNames : null,
             expectedSpeakers: transcription.numSpeakers || null,
+            userId,
         },
     );
     // The locked names are merged back into the answer, so on their own they

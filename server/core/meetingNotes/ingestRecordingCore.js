@@ -72,7 +72,7 @@ async function assertDedupHitReadable(existing, userId, accessCtx) {
  * from short diarization fragments. The platform already named every speaker:
  * keep those names as they are.
  */
-async function nameSpeakers(built, { speakersNamed, language, userName, orgId, participantNames, voiceprint }) {
+async function nameSpeakers(built, { speakersNamed, language, userName, userId, orgId, participantNames, voiceprint }) {
     const { speakers } = built;
     const nameMapping = speakersNamed
         ? Object.fromEntries(speakers.map((s) => [s.id, s.id]))
@@ -82,7 +82,7 @@ async function nameSpeakers(built, { speakersNamed, language, userName, orgId, p
                 [...(participantNames || []), ...voiceprint.roster],
                 // No speaker-count input on the auto-import paths — Talk/Meet
                 // supply an attendee roster instead, which is stronger.
-                { lockedNames: voiceprint.mapping, ruledOutNames: voiceprint.ruledOut },
+                { lockedNames: voiceprint.mapping, ruledOutNames: voiceprint.ruledOut, userId },
             )
             : null;
     // Floor unnamed ids to clean "Spreker N"/"Speaker N" — never leak raw ids.
@@ -234,7 +234,7 @@ async function ingestLocalRecording(opts) {
             throw new IngestError('Transcription returned no words. The recording may be silent, or in a language the engine could not transcribe.', { code: 'empty_transcription', status: 502 });
         }
         const totalDuration = built.totalDuration;
-        const named = await nameSpeakers(built, { speakersNamed, language, userName, orgId, participantNames, voiceprint });
+        const named = await nameSpeakers(built, { speakersNamed, language, userName, userId, orgId, participantNames, voiceprint });
         const { merged, transcript } = named;
         const { defaultTemplate, artifacts, usable, summary, title, chapters, speakers } = await writeSummary(named, {
             userId, orgId, language, fileName, titleHint, participantNames, voiceprint, truncated, meetingDate, extraRecordings,

@@ -226,7 +226,8 @@ const AD_PEOPLE = (query: URLSearchParams) => {
     const all = adPeopleAll().filter(p => !groupName || p.groups.includes(groupName));
     const page = all.slice(cursor, cursor + limit).map(({ index, name, ...rest }) => ({
         ...rest,
-        id: reveal ? `user_demo_${index}` : `Member · ${adPseudonym(index)}`,
+        // Pseudonymous rows carry an opaque, collision-free id (the server sends 16 hex characters), never the label.
+        id: reveal ? `user_demo_${index}` : index.toString(16).padStart(16, '0'),
         name: reveal ? name : `Member · ${adPseudonym(index)}`,
         avatarType: null,
         avatar: null,

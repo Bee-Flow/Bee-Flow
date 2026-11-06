@@ -52,7 +52,8 @@ describe('adoption fixtures', () => {
         expect(p.people).toHaveLength(148);
         for (const m of p.people) {
             expect(m.name).toMatch(/^Member · [A-HJ-NP-Z2-9]{4}$/);
-            expect(m.id).toBe(m.name);
+            expect(m.id).not.toBe(m.name);
+            expect(m.id).toMatch(/^[0-9a-f]{16}$/);
         }
         expect(new Set(p.people.map(m => m.name)).size).toBe(148);
         const again = call<People>('GET /api/usage/adoption/people', 'days=30&limit=200');
