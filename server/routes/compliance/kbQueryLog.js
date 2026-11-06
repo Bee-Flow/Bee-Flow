@@ -85,7 +85,7 @@ const DeleteBody = bodyOf({
 
 /** The caller's own organisation. Never a default: this decides whose log is read. @param {import('express').Request} req */
 async function orgOf(req) {
-    const orgId = await resolveOrgIdStrict(/** @type {any} */ (req));
+    const orgId = await resolveOrgIdStrict(/** @type {import('../../auth/orgScope').OrgScopeRequest} */ (/** @type {unknown} */ (req)));
     if (!orgId) throw new HttpError(403, 'no_organisation', 'This account is not in an organisation, so it has no query log to show.');
     return orgId;
 }
