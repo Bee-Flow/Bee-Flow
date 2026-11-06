@@ -537,6 +537,8 @@
     "admin_org.access_matrix_users_groups": "Gebruikers en groepen",
     "admin_org.access_panel_no_orgs": "Geen organisaties gevonden.",
     "admin_org.access_panel_organisation": "Organisatie",
+    "admin_org.budget_cancel": "Annuleren",
+    "admin_org.budget_save": "Budget opslaan",
     "admin_org.ceiling_allow_all": "Alles toestaan wat het {ceiling} toestaat",
     "admin_org.ceiling_allow_all_hint": "Zet uit om deze organisatie tot een deel te beperken.",
     "admin_org.ceiling_assign_plan_failed": "Abonnement toewijzen mislukt",

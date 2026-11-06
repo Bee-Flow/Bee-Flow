@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
 import { logger } from '@/utils/logger';
+import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 
 /**
  * One member, as GET /auth/users returns them. Only what the panel reads is
@@ -22,6 +23,8 @@ export interface OrgMember {
     /** Group ids, not group rows. */
     groups?: string[];
     isSystem?: boolean;
+    /** Self-hosted monthly AI budget in euro; null/absent = none. */
+    monthlyCostLimit?: number | null;
     [key: string]: unknown;
 }
 
@@ -34,6 +37,8 @@ export interface OrgGroupRow {
     orgRole?: string;
     /** Empty = no restriction; non-empty = only these tier ids. */
     allowedTiers?: string[];
+    /** Self-hosted AI budget per member per month in euro; null/absent = none. */
+    perUserCostLimit?: number | null;
     source?: string;
     lastSyncedAt?: string | null;
     [key: string]: unknown;
@@ -102,6 +107,7 @@ export interface UseOrgDirectoryOptions {
  * members the caller may see.
  */
 export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDirectory {
+    const { isSelfHosted } = useDeploymentMode();
     const [users, setUsers] = useState<OrgMember[]>([]);
     const [groups, setGroups] = useState<OrgGroupRow[]>([]);
     const [orgRolePerms, setOrgRolePerms] = useState<OrgRolePermissions[]>([]);
@@ -179,12 +185,20 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
         })();
     }, []);
 
-    // Fetch per-user AI usage (last 30 days) once; non-blocking for the panel.
+    // Fetch per-user AI usage once; non-blocking for the panel. Self-hosted
+    // reads the calendar month, the period the monthly AI budget is enforced
+    // on (core/entitlements/selfHostedBudget.mts), so the figure next to a
+    // member's budget is the one the limit compares against; cloud keeps the
+    // last 30 days.
     useEffect(() => {
         let cancelled = false;
         (async () => {
             try {
-                const res = await settled(`${API_BASE}/api/usage/by-user?days=30`, undefined, 'empty');
+                const now = new Date();
+                const window = isSelfHosted
+                    ? `startDate=${encodeURIComponent(new Date(now.getFullYear(), now.getMonth(), 1).toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`
+                    : 'days=30';
+                const res = await settled(`${API_BASE}/api/usage/by-user?${window}`, undefined, 'empty');
                 if (!res.ok) return;
                 const rows: Array<{ user_id: string; calls?: unknown; estimated_cost?: unknown }> = await res.res.json();
                 if (cancelled) return;
@@ -201,7 +215,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
             }
         })();
         return () => { cancelled = true; };
-    }, []);
+    }, [isSelfHosted]);
 
     const handleToggleAutoApprove = async () => {
         if (!myOrgId) return;

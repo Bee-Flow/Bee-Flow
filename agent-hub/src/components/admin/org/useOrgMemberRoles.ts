@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import { mutate, ApiError } from '@/api/mutate';
+import { toast } from '@/components/shared/Toast';
 
 /**
  * A role change the server refused with 'confirm_self_demotion': allowed, but
@@ -26,6 +27,7 @@ export interface OrgMemberRoles {
     pendingSelfDemotion: PendingSelfDemotion | null;
     setPendingSelfDemotion: Dispatch<SetStateAction<PendingSelfDemotion | null>>;
     handleUserRoleChange: (userId: string, newRole: string, opts?: Record<string, unknown>) => Promise<void>;
+    handleUpdateUserCostLimit: (userId: string, value: number | null) => Promise<void>;
     handleApproveUser: (userId: string) => Promise<void>;
     handleRejectUser: (userId: string) => Promise<void>;
 }
@@ -39,6 +41,26 @@ export interface UseOrgMemberRolesOptions {
         confirmLabel?: string;
         destructive?: boolean;
     }) => Promise<boolean>;
+}
+
+/** PUT a member's self-hosted monthly AI budget (null = none), then re-read the directory. */
+async function updateUserCostLimit(fetchData: UseOrgMemberRolesOptions['fetchData'], userId: string, value: number | null) {
+    try {
+        const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ monthlyCostLimit: value }),
+        }).catch((err: unknown) => {
+            if (!(err instanceof ApiError)) throw err;
+            // A refused save must not pass for a saved one: the editor closes on the old value.
+            toast.error(`Failed to update the budget (${err.status})`);
+            return null;
+        });
+        if (res) await fetchData();
+    } catch (err) {
+        console.error('Failed to update user budget:', err);
+        toast.error(`Failed to update the budget: ${err instanceof Error ? err.message : String(err)}`);
+    }
 }
 
 /**
@@ -92,6 +114,8 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
         }
     };
 
+    const handleUpdateUserCostLimit = (userId: string, value: number | null) => updateUserCostLimit(fetchData, userId, value);
+
     const handleApproveUser = async (userId: string) => {
         try {
             const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
@@ -126,6 +150,7 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
         roleChangeError, setRoleChangeError,
         pendingSelfDemotion, setPendingSelfDemotion,
         handleUserRoleChange,
+        handleUpdateUserCostLimit,
         handleApproveUser,
         handleRejectUser,
     };

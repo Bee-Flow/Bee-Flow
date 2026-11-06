@@ -64,6 +64,8 @@ export default {
     "admin_org.ceiling_word_licence": "licence",
     "admin_org.ceiling_word_plan": "plan",
     "admin_org.ceiling_word_plan_long": "subscription plan",
+    "admin_org.budget_cancel": "Cancel",
+    "admin_org.budget_save": "Save budget",
     "admin_org.cost_limit_invalid": "Enter a budget above zero, or leave the field empty.",
     "admin_org.cost_limit_placeholder": "No limit",
     "admin_org.custom_tiers_add": "+ Add Tier",

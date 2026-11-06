@@ -1,7 +1,9 @@
 import { Check, Clock, Edit2, Mail, X } from 'lucide-react';
 import GroupAssignPopover from './GroupAssignPopover';
+import BudgetEditor from './BudgetEditor';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import { API_BASE } from '@/utils/helpers';
 import RoleBadge from '@/components/shared/RoleBadge';
 import type { MemberUsage, OrgGroupRow, OrgMember } from '../useOrgDirectory';
@@ -36,19 +38,29 @@ function MemberAvatar({ member: u }: { member: OrgMember }) {
     );
 }
 
-/** AI cost over the last 30 days; nothing when the member spent nothing. */
+/**
+ * AI cost of the member; nothing when they spent nothing. Self-hosted shows the
+ * calendar month (the period the monthly AI budget is enforced on), cloud the
+ * last 30 days; useOrgDirectory fetches the matching window.
+ */
 function MemberUsageCost({ usage }: { usage: MemberUsage | undefined }) {
     const { t } = useTranslation();
+    const { isSelfHosted } = useDeploymentMode();
     if (!usage || !usage.cost) return null;
     const cost = usage.cost;
-    const display = cost >= 100 ? `$${cost.toFixed(0)}` : cost >= 1 ? `$${cost.toFixed(2)}` : `$${cost.toFixed(3)}`;
+    const display = cost >= 100 ? `€${cost.toFixed(0)}` : cost >= 1 ? `€${cost.toFixed(2)}` : `€${cost.toFixed(3)}`;
+    const params = { calls: usage.calls.toLocaleString(), cost: `€${cost.toFixed(4)}` };
     return (
         <div
             className="hidden md:flex flex-col items-end shrink-0 text-right"
-            title={t('admin.org_usage_tooltip', { calls: usage.calls.toLocaleString(), cost: `$${cost.toFixed(4)}` })}
+            title={isSelfHosted
+                ? t('admin.org_usage_tooltip_month', '{calls} requests · {cost} this calendar month, the period of the AI budget', params)
+                : t('admin.org_usage_tooltip', params)}
         >
             <span className="text-[11px] font-semibold text-[var(--text-primary)] leading-tight">{display}</span>
-            <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider leading-tight">{t('admin.org_usage_cost_30d')}</span>
+            <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider leading-tight">
+                {isSelfHosted ? t('admin.org_usage_cost_month', 'cost · this month') : t('admin.org_usage_cost_30d')}
+            </span>
         </div>
     );
 }
@@ -114,6 +126,7 @@ function RoleDropdown({ member: u, memberRoles }: { member: OrgMember; memberRol
 /** One member of the Users tab: who, which groups, what they spent, and what can be done. */
 export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState, memberRoles, onCreateGroup }: OrgMemberRowProps) {
     const { t } = useTranslation();
+    const { isSelfHosted } = useDeploymentMode();
     const uGroups = Array.isArray(u.groups) ? u.groups : [];
     const userOrgGroups = orgGroups.filter(g => uGroups.includes(g.id));
     return (
@@ -151,6 +164,14 @@ export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState,
                 <PendingActions userId={u.id} memberRoles={memberRoles} />
             ) : (
                 <>
+                    {isSelfHosted && (
+                        <BudgetEditor
+                            value={u.monthlyCostLimit}
+                            label={t('admin_org.user_modal_cost_limit', 'Monthly AI budget (€)')}
+                            suffix="/mo"
+                            onSave={v => memberRoles.handleUpdateUserCostLimit(u.id, v)}
+                        />
+                    )}
                     <RoleDropdown member={u} memberRoles={memberRoles} />
                     <GroupAssignPopover
                         userId={u.id}

@@ -2,12 +2,15 @@ import { useTranslation } from '@/hooks/useTranslation';
 import type { InOutBarProps, ModelRowProps } from '../shared.types';
 import { fmt, COLORS } from './SvgAreaChart';
 
+// Costs are amounts in the organisation's currency; the product prices in euro.
+const CURRENCY = '€';
+
 export function fmtCost(n: number | null | undefined) {
-    if (!n || n === 0) return '$0.00';
-    if (n >= 1) return '$' + n.toFixed(2);
-    if (n >= 0.01) return '$' + n.toFixed(3);
-    if (n >= 0.001) return '$' + n.toFixed(4);
-    return '$' + n.toFixed(6);
+    if (!n || n === 0) return `${CURRENCY}0.00`;
+    if (n >= 1) return CURRENCY + n.toFixed(2);
+    if (n >= 0.01) return CURRENCY + n.toFixed(3);
+    if (n >= 0.001) return CURRENCY + n.toFixed(4);
+    return CURRENCY + n.toFixed(6);
 }
 
 export function shortModel(m: string | null | undefined) {

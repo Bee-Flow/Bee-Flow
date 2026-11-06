@@ -27,7 +27,7 @@ describe('DetailDrawer', () => {
         expect(screen.getByText('Model Details')).toBeTruthy();
         expect(screen.getByText('1.2K')).toBeTruthy();
         expect(screen.getByText('Est. Cost')).toBeTruthy();
-        expect(screen.getByText('$2/1M tokens')).toBeTruthy();
+        expect(screen.getByText('€2/1M tokens')).toBeTruthy();
         expect(screen.getByText('Recent Calls (1)')).toBeTruthy();
         expect(screen.getByText('1.5s')).toBeTruthy();
         await userEvent.click(screen.getByRole('button', { name: '×' }));
@@ -45,8 +45,8 @@ describe('DetailDrawer', () => {
             />,
         );
         expect(screen.getByText('Agent Details')).toBeTruthy();
-        expect(screen.getByText('$3.00')).toBeTruthy();
-        expect(screen.getByText('Billed (raw $1.00)')).toBeTruthy();
+        expect(screen.getByText('€3.00')).toBeTruthy();
+        expect(screen.getByText('Billed (raw €1.00)')).toBeTruthy();
         expect(screen.getByText('system')).toBeTruthy();
         expect(screen.getByText('Recent Calls (2)')).toBeTruthy();
     });
