@@ -40,3 +40,13 @@ export function pctChange(cur: number, prev: number | null | undefined): number 
 export function share(part: number, total: number): number {
     return total > 0 ? Math.round((part / total) * 100) : 0;
 }
+
+/**
+ * A per-day average over the period. The timeline holds only the days WITH
+ * usage, so the period length is the divisor; the row count is the fallback
+ * for the "all" preset, where `days` is null.
+ */
+export function perDay(total: number, days: number | null | undefined, timeline: readonly unknown[]): number {
+    const n = days ?? timeline.length;
+    return n > 0 ? total / n : 0;
+}

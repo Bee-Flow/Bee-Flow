@@ -8,7 +8,7 @@ import { fNum } from '../format';
 import type { OverviewTabProps, SubscriptionInfo, TimelineRow } from '../OverviewTab.types';
 import { CostPerDayChart } from './CostPerDayChart';
 import { IN_COLOR, OUT_COLOR, ShareBar } from './ShareBar';
-import { headlineCost } from './spendFormat';
+import { headlineCost, perDay } from './spendFormat';
 import { CARD } from './tableStyle';
 
 export const USERS_SETTINGS_PATH = '/app/settings/organisation/users';
@@ -22,6 +22,8 @@ interface SpendHeroProps {
     /** Change of the spend against the previous period, in percent; null when unknown. */
     deltaPct: number | null;
     showDelta: boolean;
+    /** Days in the period; null for the "all" preset. */
+    days: number | null;
 }
 
 function Swatch({ color }: { color: string }) {
@@ -59,14 +61,14 @@ function BudgetLine({ subscription, currency }: { subscription: Record<string, u
     );
 }
 
-export function SpendHero({ data, subscription, showTokens, currency, rangeLabel, deltaPct, showDelta }: SpendHeroProps) {
+export function SpendHero({ data, subscription, showTokens, currency, rangeLabel, deltaPct, showDelta, days }: SpendHeroProps) {
     const { t } = useTranslation();
     const timeline = (data.timeline || []) as TimelineRow[];
     const cost = headlineCost(data.summary, false);
-    const perDay = timeline.length ? cost / timeline.length : 0;
+    const costPerDay = perDay(cost, days, timeline);
     const azure = Number(data.summary?.azure_services_total_cost) || 0;
     const facts = [
-        t('usage.ov_cost_per_day', '{cost} per day', { cost: fMoney(perDay, currency) }),
+        t('usage.ov_cost_per_day', '{cost} per day', { cost: fMoney(costPerDay, currency) }),
         showTokens && t('usage.spend_n_calls', '{n} calls', { n: fInt(data.summary?.total_calls) }),
         showTokens && t('usage.ov_tokens', '{n} tokens', { n: fNum(data.summary?.total_tokens) }),
     ].filter(Boolean).join(' · ');

@@ -23,7 +23,7 @@ const NOOP = () => {};
 
 type BodyProps = OverviewTabProps & { adoption: OverviewAdoption | null };
 
-function OverviewBody({ data, subscription, isCustomerView, showTokens, compare = true, hasFilters = false, onOpenTab = NOOP, adoption }: BodyProps) {
+function OverviewBody({ data, subscription, isCustomerView, showTokens, compare = true, hasFilters = false, onOpenTab = NOOP, adoption, rangeParams }: BodyProps) {
     const { t } = useTranslation();
     const currency = currencySym((subscription as SubscriptionInfo | null)?.billing?.plan_currency || 'EUR');
     const models = (data.models || []) as ModelRow[];
@@ -33,7 +33,7 @@ function OverviewBody({ data, subscription, isCustomerView, showTokens, compare 
     const showCalls = showTokens && !isCustomerView;
     return (
         <div className="flex flex-col gap-5">
-            <KpiRow data={data} adoption={adoption} isCustomerView={isCustomerView} showTokens={showTokens} currency={currency} showDelta={showDelta} onOpenTab={onOpenTab} />
+            <KpiRow data={data} adoption={adoption} isCustomerView={isCustomerView} showTokens={showTokens} currency={currency} showDelta={showDelta} days={rangeParams.days} onOpenTab={onOpenTab} />
             <AttentionCard rows={rows} onOpenTab={onOpenTab} />
             {adoption?.areas && <WeeklyAreaChart areas={adoption.areas} currency={currency} onTableView={() => onOpenTab('spend')} />}
             <section className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(440px,100%),1fr))]">

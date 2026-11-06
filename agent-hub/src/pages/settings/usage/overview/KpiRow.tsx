@@ -7,7 +7,7 @@ import { KpiTile, SegmentBar } from '../shell';
 import { fNum } from '../format';
 import { fInt, fMoney } from '../adoption/format';
 import type { OverviewTabProps, TimelineRow } from '../OverviewTab.types';
-import { headlineCost, pctChange, share, timelineCalls, timelineCost } from '../spend/spendFormat';
+import { headlineCost, pctChange, perDay, share, timelineCalls, timelineCost } from '../spend/spendFormat';
 import type { OverviewAdoption } from './adoptionData';
 import { MiniTrend } from './MiniTrend';
 
@@ -19,14 +19,13 @@ interface KpiRowProps {
     currency: string;
     /** Deltas are on: compare is switched on and no cross-cutting filter narrows the usage figures. */
     showDelta: boolean;
+    /** Days in the period; null for the "all" preset, where the timeline's own length is the only divisor. */
+    days: number | null;
     onOpenTab: (tab: string, subTab?: string) => void;
 }
 
-function perDay(total: number, days: number): number {
-    return days > 0 ? total / days : 0;
-}
 
-function SpendTile({ data, adoption, isCustomerView, currency, showDelta, onOpenTab }: KpiRowProps) {
+function SpendTile({ data, adoption, isCustomerView, currency, showDelta, days, onOpenTab }: KpiRowProps) {
     const { t } = useTranslation();
     const timeline = (data.timeline || []) as TimelineRow[];
     const cost = headlineCost(data.summary, isCustomerView);
@@ -35,7 +34,7 @@ function SpendTile({ data, adoption, isCustomerView, currency, showDelta, onOpen
     const parts = [
         !isCustomerView && t('usage.ov_in_cost', 'In {cost}', { cost: fMoney(data.summary?.total_input_cost, currency) }),
         !isCustomerView && t('usage.ov_out_cost', 'Out {cost}', { cost: fMoney(data.summary?.total_output_cost, currency) }),
-        t('usage.ov_cost_per_day', '{cost} per day', { cost: fMoney(perDay(cost, timeline.length), currency) }),
+        t('usage.ov_cost_per_day', '{cost} per day', { cost: fMoney(perDay(cost, days, timeline), currency) }),
     ].filter(Boolean);
     return (
         <KpiTile
@@ -79,13 +78,13 @@ function MembersTile({ adoption, showDelta, onOpenTab }: KpiRowProps) {
     );
 }
 
-function CallsTile({ data, showTokens, onOpenTab }: KpiRowProps) {
+function CallsTile({ data, showTokens, days, onOpenTab }: KpiRowProps) {
     const { t } = useTranslation();
     const timeline = (data.timeline || []) as TimelineRow[];
     const calls = Number(data.summary?.total_calls || 0);
     const parts = [
         showTokens && t('usage.ov_tokens', '{n} tokens', { n: fNum(data.summary?.total_tokens) }),
-        t('usage.ov_calls_per_day', '{n} calls per day', { n: perDay(calls, timeline.length).toFixed(1) }),
+        t('usage.ov_calls_per_day', '{n} calls per day', { n: perDay(calls, days, timeline).toFixed(1) }),
     ].filter(Boolean);
     return (
         <KpiTile
@@ -105,7 +104,7 @@ function DormantTile({ adoption, onOpenTab }: KpiRowProps) {
     if (!s) return null;
     const dormant = s.members.dormant;
     const secondary = dormant == null
-        ? t('usage.ov_dormant_unknown', 'Not available for a custom period')
+        ? t('usage.ov_dormant_unknown', 'Needs a relative period (7, 30 or 90 days)')
         : t('usage.ov_dormant_secondary', 'No sign-in for 30+ days · {pct}% of seats', { pct: share(dormant, s.members.total) });
     return (
         <KpiTile

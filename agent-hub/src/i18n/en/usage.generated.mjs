@@ -233,7 +233,7 @@ export default {
     "usage.ov_cost_per_day": "{cost} per day",
     "usage.ov_direct_chat": "Direct chat",
     "usage.ov_dormant_secondary": "No sign-in for 30+ days · {pct}% of seats",
-    "usage.ov_dormant_unknown": "Not available for a custom period",
+    "usage.ov_dormant_unknown": "Needs a relative period (7, 30 or 90 days)",
     "usage.ov_footnote": "Costs are estimates at list price. Documents and Datatables are not metered yet; their AI use is not in these figures.",
     "usage.ov_in": "In",
     "usage.ov_in_cost": "In {cost}",

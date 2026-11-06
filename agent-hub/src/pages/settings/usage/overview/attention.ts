@@ -5,7 +5,7 @@ import type { useTranslation } from '@/hooks/useTranslation';
 import { fMoney, fInt } from '../adoption/format';
 import { kindMeta, usageNoun } from '../adoption/kindMeta';
 import type { ModelRow } from '../OverviewTab.types';
-import { isUnknownModel } from '../spend/spendFormat';
+import { costOf, isUnknownModel } from '../spend/spendFormat';
 import type { OverviewAdoption } from './adoptionData';
 
 type T = ReturnType<typeof useTranslation>['t'];
@@ -59,9 +59,12 @@ function studioRows(adoption: OverviewAdoption | null, t: T): AttentionRow[] {
 }
 
 function unknownModelRow(models: ModelRow[], currency: string, t: T): AttentionRow[] {
-    const calls = models.filter(m => isUnknownModel(m.model)).reduce((s, m) => s + (Number(m.calls) || 0), 0);
+    const rows = models.filter(m => isUnknownModel(m.model));
+    const calls = rows.reduce((s, m) => s + (Number(m.calls) || 0), 0);
     if (calls <= 0) return [];
-    const params = { n: fInt(calls), cost: fMoney(0, currency) };
+    // The pricing service may still estimate such calls from a same-provider model, so the
+    // sentence states what the ledger carries, not an assumed zero.
+    const params = { n: fInt(calls), cost: fMoney(rows.reduce((s, m) => s + costOf(m), 0), currency) };
     return [{
         id: 'unknown-model',
         tone: 'note',

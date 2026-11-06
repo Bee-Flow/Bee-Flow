@@ -134,7 +134,11 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     // `nonce` remounts the tab, so a new deep link or onOpenTab re-seeds its sub-tab.
     const [nav, setNav] = useState(() => ({ ...(resolveReport(initialReport) ?? { tab: 'overview' }), nonce: 0 }));
     const activeReport = canSeeAdvancedUsage ? nav.tab : 'overview';
-    const openTab = useCallback((tab: string, sub?: string) => setNav(n => ({ tab, sub, nonce: n.nonce + 1 })), []);
+    // Re-clicking the active tab keeps its state (open rows, group filter, a revealed people list);
+    // only a different tab or an explicit sub-tab remounts.
+    const openTab = useCallback((tab: string, sub?: string) => setNav(n => (
+        tab === n.tab && sub === undefined ? n : { tab, sub, nonce: n.nonce + 1 }
+    )), []);
     const [compare, setCompare] = useState(true);
 
     const [prevInitialReport, setPrevInitialReport] = useState(initialReport);
@@ -279,7 +283,9 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                         />
                     )}
                     {activeReport === 'quality' && (
-                        <QualityTab key={nav.nonce} rangeParams={rangeParams} showTokens={showTokens} compare={compare} initialSubTab={nav.sub} totalCalls={data.summary?.total_calls} />
+                        <QualityTab key={nav.nonce} rangeParams={rangeParams} showTokens={showTokens} compare={compare} initialSubTab={nav.sub}
+                            // The feedback and termination counts are org-wide; a filtered call count would skew their share.
+                            totalCalls={hasFilters ? undefined : data.summary?.total_calls} />
                     )}
                 </>
             )}

@@ -74,7 +74,7 @@ function SpendBody(props: SpendTabProps & { deltaPct: number | null }) {
             <SpendHero
                 data={data} subscription={subscription} showTokens={showTokens} currency={currency}
                 rangeLabel={formatDateRange(rangeParams.startDate, rangeParams.endDate)}
-                deltaPct={deltaPct} showDelta={compare && !hasFilters}
+                deltaPct={deltaPct} showDelta={compare && !hasFilters} days={rangeParams.days}
             />
             <SubTabs
                 value={sub} onChange={id => setSub(id as SpendSubTab)} aria-label={t('usage.spend_views', 'Spend views')}
