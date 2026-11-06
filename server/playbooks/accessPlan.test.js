@@ -189,3 +189,20 @@ test('an unreachable model is a fixed sentence and a correlation id; the error i
     assert.doesNotMatch(JSON.stringify(lookup), /10\.9\.9\.9|ECONNREFUSED/);
     assert.ok(lines.some((l) => l.includes('correlationId=req-4712') && /10\.9\.9\.9:5432/.test(l)), 'the lookup failure is logged under its id');
 });
+
+test('planAccess writes a playbook usage row for the person and the org', async () => {
+    const logged = [];
+    const usage = { prompt_tokens: 500, completion_tokens: 60 };
+    const out = await A.planAccess({ message: 'Ann may look at it', ...DIR, locale: 'en', userId: 'u1', userOrgId: 'org-1' }, {
+        resolveModel: async () => 'fast',
+        chatForcedTool: async () => ({ structured: { people: [{ person: 'Ann Blok', role: 'viewer' }] }, usage }),
+        logUsage: (call) => { logged.push(call); },
+    });
+    assert.equal(out.ok, true);
+    assert.equal(logged.length, 1);
+    assert.equal(logged[0].source, 'playbook');
+    assert.equal(logged[0].userId, 'u1');
+    assert.equal(logged[0].orgId, 'org-1');
+    assert.equal(logged[0].model, 'fast');
+    assert.deepEqual(logged[0].usage, usage);
+});

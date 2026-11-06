@@ -510,3 +510,19 @@ test('a model that cannot be reached is a fixed sentence and a correlation id; t
         assert.match(bare.correlationId, /^[0-9a-f-]{36}$/);
     } finally { console.error = orig; }
 });
+
+test('each compose call writes a playbook usage row for the person and the org, the repair round included', async () => {
+    const bad = { title: 'x', phases: [{ kind: 'automation', label: 'R' }] }; // no brief
+    const logged = [];
+    const deps = { ...fakeDeps([bad, GOOD]), logUsage: (call) => { logged.push(call); } };
+    const out = await composeRecipe({ description: 'd', userId: 'u1', userOrgId: 'org-1' }, deps);
+    assert.equal(out.ok, true);
+    assert.equal(logged.length, 2);
+    for (const call of logged) {
+        assert.equal(call.source, 'playbook');
+        assert.equal(call.userId, 'u1');
+        assert.equal(call.orgId, 'org-1');
+        assert.equal(call.model, 'fast-model');
+        assert.equal(typeof call.startedAt, 'number');
+    }
+});

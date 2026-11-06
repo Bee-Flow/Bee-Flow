@@ -13,7 +13,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { areaOf } = require('../../../shared/usageAreas');
-const { meterBuilderTurn } = require('./turnClosing');
+const { meterBuilderTurn, addRoundUsage } = require('./turnClosing');
 
 const rows = [];
 // The ledger sink, handed to the meter instead of the usage store.
@@ -38,6 +38,34 @@ test('the turn is billed to the person and the org, under the automation and the
     assert.equal(row.completion_tokens, 120);
     assert.equal(row.cached_tokens, 400);
     assert.notEqual(areaOf(row.source), 'other');
+});
+
+test('a Claude turn keeps the uncached prompt flag and the 1h cache-write split of its rounds', () => {
+    rows.length = 0;
+    const { normalizeUsage } = require('../../../core/providers/usageNormalizer');
+    const { accumulateUsage } = require('./chatTurnLoop');
+    // Two rounds as the Claude adapter reports them: input_tokens is the
+    // uncached remainder, the cache writes carry no TTL breakdown (1h).
+    const round = () => normalizeUsage('claude', { input_tokens: 100, output_tokens: 50, cache_read_input_tokens: 10000, cache_creation_input_tokens: 2000 });
+    const turn = /** @type {any} */ ({
+        userId: 'u1', userOrgForTiers: 'org-1', modelId: 'claude-sonnet-4-5',
+        usageTotals: { prompt: 0, completion: 0, cached: 0, cacheCreation: 0, rounds: 0 },
+        draftWrap: { automationId: 'auto-1', builderSessionId: 'bs-3' },
+    });
+    for (let i = 0; i < 2; i++) {
+        const usage = round();
+        accumulateUsage(turn.usageTotals, usage);
+        addRoundUsage(turn, usage);
+    }
+    meterBuilderTurn(turn, sink);
+    const row = rows[0];
+    assert.equal(row.prompt_includes_cache, false, 'the prompt count is the uncached remainder');
+    assert.equal(row.prompt_tokens, 200);
+    assert.equal(row.cached_tokens, 20000);
+    assert.equal(row.cache_creation_tokens, 4000);
+    assert.equal(row.cache_creation_1h_tokens, 4000);
+    assert.equal(row.cache_creation_5m_tokens, 0);
+    assert.equal(row.completion_tokens, 100);
 });
 
 test('a draft with no automation yet still logs, without an object id', () => {

@@ -584,10 +584,11 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
     const { sendRaw } = openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform' }, flush: true, viaSetHeader: true });
     const send = (/** @type {Record<string, unknown>} */ obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
     try {
-        await aiRuntime.streamChat(app, model, { system, messages }, (/** @type {string} */ type, /** @type {{ text: unknown; }} */ data) => {
+        // The owner pays; the viewer chatting is the actor (usageAttribution.js).
+        await withUsageAttribution({ actorUserId: userId }, () => aiRuntime.streamChat(app, model, { system, messages }, (/** @type {string} */ type, /** @type {{ text: unknown; }} */ data) => {
             if (type === 'text' && data && data.text) send({ type: 'text', text: data.text });
             else if (type === 'error') send({ type: 'error', error: 'The assistant failed to respond.' });
-        });
+        }));
         send({ type: 'done' });
     } catch (e) {
         log.error(`[StudioAppsRun/aiChat] ${/** @type {Error} */ (e).message}`);

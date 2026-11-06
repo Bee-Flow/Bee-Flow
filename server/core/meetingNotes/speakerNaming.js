@@ -8,13 +8,13 @@
  * `summaryLlm.js`, so naming and the artifact pass agree on both.
  */
 
-const llmClient = require('../llm/llmClient');
 const { formatTime } = require('./transcriptArtifacts');
 const { renderTranscript, buildSpeakerNamingExcerpt } = require('./transcriptExcerpt');
 const { speakerListOf, hintsOf, rosterHintOf, rulesOf, namingSystemPrompt } = require('./speakerNamingPrompt');
 const { extractSpeakerEvidence } = require('./speakerEvidence');
 const { parseJsonArray, parseJsonObject } = require('./llmJson');
 const { MEETING_LLM_TIMEOUT_MS, resolveSmartModel, coerceName } = require('./summaryLlm');
+const { meetingMeta, meteredChat } = require('./summaryLlmMetered');
 const log = require('../../telemetry/log');
 
 /**
@@ -40,8 +40,10 @@ function looksGenericSpeakerName(value) {
  * answered), ignoring anyone merely talked about. Returns the candidate roster
  * that turns open-ended naming into closed-set assignment when no attendee list
  * and no PII-guard are available. Best-effort — returns [] on any failure.
+ * The call writes a meeting_summary usage row under `meta` (summaryLlmMetered.js).
+ * @param {import('./summaryLlmMetered').MeetingUsageMeta} [meta]
  */
-async function extractIntroducedNames(excerpt, language, modelId, userName) {
+async function extractIntroducedNames(excerpt, language, modelId, userName, meta = meetingMeta('meeting_summary', null, null)) {
     try {
         const systemPrompt = `You are analysing a meeting transcript. List the FIRST NAMES of the people who are ACTUALLY SPEAKING in it.
 Include a name ONLY when the dialogue shows that person speaks — they introduce themselves ("Ik ben Ewald", "Mijn naam is Tom", "Tom hier") or are addressed by name and answer in the next turn.
@@ -50,7 +52,7 @@ If nobody clearly identifies themselves, return an empty array.
 Return ONLY a JSON array of first names, e.g. ["Tom","Gerard"]. No explanation, no markdown.`;
         const userMsg = (userName ? `The person who recorded this meeting is named "${userName}" and is almost certainly one of the speakers.\n\n` : '')
             + `Language: ${language}\n\nTranscript:\n${excerpt}`;
-        const result = await llmClient.chat(modelId, [
+        const result = await meteredChat(meta, modelId, [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMsg },
         ], { maxTokens: 256, temperature: 0, timeoutMs: MEETING_LLM_TIMEOUT_MS });
@@ -74,7 +76,7 @@ Return ONLY a JSON array of first names, e.g. ["Tom","Gerard"]. No explanation, 
  * without GLiNER — the exact case that left everyone as SPEAKER_0N.
  * @returns {Promise<{ callerRoster: string[], detectedRoster: string[], extractedRoster: string[], candidateRoster: string[] }>}
  */
-async function rostersFor({ participantNames, lockedNames, knownNames, evidence, excerpt, language, modelId, userName }) {
+async function rostersFor({ participantNames, lockedNames, knownNames, evidence, excerpt, language, modelId, userName, meta }) {
     const suppliedRoster = Array.isArray(participantNames) ? participantNames.filter(Boolean) : [];
     const lockedList = lockedNames ? [...new Set(Object.values(lockedNames))] : [];
     const knownList = Array.isArray(knownNames) ? [...new Set(knownNames.map(n => String(n || '').trim()).filter(Boolean))] : [];
@@ -96,7 +98,7 @@ async function rostersFor({ participantNames, lockedNames, knownNames, evidence,
     /** @type {string[]} */
     let extractedRoster = [];
     if (!callerRoster.length && !detectedRoster.length && !lockedList.length && !knownList.length) {
-        extractedRoster = await extractIntroducedNames(excerpt, language, modelId, userName);
+        extractedRoster = await extractIntroducedNames(excerpt, language, modelId, userName, meta);
     }
     const candidateRoster = [...new Set([
         ...lockedList,
@@ -193,16 +195,21 @@ function sanitizeMapping(mapping, ruledOutNames) {
  * renamed by hand) without any claim that nobody else is: candidates, never a
  * closed attendee list. Pass manual names here, not in `participantNames`.
  *
+ * `opts.userId` is the meeting's owner: both naming calls write a
+ * meeting_summary usage row under them and `userOrgId`.
+ *
  * @param {{lockedNames?: Object<string,string>,
  *          ruledOutNames?: Object<string,string[]>,
  *          knownNames?: string[],
- *          expectedSpeakers?: number|null}} [opts]
+ *          expectedSpeakers?: number|null,
+ *          userId?: string|null}} [opts]
  * @param {string | null} [userOrgId]
  */
 async function identifySpeakerNames(segments, speakerIds, language, userName, userOrgId = null, participantNames = [], opts = {}) {
     const lockedNames = opts && opts.lockedNames && Object.keys(opts.lockedNames).length ? opts.lockedNames : null;
     const ruledOutNames = opts && opts.ruledOutNames && Object.keys(opts.ruledOutNames).length ? opts.ruledOutNames : null;
     const expectedSpeakers = Number(opts?.expectedSpeakers) >= 1 ? Math.round(Number(opts.expectedSpeakers)) : null;
+    const meta = meetingMeta('meeting_summary', userOrgId, { userId: opts?.userId });
 
     try {
         // Naming is Dutch identity-resolution, not a cheap classification — it
@@ -245,7 +252,7 @@ async function identifySpeakerNames(segments, speakerIds, language, userName, us
         const { excerpt, stats } = buildSpeakerNamingExcerpt(segments, rendered.lines, {
             nameLines: evidence?.nameLines,
         });
-        const roster = await rostersFor({ participantNames, lockedNames, knownNames: opts?.knownNames, evidence, excerpt, language, modelId, userName });
+        const roster = await rostersFor({ participantNames, lockedNames, knownNames: opts?.knownNames, evidence, excerpt, language, modelId, userName, meta });
         const systemPrompt = namingSystemPrompt({
             idCount: rows.length,
             rules: rulesOf(roster.callerRoster, ruledOutNames),
@@ -262,7 +269,7 @@ async function identifySpeakerNames(segments, speakerIds, language, userName, us
             + (lockedNames ? `, ${Object.keys(lockedNames).length} id(s) pinned by voiceprint` : '')
         );
 
-        const result = await llmClient.chat(modelId, [
+        const result = await meteredChat(meta, modelId, [
             { role: 'system', content: systemPrompt },
             {
                 role: 'user',

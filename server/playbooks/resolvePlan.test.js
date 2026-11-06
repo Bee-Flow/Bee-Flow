@@ -243,3 +243,20 @@ test('planResolve asks the model only for the judgement, and stands without it',
     assert.equal(no.ok, false);
     assert.equal(no.code, 'not_resolvable');
 });
+
+test('planResolve writes a playbook usage row for the person and the org', async () => {
+    const logged = [];
+    const usage = { prompt_tokens: 300, completion_tokens: 40 };
+    const out = await R.planResolve({ code: 'ropa_retention', finding: { code: 'ropa_retention' }, facts: FACTS, userId: 'u1', userOrgId: 'org-1' }, {
+        resolveModel: async () => 'fast',
+        chatForcedTool: async () => ({ structured: { lawfulBasis: 'contract' }, usage }),
+        logUsage: (call) => { logged.push(call); },
+    });
+    assert.equal(out.ok, true);
+    assert.equal(logged.length, 1);
+    assert.equal(logged[0].source, 'playbook');
+    assert.equal(logged[0].userId, 'u1');
+    assert.equal(logged[0].orgId, 'org-1');
+    assert.equal(logged[0].model, 'fast');
+    assert.deepEqual(logged[0].usage, usage);
+});

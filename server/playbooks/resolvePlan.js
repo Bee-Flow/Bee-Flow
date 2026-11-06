@@ -19,6 +19,8 @@
 'use strict';
 
 const { languageName } = require('./copy');
+// The model deps every playbook step shares; the default also meters the call.
+const { defaultDeps, meteredCall } = require('./phases/phaseModel');
 
 /** Art. 6(1) — the only six. The datatables route accepts exactly these. */
 const LAWFUL_BASES = Object.freeze(['consent', 'contract', 'legal_obligation', 'vital_interests', 'public_task', 'legitimate_interests']);
@@ -578,15 +580,6 @@ function matchByName(names, pool, keyOf) {
     return out;
 }
 
-function defaultDeps() {
-    return {
-        /** @param {{ userOrgId?: string|null, userId?: string|null, tier?: string }} opts */
-        resolveModel: (opts) => require('../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
-        /** @param {Parameters<typeof import('../core/llm/llmClient').chatForcedTool>} args */
-        chatForcedTool: (...args) => require('../core/llm/llmClient').chatForcedTool(...args),
-    };
-}
-
 /**
  * The proposal for one finding.
  *
@@ -613,10 +606,10 @@ async function planResolve({ code, finding, facts, locale = 'en', directory = {}
         if (!modelId) throw new Error('no model is configured for this tier');
         // `budgetMs` was destructured and never used, so the documented budget
         // was a comment. It is a real abort now.
-        const { structured } = await deps.chatForcedTool(modelId, [
+        const { structured } = await meteredCall(deps, { userId, userOrgId, modelId }, () => deps.chatForcedTool(modelId, [
             { role: 'system', content: fixPrompt(locale) },
             { role: 'user', content: fixMessage(finding, facts, options, locale) },
-        ], FIX_TOOL, { maxTokens: 700, temperature: 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: budgetMs });
+        ], FIX_TOOL, { maxTokens: 700, temperature: 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: budgetMs }));
         if (!structured || typeof structured !== 'object') throw new Error('the model gave no structured answer');
         chose = structured;
     } catch (e) {
