@@ -203,6 +203,9 @@ function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
         // connection overrides it below, or dynamic-skill activation
         // silently breaks on the agent streaming path.
         orgId: messageMetadata.orgId || agent.organization_id || null,
+        // KB query log: where the kb_search tool registers the handle of its search; the turn loop
+        // finishes it with the final answer.
+        queryLog: { carrier: rc._kbSources, channel: 'agent_chat' },
         // Per-chat memory controls, for memory_search / memory_remember.
         memoryReadEnabled: messageMetadata.memoryReadEnabled,
         memoryWriteEnabled: messageMetadata.memoryWriteEnabled,

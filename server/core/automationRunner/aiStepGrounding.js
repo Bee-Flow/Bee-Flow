@@ -13,6 +13,7 @@
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 const { noteRunWarning } = require('./runWarnings');
+const { handleOf } = require('../kb/queryLog/hook.mts');
 
 // ── Knowledge Base grounding (BFSF-410) ─────────────────────────────────────
 //
@@ -128,6 +129,12 @@ async function groundAiStepWithMemory(step, ctx, promptText, deps) {
  * @param {string} _mode  kept for the callers; the search runs in every mode
  */
 async function groundAiStepWithKB(step, ctx, query, _mode, kbIds = null, deps) {
+    // KB query log: real runs only; a dry run is the builder testing, not somebody using the base.
+    const queryLog = _mode === 'dry_run' ? null : {
+        channel: /** @type {const} */ ('automation_ai_step'),
+        channelRef: { automationId: ctx.automationId || null, runId: ctx.runId || null, stepId: step.id || null },
+        orgId: ctx.orgId || null, userId: ctx.userId || null,
+    };
     // The list comes from the caller. On an agent step that is the UNION of the bases
     // of the step and those of the agent (aiStepAgent.knowledgeBaseIdsForStep), and that
     // whole union goes through the same per-asker filter below. Otherwise an automation
@@ -139,10 +146,11 @@ async function groundAiStepWithKB(step, ctx, query, _mode, kbIds = null, deps) {
         const allowedKbIds = await resolveAllowedKnowledgeBaseIds(ids, ctx, deps);
         if (!allowedKbIds.length) return { context: '', chunks: [] };
         const { quickKBSearch } = deps.knowledgeSearch();
-        const chunks = await quickKBSearch(ctx.userId, allowedKbIds, query, { topK: AI_STEP_KB_TOP_K });
-        if (!chunks || !chunks.length) return { context: '', chunks: [] };
+        const chunks = await quickKBSearch(ctx.userId, allowedKbIds, query, { topK: AI_STEP_KB_TOP_K, log: queryLog });
+        const queryLogHandle = handleOf(chunks);
+        if (!chunks || !chunks.length) return { context: '', chunks: [], queryLogHandle };
         const context = chunks.map((c, i) => `[[${i + 1}]] ${c.title || 'KB'}\n${c.content || ''}`).join('\n\n');
-        return { context, chunks };
+        return { context, chunks, queryLogHandle };
     } catch (e) {
         log.warn(`[AutomationRunner] ai_step ${step.id}: KB grounding failed (${/** @type {Error} */ (e).message}) — continuing without it`);
         return { context: '', chunks: [], unavailable: true };
@@ -236,6 +244,9 @@ async function groundAiStep({ step, ctx, mode, promptText, agent }, deps) {
         // The step names bases but the search could not run: the answer was
         // made without the material a live run would (probably) have had.
         kbUnavailable: !!kbGround.unavailable,
+        // KB query log: the handle of the step's search and the passages it cites, for execAi.
+        queryLogHandle: kbGround.queryLogHandle || null,
+        kbCitations: (kbGround.chunks || []).map((c) => ({ title: c.title ?? null, score: c.score ?? null, documentId: c.document_id ?? null, chunkId: c.chunk_id ?? c.id ?? null, knowledgeBaseId: c.kb_id ?? null })),
     };
 }
 
@@ -284,6 +295,6 @@ module.exports = {
  *   skillInjection: () => typeof import('../tools/skillInjection'),
  *   kbVisibility?: () => Pick<typeof import('../kb/kbVisibility'), 'filterKbIdsForUser'> }} GroundingDeps
  * @typedef {import('./aiStepAgent').AgentAiStep & { id?: string, useMemory?: unknown, prompt?: string }} GroundingStep
- * @typedef {{ userId?: string, orgId?: string|null, userGroupIds?: string[], automationId?: string|null,
+ * @typedef {{ userId?: string, orgId?: string|null, userGroupIds?: string[], automationId?: string|null, runId?: string|null,
  *   orgShield?: { enabled?: boolean } | null }} GroundingCtx
  */

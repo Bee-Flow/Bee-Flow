@@ -13,6 +13,7 @@ const supportStore = require('../stores/supportStore');
 const userStore = require('../stores/userStore');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { SUPPORT_TOOLS, SUPPORT_ACTION_TOOLS, ACTION_LEVELS, actionLevelForMode, isSupportTool, isSupportActionTool, buildSupportToolset } = require('./supportToolsBuildSupportToolset');
+const { registerHandle, handleOf } = require('../core/kb/queryLog/hook.mts');
 
 /**
  * Per-run policy object the executor mutates (budget + clobber signalling).
@@ -32,7 +33,7 @@ function makeActionPolicy({ actionLevel = 'none', budget = 5 } = {}) {
 /** A support_threads row. @typedef {Record<string, any>} SupportThread */
 /**
  * @typedef {{ userId?: string, session?: unknown, supportThreadId?: string,
- *   userAuth?: { supportThreadId?: string, supportActionPolicy?: ActionPolicy },
+ *   userAuth?: { supportThreadId?: string, supportActionPolicy?: ActionPolicy, queryLogCarrier?: object },
  *   supportActionPolicy?: ActionPolicy | null }} SupportContext
  */
 /**
@@ -292,7 +293,15 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                 const agent = await agentStore.getAgent('system-bee-flow-support');
                 const kbIds = Array.isArray(/** @type {{ knowledge_base_ids?: string[] }} */ (agent?.config)?.knowledge_base_ids) ? /** @type {{ knowledge_base_ids?: string[] }} */ (agent.config).knowledge_base_ids : [];
                 const aiUserId = `support-ai:${thread.id}`;
-                const hits = await quickKBSearch(aiUserId, kbIds, query, { topK });
+                // KB query log: the person asking is the requester; the responder finishes the handle with its reply.
+                const hits = await quickKBSearch(aiUserId, kbIds, query, {
+                    topK,
+                    log: context.userAuth?.queryLogCarrier ? {
+                        channel: 'support', channelRef: { threadId: thread.id },
+                        orgId: thread.organization_id || null, userId: thread.requester_user_id || null,
+                    } : null,
+                });
+                registerHandle(context.userAuth?.queryLogCarrier, handleOf(hits));
                 return (/** @type {any[]} */ (hits) || []).map(h => ({ title: h.title, content: h.content, score: h.score, source: h.source_uri }));
             } catch (e) {
                 return { error: /** @type {Error} */ (e).message };

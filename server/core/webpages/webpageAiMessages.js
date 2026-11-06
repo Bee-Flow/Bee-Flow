@@ -16,6 +16,7 @@
  */
 
 const { searchWebpageKB } = require('./webpageKnowledgeSearch');
+const { handleOf, attachHandle } = require('../kb/queryLog/hook.mts');
 const log = require('../../telemetry/log');
 
 /**
@@ -37,7 +38,13 @@ async function stripOwnServerCategories(text, ctx) {
     return stripInjectedText(text, { shield, tag: 'WebpageBridgeAI', what: 'grounding passages' });
 }
 
-async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage' } = {}) {
+/**
+ * The messages of a bridge AI call. When the page is grounded on its knowledge bases the search is
+ * recorded in the KB query log; the handle comes back as `._queryLog` on the returned array, and the
+ * caller finishes it with the answer. `viewerUserId` is the person using the page (null for an
+ * anonymous visitor), `surface` says which door the call came through.
+ */
+async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage', viewerUserId = null, surface = 'preview', carrier = null } = {}) {
     const { webpage, authorUserId, bridgeGrants } = ctx;
     const prompt = typeof body.prompt === 'string' ? body.prompt : null;
     const messages = Array.isArray(body.messages) ? body.messages.slice() : null;
@@ -50,6 +57,8 @@ async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage' } = 
     const kbIds = Array.isArray(webpage.knowledgeBaseIds) ? webpage.knowledgeBaseIds : [];
 
     let kbContext = '';
+    /** @type {import('../kb/queryLog/recorder.mts').Handle | null} */
+    let queryLogHandle = null;
     if (groundRequested && groundEnabled && kbIds.length > 0) {
         try {
             const queryText = prompt || (messages.length > 0 ? String(messages[messages.length - 1].content || '') : '');
@@ -57,7 +66,9 @@ async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage' } = 
                 const r = await searchWebpageKB({
                     userId: authorUserId, kbIds, query: queryText,
                     options: { topK: 6, rerank: true, minScore: 0.2 },
+                    log: { channel: 'webpage', channelRef: { webpageId: webpage.id, surface }, orgId: ctx.authorOrgId || null, userId: viewerUserId, carrier },
                 });
+                queryLogHandle = handleOf(r);
                 if (r?.contextPrompt) kbContext = await stripOwnServerCategories(r.contextPrompt, ctx);
             }
         } catch (err) {
@@ -83,7 +94,7 @@ async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage' } = 
         }
     }
     if (prompt) out.push({ role: 'user', content: prompt });
-    return out;
+    return attachHandle(out, queryLogHandle);
 }
 
 module.exports = { buildAiMessages };

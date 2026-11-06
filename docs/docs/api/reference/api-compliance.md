@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/compliance`
 
-114 routes, 65 with a request schema. Back to the [endpoint reference](../reference.md).
+121 routes, 72 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `access-audit`
 
@@ -958,6 +958,88 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `note` | string or null |  |  |
+
+## `kb-query-log`
+
+### `GET /api/compliance/kb-query-log/entries`
+
+**Access:** Signed-in user · Permission `admin_compliance`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `from` | string |  |  |
+| `to` | string |  |  |
+| `userId` | string |  | min length 1; max length 200 |
+| `channel` | one of `"agent_chat"`, `"agent_chat_sync"`, `"direct_chat"`, `"template_chat"`, `"notebook"`, `"webpage"`, `"project_assistant"`, `"automation_ai_step"`, `"studio_kb_query"`, `"studio_ai_generate"`, `"studio_ai_extract"`, `"studio_ai_chat"`, … (16 values) |  |  |
+| `outcome` | one of `"answered"`, `"no_results"`, `"error"` |  |  |
+| `status` | one of `"to_review"`, `"reviewed"`, `"needs_addition"` |  |  |
+| `kbId` | string |  | min length 1; max length 100 |
+| `limit` | integer |  | min 1; max 500 |
+| `offset` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/compliance/kb-query-log/entries/export.csv`
+
+**Access:** Signed-in user · Permission `admin_compliance`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `from` | string |  |  |
+| `to` | string |  |  |
+| `userId` | string |  | min length 1; max length 200 |
+| `channel` | one of `"agent_chat"`, `"agent_chat_sync"`, `"direct_chat"`, `"template_chat"`, `"notebook"`, `"webpage"`, `"project_assistant"`, `"automation_ai_step"`, `"studio_kb_query"`, `"studio_ai_generate"`, `"studio_ai_extract"`, `"studio_ai_chat"`, … (16 values) |  |  |
+| `outcome` | one of `"answered"`, `"no_results"`, `"error"` |  |  |
+| `status` | one of `"to_review"`, `"reviewed"`, `"needs_addition"` |  |  |
+| `kbId` | string |  | min length 1; max length 100 |
+
+### `GET /api/compliance/kb-query-log/overview`
+
+**Access:** Signed-in user · Permission `admin_compliance`
+
+**Query:** object (no other keys)
+
+### `GET /api/compliance/kb-query-log/subjects/:userId`
+
+**Access:** Signed-in user · Permission `admin_compliance`
+
+**Query:** object (no other keys)
+
+### `DELETE /api/compliance/kb-query-log/subjects/:userId`
+
+**Access:** Signed-in user · Permission `admin_compliance`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `dsrRequestId` | integer | yes | min 1; max 9007199254740991 |
+| `reason` | string | yes | min length 1; max length 1000 |
+
+### `GET /api/compliance/kb-query-log/subjects/:userId/content`
+
+**Access:** Signed-in user · Permission `admin_compliance`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `dsrRequestId` | integer | yes | min 1; max 9007199254740991 |
+| `limit` | integer |  | min 1; max 200 |
+| `offset` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/compliance/kb-query-log/subjects/:userId/export`
+
+**Access:** Signed-in user · Permission `admin_compliance`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `dsrRequestId` | integer | yes | min 1; max 9007199254740991 |
+| `format` | one of `"json"`, `"csv"` |  |  |
 
 ## `machinery`
 

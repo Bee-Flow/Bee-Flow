@@ -38,6 +38,7 @@ const { emitPhase, emitPhaseEnd } = require('../../core/agentRuntime/phaseEvents
 const { resolveTurnTier } = require('../../core/llm/resolveTurnModel');
 // The turn's steps, in the order the handler runs them.
 const { buildTurnContext } = require('./webpageChat/context');
+const { finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
 const { buildTurnMessages, STOP } = require('./webpageChat/messages');
 const { runToolLoop } = require('./webpageChat/toolLoop');
 const { finishTurn } = require('./webpageChat/finalize');
@@ -142,6 +143,9 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
     emitPhase(send, 'model_resolved', modelId);
     emitPhaseEnd(send, 'model_resolved');
 
+    // KB query log: the collector of this turn's searches, finished with the answer (or its failure).
+    const queryLogs = {};
+    const answerT0 = Date.now();
     try {
         // The turn's Privacy Shield: attachment scanning below, and the tool
         // block lists on the injected passages and in the tool loop.
@@ -158,7 +162,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
 
         const { systemPrompt, kbIds, searchAvailable, framework, html, css, js } = await buildTurnContext({
             send, webpage, message, userId, readySources, timezone, chatMode,
-            htmlContent, cssContent, jsContent, webpageSelection, toolPiiGate, _psShield,
+            htmlContent, cssContent, jsContent, webpageSelection, toolPiiGate, _psShield, queryLogs, userOrgId: userOrgForTiers || null,
         });
 
         // ── Privacy Shield for attachments + response restore ──────────────
@@ -178,14 +182,16 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
             send, req, adapter, apiKey, apiUrl, modelId, messages, tiers, resolvedTier, clientSignal, isGone,
             webpage, webpageId, userId, userOrgForTiers, attachments, chatMode, planExecution,
             kbIds, searchAvailable, framework, html, css, js, sources, modelSupportsVision,
-            shieldGate, _dlpConvId, _dlpActive,
+            shieldGate, _dlpConvId, _dlpActive, queryLogs,
         });
 
         await finishTurn({ send, webpageId, userId, ...loopResult });
 
+        finishTurnLogs(queryLogs, { outcome: 'answered', answer: loopResult.fullContent, model: modelId, answerMs: Date.now() - answerT0 });
         send('done', {});
         res.end();
     } catch (err) {
+        failTurnLogs(queryLogs, err, answerT0, modelId);
         // A cancelled answer is not an outage: no error event (nobody is
         // listening), and nothing logged as a termination.
         if (isGone() || err?.name === 'AbortError' || clientSignal.aborted) {
@@ -207,6 +213,9 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
         } catch (err) { bestEffort('routes/ai/webpageChat:anon#3', err); /* ignore logging failures */ }
         send('error', { error: `Chat error: ${err.message}` });
         res.end();
+    } finally {
+        // A turn that ended without an answer (stopped by a gate, cancelled): idempotent after a finished turn.
+        finishTurnLogs(queryLogs, { outcome: 'error', errorCode: 'not_answered', model: modelId });
     }
 });
 

@@ -47,7 +47,7 @@ const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const {
     buildTemplateContext, buildInstructionsContext, formatMeetingNote, buildMeetingContext,
-    buildKbContext, buildSystemPrompt, buildHistoryMessages,
+    buildSystemPrompt, buildHistoryMessages,
 } = require('./templateChatPrompt');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
@@ -112,6 +112,8 @@ require('../../core/serviceAuth');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
 const { fallback } = require('../../utils/bestEffort');
+const { finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
+const { searchTemplateKnowledge } = require('./templateChatKnowledge');
 
 // ─── Streaming Template Chat ─────────────────────────────────────
 
@@ -187,6 +189,9 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     // wanted) and the keep-alive that stops the Nextcloud AppAPI proxy from
     // idle-timing a long, silent turn out to a 504.
     const { send, signal: clientSignal, isGone } = openSse(res, { heartbeat: true, tag: 'TemplateChat' });
+    const queryLogs = {}; // KB query log: the template's knowledge search, finished with the streamed answer
+    let answerText = '';
+    const answerT0 = Date.now();
 
     try {
         const templateContext = buildTemplateContext(template);
@@ -225,29 +230,8 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
             }
         }
 
-        // Search template knowledge bases if any
-        let kbContext = '';
-        const kbIds = template.knowledgeBaseIds || [];
-        if (kbIds.length > 0) {
-            try {
-                const { quickKBSearch } = require('../../core/agentRuntime/knowledgeSearch');
-                const kbResults = await quickKBSearch(userId, kbIds, message, { topK: 6, session: req.session });
-
-                if (kbResults.length > 0) {
-                    // Injected without a tool call, so the Privacy Shield's
-                    // "own server" block list is applied here.
-                    const { resolveShieldFor } = require('../../core/privacy/orgShield');
-                    const kbShield = await resolveShieldFor({ orgId: userOrgId, userId }).catch((e) => fallback('routes/ai/templateChat:anon', e, null));
-                    // The "### Source N:" label goes through the same scan.
-                    const { injectedPassagesPrompt } = require('../../core/privacy/toolPiiGate');
-                    const kbText = await injectedPassagesPrompt(kbResults, { shield: kbShield, tag: 'TemplateChat' });
-                    kbContext = buildKbContext(kbText);
-                    log.info(`[TemplateChat] Injected ${kbResults.length} KB chunks for template "${template.name}"`);
-                }
-            } catch (kbErr) {
-                log.warn('[TemplateChat] KB search failed:', /** @type {Error} */ (kbErr).message);
-            }
-        }
+        // Search template knowledge bases if any (the passages are injected without a tool call)
+        const kbContext = await searchTemplateKnowledge({ req, template, message, userId, userOrgId, conversationId, queryLogs });
 
         // Build system prompt
         const systemPrompt = buildSystemPrompt({ templateContext, instructionsContext, kbContext, meetingContext, timezone });
@@ -396,7 +380,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
         const streamCallback = (type, data) => {
             if (type === 'text') {
                 const safe = _streamUntok ? _streamUntok.push(data.text) : data.text;
-                if (safe) send('content', { text: safe });
+                if (safe) { answerText += safe; send('content', { text: safe }); }
             } else if (type === 'thinking') {
                 send('thinking', { text: data.text });
             } else if (type === 'error') {
@@ -409,15 +393,17 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
 
         if (_streamUntok) {
             const _tail = _streamUntok.flush();
-            if (_tail) send('content', { text: _tail });
+            if (_tail) { answerText += _tail; send('content', { text: _tail }); }
         }
 
+        finishTurnLogs(queryLogs, { outcome: 'answered', answer: answerText, model: modelId, answerMs: Date.now() - answerT0 });
         send('done', {});
         res.end();
 
     } catch (err) {
         // The user pressed stop: the socket is already gone, and a cancelled
         // answer is not an error to report.
+        failTurnLogs(queryLogs, err, answerT0, modelId);
         if (isGone() || /** @type {Error} */ (err)?.name === 'AbortError' || clientSignal.aborted) {
             log.info('[TemplateChat] turn cancelled by the client');
             try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }

@@ -1360,6 +1360,16 @@
       "topK": 10,
       "rerank": true,
       "minScore": 0.2
+     },
+     "log": {
+      "channel": "webpage",
+      "channelRef": {
+       "webpageId": "wp-1",
+       "surface": "chat"
+      },
+      "orgId": "org-1",
+      "userId": "u1",
+      "carrier": {}
      }
     }
    ],
@@ -1470,7 +1480,17 @@
     "u1",
     [
      "kb1"
-    ]
+    ],
+    {
+     "channel": "webpage",
+     "channelRef": {
+      "webpageId": "wp-1",
+      "surface": "chat"
+     },
+     "orgId": "org-1",
+     "userId": "u1",
+     "carrier": {}
+    }
    ],
    [
     "web.search",

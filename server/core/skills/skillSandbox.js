@@ -46,6 +46,7 @@
 
 const { effectOf } = require('../automationModel/sideEffectMap');
 const log = require('../../telemetry/log');
+const { registerHandle, handleOf } = require('../kb/queryLog/hook.mts');
 
 /** A test question is a question; a query for the search is shorter still. */
 const MAX_QUERY_CHARS = 500;
@@ -53,6 +54,15 @@ const MAX_QUERY_CHARS = 500;
 const SANDBOX_KB_TOPK = 6;
 /** Guard against a source whose passages are enormous. */
 const MAX_CHUNK_CHARS = 2000;
+
+/**
+ * The query-log option of a skill test search: only when the test turn gave a carrier to register on.
+ * @param {{ userId?: string, orgId?: string | null, skillId?: string, queryLogCarrier?: object }} ctx
+ */
+function skillQueryLog(ctx) {
+    if (!ctx.queryLogCarrier) return null;
+    return { channel: /** @type {const} */ ('skill'), channelRef: { skillId: ctx.skillId || null }, orgId: ctx.orgId || null, userId: ctx.userId || null };
+}
 
 /**
  * Search the knowledge bases the SKILL declares — never a base the model
@@ -68,7 +78,7 @@ const MAX_CHUNK_CHARS = 2000;
  * Same rule as the failed search two lines down: say what happened.
  *
  * @param {{ query?: unknown } | null | undefined} args  the model's arguments — untrusted
- * @param {{ userId?: string, kbIds?: string[], kbDeclared?: number, session?: object } | undefined} ctx
+ * @param {{ userId?: string, orgId?: string | null, skillId?: string, kbIds?: string[], kbDeclared?: number, session?: object, queryLogCarrier?: object } | undefined} ctx
  */
 async function runKbSearch(args, ctx) {
     const query = typeof args?.query === 'string' ? args.query.trim().slice(0, MAX_QUERY_CHARS) : '';
@@ -91,10 +101,14 @@ async function runKbSearch(args, ctx) {
     try {
         const { quickKBSearch } = require('../agentRuntime/knowledgeSearch');
         // ctx.session is only an `object` here; it is passed along unchanged.
-        chunks = await quickKBSearch(ctx.userId, kbIds, query, /** @type {Parameters<typeof quickKBSearch>[3]} */ ({
+        const found = await quickKBSearch(ctx.userId, kbIds, query, /** @type {Parameters<typeof quickKBSearch>[3]} */ ({
             topK: SANDBOX_KB_TOPK,
             session: ctx.session || null,
-        })) || [];
+            // KB query log: the handle is registered on the test turn's carrier; the route finishes it.
+            log: skillQueryLog(ctx),
+        }));
+        registerHandle(ctx.queryLogCarrier, handleOf(found));
+        chunks = found || [];
     } catch (err) {
         // A failed search is a failed search — never "nothing was found",
         // which the model would report as "the sources do not cover this".

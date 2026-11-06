@@ -19,7 +19,7 @@ const inventory = require('./searchCallSites.inventory.json');
 
 const SERVER_ROOT = path.resolve(__dirname, '../../..');
 // Package 2 (the channel hooks) flips this to true: every entry with a channel must then be hooked.
-const REQUIRE_HOOKED = false;
+const REQUIRE_HOOKED = true;
 
 const keyOf = (e) => `${e.file}::${e.fn}`;
 const isNotLogged = (c) => typeof c === 'string' && c.startsWith('not-logged:');

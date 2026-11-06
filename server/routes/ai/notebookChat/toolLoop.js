@@ -99,9 +99,9 @@ function buildChatOptions({ tiers, resolvedTier, requestedEffort }) {
  * feed-through) and returns the result object handed back to the model.
  * @param {{ doc: import('./finalize').TurnDoc, canWrite: boolean, aborted: () => boolean, notebook: import('./finalize').Notebook,
  *   notebookId: string, userId: string, userOrgForTiers: string | null, sources: Partial<Source>[], kbIds: string[],
- *   readySources: Source[], send: Send, seams: import('./finalize').Seams }} turn
+ *   readySources: Source[], send: Send, seams: import('./finalize').Seams, queryLogs?: object | null }} turn
  */
-function makeNotebookToolExecutor({ doc, canWrite, aborted, notebook, notebookId, userId, userOrgForTiers, sources, kbIds, readySources, send, seams }) {
+function makeNotebookToolExecutor({ doc, canWrite, aborted, notebook, notebookId, userId, userOrgForTiers, sources, kbIds, readySources, send, seams, queryLogs = null }) {
     return async (/** @type {string} */ toolName, /** @type {ToolArgs} */ toolArgs) => {
         if (toolName.startsWith('notebook_doc_')) {
             const r = executeNotebookDocTool(toolName, toolArgs, doc.currentDocContent, doc.currentDocMd);
@@ -190,7 +190,9 @@ function makeNotebookToolExecutor({ doc, canWrite, aborted, notebook, notebookId
             return { success: true, message: `Source "${sourceName}" added and indexing.`, sourceId: source.id };
         }
         if (toolName === 'notebook_kb_search') {
-            return await executeNotebookKBSearchTool(toolArgs, notebook.userId, kbIds, readySources);
+            // KB query log: the person asking is `userId`; the handle is registered on the turn's collector.
+            return await executeNotebookKBSearchTool(toolArgs, notebook.userId, kbIds, readySources, queryLogs
+                ? { channel: 'notebook', channelRef: { notebookId }, orgId: userOrgForTiers || null, userId, carrier: queryLogs } : null);
         }
         if (isWebTool(toolName)) {
             return await runAgentSearchWithEgress(toolName, toolArgs, {

@@ -1,7 +1,7 @@
 import {
     ArrowRight, BadgeCheck, Bell, Bot, Braces, CheckCircle2, Copy, Database, Dna, Download, Eraser, ExternalLink, FileDown, FileSignature,
     FileSearch, GitBranch, Globe, Inbox, Layers, Mail, MessageSquare, Pencil, Presentation, RefreshCw,
-    Repeat, Search, SquareStack, Trash2, Workflow,
+    Repeat, ScrollText, Search, SquareStack, Trash2, Workflow,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
@@ -176,6 +176,16 @@ export const STEP_CATALOG: Record<string, StepMeta> = {
         blurb: 'Copy a Studio document into your library, a presentation optionally in another template’s look, to compare with the original.',
         blurbKey: 'studio_apps_edit.step_catalog.copy_document_blurb',
     },
+    kb_log_query: {
+        label: 'Read the knowledge base query log', labelKey: 'studio_apps_edit.step_catalog.kb_log_query_label', group: 'Data', icon: ScrollText, server: true,
+        blurb: 'Read what people asked a knowledge base and what it answered (Enterprise).',
+        blurbKey: 'studio_apps_edit.step_catalog.kb_log_query_blurb',
+    },
+    kb_log_review: {
+        label: 'Review a query log entry', labelKey: 'studio_apps_edit.step_catalog.kb_log_review_label', group: 'Data', icon: BadgeCheck, server: true,
+        blurb: 'Set the review status and note of a knowledge base query log entry (Enterprise).',
+        blurbKey: 'studio_apps_edit.step_catalog.kb_log_review_blurb',
+    },
 
     // ── AI ──────────────────────────────────────────────────────────────────
     ai_browse: {
@@ -319,6 +329,8 @@ export function newStep(kind: string, { screenId = '', modalId = '', t = null }:
         // Seeded to the variable a document picker called "document" fills;
         // the copy lands in `copy`, which a document_compare's right side binds.
         case 'copy_document': return { kind, source: { kind: 'formula', expr: 'form.document' }, resultVar: 'copy' };
+        case 'kb_log_query': return { kind, kbId: { kind: 'static', value: '' }, filters: {}, limit: 50, resultVar: 'queue' };
+        case 'kb_log_review': return { kind, kbId: { kind: 'static', value: '' }, entryId: { kind: 'formula', expr: 'item.id' }, status: { kind: 'static', value: 'reviewed' }, note: { kind: 'static', value: '' } };
         case 'condition': return { kind, expr: '', then: [], else: [] };
         // A case is matched on `value` — canonicalize keeps { value, steps } and
         // drops anything else, and the runner compares against c.value. This

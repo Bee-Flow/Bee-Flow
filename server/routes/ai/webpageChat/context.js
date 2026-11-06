@@ -25,11 +25,12 @@ const { slotFilename } = require('./tools');
  *   htmlContent: string | null | undefined, cssContent: string | null | undefined, jsContent: string | null | undefined,
  *   webpageSelection: { text?: unknown, file?: string, action?: string } | null | undefined,
  *   toolPiiGate: typeof import('../../../core/privacy/toolPiiGate'),
- *   _psShield: Awaited<ReturnType<typeof import('../../../core/privacy/orgShield').resolveShieldFor>> | null }} args
+ *   _psShield: Awaited<ReturnType<typeof import('../../../core/privacy/orgShield').resolveShieldFor>> | null,
+ *   queryLogs?: object | null, userOrgId?: string | null }} args
  */
 async function buildTurnContext({
     send, webpage, message, userId, readySources, timezone, chatMode,
-    htmlContent, cssContent, jsContent, webpageSelection, toolPiiGate, _psShield,
+    htmlContent, cssContent, jsContent, webpageSelection, toolPiiGate, _psShield, queryLogs = null, userOrgId = null,
 }) {
     // KB search for grounding
     let kbContext = '';
@@ -43,6 +44,7 @@ async function buildTurnContext({
             const kbResult = await searchWebpageKB({
                 userId, kbIds, query: message,
                 options: { topK: 10, rerank: true, minScore: 0.2 },
+                log: queryLogs ? { channel: 'webpage', channelRef: { webpageId: webpage.id, surface: 'chat' }, orgId: userOrgId, userId, carrier: queryLogs } : null,
             });
             if (kbResult.chunks.length > 0) {
                 citationSources = kbResult.citations;
@@ -68,7 +70,6 @@ async function buildTurnContext({
     // File-content blocks — fit each slot into its own token slice.
     const { fitIntoTokenBudget } = require('../../../core/llm/tokenBudget');
     const SLOT_TOKENS = 6000;
-
     const html = htmlContent || '';
     const css = cssContent || '';
     const js = jsContent || '';

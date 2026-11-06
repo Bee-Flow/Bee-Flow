@@ -33,6 +33,9 @@ router.use('/', require('./knowledgeBases/usage'));
 // mount order in this file is the one thing keeping literal paths reachable
 // and it reads better unbroken.
 router.use('/', require('./knowledgeBases/ask'));
+// The query log: `/query-log/notice` is a literal path and `/:id/query-log/...` a longer one
+// than anything in `detail`; before it like the rest, so the order stays one rule.
+router.use('/', require('./knowledgeBases/queryLog'));
 router.use('/', require('./knowledgeBases/detail'));
 router.use('/', require('./knowledgeBases/documents'));
 router.use('/', require('./knowledgeBases/ingest'));

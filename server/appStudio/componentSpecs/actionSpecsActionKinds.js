@@ -13,7 +13,7 @@ const ACTION_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query',
 const STEP_KINDS = [
     'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'reset_form', 'download_file', 'confirm', 'set_variable', 'refresh',
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
-    'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document',
+    'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review',
     'condition', 'loop', 'switch', 'call_action', 'transaction',
 ];
 
@@ -25,7 +25,7 @@ const STEP_KINDS = [
 // by definition, and so are fill_document and generate_presentation, which
 // render one, and redact_pdf, which writes a cleaned copy of one. copy_document
 // writes a new document into the owner's library.
-const DATA_MUTATING_STEP_KINDS = ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'transaction'];
+const DATA_MUTATING_STEP_KINDS = ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction'];
 
 const CLIENT_STEP_KINDS = STEP_KINDS.filter((k) => !DATA_MUTATING_STEP_KINDS.includes(k));
 

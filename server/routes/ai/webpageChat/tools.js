@@ -103,7 +103,7 @@ function compactWebpageToolResult(toolResult) {
 
 /**
  * @typedef {{ planToolAvailable?: boolean,
- *   kbIds: string[] }} CreateToolDispatcherArgs
+ *   kbIds: string[], queryLogs?: object | null }} CreateToolDispatcherArgs
  */
 /**
  * The executor of one turn. `turn` is the turn's shared state (./toolLoop.js):
@@ -115,7 +115,7 @@ function compactWebpageToolResult(toolResult) {
  */
 function createToolDispatcher({
     send, req, shieldGate, planToolAvailable, webpageId, userId, userOrgForTiers,
-    kbIds, sources, modelSupportsVision, _dlpConvId,
+    kbIds, sources, modelSupportsVision, _dlpConvId, queryLogs = null,
 }, turn) {
     const { liveFiles, dirtySlots, readSlots, touchedExtraPaths, pendingVisionImages } = turn;
 
@@ -233,7 +233,9 @@ function createToolDispatcher({
             }
         } else if (toolName === 'webpage_kb_search') {
             try {
-                toolResult = await executeWebpageKBSearchTool(toolArgs, userId, kbIds);
+                // KB query log: the person asking is `userId`; the handle is registered on the turn's collector.
+                toolResult = await executeWebpageKBSearchTool(toolArgs, userId, kbIds, queryLogs
+                    ? { channel: 'webpage', channelRef: { webpageId, surface: 'chat' }, orgId: userOrgForTiers || null, userId, carrier: queryLogs } : null);
             } catch (err) {
                 toolResult = { error: `KB search failed: ${/** @type {Error} */ (err).message}` };
             }

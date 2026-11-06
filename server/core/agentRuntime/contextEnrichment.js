@@ -15,6 +15,7 @@
 const { emitPhase, emitPhaseEnd } = require('./phaseEvents');
 const { memoryUsedItems, emitMemoryUsed } = require('../memory/memoryUsed');
 const { performKnowledgeSearch } = require('./knowledgeSearch');
+const { registerHandle, handleOf } = require('../kb/queryLog/hook.mts');
 const log = require('../../telemetry/log');
 const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
 
@@ -158,7 +159,10 @@ function stripInjectedPassages(chunks, shield, labelOf) {
     return require('../privacy/toolPiiGate').stripInjectedPassages(chunks, { shield, tag: 'AgentRuntime', labelOf });
 }
 
-async function injectProjectAndKnowledgeContext({ agent, userId, userMessage, userAuth, validProject, systemPrompt, volatileSystemPrompt, _kbSources, onEvent, moderationViolation, guardrailViolation, tools, isStrictKnowledge, testAs = null, shield = null }) {
+async function injectProjectAndKnowledgeContext({ agent, userId, userMessage, userAuth, validProject, systemPrompt, volatileSystemPrompt, _kbSources, onEvent, moderationViolation, guardrailViolation, tools, isStrictKnowledge, testAs = null, shield = null, conversationId = null }) {
+    // Query log (core/kb/queryLog): every search of this turn registers its handle on the
+    // turn's collector (carried by `_kbSources`); the turn loop finishes them with the answer.
+    const queryLog = { channel: /** @type {const} */ ('agent_chat'), channelRef: { agentId: agent?.id || null, conversationId }, orgId: agent?.organization_id || userAuth?.userOrgId || null, userId: userId || null };
     // ============ PROJECT CONTEXT ============
     // Mirrors directChat.js project handling: inject the project's custom
     // instructions and auto-search its knowledge bases. Skipped for embed-enabled
@@ -195,7 +199,8 @@ async function injectProjectAndKnowledgeContext({ agent, userId, userMessage, us
         if (kbIds.length > 0) {
             try {
                 const { quickKBSearch } = require('./knowledgeSearch');
-                const kbResults = await quickKBSearch(userId, kbIds, userMessage, { topK: 6, session: userAuth?.session });
+                const kbResults = await quickKBSearch(userId, kbIds, userMessage, { topK: 6, session: userAuth?.session, log: queryLog });
+                registerHandle(_kbSources, handleOf(kbResults));
                 if (kbResults.length > 0) {
                     // Stripped as stripInjectedPassages does, before the prompt
                     // text AND the citation snippets below.
@@ -225,7 +230,7 @@ async function injectProjectAndKnowledgeContext({ agent, userId, userMessage, us
         emitPhase(onEvent, 'kb_search');
         const _kbT = Date.now();
         try {
-            const kbExtension = await performKnowledgeSearch({ agent, userId, userMessage, isStrictKnowledge, testAs, session: userAuth?.session, stripPassages: (chunks, labelOf) => stripInjectedPassages(chunks, shield, labelOf), onEvent: (type, data) => {
+            const kbExtension = await performKnowledgeSearch({ agent, userId, userMessage, isStrictKnowledge, testAs, session: userAuth?.session, log: queryLog, onQueryLog: (h) => registerHandle(_kbSources, h), stripPassages: (chunks, labelOf) => stripInjectedPassages(chunks, shield, labelOf), onEvent: (type, data) => {
                 // Intercept kb_sources to accumulate for persistence
                 if (type === 'kb_sources' && data?.sources) {
                     _kbSources.push(...data.sources);

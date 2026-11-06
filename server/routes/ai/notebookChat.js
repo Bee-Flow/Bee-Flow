@@ -66,6 +66,7 @@ const {
 const {
     appendHistory, appendUserMessage, stripUnicodeSmuggling, runInputPiiGate, addTokenPreservation, runInputRegex,
 } = require('./notebookChat/inputGates');
+const { finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
 const { buildToolList, buildChatOptions, makeNotebookToolExecutor, runToolLoop } = require('./notebookChat/toolLoop');
 const { restoreForDisplay, buildPrivacyPanel, finishAiDocument, checkOutputRegex, persistTurn } = require('./notebookChat/finalize');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -185,6 +186,9 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
     emitPhase(send, 'model_resolved', modelId);
     emitPhaseEnd(send, 'model_resolved');
 
+    // KB query log: the collector of this turn's searches, finished with the answer (or its failure).
+    const queryLogs = {};
+    const answerT0 = Date.now();
     try {
         // ── PII round-trip setup (shared by KB / document / message scans) ──
         // Hydrate the notebook's persisted PII token map (keyed by notebookId)
@@ -212,7 +216,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         // Search notebook knowledge base for relevant context
         const kb = await retrieveKbContext({
             req, notebook, userId, message, readySources, send, notebookId,
-            docShield, orgShieldConfig, toolPiiGate, repeatGuard, scans,
+            docShield, orgShieldConfig, toolPiiGate, repeatGuard, scans, queryLogs, userOrgId: userOrgForTiers || null,
         });
         if (kb.stop) return;
         const { kbIds, kbContext } = kb;
@@ -314,7 +318,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         };
 
         const executeNotebookTool = makeNotebookToolExecutor({
-            doc, canWrite, aborted, notebook, notebookId, userId, userOrgForTiers, sources, kbIds, readySources, send, seams,
+            doc, canWrite, aborted, notebook, notebookId, userId, userOrgForTiers, sources, kbIds, readySources, send, seams, queryLogs,
         });
 
         let { fullContent, _untok } = await runToolLoop({
@@ -344,13 +348,22 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
             fullContent, modelId, modelTier, _assistantTokenisationInfo, send,
         });
 
+        // KB query log: every search of this turn (context and tool calls) gets the final answer.
+        finishTurnLogs(queryLogs, {
+            outcome: 'answered', answer: displayContent || fullContent, model: modelId,
+            citations: kb.citations, answerMs: Date.now() - answerT0,
+        });
         send('done', {});
         res.end();
 
     } catch (err) {
+        failTurnLogs(queryLogs, err, answerT0, modelId);
         log.error('[NotebookChat] Error:', err);
         send('error', { error: `Chat error: ${/** @type {Error} */ (err).message}` });
         res.end();
+    } finally {
+        // A turn stopped by a gate never reached an answer: idempotent after a finished turn.
+        finishTurnLogs(queryLogs, { outcome: 'error', errorCode: 'not_answered', model: modelId });
     }
 });
 

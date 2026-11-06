@@ -107,6 +107,8 @@ const PATCHABLE_FIELDS = {
     // `builder_replace_step`, which is where a re-pointed step goes to be
     // rebuilt and re-checked.
     knowledge_write: ['content', 'title', 'sourceUri', 'nearDuplicateStrategy', 'label', 'forEach', 'knowledgeBaseId'],
+    // The query-log step: `knowledgeBaseId` is fill-only for the same reason as knowledge_write's.
+    kb_query_log: ['op', 'filters', 'limit', 'resultDetail', 'entryId', 'status', 'note', 'label', 'knowledgeBaseId'],
     // A canvas annotation (BFSF-411) — no `forEach`/bindings, so it needs none
     // of the merge/revalidate machinery the other types get; normalizePatchField
     // below clamps text/size the same way applyAddNote does.

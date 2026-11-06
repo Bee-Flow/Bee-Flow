@@ -18,6 +18,7 @@
 const configStore = require('../../stores/configStore');
 const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');
+const { logSearch } = require('./queryLog/hook.mts');
 
 /**
  * one passage as the search service (or the local search) returns it.
@@ -122,14 +123,14 @@ function findSourceForChunk(chunk, sources) {
  *
  * @param {{ userId: string, kbIds: string[], query: string,
  *   options?: { topK?: number, rerank?: boolean, minScore?: number, maxChunkChars?: number, preprocessQuery?: boolean, timeoutMs?: number },
- *   sources?: Array<{id: string, name: string}> | null }} params  `userId` is the tenant ID; `options`: topK
+ *   sources?: Array<{id: string, name: string}> | null, log?: import('./queryLog/hook.mts').LogOption | null }} params  `userId` is the tenant ID; `options`: topK
  *   (max chunks to retrieve, 10), rerank (true), minScore (minimum score threshold, 0.2), maxChunkChars
  *   (truncate chunks, 1500), preprocessQuery (clean the query, true), timeoutMs (request timeout, 12000);
  *   `sources` the notebook's sources: when given, chunks are labelled with the source NAME (not its id)
- *   in the prompt and the citations
+ *   in the prompt and the citations; `log` records the search in the KB query log (handle: `._queryLog`)
  * @returns {Promise<{chunks: SearchChunk[], contextPrompt: string, citations: Array<{ index: number, title: string, rawTitle: string, content: string, score: number }>}>}
  */
-async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = null }) {
+async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = null, log: queryLog = null }) {
     const {
         topK = 10,
         rerank = true,
@@ -145,6 +146,7 @@ async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = 
 
     const searchQuery = doPreprocess ? preprocessQuery(query) : query;
     const azureParams = await getAzureSearchParams();
+    const retrievalT0 = Date.now();
 
     /** @type {SearchChunk[]} */
     let chunks = [];
@@ -184,8 +186,14 @@ async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = 
         return { chunks: [], contextPrompt: '', citations: [] };
     }
 
+    /** The query log: what the search found; the handle rides on the result. @param {{chunks: SearchChunk[], contextPrompt: string, citations: Array<{ index: number, title: string, rawTitle: string, content: string, score: number }>}} result */
+    const withLog = async (result) => {
+        if (queryLog) await logSearch(result, queryLog, { kbIds, query: searchQuery, chunks, retrievalMs: Date.now() - retrievalT0 });
+        return result;
+    };
+
     if (chunks.length === 0) {
-        return { chunks: [], contextPrompt: '', citations: [] };
+        return await withLog({ chunks: [], contextPrompt: '', citations: [] });
     }
 
     // Truncate chunk content
@@ -247,7 +255,7 @@ ${kbText}`;
 
     log.info(`[NotebookKBSearch] Found ${truncatedChunks.length} chunks (query ${searchQuery.length} chars, rerank: ${rerank}, azure: ${!!azureParams.use_azure})`);
 
-    return { chunks: truncatedChunks, contextPrompt, citations };
+    return await withLog({ chunks: truncatedChunks, contextPrompt, citations });
 }
 
 // ── Content Gathering for Generation ───────────────────────────────
@@ -415,9 +423,10 @@ function stableChunkRef(c) {
  * @param {string} userId
  * @param {string[]} kbIds
  * @param {Array<{id: string, name: string}>} [sources] - notebook sources, to show names instead of ids
+ * @param {import('./queryLog/hook.mts').LogOption | null} [queryLog] - record the search (its `carrier` collects the handle)
  * @returns {Promise<object>}  - tool result for the AI
  */
-async function executeNotebookKBSearchTool(args, userId, kbIds, sources = null) {
+async function executeNotebookKBSearchTool(args, userId, kbIds, sources = null, queryLog = null) {
     const { query, top_k } = args;
     if (!query) return { error: 'query is required' };
 
@@ -432,7 +441,7 @@ async function executeNotebookKBSearchTool(args, userId, kbIds, sources = null) 
     log.info(`[NotebookKBSearch] Tool search: "${query}" (top_k=${topK})`);
 
     const result = await searchNotebookKB({
-        userId, kbIds, query, sources,
+        userId, kbIds, query, sources, log: queryLog,
         options: { topK, rerank: true, minScore: 0.25, maxChunkChars: 1200, preprocessQuery: false },
     });
 

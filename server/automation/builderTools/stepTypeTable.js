@@ -79,6 +79,7 @@ const STEP_TYPE_TABLE = Object.freeze([
     { type: 'approval', authoring: 'batch', family: 'people', userLabel: 'Ask someone to approve' },
     { type: 'call_layer', authoring: 'batch', family: 'blocks', userLabel: 'Flowlet' },
     { type: 'knowledge_write', authoring: 'batch', family: 'data', userLabel: 'To knowledge base' },
+    { type: 'kb_query_log', authoring: 'batch', family: 'data', userLabel: 'Knowledge base query log' },
     { type: 'loop', authoring: 'batch', family: 'logic', userLabel: 'Repeat for each' },
     { type: 'filter', authoring: 'batch', opFamily: 'array_op', family: 'data', userLabel: 'Filter a list' },
     { type: 'limit', authoring: 'batch', opFamily: 'array_op', family: 'data', userLabel: 'Shorten list' },

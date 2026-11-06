@@ -59,6 +59,7 @@ const {
     ASSISTANT_NAME, clip, describePassage, buildThreadText, buildCommentSystemPrompt, answerWithin,
 } = require('./commentPrompt');
 const { bestEffort } = require('../../utils/bestEffort');
+const { registerHandle, finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} CommentProject */
 /** @typedef {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>} CommentThread */
@@ -307,6 +308,9 @@ async function writeAnswer(kit, { project, thread, trigger, triggerText, userId,
     const { store, commentCrypto, locks, shield, llmChat, searchKnowledge, listAudience, emit, logUsage, timeoutMs, newId, announce, noteExplicitReply } = kit;
     const dlpConversationId = `project-comment-${thread.id}-${runId}`;
     let status = 'failed';
+    // KB query log: the handles of this answer's searches, finished once the answer is known.
+    const queryLogs = {};
+    const answerT0 = Date.now();
     try {
         const box = await commentCrypto().forProject(project);
         const comments = await store().listComments(thread.id, { limit: CONTEXT_COMMENTS });
@@ -335,7 +339,11 @@ async function writeAnswer(kit, { project, thread, trigger, triggerText, userId,
         try {
             const query = [triggerText, where.quote].filter(Boolean).join('\n').slice(0, 2000);
             const audienceIds = await listAudience(project);
-            knowledge = await searchKnowledge({ project, userId, query, session, shield: shieldConfig, audienceIds }) || '';
+            knowledge = await searchKnowledge({
+                project, userId, query, session, shield: shieldConfig, audienceIds,
+                log: { channel: 'project_assistant', channelRef: { projectId: project.id, threadId: thread.id }, orgId: orgId || null, userId },
+                onQueryLog: (h) => registerHandle(queryLogs, h),
+            }) || '';
         } catch (err) {
             log.warn(`[ProjectComments] project knowledge search failed for thread ${thread.id}: ${err && err.message}`);
         }
@@ -383,6 +391,7 @@ async function writeAnswer(kit, { project, thread, trigger, triggerText, userId,
         let answer = typeof result?.content === 'string' ? result.content.trim() : '';
         if (!answer) throw Object.assign(new Error('The model returned an empty answer'), { code: 'AI_EMPTY' });
         answer = clip(shield().restore(answer, outbound.tokenMap), ANSWER_CHARS);
+        finishTurnLogs(queryLogs, { outcome: 'answered', answer, model: model.modelId, answerMs: Date.now() - answerT0 });
 
         const commentId = newId();
         let saved;
@@ -416,6 +425,7 @@ async function writeAnswer(kit, { project, thread, trigger, triggerText, userId,
         status = 'answered';
     } catch (err) {
         status = err?.code === 'PRIVACY_BLOCKED' ? 'blocked' : 'failed';
+        failTurnLogs(queryLogs, err, answerT0, model.modelId);
         log.warn(`[ProjectComments] answer in thread ${thread.id} (run ${runId}) ${status}: ${err?.code || err?.name || 'error'}: ${err && err.message}`);
     } finally {
         try {

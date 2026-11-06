@@ -40,6 +40,9 @@
 const { kbUsableIn } = require('./usageContexts');
 const { fallback } = require('../../utils/bestEffort');
 
+/** Steps that need the right to manage their knowledge base, and the code of the finding when it is missing. */
+const WRITE_STEP_CODES = { knowledge_write: 'knowledge_write.kb_not_manageable', kb_query_log: 'kb_query_log.kb_not_manageable' };
+
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
 /**
@@ -85,14 +88,16 @@ function collectKbSteps(definition) {
             return;
         }
 
-        if (step.type === 'knowledge_write') {
+        // knowledge_write adds to a base; kb_query_log reads and reviews a base's query log. Both need the
+        // right to MANAGE it, and the second names its own finding code.
+        if (Object.hasOwn(WRITE_STEP_CODES, step.type)) {
             const kbId = typeof step.knowledgeBaseId === 'string' ? step.knowledgeBaseId : '';
-            // An unset target is `knowledge_write.kb_required` in the pure
+            // An unset target is `<type>.kb_required` in the pure
             // validator, which runs on the same save. Reporting it twice, in
             // two different words, is how a builder ends up with two markers
             // on one node saying the same thing.
             if (!kbId) return;
-            found.push({ id: step.id || null, path, kbIds: [kbId], access: 'write' });
+            found.push({ id: step.id || null, path, kbIds: [kbId], access: 'write', code: WRITE_STEP_CODES[step.type] });
         }
     };
     walkSteps(definition?.steps, take(null));
@@ -142,7 +147,7 @@ async function kbStepFindings(definition, { orgId, userId, stage = 'draft', deps
                 findings.push({
                     path: step.path,
                     severity,
-                    code: 'knowledge_write.kb_not_manageable',
+                    code: step.code,
                     message: messageFor(verdict.reason, verdict.kb?.name || null),
                     hint: 'Pick a knowledge base you manage, or ask an administrator for the "manage knowledge" permission.',
                 });

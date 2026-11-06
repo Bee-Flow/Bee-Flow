@@ -30,6 +30,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { handleOf, finishLogs, finishLogsWithError } = require('../core/kb/queryLog/hook.mts');
 const router = express.Router();
 
 require('../stores/studioAppStore');
@@ -572,7 +573,13 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
     const model = await aiRuntime.resolveOwnerModel(app, props.modelTier);
 
     const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
-    const ground = await aiRuntime.groundWithKB(app, { knowledgeBaseIds: props.knowledgeBaseIds, query: lastUser });
+    // Grounding is effectively off today (no viewer passed, issue #599); the query-log hook is in place
+    // for when it is on. The person asking is `userId`, not the app's owner.
+    const ground = await aiRuntime.groundWithKB(app, {
+        knowledgeBaseIds: props.knowledgeBaseIds, query: lastUser,
+        log: { channel: 'studio_ai_chat', channelRef: { appId: app.id, componentId: node.id || null }, orgId: app.organizationId || null, userId },
+    });
+    const queryLogHandle = handleOf(ground.chunks);
     const system = [
         (typeof props.systemPrompt === 'string' && props.systemPrompt.trim())
             ? props.systemPrompt.trim()
@@ -583,14 +590,20 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
 
     const { sendRaw } = openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform' }, flush: true, viaSetHeader: true });
     const send = (/** @type {Record<string, unknown>} */ obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
+    const chatT0 = Date.now();
+    let answerText = '';
+    let chatFailed = false;
     try {
         // The owner pays; the viewer chatting is the actor (usageAttribution.js).
         await withUsageAttribution({ actorUserId: userId }, () => aiRuntime.streamChat(app, model, { system, messages }, (/** @type {string} */ type, /** @type {{ text: unknown; }} */ data) => {
-            if (type === 'text' && data && data.text) send({ type: 'text', text: data.text });
-            else if (type === 'error') send({ type: 'error', error: 'The assistant failed to respond.' });
+            if (type === 'text' && data && data.text) { answerText += String(data.text); send({ type: 'text', text: data.text }); }
+            else if (type === 'error') { chatFailed = true; send({ type: 'error', error: 'The assistant failed to respond.' }); }
         }));
         send({ type: 'done' });
+        if (chatFailed) finishLogs(queryLogHandle, { outcome: 'error', errorCode: 'model_error', model: model?.modelId ?? null, answerMs: Date.now() - chatT0 });
+        else finishLogs(queryLogHandle, { outcome: 'answered', answer: answerText, citations: ground.chunks, model: model?.modelId ?? null, answerMs: Date.now() - chatT0 });
     } catch (e) {
+        finishLogsWithError(queryLogHandle, e, chatT0);
         log.error(`[StudioAppsRun/aiChat] ${/** @type {Error} */ (e).message}`);
         send({ type: 'error', error: e.status === 400 ? /** @type {Error} */ (e).message : 'The assistant failed to respond.' });
     }

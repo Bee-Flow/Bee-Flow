@@ -26,6 +26,7 @@ const COPY_DOCUMENT_STEP = './copyDocumentStep.mts';
 const STEP_ERRORS = './stepErrors.mts';
 const TRANSACTION_STEP = './transactionStep.mts';
 const BULK_RECORDS = './bulkRecords.mts';
+const KB_LOG_STEPS = './kbLogSteps.mts';
 
 // ── Public entry ────────────────────────────────────────────────────
 
@@ -115,6 +116,9 @@ async function runStepKind(app, model, step, ctx) {
                     resolveBinding, buildServerScope, writeViewer, findTable, writeRecord,
                 });
             }
+            // The KB query log as steps (Enterprise): rules in core/kb/queryLog/builderSteps.mts.
+            case 'kb_log_query': return await require(KB_LOG_STEPS).kbLogQueryStep(app, model, step, ctx);
+            case 'kb_log_review': return await require(KB_LOG_STEPS).kbLogReviewStep(app, model, step, ctx);
             case 'ai_browse': {
                 // Streaming-only: the browse driver emits frames through
                 // ctx.browse.send. Absent it, this is the plain /step route

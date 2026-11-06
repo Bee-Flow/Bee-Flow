@@ -10,6 +10,7 @@
  */
 
 const log = require('../telemetry/log');
+const { registerHandle, finishTurnLogs, failTurnLogs } = require('../core/kb/queryLog/hook.mts');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
 const { taggedItemsBlock, TAGGED_TOTAL_CHARS, TAGGED_ITEM_CHARS } = require('./chatTaggedItems');
 const { answerRecord } = require('./chatTrace');
@@ -61,7 +62,7 @@ async function readConversation(ctx, { chat, trigger, triggerText, userId, proje
 }
 
 /** The project knowledge passages for the question; '' when the search fails. */
-async function searchKnowledgeFor(ctx, { project, chat, userId, triggerText, session, shieldConfig }) {
+async function searchKnowledgeFor(ctx, { project, chat, userId, triggerText, session, shieldConfig, orgId = null, queryLogs }) {
     let knowledge = '';
     try {
         // Asked for or not, the answer is read by the whole chat, so the
@@ -70,6 +71,8 @@ async function searchKnowledgeFor(ctx, { project, chat, userId, triggerText, ses
         const audienceIds = await ctx.listAudience(project);
         knowledge = await ctx.searchKnowledge({
             project, userId, query: triggerText, session, shield: shieldConfig, audienceIds,
+            log: { channel: 'project_assistant', channelRef: { projectId: project.id, chatId: chat.id }, orgId, userId },
+            onQueryLog: (/** @type {any} */ h) => registerHandle(queryLogs, h),
         }) || '';
     } catch (err) {
         log.warn(`[ProjectChat] project knowledge search failed for chat ${chat.id}: ${err && /** @type {Error} */ (err).message}`);
@@ -197,7 +200,7 @@ function answerRefs(made, edited) {
  */
 async function storeAnswer(ctx, {
     result, made, edited = [], auto, model, outbound, triggerText, box, chat, project, persona, trigger, threadId,
-    usedSources, aiTrigger, reasonCode, gateLastSeq, userId, orgId,
+    usedSources, aiTrigger, reasonCode, gateLastSeq, userId, orgId, queryLogs = null, answerT0 = 0,
 }) {
     let answer = typeof result?.content === 'string' ? result.content.trim() : '';
     if (auto && isSkip(answer)) {
@@ -210,6 +213,7 @@ async function storeAnswer(ctx, {
     const rawAnswer = answer;
     answer = ctx.shield.restore(answer, outbound.tokenMap);
     if (answer.length > ANSWER_CHARS) answer = `${answer.slice(0, ANSWER_CHARS)} …`;
+    finishTurnLogs(queryLogs, { outcome: 'answered', answer, model: model.modelId, answerMs: answerT0 ? Date.now() - answerT0 : null });
 
     const messageId = ctx.newId();
     const { aiMeta, aiTrace } = answerRecord({ model, outbound, triggerText, rawAnswer, box, chatId: chat.id, messageId });
@@ -253,13 +257,16 @@ async function storeAnswer(ctx, {
 async function writeAnswer(ctx, { project, chat, trigger, triggerText, userId, orgId, session, model, runId, aiTrigger, reasonCode, gateLastSeq }) {
     const { shield } = ctx;
     const auto = AUTO_TRIGGERS.includes(aiTrigger);
+    // KB query log: the handles of this answer's searches; storeAnswer finishes them.
+    const queryLogs = {};
+    const answerT0 = Date.now();
     const dlpConversationId = `project-chat-${chat.id}-${runId}`;
     /** @type {{ status: 'answered'|'failed'|'blocked'|'skipped'|'stale', messageId?: string, reason?: string }} */
     let outcome = { status: 'failed' };
     try {
         const { box, persona, threadId, lines, askerName } = await readConversation(ctx, { chat, trigger, triggerText, userId, project });
         const shieldConfig = await shield.resolve({ orgId, userId });
-        const knowledge = await searchKnowledgeFor(ctx, { project, chat, userId, triggerText, session, shieldConfig });
+        const knowledge = await searchKnowledgeFor(ctx, { project, chat, userId, triggerText, session, shieldConfig, orgId, queryLogs });
         const { tagged, usedSources } = await loadTaggedSources(ctx, { auto, trigger, userId, project });
         const outbound = await shield.protect({
             shield: shieldConfig,
@@ -280,9 +287,10 @@ async function writeAnswer(ctx, { project, chat, trigger, triggerText, userId, o
         await recordUsage(ctx, { result, userId, orgId, persona, model, auto, started, chat });
         outcome = await storeAnswer(ctx, {
             result, made, edited, auto, model, outbound, triggerText, box, chat, project, persona, trigger, threadId,
-            usedSources, aiTrigger, reasonCode, gateLastSeq, userId, orgId,
+            usedSources, aiTrigger, reasonCode, gateLastSeq, userId, orgId, queryLogs, answerT0,
         });
     } catch (err) {
+        failTurnLogs(queryLogs, err, answerT0, model.modelId);
         outcome = { status: err?.code === 'PRIVACY_BLOCKED' ? 'blocked' : 'failed' };
         // The reason stays here, in the server log; the feed only says the status.
         log.warn(`[ProjectChat] answer in chat ${chat.id} (run ${runId}${auto ? ', automatic' : ''}) ${outcome.status}: ${err?.code || /** @type {Error} */ (err)?.name || 'error'}: ${err && /** @type {Error} */ (err).message}`);
@@ -332,7 +340,7 @@ module.exports = { writeAnswer };
  *   projectTools: () => ReturnType<typeof import('./chatTools').makeProjectChatTools>,
  *   llmChat: typeof import('../core/llm/llmClient').chat,
  *   resolvePersona: (p: { agentId: string, userId: string }) => Promise<Persona|null>,
- *   searchKnowledge: (p: { project: ProjectRef, userId: string, query: string, session?: any|null, shield?: ShieldConfig|null, audienceIds?: string[]|null }) => Promise<string>,
+ *   searchKnowledge: (p: { project: ProjectRef, userId: string, query: string, session?: any|null, shield?: ShieldConfig|null, audienceIds?: string[]|null, log?: import('../core/kb/queryLog/hook.mts').LogOption|null, onQueryLog?: ((handle: any) => void)|null }) => Promise<string>,
  *   loadTagged: (refs: unknown[], opts: { userId: string, project: ProjectRef }) => Promise<Array<{ kind: string, id?: string, name: string, text: string }>>,
  *   listAudience: (project: ProjectRef) => Promise<string[]|null>,
  *   emit: (projectId: string, event: { kind: string, actorId?: string|null, targetType?: string, targetId?: string, payload?: object }) => Promise<unknown>,

@@ -771,8 +771,10 @@ test('the form-save shot is byte-true: theme, table (key derived from name), com
  * catalog's field lists and added call_action); package 2 adds only the transaction
  * kind name three times (~40 chars) and one clause on the step-level onError/retry
  * (~55 chars) to 36_840. The diet of the core prose is owed.
+ * Raised to 37_000 on 2026-11-06 (KB query log): the two kb_log_* step names appear three times in the
+ * compact catalog (36_914 measured). Product, not prose.
  */
-const CORE_PROMPT_CHAR_CEILING = 36_900;
+const CORE_PROMPT_CHAR_CEILING = 37_000;
 
 test(`the core system prompt with the compact catalog stays under ${CORE_PROMPT_CHAR_CEILING} chars`, () => {
     const core = buildSystemPrompt({ toolset: 'core', catalogMode: 'filtered' });

@@ -37,6 +37,7 @@ const log = require('../../telemetry/log');
 const { redeemEach, newReport, assertSomethingRead } = require('../aiDocumentRead.mts');
 const { resolveStepModel, notesWith } = require('./modelTierChoice.mts');
 const { replaceTemplate, parsePath, walkTokens } = require('../../shared/expr/index.mjs');
+const { handleOf, trackAnswer } = require('../../core/kb/queryLog/hook.mts');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
 // ai_extract / ai_generate / kb_query resolve the app OWNER's model tier and
@@ -292,6 +293,16 @@ async function buildDatasetTools(app, step, ctx, scope) {
     };
 }
 
+/**
+ * The query-log option of a Studio step: the person asking is the viewer, not the app's owner.
+ * @param {'studio_ai_generate' | 'studio_ai_extract' | 'studio_kb_query'} channel
+ * @param {AppRef} app
+ * @param {{ viewerId?: string | null, actionId?: string | null }} ctx
+ */
+function queryLogFor(channel, app, ctx) {
+    return { channel, channelRef: { appId: app.id, actionId: ctx.actionId ?? null }, orgId: app.organizationId || null, userId: ctx.viewerId ?? null };
+}
+
 async function aiExtractStep(app, model, step, ctx) {
     const aiRuntime = require('../aiRuntime');
     const scope = buildServerScope(ctx);
@@ -317,7 +328,9 @@ async function aiExtractStep(app, model, step, ctx) {
         query: fields.map((f) => f.name).join(', '),
         // The VIEWER's reach, not the owner's — see groundWithKB.
         viewer: { id: ctx.viewerId ?? null },
+        log: queryLogFor('studio_ai_extract', app, ctx),
     });
+    const queryLogHandle = handleOf(ground.chunks);
 
     const rowSchema = aiRuntime.fieldsToObjectSchema(fields);
     const parameters = {
@@ -360,7 +373,11 @@ async function aiExtractStep(app, model, step, ctx) {
     // is the difference between "this drawing says nothing" and "nobody looked".
     // One retry, not two: a 163-drawing loop would triple both the bill and the
     // wall clock on a model that is simply refusing.
-    let structured = (await run()).structured;
+    let structured = (await trackAnswer(queryLogHandle, {
+        model: aiModel.modelId,
+        answerOf: (r) => JSON.stringify(r.structured ?? null),
+        citationsOf: () => ground.chunks,
+    }, run)).structured;
     if (!Array.isArray(structured.rows)) {
         log.warn(`[StudioAppAI] app ${app.id}: ${aiModel.modelId} (tier ${aiModel.tierName}) returned no rows array — retrying once`);
         structured = (await run()).structured;
@@ -510,7 +527,9 @@ async function aiGenerateStep(app, model, step, ctx) {
     const ground = await aiRuntime.groundWithKB(app, {
         knowledgeBaseIds: step.knowledgeBaseIds, query: prompt,
         viewer: { id: ctx.viewerId ?? null },
+        log: queryLogFor('studio_ai_generate', app, ctx),
     });
+    const queryLogHandle = handleOf(ground.chunks);
 
     const datasetTools = await buildDatasetTools(app, step, ctx, scope);
     const system = [
@@ -539,10 +558,16 @@ async function aiGenerateStep(app, model, step, ctx) {
         const fields = aiRuntime.normalizeSchemaFields(step.schema);
         if (!fields.length) { const e = new Error('Structured output needs at least one field'); e.status = 400; throw e; }
         const parameters = aiRuntime.fieldsToObjectSchema(fields);
-        const { structured } = await aiRuntime.runStructuredWithTools(app, aiModel, { system, user, parameters, tools: datasetTools.tools });
+        const { structured } = await trackAnswer(queryLogHandle, {
+            model: aiModel.modelId,
+            answerOf: (r) => JSON.stringify(r.structured ?? null),
+            citationsOf: () => ground.chunks,
+        }, () => aiRuntime.runStructuredWithTools(app, aiModel, { system, user, parameters, tools: datasetTools.tools }));
         return { ok: true, ...notes, result: aiRuntime.coerceRowToFields(structured, fields) };
     }
-    const { text } = await aiRuntime.runTextWithTools(app, aiModel, { system, user, tools: datasetTools.tools });
+    const { text } = await trackAnswer(queryLogHandle, {
+        model: aiModel.modelId, answerOf: (r) => r.text, citationsOf: () => ground.chunks,
+    }, () => aiRuntime.runTextWithTools(app, aiModel, { system, user, tools: datasetTools.tools }));
     // Citations travel as titles/scores only. The chunk BODIES are already in
     // the prompt; echoing them into a client-visible result would hand KB
     // content to a viewer who may have no access to that knowledge base.
@@ -709,6 +734,7 @@ async function kbQueryStep(app, model, step, ctx) {
     const { chunks } = await aiRuntime.groundWithKB(app, {
         knowledgeBaseIds: step.knowledgeBaseIds, query: q, topK,
         viewer: { id: ctx.viewerId ?? null },
+        log: queryLogFor('studio_kb_query', app, ctx),
     });
     return { ok: true, result: { results: chunks, count: chunks.length } };
 }

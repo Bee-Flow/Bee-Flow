@@ -24,7 +24,11 @@
  *                         projects: memberships, owned projects, chats they
  *                         shared into a project, their project notebooks and
  *                         their project documents (nothing is opened)
- *   8. NOT scanned        conversations (bodies are per-org encrypted), and the
+ *   8. KB query log      kbQueryLogStore.countsForUser(orgId, userId): the questions the
+ *                         subject put to logging knowledge bases of THIS org (a count by
+ *                         user id; no text is opened). Opening the text is its own,
+ *                         audited route (routes/compliance/kbQueryLog.js).
+ *   9. NOT scanned        conversations (bodies are per-org encrypted), and the
  *                         bodies of team chats, project comments and co-edited
  *                         documents (sealed with the project key): listed in
  *                         `not_scanned` (NEVER_SCANNED), so the author-id counts
@@ -53,6 +57,8 @@
 const { maskEmail } = require('./mask');
 const { complianceSectionPath } = require('../../utils/appPaths');
 const { bestEffort } = require('../../utils/bestEffort');
+const { PROJECT_PARTICIPATION_SQL, scanProjectParticipation } = require('./projectParticipation');
+const { scanKbQueryLog } = require('./kbQueryLogSource');
 
 /**
  * Where the subject may be named and the scan never looks: bodies it cannot
@@ -90,6 +96,7 @@ const TEXT_TYPES = new Set(['text', 'richtext']);
  * method is existence-checked before it is called.
  * @typedef {{ db?: { getOne?: (sql: string, params?: unknown[]) => Promise<Record<string, any> | null | undefined>, withTransaction?: (fn: (client: TxClient) => Promise<Record<string, any>[]>) => Promise<Record<string, any>[]> } | null,
  *   userStore?: { findOrgMemberIdByEmail?: (orgId: string, email: string) => Promise<string | null | undefined>, logAccessAudit?: (...args: unknown[]) => Promise<unknown> } | null,
+ *   kbQueryLogStore?: { countsForUser?: (orgId: string, userId: string) => Promise<{ total: number }> } | null,
  *   memoryStore?: { countActiveMemoriesForUser?: (userId: string) => Promise<number> } | null,
  *   projectChatStore?: { countMessagesByAuthor?: (userId: string, opts: { organizationId: string }) => Promise<number> } | null,
  *   datatableStore?: { listDatatablesForScope?: (scope: DatatableScope) => Promise<Record<string, any>[]>, getModel?: (scope: DatatableScope) => Promise<{ model?: { tables?: Record<string, any>[] } } | null | undefined>, getTableMeta?: (scope: DatatableScope, id: string) => Promise<Record<string, any> | null | undefined> } | null,
@@ -266,61 +273,6 @@ async function _scanTeamChatMessages(orgId, userId, deps) {
     try {
         return { count: await store.countMessagesByAuthor(userId, { organizationId: orgId }) };
     } catch { return { count: null, unavailable: true }; }
-}
-
-// Where a person takes part in the org's collaborative projects. One small
-// count each, pinned to the org the way every project check scopes (an
-// org-less project belongs to the 'default' bucket).
-const PROJECT_ORG = `COALESCE(NULLIF(p.organization_id, ''), 'default') = $1`;
-/** @type {Readonly<Record<string, string>>} */
-const PROJECT_PARTICIPATION_SQL = Object.freeze({
-    memberships: `SELECT COUNT(*)::int AS n FROM project_shares s JOIN projects p ON p.id = s.project_id
-                  WHERE ${PROJECT_ORG} AND s.shared_with_type = 'user' AND s.shared_with_id = $2`,
-    owned_projects: `SELECT COUNT(*)::int AS n FROM projects p WHERE ${PROJECT_ORG} AND p.owner_id = $2`,
-    shared_chats: `SELECT ((SELECT COUNT(*) FROM direct_conversations c JOIN projects p ON p.id = c.project_id
-                            WHERE ${PROJECT_ORG} AND c.user_id = $2 AND c.shared_scope = 'project')
-                         + (SELECT COUNT(*) FROM agent_conversations c JOIN projects p ON p.id = c.project_id
-                            WHERE ${PROJECT_ORG} AND c.user_id = $2 AND c.shared_scope = 'project'))::int AS n`,
-    project_notebooks: `SELECT COUNT(*)::int AS n FROM notebooks n JOIN projects p ON p.id = n.project_id
-                        WHERE ${PROJECT_ORG} AND n.user_id = $2`,
-    project_documents: `SELECT COUNT(*)::int AS n FROM studio_documents d JOIN projects p ON p.id = d.project_id
-                        WHERE ${PROJECT_ORG} AND d.user_id = $2`,
-    // Comments they wrote on project notebooks and documents (sealed with the
-    // project key, so counted by author id, never read). An erased comment is
-    // blanked but keeps its author id, so it still counts.
-    project_comments: `SELECT COUNT(*)::int AS n FROM project_comments c JOIN projects p ON p.id = c.project_id
-                       WHERE ${PROJECT_ORG} AND c.author_user_id = $2`,
-    // Suggestions on documents made in their name (sealed, counted by id).
-    document_suggestions: `SELECT COUNT(*)::int AS n FROM document_suggestions s
-                           WHERE COALESCE(NULLIF(s.organization_id, ''), 'default') = $1 AND s.author_user_id = $2`,
-});
-
-/**
- * The subject's place in the org's collaborative projects, as counts by user
- * id. A table this install does not have is a true zero (nobody can be in
- * it); a count that FAILS is unknown (null), and so is the total.
- * @param {string} orgId
- * @param {string | null | undefined} userId
- * @param {DiscoveryDeps} deps
- * @returns {Promise<{ count: number | null, items: { kind: string, count: number | null }[] }>}
- */
-async function _scanProjectParticipation(orgId, userId, deps) {
-    /** @type {{ kind: string, count: number | null }[]} */
-    const items = Object.keys(PROJECT_PARTICIPATION_SQL).map(kind => ({ kind, count: 0 }));
-    if (!userId) return { count: 0, items };
-    if (!deps.db?.getOne) return { count: null, items: items.map(i => ({ ...i, count: /** @type {number | null} */ (null) })) };
-    let unknown = false;
-    for (const item of items) {
-        try {
-            const row = await deps.db.getOne(PROJECT_PARTICIPATION_SQL[item.kind], [orgId, userId]);
-            item.count = Number(row?.n) || 0;
-        } catch (e) {
-            if (e && (e.code === '42P01' || e.code === '42703')) continue;
-            item.count = null;
-            unknown = true;
-        }
-    }
-    return { count: unknown ? null : items.reduce((n, i) => n + i.count, 0), items };
 }
 
 /**
@@ -557,6 +509,7 @@ const DEP_PATHS = Object.freeze({
     db: '../../db',
     userStore: '../../stores/userStore',
     memoryStore: '../../stores/memoryStore',
+    kbQueryLogStore: '../../stores/kb/queryLog/index.mts',
     projectChatStore: '../../stores/projectChatStore',
     datatableStore: '../../stores/datatableStore',
     datatableDbStore: '../../stores/datatableDbStore',
@@ -609,7 +562,7 @@ async function run(orgId, request, {
     const userId = await _scanUser(orgId, email, d);
     const memories = await _scanMemories(userId, d);
     const teamChat = await _scanTeamChatMessages(orgId, userId, d);
-    const participation = await _scanProjectParticipation(orgId, userId, d);
+    const participation = await scanProjectParticipation(orgId, userId, d);
     const datatableSources = await _scanDatatables(orgId, needle, d, state);
     const kb = await _scanKnowledgeBases(orgId, needle, d, state);
     const prior = await _scanPriorDsrs(orgId, email, Number(request.id), d);
@@ -640,6 +593,7 @@ async function run(orgId, request, {
             href: null,
             items: participation.items.map(i => ({ ...i, label_key: `compliance.dsr_discovery_project_${i.kind}` })),
         },
+        await scanKbQueryLog(orgId, userId, d),
         ...datatableSources,
         kb,
         {

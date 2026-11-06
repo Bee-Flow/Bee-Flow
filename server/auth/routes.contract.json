@@ -161,6 +161,13 @@
         "all"
       ]
     },
+    "DELETE /api/compliance/kb-query-log/subjects/:userId": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_compliance",
+        "all"
+      ]
+    },
     "DELETE /api/compliance/ropa/projects/:projectId": {
       "gate": "permission",
       "anyOf": [
@@ -1596,6 +1603,48 @@
         "all"
       ]
     },
+    "GET /api/compliance/kb-query-log/entries": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_compliance",
+        "all"
+      ]
+    },
+    "GET /api/compliance/kb-query-log/entries/export.csv": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_compliance",
+        "all"
+      ]
+    },
+    "GET /api/compliance/kb-query-log/overview": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_compliance",
+        "all"
+      ]
+    },
+    "GET /api/compliance/kb-query-log/subjects/:userId": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_compliance",
+        "all"
+      ]
+    },
+    "GET /api/compliance/kb-query-log/subjects/:userId/content": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_compliance",
+        "all"
+      ]
+    },
+    "GET /api/compliance/kb-query-log/subjects/:userId/export": {
+      "gate": "permission",
+      "anyOf": [
+        "admin_compliance",
+        "all"
+      ]
+    },
     "GET /api/compliance/machinery/detections": {
       "gate": "permission",
       "anyOf": [
@@ -2015,6 +2064,18 @@
     "GET /api/kb/:id/documents/:docId/content": {
       "gate": "auth"
     },
+    "GET /api/kb/:id/query-log": {
+      "gate": "scope",
+      "via": "kbManager"
+    },
+    "GET /api/kb/:id/query-log/:entryId": {
+      "gate": "scope",
+      "via": "kbManager"
+    },
+    "GET /api/kb/:id/query-log/export.csv": {
+      "gate": "scope",
+      "via": "kbManager"
+    },
     "GET /api/kb/:id/sources": {
       "gate": "auth"
     },
@@ -2043,6 +2104,9 @@
       "gate": "auth"
     },
     "GET /api/kb/published": {
+      "gate": "auth"
+    },
+    "GET /api/kb/query-log/notice": {
       "gate": "auth"
     },
     "GET /api/kb/suggestions": {
@@ -3773,6 +3837,10 @@
     },
     "PATCH /api/kb/:id/publish": {
       "gate": "auth"
+    },
+    "PATCH /api/kb/:id/query-log/:entryId/review": {
+      "gate": "scope",
+      "via": "kbManager"
     },
     "PATCH /api/kb/:id/sources/:sid": {
       "gate": "permission",
@@ -6950,6 +7018,10 @@
     },
     "PUT /api/kb/:id/favorite": {
       "gate": "auth"
+    },
+    "PUT /api/kb/:id/query-log/settings": {
+      "gate": "scope",
+      "via": "kbManager"
     },
     "PUT /api/languages/:code/default": {
       "gate": "middleware",

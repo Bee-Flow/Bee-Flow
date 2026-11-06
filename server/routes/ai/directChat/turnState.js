@@ -120,6 +120,8 @@ function createTurnState({
         memoryPolicy: /** @type {PromptAndHistory['memoryPolicy']} */ (undefined),
         // Memories injected this turn (persisted on the assistant message meta).
         memoryUsed: /** @type {PromptAndHistory['memoryUsed']} */ ([]),
+        // KB query log: the collector of this turn's searches (core/kb/queryLog/hook.mts).
+        queryLogs: /** @type {PromptAndHistory['queryLogs']} */ (undefined),
 
         // ── The shared project thread's turn lock ─────────────────────
         // On the state and not in the handler because the `finally` that

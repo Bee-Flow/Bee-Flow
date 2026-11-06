@@ -132,7 +132,7 @@ const STEP_POINTERS = {
     call_block: [['blockId', 'automation']],
     datatable: [['datatableId', 'datatable']],
     ai_step: [['knowledgeBaseIds', 'knowledgeBase', true], ['skillIds', 'skill', true], ['agentId', 'agent']],
-    knowledge_write: [['knowledgeBaseId', 'knowledgeBase']],
+    knowledge_write: [['knowledgeBaseId', 'knowledgeBase']], kb_query_log: [['knowledgeBaseId', 'knowledgeBase']],
     fill_document: [['documentId', 'document']],
     generate_document: [['documentId', 'document']],
 };

@@ -70,6 +70,7 @@ const {
 const { sanitizeNoteSize, applyAddNote, NOTE_MAX_TEXT_LENGTH, NOTE_COLOR_KEYS } = require('./noteStep');
 const { applyAddReadTable, applyAddTable } = require('./tableSteps');
 const { applyAddCallBlock } = require('./callBlock');
+const { applyAddKbQueryLog } = require('./kbQueryLogStep.mts');
 
 // The apply* builder of every type the builder can create. Reused by
 // builder_replace_step and builder_add_steps so a swapped or batched step inherits
@@ -90,6 +91,7 @@ const BUILDERS = {
     aggregate: applyAddAggregate, summarize: applyAddSummarize, call_layer: applyAddCallLayer, loop: applyAddLoop,
     datatable: applyAddDatatable,
     knowledge_write: applyAddKnowledgeWrite,
+    kb_query_log: applyAddKbQueryLog,
     flatten: applyAddFlatten,
     read_table: applyAddReadTable,
     table: applyAddTable,

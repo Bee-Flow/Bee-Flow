@@ -10,7 +10,7 @@
         "studio_kb_query"
       ],
       "note": "ai_generate, ai_extract and kb_query steps each pass their own channel",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "appStudio/aiRuntime.js",
@@ -23,14 +23,14 @@
       "fn": "performKnowledgeSearch",
       "channel": "agent_chat",
       "note": "auto-inject of the agent's knowledge bases",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "core/agentRuntime/contextEnrichment.js",
       "fn": "quickKBSearch",
       "channel": "agent_chat",
       "note": "quick search of the agent's knowledge bases",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "core/agentRuntime/knowledgeRetrieval.js",
@@ -60,7 +60,7 @@
       "file": "core/automationRunner/aiStepGrounding.js",
       "fn": "quickKBSearch",
       "channel": "automation_ai_step",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "core/kb/notebookKnowledgeSearch.js",
@@ -73,7 +73,7 @@
       "fn": "searchNotebookKB",
       "channel": "notebook",
       "note": "the notebook's kb_search tool",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "core/kb/notebookKnowledgeSearch.js",
@@ -85,13 +85,13 @@
       "file": "core/skills/skillSandbox.js",
       "fn": "quickKBSearch",
       "channel": "skill",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "core/webpages/webpageAiMessages.js",
       "fn": "searchWebpageKB",
       "channel": "webpage",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "core/webpages/webpageKnowledgeSearch.js",
@@ -104,7 +104,7 @@
       "fn": "searchWebpageKB",
       "channel": "webpage",
       "note": "the webpage's kb_search tool",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "core/webpages/webpageKnowledgeSearch.js",
@@ -128,7 +128,7 @@
       "file": "integrations/supportTools.js",
       "fn": "quickKBSearch",
       "channel": "support",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "integrations/toolFamilies.js",
@@ -138,57 +138,57 @@
         "agent_chat_sync"
       ],
       "note": "the kb_search tool; agent_chat_sync when the turn comes from chatWithAgent",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "projects/chatAssistantSearchProjectKnowledge.js",
       "fn": "quickKBSearch",
       "channel": "project_assistant",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "routes/ai/directChat/promptContext.js",
       "fn": "quickKBSearch",
       "channel": "direct_chat",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "routes/ai/notebookChat/context.js",
       "fn": "searchNotebookKB",
       "channel": "notebook",
-      "hooked": false
+      "hooked": true
     },
     {
-      "file": "routes/ai/templateChat.js",
+      "file": "routes/ai/templateChatKnowledge.js",
       "fn": "quickKBSearch",
       "channel": "template_chat",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "routes/ai/webpageChat/context.js",
       "fn": "searchWebpageKB",
       "channel": "webpage",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "routes/knowledgeBases/ask.js",
       "fn": "quickKBSearch",
       "channel": "kb_test",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "routes/knowledgeBases/search.js",
       "fn": "searchLocally",
       "channel": "api_search",
       "note": "POST /api/kb/search, local provider",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "routes/knowledgeBases/search.js",
       "fn": "tools/kb-search",
       "channel": "api_search",
       "note": "POST /api/kb/search, search-service provider",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "routes/search.js",
@@ -207,7 +207,7 @@
       "fn": "groundWithKB",
       "channel": "studio_ai_chat",
       "note": "grounding is effectively off today (no viewer passed, issue #599); the hook still goes in",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "routes/support/aiConfig.js",
@@ -219,13 +219,13 @@
       "file": "routes/webpagesPreviewAsk.js",
       "fn": "searchWebpageKB",
       "channel": "webpage",
-      "hooked": false
+      "hooked": true
     },
     {
       "file": "services/supportAiResponder.js",
       "fn": "quickKBSearch",
       "channel": "support",
-      "hooked": false
+      "hooked": true
     }
   ]
 }

@@ -86,6 +86,8 @@ function makeLeafRunner(deps, dispatchStep) {
             // knowledge base is re-authorised at run time rather than trusted
             // from the definition.
             case 'knowledge_write':    return e.execKnowledgeWrite(step, ctx_, state_, mode_);
+            // Reads or reviews a knowledge base's query log (Enterprise); the owner's right to manage the base is re-checked every run.
+            case 'kb_query_log':       return e.execKbQueryLog(step, ctx_, state_, mode_);
             // Named, typed fields out of a piece of text. Runs on the ONE
             // extraction model the admin configured, never the automation's
             // tier; a dry run synthesises typed samples and never calls it.

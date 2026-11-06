@@ -47,6 +47,7 @@ const { prepareToolLoop } = require('./toolLoopSetup');
 const { runToolLoop } = require('./toolLoopRounds');
 const { toFriendlyTurnError } = require('./turnErrors');
 const { finalizeDirectChatTurn } = require('./finalizeTurn');
+const { finishTurnLogs, failTurnLogs } = require('../../../core/kb/queryLog/hook.mts');
 const { validate } = require('../../../core/http/validate');
 // Typed, not closed: see the header of ./turnSchema.js.
 const { DirectTurnBody } = require('./turnSchema');
@@ -292,12 +293,20 @@ router.post('/chat/direct/stream', requireAuth, directChatLimiter, validate({ bo
         turn.clearInterruptedTurnHook = () => { _persistInterruptedTurn = null; };
         const finalized = await finalizeDirectChatTurn(turn);
         turn.convId = finalized.convId;
+        // KB query log: the final answer goes to every search of this turn (fire and forget).
+        finishTurnLogs(turn.queryLogs, {
+            outcome: 'answered', answer: finalized.displayContent || turn.fullContent, model: turn.modelId,
+            answerMs: turn.streamStartTime ? Date.now() - turn.streamStartTime : null,
+        });
 
         send('done', { conversationId: turn.convId });
         await holdForTitle(finalized.pendingTitle);
     } catch (error) {
+        failTurnLogs(turn.queryLogs, error, turn.streamStartTime, turn.modelId);
         await handleTurnError(error, { turn, clientAbort, persistInterruptedTurn: _persistInterruptedTurn });
     } finally {
+        // A turn that ended without an answer (blocked by a gate, interrupted): idempotent after a finished turn.
+        finishTurnLogs(turn.queryLogs, { outcome: 'error', errorCode: 'not_answered', model: turn.modelId });
         await releaseTurn(turn);
     }
 });

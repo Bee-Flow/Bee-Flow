@@ -72,6 +72,7 @@ const { filterKbIdsForEmbed } = require('../kb/kbVisibility');
 const { askerContext } = require('../kb/askerContext');
 const { visibleKbIdsFor, coerceTestAs } = require('./testAs');
 const { bestEffort } = require('../../utils/bestEffort');
+const { logSearch, handleOf } = require('../kb/queryLog/hook.mts');
 
 /**
  * Narrow an agent's configured knowledge bases to what may answer THIS turn.
@@ -116,7 +117,7 @@ async function visibleKbIdsForTurn(kbIds, { agent, userId, testAs = null }) {
  * is nothing to add). Retrieval lives in ./knowledgeRetrieval, the ranking,
  * trim and prompt wording in ./knowledgeRanking.
  */
-async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnowledge, onEvent, session, testAs = null, stripPassages = null }) {
+async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnowledge, onEvent, session, testAs = null, stripPassages = null, log: queryLog = null, onQueryLog = null }) {
     const rawKbIds = agent.config?.knowledge_base_ids || [];
     /**
      * TWO filters, and they answer different questions.
@@ -146,8 +147,11 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
     }
 
     const allKnowledgeResults = kbIds.length > 0
-        ? await fetchKnowledgeResults({ userId, kbIds, userMessage }, KB_SEARCH)
+        ? await fetchKnowledgeResults({ userId, kbIds, userMessage, log: queryLog }, KB_SEARCH)
         : [];
+    // Query log: hand the handle to the caller, which finishes it when the turn's answer is known.
+    const queryLogHandle = handleOf(allKnowledgeResults);
+    if (onQueryLog && queryLogHandle) onQueryLog(queryLogHandle);
 
     if (allKnowledgeResults.length === 0) {
         if (!isStrictKnowledge) return '';
@@ -197,12 +201,13 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
  * @param {string} userId
  * @param {string[]} kbIds
  * @param {string} query — the user message
- * @param {{ topK?: number, contentCap?: number, session?: Express.Session | null }} [options]
- *   topK (default 6): max results to return; contentCap (default 3000): max chars per chunk
+ * @param {{ topK?: number, contentCap?: number, session?: Express.Session | null, log?: import('../kb/queryLog/hook.mts').LogOption | null }} [options]
+ *   topK (default 6): max results to return; contentCap (default 3000): max chars per chunk;
+ *   log: the query-log channel to record this search under, the handle comes back as `._queryLog` on the array
  * @returns {Promise<Array<{title: string, content: string, score: number}>>}
  */
 async function quickKBSearch(userId, kbIds, query, options = {}) {
-    const { topK = 6, contentCap = 3000, session = null } = options;
+    const { topK = 6, contentCap = 3000, session = null, log: queryLog = null } = options;
 
     if (!kbIds || kbIds.length === 0 || !query) return [];
 
@@ -224,6 +229,7 @@ async function quickKBSearch(userId, kbIds, query, options = {}) {
     const { resolveKbProvider } = require('../kb/resolveProvider');
     const useLocal = (await resolveKbProvider()) === 'local';
     let chunks = [];
+    const retrievalT0 = Date.now();
 
     try {
         if (useLocal) {
@@ -274,7 +280,7 @@ async function quickKBSearch(userId, kbIds, query, options = {}) {
     // it checkable, and what a table row pulled in along its relations. These
     // must not be dropped here, or the ask route's citations arrive with no
     // document behind them.
-    return deduped.slice(0, topK).map(c => ({
+    const out = deduped.slice(0, topK).map(c => ({
         title: c.title || c.source_uri || 'KB',
         content: (c.content || '').slice(0, contentCap),
         score: c.score || c.rerank_score || 0,
@@ -290,6 +296,9 @@ async function quickKBSearch(userId, kbIds, query, options = {}) {
         ...(c.kb_id != null ? { kb_id: c.kb_id } : {}),
         ...(Array.isArray(c.linked) && c.linked.length ? { linked: c.linked } : {}),
     }));
+    // The query log (core/kb/queryLog): the handle rides on the array as `_queryLog`.
+    if (queryLog) await logSearch(out, queryLog, { kbIds, query, chunks: out, retrievalMs: Date.now() - retrievalT0 });
+    return out;
 }
 
 module.exports = { performKnowledgeSearch, quickKBSearch, visibleKbIdsForTurn };
