@@ -97,7 +97,11 @@ test('H3: a failed switch in /setup leaves the URL, the key and the saved choice
         const res = await post('/setup', { mode: 'self-hosted', apiBaseUrl: NEW });
         assert.equal(res.status, 200);
         await until(() => attempted && config.tenantKey === 'old-key');
-        await new Promise((r) => setTimeout(r, 30));
+        // The saved choice is restored by the setup route's catch handler, which runs
+        // only after the bootstrap rollback has also deleted the pending file and
+        // rewritten the key cache (atomic writes since #552): wait for that, not for
+        // a fixed number of milliseconds.
+        await until(() => setupConfig.get()?.apiBaseUrl === OLD);
         assert.equal(config.apiBaseUrl, OLD);
         assert.equal(config.tenantKey, 'old-key');
         assert.equal(setupConfig.get()?.apiBaseUrl, OLD, 'a restart must not move to the server that refused');
