@@ -38,19 +38,29 @@ function MemberAvatar({ member: u }: { member: OrgMember }) {
     );
 }
 
-/** AI cost over the last 30 days; nothing when the member spent nothing. */
+/**
+ * AI cost of the member; nothing when they spent nothing. Self-hosted shows the
+ * calendar month (the period the monthly AI budget is enforced on), cloud the
+ * last 30 days; useOrgDirectory fetches the matching window.
+ */
 function MemberUsageCost({ usage }: { usage: MemberUsage | undefined }) {
     const { t } = useTranslation();
+    const { isSelfHosted } = useDeploymentMode();
     if (!usage || !usage.cost) return null;
     const cost = usage.cost;
-    const display = cost >= 100 ? `$${cost.toFixed(0)}` : cost >= 1 ? `$${cost.toFixed(2)}` : `$${cost.toFixed(3)}`;
+    const display = cost >= 100 ? `€${cost.toFixed(0)}` : cost >= 1 ? `€${cost.toFixed(2)}` : `€${cost.toFixed(3)}`;
+    const params = { calls: usage.calls.toLocaleString(), cost: `€${cost.toFixed(4)}` };
     return (
         <div
             className="hidden md:flex flex-col items-end shrink-0 text-right"
-            title={t('admin.org_usage_tooltip', { calls: usage.calls.toLocaleString(), cost: `$${cost.toFixed(4)}` })}
+            title={isSelfHosted
+                ? t('admin.org_usage_tooltip_month', '{calls} requests · {cost} this calendar month, the period of the AI budget', params)
+                : t('admin.org_usage_tooltip', params)}
         >
             <span className="text-[11px] font-semibold text-[var(--text-primary)] leading-tight">{display}</span>
-            <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider leading-tight">{t('admin.org_usage_cost_30d')}</span>
+            <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider leading-tight">
+                {isSelfHosted ? t('admin.org_usage_cost_month', 'cost · this month') : t('admin.org_usage_cost_30d')}
+            </span>
         </div>
     );
 }

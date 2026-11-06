@@ -70,11 +70,11 @@ function ModelRates({ rate }: { rate: ModelRate }) {
             <div style={S.divider} />
             <div style={{ ...S.row, marginBottom: '6px' }}>
                 <span style={S.rowLabel}>{t('admin_monitoring.drawer_input_rate', 'Input rate')}</span>
-                <span style={S.rate}>{t('admin_monitoring.drawer_rate_in', '{price}/1M tokens', { price: `$${rate.input}` })}</span>
+                <span style={S.rate}>{t('admin_monitoring.drawer_rate_in', '{price}/1M tokens', { price: `€${rate.input}` })}</span>
             </div>
             <div style={S.row}>
                 <span style={S.rowLabel}>{t('admin_monitoring.drawer_output_rate', 'Output rate')}</span>
-                <span style={S.rate}>{t('admin_monitoring.drawer_rate_out', '{price}/1M tokens', { price: `$${rate.output}` })}</span>
+                <span style={S.rate}>{t('admin_monitoring.drawer_rate_out', '{price}/1M tokens', { price: `€${rate.output}` })}</span>
             </div>
         </>
     );

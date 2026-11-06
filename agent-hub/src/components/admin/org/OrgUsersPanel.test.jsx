@@ -670,10 +670,10 @@ describe('OrgUsersPanel — per-user AI cost', () => {
                 { user_id: 'u_d', calls: 1, estimated_cost: 0 },
             ],
         });
-        expect(within(row('Anna')).getByText('$142')).toBeInTheDocument();
-        expect(within(row('Bram')).getByText('$3.46')).toBeInTheDocument();
-        expect(within(row('Cees')).getByText('$0.012')).toBeInTheDocument();
-        expect(within(row('Dana')).queryByText(/^\$/)).not.toBeInTheDocument();
+        expect(within(row('Anna')).getByText('€142')).toBeInTheDocument();
+        expect(within(row('Bram')).getByText('€3.46')).toBeInTheDocument();
+        expect(within(row('Cees')).getByText('€0.012')).toBeInTheDocument();
+        expect(within(row('Dana')).queryByText(/^€/)).not.toBeInTheDocument();
     });
 
     it('stays silent when the usage endpoint fails', async () => {
