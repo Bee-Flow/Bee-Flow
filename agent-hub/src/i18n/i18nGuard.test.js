@@ -435,7 +435,6 @@ const KEY_TABLE_FILES = [
     // het CHARTTYPE ('bar'|'line'|…) en stond het label er kaal naast; de tabel
     // is naar `{ id, key, en }` gebracht zodat `key` weer een sleutel is.
     'editor/react/ChartConfigModal.tsx',
-    'pages/settings/usage/OverviewTab.tsx',
     'pages/settings/usage/RangeControl.tsx',
 ];
 

@@ -30,10 +30,11 @@ const range = deriveRangeParams({ preset: '30d' });
 
 /** The member cells of the people table (the one with a "Member" column). */
 function memberCells(): string[] {
-    const table = screen.getAllByRole('table').find(tb => within(tb).queryByRole('columnheader', { name: 'Member' }));
+    const table = screen.queryAllByRole('table').find(tb => within(tb).queryByRole('columnheader', { name: 'Member' }));
     return table ? within(table).queryAllByRole('rowheader').map(h => h.textContent || '') : [];
 }
-const renderTab = () => renderWithClient(<AdoptionTab rangeParams={range} rangePreset="30d" showTokens currency="€" />);
+const renderTab = (props: { initialSubTab?: string; compare?: boolean } = {}) => renderWithClient(<AdoptionTab rangeParams={range} rangePreset="30d" showTokens currency="€" {...props} />);
+const renderPeople = () => renderTab({ initialSubTab: 'people' });
 
 beforeEach(() => { seen.length = 0; });
 afterEach(() => { setDemoTransport(null); vi.restoreAllMocks(); });
@@ -50,19 +51,57 @@ describe('adoptionQuery', () => {
 });
 
 describe('AdoptionTab', () => {
-    it('renders the hero, the areas, the Studio table, the groups, the people and the notes', async () => {
+    it('renders the hero, the Studio view by default and the notes', async () => {
         install();
         renderTab();
         expect(await screen.findByText('72%')).toBeTruthy();
         expect(screen.getByText('107 of 148 members used AI')).toBeTruthy();
-        expect(screen.getByText('Where the AI goes')).toBeTruthy();
-        expect(screen.getByRole('img', { name: 'AI spend per week, by area' })).toBeTruthy();
-        expect(screen.getByText('Studio adoption')).toBeTruthy();
+        expect(screen.getByText('↑ 5 pts')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Studio' }).getAttribute('aria-pressed')).toBe('true');
+        expect(screen.getByText(/^Studio: what people build/)).toBeTruthy();
+        expect(await screen.findByRole('button', { name: /^Agents/ })).toBeTruthy();
+        expect(screen.queryByText('Adoption by group')).toBeNull();
+    });
+
+    it('switches between Studio, People, Groups and Areas, with the notes under each', async () => {
+        install();
+        const user = userEvent.setup();
+        renderTab();
+        await screen.findByText('72%');
+        await user.click(screen.getByRole('button', { name: 'People' }));
+        expect(await screen.findByText('Names are hidden')).toBeTruthy();
+        expect(screen.getByText(/^People: who uses AI/)).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /^Agents/ })).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Groups' }));
         expect(await screen.findByText('Adoption by group')).toBeTruthy();
         expect(screen.getByText('Other groups (3)')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Areas' }));
+        expect(await screen.findByText('Where the AI goes')).toBeTruthy();
+        expect(screen.getByRole('img', { name: 'AI spend per week, by area' })).toBeTruthy();
+    });
+
+    it('opens the sub-tab it is given and offers the Areas view from the spend fact', async () => {
+        install();
+        const user = userEvent.setup();
+        renderTab({ initialSubTab: 'people' });
         expect(await screen.findByText('Names are hidden')).toBeTruthy();
-        expect(screen.getByText('Who can see this')).toBeTruthy();
-        expect(screen.getByText('Growing')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'People' }).getAttribute('aria-pressed')).toBe('true');
+        await user.click(screen.getByRole('button', { name: /Where the AI goes/ }));
+        expect(await screen.findByRole('img', { name: 'AI spend per week, by area' })).toBeTruthy();
+    });
+
+    it('falls back to Studio for an unknown sub-tab', async () => {
+        install();
+        renderTab({ initialSubTab: 'feedback' });
+        expect(await screen.findByRole('button', { name: /^Agents/ })).toBeTruthy();
+    });
+
+    it('hides the change against the previous period when compare is off', async () => {
+        install();
+        renderTab({ compare: false });
+        await screen.findByText('72%');
+        expect(screen.queryByText('↑ 5 pts')).toBeNull();
+        expect(screen.queryAllByTestId('delta-pill')).toHaveLength(0);
     });
 
     it('narrows every read to the chosen group', async () => {
@@ -80,7 +119,7 @@ describe('AdoptionTab', () => {
     it('reveals names on one click, says it was recorded, and hides them again', async () => {
         install();
         const user = userEvent.setup();
-        renderTab();
+        renderPeople();
         const table = await screen.findByText('Names are hidden');
         expect(table).toBeTruthy();
         expect((await screen.findAllByText(/^Member · /)).length).toBeGreaterThan(0);
@@ -105,7 +144,7 @@ describe('AdoptionTab', () => {
             },
         });
         const user = userEvent.setup();
-        renderTab();
+        renderPeople();
         await screen.findAllByText(/^Member · /);
         await user.click(screen.getByRole('button', { name: 'Reveal names' }));
         await screen.findByText('Names shown · recorded in the access audit log');
@@ -124,7 +163,7 @@ describe('AdoptionTab', () => {
     it('asks the server again, and so records again, on every "Reveal names"', async () => {
         install();
         const user = userEvent.setup();
-        renderTab();
+        renderPeople();
         await screen.findAllByText(/^Member · /);
         const reveals = () => seen.filter(u => u.searchParams.get('reveal') === 'true').length;
         await user.click(screen.getByRole('button', { name: 'Reveal names' }));
@@ -144,7 +183,7 @@ describe('AdoptionTab', () => {
                 : BASE_ROUTES['GET /api/usage/adoption/people'](ctx)),
         });
         const user = userEvent.setup();
-        renderTab();
+        renderPeople();
         await screen.findByText('Names are hidden');
         await user.click(screen.getByRole('button', { name: 'Reveal names' }));
         expect(await screen.findByText('Names not revealed')).toBeTruthy();
@@ -154,37 +193,18 @@ describe('AdoptionTab', () => {
         expect((await screen.findAllByText(/^Member · /)).length).toBeGreaterThan(0);
     });
 
-    it('exports a CSV with pseudonyms, and with names only after a reveal', async () => {
-        install();
-        const user = userEvent.setup();
-        const blobs: Blob[] = [];
-        vi.spyOn(URL, 'createObjectURL').mockImplementation((b: Blob | MediaSource) => { blobs.push(b as Blob); return 'blob:x'; });
-        vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-        renderTab();
-        await screen.findAllByText(/^Member · /);
-        await user.click(screen.getByRole('button', { name: 'Export CSV' }));
-        const first = await blobs[0].text();
-        expect(first).toContain('# people (pseudonymous)');
-        expect(first).toMatch(/Member · [A-Z2-9]{4}/);
-        expect(first).not.toMatch(/Alex Morgan/);
-        await user.click(screen.getByRole('button', { name: 'Reveal names' }));
-        await screen.findByText('Names shown · recorded in the access audit log');
-        await user.click(screen.getByRole('button', { name: 'Export CSV' }));
-        const second = await blobs[1].text();
-        expect(second).toContain('# people (names revealed');
-        expect(second).not.toMatch(/Member · [A-Z2-9]{4}/);
-    });
 
-    it('opens a kind\'s drill-down from the Studio table with Enter', async () => {
+    it('opens a kind\'s drill-down inline under its row with Enter', async () => {
         install();
         const user = userEvent.setup();
         renderTab();
-        const open = await screen.findByRole('button', { name: 'Open Agents' });
+        const open = await screen.findByRole('button', { name: /^Agents/ });
         open.focus();
         await user.keyboard('{Enter}');
-        const dialog = await screen.findByRole('dialog');
-        expect(within(dialog).getByText('Agents · 42 in the organisation')).toBeTruthy();
-        expect(await within(dialog).findByText('Who uses it most')).toBeTruthy();
+        expect(open.getAttribute('aria-expanded')).toBe('true');
+        const panel = await screen.findByRole('region', { name: /Agents · 42 in the organisation/ });
+        expect(panel.closest('table')).toBeTruthy();
+        expect(await within(panel).findByText('Who uses it most')).toBeTruthy();
     });
 
     it('says so when the report cannot be read', async () => {

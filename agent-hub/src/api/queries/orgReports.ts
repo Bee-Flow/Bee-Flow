@@ -48,6 +48,12 @@ export function useOrgFeedbackQuery<Item>(q: string) {
     });
 }
 
+/** The range filter of the terminations reads: a start/end window, else `?days=N`, else none. */
+export function terminationsRangeQuery(range: { startDate?: string | null; endDate?: unknown; days?: number | null } | undefined): string {
+    if (range?.startDate) return `?startDate=${encodeURIComponent(range.startDate)}&endDate=${encodeURIComponent(String(range.endDate))}`;
+    return range?.days != null ? `?days=${range.days}` : '';
+}
+
 const TERMINATIONS_API = `${API_BASE}/api/terminations/org`;
 
 export interface TerminationsReport<Summary, Timeline, Row, ByAgent> {

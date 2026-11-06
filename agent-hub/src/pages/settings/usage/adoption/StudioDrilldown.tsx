@@ -1,13 +1,10 @@
-import { Activity, Download, Euro, EyeOff, Hammer, PackageOpen, Send, Users } from 'lucide-react';
+import { Activity, Euro, EyeOff, Hammer, PackageOpen, Send, Users } from 'lucide-react';
 import { useState } from 'react';
-import Modal from '@/components/shared/Modal';
 import { useAdoptionStudioItems } from '@/api/queries/usageAdoption';
 import { useTranslation } from '@/hooks/useTranslation';
-import { downloadCsv } from '@/utils/usageHelpers';
 import { Card, EmptyInline, FilterChipBar, MetricCard, MetricGrid, SectionTitle, ShowMore } from '../kit';
 import type { ChipValue } from '../kit.types';
 import type { AdoptionItem, AdoptionKind, AdoptionStudioItems, Audience } from './adoption.types';
-import { itemsCsv } from './exportCsv';
 import { fAgo, fDate, fInt, fMoney } from './format';
 import { kindMeta, usageNoun } from './kindMeta';
 
@@ -21,7 +18,6 @@ interface StudioDrilldownProps {
     currency: string;
     /** "6 Oct – 5 Nov 2026 · all groups". */
     scopeLabel: string;
-    onClose: () => void;
 }
 
 function audienceLabel(a: Audience, t: T): string {
@@ -148,32 +144,27 @@ function SidePanels({ data, currency }: { data: AdoptionStudioItems; currency: s
  * it and how much it was used, who uses the kind most (pseudonymous, always)
  * and what was published but not used in the period.
  */
-export default function StudioDrilldown({ kind, qs, currency, scopeLabel, onClose }: StudioDrilldownProps) {
+export default function StudioDrilldown({ kind, qs, currency, scopeLabel }: StudioDrilldownProps) {
     const { t } = useTranslation();
     const meta = kindMeta(kind.kind, t);
     const query = useAdoptionStudioItems<AdoptionStudioItems>(qs, kind.kind);
     const data = query.data ?? null;
-    const exportItems = () => { if (data) downloadCsv(`adoption-${kind.kind}.csv`, itemsCsv(data)); };
+    const title = t('adoption.drill_title', '{kind} · {n} in the organisation', { kind: meta.label, n: fInt(kind.total) });
     return (
-        <Modal open onClose={onClose} placement="right" size="xl"
-            title={t('adoption.drill_title', '{kind} · {n} in the organisation', { kind: meta.label, n: fInt(kind.total) })}
-            description={scopeLabel}
-            headerActions={data ? (
-                <button type="button" onClick={exportItems} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] px-2.5 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
-                    <Download className="h-3.5 w-3.5" aria-hidden="true" />{t('adoption.export_csv', 'Export CSV')}
-                </button>
-            ) : null}>
-            <div className="flex flex-col gap-4">
-                <DrillKpis kind={kind} data={data} currency={currency} />
-                {query.isLoading && <EmptyInline text={t('adoption.loading', 'Loading…')} />}
-                {!query.isLoading && !data && <EmptyInline text={t('adoption.drill_error', 'The items of this kind could not be read.')} boxed />}
-                {data && (
-                    <div className="grid gap-3 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_260px]">
-                        <ItemsTable data={data} currency={currency} hasSignal={kind.usage != null} />
-                        <SidePanels data={data} currency={currency} />
-                    </div>
-                )}
+        <section aria-label={title} className="flex flex-col gap-4 p-4">
+            <div className="min-w-0">
+                <h3 className="m-0 text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
+                {scopeLabel && <p className="m-0 mt-0.5 text-xs text-[var(--text-muted)]">{scopeLabel}</p>}
             </div>
-        </Modal>
+            <DrillKpis kind={kind} data={data} currency={currency} />
+            {query.isLoading && <EmptyInline text={t('adoption.loading', 'Loading…')} />}
+            {!query.isLoading && !data && <EmptyInline text={t('adoption.drill_error', 'The items of this kind could not be read.')} boxed />}
+            {data && (
+                <div className="grid gap-3 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_260px]">
+                    <ItemsTable data={data} currency={currency} hasSignal={kind.usage != null} />
+                    <SidePanels data={data} currency={currency} />
+                </div>
+            )}
+        </section>
     );
 }

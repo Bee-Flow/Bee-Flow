@@ -24,6 +24,7 @@
 import { pick } from '../lang';
 import { COMMON_ROUTES } from './common';
 import { ADOPTION_ROUTES } from './monitoringAdoption';
+import { QUALITY_ROUTES } from './monitoringQuality';
 
 const dayKey = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 
@@ -495,4 +496,6 @@ export const ROUTES = {
     // words in real users' mouths for a screenshot.
     'GET /api/feedback': () => ({ feedback: [], total: 0 }),
     'GET /api/feedback/summary': () => ({ up: 0, down: 0, total: 0 }),
+
+    ...QUALITY_ROUTES,
 };

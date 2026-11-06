@@ -1,58 +1,58 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useUsageSubscription, useUsageTiers, useUsageReport } from '../../api/queries/settingsUsage';
 import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
 import {
-    Bot, Filter, X, Cpu, Users, ChevronDown, Activity, BarChart3,
-    AlertTriangle, ThumbsUp,
+    Bot, Filter, X, Cpu, Users, ChevronDown, Activity, BarChart3, Coins, ThumbsUp,
     type LucideIcon,
 } from 'lucide-react';
-import OrgFeedbackPanel from './OrgFeedbackPanel';
-import OrgTerminationsPanel from './OrgTerminationsPanel';
 import { useLicenseContext } from '../../components/licensing/LicenseContext';
 import { useDeploymentMode } from '../../hooks/useDeploymentMode';
 import { deriveRangeParams, USAGE_ALL_DAYS, buildModelTierMap, tierForModel } from '../../utils/usageHelpers';
-import { currencySym, shortModel } from './usage/format';
+import { currencySym, shortModel, formatDateRange } from './usage/format';
 import { getSourceDetails } from './usage/widgets';
 import RangeControl, { defaultRange } from './usage/RangeControl';
 import OverviewTab from './usage/OverviewTab';
 import AdoptionTab from './usage/adoption/AdoptionTab';
+import SpendTab from './usage/spend/SpendTab';
+import QualityTab from './usage/quality/QualityTab';
 import type { StarterModel } from '../../api/runtimeTypes';
 import type { DropdownOption } from './PreferencesSection.types';
-import { logger } from '../../utils/logger';
 
 /* ── Report tabs ─────────────────────────────────────────────────────────── */
 // Safety & Integrations moved to Settings → Organisation → Privacy Shield →
 // "What happened" (?tab=activity) — they are shield monitoring, not
 // consumption reporting. This page keeps the money/usage reports.
 const REPORT_TABS = [
-    { id: 'overview', labelKey: 'usage.tab_overview', label: 'Overview', icon: BarChart3, color: '#0ea5e9' },
-    { id: 'adoption', labelKey: 'adoption.tab', label: 'Adoption', icon: Users, color: '#10b981' },
-    { id: 'feedback', labelKey: 'usage.tab_feedback', label: 'Feedback', icon: ThumbsUp, color: '#10b981' },
-    { id: 'terminations', labelKey: 'usage.tab_terminations', label: 'Terminations', icon: AlertTriangle, color: '#f43f5e' },
+    { id: 'overview', labelKey: 'usage.tab_overview', label: 'Overview', icon: BarChart3 },
+    { id: 'adoption', labelKey: 'adoption.tab', label: 'Adoption', icon: Users },
+    { id: 'spend', labelKey: 'usage.tab_spend', label: 'Spend', icon: Coins },
+    { id: 'quality', labelKey: 'usage.tab_quality', label: 'Quality', icon: ThumbsUp },
 ];
+
+/** Deep links: the retired Feedback and Terminations reports are Quality sub-tabs now. */
+function resolveReport(id: string): { tab: string; sub?: string } | null {
+    if (id === 'feedback' || id === 'terminations') return { tab: 'quality', sub: id };
+    return REPORT_TABS.some(tab => tab.id === id) ? { tab: id } : null;
+}
 
 interface ReportTabBarProps {
     active: string;
-    onChange: React.Dispatch<React.SetStateAction<string>>;
+    onChange: (id: string) => void;
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
-    tabs?: { id: string; labelKey: string; label: string; icon: LucideIcon; color: string; }[];
+    tabs?: { id: string; labelKey: string; label: string; icon: LucideIcon; }[];
 }
 
 const ReportTabBar = ({ active, onChange, t: translate, tabs = REPORT_TABS }: ReportTabBarProps) => (
-    <div className="[display:flex] [align-items:center] [gap:4px] [border-bottom:1px_solid_var(--border-default,var(--border-subtle))]">
+    <div className="flex items-center gap-1 border-b border-[var(--border-subtle)]">
         {tabs.map(tab => {
             const Icon = tab.icon;
             const isActive = active === tab.id;
             return (
-                <button key={tab.id} onClick={() => onChange(tab.id)} style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    background: isActive ? 'var(--bg-secondary)' : 'transparent',
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    fontWeight: isActive ? 500 : 400, fontSize: 13, transition: 'background 0.15s ease, color 0.15s ease',
-                }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)'; }}
-                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
-                    <Icon style={{ width: 14, height: 14, color: isActive ? tab.color : 'var(--text-muted)' }} />
+                <button key={tab.id} type="button" onClick={() => onChange(tab.id)}
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border-0 px-3 py-1.5 text-[13px] transition-colors hover:bg-[var(--bg-secondary)] ${isActive
+                        ? 'bg-[var(--bg-secondary)] font-medium text-[var(--text-primary)]'
+                        : 'bg-transparent font-normal text-[var(--text-secondary)]'}`}>
+                    <Icon className={`h-[14px] w-[14px] ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
                     {translate(tab.labelKey, tab.label)}
                 </button>
             );
@@ -71,12 +71,9 @@ interface FilterPillProps {
 
 const FilterPill = ({ icon: Icon, value, onChange, options, placeholder }: FilterPillProps) => (
     <div className="[position:relative]">
-        <div style={{
-            display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 8,
-            background: value ? 'var(--accent-primary)' : 'var(--bg-primary)',
-            border: `1px solid ${value ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
-            fontSize: 12, fontWeight: 500, color: value ? '#fff' : 'var(--text-secondary)', transition: 'all 0.15s ease',
-        }}>
+        <div className={`flex items-center gap-[5px] rounded-lg border px-2.5 py-[5px] text-xs font-medium transition-all ${value
+            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+            : 'border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'}`}>
             {Icon && <Icon className="w-[12px] h-[12px] [flex-shrink:0]" />}
             <select value={value || ''} onChange={(e) => onChange(e.target.value || null)} className="[background:transparent] [border:none] [outline:none] [color:inherit] [font-size:12px] [font-weight:500] [cursor:pointer] [appearance:none] [-webkit-appearance:none] min-w-[60px] [padding-right:14px]">
                 <option value="">{placeholder}</option>
@@ -130,21 +127,25 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
 
     const [range, setRange] = useState(() => defaultRange('30d'));
     const rangeParams = useMemo(() => deriveRangeParams(range), [range]);
-    // initialReport lets deep links open a specific report tab. Unknown values
-    // — including the RETIRED 'safety'/'integrations' ids from old bookmarks —
-    // fall back to overview; the license bounce below still wins for
-    // non-Enterprise orgs. (Those reports now live on the Privacy Shield's
-    // Activity tab: /app/settings/organisation/privacy?tab=activity.)
-    const [activeReport, setActiveReport] = useState(() =>
-        REPORT_TABS.some(tab => tab.id === initialReport) ? initialReport : 'overview');
+    // initialReport lets deep links open a specific report tab (and sub-tab). Unknown
+    // values — including the RETIRED 'safety'/'integrations' ids from old bookmarks —
+    // fall back to overview; the license bounce below still wins for non-Enterprise
+    // orgs. (Those reports now live on the Privacy Shield's Activity tab.)
+    // `nonce` remounts the tab, so a new deep link or onOpenTab re-seeds its sub-tab.
+    const [nav, setNav] = useState(() => ({ ...(resolveReport(initialReport) ?? { tab: 'overview' }), nonce: 0 }));
+    const activeReport = canSeeAdvancedUsage ? nav.tab : 'overview';
+    // Re-clicking the active tab keeps its state (open rows, group filter, a revealed people list);
+    // only a different tab or an explicit sub-tab remounts.
+    const openTab = useCallback((tab: string, sub?: string) => setNav(n => (
+        tab === n.tab && sub === undefined ? n : { tab, sub, nonce: n.nonce + 1 }
+    )), []);
 
     const [prevInitialReport, setPrevInitialReport] = useState(initialReport);
     if (prevInitialReport !== initialReport) {
         setPrevInitialReport(initialReport);
-        if (initialReport && REPORT_TABS.some(tab => tab.id === initialReport)) setActiveReport(initialReport);
+        const target = resolveReport(initialReport);
+        if (initialReport && target) openTab(target.tab, target.sub);
     }
-
-    if (!canSeeAdvancedUsage && activeReport !== 'overview') setActiveReport('overview');
 
     // Subscription (customer-view header: plan, billing, cost cap).
     const subscription = useUsageSubscription().data ?? null;
@@ -206,11 +207,18 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const modelOptions = useMemo(() => data.models.map(m => ({ value: m.model, label: shortModel(m.model) })), [data.models]);
     const sourceOptions = useMemo(() => data.sources.map(s => ({ value: s.source, label: getSourceDetails(s.source, t).label })), [data.sources, t]);
 
-    // Feedback, Terminations and Adoption read their own endpoints: the
-    // cross-cutting user/agent/model/source filters do not apply to them, and
-    // Adoption has its own group filter.
-    const isPanelTab = activeReport === 'feedback' || activeReport === 'terminations' || activeReport === 'adoption';
+    // Adoption and Quality read their own endpoints: the cross-cutting
+    // user/agent/model/source filters and the usage skeleton only apply to
+    // Overview and Spend.
+    const isUsageTab = activeReport === 'overview' || activeReport === 'spend';
+    const rangeLabel = formatDateRange(rangeParams.startDate, rangeParams.endDate);
     const billing = (subscription as { billing?: { plan_currency?: string } | null } | null)?.billing;
+
+    const usageProps = {
+        data, subscription, isCustomerView, showTokens, tierForModel: tierFor, modelTiers, azureServices,
+        setFilterUser, setFilterModel, setFilterSource, onOpenTab: openTab,
+        rangeParams, rangePreset: range.preset, hasFilters: Boolean(hasFilters),
+    };
 
     return (
         <div className="[display:flex] [flex-direction:column] [gap:16px] [padding-bottom:24px]">
@@ -218,18 +226,18 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0 flex-1">
                     <h2 data-tour="usage-summary" className="text-lg font-semibold text-[var(--text-primary)]">{t('usage.title')}</h2>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">{t('usage.subtitle')}</p>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                        {t('usage.subtitle')}{rangeLabel ? ` · ${rangeLabel}` : ''}
+                    </p>
                 </div>
                 <RangeControl range={range} onChange={setRange} t={t} />
             </div>
 
-            <ReportTabBar active={activeReport} onChange={setActiveReport} t={t} tabs={visibleTabs} />
+            <ReportTabBar active={activeReport} onChange={openTab} t={t} tabs={visibleTabs} />
 
-            {/* Cross-cutting filter bar — usage tabs only */}
-            <div style={{
-                display: isPanelTab ? 'none' : 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
-                padding: '6px 10px', borderRadius: 10, background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)',
-            }}>
+            {/* Cross-cutting filter bar — Overview and Spend only */}
+            {isUsageTab && (
+            <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-2.5 py-1.5">
                 <div className="[display:flex] [align-items:center] [gap:4px] [margin-right:2px]">
                     <Filter className="w-[12px] h-[12px] [color:var(--text-muted)]" />
                     <span className="[font-size:10px] [font-weight:700] [color:var(--text-muted)] [text-transform:uppercase] [letter-spacing:0.05em]">{t('usage.filters')}</span>
@@ -247,8 +255,9 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                     </button>
                 )}
             </div>
+            )}
 
-            {loading && !isPanelTab ? (
+            {loading && isUsageTab ? (
                 <div className="[display:flex] [flex-direction:column] [gap:12px]">
                     <div className="[display:grid] [grid-template-columns:repeat(4,1fr)] [gap:10px]">
                         {[1, 2, 3, 4].map(i => <div key={i} className="h-[80px] [border-radius:12px] [background:var(--bg-tertiary)] [animation:pulse_1.5s_ease-in-out_infinite]" />)}
@@ -257,18 +266,20 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                 </div>
             ) : (
                 <>
-                    {activeReport === 'overview' && (
-                        <OverviewTab
-                            t={t} data={data} subscription={subscription} isCustomerView={isCustomerView}
-                            showTokens={showTokens} tierForModel={tierFor} modelTiers={modelTiers} azureServices={azureServices}
-                            setFilterUser={setFilterUser} setFilterModel={setFilterModel} setFilterSource={setFilterSource}
+                    {activeReport === 'overview' && <OverviewTab {...usageProps} />}
+                    {activeReport === 'spend' && <SpendTab {...usageProps} key={nav.nonce} initialSubTab={nav.sub} />}
+                    {activeReport === 'adoption' && (
+                        <AdoptionTab
+                            key={nav.nonce} rangeParams={rangeParams} rangePreset={range.preset} showTokens={showTokens}
+                            currency={currencySym(billing?.plan_currency || 'EUR')}
+                            initialSubTab={nav.sub}
                         />
                     )}
-                    {activeReport === 'adoption' && (
-                        <AdoptionTab rangeParams={rangeParams} rangePreset={range.preset} showTokens={showTokens} currency={currencySym(billing?.plan_currency || 'EUR')} />
+                    {activeReport === 'quality' && (
+                        <QualityTab key={nav.nonce} rangeParams={rangeParams} showTokens={showTokens} initialSubTab={nav.sub}
+                            // The feedback and termination counts are org-wide; a filtered call count would skew their share.
+                            totalCalls={hasFilters ? undefined : data.summary?.total_calls} />
                     )}
-                    {activeReport === 'feedback' && <OrgFeedbackPanel rangeParams={rangeParams} showTokens={showTokens} />}
-                    {activeReport === 'terminations' && <OrgTerminationsPanel rangeParams={rangeParams} showTokens={showTokens} />}
                 </>
             )}
         </div>

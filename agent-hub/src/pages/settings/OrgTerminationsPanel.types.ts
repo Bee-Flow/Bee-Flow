@@ -1,21 +1,4 @@
-import type { TranslateParams } from '../../hooks/useTranslation';
 import type { RangeParams } from '../../utils/usageHelpers';
-
-export interface TypeBadgeProps {
-    type: string;
-    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
-}
-
-export interface StackedBarChartProps {
-    data: { period: string; termination_type: string; count: number }[];
-    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
-}
-
-export interface DetailRowProps {
-    label: string;
-    value: string | null | undefined;
-    mono?: boolean;
-}
 
 export interface TerminationRow {
     id: string;
@@ -50,4 +33,25 @@ export interface TerminationsByType {
 export interface OrgTerminationsPanelProps {
     rangeParams: RangeParams;
     showTokens?: boolean;
+}
+
+export interface TerminationsSummary {
+    total: number;
+    by_type: TerminationsByType;
+}
+
+export interface TimelinePoint {
+    period: string;
+    termination_type: string;
+    count: number;
+}
+
+export interface ByAgentRow {
+    agent_id?: string;
+    agent_name?: string;
+    total: number;
+    max_tokens?: number;
+    max_iterations?: number;
+    errors?: number;
+    aborted?: number;
 }

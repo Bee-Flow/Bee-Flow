@@ -27,37 +27,6 @@ export function rowsToCsv(headers: string[], rows: Array<Record<string, unknown>
     return lines.join('\n');
 }
 
-export function downloadCsv(filename: string, csv: string): void {
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// ── Half-period trend delta ─────────────────────────────────────────────────
-// Splits a timeline (an array of per-day rows) in half, reduces each half via
-// `valueFn(row) -> number`, and returns the delta. The Integrations score
-// trend uses this pattern with a PII-weighted formula; Overview / Safety use
-// it with simpler value functions (sum of cost, count of pii).
-//
-// Returns `{ delta, prev, curr }` or null when there's not enough history.
-
-export function computeHalfPeriodDelta<T>(timeline: T[] | null | undefined, valueFn: (row: T) => unknown, opts: { minBuckets?: number } = {}): { delta: number; prev: number; curr: number } | null {
-    const minBuckets = opts.minBuckets || 2;
-    if (!Array.isArray(timeline) || timeline.length < minBuckets) return null;
-    const half = Math.floor(timeline.length / 2);
-    if (half < 1) return null;
-    const sumOver = (arr: T[]): number => arr.reduce((s, r) => s + (Number(valueFn(r)) || 0), 0);
-    const prev = sumOver(timeline.slice(0, half));
-    const curr = sumOver(timeline.slice(half));
-    return { delta: curr - prev, prev, curr };
-}
-
 /** The range model the picker holds. */
 export interface RangeInput {
     preset?: string;

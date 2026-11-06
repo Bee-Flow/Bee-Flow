@@ -70,7 +70,7 @@ function operatorColor(name: string | null | undefined): string {
  * excludes purple/violet/indigo (project styling rule) — the old per-file
  * `C` palettes (including the latent indigo `#6366f1`) are replaced by this.
  */
-export const SEMANTIC = {
+const SEMANTIC = {
     in: '#3b82f6',      // input tokens / sent
     out: '#f59e0b',     // output tokens / received-ish
     eu: '#10b981',      // EU/EEA

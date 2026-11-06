@@ -29,30 +29,57 @@ function renderSection(features: string[], initialReport = '') {
 beforeEach(() => { setDemoTransport(createDemoTransport(ROUTES as unknown as DemoRoutes, createState())); });
 afterEach(() => { setDemoTransport(null); });
 
-describe('UsageSection: the Adoption tab', () => {
-    it('sits after Overview behind advanced_usage_monitoring', () => {
+describe('UsageSection: tabs and header', () => {
+    it('orders Overview, Adoption, Spend, Quality behind advanced_usage_monitoring', () => {
         renderSection(['advanced_usage_monitoring']);
-        const tabs = screen.getAllByRole('button').map(b => b.textContent);
-        expect(tabs.indexOf('Adoption')).toBe(tabs.indexOf('Overview') + 1);
+        const labels = ['Overview', 'Adoption', 'Spend', 'Quality'];
+        const tabs = screen.getAllByRole('button').map(b => b.textContent ?? '').filter(x => labels.includes(x));
+        expect(tabs).toEqual(labels);
     });
 
-    it('is absent without the feature, and a deep link falls back to Overview', () => {
+    it('shows Overview only without the feature, and a deep link falls back to it', () => {
         renderSection([], 'adoption');
         expect(screen.queryByRole('button', { name: 'Adoption' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Quality' })).toBeNull();
         expect(screen.getByText('Filters')).toBeVisible();
     });
 
-    it('opens by deep link and hides the cross-cutting filter bar', async () => {
+    it('opens Adoption by deep link and drops the cross-cutting filter bar', async () => {
         renderSection(['advanced_usage_monitoring'], 'adoption');
         expect(await screen.findByText('107 of 148 members used AI')).toBeTruthy();
-        expect(screen.getByText('Filters')).not.toBeVisible();
+        expect(screen.queryByText('Filters')).toBeNull();
         expect(screen.getByRole('heading', { name: 'Usage & Monitoring' }).getAttribute('data-tour')).toBe('usage-summary');
     });
 
-    it('switches to Adoption from the tab bar', async () => {
+    it('switches to Adoption and Spend from the tab bar', async () => {
         const user = userEvent.setup();
         renderSection(['advanced_usage_monitoring']);
         await user.click(screen.getByRole('button', { name: 'Adoption' }));
         expect(await screen.findByText('Where the AI goes')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Spend' }));
+        expect(await screen.findByText('Filters')).toBeVisible();
     });
+
+    it('keeps the sub-tab when the active report tab is clicked again', async () => {
+        const user = userEvent.setup();
+        renderSection(['advanced_usage_monitoring'], 'adoption');
+        await screen.findByText('107 of 148 members used AI');
+        await user.click(screen.getByRole('button', { name: 'People' }));
+        expect(screen.getByRole('button', { name: 'People' }).getAttribute('aria-pressed')).toBe('true');
+        await user.click(screen.getByRole('button', { name: 'Adoption' }));
+        expect(screen.getByRole('button', { name: 'People' }).getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('opens Quality with the Feedback sub-tab for the feedback deep link', () => {
+        renderSection(['advanced_usage_monitoring'], 'feedback');
+        expect(screen.getByRole('button', { name: 'Feedback' }).getAttribute('aria-pressed')).toBe('true');
+        expect(screen.getByRole('button', { name: 'Terminations' }).getAttribute('aria-pressed')).toBe('false');
+        expect(screen.queryByText('Filters')).toBeNull();
+    });
+
+    it('opens the Terminations sub-tab for the terminations deep link', () => {
+        renderSection(['advanced_usage_monitoring'], 'terminations');
+        expect(screen.getByRole('button', { name: 'Terminations' }).getAttribute('aria-pressed')).toBe('true');
+    });
+
 });
