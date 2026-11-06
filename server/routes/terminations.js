@@ -46,6 +46,7 @@ const terminationStore = require('../stores/terminationStore');
 const { resolveUserOrgIds, isOrgAdminRole, requirePermission } = require('../auth');
 const userStore = require('../stores/userStore');
 const { validate } = require('../core/http/validate');
+const { withPersonColumn } = require('../core/privacy/personColumn');
 const { z, typeError, datetimeWithOffset } = require('../utils/zod');
 
 // What terminationStore.logTermination accepts (its VALID_TYPES) — the only
@@ -76,6 +77,8 @@ const TerminationsQuery = z.object({
     // Above 500 is answered with 500 rows, as before: a page, not a lie.
     limit: z.coerce.number({ error: typeError({ invalid: 'limit must be a number.' }) })
         .int('limit must be a whole number.').min(1, 'limit must be at least 1.').optional(),
+    // /org list only: names instead of pseudonyms, after an access-audit row.
+    reveal: z.enum(['true', 'false'], { error: () => 'reveal is true or false.' }).optional(),
 }).strict();
 
 const readQuery = validate({ query: TerminationsQuery });
@@ -170,8 +173,15 @@ async function requireOwnOrgAdminScope(req, res, next) {
 
 router.get('/org', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const limit = Math.min(req.query.limit || 100, 500);
-    const rows = await terminationStore.getList(termFilters(req), limit);
-    res.json({ rows });
+    const filters = termFilters(req);
+    const found = await terminationStore.getList(filters, limit);
+    const reveal = req.query.reveal === 'true';
+    // People are pseudonymous (the Adoption labels) unless the admin reveals them, audited first.
+    const rows = await withPersonColumn(found, {
+        orgId: String(req.termOrgId), actorId: String(req.session?.user?.id),
+        reveal, startDate: filters.startDate, endDate: filters.endDate,
+    });
+    res.json({ rows, revealed: reveal });
 });
 
 router.get('/org/summary', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {

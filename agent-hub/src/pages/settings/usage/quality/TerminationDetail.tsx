@@ -25,7 +25,7 @@ export function TerminationDetail({ row: r, showTokens }: { row: TerminationRow;
         <div className="flex flex-col gap-1.5 text-xs text-[var(--text-muted)]">
             <DetailRow label={t('org.terminations_detail_source', 'Source')} value={r.source} />
             <DetailRow label={t('org.terminations_detail_conversation', 'Conversation')} value={r.conversation_id} mono />
-            <DetailRow label={t('org.terminations_detail_user', 'User')} value={r.user_id} mono />
+            <DetailRow label={t('org.terminations_detail_user', 'User')} value={r.person?.name ?? t('org.feedback_anonymous', 'Anonymous')} />
             <DetailRow label={t('org.terminations_detail_error_class', 'Error class')} value={r.error_class} />
             <DetailRow label={t('org.terminations_detail_error', 'Error')} value={r.error_first_line} mono />
             <DetailRow label={t('org.terminations_detail_stack', 'Stack')} value={r.stack_first_line} mono />

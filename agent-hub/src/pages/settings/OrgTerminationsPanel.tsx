@@ -11,9 +11,9 @@ import type { OrgTerminationsPanelProps } from './OrgTerminationsPanel.types';
 const TERMINATIONS_ERROR_ALERT_PCT = 5;
 const TERMINATIONS_MIN_SAMPLE = 10;
 
-export default function OrgTerminationsPanel({ rangeParams, showTokens = true }: OrgTerminationsPanelProps) {
+export default function OrgTerminationsPanel({ rangeParams, showTokens = true, reveal = false }: OrgTerminationsPanelProps) {
     const { t } = useTranslation();
-    const report = useTerminationsReport(rangeParams);
+    const report = useTerminationsReport(rangeParams, reveal);
     const [filterType, setFilterType] = useState('');
     const { summary, timeline = [], rows = [], byAgent = [] } = report.data ?? {};
 
