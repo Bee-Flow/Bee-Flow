@@ -58,6 +58,7 @@ const {
     MAX_TOOL_ROUNDS,
 } = require('../../core/skills/skillTest');
 const { buildSandboxTools, executeSandboxTool } = require('../../core/skills/skillSandbox');
+const { trackTurn } = require('../../core/kb/queryLog/hook.mts');
 const log = require('../../telemetry/log');
 const { openSse } = require('../../core/http/sseHelpers');
 const { HttpError } = require('../../core/http/errors');
@@ -350,26 +351,25 @@ async function run(req, res) {
         /**
          * @param {string} name
          */
+        const queryLogCarrier = {};
         const runSandboxTool = async (name, args) => {
             const refusal = await shieldGate.refuse(name, args);
             if (refusal) return JSON.stringify({ error: refusal.modelError });
             // `kbDeclared` so the tool can tell "no knowledge base linked"
             // from "linked, but not yours" instead of stating the first.
             const out = await executeSandboxTool(name, args, {
-                userId, kbIds: kb.ids, kbDeclared: kb.declared, session: req.session,
+                userId, orgId, skillId: skill.id, kbIds: kb.ids, kbDeclared: kb.declared, session: req.session, queryLogCarrier,
             });
             return shieldGate.forModel(out, name);
         };
 
         const turnStart = Date.now();
-        const turn = await llmClient.runToolLoop(
-            modelId,
-            messages,
-            buildSandboxTools(),
+        const turn = await trackTurn(queryLogCarrier, { model: modelId, answerOf: (t) => (typeof t?.content === 'string' ? t.content : '') }, () => llmClient.runToolLoop(
+            modelId, messages, buildSandboxTools(),
             { maxTokens: MAX_ANSWER_TOKENS, temperature: 0.2 },
             runSandboxTool,
             MAX_TOOL_ROUNDS,
-        );
+        ));
         await logTestUsage({ userId, userOrgId: orgId, modelId, usage: turn?.usage, startMs: turnStart, source: 'skill_test' });
 
         const answer = typeof turn?.content === 'string' ? turn.content : '';

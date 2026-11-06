@@ -32,6 +32,7 @@ router.use('/', require('./compliance/portability'));
 router.use('/', require('./compliance/machinery'));
 router.use('/', require('./compliance/sbom'));
 router.use('/', require('./compliance/accessAudit'));
+router.use('/', require('./compliance/kbQueryLog'));
 router.use('/', require('./compliance/overview'));
 router.use('/', require('./compliance/checks'));
 router.use('/', require('./compliance/settings'));

@@ -74,6 +74,8 @@ interface WebpageChatProps {
     onUndoTurn: ((msgId: string) => void) | undefined;
     onShowInCode: ((file?: string) => void) | undefined;
     placeholder?: string;
+    /** The page's knowledge bases: the input shows the "questions are logged" notice when one of them logs. */
+    kbNoticeIds?: readonly string[];
 }
 
 export default function WebpageChat({
@@ -87,7 +89,7 @@ export default function WebpageChat({
     // none of it, because undo restores EDITOR bytes, not chat bytes.
     turnState,
     onKeepTurn, onUndoTurn, onShowInCode,
-    placeholder,
+    placeholder, kbNoticeIds,
 }: WebpageChatProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
@@ -263,6 +265,7 @@ export default function WebpageChat({
                     onTierChange={onTierChange}
                     placeholder={placeholder || t('webpages.chat.placeholder', 'Describe the webpage you want…')}
                     compact={true}
+                    kbNoticeIds={kbNoticeIds}
                 />
             </div>
             {confirmDialog}

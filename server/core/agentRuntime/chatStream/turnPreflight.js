@@ -133,7 +133,7 @@ async function runTurnPreflight({
     // ============ PROJECT CONTEXT + VECTOR KNOWLEDGE BASE ============
     // Project instructions/KB injection and the KB auto-search live in
     // ../contextEnrichment; both write into the prompt halves returned here.
-    ({ systemPrompt, volatileSystemPrompt } = await injectProjectAndKnowledgeContext({ agent, userId, userMessage, userAuth, validProject, systemPrompt, volatileSystemPrompt, _kbSources, onEvent, moderationViolation, guardrailViolation, tools, isStrictKnowledge, testAs: messageMetadata.testAs || null, shield: dlpShield }));
+    ({ systemPrompt, volatileSystemPrompt } = await injectProjectAndKnowledgeContext({ agent, userId, userMessage, userAuth, validProject, systemPrompt, volatileSystemPrompt, _kbSources, onEvent, moderationViolation, guardrailViolation, tools, isStrictKnowledge, testAs: messageMetadata.testAs || null, shield: dlpShield, conversationId: conversation.id }));
 
     return {
         dlpShield, isStrictKnowledge, systemPrompt, volatileSystemPrompt,

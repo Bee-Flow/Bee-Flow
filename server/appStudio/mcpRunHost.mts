@@ -97,7 +97,7 @@ function ctxFor(run: Run, w: WalkState): Obj {
     const { app, def } = run.target;
     return {
         viewerId: app.userId, actionId: run.opts.actionId, viewerName: null, viewerEmail: null,
-        role: 'owner', orgId: app.organizationId || null,
+        role: 'owner', orgId: app.organizationId || null, dryRun: run.opts.dryRun === true,
         formValues: w.form, vars: w.vars, params: w.params,
         ...(w.error ? { error: w.error } : {}),
         variables: Array.isArray(def.variables) ? def.variables : null,

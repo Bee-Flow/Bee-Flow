@@ -16,6 +16,7 @@
 import React from 'react';
 
 import useTranslation from '@/hooks/useTranslation';
+import KbQueryLogNotice from '../KbQueryLogNotice';
 import MonitoringBanner from '../chatSignals/MonitoringBanner';
 import MonitoringNotice from '../chatSignals/MonitoringNotice';
 import type { MonitoringNoticeProps } from '../chatSignals/MonitoringNotice';
@@ -28,9 +29,10 @@ interface ComposerFooterProps {
     isTouchDevice?: boolean;
     chatSignalsNotice?: NoticeModel | null;
     onChatSignalsCounted?: MonitoringNoticeProps['onCounted'];
+    kbNoticeIds?: readonly string[] | null;
 }
 
-const ComposerFooter = ({ compact, warningText, footerLine, isTouchDevice, chatSignalsNotice = null, onChatSignalsCounted = null }: ComposerFooterProps) => {
+const ComposerFooter = ({ compact, warningText, footerLine, isTouchDevice, chatSignalsNotice = null, onChatSignalsCounted = null, kbNoticeIds = null }: ComposerFooterProps) => {
     const { t } = useTranslation();
 
     return (
@@ -39,6 +41,7 @@ const ComposerFooter = ({ compact, warningText, footerLine, isTouchDevice, chatS
             {chatSignalsNotice && (
                 <MonitoringNotice notice={chatSignalsNotice} onCounted={onChatSignalsCounted} compact={compact} />
             )}
+            {kbNoticeIds && kbNoticeIds.length > 0 && <KbQueryLogNotice kbIds={kbNoticeIds} className="mb-0.5" />}
             <p
                 data-testid="composer-footer"
                 className={`text-[var(--text-tertiary)] ${compact ? 'text-[9px] leading-tight' : 'text-[10px]'}`}

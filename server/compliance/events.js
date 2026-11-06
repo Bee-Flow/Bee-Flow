@@ -69,6 +69,8 @@ const EVENTS = {
     // { orgId } — ids only. Emitted by routes/compliance/chatMonitoring.js and
     // its DPIA middleware.
     CHAT_MONITORING_CHANGED: 'chat_monitoring_changed',
+    // The KB query log changed ({ orgId }, ids only): the ROPA gains or loses an activity.
+    KB_QUERY_LOG_CHANGED: 'kb_query_log_changed',
 };
 
 // Best-effort: the counts endpoint caches 60 s per org; anything that changes
@@ -391,6 +393,7 @@ _bus.on(EVENTS.CHAT_MONITORING_CHANGED, async ({ orgId }) => {
     _invalidateCounts(orgId);
 });
 
+_bus.on(EVENTS.KB_QUERY_LOG_CHANGED, ({ orgId }) => orgId && _invalidateCounts(orgId));
 module.exports = { emit, EVENTS, _bus, PROJECT_RERUN_CHECKS, _resetProjectReruns, _projectRerunCount: () => _projectReruns.size };
 Object.assign(module.exports, { CHAT_SIGNAL_CHECKS });
 

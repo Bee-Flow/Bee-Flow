@@ -40,6 +40,7 @@ const { buildRoundAssistantMessage, dispatchToolRound } = require('./toolRoundGa
 const { wrapUpAnswer, attributeTestChatTurn, rethrowRoundError, throwLoopExit } = require('./turnExits');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
+const { finishTurnLogs, failTurnLogs } = require('../../kb/queryLog/hook.mts');
 
 // The once-per-turn phases, handed to ./turnPrepare, and one round's phases,
 // handed to ./roundStream: both modules stay out of the server's large import
@@ -70,6 +71,7 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
     // The AI must never see the user message or KB context when a violation is detected.
     const { moderationViolation, guardrailViolation } = t;
     if (moderationViolation || guardrailViolation) {
+        finishTurnLogs(t._kbSources, { outcome: 'error', errorCode: 'blocked' });
         return await respondGuardrailHardBlock({
             moderationViolation, guardrailViolation, onEvent: t.onEvent, messageMetadata,
             durableMessages: t.durableMessages, userSave: t.userSave, persistDurable: t.persistDurable, isEphemeral: t.isEphemeral,
@@ -83,7 +85,14 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
         messageMetadata, tools: t.tools, conversation: t.conversation, userId,
         workspaceTools: () => featureModule('integrations/workspaceTools'),
     });
-    return await runTurnLoop({ ...t, agentId, userId, userMessage, userAuth, messageMetadata, maxIterations });
+    const turnStartedAt = Date.now();
+    try {
+        return await runTurnLoop({ ...t, agentId, userId, userMessage, userAuth, messageMetadata, maxIterations, turnStartedAt });
+    } catch (err) {
+        // Query log: a turn that dies leaves its searches as errors (idempotent after a finished turn).
+        failTurnLogs(t._kbSources, err, turnStartedAt, t.modelToUse);
+        throw err;
+    }
 }
 
 /**
@@ -264,7 +273,13 @@ async function runTurnLoop(t) {
             // End of turn: assistant-message build, persistence, memory
             // extraction, redaction re-write and raw-payload transparency —
             // see ../finalizeTurn.
-            return await finalizeRound(t, st, { fullResponse, useNativeAdapter: _round.useNativeAdapter, guardrailViolation, _assistantTokenisationInfo });
+            const finalized = await finalizeRound(t, st, { fullResponse, useNativeAdapter: _round.useNativeAdapter, guardrailViolation, _assistantTokenisationInfo });
+            // Query log: every search of this turn gets the final answer (fire and forget).
+            finishTurnLogs(t._kbSources, {
+                outcome: 'answered', answer: fullResponse, citations: t._kbSources, model: t.modelToUse,
+                answerMs: t.turnStartedAt ? Date.now() - t.turnStartedAt : null,
+            });
+            return finalized;
         } catch (error) {
             rethrowRoundError(error, { messages, terminationBaseRow: _terminationBase });
         }
@@ -337,7 +352,7 @@ function finalizeRound(t, st, { fullResponse, useNativeAdapter, guardrailViolati
 module.exports = { chatWithAgentStreamImpl, _pendingTurnReleases };
 
 /**
- * @typedef {Awaited<ReturnType<typeof prepareTurn>> & { agentId: string, userId: string, userMessage: string, userAuth: import('./turnState').UserAuth, messageMetadata: import('./turnState').MessageMetadata, maxIterations: number }} LoopTurn  the prepared turn the loop runs on
+ * @typedef {Awaited<ReturnType<typeof prepareTurn>> & { agentId: string, userId: string, userMessage: string, userAuth: import('./turnState').UserAuth, messageMetadata: import('./turnState').MessageMetadata, maxIterations: number, turnStartedAt?: number }} LoopTurn  the prepared turn the loop runs on
  * @typedef {ReturnType<typeof createTurnLoopState>} LoopState
  * @typedef {() => ReturnType<typeof terminationBase>} TerminationBaseRow
  * @typedef {typeof ROUND_STEPS} RoundSteps

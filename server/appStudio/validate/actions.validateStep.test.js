@@ -43,7 +43,14 @@ const gp = (extra = {}) => att('generate_presentation', { slides: st('# t'), res
 const fi = (extra = {}) => att('file_intake', { connectorId: 'conn_mail', threadKey: st('t'), resultVar: 'i', ...extra });
 const dq = (extra = {}) => att('dataset_query', { dataset: st('ds_1'), resultVar: 'q', ...extra });
 
+const klq = (extra = {}) => att('kb_log_query', { kbId: st('kb_1'), filters: { status: st('to_review') }, limit: 50, resultVar: 'q', ...extra });
+const klr = (extra = {}) => att('kb_log_review', { kbId: st('kb_1'), entryId: st('e1'), status: st('reviewed'), ...extra });
+
 const CASES = [
+    ['kb_log_query / kb_log_review: valid steps pass', [klq(), klr(), klr({ note: st('n') })], {}, []],
+    ['kb_log_query without kbId or resultVar', [klq({ kbId: undefined, resultVar: undefined })], {}, [`E action.step_field_required @${P}[0].kbId`, `E action.step_field_required @${P}[0].resultVar`]],
+    ['kb_log_query limit over 200', [klq({ limit: 500 })], {}, [`E action.step_field_invalid @${P}[0].limit`]],
+    ['kb_log_review without status', [klr({ status: undefined })], {}, [`E action.step_field_required @${P}[0].status`]],
     ['not an object', ['x'], {}, [`E action.step_not_object @${P}[0]`]],
     ['unknown kind', [{ kind: 'send_emial' }], {}, [`E action.step_kind_invalid @${P}[0].kind`]],
     ['unknown field', [{ kind: 'toast', message: 'hi', bogus: 1 }], {}, [`E action.step_unknown_field @${P}[0].bogus`]],

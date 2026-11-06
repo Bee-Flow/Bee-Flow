@@ -54,6 +54,7 @@ const publicShareStore = require('../stores/webpagePublicShareStore');
 const webpageStore = require('../stores/webpageStore');
 const { loadAuthorContext } = require('../core/webpages/webpageBridgeAuth');
 const { buildAiMessages } = require('../core/webpages/webpageAiMessages');
+const { handleOf, finishLogs, finishLogsWithError } = require('../core/kb/queryLog/hook.mts');
 const llmClient = require('../core/llm/llmClient');
 const { resolveModelForTier, TIER_DEFAULTS } = require('../core/llm/modelResolver');
 const usageStore = require('../stores/usageStore');
@@ -177,7 +178,8 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
     const clamp = clampBody(req.body || {}, grants);
     if (clamp.error) return res.status(400).json({ error: clamp.error });
 
-    const messages = await buildAiMessages(ctx, req.body || {}, { groundGrantKey: 'publicGroundOnPage' });
+    const messages = await buildAiMessages(ctx, req.body || {}, { groundGrantKey: 'publicGroundOnPage', surface: 'public_share' });
+    const queryLogHandle = handleOf(messages);
     const resolved = await resolveModelForTier(`tier:${clamp.tierName}`, { userOrgId: ctx.authorOrgId, userId: ctx.authorUserId });
     const modelId = resolved?.modelId || resolved?.model || resolved;
     if (!modelId) throw new HttpError(500, 'no_model', `No model configured for tier "${clamp.tierName}"`);
@@ -193,6 +195,7 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
     let result;
     let structured = null;
 
+    try {
     if (req.body && req.body.schema && typeof req.body.schema === 'object') {
         const schemaTool = {
             type: 'function',
@@ -225,6 +228,11 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
     } else {
         result = await llmClient.chat(modelId, messages, baseOptions);
     }
+    } catch (err) {
+        finishLogsWithError(queryLogHandle, err, t0, modelId);
+        throw err;
+    }
+    finishLogs(queryLogHandle, { outcome: 'answered', answer: structured !== null ? JSON.stringify(structured) : (result.content || ''), model: modelId, answerMs: Date.now() - t0 });
 
     logPublicUsage(ctx, webpageId, modelId, result?.usage, t0);
 
@@ -249,8 +257,13 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
         sendEvent(event, data || {});
     };
 
+    /** @type {import('../core/kb/queryLog/recorder.mts').Handle | null} */
+    let queryLogHandle = null;
+    let answerText = '';
+    const streamT0 = Date.now();
     try {
-        const messages = await buildAiMessages(ctx, req.body || {}, { groundGrantKey: 'publicGroundOnPage' });
+        const messages = await buildAiMessages(ctx, req.body || {}, { groundGrantKey: 'publicGroundOnPage', surface: 'public_share' });
+        queryLogHandle = handleOf(messages);
         const resolved = await resolveModelForTier(`tier:${tierName}`, { userOrgId: ctx.authorOrgId, userId: ctx.authorUserId });
         const modelId = resolved?.modelId || resolved?.model || resolved;
         if (!modelId) {
@@ -265,7 +278,7 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
         let promptTokens = 0, completionTokens = 0;
         let streamUsage = null;
         await llmClient.stream(modelId, messages, { maxTokens, temperature: tierDefaults.temperature }, (type, data) => {
-            if (type === 'text') send('content', { text: data.text });
+            if (type === 'text') { answerText += data.text; send('content', { text: data.text }); }
             else if (type === 'done') {
                 promptTokens = data?.prompt_tokens || 0;
                 completionTokens = data?.completion_tokens || 0;
@@ -274,11 +287,13 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
             else if (type === 'error') send('error', require('../core/http/sseError.mts').sseErrorPayload(new Error(String(data?.error || 'stream error')), { tag: '[PublicShareBridge/ai/stream]', req }));
         });
 
+        finishLogs(queryLogHandle, { outcome: 'answered', answer: answerText, model: modelId, answerMs: Date.now() - streamT0 });
         logPublicUsage(ctx, webpageId, modelId, streamUsage, t0);
         send('done', { prompt_tokens: promptTokens, completion_tokens: completionTokens });
         stopHeartbeat();
         res.end();
     } catch (err) {
+        finishLogsWithError(queryLogHandle, err, streamT0);
         send('error', require('../core/http/sseError.mts').sseErrorPayload(err, { tag: '[PublicShareBridge/ai/stream]', req }));
         stopHeartbeat();
         res.end();

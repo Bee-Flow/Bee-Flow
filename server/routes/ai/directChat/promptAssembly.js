@@ -106,9 +106,12 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
     const toolHint = (await buildToolHint(directChatTools, userId)) + toolCatalogText;
     const kbPassagesText = makeKbPassagesText({ userOrgForTiers, userId });
 
-    const project = await projectContextFor({ req, userId, projectId, message, kbPassagesText });
+    // KB query log: both searches register on `queryLogs`; the stream route finishes them with the answer.
+    const queryLogs = {};
+    const queryLog = { channel: /** @type {const} */ ('direct_chat'), channelRef: { conversationId: conversationId || null }, orgId: userOrgForTiers || null, userId };
+    const project = await projectContextFor({ req, userId, projectId, message, kbPassagesText, queryLog, queryLogs });
     volatileContext += project.volatile;
-    const attached = await attachedKbContext({ req, userId, message, requestedKbIds, orgIdsForTiers, kbPassagesText });
+    const attached = await attachedKbContext({ req, userId, message, requestedKbIds, orgIdsForTiers, kbPassagesText, queryLog, queryLogs });
     volatileContext += attached.volatile;
 
     const memory = await retrieveMemories({ req, send, userId, message, userOrgForTiers, validProjectId: project.validProjectId });
@@ -143,7 +146,7 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
     return {
         messages, volatileMessage, resolvedHistory, clientHistoryProvided, validProjectId: project.validProjectId,
         extractMemoriesEnabled: project.extractMemoriesEnabled, usableKbIds: attached.usableKbIds,
-        memoryPolicy: memory.memoryPolicy, memoryUsed: memory.memoryUsed, memorySwap,
+        memoryPolicy: memory.memoryPolicy, memoryUsed: memory.memoryUsed, memorySwap, queryLogs,
     };
 }
 

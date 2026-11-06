@@ -160,6 +160,40 @@ const FIXTURES = [
         },
         routes: ['GET /api/studio-apps/:id/runs', 'GET /api/studio-apps/:id/runs/:runId'],
     },
+    {
+        // A knowledge base of org B (unpublished, owned by B) and the routes that look it up by id,
+        // the query-log routes included (routes/knowledgeBases/queryLog.js). Both orgs hold a plan with
+        // `kb_query_log`, so the answer a member of org A gets is the base's own gate, not the licence.
+        kind: 'knowledgeBase',
+        mount: '/api/kb',
+        router: () => require('../routes/knowledgeBases'),
+        create: async ({ orgId, userId, index }) => {
+            const kbStore = require('../stores/knowledgeBases');
+            const kb = await kbStore.createKB(userId, `KB ${index}`, 'matrix fixture', orgId, {});
+            return kb.id;
+        },
+        routes: [
+            'GET /api/kb/:id', 'GET /api/kb/:id/documents', 'GET /api/kb/:id/usage', 'GET /api/kb/:id/sources',
+            'PUT /api/kb/:id/query-log/settings', 'GET /api/kb/:id/query-log/settings', 'GET /api/kb/:id/query-log', 'GET /api/kb/:id/query-log/export.csv',
+            'GET /api/kb/:id/query-log/:entryId', 'PATCH /api/kb/:id/query-log/:entryId/review', 'DELETE /api/kb/:id/query-log',
+        ],
+    },
+    {
+        // The data-subject routes of the KB query log (routes/compliance/kbQueryLog.js). The id is a
+        // PERSON of org B (the owner, made an org admin so the first route answers 200 for them); a
+        // member of org A has no `admin_compliance` and gets the permission gate's 403.
+        kind: 'kbQueryLogSubject',
+        mount: '/api/compliance',
+        router: () => require('../routes/compliance/kbQueryLog'),
+        create: async ({ userId }) => {
+            await require('../stores/userStore').updateUser(userId, { orgRole: 'org_admin' });
+            return userId;
+        },
+        routes: [
+            'GET /api/compliance/kb-query-log/subjects/:userId', 'GET /api/compliance/kb-query-log/subjects/:userId/content',
+            'GET /api/compliance/kb-query-log/subjects/:userId/export', 'DELETE /api/compliance/kb-query-log/subjects/:userId',
+        ],
+    },
 ];
 
 module.exports = { FIXTURES };

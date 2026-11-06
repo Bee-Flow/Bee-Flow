@@ -179,6 +179,7 @@ function blockIfSystemKB(kb, res) {
  */
 const { ensureKbSource } = require('../../core/kb/sources/ensureSource');
 const { fallback } = require('../../utils/bestEffort');
+const { kbQueryLogFields, withoutRawAttestation } = require('../../stores/kb/model');
 
 /**
  * Add the K1 aggregates to KB rows for the list endpoints: numeric counters,
@@ -203,7 +204,7 @@ async function decorateKbList(kbs) {
     return list.map((kb) => {
         const c = counts[kb.id] || /** @type {Partial<typeof counts[string]>} */ ({});
         return {
-            ...kb,
+            ...withoutRawAttestation(kb),
             documentCount: Number(kb.document_count || 0),
             documentCountAll: Number(kb.document_count_all || kb.document_count || 0),
             totalChunks: Number(kb.total_chunks || 0),
@@ -213,6 +214,7 @@ async function decorateKbList(kbs) {
             // last_content_at is stamped since K1; a base filled before that
             // has documents but no stamp, so its newest document stands in.
             lastContentAt: kb.last_content_at || kb.last_document_at || null,
+            ...kbQueryLogFields(kb),
         };
     });
 }

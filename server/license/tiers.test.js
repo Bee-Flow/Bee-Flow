@@ -88,6 +88,7 @@ for (const f of [
     'web_search_guard',
     'custom_data_types',
     'advanced_usage_monitoring',
+    'kb_query_log',
 ]) {
     assert.ok(!community.includes(f), `community must NOT include promoted feature ${f}`);
 }
@@ -120,6 +121,7 @@ for (const f of [
     'web_search_guard',
     'custom_data_types',
     'advanced_usage_monitoring',
+    'kb_query_log',
     'guardrails_dlp',
     'compliance_hub_gdpr',
     'compliance_hub_aia',

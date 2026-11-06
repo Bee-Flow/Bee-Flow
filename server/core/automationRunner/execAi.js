@@ -32,6 +32,7 @@ const log = require('../../telemetry/log');
 const { execIntegrationAction: runIntegrationAction } = require('./execIntegrationAction');
 // Grounding, and the label of a dry-run answer made without its knowledge (RM-6).
 const { groundAiStep, markNoKnowledge } = require('./aiStepGrounding');
+const { trackAnswer } = require('../kb/queryLog/hook.mts');
 const { envFlagOn } = require('./integrationCachePolicy');
 const {
     isEmptyToolResult,
@@ -337,10 +338,14 @@ async function execAiStep(step, ctx, runState, mode) {
     // placeholders, downstream steps see real values), the step's checks with
     // one repair round and its fallback: see ./aiStepAnswer. Usage rows
     // (source='automation') are filed there, one per step.
-    const answer = await answerAiStep({
+    const answer = await trackAnswer(grounding.queryLogHandle, {
+        model: modelId,
+        answerOf: (a) => (typeof a.output === 'string' ? a.output : JSON.stringify(a.output ?? null)),
+        citationsOf: () => grounding.kbCitations,
+    }, () => answerAiStep({
         step, ctx, runState, mode, policy, auditBase, messages, tools, contract, prep, agentBinding,
         model: { adapter, cfg, modelId, maxOutputTokens, stepReasoningEffort },
-    });
+    }));
 
     const piiSummary = safety.buildPiiSummary(answer.categories);
     // `toolsWithheld` rides next to piiSummary, not in the output: the output

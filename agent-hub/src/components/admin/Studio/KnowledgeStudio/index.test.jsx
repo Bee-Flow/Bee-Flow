@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderWithClient as render } from '@/test/render';
 import scopedStorage from '@/utils/scopedStorage';
 import KnowledgeStudio from './index';
 import { knowledgeApi } from './knowledgeApi';

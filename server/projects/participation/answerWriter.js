@@ -28,6 +28,7 @@ const log = require('../../telemetry/log');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { REASON_TEXT } = require('./relevanceGate');
 const { bestEffort } = require('../../utils/bestEffort');
+const { registerHandle, finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
 
 const CONTEXT_CHARS = 24_000;
 const EXTRA_CONTEXT_CHARS = 8_000;
@@ -146,6 +147,9 @@ function makeAnswerWriter(deps = {}) {
 
         const shield = shieldFor(surface);
         const dlpConversationId = `project-${surface}-auto-${watch.containerId}-${runId}`;
+        // KB query log: the handles of this answer's searches, finished once the answer is known.
+        const queryLogs = {};
+        const answerT0 = Date.now();
         try {
             const project = await getProject(ctx.projectId);
             if (!project) return { status: 'failed' };
@@ -163,6 +167,8 @@ function makeAnswerWriter(deps = {}) {
             try {
                 knowledge = await searchKnowledge({
                     project, userId, query: trigger.text, session: null, shield: config, audienceIds: await listAudience(project),
+                    log: { channel: 'project_assistant', channelRef: { projectId: ctx.projectId, surface, containerId: watch.containerId }, orgId, userId },
+                    onQueryLog: (h) => registerHandle(queryLogs, h),
                 }) || '';
             } catch (err) {
                 log.warn(`[AiParticipation] knowledge search failed for ${surface} ${watch.containerId}: ${err && /** @type {Error} */ (err).message}`);
@@ -207,6 +213,7 @@ function makeAnswerWriter(deps = {}) {
             const raw = typeof result?.content === 'string' ? result.content.trim() : '';
             if (!raw || assistant().isSkip(raw)) return { status: 'skipped', reason: 'skip_sentinel' };
             const text = shield.restore(raw, outbound.tokenMap);
+            finishTurnLogs(queryLogs, { outcome: 'answered', answer: text, model: model.modelId, answerMs: Date.now() - started });
 
             // Read again right before storing: a human answer meanwhile wins.
             const now = await adapter.loadContext(watch.containerId, { light: true });
@@ -226,6 +233,7 @@ function makeAnswerWriter(deps = {}) {
             return { status: 'answered', messageId: posted.messageId };
         } catch (err) {
             const status = err?.code === 'PRIVACY_BLOCKED' ? 'blocked' : 'failed';
+            failTurnLogs(queryLogs, err, answerT0, model.modelId);
             log.warn(`[AiParticipation] automatic answer in ${surface} ${watch.containerId} (run ${runId}) ${status}: ${err?.code || /** @type {Error} */ (err)?.name || 'error'}`);
             return { status };
         } finally {

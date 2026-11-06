@@ -26,7 +26,7 @@ const { effectOf, maxEffect } = require('./sideEffectMap');
  *   call_block           `writes`: the block's body is not in the definition
  *   parallel             the strongest of every step in its branches
  *   generate_document, fill_document, presentation, knowledge_write,
- *   datatable (a write op)   `writes`: they leave something behind
+ *   datatable (a write op), kb_query_log (op review)   `writes`: they leave something behind
  *   read_table, table    `reads`: they open and reshape data inside the run (the
  *                        tables they keep expire with the run's other files)
  *   loop                 the strongest of its body
@@ -54,6 +54,8 @@ function stepEffect(step, ctx = {}, _seen = new Set()) {
             return 'writes';
         case 'datatable':
             return DATATABLE_WRITE_OPS.has(step.op) ? 'writes' : 'reads';
+        case 'kb_query_log':
+            return step.op === 'review' ? 'writes' : 'reads';
         case 'approval':
             // Mails or notifies the approvers when it runs.
             return 'sends';

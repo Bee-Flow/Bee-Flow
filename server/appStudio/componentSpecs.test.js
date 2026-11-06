@@ -228,7 +228,8 @@ test('step kinds are partitioned into client-only and data-mutating', () => {
     // every record write — server by definition.
     // copy_document writes a new document into the OWNER's library, read
     // through the app's document pool: server by definition.
-    assert.deepEqual(DATA_MUTATING_STEP_KINDS, ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'transaction']);
+    assert.deepEqual(DATA_MUTATING_STEP_KINDS, ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction']);
+    // kb_log_query / kb_log_review read and review the owner's knowledge-base query log: server by definition.
     // …and none of the new file/dataset/browse steps is a bare v1 ACTION kind —
     // they are sequence steps only, which is what keeps the v1 action editors untouched.
     assert.ok(!ACTION_KINDS.includes('generate_file'));

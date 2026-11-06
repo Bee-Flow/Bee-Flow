@@ -1,4 +1,4 @@
-import { Eye, FileDown, Globe, LogIn, LogOut, ScrollText, Search, ShieldOff, Users } from 'lucide-react';
+import { Eye, FileDown, FileSearch, Globe, LogIn, LogOut, ScrollText, Search, ShieldOff, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { formatStamp } from '../shared/formatDates';
 import { userName } from './audits/auditForms';
@@ -52,6 +52,14 @@ const ACTION_META: Readonly<Record<string, ActionMeta>> = {
     studio_app_public_page_revoked: { icon: Globe, tone: 'neutral', key: 'compliance.aa_action_public_page_revoked', en: 'Public URL revoked' },
     'dsr.subject_viewed': { icon: Eye, tone: 'neutral', key: 'compliance.aa_action_dsr_subject_viewed', en: 'Request opened' },
     'dsr.discovery_run': { icon: Search, tone: 'neutral', key: 'compliance.aa_action_dsr_discovery_run', en: 'Data search run' },
+    'kb.query_log.enabled': { icon: FileSearch, tone: 'neutral', key: 'compliance.aa_action_kb_query_log_enabled', en: 'Search log switched on' },
+    'kb.query_log.disabled': { icon: FileSearch, tone: 'neutral', key: 'compliance.aa_action_kb_query_log_disabled', en: 'Search log switched off' },
+    'kb.query_log.retention_changed': { icon: FileSearch, tone: 'neutral', key: 'compliance.aa_action_kb_query_log_retention_changed', en: 'Search log term changed' },
+    'kb.query_log.purged': { icon: FileSearch, tone: 'neutral', key: 'compliance.aa_action_kb_query_log_purged', en: 'Search log entries erased' },
+    'kb.query_log.exported': { icon: FileSearch, tone: 'neutral', key: 'compliance.aa_action_kb_query_log_exported', en: 'Search log metadata exported' },
+    'kb.query_log.content_viewed': { icon: FileSearch, tone: 'neutral', key: 'compliance.aa_action_kb_query_log_content_viewed', en: 'Search log content opened' },
+    'kb.query_log.subject_exported': { icon: FileSearch, tone: 'neutral', key: 'compliance.aa_action_kb_query_log_subject_exported', en: 'Search log of a person exported' },
+    'kb.query_log.subject_deleted': { icon: FileSearch, tone: 'neutral', key: 'compliance.aa_action_kb_query_log_subject_deleted', en: 'Search log of a person erased' },
     'dsr.dossier_exported': { icon: FileDown, tone: 'neutral', key: 'compliance.aa_action_dsr_dossier_exported', en: 'Dossier exported' },
 };
 

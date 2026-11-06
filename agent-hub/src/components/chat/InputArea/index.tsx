@@ -119,7 +119,7 @@ const InputArea = ({
     // useChatSignals in the host), and the person's "don't count me" switch.
     // Null everywhere else, so no other composer announces anything.
     chatSignalsNotice = null,
-    onChatSignalsCounted = null,
+    onChatSignalsCounted = null, kbNoticeIds = null,
 }: InputAreaProps) => {
     const { t } = useTranslation();
     const [voiceMode, setVoiceMode] = useState(false);
@@ -567,7 +567,7 @@ const InputArea = ({
                             footerLine={footerLine}
                             isTouchDevice={isTouchDevice}
                             chatSignalsNotice={chatSignalsNotice}
-                            onChatSignalsCounted={onChatSignalsCounted}
+                            onChatSignalsCounted={onChatSignalsCounted} kbNoticeIds={kbNoticeIds ?? (directMode ? selectedKBIds : null)}
                         />
                     )}
                 </div>

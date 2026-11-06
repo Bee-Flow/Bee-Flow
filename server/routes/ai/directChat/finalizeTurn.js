@@ -155,7 +155,7 @@ async function finalizeDirectChatTurn(turn) {
         ({ pendingTitle } = await persistTurn({ ...turn, convId, fullContent, generatedFiles }, conv));
     }
     await extractTurnMemories({ ...turn, convId });
-    return { convId, pendingTitle };
+    return { convId, pendingTitle, displayContent };
 }
 
 module.exports = { finalizeDirectChatTurn };

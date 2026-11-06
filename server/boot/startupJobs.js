@@ -63,6 +63,14 @@ function startRetentionAndComplianceJobs() {
     } catch (err) {
         log.warn('[Server] Project event prune job load failed:', err.message);
     }
+    // KB query log retention: expired log rows of knowledge bases that log, hourly in
+    // batches. Not gated on a module or the licence (deleting must keep working);
+    // kill switch KB_QUERY_LOG_RETENTION_DISABLED=1. Advisory-locked, one pod per pass.
+    try {
+        require('../jobs/kbQueryLogRetention.mts').start();
+    } catch (err) {
+        log.warn('[Server] KB query log retention job load failed:', err.message);
+    }
     // Document version retention: thin out long version histories (hourly,
     // daily, weekly with age), never a named, restore or pinned revision.
     // Daily, advisory-locked, not gated on a module.

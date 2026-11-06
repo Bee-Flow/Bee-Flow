@@ -78,7 +78,7 @@ const VALID_STEP_TYPES = new Set([
     // The other step whose effect outlives the run, and the one whose output
     // an agent will state as fact — which is why its knowledge base is
     // authorised at save, at activate AND at run time (K10).
-    'knowledge_write',
+    'knowledge_write', 'kb_query_log', // kb_query_log: read or review a KB query log (Enterprise), `op` list | review
     // End the run and hand the Studio App that started it a short instruction
     // set: which screen to open, what to say, what to refresh. The other
     // TERMINAL type (see TERMINAL_STEP_TYPES) — nothing after it ever runs.

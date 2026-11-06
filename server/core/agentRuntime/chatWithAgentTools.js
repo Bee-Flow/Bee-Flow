@@ -73,6 +73,9 @@ async function dispatchChatTool({ toolName, toolArgs, fixedParams, identity, ctx
             fixedParams: fixedParams,
             agentId,
             supportThreadId: userAuth?.supportThreadId || null,
+            // KB query log: the kb_search tool registers its handle on this turn's carrier.
+            // `asker` is set by a caller whose `userId` is synthetic (the support responder): the log names the real person, or nobody.
+            queryLog: ctx.queryLogCarrier ? { carrier: ctx.queryLogCarrier, channel: 'agent_chat_sync', ...(userAuth?.queryLogAsker ? { asker: userAuth.queryLogAsker.userId ?? null } : {}) } : null,
             lentConnection,
             // No capture context of its own here: the dispatcher's chokepoint
             // writes the egress row with these ids.
@@ -166,5 +169,5 @@ module.exports = { executeChatToolCall };
 
 /**
  * @typedef {{ mayLendOwnerConnection: typeof import('./toolPolicy').mayLendOwnerConnection, connectionResolution: () => typeof import('../integrations/connectionResolution'), toolDispatcher: () => typeof import('../tools/toolDispatcher'), toolPiiGate: () => typeof import('../privacy/toolPiiGate') }} ToolDeps
- * @typedef {{ agent: import('./chatStream/turnState').AgentRow, agentId: string, userId: string, userAuth: import('./chatStream/turnState').UserAuth, conversation: import('./chatStream/turnState').ConversationRow, modelToUse: string, toolParamsMap: Record<string, unknown>, orgShield: Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>, logShieldEvent: (fields: Record<string, unknown>) => void, d: ToolDeps }} ChatToolCtx
+ * @typedef {{ agent: import('./chatStream/turnState').AgentRow, agentId: string, userId: string, userAuth: import('./chatStream/turnState').UserAuth, conversation: import('./chatStream/turnState').ConversationRow, modelToUse: string, queryLogCarrier?: object, toolParamsMap: Record<string, unknown>, orgShield: Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>, logShieldEvent: (fields: Record<string, unknown>) => void, d: ToolDeps }} ChatToolCtx
  */

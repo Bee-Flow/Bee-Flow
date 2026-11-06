@@ -171,6 +171,9 @@ const TOKEN_RE = /^[a-f0-9]{24,64}$/;
 // spend the owner's quota, which an anonymous caller must not be able to drain.
 const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
 
+// Server step kinds an anonymous visitor may never run, whatever the definition says.
+const PUBLIC_DENIED_STEP_KINDS = ['kb_log_query', 'kb_log_review'];
+
 /**
  * Resolve `:token` to { page, app, definition, surface } or answer 404 and
  * return null.
@@ -342,6 +345,10 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     const { step, ownerActionId } = resolved;
     if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
         return res.status(400).json({ error: 'This step does not run on the server' });
+    }
+    // The KB query log holds what people asked and got answered: never reachable by an anonymous visitor.
+    if (PUBLIC_DENIED_STEP_KINDS.includes(step.kind)) {
+        return res.status(403).json({ error: 'This step is not available on a public app' });
     }
 
     // Budget by kind, before any work. A model call gets its own bucket —

@@ -33,6 +33,7 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { logSearch } = require('../../core/kb/queryLog/hook.mts');
 const {
     SEARCH_SERVICE_URL,
     getUserId,
@@ -117,6 +118,7 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
         }
     }
 
+    const retrievalT0 = Date.now();
     const useAzure = !!(await configStore.getConfig('use_azure_doc_processing'));
     const { resolveKbProvider } = require('../../core/kb/resolveProvider');
     const kbProvider = await resolveKbProvider();
@@ -186,6 +188,11 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
             log.warn('[KB] Orphan filter failed, skipping:', filterErr.message);
         }
     }
+
+    // The query log (core/kb/queryLog): retrieval only, there is no answer to wait for.
+    const found = results.chunks || results.results || [];
+    await logSearch(found, { channel: 'api_search', channelRef: { route: 'POST /api/kb/search' }, userId },
+        { kbIds: effectiveKbIds, query, chunks: found, retrievalMs: Date.now() - retrievalT0 });
 
     res.json(results);
 });

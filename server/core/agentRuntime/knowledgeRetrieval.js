@@ -10,6 +10,7 @@
  */
 const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');
+const { logSearch } = require('../kb/queryLog/hook.mts');
 
 /**
  * Query preprocessing: extract the search intent from the user message
@@ -49,19 +50,26 @@ function toKnowledgeResult(c, score) {
  * fresh installs that have no SEARCH_SERVICE_URL. A failed search is logged
  * and yields no results.
  */
-async function fetchKnowledgeResults({ userId, kbIds, userMessage }, kb) {
+async function fetchKnowledgeResults({ userId, kbIds, userMessage, log: queryLog = null }, kb) {
     const results = [];
+    /** @type {Array<Record<string, any>>} */
+    const raw = [];
+    let searchQuery = '';
+    let searched = false;
+    const retrievalT0 = Date.now();
     try {
         const { resolveKbProvider } = kb.resolveProvider();
         const kbProvider = await resolveKbProvider();
         const useAzure = kbProvider === 'local';
-        const searchQuery = searchQueryFrom(userMessage);
+        searchQuery = searchQueryFrom(userMessage);
 
         if (useAzure) {
             // ── Local search path (Azure) ──────────────────────────
             // Search locally-ingested chunks directly from PostgreSQL
             const { searchLocally } = kb.localKBIngest();
             const chunks = await searchLocally(userId, kbIds, searchQuery, { topK: 5 });
+            raw.push(...chunks);
+            searched = true;
             results.push(...chunks.map(c => toKnowledgeResult(c, c.score || 0)));
         } else {
             // ── Search-service path ─────────────────────────────────
@@ -84,12 +92,16 @@ async function fetchKnowledgeResults({ userId, kbIds, userMessage }, kb) {
             if (searchRes.ok) {
                 const searchData = /** @type {any} */ (await searchRes.json());
                 const chunks = searchData.chunks || searchData.results || [];
+                raw.push(...chunks);
+                searched = true;
                 results.push(...chunks.map(c => toKnowledgeResult(c, c.score || c.rerank_score || 0)));
             }
         }
     } catch (searchErr) {
         log.warn('[KnowledgeSearch] KB search failed:', /** @type {Error} */ (searchErr).message);
     }
+    // The query log (core/kb/queryLog): what was searched and found; the handle rides on the array.
+    if (queryLog && searched) await logSearch(results, queryLog, { kbIds, query: searchQuery, chunks: raw, retrievalMs: Date.now() - retrievalT0 });
     return results;
 }
 

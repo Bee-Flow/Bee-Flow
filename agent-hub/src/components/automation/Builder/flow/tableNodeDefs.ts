@@ -1,5 +1,5 @@
 /**
- * The presentation records of the two spreadsheet steps, in the shape of
+ * The presentation records of the two spreadsheet steps (and the KB query log step), in the shape of
  * nodeDefs.js's NODE_DEFS (which spreads them in). Their own file keeps the
  * shared registry under its size ceiling. Presentation only, like the rest.
  */
@@ -34,6 +34,22 @@ export const TABLE_NODE_DEFS = {
         issueSections: {
             fallback: 'config',
             map: { label: FLAT, source: 'config', ops: 'config', name: 'output', expiresInDays: 'output', forEach: 'advanced' },
+        },
+    },
+    kb_query_log: {
+        family: 'data',
+        typeLabel: 'Knowledge base query log', defaultLabel: 'Knowledge base query log',
+        label: 'Knowledge base query log', desc: 'Read what people asked a knowledge base, or mark an entry as reviewed',
+        help: 'Reads the query log of a knowledge base (what people asked, what it found and answered) or sets the review status of one entry. Enterprise only, and the automation\'s owner must manage the knowledge base.',
+        sectionKeys: ['config'],
+        simpleSections: ['config'],
+        issueSections: {
+            fallback: 'config',
+            map: {
+                label: FLAT,
+                op: 'config', knowledgeBaseId: 'config', filters: 'config', limit: 'config', resultDetail: 'config',
+                entryId: 'config', status: 'config', note: 'config',
+            },
         },
     },
 };

@@ -29,6 +29,7 @@ const { resolveShieldFor } = require('../privacy/orgShield');
 const dlpRunner = require('../dlp/dlpRunner');
 const { mayLendOwnerConnection } = require('./toolPolicy');
 const { bestEffort } = require('../../utils/bestEffort');
+const { finishTurnLogs, failTurnLogs } = require('../kb/queryLog/hook.mts');
 
 // What ./chatWithAgentPrep and ./chatWithAgentTools work with, handed in:
 // it sits in the server's large import cycle, which those modules stay out
@@ -64,6 +65,8 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
     const maxIterations = 20;
     const toolCalls = [];
     const { messages, conversation, modelToUse } = run;
+    // KB query log: the kb_search tool registers its handles on this carrier; the answer finishes them.
+    const queryLogCarrier = {};
 
     while (iterations < maxIterations) {
         iterations++;
@@ -80,7 +83,7 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
                 const results = await Promise.all(assistantMessage.tool_calls.map((toolCall) => executeChatToolCall(toolCall, {
                     agent, agentId, userId, userAuth, conversation, modelToUse,
                     toolParamsMap: run.toolParamsMap, orgShield: run.orgShield, logShieldEvent: run.logShieldEvent, d: TOOL_DEPS,
-                    offeredNames: offeredToolNames(run.tools),
+                    offeredNames: offeredToolNames(run.tools), queryLogCarrier,
                 })));
 
                 // Add results to history and toolCalls array in order
@@ -105,6 +108,7 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
             await run.saveTurn((turn) => agentStore.saveConversationTurn(conversation.id, turn, userAuth.encryptionKey, userAuth.userId));
 
             recordAgentRun({ agentType: 'chat', status: 'ok', durationMs: Date.now() - _agentT0 });
+            finishTurnLogs(queryLogCarrier, { outcome: 'answered', answer: assistantMessage.content, model: modelToUse, answerMs: Date.now() - _agentT0 });
             return {
                 message: assistantMessage.content,
                 model: modelToUse,
@@ -115,11 +119,13 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
         } catch (error) {
             recordAgentRun({ agentType: 'chat', status: 'error', durationMs: Date.now() - _agentT0 });
             log.error('[Agent] Error:', error);
+            failTurnLogs(queryLogCarrier, error, _agentT0, modelToUse);
             throw error;
         }
     }
 
     recordAgentRun({ agentType: 'chat', status: 'error', durationMs: Date.now() - _agentT0 });
+    failTurnLogs(queryLogCarrier, new Error('max_iterations'), _agentT0, modelToUse);
     throw new Error('Agent exceeded maximum tool call iterations');
 }
 

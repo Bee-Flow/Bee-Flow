@@ -28,6 +28,7 @@ import DsrPage from '../pages/DsrPage';
 import FrameworkPage from '../pages/FrameworkPage';
 import FrameworksPage from '../pages/FrameworksPage';
 import IncidentsPage from '../pages/IncidentsPage';
+import KbQueryLogPage from '../pages/KbQueryLogPage';
 import MachineryPage from '../pages/MachineryPage';
 import OverviewPage from '../pages/OverviewPage';
 import PoliciesPage from '../pages/PoliciesPage';
@@ -79,6 +80,7 @@ const PAGES = Object.freeze({
     audits: AuditsPage,
     training: TrainingPage,
     access_log: AccessAuditPage,
+    kb_query_log: KbQueryLogPage,
     portability: PortabilityPage,
     settings: SettingsPage,
     connectors: ConnectorsPage,

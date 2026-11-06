@@ -19,7 +19,7 @@
  */
 import {
     Accessibility, ArrowLeftRight, BookOpen, Bot, Bug, ClipboardCheck, Database, Factory,
-    Fingerprint, FolderKanban, Gauge, Gavel, GraduationCap, History, Inbox, Landmark, Layers,
+    Fingerprint, FileSearch, FolderKanban, Gauge, Gavel, GraduationCap, History, Inbox, Landmark, Layers,
     ListChecks, Network, PlugZap, ScrollText, SearchCheck, Settings2, ShieldAlert, ShieldCheck,
     Siren, TriangleAlert,
     type LucideIcon,
@@ -113,6 +113,7 @@ export const SECTIONS: readonly Section[] = Object.freeze([
     }),
     reg('training', GraduationCap, 'compliance.rail_training', 'Training & competence', { aliases: Object.freeze(['iso_training']) }),
     reg('access_log', History, 'compliance.rail_access_log', 'Access log', { aliases: Object.freeze(['iso_access_log']) }),
+    reg('kb_query_log', FileSearch, 'compliance.rail_kb_query_log', 'Knowledge base search log', { tabs: Object.freeze(['overview', 'entries', 'requests']) }),
     reg('portability', ArrowLeftRight, 'compliance.rail_portability', 'Data portability', { optional: true }),
     // ── Beheer ──
     Object.freeze({
@@ -195,7 +196,7 @@ export function sectionsInGroup(groupId: string) {
  * is fetched only for these — the nav test pins that the GDPR page never asks
  * for the directory.
  */
-export const SECTIONS_WITH_PICKERS = Object.freeze(['settings', 'soa', 'policies', 'risks', 'audits', 'training', 'custom', 'access_log', 'dsr']);
+export const SECTIONS_WITH_PICKERS = Object.freeze(['settings', 'soa', 'policies', 'risks', 'audits', 'training', 'custom', 'access_log', 'dsr', 'kb_query_log']);
 
 /** i18n key of a header tab label: `compliance.tab_<section>_<tab>`. */
 export function tabLabelKey(sectionId: string, tabId: string) {

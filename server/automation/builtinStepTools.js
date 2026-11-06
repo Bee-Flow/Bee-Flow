@@ -58,6 +58,8 @@ const TOOL_NAME_OVERRIDES = {
     table: null,
     // A building block (a published Step) as well: builder_add_steps {type:'call_block'}.
     call_block: null,
+    // The query-log step is only a builder_add_steps entry as well.
+    kb_query_log: null,
     // The five array ops each have a builder_add_<type> tool, but the unified
     // builder_add_array_op is the one small models are given (CORE_TOOL_NAMES),
     // so point every one of them at it.

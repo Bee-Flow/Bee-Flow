@@ -3,12 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AddSourcePanel, { messageFor } from './AddSourcePanel';
 import { knowledgeApi, type KbSource, type KbSourceTotals, type KnowledgeBase } from './knowledgeApi';
 import { AddSourceButton, KbAudienceCapsule } from './KnowledgeDetailParts';
+import QueryLogTab from './queryLog/QueryLogTab';
 import SettingsTab from './SettingsTab';
 import SourcesTab from './SourcesTab';
 import TestQuestionCard from './TestQuestionCard';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import useUsage from '@/hooks/useUsage';
+import { useLicenseContext } from '@/components/licensing/LicenseContext';
 import StudioSectionHeader from '@/components/shared/StudioSectionHeader';
 import useConfirm from '@/components/shared/useConfirm';
 import UsedByTab from '@/components/shared/UsedByTab';
@@ -17,7 +19,7 @@ import type { NewSource } from './AddSourcePanel.types';
 import type { ScheduleChange } from './ScheduleMenu';
 
 /** The tab ids, which are also the URL's third segment. */
-export const TABS = Object.freeze(['sources', 'ask', 'settings', 'usage']);
+export const TABS = Object.freeze(['sources', 'ask', 'settings', 'usage', 'search-log']);
 
 /**
  * One knowledge base: the 48px Studio header, its four tabs, and the
@@ -159,6 +161,9 @@ export default function KnowledgeDetail({
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const { confirm, confirmDialog } = useConfirm();
+    // The search log is for managers of a licensed install; everyone else is never offered the tab.
+    const { hasFeature } = useLicenseContext();
+    const showSearchLog = canManage && hasFeature('kb_query_log');
 
     const [kb, setKb] = useState<KnowledgeBase | null>(null);
     const [sources, setSources] = useState<KbSource[]>([]);
@@ -250,7 +255,8 @@ export default function KnowledgeDetail({
         { id: 'ask', label: t('knowledge.tab_ask', 'Test question') },
         { id: 'settings', label: t('knowledge.tab_settings', 'Settings') },
         { id: 'usage', label: t('usage.table_label', 'Used by'), count: usage?.length },
-    ]), [t, totals, sources.length, usage]);
+        ...(showSearchLog ? [{ id: 'search-log', label: t('knowledge.tab_search_log', 'Search log') }] : []),
+    ]), [t, totals, sources.length, usage, showSearchLog]);
 
     if (loading) {
         return (
@@ -336,6 +342,8 @@ export default function KnowledgeDetail({
                         onDuplicated={(copy: { id: string; }) => { if (copy?.id) onOpenKb?.(copy.id); }}
                     />
                 )}
+
+                {tab === 'search-log' && showSearchLog && <QueryLogTab kbId={kbId} />}
 
                 {tab === 'usage' && (
                     <UsedByTab

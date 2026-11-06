@@ -41,6 +41,8 @@ function fakeDeps(over = {}) {
             logAccessAudit: async (...args) => { state.audits.push(args); },
         },
         memoryStore: { countActiveMemoriesForUser: async (uid) => (uid === 'u_1' ? 4 : 0) },
+        // Pinned to the scanning org too; a count, never the text.
+        kbQueryLogStore: { countsForUser: async (orgId, uid) => ({ total: orgId === 'org_a' && uid === 'u_1' ? 5 : 0, byKb: {} }) },
         // Pinned like the rest: the count is asked for the scanning org only.
         projectChatStore: {
             countMessagesByAuthor: async (uid, { organizationId }) => (uid === 'u_1' && organizationId === 'org_a' ? 7 : 0),
@@ -482,4 +484,22 @@ test('an outside data subject: sealed project bodies are reported as not scanned
         assert.ok(GUI_DEFAULTS[`compliance.dsr_discovery_not_scanned_${name}`], `no label for ${name}`);
     }
     assert.match(GUI_DEFAULTS['compliance.dsr_discovery_team_chat_messages'], /written by this person/);
+});
+
+test('the KB query log is a source: a count for the subject account in this organisation, no text', async () => {
+    const res = await discovery.run('org_a', { id: 61, subject_email: EMAIL }, { deps: fakeDeps().deps, force: true });
+    const logSource = res.sources.find(s => s.kind === 'kb_query_log');
+    assert.ok(logSource, 'kb_query_log is listed');
+    assert.strictEqual(logSource.count, 5);
+    assert.strictEqual(logSource.label_key, 'compliance.dsr_discovery_kb_query_log');
+    assert.ok(!('items' in logSource), 'a count and nothing else');
+});
+
+test('the KB query log counts 0 for an address without an account, and null when the store is down', async () => {
+    const none = await discovery.run('org_b', { id: 62, subject_email: EMAIL }, { deps: fakeDeps().deps, force: true });
+    assert.strictEqual(none.sources.find(s => s.kind === 'kb_query_log').count, 0);
+    const broken = fakeDeps().deps;
+    broken.kbQueryLogStore = { countsForUser: async () => { throw new Error('db down'); } };
+    const unknown = await discovery.run('org_a', { id: 64, subject_email: EMAIL }, { deps: broken, force: true });
+    assert.strictEqual(unknown.sources.find(s => s.kind === 'kb_query_log').count, null, 'unknown is not zero');
 });

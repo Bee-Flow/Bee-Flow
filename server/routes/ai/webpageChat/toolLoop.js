@@ -36,7 +36,7 @@ async function runToolLoop({
     send, req, adapter, apiKey, apiUrl, modelId, messages, tiers, resolvedTier, clientSignal, isGone,
     webpage, webpageId, userId, userOrgForTiers, attachments, chatMode, planExecution,
     kbIds, searchAvailable, framework, html, css, js, sources, modelSupportsVision,
-    shieldGate, _dlpConvId, _dlpActive,
+    shieldGate, _dlpConvId, _dlpActive, queryLogs = null,
 }) {
     // Tool list
     const webpageTools = [...WEBPAGE_DOC_TOOLS, ...WEBPAGE_MULTI_FILE_TOOLS, ...WEBPAGE_DB_TOOLS, ...WEBPAGE_BRIDGE_TOOLS, WEBPAGE_ADD_SOURCE_TOOL, WEBPAGE_SET_FRAMEWORK_TOOL, WEBPAGE_SET_RUNTIME_TOOL, WEBPAGE_SCREENSHOT_TOOL];
@@ -147,7 +147,7 @@ async function runToolLoop({
 
     const dispatchToolCall = createToolDispatcher({
         send, req, shieldGate, planToolAvailable, webpageId, userId, userOrgForTiers,
-        kbIds, sources, modelSupportsVision, _dlpConvId,
+        kbIds, sources, modelSupportsVision, _dlpConvId, queryLogs,
     }, turn);
     const maybeBuildValidationRepair = createValidationRepair({ send, webpageId, userId }, turn);
 
@@ -326,7 +326,7 @@ async function runToolLoop({
         }
     }
 
-    return { _streamUntok, dirtySlots, touchedExtraPaths, liveFiles, preTurnFiles };
+    return { _streamUntok, dirtySlots, touchedExtraPaths, liveFiles, preTurnFiles, fullContent };
 }
 
 module.exports = { runToolLoop };

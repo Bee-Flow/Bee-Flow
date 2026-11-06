@@ -334,6 +334,7 @@ const STEP_SPECS = {
     dataset_query: { mutatesData: true, fields: DATASET_QUERY_FIELDS },
     ai_browse: { mutatesData: true, fields: AI_BROWSE_FIELDS },
     copy_document: { mutatesData: true, fields: COPY_DOCUMENT_FIELDS },
+    ...require('./actionSpecsKbLog').KB_LOG_STEP_SPECS,
     condition: {
         mutatesData: false, // flow-control; mutation lives in the child steps
         fields: {

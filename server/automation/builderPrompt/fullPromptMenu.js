@@ -218,6 +218,18 @@ const FULL_PROMPT_STEP_MENU = `
                      may MANAGE (reading a base is not permission to add to it): take it from the
                      "Knowledge bases you may use" block in the context (a WRITABLE one), never an
                      id you invented, and if they need a base that does not exist yet, say so and stop.
+  kb_query_log     — READ or REVIEW the query log of a KNOWLEDGE BASE (Enterprise; what people asked
+                     it, which passages it found, what it answered). Only as a builder_add_steps entry:
+                     {type:"kb_query_log", spec:{op:"list", knowledgeBaseId, filters?:{status, outcome,
+                     channel, userId, from, to}, limit?}} returns steps.$<id>.output.rows (query, answer,
+                     chunks, outcome, reviewStatus, reviewNote) and output.total; {type:"kb_query_log",
+                     spec:{op:"review", knowledgeBaseId, entryId:"{{loop.row.id}}", status:"reviewed" |
+                     "needs_addition" | "to_review", note?}} sets one entry's review status. Use it for a
+                     weekly digest of unanswered questions or to close the loop on a review queue.
+                     knowledgeBaseId must be a base the AUTOMATION'S OWNER may MANAGE ("Knowledge bases
+                     you may use", a WRITABLE one); never invent an id. All fields are {{…}} template
+                     strings. A refusal (no licence, no manage right) SKIPS the step; a dry run reads but
+                     never writes a review.
   call_layer       — run an inline Flowlet (a named sub-flow stored in definition.layers)
   call_block       — run a reusable building block (a Step this workspace built and published).
                      Only as a builder_add_steps entry: {type:"call_block", spec:{blockId,

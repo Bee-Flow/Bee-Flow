@@ -23,13 +23,14 @@ const { emitPhase, emitPhaseEnd } = require('../../../core/agentRuntime/phaseEve
 // the notebook's own base by notebook role, any other by the caller's own access.
 const { partitionNotebookKbIds } = require('../../../agents/notebooks/notebookKbAccess');
 const { STOP } = require('./privacyScans');
+const { registerHandle, handleOf } = require('../../../core/kb/queryLog/hook.mts');
 
 /**
  * Search the notebook knowledge base for relevant context, scan it, and send
  * the citation sources to the client.
- * @returns {Promise<typeof STOP | { kbIds: string[], kbContext: string }>}
+ * @returns {Promise<typeof STOP | { kbIds: string[], kbContext: string, citations: Array<Record<string, any>> }>}
  */
-async function retrieveKbContext({ req, notebook, userId, message, readySources, send, notebookId, docShield, orgShieldConfig, toolPiiGate, repeatGuard, scans }) {
+async function retrieveKbContext({ req, notebook, userId, message, readySources, send, notebookId, docShield, orgShieldConfig, toolPiiGate, repeatGuard, scans, queryLogs = null, userOrgId = null }) {
     const { _failClosed, _abortFailClosed, _scanViaLedger, _abortBlocked } = scans;
     let kbContext = '';
     /** @type {{ title: string; index: number; rawTitle: string; content: string; score: number; }[]} */
@@ -56,7 +57,10 @@ async function retrieveKbContext({ req, notebook, userId, message, readySources,
                 options: { topK: 10, rerank: true, minScore: 0.2 },
                 // Chunks carry the source id; the prompt and chips show its name.
                 sources: readySources,
+                // KB query log: the person asking is `userId` (the viewer), not the notebook's owner.
+                log: queryLogs ? { channel: 'notebook', channelRef: { notebookId: notebook.id }, orgId: userOrgId, userId } : null,
             });
+            registerHandle(queryLogs, handleOf(kbResult));
 
             repeatGuard.seedChunks(kbResult.chunks);
             if (kbResult.chunks.length > 0) {
@@ -116,6 +120,8 @@ async function retrieveKbContext({ req, notebook, userId, message, readySources,
     }
 
     // Send citation sources to frontend
+    /** @type {Array<Record<string, any>>} */
+    let sentCitations = [];
     if (citationSources.length > 0) {
         // The shared citation shape (core/kb/citation.js), which keeps the
         // `preview` alias for one release. Sending ONLY
@@ -123,9 +129,10 @@ async function retrieveKbContext({ req, notebook, userId, message, readySources,
         // available." — the text was fetched, scored and sent under a key
         // nothing consumed.
         const { toCitations } = require('../../../core/kb/citation');
-        send('kb_sources', { sources: toCitations(citationSources, { kind: 'notebook' }) });
+        sentCitations = toCitations(citationSources, { kind: 'notebook' });
+        send('kb_sources', { sources: sentCitations });
     }
-    return { kbIds, kbContext };
+    return { kbIds, kbContext, citations: sentCitations };
 }
 
 /**

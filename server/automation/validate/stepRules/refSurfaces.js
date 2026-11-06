@@ -287,6 +287,10 @@ function collectStepRefs(step) {
             // MCP patch can carry the shape the builder's older tools used.
             for (const f of ['content', 'title', 'sourceUri']) templateOrBinding(step[f], f);
             break;
+        case 'kb_query_log':
+            for (const f of ['knowledgeBaseId', 'entryId', 'status', 'note']) templateOrBinding(step[f], f);
+            if (isObject(step.filters)) for (const [k, v] of Object.entries(step.filters)) templateOrBinding(v, `filters.${k}`);
+            break;
         case 'datatable':
             // A datatable carries its bindings in `values`, `where[].value` and
             // `cursor`, not in `inputs`: a value pointing at a renamed, deleted

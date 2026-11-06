@@ -42,6 +42,7 @@ const { isBrowseWebTool, executeBrowseWebTool } = require('./browserFetchTools')
 const { isRegexGeneratorTool, executeRegexGeneratorTool } = require('./regexGeneratorTools');
 const { executeWorkspaceTool } = require('./workspaceTools');
 const { isKbSearchTool, executeKbSearchTool } = require('./kbSearchTools');
+const { agentToolLog } = require('../core/kb/queryLog/hook.mts');
 const { isKbIngestTool, executeKbIngestTool } = require('./kbIngestTools');
 const { isMapsTool, executeMapsTool } = require('./mapsTools');
 const { isLinkedInTool, executeLinkedInTool } = require('./linkedinTools');
@@ -59,7 +60,7 @@ const { executeNextcloudFamilyTool, executeGuardedNextcloudTool, executeCheckedN
 /**
  * The dispatcher's context, with the fields these families read named.
  * @typedef {import('../core/tools/toolFamilyRegistry').ToolContext & {
- *   session?: Express.Session, attachments?: unknown[], supportThreadId?: string,
+ *   session?: Express.Session, attachments?: unknown[], queryLog?: { carrier: object, channel: 'agent_chat' | 'agent_chat_sync' } | null, supportThreadId?: string,
  *   memoryReadEnabled?: boolean, memoryWriteEnabled?: boolean, testAs?: unknown, askerUserId?: string,
  *   userAuth?: { supportThreadId?: string, supportActionPolicy?: import('./supportTools').ActionPolicy },
  * }} ToolCtx
@@ -307,10 +308,9 @@ async function executeMemory(toolName, toolArgs, context) {
  */
 async function executeKbSearch(toolName, toolArgs, context) {
     return await executeKbSearchTool(toolName, toolArgs, {
-        userId: context.userId,
-        agentId: context.agentId,
-        conversationId: context.conversationId,
+        userId: context.userId, agentId: context.agentId, conversationId: context.conversationId,
         testAs: context.testAs || null,
+        ...agentToolLog(context), // KB query log: registers the search on the turn's carrier
     });
 }
 

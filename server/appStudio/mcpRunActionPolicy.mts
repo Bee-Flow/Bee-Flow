@@ -27,9 +27,9 @@ export const CONTROL_KINDS = ['condition', 'switch', 'loop'];
 /** Steps that run for real when dryRun is false (plus delete_record: the owner asked for this run). */
 const LIVE_KINDS: readonly string[] = [...policy.HOOK_STEP_KINDS, 'delete_record'];
 /** Steps that run even in dryRun (they read, or call the model); writeTo is stripped there. */
-const DRY_RUN_KINDS: readonly string[] = ['ai_extract', 'ai_generate', 'kb_query', 'dataset_query'];
+const DRY_RUN_KINDS: readonly string[] = ['ai_extract', 'ai_generate', 'kb_query', 'dataset_query', 'kb_log_query'];
 /** Steps a test may give a fixed answer (`mock`): exactly the ones a dry run sends to the executor. */
-export const MOCKABLE_KINDS: readonly string[] = DRY_RUN_KINDS;
+export const MOCKABLE_KINDS: readonly string[] = DRY_RUN_KINDS.filter((k) => k !== 'kb_log_query');
 export const RECORD_WRITES: readonly string[] = ['create_record', 'update_record', 'delete_record'];
 
 export const MAX_LOOP_ITERATIONS = 200;

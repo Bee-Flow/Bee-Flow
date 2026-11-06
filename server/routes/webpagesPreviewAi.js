@@ -18,6 +18,7 @@ const { resolveModelForTier, TIER_DEFAULTS } = require('../core/llm/modelResolve
 const { buildAiMessages } = require('../core/webpages/webpageAiMessages');
 const usageStore = require('../stores/usageStore');
 const { openSse } = require('../core/http/sseHelpers');
+const { handleOf, trackAnswer, finishLogs, finishLogsWithError } = require('../core/kb/queryLog/hook.mts');
 const { bestEffort } = require('../utils/bestEffort');
 
 /**
@@ -120,7 +121,8 @@ async function chat(/** @type {import('express').Request} */ req, /** @type {imp
     const ctx = await loadAiContext(webpageId, res);
     if (!ctx) return;
 
-    const messages = await buildAiMessages(ctx, req.body || {});
+    const messages = await buildAiMessages(ctx, req.body || {}, { viewerUserId: req.previewClaims.viewerUserId || null });
+    const queryLogHandle = handleOf(messages);
     const { tierName, modelId, tierDefaults, maxTokens } = await resolveBridgeModel(ctx, req.body);
     if (!modelId) throw new HttpError(500, 'no_model', `No model configured for tier "${tierName}"`);
 
@@ -130,13 +132,12 @@ async function chat(/** @type {import('express').Request} */ req, /** @type {imp
     };
 
     const t0 = Date.now();
-    let result;
-    let structured = null;
-    if (req.body && req.body.schema && typeof req.body.schema === 'object') {
-        ({ result, structured } = await chatStructured(modelId, messages, baseOptions, req.body.schema));
-    } else {
-        result = await llmClient.chat(modelId, messages, baseOptions);
-    }
+    const { result, structured } = await trackAnswer(queryLogHandle, {
+        model: modelId,
+        answerOf: (r) => (r.structured !== null ? JSON.stringify(r.structured) : (r.result.content || '')),
+    }, async () => (req.body && req.body.schema && typeof req.body.schema === 'object'
+        ? await chatStructured(modelId, messages, baseOptions, req.body.schema)
+        : { result: await llmClient.chat(modelId, messages, baseOptions), structured: null }));
 
     logBridgeUsage(ctx, req.previewClaims, modelId, usageLogFields(result?.usage), t0);
 
@@ -166,8 +167,13 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
         sendEvent(event, data || {});
     };
 
+    /** @type {import('../core/kb/queryLog/recorder.mts').Handle | null} */
+    let queryLogHandle = null;
+    let answerText = '';
+    const streamT0 = Date.now();
     try {
-        const messages = await buildAiMessages(ctx, req.body || {});
+        const messages = await buildAiMessages(ctx, req.body || {}, { viewerUserId: req.previewClaims.viewerUserId || null });
+        queryLogHandle = handleOf(messages);
         const { tierName, modelId, tierDefaults, maxTokens } = await resolveBridgeModel(ctx, req.body);
         if (!modelId) {
             send('error', { error: `No model configured for tier "${tierName}"` });
@@ -178,7 +184,7 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
         const t0 = Date.now();
         let promptTokens = 0, completionTokens = 0;
         await llmClient.stream(modelId, messages, { maxTokens, temperature: tierDefaults.temperature }, (type, data) => {
-            if (type === 'text') send('content', { text: data.text });
+            if (type === 'text') { answerText += data.text; send('content', { text: data.text }); }
             else if (type === 'done') {
                 promptTokens = data?.prompt_tokens || 0;
                 completionTokens = data?.completion_tokens || 0;
@@ -186,6 +192,7 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
             else if (type === 'error') send('error', { error: data?.error || 'stream error' });
         });
 
+        finishLogs(queryLogHandle, { outcome: 'answered', answer: answerText, model: modelId, answerMs: Date.now() - streamT0 });
         logBridgeUsage(ctx, req.previewClaims, modelId, {
             prompt_tokens: promptTokens,
             completion_tokens: completionTokens,
@@ -196,6 +203,7 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
         stopHeartbeat();
         res.end();
     } catch (err) {
+        finishLogsWithError(queryLogHandle, err, streamT0);
         log.error(`[WebpagesPreview/ai/stream] ${/** @type {Error} */ (err).message}`);
         send('error', { error: /** @type {Error} */ (err).message });
         stopHeartbeat();

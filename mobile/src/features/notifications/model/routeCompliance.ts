@@ -24,7 +24,7 @@ const HUB = '/org/compliance';
 /** sections.ts SECTIONS, by id; the overview is the hub itself. */
 export const COMPLIANCE_SECTION_IDS: ReadonlySet<string> = new Set([
     'overview', 'gdpr', 'aia', 'iso', 'frameworks', 'nis2', 'cra', 'data_act', 'pld', 'eaa', 'dora', 'machinery', 'custom',
-    'dsr', 'incidents', 'vulnerabilities', 'ropa', 'dpia', 'risks', 'soa', 'policies', 'audits', 'training', 'access_log',
+    'dsr', 'incidents', 'vulnerabilities', 'ropa', 'dpia', 'risks', 'soa', 'policies', 'audits', 'training', 'access_log', 'kb_query_log',
     'portability', 'settings', 'connectors',
 ]);
 

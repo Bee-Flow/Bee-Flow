@@ -187,6 +187,12 @@ const TIER_FEATURES = {
         // read-only (removable).
         'custom_data_types',
         'advanced_usage_monitoring',
+        // Knowledge-base query log: opt-in per KB log of questions, retrieved
+        // passages and answers for quality review (core/kb/queryLog/). Gates
+        // the KB log routes, the compliance views, the builder steps and the
+        // recorder (no licence, no new rows). Reading/deleting for GDPR and
+        // retention is deliberately NOT gated by it.
+        'kb_query_log',
         // Compliance / admin block (unchanged).
         'guardrails_dlp',
         // compliance_hub_gdpr gates the whole /api/compliance mount (GDPR +

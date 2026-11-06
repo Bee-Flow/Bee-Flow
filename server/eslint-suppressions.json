@@ -7814,11 +7814,6 @@
       "count": 1
     }
   },
-  "routes/knowledgeBases/ask.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/knowledgeBases/create.js": {
     "complexity": {
       "count": 1

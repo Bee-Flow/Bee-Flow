@@ -385,6 +385,10 @@ export const ROUTES = {
      */
     'GET /api/kb/suggestions': () => ({ suggestions: [] }),
 
+    /** The demo logs nothing, so the line under the test question stays away. Before `:id`, like the server. */
+    'GET /api/kb/query-log/notice': () => ({ active: false, kbs: [] }),
+    'GET /api/kb/query-log/dpias': () => ({ dpias: [] }),
+
     // Sources BEFORE the `:id` detail, the same order the server mounts them
     // in: `/:id/sources/...` must never be reached through a detail handler.
     'GET /api/kb/:id/sources': ({ state, params }: Ctx) => {

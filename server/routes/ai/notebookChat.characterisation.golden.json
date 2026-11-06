@@ -596,7 +596,15 @@
        "status": "ready",
        "wordCount": 1200
       }
-     ]
+     ],
+     "log": {
+      "channel": "notebook",
+      "channelRef": {
+       "notebookId": "nb-1"
+      },
+      "orgId": "org-1",
+      "userId": "u1"
+     }
     }
    ],
    [
@@ -658,7 +666,16 @@
       "status": "ready",
       "wordCount": 1200
      }
-    ]
+    ],
+    {
+     "channel": "notebook",
+     "channelRef": {
+      "notebookId": "nb-1"
+     },
+     "orgId": "org-1",
+     "userId": "u1",
+     "carrier": {}
+    }
    ],
    [
     "web.search",

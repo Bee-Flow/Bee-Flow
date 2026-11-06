@@ -60,8 +60,11 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
         return v;
     };
     const inputJson = input != null ? JSON.stringify(stripNulDeep(truncatePayload(redact(input)).value)) : null;
+    // A kb_query_log step's output holds decrypted KB log text: the stored copy is emptied of it,
+    // or the run history would outlive the log's retention and erasure.
+    const storedOutput = stepType === 'kb_query_log' ? require('../kb/queryLog/redact.mts').redactLogStepOutput(output) : output;
     const outputValue = output != null
-        ? await persistableOutput({ value: redact(output), ref: { runId, stepId, attempts }, clean: stripNulDeep })
+        ? await persistableOutput({ value: redact(storedOutput), ref: { runId, stepId, attempts }, clean: stripNulDeep })
         : null;
     const outputJson = outputValue != null ? JSON.stringify(stripNulDeep(outputValue)) : null;
     const errorText = error ? redact(String(error)).replace(/\u0000/g, '') : null;

@@ -5,6 +5,7 @@ import useTranslation from '@/hooks/useTranslation';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import CitationChips from '@/pages/documents/notebook/CitationChips';
 import RelevanceBar from '@/components/shared/RelevanceBar';
+import KbQueryLogNotice from '@/components/chat/KbQueryLogNotice';
 
 /**
  * "Testvraag" — ask this knowledge base something and see WHICH source
@@ -131,6 +132,8 @@ export default function TestQuestionCard({ kbId = null, disabled = false }: Test
                     {t('knowledge.ask.submit', 'Ask')}
                 </button>
             </form>
+
+            {kbId && <KbQueryLogNotice kbIds={[kbId]} className="justify-start text-left" />}
 
             {error && (
                 <p role="alert" className="[color:var(--error)] [font-size:11px]">{error}</p>

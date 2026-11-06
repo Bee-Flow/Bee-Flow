@@ -28,7 +28,7 @@ const { checkTopics } = require('./topicRules');
 const { checkRoutes } = require('./routeRules');
 const { checkCode, checkLayerOutput, checkSet, checkParseJson, checkDatetime } = require('./dataShapingRules');
 const { checkGenerateDocument, checkFillDocument, checkSlide, checkPresentation } = require('./documentRules');
-const { checkKnowledgeWrite, checkDatatable } = require('./persistenceRules');
+const { checkKnowledgeWrite, checkKbQueryLog, checkDatatable } = require('./persistenceRules');
 const { checkReadTable, checkTable } = require('./tableRules');
 const {
     checkNotification, checkWait, checkStopError, checkReturnToApp, checkNote, checkFormPage,
@@ -133,6 +133,7 @@ function createStepChecker({
         checkAskOnce(ctx, step, at);
         checkCacheInto(ctx, step, at);
         checkKnowledgeWrite(ctx, step, at);
+        checkKbQueryLog(ctx, step, at);
         checkDatatable(ctx, step, at);
         checkReadTable(ctx, step, at);
         checkTable(ctx, step, at);

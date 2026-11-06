@@ -9,6 +9,7 @@ const configStore = require('../../stores/configStore');
 const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');
 const { fenceChunks, DATA_NOT_INSTRUCTIONS } = require('../kb/sourceFencing');
+const { logSearch } = require('../kb/queryLog/hook.mts');
 
 const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';
 
@@ -63,9 +64,10 @@ ${kbText}`;
 }
 
 /**
- * @param {{ userId: string, kbIds: string[], query: string, options?: { topK?: number, rerank?: boolean, minScore?: number, maxChunkChars?: number, preprocessQuery?: boolean, timeoutMs?: number } }} params
+ * @param {{ userId: string, kbIds: string[], query: string, options?: { topK?: number, rerank?: boolean, minScore?: number, maxChunkChars?: number, preprocessQuery?: boolean, timeoutMs?: number },
+ *   log?: import('../kb/queryLog/hook.mts').LogOption | null }} params  `log`: the query-log channel to record the search under (the handle comes back as `._queryLog` on the result)
  */
-async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
+async function searchWebpageKB({ userId, kbIds, query, options = {}, log: queryLog = null }) {
     const {
         topK = 10,
         rerank = true,
@@ -81,6 +83,7 @@ async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
 
     const searchQuery = doPreprocess ? preprocessQuery(query) : query;
     const azureParams = await getAzureSearchParams();
+    const retrievalT0 = Date.now();
 
     /** @type {WebpageKbChunk[]} */
     let chunks = [];
@@ -115,8 +118,14 @@ async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
         return { chunks: [], contextPrompt: '', citations: [] };
     }
 
+    /** @template {object} R @param {R} result */
+    const withLog = async (result) => {
+        if (queryLog) await logSearch(result, queryLog, { kbIds, query: searchQuery, chunks, retrievalMs: Date.now() - retrievalT0 });
+        return result;
+    };
+
     if (chunks.length === 0) {
-        return { chunks: [], contextPrompt: '', citations: [] };
+        return await withLog({ chunks: /** @type {WebpageKbChunk[]} */ ([]), contextPrompt: '', citations: /** @type {Array<{ index: number, title: string, rawTitle: string, content: string, score: number }>} */ ([]) });
     }
 
     const truncatedChunks = chunks.slice(0, topK).map(c => ({
@@ -137,15 +146,16 @@ async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
     const contextPrompt = buildWebpageContextPrompt(truncatedChunks);
 
     log.info(`[WebpageKBSearch] Found ${truncatedChunks.length} chunks (query ${searchQuery.length} chars, rerank: ${rerank})`);
-    return { chunks: truncatedChunks, contextPrompt, citations };
+    return await withLog({ chunks: truncatedChunks, contextPrompt, citations });
 }
 
 /**
  * @param {{ query?: string, top_k?: string }} args
  * @param {string} userId
  * @param {string[]} kbIds
+ * @param {import('../kb/queryLog/hook.mts').LogOption | null} [queryLog]  record the search (its `carrier` collects the handle)
  */
-async function executeWebpageKBSearchTool(args, userId, kbIds) {
+async function executeWebpageKBSearchTool(args, userId, kbIds, queryLog = null) {
     const { query, top_k } = args;
     if (!query) return { error: 'query is required' };
 
@@ -155,7 +165,7 @@ async function executeWebpageKBSearchTool(args, userId, kbIds) {
 
     const topK = Math.min(Math.max(parseInt(String(top_k)) || 5, 1), 10);
     const result = await searchWebpageKB({
-        userId, kbIds, query,
+        userId, kbIds, query, log: queryLog,
         options: { topK, rerank: true, minScore: 0.25, maxChunkChars: 1200, preprocessQuery: false },
     });
 

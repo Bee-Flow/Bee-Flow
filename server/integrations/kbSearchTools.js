@@ -14,6 +14,7 @@ const { getServiceHeaders } = require('../core/serviceAuth');
 const { recordSidecarCall } = require('../telemetry/metrics');
 const { toCitation } = require('../core/kb/citation');
 const log = require('../telemetry/log');
+const { logSearch, attachHandle } = require('../core/kb/queryLog/hook.mts');
 const { fallback } = require('../utils/bestEffort');
 const {
     smallTalkCore, scoredResults, dedupeNearDuplicates, stripRepeatedHeadings, labelSections,
@@ -284,6 +285,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
     }
 
     const topK = Math.min(Math.max(parseInt(top_k) || 5, 1), 10);
+    const retrievalT0 = Date.now();
 
     // Per-conversation cache: if the agent re-asks the same question later in
     // this conversation, skip the whole retrieval stack. Cache key is
@@ -337,6 +339,11 @@ async function executeKbSearchTool(toolName, args, context = {}) {
         const MAX_CHUNK_CHARS = 3000;
         stripRepeatedHeadings(dedupResults, MAX_CHUNK_CHARS);
 
+        // KB query log: what the search found, before the score filter; the handle rides on the payload.
+        const queryLogHandle = context.log
+            ? await logSearch({}, context.log, { kbIds, query, chunks, retrievalMs: Date.now() - retrievalT0 })
+            : null;
+
         const topScore = chunks.length > 0 ? Math.max(...chunks.map(c => c.score || c.rerank_score || 0)) : 0;
         log.info(`[KBSearch] Found ${dedupResults.length} results (from ${chunks.length} chunks, deduped from ${results.length}, threshold=${scoreThreshold}, topScore=${topScore.toFixed(4)})`);
 
@@ -387,7 +394,8 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             }),
         };
         kbQueryCache.set(conversationId, `${query}|top_k=${topK}|preview=${previewMode}`, kbIds, payload);
-        return payload;
+        // The cached object stays handle-free: a cache hit is not a new search.
+        return queryLogHandle ? attachHandle({ ...payload }, queryLogHandle) : payload;
 
     } catch (err) {
         log.error(`[KBSearch] Error:`, /** @type {Error} */ (err).message);
@@ -411,5 +419,5 @@ module.exports = {
 
 /**
  * @typedef {{ query?: string, top_k?: number | string, chunk_ids?: string[] }} KbSearchArgs
- * @typedef {{ conversationId?: string, userId?: string, agentId?: string, testAs?: unknown }} KbSearchContext  testAs: the raw "Test as" metadata (core/agentRuntime/testAs.js coerces it)
+ * @typedef {{ conversationId?: string, userId?: string, agentId?: string, testAs?: unknown, log?: import('../core/kb/queryLog/hook.mts').LogOption | null }} KbSearchContext  testAs: the raw "Test as" metadata (core/agentRuntime/testAs.js coerces it)
  */

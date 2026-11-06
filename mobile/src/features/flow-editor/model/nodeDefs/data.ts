@@ -51,6 +51,31 @@ export const DATA_DEFS: Record<string, NodeDefSource> = {
         },
         labelFallback: 'Edit table',
     },
+    kb_query_log: {
+        family: 'data',
+        typeLabel: 'Knowledge base query log',
+        defaultLabel: 'Knowledge base query log',
+        desc: 'Read what people asked a knowledge base, or mark an entry as reviewed',
+        help: 'Reads the query log of a knowledge base (what people asked, what it found and answered) or sets the review status of one entry. Enterprise only, and the automation\'s owner must manage the knowledge base.',
+        sectionKeys: ['config'],
+        simpleSections: ['config'],
+        issueSections: {
+            fallback: 'config',
+            map: {
+                label: FLAT,
+                op: 'config',
+                knowledgeBaseId: 'config',
+                filters: 'config',
+                limit: 'config',
+                resultDetail: 'config',
+                entryId: 'config',
+                status: 'config',
+                // Quoted: `note` is the step's review-note FIELD here, not copy (i18nGuard reads a bare `note:` as text).
+                'note': 'config',
+            },
+        },
+        labelFallback: 'Knowledge base query log',
+    },
     set: {
         family: 'data',
         typeLabel: 'Edit data',

@@ -40,6 +40,17 @@ function Registers({ section }: { section: ComplianceSection }) {
     );
 }
 
+/** A register the phone does not draw: say where it lives rather than show an empty list. */
+function WebOnlySection() {
+    const t = useTranslation();
+    return (
+        <EmptyState
+            icon="FileSearch"
+            title={t('mobile.compliance.web_only', 'This register is available in the web app.')}
+        />
+    );
+}
+
 function SectionBody({ section }: { section: ComplianceSection }) {
     switch (section.view) {
         case 'checks':
@@ -54,6 +65,8 @@ function SectionBody({ section }: { section: ComplianceSection }) {
             return <AccessLogView />;
         case 'portability':
             return <PortabilityView />;
+        case 'web_only':
+            return <WebOnlySection />;
         default:
             return <SettingsView />;
     }

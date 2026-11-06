@@ -68,6 +68,14 @@ export const STEP_ROWS: readonly StepRow[] = [
         'Copy a Studio document into your library, a presentation optionally in another template’s look, to compare with the original.',
         'server',
     ],
+    [
+        'kb_log_query', 'Data', 'ScrollText', 'Read the knowledge base query log',
+        'Read what people asked a knowledge base and what it answered (Enterprise).', 'server',
+    ],
+    [
+        'kb_log_review', 'Data', 'BadgeCheck', 'Review a query log entry',
+        'Set the review status and note of a knowledge base query log entry (Enterprise).', 'server',
+    ],
     // AI
     [
         'ai_browse', 'AI', 'Globe', 'Browse the web',

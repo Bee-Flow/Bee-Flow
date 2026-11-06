@@ -506,7 +506,7 @@ async function streamChat(app, model, { system, messages }, onEvent) {
  * internet grounding on somebody's private notes is the case this exists to
  * prevent, and "no identity" cannot be resolved into a permission.
  */
-async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any, topK?: number, viewer?: any}} */ { knowledgeBaseIds, query, topK = 6, viewer = null } = {}) {
+async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any, topK?: number, viewer?: any, log?: import('../core/kb/queryLog/hook.mts').LogOption | null}} */ { knowledgeBaseIds, query, topK = 6, viewer = null, log: queryLog = null } = {}) {
     const requested = Array.isArray(knowledgeBaseIds)
         ? knowledgeBaseIds.filter((x) => typeof x === 'string' && x).slice(0, MAX_KB_IDS)
         : [];
@@ -529,8 +529,10 @@ async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any
     if (!kbIds.length) return { context: '', chunks: [] };
 
     const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
-    const chunks = await quickKBSearch(app.userId, kbIds, q, { topK }).catch((e) => fallback('appStudio/aiRuntime:groundWithKB', e, []));
-    if (!chunks || !chunks.length) return { context: '', chunks: [] };
+    // KB query log: the person asking is the viewer; the handle rides on `chunks` (`._queryLog`).
+    const logOption = queryLog ? { ...queryLog, userId: viewerId, orgId: queryLog.orgId ?? app?.organizationId ?? null } : null;
+    const chunks = await quickKBSearch(app.userId, kbIds, q, { topK, log: logOption }).catch((e) => fallback('appStudio/aiRuntime:groundWithKB', e, []));
+    if (!chunks || !chunks.length) return { context: '', chunks: chunks || [] };
 
     const context = chunks
         .map((c, i) => `[[${i + 1}]] ${c.title || 'KB'}\n${c.content || ''}`)

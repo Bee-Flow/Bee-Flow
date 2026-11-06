@@ -412,6 +412,51 @@
  },
  {
   "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_enabled BOOLEAN NOT NULL DEFAULT false",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_retention_days INT NOT NULL DEFAULT 90",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_changed_at TIMESTAMPTZ",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_changed_by TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_attestation JSONB",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_attested_by TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_attested_at TIMESTAMPTZ",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_show_names BOOLEAN NOT NULL DEFAULT false",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS query_log_ai_act_high_risk BOOLEAN NOT NULL DEFAULT false",
+  "params": null
+ },
+ {
+  "via": "exec",
   "sql": "UPDATE knowledge_bases SET is_published = TRUE WHERE organization_id IS NOT NULL AND is_published = FALSE",
   "params": null
  },
@@ -586,6 +631,41 @@
  {
   "via": "exec",
   "sql": "CREATE INDEX IF NOT EXISTS idx_kb_favorites_user ON kb_favorites(user_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS kb_query_log ( id TEXT PRIMARY KEY, search_group_id TEXT NOT NULL, organization_id TEXT, kb_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE, user_id TEXT, channel TEXT NOT NULL, channel_ref JSONB DEFAULT '{}', created_at TIMESTAMPTZ DEFAULT now(), query_enc TEXT, chunks_enc TEXT, chunk_count INT DEFAULT 0, top_score REAL, retrieval_ms INT, answer_enc TEXT, citations_enc TEXT, model TEXT, answer_ms INT, outcome TEXT NOT NULL DEFAULT 'no_results', error_code TEXT, answered_at TIMESTAMPTZ, review_status TEXT NOT NULL DEFAULT 'to_review', review_note_enc TEXT, reviewed_by TEXT, reviewed_at TIMESTAMPTZ, expires_at TIMESTAMPTZ NOT NULL )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_query_log_kb ON kb_query_log(kb_id, created_at DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_query_log_user ON kb_query_log(organization_id, user_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_query_log_expires ON kb_query_log(expires_at)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_query_log_group ON kb_query_log(search_group_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS kb_query_log_ack ( user_id TEXT NOT NULL, kb_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE, acknowledged_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (user_id, kb_id) )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_query_log_ack_kb ON kb_query_log_ack(kb_id)",
   "params": null
  },
  {
@@ -1029,6 +1109,13 @@
  {
   "guard": "managedInfoForKb",
   "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT organization_id FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
  },
  {
   "via": "getOne",

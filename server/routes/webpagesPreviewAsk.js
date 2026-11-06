@@ -28,6 +28,7 @@ const { usageLogFields, createUsageAccumulator } = require('../core/providers/us
 const automationStore = require('../stores/automationStore');
 const { searchWebpageKB } = require('../core/webpages/webpageKnowledgeSearch');
 const { buildAiMessages } = require('../core/webpages/webpageAiMessages');
+const { trackTurn } = require('../core/kb/queryLog/hook.mts');
 const usageStore = require('../stores/usageStore');
 const { executeTool } = require('../core/tools/toolDispatcher');
 const { getProviderForModel } = require('../core/aiAgent');
@@ -47,7 +48,7 @@ const { fallback } = require('../utils/bestEffort');
  *   shieldGate: ReturnType<typeof import('../core/privacy/toolPiiGate').toolLoopGate>,
  *   send: (event: string, data?: unknown) => void, isGone: () => boolean,
  *   usageAcc: ReturnType<typeof createUsageAccumulator>,
- *   viewerUserId: string | null | undefined, webpageId: string }} AskState
+ *   viewerUserId: string | null | undefined, webpageId: string, queryLogs?: object | null }} AskState
  */
 /**
  * @typedef {{ tierName: string, modelId: string | null, adapter?: ReturnType<typeof getAdapter>, apiKey?: string,
@@ -94,6 +95,7 @@ async function searchPageKnowledge(ask, toolArgs) {
         kbIds: ask.surface.kbIds,
         query,
         options: { topK: Math.min(parseInt(toolArgs.topK, 10) || 6, 20), rerank: true, minScore: 0.2 },
+        log: ask.queryLogs ? { channel: 'webpage', channelRef: { webpageId: ask.webpageId, surface: 'ask' }, orgId: ask.ctx.authorOrgId || null, userId: ask.viewerUserId || null, carrier: ask.queryLogs } : null,
     });
     return { chunks: r?.chunks || [], contextPrompt: r?.contextPrompt || '' };
 }
@@ -289,7 +291,7 @@ async function runAskRounds(ask, llm, messages) {
             await adapter.stream(apiKey, apiUrl, modelId, messages, { maxTokens, temperature }, state.callback);
         } catch (err) { fallback('routes/webpagesPreviewAsk:runAskRounds', err); /* best-effort */ }
     }
-    return { rounds, truncated };
+    return { rounds, truncated, answer: state.fullContent };
 }
 
 /**
@@ -358,9 +360,10 @@ async function ask(req, res) {
     const t0 = Date.now();
     // Every round of the loop, cache read/write included (providers/usageNormalizer.js).
     const usageAcc = createUsageAccumulator();
+    const queryLogs = {}; // KB query log: every search of this ask finishes with the final answer
 
     try {
-        const messages = await buildAiMessages(ctx, req.body || {});
+        const messages = await buildAiMessages(ctx, req.body || {}, { viewerUserId: viewerUserId || null, surface: 'ask', carrier: queryLogs });
         // Layer in agentic-loop guidance the static system message doesn't have
         messages.unshift({
             role: 'system',
@@ -376,9 +379,9 @@ async function ask(req, res) {
         const surface = buildAskToolSurface(ctx);
         llm.tools = surface.tools;
         const shieldGate = await buildShieldGate(ctx, llm.tools, llm.modelId);
-        const askState = { ctx, surface, shieldGate, send, isGone, usageAcc, viewerUserId, webpageId };
+        const askState = { ctx, surface, shieldGate, send, isGone, usageAcc, viewerUserId, webpageId, queryLogs };
 
-        const { rounds, truncated } = await runAskRounds(askState, llm, messages);
+        const { rounds, truncated } = await trackTurn(queryLogs, { model: llm.modelId, answerOf: (r) => r.answer }, () => runAskRounds(askState, llm, messages));
 
         // Logged regardless of client disconnect — real tokens were spent
         // either way, so the usage record should reflect that.

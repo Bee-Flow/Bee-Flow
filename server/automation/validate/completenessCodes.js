@@ -65,6 +65,8 @@ const COMPLETENESS_CODES = new Set([
     // somebody has not finished typing, it is a value nothing implements.
     'knowledge_write.kb_required',
     'knowledge_write.content_required',
+    // kb_query_log: the node is dropped on the canvas before the base is picked.
+    'kb_query_log.kb_required',
     'ai_step.prompt_missing',
     // An AI step whose list of allowed values reads a vars.<name> nothing sets
     // can never pass. Saved while the flow is a draft (a Solution variable, or

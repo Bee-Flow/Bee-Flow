@@ -1,6 +1,7 @@
 import AggregateNode from './nodes/AggregateNode';
 import DatatableNode from './nodes/DatatableNode';
 import KnowledgeWriteNode from './nodes/KnowledgeWriteNode';
+import KbQueryLogNode from './nodes/KbQueryLogNode';
 import AiStepNode from './nodes/AiStepNode';
 import AiToolNode from './nodes/AiToolNode';
 import CallFlowletNode from './nodes/CallFlowletNode';
@@ -90,6 +91,7 @@ export const NODE_TYPES = {
     aggregate:          AggregateNode,
     datatable:          DatatableNode,
     knowledge_write:    KnowledgeWriteNode,
+    kb_query_log:       KbQueryLogNode,
     summarize:          SummarizeNode,
     // Canvas annotation — never wired, never executed (BFSF-411).
     note:               NoteNode,

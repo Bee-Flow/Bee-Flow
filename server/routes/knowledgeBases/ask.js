@@ -60,6 +60,19 @@ const { z } = require('../../utils/zod');
 const { TIER_DEFAULTS } = require('../../core/llm/modelResolver');
 const { toCitations } = require('../../core/kb/citation');
 const { fallback } = require('../../utils/bestEffort');
+const { handleOf, trackAnswer, finishLogsWithError } = require('../../core/kb/queryLog/hook.mts');
+
+/**
+ * The citations an answer points at through its `[Source N]` markers (N is 1-based, the index of
+ * the fenced passage); undefined when it names none, so the log keeps no citation list then.
+ * @param {string} answer
+ * @param {Array<Record<string, any>>} citations
+ */
+function citedSources(answer, citations) {
+    const wanted = new Set([...String(answer).matchAll(/\[Source (\d+)\]/g)].map((m) => Number(m[1])));
+    const cited = citations.filter((_, i) => wanted.has(i + 1));
+    return cited.length ? cited : undefined;
+}
 
 /** How many passages to retrieve. Eight is what the artboard's list shows. */
 const ASK_TOP_K = 8;
@@ -74,6 +87,28 @@ const AskBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.
         .trim().min(1, QUESTION_TEXT)
         .max(MAX_QUESTION_CHARS, `A test question is at most ${MAX_QUESTION_CHARS} characters.`),
 }).strict());
+
+/**
+ * The test question's retrieval. It is the `kb_test` channel of the query log; the handle rides on the
+ * returned array as `._queryLog`.
+ * @param {import('express').Request} req
+ * @param {{ id: string, organization_id?: string | null }} kb
+ * @param {string} question
+ * @param {string} userId
+ * @returns {Promise<{ title: string; content: string; score: number; }[]>}
+ */
+async function searchForAsk(req, kb, question, userId) {
+    const { quickKBSearch } = require('../../core/agentRuntime/knowledgeSearch');
+    try {
+        return await quickKBSearch(userId, [kb.id], question, {
+            topK: ASK_TOP_K, session: req.session,
+            log: { channel: 'kb_test', channelRef: { kbId: kb.id }, orgId: kb.organization_id || null, userId },
+        }) || [];
+    } catch (e) {
+        log.warn('[KB/ask] search failed:', /** @type {Error} */ (e).message);
+        throw new HttpError(502, 'kb_search_failed', 'Could not search this knowledge base right now.');
+    }
+}
 
 router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof AskBody>, import('qs').ParsedQs>} */ req, res, next) => {
     // Null until the stream is open: before that, an error is still a status.
@@ -98,15 +133,8 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (/** @ty
         const userId = getUserId(req);
 
         // ── Retrieve ────────────────────────────────────────────────
-        const { quickKBSearch } = require('../../core/agentRuntime/knowledgeSearch');
-        /** @type {{ title: string; content: string; score: number; }[]} */
-        let chunks = [];
-        try {
-            chunks = await quickKBSearch(userId, [kb.id], question, { topK: ASK_TOP_K, session: req.session }) || [];
-        } catch (e) {
-            log.warn('[KB/ask] search failed:', /** @type {Error} */ (e).message);
-            throw new HttpError(502, 'kb_search_failed', 'Could not search this knowledge base right now.');
-        }
+        const chunks = await searchForAsk(req, kb, question, userId);
+        const queryLogHandle = handleOf(chunks);
 
         // Name the sources so a citation can say "Nextcloud · /Sales" and not
         // only the document's filename. Best-effort: a citation without it is
@@ -172,17 +200,19 @@ ${fenced}`;
             { role: 'user', content: question },
         ];
 
-        await adapter.stream(
+        let answerText = '';
+        // Query log: the first finish wins, so a stream error event is not overwritten by the 'answered' that follows.
+        await trackAnswer(queryLogHandle, { model: modelId, answerOf: () => answerText, citationsOf: () => citedSources(answerText, citations) }, () => adapter.stream(
             config.apiKey, apiUrl, config.modelId || modelId, messages,
             { maxTokens: Math.min(tier.maxTokens || 2048, 2048), temperature: 0.2 },
             (streamType, data) => {
-                if (streamType === 'text' && data?.text) send('text', { text: data.text });
+                if (streamType === 'text' && data?.text) { answerText += data.text; send('text', { text: data.text }); }
                 // A `thinking` block is the model's scratchpad, not an answer;
                 // showing it here would put reasoning about the passages in the
                 // place the answer goes.
-                else if (streamType === 'error') send('error', data);
+                else if (streamType === 'error') { finishLogsWithError(queryLogHandle, new Error('stream_error'), undefined, modelId); send('error', data); }
             },
-        );
+        ));
         send('done', {});
         res.end();
     } catch (e) {

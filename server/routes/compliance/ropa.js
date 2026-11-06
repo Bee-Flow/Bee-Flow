@@ -170,6 +170,14 @@ async function _buildRopa(orgId) {
             log.warn('[ROPA] chat signals activity unavailable:', /** @type {Error} */ (e).message);
         }
 
+        // The knowledge-base query log, while at least one base of the
+        // organisation logs — compliance/ropa/kbQueryLogActivity.js.
+        try {
+            activities.push(...await require('../../compliance/ropa/kbQueryLogActivity').kbQueryLogActivity(orgId));
+        } catch (e) {
+            log.warn('[ROPA] KB query log activity unavailable:', /** @type {Error} */ (e).message);
+        }
+
         // Product measurement.
         //
         // Every model call writes a row to `ai_usage_log` carrying the user,

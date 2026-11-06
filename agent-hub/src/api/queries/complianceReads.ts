@@ -4,7 +4,8 @@
 // and the page says it could not read it - never a silent zero.
 
 import { useQuery } from '@tanstack/react-query';
-import { API, fetchJson } from '../complianceApi';
+import { API, fetchJson, kbQueryLogUrls } from '../complianceApi';
+import { parseEntries, parseOverview, parseSubject, type KqlEntriesFilter } from '../kbQueryLog.types';
 import { readOrNull } from './refusableRead';
 
 export function useComplianceRead<T>(key: readonly unknown[], url: string, parse: (body: unknown) => T | null, enabled = true) {
@@ -43,4 +44,31 @@ export function usePolicyBodyQuery(slug: string | null) {
         staleTime: 0,
         retry: false,
     });
+}
+
+// ── Knowledge-base query log (Compliance Center) ──
+
+/** Per knowledge base: logging on or off, term, who changed it, counts. No text. */
+export function useKbQueryLogOverviewQuery() {
+    return useComplianceRead(['kb-query-log', 'overview'], kbQueryLogUrls.overview(), parseOverview);
+}
+
+/** The query string of an entries read and of its CSV export: the same filter, so the file is what is on screen. */
+export function kbQueryLogQuery(filter: KqlEntriesFilter): URLSearchParams {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(filter)) if (typeof v === 'string' && v !== '') q.set(k, v);
+    return q;
+}
+
+/** One page of entry metadata (time, base, person, channel, outcome, status). */
+export function useKbQueryLogEntriesQuery(filter: KqlEntriesFilter, offset: number) {
+    const q = kbQueryLogQuery(filter);
+    q.set('limit', '50');
+    q.set('offset', String(offset));
+    return useComplianceRead(['kb-query-log', 'entries', q.toString()], kbQueryLogUrls.entries(q), parseEntries);
+}
+
+/** How many rows one person has, per knowledge base. */
+export function useKbQuerySubjectQuery(userId: string | null) {
+    return useComplianceRead(['kb-query-log', 'subject', userId], kbQueryLogUrls.subject(userId || ''), parseSubject, !!userId);
 }

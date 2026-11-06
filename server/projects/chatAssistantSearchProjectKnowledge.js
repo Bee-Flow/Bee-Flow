@@ -121,10 +121,11 @@ async function resolveUsableAgent({ agentId, userId }, deps = {}) {
  * an empty `knowledgeBaseIds` is not a reason to stop here.
  *
  * @param {{ project: any, userId: string, query: string, session?: any|null, shield?: any|null,
- *           audienceIds?: string[]|null }} p
+ *           audienceIds?: string[]|null, log?: import('../core/kb/queryLog/hook.mts').LogOption|null,
+ *           onQueryLog?: ((handle: any) => void)|null }} p
  * @param {{ visibleKbIdsFor?: Function, quickKBSearch?: Function, injectedPassagesPrompt?: Function, kbStore?: any }} [deps]
  */
-async function searchProjectKnowledge({ project, userId, query, session = null, shield = null, audienceIds = undefined }, deps = {}) {
+async function searchProjectKnowledge({ project, userId, query, session = null, shield = null, audienceIds = undefined, log = null, onQueryLog = null }, deps = {}) {
     if (!project || !query) return '';
     const visibleKbIdsFor = deps.visibleKbIdsFor || require('../core/agentRuntime/testAs').visibleKbIdsFor;
     const quickKBSearch = deps.quickKBSearch || require('../core/agentRuntime/knowledgeSearch').quickKBSearch;
@@ -148,7 +149,9 @@ async function searchProjectKnowledge({ project, userId, query, session = null, 
         deps: deps.kbStore ? { kbStore: deps.kbStore } : {},
     });
     if (!kbIds || kbIds.length === 0) return '';
-    const chunks = await quickKBSearch(userId, kbIds, query, { topK: 6, session: session || null });
+    const chunks = await quickKBSearch(userId, kbIds, query, { topK: 6, session: session || null, ...(log ? { log } : {}) });
+    // KB query log: the handle goes to the caller, which finishes it with the answer.
+    if (onQueryLog && chunks && chunks._queryLog) onQueryLog(chunks._queryLog);
     if (!chunks || chunks.length === 0) return '';
     return injectedPassagesPrompt(chunks, { shield, tag: 'ProjectChat' });
 }

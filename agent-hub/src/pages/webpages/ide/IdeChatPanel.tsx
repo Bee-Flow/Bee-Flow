@@ -10,6 +10,11 @@ interface IdeChatPanelProps extends WebpageIDEProps {
     onResizeKey: (e: KeyboardEvent, dir?: number) => void;
 }
 
+/** `knowledgeBaseIds` on a webpage row, as the server sends it (stores/webpage/shared.js). */
+function pageKbIds(raw: unknown): string[] | undefined {
+    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : undefined;
+}
+
 /**
  * The chat resize handle + panel on the right. The IDE unmounts it when
  * collapsed and owns its width, so a reopened panel keeps the width it had.
@@ -49,6 +54,7 @@ export default function IdeChatPanel(p: IdeChatPanelProps) {
                     onKeepTurn={p.onKeepTurn}
                     onUndoTurn={p.onUndoTurn}
                     onShowInCode={p.onShowInCode}
+                    kbNoticeIds={pageKbIds(p.selected.knowledgeBaseIds)}
                 />
             </div>
         </>

@@ -8,6 +8,7 @@
  *   checks     — the checks table of one regulation (GDPR, AI Act, ISO, NIS2…)
  *   records    — a register driven by the record-type registry (one or more tabs)
  *   frameworks, ropa, access_log, portability, settings — a page of its own
+ *   web_only   — a register that lives in the browser (a placeholder says so)
  */
 
 import type { IconName } from '@/shared/ui';
@@ -15,7 +16,7 @@ import type { IconName } from '@/shared/ui';
 import type { Label } from './types';
 
 export type SectionGroup = 'frameworks' | 'registers' | 'admin';
-export type SectionView = 'overview' | 'checks' | 'records' | 'frameworks' | 'ropa' | 'access_log' | 'portability' | 'settings';
+export type SectionView = 'overview' | 'checks' | 'records' | 'frameworks' | 'ropa' | 'access_log' | 'portability' | 'settings' | 'web_only';
 
 export interface ComplianceSection {
     readonly id: string;
@@ -75,6 +76,7 @@ export const SECTIONS: readonly ComplianceSection[] = [
     reg('audits', 'FileSearch', { i18nKey: 'compliance.rail_audits', en: 'Audits & management review' }, ['audits', 'reviews', 'ncs', 'objectives']),
     reg('training', 'GraduationCap', { i18nKey: 'compliance.rail_training', en: 'Training & competence' }, ['personnel', 'obligations']),
     { ...reg('access_log', 'History', { i18nKey: 'compliance.rail_access_log', en: 'Access log' }, []), view: 'access_log' },
+    { ...reg('kb_query_log', 'FileSearch', { i18nKey: 'compliance.rail_kb_query_log', en: 'Knowledge base search log' }, []), view: 'web_only' },
     { ...opt(reg('portability', 'Repeat', { i18nKey: 'compliance.rail_portability', en: 'Data portability' }, [])), view: 'portability' },
     { id: 'settings', group: 'admin', icon: 'Settings2', label: { i18nKey: 'compliance.nav_settings', en: 'Settings' }, regulation: null, view: 'settings' },
     { id: 'connectors', group: 'admin', icon: 'Plug', label: { i18nKey: 'compliance.rail_connectors', en: 'Evidence connectors' }, regulation: null, view: 'records', types: ['connectors'] },

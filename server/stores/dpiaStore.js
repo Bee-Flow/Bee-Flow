@@ -93,6 +93,36 @@ async function listForOrg(orgId) {
     `, [orgId]);
 }
 
+/**
+ * The latest assessment per subject with a readable title (the agent's name when it is an agent).
+ * @param {string|null} orgId
+ */
+async function listForOrgNamed(orgId) {
+    await initDB();
+    // A missing agents table (a bare test database) only costs the readable title.
+    return getAll(`
+        SELECT DISTINCT ON (d.agent_id)
+            d.id, d.agent_id, COALESCE(a.name, d.agent_id) AS title, d.approved_at, d.expires_at, d.created_at
+        FROM dpia_assessments d LEFT JOIN agents a ON a.id::text = d.agent_id
+        WHERE d.organization_id = $1
+        ORDER BY d.agent_id, d.created_at DESC
+    `, [orgId]).catch(() => listForOrg(orgId));
+}
+
+/**
+ * One assessment by its id, only when it belongs to the organisation.
+ * @param {string|null} orgId
+ * @param {string|number} id
+ */
+async function getByIdForOrg(orgId, id) {
+    await initDB();
+    if (!orgId || !/^\d{1,9}$/.test(String(id))) return null;
+    return getOne(`
+        SELECT id, agent_id, mode, risk_level, approved_by, approved_at, expires_at, created_at
+        FROM dpia_assessments WHERE id = $1 AND organization_id = $2
+    `, [Number(id), orgId]);
+}
+
 /** @param {import('pg').QueryResultRow | null | undefined} row */
 function isCurrent(row) {
     if (!row || !row.approved_at) return false;
@@ -105,5 +135,7 @@ module.exports = {
     upsertAssessment,
     getLatestForAgent,
     listForOrg,
+    getByIdForOrg,
+    listForOrgNamed,
     isCurrent,
 };

@@ -15,6 +15,7 @@ const log = require('../../../telemetry/log');
 const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
 const { memoryUsedItems, emitMemoryUsed } = require('../../../core/memory/memoryUsed');
 const { fallback } = require('../../../utils/bestEffort');
+const { registerHandle, handleOf } = require('../../../core/kb/queryLog/hook.mts');
 
 /**
  * Knowledge-base passages go into the prompt without a tool call, so the
@@ -47,8 +48,10 @@ function makeKbPassagesText({ userOrgForTiers, userId }) {
  * that is used from this point on. Memory retrieval drops its `user_id`
  * filter whenever a projectId is present (memoryStore.findRelevantMemories),
  * so an unvalidated id would inject any project's memories into the prompt.
+ * @param {{ req: any, userId: string, projectId?: string | null, message: string, kbPassagesText: (chunks: any[]) => Promise<string>,
+ *   queryLog?: import('../../../core/kb/queryLog/hook.mts').LogOption | null, queryLogs?: object | null }} p
  */
-async function projectContextFor({ req, userId, projectId, message, kbPassagesText }) {
+async function projectContextFor({ req, userId, projectId, message, kbPassagesText, queryLog = null, queryLogs = null }) {
     const out = { stable: '', volatile: '', validProjectId: null, extractMemoriesEnabled: false };
     if (!projectId) return out;
     const { resolveRequestedProject } = require('../../../auth/projectAccess');
@@ -66,7 +69,8 @@ async function projectContextFor({ req, userId, projectId, message, kbPassagesTe
     if (kbIds.length === 0) return out;
     try {
         const { quickKBSearch } = require('../../../core/agentRuntime/knowledgeSearch');
-        const kbResults = await quickKBSearch(userId, kbIds, message, { topK: 6, session: req.session });
+        const kbResults = await quickKBSearch(userId, kbIds, message, { topK: 6, session: req.session, log: queryLog });
+        registerHandle(queryLogs, handleOf(kbResults));
         if (kbResults.length > 0) {
             const kbText = await kbPassagesText(kbResults);
             // Retrieved against THIS turn's message: volatile.
@@ -85,8 +89,10 @@ async function projectContextFor({ req, userId, projectId, message, kbPassagesTe
  * turn may search comes from the REQUEST, never from the stored column (see
  * promptAssembly.js). `usableKbIds` is what survived both checks, and also
  * what gets persisted at the end of the turn.
+ * @param {{ req: any, userId: string, message: string, requestedKbIds?: string[] | null, orgIdsForTiers?: any, kbPassagesText: (chunks: any[]) => Promise<string>,
+ *   queryLog?: import('../../../core/kb/queryLog/hook.mts').LogOption | null, queryLogs?: object | null }} p
  */
-async function attachedKbContext({ req, userId, message, requestedKbIds, orgIdsForTiers, kbPassagesText }) {
+async function attachedKbContext({ req, userId, message, requestedKbIds, orgIdsForTiers, kbPassagesText, queryLog = null, queryLogs = null }) {
     const out = { volatile: '', usableKbIds: [] };
     if (!(Array.isArray(requestedKbIds) && requestedKbIds.length > 0)) return out;
     const { resolveUsableKbIds } = require('../../../core/kb/kbSelection');
@@ -108,7 +114,8 @@ async function attachedKbContext({ req, userId, message, requestedKbIds, orgIdsF
     if (out.usableKbIds.length === 0) return out;
     try {
         const { quickKBSearch } = require('../../../core/agentRuntime/knowledgeSearch');
-        const kbResults = await quickKBSearch(userId, out.usableKbIds, message, { topK: 6, session: req.session });
+        const kbResults = await quickKBSearch(userId, out.usableKbIds, message, { topK: 6, session: req.session, log: queryLog });
+        registerHandle(queryLogs, handleOf(kbResults));
         if (kbResults.length > 0) {
             const kbText = await kbPassagesText(kbResults);
             // Retrieved against THIS turn's message: volatile.

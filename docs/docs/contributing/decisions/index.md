@@ -28,3 +28,4 @@ decision that changes gets a new record that supersedes the old one.
 | [0013](./run-profile.md) | One run profile, decided when a run starts, says what the run may do |
 | [0014](./assistant-sees-what-the-canvas-shows.md) | The assistant sees what the canvas shows: every step type, building block and connected tool, in the canvas's words, on every model band |
 | [0015](./per-person-adoption-view.md) | The per-person adoption view is pseudonymous by default, a name reveal is audited and fails closed, and adoption adds no navigation tracking |
+| [0016](./kb-query-log.md) | The knowledge-base search log is opt-in per base, readable by its managers only, sealed under an organisation key, and opened to compliance only behind an open data-subject request |

@@ -21,6 +21,7 @@ const supportStore = require('../stores/supportStore');
 const configStore = require('../stores/configStore');
 const { chatWithAgent } = require('../core/agentRuntime');
 const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
+const { trackTurn, supportQueryLog } = require('../core/kb/queryLog/hook.mts');
 const { buildSupportToolset, makeActionPolicy } = require('../integrations/supportTools');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
@@ -206,11 +207,12 @@ async function _grantedKbIds(cfg) {
  */
 async function _composeAiReply({ thread, messages, lastRequester, cfg, aiUserId }) {
     let kbHits = [];
+    const supportLogs = {}; // KB query log: every search of this reply registers here
     try {
         const kbIds = await _grantedKbIds(cfg);
         if (kbIds.length) {
             kbHits = await _withTimeout(
-                quickKBSearch(aiUserId, kbIds, lastRequester.body, { topK: 4 }),
+                quickKBSearch(aiUserId, kbIds, lastRequester.body, { topK: 4, log: supportQueryLog(thread, cfg, supportLogs) }),
                 KB_SEARCH_TIMEOUT_MS,
                 'quickKBSearch',
             );
@@ -274,7 +276,8 @@ Reply only to the customer's most recent message. If the knowledge base does not
     // guard is meant for interactive user→LLM chat, not this flow. (Tokenize is
     // not used here: non-streaming chatWithAgent doesn't de-tokenize output, so
     // tokens would leak into the customer reply.)
-    const chatAuth = { userOrgId: thread.organization_id || null, piiActionOverride: 'allow' };
+    // `aiUserId` is synthetic: the KB query log names the requester (null for one without an account), never that id.
+    const chatAuth = { userOrgId: thread.organization_id || null, piiActionOverride: 'allow', queryLogCarrier: supportLogs, queryLogAsker: { userId: thread.requester_user_id || null } };
     let actionPolicy = null;
     const extraTools = [...supportToolset, ...integrationTools];
     if (extraTools.length) {
@@ -295,11 +298,7 @@ Reply only to the customer's most recent message. If the knowledge base does not
         chatAuth.integrationOrgId = cfg.operatorOrgId || null;
     }
 
-    const result = await _withTimeout(
-        chatWithAgent(cfg.agentId, aiUserId, userMessage, chatAuth),
-        CHAT_AGENT_TIMEOUT_MS,
-        'chatWithAgent',
-    );
+    const result = await trackTurn(supportLogs, { answerOf: (r) => _stripEscalateToken((r && r.message) || '').replace(RESOLVED_RE, '').trim(), modelOf: (r) => r && r.model }, () => _withTimeout(chatWithAgent(cfg.agentId, aiUserId, userMessage, chatAuth), CHAT_AGENT_TIMEOUT_MS, 'chatWithAgent'));
     const aiResultRaw = (result && result.message) || '';
     const modelUsed = (result && result.model) || null;
 

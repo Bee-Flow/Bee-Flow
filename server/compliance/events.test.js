@@ -335,7 +335,7 @@ test('CHAT_MONITORING_CHANGED re-runs both chat signals checks and drops the cou
     assert.deepStrictEqual([...events.CHAT_SIGNAL_CHECKS], ['GDPR-Art32-chat-shield-coverage', 'GDPR-Art35-chat-monitoring-safeguards']);
     assert.ok(Object.isFrozen(events.CHAT_SIGNAL_CHECKS));
     assert.strictEqual(events.EVENTS.CHAT_MONITORING_CHANGED, 'chat_monitoring_changed');
-    assert.strictEqual(Object.keys(events.EVENTS).pop(), 'CHAT_MONITORING_CHANGED', 'appended as the last event');
+    assert.ok(Object.keys(events.EVENTS).includes('CHAT_MONITORING_CHANGED'), 'still an event');
 
     events.emit(events.EVENTS.CHAT_MONITORING_CHANGED, { orgId: 'org1' });
     await settle();

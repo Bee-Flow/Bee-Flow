@@ -106,6 +106,8 @@ async function addKnowledgeBaseColumns({ exec, getOne, runDdl, log }) {
         `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS system_slug TEXT`,
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_system_slug ON knowledge_bases(system_slug) WHERE system_slug IS NOT NULL`,
         `CREATE INDEX IF NOT EXISTS idx_kb_org_published ON knowledge_bases(organization_id, is_published) WHERE is_published = TRUE`,
+        // Query log settings (Enterprise `kb_query_log`); written only by the query-log store.
+        ...require('./queryLog/ddl.mts').KB_QUERY_LOG_COLUMN_DDL,
     ]);
     // First-deploy backfill: org KBs that already existed before the publish flow
     // were visible to the whole org; preserve that by marking them published.
@@ -272,6 +274,14 @@ async function createFavorites({ exec, runDdl }) {
 }
 
 /**
+ * The KB query log table; after knowledge_bases (foreign key, cascade on KB delete).
+ * @param {SchemaDeps} deps
+ */
+async function createQueryLogTable({ runDdl }) {
+    await runDdl('knowledgeBases', require('./queryLog/ddl.mts').KB_QUERY_LOG_TABLE_DDL);
+}
+
+/**
  * The schema init over the barrel's db handle. `ensureSourcesSchema` is
  * kbSources' ensureSchema, resolved lazily by the barrel (kbSources requires
  * the barrel back).
@@ -286,6 +296,7 @@ function makeSchemaInit(deps) {
         await createVersionTables(deps);
         await addSourceAndDocumentColumns(deps);
         await createFavorites(deps);
+        await createQueryLogTable(deps);
         deps.log.info('[KnowledgeBases] Tables initialized');
     };
 }

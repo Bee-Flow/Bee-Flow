@@ -82,6 +82,31 @@ function checkKnowledgeWrite(ctx, step, at) {
 }
 
 /**
+ * kb_query_log: the shape only. The base (the OWNER must manage it) and the licence need the
+ * database and are checked at save, activate and on every run.
+ * @param {string} at
+ */
+function checkKbQueryLog(ctx, step, at) {
+    const { pushE } = ctx;
+    if (step.type !== 'kb_query_log') return;
+    /** @param {string} code @param {string} field @param {string} message @param {string} hint */
+    const bad = (code, field, message, hint) => pushE({ code: 'kb_query_log.' + code, severity: 'error', path: at + '.' + field, message: `Step ${step.id}: ${message}`, hint });
+    if (!step.knowledgeBaseId || typeof step.knowledgeBaseId !== 'string') {
+        bad('kb_required', 'knowledgeBaseId', 'pick the knowledge base whose query log to use.', 'Only a knowledge base you manage can be used.');
+    }
+    if (step.op !== undefined && step.op !== 'list' && step.op !== 'review') {
+        bad('op_invalid', 'op', `"${step.op}" is not an operation of this step.`, 'Use list or review.');
+    }
+    if (step.op === 'review') {
+        const blank = (/** @type {unknown} */ v) => !v || (typeof v === 'string' && !v.trim());
+        if (blank(step.entryId)) bad('entryId_required', 'entryId', 'a review needs `entryId`.', 'Point it at the id of the log entry, e.g. {{loop.row.id}}.');
+        if (blank(step.status)) bad('status_required', 'status', 'a review needs `status`.', 'One of to_review, reviewed, needs_addition.');
+    } else if (step.limit !== undefined && !(Number.isInteger(step.limit) && step.limit >= 1 && step.limit <= 200)) {
+        bad('limit_invalid', 'limit', 'limit must be a whole number from 1 to 200.', 'The default is 50.');
+    }
+}
+
+/**
  * @param {string} at
  */
 function checkDatatable(ctx, step, at) {
@@ -210,4 +235,4 @@ function checkDatatable(ctx, step, at) {
     }
 }
 
-module.exports = { checkKnowledgeWrite, checkDatatable };
+module.exports = { checkKnowledgeWrite, checkKbQueryLog, checkDatatable };

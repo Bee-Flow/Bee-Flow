@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/kb`
 
-43 routes, 27 with a request schema. Back to the [endpoint reference](../reference.md).
+53 routes, 37 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -221,6 +221,84 @@ No request schema.
 | `isPublished` | boolean | yes |  |
 | `sharedGroups` | array of string or null |  |  |
 
+### `GET /api/kb/:id/query-log`
+
+**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `from` | string |  |  |
+| `to` | string |  |  |
+| `userId` | string |  | min length 1; max length 200 |
+| `channel` | one of `"agent_chat"`, `"agent_chat_sync"`, `"direct_chat"`, `"template_chat"`, `"notebook"`, `"webpage"`, `"project_assistant"`, `"automation_ai_step"`, `"studio_kb_query"`, `"studio_ai_generate"`, `"studio_ai_extract"`, `"studio_ai_chat"`, … (16 values) |  |  |
+| `outcome` | one of `"answered"`, `"no_results"`, `"error"` |  |  |
+| `status` | one of `"to_review"`, `"reviewed"`, `"needs_addition"` |  |  |
+| `q` | string |  | max length 200 |
+| `limit` | integer |  | min 1; max 200 |
+| `offset` | integer |  | min 0; max 9007199254740991 |
+
+### `DELETE /api/kb/:id/query-log`
+
+**Access:** Signed-in user · Scope `kbManager` · middleware `trainingGate`
+
+**Query:** object (no other keys)
+
+### `GET /api/kb/:id/query-log/:entryId`
+
+**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+
+**Query:** object (no other keys)
+
+### `PATCH /api/kb/:id/query-log/:entryId/review`
+
+**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `status` | one of `"to_review"`, `"reviewed"`, `"needs_addition"` | yes |  |
+| `note` | string or null |  |  |
+
+### `GET /api/kb/:id/query-log/export.csv`
+
+**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `from` | string |  |  |
+| `to` | string |  |  |
+| `userId` | string |  | min length 1; max length 200 |
+| `channel` | one of `"agent_chat"`, `"agent_chat_sync"`, `"direct_chat"`, `"template_chat"`, `"notebook"`, `"webpage"`, `"project_assistant"`, `"automation_ai_step"`, `"studio_kb_query"`, `"studio_ai_generate"`, `"studio_ai_extract"`, `"studio_ai_chat"`, … (16 values) |  |  |
+| `outcome` | one of `"answered"`, `"no_results"`, `"error"` |  |  |
+| `status` | one of `"to_review"`, `"reviewed"`, `"needs_addition"` |  |  |
+| `q` | string |  | max length 200 |
+
+### `GET /api/kb/:id/query-log/settings`
+
+**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+
+**Query:** object (no other keys)
+
+### `PUT /api/kb/:id/query-log/settings`
+
+**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | boolean | yes |  |
+| `retentionDays` | integer |  | min 0; max 9007199254740991 |
+| `deleteExisting` | boolean |  |  |
+| `attestation` | object |  |  |
+| `showNames` | boolean |  |  |
+| `aiActHighRisk` | boolean |  |  |
+
 ### `POST /api/kb/:id/reindex`
 
 **Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
@@ -389,6 +467,34 @@ No request schema.
 | `excludeContext` | one of `"agent"`, `"direct_chat"`, `"ai_step"`, `"webpage"` |  |  |
 | `includeAuto` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
 | `t` | string |  |  |
+
+## `query-log`
+
+### `POST /api/kb/query-log/acknowledge`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `kbIds` | array of string | yes | min items 1; max items 50 |
+
+### `GET /api/kb/query-log/dpias`
+
+**Access:** Signed-in user · Licence feature `kb_query_log` · middleware `trainingGate` · the handler also checks who the caller is
+
+**Query:** object (no other keys)
+
+### `GET /api/kb/query-log/notice`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `kbIds` | string | yes | max length 2000 |
 
 ## `search`
 
