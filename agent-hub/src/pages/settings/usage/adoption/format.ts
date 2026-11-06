@@ -49,9 +49,3 @@ export function fDate(ts: string | null | undefined): string {
     return Number.isFinite(d.getTime()) ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 }
 
-/** A signed percentage delta ("+12%", "−3%"); null reads "—". */
-export function fDeltaPct(pct: number | null | undefined): string {
-    if (pct == null || !Number.isFinite(pct)) return '—';
-    const r = Math.round(pct);
-    return r > 0 ? `+${r}%` : r < 0 ? `−${Math.abs(r)}%` : '0%';
-}

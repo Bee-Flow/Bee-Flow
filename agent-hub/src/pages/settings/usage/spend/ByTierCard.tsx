@@ -4,7 +4,7 @@
 import { tierLabel } from '@/components/licensing/tierMeta';
 import { chartSeriesVar } from '@/components/shared/charts/chartChrome';
 import { useTranslation } from '@/hooks/useTranslation';
-import { SegmentBar } from '../shell';
+import { SegmentBar, Swatch } from '../shell';
 import { fInt, fMoney } from '../adoption/format';
 import type { ModelRow } from '../OverviewTab.types';
 import type { SpendViewProps } from './spend.types';
@@ -13,7 +13,7 @@ import { CARD } from './tableStyle';
 
 interface TierBucket { label: string; cost: number; calls: number }
 
-export function tierBuckets(models: ModelRow[], { tierForModel, modelTiers }: Pick<SpendViewProps, 'tierForModel' | 'modelTiers'>, other: string): TierBucket[] {
+function tierBuckets(models: ModelRow[], { tierForModel, modelTiers }: Pick<SpendViewProps, 'tierForModel' | 'modelTiers'>, other: string): TierBucket[] {
     const map = new Map<string, TierBucket>();
     for (const m of models) {
         const key = tierForModel?.(m.model) || null;
@@ -42,7 +42,7 @@ export function ByTierCard(props: SpendViewProps) {
             <ul className="m-0 flex list-none flex-wrap gap-x-5 gap-y-2 p-0 text-[13px] text-[var(--text-primary)]">
                 {buckets.map((b, i) => (
                     <li key={b.label} className="inline-flex items-center gap-1.5">
-                        <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-sm" ref={el => el?.style.setProperty('background-color', chartSeriesVar(i))} />
+                        <Swatch color={chartSeriesVar(i)} className="h-2.5 w-2.5 rounded-sm" />
                         {b.label} <strong>{fMoney(b.cost, currency)}</strong>
                         <span className="text-[var(--text-muted)]">{t('usage.spend_n_calls', '{n} calls', { n: fInt(b.calls) })}</span>
                     </li>

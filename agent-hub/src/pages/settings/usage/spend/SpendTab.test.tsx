@@ -24,7 +24,6 @@ function baseProps(over: Partial<OverviewTabProps> = {}): OverviewTabProps {
     const state = createState();
     const routes = ROUTES as unknown as Record<string, Handler>;
     return {
-        t: (key: string, fallback?: string) => fallback || key,
         data: {
             ...state,
             modelsByAgent: routes['GET /api/usage/models-by-agent']({ state }),

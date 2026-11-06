@@ -4,7 +4,7 @@
 
 import StackedColumnChart from '@/components/shared/charts/StackedColumnChart';
 import { useTranslation } from '@/hooks/useTranslation';
-import { MoreLink } from '../shell';
+import { MoreLink, Swatch } from '../shell';
 import type { AdoptionAreas } from '../adoption/adoption.types';
 import { SERIES_AREAS, areaMeta, seriesAreaOf } from '../adoption/areaMeta';
 import { foldAreas } from '../adoption/AreasSection';
@@ -53,7 +53,7 @@ export function WeeklyAreaChart({ areas, currency, onTableView }: WeeklyAreaChar
                 <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-xs text-[var(--text-secondary)]">
                     {series.map(item => (
                         <li key={item.key} className="inline-flex items-center gap-1.5">
-                            <span aria-hidden="true" className="inline-block h-2 w-2 rounded-sm" ref={el => el?.style.setProperty('background-color', item.color)} />
+                            <Swatch color={item.color} className="h-2 w-2 rounded-sm" />
                             {item.label}
                         </li>
                     ))}

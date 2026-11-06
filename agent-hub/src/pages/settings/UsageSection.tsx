@@ -216,7 +216,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const billing = (subscription as { billing?: { plan_currency?: string } | null } | null)?.billing;
 
     const usageProps = {
-        t, data, subscription, isCustomerView, showTokens, tierForModel: tierFor, modelTiers, azureServices,
+        data, subscription, isCustomerView, showTokens, tierForModel: tierFor, modelTiers, azureServices,
         setFilterUser, setFilterModel, setFilterSource, compare, onOpenTab: openTab,
         rangeParams, rangePreset: range.preset, hasFilters: Boolean(hasFilters),
     };
@@ -279,11 +279,11 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                         <AdoptionTab
                             key={nav.nonce} rangeParams={rangeParams} rangePreset={range.preset} showTokens={showTokens}
                             currency={currencySym(billing?.plan_currency || 'EUR')} compare={compare}
-                            initialSubTab={nav.sub} onOpenTab={openTab}
+                            initialSubTab={nav.sub}
                         />
                     )}
                     {activeReport === 'quality' && (
-                        <QualityTab key={nav.nonce} rangeParams={rangeParams} showTokens={showTokens} compare={compare} initialSubTab={nav.sub}
+                        <QualityTab key={nav.nonce} rangeParams={rangeParams} showTokens={showTokens} initialSubTab={nav.sub}
                             // The feedback and termination counts are org-wide; a filtered call count would skew their share.
                             totalCalls={hasFilters ? undefined : data.summary?.total_calls} />
                     )}

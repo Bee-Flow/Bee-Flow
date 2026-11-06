@@ -20,7 +20,6 @@ type License = ContextType<typeof LicenseContext>;
 type Routes = Record<string, unknown>;
 
 const FEATURE = 'advanced_usage_monitoring';
-const t = (key: string, fallback?: string) => fallback || key;
 
 function useRoutes(routes: Routes = ROUTES as unknown as Routes) {
     setDemoTransport(createDemoTransport(routes as DemoRoutes, createState()));
@@ -29,7 +28,6 @@ function useRoutes(routes: Routes = ROUTES as unknown as Routes) {
 function baseProps(over: Partial<OverviewTabProps> = {}): OverviewTabProps {
     const state = createState();
     return {
-        t,
         data: { ...state, modelsByAgent: [], modelsByUser: [] } as unknown as OverviewTabProps['data'],
         subscription: null,
         azureServices: { summary: {}, byType: [], byUser: [] },

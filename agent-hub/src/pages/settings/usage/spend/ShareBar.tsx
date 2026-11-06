@@ -2,6 +2,8 @@
 // widths are data, so they are set on the element through its ref (no
 // inline style object), the way shell/SegmentBar does it.
 
+import { paint } from '../shell';
+
 export interface BarPart {
     /** 0..100 of the track. */
     pct: number;
@@ -15,11 +17,6 @@ interface ShareBarProps {
     height?: number;
     /** Track width cap in px. */
     maxWidth?: number;
-}
-
-function paint(el: HTMLElement | null, props: Record<string, string>) {
-    if (!el) return;
-    for (const [name, value] of Object.entries(props)) el.style.setProperty(name, value);
 }
 
 export function ShareBar({ parts, height = 6, maxWidth }: ShareBarProps) {

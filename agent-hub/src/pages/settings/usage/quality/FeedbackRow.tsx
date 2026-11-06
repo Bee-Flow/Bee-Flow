@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { shortModel, fmtTime } from '../format';
 import { getSourceDetails } from '../widgets';
+import { Swatch } from '../shell';
 import { ConversationViewer } from './ConversationViewer';
 import { parseSnapshot } from './qualityModel';
 import type { FeedbackItem } from './qualityData';
@@ -39,7 +40,7 @@ export function FeedbackRow({ item, open, onToggle }: FeedbackRowProps) {
                 <td className={`${CELL} whitespace-nowrap`}>
                     {item.source || item.agent_name ? (
                         <span className="inline-flex items-center gap-2">
-                            <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[3px]" ref={el => el?.style.setProperty('background-color', where.color)} />
+                            <Swatch color={where.color} className="h-2.5 w-2.5 rounded-[3px]" />
                             {where.label}
                             {item.agent_name && <span className="text-[var(--text-muted)]">· {item.agent_name}</span>}
                         </span>

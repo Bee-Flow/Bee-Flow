@@ -1,4 +1,6 @@
-export interface SubTabOption {
+import type { ReactNode } from 'react';
+
+interface SubTabOption {
     id: string;
     label: string;
 }
@@ -9,10 +11,12 @@ export interface SubTabsProps {
     options: SubTabOption[];
     /** One line about the active view, shown to the right of the pills. */
     description?: string;
+    /** Controls pinned to the right end of the row, such as a refresh button. */
+    actions?: ReactNode;
     'aria-label': string;
 }
 
-export function SubTabs({ value, onChange, options, description, 'aria-label': ariaLabel }: SubTabsProps) {
+export function SubTabs({ value, onChange, options, description, actions, 'aria-label': ariaLabel }: SubTabsProps) {
     return (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <div role="group" aria-label={ariaLabel} className="inline-flex gap-1 rounded-xl bg-[var(--bg-tertiary)] p-1">
@@ -34,6 +38,7 @@ export function SubTabs({ value, onChange, options, description, 'aria-label': a
                 })}
             </div>
             {description && <p className="m-0 min-w-0 flex-1 text-[13px] text-[var(--text-muted)]">{description}</p>}
+            {actions}
         </div>
     );
 }

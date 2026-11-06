@@ -1,5 +1,5 @@
 export type DeltaUnit = 'pct' | 'pts' | 'abs';
-export type DeltaDirection = 'up' | 'down' | 'same';
+type DeltaDirection = 'up' | 'down' | 'same';
 
 export interface FormattedDelta {
     direction: DeltaDirection;

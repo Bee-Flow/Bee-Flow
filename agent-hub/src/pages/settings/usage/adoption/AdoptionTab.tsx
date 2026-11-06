@@ -28,7 +28,6 @@ export interface AdoptionTabProps {
     compare?: boolean;
     /** Sub-tab to open first (studio, people, groups or areas); Studio by default. */
     initialSubTab?: string;
-    onOpenTab?: (tab: string, subTab?: string) => void;
 }
 
 /**

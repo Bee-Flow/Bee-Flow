@@ -60,6 +60,16 @@ describe('UsageSection: tabs and header', () => {
         expect(await screen.findByText('Filters')).toBeVisible();
     });
 
+    it('keeps the sub-tab when the active report tab is clicked again', async () => {
+        const user = userEvent.setup();
+        renderSection(['advanced_usage_monitoring'], 'adoption');
+        await screen.findByText('107 of 148 members used AI');
+        await user.click(screen.getByRole('button', { name: 'People' }));
+        expect(screen.getByRole('button', { name: 'People' }).getAttribute('aria-pressed')).toBe('true');
+        await user.click(screen.getByRole('button', { name: 'Adoption' }));
+        expect(screen.getByRole('button', { name: 'People' }).getAttribute('aria-pressed')).toBe('true');
+    });
+
     it('opens Quality with the Feedback sub-tab for the feedback deep link', () => {
         renderSection(['advanced_usage_monitoring'], 'feedback');
         expect(screen.getByRole('button', { name: 'Feedback' }).getAttribute('aria-pressed')).toBe('true');

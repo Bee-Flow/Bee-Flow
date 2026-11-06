@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { DeltaPill, MoreLink, SegmentBar, type Segment } from '../shell';
+import { DeltaPill, MoreLink, SegmentBar, Swatch, type Segment } from '../shell';
 import type { AdoptionSummary } from './adoption.types';
 import { fInt, fMoney, sharePct } from './format';
 
@@ -30,7 +30,7 @@ function Legend({ segments, t }: { segments: Segment[]; t: T }) {
         <ul aria-label={t('adoption.hero_split_label', 'Members by activity')} className="m-0 flex list-none flex-wrap gap-x-[18px] gap-y-2 p-0 text-xs text-[var(--text-secondary)]">
             {segments.map(s => (
                 <li key={s.label} className="inline-flex items-center gap-1.5">
-                    <span aria-hidden="true" className="h-2.5 w-2.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--sw)]" ref={el => el?.style.setProperty('--sw', s.color)} />
+                    <Swatch color={s.color} className="h-2.5 w-2.5 rounded-[3px] border border-[var(--border-subtle)]" />
                     {s.label} <span className="font-semibold tabular-nums text-[var(--text-primary)]">{fInt(s.value)}</span>
                 </li>
             ))}

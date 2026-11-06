@@ -1,6 +1,6 @@
 import { useTranslation } from '@/hooks/useTranslation';
 import { fNum } from '../format';
-import { SegmentBar } from '../shell';
+import { SegmentBar, Swatch } from '../shell';
 import { typeMeta } from './terminationMeta';
 import { approvalPct, typeCounts, type FeedbackSummaryCounts } from './qualityModel';
 import type { TerminationsByType } from '@/pages/settings/OrgTerminationsPanel.types';
@@ -79,7 +79,7 @@ export function TerminationsCard({ total, byType, largeInput, totalCalls }: Term
             <ul className="m-0 flex list-none flex-wrap gap-x-[18px] gap-y-2 p-0 text-xs text-[var(--text-secondary)]">
                 {TYPES.map(type => (
                     <li key={type} className="inline-flex items-center gap-1.5">
-                        <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[3px]" ref={el => el?.style.setProperty('background-color', typeMeta(type).color)} />
+                        <Swatch color={typeMeta(type).color} className="h-2.5 w-2.5 rounded-[3px]" />
                         {labelOf(type)} {counts[type]}
                     </li>
                 ))}

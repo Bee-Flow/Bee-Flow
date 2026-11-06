@@ -2,7 +2,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { TYPE_ORDER } from '@/utils/terminationsModel';
 import type { TimelinePoint } from '@/pages/settings/OrgTerminationsPanel.types';
 import { EmptyInline } from '../kit';
-import { paint } from './paint';
+import { paint, Swatch } from '../shell';
 import { typeMeta } from './terminationMeta';
 
 type Bucket = { period: string; counts: Record<string, number>; total: number };
@@ -28,7 +28,7 @@ export function TerminationsTimeline({ data }: { data: TimelinePoint[] }) {
             <ul className="m-0 mb-1.5 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-[11px] text-[var(--text-muted)]">
                 {TYPE_ORDER.map(tk => (
                     <li key={tk} className="flex items-center gap-1">
-                        <span aria-hidden="true" className="inline-block h-2 w-2 rounded-sm" ref={el => paint(el, { 'background-color': typeMeta(tk).color })} />
+                        <Swatch color={typeMeta(tk).color} />
                         {t(`org.terminations_type_${tk}`, tk)}
                     </li>
                 ))}

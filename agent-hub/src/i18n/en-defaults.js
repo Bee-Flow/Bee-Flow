@@ -22519,6 +22519,7 @@ const EN_DEFAULTS = {
     "org.feedback_response_time": "Response time",
     "org.feedback_model_switched": "Model switched from previous turn",
     "org.quality_summary": "Quality summary",
+    "org.quality_refresh": "Refresh",
     "org.quality_views": "Quality views",
     "org.quality_desc_feedback": "Feedback: what people said about an answer. Messages are only shown when the person shared the conversation.",
     "org.quality_desc_terminations": "Terminations: tasks that ended early, by agent and over time. Messages are never logged.",

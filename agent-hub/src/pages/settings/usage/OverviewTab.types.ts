@@ -1,4 +1,3 @@
-import type { TranslateParams } from '@/hooks/useTranslation';
 import type { StarterModel } from '@/api/runtimeTypes';
 import type React from 'react';
 import type { RangeParams } from '@/utils/usageHelpers';
@@ -52,7 +51,7 @@ export interface ModelRow extends UsageMetrics {
     model: string;
 }
 
-export interface SourceRow extends UsageMetrics {
+interface SourceRow extends UsageMetrics {
     source: string;
 }
 
@@ -116,7 +115,6 @@ export interface SubscriptionInfo {
 }
 
 export interface OverviewTabProps {
-    t: (key: string, fallback?: string, params?: TranslateParams) => string;
     data: {
         summary: SummaryRow | null;
         timeline: unknown[];

@@ -1,6 +1,7 @@
-export { DeltaPill, type DeltaProps, type DeltaPillProps } from './DeltaPill';
-export { formatDelta, type DeltaUnit, type DeltaDirection, type FormattedDelta } from './delta';
-export { KpiTile, type KpiTileProps } from './KpiTile';
-export { MoreLink, type MoreLinkProps } from './MoreLink';
-export { SegmentBar, type Segment, type SegmentBarProps } from './SegmentBar';
-export { SubTabs, type SubTabOption, type SubTabsProps } from './SubTabs';
+export { DeltaPill } from './DeltaPill';
+export { KpiTile } from './KpiTile';
+export { MoreLink } from './MoreLink';
+export { paint } from './paint';
+export { SegmentBar, type Segment } from './SegmentBar';
+export { SubTabs } from './SubTabs';
+export { Swatch } from './Swatch';

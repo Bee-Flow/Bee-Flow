@@ -2,7 +2,7 @@
 // bar. The list ends with a link to the full view in Adoption.
 
 import { useTranslation } from '@/hooks/useTranslation';
-import { MoreLink } from '../shell';
+import { MoreLink, Swatch } from '../shell';
 import type { AdoptionAreas } from '../adoption/adoption.types';
 import { areaMeta } from '../adoption/areaMeta';
 import { foldAreas, type AreaRow } from '../adoption/AreasSection';
@@ -50,7 +50,7 @@ export function AreasList({ areas, currency, showCalls, onOpenAdoption }: AreasL
                             <li key={r.id} className="flex items-center gap-3 border-t border-[var(--border-subtle)] py-2.5 first:border-t-0">
                                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                                     <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-medium text-[var(--text-primary)]">
-                                        <span aria-hidden="true" className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm" ref={el => el?.style.setProperty('background-color', meta.color)} />
+                                        <Swatch color={meta.color} className="h-2.5 w-2.5 rounded-sm" />
                                         {meta.label}
                                         <span className="truncate text-xs font-normal text-[var(--text-muted)]">{rowSub(r, showCalls, t)}</span>
                                     </span>

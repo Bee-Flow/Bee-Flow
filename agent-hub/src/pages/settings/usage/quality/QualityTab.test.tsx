@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDemoTransport, type DemoRoutes } from '@/demo/demoTransport';
@@ -14,7 +14,7 @@ beforeEach(() => { setDemoTransport(createDemoTransport(ROUTES as unknown as Dem
 afterEach(() => { setDemoTransport(null); });
 
 const renderTab = (props: Partial<React.ComponentProps<typeof QualityTab>> = {}) =>
-    renderWithClient(<QualityTab rangeParams={RANGE} showTokens compare {...props} />);
+    renderWithClient(<QualityTab rangeParams={RANGE} showTokens {...props} />);
 
 describe('QualityTab hero', () => {
     it('shows approval and terminations from the fixtures', async () => {
@@ -37,6 +37,21 @@ describe('QualityTab hero', () => {
         renderTab({ totalCalls: 287 });
         expect(await screen.findByText('Ratings cover 4.9% of the 287 calls.')).toBeTruthy();
         expect(await screen.findByText('2.1% of calls · 2 likely caused by a large input')).toBeTruthy();
+    });
+});
+
+describe('QualityTab refresh', () => {
+    it('refetches the feedback and terminations reports', async () => {
+        const user = userEvent.setup();
+        const inner = createDemoTransport(ROUTES as unknown as DemoRoutes, createState());
+        const urls: string[] = [];
+        setDemoTransport(((url: unknown, options?: RequestInit) => { urls.push(String(url)); return inner(url, options); }) as typeof inner);
+        renderTab();
+        await screen.findByText('79%');
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Refresh' }) as HTMLButtonElement).disabled).toBe(false));
+        const before = urls.length;
+        await user.click(screen.getByRole('button', { name: 'Refresh' }));
+        await waitFor(() => expect(urls.length).toBeGreaterThan(before));
     });
 });
 

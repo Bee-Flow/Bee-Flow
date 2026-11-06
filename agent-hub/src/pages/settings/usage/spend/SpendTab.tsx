@@ -26,7 +26,7 @@ import { SourcesTable } from './SourcesTable';
 import { SpendHero } from './SpendHero';
 import { headlineCost, pctChange } from './spendFormat';
 
-export type SpendSubTab = 'models' | 'people' | 'agents' | 'sources' | 'services';
+type SpendSubTab = 'models' | 'people' | 'agents' | 'sources' | 'services';
 const SUB_TABS: SpendSubTab[] = ['models', 'people', 'agents', 'sources', 'services'];
 
 export interface SpendTabProps extends OverviewTabProps {

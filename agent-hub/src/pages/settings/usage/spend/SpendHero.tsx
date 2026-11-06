@@ -2,7 +2,7 @@
 // into input and output, the monthly budget, and the cost per day.
 
 import { useTranslation } from '@/hooks/useTranslation';
-import { DeltaPill } from '../shell';
+import { DeltaPill, Swatch } from '../shell';
 import { fInt, fMoney } from '../adoption/format';
 import { fNum } from '../format';
 import type { OverviewTabProps, SubscriptionInfo, TimelineRow } from '../OverviewTab.types';
@@ -11,7 +11,7 @@ import { IN_COLOR, OUT_COLOR, ShareBar } from './ShareBar';
 import { headlineCost, perDay } from './spendFormat';
 import { CARD } from './tableStyle';
 
-export const USERS_SETTINGS_PATH = '/app/settings/organisation/users';
+const USERS_SETTINGS_PATH = '/app/settings/organisation/users';
 
 interface SpendHeroProps {
     data: OverviewTabProps['data'];
@@ -24,10 +24,6 @@ interface SpendHeroProps {
     showDelta: boolean;
     /** Days in the period; null for the "all" preset. */
     days: number | null;
-}
-
-function Swatch({ color }: { color: string }) {
-    return <span aria-hidden="true" className="inline-block h-2 w-2 rounded-sm" ref={el => el?.style.setProperty('background-color', color)} />;
 }
 
 function budgetTone(pct: number): string {

@@ -2,7 +2,7 @@
 // output split of each as a bar, ending with a link to every model in Spend.
 
 import { useTranslation } from '@/hooks/useTranslation';
-import { MoreLink } from '../shell';
+import { MoreLink, Swatch } from '../shell';
 import { fInt, fMoney } from '../adoption/format';
 import { shortModel } from '../format';
 import type { ModelRow } from '../OverviewTab.types';
@@ -16,10 +16,6 @@ interface TopModelsProps {
 }
 
 const TOP = 5;
-
-function Swatch({ color }: { color: string }) {
-    return <span aria-hidden="true" className="inline-block h-2 w-2 rounded-sm" ref={el => el?.style.setProperty('background-color', color)} />;
-}
 
 export function TopModels({ models, currency, onOpenSpend }: TopModelsProps) {
     const { t } = useTranslation();

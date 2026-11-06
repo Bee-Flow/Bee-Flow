@@ -57,7 +57,7 @@ interface IconBadgeProps {
     size?: number;
 }
 
-export const IconBadge = ({ icon: Icon, color, size = 26 }: IconBadgeProps) => (
+const IconBadge = ({ icon: Icon, color, size = 26 }: IconBadgeProps) => (
     <div style={{ width: size, height: size, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `color-mix(in srgb, ${color} 7%, transparent)` }}>
         <Icon style={{ width: size * 0.5, height: size * 0.5, color }} />
     </div>

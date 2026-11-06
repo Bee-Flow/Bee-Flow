@@ -1,10 +1,8 @@
-// Shared "monitoring UI kit" for the Usage & Monitoring dashboard.
-//
-// Consolidates the visual primitives that the five tabs (Overview, Safety,
-// Integrations, Feedback, Terminations) previously each re-implemented with
-// small drifts: the big-number HERO, the small KPI cards (StatCard/MiniStat/
-// KpiCard/Kpi → one MetricCard), the per-tab header, alert banner, chip
-// filters, drill chips, show-more, collapsibles, etc.
+// Shared "monitoring UI kit" of the Usage & Monitoring page: the pieces the
+// Adoption drill-down and the Spend sub-tabs still share (Sparkline, TrendChip,
+// Card, MetricCard, MetricGrid, AlertBanner, SectionTitle, FilterChipBar,
+// ShowMore, EmptyInline). New layout goes in `./shell` (Tailwind primitives:
+// SubTabs, KpiTile, DeltaPill, SegmentBar, MoreLink, Swatch).
 //
 // Inline-styled on purpose: it matches the dashboard's existing CSS-var
 // vocabulary (--bg-secondary / --border-subtle / --text-muted) rather than the
@@ -12,18 +10,16 @@
 // no visual drift. No purple/violet/indigo anywhere.
 
 import { AlertTriangle, ChevronRight } from 'lucide-react';
-import React, { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type {
-    AlertBannerProps, CardProps, CollapsibleSectionProps, DrillChipProps, EmptyInlineProps, FilterChipBarProps,
-    ListRowProps, MetricCardProps, MetricGridProps, MonitorHeroProps, SectionTitleProps, ShowMoreProps, SparklineProps,
-    StatusPillProps, TabHeaderProps, TrendChipProps, ChipValue,
+    AlertBannerProps, CardProps, EmptyInlineProps, FilterChipBarProps, MetricCardProps, MetricGridProps,
+    SectionTitleProps, ShowMoreProps, SparklineProps, TrendChipProps, ChipValue,
 } from './kit.types';
 
 // ── Spacing tokens ───────────────────────────────────────────────────────────
 // One value per role, applied everywhere, to resolve the old 14-vs-16 outer-gap
 // and 8/10/12/14 grid-gap drift.
-export const TOKENS = {
+const TOKENS = {
     pagePad: 16,        // outer column gap between sections
     sectionGap: 14,     // gap inside a section block
     cardPad: '14px 16px',
@@ -49,19 +45,6 @@ export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }
         </svg>
     );
 };
-
-// ── StatusPill ───────────────────────────────────────────────────────────────
-// The uppercase status chip (Excellent / Watch / Critical / active …). `color`
-// must be a hex so the `${color}15` tint is valid.
-const StatusPill = ({ label, color, dot = false }: StatusPillProps) => (
-    <span style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 6,
-        background: `${color}15`, color, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
-    }}>
-        {dot && <span style={{ width: 6, height: 6, borderRadius: 999, background: color, display: 'inline-block' }} />}
-        {label}
-    </span>
-);
 
 // ── TrendChip ────────────────────────────────────────────────────────────────
 // Half-period delta arrow. `goodWhenDown` for higher-is-bad metrics (cost, PII);
@@ -161,65 +144,6 @@ export const MetricGrid = ({ children, cols = 2, min, gap = TOKENS.gridGap }: Me
     </div>
 );
 
-// ── MonitorHero ──────────────────────────────────────────────────────────────
-// THE big-number + KPI-grid pattern used by every tab. Left: eyebrow (+ infoTip)
-// + headline value + status pill + trend chip + subline + optional children
-// (stacked bars / explainer). Right: `aside` (a MetricGrid of MetricCards, or a
-// trend chart). `accent` must be a hex (drives the gradient wash).
-export const MonitorHero = ({
-    accent = '#10b981', eyebrow, infoTip, value, valueColor, valueSize = 54,
-    status, trend, subline, leftRatio = 1.2, children, aside,
-}: MonitorHeroProps) => (
-    <div style={{
-        borderRadius: TOKENS.heroRadius, padding: TOKENS.heroPad, background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-subtle)', overflow: 'hidden', position: 'relative',
-    }}>
-        <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at top left, ${accent}12, transparent 60%)`, pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: aside ? `${leftRatio}fr 1fr` : '1fr', gap: 24, alignItems: 'center' }}>
-            <div>
-                {eyebrow && (
-                    <div className="[display:flex] [align-items:baseline] [gap:10px] [margin-bottom:4px]">
-                        <span className="[font-size:11px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.08em] [color:var(--text-muted)]">{eyebrow}</span>
-                        {infoTip}
-                    </div>
-                )}
-                <div className="[display:flex] [align-items:baseline] [gap:12px] [margin-bottom:6px] [flex-wrap:wrap]">
-                    <span style={{ fontSize: valueSize, fontWeight: 800, color: valueColor || accent, letterSpacing: '-0.04em', lineHeight: 1 }}>{value}</span>
-                    {status && <StatusPill label={status.label} color={status.color} />}
-                    {trend}
-                </div>
-                {subline && <div className="[font-size:11px] [color:var(--text-muted)] [font-weight:500]">{subline}</div>}
-                {children}
-            </div>
-            {aside && <div>{aside}</div>}
-        </div>
-    </div>
-);
-
-// ── TabHeader ────────────────────────────────────────────────────────────────
-// Uniform per-tab header (icon + title + description + status pill + actions).
-// `iconColor` must be a hex (drives the chip tint). `actions` holds the range
-// control / refresh on the panels.
-export const TabHeader = ({ icon: Icon, iconColor = '#0ea5e9', title, description, status, actions }: TabHeaderProps) => (
-    <div className="[display:flex] [align-items:center] [justify-content:space-between] [gap:16px] [flex-wrap:wrap]">
-        <div className="[display:flex] [align-items:center] [gap:10px] [min-width:0] [flex:1]">
-            {Icon && (
-                <div style={{ width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${iconColor}18`, flexShrink: 0 }}>
-                    <Icon style={{ width: 16, height: 16, color: iconColor }} />
-                </div>
-            )}
-            <div className="[min-width:0]">
-                <div className="[display:flex] [align-items:center] [gap:8px]">
-                    <h3 className="[font-size:15px] [font-weight:800] [color:var(--text-primary)] [margin:0] [letter-spacing:-0.01em]">{title}</h3>
-                    {status && <StatusPill label={status.label} color={status.color} dot={status.dot} />}
-                </div>
-                {description && <p className="[font-size:11px] [color:var(--text-muted)] [margin:2px_0_0] [font-weight:400]">{description}</p>}
-            </div>
-        </div>
-        {actions && <div className="[display:flex] [align-items:center] [gap:8px] [flex-wrap:wrap]">{actions}</div>}
-    </div>
-);
-
 // ── AlertBanner ──────────────────────────────────────────────────────────────
 // One action-required banner for all tabs (Feedback/Terminations no longer
 // re-implement it). Spacing comes from the parent column gap (no marginBottom).
@@ -261,23 +185,6 @@ export const SectionTitle = ({ children, icon: Icon, right }: SectionTitleProps)
     </div>
 );
 
-// ── ListRow ──────────────────────────────────────────────────────────────────
-export const ListRow = ({ children, onClick, style: s }: ListRowProps) => (
-    <div
-        onClick={onClick}
-        style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '9px 14px', background: 'var(--bg-primary)',
-            borderBottom: '1px solid var(--border-subtle)',
-            cursor: onClick ? 'pointer' : 'default', transition: 'background 0.12s', ...s,
-        }}
-        onMouseEnter={e => { if (onClick) e.currentTarget.style.background = 'var(--bg-secondary)'; }}
-        onMouseLeave={e => { if (onClick) e.currentTarget.style.background = 'var(--bg-primary)'; }}
-    >
-        {children}
-    </div>
-);
-
 // ── FilterChipBar ────────────────────────────────────────────────────────────
 // One chip group. Options: { value, label, icon?, color?, count? }. A `color`
 // adds the colored-dot + tinted-active affordance (Safety); without it the chip
@@ -316,21 +223,6 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }: FilterC
     );
 };
 
-// ── DrillChip ────────────────────────────────────────────────────────────────
-// The removable "axis: label ✕" filter chip used by Safety + Integrations.
-const DrillChip = ({ axis, label, onClear }: DrillChipProps) => {
-    const { t } = useTranslation();
-    return (
-    <div className="[margin-bottom:8px]">
-        <span className="[display:inline-flex] [align-items:center] [gap:8px] [padding:5px_6px_5px_10px] [border-radius:99px] [background:rgba(14,165,233,0.08)] [border:1px_solid_rgba(14,165,233,0.25)] [font-size:11px] [color:var(--text-primary)]">
-            <span className="[font-size:9px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.06em] [color:#0ea5e9]">{axis}</span>
-            <span className="[font-weight:700] [text-transform:capitalize]">{String(label || '').replace(/_/g, ' ')}</span>
-            <button onClick={onClear} aria-label={t('usage.kit.clear_filter', 'Clear filter')} className="[width:18px] [height:18px] [border-radius:50%] [border:none] [cursor:pointer] [background:var(--bg-secondary)] [color:var(--text-secondary)] [display:inline-flex] [align-items:center] [justify-content:center] [font-size:11px]">✕</button>
-        </span>
-    </div>
-    );
-};
-
 // ── ShowMore ─────────────────────────────────────────────────────────────────
 export const ShowMore = ({ remaining, onMore, label = 'Show more' }: ShowMoreProps) => (
     <button onClick={onMore} className="[width:100%] [padding:10px_0] [border:none] [cursor:pointer] [background:var(--bg-tertiary)] [color:var(--text-muted)] [font-size:11px] [font-weight:600] [transition:all_0.15s] [border-top:1px_solid_var(--border-subtle)]"
@@ -340,27 +232,6 @@ export const ShowMore = ({ remaining, onMore, label = 'Show more' }: ShowMorePro
         {label}{remaining != null ? ` (${remaining} remaining)` : ''}
     </button>
 );
-
-// ── CollapsibleSection ───────────────────────────────────────────────────────
-// Wraps a dense block under a click-to-expand header with a count badge, so the
-// data is preserved but doesn't crowd the page by default.
-export const CollapsibleSection = ({ title, icon: Icon, count, defaultOpen = false, right, children }: CollapsibleSectionProps) => {
-    const [open, setOpen] = useState(defaultOpen);
-    return (
-        <div>
-            <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:8px] [gap:8px]">
-                <button onClick={() => setOpen(o => !o)} className="[display:flex] [align-items:center] [gap:6px] [background:none] [border:none] [cursor:pointer] [padding:0]">
-                    <ChevronRight className={`[width:14px] [height:14px] [color:var(--text-muted)] [transition:transform_0.2s] ${open ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
-                    {Icon && <Icon style={{ width: 14, height: 14, color: 'var(--accent-primary)', opacity: 0.7 }} />}
-                    <span className="[font-size:12px] [font-weight:700] [color:var(--text-primary)]">{title}</span>
-                    {count != null && <span className="[font-size:10px] [font-weight:700] [color:var(--text-muted)] [background:var(--bg-tertiary)] [padding:1px_7px] [border-radius:8px]">{count}</span>}
-                </button>
-                {open && right}
-            </div>
-            {open && children}
-        </div>
-    );
-};
 
 // ── EmptyInline ──────────────────────────────────────────────────────────────
 // Small "no data" line. `boxed` adds the bg-tertiary placard (Feedback/
