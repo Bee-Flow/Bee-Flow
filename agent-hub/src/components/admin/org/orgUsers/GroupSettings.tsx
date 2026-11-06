@@ -1,7 +1,9 @@
 import { Check, X } from 'lucide-react';
 import GroupAllowedTiers from './GroupAllowedTiers';
+import BudgetEditor from './BudgetEditor';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import type { CustomTierMeta, OrgGroupRow } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 
@@ -72,6 +74,7 @@ function GroupRoleSelect({ group, onChange }: { group: OrgGroupRow; onChange: (g
 /** An expanded group's own settings: description, the role it grants, the tiers it allows. */
 export default function GroupSettings({ group, customTiersMeta, groupsState }: GroupSettingsProps) {
     const { t } = useTranslation();
+    const { isSelfHosted } = useDeploymentMode();
     return (
         <div className="space-y-3">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
@@ -79,6 +82,15 @@ export default function GroupSettings({ group, customTiersMeta, groupsState }: G
             </p>
             <DescriptionEditor group={group} groupsState={groupsState} />
             <GroupRoleSelect group={group} onChange={groupsState.handleUpdateGroupRole} />
+            {isSelfHosted && (
+                <BudgetEditor
+                    showLabel
+                    value={group.perUserCostLimit}
+                    label={t('admin_org.group_modal_cost_limit', 'AI budget per member per month (€)')}
+                    hint={t('admin_org.group_modal_cost_limit_hint', "Every member of this group gets this amount for themselves; it is not shared between them. A member's own budget takes precedence. Leave empty for no limit.")}
+                    onSave={v => groupsState.handleUpdateGroupCostLimit(group.id, v)}
+                />
+            )}
             <GroupAllowedTiers group={group} customTiersMeta={customTiersMeta} onChange={groupsState.handleUpdateGroupAllowedTiers} />
         </div>
     );

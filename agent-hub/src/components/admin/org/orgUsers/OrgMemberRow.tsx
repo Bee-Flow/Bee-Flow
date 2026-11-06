@@ -1,7 +1,9 @@
 import { Check, Clock, Edit2, Mail, X } from 'lucide-react';
 import GroupAssignPopover from './GroupAssignPopover';
+import BudgetEditor from './BudgetEditor';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import { API_BASE } from '@/utils/helpers';
 import RoleBadge from '@/components/shared/RoleBadge';
 import type { MemberUsage, OrgGroupRow, OrgMember } from '../useOrgDirectory';
@@ -114,6 +116,7 @@ function RoleDropdown({ member: u, memberRoles }: { member: OrgMember; memberRol
 /** One member of the Users tab: who, which groups, what they spent, and what can be done. */
 export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState, memberRoles, onCreateGroup }: OrgMemberRowProps) {
     const { t } = useTranslation();
+    const { isSelfHosted } = useDeploymentMode();
     const uGroups = Array.isArray(u.groups) ? u.groups : [];
     const userOrgGroups = orgGroups.filter(g => uGroups.includes(g.id));
     return (
@@ -151,6 +154,14 @@ export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState,
                 <PendingActions userId={u.id} memberRoles={memberRoles} />
             ) : (
                 <>
+                    {isSelfHosted && (
+                        <BudgetEditor
+                            value={u.monthlyCostLimit}
+                            label={t('admin_org.user_modal_cost_limit', 'Monthly AI budget (€)')}
+                            suffix="/mo"
+                            onSave={v => memberRoles.handleUpdateUserCostLimit(u.id, v)}
+                        />
+                    )}
                     <RoleDropdown member={u} memberRoles={memberRoles} />
                     <GroupAssignPopover
                         userId={u.id}

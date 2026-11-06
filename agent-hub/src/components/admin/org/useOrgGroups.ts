@@ -40,6 +40,7 @@ export interface OrgGroups {
     handleDeleteGroup: (groupId: string) => Promise<void>;
     handleUpdateGroupDesc: (groupId: string) => Promise<void>;
     handleUpdateGroupRole: (groupId: string, newRole: string) => Promise<void>;
+    handleUpdateGroupCostLimit: (groupId: string, value: number | null) => Promise<void>;
     handleUserGroupToggle: (userId: string, groupId: string, currentGroups: string[]) => Promise<void>;
     getGroupCount: (groupId: string) => number;
     getGroupMembers: (groupId: string) => OrgMember[];
@@ -58,6 +59,26 @@ export interface UseOrgGroupsOptions {
         confirmLabel?: string;
         destructive?: boolean;
     }) => Promise<boolean>;
+}
+
+/** PUT the self-hosted AI budget every member of a group gets, then re-read the directory. */
+async function updateGroupCostLimit(fetchData: UseOrgGroupsOptions['fetchData'], groupId: string, value: number | null) {
+    try {
+        const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ perUserCostLimit: value }),
+        }).catch((err: unknown) => {
+            if (!(err instanceof ApiError)) throw err;
+            // A refused save must not pass for a saved one: the editor closes on the old value.
+            toast.error(`Failed to update the budget (${err.status})`);
+            return null;
+        });
+        if (res) await fetchData();
+    } catch (err) {
+        console.error('Failed to update group budget:', err);
+        toast.error(`Failed to update the budget: ${err instanceof Error ? err.message : String(err)}`);
+    }
 }
 
 /** PUT a group's allowed tiers; a refusal is a toast with the status, success re-reads the directory. */
@@ -231,6 +252,8 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
 
     const handleUpdateGroupRole = (groupId: string, newRole: string) => updateGroupRole(fetchData, groupId, newRole);
 
+    const handleUpdateGroupCostLimit = (groupId: string, value: number | null) => updateGroupCostLimit(fetchData, groupId, value);
+
     const handleUserGroupToggle = (userId: string, groupId: string, currentGroups: string[]) => toggleUserGroup(fetchData, userId, groupId, currentGroups);
 
     const getGroupCount = (groupId: string) => {
@@ -291,6 +314,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
         handleDeleteGroup,
         handleUpdateGroupDesc,
         handleUpdateGroupRole,
+        handleUpdateGroupCostLimit,
         handleUserGroupToggle,
         getGroupCount,
         getGroupMembers,

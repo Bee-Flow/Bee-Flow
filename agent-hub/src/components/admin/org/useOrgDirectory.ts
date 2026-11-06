@@ -22,6 +22,8 @@ export interface OrgMember {
     /** Group ids, not group rows. */
     groups?: string[];
     isSystem?: boolean;
+    /** Self-hosted monthly AI budget in euro; null/absent = none. */
+    monthlyCostLimit?: number | null;
     [key: string]: unknown;
 }
 
@@ -34,6 +36,8 @@ export interface OrgGroupRow {
     orgRole?: string;
     /** Empty = no restriction; non-empty = only these tier ids. */
     allowedTiers?: string[];
+    /** Self-hosted AI budget per member per month in euro; null/absent = none. */
+    perUserCostLimit?: number | null;
     source?: string;
     lastSyncedAt?: string | null;
     [key: string]: unknown;
