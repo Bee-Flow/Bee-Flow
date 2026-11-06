@@ -10,7 +10,6 @@ import { SubTabs } from '../shell';
 import { formatDateRange } from '../format';
 import type { AdoptionAreas, AdoptionGroups, AdoptionPerson, AdoptionStudio, AdoptionSummary } from './adoption.types';
 import AdoptionHero from './AdoptionHero';
-import AdoptionNotes from './AdoptionNotes';
 import AreasSection from './AreasSection';
 import { adoptionCsv } from './exportCsv';
 import GroupsTable from './GroupsTable';
@@ -155,7 +154,6 @@ function AdoptionBody(body: BodyProps) {
             <AdoptionHero summary={summary} currency={currency} showCalls={showCalls} compare={compare} onOpenAreas={sub === 'areas' ? undefined : () => setSub('areas')} />
             <SubTabs value={sub} onChange={(id) => setSub(seedSubTab(id))} options={options} description={descriptions[sub]} aria-label={t('adoption.sub_label', 'Adoption views')} />
             <AdoptionView {...body} currency={currency} showCalls={showCalls} compare={compare} />
-            <AdoptionNotes />
         </>
     );
 }

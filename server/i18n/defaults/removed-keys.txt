@@ -3158,3 +3158,9 @@ automations.canvas.empty_sub
 automations.canvas.empty_describe
 automations.canvas.empty_example
 automations.canvas.empty_assistant
+adoption.notes_how_body
+adoption.notes_how_title
+adoption.notes_how_unmetered
+adoption.notes_who_body
+adoption.notes_who_link
+adoption.notes_who_title

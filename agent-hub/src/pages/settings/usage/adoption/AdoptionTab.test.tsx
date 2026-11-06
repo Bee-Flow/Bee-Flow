@@ -60,7 +60,6 @@ describe('AdoptionTab', () => {
         expect(screen.getByRole('button', { name: 'Studio' }).getAttribute('aria-pressed')).toBe('true');
         expect(screen.getByText(/^Studio: what people build/)).toBeTruthy();
         expect(await screen.findByRole('button', { name: /^Agents/ })).toBeTruthy();
-        expect(screen.getByText('Who can see this')).toBeTruthy();
         expect(screen.queryByText('Adoption by group')).toBeNull();
     });
 
@@ -79,7 +78,6 @@ describe('AdoptionTab', () => {
         await user.click(screen.getByRole('button', { name: 'Areas' }));
         expect(await screen.findByText('Where the AI goes')).toBeTruthy();
         expect(screen.getByRole('img', { name: 'AI spend per week, by area' })).toBeTruthy();
-        expect(screen.getByText('Who can see this')).toBeTruthy();
     });
 
     it('opens the sub-tab it is given and offers the Areas view from the spend fact', async () => {
