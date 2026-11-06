@@ -1,4 +1,5 @@
 import type { RangeParams } from '../../utils/usageHelpers';
+import type { QualityPerson } from './usage/quality/qualityData';
 
 export interface TerminationRow {
     id: string;
@@ -6,7 +7,8 @@ export interface TerminationRow {
     termination_type: string;
     source?: string;
     conversation_id?: string;
-    user_id?: string;
+    /** Pseudonym by default, display name after an audited reveal; null when unknown. */
+    person?: QualityPerson | null;
     agent_id?: string;
     agent_name?: string;
     model?: string;
@@ -33,6 +35,8 @@ export interface TerminationsByType {
 export interface OrgTerminationsPanelProps {
     rangeParams: RangeParams;
     showTokens?: boolean;
+    /** Ask for names instead of pseudonyms (the page records it in the access audit log). */
+    reveal?: boolean;
 }
 
 export interface TerminationsSummary {

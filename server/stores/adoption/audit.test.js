@@ -8,7 +8,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { recordReveal, REVEAL_ACTION } = require('./audit');
+const { recordReveal, REVEAL_ACTION, QUALITY_REVEAL_ACTION } = require('./audit');
 
 test('the row carries the action, the organisation, the actor and only the allow-listed details', async () => {
     const calls = [];
@@ -28,4 +28,14 @@ test('the row carries the action, the organisation, the actor and only the allow
 test('a failed write throws', async () => {
     const db = { run: async () => { throw new Error('db down'); } };
     await assert.rejects(recordReveal(db, { orgId: 'o1', actorId: 'u1', details: { startDate: 's', endDate: 'e', group: null, limit: 1 } }), /db down/);
+});
+
+test('a caller can name the action; the default stays the Adoption reveal', async () => {
+    const calls = [];
+    const db = { run: async (sql, params) => { calls.push(params); } };
+    const details = { startDate: 's', endDate: 'e', group: null, limit: 1 };
+    await recordReveal(db, { orgId: 'o1', actorId: 'u1', details, action: QUALITY_REVEAL_ACTION });
+    await recordReveal(db, { orgId: 'o1', actorId: 'u1', details });
+    assert.equal(calls[0][1], 'usage_quality_people_revealed');
+    assert.equal(calls[1][1], REVEAL_ACTION);
 });

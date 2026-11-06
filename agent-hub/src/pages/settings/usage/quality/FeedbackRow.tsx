@@ -47,7 +47,7 @@ export function FeedbackRow({ item, open, onToggle }: FeedbackRowProps) {
                     ) : <span className="text-[var(--text-muted)]">—</span>}
                 </td>
                 <td className={`${CELL} whitespace-nowrap`} title={item.model}>{item.model ? shortModel(item.model) : '—'}</td>
-                <td className={`${CELL} whitespace-nowrap`}>{item.user_id || t('org.feedback_anonymous', 'Anonymous')}</td>
+                <td className={`${CELL} whitespace-nowrap`}>{item.person?.name || t('org.feedback_anonymous', 'Anonymous')}</td>
                 <td className={`${CELL} whitespace-nowrap text-right text-xs text-[var(--text-muted)]`}>{fmtTime(item.created_at)}</td>
                 <td className={`${CELL} whitespace-nowrap text-right`}>
                     {snapshot ? (

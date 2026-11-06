@@ -13,6 +13,9 @@ const RANGE: RangeParams = { days: 30, startDate: null, endDate: null, interval:
 beforeEach(() => { setDemoTransport(createDemoTransport(ROUTES as unknown as DemoRoutes, createState())); });
 afterEach(() => { setDemoTransport(null); });
 
+const useRoutes = (overrides: Record<string, unknown> = {}) =>
+    setDemoTransport(createDemoTransport({ ...ROUTES, ...overrides } as unknown as DemoRoutes, createState()));
+
 const renderTab = (props: Partial<React.ComponentProps<typeof QualityTab>> = {}) =>
     renderWithClient(<QualityTab rangeParams={RANGE} showTokens {...props} />);
 
@@ -85,5 +88,55 @@ describe('QualityTab views', () => {
         await user.type(screen.getByRole('searchbox', { name: 'Search feedback' }), 'dutch');
         expect(screen.getByText(/Answered in English/)).toBeTruthy();
         expect(screen.queryByText(/Exactly the table I needed/)).toBeNull();
+    });
+});
+
+describe('QualityTab people', () => {
+    it('shows pseudonyms by default, in both lists', async () => {
+        const user = userEvent.setup();
+        renderTab();
+        expect((await screen.findAllByText('Member · K7Q2')).length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Anonymous').length).toBeGreaterThan(0);
+        expect(screen.getByText('Names are hidden')).toBeTruthy();
+        expect(screen.queryByText('Noor Bakker')).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Terminations' }));
+        await user.click((await screen.findAllByRole('button', { name: /Details for/ }))[0]);
+        expect(screen.getAllByText('Member · K7Q2').length).toBeGreaterThan(0);
+    });
+
+    it('asks for names with reveal=true and shows the audit banner and a display name', async () => {
+        const user = userEvent.setup();
+        const inner = createDemoTransport(ROUTES as unknown as DemoRoutes, createState());
+        const urls: string[] = [];
+        setDemoTransport(((url: unknown, options?: RequestInit) => { urls.push(String(url)); return inner(url, options); }) as typeof inner);
+        renderTab();
+        await screen.findAllByText('Member · K7Q2');
+        expect(urls.some(u => u.includes('reveal=true'))).toBe(false);
+        await user.click(screen.getByRole('button', { name: 'Reveal names' }));
+        expect((await screen.findAllByText('Noor Bakker')).length).toBeGreaterThan(0);
+        expect(screen.getByText('Names shown · recorded in the access audit log')).toBeTruthy();
+        expect(screen.queryByText('Member · K7Q2')).toBeNull();
+        expect(urls.filter(u => u.includes('/api/feedback/org?') && u.includes('reveal=true')).length).toBe(1);
+        expect(urls.filter(u => u.includes('/api/terminations/org') && u.includes('reveal=true')).length).toBe(0);
+        await user.click(screen.getByRole('button', { name: 'Hide names' }));
+        expect((await screen.findAllByText('Member · K7Q2')).length).toBeGreaterThan(0);
+        expect(screen.queryByText('Noor Bakker')).toBeNull();
+    });
+
+    it('shows the refused banner and no names when the audit log could not record the reveal', async () => {
+        useRoutes({
+            'GET /api/feedback/org': (ctx: { query?: URLSearchParams }) => (ctx.query?.get('reveal') === 'true'
+                ? new Response(JSON.stringify({ code: 'audit_unavailable' }), { status: 503, headers: { 'Content-Type': 'application/json' } })
+                : (ROUTES as unknown as Record<string, (c: unknown) => unknown>)['GET /api/feedback/org'](ctx)),
+        });
+        const user = userEvent.setup();
+        renderTab();
+        await screen.findAllByText('Member · K7Q2');
+        await user.click(screen.getByRole('button', { name: 'Reveal names' }));
+        expect(await screen.findByText('Names not revealed')).toBeTruthy();
+        expect(screen.queryByText('Noor Bakker')).toBeNull();
+        expect(screen.queryAllByText(/^Member · /).length).toBe(0);
+        await user.click(screen.getByRole('button', { name: /Back to pseudonyms/ }));
+        expect((await screen.findAllByText('Member · K7Q2')).length).toBeGreaterThan(0);
     });
 });

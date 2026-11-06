@@ -28,6 +28,7 @@
 'use strict';
 
 process.env.NODE_ENV = 'test';
+process.env.SESSION_SECRET = 'q'.repeat(40);
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -35,12 +36,13 @@ const Module = require('module');
 
 // Every store call lands in `touched`. A refused request must leave it empty.
 const touched = [];
+const fx = { rows: [] };
 const pass = (req, res, next) => next();
 
 const MOCKS = {
     '../stores/feedbackStore': {
         saveFeedback: async (row) => { touched.push({ what: 'saveFeedback', args: [row] }); return { id: 'fb-1' }; },
-        getFeedback: async (filters, limit) => { touched.push({ what: 'getFeedback', args: [filters, limit] }); return []; },
+        getFeedback: async (filters, limit) => { touched.push({ what: 'getFeedback', args: [filters, limit] }); return fx.rows; },
         getFeedbackSummary: async (filters) => { touched.push({ what: 'getFeedbackSummary', args: [filters] }); return { total: 0 }; },
     },
     '../auth/permissions': {
@@ -60,8 +62,23 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
     MOCK_IDS[request] = mockId;
     require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
 }
+
+// The person column (core/privacy/personColumn.js) reaches the database for the audit row and the names.
+const audit = { rows: [], fail: false };
+const PERSON_MOCKS = {
+    '../../db': { run: async (sql, params) => { if (audit.fail) throw new Error('db down'); audit.rows.push(params); } },
+    '../../stores/userStore': { getUserAvatarsByIds: async () => [{ id: 'u1', username: 'kim', displayName: 'Kim Jansen' }] },
+};
+for (const [request, exportsObj] of Object.entries(PERSON_MOCKS)) {
+    const mockId = `mock:feedback-validation:person:${request}`;
+    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
+}
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
+    if (parent && /core[\\/]privacy[\\/]personColumn\.js$/.test(parent.filename)
+        && Object.prototype.hasOwnProperty.call(PERSON_MOCKS, request)) {
+        return `mock:feedback-validation:person:${request}`;
+    }
     if (parent && /routes[\\/]feedback\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
@@ -99,7 +116,7 @@ function dispatch({ method, url, body }) {
     });
 }
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; fx.rows = []; audit.rows.length = 0; audit.fail = false; });
 
 test('a misspelled rating filter is refused, instead of answering with every rating', async () => {
     for (const url of ['/?raitng=down', '/org?raitng=down']) {
@@ -217,4 +234,54 @@ test('the phone\'s rating — no model, no comment — is saved with the default
     const row = touched.find((t) => t.what === 'saveFeedback').args[0];
     assert.strictEqual(row.rating, 'up');
     assert.strictEqual(row.conversationSnapshot, null);
+});
+
+const dispatchGet = (url) => dispatch({ method: 'GET', url });
+
+// ═══ The person behind a row ═════════════════════════════════════════
+
+const pseudonym = require('../core/privacy/pseudonym');
+const ORG_LABEL = pseudonym.pseudonymFor('u1', 'org-1', process.env.SESSION_SECRET);
+const ORG_ID = pseudonym.pseudonymId('u1', 'org-1', process.env.SESSION_SECRET);
+
+test('feedback: rows carry the Adoption pseudonym and no user id by default', async () => {
+    fx.rows = [{ id: 'f1', rating: 'up', user_id: 'u1' }, { id: 'f2', rating: 'down', user_id: null }];
+    const res = dispatchGet('/org');
+    const out = await res;
+    assert.strictEqual(out.statusCode, 200);
+    const rows = out.body;
+    assert.deepStrictEqual(rows[0].person, { id: ORG_ID, name: ORG_LABEL });
+    assert.match(rows[0].person.name, /^Member · [A-Z2-9]{4}$/);
+    assert.strictEqual(rows[1].person, null, 'an anonymous row stays null');
+    assert.ok(rows.every((r) => !('user_id' in r)));
+    assert.strictEqual(audit.rows.length, 0, 'no reveal, no audit row');
+    assert.ok(!JSON.stringify(out.body).includes('Kim'));
+});
+
+test('feedback: reveal=true records the audit row first and names the person', async () => {
+    fx.rows = [{ id: 'f1', rating: 'up', user_id: 'u1' }, { id: 'f2', rating: 'down', user_id: null }];
+    const out = await dispatchGet('/org?reveal=true');
+    assert.strictEqual(out.statusCode, 200);
+    assert.strictEqual(audit.rows.length, 1);
+    assert.strictEqual(audit.rows[0][1], 'usage_quality_people_revealed');
+    assert.strictEqual(audit.rows[0][2], 'org-1');
+    const rows = out.body;
+    assert.deepStrictEqual(rows[0].person, { id: 'u1', name: 'Kim Jansen' });
+    assert.strictEqual(rows[1].person, null);
+    assert.ok(rows.every((r) => !('user_id' in r)));
+});
+
+test('feedback: a failed audit write answers 503 audit_unavailable and no rows', async () => {
+    fx.rows = [{ id: 'f1', rating: 'up', user_id: 'u1' }, { id: 'f2', rating: 'down', user_id: null }];
+    audit.fail = true;
+    const out = await dispatchGet('/org?reveal=true');
+    assert.strictEqual(out.statusCode, 503);
+    assert.strictEqual(out.body.code, 'audit_unavailable');
+    assert.ok(!JSON.stringify(out.body).includes('Kim'));
+});
+
+test('feedback: reveal must be true or false', async () => {
+    const out = await dispatchGet('/org?reveal=yes');
+    assert.strictEqual(out.statusCode, 400);
+    assert.strictEqual(audit.rows.length, 0);
 });
