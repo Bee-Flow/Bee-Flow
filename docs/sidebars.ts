@@ -55,6 +55,7 @@ const sidebars: SidebarsConfig = {
           label: 'Deploy',
           items: [
             'self-hosting/docker-compose',
+            'self-hosting/multi-stack',
             'self-hosting/docker-hub',
             'self-hosting/kubernetes',
           ],

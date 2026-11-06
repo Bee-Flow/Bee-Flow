@@ -42,6 +42,8 @@ export const FILES = [
     'docker-compose.hub.local.yml',
     'docker-compose.security.override.yml',
     'docker-compose.docker-socket.override.yml',
+    'docker-compose.sidecars.yml',
+    'docker-compose.shared-sidecars.override.yml',
 ];
 
 /** The file selfhost.sh runs, and so the one ALL_PROFILES describes. */

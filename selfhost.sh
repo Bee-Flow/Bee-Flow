@@ -28,6 +28,15 @@
 # .env; an explicit PROFILES="…" on the command line wins and is re-saved):
 #   PROFILES="core guard" ./selfhost.sh
 #
+# Several stacks on one machine (e.g. one reachable from the internet, one
+# for the sensitive data on the LAN only), each with its own env file
+# (.env.<name>), containers, networks, volumes and ports:
+#   STACK_NAME=internal ./selfhost.sh
+# and, to let those stacks share ONE guard / classifier / Ollama run by
+# ./selfhost-sidecars.sh instead of running their own:
+#   SHARED_SIDECARS="guard classify" STACK_NAME=internal ./selfhost.sh
+# Docs: https://docs.beeflow.ai/self-hosting/multi-stack
+#
 # Docker socket — OFF by default (whoever holds the socket holds the host).
 # Only the guard installer, the browser-runner fallback and Docker-backed Hub
 # modules need it. Opt in once; it is saved as DOCKER_SOCKET= in .env:
@@ -78,6 +87,31 @@ env_get() { # $1=key
     printf '%s' "$v"
 }
 
+# ── Stack name: several stacks on one machine ────────────────────
+# STACK_NAME=<name> ./selfhost.sh runs this install as compose project <name>
+# with its own env file (.env.<name>), its own container, network and volume
+# names (<name>-server, <name>-network, <name>-pgdata, <name>-rustfs-data, …)
+# and its own components directory, so a second stack on the host never
+# collides with the first and never shares a network with it. The plain
+# install (no STACK_NAME) stays project-less and keeps every name it had.
+# Docs: Self-hosting → Several stacks on one machine.
+STACK_NAME="${STACK_NAME:-}"
+PROJECT_ARGS=()
+if [ -n "$STACK_NAME" ]; then
+    case "$STACK_NAME" in
+        beeflow) err "STACK_NAME=beeflow is the plain install: run ./selfhost.sh without STACK_NAME" ;;
+        -*|*[!a-z0-9-]*) err "STACK_NAME must be lowercase letters, digits and dashes, not starting with a dash (got: $STACK_NAME)" ;;
+    esac
+    ENV_FILE="$SCRIPT_DIR/.env.$STACK_NAME"
+    export STACK_NAME
+    export STACK_VOLUME_PREFIX="${STACK_NAME}-"
+    export COMPONENTS_DIR="./components.$STACK_NAME"
+    # --env-file: a named stack reads ITS file only, never the plain .env.
+    PROJECT_ARGS=(-p "$STACK_NAME" --env-file "$ENV_FILE")
+fi
+STACK_LABEL="${STACK_NAME:-beeflow}"
+SERVER_CONTAINER="${STACK_LABEL}-server"
+
 # ── Profile selection ────────────────────────────────────────────
 # An explicit PROFILES="…" on the command line wins; otherwise the PROFILES=
 # saved in .env by a previous install/upgrade; otherwise just core. Without
@@ -100,6 +134,19 @@ fi
 DOCKER_SOCKET="${DOCKER_SOCKET:-0}"
 SOCKET_OVERRIDE="$SCRIPT_DIR/docker-compose.docker-socket.override.yml"
 
+# Shared sidecars: SHARED_SIDECARS="guard classify" (also local-llm) means
+# this stack does not run those profiles itself but joins the
+# `<stack>-sidecars` network that ./selfhost-sidecars.sh created for it and
+# reaches the shared guard / classifier / Ollama there. Same precedence as
+# PROFILES (command line wins, else the value saved in the env file, else
+# none); wire_shared_sidecars() does the checks and the wiring.
+SHARED_SIDECARS_EXPLICIT=false
+[ -n "${SHARED_SIDECARS+x}" ] && SHARED_SIDECARS_EXPLICIT=true
+if [ "$SHARED_SIDECARS_EXPLICIT" = false ]; then
+    SHARED_SIDECARS="$(env_get SHARED_SIDECARS)"
+fi
+SHARED_OVERRIDE="$SCRIPT_DIR/docker-compose.shared-sidecars.override.yml"
+
 # Every profile declared in docker-compose.from-registry.yml — keep in sync
 # when a profile is added there. Used where the whole install must be covered
 # no matter which subset was started (--stop / --down / --uninstall).
@@ -108,16 +155,18 @@ ALL_PROFILES="core guard classify local-llm analytics"
 # ── Compose command (v2 plugin or legacy binary) ─────────────────
 compose() {
     if docker compose version >/dev/null 2>&1; then
-        docker compose "$@"
+        docker compose "${PROJECT_ARGS[@]}" "$@"
     else
-        docker-compose "$@"
+        docker-compose "${PROJECT_ARGS[@]}" "$@"
     fi
 }
 
 # The -f arguments of every compose call: the registry stack, plus the Docker
-# socket override when the operator opted in (an array: paths may hold spaces).
+# socket override when the operator opted in, plus the shared-sidecars
+# override when the stack uses them (an array: paths may hold spaces).
 COMPOSE_FILES=(-f "$COMPOSE_FILE")
 [ "$DOCKER_SOCKET" = "1" ] && COMPOSE_FILES+=(-f "$SOCKET_OVERRIDE")
+[ -n "$SHARED_SIDECARS" ] && COMPOSE_FILES+=(-f "$SHARED_OVERRIDE")
 
 profile_args() {
     local args=()
@@ -182,6 +231,72 @@ wire_classify() {
     log "Classifier: wired to $CLASSIFY_SERVICE_URL (classify profile is up)"
 }
 
+# Export KEY=VALUE as a default: only when the environment does not set it and
+# the env file has no non-empty KEY= line (compose: environment beats the file,
+# so exporting over an operator's value would silently win).
+default_env() { # $1=key $2=value [$3=log line]
+    [ -n "${!1:-}" ] && return 0
+    grep -qE "^[[:space:]]*$1=[^[:space:]]" "$ENV_FILE" 2>/dev/null && return 0
+    export "$1=$2"
+    [ -n "${3:-}" ] && log "$3"
+    return 0
+}
+
+env_has() { # $1=key → 0 when the environment or the env file sets it non-empty
+    [ -n "${!1:-}" ] && return 0
+    grep -qE "^[[:space:]]*$1=[^[:space:]]" "$ENV_FILE" 2>/dev/null
+}
+
+# ── Shared sidecars wiring ───────────────────────────────────────
+# A stack uses the shared guard / classifier / Ollama of ./selfhost-sidecars.sh
+# instead of its own: the same profile may not run here as well (two services
+# of one name on the server's networks), the per-stack network must already
+# exist (the override declares it external), and the server must send the
+# sidecars' key, which is NOT this stack's SERVICES_API_KEY. The URLs are the
+# service names of the sidecars project, resolved over the shared network; a
+# URL the operator set is kept.
+wire_shared_sidecars() {
+    [ -n "$SHARED_SIDECARS" ] || return 0
+    local s
+    for s in $SHARED_SIDECARS; do
+        case "$s" in
+            guard|classify|local-llm) ;;
+            *) err "SHARED_SIDECARS: unknown sidecar \"$s\" (guard, classify, local-llm)" ;;
+        esac
+        case " $PROFILES " in
+            *" $s "*) err "SHARED_SIDECARS lists $s and PROFILES runs it too: a stack uses the shared $s or its own, not both. Drop it from one of them." ;;
+        esac
+    done
+    local net="${STACK_LABEL}-sidecars"
+    docker network inspect "$net" >/dev/null 2>&1 \
+        || err "Docker network $net does not exist. Start the shared sidecars first, with this stack in SIDECAR_STACKS:
+        SIDECAR_STACKS=\"… $STACK_LABEL\" ./selfhost-sidecars.sh"
+    case " $SHARED_SIDECARS " in *" guard "*)
+        env_has PII_SERVICE_API_KEY \
+            || err "PII_SERVICE_API_KEY is empty in $(basename "$ENV_FILE"): set it to the SERVICES_API_KEY of .env.sidecars (the shared guard refuses every other key)"
+        default_env PII_SERVICE_URL "http://guard-service:8100" "PII Guard: shared, wired to http://guard-service:8100 over $net" ;;
+    esac
+    case " $SHARED_SIDECARS " in *" classify "*)
+        env_has CLASSIFY_SERVICE_API_KEY \
+            || err "CLASSIFY_SERVICE_API_KEY is empty in $(basename "$ENV_FILE"): set it to the SERVICES_API_KEY of .env.sidecars (the shared classifier refuses every other key)"
+        default_env CLASSIFY_SERVICE_URL "http://classify-service:8300" "Classifier: shared, wired to http://classify-service:8300 over $net" ;;
+    esac
+    case " $SHARED_SIDECARS " in *" local-llm "*)
+        default_env OLLAMA_URL "http://ollama:11434" "Ollama: shared, wired to http://ollama:11434 over $net" ;;
+    esac
+}
+
+# A named stack is one of several on the machine, so by default its UI is
+# published on loopback only, for the reverse proxy on the host: a port Docker
+# publishes on 0.0.0.0 is open on every interface no matter what ufw says.
+# The plain install keeps 0.0.0.0 (the compose default): a first install must
+# stay reachable from the LAN without a proxy. An explicit CLIENT_BIND_HOST in
+# the env file or the environment always wins.
+wire_bind_host() {
+    [ -n "$STACK_NAME" ] || return 0
+    default_env CLIENT_BIND_HOST "127.0.0.1" "UI: published on 127.0.0.1:\$CLIENT_PORT only (stack $STACK_NAME; set CLIENT_BIND_HOST to change)"
+}
+
 check_docker() {
     command -v docker >/dev/null 2>&1 || err "Docker is not installed: https://docs.docker.com/get-docker/"
     docker info >/dev/null 2>&1 || err "Docker daemon is not running. Start Docker and retry."
@@ -227,7 +342,7 @@ set_env() { # $1=key $2=value
 # Makes this a true no-clone install: we materialise init-db.sh and the
 # (initially empty) components/ content dir if missing.
 ensure_mounts() {
-    mkdir -p "$SCRIPT_DIR/components" "$SCRIPT_DIR/docker"
+    mkdir -p "$SCRIPT_DIR/${COMPONENTS_DIR:-components}" "$SCRIPT_DIR/docker"
     if [ ! -f "$SCRIPT_DIR/docker/init-db.sh" ]; then
         log "Writing docker/init-db.sh (creates the 3 databases + pgvector)"
         cat > "$SCRIPT_DIR/docker/init-db.sh" <<'INITDB'
@@ -256,11 +371,11 @@ INITDB
 # ── Create .env with fresh secrets on first run ──────────────────
 ensure_env() {
     if [ -f "$ENV_FILE" ]; then
-        ok ".env already exists — leaving it untouched"
+        ok "$(basename "$ENV_FILE") already exists — leaving it untouched"
         return
     fi
     [ -f "$ENV_TEMPLATE" ] || err "Missing $ENV_TEMPLATE next to this script."
-    log "Creating .env from template and generating secrets"
+    log "Creating $(basename "$ENV_FILE") from template and generating secrets"
     # Owner-only from the first byte: the file holds every secret of the stack.
     (umask 077 && cp "$ENV_TEMPLATE" "$ENV_FILE")
     chmod 600 "$ENV_FILE"
@@ -278,7 +393,7 @@ ensure_env() {
     ADMIN_PASSWORD="$(gen_password)"
     set_env INIT_ADMIN_PASSWORD   "$ADMIN_PASSWORD"
 
-    ok "Secrets generated into .env"
+    ok "Secrets generated into $(basename "$ENV_FILE")"
 }
 
 # Remember the resolved profile set for later runs. Called from install and
@@ -288,12 +403,17 @@ persist_profiles() {
     local saved; saved="$(env_get PROFILES)"
     if [ "$saved" != "$PROFILES" ]; then
         set_env PROFILES "$PROFILES"
-        log "Saved PROFILES=\"$PROFILES\" to .env — later runs reuse it (an explicit PROFILES=\"…\" still wins)"
+        log "Saved PROFILES=\"$PROFILES\" to $(basename "$ENV_FILE") — later runs reuse it (an explicit PROFILES=\"…\" still wins)"
     fi
     local saved_socket; saved_socket="$(env_get DOCKER_SOCKET)"
     if [ "$DOCKER_SOCKET_EXPLICIT" = true ] && [ "$saved_socket" != "$DOCKER_SOCKET" ]; then
         set_env DOCKER_SOCKET "$DOCKER_SOCKET"
-        log "Saved DOCKER_SOCKET=$DOCKER_SOCKET to .env — later runs reuse it"
+        log "Saved DOCKER_SOCKET=$DOCKER_SOCKET to $(basename "$ENV_FILE") — later runs reuse it"
+    fi
+    local saved_shared; saved_shared="$(env_get SHARED_SIDECARS)"
+    if [ "$SHARED_SIDECARS_EXPLICIT" = true ] && [ "$saved_shared" != "$SHARED_SIDECARS" ]; then
+        set_env SHARED_SIDECARS "$SHARED_SIDECARS"
+        log "Saved SHARED_SIDECARS=\"$SHARED_SIDECARS\" to $(basename "$ENV_FILE") — later runs reuse it"
     fi
 }
 
@@ -309,7 +429,7 @@ ensure_analytics_secret() {
     case " $PROFILES " in *" analytics "*) ;; *) return 0 ;; esac
     if [ -z "$(env_get UMAMI_APP_SECRET)" ]; then
         set_env UMAMI_APP_SECRET "$(gen_hex 32)"
-        log "Generated UMAMI_APP_SECRET in .env (required by the analytics profile)"
+        log "Generated UMAMI_APP_SECRET in $(basename "$ENV_FILE") (required by the analytics profile)"
     fi
 }
 
@@ -322,7 +442,7 @@ ensure_analytics_secret() {
 ensure_browser_ws_path() {
     if [ -z "$(env_get BROWSER_WS_PATH)" ]; then
         set_env BROWSER_WS_PATH "$(gen_hex 24)"
-        log "Generated BROWSER_WS_PATH in .env (the browser sidecar's private path)"
+        log "Generated BROWSER_WS_PATH in $(basename "$ENV_FILE") (the browser sidecar's private path)"
     fi
 }
 
@@ -335,7 +455,7 @@ ensure_services_api_key() {
     local current; current="$(env_get SERVICES_API_KEY)"
     if [ -z "$current" ] || [ "$current" = "CHANGE_ME" ]; then
         set_env SERVICES_API_KEY "$(gen_hex 24)"
-        log "Generated SERVICES_API_KEY in .env (the guard and classify sidecars require it)"
+        log "Generated SERVICES_API_KEY in $(basename "$ENV_FILE") (the guard and classify sidecars require it)"
     fi
 }
 
@@ -383,7 +503,7 @@ wait_for_schema() {
         sleep 5
     done
     warn "Schema probe did not report ready within ~2 min. Last response: ${body:-<no response>}"
-    warn "Check by hand: curl -s ${url}   and: docker exec beeflow-server node migrateDb.js"
+    warn "Check by hand: curl -s ${url}   and: docker exec ${SERVER_CONTAINER} node migrateDb.js"
     return 1
 }
 
@@ -415,7 +535,7 @@ print_done() {
     local admin_pw; admin_pw="$(env_get INIT_ADMIN_PASSWORD)"
     echo ""
     echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
-    echo -e "  ${BOLD}🐝 Bee Flow is running${NC}"
+    echo -e "  ${BOLD}🐝 Bee Flow is running${NC}${STACK_NAME:+  (stack: ${STACK_NAME})}"
     echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
     echo -e "  Open:     ${CYAN}http://localhost:${cport}${NC}"
     echo -e "  Sign in:  ${BOLD}admin${NC} / ${BOLD}${admin_pw}${NC}"
@@ -430,13 +550,33 @@ print_done() {
 install() {
     check_docker
     ensure_mounts
+    local first_run=false
+    [ -f "$ENV_FILE" ] || first_run=true
     ensure_env
     persist_profiles
+    if [ "$first_run" = true ] && [ -n "$STACK_NAME" ]; then
+        # A named stack shares the host with another one, so the template's
+        # ports and hostnames (the same for every stack) cannot be right.
+        # Starting it anyway would fail on the port, or worse, succeed on the
+        # other stack's hostname. Stop here, once, with the list.
+        echo ""
+        ok "Created $(basename "$ENV_FILE") for stack \"$STACK_NAME\" with fresh secrets. Before the first start, set in it:"
+        echo "    SERVER_PORT and CLIENT_PORT        unique on this machine (the plain install uses 3001 and 5176)"
+        echo "    SERVER_PUBLIC_HOST, CLIENT_PUBLIC_HOST, SERVER_PROTOCOL, CLIENT_PROTOCOL"
+        echo "                                       this stack's own hostname behind the reverse proxy"
+        echo "    COOKIE_SECURE=true                 when that proxy terminates TLS"
+        [ -n "$SHARED_SIDECARS" ] && echo "    PII_SERVICE_API_KEY, CLASSIFY_SERVICE_API_KEY   the SERVICES_API_KEY of .env.sidecars"
+        echo "  then run the same command again."
+        echo ""
+        exit 0
+    fi
     ensure_analytics_secret
     ensure_browser_ws_path
     ensure_services_api_key
     wire_guard
     wire_classify
+    wire_shared_sidecars
+    wire_bind_host
     log "Pulling images from ghcr.io/bee-flow (public, no login needed)…"
     # shellcheck disable=SC2046
     compose "${COMPOSE_FILES[@]}" $(profile_args) pull || warn "Some images failed to pull; continuing"
@@ -477,6 +617,13 @@ upgrade() {
     ensure_analytics_secret
     ensure_browser_ws_path
     ensure_services_api_key
+    # The same wiring as install: `up -d` below recreates the server with the
+    # environment of THIS run, so a sidecar URL that is not exported here is
+    # an empty one in the recreated container.
+    wire_guard
+    wire_classify
+    wire_shared_sidecars
+    wire_bind_host
 
     # Pull FIRST and pull LOUDLY: when the pull fails nothing has been touched
     # and the running stack simply stays on its current version. (Unlike the
@@ -502,8 +649,8 @@ upgrade() {
     # Same migration ladder the server already ran at start, but awaited and
     # loud: prints a line per component, exits non-zero on failure. Safe to
     # run any number of times.
-    log "Running database migrations (docker exec beeflow-server node migrateDb.js)…"
-    if ! docker exec beeflow-server node migrateDb.js; then
+    log "Running database migrations (docker exec ${SERVER_CONTAINER} node migrateDb.js)…"
+    if ! docker exec ${SERVER_CONTAINER} node migrateDb.js; then
         warn "Migrations reported failures (see output above). This is usually environmental"
         warn "(Postgres permissions, connectivity, disk); migrations are idempotent, so fixing"
         warn "the cause and re-running ./selfhost.sh --upgrade picks up where things stand."
@@ -530,12 +677,12 @@ uninstall() {
     echo -e "${RED}${BOLD}══ DANGER — PERMANENT DATA LOSS ════════════════════════${NC}"
     echo -e "${RED}This removes every Bee Flow container AND deletes these data volumes:${NC}"
     echo ""
-    echo -e "  ${BOLD}beeflow-pgdata${NC}   every database (beeflow_core, beeflow_tasks,"
+    echo -e "  ${BOLD}${STACK_LABEL}-pgdata${NC}   every database (beeflow_core, beeflow_tasks,"
     echo -e "                   monitoring_db, umami): users, chats, settings — and your"
     echo -e "                   ${BOLD}activated licence${NC}; a reinstall must re-activate the key"
-    echo -e "  ${BOLD}beeflow-data${NC}     the server data dir — including a licence public key"
+    echo -e "  ${BOLD}${STACK_LABEL}-data${NC}     the server data dir — including a licence public key"
     echo -e "                   (license-public-key.pem) if you placed one there"
-    echo -e "  ${BOLD}rustfs-data${NC}      object storage: uploaded documents and meeting"
+    echo -e "  ${BOLD}${STACK_VOLUME_PREFIX}rustfs-data${NC}      object storage: uploaded documents and meeting"
     echo -e "                   recordings — the only durable copy (+ rustfs-logs)"
     echo -e "  sidecar data     ollama-models (and guard-redis-data, left by older versions)"
     echo ""
@@ -554,9 +701,9 @@ uninstall() {
         Looking for a non-destructive teardown? ./selfhost.sh --down keeps all data.)"
     fi
     local c
-    read -r -p "Type 'beeflow' to delete everything listed above: " c < /dev/tty \
+    read -r -p "Type '${STACK_LABEL}' to delete everything listed above: " c < /dev/tty \
         || { echo "Aborted — nothing was removed."; exit 1; }
-    [ "$c" = "beeflow" ] || { echo "Aborted — nothing was removed."; exit 1; }
+    [ "$c" = "$STACK_LABEL" ] || { echo "Aborted — nothing was removed."; exit 1; }
     # shellcheck disable=SC2046
     compose "${COMPOSE_FILES[@]}" $(all_profile_args) down --volumes
     # guard-redis no longer persists; older versions left this volume behind.
@@ -578,7 +725,7 @@ case "${1:-}" in
     --upgrade)
         upgrade ;;
     --status)
-        docker ps --filter "name=beeflow" --format "  {{.Names}}\t{{.Status}}\t{{.Ports}}" ;;
+        docker ps --filter "name=${STACK_LABEL}" --format "  {{.Names}}\t{{.Status}}\t{{.Ports}}" ;;
     --logs)
         compose "${COMPOSE_FILES[@]}" logs -f server ;;
     --stop)

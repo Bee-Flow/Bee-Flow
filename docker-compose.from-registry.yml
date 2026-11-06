@@ -29,7 +29,7 @@ services:
   # ── PostgreSQL Database ────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg15
-    container_name: beeflow-postgres
+    container_name: ${STACK_NAME:-beeflow}-postgres
     profiles: [ "core" ]
     environment:
       - POSTGRES_USER=${DB_USER:-beeflow}
@@ -58,7 +58,7 @@ services:
   # explicitly after reading the release notes. 1.0.0 is the GA release.
   rustfs:
     image: rustfs/rustfs:1.0.0
-    container_name: beeflow-rustfs
+    container_name: ${STACK_NAME:-beeflow}-rustfs
     profiles: [ "core" ]
     environment:
       - RUSTFS_ROOT_USER=${RUSTFS_ACCESS_KEY:-beeflow}
@@ -78,7 +78,7 @@ services:
   # ── Backend Server ─────────────────────────────────────────────
   server:
     image: ${REGISTRY:-ghcr.io/bee-flow}/server:${TAG:-latest}
-    container_name: beeflow-server
+    container_name: ${STACK_NAME:-beeflow}-server
     profiles: [ "core" ]
     command: npm start
     # Loopback-only by default. Published on 0.0.0.0 the API answers on every
@@ -94,8 +94,9 @@ services:
     #     product is enforced in Express — see server/auth/loginThrottle.js and
     #     authRateLimits.js — precisely so it cannot be walked around by
     #     picking a different port;
-    #   • agent-hub itself is still published on 0.0.0.0 (CLIENT_PORT below) and
-    #     proxies the same API routes, so anyone on the LAN reaches them there.
+    #   • agent-hub itself is published on 0.0.0.0 by default (CLIENT_BIND_HOST
+    #     below) and proxies the same API routes, so anyone on the LAN reaches
+    #     them there.
     # Closing one of two doors is still worth doing; believing it locked the
     # building is not.
     #
@@ -317,7 +318,9 @@ services:
       - LEGACY_MCP_TOKEN_MAX_AGE_DAYS=${LEGACY_MCP_TOKEN_MAX_AGE_DAYS:-365}
     volumes:
       - beeflow-data:/app/data
-      - ./components:/components
+      # Per stack: the server writes CMS components here, and two stacks
+      # sharing one host directory would read each other's.
+      - ${COMPONENTS_DIR:-./components}:/components
       # No Docker socket by default (the socket is the host). Opt in with
       # DOCKER_SOCKET=1 ./selfhost.sh, which layers
       # docker-compose.docker-socket.override.yml on top of this file.
@@ -362,7 +365,7 @@ services:
   # release as the server.
   browser:
     image: ${BROWSER_IMAGE:-${REGISTRY:-ghcr.io/bee-flow}/pwt-runner:${TAG:-latest}}
-    container_name: beeflow-browser
+    container_name: ${STACK_NAME:-beeflow}-browser
     profiles: [ "core" ]
     command: serve
     environment:
@@ -381,10 +384,16 @@ services:
   # ── Agent Hub Frontend ─────────────────────────────────────────
   agent-hub:
     image: ${REGISTRY:-ghcr.io/bee-flow}/agent-hub:${TAG:-latest}
-    container_name: beeflow-agent-hub
+    container_name: ${STACK_NAME:-beeflow}-agent-hub
     profiles: [ "core" ]
+    # Published on every interface by default, so a plain install is reachable
+    # from the LAN without a reverse proxy. Docker publishes a port straight
+    # into the host's iptables, ahead of ufw/firewalld: a rule in those does
+    # NOT close it. Behind a reverse proxy, and for every stack that must not
+    # be reachable from outside the machine, set CLIENT_BIND_HOST=127.0.0.1
+    # (a named stack, STACK_NAME=…, gets that default from selfhost.sh).
     ports:
-      - "${CLIENT_PORT:-5176}:80"
+      - "${CLIENT_BIND_HOST:-0.0.0.0}:${CLIENT_PORT:-5176}:80"
     environment:
       - SERVER_HOST=${INTERNAL_SERVER_HOST:-server}
       - SERVER_PORT=${SERVER_PORT:-3001}
@@ -428,7 +437,7 @@ services:
 
   guard-service:
     image: ${REGISTRY:-ghcr.io/bee-flow}/guard:${TAG:-latest}
-    container_name: beeflow-guard
+    container_name: ${STACK_NAME:-beeflow}-guard
     profiles: [ "guard" ]
     ports:
       - "127.0.0.1:8100:8100"
@@ -527,7 +536,7 @@ services:
   # ── Guard Redis ────────────────────────────────────────────────
   guard-redis:
     image: redis:7.4.11-alpine
-    container_name: beeflow-guard-redis
+    container_name: ${STACK_NAME:-beeflow}-guard-redis
     profiles: [ "guard" ]
     # Not persisted (no RDB snapshots, no AOF, no volume): it holds caches only.
     # The guard's PII result cache (db 1) and the server's session cache and
@@ -566,7 +575,7 @@ services:
     # Pinned on purpose: upgrades are a deliberate decision — bump the tag
     # explicitly after reading the release notes (ollama/ollama releases).
     image: ollama/ollama:0.40.1
-    container_name: beeflow-ollama
+    container_name: ${STACK_NAME:-beeflow}-ollama
     profiles: [ "local-llm" ]
     # Loopback-only by default: this port is an unauthenticated inference API,
     # and Ollama has no built-in auth. The server reaches it over the compose
@@ -608,7 +617,7 @@ services:
   # CLASSIFY_SERVICE_URL=http://classify-service:8300 (selfhost.sh does).
   classify-service:
     image: ${REGISTRY:-ghcr.io/bee-flow}/classify:${TAG:-latest}
-    container_name: beeflow-classify
+    container_name: ${STACK_NAME:-beeflow}-classify
     profiles: [ "classify" ]
     ports:
       - "127.0.0.1:8300:8300"
@@ -660,7 +669,7 @@ services:
     # release; v3 ships ONE unified image (the database comes from
     # DATABASE_URL), the postgresql-* tag line ends at v2.x.
     image: ghcr.io/umami-software/umami:3.4.0
-    container_name: beeflow-umami
+    container_name: ${STACK_NAME:-beeflow}-umami
     profiles: [ "analytics" ]
     ports:
       - "127.0.0.1:${UMAMI_PORT:-3000}:3000"
@@ -696,16 +705,23 @@ services:
 # VOLUMES
 # ════════════════════════════════════════════════════════════════
 
+# Every name below carries the stack name, so two stacks from this file can
+# share one host (docs: Self-hosting → Several stacks on one machine).
+# STACK_NAME=<name> ./selfhost.sh sets STACK_NAME and STACK_VOLUME_PREFIX
+# (`<name>-`) and runs compose as project <name>. Both are EMPTY/default on a
+# plain install, so every name resolves to exactly what it was before this
+# existed: a volume renamed on upgrade is a volume the stack can no longer
+# find, and rustfs-data is the only copy of every upload.
 volumes:
   # Core
   beeflow-data:
-    name: beeflow-data
+    name: ${STACK_NAME:-beeflow}-data
   beeflow-pgdata:
-    name: beeflow-pgdata
+    name: ${STACK_NAME:-beeflow}-pgdata
   rustfs-data:
-    name: rustfs-data
+    name: ${STACK_VOLUME_PREFIX:-}rustfs-data
   rustfs-logs:
-    name: rustfs-logs
+    name: ${STACK_VOLUME_PREFIX:-}rustfs-logs
   # Local LLM
   ollama-models:
     driver: local
@@ -716,7 +732,7 @@ volumes:
 
 networks:
   beeflow-network:
-    name: beeflow-network
+    name: ${STACK_NAME:-beeflow}-network
   # Only the server and the browser sidecar. See the `browser` service.
   beeflow-browser-network:
-    name: beeflow-browser-network
+    name: ${STACK_NAME:-beeflow}-browser-network
