@@ -9,7 +9,7 @@
 
 const { loadConfig } = require('../auth/permissions');
 const configStore = require('../stores/configStore');
-const { assertAllowedNextcloudHost, isMetadataHost, nextcloudFetch } = require('./nextcloudTarget');
+const { assertAllowedNextcloudHost, isMetadataHost, nextcloudFetch, nextcloudOAuthUrl } = require('./nextcloudTarget');
 const { signedConnectorHeaders, connectorWireUrl } = require('./ncSigning');
 const log = require('../telemetry/log');
 const { DOWNLOAD_TOO_LARGE, refuseDeclaredOversize, writeBodyToFile } = require('./nextcloudDownload');
@@ -147,7 +147,7 @@ async function _doRefreshAccessToken(session) {
         throw new Error('No refresh token available — user must re-authenticate with Nextcloud');
     }
 
-    const response = await nextcloudFetch(`${nextcloudUrl.replace(/\/+$/, '')}/apps/oauth2/api/v1/token`, {
+    const response = await nextcloudFetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({

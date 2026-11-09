@@ -147,6 +147,23 @@ async function privateHostFetch(url, opts = {}) {
     }
 }
 
+const OAUTH_ENDPOINTS = { authorize: '/apps/oauth2/authorize', token: '/apps/oauth2/api/v1/token' };
+
+/**
+ * A Nextcloud OAuth2 endpoint under `baseUrl`. It goes through the front
+ * controller (`/index.php/…`): a server without pretty URLs answers 404 on
+ * the bare `/apps/oauth2/…` path, while the `index.php` form is served with
+ * and without the rewrite (Nextcloud admin manual, "OAuth2").
+ * @param {string} baseUrl
+ * @param {'authorize' | 'token'} endpoint
+ */
+function nextcloudOAuthUrl(baseUrl, endpoint) {
+    const path = OAUTH_ENDPOINTS[endpoint];
+    if (!path) throw new Error(`Unknown Nextcloud OAuth endpoint: ${String(endpoint)}`);
+    const base = String(baseUrl || '').replace(/\/+$/, '').replace(/\/index\.php$/i, '');
+    return `${base}/index.php${path}`;
+}
+
 // ── Private-host mode: connect-time screen ─────────────────────────
 
 /**
@@ -237,6 +254,7 @@ module.exports = {
     isMetadataHost,
     allowPrivateHosts,
     nextcloudFetch,
+    nextcloudOAuthUrl,
     makePrivateModeDispatcher,
     MAX_URL_LENGTH,
 };

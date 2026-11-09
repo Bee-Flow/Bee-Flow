@@ -10,6 +10,7 @@
 const log = require('../../telemetry/log');
 const { OAUTH_PROVIDERS } = require('../permissions');
 const microsoftLogin = require('./microsoftLogin');
+const { nextcloudOAuthUrl } = require('../../utils/nextcloudTarget');
 const { microsoftCredentialsFor } = require('./microsoftConnections.mts');
 
 /** @typedef {import('./providerCallbackRoutes').OAuthTokenResponse} OAuthTokenResponse */
@@ -173,7 +174,7 @@ async function exchangeNextcloud({ config, code, redirectUri, session }) {
 
     const { nextcloudUrl, clientId, clientSecret } = config.oauth || {};
 
-    const tokenResponse = await fetch(`${nextcloudUrl}/apps/oauth2/api/v1/token`, {
+    const tokenResponse = await fetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({

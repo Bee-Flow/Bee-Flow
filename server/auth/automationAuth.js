@@ -31,6 +31,7 @@ const automationCredentialStore = require('../stores/automationCredentialStore')
 const { loadConfig, OAUTH_PROVIDERS, microsoftRefreshScope } = require('./permissions');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+const { nextcloudOAuthUrl } = require('../utils/nextcloudTarget');
 
 const REFRESH_THRESHOLD_MS = 5 * 60_000; // refresh if <5 min left
 
@@ -191,7 +192,7 @@ async function refreshNextcloud(cred) {
     if (!nextcloudUrl || !clientId || !clientSecret) {
         throw new Error('Nextcloud OAuth not configured');
     }
-    const res = await fetch(`${nextcloudUrl}/apps/oauth2/api/v1/token`, {
+    const res = await fetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({

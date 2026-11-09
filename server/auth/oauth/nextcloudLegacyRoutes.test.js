@@ -126,7 +126,7 @@ test('an abandoned popup attempt does not turn the next ordinary sign-in into on
     assert.strictEqual(session.oauthPickupId, undefined, 'no session token may be deposited under the old pickup id');
     assert.strictEqual(session.oauthAppRedirect, undefined);
     assert.strictEqual(res.statusCode, 302, 'a plain redirect, not the intermediate popup page');
-    assert.ok(res.location.startsWith('https://cloud.example/apps/oauth2/authorize?'));
+    assert.ok(res.location.startsWith('https://cloud.example/index.php/apps/oauth2/authorize?'));
 });
 
 test('a popup attempt still records its own mode and pickup', async () => {
@@ -136,7 +136,7 @@ test('a popup attempt still records its own mode and pickup', async () => {
     assert.strictEqual(session.oauthPickupId, 'p-123');
     assert.strictEqual(session.oauthPickupChallenge, 'Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw');
     assert.strictEqual(res.statusCode, 200, 'the popup gets the referrer-cleaning intermediate page');
-    assert.match(res.body, /cloud\.example\/apps\/oauth2\/authorize/);
+    assert.match(res.body, /cloud\.example\/index\.php\/apps\/oauth2\/authorize/);
 });
 
 test('a pickup without a challenge is not set up', async () => {

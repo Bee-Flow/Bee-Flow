@@ -208,3 +208,15 @@ test('private-host mode: nextcloudFetch hands a dispatcher to fetch', async () =
         else process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = prevEnv;
     }
 });
+
+test('nextcloudOAuthUrl: goes through index.php so it works without pretty URLs', () => {
+    const { nextcloudOAuthUrl } = require('./nextcloudTarget');
+    // Without mod_rewrite /apps/oauth2/... is a 404; /index.php/apps/... is served either way.
+    assert.strictEqual(nextcloudOAuthUrl('https://cloud.example.com', 'authorize'), 'https://cloud.example.com/index.php/apps/oauth2/authorize');
+    assert.strictEqual(nextcloudOAuthUrl('https://cloud.example.com', 'token'), 'https://cloud.example.com/index.php/apps/oauth2/api/v1/token');
+    // Subpath installs and trailing slashes.
+    assert.strictEqual(nextcloudOAuthUrl('https://example.com/nextcloud/', 'token'), 'https://example.com/nextcloud/index.php/apps/oauth2/api/v1/token');
+    // A base that already names the front controller is not doubled.
+    assert.strictEqual(nextcloudOAuthUrl('https://cloud.example.com/index.php', 'authorize'), 'https://cloud.example.com/index.php/apps/oauth2/authorize');
+    assert.throws(() => nextcloudOAuthUrl('https://cloud.example.com', /** @type {any} */ ('other')));
+});
