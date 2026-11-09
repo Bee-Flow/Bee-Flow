@@ -213,6 +213,31 @@ test('a full queue answers 503 rather than dropping the submission silently', as
     await flushAsync();
 });
 
+test('"busy, try again" keeps the nonce and leaves nothing behind: the retry is accepted and runs', async () => {
+    let release;
+    const gate = new Promise(r => { release = r; });
+    state.resolveRun = () => gate;
+    for (let i = 0; i < QUEUE_DEPTH + 1; i += 1) {
+        await postSubmit(makeReq({ body: submissionBody({ nonce: `busy-q${i}` }) }), makeRes());
+    }
+    const sessionsBefore = state.sessions.size;
+    const body = submissionBody({ nonce: 'busy-retry' });
+    await assert.rejects(postSubmit(makeReq({ body }), makeRes()), (e) => e.status === 503 && e.code === 'form_busy');
+    assert.strictEqual(state.sessions.size, sessionsBefore, 'a refused submission makes no session');
+
+    // The queue drains; the visitor presses Send again on the same page.
+    state.resolveRun = null;
+    release();
+    await flushAsync();
+    const before = state.executions.length;
+    const retry = makeRes();
+    await postSubmit(makeReq({ body }), retry);
+    await flushAsync();
+    assert.strictEqual(retry.statusCode, 202, JSON.stringify(retry.body));
+    assert.strictEqual(retry.body.duplicate, undefined);
+    assert.strictEqual(state.executions.length, before + 1);
+});
+
 test('a submission claims its upload exactly once and carries a descriptor, never bytes', async () => {
     const up = makeRes();
     await postUpload(uploadReq(), up);

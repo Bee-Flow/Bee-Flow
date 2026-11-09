@@ -59,6 +59,8 @@ async function submitForm(req, res) {
     // and run nothing.
     const invalid = submissionErrors(found, body);
     if (invalid.length) return res.status(400).json({ error: 'Some answers need attention', fields: invalid });
+    // And "busy, try again" for the same reason, before anything is written.
+    formQueue.assertRoom(found.automation.id);
 
     // Replay dedup on the shared nonce table (namespaced by token, exactly
     // like the webhook route). A double-click or a refresh-resubmit is the
@@ -116,6 +118,8 @@ async function answerPage(req, res) {
     const pending = await pendingPageFor(loaded.session);
     const coerced = pending ? coerceSubmission(normalizeFields(pending.form), body) : null;
     if (coerced && coerced.errors.length) return res.status(400).json({ error: 'Some answers need attention', fields: coerced.errors });
+    // "Busy, try again" is said before the nonce is recorded too.
+    if (coerced) formQueue.assertRoom(found.automation.id);
 
     // No honeypot / minimum-age here: this visitor already cleared both on
     // page one. Replay dedup still applies, and it is answered BEFORE the "is
