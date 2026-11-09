@@ -109,6 +109,7 @@ swap(embedDispatch, 'dispatchEmbedTexts', async (texts, opts) => {
 swap(embeddingMigration, 'ensureKbEmbeddingsCurrent', async (o) => { TRACE.push({ via: 'migrate', o }); });
 swap(relationHop, 'expandRelations', async (rows, o) => { TRACE.push({ via: 'hop', ids: rows.map(r => r.id), o }); });
 swap(llamaCppRerank, 'isEnabled', async () => !!CONFIG.__llama);
+swap(llamaCppRerank, 'isAvailable', async () => !!CONFIG.__llama);
 swap(llamaCppRerank, 'rerankLlamaCpp', async (q, docs, k) => { TRACE.push({ via: 'llama', q, docs, k }); return CONFIG.__llama; });
 swap(cpuCrossEncoder, 'rerankCpu', async (q, docs, k) => { TRACE.push({ via: 'cpu', q, docs, k }); return CONFIG.__cpu || []; });
 swap(azureServiceCosts, 'computeEmbeddingCost', (t) => { TRACE.push({ via: 'cost', t }); return 0; });

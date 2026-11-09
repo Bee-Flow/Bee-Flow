@@ -27,7 +27,8 @@ const { rerankLlamaCpp, isEnabled, _internals } = require('./llamaCppRerank');
 
 const ENABLED = { llamacpp_rerank_enabled: true, llamacpp_rerank_url: 'http://stub:8080', llamacpp_rerank_model: 'bge-reranker-v2-m3' };
 const realFetch = global.fetch;
-function stubFetch(handler) { global.fetch = handler; }
+// Every test starts with the router reachable: a 'throw' case trips the back-off.
+function stubFetch(handler) { _internals.resetBackoff(); global.fetch = handler; }
 function restoreFetch() { global.fetch = realFetch; }
 
 test('raw logits become 0..1 scores, ordered best first', async () => {
@@ -128,4 +129,54 @@ test('sigmoid is the standard logistic', () => {
     assert.strictEqual(_internals.sigmoid(0), 0.5);
     assert.ok(_internals.sigmoid(10) > 0.9999);
     assert.ok(_internals.sigmoid(-10) < 0.0001);
+});
+
+test('an unreachable router is skipped for the retry window, then tried again', async () => {
+    CONFIG = { ...ENABLED };
+    const { isAvailable } = require('./llamaCppRerank');
+    let calls = 0;
+    stubFetch(async () => { calls += 1; throw new Error('fetch failed'); });
+    const realNow = Date.now;
+    let now = 1_000_000;
+    Date.now = () => now;
+    try {
+        assert.deepStrictEqual(await rerankLlamaCpp('q', ['a']), []);
+        assert.strictEqual(calls, 1);
+        assert.strictEqual(await isAvailable(), false, 'backing off after a network failure');
+        assert.deepStrictEqual(await rerankLlamaCpp('q', ['a']), []);
+        assert.strictEqual(calls, 1, 'no request while backing off');
+        now += 5 * 60_000;
+        assert.strictEqual(await isAvailable(), true, 'tried again after the default 5 minutes');
+        await rerankLlamaCpp('q', ['a']);
+        assert.strictEqual(calls, 2);
+    } finally {
+        Date.now = realNow;
+        restoreFetch();
+    }
+});
+
+test('an HTTP error does not back off: the router answered', async () => {
+    CONFIG = { ...ENABLED };
+    const { isAvailable } = require('./llamaCppRerank');
+    stubFetch(async () => ({ ok: false, status: 503, async text() { return 'loading model'; } }));
+    await rerankLlamaCpp('q', ['a']);
+    assert.strictEqual(await isAvailable(), true);
+    restoreFetch();
+});
+
+test('LLAMACPP_RERANK_RETRY_MS=0 tries every time', async () => {
+    CONFIG = { ...ENABLED };
+    const { isAvailable } = require('./llamaCppRerank');
+    process.env.LLAMACPP_RERANK_RETRY_MS = '0';
+    let calls = 0;
+    stubFetch(async () => { calls += 1; throw new Error('fetch failed'); });
+    try {
+        await rerankLlamaCpp('q', ['a']);
+        await rerankLlamaCpp('q', ['a']);
+        assert.strictEqual(calls, 2);
+        assert.strictEqual(await isAvailable(), true);
+    } finally {
+        delete process.env.LLAMACPP_RERANK_RETRY_MS;
+        restoreFetch();
+    }
 });
