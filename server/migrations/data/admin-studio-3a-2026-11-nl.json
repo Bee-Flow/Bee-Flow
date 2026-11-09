@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "admin_security.sso_section_hint": "Laat mensen inloggen met een account dat ze al hebben.",
+    "agent_studio.agent_designer_sections": "Agentinstellingen",
+    "integ.email_account_group": "Afzenderaccount",
+    "integ.features_section_hint": "Zet platformfuncties aan of uit voor iedereen op deze server.",
+    "integ.services_section_hint": "Apps en clouddiensten waarmee integraties en kennisbanken verbinden.",
+    "integ.transcription_configuration": "Configuratie",
+    "integ.transcription_engines_nav": "Transcriptieproviders",
+    "integ.transcription_use_engine": "Deze provider gebruiken"
+  },
+  "sameAsEnglish": []
+}

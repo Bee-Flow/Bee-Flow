@@ -6368,53 +6368,12 @@
       "count": 1
     }
   },
-  "src/components/integrations/FeatureKillSwitches.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/integrations/IntegrationsAdminPanel.tsx": {
     "max-lines-per-function": {
       "count": 1
     }
   },
-  "src/components/integrations/IntegrationsAdminPanel/AzureSpeechCard.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/IntegrationsAdminPanel/EmailSection.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/integrations/IntegrationsAdminPanel/PyannoteCard.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/IntegrationsAdminPanel/SearchSection.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/IntegrationsAdminPanel/ServicesSection.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/IntegrationsAdminPanel/TranscriptionProviderPicker.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/IntegrationsAdminPanel/WhisperxCard.tsx": {
     "max-lines-per-function": {
       "count": 1
     }
