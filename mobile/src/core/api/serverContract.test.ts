@@ -204,11 +204,12 @@ describe('the server tree', () => {
     });
 });
 
-describe('cowork payloads (server/stores/coworkStore.js)', () => {
+describe('cowork payloads (server/stores/coworkRows.js)', () => {
     // Mirrored by CoworkSchedule in src/features/cowork/model/types.ts. The plan for
     // this store is explicitly additive ("Only add fields, rename nothing —
-    // mobile reads this payload"); this is that promise, enforced.
-    const source = read('stores/coworkStore.js');
+    // mobile reads this payload"); this is that promise, enforced. The row mappers
+    // live in coworkRows.js since the store was split for the mail trigger.
+    const source = read('stores/coworkRows.js');
 
     it('rowToSchedule still maps every field the phone renders', () => {
         expect(

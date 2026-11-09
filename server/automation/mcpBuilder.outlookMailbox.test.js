@@ -15,7 +15,9 @@ const mcpBuilder = require('./mcpBuilder');
 const { buildFullSystemPrompt } = require('./builderPrompt');
 const { OUTLOOK_TOOLS } = require('../integrations/outlookTools');
 
-const NAMES = OUTLOOK_TOOLS.map(t => t.function.name);
+// outlook_reply_in_thread is the one Outlook tool WITHOUT a mailbox on purpose: it only runs in a mail-triggered
+// agent run and always answers from the mailbox that mail arrived in (integrations/outlookDraftReply.js).
+const NAMES = OUTLOOK_TOOLS.map(t => t.function.name).filter(n => n !== 'outlook_reply_in_thread');
 
 test('builder_inspect_tool over MCP offers the optional mailbox on every Outlook tool', async () => {
     const automationStore = require('../stores/automationStore');
