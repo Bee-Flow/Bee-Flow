@@ -55,3 +55,39 @@ test('the github hook: a failing dispatch is the generic 500', async () => {
     const sig = 'sha256=' + crypto.createHmac('sha256', 'secret').update(JSON.stringify(body)).digest('hex');
     assertGeneric500(await api.call('POST', '/api/automation/events/github', { body, headers: { 'X-Hub-Signature-256': sig } }));
 });
+
+test('the github hook: a signature with non-ASCII characters of the right length is a 401, not a 500', async () => {
+    const crypto = require('crypto');
+    configStore.getConfig = async () => 'secret';
+    let dispatched = 0;
+    triggerBus.dispatchEvent = async () => { dispatched += 1; return []; };
+    const body = { zen: 'x' };
+    const good = 'sha256=' + crypto.createHmac('sha256', 'secret').update(JSON.stringify(body)).digest('hex');
+    // A header value arrives latin1-decoded: one such character is two UTF-8
+    // bytes, so the string length matches while the byte length does not.
+    const forged = good.slice(0, -1) + 'é';
+    const res = await api.call('POST', '/api/automation/events/github', { body, headers: { 'X-Hub-Signature-256': forged } });
+    assert.strictEqual(res.status, 401, res.text);
+    assert.strictEqual(dispatched, 0);
+});
+
+test('the msgraph hook: only a notification carrying the subscription\'s own clientState is dispatched', async () => {
+    const automationStore = require('../../stores/automationStore');
+    const realLookup = automationStore.getSubscriptionByExternalRef;
+    automationStore.getSubscriptionByExternalRef = async () => ({ id: 'sub1', userId: 'u1', eventType: 'mail.new', clientState: 'expected-state' });
+    const seen = [];
+    triggerBus.dispatchEvent = async (e) => { seen.push(e.payload.tag); return []; };
+    try {
+        const res = await api.call('POST', '/api/automation/events/msgraph', { body: { value: [
+            { subscriptionId: 's', clientState: 'expected-state', tag: 'match' },
+            { subscriptionId: 's', clientState: 'expected-staté', tag: 'same-length-other-bytes' },
+            { subscriptionId: 's', clientState: 'wrong', tag: 'wrong' },
+            { subscriptionId: 's', clientState: ['expected-state'], tag: 'not-text' },
+            { subscriptionId: 's', tag: 'absent' },
+        ] } });
+        assert.strictEqual(res.status, 202, res.text);
+        assert.deepStrictEqual(seen, ['match']);
+    } finally {
+        automationStore.getSubscriptionByExternalRef = realLookup;
+    }
+});

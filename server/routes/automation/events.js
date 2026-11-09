@@ -11,7 +11,7 @@
 // the HMAC that proves the delivery is genuine. The narrowing that belongs
 // here is the signature check and the rate limit, both below — not a shape.
 const express = require('express');
-const { checkWebhookSignature, rejectionMessage } = require('./webhookSignature');
+const { checkWebhookSignature, rejectionMessage, sameSignature } = require('./webhookSignature');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
@@ -321,7 +321,8 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
             const sub = n.subscriptionId
                 ? await automationStore.getSubscriptionByExternalRef('msgraph', n.subscriptionId).catch((e) => fallback('routes/automation/events:anon#5', e, null))
                 : null;
-            if (sub && sub.clientState && sub.clientState !== n.clientState) {
+            // Constant-time, and a clientState that is not text never matches.
+            if (sub && sub.clientState && !(typeof n.clientState === 'string' && sameSignature(n.clientState, sub.clientState))) {
                 log.warn(`[automation/events/msgraph] clientState mismatch for sub ${sub.id} — dropping`);
                 continue;
             }
@@ -391,8 +392,7 @@ router.post('/events/github', eventsLimiter, captureRawJson('256kb'), async (req
     if (!secret) throw new HttpError(503, 'github_webhooks_unconfigured', 'GitHub webhooks not configured');
     const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(JSON.stringify(req.body || {}), 'utf8');
     const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');
-    const ok = sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-    if (!ok) return res.status(401).json({ error: 'Bad signature' });
+    if (!sameSignature(sig, expected)) return res.status(401).json({ error: 'Bad signature' });
     await triggerBus.dispatchEvent({ provider: 'github', event, payload: req.body || {} });
     return res.status(202).end();
 });

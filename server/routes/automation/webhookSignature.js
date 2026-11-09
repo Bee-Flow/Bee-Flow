@@ -34,7 +34,12 @@ function hmacHeader(secret, message) {
  * @param {string} expected
  */
 function sameSignature(given, expected) {
-    return given.length === expected.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+    // Lengths are compared in BYTES: a header value arrives latin1-decoded, so
+    // a non-ASCII character keeps the string length and changes the byte
+    // length, and timingSafeEqual throws on buffers of unequal length.
+    const a = Buffer.from(given);
+    const b = Buffer.from(expected);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 /**
@@ -92,4 +97,4 @@ function isDigits(s, max) {
     return true;
 }
 
-module.exports = { checkWebhookSignature, rejectionMessage, hmacHeader, TIMESTAMP_SKEW_SECONDS };
+module.exports = { checkWebhookSignature, rejectionMessage, hmacHeader, sameSignature, TIMESTAMP_SKEW_SECONDS };
