@@ -19,6 +19,7 @@ import useComposerClaims from './useComposerClaims';
 import useFileIntake from './useFileIntake';
 import useKnowledgeBaseSelection from './useKnowledgeBaseSelection';
 import usePasteAttachments from './usePasteAttachments';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import useAppsCatalog from '@/hooks/useAppsCatalog';
 import useTranslation from '@/hooks/useTranslation';
 import { useComposerOrgSettings } from '@/api/queries/composerSettings';
@@ -253,14 +254,13 @@ const InputArea = ({
     };
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         // Enter sends on desktop (incl. narrow windows). On true touch
-        // devices Enter inserts a newline — send via the button.
-        if (e.key === 'Enter' && !e.shiftKey && !isTouchDevice) {
+        // devices Enter inserts a newline — send via the button. The Enter that
+        // confirms an IME candidate belongs to the IME and never sends.
+        if (e.key === 'Enter' && !e.shiftKey && !isTouchDevice && !isImeEnter(e)) {
             e.preventDefault();
             handleSend();
         }
     };
-
-
 
 
     // ── What this composer may OFFER ─────────────────────────────────────

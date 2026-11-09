@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import TestChatPanel from './TestChatPanel';
@@ -33,6 +33,17 @@ describe('TestChatPanel', () => {
         await userEvent.type(input, 'What is the return policy?{Enter}');
         expect(props.onSend).toHaveBeenCalledWith('What is the return policy?');
         expect(input.value).toBe('');
+    });
+
+    it('leaves the Enter that confirms an IME candidate to the IME', async () => {
+        const props = setup();
+        const input = screen.getByTestId('agent-test-chat-input') as HTMLTextAreaElement;
+        await userEvent.type(input, 'こんにち');
+        // Chrome/Firefox flag the keydown as composing; Safari only keeps keyCode 229.
+        fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+        fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 });
+        expect(props.onSend).not.toHaveBeenCalled();
+        expect(input.value).toBe('こんにち');
     });
 
     it('does not send an empty question', async () => {

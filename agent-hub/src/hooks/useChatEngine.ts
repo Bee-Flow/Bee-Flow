@@ -414,7 +414,7 @@ export default function useChatEngine({
             if (abortControllerRef.current === controller) abortControllerRef.current = null;
             // The stream is over (success, error or abort), so it no longer
             // needs to survive an unmount.
-            releaseStream(streamKey);
+            releaseStream(streamKey, controller);
             // Drop the flusher reference (guard against a newer concurrent stream
             // having replaced it) so stopGenerating can't act on a dead stream.
             turn.flusher.cancel();

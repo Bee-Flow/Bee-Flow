@@ -88,7 +88,9 @@ export function groupConversationsByDate(convs: SidebarConversation[], t: Transl
         const d = rawDate ? new Date(rawDate) : new Date(0);
 
         const msgStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        const diffDays = Math.floor((todayStart.getTime() - msgStart.getTime()) / (1000 * 60 * 60 * 24));
+        // Rounded, not floored: both ends are local midnights, and the day a
+        // clock goes forward is 23 hours long. Flooring 23/24 made yesterday "today".
+        const diffDays = Math.round((todayStart.getTime() - msgStart.getTime()) / (1000 * 60 * 60 * 24));
 
         if (diffDays <= 0) groups.today.push(c);
         else if (diffDays === 1) groups.yesterday.push(c);

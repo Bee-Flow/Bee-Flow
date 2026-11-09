@@ -151,7 +151,9 @@ export default function useFlowletAgentStream(): UseFlowletAgentStreamReturn {
                 return { draft: null, layerKey: finalKey, error: errMsg };
             }
         }
-        setState(s => ({ ...s, running: false }));
+        // A newer send() aborted this one and owns the state now: its
+        // `running` must not be switched off by the run it replaced.
+        if (abortRef.current === ac) setState(s => ({ ...s, running: false }));
         return { draft: finalDraft, layerKey: finalKey, error: errMsg };
     }, []);
 

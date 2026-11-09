@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseSaveError, generateMessageId } from './helpers';
+import { parseSaveError, generateMessageId, getAgentInitials } from './helpers';
 
 // parseSaveError only consumes res.status and res.text(); a minimal mock
 // keeps the test independent of the fetch Response implementation.
@@ -56,5 +56,18 @@ describe('generateMessageId', () => {
         } finally {
             Object.defineProperty(crypto, 'randomUUID', { value: original, configurable: true });
         }
+    });
+});
+
+describe('getAgentInitials', () => {
+    it('takes the first letter of the first two words', () => {
+        expect(getAgentInitials('Support Bot')).toBe('SB');
+        expect(getAgentInitials('researcher')).toBe('R');
+        expect(getAgentInitials(null)).toBe('?');
+    });
+
+    it('does not lose the second initial to a double or leading space', () => {
+        expect(getAgentInitials('Support  Bot')).toBe('SB');
+        expect(getAgentInitials(' Support Bot')).toBe('SB');
     });
 });

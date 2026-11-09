@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, waitFor, cleanup } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -523,5 +523,25 @@ describe('InputArea — send, stop, and the mic', () => {
             expect(send).not.toBeDisabled();
             expect(send.className).not.toContain('composer-send-quiet');
         });
+    });
+});
+
+describe('InputArea — Enter and the input method editor', () => {
+    it('does not send on the Enter that confirms an IME candidate, and does on the next one', async () => {
+        const user = userEvent.setup();
+        const onSendMessage = vi.fn();
+        render(<Harness onSendMessage={onSendMessage} />);
+        const box = await screen.findByRole('textbox');
+        await user.type(box, 'こんにち');
+
+        // Chrome/Firefox flag the keydown as composing; Safari only keeps keyCode 229.
+        fireEvent.keyDown(box, { key: 'Enter', isComposing: true });
+        fireEvent.keyDown(box, { key: 'Enter', keyCode: 229 });
+        expect(onSendMessage).not.toHaveBeenCalled();
+        expect(box).toHaveValue('こんにち');
+
+        await user.keyboard('{Enter}');
+        expect(onSendMessage).toHaveBeenCalledTimes(1);
+        expect(onSendMessage.mock.calls[0][0]).toBe('こんにち');
     });
 });

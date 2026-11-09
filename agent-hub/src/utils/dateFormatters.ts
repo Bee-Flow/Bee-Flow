@@ -66,19 +66,25 @@ export function formatTime(input: DateLike, opts: FormatTimeOptions = {}): strin
 export function formatDuration(ms: number | null | undefined): string {
     if (ms == null || Number.isNaN(ms)) return EM_DASH;
     if (ms < MS_PER_SECOND) return `${Math.round(ms)}ms`;
-    if (ms < MS_PER_MINUTE) return `${Math.round(ms / MS_PER_SECOND)}s`;
-    if (ms < MS_PER_HOUR) {
-        const m = Math.floor(ms / MS_PER_MINUTE);
-        const s = Math.round((ms % MS_PER_MINUTE) / MS_PER_SECOND);
+    // Round to the smallest unit shown FIRST, then split: rounding the
+    // remainder on its own carried into a unit that was already fixed
+    // ("60s", "59m 60s", "23h 60m").
+    const totalS = Math.round(ms / MS_PER_SECOND);
+    if (totalS < 60) return `${totalS}s`;
+    if (totalS < 3600) {
+        const m = Math.floor(totalS / 60);
+        const s = totalS % 60;
         return s ? `${m}m ${s}s` : `${m}m`;
     }
-    if (ms < MS_PER_DAY) {
-        const h = Math.floor(ms / MS_PER_HOUR);
-        const m = Math.round((ms % MS_PER_HOUR) / MS_PER_MINUTE);
+    const totalM = Math.round(ms / MS_PER_MINUTE);
+    if (totalM < 24 * 60) {
+        const h = Math.floor(totalM / 60);
+        const m = totalM % 60;
         return m ? `${h}h ${m}m` : `${h}h`;
     }
-    const d = Math.floor(ms / MS_PER_DAY);
-    const h = Math.round((ms % MS_PER_DAY) / MS_PER_HOUR);
+    const totalH = Math.round(ms / MS_PER_HOUR);
+    const d = Math.floor(totalH / 24);
+    const h = totalH % 24;
     return h ? `${d}d ${h}h` : `${d}d`;
 }
 
@@ -160,7 +166,12 @@ export function formatRelativeDate(input: DateLike, opts: FormatRelativeDateOpti
     try {
         const d = input instanceof Date ? input : new Date(input);
         if (Number.isNaN(d.getTime())) return String(input);
-        const diffDays = Math.floor((Date.now() - d.getTime()) / MS_PER_DAY);
+        // Calendar days, not 24-hour spans: 23:00 last night is yesterday at
+        // 08:00, and Monday morning is two days ago on Wednesday at 08:00.
+        // Rounded because a local day is 23 or 25 hours long across a DST change.
+        const now = new Date();
+        const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+        const diffDays = Math.round((midnight(now) - midnight(d)) / MS_PER_DAY);
         if (diffDays <= 0) {
             return todayShowsTime
                 ? d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })

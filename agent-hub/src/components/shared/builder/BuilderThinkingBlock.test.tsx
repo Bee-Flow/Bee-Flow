@@ -143,4 +143,13 @@ describe('BuilderThinkingBlock', () => {
         expect(screen.getByText(/Thought for 4\.2s/)).toBeTruthy();
         expect(container.textContent).not.toContain('Checking the HTTP response shape');
     });
+    it('carries a rounded-up second into the minute instead of showing "60s"', () => {
+        const took = (ms: number) => msg(REASONING, stub<Parameters<typeof msg>[1]>({ streaming: false, ended: 1000 + ms }));
+        const { rerender } = render(<BuilderThinkingBlock msg={took(119_600)} />);
+        expect(screen.getByText('Thought for 2m 0s')).toBeTruthy();
+        rerender(<BuilderThinkingBlock msg={took(59_600)} />);
+        expect(screen.getByText('Thought for 1m 0s')).toBeTruthy();
+        rerender(<BuilderThinkingBlock msg={took(4_200)} />);
+        expect(screen.getByText('Thought for 4.2s')).toBeTruthy();
+    });
 });
