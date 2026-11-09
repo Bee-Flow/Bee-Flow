@@ -52,7 +52,7 @@ const { resolveRunPolicy } = require('./runPolicy');
 const { runOrgFor, resolveEnteredTrigger, selectRunCopy, buildRunState, createRunVault, resolveRunIdentity } = require('./runSetup');
 const { buildRunContext, recordResumeBoundary, guardTriggerPayload } = require('./runContext');
 const { harnessFor } = require('./testHarness');
-const { applyCallerOnly, callerOnlyUserId, refusesMissingStarter } = require('./callerConnections');
+const { applyCallerOnly, callerOnlyUserId, refusesMissingStarter, failRunBeforeSteps } = require('./callerConnections');
 const { blockDefinitionLoader, stepProvidersLoader } = require('./callerLookups');
 const heartbeat = require('./runHeartbeat');
 const { disabledPassThroughBranch, makeStepDispatcher } = require('./stepDispatch');
@@ -262,38 +262,55 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     const touchRunMarker = heartbeat.makeRunMarkerToucher(RUN_DEPS, { ownsMarker, automation });
     const heartbeatTimer = heartbeat.startHeartbeat(RUN_DEPS, { effectiveMode, emitLifecycle, run, touchRunMarker });
 
-    const runState = await buildRunState(RUN_DEPS, { enteredTrigger, triggerKind, triggerPayload, triggerHeaders, schedule, startedAt, replayState, automation, loopVars });
-    const tokenVault = await createRunVault(RUN_DEPS, { parentRunId, run, runOrgId, automation, effectiveMode });
-    const identity = await resolveRunIdentity(RUN_DEPS, automation);
-    const ctx = buildRunContext({
-        automation, runOrgId, isResume, session, run, tokenVault, runPolicy, stepRecord,
-        effectiveMode, onlyStepId, fromStepId, emitLifecycle, enteredTrigger, identity, profile,
-    });
+    // Everything from here to the DAG race runs with the heartbeat ticking and
+    // (for a live run) the marker held. An exception in this stretch used to
+    // leave both behind: the heartbeat kept the marker fresh, so the reaper
+    // never freed the automation and every later trigger was skipped as
+    // "already running" until a restart. Fail the run the way the other
+    // before-step-1 refusals do, then let the caller see the error.
+    let runState, tokenVault, ctx;
+    try {
+        runState = await buildRunState(RUN_DEPS, { enteredTrigger, triggerKind, triggerPayload, triggerHeaders, schedule, startedAt, replayState, automation, loopVars });
+        tokenVault = await createRunVault(RUN_DEPS, { parentRunId, run, runOrgId, automation, effectiveMode });
+        const identity = await resolveRunIdentity(RUN_DEPS, automation);
+        ctx = buildRunContext({
+            automation, runOrgId, isResume, session, run, tokenVault, runPolicy, stepRecord,
+            effectiveMode, onlyStepId, fromStepId, emitLifecycle, enteredTrigger, identity, profile,
+        });
 
-    // runPolicy.connections = 'caller': the starter's own connections, or no run.
-    const callerGate = await applyCallerOnly(RUN_DEPS, {
-        callerUserId, missingStarter, automation, runOrgId, effectiveMode, locked: !!lockedConnectionsMode,
-        failCtx: { run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle },
-    });
-    if (callerGate.failedRow) return callerGate.failedRow;
-    if (callerGate.identity) {
-        ctx.callerOnly = callerGate.identity;
-        // The owner's session no longer describes this run's connections.
-        const cs = callerGate.identity.session;
-        ctx.nextcloudUrl = cs?.connectorNcBaseUrl || cs?.nextcloudUrl || null;
-    } else {
-        ctx.callerOnly = null;
+        // runPolicy.connections = 'caller': the starter's own connections, or no run.
+        const callerGate = await applyCallerOnly(RUN_DEPS, {
+            callerUserId, missingStarter, automation, runOrgId, effectiveMode, locked: !!lockedConnectionsMode,
+            failCtx: { run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle },
+        });
+        if (callerGate.failedRow) return callerGate.failedRow;
+        if (callerGate.identity) {
+            ctx.callerOnly = callerGate.identity;
+            // The owner's session no longer describes this run's connections.
+            const cs = callerGate.identity.session;
+            ctx.nextcloudUrl = cs?.connectorNcBaseUrl || cs?.nextcloudUrl || null;
+        } else {
+            ctx.callerOnly = null;
+        }
+        ctx.startedByUserId = startedByUserId || null;
+        // The step a resumed leg continues from (null on a first leg): a form page
+        // due right after an approval waits longer, and its submitter is told.
+        ctx.resumedFromStepId = skipUntilStepId || null;
+        // Test harness (golden replay, form scenario): dry runs only, null otherwise.
+        ctx.testHarness = harnessFor(effectiveMode, harness);
+
+        await recordResumeBoundary(RUN_DEPS, { skipUntilStepId, replayState, effectiveMode, automation, run, runState });
+        const shield = await guardTriggerPayload(RUN_DEPS, { triggerPayload, triggerKind, ctx, runState, effectiveMode, run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle });
+        if (shield.blocked) return shield.row;
+    } catch (e) {
+        const error = /** @type {Error & { errorClass?: string }} */ (e);
+        log.error(`[AutomationRunner] run ${run.id} of automation ${automation.id} failed during setup: ${error.message}`);
+        await failRunBeforeSteps(RUN_DEPS, {
+            error: { message: error.message || String(e), errorClass: error.errorClass || 'run_setup_failed' },
+            run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle,
+        }).catch((err) => log.warn(`[AutomationRunner] could not clean up run ${run.id} after a setup failure: ${err.message}`));
+        throw e;
     }
-    ctx.startedByUserId = startedByUserId || null;
-    // The step a resumed leg continues from (null on a first leg): a form page
-    // due right after an approval waits longer, and its submitter is told.
-    ctx.resumedFromStepId = skipUntilStepId || null;
-    // Test harness (golden replay, form scenario): dry runs only, null otherwise.
-    ctx.testHarness = harnessFor(effectiveMode, harness);
-
-    await recordResumeBoundary(RUN_DEPS, { skipUntilStepId, replayState, effectiveMode, automation, run, runState });
-    const shield = await guardTriggerPayload(RUN_DEPS, { triggerPayload, triggerKind, ctx, runState, effectiveMode, run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle });
-    if (shield.blocked) return shield.row;
 
     const dispatchStep = makeStepDispatcher(RUN_DEPS, { run, cancelSignal, runPolicy });
     const outcome = await raceRunDag(RUN_DEPS, {
