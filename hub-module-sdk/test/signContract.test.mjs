@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 
 import { pack } from '../scripts/pack.mjs';
-import { signBuffer, kidForPem, signJws, sha256hex } from '../scripts/sign.mjs';
+import { signBuffer, kidForPem, signJws, sha256hex, parseSignArgs } from '../scripts/sign.mjs';
 
 const require = createRequire(import.meta.url);
 const JSZip = require('jszip');
@@ -180,4 +180,21 @@ test('signBuffer refuses an unpacked archive', async () => {
     zip.file('manifest.json', JSON.stringify(MANIFEST));
     const buf = await zip.generateAsync({ type: 'nodebuffer' });
     await assert.rejects(() => signBuffer(buf, privateKey), /integrity\.json missing/);
+});
+
+test('the command line keeps both paths when no option is given', () => {
+    // `--pub` absent used to drop argument 0 (the slot after indexOf's -1), so
+    // the documented `sign.mjs <file.bfmod> <key>` printed the usage and exited.
+    assert.deepEqual(parseSignArgs(['m.bfmod', 'private']), {
+        bfmodPath: 'm.bfmod', keyPath: 'private', pubPath: null, licenseClass: null,
+    });
+    assert.deepEqual(parseSignArgs(['m.bfmod', 'private', '--license-class', 'free']), {
+        bfmodPath: 'm.bfmod', keyPath: 'private', pubPath: null, licenseClass: 'free',
+    });
+    assert.deepEqual(parseSignArgs(['--pub', 'public', 'm.bfmod', 'private']), {
+        bfmodPath: 'm.bfmod', keyPath: 'private', pubPath: 'public', licenseClass: null,
+    });
+    assert.deepEqual(parseSignArgs(['m.bfmod', '--license-class', 'paid', 'private', '--pub', 'public']), {
+        bfmodPath: 'm.bfmod', keyPath: 'private', pubPath: 'public', licenseClass: 'paid',
+    });
 });

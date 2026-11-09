@@ -1,5 +1,5 @@
 import { Lightbulb, Loader2, Sparkles } from 'lucide-react';
-import { useMemo, useRef, useState, type SetStateAction, type Dispatch, type MouseEventHandler } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type SetStateAction, type Dispatch, type MouseEventHandler } from 'react';
 import { cardClass, rowInputClass } from './formPrimitives';
 import {
     FilesInsideNote, PRIMARY_BUTTON_CLASS, SuggestProblem, UnmatchedLine, useRuleLine,
@@ -45,13 +45,22 @@ function useRouteSuggestion({ fields, itemVar, sampleRows, unit, perItem: perIte
         if (answers) setAnswers('');
     };
 
+    // The sentence as it reads NOW, for an answer that arrives later: the box
+    // stays editable while the model is asked.
+    const textRef = useRef(text);
+    useLayoutEffect(() => { textRef.current = text; });
+
     const askAi = async () => {
+        const asked = text;
         setAsking(true);
         setAskError('');
         try {
-            setAi(await askModelForRules(api, { description: text, fields, itemVar, perItem }) as Suggestion);
+            const answer = await askModelForRules(api, { description: asked, fields, itemVar, perItem }) as Suggestion;
+            // An answer to a sentence that has since been retyped is the stale
+            // answer `retype` clears: it must not land under the new one.
+            if (textRef.current === asked) setAi(answer);
         } catch (e) {
-            setAskError(askFailureMessage(e as { status?: number }));
+            if (textRef.current === asked) setAskError(askFailureMessage(e as { status?: number }));
         } finally {
             setAsking(false);
         }

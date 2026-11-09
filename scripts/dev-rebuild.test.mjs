@@ -139,3 +139,14 @@ test('both services in parallel: each is verified against its own ref', { skip }
     assert.match(res.stdout, /verified: server is running ghcr\.io\/bee-flow\/server:dev/);
     assert.match(res.stdout, /verified: agent-hub is running ghcr\.io\/bee-flow\/agent-hub:dev/);
 });
+
+test('a file with a space in its name does not end the run before anything is built', { skip }, (t) => {
+    // The change detection hashed its file list through a plain xargs, which
+    // split "release notes.md" into two names sha256sum could not open: exit
+    // 123, pipefail, and the script died right after "Checking which images
+    // changed..." with no message.
+    const dir = repo(t, { 'server/release notes.md': 'x\n' });
+    const res = run(dir, 'scripts/dev-rebuild.sh', ['server']);
+    assert.strictEqual(res.status, 0, res.stderr + res.stdout);
+    assert.strictEqual(callsOf(res.calls, 'build').length, 1, 'the server image is built');
+});

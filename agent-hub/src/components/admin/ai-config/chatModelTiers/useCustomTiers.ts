@@ -66,12 +66,15 @@ export default function useCustomTiers(confirm: ConfirmFn): CustomTiersState {
     };
 
     const renameCustomTier = (currentId: string, newLabel: string) => {
-        const newId = slugifyTierLabel(newLabel);
+        const slug = slugifyTierLabel(newLabel);
+        // The id follows the name, but never onto another tier's id: every edit
+        // finds its tier by id, so two tiers sharing one would be edited as one.
+        const newId = slug && !customTiers.some(t => t.id === slug && t.id !== currentId) ? slug : currentId;
         setCustomTiers(prev => prev.map(t => {
             if (t.id !== currentId) return t;
-            return { ...t, label: newLabel, id: newId || currentId };
+            return { ...t, label: newLabel, id: newId };
         }));
-        if (newId && newId !== currentId) setExpandedCustomId(newId);
+        if (newId !== currentId) setExpandedCustomId(newId);
     };
 
     const removeCustomTier = async (id: string) => {

@@ -81,7 +81,9 @@ export function FeatureCardGrid({
     }, [grouped, options, t]);
 
     const setRestricted = (next: boolean) => {
-        if (next && !restricted) onChange(options.map(o => o.id));
+        // Restricting starts from what the plan included a moment ago. MCP servers
+        // are opt-in and were not part of that, so they stay off until picked.
+        if (next && !restricted) onChange(options.filter(o => !o.isMcp).map(o => o.id));
         else if (!next && restricted) onChange(null);
     };
     const toggleOne = (id: string): unknown => {

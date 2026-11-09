@@ -176,3 +176,31 @@ test('a placeholder is the category id in lower case plus an index (the document
     assert.strictEqual(tokenizedText, 'IBAN [internationalbankingaccountnumber_1], bel [phonenumber_1].');
     assert.deepStrictEqual(Object.keys(tokenMap).sort(), ['[internationalbankingaccountnumber_1]', '[phonenumber_1]']);
 });
+
+test('a span without an offset is replaced by its text without moving the spans that have one', () => {
+    // The offsetless span is replaced by text, which changes the length of the
+    // string. When that ran before a splice, the splice cut 20 characters too
+    // far to the right and the e-mail address stayed in the text.
+    const text = 'Bel Maximiliaan van der Westhuizen of mail naar femke.mulder@voorbeeld.example vandaag.';
+    const email = span(text, 'femke.mulder@voorbeeld.example', 'Email');
+    const person = { text: 'Maximiliaan van der Westhuizen', category: 'Person', label: 'Person Name', confidence: 0.9 };
+    for (const entities of [[person, email], [email, person]]) {
+        const { tokenizedText, tokenMap } = tokenizeText(text, entities);
+        assert.strictEqual(tokenizedText, 'Bel [person_1] of mail naar [email_1] vandaag.');
+        assert.deepStrictEqual(tokenMap, {
+            '[person_1]': 'Maximiliaan van der Westhuizen',
+            '[email_1]': 'femke.mulder@voorbeeld.example',
+        });
+    }
+});
+
+test('a span whose offset lies outside the text does not disturb the order of the others', () => {
+    const text = 'Jo belt 0612345678 en mailt jo@voorbeeld.example.';
+    const stale = { text: 'Jo', category: 'Person', label: 'Person Name', offset: 400, length: 2, confidence: 0.9 };
+    const { tokenizedText } = tokenizeText(text, [
+        span(text, '0612345678', 'PhoneNumber'), stale, span(text, 'jo@voorbeeld.example', 'Email'),
+    ]);
+    assert.ok(!tokenizedText.includes('0612345678'), tokenizedText);
+    assert.ok(!tokenizedText.includes('jo@voorbeeld.example'), tokenizedText);
+    assert.ok(tokenizedText.includes('[phonenumber_1]') && tokenizedText.includes('[email_1]'), tokenizedText);
+});

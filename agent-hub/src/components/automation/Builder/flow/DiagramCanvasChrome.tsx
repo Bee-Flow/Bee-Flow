@@ -8,6 +8,8 @@ interface CanvasContextMenuProps {
     menu: NodeContextMenuState;
     definition: DiagramDefinition;
     inlineExpandedIds: Set<string>;
+    /** Entry nodes of expanded containers (a flowlet's layer_input, a loop's "Each item"): triggers of their own graph. */
+    inlineTriggerIds?: Set<StepId> | null;
     onDuplicateNode: (stepId: StepId) => void;
     onDetachNode: (stepId: StepId) => void;
     onDeleteNode: (stepId: StepId) => void;
@@ -20,19 +22,22 @@ interface CanvasContextMenuProps {
 
 /** The right-click menu of a step, with only the entries that step allows. */
 export function CanvasContextMenu({
-    menu, definition, inlineExpandedIds, onDuplicateNode, onDetachNode, onDeleteNode, onExecuteStep,
+    menu, definition, inlineExpandedIds, inlineTriggerIds = null, onDuplicateNode, onDetachNode, onDeleteNode, onExecuteStep,
     runInFlight, onToggleInline, onAskAssistant, onClose,
 }: CanvasContextMenuProps) {
     // Which flowlet the right-clicked node calls, if any — drives the menu's
     // Expand/Collapse entry.
     const layerKey = (definition?.steps || []).find(s => s.id === menu.stepId && s.type === 'call_layer')?.layerKey || null;
+    // The flat graph lists an expanded container's entry node among its steps,
+    // but it is that container's trigger: never duplicated, detached or deleted.
+    const isInlineTrigger = !!inlineTriggerIds?.has(menu.stepId);
     return (
         <NodeContextMenu
             x={menu.x}
             y={menu.y}
-            canDelete={canDeleteNode(definition, menu.stepId)}
-            canDuplicate={canDuplicateNode(definition, menu.stepId)}
-            canDetach={canDetachNode(definition, menu.stepId)}
+            canDelete={!isInlineTrigger && canDeleteNode(definition, menu.stepId)}
+            canDuplicate={!isInlineTrigger && canDuplicateNode(definition, menu.stepId)}
+            canDetach={!isInlineTrigger && canDetachNode(definition, menu.stepId)}
             onDuplicate={() => onDuplicateNode(menu.stepId)}
             onDetach={() => onDetachNode(menu.stepId)}
             onDelete={() => onDeleteNode(menu.stepId)}

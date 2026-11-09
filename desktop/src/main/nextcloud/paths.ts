@@ -96,8 +96,15 @@ export function folderFor(
  * anyone who syncs a subfolder.
  */
 export function remotePathFor(folder: NextcloudSyncFolder, localPath: string): string {
-    const root = toPosix(folder.localPath).replace(/\/+$/, '');
-    const full = toPosix(localPath).replace(/\/+$/, '');
+    // Resolved the way isInside compared them. Cut by length from the raw
+    // text, `~/x/../Nextcloud/a.txt` (inside `~/Nextcloud` once resolved) lost
+    // the wrong characters and named a file that is not on the server.
+    const resolved = (value: string): string => {
+        const posix = toPosix(value);
+        return (posix ? path.posix.normalize(posix) : posix).replace(/\/+$/, '');
+    };
+    const root = resolved(folder.localPath);
+    const full = resolved(localPath);
     const relative = full.length > root.length ? full.slice(root.length) : '';
     return normaliseRemotePath(`${folder.targetPath === '/' ? '' : folder.targetPath}${relative}`);
 }

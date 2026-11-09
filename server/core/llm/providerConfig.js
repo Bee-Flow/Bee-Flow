@@ -73,7 +73,7 @@ async function getAIConfig() {
     try {
         const ai = await configStore.getConfig('ai') || {};
         const mistralSecret = await configStore.getSecret('mistral_api_key');
-
+        const _isMistral = (p) => (p.type ? p.type === 'mistral' : /(^|\/\/|\.)mistral\.ai(:|\/|$)/i.test(p.url || DEFAULT_CONFIG.url)); // the saved secret is Mistral's key: it goes with a Mistral url only (callers send `apiKey` to `url`)
         // If we have providers, return the default one
         if (ai.providers && ai.providers.length > 0 && ai.defaultProviderId) {
             const defaultProvider = ai.providers.find(p => p.id === ai.defaultProviderId);
@@ -84,7 +84,7 @@ async function getAIConfig() {
                     // vendor (Mistral OCR) can tell whether `apiKey` is that vendor's.
                     providerType: defaultProvider.type || null,
                     model: defaultProvider.model || DEFAULT_CONFIG.model,
-                    apiKey: mistralSecret || defaultProvider.apiKey || DEFAULT_CONFIG.apiKey,
+                    apiKey: (_isMistral(defaultProvider) ? mistralSecret : null) || defaultProvider.apiKey || DEFAULT_CONFIG.apiKey,
                     // The Mistral secret on its own, whatever the default provider is
                     // (Mistral OCR may use it next to a Claude/OpenAI default).
                     mistralApiKey: mistralSecret || null,

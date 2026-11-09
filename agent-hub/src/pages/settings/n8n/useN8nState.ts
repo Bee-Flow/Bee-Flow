@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import {
     filterConfigured, filterDiscovered, withInputs, workflowFromDiscovered,
@@ -11,7 +11,12 @@ import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
 /** The status line's message, and clearing it after a while. */
 export function useFlashMessage() {
     const [message, setMessage] = useState<FlashMessage | null>(null);
-    const clearAfter = (ms: number) => { setTimeout(() => setMessage(null), ms); };
+    // One pending clear at a time: the timer of an earlier message must not wipe a later one.
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const clearAfter = (ms: number) => {
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => { timer.current = null; setMessage(null); }, ms);
+    };
     return { message, setMessage, clearAfter };
 }
 export type Flash = ReturnType<typeof useFlashMessage>;
@@ -204,7 +209,8 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
             const res = await jsonPut(`${API_BASE}/ai/n8n/config`, apiKey ? { n8nUrl, apiKey } : { n8nUrl });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Connection saved' });
-                setHasApiKey(true);
+                // The server stores a key only when one was sent: saving the URL alone leaves it as it was.
+                setHasApiKey(!!apiKey || hasApiKey);
                 setConfigured(!!(n8nUrl && (apiKey || hasApiKey)));
                 setApiKey('');
                 setTestResult(null); // invalidate previous test

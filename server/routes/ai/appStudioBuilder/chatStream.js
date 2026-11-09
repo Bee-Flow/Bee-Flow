@@ -280,7 +280,10 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         // CURRENT round to the max_tokens cap — on a self-hosted box, on the
         // model's only slot. streamWithRetry forwards the signal to the adapter.
         const clientAbort = new AbortController();
-        req.on('close', () => {
+        // The RESPONSE's close: a POST's request stream closes once its body
+        // is read, ahead of this handler, so req 'close' says nothing here.
+        res.on('close', () => {
+            if (res.writableEnded) return;
             turn.clientGone = true;
             try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });

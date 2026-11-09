@@ -47,15 +47,17 @@ function chunkText(text) {
     for (const section of rawSections) {
         const blockMatch = section.trim().match(/^__ATOMIC_BLOCK_(\d+)__$/);
         if (blockMatch) {
-            // This section is an atomic block — restore original content
-            sections.push(blocks[parseInt(blockMatch[1], 10)]);
+            // This section is an atomic block — restore original content.
+            // A placeholder-shaped string that was in the document itself has
+            // no block behind it: keep it as the text it is.
+            sections.push(blocks[parseInt(blockMatch[1], 10)] ?? section);
         } else if (/__ATOMIC_BLOCK_\d+__/.test(section)) {
             // Section contains a mix of text and placeholder(s) — split them apart
             const parts = section.split(/(__ATOMIC_BLOCK_\d+__)/);
             for (const part of parts) {
                 const innerMatch = part.match(/^__ATOMIC_BLOCK_(\d+)__$/);
                 if (innerMatch) {
-                    sections.push(blocks[parseInt(innerMatch[1], 10)]);
+                    sections.push(blocks[parseInt(innerMatch[1], 10)] ?? part);
                 } else if (part.trim()) {
                     sections.push(part);
                 }
@@ -93,31 +95,22 @@ function chunkText(text) {
     }
 
     /**
-     * Build the heading breadcrumb prefix from the current stack.
-     * Returns the chain of active headings, e.g.:
-     *   "# 3. Arbeidsvoorwaarden\n## 3.2 Salarisschalen"
-     */
-    function getHeadingBreadcrumb() {
-        return headingStack.filter(h => h).join('\n');
-    }
-
-    /**
      * Prepend heading breadcrumb to text for structural context.
      * - If text has no headings: prepend full breadcrumb
      * - If text starts with heading level N: prepend only parent levels (1..N-1)
      */
-    function prependBreadcrumb(text) {
+    function prependBreadcrumb(text, stack = headingStack) {
         if (!text) return text;
         const firstHeadingMatch = text.match(/^(#{1,6})\s+/m);
         if (firstHeadingMatch) {
             // Text already has a heading — prepend only parent levels above it
             const textLevel = firstHeadingMatch[1].length - 1; // 0-indexed
-            const parents = headingStack.slice(0, textLevel).filter(h => h);
+            const parents = stack.slice(0, textLevel).filter(h => h);
             if (parents.length === 0) return text;
             return `${parents.join('\n')}\n\n${text}`;
         }
         // No heading in text — prepend full breadcrumb
-        const breadcrumb = getHeadingBreadcrumb();
+        const breadcrumb = stack.filter(h => h).join('\n');
         if (!breadcrumb) return text;
         return `${breadcrumb}\n\n${text}`;
     }
@@ -128,6 +121,9 @@ function chunkText(text) {
                               /^```[\s\S]*```$/.test(section) ||
                               /^(\|[^\n]+\n){2,}/.test(section);
 
+        // The hierarchy as it stands AHEAD of this section: the buffered text that
+        // gets flushed below sits under those headings, not under this section's.
+        const stackBefore = headingStack.slice();
         // Track ALL headings in this section and update the hierarchy stack
         const headingMatches = section.match(/^#{1,6}\s+.+$/gm);
         if (headingMatches) {
@@ -207,7 +203,7 @@ function chunkText(text) {
             // Flush current chunk
             let ct = currentParts.join('\n\n').trim();
             if (ct) {
-                ct = prependBreadcrumb(ct);
+                ct = prependBreadcrumb(ct, stackBefore);
                 chunks.push({ chunk_id: chunkId, text: ct, token_count: estimateTokens(ct) });
                 chunkId++;
             }

@@ -110,15 +110,23 @@ export function normaliseServerUrl(raw: string): NormalisedUrl {
     // /app-gateway keeps its path, one reached at /beeflow/app/chat loses the
     // routed part and keeps /beeflow.
     let pathname = parsed.pathname.replace(/\/+$/, '');
+    // Every occurrence is looked at, and the earliest whole segment wins.
+    // Looking only at the first occurrence of each prefix gave up on `/app`
+    // in `/app-gateway/app/chat` (its first hit is inside `app-gateway`) and
+    // then cut at `/chat`, saving `/app-gateway/app` as the server.
+    let cut = -1;
     for (const prefix of SPA_PREFIXES) {
-        const at = pathname.indexOf(prefix);
-        if (at === -1) continue;
-        const nextChar = pathname[at + prefix.length];
-        if (nextChar === undefined || nextChar === '/') {
-            pathname = pathname.slice(0, at);
-            break;
+        let at = pathname.indexOf(prefix);
+        while (at !== -1) {
+            const nextChar = pathname[at + prefix.length];
+            if (nextChar === undefined || nextChar === '/') {
+                if (cut === -1 || at < cut) cut = at;
+                break;
+            }
+            at = pathname.indexOf(prefix, at + 1);
         }
     }
+    if (cut !== -1) pathname = pathname.slice(0, cut);
     pathname = pathname.replace(/\/+$/, '');
 
     const insecure = parsed.protocol === 'http:' && hostKind(parsed.hostname) !== 'loopback';

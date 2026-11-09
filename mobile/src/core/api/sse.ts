@@ -86,6 +86,8 @@ export async function* streamSse(path: string, opts: SseOptions = {}): AsyncGene
 
     const controller = new AbortController();
     const abortFromCaller = () => controller.abort();
+    // An already-aborted signal fires no event; see attempt() in client.ts.
+    if (signal?.aborted) controller.abort();
     signal?.addEventListener('abort', abortFromCaller);
 
     // Reset on every chunk; fires only if the stream goes quiet entirely.

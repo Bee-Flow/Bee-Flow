@@ -134,16 +134,32 @@ export function OrgsView() {
         }
     };
 
+    // Drawn in both views: the editor's own "Remove subscription" asks through it too.
+    const removeConfirm = (
+        <ConfirmModal
+            open={!!removing}
+            onClose={() => setRemoving(null)}
+            onConfirm={handleRemove}
+            busy={busy}
+            title={t('admin_subscriptions.orgs_remove_title', "Remove {name}'s subscription?", { name: removing?.org_name || '' })}
+            message={t('admin_subscriptions.orgs_remove_message', 'The organization will lose all plan-assigned limits and features. This does not delete the org itself.')}
+            confirmLabel={t('admin_subscriptions.orgs_remove_confirm', 'Remove subscription')}
+        />
+    );
+
     if (editing) {
         return (
-            <OrgEditor
-                orgSub={editing}
-                plans={plans}
-                onBack={() => setEditing(null)}
-                onSave={(form: unknown) => handleSave(editing.organization_id, form)}
-                onRemove={() => setRemoving(editing)}
-                onStartTrial={(planId: string) => handleStartTrial(editing.organization_id, planId)}
-            />
+            <>
+                <OrgEditor
+                    orgSub={editing}
+                    plans={plans}
+                    onBack={() => setEditing(null)}
+                    onSave={(form: unknown) => handleSave(editing.organization_id, form)}
+                    onRemove={() => setRemoving(editing)}
+                    onStartTrial={(planId: string) => handleStartTrial(editing.organization_id, planId)}
+                />
+                {removeConfirm}
+            </>
         );
     }
 
@@ -219,15 +235,7 @@ export function OrgsView() {
                 />
             )}
 
-            <ConfirmModal
-                open={!!removing}
-                onClose={() => setRemoving(null)}
-                onConfirm={handleRemove}
-                busy={busy}
-                title={t('admin_subscriptions.orgs_remove_title', "Remove {name}'s subscription?", { name: removing?.org_name || '' })}
-                message={t('admin_subscriptions.orgs_remove_message', 'The organization will lose all plan-assigned limits and features. This does not delete the org itself.')}
-                confirmLabel={t('admin_subscriptions.orgs_remove_confirm', 'Remove subscription')}
-            />
+            {removeConfirm}
         </div>
     );
 }

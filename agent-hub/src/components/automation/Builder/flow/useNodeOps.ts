@@ -2,6 +2,7 @@ import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { prefixAddedStep, parseInlineId } from './inlineFlowlets';
 import { seedPositions } from './layout';
+import { withFreshNestedIds } from './freshNestedIds';
 import { applyDeleteNodes, applyDuplicateNode, applyDetachNode, applyPatchStep } from './nodeOps';
 import type { FlowDefinition } from './types';
 import type { RealOutputMap } from '@/hooks/useUpstreamVariables';
@@ -61,18 +62,28 @@ export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps
     // definition it emits already carries the parked position, so this must NOT
     // go through a re-layout; seedPositions leaves set positions alone.
     const onDetachNode = useCallback((stepId: StepId) => {
-        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current!;
+        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit, inlineTriggerIds: protectedIds } = nodeOpsRef.current!;
         if (!ed || blocked || !stepId) return;
+        // An expanded container's entry node (a flowlet's layer_input, a loop's
+        // "Each item") is a trigger: detaching it would strand the whole sub-flow.
+        if (protectedIds?.has?.(stepId)) return;
         const next = applyDetachNode(def as FlowDefinition, stepId);
         if (next === def) return; // not a step, or already loose
         emit?.(seedPositions(next));
     }, []);
 
     const onDuplicateNode = useCallback((stepId: StepId) => {
-        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current!;
+        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit, inlineTriggerIds: protectedIds } = nodeOpsRef.current!;
         if (!ed || blocked || !stepId) return;
-        const { definition: next, newStepId } = applyDuplicateNode(def as FlowDefinition, stepId);
+        // Triggers aren't duplicable, and an expanded container's entry node
+        // is one: its copy would be saved as a second trigger (or a "loop_item"
+        // step) inside the flowlet or the loop body.
+        if (protectedIds?.has?.(stepId)) return;
+        const { definition: duplicated, newStepId } = applyDuplicateNode(def as FlowDefinition, stepId);
         if (!newStepId) return; // triggers aren't duplicable
+        // A copied loop (or parallel) carries copies of its nested steps: they
+        // need ids of their own, or the validator refuses the collision.
+        const next = withFreshNestedIds(duplicated, newStepId);
         // The copy of a step inside an expanded flowlet belongs to that
         // flowlet — without the prefix it would land in the flow around it.
         const { prefix } = parseInlineId(stepId);

@@ -239,9 +239,9 @@ async function appendEvent({ subjectKey, organizationId = null, code, category, 
     return rows && rows[0] ? rows[0] : null;
 }
 
-// Cursor pattern copied from supportStore._encodeAuditCursor/_decodeAuditCursor:
-// opaque base64 of { t: created_at ISO, id: uuid }, keyset on
-// (created_at, id) < (t, id) with ORDER BY created_at DESC, id DESC.
+// Cursor as in supportStore/audit.js: opaque base64 of { t: created_at ISO, id: uuid }, newest first.
+// The keyset compares with the cursor row's own created_at, read back by id: `t` is a JS Date (milliseconds), the
+// column has microseconds, and the rounded value skips rows sharing that millisecond. `t` stands in when the row is gone.
 function _decodeCursor(cursor) {
     if (!cursor) return null;
     try {
@@ -269,7 +269,7 @@ async function listEvents({ organizationId = null, subjectKey = null, code = nul
     const cur = _decodeCursor(cursor);
     if (cur) {
         vals.push(cur.t); vals.push(cur.id);
-        where.push(`(created_at, id) < ($${vals.length - 1}::timestamptz, $${vals.length}::uuid)`);
+        where.push(`(created_at, id) < (COALESCE((SELECT c.created_at FROM org_health_events c WHERE c.id = $${vals.length}::uuid), $${vals.length - 1}::timestamptz), $${vals.length}::uuid)`);
     }
     const lim = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
     vals.push(lim + 1);

@@ -237,7 +237,12 @@ async function listRows(getAll, documentId, { limit = 30, cursor = null } = {}) 
     const at = decodeCursor(cursor);
     if (at) {
         params.push(at.createdAt, at.id);
-        after = 'AND (created_at, id) < ($3::timestamptz, $4)';
+        // The cursor row's own created_at is read back: the cursor carries
+        // milliseconds and the column microseconds, and comparing with the
+        // rounded value skips the rows that share its millisecond. The
+        // carried value only stands in when that row is gone.
+        after = `AND (created_at, id) < (COALESCE((SELECT c.created_at FROM studio_document_versions c
+                    WHERE c.id = $4 AND c.document_id = $1), $3::timestamptz), $4)`;
     }
     const rows = await getAll(
         `SELECT ${META_COLUMNS} FROM studio_document_versions

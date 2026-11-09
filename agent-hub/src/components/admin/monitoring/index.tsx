@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { TranslateParams, useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { Activity, RefreshCw, ChevronRight, Calendar } from 'lucide-react';
 import { rowCost, type AgentUsage, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary, type UserUsage } from './shared';
@@ -35,6 +35,19 @@ function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | n
     };
 }
 
+/**
+ * Marks the start of a read and returns "has a newer read started since?".
+ * Only the newest read may land: a slow answer for the range that was left
+ * must not overwrite the figures of the range that is shown now.
+ */
+function useLatestOnly() {
+    const latest = useRef(0);
+    return useCallback(() => {
+        const id = ++latest.current;
+        return () => latest.current !== id;
+    }, []);
+}
+
 export default function MonitoringPanel({ activeSection = '', onNavigate }: MonitoringPanelProps) {
     const { t } = useTranslation();
     const VALID_IDS = PAGES.map(p => p.id);
@@ -63,7 +76,9 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
     const [filterModels, setFilterModels] = useState<string[]>([]);
     const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
     const [feedbackSummary, setFeedbackSummary] = useState({ total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 });
+    const beginFetch = useLatestOnly();
     const fetchData = useCallback(async () => {
+        const superseded = beginFetch();
         setLoading(true);
         const filters = rangeToFilter(range, customStart, customEnd);
         const qs = new URLSearchParams(filters).toString();
@@ -85,7 +100,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                 fetchJson(`${API}/filters/models`),
                 fetchJson(`${API}/by-conversation${q}`),
             ]);
-
+            if (superseded()) return;
             setSummary(s || { total_calls: 0, total_tokens: 0, total_estimated_cost: 0, total_billed_cost: 0, avg_duration_ms: 0 });
             setByModel(Array.isArray(m) ? m : []);
             setByAgent(Array.isArray(a) ? a : []);
@@ -104,6 +119,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
             if (prevFilter) {
                 const prevQs = new URLSearchParams(prevFilter).toString();
                 const ps = await fetchJson(`${API}/summary?${prevQs}`);
+                if (superseded()) return;
                 setPrevSummary(ps);
             } else {
                 setPrevSummary(null);
@@ -116,14 +132,15 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                     fetchJson(`${FEEDBACK_API}${fbQs}`),
                     fetchJson(`${FEEDBACK_API}/summary${fbQs}`),
                 ]);
+                if (superseded()) return;
                 setFeedback(Array.isArray(fbData) ? fbData : []);
                 setFeedbackSummary(fbSum || { total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 });
             } catch (err) { logger.debug('ignore', err); }
         } catch (e) {
             console.error('[Monitoring] fetch error:', e);
         }
-        setLoading(false);
-    }, [range, customStart, customEnd]);
+        if (!superseded()) setLoading(false);
+    }, [range, customStart, customEnd, beginFetch]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {

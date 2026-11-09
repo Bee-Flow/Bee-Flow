@@ -120,3 +120,14 @@ test('byUpdatedDesc sorts newest first', () => {
     const rows = [{ updated_at: '2026-01-01' }, { updated_at: '2026-03-01' }, { updated_at: '2026-02-01' }];
     assert.deepStrictEqual(rows.sort(byUpdatedDesc).map(r => r.updated_at), ['2026-03-01', '2026-02-01', '2026-01-01']);
 });
+
+// The app-side strategies match with `includes`; the SQL ones used to send the
+// query into ILIKE as typed, so "100%" or "a_b" matched as wildcards there and
+// the same search returned different conversations per storage shape.
+test('% and _ in the query reach ILIKE escaped: literal text, not wildcards', async () => {
+    reset();
+    await directSearch('u1', '100%_a\\b', {});
+    assert.strictEqual(calls.length, 2);
+    assert.deepStrictEqual(calls[0].params, ['u1', '%100\\%\\_a\\\\b%']);
+    assert.deepStrictEqual(calls[1].params, ['u1', '%100\\%\\_a\\\\b%']);
+});

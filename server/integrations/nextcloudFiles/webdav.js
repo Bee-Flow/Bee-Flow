@@ -180,11 +180,13 @@ async function uploadBinaryFile(ncFetch, root, path, buffer, contentType, authEr
 
 /**
  * The numeric file id out of an `OC-FileId` header value, or null.
+ * The value is the id zero-padded to AT LEAST eight digits, then the instance id ("oc…"):
+ * an id past 99,999,999 has nine or more, and cutting at eight names another file.
  * @param {string | null | undefined} value
  */
 function parseOcFileId(value) {
     const v = String(value || '').trim();
-    const m = /^(\d{8})/.exec(v);
+    const m = /^(\d{8,})/.exec(v);
     if (!m) return null;
     const n = parseInt(m[1], 10);
     return Number.isFinite(n) && n > 0 ? String(n) : null;

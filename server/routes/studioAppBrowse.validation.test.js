@@ -102,6 +102,8 @@ function dispatch({ url, body }) {
             json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
             send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
             end() { this.headersSent = true; resolve(this); return this; },
+            // The route hears the client going away on the RESPONSE's 'close'.
+            on() { return this; }, off() { return this; },
         };
         router(req, res, (err) => {
             if (!err) return reject(new Error(`fell through: POST ${url}`));

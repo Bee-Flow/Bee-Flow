@@ -254,7 +254,9 @@ const useAgentHubActions = ({
             const date = new Date(c.updated_at as string);
             const msgStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-            const diffDays = Math.floor((todayStart.getTime() - msgStart.getTime()) / (1000 * 60 * 60 * 24));
+            // Rounded: both ends are local midnights, and a day on which the
+            // clocks go forward is 23 hours long (see sidebarConversations).
+            const diffDays = Math.round((todayStart.getTime() - msgStart.getTime()) / (1000 * 60 * 60 * 24));
 
             if (diffDays <= 0) groups.Today.push(c);
             else if (diffDays === 1) groups.Yesterday.push(c);

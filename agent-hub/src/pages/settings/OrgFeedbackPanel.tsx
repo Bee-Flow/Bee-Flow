@@ -36,7 +36,10 @@ export default function OrgFeedbackPanel({ rangeParams, reveal = false }: OrgFee
     const counts = useMemo(() => feedbackCounts(feedback), [feedback]);
     const filtered = useMemo(() => filterFeedback(feedback, filter, search), [feedback, filter, search]);
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const paged = filtered.slice(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE);
+    // The report can shrink under the reader (a shorter range): a page past
+    // the end would read as "no entries" while there are some.
+    const currentPage = Math.min(pageNum, totalPages - 1);
+    const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
     const pct = approvalPct(summary);
     const rated = (Number(summary.thumbs_up) || 0) + (Number(summary.thumbs_down) || 0);
@@ -115,9 +118,9 @@ export default function OrgFeedbackPanel({ rangeParams, reveal = false }: OrgFee
                 )}
                 {totalPages > 1 && (
                     <div className="flex items-center justify-center gap-1.5 py-3">
-                        <button type="button" aria-label={t('org.feedback_prev', 'Previous page')} onClick={() => setPageNum(p => Math.max(0, p - 1))} disabled={pageNum === 0} className={PAGER}>←</button>
-                        <span className="px-2 text-xs text-[var(--text-muted)]">{pageNum + 1} / {totalPages}</span>
-                        <button type="button" aria-label={t('org.feedback_next', 'Next page')} onClick={() => setPageNum(p => Math.min(totalPages - 1, p + 1))} disabled={pageNum >= totalPages - 1} className={PAGER}>→</button>
+                        <button type="button" aria-label={t('org.feedback_prev', 'Previous page')} onClick={() => setPageNum(Math.max(0, currentPage - 1))} disabled={currentPage === 0} className={PAGER}>←</button>
+                        <span className="px-2 text-xs text-[var(--text-muted)]">{currentPage + 1} / {totalPages}</span>
+                        <button type="button" aria-label={t('org.feedback_next', 'Next page')} onClick={() => setPageNum(Math.min(totalPages - 1, currentPage + 1))} disabled={currentPage >= totalPages - 1} className={PAGER}>→</button>
                     </div>
                 )}
             </section>

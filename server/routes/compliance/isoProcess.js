@@ -39,7 +39,7 @@ const incidentStore = require('../../stores/incidentStore');
 const configStore = require('../../stores/configStore');
 const { getAll } = require('../../db');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
-const { resolveOrgId, _riskStore, _auditStore, _obligationStore } = require('./shared');
+const { resolveOrgId, _riskStore, _auditStore, _obligationStore, latestOf } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -301,8 +301,8 @@ router.put('/iso/risks/:id', requireAuth, requirePermission('admin_compliance'),
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const saved = await _riskStore().updateRisk(orgId, req.params.id, req.body || {}, actorId);
-    // Risk acceptance is an auditor-relevant decision — chain it.
-    if (req.body?.status === 'accepted') {
+    // Risk acceptance is an auditor-relevant decision — chain it, for a risk this organisation has (an unknown id saves nothing).
+    if (saved && req.body?.status === 'accepted') {
         await complianceStore.addEvidence({
             organization_id: orgId, check_id: null,
             subject_type: 'risk', subject_id: String(req.params.id),
@@ -396,7 +396,7 @@ router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), asy
             risks_open: riskStats?.open ?? null,
             risks_high: riskStats?.high ?? null,
             soa_approved: soaStats ? `${soaStats.approved}/${soaStats.total}` : null,
-            last_internal_audit: audits.filter(a => a.status === 'closed').map(a => a.closed_at).sort().pop() || null,
+            last_internal_audit: latestOf(audits.filter(a => a.status === 'closed').map(a => a.closed_at)),
         };
     } catch (err) { fallback('routes/compliance/isoProcess:anon#5', err); /* agenda best-effort */ }
     res.json({ audits, findings, reviews, ncs, objectives, mr_inputs: mrInputs });

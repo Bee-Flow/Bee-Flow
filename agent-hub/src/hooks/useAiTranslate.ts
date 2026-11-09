@@ -21,7 +21,7 @@
 //       translating={ai.translating} missing={stats.missing} onTranslate={ai.run} />
 //   <AiTranslateResult result={ai.result} />
 
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { mutate, errorBody, RefusedError } from '../api/mutate';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -90,7 +90,15 @@ export default function useAiTranslate(
         reloadRef.current = onReload;
     });
 
+    // The pending "clear the result" timer. A second run has to cancel the
+    // first run's timer, or it wipes the new result early.
+    const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => () => {
+        if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    }, []);
+
     const run = useCallback(async () => {
+        if (clearTimerRef.current) { clearTimeout(clearTimerRef.current); clearTimerRef.current = null; }
         setTranslating(true);
         setResult(null);
         try {
@@ -98,7 +106,12 @@ export default function useAiTranslate(
             if (res?.success) {
                 setResult(res);
                 reloadRef.current?.();
-                if (clearAfterMs) setTimeout(() => setResult(null), clearAfterMs);
+                if (clearAfterMs) {
+                    clearTimerRef.current = setTimeout(() => {
+                        clearTimerRef.current = null;
+                        setResult(null);
+                    }, clearAfterMs);
+                }
             } else {
                 setResult({ error: res?.error || 'Translation failed' });
             }

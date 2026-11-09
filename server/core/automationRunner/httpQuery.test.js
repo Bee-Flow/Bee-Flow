@@ -120,3 +120,17 @@ test('splitQueryFromUrl: no query returns null, repeated and bracket arrays', ()
 test('encodePairs encodes keys and values', () => {
     assert.strictEqual(encodePairs([['a b', 'c&d']]), 'a%20b=c%26d');
 });
+
+test('splitQueryFromUrl: a __proto__ key in the URL stays a key and never reaches Object.prototype', () => {
+    try {
+        const s = splitQueryFromUrl('https://x.example/a?__proto__[polluted]=yes&constructor[prototype][polluted2]=yes&__proto__=flat&ok[k]=1');
+        assert.strictEqual(/** @type {any} */ ({}).polluted, undefined, 'Object.prototype was written through ?__proto__[polluted]=yes');
+        assert.strictEqual(/** @type {any} */ ({}).polluted2, undefined);
+        const parsed = JSON.parse(s.query.json);
+        assert.deepStrictEqual(parsed.ok, { k: '1' });
+        assert.ok(Object.prototype.hasOwnProperty.call(parsed, '__proto__'), 'the parameter is kept as an ordinary key');
+    } finally {
+        delete (/** @type {any} */ (Object.prototype)).polluted;
+        delete (/** @type {any} */ (Object.prototype)).polluted2;
+    }
+});

@@ -53,3 +53,23 @@ test('event.upcoming fires once per event inside the lead window and remembers i
     assert.strictEqual(out[0].calendarId, 'primary');
     assert.deepStrictEqual(updates, [{ id: 'u1', lastCursor: JSON.stringify({ firedIds: ['done', 'soon'] }) }]);
 });
+
+test('event.upcoming with includeAllDay lets an all-day event through (it never did)', async () => {
+    // Pin the clock ten minutes before a UTC midnight: the all-day event of the next date starts then.
+    const now = Date.parse('2026-10-12T23:50:00Z');
+    const realNow = Date.now;
+    Date.now = () => now;
+    try {
+        const items = [{ id: 'allday', summary: 'Release day', start: { date: '2026-10-13' }, end: { date: '2026-10-14' } }];
+        const run = async (filter) => {
+            const { ctx } = calCtx(() => ({ data: { items } }));
+            return createGoogleCalendarPollers(ctx)['event.upcoming']({ id: 'u2', filter, lastCursor: null }, {});
+        };
+        assert.deepStrictEqual((await run({ leadMinutes: 15 })).map(e => e.eventId), [], 'left out by default');
+        const out = await run({ leadMinutes: 15, includeAllDay: true });
+        assert.deepStrictEqual(out.map(e => e.eventId), ['allday']);
+        assert.strictEqual(out[0].minutesUntilStart, 10);
+    } finally {
+        Date.now = realNow;
+    }
+});

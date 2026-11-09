@@ -172,8 +172,11 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         };
 
         let cancelled = false;
-        const onClose = () => { cancelled = true; };
-        req.on('close', onClose);
+        // On the RESPONSE: a POST's request stream closes as soon as its body
+        // is read, long ahead of this handler, so req 'close' never fires
+        // here and a closed tab would keep the browser session running.
+        const onClose = () => { if (!res.writableEnded) cancelled = true; };
+        res.on('close', onClose);
         const hardTimer = setTimeout(() => { cancelled = true; }, BROWSE_HARD_MS);
         const heartbeat = setInterval(() => send({ type: 'ping' }), HEARTBEAT_MS);
 
@@ -210,7 +213,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         } finally {
             clearInterval(heartbeat);
             clearTimeout(hardTimer);
-            req.off('close', onClose);
+            res.off('close', onClose);
             res.end();
         }
     } catch (err) {

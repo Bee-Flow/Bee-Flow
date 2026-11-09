@@ -180,7 +180,7 @@ async function createApproval({
     // App-sourced rows (run_id NULL) can never conflict: NULLs are distinct
     // in the pending-unique index, so the insert always lands.
     if (!runId) return getApproval(id);
-    return getApprovalForRunStep(runId, stepId, { pendingOnly: true }) || getApproval(id);
+    return (await getApprovalForRunStep(runId, stepId, { pendingOnly: true })) || getApproval(id);
 }
 
 async function getApproval(id) {
@@ -268,7 +268,11 @@ function buildApprovalWhere({ viewer = null, org = null, status = [], cursor = n
     if (cursor && cursor.createdAt && cursor.id) {
         params.push(cursor.createdAt); const cIdx = params.length;
         params.push(cursor.id);
-        conds.push(`(created_at, id) < ($${cIdx}, $${params.length})`);
+        // The cursor row's own created_at is read back: the cursor carries a JS
+        // Date (milliseconds) and the column microseconds, and comparing with
+        // the rounded value skips the rows that share its millisecond. The
+        // carried value only stands in when that row is gone.
+        conds.push(`(created_at, id) < (COALESCE((SELECT c.created_at FROM automation_approvals c WHERE c.id = $${params.length}), $${cIdx}::timestamptz), $${params.length})`);
     }
     return conds.join(' AND ');
 }

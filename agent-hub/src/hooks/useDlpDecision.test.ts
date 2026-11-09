@@ -130,4 +130,21 @@ describe('useDlpDecision — keep-alive heartbeat', () => {
         act(() => { vi.advanceTimersByTime(DLP_TOUCH_INTERVAL_MS * 5); });
         expect(touchCalls().length).toBe(1);
     });
+    it('a review that opens while the previous decision is still in flight stays open', async () => {
+        const { result } = renderHook(() => useDlpDecision());
+        act(() => dispatch('beeflow:dlp_preview', { decisionId: 'text-1', reviewText: 'x', findings: [] }));
+
+        let release: (v: unknown) => void = () => {};
+        (authFetch as Mock).mockImplementation((url: string) => (url.endsWith('/api/chat/dlp-decision')
+            ? new Promise((resolve) => { release = resolve; })
+            : Promise.resolve({ ok: true, json: async () => ({ ok: true }) })));
+
+        let submitted: Promise<void> = Promise.resolve();
+        act(() => { submitted = result.current.submit('allow'); });
+        // The server has the answer and already asks about the attachment.
+        act(() => dispatch('beeflow:dlp_attachment_preview', { decisionId: 'file-2', filename: 'report.pdf' }));
+        await act(async () => { release({ ok: true, json: async () => ({ ok: true }) }); await submitted; });
+
+        expect(result.current.pending?.decisionId).toBe('file-2');
+    });
 });

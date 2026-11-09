@@ -187,6 +187,10 @@ function createToolMemo({
         // author sees a step that ignores its own tick.
         const limit = Number.isFinite(entryBytes) && entryBytes > 0 ? entryBytes : maxEntryBytes;
         if (!Number.isFinite(bytes) || bytes > limit) return false;
+        // Storing a key again replaces its entry: take the old one out first,
+        // or its bytes stay counted for good and it evicts an unrelated entry.
+        const old = entries.get(key);
+        if (old) { entries.delete(key); totalBytes -= old.bytes; }
         while (entries.size >= maxEntries || totalBytes + bytes > maxTotalBytes) {
             if (entries.size === 0) return false;
             evictOldest();

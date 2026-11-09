@@ -528,7 +528,7 @@ async function getEUAwareTiers({ userOrgId = null, userId = null } = {}) {
  * merge blocks that could drift).
  */
 async function getUserTierMap(/** @type {{ userOrgId?: string | null, userId?: string | null }} */ { userOrgId = null, userId = null } = {}) {
-    const tiers = await getEUAwareTiers({ userOrgId, userId });
+    const tiers = { ...(await getEUAwareTiers({ userOrgId, userId })) }; // a COPY: the store's cached object is shared by every organisation, the custom tiers below are one organisation's
     try {
         const { isEU } = await isEUModeActive({ userOrgId, userId });
         const globalCustom = (await configStore.getConfig('custom_chat_model_tiers')) || [];

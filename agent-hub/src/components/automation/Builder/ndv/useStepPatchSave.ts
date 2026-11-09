@@ -34,6 +34,10 @@ export default function useStepPatchSave({ definition, step, onSaveStep, t }: {
     const definitionRef = useRef(definition);
     const stepRef = useRef(step);
     const onSaveStepRef = useRef(onSaveStep);
+    // The queued patch is saved by the persist of the render that is current
+    // WHEN ITS TURN COMES: the save in front of it has already put its own
+    // change in the definition, and a patch is only the keys that changed.
+    const persistRef = useRef<((patch: Patch) => Promise<void>) | null>(null);
     useEffect(() => { definitionRef.current = definition; stepRef.current = step; onSaveStepRef.current = onSaveStep; });
 
     const persistStepPatch = useCallback(async (patch: Patch): Promise<void> => {
@@ -68,11 +72,15 @@ export default function useStepPatchSave({ definition, step, onSaveStep, t }: {
                 const queued = saveQueuedRef.current;
                 saveQueuedRef.current = null;
                 saveInflightRef.current = null;
-                if (queued) await persistStepPatch(queued);
+                // Not this closure's own persist: it would lay the queued patch
+                // over the definition from BEFORE the save that just landed, and
+                // write that save's change away again.
+                if (queued) await (persistRef.current || persistStepPatch)(queued);
             }
         })();
         return saveInflightRef.current;
     }, [definition, step, onSaveStep, markSaving, markSaved, markSaveError, t]);
+    useEffect(() => { persistRef.current = persistStepPatch; }, [persistStepPatch]);
 
     // "Save failed" comes with a way out; the chip already reports the outcome.
     const retrySave = useCallback(() => {

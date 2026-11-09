@@ -110,12 +110,13 @@ function stripTags(html) {
     return html
         .replace(/<br\s*\/?>/gi, ' ')
         .replace(/<[^>]+>/g, '')
-        .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&nbsp;/g, ' ')
         .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'");
+        .replace(/&#39;/g, "'")
+        // &amp; LAST: decoding it first turns "&amp;lt;" (the text "&lt;") into "<".
+        .replace(/&amp;/g, '&');
 }
 
 /**

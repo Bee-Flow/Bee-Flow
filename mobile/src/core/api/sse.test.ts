@@ -292,3 +292,18 @@ describe('robustness', () => {
         expect(cancelled).toHaveBeenCalled();
     });
 });
+
+describe('a stream whose caller already cancelled', () => {
+    it('is opened with an aborted signal, not left to run', async () => {
+        // An aborted signal fires no further event, so the listener alone let
+        // a stream start for a turn that had already been stopped.
+        mockExpoFetch.mockImplementationOnce((_url: string, init: { signal: AbortSignal }) =>
+            init.signal.aborted ? Promise.reject(new Error('Aborted')) : Promise.reject(new Error('sent anyway')),
+        );
+        const controller = new AbortController();
+        controller.abort();
+
+        const frames = streamSse('/api/chat/stream', { body: {}, signal: controller.signal });
+        await expect(frames.next()).rejects.toThrow('Aborted');
+    });
+});

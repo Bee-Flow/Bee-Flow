@@ -14,6 +14,7 @@ import {
 } from '@shared/expr/rules.mjs';
 import { renderBindingValue, isCleanPath, bindingFromInput, canonicalRefPath } from '../../../../utils/bindingHelpers.helpers';
 import { ISO_DATE_RE } from '../mapping/core';
+import { quotedLiteral } from './conditionModel.literal';
 import type {
     Binding, Comparator, ConditionRow, FieldShape, Operator, OperatorOption, OperatorOptions, ParsedCall,
     QuantifiedCall, Translate, Value,
@@ -198,10 +199,8 @@ function valueRawToBinding(rawText: unknown): Binding {
     const trimmed = String(rawText ?? '').trim();
     if (/^(true|false|null)$/.test(trimmed)) return { kind: 'literal', value: trimmed === 'null' ? null : trimmed === 'true' };
     if (/^-?\d+(\.\d+)?$/.test(trimmed)) return { kind: 'literal', value: Number(trimmed) };
-    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-        try { return { kind: 'literal', value: JSON.parse(trimmed.replace(/'/g, '"')) }; }
-        catch { return { kind: 'literal', value: trimmed.slice(1, -1) }; }
-    }
+    const quoted = quotedLiteral(trimmed);
+    if (quoted !== undefined) return { kind: 'literal', value: quoted };
     return bindingFromInput(trimmed, 'expression');
 }
 

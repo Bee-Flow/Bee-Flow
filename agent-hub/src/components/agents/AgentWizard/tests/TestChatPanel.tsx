@@ -1,6 +1,7 @@
 import { ArrowUp, Square } from 'lucide-react';
 import { useState } from 'react';
 import MessageItem from '@/components/chat/MessageItem';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import type { ChatMessage } from '@/components/chat/MessageItem/messageTypes';
 import type { ToolDecisionHandler } from '@/components/chat/MessageItem/ToolConfirmCard';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -72,7 +73,7 @@ export default function TestChatPanel({ t, ro = false, messages, isLoading, onSe
                         placeholder={label}
                         onChange={(ev) => setDraft(ev.target.value)}
                         onKeyDown={(ev) => {
-                            if (ev.key === 'Enter' && !ev.shiftKey) {
+                            if (ev.key === 'Enter' && !ev.shiftKey && !isImeEnter(ev)) {
                                 ev.preventDefault();
                                 send();
                             }

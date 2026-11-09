@@ -23,12 +23,19 @@ interface BuilderThinkingBlockProps {
  * ladder is the kind of thing that grows a branch a year and is easier to read
  * (and to test) away from the JSX.
  */
+function elapsedLabel(ms: number): string {
+    // Round to whole seconds FIRST, then split: rounding the remainder alone
+    // gave "60s" for 59.6 s and "1m 60s" for 119.6 s.
+    const whole = Math.round(ms / 1000);
+    if (ms < 10000 && Number((ms / 1000).toFixed(1)) < 10) return `${(ms / 1000).toFixed(1)}s`;
+    if (whole < 60) return `${whole}s`;
+    return `${Math.floor(whole / 60)}m ${whole % 60}s`;
+}
+
 function headerLabel(msg: ThinkingMessage, isStreaming: boolean, nowTs: number, t: TranslateFn): string {
     const endTs = msg.thinkingEndedAt || (isStreaming ? nowTs : null);
     const ms = (msg.thinkingStartedAt && endTs) ? (endTs - msg.thinkingStartedAt) : null;
-    const elapsed = ms == null ? '' : ms < 60000
-        ? `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)}s`
-        : `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+    const elapsed = ms == null ? '' : elapsedLabel(ms);
     // The counter now RUNS while it thinks. The 500ms tick that feeds it
     // always existed, but the streaming branch returned a bare "Thinking…"
     // and threw the number away — so the panel gave no sign of progress

@@ -63,6 +63,20 @@ function decodeAdminLicenseBlob(blob) {
     return parsed;
 }
 
+/**
+ * The blob's envelope as an object, for a reader that goes on to its fields.
+ * The envelope is JSON of the caller's making: `null`, a number or a list
+ * decodes fine and has no fields to read, so it is refused like broken JSON.
+ * @param {string} blob
+ */
+function decodeAdminLicenseEnvelope(blob) {
+    const decoded = decodeAdminLicenseBlob(blob);
+    if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) {
+        throw new Error('Malformed admin license blob: not an object');
+    }
+    return decoded;
+}
+
 function isAdminIssuedLicense(license) {
     return !!license && license.issuer === ADMIN_ISSUER;
 }
@@ -240,6 +254,7 @@ module.exports = {
     importAdminLicense,
     encodeAdminLicenseBlob,
     decodeAdminLicenseBlob,
+    decodeAdminLicenseEnvelope,
     isAdminIssuedLicense,
     publicLicenseShape,
 };

@@ -114,7 +114,11 @@ function resolveTempDownloadKey(url) {
     if (!match) return null;
     const key = parsed.searchParams.get('key');
     const expires = parseInt(parsed.searchParams.get('expires'), 10);
-    return verifyTempSignature(key, expires, decodeURIComponent(match[1])) === 'ok' ? key : null;
+    // decodeURIComponent THROWS on a malformed escape (`%zz`), and the URL is
+    // caller-supplied (an image_url in a chat message): not a valid temp URL.
+    let token;
+    try { token = decodeURIComponent(match[1]); } catch { return null; }
+    return verifyTempSignature(key, expires, token) === 'ok' ? key : null;
 }
 
 module.exports = {

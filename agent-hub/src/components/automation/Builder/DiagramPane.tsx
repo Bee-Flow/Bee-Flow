@@ -357,6 +357,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                     menu={ctxMenu}
                     definition={definition}
                     inlineExpandedIds={inlineExpandedIds}
+                    inlineTriggerIds={inlineTriggerIds}
                     onDuplicateNode={onDuplicateNode}
                     onDetachNode={onDetachNode}
                     onDeleteNode={onDeleteNode}

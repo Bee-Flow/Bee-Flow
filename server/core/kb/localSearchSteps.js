@@ -86,7 +86,10 @@ async function queryCandidates(client, { kbIds, topK, vectorStr, pgvector, fts }
     const orphanPromise = client.query(
         `SELECT id::text FROM documents WHERE knowledge_base_id = ANY($1::uuid[])`,
         [kbIds]
-    ).catch(e => { log.warn('[LocalKBSearch] Document validation query failed:', e.message); return { rows: [] }; });
+    // `rows: null` on failure, so the orphan filter can tell "the check could not
+    // run" (skip it) from "these knowledge bases hold no documents" (every chunk
+    // that names a document is an orphan).
+    ).catch(e => { log.warn('[LocalKBSearch] Document validation query failed:', e.message); return { rows: null }; });
 
     let [vectorResults, ftsResults, { rows: validDocIds }] = await Promise.all([
         vectorSearchPromise, ftsSearchPromise, orphanPromise,
@@ -106,10 +109,10 @@ async function queryCandidates(client, { kbIds, topK, vectorStr, pgvector, fts }
 
 /**
  * A filter dropping rows whose document is gone (no-op when the lookup failed).
- * @param {{ id: string; }[]} validDocIds
+ * @param {{ id: string; }[] | null} validDocIds  null when the document check could not run
  */
 function makeOrphanFilter(validDocIds) {
-    const validDocIdSet = validDocIds.length > 0
+    const validDocIdSet = Array.isArray(validDocIds)
         ? new Set(validDocIds.map((/** @type {{ id: string; }} */ r) => r.id.toLowerCase()))
         : null;
     return (rows) => {

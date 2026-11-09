@@ -86,4 +86,27 @@ describe('useFlowletAgentStream', () => {
         // Stream finished → no longer running.
         expect(result.current.state.running).toBe(false);
     });
+    it('a send that replaces a running one keeps its own running state', async () => {
+        // The first request hangs until its signal aborts, as a real fetch does.
+        asMock(authFetch).mockImplementationOnce((_url: string, init: { signal: AbortSignal }) => new Promise((_resolve, reject) => {
+            init.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+        }));
+        // The second one is still streaming: its body never yields.
+        asMock(authFetch).mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            body: { getReader: () => ({ read: () => new Promise(() => {}), cancel: () => Promise.resolve() }) },
+        });
+
+        const { result } = renderHook(() => useFlowletAgentStream());
+
+        let first: Promise<unknown> = Promise.resolve();
+        act(() => { first = result.current.send({ automationId: 'a1', instruction: 'create it', mode: 'create' }); });
+        act(() => { void result.current.send({ automationId: 'a1', instruction: 'refine it', mode: 'refine', layerKey: 'enrich' }); });
+        // The replaced run winds down (AbortError) while the new one streams.
+        await act(async () => { await first; });
+
+        expect(result.current.state.mode).toBe('refine');
+        expect(result.current.state.running).toBe(true);
+    });
 });

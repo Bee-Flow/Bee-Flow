@@ -83,7 +83,9 @@ async function searchConversationRows(spec, deps, userId, query, filters, encryp
     const rowCols = `${cols}, c.messages_migrated${extra}`;
     const blobCols = `${cols}, c.messages_json, c.messages_migrated${extra}`;
 
-    const likeQuery = `%${query}%`;
+    // Literal text, like the in-process matching of the encrypted strategies
+    // below (`includes`): % and _ in the query are not wildcards.
+    const likeQuery = `%${String(query).replace(/[\\%_]/g, '\\$&')}%`;
     const lowerQuery = query.toLowerCase();
 
     // Base filter params (userId is always $1)

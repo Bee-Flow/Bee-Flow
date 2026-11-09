@@ -212,7 +212,7 @@ test('listEvents: cursor + filters land in SQL and params', async () => {
     assert.deepStrictEqual(events, []);
     assert.strictEqual(nextCursor, null);
     const q = calls.getAll[calls.getAll.length - 1];
-    assert.match(q.sql, /\(created_at, id\) < \(\$\d+::timestamptz, \$\d+::uuid\)/);
+    assert.match(q.sql, /\(created_at, id\) < \(COALESCE\(\(SELECT c\.created_at FROM org_health_events c WHERE c\.id = \$\d+::uuid\), \$\d+::timestamptz\), \$\d+::uuid\)/);
     assert.match(q.sql, /ORDER BY created_at DESC, id DESC/);
     assert.ok(q.params.includes('chat.dlp_blocked'));
     assert.ok(q.params.includes('info'));

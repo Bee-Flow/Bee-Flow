@@ -121,7 +121,12 @@ function createGoogleCalendarPollers(ctx) {
                 for (const ev of (res.data.items || [])) {
                     if (!ev.id || fired.has(ev.id)) continue;
                     if (!includeAllDay && !ev.start?.dateTime) continue; // skip all-day unless asked
-                    const startMs = ev.start?.dateTime ? Date.parse(ev.start.dateTime) : NaN;
+                    // An all-day event has only `start.date` (YYYY-MM-DD). It was
+                    // read as "no start" here, so "include all-day events" never
+                    // let one through. Read like the Nextcloud poller reads its
+                    // all-day dtstart: the start of that date.
+                    const startRaw = ev.start?.dateTime || ev.start?.date;
+                    const startMs = startRaw ? Date.parse(startRaw) : NaN;
                     if (!Number.isFinite(startMs)) continue;
                     const minutesUntilStart = Math.round((startMs - now) / 60_000);
                     if (minutesUntilStart > leadMinutes) continue; // not yet within window

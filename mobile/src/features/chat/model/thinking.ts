@@ -26,10 +26,12 @@ export function thinkingDurationMs(parts: readonly ThinkingPart[]): number | nul
 export function formatThinkingDuration(ms: number | null): string {
     if (ms == null) return '';
     const sec = ms / 1000;
-    if (sec < 60) return `${sec.toFixed(sec < 10 ? 1 : 0)}s`;
-    const m = Math.floor(sec / 60);
-    const s = Math.round(sec % 60);
-    return `${m}m ${s}s`;
+    // Round to whole seconds first, then split: rounding the remainder alone
+    // gave "60s" for 59.6 s and "1m 60s" for 119.6 s. Same as the web panel.
+    const whole = Math.round(sec);
+    if (sec < 10 && Number(sec.toFixed(1)) < 10) return `${sec.toFixed(1)}s`;
+    if (whole < 60) return `${whole}s`;
+    return `${Math.floor(whole / 60)}m ${whole % 60}s`;
 }
 
 /** Something to show: a part with text, or a part the provider redacted. */

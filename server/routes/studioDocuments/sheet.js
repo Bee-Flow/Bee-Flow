@@ -38,6 +38,7 @@ const { HttpError, notFound, forbidden } = require('../../core/http/errors');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
 const { sheetTabsOf, newTabId, settingsWithTabs } = require('../../stores/lib/sheetDocument');
 const { sheetCsv, buildSheetWorkbook } = require('../../core/documents/sheetExport');
+const { contentDisposition } = require('../../core/http/contentDisposition');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const NAME_TEXT = 'name is the spreadsheet\'s name, at most 200 characters.';
@@ -293,7 +294,9 @@ function makeSheetRouter(deps = {}) {
         const tab = resolveTab(tabs, req.query.tab);
         const { cells: raw } = await cells().readSheet(doc.userId, tab.datatableId);
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="${fileNameOf(doc.name)}"`);
+        // fileNameOf keeps letters of every script, and a header value outside
+        // Latin-1 makes setHeader throw: the ASCII name plus the RFC 5987 one.
+        res.setHeader('Content-Disposition', contentDisposition(fileNameOf(doc.name)));
         res.setHeader('X-Content-Type-Options', 'nosniff');
         // A BOM so spreadsheet apps read the file as UTF-8.
         res.send('\uFEFF' + sheetCsv(raw, evaluate));

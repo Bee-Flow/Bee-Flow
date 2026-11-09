@@ -145,7 +145,8 @@ async function listThreads({
     if (assigneeUserId) { params.push(assigneeUserId); where.push(`assignee_user_id = $${params.length}`); }
     if (requesterEmail) { params.push(requesterEmail.toLowerCase()); where.push(`LOWER(requester_email) = $${params.length}`); }
     if (q) {
-        params.push(`%${q}%`);
+        // The search text is literal: % and _ in it are not wildcards.
+        params.push(`%${String(q).replace(/[\\%_]/g, '\\$&')}%`);
         where.push(`(subject ILIKE $${params.length} OR requester_email ILIKE $${params.length} OR requester_name ILIKE $${params.length})`);
     }
     if (tagsIn && tagsIn.length) {
@@ -311,6 +312,7 @@ async function firstStaffReplyTransition(threadId, staffUserId) {
             SET first_response_at = COALESCE(first_response_at, now()),
                 assignee_user_id = COALESCE(assignee_user_id, $2),
                 status = 'awaiting_user',
+                sla_paused = true,
                 updated_at = now()
           WHERE id = $1
           RETURNING *`,

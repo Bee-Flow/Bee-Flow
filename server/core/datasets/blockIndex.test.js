@@ -61,7 +61,9 @@ test('findRange: a span starting mid-block includes the covering block', () => {
 
 test('findRange: the LAST block of the file ends at contentEnd', () => {
     const idx = fixtureIndex();
-    const r = findRange(idx, 'chr2', 800, 999999);
+    // 801, not 800: a start that EQUALS a block's firstPos also reads the block
+    // before it (rows at that position may straddle the boundary).
+    const r = findRange(idx, 'chr2', 801, 999999);
     assert.strictEqual(r.startOffset, 4000);
     assert.strictEqual(r.endOffset, 5000, 'contentEnd bounds the final block, EOF marker excluded');
 });
@@ -96,4 +98,24 @@ test('serialize refuses unsorted entries; deserialize refuses corruption', () =>
     assert.throws(() => deserialize(Buffer.from('garbage')), /not a BFDI1/);
     const good = serialize([{ name: 'c', minPos: 1, maxPos: 1, count: 1, entries: [{ firstPos: 1, blockOffset: 0, uncompSize: 1 }] }], 10);
     assert.throws(() => deserialize(good.subarray(0, good.length - 8)), /declares 1 entries, file has 0/);
+});
+
+test('findRange: rows at one POS that straddle a block boundary are all covered', () => {
+    // Block 0 ends with rows at pos 500; block 1 starts with more rows at pos 500.
+    const idx = deserialize(serialize([{
+        name: 'chr1', minPos: 100, maxPos: 900, count: 30,
+        entries: [
+            { firstPos: 100, blockOffset: 0, uncompSize: 60000 },
+            { firstPos: 500, blockOffset: 1000, uncompSize: 60000 },
+            { firstPos: 500, blockOffset: 2000, uncompSize: 60000 },
+            { firstPos: 900, blockOffset: 3000, uncompSize: 100 },
+        ],
+    }], 4000));
+    const r = findRange(idx, 'chr1', 500, 500);
+    assert.strictEqual(r.startOffset, 0, 'the block before the first firstPos===start block may end with that position');
+    assert.strictEqual(r.endOffset, 3000);
+    // A start past every equal firstPos is unaffected.
+    assert.strictEqual(findRange(idx, 'chr1', 501, 600).startOffset, 2000);
+    // The first block of the contig is never stepped out of.
+    assert.strictEqual(findRange(idx, 'chr1', 100, 100).startOffset, 0);
 });

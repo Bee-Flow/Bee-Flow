@@ -33,6 +33,24 @@ describe('FeedbackPage', () => {
         expect(screen.queryByText('bob')).toBeNull();
     });
 
+    it('falls back to the last page when the list shrinks under the open page', async () => {
+        const user = userEvent.setup();
+        const many: FeedbackItem[] = Array.from({ length: 25 }, (_, i) => ({ id: `m${i}`, rating: 'up', user_id: `member-${i}` }));
+        const { rerender } = render(<FeedbackPage feedback={many} summary={null} />);
+        await user.click(screen.getByRole('button', { name: '→' }));
+        await user.click(screen.getByRole('button', { name: '→' }));
+        expect(screen.getByText('3 / 3')).toBeTruthy();
+        expect(screen.getByText('member-24')).toBeTruthy();
+        // A shorter range (or the minute refresh) hands the page fewer entries.
+        rerender(<FeedbackPage feedback={many.slice(0, 12)} summary={null} />);
+        expect(screen.queryByText('No feedback entries')).toBeNull();
+        expect(screen.getByText('2 / 2')).toBeTruthy();
+        expect(screen.getByText('member-11')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: '←' }));
+        expect(screen.getByText('1 / 2')).toBeTruthy();
+        expect(screen.getByText('member-0')).toBeTruthy();
+    });
+
     it('replays the shared conversation when an entry is expanded, skipping empty messages', async () => {
         const user = userEvent.setup();
         render(<FeedbackPage feedback={feedback} summary={null} />);

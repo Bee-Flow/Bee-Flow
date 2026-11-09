@@ -163,4 +163,12 @@ describe('normaliseServerUrl — path segments that only look like SPA routes', 
             assert.equal(result.ok && result.url, input, input);
         }
     });
+
+    it('still strips the routed part after such a path', () => {
+        // The first "/app" is inside "app-gateway"; the real one comes later.
+        const copied = normaliseServerUrl('https://example.com/app-gateway/app/chat/42');
+        assert.equal(copied.ok && copied.url, 'https://example.com/app-gateway');
+        const nested = normaliseServerUrl('https://example.com/beeflow/chat/app');
+        assert.equal(nested.ok && nested.url, 'https://example.com/beeflow');
+    });
 });

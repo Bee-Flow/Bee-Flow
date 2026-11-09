@@ -129,3 +129,25 @@ describe('parseDeepLink — refusals', () => {
         assert.equal(confirmationPrompt(parseDeepLink('beeflow://ask?text=hi')), null);
     });
 });
+
+describe('parseDeepLink — what one round of decoding leaves behind', () => {
+    it('refuses a doubly encoded ".." that the window would still walk up', () => {
+        // Decoded once this is /app/chat/%2e%2e/%2e%2e/api/x, and a URL parser
+        // treats %2e%2e as a dot segment: the window loaded /api/x.
+        for (const link of [
+            'beeflow://chat/%252e%252e/%252e%252e/api/health',
+            'beeflow://go/app/%252E%252E/api/health',
+            'beeflow://go/app/.%252e/admin',
+        ]) {
+            assert.equal(parseDeepLink(link).kind, 'unknown', link);
+        }
+        assert.equal(new URL('/app/chat/%2e%2e/%2e%2e/api/health', 'https://bee.example').pathname, '/api/health');
+    });
+
+    it('decodes the text of an ask link and the path of an open link exactly once', () => {
+        const ask = parseDeepLink('beeflow://ask/what%20is%20%2541');
+        assert.deepEqual(ask.kind === 'quick-ask' && ask.text, 'what is %41');
+        const open = parseDeepLink('beeflow://open/home/tom/Downloads/a%2520b.txt');
+        assert.deepEqual(open.kind === 'open-path' && open.path, 'home/tom/Downloads/a%20b.txt');
+    });
+});

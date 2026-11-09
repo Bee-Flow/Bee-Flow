@@ -287,9 +287,9 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
         const docText = documentContent
             .replace(/<[^>]+>/g, ' ')
             .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')   // last, or "&amp;lt;" decodes twice
             .replace(/\s+/g, ' ')
             .trim();
         if (docText.length > 20) {
