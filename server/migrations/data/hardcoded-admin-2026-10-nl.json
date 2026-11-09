@@ -1362,7 +1362,20 @@
     "admin_security.sso_ms_connection_add": "Tenant toevoegen",
     "admin_security.sso_ms_connection_remove": "Verwijderen",
     "admin_security.sso_ms_secret_ph": "Waarde van het clientgeheim",
-    "admin_security.sso_ms_connection_label_hint": "Staat op de knop, bijvoorbeeld de naam van het dochterbedrijf."
+    "admin_security.sso_ms_connection_label_hint": "Staat op de knop, bijvoorbeeld de naam van het dochterbedrijf.",
+    "admin_ai_config.rerank_provider_active": "Actief",
+    "admin_ai_config.rerank_provider_cleared": "Herrangschikken via provider uitgezet",
+    "admin_ai_config.rerank_provider_help": "Herrangschik met een provider die je hierboven hebt gekoppeld, bijvoorbeeld IONOS met Qwen/Qwen3-VL-Reranker-8B. Volgorde: lokale llama.cpp (als die aan staat), deze provider, Azure Cohere, CPU, GPU-sidecar en daarna gewone rangfusie. De eerste die is ingesteld en antwoordt, wint.",
+    "admin_ai_config.rerank_provider_model": "Rerank-model",
+    "admin_ai_config.rerank_provider_model_placeholder": "Model-id, bijvoorbeeld Qwen/Qwen3-VL-Reranker-8B",
+    "admin_ai_config.rerank_provider_none": "Geen provider",
+    "admin_ai_config.rerank_provider_save_failed": "Herrangschikken via provider opslaan mislukt",
+    "admin_ai_config.rerank_provider_saved": "Herrangschikken via provider opgeslagen!",
+    "admin_ai_config.rerank_provider_select": "Rerank-provider",
+    "admin_ai_config.rerank_provider_select_model": "Kies een model...",
+    "admin_ai_config.rerank_provider_title": "Provider (OpenAI/Cohere-stijl /rerank)",
+    "admin_ai_config.rerank_provider_turn_off": "Uitzetten",
+    "admin_ai_config.ionos_hint": "Open-weight modellen, door IONOS gehost in Duitsland (AI Model Hub): chat, embeddings en herrangschikken, afgerekend per token. Herrangschikken stel je apart in onder Reranker."
   },
   "sameAsEnglish": [
     "admin_ai_config.azure_subtitle",

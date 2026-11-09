@@ -21,7 +21,9 @@ const ClaudeProvider = require('./claude');
 const GoogleProvider = require('./google');
 const GoogleVertexProvider = require('./googleVertex');
 const AzureProvider = require('./azure');
+const CatalogProvider = require('./catalogProvider');
 const ScalewayProvider = require('./scaleway');
+const IonosProvider = require('./ionos');
 const EuGptProvider = require('./eugpt');
 const LocalProvider = require('./local');
 const BaseProvider = require('./base');
@@ -40,7 +42,7 @@ const { outsideProbe } = require('../http/egressCapture');
 // `super.chat()` just leaves an already empty context once more.
 const MODEL_CALLS = ['chat', 'stream', 'listModels'];
 for (const Provider of [BaseProvider, OpenAIProvider, MistralProvider, ClaudeProvider, GoogleProvider,
-    GoogleVertexProvider, AzureProvider, ScalewayProvider, EuGptProvider, LocalProvider]) {
+    GoogleVertexProvider, AzureProvider, CatalogProvider, ScalewayProvider, IonosProvider, EuGptProvider, LocalProvider]) {
     for (const method of MODEL_CALLS) {
         const own = Object.prototype.hasOwnProperty.call(Provider.prototype, method) ? Provider.prototype[method] : null;
         if (typeof own !== 'function' || own.outsideProbe === true) continue;
@@ -60,6 +62,7 @@ const googleAdapter = new GoogleProvider();
 const googleVertexAdapter = new GoogleVertexProvider();
 const azureAdapter = new AzureProvider();
 const scalewayAdapter = new ScalewayProvider();
+const ionosAdapter = new IonosProvider();
 const eugptAdapter = new EuGptProvider();
 const baseAdapter = new BaseProvider('generic');
 
@@ -77,6 +80,7 @@ const PROVIDER_MAP = {
     'google-vertex': googleVertexAdapter,
     'azure': azureAdapter,
     'scaleway': scalewayAdapter,
+    'ionos': ionosAdapter,
     'eugpt': eugptAdapter,
     ...localAdapters,
     // 'local' is the umbrella type older configs / imports may carry; it maps
@@ -97,6 +101,7 @@ const URL_PATTERNS = [
     // Serverless Generative APIs and the per-project variant
     // (api.scaleway.ai/<project-id>/v1) share one host.
     { pattern: /api\.scaleway\.ai/i, adapter: scalewayAdapter },
+    { pattern: /inference\..*ionos\.com/i, adapter: ionosAdapter },
     // api.eugpt.ai is the API; chat.eugpt.ai (the web app) still resolves here
     // so a provider saved with the old URL keeps its adapter until it is moved.
     { pattern: /(^|\/\/|\.)eugpt\.ai(:|\/|$)/i, adapter: eugptAdapter },
@@ -160,6 +165,7 @@ module.exports = {
     googleVertexAdapter,
     azureAdapter,
     scalewayAdapter,
+    ionosAdapter,
     eugptAdapter,
     baseAdapter,
     localAdapters,
@@ -174,6 +180,7 @@ module.exports = {
     GoogleVertexProvider,
     AzureProvider,
     ScalewayProvider,
+    IonosProvider,
     EuGptProvider,
     LocalProvider,
     BaseProvider,

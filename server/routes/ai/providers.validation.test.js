@@ -111,7 +111,7 @@ test('the Local Models card\'s own request is accepted', async () => {
 });
 
 test('a type the adapter factory knows is accepted without a second list here', async () => {
-    for (const type of ['claude', 'google-vertex', 'scaleway', 'local', 'openai-compatible']) {
+    for (const type of ['claude', 'google-vertex', 'scaleway', 'ionos', 'local', 'openai-compatible']) {
         touched.length = 0;
         const res = await dispatch({ method: 'POST', url: '/providers', body: { name: type, type, url: 'https://x.example/v1' } });
         assert.strictEqual(res.statusCode, 201, `${type}: ${JSON.stringify(res.body)}`);

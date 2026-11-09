@@ -11,7 +11,7 @@ description: Why every LLM provider is a file in server/core/providers, why Olla
 ## Context
 
 Bee Flow talks to Anthropic, OpenAI, Google (API and Vertex), Azure, Mistral, Scaleway,
-EU GPT and a growing list of self-hosted runtimes. Each differs in request shape, token
+IONOS, EU GPT and a growing list of self-hosted runtimes. Each differs in request shape, token
 accounting and streaming. Early on, provider-specific code appeared wherever a model was
 called, and a self-hosted endpoint was recognised by the look of its URL.
 
@@ -20,7 +20,10 @@ called, and a self-hosted endpoint was recognised by the look of its URL.
 Every provider is one file in `server/core/providers/`, created through the factory in
 `index.js`; orchestration (`server/core/llm/`) never branches on a provider name. An
 OpenAI-compatible provider holds only its differences (Scaleway: per-model reasoning
-vocabulary, a `max_tokens` cap, usage in the stream). All self-hosted runtimes are one
+vocabulary, a `max_tokens` cap, usage in the stream; IONOS: models matched by
+normalised name, exact price keys). The provider files are `claude.js`, `openai.js`,
+`google.js`, `googleVertex.js`, `azure.js`, `mistral.js`, `scaleway.js`, `ionos.js`,
+`eugpt.js` and `local.js`. All self-hosted runtimes are one
 adapter, `local.js`, with an instance per flavour; adding a runtime is one entry in
 `LOCAL_RUNTIMES`, and the factory, presets, admin UI and autodetection follow from it.
 

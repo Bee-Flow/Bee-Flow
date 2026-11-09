@@ -83,7 +83,7 @@ const TOOL_KEY = /^[a-z][a-z0-9_]{0,39}$/;
 // Which adapter produced the usage, when the adapter says so (today: Azure, whose
 // deployment names carry no model). Closed list: a provider cannot name itself
 // anything else, and the value only steers which price card is looked up.
-const PROVIDER_TYPES = new Set(['claude', 'openai', 'azure', 'google', 'google-vertex', 'mistral', 'scaleway', 'eugpt']);
+const PROVIDER_TYPES = new Set(['claude', 'openai', 'azure', 'google', 'google-vertex', 'mistral', 'scaleway', 'ionos', 'eugpt']);
 
 /** Non-negative integer (at most MAX_COUNT) from anything numeric, else 0. */
 function num(v) {

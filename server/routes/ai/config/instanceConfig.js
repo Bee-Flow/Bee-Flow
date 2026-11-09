@@ -32,7 +32,7 @@ const cfgText = worded('A setting is text.').max(100_000, 'A setting is at most 
 const cfgFlag = flag('An on/off setting is true or false.').nullish();
 const ConfigBody = bodyOf({
     url: cfgText, model: cfgText, apiKey: cfgText, mistralApiKey: cfgText, openaiApiKey: cfgText,
-    claudeApiKey: cfgText, googleApiKey: cfgText, eugptApiKey: cfgText, elevenlabsApiKey: cfgText, googleVertexProject: cfgText,
+    claudeApiKey: cfgText, googleApiKey: cfgText, eugptApiKey: cfgText, ionosApiKey: cfgText, elevenlabsApiKey: cfgText, googleVertexProject: cfgText,
     googleVertexLocation: cfgText, googleVertexServiceAccountKey: cfgText, azureEndpoint: cfgText,
     // azureApiVersion: accepted and ignored (Azure runs on v1 GA; old clients send it).
     azureApiKey: cfgText, azureApiVersion: cfgText, agentSearchUrl: cfgText, lakeraApiKey: cfgText,
@@ -41,7 +41,7 @@ const ConfigBody = bodyOf({
     azureOpenaiEmbeddingEndpoint: cfgText, azureOpenaiEmbeddingKey: cfgText,
     azureOpenaiEmbeddingModel: cfgText, serviceEmailDisplayName: cfgText, azureSpeechKey: cfgText,
     azureSpeechRegion: cfgText, transcriptionProvider: cfgText, azureRerankerEndpoint: cfgText,
-    azureRerankerKey: cfgText, azureRerankerModel: cfgText, stripeSecretKey: cfgText,
+    azureRerankerKey: cfgText, azureRerankerModel: cfgText, rerankProviderId: cfgText, rerankModel: cfgText, stripeSecretKey: cfgText,
     stripeWebhookSecret: cfgText, stripePublishableKey: cfgText, stripeTaxCountry: cfgText,
     subscriptionNotifyEmail: cfgText, searchProvider: cfgText, kbProvider: cfgText, bingSearchKey: cfgText,
     bingSearchMarket: cfgText, linkedinClientId: cfgText, linkedinClientSecret: cfgText,
@@ -91,6 +91,7 @@ router.get('/config', requireAuth, async (req, res) => {
         hasClaudeKey: !!(await configStore.getSecret('claude_api_key')),
         hasGoogleKey: !!(await configStore.getSecret('google_api_key')),
         hasEuGptKey: !!(await configStore.getSecret('eugpt_api_key')),
+        hasIonosKey: !!(await configStore.getSecret('ionos_api_key')),
         hasElevenLabsKey: !!(await configStore.getSecret('elevenlabs_api_key')),
         hasGoogleVertexProject: !!(await configStore.getConfig('google_vertex_project')),
         googleVertexLocation: await configStore.getConfig('google_vertex_location') || 'europe-west4',
@@ -156,6 +157,9 @@ router.get('/config', requireAuth, async (req, res) => {
         hasAzureRerankerEndpoint: !!(await configStore.getConfig('azure_reranker_endpoint')),
         hasAzureRerankerKey: !!(await configStore.getSecret('azure_reranker_key')),
         azureRerankerModel: await configStore.getConfig('azure_reranker_model') || 'Cohere-rerank-v4.0-fast',
+        // Provider rerank tier: an LLM provider record + a rerank model (OpenAI/Cohere-style /v1/rerank).
+        rerankProviderId: await configStore.getConfig('rerank_provider_id') || null,
+        rerankModel: await configStore.getConfig('rerank_model') || null,
         // Service Email (Gmail OAuth) — "configured" means a Google account is
         // connected (token blob present), not that an App Password was saved.
         hasServiceEmail: !!(await configStore.getConfig('service_email_address')) && !!(await configStore.getSecret('service_email_oauth_tokens')),
@@ -204,7 +208,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @
     if (!(await isAdminUser(req))) {
         return res.status(403).json({ error: 'Admin access required' });
     }
-    const { url, model, apiKey, mistralApiKey, openaiApiKey, claudeApiKey, googleApiKey, eugptApiKey, elevenlabsApiKey, googleVertexProject, googleVertexLocation, googleVertexServiceAccountKey, azureEndpoint, azureApiKey, azureModels, agentSearchUrl, lakeraApiKey, regexGuardrails, piiDetectionEnabled, piiDetectionCategories, piiDetectionConfidenceThreshold, piiDetectionScope, piiDetectionAction, embeddingModel, embeddingProviderId, allowedModelsByAgentType, directChatRegexGuardrails, googleMapsApiKey, serperApiKey, azureDocIntelligenceEndpoint, azureDocIntelligenceKey, azureOpenaiEmbeddingEndpoint, azureOpenaiEmbeddingKey, azureOpenaiEmbeddingModel, useAzureDocProcessing, serviceEmailDisplayName, azureSpeechKey, azureSpeechRegion, transcriptionProvider, notebooksEnabled, projectsEnabled, askAiEnabled, exportEnabled, openInNotebookEnabled, notebooksMenuEnabled, azureRerankerEndpoint, azureRerankerKey, azureRerankerModel, stripeSecretKey, stripeWebhookSecret, stripePublishableKey, stripeEnabled, stripeTaxEnabled, stripeTaxCountry, subscriptionNotifyEmail } = req.body;
+    const { url, model, apiKey, mistralApiKey, openaiApiKey, claudeApiKey, googleApiKey, eugptApiKey, ionosApiKey, elevenlabsApiKey, googleVertexProject, googleVertexLocation, googleVertexServiceAccountKey, azureEndpoint, azureApiKey, azureModels, agentSearchUrl, lakeraApiKey, regexGuardrails, piiDetectionEnabled, piiDetectionCategories, piiDetectionConfidenceThreshold, piiDetectionScope, piiDetectionAction, embeddingModel, embeddingProviderId, allowedModelsByAgentType, directChatRegexGuardrails, googleMapsApiKey, serperApiKey, azureDocIntelligenceEndpoint, azureDocIntelligenceKey, azureOpenaiEmbeddingEndpoint, azureOpenaiEmbeddingKey, azureOpenaiEmbeddingModel, useAzureDocProcessing, serviceEmailDisplayName, azureSpeechKey, azureSpeechRegion, transcriptionProvider, notebooksEnabled, projectsEnabled, askAiEnabled, exportEnabled, openInNotebookEnabled, notebooksMenuEnabled, azureRerankerEndpoint, azureRerankerKey, azureRerankerModel, rerankProviderId, rerankModel, stripeSecretKey, stripeWebhookSecret, stripePublishableKey, stripeEnabled, stripeTaxEnabled, stripeTaxCountry, subscriptionNotifyEmail } = req.body;
     // The instance-wide PII action. It was stored as given, and 'allow' — a
     // per-call override for trusted first-party flows in piiDetection/validate
     // — makes the scan skip entirely, for every org that falls back to this
@@ -424,6 +428,13 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @
     if (azureRerankerModel !== undefined) {
         await configStore.setConfig('azure_reranker_model', azureRerankerModel || 'Cohere-rerank-v4.0-fast');
     }
+    // Provider rerank tier (both empty/null = off)
+    if (rerankProviderId !== undefined) {
+        await configStore.setConfig('rerank_provider_id', rerankProviderId || '');
+    }
+    if (rerankModel !== undefined) {
+        await configStore.setConfig('rerank_model', rerankModel || '');
+    }
     // Stripe Payment Integration
     if (stripeSecretKey !== undefined) {
         await configStore.setSecret('stripe_secret_key', stripeSecretKey || '');
@@ -469,6 +480,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @
         claudeApiKey: claudeApiKey !== undefined ? claudeApiKey : undefined,
         googleApiKey: googleApiKey !== undefined ? googleApiKey : undefined,
         eugptApiKey: eugptApiKey !== undefined ? eugptApiKey : undefined,
+        ionosApiKey: ionosApiKey !== undefined ? ionosApiKey : undefined,
         elevenlabsApiKey: elevenlabsApiKey !== undefined ? elevenlabsApiKey : undefined,
         googleVertexProject: googleVertexProject !== undefined ? googleVertexProject : undefined,
         googleVertexLocation: googleVertexLocation !== undefined ? googleVertexLocation : undefined,
@@ -504,7 +516,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @
 
 // Whitelist of keys that can be deleted via this endpoint
 const DELETABLE_KEYS = [
-    'openai_api_key', 'claude_api_key', 'google_api_key', 'mistral_api_key', 'eugpt_api_key',
+    'openai_api_key', 'claude_api_key', 'google_api_key', 'mistral_api_key', 'eugpt_api_key', 'ionos_api_key',
     'elevenlabs_api_key', 'serper_api_key', 'google_maps_api_key',
     'google_vertex_service_account_key', 'azure_api_key', 'azure_content_safety_key',
     'azure_doc_intelligence_key', 'azure_openai_embedding_key', 'azure_speech_key',
@@ -538,6 +550,7 @@ const DELETABLE_CONFIG_KEYS = [
     'azure_openai_embedding_endpoint', 'azure_openai_embedding_model',
     'azure_speech_region', 'agent_search_url', 'service_email_address',
     'service_email_display_name', 'azure_reranker_endpoint', 'azure_reranker_model',
+    'rerank_provider_id', 'rerank_model',
     'stripe_publishable_key', 'stripe_tax_country', 'scaleway_url', 'scaleway_model',
     'pyannote_transcription_model', 'pyannote_identify_threshold',
 ];

@@ -79,6 +79,7 @@ test('provider spellings normalise (anthropic -> claude, vertex -> google-vertex
     assert.strictEqual(catalog.normalizeProvider('Anthropic'), 'claude');
     assert.strictEqual(catalog.normalizeProvider('vertex'), 'google-vertex');
     assert.strictEqual(catalog.normalizeProvider('gemini'), 'google');
+    assert.strictEqual(catalog.normalizeProvider('ionos'), 'ionos');
     assert.strictEqual(catalog.normalizeProvider('local'), null, 'local is never priced from the catalogue');
     assert.strictEqual(catalog.normalizeProvider('__proto__'), null);
     assert.strictEqual(catalog.normalizeProvider('constructor'), null);

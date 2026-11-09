@@ -233,6 +233,7 @@ const sidebars: SidebarsConfig = {
             'admin/usage-and-adoption',
             'admin/local-models',
             'admin/scaleway-models',
+            'admin/ionos-models',
             'admin/limits-and-self-host',
             'admin/beta-features',
           ],

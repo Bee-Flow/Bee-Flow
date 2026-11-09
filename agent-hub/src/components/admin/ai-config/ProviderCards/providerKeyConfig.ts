@@ -1,5 +1,5 @@
 // Per-provider metadata for the simple "one API key" provider cards
-// (Claude, OpenAI, Google AI, Mistral, Scaleway, EU GPT, ElevenLabs). Each entry drives one
+// (Claude, OpenAI, Google AI, Mistral, Scaleway, EU GPT, IONOS, ElevenLabs). Each entry drives one
 // <ProviderApiKeyCard/>; the card files themselves are thin wrappers around
 // it. Fields:
 //
@@ -86,6 +86,18 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         placeholder: 'Enter your Scaleway secret key',
         docsUrl: 'https://console.scaleway.com/iam/api-keys',
         docsLabel: 'console.scaleway.com'
+    },
+    ionos: {
+        name: 'IONOS',
+        statusField: 'hasIonosKey',
+        bodyField: 'ionosApiKey',
+        deleteSlug: 'ionos_api_key',
+        icon: '🇪🇺',
+        iconBackground: 'rgba(0, 61, 142, 0.15)',
+        description: 'EU-hosted (Germany) open-weight models: chat, embeddings and reranking (AI Model Hub)',
+        placeholder: 'Enter your IONOS AI Model Hub API token',
+        docsUrl: 'https://docs.ionos.com/cloud/ai/ai-model-hub',
+        docsLabel: 'docs.ionos.com'
     },
     eugpt: {
         name: 'EU GPT',

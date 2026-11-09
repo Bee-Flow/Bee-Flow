@@ -119,6 +119,8 @@ test('Mistral SDK camelCase and local num_cached_tokens are read', () => {
     assert.deepStrictEqual([m.prompt_tokens, m.completion_tokens, m.total_tokens, m.cached_tokens], [40, 10, 50, 25]);
     const l = normalizeUsage('scaleway', { prompt_tokens: 8, completion_tokens: 2, num_cached_tokens: 6 });
     assert.strictEqual(l.cached_tokens, 6);
+    const i = normalizeUsage('ionos', { prompt_tokens: 8, completion_tokens: 2, num_cached_tokens: 6 });
+    assert.deepStrictEqual([i.prompt_tokens, i.completion_tokens, i.cached_tokens], [8, 2, 6]);
 });
 
 // ─── Gemini / Vertex ────────────────────────────────────────────────

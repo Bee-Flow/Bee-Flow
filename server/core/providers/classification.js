@@ -55,6 +55,7 @@ const EXTERNAL_URL_PATTERNS = [
     /together\.xyz/i,
     /fireworks\.ai/i,
     /perplexity\.ai/i,
+    /inference\..*ionos\.com/i,
 ];
 
 // Private-network / local-host patterns. If the URL matches one of these it's

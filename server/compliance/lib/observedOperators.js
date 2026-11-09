@@ -68,6 +68,8 @@ const ALIASES = {
     azure: 'microsoft',
     'azure-openai': 'microsoft',
     'azure openai': 'microsoft',
+    'ionos se': 'ionos',
+    'ionos cloud': 'ionos',
     aws: 'amazon',
     'amazon aws': 'amazon',
 };

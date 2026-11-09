@@ -34,6 +34,7 @@ describe('shortModel', () => {
     it('drops the provider prefix and the dated snapshot', () => {
         expect(shortModel('openai/gpt-4o-2024-08-06')).toBe('gpt-4o');
         expect(shortModel('anthropic/claude-x')).toBe('claude-x');
+        expect(shortModel('ionos/BAAI/bge-m3')).toBe('BAAI/bge-m3');
         expect(shortModel(null)).toBe('Unknown');
     });
 });

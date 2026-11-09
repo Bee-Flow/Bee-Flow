@@ -381,6 +381,14 @@
    },
    {
     "via": "getConfig",
+    "k": "rerank_provider_id"
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_model"
+   },
+   {
+    "via": "getConfig",
     "k": "azure_reranker_endpoint"
    },
    {
@@ -544,6 +552,14 @@
    },
    {
     "via": "getConfig",
+    "k": "rerank_provider_id"
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_model"
+   },
+   {
+    "via": "getConfig",
     "k": "azure_reranker_endpoint"
    },
    {
@@ -684,6 +700,14 @@
    {
     "via": "client",
     "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_provider_id"
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_model"
    },
    {
     "via": "getConfig",
@@ -873,6 +897,14 @@
    },
    {
     "via": "getConfig",
+    "k": "rerank_provider_id"
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_model"
+   },
+   {
+    "via": "getConfig",
     "k": "azure_reranker_endpoint"
    },
    {
@@ -1051,6 +1083,14 @@
    },
    {
     "via": "getConfig",
+    "k": "rerank_provider_id"
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_model"
+   },
+   {
+    "via": "getConfig",
     "k": "azure_reranker_endpoint"
    },
    {
@@ -1175,6 +1215,14 @@
    {
     "via": "client",
     "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_provider_id"
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_model"
    },
    {
     "via": "getConfig",
@@ -1318,6 +1366,14 @@
    {
     "via": "client",
     "release": true
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_provider_id"
+   },
+   {
+    "via": "getConfig",
+    "k": "rerank_model"
    },
    {
     "via": "getConfig",

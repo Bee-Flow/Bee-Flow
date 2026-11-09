@@ -20,6 +20,7 @@ export interface ModelEntry {
     local?: boolean;
     scaleway?: boolean;
     eugpt?: boolean;
+    ionos?: boolean;
 }
 
 /** `allowedModelsByAgentType` from `GET /ai/config`: agent type → allowed model ids. */
@@ -206,10 +207,10 @@ const formatModelId = (id: string): string => {
     return name.split('-').map((part: string) => /^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 };
 
-// Models whose label the server already produced: self-hosted tags, Scaleway
-// and EU GPT catalog entries.
+// Models whose label the server already produced: self-hosted tags, Scaleway,
+// IONOS and EU GPT catalog entries.
 const hasServerLabel = (model: string | ModelEntry): model is ModelEntry =>
-    typeof model === 'object' && !!(model?.local || model?.scaleway || model?.eugpt);
+    typeof model === 'object' && !!(model?.local || model?.scaleway || model?.eugpt || model?.ionos);
 
 // A server-provided name that adds something over the raw id (object form only).
 const distinctServerName = (model: string | ModelEntry, id: string): string | undefined =>
@@ -337,7 +338,7 @@ export const filterVisibleModels = (models: ModelEntry[], agentType: string | nu
     // frontend would hide every new model until the next release. EU GPT's
     // single routed model is admitted on its `eugpt` flag for the same reason.
     let filtered = models
-        .filter((m: ModelEntry) => !hiddenModels[m.id] && (m.local || m.scaleway || m.eugpt || VISIBLE_MODELS.has(m.id)));
+        .filter((m: ModelEntry) => !hiddenModels[m.id] && (m.local || m.scaleway || m.eugpt || m.ionos || VISIBLE_MODELS.has(m.id)));
 
     // Apply per-agent-type restrictions if provided
     if (agentType && allowedConfig) {
@@ -348,11 +349,11 @@ export const filterVisibleModels = (models: ModelEntry[], agentType: string | nu
     }
 
     return filtered.map((m: ModelEntry) => {
-        // Models the server described (self-hosted, Scaleway, EU GPT) carry their own
+        // Models the server described (self-hosted, Scaleway, IONOS, EU GPT) carry their own
         // metadata and must not be re-labelled by getModelMeta's fuzzy prefix
         // match — "mistral-medium-3.5-128b" starts with "mistral-medium" and
         // would come back named after a different, Mistral-hosted model.
-        const serverDescribed = !!(m.local || m.scaleway || m.eugpt);
+        const serverDescribed = !!(m.local || m.scaleway || m.eugpt || m.ionos);
         const meta = serverDescribed ? null : (MISTRAL_MODEL_META[m.id] || getModelMeta(m.id));
         // Pass the model object (not the bare id) so a self-hosted model keeps
         // the label and category the server derived for it.
