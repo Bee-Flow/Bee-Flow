@@ -3166,3 +3166,14 @@ adoption.notes_who_link
 adoption.notes_who_title
 usage.compare_previous
 adoption.export_csv
+admin_ai_config.apikey_configured
+admin_ai_config.apikey_title
+admin_ai_config.azure_title
+admin_ai_config.configured
+admin_ai_config.endpoint_pill
+admin_ai_config.fully_configured
+admin_ai_config.key_pill
+admin_ai_config.local_connected_count
+admin_ai_config.local_title
+admin_ai_config.vertex_project_pill
+admin_ai_config.vertex_title

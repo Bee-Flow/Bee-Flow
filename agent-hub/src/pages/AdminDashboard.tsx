@@ -288,7 +288,7 @@ function AdminDashboardSection({ isTabAllowed, renderAccessDenied, activeTab, us
             ) : activeTab === 'ai-config' ? (
                 <div className="absolute inset-0 overflow-hidden p-6">
                     <div className="h-full mx-auto max-w-full">
-                        <AIConfigPanel />
+                        <AIConfigPanel activeSection={adminPath.seg2} activeProvider={adminPath.seg3} onNavigate={onNavigate} />
                     </div>
                 </div>
             ) : activeTab === 'security' ? (

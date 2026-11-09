@@ -6,6 +6,7 @@ import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
+import Section from '@/components/shared/Section';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface ClassifierModelSectionProps extends ModelPickerSource {
@@ -22,16 +23,7 @@ export default function ClassifierModelSection({
 }: ClassifierModelSectionProps) {
     const { t } = useTranslation();
     return (
-            <div className="p-4 sm:p-6 rounded-xl border [background:var(--bg-secondary)] [border-color:var(--border-default)]">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl [background:rgba(99,102,241,0.15)]">🔀</div>
-                    <div>
-                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_cls_title', 'Auto-tier Classifier Model')}</h3>
-                        <p className="text-xs text-[var(--text-muted)]">
-                            {t('admin_ai_config.tier_cls_hint', 'Picks the model used to classify Auto-tier prompts. Choose the cheapest, fastest model: classification only needs ~8 tokens of output. Defaults to the Fast tier model when unset.')}
-                        </p>
-                    </div>
-                </div>
+            <Section title={t('admin_ai_config.tier_cls_title', 'Auto-tier Classifier Model')} description={t('admin_ai_config.tier_cls_hint', 'Picks the model used to classify Auto-tier prompts. Choose the cheapest, fastest model: classification only needs ~8 tokens of output. Defaults to the Fast tier model when unset.')}>
 
                 {classifierMessage && (
                     <div className={`mb-4 p-3 rounded-lg text-sm ${classifierMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -39,7 +31,7 @@ export default function ClassifierModelSection({
                     </div>
                 )}
 
-                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
+                <div>
                     <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide text-[var(--text-muted)]">
                         {t('admin_ai_config.tier_cls_label', 'Classifier model')}
                     </label>
@@ -69,6 +61,6 @@ export default function ClassifierModelSection({
                 >
                     {classifierSaving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_cls_save', 'Save Classifier Model')}
                 </button>
-            </div>
+            </Section>
     );
 }

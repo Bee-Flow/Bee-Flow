@@ -10,6 +10,7 @@ import type { TierConfigsState } from './useTierConfigs';
 import { TIERS } from './constants';
 import CustomTierEuRow from './CustomTierEuRow';
 import TierCard from './TierCard';
+import Section from '@/components/shared/Section';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface EuTiersSectionProps extends ModelPickerSource {
@@ -35,16 +36,7 @@ export default function EuTiersSection({
 }: EuTiersSectionProps) {
     const { t } = useTranslation();
     return (
-            <div className="p-4 sm:p-6 rounded-xl border [background:var(--bg-secondary)] [border-color:var(--border-default)]">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl [background:rgba(0,51,153,0.15)]">🇪🇺</div>
-                    <div>
-                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_eu_title', 'EU Chat Model Tiers')}</h3>
-                        <p className="text-xs text-[var(--text-muted)]">
-                            {t('admin_ai_config.tier_eu_subtitle', 'EU-hosted models used when an organization has EU mode enabled in their Privacy Shield')}
-                        </p>
-                    </div>
-                </div>
+            <Section title={t('admin_ai_config.tier_eu_title', 'EU Chat Model Tiers')} description={t('admin_ai_config.tier_eu_subtitle', 'EU-hosted models used when an organization has EU mode enabled in their Privacy Shield')}>
 
                 {euMessage && (
                     <div className={`mb-4 p-3 rounded-lg text-sm ${euMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -105,6 +97,6 @@ export default function EuTiersSection({
                 >
                     {euSaving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_eu_save', 'Save EU Tier Configuration')}
                 </button>
-            </div>
+            </Section>
     );
 }

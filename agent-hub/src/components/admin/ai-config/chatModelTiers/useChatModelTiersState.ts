@@ -10,20 +10,22 @@ import useClaudeSettings from './useClaudeSettings';
 import useCustomTiers from './useCustomTiers';
 import useModelSetting from './useModelSetting';
 import useTierConfigs from './useTierConfigs';
+import { useTranslation } from '@/hooks/useTranslation';
 import useConfirm from '@/components/shared/useConfirm';
 
 export default function useChatModelTiersState(allModels: CatalogModel[]) {
+    const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const custom = useCustomTiers(confirm);
     const tiers = useTierConfigs(custom.customTiers, custom.setCustomTiers);
-    const classifier = useModelSetting('auto-classifier', { noun: 'classifier model', saved: 'Classifier model saved' });
-    const title = useModelSetting('title-model', { noun: 'title model', saved: 'Title model saved' });
-    const memory = useModelSetting('memory-extraction-model', { noun: 'memory extraction model', saved: 'Memory extraction model saved' });
+    const classifier = useModelSetting('auto-classifier', { noun: 'classifier model', saved: t('admin_ai_config.model_saved_classifier', 'Classifier model saved'), failed: t('admin_ai_config.model_save_failed_classifier', 'Failed to save classifier model') });
+    const title = useModelSetting('title-model', { noun: 'title model', saved: t('admin_ai_config.model_saved_title', 'Title model saved'), failed: t('admin_ai_config.model_save_failed_title', 'Failed to save title model') });
+    const memory = useModelSetting('memory-extraction-model', { noun: 'memory extraction model', saved: t('admin_ai_config.model_saved_memory', 'Memory extraction model saved'), failed: t('admin_ai_config.model_save_failed_memory', 'Failed to save memory extraction model') });
     // TEMPORARY ai_step override — same contract as the memory model, one key.
-    const aiStep = useModelSetting('ai-step-model', { noun: 'AI step model', saved: 'AI step model saved' });
+    const aiStep = useModelSetting('ai-step-model', { noun: 'AI step model', saved: t('admin_ai_config.model_saved_aistep', 'AI step model saved'), failed: t('admin_ai_config.model_save_failed_aistep', 'Failed to save AI step model') });
     // The automation Extract data step's own model — same contract, key
     // `data_extraction_model`. Separate from the ai_step override on purpose.
-    const dataExtraction = useModelSetting('data-extraction-model', { noun: 'data extraction model', saved: 'Data extraction model saved' });
+    const dataExtraction = useModelSetting('data-extraction-model', { noun: 'data extraction model', saved: t('admin_ai_config.model_saved_dx', 'Data extraction model saved'), failed: t('admin_ai_config.model_save_failed_dx', 'Failed to save data extraction model') });
     const hidden = useHiddenModels();
     const claude = useClaudeSettings(tiers.config, tiers.setConfig);
 

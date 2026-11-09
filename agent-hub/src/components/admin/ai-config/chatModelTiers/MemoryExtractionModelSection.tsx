@@ -12,6 +12,7 @@ import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
+import Section from '@/components/shared/Section';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface MemoryExtractionModelSectionProps extends ModelPickerSource {
@@ -28,16 +29,7 @@ export default function MemoryExtractionModelSection({
 }: MemoryExtractionModelSectionProps) {
     const { t } = useTranslation();
     return (
-            <div className="p-4 sm:p-6 rounded-xl border [background:var(--bg-secondary)] [border-color:var(--border-default)]">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl [background:rgba(139,92,246,0.15)]">🧠</div>
-                    <div>
-                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_mem_title', 'Memory Extraction Model')}</h3>
-                        <p className="text-xs text-[var(--text-muted)]">
-                            {t('admin_ai_config.tier_mem_hint', 'Model that reads each finished exchange for facts worth remembering: a small background call after every reply, thinking off. On a self-hosted single-slot server pick a tiny model here so extraction never queues in front of the next turn. Defaults to the Fast tier model when unset.')}
-                        </p>
-                    </div>
-                </div>
+            <Section title={t('admin_ai_config.tier_mem_title', 'Memory Extraction Model')} description={t('admin_ai_config.tier_mem_hint', 'Model that reads each finished exchange for facts worth remembering: a small background call after every reply, thinking off. On a self-hosted single-slot server pick a tiny model here so extraction never queues in front of the next turn. Defaults to the Fast tier model when unset.')}>
 
                 {memoryModelMessage && (
                     <div className={`mb-4 p-3 rounded-lg text-sm ${memoryModelMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -45,7 +37,7 @@ export default function MemoryExtractionModelSection({
                     </div>
                 )}
 
-                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
+                <div>
                     <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide text-[var(--text-muted)]">
                         {t('admin_ai_config.tier_mem_label', 'Memory extraction model')}
                     </label>
@@ -75,6 +67,6 @@ export default function MemoryExtractionModelSection({
                 >
                     {memoryModelSaving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_mem_save', 'Save Memory Extraction Model')}
                 </button>
-            </div>
+            </Section>
     );
 }

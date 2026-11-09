@@ -1,13 +1,9 @@
 import React from 'react';
 
 /**
- * Presentational shell for an AIConfig provider card: the bordered card
- * container + header (gradient icon tile, title, subtitle, status pills). The
- * card body (inputs + footer) is passed as `children`. Data plumbing stays in
- * each card (useProviderConfig / SecretInput / DeleteConfirmButtons).
- *
- * Extracted from AzureCard / RerankerConfig / EmbeddingsConfig / … which each
- * re-declared the identical container + header markup.
+ * Shared bits of the provider panes: the input styling and the small status
+ * pill. The card shell that used to live here is gone: a provider's header is
+ * providers/PaneHeader.tsx and its body sits in a Section.
  */
 
 // Shared input styling for the plain text inputs across provider cards.
@@ -31,36 +27,7 @@ interface ProviderStatusPillProps {
     children?: React.ReactNode;
 }
 
-interface ProviderCardShellProps {
-    icon?: React.ReactNode;
-    iconGradient?: string;
-    title?: React.ReactNode;
-    subtitle?: React.ReactNode;
-    badges?: React.ReactNode;
-    children?: React.ReactNode;
-}
-
 /** A small rounded status pill (Endpoint / Key / model badges). */
 export const ProviderStatusPill = ({ tone = 'green', children }: ProviderStatusPillProps) => (
     <span className={`text-[10px] px-2 py-0.5 rounded-full ${TONE_CLS[tone] || TONE_CLS.green}`}>{children}</span>
 );
-
-export default function ProviderCardShell({ icon, iconGradient, title, subtitle, badges, children }: ProviderCardShellProps) {
-    return (
-        <div className="mb-6 p-5 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-default)]">
-            <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style={{ background: iconGradient }}>
-                    {icon}
-                </div>
-                <div className="flex-1">
-                    <h4 className="font-medium text-[var(--text-primary)]">{title}</h4>
-                    <p className="text-xs text-[var(--text-muted)]">{subtitle}</p>
-                </div>
-                {badges && <div className="flex gap-1.5">{badges}</div>}
-            </div>
-            <div className="space-y-3">
-                {children}
-            </div>
-        </div>
-    );
-}

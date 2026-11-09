@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
+import SectionHeader from './SectionHeader';
+import Section from '@/components/shared/Section';
+import Toggle from '@/components/shared/Toggle';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import { API_BASE } from '@/utils/helpers';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
@@ -102,13 +105,11 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
     ];
 
     return (
-        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_title', 'Limits & Self-host')}</h3>
-                <p className="text-sm mt-1 text-[var(--text-muted)]">
-                    {t('admin_ai_config.limits_subtitle', 'Runtime caps and routing for self-hosted deployments. Background agents (AI tasks, swarms, browser, automation builder) keep their own internal limits and are out of scope.')}
-                </p>
-            </div>
+        <div className="space-y-4">
+            <SectionHeader
+                title={t('admin_ai_config.limits_title', 'Limits & Self-host')}
+                description={t('admin_ai_config.limits_subtitle', 'Runtime caps and routing for self-hosted deployments. Background agents (AI tasks, swarms, browser, automation builder) keep their own internal limits and are out of scope.')}
+            />
 
             {message && (
                 <div className={`mb-4 p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -123,11 +124,10 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
             <LimitsConfigSection2 t={t} value={value} setValue={setValue} PER_SURFACE_DEFAULTS={PER_SURFACE_DEFAULTS} />
 
             {/* ── KB provider ──────────────────────────────────────────── */}
-            <div className="rounded-xl border p-4 mb-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-                <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_kbp_title', 'Knowledge-base provider')}</div>
-                <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
-                    {t('admin_ai_config.limits_kbp_hint', 'Where KB chunk retrieval and ranking happens. Local routes everything through the in-process pgvector + reranker pipeline; remote forwards to the external search-service.')}
-                </p>
+            <Section
+                title={t('admin_ai_config.limits_kbp_title', 'Knowledge-base provider')}
+                description={t('admin_ai_config.limits_kbp_hint', 'Where KB chunk retrieval and ranking happens. Local routes everything through the in-process pgvector + reranker pipeline; remote forwards to the external search-service.')}
+            >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {KB_OPTIONS.map((opt: { id: string; label: string; desc: string }) => {
                         const selected = kbProvider === opt.id;
@@ -155,28 +155,21 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
                         );
                     })}
                 </div>
-            </div>
+            </Section>
 
             {/* ── CPU reranker ─────────────────────────────────────────── */}
-            <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-                <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_cpu_title', 'In-process CPU reranker')}</div>
-                <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
-                    {t('admin_ai_config.limits_cpu_hint', 'When Azure Cohere reranker is not configured, fall back to the in-process Transformers.js cross-encoder (Xenova/bge-reranker-base, MIT, ~280 MB). First call downloads the model; subsequent calls run locally with no network round-trip.')}
-                </p>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={cpuRerankerEnabled}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => patch({ cpuRerankerEnabled: e.target.checked })}
-                        className="rounded"
-                    />
-                    <span className="text-sm text-[var(--text-primary)]">
-                        {t('admin_ai_config.limits_cpu_enable', 'Enable CPU cross-encoder reranker (recommended)')}
-                    </span>
-                </label>
-            </div>
+            <Section
+                title={t('admin_ai_config.limits_cpu_title', 'In-process CPU reranker')}
+                description={t('admin_ai_config.limits_cpu_hint', 'When Azure Cohere reranker is not configured, fall back to the in-process Transformers.js cross-encoder (Xenova/bge-reranker-base, MIT, ~280 MB). First call downloads the model; subsequent calls run locally with no network round-trip.')}
+            >
+                <Toggle
+                    checked={cpuRerankerEnabled}
+                    onChange={(next) => patch({ cpuRerankerEnabled: next })}
+                    label={t('admin_ai_config.limits_cpu_enable', 'Enable CPU cross-encoder reranker (recommended)')}
+                />
+            </Section>
 
-            <div className="mt-6 flex justify-end">
+            <div className="flex justify-end">
                 <button
                     onClick={handleSave}
                     disabled={saving}
@@ -193,11 +186,10 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
 export default LimitsConfig;
 
 function LimitsConfigSection2({ t, value, setValue, PER_SURFACE_DEFAULTS }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; value: string; setValue: React.Dispatch<React.SetStateAction<string>>; PER_SURFACE_DEFAULTS: { name: string; value: number; }[]; }) {
-    return <div className="rounded-xl border p-4 mb-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-        <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_rounds_title', 'Tool calls per chat turn')}</div>
-        <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
-            {t('admin_ai_config.limits_rounds_hint', 'Maximum number of tool-call rounds the model is allowed before it must produce a final answer. Applies uniformly to direct chat, notebook chat, webpage chat, and the native streaming loop.')}
-        </p>
+    return <Section
+        title={t('admin_ai_config.limits_rounds_title', 'Tool calls per chat turn')}
+        description={t('admin_ai_config.limits_rounds_hint', 'Maximum number of tool-call rounds the model is allowed before it must produce a final answer. Applies uniformly to direct chat, notebook chat, webpage chat, and the native streaming loop.')}
+    >
         <div className="flex items-center gap-3">
             <input
                 type="number"
@@ -224,15 +216,14 @@ function LimitsConfigSection2({ t, value, setValue, PER_SURFACE_DEFAULTS }: { t:
                 ))}
             </div>
         </div>
-    </div>;
+    </Section>;
 }
 
 function LimitsConfigSection({ t, onNavigateToTab, status, kbProvider, cpuRerankerEnabled }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigateToTab: ((tab: string) => void) | undefined; status: LimitsStatus; kbProvider: string; cpuRerankerEnabled: boolean; }) {
-    return <div className="rounded-xl border p-4 mb-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-        <div className="text-sm font-semibold mb-2 text-[var(--text-primary)]">{t('admin_ai_config.limits_status_title', 'Setup status')}</div>
-        <p className="text-xs mb-3 text-[var(--text-muted)]">
-            {t('admin_ai_config.limits_status_hint', 'What this server will use right now. Click a row to jump to the tab that controls it.')}
-        </p>
+    return <Section
+        title={t('admin_ai_config.limits_status_title', 'Setup status')}
+        description={t('admin_ai_config.limits_status_hint', 'What this server will use right now. Click a row to jump to the tab that controls it.')}
+    >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
             {/* Embedding model */}
             <button
@@ -289,5 +280,5 @@ function LimitsConfigSection({ t, onNavigateToTab, status, kbProvider, cpuRerank
                 </div>
             </button>
         </div>
-    </div>;
+    </Section>;
 }

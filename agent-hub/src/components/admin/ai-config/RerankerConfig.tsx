@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import type { ProviderCardProps } from './ProviderCards/ProviderApiKeyCard';
+import type { ProviderPaneProps } from './providers/types';
 import DeleteConfirmButtons from './ProviderCards/shared/DeleteConfirmButtons';
 import SecretInput from './ProviderCards/shared/SecretInput';
-import ProviderCardShell, { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './ProviderCards/shared/ProviderCardShell';
+import { PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './ProviderCards/shared/ProviderCardShell';
+import Section from '@/components/shared/Section';
 import useProviderConfig from '@/hooks/useProviderConfig';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -12,22 +13,7 @@ import type { RerankModel, RerankProvider } from './RerankerProviderSection';
 
 const hasChanges = (endpoint: string, apiKey: string, model: string, savedModel: string): boolean => !!endpoint.trim() || !!apiKey.trim() || model !== savedModel;
 
-interface RerankerBadgesProps {
-    hasEndpoint: boolean;
-    hasKey: boolean;
-    savedModel: string;
-    t: ReturnType<typeof useTranslation>['t'];
-}
-
-const RerankerBadges = ({ hasEndpoint, hasKey, savedModel, t }: RerankerBadgesProps) => (
-    <>
-        {hasEndpoint && <ProviderStatusPill>{t('admin_ai_config.endpoint_pill', 'Endpoint')}</ProviderStatusPill>}
-        {hasKey && <ProviderStatusPill>{t('admin_ai_config.key_pill', 'Key')}</ProviderStatusPill>}
-        {savedModel && <ProviderStatusPill tone="orange">{savedModel}</ProviderStatusPill>}
-    </>
-);
-
-interface RerankerConfigProps extends ProviderCardProps {
+interface RerankerConfigProps extends ProviderPaneProps {
     providers?: RerankProvider[];
     allModels?: RerankModel[];
 }
@@ -110,13 +96,10 @@ const RerankerConfig = ({ onMessage, providers = [], allModels = [] }: RerankerC
     const isConfigured = hasEndpoint && hasKey;
 
     return (
-        <ProviderCardShell
-            icon="🎯"
-            iconGradient="linear-gradient(135deg, rgba(234,88,12,0.2), rgba(249,115,22,0.2))"
-            title={t('admin_ai_config.rerank_title', 'Azure Cohere Reranker')}
-            subtitle={isConfigured ? t('admin_ai_config.rerank_configured', '✅ Configured: Knowledge Base search results are reranked') : t('admin_ai_config.rerank_subtitle', 'Improve Knowledge Base search accuracy with neural reranking')}
-            badges={<RerankerBadges hasEndpoint={hasEndpoint} hasKey={hasKey} savedModel={savedModel} t={t} />}
+        <Section
+            description={isConfigured ? t('admin_ai_config.rerank_configured', '✅ Configured: Knowledge Base search results are reranked') : t('admin_ai_config.rerank_subtitle', 'Improve Knowledge Base search accuracy with neural reranking')}
         >
+        <div className="space-y-3">
             <RerankerProviderSection providers={providers} allModels={allModels} onMessage={onMessage} />
 
             {/* Endpoint URL */}
@@ -181,7 +164,8 @@ const RerankerConfig = ({ onMessage, providers = [], allModels = [] }: RerankerC
                     </button>
                 </div>
             </div>
-        </ProviderCardShell>
+        </div>
+        </Section>
     );
 };
 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
+import FormField from '@/components/shared/FormField';
+import Section from '@/components/shared/Section';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -102,28 +104,19 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.embed_loading', 'Loading settings...')}</div>;
 
     return (
-        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl [background:rgba(16,185,129,0.15)]">
-                        🔍
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_ai_config.embed_title', 'Embedding Configuration')}</h3>
-                        <p className="text-sm text-[var(--text-muted)]">{t('admin_ai_config.embed_subtitle', 'Configure vectors for Knowledge Base')}</p>
-                    </div>
-                </div>
-                {message && (
-                    <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
-                        {message.text}
-                    </span>
-                )}
-            </div>
-
+        <Section
+            title={t('admin_ai_config.embed_title', 'Embedding Configuration')}
+            description={t('admin_ai_config.embed_subtitle', 'Configure vectors for Knowledge Base')}
+            actions={message && (
+                <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                    {message.text}
+                </span>
+            )}
+        >
             <div className="space-y-6 max-w-2xl">
-                <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.embed_provider', 'Embedding Provider')}</label>
+                <FormField label={t('admin_ai_config.embed_provider', 'Embedding Provider')} htmlFor="embed-provider">
                     <select
+                        id="embed-provider"
                         value={config.embeddingProviderId}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingProviderId: e.target.value, embeddingModel: '' })}
                         className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
@@ -133,12 +126,18 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                             <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
                         ))}
                     </select>
-                </div>
+                </FormField>
 
-                <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.embed_model', 'Embedding Model')}</label>
+                <FormField
+                    label={t('admin_ai_config.embed_model', 'Embedding Model')}
+                    htmlFor="embed-model"
+                    hint={isAzure
+                        ? t('admin_ai_config.embed_azure_hint', 'For Azure, enter the deployment name of your embedding model (not the base model name).')
+                        : t('admin_ai_config.embed_mistral_hint', 'For Mistral, "mistral-embed" is recommended.')}
+                >
                     {useModelDropdown ? (
                         <select
+                            id="embed-model"
                             value={config.embeddingModel}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingModel: e.target.value })}
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
@@ -150,6 +149,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                         </select>
                     ) : (
                         <input
+                            id="embed-model"
                             type="text"
                             value={config.embeddingModel}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingModel: e.target.value })}
@@ -157,12 +157,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
                         />
                     )}
-                    <p className="text-xs mt-1 text-[var(--text-muted)]">
-                        {isAzure
-                            ? t('admin_ai_config.embed_azure_hint', 'For Azure, enter the deployment name of your embedding model (not the base model name).')
-                            : t('admin_ai_config.embed_mistral_hint', 'For Mistral, "mistral-embed" is recommended.')}
-                    </p>
-                </div>
+                </FormField>
 
                 <div className="pt-4">
                     <button
@@ -174,7 +169,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                     </button>
                 </div>
             </div>
-        </div>
+        </Section>
     );
 };
 

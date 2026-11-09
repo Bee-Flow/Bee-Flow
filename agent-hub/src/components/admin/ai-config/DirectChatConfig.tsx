@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import FormField from '@/components/shared/FormField';
+import Section from '@/components/shared/Section';
 import { API_BASE } from '@/utils/helpers';
 import { useDirectChatPrompt } from '@/api/queries/orgAdminReads';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -41,38 +43,30 @@ const DirectChatConfig = () => {
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading', 'Loading...')}</div>;
 
     return (
-        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl [background:rgba(99,102,241,0.15)]">
-                        💬
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_ai_config.direct_title', 'Direct Chat Settings')}</h3>
-                        <p className="text-sm text-[var(--text-muted)]">{t('admin_ai_config.direct_subtitle', 'Configure the system prompt for Direct Chat')}</p>
-                    </div>
-                </div>
-                {message && (
-                    <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
-                        {message.text}
-                    </span>
-                )}
-            </div>
-
+        <Section
+            title={t('admin_ai_config.direct_title', 'Direct Chat Settings')}
+            description={t('admin_ai_config.direct_subtitle', 'Configure the system prompt for Direct Chat')}
+            actions={message && (
+                <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                    {message.text}
+                </span>
+            )}
+        >
             <div className="space-y-4 max-w-3xl">
-                <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.direct_prompt_label', 'System Prompt')}</label>
+                <FormField
+                    label={t('admin_ai_config.direct_prompt_label', 'System Prompt')}
+                    htmlFor="direct-chat-prompt"
+                    hint={t('admin_ai_config.direct_prompt_hint', 'This prompt defines the AI personality for Direct Chat. The current date and available tools are appended automatically. Leave empty to use the default.')}
+                >
                     <textarea
+                        id="direct-chat-prompt"
                         value={systemPrompt}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
                         placeholder={t('admin_ai_config.direct_prompt_placeholder', 'You are a helpful AI assistant. Respond thoughtfully and concisely.')}
                         rows={8}
                         className="w-full px-4 py-3 rounded-lg border outline-none focus:border-[var(--accent-primary)] resize-y font-mono text-sm leading-relaxed [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]! min-h-[120px]"
                     />
-                    <p className="text-xs mt-1.5 text-[var(--text-muted)]">
-                        {t('admin_ai_config.direct_prompt_hint', 'This prompt defines the AI personality for Direct Chat. The current date and available tools are appended automatically. Leave empty to use the default.')}
-                    </p>
-                </div>
+                </FormField>
 
                 <div className="pt-2">
                     <button
@@ -84,7 +78,7 @@ const DirectChatConfig = () => {
                     </button>
                 </div>
             </div>
-        </div>
+        </Section>
     );
 };
 
