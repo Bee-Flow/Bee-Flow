@@ -33,8 +33,23 @@ const pass = (req, res, next) => next();
 // The routes and socket handlers the last render installed on its context.
 const lastRender = { routes: [], sockets: [], routesBeforePage: 0 };
 
+// The fake Nextcloud behind the person's resolved connection: their own host
+// and uid, no app password involved.
+const NC_BASE = 'https://my-own-cloud.example';
+const nc = { connected: true, existing: new Set(), calls: [] };
+const ncReply = (status, text = '') => ({ ok: status >= 200 && status < 300, status, headers: new Headers(), text: async () => text });
+async function fakeNcFetch(url, opts = {}) {
+    const method = opts.method || 'GET';
+    nc.calls.push({ method, url, body: opts.body });
+    const pathname = new URL(url).pathname;
+    if (method !== 'PROPFIND') return ncReply(201);
+    if (!nc.existing.has(decodeURIComponent(pathname))) return ncReply(404);
+    return ncReply(207, `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>${pathname}</d:href>
+<d:propstat><d:prop><d:resourcetype/><d:getcontentlength>3</d:getcontentlength></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>`);
+}
+
 const MOCKS = {
-    '../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
+    '../telemetry/log': { info() {}, warn() {}, error() {}, debug() {}, nameForLog: (name) => name },
     '../templates/exportTemplate': {
         buildExportHTML: (html, opts) => `<html data-title="${opts.title}">${html}</html>`,
         cleanContentForExport: (html) => html,
@@ -88,8 +103,11 @@ const MOCKS = {
     '../stores/configStore': { getConfig: async () => ({ nextcloudUrl: 'https://cloud.example' }) },
     // The Nextcloud export uploads through the person's resolved connection.
     '../integrations/nextcloudClient': {
-        resolveAuth: async () => ({ mode: 'basic', baseUrl: 'https://cloud.example', uid: 'alice', authError: 'auth', fetch: async () => ({ ok: false, status: 404, headers: new Headers(), text: async () => '' }) }),
-        webdavRoot: (baseUrl, uid) => `${baseUrl}/remote.php/dav/files/${uid}`,
+        resolveAuth: async () => {
+            if (!nc.connected) throw new Error('Nextcloud not connected. Log in via Nextcloud OAuth, or add your username and app password in Settings → Connections.');
+            return { mode: 'bearer', baseUrl: NC_BASE, uid: 'jan', authError: 'Nextcloud session expired — please log in again.', fetch: fakeNcFetch };
+        },
+        webdavRoot: (baseUrl, uid) => `${baseUrl}/remote.php/dav/files/${encodeURIComponent(uid)}`,
     },
     '@turbodocx/html-to-docx': async (...args) => { touched.push({ what: 'docx', args }); return Buffer.from('PK'); },
 };
@@ -324,4 +342,55 @@ test('SignRequest that is not set up is a 400 that says where to set it up', asy
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(res.body.code, 'signrequest_not_configured');
     assert.match(res.body.error, /Settings → Connections/);
+});
+
+// ── The Nextcloud export uploads through the person's own connection ─────────
+//
+// The route built its own WebDAV calls: the organisation's URL, the saved app
+// password, and the saved login name as the uid. So it refused everyone
+// connected through OAuth or the connector app ("not connected"), sent a
+// person's app password to the organisation's host when they had saved their
+// own Nextcloud URL, and wrote to /files/<login name>/, which is not the uid
+// for an e-mail or LDAP login. It now uses the connection every other
+// Nextcloud feature resolves (nextcloudClient.resolveAuth).
+
+const NC_ROOT = `${NC_BASE}/remote.php/dav/files/jan`;
+function resetNc() { nc.connected = true; nc.existing = new Set(); nc.calls = []; renderFailure = null; }
+
+test('the PDF goes to the person\'s own connection: their host, their uid, no app password needed', async () => {
+    resetNc();
+    const res = await dispatch({ url: '/nb-1/export/nextcloud', body: { content: '<p>x</p>', title: 'Plan Q3', folder: '/Mijn map/Notities' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(nc.calls.map((c) => `${c.method} ${c.url}`), [
+        `PROPFIND ${NC_ROOT}/Mijn%20map/Notities/Plan%20Q3.pdf`,
+        `MKCOL ${NC_ROOT}/Mijn%20map`,
+        `MKCOL ${NC_ROOT}/Mijn%20map/Notities`,
+        `PUT ${NC_ROOT}/Mijn%20map/Notities/Plan%20Q3.pdf`,
+    ]);
+    assert.ok(Buffer.isBuffer(nc.calls[3].body));
+    assert.deepStrictEqual(
+        { path: res.body.path, fileName: res.body.fileName, folderUrl: res.body.folderUrl },
+        { path: '/Mijn map/Notities/Plan Q3.pdf', fileName: 'Plan Q3.pdf', folderUrl: `${NC_BASE}/index.php/apps/files/?dir=${encodeURIComponent('/Mijn map/Notities')}` },
+    );
+});
+
+test('an existing file on Nextcloud is kept: the new one gets a timestamp in its name', async () => {
+    resetNc();
+    nc.existing.add('/remote.php/dav/files/jan/BeeFlow/Notebooks/Plan.pdf');
+    const res = await dispatch({ url: '/nb-1/export/nextcloud', body: { content: '<p>x</p>', title: 'Plan' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.match(res.body.fileName, /^Plan \(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\)\.pdf$/);
+    assert.strictEqual(nc.calls.find((c) => c.method === 'PUT').url, `${NC_ROOT}/BeeFlow/Notebooks/${encodeURIComponent(res.body.fileName)}`);
+});
+
+test('no Nextcloud connection is a 400 that says what to do, before anything is rendered', async () => {
+    resetNc();
+    nc.connected = false;
+    touched.length = 0;
+    const res = await dispatch({ url: '/nb-1/export/nextcloud', body: { content: '<p>x</p>', title: 'Plan' } });
+    nc.connected = true;
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /Nextcloud not connected/);
+    assert.deepStrictEqual(nc.calls, []);
+    assert.deepStrictEqual(calls('render'), [], 'nothing was rendered');
 });

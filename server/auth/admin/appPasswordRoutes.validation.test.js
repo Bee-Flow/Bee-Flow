@@ -27,6 +27,9 @@ const touched = [];
 const pass = (req, res, next) => next();
 const hit = (what) => (...args) => { touched.push({ what, args }); };
 
+// When set, Nextcloud's getapppassword answers with this app password.
+let mintedAppPassword = null;
+
 const MOCKS = {
     '../permissions': { requireAuth: pass, loadConfig: async () => ({ oauth: { nextcloudUrl: 'https://nc.example.test' } }) },
     '../../stores/userStore': {
@@ -37,7 +40,9 @@ const MOCKS = {
     '../../integrations/nextcloudTarget': {
         MAX_URL_LENGTH: 2048,
         assertAllowedNextcloudHost: () => {},
-        nextcloudFetch: async () => ({ ok: false, status: 500 }),
+        nextcloudFetch: async () => (mintedAppPassword
+            ? { ok: true, status: 200, json: async () => ({ ocs: { data: { apppassword: mintedAppPassword } } }) }
+            : { ok: false, status: 500 }),
     },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
 };
@@ -98,4 +103,34 @@ test('a named host still reaches the store, trimmed once by the schema', async (
     });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'storeAppPassword').args[2], 'https://mine.example.test');
+});
+
+// ── /create-app-password files the password under the Nextcloud uid ──────────
+//
+// The stored username is what WebDAV paths and Basic auth are built from
+// (/remote.php/dav/files/<uid>/). The route used `session.user.id`, which after
+// an OAuth sign-in is the Bee Flow account id (or the `nextcloud-<uid>` SSO id),
+// never the raw uid, so every later file call went to a user that does not
+// exist. The raw uid is kept on the session as `nextcloudUid`.
+
+/** POST /create-app-password with `session`; returns what reached the store. */
+async function createWith(session) {
+    mintedAppPassword = 'app-pw';
+    try {
+        const res = await dispatcher(router, { session: () => session })({ method: 'POST', url: '/create-app-password', body: {} });
+        assert.strictEqual(res.statusCode, 200);
+        return touched.filter((t) => t.what === 'storeAppPassword').map((t) => t.args.slice(0, 2));
+    } finally {
+        mintedAppPassword = null;
+    }
+}
+
+test('the minted app password is stored under the raw Nextcloud uid, not the Bee Flow account id', async () => {
+    const stored = await createWith({ user: { id: 'nextcloud-alice', 'display-name': 'Alice A.' }, nextcloudUid: 'alice', oauthProvider: 'nextcloud', accessToken: 'tok' });
+    assert.deepStrictEqual(stored, [['nextcloud-alice', 'alice']]);
+});
+
+test('a session from before the uid was kept still falls back to the account id', async () => {
+    const stored = await createWith({ user: { id: 'alice' }, oauthProvider: 'nextcloud', accessToken: 'tok' });
+    assert.deepStrictEqual(stored, [['alice', 'alice']]);
 });

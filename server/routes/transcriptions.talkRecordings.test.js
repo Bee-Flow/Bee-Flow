@@ -41,6 +41,8 @@ function resetFx() {
     fx.talkRooms = [];
     fx.talkCalls.length = 0;
     fx.authThrows = null;
+    fx.rawXml = null;     // when set, every PROPFIND answers with this body
+    fx.uid = null;        // when set, the Nextcloud uid of the connection
 }
 resetFx();
 
@@ -69,6 +71,7 @@ function xmlResponse(entries) {
 
 /** Fake Nextcloud WebDAV: serves `fx.tree` for depth-1 PROPFIND, 404 otherwise. */
 async function fakeFetch(url, opts = {}) {
+    if (fx.rawXml) return { ok: true, status: 207, text: async () => fx.rawXml };
     const u = new URL(url);
     const rel = decodeURIComponent(u.pathname.slice(FILES_ROOT.length - 1));
     const folder = '/' + rel.split('/').filter(Boolean).join('/');
@@ -106,7 +109,7 @@ stub('../stores/userStore', { getUser: async () => ({ groups: [] }), getAllGroup
 stub('../integrations/nextcloudClient', {
     resolveAuth: async () => {
         if (fx.authThrows) throw new Error(fx.authThrows);
-        return { baseUrl: BASE, uid: UID, fetch: fakeFetch, authError: 'nc auth failed' };
+        return { baseUrl: BASE, uid: fx.uid || UID, fetch: fakeFetch, authError: 'nc auth failed' };
     },
     webdavRoot: (baseUrl, uid) => `${baseUrl}/remote.php/dav/files/${encodeURIComponent(uid)}`,
 });
@@ -271,4 +274,55 @@ test('a disconnected Nextcloud is a 400, not a 500', async () => {
     const res = await dispatch(LIST);
     assert.strictEqual(res.statusCode, 400);
     assert.match(res.body.error, /not connected/i);
+});
+
+// ── GET /nextcloud-audio-files against real WebDAV shapes ────────────────────
+//
+// The listing decoded each href twice (once whole, once for the name), so one
+// audio file with a `%` in its name ("100% final.mp3") threw a URIError and the
+// whole folder answered 500; a name with a literal `%20` came back with a
+// space, a path that does not exist. It also read the XML with regexes on a
+// fixed `d:` prefix. Both listings now go through the shared WebDAV parser.
+
+/** One multistatus entry; `p` is the DAV namespace prefix the server chose. */
+function davEntry(href, { dir = false, size = 10, type = 'audio/mpeg', p = 'd' } = {}) {
+    return `<${p}:response><${p}:href>${href}</${p}:href><${p}:propstat><${p}:prop>
+      <${p}:resourcetype>${dir ? `<${p}:collection/>` : ''}</${p}:resourcetype>
+      ${dir ? '' : `<${p}:getcontentlength>${size}</${p}:getcontentlength><${p}:getcontenttype>${type}</${p}:getcontenttype>`}
+      <${p}:getlastmodified>Wed, 12 Aug 2026 09:00:00 GMT</${p}:getlastmodified>
+    </${p}:prop><${p}:status>HTTP/1.1 200 OK</${p}:status></${p}:propstat></${p}:response>`;
+}
+const davMultistatus = (entries, p = 'd') => `<?xml version="1.0"?><${p}:multistatus xmlns:${p}="DAV:">${entries.join('')}</${p}:multistatus>`;
+
+test('audio files: a percent sign in a file name does not break the listing', async () => {
+    resetFx();
+    fx.rawXml = davMultistatus([
+        davEntry('/remote.php/dav/files/alice/My%20Recordings/', { dir: true }),
+        davEntry('/remote.php/dav/files/alice/My%20Recordings/100%25%20final.mp3'),
+        davEntry('/remote.php/dav/files/alice/My%20Recordings/a%2520b.wav', { type: 'audio/wav' }),
+        davEntry('/remote.php/dav/files/alice/My%20Recordings/notes.txt', { type: 'text/plain' }),
+        davEntry('/remote.php/dav/files/alice/My%20Recordings/Archive/', { dir: true }),
+    ]);
+    const res = await dispatch({ url: '/nextcloud-audio-files', query: { folder: '/My Recordings' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.items.map((i) => [i.name, i.path]).sort(), [
+        ['100% final.mp3', '/My Recordings/100% final.mp3'],
+        ['a%20b.wav', '/My Recordings/a%20b.wav'],
+    ]);
+    const first = res.body.items.find((i) => i.name === '100% final.mp3');
+    assert.strictEqual(first.size, 10);
+    assert.strictEqual(first.contentType, 'audio/mpeg');
+});
+
+test('audio files: the listing does not depend on the namespace prefix or on an unencoded uid', async () => {
+    resetFx();
+    // An e-mail style uid arrives percent-encoded in the href; the DAV prefix is the server's choice.
+    fx.uid = 'jan@example.org';
+    fx.rawXml = davMultistatus([
+        davEntry('/remote.php/dav/files/jan%40example.org/Recordings/', { dir: true, p: 'x' }),
+        davEntry('/remote.php/dav/files/jan%40example.org/Recordings/call.ogg', { type: 'audio/ogg', p: 'x' }),
+    ], 'x');
+    const res = await dispatch({ url: '/nextcloud-audio-files' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.items.map((i) => i.path), ['/Recordings/call.ogg']);
 });

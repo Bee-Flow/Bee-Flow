@@ -1,4 +1,3 @@
-// @typecheck noImplicitAny
 /**
  * The Activity API answers 304 when the end of the list is reached (nothing
  * newer than `since`, or no activity at all) and 204 when the user has no
