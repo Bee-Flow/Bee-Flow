@@ -118,19 +118,35 @@ export function PlansView() {
         }
     };
 
+    // Drawn in both views: the editor's own "Delete plan" asks through it too.
+    const deleteConfirm = (
+        <ConfirmModal
+            open={!!confirmDel}
+            onClose={() => setConfirmDel(null)}
+            onConfirm={handleDelete}
+            busy={saving}
+            title={t('admin_subscriptions.plans_delete_title', 'Delete {name}?', { name: confirmDel?.name || t('admin_subscriptions.plans_plan', 'plan') })}
+            message={t('admin_subscriptions.plans_delete_message', 'Organizations currently on this plan will lose their plan assignment and fall back to defaults. This cannot be undone.')}
+            confirmLabel={t('admin_subscriptions.plans_delete_confirm', 'Delete plan')}
+        />
+    );
+
     // ── Full-page editor swap ──
     if (editing) {
         const isTemplateLaunch = editing === 'new' && !!seedPlan;
         return (
-            <PlanEditor
-                plan={editing === 'new' ? seedPlan : editing}
-                isNew={editing === 'new'}
-                onBack={() => { setEditing(null); setSeedPlan(null); }}
-                onSave={handleSave}
-                onDelete={editing !== 'new' ? () => setConfirmDel(editing) : undefined}
-                saving={saving}
-                key={isTemplateLaunch ? `tpl-${seedPlan?.name}` : (editing === 'new' ? 'new' : editing.id)}
-            />
+            <>
+                <PlanEditor
+                    plan={editing === 'new' ? seedPlan : editing}
+                    isNew={editing === 'new'}
+                    onBack={() => { setEditing(null); setSeedPlan(null); }}
+                    onSave={handleSave}
+                    onDelete={editing !== 'new' ? () => setConfirmDel(editing) : undefined}
+                    saving={saving}
+                    key={isTemplateLaunch ? `tpl-${seedPlan?.name}` : (editing === 'new' ? 'new' : editing.id)}
+                />
+                {deleteConfirm}
+            </>
         );
     }
 
@@ -212,15 +228,7 @@ export function PlansView() {
                 </>
             )}
 
-            <ConfirmModal
-                open={!!confirmDel}
-                onClose={() => setConfirmDel(null)}
-                onConfirm={handleDelete}
-                busy={saving}
-                title={t('admin_subscriptions.plans_delete_title', 'Delete {name}?', { name: confirmDel?.name || t('admin_subscriptions.plans_plan', 'plan') })}
-                message={t('admin_subscriptions.plans_delete_message', 'Organizations currently on this plan will lose their plan assignment and fall back to defaults. This cannot be undone.')}
-                confirmLabel={t('admin_subscriptions.plans_delete_confirm', 'Delete plan')}
-            />
+            {deleteConfirm}
 
             <PlanTemplateGallery
                 open={galleryOpen}

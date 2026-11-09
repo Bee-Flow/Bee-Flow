@@ -1,5 +1,5 @@
 import { Vault, Loader2, Trash2, Search, AlertTriangle, RefreshCw, EyeOff } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useConfirm from '../../components/shared/useConfirm';
 
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
@@ -39,15 +39,17 @@ interface VaultState {
 
 const PAGE_SIZE = 100;
 
-const TokenVaultSection = () => {
-    const { t } = useTranslation();
-    const { confirm, confirmDialog } = useConfirm();
+/**
+ * The vault's rows and their loader. Only the newest read lands: a slow answer
+ * for an earlier search term must not replace the rows of the term that is in
+ * the box now. Offset 0 replaces the list; a later offset is "Show more" and adds to it.
+ */
+function useVaultEntries(t: ReturnType<typeof useTranslation>['t']) {
     const [state, setState] = useState<VaultState>({ entries: [], total: 0, loading: true, error: '' });
-    const [search, setSearch] = useState('');
-    const [offset, setOffset] = useState(0);
-    const [busyId, setBusyId] = useState<string | null>(null);
 
+    const latestLoad = useRef(0);
     const load = useCallback(async (nextOffset = 0, nextSearch = '') => {
+        const loadId = ++latestLoad.current;
         setState((s: VaultState) => ({ ...s, loading: true, error: '' }));
         try {
             const qs = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(nextOffset) });
@@ -60,21 +62,36 @@ const TokenVaultSection = () => {
                 throw new Error(String(err.status));
             }
             const data = await res.json();
-            setState({ entries: data.entries || [], total: data.total || 0, loading: false, error: '' });
+            if (latestLoad.current !== loadId) return;
+            const page: VaultEntry[] = data.entries || [];
+            setState((s: VaultState) => ({
+                entries: nextOffset > 0 ? [...s.entries, ...page.filter(e => !s.entries.some(have => have.id === e.id))] : page,
+                total: data.total || 0, loading: false, error: '',
+            }));
         } catch {
+            if (latestLoad.current !== loadId) return;
             setState((s: VaultState) => ({
                 ...s, loading: false,
                 error: t('vault.load_failed', 'Could not load your vault. Please try again.'),
             }));
         }
     }, [t]);
+    return { state, setState, load };
+}
+
+const TokenVaultSection = () => {
+    const { t } = useTranslation();
+    const { confirm, confirmDialog } = useConfirm();
+    const { state, setState, load } = useVaultEntries(t);
+    const [search, setSearch] = useState('');
+    const [busyId, setBusyId] = useState<string | null>(null);
 
     useEffect(() => { load(0, ''); }, [load]);
 
     // Debounced so typing doesn't fire a request per keystroke against a
     // rate-limited endpoint.
     useEffect(() => {
-        const id = setTimeout(() => { setOffset(0); load(0, search); }, 300);
+        const id = setTimeout(() => { load(0, search); }, 300);
         return () => clearTimeout(id);
     }, [search, load]);
 
@@ -117,18 +134,18 @@ const TokenVaultSection = () => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
-            if (res) { setOffset(0); await load(0, search); }
+            if (res) await load(0, search);
         } finally {
             setBusyId(null);
         }
     };
 
     const { entries, total, loading, error } = state;
-    const hasMore = offset + entries.length < total;
+    const hasMore = entries.length < total;
 
     return (
         <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-5 space-y-4">
-            <TokenVaultSectionSection t={t} load={load} offset={offset} search={search} />
+            <TokenVaultSectionSection t={t} load={load} search={search} />
 
             <TokenVaultSectionSection2 search={search} setSearch={setSearch} t={t} total={total} />
 
@@ -208,7 +225,7 @@ const TokenVaultSection = () => {
 
                     {hasMore && (
                         <button
-                            onClick={() => { const next = offset + PAGE_SIZE; setOffset(next); load(next, search); }}
+                            onClick={() => load(entries.length, search)}
                             className="mt-3 w-full py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]"
                         >
                             {t('vault.load_more', 'Show more')}
@@ -257,7 +274,7 @@ function TokenVaultSectionSection2({ search, setSearch, t, total }: { search: st
     </div>;
 }
 
-function TokenVaultSectionSection({ t, load, offset, search }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; load: (nextOffset?: number, nextSearch?: string) => Promise<void>; offset: number; search: string; }) {
+function TokenVaultSectionSection({ t, load, search }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; load: (nextOffset?: number, nextSearch?: string) => Promise<void>; search: string; }) {
     return <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2">
             <Vault className="w-5 h-5 text-[var(--accent-primary)]" />
@@ -272,7 +289,7 @@ function TokenVaultSectionSection({ t, load, offset, search }: { t: (key: string
             </div>
         </div>
         <button
-            onClick={() => load(offset, search)}
+            onClick={() => load(0, search)}
             className="shrink-0 p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
             title={t('common.refresh', 'Refresh')}
             aria-label={t('common.refresh', 'Refresh')}

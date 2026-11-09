@@ -106,7 +106,10 @@ export function FeedbackPage({ feedback, summary }: FeedbackPageProps) {
 
     const filtered = useMemo(() => filterFeedback(feedback, filter, search), [feedback, filter, search]);
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const paged = filtered.slice(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE);
+    // The list can shrink under the reader (a shorter range, the minute refresh):
+    // a page past the end would read as "no entries" while there are some.
+    const currentPage = Math.min(pageNum, totalPages - 1);
+    const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
     return (
         <div className="[animation:fadeIn_0.3s_ease]">
@@ -129,7 +132,7 @@ export function FeedbackPage({ feedback, summary }: FeedbackPageProps) {
                     />
                 ))}
 
-                {totalPages > 1 && <Pagination pageNum={pageNum} totalPages={totalPages} setPageNum={setPageNum} />}
+                {totalPages > 1 && <Pagination pageNum={currentPage} totalPages={totalPages} setPageNum={(f) => setPageNum(f(currentPage))} />}
             </Card>
         </div>
     );

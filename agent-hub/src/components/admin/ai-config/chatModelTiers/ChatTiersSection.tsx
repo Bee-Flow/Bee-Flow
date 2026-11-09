@@ -81,9 +81,11 @@ export default function ChatTiersSection({
                     </p>
                 ) : (
                     <SettingsList>
-                        {customTiers.map(tier => (
+                        {customTiers.map((tier, position) => (
                             <CustomTierCard
-                                key={tier.id}
+                                // Keyed by position: the id follows the name, and a key that changed on
+                                // every keystroke remounted the card and took the focus out of the name field.
+                                key={position}
                                 tier={tier}
                                 expandedCustomId={expandedCustomId}
                                 setExpandedCustomId={setExpandedCustomId}

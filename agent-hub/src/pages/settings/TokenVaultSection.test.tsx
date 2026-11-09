@@ -370,20 +370,43 @@ describe('TokenVaultSection — paging', () => {
         expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
     });
 
-    it('WART: "Show more" jumps a full page and REPLACES the rows instead of appending', async () => {
+    it('"Show more" asks for the rows after the loaded ones and adds them to the list', async () => {
         const user = userEvent.setup();
-        // Only one row was returned, yet the next request starts at offset 100,
-        // and the arriving page overwrites the visible list.
-        await mount({ entries: [ENTRY], total: 5 });
+        await mount({ entries: [ENTRY], total: 3 });
         await waitFor(() => expect(gets()).toHaveLength(2), { timeout: 2000 });
 
-        serve({ entries: [{ ...ENTRY, id: 'e9', token: '[PERSON_9]', value: 'Piet Peters' }], total: 5 });
+        serve({ entries: [{ ...ENTRY, id: 'e9', token: '[PERSON_9]', value: 'Piet Peters' }], total: 3 });
         await user.click(screen.getByRole('button', { name: 'Show more' }));
 
         expect(await screen.findByText('Piet Peters')).toBeInTheDocument();
-        expect(screen.queryByText('Jan Jansen')).toBeNull();
-        expect(lastGetUrl()).toBe('/api/privacy/token-vault?limit=100&offset=100');
-        // offset 100 + 1 row is no longer < 5, so the button disappears as well.
-        expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
+        // The rows that were already on screen stay; the next read starts after them.
+        expect(screen.getByText('Jan Jansen')).toBeInTheDocument();
+        expect(lastGetUrl()).toBe('/api/privacy/token-vault?limit=100&offset=1');
+        // Two of three rows are loaded, so there is still more to show.
+        expect(screen.getByRole('button', { name: 'Show more' })).toBeInTheDocument();
+    });
+
+    it('drops the answer for an earlier search term that arrives after the current one', async () => {
+        const user = userEvent.setup();
+        await mount({ entries: [ENTRY], total: 1 });
+        await waitFor(() => expect(gets()).toHaveLength(2), { timeout: 2000 });
+
+        let releaseSlow: (res: unknown) => void = () => {};
+        const slow = new Promise(resolve => { releaseSlow = resolve; });
+        (authFetch as Mock).mockImplementation(async (url) => {
+            // "ja" is slow; "jan" answers at once.
+            if (String(url).endsWith('search=ja')) return slow;
+            return jsonRes({ entries: [{ ...ENTRY, id: 'e2', value: 'Jan Jansen (current)' }], total: 1 });
+        });
+        const box = screen.getByLabelText('Search a value or placeholder…');
+        await user.type(box, 'ja');
+        await waitFor(() => expect(lastGetUrl()).toBe('/api/privacy/token-vault?limit=100&offset=0&search=ja'), { timeout: 2000 });
+        await user.type(box, 'n');
+        expect(await screen.findByText('Jan Jansen (current)', undefined, { timeout: 2000 })).toBeInTheDocument();
+
+        releaseSlow(jsonRes({ entries: [{ ...ENTRY, id: 'e3', value: 'Jasper (stale)' }], total: 1 }));
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.getByText('Jan Jansen (current)')).toBeInTheDocument();
+        expect(screen.queryByText('Jasper (stale)')).toBeNull();
     });
 });

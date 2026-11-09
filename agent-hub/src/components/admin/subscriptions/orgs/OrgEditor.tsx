@@ -105,7 +105,10 @@ export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTria
     const handleSave = async () => {
         setSaving(true);
         try {
-            await onSave(form);
+            // "Override" on a limit the plan leaves open starts as an empty field ('').
+            // Left empty it is no override: the server would read '' as a cap of 0.
+            const limits = Object.fromEntries(LIMIT_FIELDS.map(({ key: name }) => [name, (form[name] as number | '' | null) === '' ? null : form[name]]));
+            await onSave({ ...form, ...limits });
         } finally {
             setSaving(false);
         }
