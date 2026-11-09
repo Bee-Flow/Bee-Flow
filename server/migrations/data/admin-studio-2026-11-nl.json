@@ -4,7 +4,8 @@
     "admin.nav_group_ai": "AI en agents",
     "admin.nav_group_operations": "Beheer",
     "admin.nav_group_security": "Beveiliging en toegang",
-    "admin.nav_sections": "Beheeronderdelen"
+    "admin.nav_sections": "Beheeronderdelen",
+    "admin.release_unreleased": "Nog niet uitgebracht"
   },
   "sameAsEnglish": [
     "admin.nav_group_platform",

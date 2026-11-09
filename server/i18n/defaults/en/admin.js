@@ -960,4 +960,5 @@ module.exports = {
     "admin.nav_group_website": "Website",
     "admin.nav_sections": "Admin sections",
     "admin.access_ceiling": "Ceiling",
+    "admin.release_unreleased": "Unreleased",
 };

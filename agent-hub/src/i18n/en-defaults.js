@@ -1344,6 +1344,7 @@ const EN_DEFAULTS = {
     "admin.nav_group_website": "Website",
     "admin.nav_sections": "Admin sections",
     "admin.access_ceiling": "Ceiling",
+    "admin.release_unreleased": "Unreleased",
     "agent.name": "Agent Name",
     "agent.description": "Description",
     "agent.system_prompt": "System Prompt",

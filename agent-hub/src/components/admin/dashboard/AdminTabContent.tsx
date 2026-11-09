@@ -58,7 +58,7 @@ const PANELS: Record<string, Panel> = {
     appearance: { render: () => <AppearancePanel /> },
     languages: { render: () => <LanguagesPanel /> },
     'website-analytics': { render: () => <AnalyticsPanel /> },
-    'release-notes': { render: () => <ReleaseNotesPanel /> },
+    'release-notes': { render: () => <ReleaseNotesPanel />, page: true },
 };
 
 export default function AdminTabContent(props: AdminTabContentProps) {

@@ -9,7 +9,7 @@
 
 import type { ComponentType, ReactNode } from 'react';
 
-export interface SectionNavItem {
+interface SectionNavItem {
     id: string;
     label: ReactNode;
     /** A lucide icon or any component that takes a className. */

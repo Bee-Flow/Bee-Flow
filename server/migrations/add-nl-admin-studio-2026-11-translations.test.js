@@ -16,7 +16,7 @@ const { NL_TRANSLATIONS, SAME_AS_ENGLISH, DATA_SHA256, applyNl } = require('./ad
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 // The keys this round added: the dashboard rail's groups and drawer, and the access panel's sections.
-const OWNED = (k) => k.startsWith('admin.nav_') || k === 'admin.access_ceiling';
+const OWNED = (k) => k.startsWith('admin.nav_') || k === 'admin.access_ceiling' || k === 'admin.release_unreleased';
 
 test('every key exists in English, and every key of this round has Dutch (or is declared identical)', () => {
     const keys = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH];

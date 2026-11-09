@@ -7,6 +7,12 @@ import PromptEditor from './PromptEditor';
 import useLanguages from './useLanguages';
 import type { LanguagesState } from './useLanguages';
 import { useTranslation } from '@/hooks/useTranslation';
+import EmptyState from '@/components/shared/EmptyState';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
+import StudioShell from '@/components/shared/StudioShell';
+import Tabs from '@/components/shared/Tabs';
+import { ALERT_ERROR, CHIP, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 
 type Section = 'gui' | 'prompts' | 'emails';
 
@@ -14,97 +20,93 @@ type LocaleListProps = Pick<LanguagesState,
     'locales' | 'selectedLocale' | 'setSelectedLocale' | 'setShowAddModal'
     | 'handleSetDefault' | 'handleExport' | 'handleImport' | 'handleDeleteLocale'>;
 
-/** Left: the installed locales, with per-locale actions on hover. */
-function LocaleList({ locales, selectedLocale, setSelectedLocale, setShowAddModal, handleSetDefault, handleExport, handleImport, handleDeleteLocale }: LocaleListProps) {
+const ROW_ACTION = 'rounded p-1 text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]';
+
+/** The sidebar: the installed locales, with per-locale actions on hover (and on the current one). */
+function LocaleList({ locales, selectedLocale, setSelectedLocale, handleSetDefault, handleExport, handleImport, handleDeleteLocale }: Omit<LocaleListProps, 'setShowAddModal'>) {
     const { t } = useTranslation();
     return (
-        <div className="w-64 border-r shrink-0 flex flex-col border-[var(--border-default)] bg-[var(--bg-secondary)]">
-            <div className="p-3 border-b flex items-center justify-between border-[var(--border-default)]">
-                <span className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                    <Globe className="w-4 h-4 text-[var(--accent-primary)]" /> {t('admin_languages.title', 'Languages')}
-                </span>
-                <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('admin_languages.add_language_title', 'Add language')}>
-                    <Plus className="w-4 h-4 text-[var(--text-secondary)]" />
-                </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                {locales.map(locale => {
-                    const active = selectedLocale === locale.code;
-                    return (
-                        <div
-                            key={locale.code}
+        <nav aria-label={t('admin_languages.title', 'Languages')} className="flex flex-row gap-0.5 overflow-x-auto p-2 md:flex-col md:overflow-x-visible">
+            {locales.map(locale => {
+                const active = selectedLocale === locale.code;
+                return (
+                    <div
+                        key={locale.code}
+                        className={`group flex shrink-0 items-center gap-1 rounded-md pr-1 md:shrink ${active ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
+                    >
+                        <button
+                            type="button"
                             onClick={() => setSelectedLocale(locale.code)}
-                            className={`group px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between transition-all ${active ? 'bg-[var(--accent-primary)] text-white' : 'hover:bg-[var(--bg-tertiary)]'}`}
+                            aria-current={active ? 'page' : undefined}
+                            className={`flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm ${active ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                         >
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-sm font-medium truncate">{locale.name}</span>
-                                <span className="text-xs opacity-60">{locale.code}</span>
-                                {locale.isDefault && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: active ? 'rgba(255,255,255,0.2)' : 'var(--accent-primary)', color: active ? '#fff' : '#fff' }}>
-                                        {t('admin_languages.default', 'Default')}
-                                    </span>
+                            <span className="truncate">{locale.name}</span>
+                            <span className="text-xs text-[var(--text-tertiary)]">{locale.code}</span>
+                            {locale.isDefault && <span className={CHIP}>{t('admin_languages.default', 'Default')}</span>}
+                        </button>
+                        {locale.code !== 'en' && (
+                            <div className={`flex items-center gap-0.5 transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}>
+                                {!locale.isDefault && (
+                                    <button type="button" onClick={() => handleSetDefault(locale.code)} className={ROW_ACTION} title={t('admin_languages.set_default', 'Set as default')} aria-label={t('admin_languages.set_default', 'Set as default')}>
+                                        <Star className="h-3 w-3" aria-hidden="true" />
+                                    </button>
                                 )}
+                                <button type="button" onClick={() => handleExport(locale.code)} className={ROW_ACTION} title={t('admin_languages.export', 'Export')} aria-label={t('admin_languages.export', 'Export')}>
+                                    <Download className="h-3 w-3" aria-hidden="true" />
+                                </button>
+                                <button type="button" onClick={() => handleImport(locale.code)} className={ROW_ACTION} title={t('admin_languages.import', 'Import')} aria-label={t('admin_languages.import', 'Import')}>
+                                    <Upload className="h-3 w-3" aria-hidden="true" />
+                                </button>
+                                <button type="button" onClick={() => handleDeleteLocale(locale.code)} className={ROW_ACTION} title={t('admin_languages.delete', 'Delete')} aria-label={t('admin_languages.delete', 'Delete')}>
+                                    <Trash2 className="h-3 w-3" aria-hidden="true" />
+                                </button>
                             </div>
-                            {locale.code !== 'en' && (
-                                <div className={`flex items-center gap-0.5 ${active ? 'opacity-80' : 'opacity-0 group-hover:opacity-60'} transition-opacity`}>
-                                    {!locale.isDefault && (
-                                        <button onClick={(e) => { e.stopPropagation(); handleSetDefault(locale.code); }} className="p-1 rounded hover:bg-black/10" title={t('admin_languages.set_default', 'Set as default')}>
-                                            <Star className="w-3 h-3" />
-                                        </button>
-                                    )}
-                                    <button onClick={(e) => { e.stopPropagation(); handleExport(locale.code); }} className="p-1 rounded hover:bg-black/10" title={t('admin_languages.export', 'Export')}><Download className="w-3 h-3" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleImport(locale.code); }} className="p-1 rounded hover:bg-black/10" title={t('admin_languages.import', 'Import')}><Upload className="w-3 h-3" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteLocale(locale.code); }} className="p-1 rounded hover:bg-red-500/20" title={t('admin_languages.delete', 'Delete')}><Trash2 className="w-3 h-3" /></button>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
+                        )}
+                    </div>
+                );
+            })}
+        </nav>
     );
 }
 
 interface LocaleEditorProps {
     locale: string;
+    localeName: string;
     activeSection: Section;
     setActiveSection: (s: Section) => void;
     onExport: () => void;
     onImport: () => void;
 }
 
-/** Right: the section tabs and the selected section's editor. */
-function LocaleEditor({ locale, activeSection, setActiveSection, onExport, onImport }: LocaleEditorProps) {
+/** The main pane: the locale's name, export/import, the section tabs and the selected section's editor. */
+function LocaleEditor({ locale, localeName, activeSection, setActiveSection, onExport, onImport }: LocaleEditorProps) {
     const { t } = useTranslation();
     const sections = [
-        { id: 'gui' as const, label: t('admin_languages.tab_gui', 'GUI Translations'), icon: Languages },
-        { id: 'prompts' as const, label: t('admin_languages.tab_prompts', 'System Prompts'), icon: FileText },
-        { id: 'emails' as const, label: t('admin_languages.tab_emails', 'Email Templates'), icon: Mail },
+        { id: 'gui' as const, label: t('admin_languages.tab_gui', 'GUI Translations'), icon: <Languages className="h-3.5 w-3.5" aria-hidden="true" /> },
+        { id: 'prompts' as const, label: t('admin_languages.tab_prompts', 'System Prompts'), icon: <FileText className="h-3.5 w-3.5" aria-hidden="true" /> },
+        { id: 'emails' as const, label: t('admin_languages.tab_emails', 'Email Templates'), icon: <Mail className="h-3.5 w-3.5" aria-hidden="true" /> },
     ];
     return (
-        <>
-            {/* Section Tabs */}
-            <div className="px-4 pt-3 pb-0 flex items-center gap-2 shrink-0">
-                {sections.map(({ id, label, icon: Icon }) => (
-                    <button
-                        key={id}
-                        onClick={() => setActiveSection(id)}
-                        className={`px-3.5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${activeSection === id ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
-                    >
-                        <Icon className="w-4 h-4" /> {label}
-                    </button>
-                ))}
-                <div className="ml-auto flex items-center gap-2">
-                    <button onClick={onExport} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
-                        <Download className="w-3.5 h-3.5" /> {t('admin_languages.export', 'Export')}
-                    </button>
-                    <button onClick={onImport} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
-                        <Upload className="w-3.5 h-3.5" /> {t('admin_languages.import', 'Import')}
-                    </button>
-                </div>
+        <div className="flex h-full flex-col">
+            <div className="flex shrink-0 flex-col gap-3 px-6 pt-5">
+                <SectionHeader
+                    title={localeName}
+                    description={locale}
+                    status={(
+                        <div className="flex items-center gap-2">
+                            <button type="button" onClick={onExport} className={SECONDARY_BTN}>
+                                <Download className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_languages.export', 'Export')}
+                            </button>
+                            <button type="button" onClick={onImport} className={SECONDARY_BTN}>
+                                <Upload className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_languages.import', 'Import')}
+                            </button>
+                        </div>
+                    )}
+                />
+                <Tabs value={activeSection} onChange={setActiveSection} items={sections} size="sm" ariaLabel={localeName} />
             </div>
 
-            <div className="flex-1 overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-hidden">
                 {activeSection === 'gui' && (
                     <GuiStringEditor locale={locale} key={`gui-${locale}`} />
                 )}
@@ -115,7 +117,7 @@ function LocaleEditor({ locale, activeSection, setActiveSection, onExport, onImp
                     <EmailTemplateEditor locale={locale} key={`emails-${locale}`} />
                 )}
             </div>
-        </>
+        </div>
     );
 }
 
@@ -126,42 +128,54 @@ const LanguagesPanel = () => {
     const { locales, catalog, selectedLocale, loading, error, setError, showAddModal, setShowAddModal, handleAddLocale, handleExport, handleImport, confirmDialog } = langs;
     const [activeSection, setActiveSection] = useState<Section>('gui');
 
-    if (loading) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">{t('admin_languages.loading', 'Loading languages...')}</div>;
+    if (loading) {
+        return (
+            <div className="flex h-full items-center justify-center gap-2 text-sm text-[var(--text-secondary)]">
+                <Spinner size="sm" /> {t('admin_languages.loading', 'Loading languages...')}
+            </div>
+        );
+    }
 
     const availableToAdd = catalog.filter(c => !locales.find(l => l.code === c.code));
+    const selectedName = locales.find(l => l.code === selectedLocale)?.name || selectedLocale || '';
 
     return (
-        <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]">
+        <div className="flex h-full flex-col overflow-hidden bg-[var(--bg-primary)]">
             {error && (
-                <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:#ef4444]!">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
+                <div className={`${ALERT_ERROR} mx-4 mt-3`} role="alert">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>{error}</span>
-                    <button onClick={() => setError('')} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
+                    <button type="button" onClick={() => setError('')} className="ml-auto" aria-label={t('common.close', 'Close')}><X className="h-3.5 w-3.5" /></button>
                 </div>
             )}
 
-            <div className="flex flex-1 overflow-hidden">
-                <LocaleList {...langs} />
-
-                {/* Right: Editor */}
-                <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="min-h-0 flex-1">
+                <StudioShell
+                    responsive
+                    sidebarTitle={t('admin_languages.title', 'Languages')}
+                    sidebarActions={(
+                        <button type="button" onClick={() => setShowAddModal(true)} className={QUIET_BTN} title={t('admin_languages.add_language_title', 'Add language')} aria-label={t('admin_languages.add_language_title', 'Add language')}>
+                            <Plus className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                    )}
+                    sidebar={<LocaleList {...langs} />}
+                >
                     {selectedLocale ? (
                         <LocaleEditor
                             locale={selectedLocale}
+                            localeName={selectedName}
                             activeSection={activeSection}
                             setActiveSection={setActiveSection}
                             onExport={() => handleExport(selectedLocale)}
                             onImport={() => handleImport(selectedLocale)}
                         />
                     ) : (
-                        <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
-                            <div className="text-center">
-                                <Globe className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                <p className="text-sm">{t('admin_languages.empty', 'Add a language to get started')}</p>
-                            </div>
-                        </div>
+                        <EmptyState
+                            icon={<Globe className="h-10 w-10" strokeWidth={1.5} />}
+                            title={t('admin_languages.empty', 'Add a language to get started')}
+                        />
                     )}
-                </div>
+                </StudioShell>
             </div>
 
             {/* Add Language Modal */}
