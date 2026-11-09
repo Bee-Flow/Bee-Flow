@@ -34,7 +34,8 @@
  */
 
 const express = require('express');
-const { fetchConfiguredEndpoint } = require('../core/http/configuredEndpointFetch');
+const ncClient = require('../integrations/nextcloudClient');
+const { statFile, uploadBinaryFile } = require('../integrations/nextcloudFiles/webdav');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
@@ -367,18 +368,16 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
     const userId = req.session.user.id;
     const author = req.session.user.name || req.session.user.email || '';
 
-    // Resolve Nextcloud credentials up front so we don't burn time rendering a
-    // PDF only to fail at upload.
-    const configStore = require('../stores/configStore');
-    const userStore = require('../stores/userStore');
-
-    const oauth = (await configStore.getConfig('oauth')) || {};
-    const nextcloudUrl = (oauth.nextcloudUrl || '').replace(/\/+$/, '');
-    if (!nextcloudUrl) return res.status(400).json({ error: 'Nextcloud URL not configured (admin → authentication).' });
-
-    const creds = await userStore.getAppPassword(userId);
-    if (!creds?.username || !creds?.password) {
-        return res.status(400).json({ error: 'Nextcloud not connected. Add your username and app password in Settings → Connections.' });
+    // Resolve the Nextcloud connection up front so we don't burn time rendering
+    // a PDF only to fail at upload. It is the connection every other Nextcloud
+    // feature uses (connector app, OAuth or a saved app password), with that
+    // connection's own host and uid.
+    /** @type {import('../integrations/nextcloudClient.types').NcAuth} */
+    let nc;
+    try {
+        nc = await ncClient.resolveAuth(req.session, userId);
+    } catch (err) {
+        return res.status(400).json({ error: /** @type {Error} */ (err).message });
     }
 
     try {
@@ -393,56 +392,30 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
         log.info(`[Export] PDF rendered for Nextcloud upload: ${(pdfBuffer.length / 1024).toFixed(1)} KB in ${Date.now() - startTime}ms`);
 
         // ── Upload via WebDAV ──
-        const auth = 'Basic ' + Buffer.from(`${creds.username}:${creds.password}`).toString('base64');
-        const davRoot = `${nextcloudUrl}/remote.php/dav/files/${encodeURIComponent(creds.username)}`;
-
-        // Ensure parent folder(s) exist. Nextcloud MKCOL only creates one level
-        // at a time, so we walk the path and ignore "already exists" (405).
-        const targetFolderRaw = (folder || '/BeeFlow/Notebooks').replace(/^\/+|\/+$/g, '');
-        const folderSegments = targetFolderRaw.split('/').filter(Boolean);
-        let walked = '';
-        for (const seg of folderSegments) {
-            walked += '/' + encodeURIComponent(seg);
-            const mkRes = await fetchConfiguredEndpoint(`${davRoot}${walked}`, {
-                redirect: 'follow', method: 'MKCOL', headers: { 'Authorization': auth }, signal: AbortSignal.timeout(15000),
-            });
-            if (mkRes.status === 401) throw new HttpError(502, 'nextcloud_auth_rejected', 'Nextcloud rejected credentials. Re-save your app password.');
-            if (mkRes.status !== 201 && mkRes.status !== 405 /* already exists */) {
-                const text = await mkRes.text().catch(() => '');
-                log.warn(`[Export/Nextcloud] MKCOL ${walked} returned ${mkRes.status}: ${text.slice(0, 200)}`);
-            }
-        }
+        const davRoot = ncClient.webdavRoot(nc.baseUrl, nc.uid);
+        const targetFolder = '/' + (folder || '/BeeFlow/Notebooks').split('/').filter(Boolean).join('/');
 
         // Avoid clobbering: if a file with the same name already exists, append a
         // timestamp suffix so users can keep multiple revisions.
         const safeBase = title.replace(/[^a-zA-Z0-9.\-_ ]/g, '_').trim() || 'notebook';
-        const fileName = `${safeBase}.pdf`;
-        const targetUrl = `${davRoot}${walked}/${encodeURIComponent(fileName)}`;
-
-        const headRes = await fetchConfiguredEndpoint(targetUrl, { redirect: 'follow', method: 'HEAD', headers: { 'Authorization': auth }, signal: AbortSignal.timeout(10000) });
-        let finalUrl = targetUrl;
-        let finalName = fileName;
-        if (headRes.status === 200) {
+        let finalName = `${safeBase}.pdf`;
+        if (await statFile(nc.fetch, davRoot, `${targetFolder}/${finalName}`, nc.baseUrl, nc.uid)) {
             const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
             finalName = `${safeBase} (${stamp}).pdf`;
-            finalUrl = `${davRoot}${walked}/${encodeURIComponent(finalName)}`;
         }
 
-        const putRes = await fetchConfiguredEndpoint(finalUrl, { redirect: 'follow',
-            method: 'PUT',
-            headers: { 'Authorization': auth, 'Content-Type': 'application/pdf' },
-            body: pdfBuffer,
-            signal: AbortSignal.timeout(60000),
-        });
-
-        if (putRes.status === 401) throw new HttpError(502, 'nextcloud_auth_rejected', 'Nextcloud rejected credentials.');
-        if (putRes.status !== 201 && putRes.status !== 204) {
-            const text = await putRes.text().catch(() => '');
-            throw new HttpError(502, 'nextcloud_upload_failed', `Upload failed (${putRes.status}): ${text.slice(0, 200)}`);
+        // Creates the missing parent folders, then one PUT.
+        const relativePath = `${targetFolder}/${finalName}`;
+        const uploaded = await uploadBinaryFile(nc.fetch, davRoot, relativePath, pdfBuffer, 'application/pdf', nc.authError);
+        if (uploaded.error) {
+            if (uploaded.error === nc.authError) throw new HttpError(502, 'nextcloud_auth_rejected', nc.authError);
+            throw new HttpError(502, 'nextcloud_upload_failed', uploaded.error);
         }
 
-        const relativePath = `/${targetFolderRaw}/${finalName}`;
-        const browserUrl = `${nextcloudUrl}/apps/files/?dir=${encodeURIComponent('/' + targetFolderRaw)}`;
+        // The link is opened in the person's browser: the public address, through
+        // the front controller so it also works without pretty URLs.
+        const browserBase = String(nc.publicBaseUrl || nc.baseUrl).replace(/\/+$/, '');
+        const browserUrl = `${browserBase}/index.php/apps/files/?dir=${encodeURIComponent(targetFolder)}`;
         log.info(`[Export] Uploaded to Nextcloud: ${log.nameForLog(finalName)}`);
 
         return res.json({

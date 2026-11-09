@@ -86,6 +86,11 @@ const MOCKS = {
         },
     },
     '../stores/configStore': { getConfig: async () => ({ nextcloudUrl: 'https://cloud.example' }) },
+    // The Nextcloud export uploads through the person's resolved connection.
+    '../integrations/nextcloudClient': {
+        resolveAuth: async () => ({ mode: 'basic', baseUrl: 'https://cloud.example', uid: 'alice', authError: 'auth', fetch: async () => ({ ok: false, status: 404, headers: new Headers(), text: async () => '' }) }),
+        webdavRoot: (baseUrl, uid) => `${baseUrl}/remote.php/dav/files/${uid}`,
+    },
     '@turbodocx/html-to-docx': async (...args) => { touched.push({ what: 'docx', args }); return Buffer.from('PK'); },
 };
 
@@ -104,6 +109,8 @@ Module._resolveFilename = function (request, parent, ...rest) {
     return originalResolve.call(this, request, parent, ...rest);
 };
 
+// The WebDAV helpers load the real nextcloudClient, which pulls the database in at load.
+require('../testUtils/routeHarness').recordDb();
 const router = require('./notebookExport');
 test.after(() => { Module._resolveFilename = originalResolve; });
 

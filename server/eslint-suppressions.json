@@ -7924,11 +7924,6 @@
       "count": 1
     }
   },
-  "routes/notebookExport.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/notebooks.js": {
     "complexity": {
       "count": 1
