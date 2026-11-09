@@ -174,6 +174,8 @@ export default function CoworkComposer({
                         onAgentChange={cowork.setAgentId}
                         agents={cowork.agents}
                         isMobile={isMobile}
+                        mailTrigger={cowork.mailTrigger}
+                        onMailTriggerChange={cowork.setMailTrigger}
                     />
                     {chatTools}
                     {/* An unreadable workspace list is not "you switched
@@ -233,10 +235,12 @@ export default function CoworkComposer({
                     >
                         {cowork.submitting
                             ? t('cowork.composer.starting', 'Starting…')
-                            : t(
-                                cowork.when.presetId === 'now' ? 'cowork.composer.run' : 'cowork.composer.schedule',
-                                cowork.when.presetId === 'now' ? 'Run' : 'Schedule',
-                            )}
+                            : cowork.mailTrigger
+                                ? t('cowork.composer.start_watching', 'Start watching')
+                                : t(
+                                    cowork.when.presetId === 'now' ? 'cowork.composer.run' : 'cowork.composer.schedule',
+                                    cowork.when.presetId === 'now' ? 'Run' : 'Schedule',
+                                )}
                         <ArrowUp className="w-4 h-4" />
                     </button>
                 </div>

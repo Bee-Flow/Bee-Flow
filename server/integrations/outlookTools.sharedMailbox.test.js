@@ -42,6 +42,9 @@ const denied = () => ({ status: 403, body: { error: { code: 'ErrorAccessDenied',
 
 test('every Outlook tool declares the optional mailbox field', () => {
     for (const tool of OUTLOOK_TOOLS) {
+        // The reply in the thread answers from the mailbox the triggering mail arrived in: the server's value,
+        // deliberately not an argument (see outlookDraftReply.test.js).
+        if (tool.function.name === 'outlook_reply_in_thread') continue;
         const props = tool.function.parameters.properties;
         assert.strictEqual(/** @type {any} */ (props).mailbox?.type, 'string', `${tool.function.name} has no mailbox`);
         assert.ok(!tool.function.parameters.required.includes('mailbox'), `${tool.function.name}: mailbox stays optional`);

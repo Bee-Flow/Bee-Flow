@@ -11,14 +11,16 @@
  * keystroke would fire a PUT per character, and a half-typed time is not a
  * schedule.
  */
-import { Bot, Calendar, Clock, LayoutGrid, Repeat, Save, X } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Bot, LayoutGrid, Mail, Save, X } from 'lucide-react';
 import React, { useState } from 'react';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import AppsPicker from '../apps/AppsPicker';
-import { COWORK_REPEAT_OPTIONS, toDateInput, toTimeInput } from './coworkSchedule';
+import { toDateInput, toTimeInput } from './coworkSchedule';
+import { CoworkEditFormField2, CoworkEditFormSection, Field, inputClass, inputStyle } from './CoworkEditFormFields';
 import useCoworkApps from './useCoworkApps';
-import type { CoworkAgent, CoworkItem, CoworkUpdate } from '../../api/cowork.types';
+import MailTriggerPanel from './MailTriggerPanel';
+import { isMailTriggerItem, isMailTriggerReady, normaliseMailTrigger } from './mailTrigger';
+import type { CoworkAgent, CoworkItem, CoworkUpdate, MailTrigger } from '../../api/cowork.types';
 
 /** The form's local draft; `enabledApps` is null until the item has a list of its own. */
 interface Draft {
@@ -30,14 +32,8 @@ interface Draft {
     time: string;
     agentId: string;
     enabledApps: string[] | null;
-}
-
-interface FieldProps {
-    label: string;
-    icon?: LucideIcon;
-    children: React.ReactNode;
-    hint?: string;
-    as?: 'label' | 'div';
+    /** Set for a mail-trigger item: it has no clock, the trigger replaces it. */
+    trigger: MailTrigger | null;
 }
 
 interface CoworkEditFormProps {
@@ -64,30 +60,6 @@ const DAYS = [
     { token: 'sun', labelKey: 'cowork.day.sun', label: 'Su' },
 ];
 
-/**
- * `as="div"` for fields whose control is not a single form element — wrapping
- * the Apps picker in a <label> would make a click anywhere in the row toggle
- * the first checkbox inside its overlay.
- */
-function Field({ label, icon: Icon, children, hint, as: Tag = 'label' }: FieldProps) {
-    return (
-        <Tag className="block">
-            <span
-                className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide mb-1.5 text-[var(--text-tertiary)]"
-            >
-                {Icon && <Icon className="w-3.5 h-3.5" />}{label}
-            </span>
-            {children}
-            {hint && (
-                <span className="block text-[11px] mt-1 text-[var(--text-tertiary)]">{hint}</span>
-            )}
-        </Tag>
-    );
-}
-
-const inputClass = 'w-full px-3 py-2 rounded-lg border bg-[var(--bg-card)] text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
-const inputStyle = { borderColor: 'var(--border-subtle)' };
-
 export default function CoworkEditForm({ item, agents = [], onSave, onCancel, saving = false, error = null }: CoworkEditFormProps) {
     const { t } = useTranslation();
     const initialRun = item.nextRunAt ? new Date(item.nextRunAt) : new Date();
@@ -102,6 +74,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
         // null until this item has a list of its own — it then inherits the
         // workspace-wide one, which is what it has been running on.
         enabledApps: Array.isArray(item.enabledApps) ? item.enabledApps : null,
+        trigger: isMailTriggerItem(item) ? item.trigger : null,
     });
 
     const set = (patch: Partial<Draft>) => setDraft(d => ({ ...d, ...patch }));
@@ -123,6 +96,17 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
 
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (draft.trigger) {
+            onSave({
+                title: draft.title.trim(),
+                prompt: draft.prompt.trim(),
+                agentId: draft.agentId || null,
+                enabledApps: draft.enabledApps,
+                triggerKind: 'app_event',
+                trigger: normaliseMailTrigger(draft.trigger),
+            });
+            return;
+        }
         const [y, m, d] = draft.date.split('-').map(Number);
         const [hh, mm] = draft.time.split(':').map(Number);
         const nextRun = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0, 0);
@@ -146,7 +130,9 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
         });
     };
 
-    const canSave = draft.title.trim().length > 0 && draft.prompt.trim().length > 0 && !saving;
+    const canSave = draft.title.trim().length > 0 && draft.prompt.trim().length > 0 && !saving
+        && (!draft.trigger || isMailTriggerReady(draft.trigger));
+    const mailTrigger = draft.trigger;
 
     return (
         <form onSubmit={submit} data-testid="cowork-edit-form" className="flex flex-col gap-4">
@@ -164,11 +150,20 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
 
             <CoworkEditFormField t={t} draft={draft} set={set} />
 
-            <CoworkEditFormSection t={t} draft={draft} set={set} />
+            {mailTrigger ? (
+                <Field as="div" label={t('cowork.edit.mail_trigger', 'When a new email arrives')} icon={Mail}>
+                    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]" data-testid="cowork-edit-mail-trigger">
+                        <MailTriggerPanel value={mailTrigger} onChange={(next) => set({ trigger: next })} disabled={saving} />
+                    </div>
+                </Field>
+            ) : (
+                <>
+                    <CoworkEditFormSection t={t} draft={draft} set={set} />
+                    <CoworkEditFormField2 t={t} draft={draft} set={set} />
+                </>
+            )}
 
-            <CoworkEditFormField2 t={t} draft={draft} set={set} />
-
-            {draft.repeatInterval && (
+            {!mailTrigger && draft.repeatInterval && (
                 <Field
                     label={t('cowork.edit.only_on', 'Only on')}
                     hint={t('cowork.edit.only_on_hint', 'Leave all off to use the repeat as-is.')}
@@ -307,22 +302,6 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
     );
 }
 
-function CoworkEditFormField2({ t, draft, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: Draft; set: (patch: Partial<Draft>) => void; }) {
-    return <Field label={t('cowork.edit.repeat', 'Repeat')} icon={Repeat}>
-        <select
-            value={draft.repeatInterval}
-            onChange={e => set({ repeatInterval: e.target.value })}
-            aria-label={t('cowork.edit.repeat', 'Repeat')}
-            data-testid="cowork-edit-repeat"
-            className={inputClass}
-            style={inputStyle}
-        >
-            {COWORK_REPEAT_OPTIONS.map(o => (
-                <option key={o.value || 'once'} value={o.value}>{t(o.labelKey, o.label)}</option>
-            ))}
-        </select>
-    </Field>;
-}
 
 function CoworkEditFormField({ t, draft, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: Draft; set: (patch: Partial<Draft>) => void; }) {
     return <Field
@@ -362,27 +341,3 @@ function CoworkEditFormSection2({ canSave, t, saving, onCancel }: { canSave: boo
     </div>;
 }
 
-function CoworkEditFormSection({ t, draft, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: Draft; set: (patch: Partial<Draft>) => void; }) {
-    return <div className="grid grid-cols-2 gap-3">
-        <Field label={t('cowork.edit.next_run', 'Next run')} icon={Calendar}>
-            <input
-                type="date"
-                value={draft.date}
-                onChange={e => set({ date: e.target.value })}
-                aria-label={t('cowork.edit.next_run_date_aria', 'Next run date')}
-                data-testid="cowork-edit-date"
-                className={inputClass}
-                style={inputStyle} />
-        </Field>
-        <Field label={t('cowork.edit.at', 'At')} icon={Clock}>
-            <input
-                type="time"
-                value={draft.time}
-                onChange={e => set({ time: e.target.value })}
-                aria-label={t('cowork.edit.next_run_time_aria', 'Next run time')}
-                data-testid="cowork-edit-time"
-                className={inputClass}
-                style={inputStyle} />
-        </Field>
-    </div>;
-}

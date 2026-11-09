@@ -122,7 +122,7 @@ export default function ToolsCard({
     onRetryLent,
     automationRows: autoRows = [],
     automationsState = READ.OK,
-    onChangeConfirm, onChangeActAs, onOpenChooser,
+    onChangeConfirm, onChangeActAs, onChangeMailAccess, onOpenChooser,
 }: ToolsCardProps) {
     const appById = useMemo(() => {
         const map = new Map<string, ToolApp>();
@@ -186,6 +186,7 @@ export default function ToolsCard({
                     app={appById.get(row.appId) || null}
                     onChangeConfirm={onChangeConfirm}
                     onChangeActAs={onChangeActAs}
+                    onChangeMailAccess={onChangeMailAccess}
                     onOpenChooser={onOpenChooser}
                 />
             ))}

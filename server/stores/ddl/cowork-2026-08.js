@@ -32,7 +32,7 @@ async function up() {
             repeat_interval TEXT,
             days_of_week TEXT,
             time_of_day TEXT,
-            next_run_at TIMESTAMPTZ NOT NULL,
+            next_run_at TIMESTAMPTZ,
             last_run_at TIMESTAMPTZ,
             last_result TEXT,
             last_status TEXT DEFAULT 'pending',
@@ -77,6 +77,21 @@ async function up() {
         -- '["agent_search"]' and holds tool names, so reusing it would read as
         -- "every existing schedule may only search the web".
         ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS enabled_apps TEXT;
+
+        -- What starts this item: 'schedule' (the clock: next_run_at) or
+        -- 'app_event' (an event such as a new mail; trigger_json holds
+        -- { provider, event, filter }). An app_event row has next_run_at NULL,
+        -- so the due-query never picks it up; its subscription lives in
+        -- automation_event_subscriptions (cowork_schedule_id).
+        ALTER TABLE cowork_schedules ALTER COLUMN next_run_at DROP NOT NULL;
+        ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS trigger_kind TEXT NOT NULL DEFAULT 'schedule';
+        ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS trigger_json TEXT;
+
+        -- The event a trigger run was started for (a mail's message id), so a
+        -- redelivered event cannot start a second run.
+        ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS trigger_ref TEXT;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_cowork_runs_trigger_ref
+            ON cowork_runs(schedule_id, trigger_ref) WHERE trigger_ref IS NOT NULL;
     `);
     log.info('[Migration] cowork-2026-08 applied');
 }

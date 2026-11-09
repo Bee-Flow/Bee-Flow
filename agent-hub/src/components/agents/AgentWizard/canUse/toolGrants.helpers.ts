@@ -180,6 +180,18 @@ function storedActAsOf(toolsConfig: ToolsConfigIn, appId: string) {
     return entry.actAs === ACT_AS.OWNER || entry.actAs === ACT_AS.VIEWER ? entry.actAs : null;
 }
 
+/** The apps whose rows offer the mail-access choice (Gmail and Outlook). */
+export const MAIL_ACCESS_APPS: readonly string[] = Object.freeze(['gmail', 'outlook']);
+export const MAIL_ACCESS = Object.freeze({ READ: 'read', DRAFT: 'draft', SEND_REPLY: 'send_reply' });
+
+/** The stored `mailAccess` of an app, or `null` if the owner made no choice. */
+export function storedMailAccessOf(toolsConfig: ToolsConfigIn, appId: string): string | null {
+    const entry = isPlainObject(toolsConfig) ? toolsConfig[appId] : null;
+    if (!isPlainObject(entry)) return null;
+    const v = entry.mailAccess;
+    return v === MAIL_ACCESS.READ || v === MAIL_ACCESS.DRAFT || v === MAIL_ACCESS.SEND_REPLY ? v : null;
+}
+
 /** Een kopie van de map, met de gereserveerde secties intact. */
 export function cloneTools(toolsConfig: ToolsConfigIn) {
     const out: ToolsConfig = {};
@@ -296,5 +308,8 @@ export function toolRow({
         ownerRefused: storedActAs === ACT_AS.OWNER && !canActAsOwner,
         ownerLendsUncurated,
         ownerLendingUnset,
+        // Gmail and Outlook only: what the agent may do with the mailbox. Null elsewhere (and when nothing is stored).
+        supportsMailAccess: MAIL_ACCESS_APPS.includes(appId),
+        mailAccess: MAIL_ACCESS_APPS.includes(appId) ? storedMailAccessOf(toolsConfig, appId) : null,
     };
 }

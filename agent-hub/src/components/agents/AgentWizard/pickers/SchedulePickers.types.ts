@@ -8,6 +8,8 @@ export interface SchedulesPickerProps {
     schedules: Schedule[];
     onClose: () => void;
     onCreate: () => void;
+    /** Opens the "new email trigger" dialog; the button is absent without it. */
+    onCreateMail?: () => void;
     onEdit: (r: Schedule) => void;
     onToggle: (r: Schedule) => Promise<void>;
     onRunNow: (r: Schedule) => Promise<void>;

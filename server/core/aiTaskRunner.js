@@ -199,13 +199,15 @@ function isRepeating(task) {
  * `store` is the persistence side of a run — markRunning / markCompleted /
  * markError / advanceSchedule / updateTask. It is coworkStore, which opens a
  * history row per attempt; a test hands in a fake.
+ *
+ * `trigger` (agent runs only): the run was started by an event, see core/cowork/mailTriggerRun.mts.
  */
-async function executeTask(task, { manual = false, store = require('../stores/coworkStore') } = {}) {
+async function executeTask(task, { manual = false, store = require('../stores/coworkStore'), trigger = null } = {}) {
     if (task.agentId) {
         // Same reason as buildTaskSystemPrompt's schedule section: an agent
         // that doesn't know the repeat is already in place tends to close
         // every run by advising the user to set one up.
-        return executeAgentRun(task, { manual, store }, {
+        return executeAgentRun(task, { manual, store, trigger }, {
             scheduleText: describeTaskSchedule(task), resolveUserSession, isRepeating, failRun, NOTIFICATION,
         });
     }

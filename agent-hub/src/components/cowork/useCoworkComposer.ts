@@ -14,6 +14,8 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { composeCowork, createCowork, listCoworkAgents } from '../../api/coworkApi';
+import type { CoworkRequestError } from '../../api/coworkApi';
+import { isMailTriggerReady, normaliseMailTrigger, describeMailTrigger } from './mailTrigger';
 import {
     buildCoworkPayload, titleFromBrief, describeSchedule, resolveWhen,
     nextOccurrence, toDateInput, toTimeInput,
@@ -21,13 +23,13 @@ import {
 import useTranslation from '../../hooks/useTranslation';
 import { useEntitlements } from '../licensing/EntitlementsContext';
 import type {
-    CoworkAgent, CoworkItem, CoworkPayload, CoworkSpec, WhenState,
+    CoworkAgent, CoworkItem, CoworkPayload, CoworkSpec, CoworkTriggerPayload, MailTrigger, WhenState,
 } from '../../api/cowork.types';
 import { messageOf } from '../../utils/caughtError';
 
 export interface UseCoworkComposerOptions {
     enabled?: boolean;
-    onCreated?: (created: CoworkItem, payload: CoworkPayload, spec: CoworkSpec | null) => void;
+    onCreated?: (created: CoworkItem, payload: CoworkPayload | CoworkTriggerPayload, spec: CoworkSpec | null) => void;
 }
 
 interface Touched {
@@ -45,6 +47,9 @@ export interface UseCoworkComposerReturn {
     setAgentId: (value: string) => void;
     enabledApps: string[] | null;
     setEnabledApps: (value: string[] | null) => void;
+    /** Non-null while the item starts on a new email; it replaces the when/repeat pair. */
+    mailTrigger: MailTrigger | null;
+    setMailTrigger: (value: MailTrigger | null) => void;
     agents: CoworkAgent[];
     touched: Touched;
     submitting: boolean;
@@ -71,6 +76,7 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
     // picker — that keeps "I didn't choose" (inherit the workspace-wide list)
     // distinct from "I chose nothing" (an empty array, a real answer).
     const [enabledApps, setEnabledApps] = useState<string[] | null>(null);
+    const [mailTrigger, setMailTrigger] = useState<MailTrigger | null>(null);
     const [agents, setAgents] = useState<CoworkAgent[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -105,6 +111,8 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
     }, []);
     const setAgentId = useCallback((value: string) => {
         setAgentState(value);
+        // A mail trigger is the agent's: without one there is nobody to answer the mail.
+        if (!value) setMailTrigger(null);
         setTouched(t => (t.agent ? t : { ...t, agent: true }));
     }, []);
 
@@ -113,13 +121,16 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
         setRepeatState('');
         setAgentState('');
         setEnabledApps(null);
+        setMailTrigger(null);
         setTouched({ when: false, repeat: false, agent: false });
         setError(null);
     }, []);
 
     // 'custom' with empty inputs is the one unschedulable state — block send
     // rather than silently falling back to "now".
-    const scheduleReady = !!resolveWhen(when.presetId, when);
+    const scheduleReady = mailTrigger
+        ? !!agentId && isMailTriggerReady(mailTrigger)
+        : !!resolveWhen(when.presetId, when);
 
     const submit = useCallback(async (brief: string, { modelTier }: { modelTier?: string } = {}) => {
         const text = String(brief || '').trim();
@@ -128,6 +139,24 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
         setSubmitting(true);
         setError(null);
         try {
+            if (mailTrigger) {
+                // The brief IS the task for each mail: no composing, no clock.
+                const payload: CoworkTriggerPayload = {
+                    title: titleFromBrief(text),
+                    prompt: text,
+                    repeatInterval: null,
+                    modelTier: 'auto',
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                    agentId,
+                    triggerKind: 'app_event',
+                    trigger: normaliseMailTrigger(mailTrigger),
+                    ...(Array.isArray(enabledApps) ? { enabledApps } : {}),
+                };
+                const created = await createCowork(payload);
+                reset();
+                if (onCreated) onCreated(created, payload, null);
+                return created;
+            }
             // A composer failure must never cost the user their work — fall
             // back to their own words, which is what they got before this
             // existed. The server already degrades this way; this catch covers
@@ -174,23 +203,26 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
             if (onCreated) onCreated(created, payload, spec);
             return created;
         } catch (err) {
-            setError(messageOf(err, t('cowork.error.create_failed', 'Could not create this work')));
+            setError((err as CoworkRequestError)?.code === 'mail_not_connected'
+                ? t('cowork.mail_trigger.error_not_connected', 'That mail account is not connected. Connect it in Settings → Connections and try again.')
+                : messageOf(err, t('cowork.error.create_failed', 'Could not create this work')));
             return null;
         } finally {
             setSubmitting(false);
         }
-    }, [when, repeatInterval, agentId, enabledApps, touched, submitting, reset, onCreated, t]);
+    }, [when, repeatInterval, agentId, enabledApps, mailTrigger, touched, submitting, reset, onCreated, t]);
 
     return {
         when, setWhen,
         repeatInterval, setRepeatInterval,
         agentId, setAgentId,
         enabledApps, setEnabledApps,
+        mailTrigger, setMailTrigger,
         agents,
         touched,
         submitting, error, setError,
         scheduleReady,
-        summary: describeSchedule({ presetId: when.presetId, runAt: resolveWhen(when.presetId, when), repeatInterval }),
+        summary: mailTrigger ? describeMailTrigger(mailTrigger, t) : describeSchedule({ presetId: when.presetId, runAt: resolveWhen(when.presetId, when), repeatInterval }),
         submit, reset,
     };
 }

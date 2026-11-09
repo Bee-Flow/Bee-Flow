@@ -28,6 +28,7 @@ import React from 'react';
 import { relativeTime } from './coworkFormat';
 import { describeMoment, repeatLabel } from './coworkSchedule';
 import { coworkStatus } from './coworkStatus';
+import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
 import useTranslation from '../../hooks/useTranslation';
 import { statusLabel } from '../shared/statusTokens';
 import type { TranslateFn } from '../../hooks/useTranslation';
@@ -62,6 +63,8 @@ function weekdayNames(days: string[]): string {
 
 /** The left half of the meta line: when this runs. */
 function whenText(item: CoworkItem, t: TranslateFn): string {
+    // Started by a new email, not by a clock: there is no moment to print.
+    if (isMailTriggerItem(item)) return describeMailTrigger(item.trigger, t);
     if (item.repeatInterval) {
         const label = repeatLabel(item.repeatInterval, t);
         return item.timeOfDay ? `${label} ${item.timeOfDay}` : label;

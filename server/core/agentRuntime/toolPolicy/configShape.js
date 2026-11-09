@@ -14,6 +14,9 @@
 const RESERVED_TOOL_KEYS = Object.freeze(['automations', 'datatables']);
 const CONFIRM_MODES = Object.freeze(['direct', 'ask']);
 const ACT_AS_MODES = Object.freeze(['viewer', 'owner']);
+// What an agent may do with a mailbox (`config.tools.<gmail|outlook>.mailAccess`), weakest first. A preset: it
+// resolves to `actions` (see ./mailAccess.js) so the rest of the policy needs no second reading of it.
+const MAIL_ACCESS_LEVELS = Object.freeze(['read', 'draft', 'send_reply']);
 // Whose rows `datatable_query` may read. 'own' is the narrow one and the
 // default for anything unreadable — see normaliseToolsConfig.
 const DATATABLE_SCOPES = Object.freeze(['own', 'all']);
@@ -61,7 +64,7 @@ function toolsConfigOf(config) {
 const UNSAFE_OBJECT_KEYS = Object.freeze(new Set(['__proto__', 'constructor', 'prototype']));
 
 module.exports = {
-    RESERVED_TOOL_KEYS, CONFIRM_MODES, ACT_AS_MODES, DATATABLE_SCOPES, GATING_RESERVED_KEYS,
+    RESERVED_TOOL_KEYS, CONFIRM_MODES, ACT_AS_MODES, MAIL_ACCESS_LEVELS, DATATABLE_SCOPES, GATING_RESERVED_KEYS,
     MAX_APP_ENTRIES, MAX_ACTIONS_PER_APP, MAX_AUTOMATION_GRANTS,
     MAX_DATATABLE_GRANTS, MAX_COLUMNS_PER_DATATABLE,
     UNSAFE_OBJECT_KEYS,
@@ -72,7 +75,7 @@ module.exports = {
  * One entry of a stored `config.tools`: an app entry, or one grant inside the
  * reserved `automations` / `datatables` sections. User-supplied JSON, so every
  * field may be missing or junk; read it through `_plainObject` first.
- * @typedef {{ actions?: string | string[], confirm?: string, actAs?: string, scope?: string, columns?: string | string[] }} ToolsConfigEntry
+ * @typedef {{ actions?: string | string[], confirm?: string, actAs?: string, mailAccess?: string, scope?: string, columns?: string | string[] }} ToolsConfigEntry
  */
 
 /**

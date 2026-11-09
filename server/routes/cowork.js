@@ -11,6 +11,13 @@
  * GET    /:id/runs      → execution history, newest first
  * GET    /:id/stats     → the aggregate behind the figure cards
  *
+ * An item is started by its clock (`triggerKind: 'schedule'`, the default) or by
+ * an event (`triggerKind: 'app_event'` + `trigger: { provider, event, filter? }`,
+ * today a new Gmail / Outlook mail). An event item needs an agent (and the
+ * agent_routines gate that comes with one), has no nextRunAt, and owns a row in
+ * automation_event_subscriptions that create / update / toggle / delete keep in
+ * step (automation/subscriptionSync.js).
+ *
  * Validation keeps the schedule vocabulary of the old /api/ai-tasks (same
  * limits), so a payload built for that route is valid here too.
  *
@@ -50,8 +57,6 @@
  */
 
 const express = require('express');
-const { z, typeError, datetimeWithOffset } = require('../utils/zod');
-const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
@@ -63,124 +68,10 @@ const { executeCowork } = require('../core/cowork/coworkRunner');
 const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
 const { requireAuth } = require('../auth/permissions');
 const { bestEffort, fallback } = require('../utils/bestEffort');
+const { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, isKnownTimezone } = require('./coworkSchemas');
+const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate } = require('./coworkTrigger');
 
 const DEFAULT_MAX_SCHEDULES = 10;
-
-const VALID_REPEAT_INTERVALS = new Set([
-    'hourly', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly',
-]);
-const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-
-// ── Request schemas (see the header) ────────────────────────────────
-
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
-
-/**
- * '' from a cleared form field means the same as null.
- * @param {import('zod').ZodNullable<ZodString> | import('zod').ZodNullable<import('zod').ZodEnum<{ [x: string]: string; }>>} schema
- */
-const blankIsNull = (schema) => z.preprocess((v) => (v === '' ? null : v), schema);
-
-// An unknown zone would make the runner's Intl.DateTimeFormat throw on every
-// tick — a schedule that silently never runs. Reject it at the door.
-/**
- * @param {string} value
- */
-function isKnownTimezone(value) {
-    try {
-        new Intl.DateTimeFormat('en-US', { timeZone: value }).format(new Date());
-        return true;
-    } catch (_) {
-        return false;
-    }
-}
-
-const REPEAT_TEXT = `repeatInterval is one of ${[...VALID_REPEAT_INTERVALS].join(', ')}, or null.`;
-const repeatIntervalField = blankIsNull(
-    z.enum([...VALID_REPEAT_INTERVALS], { error: () => REPEAT_TEXT }).nullable(),
-);
-
-// A weekday is its three-letter token or (a start of) its English name:
-// `mon`, `Monday`, `tues`. `slice(0, 3)` alone also let `month` and
-// `sunshine` through, and dropped `ma`/`di` without a word.
-const DAYS_TEXT = 'daysOfWeek is a list of weekdays (sun, mon, tue, wed, thu, fri, sat), or null.';
-const weekday = worded(DAYS_TEXT).transform((v, ctx) => {
-    const word = v.trim().toLowerCase();
-    const name = word.length >= 3 ? DAY_NAMES.find((d) => d.startsWith(word)) : null;
-    if (!name) {
-        ctx.addIssue({ code: 'custom', message: `"${v}" is not a weekday. ${DAYS_TEXT}` });
-        return z.NEVER;
-    }
-    return name.slice(0, 3);
-});
-// An EMPTY list means "no day restriction", which is stored as null.
-const daysOfWeekField = z.array(weekday, { error: typeError({ invalid: DAYS_TEXT }) }).nullable()
-    .transform((list) => (list && list.length > 0 ? Array.from(new Set(list)) : null));
-
-const TIME_TEXT = 'timeOfDay is a 24-hour time like 09:00, or null.';
-const timeOfDayField = blankIsNull(worded(TIME_TEXT).regex(/^([01]\d|2[0-3]):[0-5]\d$/, TIME_TEXT).nullable());
-
-const TZ_TEXT = 'timezone is an IANA zone name like Europe/Amsterdam.';
-const timezoneField = blankIsNull(
-    worded(TZ_TEXT).refine(isKnownTimezone, { error: (iss) => `Unknown timezone: ${iss.input}` }).nullable(),
-);
-
-// Which apps THIS item may use. `null` means "no per-item restriction", i.e.
-// fall back to the user's workspace-wide list — the behaviour every schedule
-// had before the column existed. An EMPTY array is a real answer ("this one
-// may use nothing") and must not collapse to null.
-const APPS_TEXT = 'enabledApps is a list of app ids, or null.';
-const enabledAppsField = z.array(worded(APPS_TEXT), { error: typeError({ invalid: APPS_TEXT }) }).nullable()
-    .transform((list) => (list === null ? null : Array.from(new Set(list.map((v) => v.trim()).filter(Boolean)))));
-
-const TITLE_TEXT = 'Title is required.';
-const PROMPT_TEXT = 'Prompt is required.';
-const NEXT_RUN_TEXT = 'nextRunAt is required: an ISO timestamp with a time zone, like 2026-09-23T07:00:00.000Z.';
-const scheduleFields = {
-    title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT).max(500, 'A title is at most 500 characters.'),
-    prompt: worded(PROMPT_TEXT).trim().min(1, PROMPT_TEXT),
-    nextRunAt: worded(NEXT_RUN_TEXT).regex(datetimeWithOffset, NEXT_RUN_TEXT),
-    repeatInterval: repeatIntervalField.optional(),
-    // Open text on purpose: see the header.
-    modelTier: worded('modelTier names a model tier.').trim().max(100, 'modelTier is at most 100 characters.').nullish(),
-    timezone: timezoneField.optional(),
-    daysOfWeek: daysOfWeekField.optional(),
-    timeOfDay: timeOfDayField.optional(),
-    agentId: worded('agentId names one of your agents.').trim().max(200, 'agentId is at most 200 characters.').nullish(),
-    enabledApps: enabledAppsField.optional(),
-};
-
-const CreateBody = z.object({
-    ...scheduleFields,
-    startNow: z.boolean({ error: typeError({ invalid: 'startNow is true or false.' }) }).optional(),
-}).strict();
-
-// Every field optional: an update names only what it changes.
-const UpdateBody = z.object({
-    ...scheduleFields,
-    title: scheduleFields.title.optional(),
-    prompt: scheduleFields.prompt.optional(),
-    nextRunAt: scheduleFields.nextRunAt.optional(),
-    isActive: z.boolean({ error: typeError({ invalid: 'isActive is true or false.' }) }).optional(),
-}).strict();
-
-// toggle / run-now act on the schedule as it is.
-const NoBody = bodyOf({});
-
-const BRIEF_TEXT = 'A brief is required';
-const ComposeBody = z.object({
-    brief: worded(BRIEF_TEXT).trim().min(1, BRIEF_TEXT),
-    // Validated below, with a fallback rather than a 400 (see the header).
-    timezone: worded(TZ_TEXT).nullish(),
-}).strict();
-
-const LIMIT_TEXT = 'limit is a whole number from 1 to 100.';
-const OFFSET_TEXT = 'offset is a whole number, 0 or more.';
-const RunsQuery = z.object({
-    limit: z.coerce.number({ error: typeError({ invalid: LIMIT_TEXT }) }).int(LIMIT_TEXT).min(1, LIMIT_TEXT).max(100, LIMIT_TEXT).optional(),
-    offset: z.coerce.number({ error: typeError({ invalid: OFFSET_TEXT }) }).int(OFFSET_TEXT).min(0, OFFSET_TEXT).optional(),
-}).strict();
 
 async function getMaxSchedules() {
     // Shares the ai_tasks ceiling: it is the same "how much unattended work may
@@ -210,6 +101,30 @@ async function resolveAgentId(agentId, userId, session) {
         throw err;
     }
     return agent.id;
+}
+
+/**
+ * `startNow`: fire the first run immediately instead of waiting for the tick.
+ * A one-off has next_run_at = now and is_active = true on insert, so the very
+ * next tick would run it a second time: take it off the scheduler before
+ * firing. A repeating one keeps its schedule: manual:true leaves next_run_at
+ * pointing at the next occurrence. "Repeating" includes daysOfWeek-only specs
+ * ("every Monday 09:00"), which carry no repeatInterval.
+ * @param {NonNullable<Awaited<ReturnType<typeof coworkStore.getSchedule>>>} schedule
+ * @param {{ repeatInterval?: string | null, daysOfWeek?: string[] | null }} norm
+ */
+async function startNowRun(schedule, norm) {
+    if (!norm.repeatInterval && !(Array.isArray(norm.daysOfWeek) && norm.daysOfWeek.length > 0)) {
+        await coworkStore.updateSchedule(schedule.id, { isActive: false });
+        schedule.isActive = false;
+    }
+    setImmediate(async () => {
+        try {
+            await executeCowork(schedule, { manual: true });
+        } catch (err) {
+            log.error(`[Cowork] startNow failed for ${schedule.id}:`, /** @type {Error} */ (err).message);
+        }
+    });
 }
 
 /**
@@ -294,9 +209,12 @@ router.get('/', async (req, res) => {
 router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const userId = req.session.user.id;
-        const { title, prompt, nextRunAt, modelTier, agentId, startNow } = req.body;
+        const { agentId, startNow } = req.body;
         const norm = req.body;
         const resolvedAgentId = await resolveAgentId(agentId, userId, req.session);
+        const isEvent = norm.triggerKind === 'app_event';
+        const trigger = isEvent ? (norm.trigger ?? null) : null;
+        if (isEvent && trigger) await assertTriggerUsable(userId, { ...trigger, filter: trigger.filter ?? null });
 
         const max = await getMaxSchedules();
         if (await coworkStore.getScheduleCount(userId) >= max) {
@@ -305,39 +223,10 @@ router.post('/', validate({ body: CreateBody }), async (/** @type {import('expre
             });
         }
 
-        const schedule = await coworkStore.createSchedule({
-            userId,
-            title,
-            prompt,
-            repeatInterval: norm.repeatInterval ?? null,
-            nextRunAt,
-            modelTier: modelTier || 'fast',
-            timezone: norm.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-            agentId: resolvedAgentId ?? null,
-            daysOfWeek: norm.daysOfWeek ?? null,
-            timeOfDay: norm.timeOfDay ?? null,
-            enabledApps: norm.enabledApps ?? null,
-        });
+        const schedule = await coworkStore.createSchedule(newItemFields(userId, norm, resolvedAgentId, trigger));
 
-        if (startNow === true) {
-            // A one-off has next_run_at = now and is_active = true on insert, so
-            // the very next tick would run it a second time. Take it off the
-            // scheduler before firing. A repeating one keeps its schedule —
-            // manual:true leaves next_run_at pointing at the next occurrence.
-            // "Repeating" includes daysOfWeek-only specs ("every Monday 09:00"),
-            // which carry no repeatInterval.
-            if (!norm.repeatInterval && !(Array.isArray(norm.daysOfWeek) && norm.daysOfWeek.length > 0)) {
-                await coworkStore.updateSchedule(schedule.id, { isActive: false });
-                schedule.isActive = false;
-            }
-            setImmediate(async () => {
-                try {
-                    await executeCowork(schedule, { manual: true });
-                } catch (err) {
-                    log.error(`[Cowork] startNow failed for ${schedule.id}:`, /** @type {Error} */ (err).message);
-                }
-            });
-        }
+        if (isEvent) await syncNewEventItem(schedule);
+        if (startNow === true) await startNowRun(schedule, norm);
 
         res.json(schedule);
     } catch (err) {
@@ -349,22 +238,22 @@ router.post('/', validate({ body: CreateBody }), async (/** @type {import('expre
 router.put('/:id', validate({ body: UpdateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const userId = req.session.user.id;
-        await loadOwned(req.params.id, userId);
+        const existing = await loadOwned(req.params.id, userId);
 
-        const { title, prompt, nextRunAt, modelTier, isActive, agentId } = req.body;
+        const { title, prompt, modelTier, isActive, agentId } = req.body;
         const norm = req.body;
         const resolvedAgentId = await resolveAgentId(agentId, userId, req.session);
+        const plan = await planTriggerUpdate({ existing, body: norm, resolvedAgentId, userId, session: req.session, resolveAgentId });
 
         const ok = await coworkStore.updateSchedule(req.params.id, {
-            title, prompt, nextRunAt, modelTier, isActive,
-            repeatInterval: norm.repeatInterval,
+            title, prompt, modelTier, isActive,
             timezone: norm.timezone,
-            daysOfWeek: norm.daysOfWeek,
-            timeOfDay: norm.timeOfDay,
             enabledApps: norm.enabledApps,
             ...(resolvedAgentId !== undefined ? { agentId: resolvedAgentId } : {}),
+            ...plan.patch,
         });
-        res.json({ success: ok });
+        if (plan.syncs) await mailTriggers().syncCoworkMailTrigger(await coworkStore.getSchedule(req.params.id));
+        res.json({ success: ok, triggerKind: plan.kind, trigger: plan.trigger });
     } catch (err) {
         fail(res, err, 'Update');
     }
@@ -387,7 +276,9 @@ router.get('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const userId = req.session.user.id;
-        await loadOwned(req.params.id, userId);
+        const existing = await loadOwned(req.params.id, userId);
+        // The subscription row holds the remote Graph id: revoke before the cascade drops it.
+        if (existing.triggerKind === 'app_event') await mailTriggers().revokeCoworkMailTrigger(existing.id);
         res.json({ success: await coworkStore.deleteSchedule(req.params.id) });
     } catch (err) {
         fail(res, err, 'Delete');
@@ -400,7 +291,12 @@ router.post('/:id/toggle', validate({ body: NoBody }), async (/** @type {import(
         const userId = req.session.user.id;
         const existing = await loadOwned(req.params.id, userId);
         const next = !existing.isActive;
+        const isEvent = existing.triggerKind === 'app_event';
+        // Resuming needs the mailbox connected; pausing never does.
+        if (isEvent && next && existing.trigger) await assertTriggerUsable(userId, { ...existing.trigger, filter: existing.trigger.filter ?? null });
         const ok = await coworkStore.updateSchedule(req.params.id, { isActive: next });
+        // Pause deletes the subscription (and the Graph one), resume makes a fresh one.
+        if (isEvent) await mailTriggers().syncCoworkMailTrigger({ ...existing, isActive: next });
         res.json({ success: ok, isActive: next });
     } catch (err) {
         fail(res, err, 'Toggle');
@@ -412,6 +308,10 @@ router.post('/:id/run-now', validate({ body: NoBody }), async (/** @type {import
     try {
         const userId = req.session.user.id;
         const existing = await loadOwned(req.params.id, userId);
+        // A mail trigger runs on a mail; without one the agent has nothing to read.
+        if (existing.triggerKind === 'app_event') {
+            throw new HttpError(400, 'run_now_not_supported', 'A mail trigger runs when new mail arrives; it cannot be started by hand.');
+        }
         if (existing.lastStatus === 'running') {
             return res.status(400).json({ error: 'This cowork is already running' });
         }

@@ -58,7 +58,7 @@ export function CanUseTabPanel({
     t, ro, rel, onNavigate, allSkills, knowledgeBaseIds, includeSourceReferences, onIncludeSourceReferencesChange,
     kbsState, refreshKbs, knowledgeRows, tableGrantRows, tablesState, tablesTruncated, refetchTables,
     attachedSkillRows, skillUsageState, appToolRows, catalogApps, catalogState, catalogDegraded, refetchCatalog,
-    lentState, refetchLent, grantedAutomationRows, onChangeConfirm, onChangeActAs, openChooser,
+    lentState, refetchLent, grantedAutomationRows, onChangeConfirm, onChangeActAs, onChangeMailAccess, openChooser,
 }: Loose) {
     return (
         <div className="max-w-4xl mx-auto px-10 py-6">
@@ -101,6 +101,7 @@ export function CanUseTabPanel({
                 automationsState={(grantedAutomationRows.some((r: { readable?: boolean }) => !r.readable) ? READ.ERROR : READ.OK)}
                 onChangeConfirm={onChangeConfirm}
                 onChangeActAs={onChangeActAs}
+                onChangeMailAccess={onChangeMailAccess}
                 onOpenChooser={openChooser}
             />
         </div>

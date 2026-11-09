@@ -178,6 +178,9 @@ function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
         // integrations to unattended dispatch, which
         // their runner refuses outright.
         unattended: false,
+        // The mail that started this run (core/cowork/mailTriggerRun.mts), set by the server only: the
+        // reply-in-thread tools read the thread they may answer in from here, never from their arguments.
+        mailTrigger: messageMetadata.mailTrigger || null,
         fixedParams: fixedParams,
         agentId: agent.id,
         // This path holds a call on 'ask' until the

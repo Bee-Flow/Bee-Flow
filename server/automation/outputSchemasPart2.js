@@ -2,6 +2,19 @@
 // Part 2 of OUTPUT_SCHEMAS (split out of outputSchemas.js; key order is preserved there).
 
 const OUTPUT_SCHEMAS_PART_2 = {
+    gmail_reply_in_thread: {
+        shape: { sent: 'boolean', messageId: 'string', threadId: 'string', repliedTo: 'number', message: 'string' },
+        sample: { sent: true, messageId: 'msg-2', threadId: 'th-1', repliedTo: 1, message: 'Reply sent in the thread.' },
+    },
+
+    outlook_create_draft: {
+        shape: { draftId: 'string', threadId: 'string|null', webLink: 'string|null', to: 'string', subject: 'string', message: 'string' },
+        sample: { draftId: 'AAMk-draft-1', threadId: 'conv-1', webLink: 'https://outlook.office.com/mail/deeplink/draft', to: 'recipient@example.com', subject: 'Re: Sample subject', message: 'Draft saved.' },
+    },
+    outlook_reply_in_thread: {
+        shape: { sent: 'boolean', threadId: 'string', message: 'string' },
+        sample: { sent: true, threadId: 'conv-1', message: 'Reply sent in the thread.' },
+    },
     nextcloud_create_spreadsheet: {
         // `appended` is present only with ifExists:"append" (officeDocuments.js):
         // how many rows were added below the existing ones.

@@ -28,12 +28,15 @@ export interface ToolCardRow {
     ownerRefused: boolean;
     ownerLendsUncurated: boolean;
     ownerLendingUnset: boolean;
+    supportsMailAccess: boolean;
+    mailAccess: 'read' | 'draft' | 'send_reply' | null;
 }
 /** One automation grant, as `toolGrants.automationRows` builds it. */
 export type AutomationCardRow = ReturnType<typeof automationRows>[number];
 type OpenChooser = (request: ReturnType<typeof chooserRequest>) => void;
 type ChangeConfirm = (appId: string, next: string) => void;
 type ChangeActAs = (appId: string, next: string) => void;
+type ChangeMailAccess = (appId: string, next: string) => void;
 
 export interface ToolsCardProps {
     t: TranslateFn;
@@ -49,6 +52,7 @@ export interface ToolsCardProps {
     automationsState?: ReadState;
     onChangeConfirm?: ChangeConfirm;
     onChangeActAs?: ChangeActAs;
+    onChangeMailAccess?: ChangeMailAccess;
     onOpenChooser?: OpenChooser;
 }
 
@@ -61,5 +65,6 @@ export interface ToolRowProps {
     app: ToolApp | null;
     onChangeConfirm?: ChangeConfirm;
     onChangeActAs?: ChangeActAs;
+    onChangeMailAccess?: ChangeMailAccess;
     onOpenChooser?: OpenChooser;
 }

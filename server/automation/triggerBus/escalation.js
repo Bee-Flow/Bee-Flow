@@ -42,15 +42,20 @@ async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
         const lastNotified = errorNotifiedAt ? Date.parse(errorNotifiedAt) : 0;
         if (Number.isFinite(lastNotified) && Date.now() - lastNotified < FAILURE_NOTIFY_DEBOUNCE_MS) return;
 
-        const automation = await ctx.store().getAutomation(sub.automationId).catch((e) => fallback('automation/triggerBus/escalation:escalateSubscriptionFailure', e, null));
-        if (!automation) return;
+        // The owner is an automation, or a Cowork item that runs an agent.
+        const owner = sub.coworkScheduleId
+            ? await ctx.coworkStore().getSchedule(sub.coworkScheduleId).catch((e) => fallback('automation/triggerBus/escalation:escalateSubscriptionFailure#3', e, null))
+            : await ctx.store().getAutomation(sub.automationId).catch((e) => fallback('automation/triggerBus/escalation:escalateSubscriptionFailure', e, null));
+        if (!owner) return;
         try {
             const notificationStore = ctx.notificationStore();
             await notificationStore.createNotification({
                 userId: sub.userId,
                 category: 'urgent',
-                title: `⚠️ Trigger niet bereikbaar: ${automation.title}`,
-                message: `Automation "${automation.title}" trigger (${sub.provider} ${sub.eventType}) faalt herhaaldelijk: ${errorMsg || 'onbekende fout'}. Controleer je integratie of activeer de automation opnieuw.`,
+                title: `⚠️ Trigger niet bereikbaar: ${owner.title}`,
+                message: sub.coworkScheduleId
+                    ? `De mail-trigger van "${owner.title}" (${sub.provider} ${sub.eventType}) faalt herhaaldelijk: ${errorMsg || 'onbekende fout'}. Controleer je integratie of sla de trigger opnieuw op.`
+                    : `Automation "${owner.title}" trigger (${sub.provider} ${sub.eventType}) faalt herhaaldelijk: ${errorMsg || 'onbekende fout'}. Controleer je integratie of activeer de automation opnieuw.`,
             });
         } catch (e) {
             log.warn(`[TriggerBus] notify failure for sub ${sub.id} failed: ${/** @type {Error} */ (e).message}`);
@@ -95,6 +100,7 @@ module.exports = { POLL_FAILURE_THRESHOLD, RENEW_FAILURE_THRESHOLD, FAILURE_NOTI
  * What triggerBus.js hands to the extracted pollers, escalation and renewal.
  * @typedef TriggerBusCtx
  * @property {() => typeof import('../../stores/automationStore')} store
+ * @property {() => Pick<typeof import('../../stores/coworkStore'), 'getSchedule'>} coworkStore
  * @property {() => typeof import('../../integrations/googleClient')} googleClient
  * @property {() => typeof import('../../integrations/gmailTools')} gmailTools
  * @property {() => typeof import('../../integrations/nextcloudActivityTools')} nextcloudActivityTools

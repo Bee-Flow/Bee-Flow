@@ -577,4 +577,11 @@ module.exports = {
     'agent_studio.tools_agent_integrations_selected_count': 'Agent Integrations ({selected_count}/{count})',
     'agent_studio.tools_no_integrations_available': 'No integrations available',
     'agent_studio.tools_connect_via_google_sso_or_configure': 'Connect via Google SSO or configure API keys in Settings',
+    'agent_studio.can_use.mail_access_group': 'What this agent may do with the mailbox',
+    'agent_studio.can_use.mail_access_read': 'Read only',
+    'agent_studio.can_use.mail_access_draft': 'Prepare draft',
+    'agent_studio.can_use.mail_access_send_reply': 'Send replies',
+    'agent_studio.can_use.mail_access_draft_hint_gmail': 'Drafts appear in your Gmail drafts for you to check and send.',
+    'agent_studio.can_use.mail_access_draft_hint_outlook': 'Drafts appear in your Outlook drafts for you to check and send.',
+    'agent_studio.can_use.mail_access_send_reply_hint': 'Only replies in the same thread, never to new addresses.',
 };

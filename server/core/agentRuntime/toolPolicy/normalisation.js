@@ -20,6 +20,7 @@ const {
 } = require('./configShape');
 const { actionsOfApp, appDefersGrants, isAttributionAvailable } = require('./appIndex');
 const { _datatableColumns } = require('./reservedGrants');
+const { isMailApp, mailAccessOf, actionsForMailAccess } = require('./mailAccess');
 const { _providerForApp } = require('./connectionLending');
 
 // ── Normalisation ───────────────────────────────────────────────────
@@ -108,7 +109,7 @@ function normaliseAppEntry(appId, entry, lent, st) {
     }
 
     const known = actionsOfApp(appId);
-    const { actions, actionsMissing } = normaliseActions(appId, entry.actions, known, st);
+    const { mailAccess, actions, actionsMissing } = resolveActions(appId, entry, known, st);
 
     // ── confirm ──
     let confirm = CONFIRM_MODES.includes(entry.confirm) ? entry.confirm : undefined;
@@ -124,9 +125,28 @@ function normaliseAppEntry(appId, entry, lent, st) {
     const actAs = normaliseActAs(appId, entry.actAs, { actions, known, lent }, st);
 
     const normalised = actionsMissing ? { actAs } : { actions, actAs };
+    if (mailAccess) normalised.mailAccess = mailAccess;
     if (confirm) normalised.confirm = confirm;
     if (!_sameEntry(entry, normalised)) st.touch();
     return normalised;
+}
+
+/**
+ * The actions of one app entry. The mailbox preset wins over a hand-picked list: it resolves to the actions it
+ * means, and is stored next to them so the picker can show the level. A level nobody can read is `read` (the
+ * narrow one), said out loud.
+ * @param {string} appId
+ * @param {Record<string, any>} entry
+ * @param {string[]} known
+ */
+function resolveActions(appId, entry, known, st) {
+    const mailAccess = mailAccessOf(appId, entry);
+    if (entry.mailAccess !== undefined && entry.mailAccess !== null) {
+        if (!isMailApp(appId)) st.note(`tools.${appId}: mailAccess only applies to Gmail and Outlook — dropped`);
+        else if (mailAccess !== entry.mailAccess) st.note(`tools.${appId}: mailAccess must be "read", "draft" or "send_reply" — set to "read"`);
+    }
+    if (mailAccess) return { mailAccess, actions: actionsForMailAccess(appId, mailAccess), actionsMissing: false };
+    return { mailAccess: null, ...normaliseActions(appId, entry.actions, known, st) };
 }
 
 /**

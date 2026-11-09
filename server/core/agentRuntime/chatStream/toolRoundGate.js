@@ -104,6 +104,7 @@ async function dispatchToolRound({
         _roundPolicy = buildToolPolicy({
             agentConfig: agent.config, tools, unattended,
             automationConfirms: _automationConfirms,
+            mailTrigger: !!messageMetadata?.mailTrigger,
         });
     } catch (policyErr) {
         log.warn('[AgentRuntime] Tool policy build failed — falling back to a fail-closed policy:', /** @type {Error} */ (policyErr).message);

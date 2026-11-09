@@ -30,6 +30,7 @@ import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import CoworkEditForm from './CoworkEditForm';
 import CoworkRunHistory from './CoworkRunHistory';
 import { describeMoment, repeatLabel } from './coworkSchedule';
+import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
 import CoworkStats from './CoworkStats';
 import { coworkStatus } from './coworkStatus';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -69,6 +70,7 @@ function Pill(props: PillProps) {
 
 /** "Every weekday 08:00", "Every week", or "Runs once". */
 function cadenceText(item: CoworkItem, t: TranslateFn) {
+    if (isMailTriggerItem(item)) return describeMailTrigger(item.trigger, t);
     if (!item.repeatInterval) return t('cowork.detail.runs_once', 'Runs once');
     const label = repeatLabel(item.repeatInterval, t);
     return item.timeOfDay ? `${label} ${item.timeOfDay}` : label;
@@ -160,6 +162,7 @@ function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRun
                     artboard's ink fill: the fill is a hex, and this product
                     follows the admin's accent through eight themes
                     (COMPLETED-STAGES.md:412). */}
+                {!isMailTriggerItem(item) && (
                 <button
                     type="button"
                     onClick={() => onRunNow(item.id)}
@@ -169,6 +172,7 @@ function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRun
                 >
                     <Play className="w-3.5 h-3.5" />{t('cowork.detail.run_now', 'Run now')}
                 </button>
+                )}
             </div>
         </div>
     );

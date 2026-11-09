@@ -23,6 +23,7 @@ const { buildUpdate } = require('./lib/sqlBuilder');
 const { runDdl } = require('./lib/_ddl');
 const { advanceNextRun } = require('./aiTaskStore');
 const log = require('../telemetry/log');
+const { rowToSchedule, rowToRun, deriveProducedOutput, insertValues } = require('./coworkRows');
 
 // The schema lives in ../migrations/cowork-2026-08.js and is applied from here
 // (same convention as studioAppStore) so a plain `npm run db:migrate` — which
@@ -53,121 +54,19 @@ async function _initDB() {
     log.info('[CoworkStore] PostgreSQL initialized');
 }
 
-// ── Row mapping ─────────────────────────────────────────
-
-/**
- * @param {string} str
- */
-function safeParseJSON(str, fallback = []) {
-    if (Array.isArray(str)) return str;
-    try { return JSON.parse(str); } catch (_) { return fallback; }
-}
-
-/** @param {DbRow.CoworkSchedules | null} r */
-function rowToSchedule(r) {
-    if (!r) return null;
-    return {
-        id: r.id,
-        userId: r.user_id,
-        title: r.title,
-        prompt: r.prompt,
-        repeatInterval: r.repeat_interval,
-        daysOfWeek: r.days_of_week ? safeParseJSON(r.days_of_week, null) : null,
-        timeOfDay: r.time_of_day || null,
-        nextRunAt: r.next_run_at ? new Date(r.next_run_at).toISOString() : null,
-        lastRunAt: r.last_run_at ? new Date(r.last_run_at).toISOString() : null,
-        lastResult: r.last_result,
-        lastStatus: r.last_status,
-        isActive: r.is_active,
-        modelTier: r.model_tier,
-        toolsEnabled: safeParseJSON(r.tools_enabled, ['agent_search']),
-        // null = no per-item restriction; fall back to the user's workspace list.
-        enabledApps: r.enabled_apps ? safeParseJSON(r.enabled_apps, null) : null,
-        maxResultLength: r.max_result_length,
-        runCount: r.run_count,
-        timezone: r.timezone,
-        agentId: r.agent_id || null,
-        conversationId: r.conversation_id || null,
-        createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
-    };
-}
-
-/** @param {DbRow.CoworkRuns | null} r */
-function rowToRun(r) {
-    if (!r) return null;
-    return {
-        id: r.id,
-        scheduleId: r.schedule_id,
-        userId: r.user_id,
-        status: r.status,
-        triggerKind: r.trigger_kind,
-        startedAt: r.started_at ? new Date(r.started_at).toISOString() : null,
-        finishedAt: r.finished_at ? new Date(r.finished_at).toISOString() : null,
-        durationMs: r.duration_ms,
-        result: r.result,
-        error: r.error,
-        // CW-13. Three values, not two: true (something came out), false
-        // (successful, nothing to report) and null (row from before the column — not
-        // measured). null must NEVER be read as false.
-        producedOutput: (r.produced_output === null || r.produced_output === undefined)
-            ? null
-            : !!r.produced_output,
-    };
-}
-
-/**
- * Did this successful run have anything to report? (CW-13)
- *
- * The runner never supplies an empty string to markCompleted: if the model produced
- * no text, aiTaskRunner puts its own marker in its place — one italic line in brackets,
- * `_( … )_`, and nothing more. That is the shape that is recognised here, not the Dutch sentence
- * in it: that text is copy and may change (and be translated) without breaking
- * this inference.
- *
- * Deliberately NO substantive judgement on real results — "short text" or
- * "contains no figures" is an opinion, and that does not belong in a column that is read as
- * a fact. Only empty and the marker count as "nothing".
- *
- * Callers that know for certain (the runner knows whether there was tool output)
- * pass `producedOutput` explicitly; this inference is the answer for whoever does not.
- */
-function deriveProducedOutput(result) {
-    if (result === null || result === undefined) return false;
-    const text = String(result).trim();
-    if (text === '') return false;
-    // Exactly one `_( … )_` block and nothing around it: the "no text result"
-    // marker of aiTaskRunner. A real answer that happens to start in italics
-    // has text around it and therefore counts as normal.
-    if (/^_\([\s\S]*\)_$/.test(text)) return false;
-    return true;
-}
-
 // ── CRUD ────────────────────────────────────────────────
 
-async function createSchedule({
-    userId, title, prompt, repeatInterval, nextRunAt, modelTier,
-    timezone, toolsEnabled, agentId, daysOfWeek, timeOfDay, enabledApps,
-}) {
+async function createSchedule(fields) {
     await initDB();
+    const { userId, title, nextRunAt } = fields;
     const id = crypto.randomUUID();
-    const daysJson = Array.isArray(daysOfWeek) && daysOfWeek.length > 0 ? JSON.stringify(daysOfWeek) : null;
     await run(
         `INSERT INTO cowork_schedules
            (id, user_id, title, prompt, repeat_interval, next_run_at, model_tier,
-            timezone, tools_enabled, agent_id, days_of_week, time_of_day, enabled_apps)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-        [
-            id, userId, title, prompt,
-            repeatInterval || null,
-            nextRunAt,
-            modelTier || 'fast',
-            timezone || 'Europe/Amsterdam',
-            JSON.stringify(toolsEnabled || ['agent_search']),
-            agentId || null,
-            daysJson,
-            timeOfDay || null,
-            Array.isArray(enabledApps) ? JSON.stringify(enabledApps) : null,
-        ],
+            timezone, tools_enabled, agent_id, days_of_week, time_of_day, enabled_apps,
+            trigger_kind, trigger_json)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        [id, userId, ...insertValues(fields)],
     );
     log.info(`[CoworkStore] Created "${title}" for user ${userId}, next run: ${nextRunAt}`);
     return getSchedule(id);
@@ -210,6 +109,8 @@ const FIELD_MAP = {
     // An EMPTY list is meaningful here ("this may use nothing"), so unlike
     // daysOfWeek it must survive as '[]' rather than collapse to null.
     enabledApps: { col: 'enabled_apps', transform: v => (Array.isArray(v) ? JSON.stringify(v) : null) },
+    triggerKind: 'trigger_kind',
+    trigger: { col: 'trigger_json', transform: v => (v && typeof v === 'object' ? JSON.stringify(v) : null) },
     // Needed by the reauth pause: resumeNeedsReauthForUser only matches rows
     // whose last_status is 'needs_reauth', so the pause must be able to set it.
     lastStatus: 'last_status',
@@ -258,6 +159,14 @@ async function deleteUserSchedules(userId) {
     return rowCount;
 }
 
+/** @typedef {(schedule: NonNullable<ReturnType<typeof rowToSchedule>>) => Promise<unknown>} MailTriggerSync */
+
+/** @type {MailTriggerSync | null} The automation feature's subscription sync, set at boot (a store may not require it). */
+let mailTriggerSync = null;
+
+/** @param {MailTriggerSync | null} fn */
+function setMailTriggerSync(fn) { mailTriggerSync = fn; }
+
 /**
  * Un-pause everything this user's expired integration took down, i.e. rows
  * left inactive with last_status='needs_reauth'. Called from the OAuth
@@ -266,16 +175,41 @@ async function deleteUserSchedules(userId) {
  * wired into that path, or a reconnected user's schedules stay paused for
  * good. Returns how many were resumed.
  * @param {string} userId
+ * @param {MailTriggerSync | null} [syncMailTrigger] defaults to the one set at boot; with none, mail triggers stay paused
  */
-async function resumeNeedsReauthForUser(userId) {
+async function resumeNeedsReauthForUser(userId, syncMailTrigger = mailTriggerSync) {
     await initDB();
+    // A mail trigger is only alive with its subscription: it is resumed by the
+    // sync (best effort), and stays paused when that fails.
     const { rowCount } = await run(
         `UPDATE cowork_schedules
          SET is_active = TRUE, last_status = 'pending'
-         WHERE user_id = $1 AND is_active = FALSE AND last_status = 'needs_reauth'`,
+         WHERE user_id = $1 AND is_active = FALSE AND last_status = 'needs_reauth'
+           AND trigger_kind IS DISTINCT FROM 'app_event'`,
         [userId],
     );
-    return rowCount || 0;
+    let resumed = rowCount || 0;
+    if (!syncMailTrigger) return resumed;
+    const events = await getAll(
+        `SELECT * FROM cowork_schedules
+         WHERE user_id = $1 AND is_active = FALSE AND last_status = 'needs_reauth'
+           AND trigger_kind = 'app_event'`,
+        [userId],
+    );
+    for (const row of events) {
+        const schedule = rowToSchedule(row);
+        try {
+            await syncMailTrigger({ ...schedule, isActive: true });
+            await run(
+                `UPDATE cowork_schedules SET is_active = TRUE, last_status = 'pending' WHERE id = $1`,
+                [row.id],
+            );
+            resumed += 1;
+        } catch (err) {
+            log.warn(`[Cowork] mail trigger ${row.id} stays paused after reconnect: ${/** @type {Error} */ (err).message}`);
+        }
+    }
+    return resumed;
 }
 
 // ── Execution history ───────────────────────────────────
@@ -521,6 +455,7 @@ async function getDueSchedules() {
     const rows = await getAll(
         `SELECT * FROM cowork_schedules
          WHERE next_run_at <= NOW()
+           AND trigger_kind = 'schedule'
            AND is_active = TRUE
            AND last_status != 'running'
          ORDER BY next_run_at ASC
@@ -612,6 +547,7 @@ module.exports = {
     getScheduleCount,
     deleteUserSchedules,
     resumeNeedsReauthForUser,
+    setMailTriggerSync,
     listRuns,
     getRunCount,
     getRunStats,

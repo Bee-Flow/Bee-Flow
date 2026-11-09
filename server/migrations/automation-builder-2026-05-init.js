@@ -121,7 +121,7 @@ async function up() {
     await exec(`
         CREATE TABLE IF NOT EXISTS automation_event_subscriptions (
             id TEXT PRIMARY KEY,
-            automation_id TEXT NOT NULL REFERENCES automations(id) ON DELETE CASCADE,
+            automation_id TEXT REFERENCES automations(id) ON DELETE CASCADE,
             user_id TEXT NOT NULL,
             provider TEXT NOT NULL,
             event_type TEXT NOT NULL,

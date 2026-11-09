@@ -15,6 +15,19 @@ const { effectOf } = require('../../automationModel/sideEffectMap');
 const { _plainObject, toolsConfigOf, CONFIRM_MODES, ACT_AS_MODES } = require('./configShape');
 const { appIdForTool, isAttributionAvailable, _decidingApps, _warnDegraded } = require('./appIndex');
 const { hasCuratedGrants } = require('./grantResolution');
+const { REPLY_IN_THREAD_TOOLS, mailAccessOf } = require('./mailAccess');
+
+/**
+ * The one send that may run without a person: a reply in the thread of the mail that started a mail-triggered
+ * run, for an agent whose owner chose `mailAccess: 'send_reply'` on that app. The tool itself refuses any other
+ * thread and derives the recipients from the original, so there is nothing left to approve.
+ * @param {string} toolName
+ */
+function replyInThreadIsDirect(toolName, toolsConfig) {
+    if (!REPLY_IN_THREAD_TOOLS.includes(toolName) || !_plainObject(toolsConfig)) return false;
+    const appId = appIdForTool(toolName);
+    return !!appId && mailAccessOf(appId, toolsConfig[appId]) === 'send_reply';
+}
 
 /**
  * `direct` or `ask` for one tool.
@@ -23,14 +36,17 @@ const { hasCuratedGrants } = require('./grantResolution');
  *   sends  → always ask    (whatever the config says)
  *   writes → the app entry's `confirm`, else `legacyDefault`
  *
+ * `mailTrigger`: this is a run started by a new mail — the only case where a reply in that thread is
+ * `direct` (see replyInThreadIsDirect).
+ *
  * `legacyDefault` is 'direct' on purpose: an agent that predates the picker
  * must not start asking for confirmation on writes it has always just done.
  * @param {string} toolName
  */
-function confirmForTool(toolName, toolsConfig, { legacyDefault = 'direct' } = {}) {
+function confirmForTool(toolName, toolsConfig, { legacyDefault = 'direct', mailTrigger = false } = {}) {
     const effect = effectOf(toolName);          // sideEffectMap — no registry involved
     if (effect === 'reads') return 'direct';
-    if (effect === 'sends') return 'ask';
+    if (effect === 'sends') return mailTrigger && replyInThreadIsDirect(toolName, toolsConfig) ? 'direct' : 'ask';
     // The opt-in boundary, here too: an agent without a grants map has no decision that can be looked up, so the registry is not
     // even touched. Without this shortcut every old agent would touch it on every turn anyway — precisely what "invisibly shippable" excludes.
     if (!_plainObject(toolsConfig)) return CONFIRM_MODES.includes(legacyDefault) ? legacyDefault : 'direct';

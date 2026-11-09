@@ -1,6 +1,7 @@
-import { Plus, Play, Pause, Sliders, Trash2, X } from 'lucide-react';
+import { Mail, Plus, Play, Pause, Sliders, Trash2, X } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 import type { TranslateParams } from '@/hooks/useTranslation';
+import { describeMailTrigger } from '@/components/cowork/mailTrigger';
 import type { SchedulesPickerProps } from './SchedulePickers.types';
 
 function formatScheduleNextRun(iso: string | number | Date, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
@@ -28,7 +29,7 @@ function formatScheduleNextRun(iso: string | number | Date, t: (key: string | un
     return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export function SchedulesPicker({ t, agent, schedules, onClose, onCreate, onEdit, onToggle, onRunNow, onDelete }: SchedulesPickerProps) {
+export function SchedulesPicker({ t, agent, schedules, onClose, onCreate, onCreateMail, onEdit, onToggle, onRunNow, onDelete }: SchedulesPickerProps) {
     const popoverRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         const onDoc = (e: MouseEvent) => {
@@ -64,6 +65,15 @@ export function SchedulesPicker({ t, agent, schedules, onClose, onCreate, onEdit
                 >
                     <Plus size={14} /> {t('agent_schedules.new', 'New schedule')}
                 </button>
+                {onCreateMail && (
+                    <button
+                        type="button"
+                        onClick={onCreateMail}
+                        className="w-full mb-2 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card,#fff)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] text-sm font-medium transition"
+                    >
+                        <Mail size={14} /> {t('agent_schedules.new_mail_trigger', 'New email trigger')}
+                    </button>
+                )}
                 {schedules.length === 0 ? (
                     <div className="text-xs text-[var(--text-tertiary)] py-6 text-center">
                         {t('agent_schedules.none_for_agent', 'No schedules yet for this agent.')}
@@ -71,33 +81,47 @@ export function SchedulesPicker({ t, agent, schedules, onClose, onCreate, onEdit
                 ) : (
                     <div className="divide-y divide-[var(--border-default)]">
                         {schedules.map((r) => (
-                            <div key={r.id} className="py-2 flex items-start gap-2">
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm text-[var(--text-primary)] truncate">{r.title}</div>
-                                    <div className="text-[11px] text-[var(--text-tertiary)] truncate">
-                                        {r.isActive
-                                            ? `${t('agent_schedules.scheduled_for', 'Scheduled for')}: ${formatScheduleNextRun(r.nextRunAt as string | number | Date, t)}`
-                                            : (t('agent_schedules.paused', 'Paused'))}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-0.5 flex-shrink-0">
-                                    <button onClick={() => onRunNow(r)} title={t('agent_schedules.run_now', 'Run now')} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
-                                        <Play size={13} />
-                                    </button>
-                                    <button onClick={() => onToggle(r)} title={r.isActive ? (t('agent_schedules.pause', 'Pause')) : (t('agent_schedules.resume', 'Resume'))} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
-                                        {r.isActive ? <Pause size={13} /> : <Play size={13} />}
-                                    </button>
-                                    <button onClick={() => onEdit(r)} title={t('agent_schedules.edit', 'Edit')} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
-                                        <Sliders size={13} />
-                                    </button>
-                                    <button onClick={() => onDelete(r)} title={t('agent_schedules.delete', 'Delete')} className="p-1.5 rounded hover:bg-red-500/10 text-[var(--text-tertiary)] hover:text-red-500 transition">
-                                        <Trash2 size={13} />
-                                    </button>
-                                </div>
-                            </div>
+                            <ScheduleRow key={r.id} t={t} r={r} onEdit={onEdit} onToggle={onToggle} onRunNow={onRunNow} onDelete={onDelete} />
                         ))}
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+type RowProps = Pick<SchedulesPickerProps, 't' | 'onEdit' | 'onToggle' | 'onRunNow' | 'onDelete'> & { r: SchedulesPickerProps['schedules'][number] };
+
+function ScheduleRow({ t, r, onEdit, onToggle, onRunNow, onDelete }: RowProps) {
+    return (
+        <div className="py-2 flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+                <div className="text-sm text-[var(--text-primary)] truncate">{r.title}</div>
+                <div className="text-[11px] text-[var(--text-tertiary)] truncate">
+                    {r.triggerKind === 'app_event' && r.trigger
+                        ? `${describeMailTrigger(r.trigger, t)}${r.isActive ? '' : ` · ${t('agent_schedules.paused', 'Paused')}`}`
+                        : r.isActive
+                            ? `${t('agent_schedules.scheduled_for', 'Scheduled for')}: ${formatScheduleNextRun(r.nextRunAt as string | number | Date, t)}`
+                            : (t('agent_schedules.paused', 'Paused'))}
+                </div>
+            </div>
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+                {r.triggerKind !== 'app_event' && (
+                    <button onClick={() => onRunNow(r)} title={t('agent_schedules.run_now', 'Run now')} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+                        <Play size={13} />
+                    </button>
+                )}
+                <button onClick={() => onToggle(r)} title={r.isActive ? (t('agent_schedules.pause', 'Pause')) : (t('agent_schedules.resume', 'Resume'))} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+                    {r.isActive ? <Pause size={13} /> : <Play size={13} />}
+                </button>
+                {r.triggerKind !== 'app_event' && (
+                    <button onClick={() => onEdit(r)} title={t('agent_schedules.edit', 'Edit')} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+                        <Sliders size={13} />
+                    </button>
+                )}
+                <button onClick={() => onDelete(r)} title={t('agent_schedules.delete', 'Delete')} className="p-1.5 rounded hover:bg-red-500/10 text-[var(--text-tertiary)] hover:text-red-500 transition">
+                    <Trash2 size={13} />
+                </button>
             </div>
         </div>
     );

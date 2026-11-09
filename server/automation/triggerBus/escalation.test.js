@@ -63,3 +63,17 @@ test('a notification inside the debounce window is not repeated', async () => {
     assert.strictEqual(notifications.length, 0);
     assert.deepStrictEqual(updates, []);
 });
+
+test('a Cowork-owned subscription notifies with the item title, not an automation lookup', async () => {
+    notifications.length = 0;
+    const { ctx, updates } = escCtx({ failures: POLL_FAILURE_THRESHOLD, automation: null });
+    const base = ctx.store;
+    ctx.store = () => ({ ...base(), getAutomation: async () => { throw new Error('must not look up an automation'); } });
+    ctx.coworkStore = () => ({ getSchedule: async () => ({ title: 'Inbox agent' }) });
+    const sub = { id: 's2', userId: 'u1', automationId: null, coworkScheduleId: 'cw1', provider: 'gmail', eventType: 'mail.new' };
+    await escalateSubscriptionFailure(ctx, sub, POLL_FAILURE_THRESHOLD, 'invalid_grant');
+    assert.strictEqual(notifications.length, 1);
+    assert.match(notifications[0].title, /Inbox agent/);
+    assert.match(notifications[0].message, /mail-trigger/);
+    assert.strictEqual(updates.length, 1);
+});
