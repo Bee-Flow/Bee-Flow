@@ -1,13 +1,14 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { ALERT_ERROR } from '@/components/mcpLibrary/ui';
 import { Card as BaseCard } from '../../monitoring/shared';
 import { Empty } from '../../monitoring/shared/SvgAreaChart';
 import type { AsyncCardProps, CardProps, ErrorNoteProps, SkeletonProps } from './ui.types';
 
 /**
- * Card: the monitor's card (the shared DashCard). The icon and style props
- * are accepted for the callers' sake and no longer drawn: the Studio card
- * carries a title, not a tinted glyph.
+ * Card: the monitor's card (the shared DashCard). The icon prop is accepted
+ * for the callers' sake and not drawn: the Studio card carries a title, not
+ * a tinted glyph.
  */
 export function Card({ title, children, action }: CardProps) {
     return <BaseCard title={title} action={action}>{children}</BaseCard>;
@@ -23,31 +24,26 @@ export function Card({ title, children, action }: CardProps) {
 export function ErrorNote({ message, onRetry, compact = false }: ErrorNoteProps) {
     const { t } = useTranslation();
     return (
-        <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 8,
-            padding: compact ? '8px 10px' : '10px 14px', borderRadius: 10,
-            background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)',
-            color: '#fda4af', fontSize: 12,
-        }}>
-            <AlertTriangle className="w-[14px] h-[14px] [flex-shrink:0] [margin-top:1px]" />
-            <span className="[flex:1] [word-break:break-word]">{message}</span>
+        <div role="alert" className={`${ALERT_ERROR} ${compact ? '' : 'px-3.5 py-2.5'}`}>
+            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="flex-1 break-words">{message}</span>
             {onRetry && (
-                <button onClick={onRetry} title={t('cms_site.analytics.common.retry', 'Retry')} className="[display:inline-flex] [align-items:center] [gap:4px] [background:transparent] [border:1px_solid_rgba(244,63,94,0.35)] [border-radius:7px] [color:#fda4af] [font-size:11px] [font-weight:700] [padding:3px_8px] [cursor:pointer] [flex-shrink:0]">
-                    <RefreshCw className="w-[11px] h-[11px]" /> {t('cms_site.analytics.common.retry', 'Retry')}
+                <button
+                    type="button"
+                    onClick={onRetry}
+                    title={t('cms_site.analytics.common.retry', 'Retry')}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[color-mix(in_srgb,var(--error)_40%,transparent)] px-2 py-0.5 text-[11px] font-semibold hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)]"
+                >
+                    <RefreshCw className="h-3 w-3" aria-hidden="true" /> {t('cms_site.analytics.common.retry', 'Retry')}
                 </button>
             )}
         </div>
     );
 }
 
-export function Skeleton({ height = 80, style }: SkeletonProps) {
-    return (
-        <div style={{
-            height, borderRadius: 10, background: 'var(--bg-secondary, rgba(255,255,255,0.04))',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.06))',
-            animation: 'bf-analytics-pulse 1.4s ease-in-out infinite', ...style,
-        }} />
-    );
+/** A pulsing placeholder of the given height (the height is the layout's, hence inline). */
+export function Skeleton({ height = 80 }: SkeletonProps) {
+    return <div aria-hidden="true" className="animate-pulse rounded-xl bg-[var(--bg-secondary)]" style={{ height }} />;
 }
 
 /**

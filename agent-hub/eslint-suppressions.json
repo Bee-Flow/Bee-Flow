@@ -3271,11 +3271,6 @@
       "count": 1
     }
   },
-  "src/components/admin/product-website/analytics/heatmap/PageStage.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/product-website/analytics/heatmap/usePreviewBackdrop.ts": {
     "max-lines-per-function": {
       "count": 1

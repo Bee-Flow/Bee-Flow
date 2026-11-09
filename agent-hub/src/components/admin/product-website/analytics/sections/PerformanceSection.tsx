@@ -19,9 +19,9 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import TrendChart from '../charts/TrendChart';
 import { rich } from '../rich';
-import { fmt } from '../ui';
+import { fmt, pillClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
-import { ACCENT, ShareBar } from '../BarList';
+import { ACCENT, ShareBar, tint } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import { resolveWindow, densify, bucketLabel } from '../window';
 import type { AnalyticsScope } from '../../analyticsApi';
@@ -44,9 +44,13 @@ type Metric = {
 /** A metric with its measured value (null when unmeasured) and the band that value falls in. */
 type GradedMetric = Metric & { value: number | null; band: Band };
 
-const GOOD = '#10b981';
-const MEH = '#f59e0b';
-const POOR = '#ef4444';
+// The bands are the status tones: the meter's fill tints them, the text reads their ink.
+const GOOD = 'var(--success)';
+const MEH = 'var(--warning)';
+const POOR = 'var(--error)';
+
+/** A status tone's readable ink (`var(--success)` → `var(--success-ink)`); other colours pass through. */
+const inkOf = (c: string) => (/^var\(--(success|warning|error)\)$/.test(c) ? c.replace(')', '-ink)') : c);
 
 // [good <=, needs-improvement <=] in the metric's own unit.
 const METRICS: Metric[] = [
@@ -58,7 +62,7 @@ const METRICS: Metric[] = [
 ];
 
 function band(value: number | null, [good, meh]: [number, number]): Band {
-    if (value == null) return { color: 'var(--text-muted, #888)', labelKey: 'cms_site.analytics.performance.band_unmeasured', label: 'Not measured', rank: -1 };
+    if (value == null) return { color: 'var(--text-tertiary)', labelKey: 'cms_site.analytics.performance.band_unmeasured', label: 'Not measured', rank: -1 };
     if (value <= good) return { color: GOOD, labelKey: 'cms_site.analytics.performance.band_good', label: 'Good', rank: 0 };
     if (value <= meh) return { color: MEH, labelKey: 'cms_site.analytics.performance.band_meh', label: 'Needs work', rank: 1 };
     return { color: POOR, labelKey: 'cms_site.analytics.performance.band_poor', label: 'Poor', rank: 2 };
@@ -124,12 +128,12 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
     }, [payload, win]);
 
     if (vitals.loading) {
-        return <div className="[display:flex] [flex-direction:column] [gap:14px]"><Skeleton height={180} /><Skeleton height={220} /></div>;
+        return <div className="flex flex-col gap-3.5"><Skeleton height={180} /><Skeleton height={220} /></div>;
     }
     if (vitals.error) return <ErrorNote message={vitals.error} onRetry={vitals.reload} />;
 
     return (
-        <div className="[display:flex] [flex-direction:column] [gap:14px]">
+        <div className="flex flex-col gap-3.5">
             {!measured && <NotMeasured />}
 
             {measured && (
@@ -137,7 +141,7 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
                     percentile={percentile} onPercentile={setPercentile} />
             )}
 
-            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] [gap:12px]">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
                 {graded.map(g => <VitalMeter key={g.id} metric={g} />)}
             </div>
 
@@ -154,7 +158,7 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
                         height={180}
                         emptyText={t('cms_site.analytics.performance.trend_empty', 'Not enough samples to draw a trend yet.')}
                     />
-                    <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:10px_0_0]">
+                    <p className="text-[11px] text-[var(--text-tertiary)] mt-2.5 mx-0 mb-0">
                         {t('cms_site.analytics.performance.gaps', 'Gaps are periods with no samples — not periods where the site was instant.')}
                     </p>
                 </Card>
@@ -162,8 +166,8 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
 
             {measured && <PerPage payload={payload} onDrill={onDrill} />}
 
-            <div className="[font-size:11px] [color:var(--text-muted,#777)] [display:flex] [gap:7px] [align-items:flex-start]">
-                <Gauge style={{ width: 13, height: 13, marginTop: 1, flexShrink: 0, color: ACCENT }} />
+            <div className="text-[11px] text-[var(--text-tertiary)] flex gap-[7px] items-start">
+                <Gauge className="mt-px h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                 <span>
                     {t('cms_site.analytics.performance.footnote', 'Web vitals ride along with the standard tracker — no extra script, and nothing about the visitor beyond browser timings. They are reported when someone leaves the page or after ten seconds on it, so they lag the pageview slightly.')}{' '}
                     {percentile === 'p75'
@@ -189,42 +193,33 @@ function Verdict({ graded, worst, sampleCount, percentile, onPercentile }: Verdi
     const allGood = worst.length === 0;
     return (
         <Card title={t('cms_site.analytics.performance.verdict', 'Verdict')} icon={Wrench} action={
-            <div className="[display:flex] [gap:5px] [align-items:center]">
-                <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.performance.samples', '{n} samples', { n: fmt(sampleCount) })}</span>
+            <div className="flex gap-[5px] items-center">
+                <span className="text-[10px] text-[var(--text-tertiary)]">{t('cms_site.analytics.performance.samples', '{n} samples', { n: fmt(sampleCount) })}</span>
                 {['p50', 'p75', 'p95'].map(p => (
-                    <button key={p} onClick={() => onPercentile(p)} style={{
-                        fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                        border: `1px solid ${percentile === p ? `${ACCENT}66` : 'var(--border-subtle, rgba(255,255,255,0.1))'}`,
-                        background: percentile === p ? `${ACCENT}14` : 'transparent',
-                        color: percentile === p ? ACCENT : 'var(--text-muted, #888)',
-                    }}>{p}</button>
+                    <button key={p} onClick={() => onPercentile(p)} aria-pressed={percentile === p} className={pillClass(percentile === p)}>{p}</button>
                 ))}
             </div>
         }>
             {allGood ? (
-                <p className="[font-size:13px] [color:var(--text-secondary,#ccc)] [margin:0]">
+                <p className="text-[13px] text-[var(--text-secondary)] m-0">
                     {rich(t('cms_site.analytics.performance.all_good', "All five Core Web Vitals are in Google's {good} band for this period. Nothing to fix."), {
-                        good: <strong style={{ color: GOOD }}>{t('cms_site.analytics.performance.all_good_word', 'good')}</strong>,
+                        good: <strong className="text-[var(--success-ink)]">{t('cms_site.analytics.performance.all_good_word', 'good')}</strong>,
                     })}
                 </p>
             ) : (
-                <div className="[display:flex] [flex-direction:column] [gap:10px]">
-                    <p className="[font-size:13px] [color:var(--text-secondary,#ccc)] [margin:0]">
+                <div className="flex flex-col gap-2.5">
+                    <p className="text-[13px] text-[var(--text-secondary)] m-0">
                         {t('cms_site.analytics.performance.fix_order', 'Fix in this order — worst band first, then furthest past its threshold.')}
                     </p>
                     {worst.map((g, i) => (
-                        <div key={g.id} className="[display:flex] [gap:10px] [align-items:baseline]">
-                            <span style={{
-                                width: 18, height: 18, borderRadius: 5, flexShrink: 0, display: 'inline-flex',
-                                alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800,
-                                background: `${g.band.color}22`, color: g.band.color,
-                            }}>{i + 1}</span>
-                            <span className="[font-size:12px]">
-                                <strong className="[color:var(--text-primary,#fff)]">{g.name}</strong>{' '}
-                                <span style={{ color: g.band.color, fontWeight: 700 }}>
+                        <div key={g.id} className="flex gap-2.5 items-baseline">
+                            <span className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[10px] font-semibold" style={{ background: tint(g.band.color, 14), color: inkOf(g.band.color) }}>{i + 1}</span>
+                            <span className="text-xs">
+                                <strong className="text-[var(--text-primary)]">{g.name}</strong>{' '}
+                                <span className="font-semibold" style={{ color: inkOf(g.band.color) }}>
                                     {formatValue(g.value, g.unit)}
                                 </span>
-                                <span className="[color:var(--text-muted,#888)]">
+                                <span className="text-[var(--text-tertiary)]">
                                     {' '}{t('cms_site.analytics.performance.target', '— target {target}. Usually {fix}.', { target: formatValue(g.bands[0], g.unit), fix: t(g.fixKey, g.fix) })}
                                 </span>
                             </span>
@@ -245,41 +240,32 @@ function VitalMeter({ metric }: { metric: GradedMetric }) {
     const pos = measured ? Math.min(1, value / (bands[1] * 1.5)) * 100 : 0;
 
     return (
-        <div className="[background:var(--bg-secondary,#1a1a2e)] [border:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))] [border-radius:12px] [padding:14px_16px]">
-            <div className="[display:flex] [align-items:baseline] [justify-content:space-between] [gap:8px]">
-                <span className="[font-size:13px] [font-weight:800] [color:var(--text-primary,#fff)]">{metric.label}</span>
-                <span style={{
-                    fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
-                    padding: '2px 7px', borderRadius: 5,
-                    background: measured ? `${b.color}18` : 'transparent',
-                    color: measured ? b.color : 'var(--text-muted, #777)',
-                    border: measured ? 'none' : '1px solid var(--border-subtle, rgba(255,255,255,0.12))',
-                }}>{t(b.labelKey, b.label)}</span>
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl py-3.5 px-4">
+            <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[13px] font-semibold text-[var(--text-primary)]">{metric.label}</span>
+                <span
+                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${measured ? '' : 'border border-[var(--border-default)] text-[var(--text-tertiary)]'}`}
+                    style={measured ? { background: tint(b.color, 12), color: inkOf(b.color) } : undefined}
+                >{t(b.labelKey, b.label)}</span>
             </div>
-            <div className="[font-size:11px] [color:var(--text-muted,#888)] [margin-bottom:8px]">{metric.name}</div>
+            <div className="text-[11px] text-[var(--text-tertiary)] mb-2">{metric.name}</div>
 
-            <div style={{
-                fontSize: measured ? 24 : 13, fontWeight: measured ? 800 : 600, lineHeight: 1.3,
-                color: measured ? b.color : 'var(--text-muted, #888)',
-            }}>
+            <div className={measured ? 'text-2xl font-semibold leading-snug tabular-nums' : 'text-[13px] font-semibold leading-snug text-[var(--text-tertiary)]'} style={measured ? { color: inkOf(b.color) } : undefined}>
                 {measured ? formatValue(value, unit) : t('cms_site.analytics.performance.no_samples', 'No samples yet')}
             </div>
 
             {/* Threshold track: good | needs work | poor, with a marker where we sit. */}
-            <div className="[position:relative] [margin-top:10px]">
-                <div className="[display:flex] h-[5px] [border-radius:99px] [overflow:hidden] [gap:1px]">
-                    <div style={{ flex: bands[0], background: measured ? `${GOOD}55` : `${GOOD}22` }} />
-                    <div style={{ flex: bands[1] - bands[0], background: measured ? `${MEH}55` : `${MEH}22` }} />
-                    <div style={{ flex: bands[1] * 0.5, background: measured ? `${POOR}55` : `${POOR}22` }} />
+            <div className="relative mt-2.5">
+                <div className="flex h-[5px] rounded-full overflow-hidden gap-[1px]">
+                    <div style={{ flex: bands[0], background: tint(GOOD, measured ? 33 : 13) }} />
+                    <div style={{ flex: bands[1] - bands[0], background: tint(MEH, measured ? 33 : 13) }} />
+                    <div style={{ flex: bands[1] * 0.5, background: tint(POOR, measured ? 33 : 13) }} />
                 </div>
                 {measured && (
-                    <div style={{
-                        position: 'absolute', top: -3, left: `${pos}%`, transform: 'translateX(-50%)',
-                        width: 3, height: 11, borderRadius: 2, background: b.color,
-                    }} />
+                    <div className="absolute -top-[3px] h-[11px] w-[3px] -translate-x-1/2 rounded-sm" style={{ left: `${pos}%`, background: inkOf(b.color) }} />
                 )}
             </div>
-            <div className="[font-size:10px] [color:var(--text-muted,#777)] [margin-top:6px]">
+            <div className="text-[10px] text-[var(--text-tertiary)] mt-1.5">
                 {t('cms_site.analytics.performance.thresholds', 'good ≤ {good} · poor > {poor}', { good: formatValue(bands[0], unit), poor: formatValue(bands[1], unit) })}
             </div>
         </div>
@@ -295,9 +281,9 @@ function PerPage({ payload, onDrill }: { payload: PerformancePayload | null; onD
 
     return (
         <Card title={t('cms_site.analytics.performance.slowest', 'Slowest pages')} icon={Gauge} action={
-            <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.performance.slowest_hint', 'LCP p75 · click to filter')}</span>
+            <span className="text-[10px] text-[var(--text-tertiary)]">{t('cms_site.analytics.performance.slowest_hint', 'LCP p75 · click to filter')}</span>
         }>
-            <div className="[display:flex] [flex-direction:column] [gap:8px]">
+            <div className="flex flex-col gap-2">
                 {[...pages]
                     .sort((a, b) => (Number(b.p75) || 0) - (Number(a.p75) || 0))
                     .slice(0, 10)
@@ -306,12 +292,12 @@ function PerPage({ payload, onDrill }: { payload: PerformancePayload | null; onD
                         const b = band(v, [2500, 4000]);
                         return (
                             <button key={p.name || i} onClick={() => p.name && onDrill?.('path', p.name)}
-                                className={`[display:block] [width:100%] [text-align:left] [padding:0] [background:transparent] [border:none] ${p.name ? '[cursor:pointer]' : '[cursor:default]'}`}>
-                                <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
-                                    <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{p.name || t('cms_site.analytics.common.unknown', 'Unknown')}</span>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: b.color, flexShrink: 0 }}>
+                                className={`block w-full text-left p-0 bg-transparent border-0 ${p.name ? 'cursor-pointer' : 'cursor-default'}`}>
+                                <div className="flex justify-between gap-2.5 mb-[3px]">
+                                    <span className="text-xs text-[var(--text-primary)] overflow-hidden text-ellipsis whitespace-nowrap">{p.name || t('cms_site.analytics.common.unknown', 'Unknown')}</span>
+                                    <span className="shrink-0 text-xs font-semibold tabular-nums" style={{ color: inkOf(b.color) }}>
                                         {formatValue(v, 'ms')}
-                                        <span className="[color:var(--text-muted,#777)] [font-weight:500]">
+                                        <span className="text-[var(--text-tertiary)] font-medium">
                                             {' '}· {fmt(p.count || 0)}
                                         </span>
                                     </span>
@@ -333,8 +319,8 @@ function PerPage({ payload, onDrill }: { payload: PerformancePayload | null; onD
 function NotMeasured() {
     const { t } = useTranslation();
     return (
-        <div className="[display:flex] [gap:9px] [align-items:flex-start] [padding:12px_15px] [border-radius:10px] [background:rgba(245,158,11,0.08)] [border:1px_solid_rgba(245,158,11,0.25)] [font-size:12px] [color:#fcd34d]">
-            <Gauge className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0]" />
+        <div className="flex gap-[9px] items-start py-3 px-[15px] rounded-lg border border-[color-mix(in_srgb,var(--warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] text-xs text-[var(--warning-ink)]">
+            <Gauge className="w-[14px] h-[14px] mt-[1px] shrink-0" />
             <span>
                 <strong>{t('cms_site.analytics.performance.unmeasured_title', 'No web-vitals samples in this period.')}</strong>{' '}
                 {t('cms_site.analytics.performance.unmeasured_body', 'The tracker reports them when a visitor leaves the page or after ten seconds on it, so they arrive a little after the pageviews do — a quiet period can legitimately have none. If this stays empty on a site with steady traffic, the published site is probably still serving an older tracker: republish it.')}

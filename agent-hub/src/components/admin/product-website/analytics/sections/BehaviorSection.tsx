@@ -11,9 +11,9 @@
 import { Filter, GitBranch, Repeat, Target, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Empty, fmt, paletteAt } from '../ui';
+import { Empty, fmt, paletteAt, pillClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
-import { ACCENT } from '../BarList';
+import { ACCENT, tint } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope } from '../../analyticsApi';
 import type { DrillHandler, XYRow } from '../ui.types';
@@ -31,19 +31,13 @@ export default function BehaviorSection({ scope, onDrill }: BehaviorSectionProps
     const { t } = useTranslation();
     const [tab, setTab] = useState('funnel');
     return (
-        <div className="[display:flex] [flex-direction:column] [gap:14px]">
-            <div className="[display:flex] [gap:6px] [flex-wrap:wrap]">
+        <div className="flex flex-col gap-3.5">
+            <div className="flex gap-1.5 flex-wrap">
                 {TABS.map(tb => {
                     const Icon = tb.icon;
                     const active = tb.id === tab;
                     return (
-                        <button key={tb.id} onClick={() => setTab(tb.id)} style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-                            borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                            background: active ? `${ACCENT}14` : 'var(--bg-secondary, #1a1a2e)',
-                            border: `1px solid ${active ? `${ACCENT}66` : 'var(--border-default, rgba(255,255,255,0.1))'}`,
-                            color: active ? ACCENT : 'var(--text-muted, #888)',
-                        }}>
+                        <button key={tb.id} onClick={() => setTab(tb.id)} aria-pressed={active} className={pillClass(active)}>
                             <Icon className="w-[13px] h-[13px]" /> {t(tb.labelKey, tb.label)}
                         </button>
                     );
@@ -93,38 +87,34 @@ function FunnelPanel({ scope }: FunnelPanelProps) {
     };
 
     return (
-        <div className="[display:flex] [flex-direction:column] [gap:14px]">
+        <div className="flex flex-col gap-3.5">
             <Card title={t('cms_site.analytics.behavior.funnel_build', 'Build a funnel')} icon={Filter} action={
                 isDefault ? (
-                    <span className="[font-size:10px] [color:var(--text-muted,#777)]">
+                    <span className="text-[10px] text-[var(--text-tertiary)]">
                         {t('cms_site.analytics.behavior.funnel_suggested', 'suggested — edit the steps to make it yours')}
                     </span>
                 ) : null
             }>
-                <div className="[display:flex] [flex-direction:column] [gap:10px]">
+                <div className="flex flex-col gap-2.5">
                     {effectiveSteps.map((s, i) => (
-                        <div key={i} className="[display:flex] [align-items:center] [gap:8px] [padding:7px_10px] [border-radius:8px] [background:var(--bg-tertiary,rgba(255,255,255,0.03))]">
-                            <span style={{
-                                width: 20, height: 20, borderRadius: 99, flexShrink: 0, fontSize: 11, fontWeight: 800,
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                background: `${paletteAt(i)}22`, color: paletteAt(i),
-                            }}>{i + 1}</span>
-                            <span className="[font-size:12px] [color:var(--text-muted,#888)]">{s.type}</span>
-                            <span className="[font-size:12px] [color:var(--text-primary,#fff)] [flex:1]">{s.value}</span>
+                        <div key={i} className="flex items-center gap-2 py-[7px] px-2.5 rounded-lg bg-[var(--bg-tertiary)]">
+                            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--bg-card)] text-[11px] font-semibold text-[var(--text-primary)] ring-2" style={{ '--tw-ring-color': paletteAt(i) } as React.CSSProperties}>{i + 1}</span>
+                            <span className="text-xs text-[var(--text-tertiary)]">{s.type}</span>
+                            <span className="text-xs text-[var(--text-primary)] flex-1">{s.value}</span>
                             <button onClick={() => setStepsFrom(list => list.filter((_, j) => j !== i))}
                                 aria-label={t('cms_site.analytics.behavior.remove_step', 'Remove step {n}', { n: i + 1 })}
-                                className="[background:transparent] [border:none] [color:var(--text-muted,#888)] [cursor:pointer]">
+                                className="bg-transparent border-0 text-[var(--text-tertiary)] cursor-pointer">
                                 <X className="w-[13px] h-[13px]" />
                             </button>
                         </div>
                     ))}
 
-                    <div className="[display:flex] [align-items:center] [gap:8px]">
-                        <Plus style={{ width: 13, height: 13, color: ACCENT }} />
+                    <div className="flex items-center gap-2">
+                        <Plus className="h-3.5 w-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
                         <select
                             value=""
                             onChange={(e) => { addStep(e.target.value); e.target.value = ''; }}
-                            className="[background:var(--bg-primary,#0f0f1a)] [color:var(--text-primary,#fff)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.12))] [border-radius:8px] [padding:7px_10px] [font-size:12px] min-w-[260px]"
+                            className="bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg py-[7px] px-2.5 text-xs min-w-[260px]"
                         >
                             <option value="">{t('cms_site.analytics.behavior.add_step', 'Add a step…')}</option>
                             {pageOptions.length > 0 && (
@@ -139,11 +129,11 @@ function FunnelPanel({ scope }: FunnelPanelProps) {
                             )}
                         </select>
                         {effectiveSteps.length > 0 && (
-                            <button onClick={() => setSteps([])} className="[background:transparent] [border:1px_solid_var(--border-default,rgba(255,255,255,0.12))] [border-radius:8px] [padding:6px_10px] [font-size:12px] [color:var(--text-muted,#888)] [cursor:pointer]">{t('cms_site.analytics.behavior.clear', 'Clear')}</button>
+                            <button onClick={() => setSteps([])} className="bg-transparent border border-[var(--border-default)] rounded-lg py-1.5 px-2.5 text-xs text-[var(--text-tertiary)] cursor-pointer">{t('cms_site.analytics.behavior.clear', 'Clear')}</button>
                         )}
                     </div>
                     {!ready && (
-                        <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:0]">
+                        <p className="text-[11px] text-[var(--text-tertiary)] m-0">
                             {pageOptions.length < 2
                                 ? t('cms_site.analytics.behavior.funnel_need_pages', 'Once visitors have seen at least two different pages, a funnel can be built here.')
                                 : t('cms_site.analytics.behavior.funnel_need_steps', 'Pick at least two steps to see conversion and drop-off.')}
@@ -155,8 +145,8 @@ function FunnelPanel({ scope }: FunnelPanelProps) {
             {ready && (
                 <Card title={t('cms_site.analytics.behavior.conversion', 'Conversion')} action={
                     conversion != null ? (
-                        <span className="[font-size:12px] [color:var(--text-muted,#888)]">
-                            <strong style={{ color: ACCENT, fontSize: 15 }}>{conversion.toFixed(1)}%</strong>
+                        <span className="text-xs text-[var(--text-tertiary)]">
+                            <strong className="text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">{conversion.toFixed(1)}%</strong>
                             {' '}{t('cms_site.analytics.behavior.made_it', 'made it all the way through')}
                         </span>
                     ) : null
@@ -165,26 +155,26 @@ function FunnelPanel({ scope }: FunnelPanelProps) {
                         : funnel.error ? <ErrorNote message={funnel.error} onRetry={funnel.reload} compact />
                         : rows.length === 0 ? <Empty text={t('cms_site.analytics.behavior.funnel_empty', 'No visitors completed this path in the selected period.')} />
                         : (
-                            <div className="[display:flex] [flex-direction:column] [gap:12px]">
+                            <div className="flex flex-col gap-3">
                                 {rows.map((r, i) => {
                                     const pct = top > 0 ? Math.round((r.visitors / top) * 100) : 0;
                                     const prev = i > 0 ? rows[i - 1].visitors : null;
                                     const drop = prev ? prev - r.visitors : 0;
                                     return (
                                         <div key={i}>
-                                            <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:4px]">
-                                                <span className="[font-size:12px] [color:var(--text-primary,#fff)]">
+                                            <div className="flex justify-between gap-2.5 mb-1">
+                                                <span className="text-xs text-[var(--text-primary)]">
                                                     {i + 1}. {r.label || effectiveSteps[i]?.value}
                                                 </span>
-                                                <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>
-                                                    {fmt(r.visitors)} <span className="[color:var(--text-muted,#888)] [font-weight:500]">({pct}%)</span>
+                                                <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)]">
+                                                    {fmt(r.visitors)} <span className="text-[var(--text-tertiary)] font-medium">({pct}%)</span>
                                                 </span>
                                             </div>
-                                            <div className="h-[10px] [border-radius:5px] [background:var(--bg-tertiary,rgba(255,255,255,0.06))] [overflow:hidden]">
-                                                <div style={{ width: `${pct}%`, height: '100%', background: paletteAt(i) }} />
+                                            <div className="h-[10px] rounded bg-[var(--bg-tertiary)] overflow-hidden">
+                                                <div className="h-full" style={{ width: `${pct}%`, background: paletteAt(i) }} />
                                             </div>
                                             {prev != null && drop > 0 && (
-                                                <div className="[font-size:11px] [color:#f87171] [margin-top:3px]">
+                                                <div className="text-[11px] text-[var(--error-ink)] mt-[3px]">
                                                     −{t('cms_site.analytics.behavior.dropped', '{n} dropped off here', { n: fmt(drop) })}
                                                 </div>
                                             )}
@@ -211,7 +201,7 @@ function JourneyPanel({ scope, onDrill }: JourneyPanelProps) {
 
     return (
         <Card title={t('cms_site.analytics.behavior.journeys', 'Common journeys')} icon={GitBranch} action={
-            <select value={depth} onChange={(e) => setDepth(Number(e.target.value))} className="[background:var(--bg-primary,#0f0f1a)] [color:var(--text-primary,#fff)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.12))] [border-radius:7px] [padding:4px_8px] [font-size:11px]">
+            <select value={depth} onChange={(e) => setDepth(Number(e.target.value))} className="bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-md py-1 px-2 text-[11px]">
                 {[3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{t('cms_site.analytics.behavior.steps_count', '{n} steps', { n })}</option>)}
             </select>
         }>
@@ -219,21 +209,21 @@ function JourneyPanel({ scope, onDrill }: JourneyPanelProps) {
                 : error ? <ErrorNote message={error} onRetry={reload} compact />
                 : journeys.length === 0 ? <Empty text={t('cms_site.analytics.behavior.journeys_empty', 'Not enough multi-page sessions in this period to build journeys.')} />
                 : (
-                    <div className="[display:flex] [flex-direction:column] [gap:10px]">
+                    <div className="flex flex-col gap-2.5">
                         {journeys.slice(0, 15).map((j, i) => (
-                            <div key={i} className="[padding:8px_10px] [border-radius:8px] [background:var(--bg-tertiary,rgba(255,255,255,0.03))]">
-                                <div className="[display:flex] [align-items:center] [gap:6px] [flex-wrap:wrap] [margin-bottom:4px]">
+                            <div key={i} className="py-2 px-2.5 rounded-lg bg-[var(--bg-tertiary)]">
+                                <div className="flex items-center gap-1.5 flex-wrap mb-1">
                                     {j.path.map((step, k) => (
                                         <React.Fragment key={k}>
-                                            {k > 0 && <span className="[color:var(--text-muted,#666)] [font-size:11px]">→</span>}
+                                            {k > 0 && <span className="text-[var(--text-tertiary)] text-[11px]">→</span>}
                                             <button
                                                 onClick={() => step && onDrill('path', step)}
-                                                className="[background:transparent] [border:none] [padding:0] [cursor:pointer] [font-size:12px] [color:var(--text-primary,#fff)]"
+                                                className="bg-transparent border-0 p-0 cursor-pointer text-xs text-[var(--text-primary)]"
                                             >{step || t('cms_site.analytics.behavior.exit', '(exit)')}</button>
                                         </React.Fragment>
                                     ))}
                                 </div>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: ACCENT }}>{t('cms_site.analytics.behavior.sessions_count', '{n} sessions', { n: fmt(j.count) })}</span>
+                                <span className="text-[11px] font-semibold tabular-nums text-[var(--text-primary)]">{t('cms_site.analytics.behavior.sessions_count', '{n} sessions', { n: fmt(j.count) })}</span>
                             </div>
                         ))}
                     </div>
@@ -258,33 +248,31 @@ function RetentionPanel({ scope }: RetentionPanelProps) {
 
     return (
         <Card title={t('cms_site.analytics.behavior.retention', 'Retention')} icon={Repeat}>
-            <div className="[overflow-x:auto]">
-                <table className="[border-collapse:separate] [border-spacing:2px] [font-size:11px]">
+            <div className="overflow-x-auto">
+                <table className="[border-collapse:separate] [border-spacing:2px] text-[11px]">
                     <thead>
                         <tr>
-                            <th className="[text-align:left] [color:var(--text-muted,#888)] [font-weight:600] [padding:2px_6px]">{t('cms_site.analytics.behavior.cohort', 'Cohort')}</th>
-                            <th className="[text-align:right] [color:var(--text-muted,#888)] [font-weight:600] [padding:2px_6px]">{t('cms_site.analytics.behavior.visitors', 'Visitors')}</th>
+                            <th className="text-left text-[var(--text-tertiary)] font-semibold py-0.5 px-1.5">{t('cms_site.analytics.behavior.cohort', 'Cohort')}</th>
+                            <th className="text-right text-[var(--text-tertiary)] font-semibold py-0.5 px-1.5">{t('cms_site.analytics.behavior.visitors', 'Visitors')}</th>
                             {Array.from({ length: maxDay + 1 }, (_, d) => (
-                                <th key={d} className="[color:var(--text-muted,#888)] [font-weight:600] [padding:2px_6px] min-w-[38px]">D{d}</th>
+                                <th key={d} className="text-[var(--text-tertiary)] font-semibold py-0.5 px-1.5 min-w-[38px]">D{d}</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
                         {cohorts.slice(0, 14).map(c => (
                             <tr key={c.cohort}>
-                                <td className="[color:var(--text-primary,#fff)] [padding:2px_6px] [white-space:nowrap]">
+                                <td className="text-[var(--text-primary)] py-0.5 px-1.5 whitespace-nowrap">
                                     {String(c.cohort).slice(0, 10)}
                                 </td>
-                                <td className="[color:var(--text-muted,#999)] [padding:2px_6px] [text-align:right]">{fmt(c.visitors)}</td>
+                                <td className="text-[var(--text-tertiary)] py-0.5 px-1.5 text-right">{fmt(c.visitors)}</td>
                                 {Array.from({ length: maxDay + 1 }, (_, d) => {
                                     const pct = c.days.get(d);
                                     const heat = pct == null ? 0 : Math.max(0, Math.min(1, pct / 100));
                                     return (
-                                        <td key={d} title={pct == null ? '' : `${Math.round(pct)}%`} style={{
-                                            textAlign: 'center', padding: '4px 6px', borderRadius: 4,
-                                            background: pct == null ? 'transparent' : `rgba(20,184,166,${0.12 + heat * 0.75})`,
-                                            color: pct == null ? 'var(--text-muted, #555)' : '#fff', fontWeight: 700,
-                                        }}>
+                                        <td key={d} title={pct == null ? '' : `${Math.round(pct)}%`}
+                                            className={`rounded px-1.5 py-1 text-center font-semibold tabular-nums ${pct == null ? 'text-[var(--text-tertiary)]' : heat > 0.45 ? 'text-white' : 'text-[var(--text-primary)]'}`}
+                                            style={pct == null ? undefined : { background: tint('var(--chart-1)', Math.round(12 + heat * 75)) }}>
                                             {pct == null ? '·' : `${Math.round(pct)}%`}
                                         </td>
                                     );
@@ -329,7 +317,7 @@ function GoalsPanel({ scope }: GoalsPanelProps) {
 
     return (
         <Card title={t('cms_site.analytics.behavior.goal_title', 'Goal conversion')} icon={Target}>
-            <div className="[display:flex] [flex-direction:column] [gap:12px]">
+            <div className="flex flex-col gap-3">
                 <select
                     value={goal ? `${goal.type}:${goal.value}` : ''}
                     onChange={(e) => {
@@ -338,7 +326,7 @@ function GoalsPanel({ scope }: GoalsPanelProps) {
                         const [type, ...rest] = v.split(':');
                         setGoal({ type, value: rest.join(':') });
                     }}
-                    className="[background:var(--bg-primary,#0f0f1a)] [color:var(--text-primary,#fff)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.12))] [border-radius:8px] [padding:7px_10px] [font-size:12px] max-w-[340px]"
+                    className="bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg py-[7px] px-2.5 text-xs max-w-[340px]"
                 >
                     <option value="">{t('cms_site.analytics.behavior.goal_choose', 'Choose a page or event as the goal…')}</option>
                     {options.map((o, i) => (
@@ -351,17 +339,17 @@ function GoalsPanel({ scope }: GoalsPanelProps) {
                     : result.error ? <ErrorNote message={result.error} onRetry={result.reload} compact />
                     : (
                         <div>
-                            <div className="[display:flex] [align-items:baseline] [gap:10px] [flex-wrap:wrap]">
-                                <span style={{ fontSize: 28, fontWeight: 800, color: ACCENT, lineHeight: 1.1 }}>
+                            <div className="flex items-baseline gap-2.5 flex-wrap">
+                                <span className="text-[28px] font-semibold leading-tight tabular-nums text-[var(--text-primary)]">
                                     {reached == null ? '—' : fmt(reached)}
                                 </span>
                                 {rate != null && (
-                                    <span className="[font-size:14px] [font-weight:700] [color:var(--text-secondary,#aaa)]">
+                                    <span className="text-sm font-semibold text-[var(--text-secondary)]">
                                         {t('cms_site.analytics.behavior.goal_rate', '{rate}% of {total}', { rate: rate.toFixed(1), total: fmt(audience ?? 0) })}
                                     </span>
                                 )}
                             </div>
-                            <div className="[font-size:12px] [color:var(--text-muted,#888)]">
+                            <div className="text-xs text-[var(--text-tertiary)]">
                                 {goal.type === 'event'
                                     ? t('cms_site.analytics.behavior.goal_reached_event', 'visitors reached the event “{value}”', { value: goal.value })
                                     : t('cms_site.analytics.behavior.goal_reached_page', 'visitors reached the page “{value}”', { value: goal.value })}

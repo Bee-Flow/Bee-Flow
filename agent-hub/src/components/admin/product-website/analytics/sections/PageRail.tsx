@@ -1,9 +1,10 @@
 import { Flame, MousePointerClick, MoveVertical, ExternalLink } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Empty, fmt } from '../ui';
+import { Empty, fmt, pillClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
 import { ACCENT } from '../BarList';
 import type { PageRailProps, FigureProps } from './HeatmapSection.types';
+import { EYEBROW, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 
 const MODES = [
     { id: 'click', labelKey: 'cms_site.analytics.heatmap.mode_click', label: 'Clicks', icon: MousePointerClick },
@@ -17,9 +18,9 @@ export function PageRail({
     const { t } = useTranslation();
     return (
         <Card title={t('cms_site.analytics.heatmap.title', 'Heatmap')} icon={Flame} action={
-            <div className="[display:flex] [gap:6px]">
+            <div className="flex gap-1.5">
                 {MODES.map(m => (
-                    <button key={m.id} onClick={() => onSelectMode(m.id)} style={chipStyle(mode === m.id)}>
+                    <button key={m.id} onClick={() => onSelectMode(m.id)} aria-pressed={mode === m.id} className={pillClass(mode === m.id)}>
                         <m.icon className="w-[12px] h-[12px]" /> {t(m.labelKey, m.label)}
                     </button>
                 ))}
@@ -30,10 +31,10 @@ export function PageRail({
                 : pages.length === 0 ? (
                     <Empty text={t('cms_site.analytics.heatmap.no_clicks', 'No clicks recorded yet. Recording starts once a visitor accepts your cookie banner.')} />
                 ) : (
-                    <div className="[display:flex] [gap:14px] [flex-wrap:wrap] [align-items:flex-end]">
-                        <label className="[display:flex] [flex-direction:column] [gap:4px]">
-                            <span style={labelStyle}>{t('cms_site.analytics.heatmap.page', 'Page')}</span>
-                            <select value={urlPath} onChange={(e) => onSelectPath(e.target.value)} style={selectStyle}>
+                    <div className="flex gap-3.5 flex-wrap items-end">
+                        <label className="flex flex-col gap-1">
+                            <span className={EYEBROW}>{t('cms_site.analytics.heatmap.page', 'Page')}</span>
+                            <select value={urlPath} onChange={(e) => onSelectPath(e.target.value)} className="h-8 min-w-[240px] rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-2.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]">
                                 {pages.map(p => (
                                     <option key={p.urlPath} value={p.urlPath}>
                                         {t('cms_site.analytics.heatmap.page_option', '{path} — {n} clicks', { path: p.urlPath, n: fmt(p.count) })}
@@ -43,13 +44,13 @@ export function PageRail({
                         </label>
 
                         {widthGroups.length > 1 && (
-                            <div className="[display:flex] [flex-direction:column] [gap:4px]">
-                                <span style={labelStyle}>{t('cms_site.analytics.heatmap.captured_at', 'Captured at')}</span>
-                                <div className="[display:flex] [gap:6px]">
+                            <div className="flex flex-col gap-1">
+                                <span className={EYEBROW}>{t('cms_site.analytics.heatmap.captured_at', 'Captured at')}</span>
+                                <div className="flex gap-1.5">
                                     {widthGroups.map(g => (
                                         <button key={g.width} onClick={() => onSelectWidth(g.width)}
                                             title={t('cms_site.analytics.heatmap.width_title', '{clicks} clicks at {width}px wide', { clicks: fmt(g.clicks), width: g.width })}
-                                            style={chipStyle(activeWidth === g.width)}>
+                                            aria-pressed={activeWidth === g.width} className={pillClass(activeWidth === g.width)}>
                                             {g.width}px · {Math.round(g.share)}%
                                         </button>
                                     ))}
@@ -57,13 +58,13 @@ export function PageRail({
                             </div>
                         )}
 
-                        <div className="[display:flex] [gap:18px] [margin-left:auto]">
+                        <div className="flex gap-4.5 ml-auto">
                             <Figure label={t('cms_site.analytics.heatmap.fig_clicks', 'Clicks')} value={fmt(clicks)} />
                             <Figure label={t('cms_site.analytics.heatmap.fig_sessions', 'Sessions')} value={fmt(sessions)} />
                             {views > 0 && <Figure label={t('cms_site.analytics.heatmap.fig_views', 'Views')} value={fmt(views)} />}
                         </div>
 
-                        <a href={urlPath} target="_blank" rel="noreferrer" style={linkStyle}>
+                        <a href={urlPath} target="_blank" rel="noreferrer" className={SECONDARY_BTN}>
                             {t('cms_site.analytics.heatmap.open_live', 'Open live page')} <ExternalLink className="w-[11px] h-[11px]" />
                         </a>
                     </div>
@@ -75,33 +76,9 @@ export function PageRail({
 function Figure({ label, value }: FigureProps) {
     return (
         <div>
-            <div style={labelStyle}>{label}</div>
-            <div className="[font-size:16px] [font-weight:800] [color:var(--text-primary,#fff)]">{value}</div>
+            <div className={EYEBROW}>{label}</div>
+            <div className="text-base font-semibold text-[var(--text-primary)]">{value}</div>
         </div>
     );
 }
 
-const labelStyle = {
-    fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.06em', color: 'var(--text-muted, #888)',
-};
-
-const selectStyle = {
-    background: 'var(--bg-primary, #0f0f1a)', color: 'var(--text-primary, #fff)',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
-    borderRadius: 8, padding: '7px 10px', fontSize: 12, minWidth: 240,
-};
-
-const linkStyle = {
-    display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700,
-    color: ACCENT, textDecoration: 'none', border: `1px solid ${ACCENT}44`,
-    borderRadius: 7, padding: '5px 10px',
-};
-
-const chipStyle = (active: boolean) => ({
-    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px',
-    borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: 700,
-    border: `1px solid ${active ? `${ACCENT}66` : 'var(--border-subtle, rgba(255,255,255,0.1))'}`,
-    background: active ? `${ACCENT}14` : 'transparent',
-    color: active ? ACCENT : 'var(--text-muted, #888)',
-});

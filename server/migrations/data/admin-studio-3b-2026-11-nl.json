@@ -1,6 +1,7 @@
 {
   "translations": {
-    "admin_monitoring.range_label": "Periode"
+    "admin_monitoring.range_label": "Periode",
+    "cms_site.analytics.panel.site": "Website"
   },
   "sameAsEnglish": []
 }

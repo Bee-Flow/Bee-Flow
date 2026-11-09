@@ -31,7 +31,7 @@ function SortHeader({ label, active, dir, onSort }: { label: ReactNode; active: 
  * first, again for ascending), on the shared DataTable: the same header row,
  * hairlines and keyboard-operable rows as every other register.
  */
-export function SortableTable<Row extends object>({ columns, data, onRowClick, emptyText, maxRows = 50, ariaLabel, testId }: SortableTableProps<Row>) {
+export function SortableTable<Row extends object>({ columns, data, onRowClick, emptyText, maxRows = 50, ariaLabel, testId, flush = false }: SortableTableProps<Row>) {
     const { t } = useTranslation();
     const [sortCol, setSortCol] = useState<string | null>(null);
     const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -64,6 +64,8 @@ export function SortableTable<Row extends object>({ columns, data, onRowClick, e
             rowKey={(row, i) => (row as { _key?: string })._key || i}
             ariaLabel={ariaLabel}
             testId={testId}
+            flush={flush}
+            className={flush ? "-mx-3.5" : ""}
             empty={<Empty text={emptyText ?? t('admin_monitoring.shared_no_data', 'No data')} />}
             renderRow={(row, ctx) => (
                 <TableRow columns={tableColumns} onClick={onRowClick ? () => onRowClick(row) : null}>

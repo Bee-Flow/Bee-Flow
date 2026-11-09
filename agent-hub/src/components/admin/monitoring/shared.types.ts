@@ -142,6 +142,8 @@ export interface SortableTableProps<Row> {
     onRowClick?: (row: Row) => void;
     emptyText?: ReactNode;
     maxRows?: number;
+    /** Inside a card already: no card of its own. */
+    flush?: boolean;
     ariaLabel?: string;
     testId?: string;
 }

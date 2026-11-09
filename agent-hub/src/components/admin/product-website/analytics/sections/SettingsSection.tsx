@@ -16,7 +16,9 @@ import { Card, ErrorNote } from '../AsyncCard';
 import { ACCENT } from '../BarList';
 import type { TrackerSettings, RecorderSettings, CheckItem, DiagnoseResponse, StatusResponse, SettingsSectionProps, RecorderCardProps, ConnectionCardProps, RowProps, ModeChipProps } from './SettingsSection.types';
 import { SitesCard } from './SitesCard';
-import { TrackerCard, Field, Toggle, inputStyle, labelStyle } from './TrackerCard';
+import { TrackerCard, Field, Toggle, inputClass, labelClass } from './TrackerCard';
+import { EYEBROW, PRIMARY_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
+import { pillClass } from '../ui';
 
 export default function SettingsSection({ settings, sites = [], onSaved, onSitesChanged, onClose }: SettingsSectionProps) {
     const { t } = useTranslation();
@@ -65,78 +67,78 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
     };
 
     return (
-        <div className="absolute inset-0 overflow-auto [background:var(--bg-primary)]">
-            <div className="max-w-[720px] [margin:0_auto] [padding:24px_28px]">
-                <div className="[display:flex] [align-items:center] [gap:10px] [margin-bottom:6px]">
+        <div className="absolute inset-0 overflow-auto bg-[var(--bg-primary)]">
+            <div className="max-w-[720px] mx-auto py-6 px-7">
+                <div className="flex items-center gap-2.5 mb-1.5">
                     {onClose && (
-                        <button onClick={onClose} style={iconBtnStyle} title={t('cms_site.analytics.settings.back', 'Back to dashboard')}>
+                        <button type="button" onClick={onClose} className={ICON_BTN} title={t('cms_site.analytics.settings.back', 'Back to dashboard')} aria-label={t('cms_site.analytics.settings.back', 'Back to dashboard')}>
                             <ArrowLeft className="w-[15px] h-[15px]" />
                         </button>
                     )}
-                    <h2 className="[font-size:18px] [font-weight:800] [color:var(--text-primary,#fff)] [margin:0]">{t('cms_site.analytics.settings.title', 'Analytics settings')}</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)] m-0">{t('cms_site.analytics.settings.title', 'Analytics settings')}</h2>
                 </div>
-                <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0_0_20px]">
+                <p className="text-xs text-[var(--text-tertiary)] mt-0 mx-0 mb-5">
                     {t('cms_site.analytics.settings.intro', 'Connect your self-hosted Umami instance. Visitor data stays on your own infrastructure.')}
                 </p>
 
-                {err && <div className="[margin-bottom:14px]"><ErrorNote message={err} /></div>}
-                {msg && <div className="[margin-bottom:14px] [padding:10px_14px] [border-radius:10px] [background:rgba(16,185,129,0.08)] [border:1px_solid_rgba(16,185,129,0.25)] [color:#6ee7b7] [font-size:13px]">{msg}</div>}
+                {err && <div className="mb-3.5"><ErrorNote message={err} /></div>}
+                {msg && <div className="mb-3.5 py-2.5 px-3.5 rounded-lg border border-[color-mix(in_srgb,var(--success)_40%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-[var(--success-ink)] text-[13px]">{msg}</div>}
 
                 <Card>
                     <Toggle label={t('cms_site.analytics.settings.enable', 'Enable tracking')} hint={t('cms_site.analytics.settings.enable_hint', 'Injects the tracker on your live published site.')} checked={enabled} onChange={setEnabled} />
                     <Field label={t('cms_site.analytics.settings.url', 'Umami URL')} hint={t('cms_site.analytics.settings.url_hint', "Public URL of your Umami instance, e.g. https://stats.your-domain.com. The visitor's browser loads the tracker from here.")}>
-                        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://stats.example.com" style={inputStyle} />
+                        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://stats.example.com" className={inputClass} />
                     </Field>
 
-                    <div className="[margin:6px_0_14px]">
-                        <label style={labelStyle}>{t('cms_site.analytics.settings.consent', 'Consent mode')}</label>
-                        <div className="[display:flex] [gap:8px] [margin-top:6px]">
+                    <div className="mt-1.5 mx-0 mb-3.5">
+                        <label className={labelClass}>{t('cms_site.analytics.settings.consent', 'Consent mode')}</label>
+                        <div className="flex gap-2 mt-1.5">
                             <ModeChip active={consentMode === 'cookieless'} onClick={() => setConsentMode('cookieless')} title={t('cms_site.analytics.settings.cookieless', 'Cookieless')} desc={t('cms_site.analytics.settings.cookieless_desc', 'No cookies, no consent banner needed')} />
                             <ModeChip active={consentMode === 'cookies'} onClick={() => setConsentMode('cookies')} title={t('cms_site.analytics.settings.cookies', 'Cookies')} desc={t('cms_site.analytics.settings.cookies_desc', 'Loads only after the visitor accepts cookies')} />
                         </div>
-                        <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:6px_0_0]">
+                        <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5 mx-0 mb-0">
                             {t('cms_site.analytics.settings.cookies_note', 'In “Cookies” mode nothing is counted until a visitor presses Accept — including your own test visits.')}
                         </p>
                     </div>
 
-                    <div className="[border-top:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [margin:8px_0_14px] [padding-top:14px]">
-                        <p style={sectionLabelStyle}>{settings?.configured ? t('cms_site.analytics.settings.credentials_stored', 'Credentials (stored — leave blank to keep)') : t('cms_site.analytics.settings.credentials', 'Credentials')}</p>
+                    <div className="border-t border-[var(--border-default)] mt-2 mx-0 mb-3.5 pt-3.5">
+                        <p className={`${EYEBROW} mb-2.5`}>{settings?.configured ? t('cms_site.analytics.settings.credentials_stored', 'Credentials (stored — leave blank to keep)') : t('cms_site.analytics.settings.credentials', 'Credentials')}</p>
                         <Field label={t('cms_site.analytics.settings.username', 'Username')} hint={t('cms_site.analytics.settings.username_hint', 'Umami admin user (for token login).')}>
-                            <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" placeholder={settings?.configured ? '••••••••' : 'admin'} style={inputStyle} />
+                            <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" placeholder={settings?.configured ? '••••••••' : 'admin'} className={inputClass} />
                         </Field>
                         <Field label={t('cms_site.analytics.settings.password', 'Password')}>
-                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder={settings?.configured ? '••••••••' : ''} style={inputStyle} />
+                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder={settings?.configured ? '••••••••' : ''} className={inputClass} />
                         </Field>
                         <Field label={t('cms_site.analytics.settings.api_token', 'API token (optional)')} hint={t('cms_site.analytics.settings.api_token_hint', 'Use instead of username/password if your instance issues API keys.')}>
-                            <input value={apiToken} onChange={(e) => setApiToken(e.target.value)} autoComplete="off" placeholder={settings?.configured ? '••••••••' : ''} style={inputStyle} />
+                            <input value={apiToken} onChange={(e) => setApiToken(e.target.value)} autoComplete="off" placeholder={settings?.configured ? '••••••••' : ''} className={inputClass} />
                         </Field>
                     </div>
 
-                    <div className="[display:flex] [align-items:center] [gap:10px] [margin-top:4px]">
-                        <button onClick={save} disabled={saving} style={primaryBtnStyle}>
+                    <div className="flex items-center gap-2.5 mt-1">
+                        <button type="button" onClick={save} disabled={saving} className={PRIMARY_BTN}>
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                             {saving ? t('cms_site.analytics.settings.saving', 'Saving…') : t('cms_site.analytics.settings.save', 'Save settings')}
                         </button>
                         {url && (
-                            <a href={url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: ACCENT, textDecoration: 'none' }}>
+                            <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline">
                                 {t('cms_site.analytics.settings.open_umami', 'Open Umami')} <ExternalLink className="w-[12px] h-[12px]" />
                             </a>
                         )}
                     </div>
                 </Card>
 
-                <div className="[margin-top:14px]">
+                <div className="mt-3.5">
                     <TrackerCard tracker={tracker} onChange={patchTracker} onSave={save} saving={saving} />
                 </div>
-                <div className="[margin-top:14px]">
+                <div className="mt-3.5">
                     <RecorderCard recorder={recorder} maskLevels={settings?.maskLevels} onChange={patchRecorder} />
                 </div>
-                <div className="[margin-top:14px]"><DiagnoseCard /></div>
-                <div className="[margin-top:14px]"><ConnectionCard configured={settings?.configured} /></div>
-                <div className="[margin-top:14px]"><SitesCard sites={sites} onChanged={onSitesChanged} /></div>
+                <div className="mt-3.5"><DiagnoseCard /></div>
+                <div className="mt-3.5"><ConnectionCard configured={settings?.configured} /></div>
+                <div className="mt-3.5"><SitesCard sites={sites} onChanged={onSitesChanged} /></div>
 
-                <div className="[display:flex] [gap:8px] [margin-top:14px] [align-items:flex-start] [color:var(--text-muted,#888)] [font-size:12px]">
-                    <Globe className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0]" />
+                <div className="flex gap-2 mt-3.5 items-start text-[var(--text-tertiary)] text-xs">
+                    <Globe className="w-[14px] h-[14px] mt-[1px] shrink-0" />
                     <span>{t('cms_site.analytics.settings.website_note', 'A Umami "website" is created automatically per CMS site the first time you publish it (or save here while a site is live).')}</span>
                 </div>
             </div>
@@ -153,11 +155,11 @@ function RecorderCard({ recorder, maskLevels = ['strict', 'moderate'], onChange 
                 hint={t('cms_site.analytics.settings.sample_hint', "Umami's own default is 15%, which on a marketing site means most real visits are never recorded and the heatmap looks broken. 100% is the right answer until you have real volume.")}>
                 <input type="range" min="0.05" max="1" step="0.05" value={rate}
                     onChange={(e) => onChange('sampleRate', Number(e.target.value))}
-                    style={{ width: '100%', marginTop: 6, accentColor: ACCENT }} />
+                    className="mt-1.5 w-full accent-[var(--accent-primary)]" />
             </Field>
-            <div className="[margin-bottom:6px]">
-                <label style={labelStyle}>{t('cms_site.analytics.settings.masking', 'Input masking')}</label>
-                <div className="[display:flex] [gap:8px] [margin-top:6px]">
+            <div className="mb-1.5">
+                <label className={labelClass}>{t('cms_site.analytics.settings.masking', 'Input masking')}</label>
+                <div className="flex gap-2 mt-1.5">
                     {maskLevels.map(l => (
                         <ModeChip key={l} active={(recorder.maskLevel || 'strict') === l}
                             onClick={() => onChange('maskLevel', l)}
@@ -167,7 +169,7 @@ function RecorderCard({ recorder, maskLevels = ['strict', 'moderate'], onChange 
                     ))}
                 </div>
                 {recorder.maskLevel === 'moderate' && (
-                    <p className="[font-size:11px] [color:#fcd34d] [margin:6px_0_0]">
+                    <p className="text-[11px] text-[var(--warning-ink)] mt-1.5 mx-0 mb-0">
                         {t('cms_site.analytics.settings.mask_warning', 'Moderate masking records what visitors type into unmarked fields, which can include personal data. Strict is the safer default for a privacy-first product.')}
                     </p>
                 )}
@@ -199,17 +201,17 @@ function DiagnoseCard() {
 
     return (
         <Card title={t('cms_site.analytics.settings.diagnose', 'Diagnose')} action={
-            <button onClick={run} disabled={state.loading} style={secondaryBtnStyle}>
+            <button type="button" onClick={run} disabled={state.loading} className={SECONDARY_BTN}>
                 {state.loading ? t('cms_site.analytics.settings.checking', 'Checking…') : t('cms_site.analytics.settings.run_checks', 'Run checks')}
             </button>
         }>
             {state.error ? <ErrorNote message={state.error} onRetry={run} compact />
                 : !state.checks ? (
-                    <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0]">
+                    <p className="text-xs text-[var(--text-tertiary)] m-0">
                         {t('cms_site.analytics.settings.diagnose_intro', 'Checks the whole chain — switch, credentials, reachability, the script your visitors actually load, site registration and consent — and stops at the first thing that is broken.')}
                     </p>
                 ) : (
-                    <div className="[display:flex] [flex-direction:column] [gap:8px]">
+                    <div className="flex flex-col gap-2">
                         {state.checks.map((c: CheckItem) => <CheckRow key={c.id} check={c} />)}
                     </div>
                 )}
@@ -218,26 +220,22 @@ function DiagnoseCard() {
 }
 
 const CHECK_STYLE: Record<string, { color: string; mark: string; }> = {
-    pass: { color: '#10b981', mark: '✓' },
-    warn: { color: '#f59e0b', mark: '!' },
-    fail: { color: '#ef4444', mark: '✕' },
-    skip: { color: 'var(--text-muted, #777)', mark: '–' },
-    info: { color: 'var(--text-muted, #888)', mark: 'i' },
+    pass: { color: 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]', mark: '✓' },
+    warn: { color: 'bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)]', mark: '!' },
+    fail: { color: 'bg-[color-mix(in_srgb,var(--error)_14%,transparent)] text-[var(--error-ink)]', mark: '✕' },
+    skip: { color: 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]', mark: '–' },
+    info: { color: 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]', mark: 'i' },
 };
 
 function CheckRow({ check }: { check: CheckItem }) {
     const s = CHECK_STYLE[check.status] || CHECK_STYLE.info;
     return (
-        <div className="[display:flex] [gap:9px] [align-items:flex-start]">
-            <span style={{
-                width: 17, height: 17, borderRadius: 5, flexShrink: 0, marginTop: 1,
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 800, background: `${s.color}1f`, color: s.color,
-            }}>{s.mark}</span>
+        <div className="flex gap-[9px] items-start">
+            <span className={`${s.color} mt-px inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-md text-[10px] font-semibold`}>{s.mark}</span>
             <div className="min-w-[0]">
-                <div className="[font-size:12px] [color:var(--text-primary,#fff)]">{check.label}</div>
+                <div className="text-xs text-[var(--text-primary)]">{check.label}</div>
                 {check.detail && (
-                    <div className="[font-size:11px] [color:var(--text-muted,#888)] [word-break:break-word]">
+                    <div className="text-[11px] text-[var(--text-tertiary)] break-words">
                         {check.detail}
                     </div>
                 )}
@@ -266,21 +264,21 @@ function ConnectionCard({ configured }: ConnectionCardProps) {
     return (
         <Card title={t('cms_site.analytics.settings.connection', 'Connection')}>
             {state.loading ? (
-                <div className="[display:flex] [align-items:center] [gap:8px] [font-size:12px] [color:var(--text-muted,#888)]">
+                <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
                     <Loader2 className="w-4 h-4 animate-spin" /> {t('cms_site.analytics.settings.checking', 'Checking…')}
                 </div>
             ) : state.error ? (
                 <ErrorNote message={state.error} onRetry={check} compact />
             ) : (
-                <div className="[display:flex] [flex-direction:column] [gap:8px] [font-size:12px]">
+                <div className="flex flex-col gap-2 text-xs">
                     <Row label={t('cms_site.analytics.settings.status', 'Status')} value={
                         d?.reachable
-                            ? <span className="[display:inline-flex] [align-items:center] [gap:5px] [color:#10b981] [font-weight:700]">
+                            ? <span className="inline-flex items-center gap-[5px] text-[var(--success-ink)] font-semibold">
                                 <CheckCircle2 className="w-[13px] h-[13px]" /> {d.websiteCount === 1
                                     ? t('cms_site.analytics.settings.connected_one', 'Connected · {n} website', { n: d.websiteCount })
                                     : t('cms_site.analytics.settings.connected_many', 'Connected · {n} websites', { n: d.websiteCount })}
                               </span>
-                            : <span className={`[display:inline-flex] [align-items:center] [gap:5px] [font-weight:700] ${configured ? '[color:#ef4444]' : '[color:var(--text-muted,_#888)]'}`}>
+                            : <span className={`inline-flex items-center gap-[5px] font-semibold ${configured ? 'text-[var(--error-ink)]' : 'text-[var(--text-tertiary)]'}`}>
                                 <XCircle className="w-[13px] h-[13px]" /> {configured ? t('cms_site.analytics.settings.not_reachable', 'Not reachable') : t('cms_site.analytics.settings.not_configured', 'Not configured')}
                               </span>
                     } />
@@ -288,11 +286,11 @@ function ConnectionCard({ configured }: ConnectionCardProps) {
                     <Row label={t('cms_site.analytics.settings.internal_url', 'Server URL (internal)')} value={d?.internalUrl || '—'} mono />
                     {d?.error && <ErrorNote message={d.error} onRetry={check} compact />}
                     {d?.usingInternalOverride && (
-                        <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:0]">
+                        <p className="text-[11px] text-[var(--text-tertiary)] m-0">
                             {rich(t('cms_site.analytics.settings.internal_note', '{code} is set on the server, so stats are fetched over the internal address while visitors load the tracker from the public one. These are meant to differ — if you point the internal one at localhost the server will try to call itself and every panel will fail.'), { code: 'UMAMI_URL' })}
                         </p>
                     )}
-                    <button onClick={check} style={{ ...secondaryBtnStyle, alignSelf: 'flex-start' }}>{t('cms_site.analytics.settings.test_again', 'Test again')}</button>
+                    <button type="button" onClick={check} className={`${SECONDARY_BTN} self-start`}>{t('cms_site.analytics.settings.test_again', 'Test again')}</button>
                 </div>
             )}
         </Card>
@@ -303,12 +301,9 @@ function ConnectionCard({ configured }: ConnectionCardProps) {
 
 function Row({ label, value, mono }: RowProps) {
     return (
-        <div className="[display:flex] [justify-content:space-between] [gap:12px]">
-            <span className="[color:var(--text-muted,#888)]">{label}</span>
-            <span style={{
-                color: 'var(--text-primary, #fff)', textAlign: 'right', wordBreak: 'break-all',
-                fontFamily: mono ? 'ui-monospace, monospace' : undefined, fontSize: mono ? 11 : undefined,
-            }}>{value}</span>
+        <div className="flex justify-between gap-3">
+            <span className="text-[var(--text-tertiary)]">{label}</span>
+            <span className={`break-all text-right text-[var(--text-primary)] ${mono ? 'font-mono text-[11px]' : ''}`}>{value}</span>
         </div>
     );
 }
@@ -316,37 +311,18 @@ function Row({ label, value, mono }: RowProps) {
 function ModeChip({ active, onClick, title, desc }: ModeChipProps) {
     return (
         <button
+            type="button"
             onClick={onClick}
-            style={{
-                flex: 1, textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
-                background: active ? `${ACCENT}14` : 'var(--bg-tertiary, rgba(255,255,255,0.03))',
-                border: `1px solid ${active ? `${ACCENT}66` : 'var(--border-default, rgba(255,255,255,0.08))'}`,
-                transition: 'all 0.15s',
-            }}
+            aria-pressed={active}
+            className={`flex-1 rounded-lg border px-3 py-2 text-left transition-colors ${active
+                ? 'border-[var(--text-tertiary)] bg-[var(--bg-tertiary)]'
+                : 'border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'}`}
         >
-            <div style={{ fontSize: 13, fontWeight: 700, color: active ? ACCENT : 'var(--text-primary, #fff)' }}>{title}</div>
-            <div className="[font-size:11px] [color:var(--text-muted,#888)] [margin-top:2px]">{desc}</div>
+            <div className="text-[13px] font-semibold text-[var(--text-primary)]">{title}</div>
+            <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{desc}</div>
         </button>
     );
 }
 
 // ── Styles ───────────────────────────────────────────────────────────
-const iconBtnStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32,
-    borderRadius: 8, background: 'var(--bg-secondary, #1a1a2e)',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
-    color: 'var(--text-secondary, #aaa)', cursor: 'pointer',
-};
-const sectionLabelStyle: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-    color: 'var(--text-muted, #888)', margin: '0 0 10px',
-};
-const primaryBtnStyle: React.CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 9,
-    background: ACCENT, color: '#06241f', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-};
-const secondaryBtnStyle: React.CSSProperties = {
-    padding: '6px 12px', borderRadius: 8, background: 'transparent',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
-    color: 'var(--text-secondary, #aaa)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-};
+const ICON_BTN = 'grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]';
