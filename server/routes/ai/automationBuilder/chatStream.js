@@ -95,6 +95,7 @@ const { MAX_ITERATIONS } = require('./turnStop');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { sessionUser } = require('../../../core/http/sessionUser');
+const { onClientGone } = require('./clientGone');
 
 router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuery, body: TurnBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = sessionUser(req).id;
@@ -198,7 +199,9 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // model's only slot. streamWithRetry forwards the signal to the adapter.
         const clientAbort = new AbortController();
         turn.clientAbort = clientAbort;
-        req.on('close', () => {
+        // From the RESPONSE: this request's own 'close' fired when its body
+        // was read, before this handler ran (./clientGone.js).
+        onClientGone(req, res, () => {
             turn.clientGone = true;
             try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });
