@@ -12,7 +12,7 @@ const automationStore = require('../../../stores/automationStore');
 const notificationStore = require('../../../stores/notificationStore');
 const runEventBus = require('../../runEventBus');
 const { runnerPort } = require('../featurePorts');
-const { REAPER_FLOOR_MS, REAPER_BUFFER_MS, REAPER_MAX_ATTEMPTS } = require('../shared');
+const { REAPER_FLOOR_MS, REAPER_BUFFER_MS, REAPER_MAX_ATTEMPTS, CONCURRENT_WAIT_MS } = require('../shared');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
@@ -153,7 +153,7 @@ async function reapStuckAutomations() {
     // §WS3.3 — reap orphaned run rows stuck in 'running' (worker died). Uses
     // last_heartbeat_at (a healthy long run heartbeats so it's never stale).
     try {
-        const stuckRuns = await automationStore.reapStuckRuns({ staleAfterMs: REAPER_FLOOR_MS });
+        const stuckRuns = await automationStore.reapStuckRuns({ staleAfterMs: REAPER_FLOOR_MS, queuedStaleAfterMs: REAPER_FLOOR_MS + CONCURRENT_WAIT_MS });
         for (const r of stuckRuns) {
             log.warn(`[AutomationRunner] Reaper failed stuck run ${r.id} (automation ${r.automationId}) — no heartbeat`);
             try {
