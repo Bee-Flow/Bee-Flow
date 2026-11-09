@@ -302,3 +302,39 @@ test('helpers: paths normalised, RFC1123 → ISO', () => {
     assert.equal(nextcloudFiles.isoOf('Tue, 01 Sep 2026 10:00:00 GMT'), '2026-09-01T10:00:00.000Z');
     assert.equal(nextcloudFiles.isoOf('garbage'), null);
 });
+
+
+// ─── Documents mode (the knowledge-base folder source) ──────────────────
+
+const DOC_DIR = '/remote.php/dav/files/alice/Documents';
+const FOLDER_ENTRY = (etag) => ({ href: `${DOC_DIR}/`, folder: true, fileId: 7, etag, owner: 'alice', permissions: 'RGDNVCK' });
+
+test('documents mode: readable files keep their etag marker, the default mode keeps spreadsheets only', async () => {
+    const listing = [
+        { href: `${DOC_DIR}/Plan.pdf`, size: 20, type: 'application/pdf', fileId: 11, etag: '"p"' },
+        { href: `${DOC_DIR}/Notes.md`, size: 5, type: 'text/markdown', fileId: 12, etag: '"m"' },
+        { href: `${DOC_DIR}/Budget.xlsx`, size: 5, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', fileId: 13, etag: '"b"' },
+        { href: `${DOC_DIR}/logo.png`, size: 5, type: 'image/png', fileId: 14, etag: '"i"' },
+        { href: `${DOC_DIR}/Sub/`, folder: true, fileId: 15, etag: '"s"' },
+    ];
+    const docs = await nextcloudFiles.forLinker(makeAuth({ listing }), { ...ctx, accept: 'documents' }).list({ view: 'mine', path: '/Documents' });
+    assert.deepEqual(docs.items.map((i) => [i.fileId, i.isFolder, i.format]).sort(), [['11', false, 'pdf'], ['12', false, 'md'], ['13', false, 'xlsx'], ['15', true, null]]);
+    const pdf = docs.items.find((i) => i.fileId === '11');
+    assert.equal(pdf.marker.etag, '"p"');
+    assert.ok(nextcloudFiles.markerEquals(pdf.marker, { etag: '"p"' }));
+    assert.ok(!nextcloudFiles.markerEquals(pdf.marker, { etag: '"other"' }));
+    const plain = await nextcloudFiles.forLinker(makeAuth({ listing }), ctx).list({ view: 'mine', path: '/Documents' });
+    assert.deepEqual(plain.items.map((i) => i.fileId).sort(), ['13', '15']);
+    assert.equal(plain.items[0].marker, undefined);
+});
+
+test('documents mode: changeCursor compares the folder etag with one PROPFIND Depth 0; a folder without an etag is always changed', async () => {
+    const at = (etag) => nextcloudFiles.forLinker(makeAuth({ statEntry: FOLDER_ENTRY(etag) }), { ...ctx, accept: 'documents' });
+    assert.deepEqual(await at('"e1"').changeCursor({ path: '/Docs' }, null), { changed: true, cursor: '"e1"' });
+    assert.deepEqual(await at('"e1"').changeCursor({ path: '/Docs' }, '"e1"'), { changed: false, cursor: '"e1"' });
+    assert.deepEqual(await at('"e2"').changeCursor({ path: '/Docs' }, '"e1"'), { changed: true, cursor: '"e2"' });
+    assert.ok(calls.fetch.every((c) => c.method === 'PROPFIND' && c.headers.Depth === '0'), 'never a listing');
+    assert.equal((await at(undefined).changeCursor({ path: '/Docs' }, '"e1"')).changed, true);
+    world.denial = { error: 'outside', nc_scope_denied: true };
+    await assert.rejects(() => at('"e1"').changeCursor({ path: '/Docs' }, '"e1"'), (e) => e.code === 'nc_scope_denied');
+});

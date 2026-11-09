@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/kb`
 
-53 routes, 37 with a request schema. Back to the [endpoint reference](../reference.md).
+56 routes, 39 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -61,6 +61,7 @@ toc_max_heading_level: 2
 | `icon` | string |  | max length 64 |
 | `usageContexts` | array of one of `"agent"`, `"direct_chat"`, `"ai_step"`, `"webpage"` |  | min items 1 |
 | `organizationId` | string or null |  |  |
+| `keepOriginals` | boolean |  |  |
 
 ### `DELETE /api/kb/:id`
 
@@ -124,6 +125,12 @@ toc_max_heading_level: 2
 | `limit` | string |  | pattern `^-?\d+$`; default `"200"` |
 
 ### `GET /api/kb/:id/documents/:docId/content`
+
+**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+
+**Query:** object (no other keys)
+
+### `GET /api/kb/:id/documents/:docId/original`
 
 **Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
 
@@ -422,6 +429,29 @@ No request schema.
 | `color` | string or null |  |  |
 
 ### `DELETE /api/kb/categories/:id`
+
+**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate`
+
+No request schema.
+
+## `cloud`
+
+### `GET /api/kb/cloud/browse`
+
+**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate`, `storageLimiter`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `provider` | one of `"nextcloud_files"`, `"onedrive"`, `"google_drive"` | yes |  |
+| `parentId` | string |  | min length 1; max length 500 |
+| `path` | string |  | min length 1; max length 2000 |
+| `driveId` | string |  | min length 1; max length 500 |
+| `pageToken` | string |  | min length 1; max length 4000 |
+| `q` | string |  | max length 200 |
+
+### `GET /api/kb/cloud/providers`
 
 **Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate`
 

@@ -26,7 +26,7 @@ vi.mock('./knowledgeApi', () => {
  */
 
 const SOURCE = {
-    id: 's1', kind: 'nextcloud_folder', name: 'Nextcloud · /Sales/Terms',
+    id: 's1', kind: 'cloud_folder', name: 'Nextcloud · /Sales/Terms',
     refreshMode: 'on_change', status: 'idle',
     documentCount: 38, processedCount: 34, redactedCount: 2, skippedCount: 2,
     errorCount: 0, duplicateCount: 0, piiFoundCount: 3,
@@ -236,5 +236,42 @@ describe('statusOfDoc', () => {
         expect(statusOfDoc(partial<Parameters<typeof statusOfDoc>[0]>({ status: 'error' })).key).toBe('knowledge.docs.status_error');
         expect(statusOfDoc(partial<Parameters<typeof statusOfDoc>[0]>({ status: 'duplicate' })).key).toBe('knowledge.docs.status_duplicate');
         expect(statusOfDoc(partial<Parameters<typeof statusOfDoc>[0]>({})).key).toBe('knowledge.docs.status_processed');
+    });
+});
+
+describe('SourceDetail, originals and cloud folders', () => {
+    const CLOUD = {
+        ...SOURCE, config: { provider: 'nextcloud_files', folderName: 'Terms', path: '/Sales/Terms', recursive: true },
+    };
+
+    it('offers a download only on documents whose original was kept', async () => {
+        asMock(knowledgeApi.listSourceDocuments).mockResolvedValue({
+            documents: [doc({ id: 'd1', has_original: true }), doc({ id: 'd2', title: 'Notes.txt', has_original: false })],
+            total: 2, limit: 50, offset: 0,
+        });
+        render(<SourceDetail {...omitted<ComponentProps<typeof SourceDetail>>()} kbId="kb1" source={CLOUD} />);
+        const rows = await screen.findAllByTestId('kb-doc-row');
+        expect(within(rows[0]).getByTestId('kb-download-original')).toBeTruthy();
+        expect(within(rows[1]).queryByTestId('kb-download-original')).toBeNull();
+    });
+
+    it('links to the file in its cloud when the row carries a web_url', async () => {
+        asMock(knowledgeApi.listSourceDocuments).mockResolvedValue({
+            documents: [doc({ web_url: 'https://cloud.example/f/1' })], total: 1, limit: 50, offset: 0,
+        });
+        render(<SourceDetail {...omitted<ComponentProps<typeof SourceDetail>>()} kbId="kb1" source={CLOUD} />);
+        const link = await screen.findByTestId('kb-open-in-cloud');
+        expect(link.getAttribute('href')).toBe('https://cloud.example/f/1');
+        expect(link.getAttribute('rel')).toContain('noopener');
+        expect(link.getAttribute('aria-label')).toMatch(/in Nextcloud/);
+    });
+
+    it('states the provider, folder, subfolders and refresh rule of a cloud folder', async () => {
+        render(<SourceDetail {...omitted<ComponentProps<typeof SourceDetail>>()} kbId="kb1" source={CLOUD} />);
+        const summary = await screen.findByTestId('kb-cloud-summary');
+        expect(summary.textContent).toMatch(/Nextcloud/);
+        expect(summary.textContent).toMatch(/\/Sales\/Terms/);
+        expect(summary.textContent).toMatch(/included/);
+        expect(summary.textContent).toMatch(/on change/);
     });
 });

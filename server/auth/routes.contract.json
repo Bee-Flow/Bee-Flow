@@ -2068,6 +2068,9 @@
     "GET /api/kb/:id/documents/:docId/content": {
       "gate": "auth"
     },
+    "GET /api/kb/:id/documents/:docId/original": {
+      "gate": "auth"
+    },
     "GET /api/kb/:id/query-log": {
       "gate": "scope",
       "via": "kbManager"
@@ -2104,6 +2107,20 @@
     },
     "GET /api/kb/categories": {
       "gate": "auth"
+    },
+    "GET /api/kb/cloud/browse": {
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_knowledge"
+      ]
+    },
+    "GET /api/kb/cloud/providers": {
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_knowledge"
+      ]
     },
     "GET /api/kb/favorites": {
       "gate": "auth"

@@ -40,7 +40,7 @@ A source is a *standing arrangement* to read something, not a one-off import: a 
 
 | Kind | What it adds |
 |---|---|
-| **Folder in Nextcloud** | *Coming soon.* The button is visible but disabled with that tooltip. |
+| **Cloud folder** | A folder in Nextcloud, OneDrive or Google Drive, with the folders below it unless you switch that off. See [Cloud folders](#cloud-folders). |
 | **Upload files** | Up to 20 files at a time, 20 MB each. Files over the limit are named and refused before they upload. |
 | **Table** | A datatable; its columns become the row's description. |
 | **Meeting notes** | Everything tagged with a chosen meeting tag. |
@@ -62,11 +62,30 @@ The schedule menu offers only what the kind supports, because the server refuses
 |---|---|
 | Upload, Paste text, Imported, automation | manual |
 | Web page / URL | manual, on a schedule |
-| Folder in Nextcloud | manual, on a schedule, on change |
+| Cloud folder | manual, on a schedule, on change |
 | Table | manual, on a schedule, live |
 | Meeting notes | manual, after every meeting |
 
 Schedules come from three presets — every day at 06:00, every Monday at 06:00, the 1st of each month at 06:00 — and the menu names the timezone they are written in. A stranger cadence is an operator PATCH, and shows as a custom schedule rather than being mislabelled as a preset.
+
+### Cloud folders
+
+A **Cloud folder** source reads a folder in your own storage: **Nextcloud**, **OneDrive** or **Google Drive**. The picker lists only the storages you have connected (under Settings, Connections), and only what your own account can see. It reads PDF, Word, PowerPoint, Excel, CSV, plain text and Markdown files; on Google Drive a native Doc, Slide or Sheet is read as its Word, PowerPoint or Excel export. Other files are skipped.
+
+- **Who it reads as.** The person who added the folder. Every refresh runs with that person's connection, so the source can only contain what they could open themselves. If they disconnect the storage, or for Nextcloud stop sharing the folder with Bee Flow, the source shows an error that says whose connection to restore, and nothing is removed from the knowledge base meanwhile.
+- **Files keep their document.** A file is recognised by the storage's own file id, so renaming or moving it does not create a second document or break the citations that point at it. A file that disappears from the folder is removed from the knowledge base on the next full pass; a pass that could not list part of the folder removes nothing.
+- **Unchanged files cost nothing.** Each pass compares the storage's change marker with the one stored on the document and downloads only what moved.
+- **When it refreshes.** *Manual* reads the folder when you press **Refresh now** (and once, right after you add it). *On a schedule* follows the usual presets. *On change* checks the folder about every five minutes, asking the storage a cheap question first (Nextcloud folder etag, a OneDrive delta, the Google Drive change feed) and only reading the folder when something moved. With the Nextcloud connector installed, a file change in Nextcloud triggers the check straight away instead of waiting for the next one.
+
+Limits, all set by the operator and all with `0` meaning no limit:
+
+| Setting | Default | What it limits |
+|---|---|---|
+| `KB_CLOUD_MAX_FILES` | 2000 | Files read from one cloud folder. A folder with more is read up to this number and the source stays as it is, without removing anything. |
+| `KB_CLOUD_MAX_FILE_MB` | 50 | Size of one file. A larger file is skipped, and the refresh log names it. |
+| `KB_CLOUD_CHANGE_POLL_SECONDS` | 300 | How often an **on change** folder is checked. |
+
+Folders are followed down to ten levels.
 
 ### Inside a source
 

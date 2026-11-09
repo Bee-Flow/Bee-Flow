@@ -63,7 +63,9 @@ Re-ingesting an unchanged document is a no-op. The local pipeline auto-detects t
 | CSV | Each row becomes a small chunk with column headers prefixed. |
 | URL (web page) | Fetched, HTML-cleaned, then ingested as HTML. |
 
-Source kinds that can be created today are: pasted text, uploaded files, a web page, a meeting tag and a table. A **Nextcloud folder** source is planned but not yet available — its button in Studio is deliberately visible and disabled rather than hidden.
+Source kinds that can be created today are: pasted text, uploaded files, a web page, a meeting tag, a table and a **cloud folder**.
+
+A cloud folder is a folder in Nextcloud, OneDrive or Google Drive that is read into the knowledge base as the person who added it. It refreshes manually, on a schedule, or **on change**: an on-change folder is checked about every five minutes (`KB_CLOUD_CHANGE_POLL_SECONDS`, default 300) by comparing a cheap change marker, so a folder that did not change costs one small request, and with the Nextcloud connector a file change triggers the check immediately. Files are matched by the storage's own file id, so a rename or a move keeps the document. It reads the same formats as an upload, plus native Google Docs, Slides and Sheets (as their Office export). Limits, each with `0` meaning no limit: `KB_CLOUD_MAX_FILES` (default 2000 files per folder) and `KB_CLOUD_MAX_FILE_MB` (default 50 MB per file). See [Knowledge bases in Studio](../studio/knowledge-bases.md#cloud-folders).
 
 Uploads in Studio are capped at 20 files at a time, 20 MB each; files over the limit are named and refused in the browser rather than 413'd. The API's own JSON body limit is 20 MB and is not configurable by environment variable.
 

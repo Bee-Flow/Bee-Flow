@@ -124,14 +124,14 @@ function makeCatalogFns(ctx) {
          * The route decides WHO may set it (owner only, via assertUserCanUseOrg);
          * this only guarantees the direction.
          */
-        updateKB: async (id, { name, description, categoryId, icon, usageContexts, organizationId }, opts = {}) => {
+        updateKB: async (id, { name, description, categoryId, icon, usageContexts, organizationId, keepOriginals }, opts = {}) => {
             await initDB();
             // A base in a Solution stage: its metadata changes through a deploy
             // (`opts.managedWrite`), judged on what the write actually changes.
             if (await managedParts.managedInfoForKb(String(id))) {
                 const row = await KnowledgeBasesStore.getKB(id);
                 if (row) {
-                    const changed = kbUpdateChanges(row, { name, description, categoryId, icon, usageContexts, organizationId });
+                    const changed = kbUpdateChanges(row, { name, description, categoryId, icon, usageContexts, organizationId, keepOriginals });
                     await assertKbWrite(id, changed, opts.managedWrite);
                 }
             }
@@ -149,10 +149,11 @@ function makeCatalogFns(ctx) {
                  icon = COALESCE($5, icon),
                  usage_contexts = COALESCE($6::jsonb, usage_contexts),
                  organization_id = COALESCE($8, organization_id),
+                 keep_originals = COALESCE($9::boolean, keep_originals),
                  updated_at = now()
              WHERE id = $1
              RETURNING *`,
-                [id, name, description, categoryId, icon, usageJson, clearCategory, organizationId || null]
+                [id, name, description, categoryId, icon, usageJson, clearCategory, organizationId || null, typeof keepOriginals === 'boolean' ? keepOriginals : null]
             );
             if (priorOrg && organizationId && priorOrg !== organizationId) await purgeQueryLogOnOrgChange(getOne, id, priorOrg, organizationId, opts.actorId);
             return updated;

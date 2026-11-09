@@ -49,6 +49,7 @@
 const kbSourcesStore = require('../../../stores/kbSources');
 const kbStore = require('../../../stores/knowledgeBases');
 const { nextRunFor } = require('../../scheduling/nextRun');
+const cloudFolder = require('./cloudFolder.mts');
 
 /**
  * A mapped kb_sources row; `config` is the parsed jsonb column, whose keys depend on the kind.
@@ -58,6 +59,7 @@ const { nextRunFor } = require('../../scheduling/nextRun');
  * @typedef {{ kbStore: typeof kbStore, kbSourcesStore: typeof kbSourcesStore,
  *   helpers: typeof import('../kbIngestionHelpers'), datatableStore?: typeof import('../../../stores/datatableStore'),
  *   extractSummary?: typeof import('../extractSummary'),
+ *   keepOriginal?: typeof import('../originals.mts').keepOriginal,
  *   transcriptionStore?: typeof import('../../../stores/transcriptionStore') }} SyncDeps
  */
 /**
@@ -69,13 +71,15 @@ const { nextRunFor } = require('../../scheduling/nextRun');
 /**
  * @typedef {{ content: string, title?: string, sourceType?: string, sourceUri?: string | null,
  *   metadata?: Record<string, unknown> | null, sourceModifiedAt?: string | Date | null, sizeBytes?: number | null,
- *   mime?: string | null, pageCount?: number | null, sheetCount?: number | null }} FetchedDoc
+ *   mime?: string | null, pageCount?: number | null, sheetCount?: number | null,
+ *   original?: { buffer: Buffer, mime: string, filename: string } | null }} FetchedDoc
  */
 /**
  * @typedef {{ enumerate: (source: KbSource, ctx: SyncCtx, deps: SyncDeps) => Promise<SourceItem[]>,
  *   isUnchanged: (item: SourceItem, stored: Record<string, any>) => boolean,
  *   fetch: (item: SourceItem, stored: Record<string, any> | null, ctx: SyncCtx, deps: SyncDeps) => Promise<FetchedDoc | null>,
- *   dedupe?: boolean, maxItems?: number }} SourceAdapter
+ *   dedupe?: boolean, maxItems?: number,
+ *   precheck?: (source: KbSource, ctx: SyncCtx, deps: SyncDeps) => Promise<{ changed: boolean, cursor?: unknown }> }} SourceAdapter
  */
 
 /** @type {Record<string, SourceAdapter>} */
@@ -85,9 +89,12 @@ const ADAPTERS = {
     text: require('./text'),
     meeting_tag: require('./meetingTag'),
     datatable: require('./datatable'),
+    cloud_folder: cloudFolder,
 };
 const log = require('../../../telemetry/log');
 const { removeUnseenDocuments, labelDocuments } = require('./syncFinish');
+const { runPrecheck, saveCursor } = require('./precheck');
+const { keepFetchedOriginal } = require('./keepOriginals');
 
 /** Kinds this engine can refresh today. K7–K10 register theirs here. */
 function supportedKinds() {
@@ -114,13 +121,20 @@ const DEFAULT_MAX_ITEMS = 500;
  * `manual` and `live` return null: a manual source is due when a person says
  * so, and a live one is answered from the table at query time rather than
  * polled. Writing a timestamp for either would put them in `claimDue`'s way
- * forever.
+ * forever. `on_change` polls every `KB_CLOUD_CHANGE_POLL_SECONDS` (default 300).
  * @param {Pick<KbSource, 'refreshMode' | 'refreshCron' | 'refreshTz'>} source
  * @param {{ fromTs?: number, consecutiveErrors?: number, retryAfterMs?: number }} [opts]
  */
 function nextRefreshFor(source, { fromTs = Date.now(), consecutiveErrors = 0, retryAfterMs = 0 } = {}) {
     const mode = source?.refreshMode || 'manual';
     if (mode === 'manual' || mode === 'live') return null;
+    // "On change" for a cloud folder is a poll that is cheap when nothing moved (the adapter's
+    // precheck), every KB_CLOUD_CHANGE_POLL_SECONDS, whatever cron the row may still carry.
+    if (mode === 'on_change') {
+        return nextRunFor({}, fromTs, {
+            consecutiveErrors, retryAfterMs, defaultMinutes: cloudFolder.changePollSeconds() / 60,
+        });
+    }
     return nextRunFor(
         { cron: source?.refreshCron || null, tz: source?.refreshTz || null },
         fromTs,
@@ -223,6 +237,13 @@ async function syncSource(source, opts = {}) {
     // An adapter that enumerates more than the default on purpose (every
     // meeting under a tag) says so; a caller's explicit cap still wins.
     const ctx = makeCtx(source, kb, { ...opts, maxItems: opts.maxItems || adapter.maxItems });
+
+    // An adapter that can tell cheaply that nothing moved (a folder's etag, a
+    // delta link) ends the pass here, before it lists anything. See ./precheck.
+    const check = await runPrecheck(adapter, source, ctx, deps);
+    if (!check.changed) {
+        return { ...counts, precheckUnchanged: true, nextRefreshAt: nextRefreshFor(source, { consecutiveErrors: 0 }) };
+    }
     const { byExternalId, unmatchable } = await indexStoredDocuments(kb.id, source.id, deps);
     const seen = new Set();
     /**
@@ -272,7 +293,7 @@ async function syncSource(source, opts = {}) {
             const privacy = { orgId: kb.organization_id || null, userId: source.createdBy || null };
 
             if (stored) {
-                await deps.helpers.reingestDocument(ctx.tenantId, kb.id, stored.id, fetched.content, {
+                const reingested = await deps.helpers.reingestDocument(ctx.tenantId, kb.id, stored.id, fetched.content, {
                     title: fetched.title || stored.title,
                     // What the adapter knows about the thing itself — a
                     // meeting's own date, the rows a block covers. Both
@@ -294,6 +315,7 @@ async function syncSource(source, opts = {}) {
                     privacy,
                 });
                 counts.updated += 1;
+                await keepFetchedOriginal({ kb, tenantId: ctx.tenantId, docId: stored.id, status: reingested?.status, fetched, log: ctx.log, deps });
                 summarise.push({ docId: stored.id, text: fetched.content, title: fetched.title || stored.title });
             } else {
                 const made = await deps.helpers.ingestDocument(
@@ -322,6 +344,7 @@ async function syncSource(source, opts = {}) {
                     },
                 );
                 counts.added += 1;
+                await keepFetchedOriginal({ kb, tenantId: ctx.tenantId, docId: made?.document?.id, status: made?.status, fetched, log: ctx.log, deps });
                 if (made?.document?.id && made.status !== 'skipped') {
                     summarise.push({ docId: made.document.id, text: fetched.content, title: fetched.title || externalId });
                 }
@@ -377,6 +400,8 @@ async function syncSource(source, opts = {}) {
             ctx.log(`could not record the table version for source ${source.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
+
+    await saveCursor(source, check.cursor, counts, ctx, deps);
 
     return { ...counts, nextRefreshAt: nextRefreshFor(source, { consecutiveErrors: 0 }) };
 }

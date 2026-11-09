@@ -36,17 +36,15 @@
 
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formatOf, isSpreadsheetName } = require('./index');
+const documents = require('./documents');
+const { provider, normalizePath, refOf, isoOf, markerOf, markerEquals, toFileRef, scopeDenied } = require('./nextcloudFormat');
 
 /** @typedef {import('./index').FileRef} FileRef */
-/**
- * A webdav.parsePropfind entry (integrations/nextcloudFiles/webdav.js).
- * @typedef {{ name?: string, path: string, type?: string, size?: number, contentType?: string|null, modified?: string|null,
- *             fileId?: string|number|null, etag?: string|null, permissions?: string|null, ownerId?: string|null }} NcEntry
- */
-/** @typedef {{ etag: string|null, modified: string|null, size: number|null, fileId: string|null }} NcMarker */
+/** @typedef {import('./nextcloudFormat').NcEntry} NcEntry */
+/** @typedef {import('./nextcloudFormat').NcMarker} NcMarker */
 /**
  * The context makeApi builds (see "The FileApi's operations").
- * @typedef {{ d: ReturnType<typeof deps>, auth: NcAuth, baseUrl: string, uid: string, root: string,
+ * @typedef {{ d: ReturnType<typeof deps>, auth: NcAuth, baseUrl: string, uid: string, root: string, accept: string|null,
  *             guardCtx: { userId: string, session: object|null, orgId: string|null },
  *             linkBase: () => Promise<string|null>,
  *             propfind: (path: string, depth: string) => Promise<Response>,
@@ -56,7 +54,6 @@ const { formatOf, isSpreadsheetName } = require('./index');
  */
 /** @typedef {{ baseUrl: string, uid: string, fetch: (url: string, init?: object) => Promise<Response>, authError?: string, session?: { connectorOrgId?: string, user?: { organizationId?: string } }, mode?: string, publicBaseUrl?: string }} NcAuth */
 
-const provider = 'nextcloud_files';
 const oauthProvider = 'nextcloud';
 const integrationAppIds = ['nextcloud'];
 
@@ -75,101 +72,6 @@ function deps() {
         guard: require('../../../../integrations/ncScopeGuard'),
         officegen: require('../../../../documents/office/officegen'),
     };
-}
-
-// ─── Small helpers ──────────────────────────────────────────────────────
-
-/**
- * @param {string} p
- */
-function normalizePath(p) {
-    const s = ('/' + String(p || '')).replace(/\/+/g, '/').replace(/\/+$/, '');
-    return s || '/';
-}
-
-/**
- * The ref a refusal carries. On Nextcloud the wire id IS the path (what the browser hands out and a wizard keys on).
- * @param {{ path?: string|null }} file
- */
-function refOf(file) {
-    const path = file && file.path || null;
-    return { provider, fileId: path, path };
-}
-
-/**
- * RFC 1123 (getlastmodified) → ISO, or null when unparsable.
- * @param {string | number | Date} rfc
- */
-function isoOf(rfc) {
-    if (!rfc) return null;
-    const d = new Date(rfc);
-    return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-/**
- * @param {NcEntry} entry
- * @returns {NcMarker}
- */
-function markerOf(entry) {
-    return {
-        etag: entry.etag || null,
-        modified: isoOf(entry.modified),
-        size: entry.size != null && !Number.isNaN(entry.size) ? Number(entry.size) : null,
-        fileId: entry.fileId != null ? String(entry.fileId) : null,
-    };
-}
-
-/**
- * @param {{ etag?: string|null }} a
- * @param {{ etag?: string|null }} b
- */
-function markerEquals(a, b) {
-    return !!a && !!b && a.etag != null && a.etag === b.etag;
-}
-
-/**
- * A parsePropfind entry → FileRef. Non-spreadsheet files are dropped. `linkBase` is the public URL (null = no deep link).
- * @param {NcEntry} entry
- * @param {{ baseUrl: string, uid: string, linkBase?: string|null }} opts
- */
-function toFileRef(entry, { baseUrl, uid, linkBase = baseUrl }) {
-    if (!entry) return null;
-    const isFolder = entry.type === 'folder';
-    const format = isFolder ? null : formatOf({ name: entry.name, mimeType: entry.contentType });
-    if (!isFolder && !format) return null;
-    const path = normalizePath(entry.path);
-    const parent = path.slice(0, path.lastIndexOf('/')) || '/';
-    return {
-        provider,
-        fileId: entry.fileId != null ? String(entry.fileId) : null,
-        driveId: /** @type {string|null} */ (null),
-        path,
-        name: entry.name || path.split('/').pop() || '',
-        mimeType: entry.contentType || null,
-        format,
-        size: isFolder || entry.size == null ? null : Number(entry.size),
-        modifiedAt: isoOf(entry.modified),
-        etag: entry.etag || null,
-        webUrl: linkBase && entry.fileId != null ? `${linkBase}/f/${entry.fileId}` : null,
-        parentId: parent,
-        isFolder,
-        owned: !!entry.ownerId && entry.ownerId === uid,
-        // Nextcloud's permission string carries a W when the file may be
-        // written (a folder says C/K: files may be created in it).
-        writable: entry.permissions == null ? true : (isFolder ? /[CK]/ : /W/).test(entry.permissions),
-    };
-}
-
-/**
- * @param {{ path?: string|null }} source
- * @param {string} verb
- */
-function scopeDenied(source, verb) {
-    return new SpreadsheetSourceError(403, 'nc_scope_denied',
-        verb === 'write'
-            ? 'This folder is not shared for writing with Bee Flow by the account that linked this table.'
-            : 'This file is not shared with Bee Flow by the account that linked this table.',
-        { ref: refOf(source) });
 }
 
 // ─── The FileApi's operations ───────────────────────────────────────────
@@ -206,7 +108,7 @@ async function listFolder(n, { view = 'mine', path = '/', parentId = null, q = n
         throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', String(answer.error).slice(0, 200), { ref: { provider, path: folder } });
     }
     const base = await n.linkBase();
-    const items = (answer.items || []).map((/** @type {NcEntry} */ e) => toFileRef(e, { baseUrl: n.baseUrl, uid: n.uid, linkBase: base })).filter(Boolean);
+    const items = (answer.items || []).map((/** @type {NcEntry} */ e) => toFileRef(e, { baseUrl: n.baseUrl, uid: n.uid, linkBase: base, accept: n.accept })).filter(Boolean);
     items.sort((/** @type {FileRef} */ a, /** @type {FileRef} */ b) => (a.isFolder === b.isFolder ? a.name.localeCompare(b.name) : (a.isFolder ? -1 : 1)));
     return { items, nextPageToken: null };
 }
@@ -229,7 +131,7 @@ async function searchFiles(n, q) {
             name: e.title || '',
             path: (e.attributes && e.attributes.path) || null,
             fileId: (e.attributes && e.attributes.fileId) || null,
-        })).filter((/** @type {{ name: string, path: string|null }} */ e) => e.path && isSpreadsheetName(e.name));
+        })).filter((/** @type {{ name: string, path: string|null }} */ e) => e.path && (documents.isDocumentsMode(n.accept) ? documents.isDocumentName(e.name) : isSpreadsheetName(e.name)));
         return { query: term, count: items.length, items };
     });
     if (answer && answer.error) {
@@ -241,7 +143,8 @@ async function searchFiles(n, q) {
         const path = normalizePath(e.path);
         return {
             provider, fileId: e.fileId != null ? String(e.fileId) : null, driveId: /** @type {string|null} */ (null), path,
-            name: e.name || path.split('/').pop(), mimeType: /** @type {string|null} */ (null), format: formatOf({ name: e.name }),
+            name: e.name || path.split('/').pop(), mimeType: /** @type {string|null} */ (null),
+            format: documents.isDocumentsMode(n.accept) ? documents.documentFormatOf({ name: e.name }) : formatOf({ name: e.name }),
             size: /** @type {number|null} */ (null), modifiedAt: /** @type {string|null} */ (null), etag: /** @type {string|null} */ (null),
             webUrl: base && e.fileId != null ? `${base}/f/${e.fileId}` : null,
             parentId: path.slice(0, path.lastIndexOf('/')) || '/', isFolder: false, owned: false,
@@ -319,10 +222,12 @@ async function uploadFile(n, file, buffer, { ifMatch = null, contentType = null 
 
 /**
  * @param {NcAuth} auth  resolveAuth's answer
- * @param {{ userId?: string, session?: { connectorOrgId?: string, user?: { organizationId?: string } }, orgId?: string }} [ctx]   who the scope guard asks about
+ * @param {{ userId?: string, session?: { connectorOrgId?: string, user?: { organizationId?: string } }, orgId?: string, accept?: string|null }} [ctx]   who the scope guard asks about; `accept`: the listing mode
  */
 function makeApi(auth, ctx = {}) {
     const d = deps();
+    // 'documents': list and read every file the knowledge-base extractor can read (./documents.js).
+    const accept = ctx.accept || null;
     const baseUrl = auth.baseUrl;
     const uid = auth.uid;
     const root = d.ncClient.webdavRoot(baseUrl, uid);
@@ -400,9 +305,9 @@ function makeApi(auth, ctx = {}) {
     /** @param {FileRef} file */
     async function probe(file) {
         const entry = await stat(file);
-        const ref = toFileRef(entry, { baseUrl, uid, linkBase: await linkBase() });
+        const ref = toFileRef(entry, { baseUrl, uid, linkBase: await linkBase(), accept });
         if (!ref || ref.isFolder) {
-            throw new SpreadsheetSourceError(415, 'format_unsupported', `"${entry.name}" is not a spreadsheet Bee Flow can read.`, { ref: refOf(file) });
+            throw new SpreadsheetSourceError(415, 'format_unsupported', `"${entry.name}" is not a ${documents.isDocumentsMode(accept) ? 'document' : 'spreadsheet'} Bee Flow can read.`, { ref: refOf(file) });
         }
         return {
             marker: markerOf(entry),
@@ -431,7 +336,7 @@ function makeApi(auth, ctx = {}) {
         }
     }
 
-    const n = { d, auth, baseUrl, uid, root, guardCtx, linkBase, propfind, assertScope, stat, probe };
+    const n = { d, auth, baseUrl, uid, root, accept, guardCtx, linkBase, propfind, assertScope, stat, probe };
     return {
         provider,
         /** @param {Parameters<typeof listFolder>[1]} [opts] */
@@ -441,6 +346,13 @@ function makeApi(auth, ctx = {}) {
         download: (file, opts) => downloadFile(n, file, opts),
         /** @param {FileRef} file @param {Buffer} buffer @param {Parameters<typeof uploadFile>[3]} [opts] */
         upload: (file, buffer, opts) => uploadFile(n, file, buffer, opts),
+        // Documents mode: "changed since `cursor`?" is the folder's etag (PROPFIND Depth 0), which Nextcloud
+        // propagates up from every descendant. A folder without an etag always reads as changed.
+        /** @param {{ path?: string|null }} [folder] @param {string|null} [cursor] */
+        changeCursor: async (folder, cursor) => {
+            const etag = (await stat({ path: (folder && folder.path) || '/' })).etag || null;
+            return { changed: !etag || etag !== cursor, cursor: etag };
+        },
         markerEquals, resolveByPath, root, baseUrl, uid,
     };
 }

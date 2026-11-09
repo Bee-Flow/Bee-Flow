@@ -11,6 +11,7 @@
 
 const { formulaShaped } = require('../cells');
 const { formatOf } = require('./index');
+const { documentFormatOf, isDocumentsMode } = require('./documents');
 const { fallback } = require('../../../../../utils/bestEffort');
 
 /** @typedef {import('./index').FileRef} FileRef */
@@ -126,17 +127,20 @@ function pathOf(item) {
  * A driveItem → FileRef. A sharedWithMe entry is a stub whose real data is
  * under `remoteItem`; the ref then points at the remote drive + id.
  * @param {DriveItem} item
- * @param {{ ownDriveId?: string|null, parentId?: string|null }} [opts]
- * @returns {FileRef|null} null for anything that is neither a folder nor a spreadsheet
+ * In documents mode (`accept: 'documents'`, the knowledge-base folder source) a file is
+ * kept when the text extractor can read it, and the ref carries its change `marker`.
+ * @param {{ ownDriveId?: string|null, parentId?: string|null, accept?: string|null }} [opts]
+ * @returns {FileRef|null} null for anything that is neither a folder nor a spreadsheet (a document, in documents mode)
  */
-function toFileRef(item, { ownDriveId = null, parentId = null } = {}) {
+function toFileRef(item, { ownDriveId = null, parentId = null, accept = null } = {}) {
     if (!item) return null;
     const src = item.remoteItem ? { ...item.remoteItem, name: item.remoteItem.name || item.name } : item;
     if (!src.id) return null;
     const driveId = (src.parentReference && src.parentReference.driveId) || (item.remoteItem ? null : ownDriveId);
     const isFolder = !!src.folder;
     const mimeType = (src.file && src.file.mimeType) || null;
-    const format = isFolder ? null : formatOf({ name: src.name, mimeType });
+    const documents = isDocumentsMode(accept);
+    const format = isFolder ? null : (documents ? documentFormatOf({ name: src.name, mimeType }) : formatOf({ name: src.name, mimeType }));
     if (!isFolder && !format) return null;
     return {
         provider,
@@ -153,6 +157,7 @@ function toFileRef(item, { ownDriveId = null, parentId = null } = {}) {
         parentId: (src.parentReference && src.parentReference.id) || parentId || null,
         isFolder,
         owned: !item.remoteItem && !!driveId && driveId === ownDriveId,
+        ...(documents ? { marker: markerOf(src) } : {}),
     };
 }
 

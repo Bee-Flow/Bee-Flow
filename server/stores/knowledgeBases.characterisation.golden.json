@@ -457,6 +457,11 @@
  },
  {
   "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS keep_originals BOOLEAN NOT NULL DEFAULT false",
+  "params": null
+ },
+ {
+  "via": "exec",
   "sql": "UPDATE knowledge_bases SET is_published = TRUE WHERE organization_id IS NOT NULL AND is_published = FALSE",
   "params": null
  },
@@ -606,6 +611,26 @@
  {
   "via": "exec",
   "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS created_by TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_storage_key TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_mime TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_size BIGINT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_sha256 TEXT",
   "params": null
  },
  {
@@ -1119,7 +1144,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), keep_originals = COALESCE($9::boolean, keep_originals), updated_at = now() WHERE id = $1 RETURNING *",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    "N",
@@ -1128,7 +1153,8 @@
    null,
    "[\"agent\"]",
    true,
-   "orgB"
+   "orgB",
+   null
   ]
  },
  {
@@ -1141,7 +1167,8 @@
     null,
     "[\"agent\"]",
     true,
-    "orgB"
+    "orgB",
+    null
    ]
   }
  },
@@ -1154,7 +1181,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), keep_originals = COALESCE($9::boolean, keep_originals), updated_at = now() WHERE id = $1 RETURNING *",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    null,
@@ -1163,6 +1190,7 @@
    null,
    null,
    false,
+   null,
    null
   ]
  },
@@ -1176,6 +1204,7 @@
     null,
     null,
     false,
+    null,
     null
    ]
   }
@@ -1233,7 +1262,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), keep_originals = COALESCE($9::boolean, keep_originals), updated_at = now() WHERE id = $1 RETURNING *",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    "Base",
@@ -1242,6 +1271,7 @@
    null,
    null,
    false,
+   null,
    null
   ]
  },
@@ -1255,6 +1285,7 @@
     null,
     null,
     false,
+    null,
     null
    ]
   }
@@ -1292,7 +1323,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), keep_originals = COALESCE($9::boolean, keep_originals), updated_at = now() WHERE id = $1 RETURNING *",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    null,
@@ -1301,6 +1332,7 @@
    null,
    null,
    false,
+   null,
    null
   ]
  },
@@ -1314,6 +1346,7 @@
     null,
     null,
     false,
+    null,
     null
    ]
   }
@@ -1327,7 +1360,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), keep_originals = COALESCE($9::boolean, keep_originals), updated_at = now() WHERE id = $1 RETURNING *",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    "X",
@@ -1336,6 +1369,7 @@
    null,
    null,
    false,
+   null,
    null
   ]
  },
@@ -1349,6 +1383,7 @@
     null,
     null,
     false,
+    null,
     null
    ]
   }
@@ -1736,7 +1771,7 @@
  },
  {
   "via": "getOne",
-  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "alice",
    "11111111-1111-4111-8111-111111111111",
@@ -1801,7 +1836,7 @@
  },
  {
   "via": "getOne",
-  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "alice",
    "11111111-1111-4111-8111-111111111111",
@@ -1866,7 +1901,7 @@
  },
  {
   "via": "getOne",
-  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "alice",
    "11111111-1111-4111-8111-111111111111",
@@ -1969,7 +2004,7 @@
  },
  {
   "via": "getOne",
-  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "alice",
    "11111111-1111-4111-8111-111111111111",
@@ -2080,7 +2115,7 @@
  },
  {
   "via": "getOne",
-  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "alice",
    "11111111-1111-4111-8111-111111111111",
@@ -2127,7 +2162,7 @@
  },
  {
   "via": "getOne",
-  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "alice",
    "11111111-1111-4111-8111-111111111111",
@@ -2207,7 +2242,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE documents SET status = $2, status_reason = $3, chunk_count = COALESCE($4, chunk_count), updated_at = now() WHERE id = $1 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "UPDATE documents SET status = $2, status_reason = $3, chunk_count = COALESCE($4, chunk_count), updated_at = now() WHERE id = $1 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "22222222-2222-4222-8222-222222222222",
    "error",
@@ -2241,7 +2276,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE documents SET updated_at = now() WHERE id = $1 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "UPDATE documents SET updated_at = now() WHERE id = $1 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "22222222-2222-4222-8222-222222222222"
   ]
@@ -2258,7 +2293,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE documents SET title = $1, updated_at = now() WHERE id = $2 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "UPDATE documents SET title = $1, updated_at = now() WHERE id = $2 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "x",
    "not-a-uuid"
@@ -2288,7 +2323,7 @@
  },
  {
   "via": "getOne",
-  "sql": "UPDATE documents SET title = $1, content_hash = $2, simhash = $3, duplicate_of = $4::uuid, chunk_count = $5, size_bytes = $6, page_count = $7, sheet_count = $8, mime = $9, source_modified_at = $10, external_id = $11, status = $12, status_reason = $13, extract_summary = $14, pii_status = $15, pii_categories = $16::jsonb, overlaps_document_id = $17, metadata = $18::jsonb, updated_at = now() WHERE id = $19 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "sql": "UPDATE documents SET title = $1, content_hash = $2, simhash = $3, duplicate_of = $4::uuid, chunk_count = $5, size_bytes = $6, page_count = $7, sheet_count = $8, mime = $9, source_modified_at = $10, external_id = $11, status = $12, status_reason = $13, extract_summary = $14, pii_status = $15, pii_categories = $16::jsonb, overlaps_document_id = $17, metadata = $18::jsonb, updated_at = now() WHERE id = $19 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url",
   "params": [
    "x",
    "h2",
@@ -2330,7 +2365,7 @@
  },
  {
   "via": "getAll",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE source_id = $1 AND external_id = $2 AND status <> 'duplicate' ORDER BY created_at DESC",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE source_id = $1 AND external_id = $2 AND status <> 'duplicate' ORDER BY created_at DESC",
   "params": [
    "s1",
    "12"
@@ -2351,7 +2386,7 @@
  },
  {
   "via": "getAll",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE source_id = $1 AND external_id = $2 AND status <> 'duplicate' ORDER BY created_at DESC",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE source_id = $1 AND external_id = $2 AND status <> 'duplicate' ORDER BY created_at DESC",
   "params": [
    "s1",
    "12"
@@ -2423,7 +2458,7 @@
  },
  {
   "via": "getAll",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE knowledge_base_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    200,
@@ -2438,7 +2473,7 @@
  },
  {
   "via": "getAll",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 AND metadata->>'from' ILIKE $2 AND metadata->>'threadId' = $3 AND (metadata->>'hasAttachments')::boolean = true AND (metadata->>'date')::timestamptz >= $4 AND (metadata->>'date')::timestamptz <= $5 AND source_type = $6 AND source_id = $7 AND source_id IS NULL AND status = ANY($8) AND pii_status IN ('found','redacted') AND title ILIKE $9 ORDER BY created_at DESC LIMIT $10 OFFSET $11",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE knowledge_base_id = $1 AND metadata->>'from' ILIKE $2 AND metadata->>'threadId' = $3 AND (metadata->>'hasAttachments')::boolean = true AND (metadata->>'date')::timestamptz >= $4 AND (metadata->>'date')::timestamptz <= $5 AND source_type = $6 AND source_id = $7 AND source_id IS NULL AND status = ANY($8) AND pii_status IN ('found','redacted') AND title ILIKE $9 ORDER BY created_at DESC LIMIT $10 OFFSET $11",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    "%bob%",
@@ -2464,7 +2499,7 @@
  },
  {
   "via": "getAll",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 AND status = ANY($2) AND pii_status = $3 ORDER BY created_at DESC LIMIT $4 OFFSET $5",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE knowledge_base_id = $1 AND status = ANY($2) AND pii_status = $3 ORDER BY created_at DESC LIMIT $4 OFFSET $5",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    [
@@ -2483,7 +2518,7 @@
  },
  {
   "via": "getAll",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE knowledge_base_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    200,
@@ -2540,7 +2575,7 @@
  },
  {
   "via": "getAll",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 AND metadata->>'threadId' = $2 ORDER BY (metadata->>'date')::timestamptz NULLS LAST, created_at",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE knowledge_base_id = $1 AND metadata->>'threadId' = $2 ORDER BY (metadata->>'date')::timestamptz NULLS LAST, created_at",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    "t"
@@ -2560,7 +2595,7 @@
  },
  {
   "via": "getOne",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE id = $1",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE id = $1",
   "params": [
    "22222222-2222-4222-8222-222222222222"
   ]
@@ -2606,7 +2641,7 @@
  },
  {
   "via": "getOne",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE id = $1",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE id = $1",
   "params": [
    "22222222-2222-4222-8222-222222222222"
   ]
@@ -2732,7 +2767,7 @@
  },
  {
   "via": "getOne",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 AND source_uri = $2 ORDER BY id DESC LIMIT 1",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE knowledge_base_id = $1 AND source_uri = $2 ORDER BY id DESC LIMIT 1",
   "params": [
    "11111111-1111-4111-8111-111111111111",
    "u"
@@ -2911,7 +2946,7 @@
  },
  {
   "via": "getOne",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE id = $1",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE id = $1",
   "params": [
    "22222222-2222-4222-8222-222222222222"
   ]
@@ -2939,7 +2974,7 @@
  },
  {
   "via": "getOne",
-  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE id = $1",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url FROM documents WHERE id = $1",
   "params": [
    "22222222-2222-4222-8222-222222222222"
   ]

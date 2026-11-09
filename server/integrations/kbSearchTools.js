@@ -13,6 +13,8 @@ require('../stores/configStore');
 const { getServiceHeaders } = require('../core/serviceAuth');
 const { recordSidecarCall } = require('../telemetry/metrics');
 const { toCitation } = require('../core/kb/citation');
+const { withOriginalFlags } = require('../core/kb/originals.mts');
+const { KB_GET_ORIGINAL_TOOL, executeKbGetOriginal, agentVisibleKbIds } = require('./kbOriginalTool');
 const log = require('../telemetry/log');
 const { logSearch, attachHandle } = require('../core/kb/queryLog/hook.mts');
 const { fallback } = require('../utils/bestEffort');
@@ -100,6 +102,9 @@ WHEN TO USE:
 if (process.env.KB_PREVIEW_MODE === 'true') {
     KB_SEARCH_TOOLS.push(KB_FETCH_TOOL);
 }
+
+// kb_get_original: the uploaded file itself, for the bases that keep one (integrations/kbOriginalTool.js).
+KB_SEARCH_TOOLS.push(KB_GET_ORIGINAL_TOOL);
 
 // ─── Tool Execution ────────────────────────────────────────────
 
@@ -222,6 +227,9 @@ async function executeKbSearchTool(toolName, args, context = {}) {
     if (toolName === 'kb_fetch') {
         return await executeKbFetchTool(args, context);
     }
+    if (toolName === 'kb_get_original') {
+        return await executeKbGetOriginal(args, context);
+    }
     if (toolName !== 'kb_search') {
         return { error: `Unknown KB search tool: ${toolName}` };
     }
@@ -245,37 +253,8 @@ async function executeKbSearchTool(toolName, args, context = {}) {
 
     const { userId, agentId } = context;
 
-    // Load agent to get KB IDs
-    const agentStore = require('../stores/agentStore');
-    let kbIds = [];
-    try {
-        const agent = await agentStore.getForRuntime(agentId);
-        kbIds = agent?.config?.knowledge_base_ids || [];
-        /**
-         * The bases are the AGENT's; the right to read them is the PERSON's.
-         *
-         * This tool is called mid-conversation on behalf of whoever is
-         * talking, and `searchLocally` below does no tenant filtering of its
-         * own — its access boundary is this list. Without the filter, asking
-         * an org-wide agent to "search the knowledge base" reached every base
-         * anybody had attached to it.
-         *
-         * `visibleKbIdsFor` is that K5 filter, plus the "Test as · group X"
-         * narrowing (A1c) when the turn is a preview. Both doors have to
-         * honour it: filtering the auto-injected knowledge and leaving the
-         * tool open would let the model fetch back exactly what the preview
-         * just hid.
-         */
-        const { visibleKbIdsFor } = require('../core/agentRuntime/testAs');
-        kbIds = await visibleKbIdsFor(kbIds, {
-            userId, testAs: context.testAs || null, context: 'kb_search', agentId,
-        });
-    } catch (e) {
-        log.warn('[KBSearch] Could not load agent config:', /** @type {Error} */ (e).message);
-        // A failure here must not leave a wider list than the one it was
-        // meant to narrow.
-        kbIds = [];
-    }
+    // The agent's bases, narrowed to the ones THIS person may read (and the "Test as" group, in a preview).
+    const kbIds = await agentVisibleKbIds(context);
 
     if (kbIds.length === 0) {
         return {
@@ -348,7 +327,8 @@ async function executeKbSearchTool(toolName, args, context = {}) {
         log.info(`[KBSearch] Found ${dedupResults.length} results (from ${chunks.length} chunks, deduped from ${results.length}, threshold=${scoreThreshold}, topScore=${topScore.toFixed(4)})`);
 
         // Build per-chunk section label (deepest heading + short snippet) once and reuse.
-        const annotated = labelSections(dedupResults);
+        // The rows first learn which base their document sits in and whether its file is kept: what lets a chip offer the download.
+        const annotated = labelSections(await withOriginalFlags(dedupResults));
 
         const previewMode = process.env.KB_PREVIEW_MODE === 'true';
 
@@ -381,6 +361,9 @@ async function executeKbSearchTool(toolName, args, context = {}) {
                     chunk_id: r.chunk_id,
                     title: r.source_url || r.title,
                     section: sectionLabel,
+                    // What kb_get_original takes; `has_original` tells the model whether asking is worth a call.
+                    document_id: r.document_id ?? null,
+                    has_original: r.has_original === true,
                 };
                 if (previewMode) {
                     const preview = (r.content || '').slice(0, 220);
@@ -408,7 +391,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
  */
 function isKbSearchTool(toolName) {
     // kb_fetch is only offered in preview mode, so only claimed there.
-    return toolName === 'kb_search' || (toolName === 'kb_fetch' && process.env.KB_PREVIEW_MODE === 'true');
+    return toolName === 'kb_search' || toolName === 'kb_get_original' || (toolName === 'kb_fetch' && process.env.KB_PREVIEW_MODE === 'true');
 }
 
 module.exports = {

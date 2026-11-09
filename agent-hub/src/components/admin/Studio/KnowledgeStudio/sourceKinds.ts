@@ -5,7 +5,7 @@
  * ── WHY ALL EIGHT ARE HERE WHEN SEVEN WORK ──────────────────────────
  * The server creates `text`, `upload`, `webpage`, `meeting_tag` (K7) and
  * `datatable` (K8) today; `automation` works as of K10 but is never CREATED
- * here (see SIGNPOST_KINDS below); `nextcloud_folder` arrives with K9, and
+ * here (see SIGNPOST_KINDS below); `cloud_folder` (Nextcloud, OneDrive, Google Drive) is the folder source, and
  * `legacy` is what the backfill migration gives pre-existing documents. The
  * artboard draws all seven buttons and the plan is explicit: the unbuilt
  * ones are DISABLED WITH A TOOLTIP, not hidden.
@@ -30,9 +30,10 @@
  * a file is not one of Studio's kinds and giving it a borrowed colour would
  * claim a relationship it does not have.
  */
-import { FileText, Folder, Globe, Mic, Table, Upload, Workflow } from 'lucide-react';
+import { Cloud, FileText, Globe, Mic, Table, Upload, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { pluralKey } from './plural';
+import { providerName } from '../Datatables/datatableDisplay';
 
 /** How the UI draws and names one kind of source. */
 export interface SourceKindDescriptor {
@@ -51,6 +52,11 @@ export interface SourceConfig {
     fields?: string[];
     crawl?: boolean;
     sourceType?: string;
+    /** cloud_folder: the allow-listed part of its config. */
+    provider?: string;
+    folderName?: string;
+    path?: string;
+    recursive?: boolean;
 }
 
 /** The fields of a source row the subline reads. */
@@ -62,7 +68,7 @@ export interface SublineSource {
 }
 
 /** Kinds `POST /api/kb/:id/sources` accepts today (server: sources#CREATABLE_KINDS). */
-const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable']);
+const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable', 'cloud_folder']);
 
 /**
  * The seven buttons of the "Bron toevoegen" card, in the artboard's own
@@ -70,14 +76,13 @@ const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag
  * a form — an automation source appears when an automation writes to this KB).
  */
 export const ADD_SOURCE_KINDS = Object.freeze([
-    'nextcloud_folder', 'upload', 'datatable', 'meeting_tag', 'webpage', 'text', 'automation',
+    'cloud_folder', 'upload', 'datatable', 'meeting_tag', 'webpage', 'text', 'automation',
 ]);
 
 const KINDS: Readonly<Record<string, SourceKindDescriptor>> = Object.freeze({
-    nextcloud_folder: {
-        icon: Folder, tint: null,
-        labelKey: 'knowledge.kind.nextcloud_folder', labelFallback: 'Folder in Nextcloud',
-        track: 'K9',
+    cloud_folder: {
+        icon: Cloud, tint: null,
+        labelKey: 'knowledge.kind.cloud_folder', labelFallback: 'Cloud folder',
     },
     upload: {
         icon: Upload, tint: null,
@@ -154,8 +159,11 @@ export function sublineFor(source: SublineSource = {}): { key: string; params: R
     const config = source.config || {};
     const docs = Number(source.documentCount) || 0;
     switch (kind) {
-        case 'nextcloud_folder':
-            return { key: pluralKey('knowledge.subline.folder', docs), params: { count: docs } };
+        case 'cloud_folder':
+            return {
+                key: pluralKey('knowledge.subline.cloud_folder', docs),
+                params: { count: docs, provider: providerName(config.provider), folder: config.folderName || config.path || '' },
+            };
         case 'upload':
             return { key: pluralKey('knowledge.subline.upload', docs), params: { count: docs } };
         case 'datatable':

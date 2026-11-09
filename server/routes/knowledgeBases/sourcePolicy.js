@@ -14,7 +14,7 @@ const kbSourcesStore = require('../../stores/kbSources');
 const { canAccessKB, canManageKB, blockIfSystemKB } = require('./shared');
 
 /** Kinds a client may create today. K7–K10 open the rest. */
-const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable']);
+const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable', 'cloud_folder']);
 
 /**
  * Which refresh modes make sense per kind. A `legacy` source has nothing to
@@ -26,6 +26,7 @@ const REFRESH_MODES_BY_KIND = Object.freeze({
     text: ['manual'],
     webpage: ['manual', 'schedule'],
     nextcloud_folder: ['manual', 'schedule', 'on_change'],
+    cloud_folder: ['manual', 'schedule', 'on_change'],
     datatable: ['manual', 'schedule', 'live'],
     meeting_tag: ['manual', 'after_meeting'],
     automation: ['manual'],
@@ -169,6 +170,15 @@ function publicSourceConfig(kind, config) {
             };
         case 'nextcloud_folder':
             return { path: c.path || null, folderName: c.folderName || null };
+        case 'cloud_folder':
+            // An explicit allow-list: the storage, where the folder is and what it is called. Never the
+            // change cursor (a delta link or page token), never the Nextcloud instance id.
+            return {
+                provider: c.provider || null,
+                folderName: c.folderName || null,
+                path: c.path || null,
+                recursive: c.recursive !== false,
+            };
         case 'datatable':
             return { tableId: c.tableId || null, tableName: c.tableName || null };
         case 'meeting_tag':

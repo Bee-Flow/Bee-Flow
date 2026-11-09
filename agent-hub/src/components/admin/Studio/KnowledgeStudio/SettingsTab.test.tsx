@@ -314,3 +314,30 @@ describe('duplicating', () => {
         expect(screen.queryByTestId('kb-duplicate')).toBeNull();
     });
 });
+
+describe('keep original files', () => {
+    it('switches on through the update call', async () => {
+        const user = userEvent.setup();
+        setup({ onSaved: vi.fn(async () => {}) });
+        await user.click(screen.getByTestId('kb-originals-toggle'));
+        await waitFor(() => expect(knowledgeApi.update).toHaveBeenCalledWith('kb1', { keepOriginals: true }));
+    });
+
+    it('says existing documents are not backfilled', () => {
+        setup();
+        expect(screen.getByText(/not backfilled/i)).toBeTruthy();
+    });
+
+    it('is locked off, with the reason, while privacy redaction is on', () => {
+        setup({ kb: kb({ keep_originals: true, originals_blocked_reason: 'privacy_redaction' }) });
+        const toggle = screen.getByTestId('kb-originals-toggle') as HTMLInputElement;
+        expect(toggle.disabled).toBe(true);
+        expect(toggle.checked).toBe(false);
+        expect(screen.getByTestId('kb-originals-blocked').textContent).toMatch(/Privacy redaction is on/);
+    });
+
+    it('is read-only for someone who may not manage', () => {
+        setup({ canManage: false });
+        expect((screen.getByTestId('kb-originals-toggle') as HTMLInputElement).disabled).toBe(true);
+    });
+});

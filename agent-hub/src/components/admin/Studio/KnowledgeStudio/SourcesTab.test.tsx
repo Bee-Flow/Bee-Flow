@@ -20,13 +20,13 @@ const src = (over = {}) => ({
 describe('SourcesTab', () => {
     it('gives each kind its own second line', () => {
         render(<SourcesTab sources={[
-            src({ id: 'a', kind: 'nextcloud_folder', name: 'Nextcloud · /Sales', documentCount: 38 }),
+            src({ id: 'a', kind: 'cloud_folder', name: 'Nextcloud · /Sales', documentCount: 38, config: { provider: 'nextcloud_files', folderName: 'Sales' } }),
             src({ id: 'b', kind: 'datatable', name: 'Price list', documentCount: 212, config: { columns: ['Item', 'Price'], tableName: 'Prices' } }),
             src({ id: 'c', kind: 'meeting_tag', name: 'Tagged meetings', documentCount: 6, config: { tag: 'quotes', fields: ['summary', 'decisions'] } }),
             src({ id: 'd', kind: 'webpage', name: 'example.com/terms', documentCount: 1 }),
             src({ id: 'e', kind: 'text', name: 'FAQ', config: {}, createdBy: { id: 'u1', name: 'Tessa' } }),
         ]} />);
-        expect(screen.getByText(/folder · 38 files/)).toBeTruthy();
+        expect(screen.getByText(/Nextcloud · Sales · 38 files/)).toBeTruthy();
         expect(screen.getByText(/columns Item, Price · 212 rows/)).toBeTruthy();
         // Built from the fields the source actually stores. It used to read
         // `config.mode`, and its other branch promised "full transcripts" —

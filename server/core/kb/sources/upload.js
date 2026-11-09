@@ -66,8 +66,9 @@ function isUnchanged() {
 /**
  * Re-extract from what is already stored.
  *
- * The original bytes are gone — the product stores extracted text, not the
- * uploaded file — so this is a re-run of the LATER half of ingest: chunk,
+ * The original bytes are not here — the product stores extracted text, and
+ * keeps the uploaded file only for a base that opted in (core/kb/originals.mts),
+ * which this does not read back — so this is a re-run of the LATER half of ingest: chunk,
  * embed, and (once K4 lands) screen for personal data. A row whose stored
  * text is empty is exactly the case that failed at extraction, and there is
  * nothing here that can fix it; it is reported so the reason on the row stays

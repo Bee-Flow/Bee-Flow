@@ -15,7 +15,7 @@ import type { IconName } from '@/shared/ui';
 import type { KbSource, RefreshRule } from './types';
 
 /** The kinds POST /:id/sources creates (sources.js CREATABLE_KINDS). */
-export const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable']);
+export const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable', 'cloud_folder']);
 
 interface KindInfo {
     icon: IconName;
@@ -24,6 +24,7 @@ interface KindInfo {
 }
 
 const KINDS: Readonly<Record<string, KindInfo>> = {
+    cloud_folder: { icon: 'Cloud', key: 'knowledge.kind.cloud_folder', en: 'Cloud folder' },
     nextcloud_folder: { icon: 'Folder', key: 'knowledge.kind.nextcloud_folder', en: 'Folder in Nextcloud' },
     upload: { icon: 'Upload', key: 'knowledge.kind.upload', en: 'Upload files' },
     datatable: { icon: 'Table', key: 'knowledge.kind.datatable', en: 'Table' },
@@ -72,7 +73,19 @@ function meetingFields(source: SublineSource, t: TranslateFn): string {
         .join(', ');
 }
 
+/** Storage names are proper nouns, not translated (the web's sourceMirrors.providerName). */
+const PROVIDER_NAMES: Readonly<Record<string, string>> = { google_drive: 'Google Drive', onedrive: 'OneDrive', nextcloud_files: 'Nextcloud' };
+
 const SUBLINES: Readonly<Record<string, Subline>> = {
+    cloud_folder: {
+        key: 'knowledge.subline.cloud_folder',
+        one: '{provider} · {folder} · {count} file',
+        many: '{provider} · {folder} · {count} files',
+        params: (s) => {
+            const provider = text(s.config.provider);
+            return { provider: PROVIDER_NAMES[provider] ?? provider, folder: text(s.config.folderName) || text(s.config.path) };
+        },
+    },
     nextcloud_folder: { key: 'knowledge.subline.folder', one: 'folder · {count} file', many: 'folder · {count} files' },
     upload: { key: 'knowledge.subline.upload', one: 'uploaded · {count} file', many: 'uploaded · {count} files' },
     datatable: {

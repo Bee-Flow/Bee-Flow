@@ -282,6 +282,11 @@ router.post('/:id/sources/:sid/refresh', requireAuth, requirePermission('manage_
     const source = await resolveSource(kb, req, res);
     if (!source) return;
 
+    // "Refresh now" on a cloud folder means "read it again", not "check the
+    // change cursor": a cursor that has not moved would end the pass at once
+    // and a document removed by hand would never come back. Dropping the
+    // cursor makes the precheck run the full pass, which stores a fresh one.
+    if (source.kind === 'cloud_folder') await kbSourcesStore.setSyncCursor(source.id, null);
     const updated = await kbSourcesStore.requestRefresh(source.id);
     res.status(202).json({
         queued: true,

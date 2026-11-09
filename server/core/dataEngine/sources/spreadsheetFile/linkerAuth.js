@@ -76,17 +76,19 @@ function orgForScope(orgId, session) {
 
 /**
  * @param {Record<string, any>} source   the mirror's `source` block ({ provider, file:{id,path,…}, linkedByUserId, ncInstanceId })
- * @param {{ orgId?: string|null, fresh?: boolean, write?: boolean }} [opts] `orgId`: the table's
+ * @param {{ orgId?: string|null, fresh?: boolean, write?: boolean, accept?: string|null }} [opts] `orgId`: the table's
  *   organisation (null for a personal mirror); `fresh`: skip the memo (a re-link, a "try again");
- *   `write`: also run the write gate (Nextcloud upload scope) — call this before every write
+ *   `write`: also run the write gate (Nextcloud upload scope) — call this before every write;
+ *   `accept`: 'documents' for the knowledge-base folder source (providers/documents.js), which lists
+ *   every readable document instead of the spreadsheets
  * @returns {Promise<{ api:object, userId:string, session:object|null, cred:object }>}
  */
-async function resolveLinker(source, { orgId = null, fresh = false, write = false } = {}) {
+async function resolveLinker(source, { orgId = null, fresh = false, write = false, accept = null } = {}) {
     const userId = source && source.linkedByUserId;
     if (!userId) {
         throw new SpreadsheetSourceError(503, 'linker_unavailable', 'This table has no linking account any more — ask an owner to re-link it.');
     }
-    const memoKey = `${userId}|${orgId || ''}|${source.provider || ''}|${refKeyOf(source)}`;
+    const memoKey = `${userId}|${orgId || ''}|${source.provider || ''}|${refKeyOf(source)}|${accept || ''}`;
     const hit = _memo.get(memoKey);
     let value = null;
     if (!fresh && hit && Date.now() - hit.at < MEMO_TTL_MS) {
@@ -96,7 +98,7 @@ async function resolveLinker(source, { orgId = null, fresh = false, write = fals
         const d = deps();
         let error = null;
         try {
-            value = await resolveUncached(d, source, userId, orgId, fresh);
+            value = await resolveUncached(d, source, userId, orgId, { fresh, accept });
         } catch (e) {
             error = e;
         }
@@ -114,9 +116,9 @@ async function resolveLinker(source, { orgId = null, fresh = false, write = fals
  * @param {LinkerSource} source
  * @param {string} userId
  * @param {string|null} orgId
- * @param {boolean} fresh
+ * @param {{ fresh: boolean, accept: string|null }} opts
  */
-async function resolveUncached(d, source, userId, orgId, fresh) {
+async function resolveUncached(d, source, userId, orgId, { fresh, accept }) {
     let mod;
     try {
         mod = d.providers.providerFor(source.provider);
@@ -135,7 +137,7 @@ async function resolveUncached(d, source, userId, orgId, fresh) {
             `${name} is switched off for the account that linked this table.`);
     }
 
-    const ctx = { userId, orgId, session };
+    const ctx = { userId, orgId, session, ...(accept ? { accept } : {}) };
 
     if (source.provider !== 'nextcloud_files') {
         const cred = await d.credentials.resolveProviderCredential(userId, /** @type {'google'|'microsoft'} */ (mod.oauthProvider), { session, orgId, fresh });

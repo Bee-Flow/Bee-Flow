@@ -346,6 +346,9 @@ Each of these has a generous default, and `0` means unlimited (or off).
 | `TOOL_FILE_MAX_BYTES` | `104857600` (100 MB) | Largest file a tool reads into memory. `0` = unlimited. |
 | `KB_WEB_PAGE_MAX_BYTES` | `10485760` (10 MB) | Largest web page a knowledge-base source reads. `0` = unlimited. |
 | `KB_SITEMAP_MAX_BYTES` | `52428800` (50 MB) | Largest sitemap a crawl reads. `0` = unlimited. |
+| `KB_CLOUD_MAX_FILES` | `2000` | Files one cloud-folder knowledge source reads. A folder with more is read up to this number and nothing is removed. `0` = unlimited. |
+| `KB_CLOUD_MAX_FILE_MB` | `50` | Largest file (MB) a cloud-folder knowledge source reads. A bigger file is skipped and logged. `0` = unlimited. |
+| `KB_CLOUD_CHANGE_POLL_SECONDS` | `300` | How often a cloud-folder source set to "on change" checks its folder (a cheap change check; the folder is read only when it moved). |
 
 The download limits are also listed under [Environment variables](./env.md#download-size-limits).
 

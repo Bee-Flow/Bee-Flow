@@ -40,10 +40,15 @@ const { SPREADSHEET_MIMES } = require('./index');
 const { integrationClient } = require('../../../../integrations/integrationClients');
 const format = require('./googleDriveFormat');
 const { makeSheetCells } = require('./googleSheetsCells');
+const documents = require('./documents');
 
 /** @typedef {import('./googleDriveFormat').DriveCtx} DriveCtx */
 /** @typedef {import('./googleDriveFormat').DriveMarker} DriveMarker */
 /** @typedef {import('./index').FileRef} FileRef */
+
+const { DOCUMENTS_PAGE_SIZE } = documents;
+/** Pages of `changes` one check reads before it gives up and says "changed". */
+const CHANGE_PAGES_MAX = 10;
 
 const {
     provider, oauthProvider, integrationAppIds,
@@ -97,11 +102,15 @@ function idOf(file) {
 
 /**
  * The Drive query and ordering a listing view asks for; null for a search without a term.
- * @param {{ view: string, parentId: string|null, q: string|null }} opts
+ * `accept: 'documents'` swaps the spreadsheet types for every type the knowledge-base
+ * extractor reads (see ./documents.js); shortcuts are not listed then.
+ * @param {{ view: string, parentId: string|null, q: string|null, accept?: string|null }} opts
  */
-function listQuery({ view, parentId, q }) {
+function listQuery({ view, parentId, q, accept = null }) {
     const FOLDER = `mimeType='${FOLDER_MIME}'`;
-    const SPREAD = `(${[...Object.keys(SPREADSHEET_MIMES), SHORTCUT_MIME].map((m) => `mimeType='${m}'`).join(' or ')})`;
+    const SPREAD = documents.isDocumentsMode(accept)
+        ? `(${documents.QUERY_MIMES.map((m) => `mimeType='${m}'`).join(' or ')})`
+        : `(${[...Object.keys(SPREADSHEET_MIMES), SHORTCUT_MIME].map((m) => `mimeType='${m}'`).join(' or ')})`;
     if (view === 'search') {
         const term = String(q || '').trim();
         if (!term) return null;
@@ -120,14 +129,14 @@ function listQuery({ view, parentId, q }) {
  */
 async function list(d, { view = 'mine', parentId = null, q = null, pageToken = null } = {}) {
     const { drive } = await d.clients();
-    const asked = listQuery({ view, parentId, q });
+    const asked = listQuery({ view, parentId, q, accept: d.accept });
     if (!asked) return { items: [], nextPageToken: null };
     /** @type {{ data: { files?: format.DriveFile[]; nextPageToken?: string; }; }} */
     let res;
     try {
         res = await drive.files.list({
             q: asked.query,
-            pageSize: PAGE_SIZE,
+            pageSize: documents.isDocumentsMode(d.accept) ? DOCUMENTS_PAGE_SIZE : PAGE_SIZE,
             pageToken: pageToken || undefined,
             orderBy: asked.orderBy,
             fields: LIST_FIELDS,
@@ -137,7 +146,7 @@ async function list(d, { view = 'mine', parentId = null, q = null, pageToken = n
     } catch (e) {
         throw translate(e, 'folder', { fileId: parentId });
     }
-    const items = (res.data.files || []).map((f) => toFileRef(f, { parentId })).filter(Boolean);
+    const items = (res.data.files || []).map((f) => toFileRef(f, { parentId, accept: d.accept })).filter(Boolean);
     return { items, nextPageToken: res.data.nextPageToken || null };
 }
 
@@ -158,9 +167,9 @@ async function probe(d, file) {
     if (!f || f.trashed) {
         throw new SpreadsheetSourceError(404, 'spreadsheet_not_found', 'Google Drive no longer has this file (it is in the bin or gone).', { ref: refOf(file) });
     }
-    const ref = /** @type {import('./index').FileRef} */ (toFileRef(f));
+    const ref = /** @type {import('./index').FileRef} */ (toFileRef(f, { accept: d.accept }));
     if (!ref) {
-        throw new SpreadsheetSourceError(415, 'format_unsupported', `"${f.name}" is not a spreadsheet Bee Flow can read.`, { ref: refOf(file) });
+        throw new SpreadsheetSourceError(415, 'format_unsupported', `"${f.name}" is not a ${documents.isDocumentsMode(d.accept) ? 'document' : 'spreadsheet'} Bee Flow can read.`, { ref: refOf(file) });
     }
     return {
         marker: markerOf(f),
@@ -194,7 +203,11 @@ function toBuffer(data) {
  */
 async function download(d, file, { maxBytes = null } = {}) {
     const p = await d.probe(file);
-    if (p.format === 'gsheet') {
+    // Documents mode: a native Google Doc, Slide or Sheet has no bytes, so it
+    // is exported to the Office format the extractor reads (Drive caps an
+    // export at 10 MB, and says so with a 403 that translate() reports).
+    const exported = documents.isDocumentsMode(d.accept) ? documents.exportFor(p.mimeType) : null;
+    if (!exported && p.format === 'gsheet') {
         throw new SpreadsheetSourceError(422, 'spreadsheet_rejected', 'A native Google Sheet has no file to download — it is read through the Sheets API.', { ref: refOf(file) });
     }
     if (maxBytes && p.size != null && p.size > maxBytes) {
@@ -203,7 +216,9 @@ async function download(d, file, { maxBytes = null } = {}) {
     const { drive } = await d.clients();
     let res;
     try {
-        res = await drive.files.get({ fileId: d.idOf(file), alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
+        res = exported
+            ? await drive.files.export({ fileId: d.idOf(file), mimeType: exported.mime }, { responseType: 'arraybuffer' })
+            : await drive.files.get({ fileId: d.idOf(file), alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
     } catch (e) {
         throw translate(e, 'file', file);
     }
@@ -259,13 +274,52 @@ async function upload(d, file, buffer, { ifMatch = null, contentType = null } = 
 }
 
 /**
+ * "Has anything changed since `cursor`?" for the knowledge-base folder source.
+ *
+ * Drive has no per-folder change feed: `changes` is the whole drive (or one
+ * shared drive when `driveId` is known), so ANY change counts. That is the safe
+ * direction: a false "changed" costs one listing, a false "unchanged" would
+ * skip a file. The cursor is Drive's page token; a changed answer carries a
+ * FRESH start token, taken before the pass that follows, so a change that lands
+ * during the pass is reported by the next check.
+ * @param {DriveCtx} d
+ * @param {{ driveId?: string|null }} [folder]
+ * @param {string|null} [cursor]
+ * @returns {Promise<{ changed: boolean, cursor: string|null }>}
+ */
+async function changeCursor(d, folder = {}, cursor = null) {
+    const { drive } = await d.clients();
+    const scope = { supportsAllDrives: true, ...(folder && folder.driveId ? { driveId: folder.driveId } : {}) };
+    const anchor = async () => {
+        const r = await drive.changes.getStartPageToken(scope);
+        return r.data && r.data.startPageToken ? String(r.data.startPageToken) : null;
+    };
+    if (!cursor) return { changed: true, cursor: await anchor() };
+    let pageToken = String(cursor);
+    for (let pages = 0; pages < CHANGE_PAGES_MAX; pages += 1) {
+        let r;
+        try {
+            r = await drive.changes.list({
+                ...scope, pageToken, includeRemoved: true, includeItemsFromAllDrives: true,
+                pageSize: 100, fields: 'changes(fileId),newStartPageToken,nextPageToken',
+            });
+        } catch (e) {
+            throw translate(e, 'folder', { fileId: null });
+        }
+        if (r.data.changes && r.data.changes.length > 0) return { changed: true, cursor: await anchor() };
+        if (r.data.nextPageToken) { pageToken = r.data.nextPageToken; continue; }
+        return { changed: false, cursor: r.data.newStartPageToken ? String(r.data.newStartPageToken) : String(cursor) };
+    }
+    return { changed: true, cursor: await anchor() };
+}
+
+/**
  * @param {{ save?: () => unknown }} cred
- * @param {unknown} [ctx]  unused (the FileApi signature)
+ * @param {unknown} [ctx]  `{ accept: 'documents' }` switches the api to documents mode
  */
 function makeApi(cred, ctx = {}) {
-    void ctx;
     /** @type {DriveCtx} */
-    const d = { clients: makeClients(cred), idOf };
+    const d = { clients: makeClients(cred), idOf, accept: /** @type {{ accept?: string|null }} */ (ctx || {}).accept || null };
     d.probe = (file) => probe(d, file);
     d.guard = (file, ifMatch) => guard(d, file, ifMatch);
     return {
@@ -278,6 +332,8 @@ function makeApi(cred, ctx = {}) {
         /** @param {FileRef} file @param {Buffer} buffer @param {Parameters<typeof upload>[3]} [opts] */
         upload: (file, buffer, opts) => upload(d, file, buffer, opts),
         markerEquals,
+        /** @param {Parameters<typeof changeCursor>[1]} [folder] @param {string|null} [cursor] */
+        changeCursor: (folder, cursor) => changeCursor(d, folder, cursor),
         cells: makeSheetCells(d),
     };
 }

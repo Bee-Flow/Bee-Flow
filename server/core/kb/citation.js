@@ -29,6 +29,8 @@
  *     sourceId,     the kb_sources row this came from, when known
  *     sourceName,   that source's name ("Nextcloud · /Sales")
  *     documentId,   the documents row — what a chip opens
+ *     kbId,         the knowledge base that document sits in (the download route is keyed on it)
+ *     hasOriginal,  whether that document's uploaded file is kept (core/kb/originals.mts); false when unknown
  *     chunkId,      the passage, for fetching it back
  *     datatableId,  the table a LIVE row was read from, when it was one
  *     rowId,        that row's own id — what makes the quote checkable
@@ -82,7 +84,7 @@
  * and never listed.)
  */
 const CITATION_FIELDS = Object.freeze([
-    'title', 'kind', 'sourceId', 'sourceName', 'documentId', 'chunkId',
+    'title', 'kind', 'sourceId', 'sourceName', 'documentId', 'kbId', 'hasOriginal', 'chunkId',
     'datatableId', 'rowId',
     'page', 'rowStart', 'rowEnd', 'occurredAt', 'section', 'content', 'score',
     'linked',
@@ -239,6 +241,10 @@ function toCitation(row, { index = 0, kind = 'kb_chunk', source = null } = {}) {
         sourceId: row?.source_id ?? row?.sourceId ?? source?.id ?? null,
         sourceName: source?.name ?? row?.source_name ?? row?.sourceName ?? null,
         documentId: row?.document_id ?? row?.documentId ?? null,
+        // Not every retrieval layer knows these (`withOriginalFlags` in core/kb/originals.mts adds them
+        // for the ones that can): absent means "no download offered", never a guess.
+        kbId: row?.knowledge_base_id ?? row?.kb_id ?? row?.kbId ?? null,
+        hasOriginal: row?.has_original === true || row?.hasOriginal === true,
         chunkId: row?.chunk_id ?? row?.chunkId ?? row?.id ?? null,
         // A live table row. NOT read from `row.id`, which the line above
         // already claims for `chunkId`: a datatable row's id is its own

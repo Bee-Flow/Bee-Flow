@@ -13,6 +13,7 @@ const kbStore = require('../../stores/knowledgeBases');
 const { getUserId } = require('./shared');
 const { MAX_UPLOAD_FILES, MAX_FILE_BYTES, QUEUED_REASON, helpers, resolveKb, resolveSource } = require('./sourcePolicy');
 const { bestEffort } = require('../../utils/bestEffort');
+const { keepUploadedOriginal } = require('../../core/kb/sources/keepOriginals');
 
 const uploadFiles = multer({
     storage: multer.memoryStorage(),
@@ -106,7 +107,7 @@ async function processUploadedFile(kb, source, doc, file) {
         }
     }
 
-    await reingestDocument(kb.tenant_id, kb.id, doc.id, text, {
+    const result = await reingestDocument(kb.tenant_id, kb.id, doc.id, text, {
         title: file.originalname,
         sizeBytes: file.size != null ? file.size : (file.buffer ? file.buffer.length : null),
         mime: file.mimetype || null,
@@ -118,6 +119,8 @@ async function processUploadedFile(kb, source, doc, file) {
         externalId: file.originalname,
         onFailure: 'record',
     });
+    // The file itself, when this base opted in to keeping it (never fails the document).
+    await keepUploadedOriginal({ kb, docId: doc.id, status: result?.status, file, log: (msg) => log.info(`[KB] ${msg}`) });
 }
 
 /**

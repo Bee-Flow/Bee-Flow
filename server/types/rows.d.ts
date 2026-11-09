@@ -1875,6 +1875,7 @@ declare namespace DbRow {
         id: string;
         is_published: boolean | null;
         kb_version: number | null;
+        keep_originals: boolean;
         last_content_at: Date | null;
         name: string;
         organization_id: string | null;

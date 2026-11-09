@@ -1,5 +1,6 @@
 import { X, FileText } from 'lucide-react';
 import { useId } from 'react';
+import { DownloadOriginalButton } from '@/components/admin/Studio/KnowledgeStudio/OriginalActions';
 import Modal from '@/components/shared/Modal';
 import useTranslation from '@/hooks/useTranslation';
 
@@ -9,6 +10,11 @@ interface CitationSource {
     content?: string;
     page?: number;
     index?: number;
+    /** The knowledge base and document this passage is from, and whether the file was kept. */
+    kbId?: string;
+    documentId?: string | number;
+    document_id?: string | number;
+    hasOriginal?: boolean;
 }
 
 interface CitationOverlayProps {
@@ -20,6 +26,9 @@ export default function CitationOverlay({ source, onClose }: CitationOverlayProp
     const { t } = useTranslation();
     const titleId = useId();
     if (!source) return null;
+    const cite = source as CitationSource;
+    const docId = cite.documentId ?? cite.document_id;
+    const canDownload = cite.hasOriginal === true && !!cite.kbId && docId != null;
 
     return (
         <Modal
@@ -74,6 +83,9 @@ export default function CitationOverlay({ source, onClose }: CitationOverlayProp
                     <span className="text-[10px] font-medium text-[var(--text-tertiary)]">
                         {t('notebooks.source_number', { index: (source as CitationSource).index })}
                     </span>
+                    {canDownload && (
+                        <DownloadOriginalButton variant="text" kbId={String(cite.kbId)} docId={String(docId)} name={cite.title || ''} className="ml-auto mr-2" />
+                    )}
                     <button
                         onClick={onClose}
                         className="px-3 py-1 text-xs font-medium rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"

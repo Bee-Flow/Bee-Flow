@@ -43,9 +43,10 @@ function assertProvider(provider) {
 
 /**
  * The caller's own storage client, after the gates. Throws the
- * SpreadsheetSourceError the route answers with.
+ * SpreadsheetSourceError the route answers with. `accept: 'documents'` lists
+ * every document the knowledge-base extractor reads instead of the spreadsheets.
  */
-async function callerApi(session, principal, provider) {
+async function callerApi(session, principal, provider, { accept = null } = /** @type {{ accept?: string | null }} */ ({})) {
     assertProvider(provider);
     const d = deps();
     let mod;
@@ -62,7 +63,7 @@ async function callerApi(session, principal, provider) {
     if (!permitted) {
         throw rejected(403, 'provider_integration_off', `${providerName(provider)} is switched off for this account.`);
     }
-    const ctx = { userId, orgId, session };
+    const ctx = { userId, orgId, session, ...(accept ? { accept } : {}) };
     if (provider === 'nextcloud_files') {
         let auth = null;
         try { auth = await d.ncClient.resolveAuth(session, userId); } catch (_) { auth = null; }

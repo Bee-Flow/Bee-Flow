@@ -57,6 +57,7 @@ export interface DocRowProps {
     last: boolean;
     canManage: boolean;
     kbId: string;
+    provider?: string;
     onChanged: () => void;
 }
 

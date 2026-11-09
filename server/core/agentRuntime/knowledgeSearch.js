@@ -188,7 +188,8 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
         // heading regexes, and one of them sent the passage under a key
         // the overlay does not read.
         const { toCitations } = require('../kb/citation');
-        onEvent('kb_sources', { sources: toCitations(topResults, { kind: 'unknown' }) });
+        const flagged = await require('../kb/originals.mts').withOriginalFlags(topResults);
+        onEvent('kb_sources', { sources: toCitations(flagged, { kind: 'unknown' }) });
     }
     return block;
 }

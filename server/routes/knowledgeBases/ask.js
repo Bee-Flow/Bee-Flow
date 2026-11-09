@@ -145,7 +145,7 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (/** @ty
             sourcesById = new Map((rows || []).map(s => [s.id, s]));
         } catch (err) { fallback('routes/knowledgeBases/ask:anon', err); /* no kb_sources on this install */ }
 
-        const citations = toCitations(chunks, { kind: 'kb_chunk' }).map(c => ({
+        const citations = toCitations(await require('../../core/kb/originals.mts').withOriginalFlags(chunks), { kind: 'kb_chunk' }).map(c => ({
             ...c,
             sourceName: c.sourceName || sourcesById.get(c.sourceId)?.name || null,
         }));

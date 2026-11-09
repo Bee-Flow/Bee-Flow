@@ -244,6 +244,10 @@ const OUTPUT_SCHEMAS_PART_1 = {
         shape: { results: 'array of { chunk_id, content, source, score }' },
         sample: { results: [{ chunk_id: 'chunk-1', content: 'Sample knowledge content…', source: 'doc.pdf', score: 0.92 }] },
     },
+    kb_get_original: {
+        shape: { success: 'boolean', filename: 'string', size: 'integer', downloadUrl: 'string', file: '{ kind, name, url, mimeType, size }' },
+        sample: { success: true, filename: 'contract.pdf', size: 20480, downloadUrl: '/api/storage/file/users/u1/documents/1_contract.pdf', file: { kind: 'pdf', name: 'contract.pdf', url: '/api/storage/file/users/u1/documents/1_contract.pdf', mimeType: 'application/pdf', size: 20480 } },
+    },
     kb_fetch: {
         shape: { chunks: 'array of { chunk_id, content, source }' },
         sample: { chunks: [{ chunk_id: 'chunk-1', content: 'Sample chunk body', source: 'doc.pdf' }] },

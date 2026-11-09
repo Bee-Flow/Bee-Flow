@@ -168,18 +168,17 @@ describe('KnowledgeDetail', () => {
         expect(await screen.findByText(/the most sources your plan allows \(5\)/)).toBeTruthy();
     });
 
-    it('shows every source kind, with the unbuilt ones disabled', async () => {
+    it('shows every source kind, all of them live', async () => {
         // Hiding them teaches that the product cannot do it; leaving them
         // live teaches that the product is broken. Greyed is the true one.
         render(<KnowledgeDetail {...omitted<ComponentProps<typeof KnowledgeDetail>>()} kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
         // `meeting_tag` went live with K7, `datatable` with K8 and
         // `automation` with K10 — as a SIGNPOST, not a form, but live either
-        // way. Still ahead: K9 (nextcloud_folder).
-        for (const kind of ['text', 'upload', 'webpage', 'meeting_tag', 'datatable', 'automation']) {
+        // way; `cloud_folder` is the folder source for all three clouds.
+        for (const kind of ['text', 'upload', 'webpage', 'meeting_tag', 'datatable', 'automation', 'cloud_folder']) {
             expect(screen.getByTestId(`kb-add-kind-${kind}`).dataset.disabled).toBe('false');
         }
-        expect(screen.getByTestId('kb-add-kind-nextcloud_folder').dataset.disabled).toBe('true');
     });
 
     it('the automation card explains where the step lives instead of asking for one', async () => {

@@ -48,6 +48,8 @@ const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { integrationClient } = require('../../../../integrations/integrationClients');
 const format = require('./oneDriveFormat');
 const { makeWorkbookCells } = require('./oneDriveWorkbook');
+const documents = require('./documents');
+const { bindChangeCursor } = require('./oneDriveDelta');
 
 const {
     provider, oauthProvider, integrationAppIds,
@@ -62,7 +64,7 @@ const {
 /**
  * The api context makeApi builds; the bound helpers are attached right after
  * the object is created.
- * @typedef {{ cred: object,
+ * @typedef {{ cred: object, accept?: string|null,
  *             ownDrivePromise: Promise<string|null>|null,
  *             mine: string|null,
  *             workbookKnown: Map<string, boolean>,
@@ -77,7 +79,7 @@ const {
 /**
  * A parsed Graph answer: a driveItem, a collection page, an upload session
  * or a workbook range / session, depending on the path.
- * @typedef {DriveItem & { value?: GraphBody[], uploadUrl?: string, '@odata.nextLink'?: string,
+ * @typedef {DriveItem & { value?: GraphBody[], uploadUrl?: string, '@odata.nextLink'?: string, '@odata.deltaLink'?: string,
  *             position?: number, visibility?: string, address?: string, rowCount?: number, columnCount?: number,
  *             values?: unknown[][], numberFormat?: unknown[][], formulas?: unknown[][] }} GraphBody
  */
@@ -159,9 +161,9 @@ async function itemPath(g, file) {
 
 /**
  * The Graph path a listing view asks for; null for a search without a term.
- * @param {{ view?: string, parentId?: ParentId|null, q?: string|null, pageToken?: string|null, mine?: string|null }} opts
+ * @param {{ view?: string, parentId?: ParentId|null, q?: string|null, pageToken?: string|null, mine?: string|null, top: number }} opts
  */
-function listPath({ view, parentId, q, pageToken, mine }) {
+function listPath({ view, parentId, q, pageToken, mine, top }) {
     if (pageToken) {
         // An @odata.nextLink is opaque, but it must still be a Graph URL —
         // it is fetched with the bearer.
@@ -173,17 +175,17 @@ function listPath({ view, parentId, q, pageToken, mine }) {
     if (view === 'search') {
         const term = String(q || '').trim();
         if (!term) return null;
-        return `/me/drive/search(q='${encodeURIComponent(term.replace(/'/g, "''"))}')?$top=${PAGE_SIZE}&$select=${ITEM_SELECT}`;
+        return `/me/drive/search(q='${encodeURIComponent(term.replace(/'/g, "''"))}')?$top=${top}&$select=${ITEM_SELECT}`;
     }
     if (view === 'shared' && !parentId) return `/me/drive/sharedWithMe?$select=id,name,remoteItem`;
-    if (view === 'recent') return `/me/drive/recent?$top=${PAGE_SIZE}&$select=${ITEM_SELECT}`;
-    if (!parentId || parentId === 'root') return `/me/drive/root/children?$top=${PAGE_SIZE}&$select=${ITEM_SELECT}&$orderby=name`;
+    if (view === 'recent') return `/me/drive/recent?$top=${top}&$select=${ITEM_SELECT}`;
+    if (!parentId || parentId === 'root') return `/me/drive/root/children?$top=${top}&$select=${ITEM_SELECT}&$orderby=name`;
     // A folder id may come with its drive ("<driveId>!<itemId>" is
     // OneDrive's own id shape, so a shared folder's id carries its
     // drive already; a plain id is looked up in the own drive).
     const driveId = (parentId && typeof parentId === 'object' && parentId.driveId) || mine;
     const id = /** @type {string} */ (parentId && typeof parentId === 'object' ? parentId.id : parentId);
-    return `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(id)}/children?$top=${PAGE_SIZE}&$select=${ITEM_SELECT}&$orderby=name`;
+    return `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(id)}/children?$top=${top}&$select=${ITEM_SELECT}&$orderby=name`;
 }
 
 /**
@@ -192,11 +194,11 @@ function listPath({ view, parentId, q, pageToken, mine }) {
  */
 async function list(g, { view = 'mine', parentId = null, q = null, pageToken = null } = {}) {
     const mine = await ownDriveId(g);
-    const path = listPath({ view, parentId, q, pageToken, mine });
+    const path = listPath({ view, parentId, q, pageToken, mine, top: documents.isDocumentsMode(g.accept) ? documents.DOCUMENTS_PAGE_SIZE : PAGE_SIZE });
     if (path === null) return { items: [], nextPageToken: null };
     const data = await json(g, path, {}, { what: 'folder', file: { fileId: /** @type {string|null} */ (parentId && typeof parentId === 'object' ? parentId.id : parentId) } });
     const items = (data.value || [])
-        .map((/** @type {DriveItem} */ it) => toFileRef(it, { ownDriveId: mine, parentId: typeof parentId === 'string' ? parentId : null }))
+        .map((/** @type {DriveItem} */ it) => toFileRef(it, { ownDriveId: mine, parentId: typeof parentId === 'string' ? parentId : null, accept: g.accept }))
         .filter(Boolean);
     return { items, nextPageToken: data['@odata.nextLink'] || null };
 }
@@ -220,9 +222,9 @@ async function probeItem(g, file) {
 async function probe(g, file) {
     const mine = await ownDriveId(g);
     const item = await probeItem(g, file);
-    const ref = /** @type {import('./index').FileRef} */ (toFileRef(item, { ownDriveId: mine }));
+    const ref = /** @type {import('./index').FileRef} */ (toFileRef(item, { ownDriveId: mine, accept: g.accept }));
     if (!ref) {
-        throw new SpreadsheetSourceError(415, 'format_unsupported', `"${item.name}" is not a spreadsheet Bee Flow can read.`, { ref: g.refOf(file) });
+        throw new SpreadsheetSourceError(415, 'format_unsupported', `"${item.name}" is not a ${documents.isDocumentsMode(g.accept) ? 'document' : 'spreadsheet'} Bee Flow can read.`, { ref: g.refOf(file) });
     }
     return {
         marker: markerOf(item),
@@ -345,13 +347,12 @@ async function upload(g, file, buffer, { ifMatch = null, contentType = null } = 
 
 /**
  * @param {import('../../../../../integrations/msGraphClient').MsSession} cred
- * @param {unknown} [ctx]  unused (the FileApi signature)
+ * @param {unknown} [ctx]  `{ accept: 'documents' }` switches the api to documents mode
  */
 function makeApi(cred, ctx = {}) {
-    void ctx;
     /** @type {GraphCtx} */
     const g = {
-        cred,
+        cred, accept: /** @type {{ accept?: string|null }} */ (ctx || {}).accept || null,
         ownDrivePromise: null,
         mine: null,                   // the own drive id once learned (refOf reads it)
         workbookKnown: new Map(),     // fileId → boolean (per api instance)
@@ -372,6 +373,7 @@ function makeApi(cred, ctx = {}) {
         /** @param {FileRef} file @param {Buffer} buffer @param {Parameters<typeof upload>[3]} [opts] */
         upload: (file, buffer, opts) => upload(g, file, buffer, opts),
         markerEquals,
+        changeCursor: bindChangeCursor({ json: (path) => json(g, path, {}, { what: 'folder' }), ownDriveId: () => ownDriveId(g), graphBase: graph().GRAPH_BASE }),
         cells: makeWorkbookCells(g),
         ownDriveId: () => ownDriveId(g),
     };

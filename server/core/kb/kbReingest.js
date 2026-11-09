@@ -210,6 +210,9 @@ async function deleteDocumentChunks(kbId, docId, tenantId, { skipSnapshot = fals
     // document row must NOT fall away, otherwise the embeddings stay searchable without there
     // being a row left to point them out.
     await purgeDocumentChunks(kbId, docId, tenantId, { strict: true });
+    // The kept original (if the base kept one), before the row that points at it goes. Best effort:
+    // a stray encrypted blob is cleaned with the base; a failed removal must not keep the document alive.
+    await require('./originals.mts').deleteOriginal({ tenantId, kbId, documentId: docId });
     await kbStore.deleteDocument(docId, { skipSnapshot, managedWrite });
     await kbStore.bumpKBVersion(kbId);
 }
