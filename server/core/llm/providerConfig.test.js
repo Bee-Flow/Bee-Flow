@@ -38,6 +38,7 @@ const {
     getAIConfig,
     saveAIConfig,
     ensureScalewayProvider,
+    ensureIonosProvider,
     ensureEuGptProvider,
     getProviders,
     addProvider,
@@ -54,6 +55,7 @@ test.beforeEach(() => {
     delete process.env.SCALEWAY_API_KEY;
     delete process.env.SCALEWAY_URL;
     delete process.env.EUGPT_API_KEY;
+    delete process.env.IONOS_API_KEY;
 });
 
 const ai = () => store.config.get('ai');
@@ -172,6 +174,35 @@ test('ensureScalewayProvider derives the row from the shared Scaleway secret and
 test('ensureScalewayProvider does nothing without a key', async () => {
     await ensureScalewayProvider();
     assert.strictEqual(ai(), undefined);
+});
+
+// ─── ensureIonosProvider ─────────────────────────────────────────────────────
+
+test('ensureIonosProvider seeds the IONOS host and writes only on change', async () => {
+    store.secrets.set('ionos_api_key', 'ion-key');
+
+    await ensureIonosProvider();
+    const row = ai().providers.find(p => p.id === 'ionos-default');
+    assert.strictEqual(row.type, 'ionos');
+    assert.strictEqual(row.url, 'https://openai.inference.de-txl.ionos.com/v1');
+    assert.strictEqual(row.apiKey, 'ion-key');
+    assert.strictEqual(PROVIDER_PRESETS.ionos.url, row.url);
+
+    const writesBefore = store.writes.length;
+    await ensureIonosProvider();
+    assert.strictEqual(store.writes.length, writesBefore, 'unchanged config is not rewritten on every read');
+
+    store.secrets.set('ionos_api_key', 'ion-rotated');
+    await ensureIonosProvider();
+    assert.strictEqual(ai().providers.find(p => p.id === 'ionos-default').apiKey, 'ion-rotated');
+});
+
+test('ensureIonosProvider does nothing without a key, and reads IONOS_API_KEY', async () => {
+    await ensureIonosProvider();
+    assert.strictEqual(ai(), undefined);
+    process.env.IONOS_API_KEY = 'env-key';
+    await ensureIonosProvider();
+    assert.strictEqual(ai().providers.find(p => p.id === 'ionos-default').apiKey, 'env-key');
 });
 
 // ─── ensureEuGptProvider ─────────────────────────────────────────────────────

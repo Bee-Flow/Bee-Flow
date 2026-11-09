@@ -48,6 +48,7 @@ const {
     getProviderForModel,
 } = require('./modelCache');
 const { isScalewayServedModel, _resetScalewayModelRegistry } = require('../providers/scalewayModels');
+const { isIonosServedModel, _resetIonosModelRegistry } = require('../providers/ionosModels');
 const { isEuServedModel, _resetEuServedRegistry, OPENAI_EU_BASE_URL } = require('../providers/openaiModels');
 
 const provider = (over = {}) => ({ id: 'p1', name: 'OpenAI', type: 'openai', url: 'https://api.openai.com/v1/', apiKey: 'sk-1', ...over });
@@ -59,6 +60,7 @@ test.beforeEach(() => {
     adapter.models = [{ id: 'gpt-4o' }, { id: 'gpt-4o-mini' }];
     invalidateModelCache();
     _resetScalewayModelRegistry();
+    _resetIonosModelRegistry();
     _resetEuServedRegistry();
 });
 
@@ -247,6 +249,17 @@ test('a Scaleway-typed provider pins its models to Scaleway\'s tariff, on discov
     _resetScalewayModelRegistry();          // a fresh process, warm cache
     await getModelsForProvider('s');
     assert.strictEqual(isScalewayServedModel('llama-3.3-70b-instruct'), true);
+});
+
+test('an IONOS-typed provider pins its models to IONOS\'s tariff, on discovery and on a cache hit', async () => {
+    store.ai = { providers: [provider({ id: 'i', name: 'IONOS', type: 'ionos', url: 'https://openai.inference.de-txl.ionos.com/v1' })] };
+    adapter.models = [{ id: 'meta-llama/Llama-3.3-70B-Instruct' }];
+    await getModelsForProvider('i');
+    assert.strictEqual(isIonosServedModel('meta-llama/Llama-3.3-70B-Instruct'), true);
+
+    _resetIonosModelRegistry();             // a fresh process, warm cache
+    await getModelsForProvider('i');
+    assert.strictEqual(isIonosServedModel('meta-llama/Llama-3.3-70B-Instruct'), true);
 });
 
 test('an OpenAI provider on the EU endpoint marks its models EU-served, and unmarks them when the URL moves back', async () => {

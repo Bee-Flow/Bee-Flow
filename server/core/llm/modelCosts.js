@@ -57,6 +57,7 @@ const {
     scalewayPricingKey,
     getScalewayListPrice,
 } = require('../providers/scalewayModels');
+const { isIonosServedModel, ionosPricingKey, getIonosListPrice } = require('../providers/ionosModels');
 const {
     isMistralServedModel,
     mistralPricingKey,
@@ -147,6 +148,7 @@ function inferProviderType(model) {
     if (!model) return null;
     const m = String(model).toLowerCase();
     if (isScalewayServedModel(model)) return 'scaleway';
+    if (isIonosServedModel(model)) return 'ionos';
     if (isMistralServedModel(model)) return 'mistral';
     if (/^claude/.test(m)) return 'claude';
     if (/^gemini/.test(m)) return 'google';
@@ -302,6 +304,16 @@ function _resolveCard(modelName, ctx = {}) {
         if (listed) return _simpleCard('repo', 'repo:scaleway', 'EUR', 'list', listed, { legacy: listed });
     }
 
+    // 4a. IONOS-served model: IONOS's own EUR tariff (exact key, then list price), as for
+    // Scaleway. With neither it stays unpriced and skips the fuzzy lookup (another host's rate).
+    const ionosServed = isIonosServedModel(modelName);
+    if (ionosServed) {
+        const exact = getPricingByKey(ionosPricingKey(modelName));
+        if (exact) return _simpleCard('community', 'litellm:ionos', 'EUR', 'list', exact, { legacy: exact });
+        const listed = getIonosListPrice(modelName);
+        if (listed) return _simpleCard('repo', 'repo:ionos', 'EUR', 'list', listed, { legacy: listed });
+    }
+
     // 4b. Mistral-served model → Mistral's own price, before the fuzzy lookup
     // for the Scaleway reason: Ministral and Mistral Small are open weights
     // that other hosts sell too. The ORDER is the reverse of Scaleway's,
@@ -319,7 +331,7 @@ function _resolveCard(modelName, ctx = {}) {
     }
 
     // 5. Community pricing lookup (handles provider prefixes + fuzzy matching)
-    const community = _communityCard(modelName);
+    const community = ionosServed ? null : _communityCard(modelName);
     if (community) return community;
 
     // 6. Case-insensitive custom override match

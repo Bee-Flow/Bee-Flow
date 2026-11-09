@@ -53,7 +53,9 @@ function jaccardSimilarity(setA, setB) {
  */
 async function hasCalibratedReranker(configStore) {
     const azureRerankerEndpoint = await configStore.getConfig('azure_reranker_endpoint') || process.env.AZURE_RERANKER_ENDPOINT;
-    return !!(azureRerankerEndpoint || process.env.RERANKER_URL);
+    // A provider rerank tier (rerank_provider_id + rerank_model) returns 0..1 scores too.
+    const providerRerank = !!(await configStore.getConfig('rerank_provider_id') && await configStore.getConfig('rerank_model'));
+    return !!(azureRerankerEndpoint || process.env.RERANKER_URL || providerRerank);
 }
 
 /**

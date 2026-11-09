@@ -200,6 +200,7 @@ No request schema.
 | `claudeApiKey` | string or null |  |  |
 | `googleApiKey` | string or null |  |  |
 | `eugptApiKey` | string or null |  |  |
+| `ionosApiKey` | string or null |  |  |
 | `elevenlabsApiKey` | string or null |  |  |
 | `googleVertexProject` | string or null |  |  |
 | `googleVertexLocation` | string or null |  |  |
@@ -225,6 +226,8 @@ No request schema.
 | `azureRerankerEndpoint` | string or null |  |  |
 | `azureRerankerKey` | string or null |  |  |
 | `azureRerankerModel` | string or null |  |  |
+| `rerankProviderId` | string or null |  |  |
+| `rerankModel` | string or null |  |  |
 | `stripeSecretKey` | string or null |  |  |
 | `stripeWebhookSecret` | string or null |  |  |
 | `stripePublishableKey` | string or null |  |  |
@@ -249,11 +252,8 @@ No request schema.
 | `useAzureDocProcessing` | boolean or null |  |  |
 | `notebooksEnabled` | boolean or null |  |  |
 | `projectsEnabled` | boolean or null |  |  |
-| `askAiEnabled` | boolean or null |  |  |
-| `exportEnabled` | boolean or null |  |  |
-| `openInNotebookEnabled` | boolean or null |  |  |
 
-16 more fields: see the full schema in [openapi.json](pathname:///openapi.json).
+19 more fields: see the full schema in [openapi.json](pathname:///openapi.json).
 
 ### `GET /ai/config/ai-step-model`
 

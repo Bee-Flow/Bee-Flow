@@ -7,6 +7,8 @@ import useProviderConfig from '@/hooks/useProviderConfig';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
+import RerankerProviderSection from './RerankerProviderSection';
+import type { RerankModel, RerankProvider } from './RerankerProviderSection';
 
 const hasChanges = (endpoint: string, apiKey: string, model: string, savedModel: string): boolean => !!endpoint.trim() || !!apiKey.trim() || model !== savedModel;
 
@@ -25,7 +27,12 @@ const RerankerBadges = ({ hasEndpoint, hasKey, savedModel, t }: RerankerBadgesPr
     </>
 );
 
-const RerankerConfig = ({ onMessage }: ProviderCardProps) => {
+interface RerankerConfigProps extends ProviderCardProps {
+    providers?: RerankProvider[];
+    allModels?: RerankModel[];
+}
+
+const RerankerConfig = ({ onMessage, providers = [], allModels = [] }: RerankerConfigProps) => {
     const { t } = useTranslation();
     const [endpoint, setEndpoint] = useState('');
     const [apiKey, setApiKey] = useState('');
@@ -110,6 +117,8 @@ const RerankerConfig = ({ onMessage }: ProviderCardProps) => {
             subtitle={isConfigured ? t('admin_ai_config.rerank_configured', '✅ Configured: Knowledge Base search results are reranked') : t('admin_ai_config.rerank_subtitle', 'Improve Knowledge Base search accuracy with neural reranking')}
             badges={<RerankerBadges hasEndpoint={hasEndpoint} hasKey={hasKey} savedModel={savedModel} t={t} />}
         >
+            <RerankerProviderSection providers={providers} allModels={allModels} onMessage={onMessage} />
+
             {/* Endpoint URL */}
             <div>
                 <input

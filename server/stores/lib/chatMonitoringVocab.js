@@ -57,7 +57,7 @@ const KINDS = list([
 const DESTINATIONS = list(['internal', 'external', 'unknown']);
 const PROVIDER_TYPES = list([
     'openai', 'mistral', 'claude', 'google', 'google_vertex', 'azure',
-    'scaleway', 'eugpt', 'local', 'other',
+    'scaleway', 'ionos', 'eugpt', 'local', 'other',
 ]);
 const PROTECTION = list(['', 'protected', 'exposed']);
 const GRANULARITY = list(['week', 'day']);

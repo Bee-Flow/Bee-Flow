@@ -20,7 +20,7 @@
  * Scaleway quotes EUR and is stored as EUR, never round-tripped through USD).
  *
  * Provider vocabulary (the adapter types): claude, openai, azure, google,
- * google-vertex, mistral, scaleway, eugpt, elevenlabs. 'local' never has rows:
+ * google-vertex, mistral, scaleway, ionos, eugpt, elevenlabs. 'local' never has rows:
  * a self-hosted model is priced at zero before any lookup.
  *
  * Trust: rows come from an import job that fetches third-party data, so the
@@ -65,6 +65,7 @@ const PROVIDER_ALIASES = Object.freeze({
     vertex_ai: 'google-vertex',
     mistral: 'mistral',
     scaleway: 'scaleway',
+    ionos: 'ionos',
     eugpt: 'eugpt',
     elevenlabs: 'elevenlabs',
 });

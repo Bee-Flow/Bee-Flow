@@ -278,7 +278,7 @@ const AgentDesignerPanel = ({
 
 export default AgentDesignerPanel;
 
-function AgentDesignerPanelSection3({ formData, handleFieldChange, availableModels, agent, user, organizations, groups, categories, handleCreateCategory }: { formData: AgentFormData; handleFieldChange: (field: string, value: unknown) => void; availableModels: { displayName: string; name: string; desc: string; cat: string; id: string; local?: boolean; scaleway?: boolean; eugpt?: boolean; }[]; agent: PanelAgent | null | undefined; user: HubUser | null; organizations: EditorOrganization[]; groups: EditorGroup[]; categories: EditorCategory[]; handleCreateCategory: (name: string) => Promise<void>; }) {
+function AgentDesignerPanelSection3({ formData, handleFieldChange, availableModels, agent, user, organizations, groups, categories, handleCreateCategory }: { formData: AgentFormData; handleFieldChange: (field: string, value: unknown) => void; availableModels: { displayName: string; name: string; desc: string; cat: string; id: string; local?: boolean; scaleway?: boolean; eugpt?: boolean; ionos?: boolean; }[]; agent: PanelAgent | null | undefined; user: HubUser | null; organizations: EditorOrganization[]; groups: EditorGroup[]; categories: EditorCategory[]; handleCreateCategory: (name: string) => Promise<void>; }) {
     return <div className="flex-1 overflow-hidden">
         <AgentEditorUI
             data={formData}

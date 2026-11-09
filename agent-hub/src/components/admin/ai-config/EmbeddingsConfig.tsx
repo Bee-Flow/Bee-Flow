@@ -16,6 +16,7 @@ interface EmbeddingModel {
     id: string;
     name?: string;
     providerId?: string;
+    embedding?: boolean;
 }
 
 interface EmbeddingsConfigProps {
@@ -85,6 +86,13 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
     const providerModels = config.embeddingProviderId
         ? allModels.filter((m: EmbeddingModel) => m.providerId === config.embeddingProviderId)
         : [];
+    // A provider that flags its embedding models (IONOS) lists only those, so a
+    // chat or rerank model cannot be picked by mistake.
+    // The saved model stays listed, so an earlier choice never shows as blank.
+    const embeddingFlagged = providerModels.filter(
+        (m: EmbeddingModel) => m.embedding === true || m.id === config.embeddingModel,
+    );
+    const modelChoices = embeddingFlagged.length > 0 ? embeddingFlagged : providerModels;
 
     // Azure embedding model is a deployment name and must be typed manually
     const selectedProvider = providers.find((p: EmbeddingProvider) => p.id === config.embeddingProviderId);
@@ -136,7 +144,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
                         >
                             <option value="">{t('admin_ai_config.embed_select_model', 'Select Model...')}</option>
-                            {providerModels.map((m: EmbeddingModel) => (
+                            {modelChoices.map((m: EmbeddingModel) => (
                                 <option key={m.id} value={m.id}>{m.name}</option>
                             ))}
                         </select>

@@ -6,6 +6,7 @@ import ChatModelTiersConfig from './ChatModelTiersConfig';
 import AzureConfigCard from './ProviderCards/AzureCard';
 import ClaudeApiKeyCard from './ProviderCards/ClaudeCard';
 import EuGptApiKeyCard from './ProviderCards/EuGptCard';
+import IonosApiKeyCard from './ProviderCards/IonosCard';
 import GoogleApiKeyCard from './ProviderCards/GoogleCard';
 import MistralApiKeyCard from './ProviderCards/MistralCard';
 import ScalewayApiKeyCard from './ProviderCards/ScalewayCard';
@@ -47,6 +48,7 @@ const PROVIDER_CARDS = [
     { name: 'Google AI', component: GoogleApiKeyCard },
     { name: 'Scaleway', component: ScalewayApiKeyCard },
     { name: 'EU GPT', component: EuGptApiKeyCard },
+    { name: 'IONOS', component: IonosApiKeyCard },
     { name: 'ElevenLabs', component: ElevenLabsApiKeyCard },
     { name: 'Google Vertex', component: GoogleVertexConfigCard },
     { name: 'Azure', component: AzureConfigCard },
@@ -197,7 +199,7 @@ const AIConfigPanel = () => {
                         <LocalModelsCard onMessage={setMessage} onProvidersChanged={fetchProviders} />
 
                         {/* Reranker stays at the bottom of providers */}
-                        <RerankerConfig onMessage={setMessage} />
+                        <RerankerConfig onMessage={setMessage} providers={providers} allModels={allModels} />
 
                         {/* Models loading indicator */}
                         {loadingModels && (

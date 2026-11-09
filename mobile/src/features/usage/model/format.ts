@@ -48,7 +48,7 @@ export function currency(value: Numeric | null | undefined, symbol = '€'): str
 export function shortModel(model: string | null | undefined): string {
     if (!model) return 'Unknown';
     return model
-        .replace(/^(openai|anthropic|google|azure|mistral|scaleway|local)\//, '')
+        .replace(/^(openai|anthropic|google|azure|mistral|scaleway|ionos|local)\//, '')
         .replace(/-\d{4}-\d{2}-\d{2}$/, '');
 }
 

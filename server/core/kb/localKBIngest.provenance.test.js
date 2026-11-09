@@ -109,7 +109,8 @@ test('every reranker branch goes through this one function', () => {
     // Four branches used to hold four copies of the same projection, and the
     // fix is only durable if none of them keeps its own.
     //
-    // Five since the llama.cpp branch was added. The literal count is a blunt
+    // Five since the llama.cpp branch was added, six with the provider branch
+    // (checked: it reorders through applyRerank). The literal count is a blunt
     // proxy for "no branch rebuilds the row by hand", so adding a reranker is
     // meant to land here and make you check that the new branch really does go
     // through applyRerank — it is not a number to bump on reflex.
@@ -118,8 +119,8 @@ test('every reranker branch goes through this one function', () => {
     const src = fs.readFileSync(require.resolve('./localRerank'), 'utf8');
     const search = src.slice(src.indexOf('async function rerankCandidates'));
     assert.strictEqual(
-        (search.match(/applyRerank\(/g) || []).length, 5,
-        'all five reranker branches must use applyRerank',
+        (search.match(/applyRerank\(/g) || []).length, 6,
+        'all six reranker branches must use applyRerank',
     );
     assert.doesNotMatch(
         search,

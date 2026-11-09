@@ -22,6 +22,7 @@ module.exports = {
     setDefaultProvider: providerConfig.setDefaultProvider,
     ensureLocalProviders: providerConfig.ensureLocalProviders,
     ensureScalewayProvider: providerConfig.ensureScalewayProvider,
+    ensureIonosProvider: providerConfig.ensureIonosProvider,
     ensureEuGptProvider: providerConfig.ensureEuGptProvider,
     PROVIDER_PRESETS: providerConfig.PROVIDER_PRESETS,
     resolveModelId,

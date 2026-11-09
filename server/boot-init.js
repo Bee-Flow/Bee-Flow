@@ -18,7 +18,7 @@
  *   INIT_BING_SEARCH_MARKET   — Bing Search market (e.g. en-US, nl-NL)
  *   INIT_SEARCH_PROVIDER      — Search provider: 'bing' | 'agent-search' | ''
  *   INIT_SERPER_API_KEY       — Serper.dev API key (for agent-search web search)
- *   INIT_AI_PROVIDER          — Generic AI provider: 'openai' | 'google' | 'mistral' | 'claude' | 'scaleway' | 'eugpt'
+ *   INIT_AI_PROVIDER          — Generic AI provider: 'openai' | 'google' | 'mistral' | 'claude' | 'scaleway' | 'ionos' | 'eugpt'
  *   INIT_GENERIC_API_KEY      — API key for the generic AI provider above
  *   INIT_CHAT_MODEL_TIERS     — JSON: { fast, standard, thinking, writer, pro } each { modelId }
  *   INIT_OFFICE_APPS_ENABLED  — 'true' | 'false' — enables Office 365 integration
@@ -202,7 +202,7 @@ async function runBootInit() {
         }
 
         // ── 6. Generic AI provider key ──────────────────────────────
-        // Maps aiProvider ('openai', 'google', 'mistral', 'claude', 'scaleway', 'eugpt')
+        // Maps aiProvider ('openai', 'google', 'mistral', 'claude', 'scaleway', 'ionos', 'eugpt')
         // to the configStore secret key used by the server.
         if (aiProvider && genericApiKey) {
             /** @type {Record<string, string>} */
@@ -214,6 +214,7 @@ async function runBootInit() {
                 // One Scaleway secret key covers Generative APIs (chat +
                 // embeddings) and Whisper transcription alike.
                 scaleway: 'scaleway_api_key',
+                ionos:    'ionos_api_key',
                 eugpt:    'eugpt_api_key',
             };
             const secretKey = secretKeyMap[aiProvider];

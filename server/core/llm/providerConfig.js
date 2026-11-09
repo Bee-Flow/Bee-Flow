@@ -17,6 +17,8 @@ const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { LOCAL_RUNTIMES, isLocalProviderType } = require('../providers/localModels');
 const { SCALEWAY_BASE_URL } = require('../providers/scalewayModels');
+const { IONOS_BASE_URL } = require('../providers/ionosModels');
+const { ensureIonosProvider } = require('./ionosProvider');
 const { EUGPT_BASE_URL, EUGPT_LEGACY_BASE_URL } = require('../providers/eugptModels');
 
 // Self-hosted runtimes are presets too — same shape, derived from the single
@@ -42,6 +44,7 @@ const PROVIDER_PRESETS = {
     'google-vertex': { name: 'Google Vertex AI', url: 'vertex-ai', needsApiKey: false },
     azure: { name: 'Azure AI', url: 'https://your-resource.openai.azure.com', needsApiKey: true },
     scaleway: { name: 'Scaleway Generative APIs', url: SCALEWAY_BASE_URL, needsApiKey: true },
+    ionos: { name: 'IONOS AI Model Hub', url: IONOS_BASE_URL, needsApiKey: true },
     eugpt: { name: 'EU GPT', url: EUGPT_BASE_URL, needsApiKey: true },
     ...LOCAL_PRESETS,
 };
@@ -153,6 +156,11 @@ async function saveAIConfig(aiConfig) {
             await configStore.setSecret('eugpt_api_key', aiConfig.eugptApiKey || '');
         }
 
+        // Save IONOS AI Model Hub API key to database
+        if (aiConfig.ionosApiKey !== undefined) {
+            await configStore.setSecret('ionos_api_key', aiConfig.ionosApiKey || '');
+        }
+
         // Save ElevenLabs API key to database
         if (aiConfig.elevenlabsApiKey !== undefined) {
             await configStore.setSecret('elevenlabs_api_key', aiConfig.elevenlabsApiKey || '');
@@ -205,6 +213,7 @@ async function saveAIConfig(aiConfig) {
         await ensureGoogleVertexProvider();
         await ensureAzureProvider();
         await ensureScalewayProvider();
+        await ensureIonosProvider();
         await ensureEuGptProvider();
         await ensureLocalProviders();
 
@@ -580,6 +589,7 @@ async function getProviders() {
     await ensureDefaultProvider();
     await ensureLocalProviders();
     await ensureScalewayProvider();
+    await ensureIonosProvider();
     await ensureEuGptProvider();
     const config = await getFullConfig();
     return {
@@ -704,6 +714,7 @@ module.exports = {
     saveAIConfig,
     ensureLocalProviders,
     ensureScalewayProvider,
+    ensureIonosProvider,
     ensureEuGptProvider,
     getProviders,
     addProvider,

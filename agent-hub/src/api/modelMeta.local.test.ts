@@ -83,3 +83,12 @@ describe('getModelFamily', () => {
         expect(getModelFamily('mistral-large-latest')).toBe('Mistral Large');
     });
 });
+
+describe('IONOS models', () => {
+    it('are admitted on the ionos flag and keep the server label', () => {
+        const models = [{ id: 'meta-llama/Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B Instruct', ionos: true, cat: 'General' }];
+        const [model] = filterVisibleModels(models);
+        expect(model.id).toBe('meta-llama/Llama-3.3-70B-Instruct');
+        expect(getModelDisplayName(models[0])).toBe('Llama 3.3 70B Instruct');
+    });
+});

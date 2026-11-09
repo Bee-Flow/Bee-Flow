@@ -48,7 +48,7 @@ test('health is never a kind, and every other personal-data kind is', () => {
 
 test('PROVIDER_TYPES covers every provider type the adapter factory knows, normalised', () => {
     const providers = require('../../core/providers');
-    const named = ['openai', 'mistral', 'claude', 'google', 'google-vertex', 'azure', 'scaleway', 'eugpt', 'local'];
+    const named = ['openai', 'mistral', 'claude', 'google', 'google-vertex', 'azure', 'scaleway', 'ionos', 'eugpt', 'local'];
     for (const type of [...named, ...providers.LOCAL_PROVIDER_TYPES]) {
         assert.notEqual(providers.getAdapter(type), providers.baseAdapter, `${type} is a key of PROVIDER_MAP`);
         const normalised = type === 'google-vertex' ? 'google_vertex'

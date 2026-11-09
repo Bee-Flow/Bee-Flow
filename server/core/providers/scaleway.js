@@ -26,119 +26,24 @@
  * Docs: https://www.scaleway.com/en/docs/generative-apis/
  */
 
-const BaseProvider = require('./base');
+const CatalogProvider = require('./catalogProvider');
 const {
     describeScalewayModel,
     normalizeReasoningEffort,
     clampMaxTokens,
     registerScalewayModel,
 } = require('./scalewayModels');
-const log = require('../../telemetry/log');
 
-// Discovery must not hang a config screen. Chat calls use the caller's
-// options.timeoutMs instead (see BaseProvider).
-const DISCOVERY_TIMEOUT_MS = 8000;
-
-class ScalewayProvider extends BaseProvider {
+class ScalewayProvider extends CatalogProvider {
     constructor() {
-        super('scaleway');
-    }
-
-    // ─── Model capabilities ──────────────────────────────────────────
-
-    /**
-     * @param {string} modelId
-     */
-    supportsVision(modelId) {
-        return !!describeScalewayModel(modelId).vision;
-    }
-
-    /**
-     * @param {string} modelId
-     */
-    supportsReasoning(modelId) {
-        return !!describeScalewayModel(modelId).reasoning;
-    }
-
-    // ─── Request Building ────────────────────────────────────────────
-
-    /**
-     * @param {string} model
-     */
-    buildRequestBody(model, messages, options = {}) {
-        const body = super.buildRequestBody(model, messages, options);
-
-        // Serverless output caps are far below the context window, and asking
-        // for more than the cap is rejected outright.
-        const maxTokens = clampMaxTokens(model, body.max_tokens);
-        if (maxTokens === undefined) delete body.max_tokens;
-        else body.max_tokens = maxTokens;
-
-        // Only forward an effort the model actually accepts; anything else is
-        // dropped, which leaves the model at its default effort rather than
-        // failing the request. Never overrides an explicit extraBody value.
-        if (body.reasoning_effort === undefined) {
-            const effort = normalizeReasoningEffort(model, options.reasoningEffort);
-            if (effort) body.reasoning_effort = effort;
-        }
-
-        // Ask for the trailing usage chunk. Without it a streamed turn ends
-        // with no token counts and the call is logged — and billed — as zero.
-        if (body.stream) {
-            body.stream_options = { include_usage: true, ...(body.stream_options || {}) };
-        }
-
-        return body;
-    }
-
-    // ─── Model discovery ─────────────────────────────────────────────
-
-    /**
-     * List the models this endpoint serves.
-     * 
-     * The live `/v1/models` list is authoritative — Scaleway adds and retires
-     * serverless models faster than a shipped catalog can follow — and the
-     * catalog only supplies the metadata the endpoint does not return. A failed
-     * call returns nothing rather than the catalog: a provider whose key is
-     * invalid must not appear to serve fifteen models, or model resolution
-     * would route chats to it and every one of them would 401.
-     * @param {string | undefined} [apiKey]
-     * @param {string | null | undefined} [baseUrl]
-     */
-    async listModels(apiKey, baseUrl) {
-        const headers = this.getHeaders(apiKey);
-        const root = (baseUrl || '').replace(/\/+$/, '');
-        const url = `${root.endsWith('/v1') ? root : `${root}/v1`}/models`;
-
-        /** @type {{ data?: Array<{ id?: string }> } | undefined} */
-        let data;
-        try {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS);
-            try {
-                const res = await fetch(url, { headers, signal: controller.signal });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                data = await res.json();
-            } finally {
-                clearTimeout(timer);
-            }
-        } catch (e) {
-            log.warn(`[Scaleway] /v1/models failed: ${/** @type {Error} */ (e).message}`);
-            return [];
-        }
-
-        const models = (data?.data || [])
-            .map(m => m?.id)
-            .filter(id => typeof id === 'string' && id)
-            .map(id => describeScalewayModel(id));
-
-        // Pin cost accounting to Scaleway's own tariff for everything this
-        // endpoint serves. Every model here is open-weight and also sold
-        // elsewhere, so without this the fuzzy price match could bill a call at
-        // a different host's rate.
-        for (const m of models) registerScalewayModel(m.id);
-
-        return models;
+        super('scaleway', {
+            label: 'Scaleway',
+            describe: describeScalewayModel,
+            normalizeReasoningEffort,
+            clampMaxTokens,
+            register: registerScalewayModel,
+            fetch: (url, init) => fetch(url, init),
+        });
     }
 }
 

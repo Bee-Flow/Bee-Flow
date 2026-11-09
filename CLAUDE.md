@@ -207,12 +207,16 @@ and `npm run lint:secrets`.
 
 - **LLM providers**: an adapter factory in `server/core/providers/index.js` with one file per
   provider (`claude.js`, `openai.js`, `google.js`, `googleVertex.js`, `azure.js`,
-  `mistral.js`, `scaleway.js`, `eugpt.js`). Add new providers there, not ad hoc elsewhere.
+  `mistral.js`, `scaleway.js`, `ionos.js`, `eugpt.js`). Add new providers there, not ad hoc elsewhere.
   - **Scaleway Generative APIs** (`scaleway.js` + `scalewayModels.js`): OpenAI-compatible,
     so the adapter holds only the differences (per-model `reasoning_effort` vocabulary,
     `max_tokens` cap, `stream_options.include_usage`). Every model there is open-weight and
     also sold by other hosts, and a fuzzy price match would pick one at random: always price
     through the exact `scaleway/<vendor>/<id>` key.
+  - **IONOS AI Model Hub** (`ionos.js` + `ionosModels.js`): OpenAI-compatible, German hosting;
+    price strictly through the exact key `ionos/<org>/<id>`, and models are matched by a
+    normalised name (never a fuzzy price match). Embeddings and rerank (`/rerank`) models carry
+    `embedding` / `rerank` flags; reranking is the provider tier of the KB rerank chain.
   - **EU GPT** (`eugpt.js` + `eugptModels.js`): one endpoint (`POST /v1/responses`), the
     router always picks the model (`eugpt-auto`), there are no client tools, the history goes
     as a transcript inside the user message (never in `instructions`), and the answer carries

@@ -29,6 +29,7 @@ const { getRedis } = require('../../db');
 const log = require('../../telemetry/log');
 const { isLocalProviderType, registerLocalModel } = require('../providers/localModels');
 const { registerScalewayModel } = require('../providers/scalewayModels');
+const { registerIonosModel } = require('../providers/ionosModels');
 const { registerMistralModel, setMistralRegionalModel, isMistralRegionalUrl } = require('../providers/mistralModels');
 const { isEuResidencyUrl, registerEuServedModel, unregisterEuServedModel } = require('../providers/openaiModels');
 const { getProviders, getAIConfig } = require('./providerConfig');
@@ -69,6 +70,7 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
     // self-hosted models at cloud rates until the cache expired.
     const isLocal = !!provider && isLocalProviderType(provider.type);
     const isScaleway = !!provider && provider.type === 'scaleway';
+    const isIonos = !!provider && provider.type === 'ionos';
     const isMistral = !!provider && provider.type === 'mistral';
     const isMistralRegional = isMistral && isMistralRegionalUrl(provider.url);
     const isOpenAILike = !!provider && (provider.type === 'openai' || provider.type === 'azure');
@@ -85,6 +87,10 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
         // pinned to Scaleway's own tariff rather than a fuzzy price match.
         if (isScaleway) {
             for (const m of models) registerScalewayModel(m?.id);
+        }
+        // IONOS: same reasoning as Scaleway.
+        if (isIonos) {
+            for (const m of models) registerIonosModel(m?.id);
         }
         // Mistral too: Ministral and Mistral Small are open weights sold by
         // other hosts, and the regional endpoints cost 1.1× — both facts live
@@ -296,6 +302,7 @@ async function getProviderForModel(modelId) {
                 // Scaleway's tariff instead of letting the fuzzy match pick a
                 // host at random. Keyed on the STORED type, never the adapter.
                 if (provider.type === 'scaleway') registerScalewayModel(modelId);
+                if (provider.type === 'ionos') registerIonosModel(modelId);
                 // Mistral: its own price, plus the regional uplift when the
                 // provider points at api.eu / api.us (and not when it moves back).
                 // Azure: which model sits behind a custom-named deployment, for

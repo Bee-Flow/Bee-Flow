@@ -68,11 +68,17 @@ const PROVIDER_PREFIXES = {
         'scaleway/google/', 'scaleway/meta/', 'scaleway/BAAI/',
         'scaleway/deepseek/', 'scaleway/zai/', 'scaleway/hcompany/',
     ],
+    // IONOS keys follow the same provider/vendor/id shape (ionos/<org>/<id>);
+    // same strictness, no bare '' entry.
+    ionos: [
+        'ionos/Qwen/', 'ionos/openai/', 'ionos/mistralai/', 'ionos/meta-llama/',
+        'ionos/BAAI/', 'ionos/lightonai/', 'ionos/sentence-transformers/',
+    ],
 };
 
 // Providers whose models are open weights sold by many hosts — an exact key
 // match or nothing, never the fuzzy tail match. See getModelPricing.
-const STRICT_PROVIDERS = new Set(['scaleway']);
+const STRICT_PROVIDERS = new Set(['scaleway', 'ionos']);
 
 // ─── Fallback pricing for models not yet in the community database ──────────
 // Prices are per 1M tokens (USD). Sourced from official provider pages.
@@ -314,7 +320,7 @@ function listKnownPricing() {
     for (const [id, r] of Object.entries(getAllModelPricing())) {
         if (typeof r?.input !== 'number' || typeof r?.output !== 'number') continue;
         const vendor = vendorOfCommunityProvider(r.provider);
-        put(id, r, vendor, vendor === 'scaleway' ? 'EUR' : 'USD', 'litellm');
+        put(id, r, vendor, vendor === 'scaleway' || vendor === 'ionos' ? 'EUR' : 'USD', 'litellm');
     }
     return [...byId.values()];
 }
@@ -329,6 +335,7 @@ function vendorOfCommunityProvider(p) {
     if (s.startsWith('vertex_ai')) return 'google-vertex';
     if (s === 'mistral') return 'mistral';
     if (s === 'scaleway') return 'scaleway';
+    if (s === 'ionos') return 'ionos';
     return null;
 }
 

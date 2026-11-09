@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * Phase 2 of a local KB search: the reranker chain (llama.cpp > Azure Cohere >
+ * Phase 2 of a local KB search: the reranker chain (llama.cpp > provider rerank > Azure Cohere >
  * CPU cross-encoder > GPU sidecar > RRF passthrough), and `applyRerank`, the
  * one function every branch reorders through.
  */
@@ -15,8 +15,11 @@ const log = require('../../telemetry/log');
 // lazy: the barrel passes a loader, called at the point of use.
 let configStore = null;
 let loadLlamaCppRerank = null;
+/** @type {() => typeof import('../rerank/providerRerank')} */
+let loadProviderRerank = () => require('../rerank/providerRerank');
 function wire(deps) {
     ({ configStore, loadLlamaCppRerank } = deps);
+    if (deps.loadProviderRerank) loadProviderRerank = deps.loadProviderRerank;
 }
 
 /**
@@ -57,10 +60,13 @@ function applyRerank(rows, ranked) {
  * the boot warmup reads, through the same function, so the two cannot drift.
  *
  * @param {{ getConfig: (key: string) => Promise<any>, getSecret: (key: string) => Promise<any> }} store
- * @returns {Promise<{ azureEndpoint: string | undefined, azureKey: string | undefined, azureModel: string, localUrl: string | undefined, cpuEnabled: boolean }>}
+ * @returns {Promise<{ providerId: string | undefined, providerModel: string | undefined, azureEndpoint: string | undefined, azureKey: string | undefined, azureModel: string, localUrl: string | undefined, cpuEnabled: boolean }>}
  */
 async function readRerankTierInputs(store) {
     return {
+        // Provider rerank tier: an LLM provider record + a rerank model (IONOS, vLLM, ...).
+        providerId: await store.getConfig('rerank_provider_id') || undefined,
+        providerModel: await store.getConfig('rerank_model') || undefined,
         azureEndpoint: await store.getConfig('azure_reranker_endpoint') || process.env.AZURE_RERANKER_ENDPOINT,
         azureKey: await store.getSecret('azure_reranker_key') || process.env.AZURE_RERANKER_KEY,
         azureModel: await store.getConfig('azure_reranker_model') || process.env.AZURE_RERANKER_MODEL || 'Cohere-rerank-v4.0-fast',
@@ -78,10 +84,10 @@ async function readRerankTierInputs(store) {
  * ahead of it that is configured takes the search, whether or not it answers.
  * For the boot warmup: a model no search can reach is not worth loading.
  *
- * @param {{ llamaCppEnabled: boolean, azureEndpoint?: string, azureKey?: string, cpuEnabled: boolean }} inputs
+ * @param {{ llamaCppEnabled: boolean, providerId?: string, providerModel?: string, azureEndpoint?: string, azureKey?: string, cpuEnabled: boolean }} inputs
  */
-function cpuTierConfigured({ llamaCppEnabled, azureEndpoint, azureKey, cpuEnabled }) {
-    return !llamaCppEnabled && !(azureEndpoint && azureKey) && cpuEnabled;
+function cpuTierConfigured({ llamaCppEnabled, providerId, providerModel, azureEndpoint, azureKey, cpuEnabled }) {
+    return !llamaCppEnabled && !(providerId && providerModel) && !(azureEndpoint && azureKey) && cpuEnabled;
 }
 
 /**
@@ -97,11 +103,14 @@ function cpuTierConfigured({ llamaCppEnabled, azureEndpoint, azureKey, cpuEnable
 async function rerankCandidates(candidates, query, topK) {
     let results = candidates;
     // ── Phase 2: Reranking — no DB connection held during these API calls ──
-    // Priority: Azure Cohere (provider) > CPU cross-encoder (in-process) >
+    // Priority: llama.cpp (opt-in) > provider rerank (`rerank_provider_id` +
+    // `rerank_model`) > Azure Cohere > CPU cross-encoder (in-process) >
     // local GPU vLLM sidecar (`RERANKER_URL`) > RRF passthrough.
     // CPU branch sits ahead of the GPU sidecar so users without a GPU box
     // get a working reranker by default; existing GPU users are unaffected.
     const {
+        providerId: rerankProviderId,
+        providerModel: rerankProviderModel,
         azureEndpoint: azureRerankerEndpoint,
         azureKey: azureRerankerKey,
         azureModel: azureRerankerModel,
@@ -129,7 +138,33 @@ async function rerankCandidates(candidates, query, topK) {
         }
     }
 
-    if (llamaCppReranked) {
+    // ── Provider rerank: a configured LLM provider's /v1/rerank (IONOS, vLLM, ...) ──
+    // Scores are 0..1. Any error falls through to the next tier.
+    let providerReranked = false;
+    if (!llamaCppReranked && rerankProviderId && rerankProviderModel && results.length > 0) {
+        const t0 = Date.now();
+        try {
+            const { providerRerank } = loadProviderRerank();
+            const scored = await providerRerank({
+                providerId: rerankProviderId,
+                model: rerankProviderModel,
+                query,
+                documents: results.map(r => r.content),
+                topN: topK,
+            });
+            if (scored.length > 0) {
+                results = applyRerank(results, scored.map(s => ({ index: s.index, relevance_score: s.score })));
+                providerReranked = true;
+                log.info(`[LocalKBSearch] Provider rerank (${rerankProviderModel}) reranked ${scored.length} results in ${Date.now() - t0}ms (top=${results[0]?.score?.toFixed(3)})`);
+            } else {
+                log.warn('[LocalKBSearch] Provider rerank returned nothing; falling through');
+            }
+        } catch (providerErr) {
+            log.warn(`[LocalKBSearch] Provider rerank failed (${/** @type {Error} */ (providerErr).message}); falling through`);
+        }
+    }
+
+    if (llamaCppReranked || providerReranked) {
         // already ranked above
     } else if (azureRerankerEndpoint && azureRerankerKey && results.length > 0) {
         // ── Azure Cohere rerank (primary — no GPU required) ──
