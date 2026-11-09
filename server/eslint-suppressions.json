@@ -3264,9 +3264,6 @@
     }
   },
   "core/automationRunner/scheduler/ticks.js": {
-    "complexity": {
-      "count": 1
-    },
     "max-depth": {
       "count": 2
     }
