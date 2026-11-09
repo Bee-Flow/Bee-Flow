@@ -10,6 +10,7 @@
 const log = require('../../telemetry/log');
 const { OAUTH_PROVIDERS } = require('../permissions');
 const microsoftLogin = require('./microsoftLogin');
+const { oauthErrorCode } = require('./shared');
 const { nextcloudOAuthUrl } = require('../../utils/nextcloudTarget');
 const { microsoftCredentialsFor } = require('./microsoftConnections.mts');
 
@@ -187,8 +188,8 @@ async function exchangeNextcloud({ config, code, redirectUri, session }) {
     });
 
     if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        log.error('Nextcloud token exchange failed:', errorText);
+        const code = oauthErrorCode(await tokenResponse.text().catch(() => ''));
+        log.error(`Nextcloud token exchange failed (${tokenResponse.status})${code ? `: ${code}` : ''}`);
         return { error: 'token_exchange_failed' };
     }
 

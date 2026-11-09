@@ -45,7 +45,7 @@ const { isLoginBlockedAccount, REFUSAL } = require('../accountStatusGate');
 const userStore = require('../../stores/userStore');
 const { resolveSsoUser } = require('./ssoUserProvisioning');
 const { resolveOrgStanding, writeOAuthSession } = require('./ssoSessionSetup');
-const { getReturnUrl, oauthStatesMatch, popupRedirect } = require('./shared');
+const { getReturnUrl, oauthErrorCode, oauthStatesMatch, popupRedirect } = require('./shared');
 const { isPickupTokenShaped } = require('../../utils/sessionToken');
 const { nextcloudOAuthUrl } = require('../../utils/nextcloudTarget');
 
@@ -155,8 +155,8 @@ router.get('/callback', async (req, res) => {
         });
 
         if (!tokenResponse.ok) {
-            const errorText = await tokenResponse.text();
-            log.error('Token exchange failed:', errorText);
+            const code = oauthErrorCode(await tokenResponse.text().catch(() => ''));
+            log.error(`[OAuth/legacy] Token exchange failed (${tokenResponse.status})${code ? `: ${code}` : ''}`);
             return res.redirect(`${returnTo}?error=token_exchange_failed`);
         }
 

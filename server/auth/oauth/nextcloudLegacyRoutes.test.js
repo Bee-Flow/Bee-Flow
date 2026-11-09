@@ -209,3 +209,22 @@ test('the legacy callback hands the uid on as subject and legacy raw uid, with a
     assert.strictEqual(user.legacyRawUid, 'carol');
     assert.strictEqual(user.emailVerified, false);
 });
+
+test('a refused token exchange logs the status and the OAuth code, never the raw body', async () => {
+    const logged = [];
+    const realError = quiet.error;
+    quiet.error = (...args) => { logged.push(args.map(String).join(' ')); };
+    const realFetch = global.fetch;
+    global.fetch = async () => ({ ok: false, status: 400, text: async () => JSON.stringify({ error: 'invalid_grant', error_description: 'code c for client_secret s3cr3t expired' }) });
+    try {
+        const session = { ...newSession(), legacyOAuthState: 'st', returnTo: 'https://app.example' };
+        const res = await navigate('/callback?code=c&state=st', session);
+        assert.match(res.location, /error=token_exchange_failed/);
+    } finally {
+        global.fetch = realFetch;
+        quiet.error = realError;
+    }
+    assert.strictEqual(logged.length, 1);
+    assert.match(logged[0], /\(400\): invalid_grant$/);
+    assert.doesNotMatch(logged[0], /s3cr3t|error_description/);
+});
