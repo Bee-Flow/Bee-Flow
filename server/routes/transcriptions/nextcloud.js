@@ -138,7 +138,9 @@ router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery 
             // Drop folders
             if (/<d:resourcetype>\s*<d:collection\s*\/>\s*<\/d:resourcetype>/i.test(block)) continue;
 
-            const name = decodeURIComponent(href.split('/').filter(Boolean).pop() || '');
+            // `href` is decoded already: decoding it again threw on a name
+            // with a literal `%` (and failed the whole listing).
+            const name = href.split('/').filter(Boolean).pop() || '';
             const ext = path.extname(name).toLowerCase();
             if (!AUDIO_EXTS.includes(ext)) continue;
 

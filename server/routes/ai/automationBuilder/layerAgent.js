@@ -145,7 +145,10 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
         send('layer_agent_start', { layerKey, mode });
         let layerClientGone = false;
         const layerAbort = new AbortController();
-        req.on('close', () => {
+        // The RESPONSE's close: a POST's request stream closes once its body
+        // is read, before this handler runs, so req 'close' never fired here.
+        res.on('close', () => {
+            if (res.writableEnded) return;
             layerClientGone = true;
             try { layerAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });

@@ -350,7 +350,10 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
         // answer nobody will read.
         let clientGone = false;
         const clientAbort = new AbortController();
-        req.on('close', () => {
+        // The RESPONSE's close: a POST's request stream closes once its body
+        // is read, before this handler runs, so req 'close' never fired here.
+        res.on('close', () => {
+            if (res.writableEnded) return;
             clientGone = true;
             try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });

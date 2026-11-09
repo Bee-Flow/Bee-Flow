@@ -85,6 +85,17 @@ function _isThirdCountryProcessor(p) {
 }
 
 /**
+ * Newest attestation first. By instant: `attested_at` arrives as a Date, and
+ * comparing its text sorted the register by the NAME of the weekday.
+ * @param {{ attested_at?: Date | string | null }} a
+ * @param {{ attested_at?: Date | string | null }} b
+ */
+function byAttestedDesc(a, b) {
+    const at = (/** @type {Date | string | null | undefined} */ v) => (v ? new Date(v).getTime() || 0 : 0);
+    return at(b.attested_at) - at(a.attested_at);
+}
+
+/**
  * @param {string} orgId
  */
 async function _buildRopa(orgId) {
@@ -302,7 +313,7 @@ async function _buildRopa(orgId) {
                 attested_at: r.attested_at || null,
                 expires_at: r.expires_at || null,
             }))
-            .sort((a, b) => String(b.attested_at || '').localeCompare(String(a.attested_at || '')));
+            .sort(byAttestedDesc);
 
         return {
             organization_id: orgId,
@@ -366,4 +377,4 @@ router.post('/ropa/review', requireAuth, requirePermission('admin_compliance'), 
 // collaborative projects (routes/compliance/projectRegistrations.js).
 router.use(require('./projectRegistrations').makeProjectRegistrationRouter());
 
-module.exports = router;
+module.exports = Object.assign(router, { _test_byAttestedDesc: byAttestedDesc });

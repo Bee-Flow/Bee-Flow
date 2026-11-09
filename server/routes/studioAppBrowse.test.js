@@ -52,6 +52,13 @@ stub('../appStudio/actionExecutor', {
             // Report whether the client disconnect was observed.
             return { ok: !ctx.browse.isCancelled(), result: { cancelledSeen: ctx.browse.isCancelled() } };
         }
+        if (state.stepBehaviour === 'wait-cancel') {
+            // A long browse: runs until the disconnect is observed (or 2 s pass).
+            const until = Date.now() + 2000;
+            while (!ctx.browse.isCancelled() && Date.now() < until) await new Promise((r) => setTimeout(r, 10));
+            state.onStepDone(ctx.browse.isCancelled());
+            return { ok: false, error: 'cancelled' };
+        }
         return { ok: false, error: 'nope', code: 'browse_not_enabled' };
     },
 });
@@ -173,13 +180,28 @@ test('an invisible app is a uniform 404', async () => {
 });
 
 test('client disconnect is surfaced to the step as isCancelled()', async () => {
+    // Over a real socket: a POST's request stream closes as soon as its body
+    // is read, so only the RESPONSE's close tells the handler the tab went away.
+    const http = require('node:http');
+    const express = require('express');
     const id = makeApp();
-    state.stepBehaviour = 'cancel-check';
-    const req = makeReq(`/${id}/actions/act1/step/stream`, { body: { stepIndex: 0 } });
-    // Fire the close handler as soon as the route registers it.
-    const origOn = req.on;
-    req.on = (ev, fn) => { origOn(ev, fn); if (ev === 'close') fn(); return req; };
-    const res = await dispatch(req);
-    const result = res.frames.find((f) => f.type === 'result');
-    assert.strictEqual(result.result.cancelledSeen, true, 'the step saw the disconnect');
+    state.stepBehaviour = 'wait-cancel';
+    const seen = new Promise((resolve) => { state.onStepDone = resolve; });
+    const app = express();
+    app.use((req, _res, next) => { req.session = { user: { id: OWNER, name: 'U' } }; next(); });
+    app.use(router);
+    const server = app.listen(0);
+    try {
+        await new Promise((resolve) => server.once('listening', resolve));
+        const clientReq = http.request({
+            port: server.address().port, method: 'POST', path: `/${id}/actions/act1/step/stream`,
+            headers: { 'content-type': 'application/json' },
+        }, () => setTimeout(() => clientReq.destroy(), 50));
+        clientReq.on('error', () => {});
+        clientReq.end(JSON.stringify({ stepIndex: 0 }));
+        assert.strictEqual(await seen, true, 'the step saw the disconnect');
+    } finally {
+        server.closeAllConnections();
+        await new Promise((resolve) => server.close(resolve));
+    }
 });

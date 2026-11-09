@@ -121,6 +121,14 @@ test('a CSAT dispute redirects tokenless too; a bad token is refused without red
     assert.equal(bad.status, 403);
 });
 
+test('the dispute link\'s token never records a rating of 0', async () => {
+    const token = tokens.buildCsatToken('th-1', 'a@example.org', 0);
+    events.length = 0;
+    const res = await get(`/api/support/csat/th-1?score=0&token=${token}`);
+    assert.equal(res.status, 400);
+    assert.deepEqual(events, [], 'no vote and no confirmed resolution');
+});
+
 test('an expired access token is the same 404 as a wrong one, in the query and in the cookie', async () => {
     const expired = tokens.buildAccessToken('th-1', 'a@example.org', { now: Date.now() - 31 * 24 * 60 * 60 * 1000 });
     assert.equal((await get(`/api/support/threads/th-1?token=${expired}`)).status, 404);

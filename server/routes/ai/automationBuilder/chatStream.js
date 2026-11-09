@@ -198,7 +198,10 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // model's only slot. streamWithRetry forwards the signal to the adapter.
         const clientAbort = new AbortController();
         turn.clientAbort = clientAbort;
-        req.on('close', () => {
+        // The RESPONSE's close: a POST's request stream closes once its body
+        // is read, before this handler runs, so req 'close' never fired here.
+        res.on('close', () => {
+            if (res.writableEnded) return;
             turn.clientGone = true;
             try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });

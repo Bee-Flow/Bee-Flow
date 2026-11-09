@@ -301,8 +301,10 @@ router.put('/iso/risks/:id', requireAuth, requirePermission('admin_compliance'),
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const saved = await _riskStore().updateRisk(orgId, req.params.id, req.body || {}, actorId);
-    // Risk acceptance is an auditor-relevant decision — chain it.
-    if (req.body?.status === 'accepted') {
+    // Risk acceptance is an auditor-relevant decision — chain it. Only for a
+    // risk that exists here: an unknown id saved nothing, and the chain must
+    // not record the acceptance of a risk this organisation does not have.
+    if (saved && req.body?.status === 'accepted') {
         await complianceStore.addEvidence({
             organization_id: orgId, check_id: null,
             subject_type: 'risk', subject_id: String(req.params.id),
@@ -366,6 +368,20 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
     res.json({ inserted, offered: seeds.length });
 });
 
+/**
+ * The latest of some stamps, or null. By instant: the stamps are Dates, and a
+ * plain sort() orders their text, which starts with the name of the weekday.
+ * @param {Array<Date | string | null | undefined>} stamps
+ */
+function latestOf(stamps) {
+    /** @type {Date | string | null} */
+    let latest = null;
+    for (const s of stamps) {
+        if (s && (latest === null || new Date(s).getTime() > new Date(latest).getTime())) latest = s;
+    }
+    return latest;
+}
+
 // The audit & review bundle. mr_inputs is the auto-built 9.3.2 agenda; the
 // minutes and decisions stay human.
 router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
@@ -396,7 +412,7 @@ router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), asy
             risks_open: riskStats?.open ?? null,
             risks_high: riskStats?.high ?? null,
             soa_approved: soaStats ? `${soaStats.approved}/${soaStats.total}` : null,
-            last_internal_audit: audits.filter(a => a.status === 'closed').map(a => a.closed_at).sort().pop() || null,
+            last_internal_audit: latestOf(audits.filter(a => a.status === 'closed').map(a => a.closed_at)),
         };
     } catch (err) { fallback('routes/compliance/isoProcess:anon#5', err); /* agenda best-effort */ }
     res.json({ audits, findings, reviews, ncs, objectives, mr_inputs: mrInputs });
@@ -566,4 +582,4 @@ router.post('/iso/obligations/:id/complete', requireAuth, requirePermission('adm
     res.json(await _obligationStore().completeObligation(orgId, req.params.id, actorId));
 });
 
-module.exports = router;
+module.exports = Object.assign(router, { _test_latestOf: latestOf });
