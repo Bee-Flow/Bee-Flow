@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AppWindow, Clock, Loader2, Settings2, Sparkles, Upload } from 'lucide-react';
 import ActionPill from './ActionPill';
 import InstructionsEditor from './InstructionsEditor';
@@ -8,6 +9,7 @@ import { toast } from '@/components/shared/Toast';
 import Toggle from '@/components/shared/Toggle';
 import AppsPicker from '../pickers/AppsPicker';
 import { SchedulesPicker } from '../pickers/SchedulesPicker';
+import MailTriggerModal from '../triggers/MailTriggerModal';
 import SkillPicker from '../pickers/SkillPicker';
 import { messageOf } from '@/utils/caughtError';
 import type { ComponentProps, Dispatch, Ref, SetStateAction } from 'react';
@@ -96,6 +98,7 @@ export default function BuilderConfigPanel({
     refining, instructionsEditing, setInstructionsEditing,
     instructionsTextareaRef, instructions, updateInstructions,
 }: BuilderConfigPanelProps) {
+    const [mailTriggerOpen, setMailTriggerOpen] = useState(false);
     return (
         <div className="max-w-4xl mx-auto px-10 pt-6 pb-12">
             {/* `inert` (React 19 native) blocks mouse AND keyboard for the entire
@@ -162,6 +165,7 @@ export default function BuilderConfigPanel({
                         schedules={agentSchedules}
                         onClose={() => setSchedulesPickerOpen(false)}
                         onCreate={() => { setSchedulesPickerOpen(false); setScheduleModal({ mode: 'create' }); }}
+                        onCreateMail={() => { setSchedulesPickerOpen(false); setMailTriggerOpen(true); }}
                         onEdit={(r: Schedule) => { setSchedulesPickerOpen(false); setScheduleModal({ mode: 'edit', schedule: r }); }}
                         onToggle={async (r: Schedule) => {
                             try {
@@ -183,6 +187,9 @@ export default function BuilderConfigPanel({
                             setScheduleDeleteTarget(r);
                         }}
                     />
+                )}
+                {mailTriggerOpen && agent?.id && (
+                    <MailTriggerModal t={t} agent={agent} onClose={() => setMailTriggerOpen(false)} onSaved={refreshAgentSchedules} />
                 )}
                 {skillPickerOpen && (
                     <SkillPicker

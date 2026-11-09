@@ -11,18 +11,21 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 // ── Event subscriptions ───────────────────────────────
 
 /**
- * @param {{ automationId: string, userId: string, provider: string, eventType: string, mode?: string,
+ * A subscription belongs to exactly one owner: an automation (`automationId`)
+ * or a Cowork item that runs an agent (`coworkScheduleId`); the table's CHECK
+ * refuses anything else.
+ * @param {{ automationId?: string | null, coworkScheduleId?: string | null, userId: string, provider: string, eventType: string, mode?: string,
  * externalRef?: string | null, expiresAt?: Date | string | null, lastCursor?: string | null,
  * filter?: Record<string, unknown> | null, clientState?: string | null, triggerStepId?: string | null }} opts
  */
-async function createSubscription({ automationId, userId, provider, eventType, mode = 'webhook', externalRef = null, expiresAt = null, lastCursor = null, filter = null, clientState = null, triggerStepId = null }) {
+async function createSubscription({ automationId = null, coworkScheduleId = null, userId, provider, eventType, mode = 'webhook', externalRef = null, expiresAt = null, lastCursor = null, filter = null, clientState = null, triggerStepId = null }) {
     await initDB();
     const id = crypto.randomUUID();
     await run(
         `INSERT INTO automation_event_subscriptions
-            (id, automation_id, user_id, provider, event_type, mode, external_ref, expires_at, last_cursor, filter_json, client_state, trigger_step_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-        [id, automationId, userId, provider, eventType, mode, externalRef, expiresAt, lastCursor, filter ? JSON.stringify(filter) : null, clientState, triggerStepId],
+            (id, automation_id, cowork_schedule_id, user_id, provider, event_type, mode, external_ref, expires_at, last_cursor, filter_json, client_state, trigger_step_id)
+         VALUES ($1,$2,$13,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [id, automationId, userId, provider, eventType, mode, externalRef, expiresAt, lastCursor, filter ? JSON.stringify(filter) : null, clientState, triggerStepId, coworkScheduleId],
     );
     return getSubscription(id);
 }
@@ -31,7 +34,7 @@ async function createSubscription({ automationId, userId, provider, eventType, m
 function rowToSubscription(r) {
     if (!r) return null;
     return {
-        id: r.id, automationId: r.automation_id, userId: r.user_id,
+        id: r.id, automationId: r.automation_id, coworkScheduleId: r.cowork_schedule_id ?? null, userId: r.user_id,
         provider: r.provider, eventType: r.event_type, mode: r.mode,
         externalRef: r.external_ref, expiresAt: r.expires_at,
         lastCursor: r.last_cursor, lastPolledAt: r.last_polled_at,
@@ -121,6 +124,22 @@ async function getSubscriptionsForAutomation(automationId) {
         [automationId],
     );
     return rows.map(rowToSubscription);
+}
+
+/** @param {string} scheduleId */
+async function getSubscriptionsForCoworkSchedule(scheduleId) {
+    await initDB();
+    const rows = await getAll(
+        'SELECT * FROM automation_event_subscriptions WHERE cowork_schedule_id = $1',
+        [scheduleId],
+    );
+    return rows.map(rowToSubscription);
+}
+
+/** @param {string} scheduleId */
+async function deleteSubscriptionsForCoworkSchedule(scheduleId) {
+    await initDB();
+    await run('DELETE FROM automation_event_subscriptions WHERE cowork_schedule_id = $1', [scheduleId]);
 }
 
 /**
@@ -250,4 +269,4 @@ async function deleteSubscription(id) {
     return rowCount > 0;
 }
 
-module.exports = { createSubscription, getSubscription, getSubscriptionByExternalRef, getSubscriptionsForProvider, getSubscriptionsForUserAndEvent, getSubscriptionsForAutomation, deleteSubscriptionsForAutomation, getPollingSubscriptions, getExpiringSubscriptions, updateSubscription, incrementSubscriptionFailures, resetSubscriptionFailures, deleteSubscription };
+module.exports = { createSubscription, getSubscription, getSubscriptionByExternalRef, getSubscriptionsForProvider, getSubscriptionsForUserAndEvent, getSubscriptionsForAutomation, deleteSubscriptionsForAutomation, getSubscriptionsForCoworkSchedule, deleteSubscriptionsForCoworkSchedule, getPollingSubscriptions, getExpiringSubscriptions, updateSubscription, incrementSubscriptionFailures, resetSubscriptionFailures, deleteSubscription };

@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { withQueryClient } from '@/test/queryWrapper';
 import CoworkEditForm from './CoworkEditForm';
 
 /**
@@ -548,5 +549,52 @@ describe('CoworkEditForm — saving, cancelling and failing', () => {
         expect(save().textContent).toContain('Save');
         expect(FORM_SOURCE).toMatch(/useTranslation/);
         expect(FORM_SOURCE).toMatch(/\bt\('cowork\./);
+    });
+});
+
+describe('CoworkEditForm — a mail-trigger item', () => {
+    const TRIGGER = { provider: 'gmail', event: 'mail.new', filter: { from: 'boss@x.nl' } };
+
+    beforeEach(() => {
+        vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+            triggers: [{ kind: 'app_event', providers: [{ id: 'gmail', label: 'Gmail', events: [{ id: 'mail.new' }] }] }],
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+    });
+    afterEach(() => { vi.unstubAllGlobals(); });
+
+    function setupMail() {
+        const props = {
+            item: item({ triggerKind: 'app_event', trigger: TRIGGER, repeatInterval: null, nextRunAt: null, agentId: 'a1' }),
+            agents: [{ id: 'a1', name: 'Mail helper' }],
+            onSave: vi.fn(), onCancel: vi.fn(), saving: false, error: null,
+        };
+        render(withQueryClient(<CoworkEditForm {...props} />));
+        return props;
+    }
+
+    it('shows the mail trigger instead of the clock and repeat fields', async () => {
+        setupMail();
+        expect(await screen.findByTestId('mail-trigger-panel')).toBeInTheDocument();
+        for (const id of ['cowork-edit-date', 'cowork-edit-time', 'cowork-edit-repeat']) {
+            expect(screen.queryByTestId(id)).not.toBeInTheDocument();
+        }
+    });
+
+    it('saves the edited trigger with triggerKind app_event and no clock fields', async () => {
+        const user = userEvent.setup();
+        const props = setupMail();
+        const panel = await screen.findByTestId('mail-trigger-panel');
+        const from = within(panel).getByLabelText('From contains (optional)');
+        await user.clear(from);
+        await user.type(from, 'hr@x.nl');
+        await user.click(save());
+        expect(savedPayload(props)).toEqual({
+            title: 'Weekly digest',
+            prompt: 'Summarise the week',
+            agentId: 'a1',
+            enabledApps: null,
+            triggerKind: 'app_event',
+            trigger: { provider: 'gmail', event: 'mail.new', filter: { from: 'hr@x.nl' } },
+        });
     });
 });

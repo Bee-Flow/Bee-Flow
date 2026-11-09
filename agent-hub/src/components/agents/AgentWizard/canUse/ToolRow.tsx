@@ -1,7 +1,7 @@
 import { ArrowUpRight, ChevronDown } from 'lucide-react';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
-import { ACT_AS, ACT_AS_KIND, CONFIRM } from './toolGrants.helpers';
+import { ACT_AS, ACT_AS_KIND, CONFIRM, MAIL_ACCESS } from './toolGrants.helpers';
 import { getIntegrationIcon } from '@/config/integrationIcons';
 import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { actionLabelMap } from '@/components/automation/Builder/flow/appLabels';
@@ -165,8 +165,45 @@ function ActAsCapsule({ t, row, ro, onChange }: { t: TranslateFn; row: ToolCardR
     );
 }
 
+/**
+ * Gmail and Outlook: what the agent may do with the mailbox. A preset, not a list of ticks: the server turns it into
+ * the actions. Nothing stored shows as "Read only", which is also what a mail-triggered run falls back to.
+ */
+function MailAccessControl({ t, row, ro, onChange }: { t: TranslateFn; row: ToolCardRow; ro?: boolean; onChange: (next: string) => void }) {
+    const value = row.mailAccess || MAIL_ACCESS.READ;
+    const isOutlook = row.appId === 'outlook';
+    return (
+        <div className="flex flex-col items-start gap-1" data-testid="agent-tool-mail-access">
+            <SegmentedControl
+                size="sm"
+                ariaLabel={t('agent_studio.can_use.mail_access_group', 'What this agent may do with the mailbox')}
+                value={value}
+                disabled={ro}
+                onChange={onChange}
+                options={[
+                    { value: MAIL_ACCESS.READ, label: t('agent_studio.can_use.mail_access_read', 'Read only') },
+                    { value: MAIL_ACCESS.DRAFT, label: t('agent_studio.can_use.mail_access_draft', 'Prepare draft') },
+                    { value: MAIL_ACCESS.SEND_REPLY, label: t('agent_studio.can_use.mail_access_send_reply', 'Send replies') },
+                ]}
+            />
+            {value === MAIL_ACCESS.DRAFT && (
+                <span className="text-[11px] text-[var(--text-tertiary)]">
+                    {isOutlook
+                        ? t('agent_studio.can_use.mail_access_draft_hint_outlook', 'Drafts appear in your Outlook drafts for you to check and send.')
+                        : t('agent_studio.can_use.mail_access_draft_hint_gmail', 'Drafts appear in your Gmail drafts for you to check and send.')}
+                </span>
+            )}
+            {value === MAIL_ACCESS.SEND_REPLY && (
+                <span className="text-[11px] text-[var(--text-tertiary)]">
+                    {t('agent_studio.can_use.mail_access_send_reply_hint', 'Only replies in the same thread, never to new addresses.')}
+                </span>
+            )}
+        </div>
+    );
+}
+
 /** Eén app-rij. Grid `1fr 1fr 220px 32px`, zoals het artboard hem tekent. */
-export function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChooser }: ToolRowProps) {
+export function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onChangeMailAccess, onOpenChooser }: ToolRowProps) {
     const verbs = useVerbs(row, app);
     const shownVerbs = verbs ? verbs.slice(0, MAX_VERBS) : null;
     const restVerbs = verbs ? verbs.length - (shownVerbs?.length || 0) : 0;
@@ -257,6 +294,9 @@ export function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpe
                         { value: CONFIRM.ASK, label: t('agent_studio.can_use.confirm_ask', 'Confirm first') },
                     ]}
                 />
+                {row.supportsMailAccess && (
+                    <MailAccessControl t={t} row={row} ro={ro} onChange={(next) => onChangeMailAccess?.(row.appId, next)} />
+                )}
                 {row.confirmLocked && (
                     <span className="text-[11px] text-[var(--text-tertiary)]">
                         {row.sends === true

@@ -35,7 +35,7 @@ import { READ } from './canUseFacts';
 import type { ToolApp } from './toolCatalogTypes';
 import type { CallableAutomation } from '@/components/admin/Studio/SkillsStudio/skillModel.types';
 import type { AutomationLike, ToolsConfig, ToolsConfigIn, SelectionMap, ToolRowsArgs, AutomationRowsArgs } from './toolGrants.types';
-import { UNSAFE_OBJECT_KEYS, CONFIRM, ACT_AS, isPlainObject, uniqueStrings, isAppKey, grantedActionsOf, claimantsOf, effectiveActionsOf, hasCuratedGrants, cloneTools, toolRow } from './toolGrants.helpers';
+import { UNSAFE_OBJECT_KEYS, CONFIRM, ACT_AS, MAIL_ACCESS, MAIL_ACCESS_APPS, isPlainObject, uniqueStrings, isAppKey, grantedActionsOf, claimantsOf, effectiveActionsOf, hasCuratedGrants, cloneTools, toolRow } from './toolGrants.helpers';
 ;
 export type { AutomationLike, ToolsConfig, SelectionMap } from './toolGrants.types';
 
@@ -102,6 +102,22 @@ export function setAppActAs(toolsConfig: ToolsConfigIn, appId: string, actAs: st
     const next = _entryKeepingActions(toolsConfig, appId, requiresGrant);
     if (actAs === ACT_AS.OWNER || actAs === ACT_AS.VIEWER) next.actAs = actAs;
     else delete next.actAs;
+    out[appId] = next;
+    return out;
+}
+
+/**
+ * Write the mail-access preset of the Gmail or Outlook app (`read` | `draft` | `send_reply`).
+ *
+ * Like confirm and actAs this adds a choice and must not change the actions, so they are written out. The server turns
+ * the preset into the action list; `null` removes the preset again.
+ */
+export function setAppMailAccess(toolsConfig: ToolsConfigIn, appId: string, mailAccess: string | null, { requiresGrant = false } = {}) {
+    if (!isAppKey(appId) || !MAIL_ACCESS_APPS.includes(appId)) return cloneTools(toolsConfig);
+    const out = cloneTools(toolsConfig);
+    const next = _entryKeepingActions(toolsConfig, appId, requiresGrant);
+    if (mailAccess === MAIL_ACCESS.READ || mailAccess === MAIL_ACCESS.DRAFT || mailAccess === MAIL_ACCESS.SEND_REPLY) next.mailAccess = mailAccess;
+    else delete next.mailAccess;
     out[appId] = next;
     return out;
 }

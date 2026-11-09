@@ -316,6 +316,16 @@ describe('CoworkDetail — the status word for the remaining branches', () => {
     });
 });
 
+describe('CoworkDetail — a mail-trigger item', () => {
+    beforeEach(() => { cleanup(); api.listCoworkRuns.mockReset(); });
+
+    it('has no Run now button: there is no mail to run on', () => {
+        renderDetail({ triggerKind: 'app_event', trigger: { provider: 'gmail', event: 'mail.new', filter: {} } });
+        expect(screen.queryByTestId('cowork-run-now')).toBeNull();
+        expect(screen.getByTestId('cowork-toggle')).toBeTruthy();
+    });
+});
+
 describe('CoworkDetail — the action buttons', () => {
     beforeEach(() => { cleanup(); api.listCoworkRuns.mockReset(); });
 

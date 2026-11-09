@@ -139,6 +139,10 @@ const MIGRATIONS = [
     // build-and-test journey: sandbox approvals, test-link form pages and their
     // sessions. Additive, nullable or defaulted, no backfill.
     'automation-run-profile-2026-11',
+    // An event subscription may belong to a Cowork item (an agent that starts on
+    // a new mail): automation_id nullable, cowork_schedule_id + exactly-one-owner
+    // CHECK. Applies the cowork DDL first (the FK needs the table).
+    'agent-mail-trigger-2026-11',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

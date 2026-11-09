@@ -20,6 +20,7 @@ registerFeatureModules({
     'integrations/coreToolsets': () => require('../integrations/coreToolsets'),
     // documents, webpages, KB
     'services/browserProvider': () => require('../services/browserProvider'),
+    'services/email/draft': () => require('../services/email/draft.mts'),
     'services/presentationRenderer': () => require('../services/presentationRenderer'),
     'services/documentCompose': () => require('../services/documentCompose'),
     'services/webpageSnapshot': () => require('../services/webpageSnapshot'),

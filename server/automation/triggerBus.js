@@ -311,7 +311,7 @@ async function loadSession(userId) {
 // call time: _setDepsForTests swaps automationStore and _deps after load, and
 // the integration modules stay lazily required, as they were inline.
 const ctx = {
-    store: () => automationStore,
+    store: () => automationStore, coworkStore: () => require('../stores/coworkStore'),
     googleClient: () => _deps.googleClient(),
     gmailTools: () => require('../integrations/gmailTools'),
     nextcloudActivityTools: () => require('../integrations/nextcloudActivityTools'),

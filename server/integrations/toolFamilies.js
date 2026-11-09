@@ -61,7 +61,7 @@ const { executeNextcloudFamilyTool, executeGuardedNextcloudTool, executeCheckedN
  * The dispatcher's context, with the fields these families read named.
  * @typedef {import('../core/tools/toolFamilyRegistry').ToolContext & {
  *   session?: Express.Session, attachments?: unknown[], queryLog?: { carrier: object, channel: 'agent_chat' | 'agent_chat_sync' } | null, supportThreadId?: string,
- *   memoryReadEnabled?: boolean, memoryWriteEnabled?: boolean, testAs?: unknown, askerUserId?: string,
+ *   memoryReadEnabled?: boolean, memoryWriteEnabled?: boolean, testAs?: unknown, askerUserId?: string, mailTrigger?: import('./mailReplyGuard').MailTriggerContext | null,
  *   userAuth?: { supportThreadId?: string, supportActionPolicy?: import('./supportTools').ActionPolicy },
  * }} ToolCtx
  */
@@ -327,7 +327,7 @@ async function executeKbSearch(toolName, toolArgs, context) {
  */
 async function executeOutlook(toolName, toolArgs, context) {
     const msSession = await outlookSessionFor(toolArgs, context);
-    return await executeOutlookTool(toolName, toolArgs, msSession, { autoSend: !!context.autoSend });
+    return await executeOutlookTool(toolName, toolArgs, msSession, { autoSend: !!context.autoSend, mailTrigger: context.mailTrigger || null });
 }
 
 /**
@@ -367,7 +367,7 @@ const INTEGRATION_TOOL_FAMILIES = [
     // `autoSend` is opt-in per-call: only the automation runner sets it (no
     // user is present to confirm a draft). Direct chat / agent chat leave it
     // false so the email_draft → user approves → send flow stays.
-    { name: 'gmail', order: 200, isTool: isGmailTool, execute: (n, a, ctx) => executeGmailTool(n, a, ctx.session, { autoSend: !!ctx.autoSend }) },
+    { name: 'gmail', order: 200, isTool: isGmailTool, execute: (n, a, ctx) => executeGmailTool(n, a, ctx.session, { autoSend: !!ctx.autoSend, mailTrigger: ctx.mailTrigger || null }) },
     // BFSF-254: pass the requester's IANA timezone through so drafts and the
     // approved create/update carry it — Google rejects bare local dateTimes
     // ("Missing time zone definition for start time").

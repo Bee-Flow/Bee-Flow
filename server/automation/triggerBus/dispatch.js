@@ -82,6 +82,17 @@ function makeOrgLookup() {
     };
 }
 
+// The agent run behind a Cowork-owned subscription (core/cowork/mailTriggerRun.mts),
+// required on first use; a test swaps it through _setDepsForTests.
+/** @type {{ runForEvent: (sub: object, payload: Record<string, unknown>) => Promise<void> } | null} */
+let coworkRunnerOverride = null;
+const coworkMailRunner = () => coworkRunnerOverride || require('../../core/cowork/mailTriggerRun.mts');
+
+/** @param {{ coworkRunner?: { runForEvent: (sub: object, payload: Record<string, unknown>) => Promise<void> } } | null} [over] omit to restore the real one */
+function _setDepsForTests(over = null) {
+    coworkRunnerOverride = over?.coworkRunner || null;
+}
+
 // Shared per-subscription match + run. Fires the automation run
 // fire-and-forget (setImmediate), mirroring the ack-immediately pattern
 // POST /webhook/:slug already uses — so a slow/hanging automation never
@@ -109,6 +120,18 @@ function runMatchedSubscription(sub, matcher, provider, event, payload) {
         // event. Log only the routing metadata needed to debug a filter.
         log.info(`[TriggerBus] sub ${sub.id} filter rejected ${provider}.${event}`);
         return null;
+    }
+    // Owned by a Cowork item: start its agent, with the payload an automation would get.
+    if (sub.coworkScheduleId) {
+        setImmediate(async () => {
+            try {
+                log.info(`[TriggerBus] dispatch cowork schedule=${sub.coworkScheduleId} via sub ${sub.id} (${provider}.${event})`);
+                await coworkMailRunner().runForEvent(sub, { provider, event, ...payload });
+            } catch (e) {
+                log.error('[TriggerBus] cowork dispatch error:', /** @type {Error} */ (e).message);
+            }
+        });
+        return { subId: sub.id };
     }
     setImmediate(async () => {
         try {
@@ -373,4 +396,4 @@ async function dispatchOrgScopedEvent(provider, event, payload = {}, orgId = nul
 const dispatchSupportEvent = (event, payload = {}, orgId = null) =>
     dispatchOrgScopedEvent('support', event, payload, orgId);
 
-module.exports = { dispatchEvent, dispatchToSubscription, dispatchOrgScopedEvent, dispatchSupportEvent };
+module.exports = { _setDepsForTests, dispatchEvent, dispatchToSubscription, dispatchOrgScopedEvent, dispatchSupportEvent };

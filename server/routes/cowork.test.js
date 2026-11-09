@@ -30,6 +30,9 @@ const Module = require('module');
 
 // ── Fixtures ────────────────────────────────────────────────────────
 
+let betaOn = true;
+const { HttpError } = require('../core/http/errors');
+
 const state = {
     created: [],
     updates: [],
@@ -84,7 +87,12 @@ const mockCoworkStore = {
         return { ...OWNED, ...args, id: 'cw-1', isActive: true };
     },
     async updateSchedule(id, patch) { state.updates.push({ id, patch }); return true; },
-    async getSchedule(id) { return id === OWNED.id ? { ...OWNED } : null; },
+    async getSchedule(id) {
+        if (mt.stored && id === mt.stored.id) return { ...mt.stored };
+        if (id === 'cw-ev') return { ...EVENT };
+        if (id === 'cw-clock') return { ...CLOCK };
+        return id === OWNED.id ? { ...OWNED } : null;
+    },
     async deleteSchedule(id) { state.deleted.push(id); return true; },
     async listRuns(id, opts) {
         state.listedRuns.push({ id, opts });
@@ -121,7 +129,19 @@ const MOCKS = {
             state.executed.push({ id: schedule.id, isActive: schedule.isActive, opts });
         },
     },
-    '../core/entitlements/betaFeatures': { async userHasBetaFeature() { return true; } },
+    '../core/entitlements/betaFeatures': { async userHasBetaFeature() { return betaOn; } },
+    // routes/cowork.js requires this lazily; its own tests are automation/subscriptionSync.cowork.test.js.
+    '../automation/subscriptionSync': {
+        async assertMailTriggerReady(userId, trigger) {
+            mt.asserted.push({ userId, trigger });
+            if (mt.notConnected) throw new HttpError(409, 'mail_not_connected', 'Connect first');
+        },
+        async syncCoworkMailTrigger(schedule) {
+            if (mt.syncFails) throw new HttpError(409, 'mail_not_connected', 'Connect first');
+            mt.synced.push(schedule);
+        },
+        async revokeCoworkMailTrigger(id) { mt.revoked.push(id); },
+    },
     '../auth/permissions': {
         requireAuth: (req, res, next) => {
             if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
@@ -466,6 +486,21 @@ test('run-now answers without waiting for the run to finish', async () => {
     }
 });
 
+test('run-now refuses a mail-trigger item: there is no mail to run on', async () => {
+    reset();
+    const original = mockCoworkStore.getSchedule;
+    mockCoworkStore.getSchedule = async () => ({ ...OWNED, triggerKind: 'app_event', trigger: { provider: 'gmail', event: 'mail.new' } });
+    try {
+        const r = await call('/cw-1/run-now', { method: 'POST' });
+        assert.strictEqual(r.status, 400);
+        assert.strictEqual(r.json.code, 'run_now_not_supported');
+        await flush();
+        assert.deepStrictEqual(state.executed, []);
+    } finally {
+        mockCoworkStore.getSchedule = original;
+    }
+});
+
 // ── compose ─────────────────────────────────────────────────────────
 
 test('compose returns a spec and creates nothing', async () => {
@@ -745,4 +780,174 @@ test('the stats route does not carry the last result along', async () => {
     const r = await call('/cw-1/stats');
     assert.strictEqual(r.json.lastResult, undefined);
     assert.ok(!JSON.stringify(r.json).includes('Anna Bakker'), 'run text reached the aggregate');
+});
+
+
+// ── Event-triggered items (triggerKind 'app_event': an agent that starts on a new mail) ──
+//
+// The subscription half (automation/subscriptionSync) is mocked: its own tests
+// are automation/subscriptionSync.cowork.test.js. Here: validation, the
+// agent_routines gate, what is stored, and when sync / revoke are called.
+
+const mt = { synced: [], revoked: [], asserted: [], notConnected: false, syncFails: false, stored: null };
+function resetMt() {
+    reset();
+    Object.assign(mt, { synced: [], revoked: [], asserted: [], notConnected: false, syncFails: false, stored: null });
+    betaOn = true;
+}
+const EVENT = { id: 'cw-ev', userId: 'u1', title: 'Inbox agent', prompt: 'Handle it', isActive: true, agentId: 'a1', triggerKind: 'app_event', trigger: { provider: 'gmail', event: 'mail.new', filter: { from: 'x@y.nl' } }, nextRunAt: null, lastStatus: 'pending' };
+const CLOCK = { id: 'cw-clock', userId: 'u1', title: 'Digest', prompt: 'P', isActive: true, agentId: null, triggerKind: 'schedule', trigger: null, nextRunAt: '2026-09-10T08:00:00.000Z', lastStatus: 'pending' };
+
+const TRIGGER = { provider: 'gmail', event: 'mail.new', filter: { from: 'boss@x.nl', hasAttachment: true } };
+const CREATE = { title: 'Inbox agent', prompt: 'Handle it', agentId: 'a1', triggerKind: 'app_event', trigger: TRIGGER };
+
+test('create: stores an event item without a clock and syncs its subscription', async () => {
+    resetMt();
+    const r = await call('/', { method: 'POST', body: CREATE });
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(state.created[0].triggerKind, 'app_event');
+    assert.deepStrictEqual(state.created[0].trigger, TRIGGER);
+    assert.strictEqual(state.created[0].nextRunAt, null);
+    assert.strictEqual(state.created[0].agentId, 'a1');
+    assert.strictEqual(mt.synced.length, 1);
+    assert.strictEqual(r.json.triggerKind, 'app_event');
+    assert.deepStrictEqual(r.json.trigger, TRIGGER);
+    assert.strictEqual(mt.asserted.length, 1, 'connection is checked before anything is stored');
+});
+
+test('create: an event item needs an agent and a trigger, and takes no startNow', async () => {
+    resetMt();
+    for (const body of [
+        { ...CREATE, agentId: undefined },
+        { ...CREATE, trigger: undefined },
+        { ...CREATE, startNow: true },
+    ]) {
+        const r = await call('/', { method: 'POST', body });
+        assert.strictEqual(r.status, 400, JSON.stringify(body));
+    }
+    assert.strictEqual(state.created.length, 0);
+});
+
+test('create: a clock item still needs nextRunAt and takes no trigger', async () => {
+    resetMt();
+    assert.strictEqual((await call('/', { method: 'POST', body: { title: 't', prompt: 'p' } })).status, 400);
+    const withTrigger = await call('/', { method: 'POST', body: { title: 't', prompt: 'p', nextRunAt: new Date().toISOString(), trigger: TRIGGER } });
+    assert.strictEqual(withTrigger.status, 400);
+    const ok = await call('/', { method: 'POST', body: { title: 't', prompt: 'p', nextRunAt: new Date().toISOString() } });
+    assert.strictEqual(ok.status, 200);
+    assert.strictEqual(state.created[0].triggerKind, 'schedule');
+    assert.strictEqual(mt.synced.length, 0, 'a clock item never touches subscriptions');
+});
+
+test('create: provider, event and the shape of the trigger are checked', async () => {
+    resetMt();
+    for (const trigger of [
+        { provider: 'github', event: 'mail.new' },
+        { provider: 'gmail', event: 'label.added' },
+        { provider: 'gmail', event: 'mail.new', extra: 1 },
+        { provider: 'gmail', event: 'mail.new', filter: 'from:x' },
+    ]) {
+        const r = await call('/', { method: 'POST', body: { ...CREATE, trigger } });
+        assert.strictEqual(r.status, 400, JSON.stringify(trigger));
+    }
+});
+
+test('create: an Outlook shared mailbox must be an address', async () => {
+    resetMt();
+    const bad = await call('/', { method: 'POST', body: { ...CREATE, trigger: { provider: 'msgraph', event: 'mail.new', filter: { mailbox: 'team' } } } });
+    assert.strictEqual(bad.status, 400);
+    assert.strictEqual(bad.json.error?.code ?? bad.json.code, 'invalid_mailbox');
+    const ok = await call('/', { method: 'POST', body: { ...CREATE, trigger: { provider: 'msgraph', event: 'mail.new', filter: { mailbox: 'team@contoso.com' } } } });
+    assert.strictEqual(ok.status, 200);
+});
+
+test('create: gated like an agent item (agent_routines)', async () => {
+    resetMt();
+    betaOn = false;
+    const r = await call('/', { method: 'POST', body: CREATE });
+    assert.strictEqual(r.status, 403);
+    assert.strictEqual(state.created.length, 0);
+});
+
+test('create: a mail account that is not connected is a 409 and nothing is stored', async () => {
+    resetMt();
+    mt.notConnected = true;
+    const r = await call('/', { method: 'POST', body: CREATE });
+    assert.strictEqual(r.status, 409);
+    assert.strictEqual(r.json.error?.code ?? r.json.code, 'mail_not_connected');
+    assert.strictEqual(state.created.length, 0);
+});
+
+test('create: when the sync fails the half-made item is removed again', async () => {
+    resetMt();
+    mt.syncFails = true;
+    const r = await call('/', { method: 'POST', body: CREATE });
+    assert.strictEqual(r.status, 409);
+    assert.deepStrictEqual(state.deleted, ['cw-1']);
+});
+
+test('update: changing the trigger re-syncs and clears the clock fields', async () => {
+    resetMt();
+    const trigger = { provider: 'msgraph', event: 'mail.new', filter: { mailbox: 'me' } };
+    const r = await call('/cw-ev', { method: 'PUT', body: { trigger } });
+    assert.strictEqual(r.status, 200);
+    assert.deepStrictEqual(r.json, { success: true, triggerKind: 'app_event', trigger });
+    const patch = state.updates[0].patch;
+    assert.deepStrictEqual(patch.trigger, trigger);
+    assert.strictEqual(patch.nextRunAt, null);
+    assert.strictEqual(mt.synced.length, 1);
+});
+
+test('update: a clock item becomes an event item, but only with an agent', async () => {
+    resetMt();
+    const noAgent = await call('/cw-clock', { method: 'PUT', body: { triggerKind: 'app_event', trigger: TRIGGER } });
+    assert.strictEqual(noAgent.status, 400);
+    const ok = await call('/cw-clock', { method: 'PUT', body: { triggerKind: 'app_event', trigger: TRIGGER, agentId: 'a1' } });
+    assert.strictEqual(ok.status, 200);
+    assert.strictEqual(state.updates[0].patch.triggerKind, 'app_event');
+    assert.strictEqual(state.updates[0].patch.nextRunAt, null);
+    assert.strictEqual(mt.synced.length, 1);
+});
+
+test('update: back to the clock needs a nextRunAt, drops the trigger and revokes the subscription', async () => {
+    resetMt();
+    const missing = await call('/cw-ev', { method: 'PUT', body: { triggerKind: 'schedule' } });
+    assert.strictEqual(missing.status, 400);
+    const ok = await call('/cw-ev', { method: 'PUT', body: { triggerKind: 'schedule', nextRunAt: new Date().toISOString() } });
+    assert.strictEqual(ok.status, 200);
+    assert.strictEqual(state.updates[0].patch.triggerKind, 'schedule');
+    assert.strictEqual(state.updates[0].patch.trigger, null);
+    assert.strictEqual(mt.synced.length, 1, 'sync sees a clock item and revokes');
+});
+
+test('update: an event item cannot lose its agent', async () => {
+    resetMt();
+    const r = await call('/cw-ev', { method: 'PUT', body: { agentId: null } });
+    assert.strictEqual(r.status, 400);
+});
+
+test('toggle: pause revokes via sync, resume checks the connection first', async () => {
+    resetMt();
+    const paused = await call('/cw-ev/toggle', { method: 'POST' });
+    assert.strictEqual(paused.status, 200);
+    assert.strictEqual(mt.synced[0].isActive, false);
+    assert.strictEqual(mt.asserted.length, 0, 'pausing never needs the mailbox');
+
+    resetMt();
+    mt.stored = { ...EVENT, isActive: false };
+    mt.notConnected = true;
+    // loadOwned reads the stored (paused) item: resuming it needs the mailbox.
+    const resumed = await call('/cw-ev/toggle', { method: 'POST' });
+    assert.strictEqual(resumed.status, 409);
+    assert.strictEqual(state.updates.length, 0);
+});
+
+test('delete: an event item revokes its subscription first; a clock item does not', async () => {
+    resetMt();
+    await call('/cw-ev', { method: 'DELETE' });
+    assert.deepStrictEqual(mt.revoked, ['cw-ev']);
+    assert.deepStrictEqual(state.deleted, ['cw-ev']);
+    resetMt();
+    await call('/cw-clock', { method: 'DELETE' });
+    assert.deepStrictEqual(mt.revoked, []);
 });

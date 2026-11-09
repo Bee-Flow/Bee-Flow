@@ -180,7 +180,7 @@ const SIDE_EFFECTS = new Set([
     'linkedin_create_post',
     'github_create_repo',
     // Outlook / MS
-    'outlook_compose',
+    'outlook_compose', 'outlook_create_draft', 'gmail_reply_in_thread', 'outlook_reply_in_thread',
     'ms_calendar_create_event', 'ms_calendar_update_event', 'ms_calendar_delete_event',
     'onedrive_create_folder',
     'ms_contacts_create', 'ms_contacts_update',
@@ -285,7 +285,7 @@ function isSideEffect(toolName) {
  * already does — a calendar write from agent chat has always come back as a
  * `calendar_draft` card for approval.
  *
- * NOT here on purpose: `gmail_create_draft` (a draft is the opposite of a
+ * NOT here on purpose: `gmail_create_draft` and `outlook_create_draft` (a draft is the opposite of a
  * send), comment/annotation writes (they notify watchers, but the artefact is
  * inside the workspace) and file shares that mint a link rather than address a
  * person. Link-by-email shares (`nextcloud_share_by_email`) ARE here.
@@ -293,7 +293,7 @@ function isSideEffect(toolName) {
 const SENDS = new Set([
     // Mail — a message addressed to a person, gone the moment it returns.
     'gmail_compose',
-    'outlook_compose',
+    'outlook_compose', 'gmail_reply_in_thread', 'outlook_reply_in_thread', // the reply: no free recipients, still a send
     'nextcloud_mail_send',
     'nextcloud_share_by_email',
     // Group / channel posts.

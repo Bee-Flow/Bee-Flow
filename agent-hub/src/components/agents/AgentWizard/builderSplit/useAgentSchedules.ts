@@ -10,7 +10,9 @@ import { useCallback, useMemo } from 'react';
 import { useCoworkSchedulesQuery } from '@/api/queries/sharedReads';
 import { useCan } from '@/components/licensing/Gate';
 
-export interface Schedule { id: string; title?: string; agentId?: string | number | null; [key: string]: unknown }
+import type { MailTrigger } from '@/api/cowork.types';
+
+export interface Schedule { id: string; title?: string; agentId?: string | number | null; triggerKind?: 'schedule' | 'app_event'; trigger?: MailTrigger | null; [key: string]: unknown }
 
 const NO_SCHEDULES: Schedule[] = [];
 

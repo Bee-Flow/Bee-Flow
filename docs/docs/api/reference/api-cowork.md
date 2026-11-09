@@ -29,7 +29,9 @@ No request schema.
 |-------|------|:--------:|-------|
 | `title` | string | yes | min length 1; max length 500 |
 | `prompt` | string | yes | min length 1 |
-| `nextRunAt` | string | yes | pattern `^((\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]...` |
+| `nextRunAt` | string |  | pattern `^((\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]...` |
+| `triggerKind` | one of `"schedule"`, `"app_event"` |  |  |
+| `trigger` | object or null |  |  |
 | `repeatInterval` | one of `"hourly"`, `"daily"`, `"weekdays"`, `"weekly"`, `"biweekly"`, `"monthly"`, `"quarterly"`, `"yearly"` or null |  |  |
 | `modelTier` | string or null |  |  |
 | `timezone` | string or null |  |  |
@@ -56,6 +58,8 @@ No request schema.
 | `title` | string |  | min length 1; max length 500 |
 | `prompt` | string |  | min length 1 |
 | `nextRunAt` | string |  | pattern `^((\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]...` |
+| `triggerKind` | one of `"schedule"`, `"app_event"` |  |  |
+| `trigger` | object or null |  |  |
 | `repeatInterval` | one of `"hourly"`, `"daily"`, `"weekdays"`, `"weekly"`, `"biweekly"`, `"monthly"`, `"quarterly"`, `"yearly"` or null |  |  |
 | `modelTier` | string or null |  |  |
 | `timezone` | string or null |  |  |

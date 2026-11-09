@@ -79,6 +79,11 @@ function buildRawMessage({ to, cc, bcc, subject, body, userEmail = '', inReplyTo
         .replace(/=+$/, '');
 }
 
+/**
+ * @param {import('./messageShape').GmailClient} gmail
+ * @param {{ to?: string, cc?: string, bcc?: string, subject?: string, body?: string, userEmail?: string,
+ *   threadId?: string | null, inReplyTo?: string | null, references?: string | null }} message
+ */
 async function sendGmailMessage(gmail, { to, cc, bcc, subject, body, userEmail = '', threadId = null, inReplyTo = null, references = null }) {
     const encodedMessage = buildRawMessage({ to, cc, bcc, subject, body, userEmail, inReplyTo, references });
 

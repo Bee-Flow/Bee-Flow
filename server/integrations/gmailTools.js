@@ -195,7 +195,7 @@ async function searchMessages(gmail, args) {
  * @param {string} toolName - 'gmail_search' / 'gmail_read' / 'gmail_compose' / etc.
  * @param {Record<string, unknown>} args - Tool arguments
  * @param {GmailSession} session - Express session with OAuth tokens
- * @param {{ autoSend?: boolean }} [opts] - autoSend (default false), for gmail_compose: when true the tool
+ * @param {{ autoSend?: boolean, mailTrigger?: import('./mailReplyGuard').MailTriggerContext | null }} [opts] - mailTrigger: the mail that started this run (gmail_reply_in_thread needs it); autoSend (default false), for gmail_compose: when true the tool
  *   actually sends the email (no UI handshake). Set by the automation runner
  *   because there is no user present to confirm a draft. Direct-chat / agent
  *   chat leave this false so the existing email_draft → user-approves → send
@@ -249,7 +249,12 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
         return { messageId, trashed: true, labelIds: res.data.labelIds || [] };
 
     } else if (toolName === 'gmail_create_draft') {
-        return createDraft(gmail, args, session);
+        const draft = await createDraft(gmail, args, session);
+        require('./mailReplyGuard').recordOutcome(opts.mailTrigger, 'draft_saved');
+        return draft;
+
+    } else if (toolName === 'gmail_reply_in_thread') {
+        return require('./gmail/replyInThread').replyInThread(gmail, args, session, opts);
 
     } else {
         throw new Error(`Unknown Gmail tool: ${toolName}`);
@@ -264,7 +269,7 @@ function isGmailTool(toolName) {
     return [
         'gmail_search', 'gmail_read', 'gmail_read_attachment', 'gmail_compose',
         'gmail_list_labels', 'gmail_modify_labels', 'gmail_mark_read', 'gmail_mark_unread',
-        'gmail_archive', 'gmail_trash', 'gmail_create_draft',
+        'gmail_archive', 'gmail_trash', 'gmail_create_draft', 'gmail_reply_in_thread',
         'gmail_read_many', 'gmail_bulk_modify',
     ].includes(toolName);
 }

@@ -10,7 +10,7 @@
  * handed in by aiTaskRunner as `deps`, so this module does not require it
  * back.
  */
-const terminationStore = require('../../stores/terminationStore');
+const defaultTerminationStore = require('../../stores/terminationStore');
 const { sanitizeError } = require('../privacy/errorSanitizer');
 const log = require('../../telemetry/log');
 const { extractCoverageTopics } = require('./coverageTopics');
@@ -21,28 +21,33 @@ const { bestEffort } = require('../../utils/bestEffort');
  * the agent's system prompt, attached skills, knowledge bases, integrations,
  * and guardrails all participate. Result lands in a persistent conversation
  * thread so the user can open it from the notification and continue chatting.
+ *
+ * `trigger` marks a run started by an event (a new mail) rather than the clock: see EventRunTrigger.
  */
-async function executeAgentRun(task, { manual = false, store = require('../../stores/coworkStore') } = {}, deps) {
+async function executeAgentRun(task, { manual = false, store = require('../../stores/coworkStore'), trigger = /** @type {EventRunTrigger | null} */ (null) } = {}, deps) {
     const { scheduleText, resolveUserSession, isRepeating, failRun, NOTIFICATION } = deps;
+    const services = servicesOf(deps);
     const startTime = Date.now();
     log.info(`[AITaskRunner] Executing ${task.id} as agent ${task.agentId}`);
 
     try {
-        // coworkStore labels the history row it opens for this attempt with it.
-        await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' });
+        // coworkStore labels the row it opens with it; an event run's row was opened at the claim (coworkTriggerStore).
+        if (!trigger) await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' });
 
-        const agentStore = require('../../stores/agentStore');
-        const agent = await agentStore.getForRuntime(task.agentId);
+        const agent = await services.agentStore.getForRuntime(task.agentId);
         if (!agent) throw new Error(`Linked agent ${task.agentId} no longer exists`);
         if (agent.owner_id !== task.userId) throw new Error('Schedule agent owner mismatch — refusing to run');
-        if (!(await agentRoutinesAllowed(task, agent, store))) return;
+        if (!(await agentRoutinesAllowed(task, agent, store))) {
+            if (trigger) await store.markError(task.id, 'agent_routines unavailable'); // an event is not retried: close its row
+            return;
+        }
 
-        const userAuth = await buildScheduleUserAuth(task, agent, resolveUserSession);
-        const { result, finalResponse: streamed, collected, replaced } = await runScheduleAgent(task, agent, userAuth, scheduleText);
+        const userAuth = await buildScheduleUserAuth(task, agent, resolveUserSession, services.buildUserAuth);
+        const { result, finalResponse: streamed, collected, replaced } = await runScheduleAgent(task, agent, userAuth, eventRunParts(task, scheduleText, trigger), services.chatWithAgentStream);
 
         let finalResponse = streamed;
         if (!finalResponse || !finalResponse.trim()) {
-            finalResponse = await recoverOutcomeFromConversation(task, result, agentStore, userAuth) || finalResponse;
+            finalResponse = await recoverOutcomeFromConversation(task, result, services.agentStore, userAuth) || finalResponse;
         }
 
         if (!finalResponse || !finalResponse.trim()) {
@@ -73,20 +78,24 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
         // Notification with deep link to the conversation so the user can open
         // it and continue chatting.
         try {
-            const notificationStore = require('../../stores/notificationStore');
+            const notificationStore = services.notificationStore;
             const shape = NOTIFICATION;
+            // An event run says what it did, not what it read: the text of the result may quote the incoming mail.
+            const say = trigger ? trigger.notification({ agentName: agent.name || 'Agent', task }) : null;
             await notificationStore.createNotification({
                 userId: task.userId,
                 taskId: task.id,
                 category: shape.category,
-                title: `${shape.prefix}${agent.name || 'Agent'}: ${task.title}`,
-                message: truncated,
+                title: say ? say.title : `${shape.prefix}${agent.name || 'Agent'}: ${task.title}`,
+                message: say ? say.message : truncated,
                 link: shape.link,
             });
         } catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun#2', err); /* non-fatal */ }
 
-        // Schedule advance — same rules as legacy tasks.
-        if (isRepeating(task) && !manual) {
+        // Schedule advance — same rules as legacy tasks; an event run touches neither the clock nor is_active.
+        if (trigger) {
+            log.info(`[AITaskRunner] Event run for ${task.id} completed (${Date.now() - startTime}ms)`);
+        } else if (isRepeating(task) && !manual) {
             const next = await store.advanceSchedule(task.id, task.nextRunAt, task.repeatInterval, task.daysOfWeek);
             log.info(`[AITaskRunner] Schedule ${task.id} completed (${Date.now() - startTime}ms), next run: ${next}`);
         } else if (isRepeating(task) && manual) {
@@ -98,7 +107,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
     } catch (err) {
         log.error(`[AITaskRunner] Schedule ${task.id} failed:`, /** @type {Error} */ (err).message);
         if (!err?._terminationLogged) {
-            terminationStore.logTermination({
+            services.terminationStore.logTermination({
                 user_id: task.userId || null,
                 agent_id: task.agentId || null,
                 agent_name: task.title || null,
@@ -109,7 +118,8 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
                 ...sanitizeError(err),
             }).catch((e) => bestEffort('core/cowork/agentScheduleRun:executeAgentRun#3', e));
         }
-        await failRun(task, err, { manual, store });
+        // An event run is never a one-off: a failure must not take the trigger off (failRun deactivates a failed one-off).
+        await failRun(task, err, { manual: manual || !!trigger, store });
     }
 }
 
@@ -149,7 +159,7 @@ async function agentRoutinesAllowed(task, agent, store) {
  * path is kept behind AUTOMATION_AUTH_LEGACY=1 for one release in case of
  * regressions.
  */
-async function buildScheduleUserAuth(task, agent, resolveUserSession) {
+async function buildScheduleUserAuth(task, agent, resolveUserSession, buildUserAuth) {
     const useLegacy = require('../../utils/automationAuthLegacy').automationAuthLegacy() === '1';
     if (useLegacy) {
         const session = await resolveUserSession(task.userId);
@@ -164,11 +174,10 @@ async function buildScheduleUserAuth(task, agent, resolveUserSession) {
             userOrgId: session?.user?.organizationId || agent.organization_id || null,
         };
     }
-    const automationAuth = require('../../auth/automationAuth');
     const enabledIntegrations = Array.isArray(agent?.config?.enabledIntegrations)
         ? agent.config.enabledIntegrations
         : [];
-    const built = await automationAuth.buildUserAuth(task.userId, { enabledIntegrations });
+    const built = await buildUserAuth(task.userId, { enabledIntegrations });
     if (!built) {
         // buildUserAuth already paused dependent schedules + emitted a
         // reauth notification. Surface the error on this run so the
@@ -190,12 +199,38 @@ async function buildScheduleUserAuth(task, agent, resolveUserSession) {
 }
 
 /**
+ * The collaborators of a run: the real ones, unless the caller (a test) hands others in `deps.services`.
+ * @param {AgentRunDeps} deps
+ */
+function servicesOf(deps) {
+    const own = deps.services || {};
+    return {
+        agentStore: own.agentStore || require('../../stores/agentStore'),
+        notificationStore: own.notificationStore || require('../../stores/notificationStore'),
+        terminationStore: own.terminationStore || defaultTerminationStore,
+        chatWithAgentStream: own.chatWithAgentStream || require('../agentRuntime').chatWithAgentStream,
+        buildUserAuth: own.buildUserAuth || require('../../auth/automationAuth').buildUserAuth,
+    };
+}
+
+/**
+ * What a run feeds the agent: the schedule's own prompt and text, or — for an event run — the event's.
+ * @param {ScheduleTask} task
+ * @param {string} scheduleText
+ * @param {EventRunTrigger | null} trigger
+ * @returns {{ scheduleText: string, prompt: string, extraMetadata: Record<string, unknown> }}
+ */
+function eventRunParts(task, scheduleText, trigger) {
+    if (!trigger) return { scheduleText, prompt: /** @type {string} */ (task.prompt), extraMetadata: {} };
+    return { scheduleText: trigger.scheduleText || scheduleText, prompt: trigger.prompt, extraMetadata: trigger.metadata };
+}
+
+/**
  * Run the schedule's prompt through the agent's streaming runtime. Resolves to
  * the runtime's result, the answer as best the stream gave it, and what was
  * streamed / replaced (for the no-outcome log line).
  */
-async function runScheduleAgent(task, agent, userAuth, scheduleText) {
-    const { chatWithAgentStream } = require('../agentRuntime');
+async function runScheduleAgent(task, agent, userAuth, { scheduleText, prompt, extraMetadata }, chatWithAgentStream) {
 
     // Per-schedule tier override (optional). Falls back to whatever the
     // agent itself is configured with.
@@ -221,6 +256,8 @@ async function runScheduleAgent(task, agent, userAuth, scheduleText) {
         autoSend: true,
         // Schedules are unattended — never block on streaming back to a UI.
         ephemeral: false,
+        // An event run adds what it knows (unattended, mailTrigger): the tool stack and the reply tools read it.
+        ...extraMetadata,
     };
 
     // Capture both the streaming token deltas AND any post-stream content
@@ -232,7 +269,7 @@ async function runScheduleAgent(task, agent, userAuth, scheduleText) {
     const result = await chatWithAgentStream(
         task.agentId,
         task.userId,
-        task.prompt,
+        prompt,
         userAuth,
         (type, data) => {
             if (type === 'content' && data?.text) collected += data.text;
@@ -312,6 +349,18 @@ module.exports = { executeAgentRun };
 /** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/agentStore').getForRuntime>>>} RuntimeAgent */
 
 /**
+ * A run started by an event instead of the clock (core/cowork/mailTriggerRun.mts): the prompt to run (the
+ * schedule's text plus the event as marked data), the extra message metadata (`unattended`, `mailTrigger`), and
+ * how its notification reads. Its history row is already open.
+ * @typedef {{
+ *   prompt: string,
+ *   scheduleText?: string,
+ *   metadata: Record<string, unknown>,
+ *   notification: (info: { agentName: string, task: ScheduleTask }) => { title: string, message: string },
+ * }} EventRunTrigger
+ */
+
+/**
  * What aiTaskRunner hands in (see the module docblock).
  * @typedef {{
  *   scheduleText: string,
@@ -319,5 +368,6 @@ module.exports = { executeAgentRun };
  *   isRepeating: (task: ScheduleTask) => boolean,
  *   failRun: (task: ScheduleTask, err: Error, opts: { manual: boolean, store: typeof import('../../stores/coworkStore') }) => Promise<void>,
  *   NOTIFICATION: { category: string, link: string | null, prefix: string },
+ *   services?: { agentStore?: any, notificationStore?: any, terminationStore?: any, chatWithAgentStream?: any, buildUserAuth?: any },
  * }} AgentRunDeps
  */

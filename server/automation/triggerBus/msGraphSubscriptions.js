@@ -118,7 +118,7 @@ async function provisionSubscription(sub, session) {
         return null;
     }
     const expiresAt = new Date(Date.now() + MSGRAPH_LIFETIME_MS).toISOString();
-    const clientState = buildClientState(sub.userId, sub.automationId);
+    const clientState = buildClientState(sub.userId, sub.automationId ?? sub.coworkScheduleId);
     const body = {
         changeType: map.changeType,
         notificationUrl: `${baseUrl.replace(/\/+$/, '')}/api/automation/events/msgraph`,

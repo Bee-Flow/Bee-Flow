@@ -26,6 +26,7 @@ import { isInFlight } from './coworkStatus';
 import useCoworkComposer from './useCoworkComposer';
 import type { CoworkAgent, CoworkItem, CoworkPageProps, CoworkUpdate } from '../../api/cowork.types';
 import { errorMessage } from '../../utils/caughtError';
+import { createdFlash, saveErrorMessage } from './mailTrigger';
 
 export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }: CoworkPageProps) {
     const { t } = useTranslation();
@@ -78,9 +79,8 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     const cowork = useCoworkComposer({
         onCreated: (created, payload) => {
             setBrief('');
-            setFlash(payload.startNow ? 'Off it goes — the result lands in your notifications.' : 'Scheduled.');
-            // Select what was just created, so the history it is about to fill
-            // is already on screen.
+            setFlash(createdFlash(payload, t));
+            // Select what was just created: the history it is about to fill is then on screen.
             if (created?.id) setSelectedId(created.id);
             refresh();
         },
@@ -179,11 +179,11 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
             setEditingId(null);
             await refresh();
         } catch (err) {
-            setActionError(errorMessage(err));
+            setActionError(saveErrorMessage(err, t));
         } finally {
             setBusy(false);
         }
-    }, [selectedId, refresh]);
+    }, [selectedId, refresh, t]);
 
     // ── Composer ────────────────────────────────────────────
     // Lives in the wide right-hand pane, directly under the promise it answers

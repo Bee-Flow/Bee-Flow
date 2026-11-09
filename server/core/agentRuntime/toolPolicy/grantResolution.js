@@ -11,6 +11,7 @@
 'use strict';
 
 const { _plainObject, RESERVED_TOOL_KEYS, GATING_RESERVED_KEYS } = require('./configShape');
+const { mailAccessOf, actionsForMailAccess } = require('./mailAccess');
 const {
     appIdForTool, appIdForToolDef, isAttributionAvailable,
     appRequiresExplicitGrant, _decidingApps, _warnDegraded,
@@ -41,6 +42,9 @@ function allowedToolsFor(appId, toolsConfig) {
     if (!toolsConfig || !appId || RESERVED_TOOL_KEYS.includes(appId)) return null;
     const entry = toolsConfig[appId];
     if (!_plainObject(entry)) return null;
+    // The mailbox preset (`mailAccess`) is the grant, also on a config that never went through normalisation.
+    const mailAccess = mailAccessOf(appId, entry);
+    if (mailAccess) return new Set(actionsForMailAccess(appId, mailAccess));
     const actions = entry.actions;
     if (actions === undefined || actions === null || actions === '*') return null;
     if (!Array.isArray(actions)) return new Set();   // unreadable ⇒ nothing granted

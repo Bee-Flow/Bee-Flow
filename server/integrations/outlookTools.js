@@ -17,6 +17,7 @@ const {
 } = require('../core/integrations/outlookMailbox.mts');
 // Sending, replying and saving a draft (the approval card's route uses them too).
 const { buildOutlookMessage, executeOutlookSend, executeOutlookSaveDraft } = require('./outlookSend');
+const { OUTLOOK_DRAFT_REPLY_TOOLS, isDraftReplyTool, runDraftReplyTool, mailboxOf } = require('./outlookDraftReply');
 
 /**
  * Tool definitions in OpenAI function-calling format.
@@ -153,7 +154,7 @@ const OUTLOOK_TOOLS = [
             }
         }
     }
-];
+].concat(/** @type {any[]} */ (OUTLOOK_DRAFT_REPLY_TOOLS));
 
 /**
  * Strip HTML tags from email body and normalize whitespace.
@@ -373,7 +374,7 @@ async function listRecentMessages(args, fetchPage, base = '/me') {
  * @param {string} toolName
  * @param {OutlookArgs} args
  * @param {OutlookSession} session - a Microsoft session (SSO or the vault shim)
- * @param {{ autoSend?: boolean }} [opts] - autoSend (default false), for outlook_compose: when true the
+ * @param {{ autoSend?: boolean, mailTrigger?: import('./mailReplyGuard').MailTriggerContext | null }} [opts] - mailTrigger: the mail that started this run; autoSend (default false), for outlook_compose: when true the
  *   mail is sent straight away instead of returning an email_draft for the
  *   user to approve. Only unattended callers (the automation runner, a
  *   scheduled agent run) set it — there is nobody to click Send there, and a
@@ -387,7 +388,7 @@ async function executeOutlookTool(toolName, args, session, opts = {}) {
     // Which mailbox, checked at the moment of use (every call, every run):
     // the address, and the connection's shared-mailbox scopes. Microsoft then
     // decides about Full Access; its 403 comes back in the same words.
-    const mailbox = parseMailbox(args?.mailbox);
+    const mailbox = parseMailbox(mailboxOf(toolName, args, opts));
     assertSharedScopes(mailbox, session);
     try {
         return await runOutlookTool(toolName, args, session, opts, mailbox);
@@ -401,7 +402,7 @@ async function executeOutlookTool(toolName, args, session, opts = {}) {
  * @param {string} toolName
  * @param {OutlookArgs} args
  * @param {OutlookSession} session
- * @param {{ autoSend?: boolean }} opts
+ * @param {{ autoSend?: boolean, mailTrigger?: import('./mailReplyGuard').MailTriggerContext | null }} opts
  * @param {import('../core/integrations/outlookMailbox.mts').Mailbox} mailbox
  */
 async function runOutlookTool(toolName, args, session, opts, mailbox) {
@@ -517,7 +518,7 @@ async function runOutlookTool(toolName, args, session, opts, mailbox) {
         };
 
     } else {
-        throw new Error(`Unknown Outlook tool: ${toolName}`);
+        return runDraftReplyTool(toolName, args, session, mailbox, opts);
     }
 }
 
@@ -525,7 +526,7 @@ async function runOutlookTool(toolName, args, session, opts, mailbox) {
  * Check if a tool name is an Outlook tool.
  */
 function isOutlookTool(toolName) {
-    return ['outlook_search', 'outlook_list_recent', 'outlook_read', 'outlook_read_many', 'outlook_compose'].includes(toolName);
+    return ['outlook_search', 'outlook_list_recent', 'outlook_read', 'outlook_read_many', 'outlook_compose'].includes(toolName) || isDraftReplyTool(toolName);
 }
 
 /**
@@ -560,7 +561,7 @@ module.exports = {
  * @typedef {{ id?: string, name?: string, contentType?: string, size?: number }} GraphAttachment
  * @typedef {ReturnType<typeof shapeOutlookMessage> & { attachments?: ReturnType<typeof shapeOutlookAttachments> }} ShapedMessage
   * @typedef {{ query?: string, maxResults?: number|string, messageId?: string, messageIds?: unknown,
- *   to?: string, cc?: string, bcc?: string, subject?: string, body?: string, replyToMessageId?: string,
+ *   to?: string, cc?: string, bcc?: string, subject?: string, body?: string, replyToMessageId?: string, replyAll?: boolean,
  *   folder?: string, unreadOnly?: boolean, since?: string|null, maxPages?: number|string, mailbox?: unknown }} OutlookArgs  the arguments of an outlook_* call
  * @typedef {import('./msGraphClient').MsSession & { oauthProvider?: string }} OutlookSession
  * @typedef {{ [key: string]: unknown, _action?: string, draft?: Record<string, unknown>, sent?: boolean, mailbox?: string,

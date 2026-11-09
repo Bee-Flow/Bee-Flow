@@ -204,3 +204,33 @@ describe('useCoworkComposer — the composer is never load-bearing', () => {
         expect(createCowork.mock.calls[0][0].modelTier).toBe('auto');
     });
 });
+
+describe('useCoworkComposer — new-email trigger', () => {
+    it('sends an app_event payload with the trigger and no clock, skipping compose', async () => {
+        const api = harness();
+        await act(async () => { api.setAgentId('a1'); });
+        await act(async () => { api.setMailTrigger({ provider: 'gmail', event: 'mail.new', filter: { from: ' boss@x.nl ', subjectContains: '' } }); });
+        expect(api.scheduleReady).toBe(true);
+        await act(async () => { await api.submit('Draft a reply to every mail'); });
+        expect(composeCowork).not.toHaveBeenCalled();
+        const payload = createCowork.mock.calls[0][0];
+        expect(payload).toMatchObject({
+            triggerKind: 'app_event',
+            trigger: { provider: 'gmail', event: 'mail.new', filter: { from: 'boss@x.nl' } },
+            agentId: 'a1',
+            prompt: 'Draft a reply to every mail',
+            repeatInterval: null,
+        });
+        expect(payload.nextRunAt).toBeUndefined();
+    });
+
+    it('is not ready without an agent, and clearing the agent clears the trigger', async () => {
+        const api = harness();
+        await act(async () => { api.setMailTrigger({ provider: 'gmail', event: 'mail.new', filter: {} }); });
+        expect(api.scheduleReady).toBe(false);
+        await act(async () => { api.setAgentId('a1'); });
+        expect(api.scheduleReady).toBe(true);
+        await act(async () => { api.setAgentId(''); });
+        expect(api.mailTrigger).toBeNull();
+    });
+});

@@ -10,7 +10,7 @@
  */
 import { API_BASE, authFetch } from '../utils/helpers';
 import type {
-    CoworkAgent, CoworkItem, CoworkPayload, CoworkRun, CoworkSpec, CoworkStatsData, CoworkUpdate,
+    CoworkAgent, CoworkItem, CoworkPayload, CoworkTriggerPayload, CoworkRun, CoworkSpec, CoworkStatsData, CoworkUpdate,
 } from './cowork.types';
 
 const BASE = () => `${API_BASE}/api/cowork`;
@@ -26,9 +26,19 @@ const BASE = () => `${API_BASE}/api/cowork`;
  */
 const itemUrl = (id: string, suffix = ''): string => `${BASE()}/${encodeURIComponent(id)}${suffix}`;
 
+/** An Error that also carries the server's machine-readable `code` (e.g. `mail_not_connected`). */
+export class CoworkRequestError extends Error {
+    code?: string;
+    constructor(message: string, code?: string) {
+        super(message);
+        this.name = 'CoworkRequestError';
+        this.code = code;
+    }
+}
+
 async function readError(res: Response, fallback: string): Promise<Error> {
     const body = await res.json().catch(() => ({}));
-    return new Error(body.error || fallback);
+    return new CoworkRequestError(body.error || fallback, typeof body.code === 'string' ? body.code : undefined);
 }
 
 export async function listCowork(): Promise<{ items: CoworkItem[]; maxItems: number }> {
@@ -38,7 +48,7 @@ export async function listCowork(): Promise<{ items: CoworkItem[]; maxItems: num
     return { items: data.schedules || [], maxItems: data.maxSchedules || 10 };
 }
 
-export async function createCowork(payload: CoworkPayload): Promise<CoworkItem> {
+export async function createCowork(payload: CoworkPayload | CoworkTriggerPayload): Promise<CoworkItem> {
     const res = await authFetch(BASE(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

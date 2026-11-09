@@ -8,18 +8,20 @@
  * form. Three chips, each opening a single-choice sheet, everything on Bee
  * Flow's own tokens.
  */
-import { Clock, Repeat, Bot, Check, ChevronDown } from 'lucide-react';
+import { Clock, Repeat, Bot, Check, ChevronDown, Mail } from 'lucide-react';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
+import MailTriggerPanel from './MailTriggerPanel';
+import { defaultMailTrigger, describeMailTrigger } from './mailTrigger';
 import {
     WHEN_PRESETS, COWORK_REPEAT_OPTIONS,
     resolveWhen, describeMoment, repeatLabel,
     toDateInput, toTimeInput,
 } from './coworkSchedule';
 import type { LucideIcon } from 'lucide-react';
-import type { CoworkAgent, WhenPresetId, WhenState } from '../../api/cowork.types';
+import type { CoworkAgent, MailTrigger, WhenPresetId, WhenState } from '../../api/cowork.types';
 
 type SheetName = 'when' | 'repeat' | 'agent';
 
@@ -58,6 +60,9 @@ interface CoworkOptionsBarProps {
     onAgentChange: (id: string) => void;
     agents?: CoworkAgent[];
     isMobile?: boolean;
+    /** Set while the item starts on a new email instead of on a clock. */
+    mailTrigger?: MailTrigger | null;
+    onMailTriggerChange?: (trigger: MailTrigger | null) => void;
 }
 
 // ── Sheet: a popover on desktop, a bottom sheet on phones ───────────────
@@ -181,12 +186,72 @@ function Chip({ icon: Icon, label, active, onClick, testId }: ChipProps) {
     );
 }
 
+interface RepeatChipProps {
+    open: boolean;
+    onToggle: () => void;
+    onClose: () => void;
+    isMobile: boolean;
+    repeatInterval: string;
+    onRepeatChange: (value: string) => void;
+    mailTrigger: MailTrigger | null;
+    onMailTriggerChange?: (trigger: MailTrigger | null) => void;
+    canOfferMailTrigger: boolean;
+}
+
+/** "How often?": the repeat chip and its sheet, which also hosts the new-email trigger. */
+function RepeatChip({ open, onToggle, onClose, isMobile, repeatInterval, onRepeatChange, mailTrigger, onMailTriggerChange, canOfferMailTrigger }: RepeatChipProps) {
+    const { t } = useTranslation();
+    return (
+        <div className="relative">
+            <Chip
+                icon={Repeat}
+                label={mailTrigger ? describeMailTrigger(mailTrigger, t) : repeatLabel(repeatInterval, t)}
+                active={!!repeatInterval || !!mailTrigger}
+                onClick={() => onToggle()}
+                testId="cowork-repeat-chip"
+            />
+            <Sheet
+                open={open}
+                onClose={onClose}
+                isMobile={isMobile}
+                title={t('cowork.repeat.sheet_title', 'How often?')}
+                subtitle={t('cowork.repeat.sheet_subtitle', 'Repeating work keeps running until you pause it.')}
+            >
+                <div role="listbox" aria-label={t('cowork.repeat.list_aria', 'Repeat')}>
+                    {COWORK_REPEAT_OPTIONS.map(o => (
+                        <SheetOption
+                            key={o.value || 'once'}
+                            selected={!mailTrigger && (repeatInterval || '') === o.value}
+                            label={t(o.labelKey, o.label)}
+                            onClick={() => { onMailTriggerChange?.(null); onRepeatChange(o.value); onClose(); }}
+                        />
+                    ))}
+                    {canOfferMailTrigger && (
+                        <SheetOption
+                            selected={!!mailTrigger}
+                            icon={Mail}
+                            label={t('cowork.mail_trigger.option', 'When a new email arrives…')}
+                            hint={t('cowork.mail_trigger.option_hint', 'Gmail or Outlook, handled by the agent')}
+                            onClick={() => { if (!mailTrigger) onMailTriggerChange?.(defaultMailTrigger()); }}
+                        />
+                    )}
+                </div>
+                {mailTrigger && onMailTriggerChange && (
+                    <MailTriggerPanel value={mailTrigger} onChange={onMailTriggerChange} />
+                )}
+            </Sheet>
+        </div>
+    );
+}
+
 export default function CoworkOptionsBar({
     when, onWhenChange,          // { presetId, date, time }
     repeatInterval, onRepeatChange,
     agentId, onAgentChange,
     agents = [],
     isMobile = false,
+    mailTrigger = null,
+    onMailTriggerChange,
 }: CoworkOptionsBarProps) {
     const { t } = useTranslation();
     const [openSheet, setOpenSheet] = useState<SheetName | null>(null); // 'when' | 'repeat' | 'agent'
@@ -214,9 +279,13 @@ export default function CoworkOptionsBar({
         close();
     };
 
+    // "When a new email arrives" needs an agent to do the work, so it is only offered with one.
+    const canOfferMailTrigger = !!agentId && !!onMailTriggerChange;
+
     return (
         <div className="flex items-center gap-1.5 flex-wrap" data-tour="cowork-options">
-            {/* When */}
+            {/* When: a mail trigger has no clock, so the picker goes away. */}
+            {!mailTrigger && (
             <div className="relative">
                 <Chip
                     icon={Clock}
@@ -267,35 +336,20 @@ export default function CoworkOptionsBar({
                     )}
                 </Sheet>
             </div>
+            )}
 
             {/* Repeat */}
-            <div className="relative">
-                <Chip
-                    icon={Repeat}
-                    label={repeatLabel(repeatInterval, t)}
-                    active={!!repeatInterval}
-                    onClick={() => setOpenSheet(openSheet === 'repeat' ? null : 'repeat')}
-                    testId="cowork-repeat-chip"
-                />
-                <Sheet
-                    open={openSheet === 'repeat'}
-                    onClose={close}
-                    isMobile={isMobile}
-                    title={t('cowork.repeat.sheet_title', 'How often?')}
-                    subtitle={t('cowork.repeat.sheet_subtitle', 'Repeating work keeps running until you pause it.')}
-                >
-                    <div role="listbox" aria-label={t('cowork.repeat.list_aria', 'Repeat')}>
-                        {COWORK_REPEAT_OPTIONS.map(o => (
-                            <SheetOption
-                                key={o.value || 'once'}
-                                selected={(repeatInterval || '') === o.value}
-                                label={t(o.labelKey, o.label)}
-                                onClick={() => { onRepeatChange(o.value); close(); }}
-                            />
-                        ))}
-                    </div>
-                </Sheet>
-            </div>
+            <RepeatChip
+                open={openSheet === 'repeat'}
+                onToggle={() => setOpenSheet(openSheet === 'repeat' ? null : 'repeat')}
+                onClose={close}
+                isMobile={isMobile}
+                repeatInterval={repeatInterval}
+                onRepeatChange={onRepeatChange}
+                mailTrigger={mailTrigger}
+                onMailTriggerChange={onMailTriggerChange}
+                canOfferMailTrigger={canOfferMailTrigger}
+            />
 
             {/* Run as agent — only when the account actually has agents to pick */}
             {agents.length > 0 && (

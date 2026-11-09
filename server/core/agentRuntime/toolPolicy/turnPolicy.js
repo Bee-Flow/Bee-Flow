@@ -34,7 +34,7 @@ const { fallback } = require('../../../utils/bestEffort');
  * and all.
  *
  * @param {{ agentConfig: { tools?: unknown, [key: string]: unknown } | null | undefined, tools: Array, unattended?: boolean,
- *   automationConfirms?: Map<string, string> | null }} opts
+ *   automationConfirms?: Map<string, string> | null, mailTrigger?: boolean }} opts
  *   `agentConfig`: the RUNTIME agent config; `tools`: the assembled tool definitions; `unattended`:
  *   nobody is watching this run; `automationConfirms`: toolName → 'direct'|'ask' for granted
  *   automations (their effect comes from the definition, not the name)
@@ -43,7 +43,7 @@ const { fallback } = require('../../../utils/bestEffort');
  *            enforceNames: boolean, unattended: boolean,
  *            droppedForUnattended: string[]}}
  */
-function buildToolPolicy({ agentConfig, tools, unattended = false, automationConfirms = null }) {
+function buildToolPolicy({ agentConfig, tools, unattended = false, automationConfirms = null, mailTrigger = false }) {
     const toolsConfig = toolsConfigOf(agentConfig);
     // A CURATED map is the opt-in: an agent saved through the picker has one,
     // an agent from before this feature does not — and an empty or junk-only
@@ -72,7 +72,7 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
         // An automation that sends stays 'ask', even if the stored grant says 'direct';
         // otherwise one field in the picker would switch off the confirmation duty
         // on sending automations entirely.
-        const baseConfirm = confirmForTool(name, toolsConfig);
+        const baseConfirm = confirmForTool(name, toolsConfig, { mailTrigger });
         const confirm = (hasOverride && !(baseConfirm === 'ask' && overrideConfirm === 'direct'))
             ? overrideConfirm
             : baseConfirm;

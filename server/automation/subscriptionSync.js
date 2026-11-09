@@ -15,6 +15,7 @@
 const REAL_AUTOMATION_STORE = require("../stores/automationStore");
 const REAL_TRIGGER_BUS = require("./triggerBus");
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const { fallback } = require('../utils/bestEffort');
 
 // Test seam (_setDepsForTests): the store and the trigger bus this module talks
@@ -53,17 +54,29 @@ function _setDepsForTests(over = null) {
  * @param {string} userId
  */
 async function revokeRemoteSubscriptions(automationId, userId) {
+    await revokeRemote(() => automationStore.getSubscriptionsForAutomation(automationId), userId, automationId);
+}
+
+/**
+ * The revoke pass behind revokeRemoteSubscriptions and revokeCoworkMailTrigger:
+ * `load` answers the owner's rows (read inside the guard, so a failing read is
+ * logged like a failing revoke), `label` names the owner in the log line.
+ * @param {() => Promise<Array<{ provider: string, externalRef?: string | null }>>} load
+ * @param {string | undefined | (() => string | undefined)} userId  or a getter, read after `load` ran
+ * @param {string} label
+ */
+async function revokeRemote(load, userId, label) {
     try {
-        const existing = await automationStore.getSubscriptionsForAutomation(automationId);
+        const existing = await load();
         const msgraphSubs = existing.filter(s => s.provider === 'msgraph' && s.externalRef);
         if (msgraphSubs.length > 0) {
-            const session = await triggerBus.loadSession(userId).catch((e) => fallback('automation/subscriptionSync:loadSession', e, null));
+            const session = await triggerBus.loadSession(typeof userId === 'function' ? userId() : userId).catch((e) => fallback('automation/subscriptionSync:loadSession', e, null));
             for (const sub of msgraphSubs) {
                 await triggerBus.revokeSubscription(sub, session);
             }
         }
     } catch (e) {
-        log.warn(`[automation/subscriptionSync] revoke: revoke pass failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
+        log.warn(`[automation/subscriptionSync] revoke: revoke pass failed for ${label}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -149,7 +162,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
     if (provider === 'msgraph') {
         // A shared mailbox is always polled: Graph refuses change
         // notifications on it for delegated access (pollers/msGraphMail.mts).
-        mode = !watchesSharedMailbox(event, trig.appEvent?.filter) && triggerBus.getPublicBaseUrl() ? 'webhook' : 'polling';
+        mode = msGraphMailMode(event, trig.appEvent?.filter);
     } else if (provider === 'github') {
         mode = 'webhook';
     } else if (provider === 'nextcloud') {
@@ -204,28 +217,45 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
         lastCursor: prior?.lastCursor ?? null,
     });
 
-    // For MS Graph webhook subscriptions, register at MS Graph itself and
-    // store the externalRef so the renewal pass can refresh and the
-    // notification handler can validate clientState.
-    if (provider === 'msgraph' && mode === 'webhook') {
-        try {
-            const session = await triggerBus.loadSession(userId).catch((e) => fallback('automation/subscriptionSync:syncOneAppEventTrigger#4', e, null));
-            const result = await triggerBus.provisionSubscription(sub, session);
-            if (result) {
-                await automationStore.updateSubscription(sub.id, {
-                    externalRef: result.externalRef,
-                    expiresAt: result.expiresAt,
-                    clientState: result.clientState,
-                });
-            } else {
-                // Provisioning failed — leave the row in the DB so the user
-                // sees the trigger but warn so the diagnose endpoint can
-                // surface it.
-                log.warn(`[automation/subscriptionSync] MS Graph provisioning failed for sub ${sub.id}; trigger will not fire until re-activated`);
-            }
-        } catch (e) {
-            log.warn(`[automation/subscriptionSync] MS Graph provisioning threw for sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
+    if (provider === 'msgraph' && mode === 'webhook') await provisionGraphWebhook(sub, userId);
+}
+
+/**
+ * Own mailbox: a Graph webhook when the install has a public URL, polling
+ * otherwise. A shared mailbox is always polled: Graph refuses change
+ * notifications on it for delegated access (pollers/msGraphMail.mts).
+ * @param {string} event
+ * @param {Record<string, unknown> | null | undefined} filter
+ */
+function msGraphMailMode(event, filter) {
+    return !watchesSharedMailbox(event, filter) && triggerBus.getPublicBaseUrl() ? 'webhook' : 'polling';
+}
+
+/**
+ * For MS Graph webhook subscriptions, register at MS Graph itself and store the
+ * externalRef so the renewal pass can refresh and the notification handler can
+ * validate clientState.
+ * @param {{ id: string }} sub
+ * @param {string} userId
+ */
+async function provisionGraphWebhook(sub, userId) {
+    try {
+        const session = await triggerBus.loadSession(userId).catch((e) => fallback('automation/subscriptionSync:syncOneAppEventTrigger#4', e, null));
+        const result = await triggerBus.provisionSubscription(sub, session);
+        if (result) {
+            await automationStore.updateSubscription(sub.id, {
+                externalRef: result.externalRef,
+                expiresAt: result.expiresAt,
+                clientState: result.clientState,
+            });
+        } else {
+            // Provisioning failed — leave the row in the DB so the user
+            // sees the trigger but warn so the diagnose endpoint can
+            // surface it.
+            log.warn(`[automation/subscriptionSync] MS Graph provisioning failed for sub ${sub.id}; trigger will not fire until re-activated`);
         }
+    } catch (e) {
+        log.warn(`[automation/subscriptionSync] MS Graph provisioning threw for sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -242,7 +272,111 @@ function watchesSharedMailbox(event, filter) {
     try { return parseMailbox(filter.mailbox).shared; } catch { return true; }
 }
 
-module.exports = { _setDepsForTests, syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint };
+
+// ── Cowork owner: an agent that starts on a new mail ────────────────────────
+//
+// One subscription row per Cowork item (cowork_schedule_id), made the same way
+// as an automation's: Gmail is polled, Outlook gets a Graph webhook for the own
+// mailbox when the install has a public URL and is polled otherwise (a shared
+// mailbox is always polled). The event itself arrives through triggerBus
+// dispatch, which hands rows with a cowork_schedule_id to core/cowork/mailTriggerRun.
+
+/** provider → the one event a Cowork item can start on. */
+const COWORK_MAIL_EVENTS = { gmail: 'mail.new', msgraph: 'mail.new' };
+
+/**
+ * @param {Record<string, any> | null | undefined} session  triggerBus.loadSession
+ * @param {string} provider
+ */
+function hasMailCredentials(session, provider) {
+    if (!session) return false;
+    if (provider === 'msgraph') {
+        return !!((session.oauthProvider === 'microsoft' && session.accessToken)
+            || session.automationProviders?.microsoft?.accessToken
+            || (!session.oauthProvider && session.accessToken));
+    }
+    return !!session.accessToken;
+}
+
+/**
+ * Refuse a mail trigger the user cannot back with a connected mailbox, BEFORE
+ * anything is stored. A 409 `mail_not_connected` tells the UI to ask for a
+ * (re)connect instead of saving a trigger that would never fire.
+ * @param {string} userId
+ * @param {{ provider?: string, event?: string }} trigger
+ */
+async function assertMailTriggerReady(userId, trigger) {
+    const provider = String(trigger?.provider || '');
+    if (!Object.hasOwn(COWORK_MAIL_EVENTS, provider) || COWORK_MAIL_EVENTS[/** @type {'gmail'|'msgraph'} */ (provider)] !== trigger?.event) {
+        throw new HttpError(400, 'unsupported_mail_trigger', 'Only a new mail in Gmail or Outlook can start an agent.');
+    }
+    const session = await triggerBus.loadSession(userId).catch((e) => fallback('automation/subscriptionSync:assertMailTriggerReady', e, null));
+    if (!hasMailCredentials(session, provider)) {
+        throw new HttpError(409, 'mail_not_connected', `Connect your ${provider === 'gmail' ? 'Gmail' : 'Outlook'} account first, then save the trigger again.`);
+    }
+}
+
+/**
+ * Make the subscription of a Cowork item match the item: an active app_event
+ * item gets (a fresh) one, anything else (paused, a clock item) has none.
+ * The poller cursor carries over a re-sync of the same provider, so an edit of
+ * the filter does not skip the mails that came in meanwhile; a resume after a
+ * pause starts clean (the pause deleted the row), so mail from the pause does
+ * not suddenly fire.
+ * @param {{ id: string, userId: string, isActive?: boolean | null, triggerKind?: string | null,
+ *   trigger?: { provider?: string, event?: string, filter?: Record<string, unknown> | null } | null }} schedule
+ */
+async function syncCoworkMailTrigger(schedule) {
+    const trig = schedule.trigger;
+    if (schedule.isActive === false || schedule.triggerKind !== 'app_event' || !trig?.provider) {
+        await revokeCoworkMailTrigger(schedule.id);
+        return null;
+    }
+    await assertMailTriggerReady(schedule.userId, trig);
+    const provider = trig.provider;
+    const event = COWORK_MAIL_EVENTS[/** @type {'gmail'|'msgraph'} */ (provider)];
+
+    let priorCursor = null;
+    try {
+        const prior = (await automationStore.getSubscriptionsForCoworkSchedule(schedule.id) || [])[0];
+        if (prior && prior.provider === provider) priorCursor = prior.lastCursor ?? null;
+    } catch (err) { fallback('automation/subscriptionSync:syncCoworkMailTrigger', err); /* fresh bootstrap */ }
+    await revokeCoworkMailTrigger(schedule.id);
+
+    const mode = provider === 'msgraph' ? msGraphMailMode(event, trig.filter) : 'polling';
+    const sub = await automationStore.createSubscription({
+        coworkScheduleId: schedule.id,
+        userId: schedule.userId,
+        provider,
+        eventType: event,
+        mode,
+        filter: trig.filter || null,
+        lastCursor: priorCursor,
+    });
+    if (provider === 'msgraph' && mode === 'webhook') await provisionGraphWebhook(sub, schedule.userId);
+    return sub;
+}
+
+/**
+ * Delete the subscription row(s) of a Cowork item and revoke the remote Graph
+ * subscription first (the row holds its id). Best effort like the automation one.
+ * @param {string} scheduleId
+ */
+async function revokeCoworkMailTrigger(scheduleId) {
+    /** @type {string | undefined} */
+    let userId;
+    await revokeRemote(async () => {
+        const rows = await automationStore.getSubscriptionsForCoworkSchedule(scheduleId) || [];
+        userId = rows[0]?.userId;
+        return rows;
+    }, () => userId, `cowork schedule ${scheduleId}`);
+    await automationStore.deleteSubscriptionsForCoworkSchedule(scheduleId);
+}
+
+// The cowork store resumes mail triggers after an OAuth reconnect but may not require this feature: it is handed the sync here.
+require('../stores/coworkStore').setMailTriggerSync(syncCoworkMailTrigger);
+
+module.exports = { _setDepsForTests, syncAppEventSubscription, revokeRemoteSubscriptions, syncCoworkMailTrigger, revokeCoworkMailTrigger, assertMailTriggerReady, hasAppEventTrigger, appEventFingerprint };
 
 /** @typedef {{ id?: string, kind?: string, appEvent?: { provider?: string, event?: string, filter?: Record<string, unknown>|null } }} AppTrigger */
 

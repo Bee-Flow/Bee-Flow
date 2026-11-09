@@ -21,6 +21,27 @@ export interface WhenState {
     time: string;
 }
 
+/** Mail apps an agent can be started by: `gmail` (Gmail) and `msgraph` (Outlook). */
+export type MailProvider = 'gmail' | 'msgraph';
+
+/** The optional narrowing of a "new email" trigger; the same shape the automation app-event trigger uses. */
+export interface MailTriggerFilter {
+    from?: string;
+    subjectContains?: string;
+    labelIds?: string[];
+    hasAttachment?: boolean;
+    excludeFromSelf?: boolean;
+    /** Outlook only: 'me' or absent = the own inbox, otherwise a shared mailbox address. */
+    mailbox?: string;
+}
+
+/** What starts a cowork item that is not on a clock: a new email. */
+export interface MailTrigger {
+    provider: MailProvider;
+    event: 'mail.new';
+    filter?: MailTriggerFilter;
+}
+
 /** One cowork item (a schedule row) as GET /api/cowork returns it. */
 export interface CoworkItem {
     id: string;
@@ -38,6 +59,8 @@ export interface CoworkItem {
     agentId?: string | null;
     modelTier?: string | null;
     enabledApps?: string[] | null;
+    triggerKind?: 'schedule' | 'app_event';
+    trigger?: MailTrigger | null;
 }
 
 /** One execution of a cowork item. */
@@ -93,16 +116,33 @@ export interface CoworkPayload {
     startNow?: true;
 }
 
+/** The POST /api/cowork body of an agent that starts on a new email: no clock, so no `nextRunAt`. */
+export interface CoworkTriggerPayload {
+    title: string;
+    prompt: string;
+    repeatInterval: null;
+    modelTier: string;
+    timezone: string;
+    agentId: string;
+    triggerKind: 'app_event';
+    trigger: MailTrigger;
+    enabledApps?: string[];
+    startNow?: undefined;
+}
+
 /** The body the edit form sends to PUT /api/cowork/:id. */
 export interface CoworkUpdate {
     title: string;
     prompt: string;
-    repeatInterval: string | null;
-    daysOfWeek: string[] | null;
-    nextRunAt: string | null | undefined;
-    timeOfDay: string | null;
+    /** The clock fields are left out for a mail-trigger item. */
+    repeatInterval?: string | null;
+    daysOfWeek?: string[] | null;
+    nextRunAt?: string | null | undefined;
+    timeOfDay?: string | null;
     agentId: string | null;
     enabledApps: string[] | null;
+    triggerKind?: 'app_event';
+    trigger?: MailTrigger;
 }
 
 /** The props of the Cowork page. */

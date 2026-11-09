@@ -399,9 +399,10 @@ declare namespace DbRow {
     }
     /** Row of `automation_event_subscriptions`. */
     interface AutomationEventSubscriptions {
-        automation_id: string;
+        automation_id: string | null;
         client_state: string | null;
         consecutive_failures: number;
+        cowork_schedule_id: string | null;
         created_at: Date;
         error_notified_at: Date | null;
         event_type: string;
@@ -1209,6 +1210,7 @@ declare namespace DbRow {
         started_at: Date;
         status: string;
         trigger_kind: string;
+        trigger_ref: string | null;
         user_id: string;
     }
     /** Row of `cowork_schedules`. */
@@ -1225,7 +1227,7 @@ declare namespace DbRow {
         last_status: string | null;
         max_result_length: number | null;
         model_tier: string | null;
-        next_run_at: Date;
+        next_run_at: Date | null;
         prompt: string;
         repeat_interval: string | null;
         run_count: number | null;
@@ -1233,6 +1235,8 @@ declare namespace DbRow {
         timezone: string | null;
         title: string;
         tools_enabled: string | null;
+        trigger_json: string | null;
+        trigger_kind: string;
         user_id: string;
     }
     /** Row of `datatable_grants`. */

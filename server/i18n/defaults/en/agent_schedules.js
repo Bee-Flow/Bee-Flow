@@ -43,4 +43,10 @@ module.exports = {
     "agent_schedules.title_placeholder": "e.g. Daily standup brief",
     "agent_schedules.today_at": "Today at",
     "agent_schedules.tomorrow_at": "Tomorrow at",
+    "agent_schedules.new_mail_trigger": "New email trigger",
+    "agent_schedules.mail_trigger_title": "New email trigger",
+    "agent_schedules.mail_trigger_intro": "The agent starts by itself for every new email that matches. What it may do with the mailbox is set under Can use.",
+    "agent_schedules.mail_trigger_task": "What should the agent do with each email?",
+    "agent_schedules.mail_trigger_task_placeholder": "e.g. Summarise it and prepare a reply draft",
+    "agent_schedules.mail_trigger_save": "Start watching",
 };
