@@ -55,8 +55,25 @@ describe('AutomationsLauncher, tabbed launcher', () => {
         render(<AutomationsLauncher {...props} />);
         // The English of automations.tabs.overview|repeating|templates|history.
         for (const label of ['All automations', 'Find repeating work', 'Templates', 'Runs']) {
-            expect(screen.getByRole('button', { name: label })).toBeTruthy();
+            expect(screen.getByRole('tab', { name: label })).toBeTruthy();
         }
+    });
+
+    it('is a tablist: the chosen tab is the selected one, and the arrow keys move between tabs', async () => {
+        const user = userEvent.setup();
+        render(<AutomationsLauncher {...props} />);
+        expect(screen.getByRole('tablist')).toBeTruthy();
+        const overview = screen.getByRole('tab', { name: 'All automations' });
+        expect(overview.getAttribute('aria-selected')).toBe('true');
+        expect(screen.getByRole('tab', { name: 'Templates' }).getAttribute('aria-selected')).toBe('false');
+
+        overview.focus();
+        await user.keyboard('{ArrowRight}');
+        const repeating = screen.getByRole('tab', { name: 'Find repeating work' });
+        expect(repeating.getAttribute('aria-selected')).toBe('true');
+        expect(document.activeElement).toBe(repeating);
+        await user.keyboard('{ArrowLeft}{ArrowLeft}');
+        expect(screen.getByRole('tab', { name: 'Runs' }).getAttribute('aria-selected')).toBe('true');
     });
 
     it('offers no Build with AI tab (owner, 2026-09-28): the + and the builder assistant cover it', () => {
@@ -111,11 +128,11 @@ describe('AutomationsLauncher, tabbed launcher', () => {
     it('switching a tab shows that panel and hides the rest', async () => {
         const user = userEvent.setup();
         render(<AutomationsLauncher {...props} />);
-        await user.click(screen.getByRole('button', { name: 'Templates' }));
+        await user.click(screen.getByRole('tab', { name: 'Templates' }));
         expect(isHidden('panel-templates')).toBe(false);
         expect(isHidden('panel-repeating')).toBe(true);
         // Runs shows (full-width) and the narrow launcher column hides.
-        await user.click(screen.getByRole('button', { name: 'Runs' }));
+        await user.click(screen.getByRole('tab', { name: 'Runs' }));
         expect(isHidden('panel-executions')).toBe(false);
         expect(isHidden('panel-templates')).toBe(true);
     });
@@ -123,7 +140,7 @@ describe('AutomationsLauncher, tabbed launcher', () => {
     it('persists the chosen tab and restores it on remount', async () => {
         const user = userEvent.setup();
         const { unmount } = render(<AutomationsLauncher {...props} />);
-        await user.click(screen.getByRole('button', { name: 'Find repeating work' }));
+        await user.click(screen.getByRole('tab', { name: 'Find repeating work' }));
         expect(store.get('automationsStartTab')).toBe('repeating');
         unmount();
         render(<AutomationsLauncher {...props} />);
@@ -140,7 +157,7 @@ describe('AutomationsLauncher, Find repeating work', () => {
         const onBuildSuggestion = vi.fn();
         const onAskSuggestion = vi.fn();
         render(<AutomationsLauncher {...props} onBuildSuggestion={onBuildSuggestion} onAskSuggestion={onAskSuggestion} />);
-        await user.click(screen.getByRole('button', { name: 'Find repeating work' }));
+        await user.click(screen.getByRole('tab', { name: 'Find repeating work' }));
         await user.click(screen.getByRole('button', { name: 'tab build' }));
         expect(onBuildSuggestion).toHaveBeenCalledWith({ id: 's1', title: 'Log invoices' });
         await user.click(screen.getByRole('button', { name: 'tab adjust' }));

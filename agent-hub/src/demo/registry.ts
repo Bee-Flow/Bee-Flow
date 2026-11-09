@@ -27,7 +27,7 @@ import { pick } from './lang';
 export const DEMO_FEATURES = {
     automations: {
         id: 'automations',
-        label: 'Automations & automations',
+        label: 'Automations',
         // Shown in the demo chrome so a visitor always knows what they are
         // looking at and that nothing they do is real.
         blurb: 'Build a workflow: drag steps, open a node, change the prompt. Nothing is saved and nothing leaves your browser.',

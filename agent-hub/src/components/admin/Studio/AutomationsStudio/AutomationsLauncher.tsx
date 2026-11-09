@@ -89,6 +89,20 @@ export default function AutomationsLauncher({
         try { scopedStorage.setItem(TAB_KEY, id); } catch (err) { logger.debug('storage best-effort', err); }
     };
 
+    // Left/Right (and Home/End) move between the tabs, as a tablist promises;
+    // only the selected tab is in the Tab order.
+    const onTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const at = TABS.findIndex(tab => tab.id === activeTab);
+        const to = e.key === 'ArrowRight' ? (at + 1) % TABS.length
+            : e.key === 'ArrowLeft' ? (at - 1 + TABS.length) % TABS.length
+                : e.key === 'Home' ? 0
+                    : e.key === 'End' ? TABS.length - 1 : -1;
+        if (to < 0) return;
+        e.preventDefault();
+        selectTab(TABS[to].id);
+        e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
+    };
+
     return (
         // @container/launcher: the launcher panels widen by the launcher's OWN
         // width (the sidebar beside it takes a share of the screen), never by
@@ -98,7 +112,13 @@ export default function AutomationsLauncher({
                 data-tour anchor lets the Learning Center spotlight the ways
                 into the feature (see onboarding/tourAnchors.js). */}
             <div className="flex-shrink-0 border-b border-[var(--border-default)]">
-                <div className="max-w-3xl mx-auto px-6 flex items-center justify-center gap-1" data-tour="automation-start-tabs">
+                <div
+                    role="tablist"
+                    aria-label={t('automations.tabs.label', 'Automations views')}
+                    onKeyDown={onTabKeyDown}
+                    className="max-w-3xl mx-auto px-6 flex items-center justify-center gap-1"
+                    data-tour="automation-start-tabs"
+                >
                     {TABS.map(tab => (
                         <Tab key={tab.id} id={tab.id} active={activeTab} onClick={selectTab}>{t(tab.key, tab.en)}</Tab>
                     ))}
@@ -176,6 +196,10 @@ function Tab({ id, active, onClick, children }: TabProps) {
     const isActive = active === id;
     return (
         <button
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onClick(id)}
             className={`px-3 py-2.5 border-b-2 transition text-sm font-medium ${
                 isActive

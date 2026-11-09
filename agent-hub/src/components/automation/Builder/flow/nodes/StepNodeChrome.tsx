@@ -81,8 +81,10 @@ export function StepActionToolbar({
                     type="button"
                     onClick={(e: ClickEvent) => { e.stopPropagation(); (rt.onPinNode as (stepId: string) => void)(nodeId); }}
                     onMouseDown={stopDown}
-                    title={pinned ? 'Release the frozen output — P' : 'Freeze the last output so later runs reuse it — P'}
-                    aria-label={pinned ? 'Unpin step' : 'Pin step'}
+                    title={pinned
+                        ? t('automations.step_node_base.unpin_title', 'Release the frozen output — P')
+                        : t('automations.step_node_base.pin_title', 'Freeze the last output so later runs reuse it — P')}
+                    aria-label={pinned ? t('automations.step_node_base.unpin_step', 'Unpin step') : t('automations.step_node_base.pin_step', 'Pin step')}
                     className={ACTION_BTN}
                     style={pinned ? { color: 'var(--pinned)' } : undefined}
                 >
