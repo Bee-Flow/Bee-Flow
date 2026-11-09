@@ -45,6 +45,8 @@ export interface AutomationLibrary {
     setAutomations: Dispatch<SetStateAction<AutomationListRow[]>>;
     folders: AutomationFolder[];
     automationsLoading: boolean;
+    /** The last list read failed: the list on screen is not the truth (and may be empty for that reason alone). */
+    automationsLoadFailed: boolean;
     pendingDeleteAutomation: AutomationListRow | null;
     setPendingDeleteAutomation: Dispatch<SetStateAction<AutomationListRow | null>>;
     steps: StepRow[];
@@ -105,6 +107,7 @@ export default function useAutomationLibrary({
     const automationApi = useAutomationApi();
     const [automations, setAutomations] = useState<AutomationListRow[]>([]);
     const [automationsLoading, setAutomationsLoading] = useState(false);
+    const [automationsLoadFailed, setAutomationsLoadFailed] = useState(false);
     const [pendingDeleteAutomation, setPendingDeleteAutomation] = useState<AutomationListRow | null>(null);
     const [steps, setSteps] = useState<StepRow[]>([]);
     const [stepsLoading, setStepsLoading] = useState(false);
@@ -114,8 +117,10 @@ export default function useAutomationLibrary({
         try {
             const r = await automationApi.listAutomations<{ automations?: AutomationListRow[] }>();
             setAutomations(r.automations || []);
+            setAutomationsLoadFailed(false);
         } catch (err) {
             console.warn('[AITasksDesigner] fetchAutomations failed:', failureText(err));
+            setAutomationsLoadFailed(true);
         }
         setAutomationsLoading(false);
     }, [automationApi]);
@@ -329,6 +334,7 @@ export default function useAutomationLibrary({
         automations, setAutomations,
         folders,
         automationsLoading,
+        automationsLoadFailed,
         pendingDeleteAutomation, setPendingDeleteAutomation,
         steps,
         stepsLoading,

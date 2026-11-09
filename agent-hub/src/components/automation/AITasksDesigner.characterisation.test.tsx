@@ -69,13 +69,21 @@ describe('AITasksDesigner — the list', () => {
         expect(screen.getByTestId('launcher')).toHaveAttribute('data-count', '0');
     });
 
-    it('a failed list read leaves an empty sidebar, not a crash', async () => {
+    it('a failed list read says so and offers a retry, instead of "No automations yet."', async () => {
+        const user = userEvent.setup();
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         scenario.list = () => res(500);
         mountDesigner();
-        expect(await screen.findByText('No automations yet.')).toBeInTheDocument();
-        expect(screen.getByTestId('launcher')).toBeInTheDocument();
+        expect(await screen.findByText('Could not load your automations.')).toBeInTheDocument();
+        expect(screen.queryByText('No automations yet.')).toBeNull();
+        expect(screen.getByTestId('launcher')).toHaveAttribute('data-load-failed', 'true');
         await waitFor(() => expect(warn).toHaveBeenCalledWith('[AITasksDesigner] fetchAutomations failed:', expect.any(String)));
+
+        scenario.list = () => res(200, { automations: [INVOICES] });
+        await user.click(screen.getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByText('Invoice sync')).toBeInTheDocument();
+        expect(screen.queryByText('Could not load your automations.')).toBeNull();
+        expect(screen.getByTestId('launcher')).toHaveAttribute('data-load-failed', 'false');
     });
 
     it('filters the sidebar, the building blocks and the launcher together; "No matches." when both are empty', async () => {
@@ -475,7 +483,7 @@ describe('AITasksDesigner — reaching another automation from inside the editor
         vi.spyOn(console, 'warn').mockImplementation(() => {});
         scenario.list = (): FakeResponse => res(500);
         mountDesigner({ initialTaskId: 'a1' });
-        await screen.findByText('No automations yet.');
+        await screen.findByText('Could not load your automations.');
         expect(screen.queryByTestId('builder')).toBeNull();
     });
 });

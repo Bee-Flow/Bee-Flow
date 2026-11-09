@@ -57,6 +57,9 @@ interface AutomationsLauncherProps {
     onCreateFolder?: ((name: string) => unknown) | null;
     automationsQuery?: string;
     automationsLoading?: boolean;
+    /** The list read failed; the overview says so instead of "No automations yet". */
+    automationsLoadFailed?: boolean;
+    onRetryAutomations?: (() => unknown) | null;
     activeRunIds?: RunIdSet | null;
     canCreateAutomation?: boolean;
 }
@@ -70,7 +73,7 @@ export default function AutomationsLauncher({
     // The overview tab: the sidebar's (filtered) automations, the filter that
     // produced them, folders for the board's folder lanes, the live-run poll,
     // and the per-row callback builder the sidebar rows use.
-    automations = [], automationsQuery = '', automationsLoading = false, folders = [], activeRunIds = null,
+    automations = [], automationsQuery = '', automationsLoading = false, automationsLoadFailed = false, onRetryAutomations = null, folders = [], activeRunIds = null,
     automationRowProps = null, canCreateAutomation = true,
 }: AutomationsLauncherProps) {
     const { t } = useTranslation();
@@ -119,6 +122,8 @@ export default function AutomationsLauncher({
                             automations={automations}
                             query={automationsQuery}
                             loading={automationsLoading}
+                            loadFailed={automationsLoadFailed}
+                            onRetry={onRetryAutomations}
                             folders={folders}
                             activeRunIds={activeRunIds}
                             rowProps={automationRowProps}

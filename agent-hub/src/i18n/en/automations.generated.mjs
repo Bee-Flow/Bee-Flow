@@ -1809,6 +1809,8 @@ export default {
     "automations.library.folderName": "Folder name",
     "automations.library.createFolder": "Create folder",
     "automations.library.noAutomations": "No automations yet.",
+    "automations.library.loadFailed": "Could not load your automations.",
+    "automations.library.retry": "Try again",
     "automations.library.noMatches": "No matches.",
     "automations.repeating.adjust": "Adjust first",
     "automations.repeating.buildThis": "Build this",

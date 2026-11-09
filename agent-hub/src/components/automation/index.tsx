@@ -38,10 +38,12 @@ interface AutomationListSectionProps {
 
 function AutomationListSection({ library, visibleAutomations, visibleStepCount, filtering, rowProps, leading = null, afterFolders = null }: AutomationListSectionProps) {
     const { t } = useTranslation();
-    const { automations, folders, automationsLoading } = library;
+    const { automations, folders, automationsLoading, automationsLoadFailed } = library;
+    // A failed read with nothing to show is not "No automations yet": say so and offer the read again.
+    const loadFailed = automationsLoadFailed && !automationsLoading && automations.length === 0;
     // "No automations yet" only without a filter; with one, "No matches"
     // only when the building blocks have none either.
-    const emptyNote = !automationsLoading && visibleAutomations.length === 0 && (!filtering || visibleStepCount === 0) && (
+    const emptyNote = !loadFailed && !automationsLoading && visibleAutomations.length === 0 && (!filtering || visibleStepCount === 0) && (
         <div className="text-xs text-[var(--text-tertiary)] p-4 text-center">
             {filtering ? t('automations.library.noMatches', 'No matches.') : t('automations.library.noAutomations', 'No automations yet.')}
         </div>
@@ -51,6 +53,18 @@ function AutomationListSection({ library, visibleAutomations, visibleStepCount, 
             {leading}
             {automationsLoading && automations.length === 0 && (
                 <div className="text-xs text-[var(--text-tertiary)] p-3">{t('automations.automation_page.loading', 'Loading…')}</div>
+            )}
+            {loadFailed && (
+                <div role="alert" className="text-xs text-[var(--error)] p-4 text-center">
+                    <div>{t('automations.library.loadFailed', 'Could not load your automations.')}</div>
+                    <button
+                        type="button"
+                        onClick={() => { void library.fetchAutomations(); }}
+                        className="mt-2 px-3 py-1 rounded-full border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                    >
+                        {t('automations.library.retry', 'Try again')}
+                    </button>
+                </div>
             )}
             {emptyNote}
             <FolderedAutomationList
@@ -206,6 +220,8 @@ function DesignerRightPane({
             automations={visibleAutomations}
             automationsQuery={query}
             automationsLoading={library.automationsLoading}
+            automationsLoadFailed={library.automationsLoadFailed}
+            onRetryAutomations={library.fetchAutomations}
             folders={library.folders}
             activeRunIds={library.activeRunIds}
             automationRowProps={rowProps}
