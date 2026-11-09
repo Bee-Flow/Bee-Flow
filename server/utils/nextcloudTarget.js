@@ -125,7 +125,8 @@ async function nextcloudFetch(url, opts = {}) {
  * Private-host mode: the LAN target is intended, so the request goes out as
  * is, but redirects are not left to fetch. GET/HEAD redirects are followed by
  * hand with every hop checked by assertAllowedNextcloudHost (metadata and
- * link-local literals refused); any other redirect is returned as is.
+ * link-local literals refused); any other redirect is returned as is. A hop
+ * to another origin goes out without Authorization and Cookie.
  * Every connect goes through privateModeDispatcher, which refuses a name that
  * resolves to a link-local or metadata address.
  * @param {string | URL} url
@@ -135,16 +136,36 @@ async function privateHostFetch(url, opts = {}) {
     const method = String(opts.method || 'GET').toUpperCase();
     const followable = method === 'GET' || method === 'HEAD';
     let target = String(url);
+    let init = opts;
     for (let hop = 0; ; hop += 1) {
-        const res = await fetch(target, withPrivateModeDispatcher({ ...opts, redirect: 'manual' }));
+        const res = await fetch(target, withPrivateModeDispatcher({ ...init, redirect: 'manual' }));
         if (!followable || res.status < 300 || res.status > 399) return res;
         const location = res.headers && res.headers.get('location');
         if (!location) return res;
         await res.body?.cancel().catch((e) => bestEffort('utils/nextcloudTarget:privateHostFetch', e));
         if (hop >= MAX_REDIRECTS) throw new Error('Too many redirects from the Nextcloud server.');
-        target = new URL(location, target).toString();
+        const next = new URL(location, target);
+        // What fetch does on its own when it follows a redirect: the
+        // credentials belong to the origin they were sent to, not to wherever
+        // that origin points next.
+        if (next.origin !== new URL(target).origin) init = withoutCredentials(init);
+        target = next.toString();
         assertAllowedNextcloudHost(target);
     }
+}
+
+const CREDENTIAL_HEADERS = ['authorization', 'proxy-authorization', 'cookie'];
+
+/**
+ * The same init without the headers that carry a credential.
+ * @param {RequestInit} init
+ * @returns {RequestInit}
+ */
+function withoutCredentials(init) {
+    if (!init.headers) return init;
+    const headers = new Headers(init.headers);
+    for (const name of CREDENTIAL_HEADERS) headers.delete(name);
+    return { ...init, headers };
 }
 
 const OAUTH_ENDPOINTS = { authorize: '/apps/oauth2/authorize', token: '/apps/oauth2/api/v1/token' };
