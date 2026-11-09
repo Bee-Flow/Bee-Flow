@@ -5,21 +5,21 @@ import { usePlanForm } from './usePlanForm';
 import type { PlanForm, PlanRecord, PlanSectionProps } from './usePlanForm';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/shared/Button';
-import type { SectionDef } from '../constants';
+import type { LucideIcon } from 'lucide-react';
 import { Dot } from '../ui/Badge';
-import { IconButton } from '../ui/IconButton';
+import IconButton from '@/components/shared/IconButton';
 import { BasicsSection }     from './sections/BasicsSection';
 import { FeaturesSection }   from './sections/FeaturesSection';
 import { PricingSection }    from './sections/PricingSection';
 import { TrialSection }      from './sections/TrialSection';
 import { VisibilitySection } from './sections/VisibilitySection';
 
-const SECTIONS: SectionDef[] = [
-    { id: 'basics',     label: 'Basics',     icon: Settings,     accent: 'sky' },
-    { id: 'features',   label: 'Features',   icon: Sparkles,     accent: 'emerald' },
-    { id: 'pricing',    label: 'Pricing',    icon: Euro,         accent: 'blue' },
-    { id: 'trial',      label: 'Trial',      icon: CalendarPlus, accent: 'amber' },
-    { id: 'visibility', label: 'Visibility', icon: Eye,          accent: 'rose' },
+const SECTIONS: { id: string; label: string; icon: LucideIcon }[] = [
+    { id: 'basics',     label: 'Basics',     icon: Settings },
+    { id: 'features',   label: 'Features',   icon: Sparkles },
+    { id: 'pricing',    label: 'Pricing',    icon: Euro },
+    { id: 'trial',      label: 'Trial',      icon: CalendarPlus },
+    { id: 'visibility', label: 'Visibility', icon: Eye },
 ];
 
 const SECTION_COMPONENTS: Record<string, ComponentType<PlanSectionProps>> = {
@@ -28,14 +28,6 @@ const SECTION_COMPONENTS: Record<string, ComponentType<PlanSectionProps>> = {
     pricing:    PricingSection,
     trial:      TrialSection,
     visibility: VisibilitySection,
-};
-
-const ACCENT_ICON: Record<string, string> = {
-    sky: 'text-sky-400',
-    emerald: 'text-emerald-400',
-    blue: 'text-blue-400',
-    amber: 'text-amber-400',
-    rose: 'text-rose-400',
 };
 
 function isSectionValid(id: string, form: PlanForm) {
@@ -92,11 +84,11 @@ export function PlanEditor({ plan, onSave, onDelete, onBack, saving, isNew: isNe
         <div className="absolute inset-0 flex flex-col bg-[var(--bg-primary)]">
             {/* Top bar */}
             <header className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <IconButton icon={ArrowLeft} size="sm" onClick={onBack} title={t('admin_subscriptions.plan_editor_back', 'Back to plans')} />
+                <IconButton size="sm" onClick={onBack} ariaLabel={t('admin_subscriptions.plan_editor_back', 'Back to plans')}><ArrowLeft /></IconButton>
                 <div className="min-w-0">
-                    <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
+                    <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">
                         {isNew ? t('admin_subscriptions.plan_editor_new_title', 'New subscription plan') : t('admin_subscriptions.plan_editor_edit_title', 'Edit subscription plan')}
-                        <span className="ml-2 normal-case font-medium text-[var(--text-muted)]">
+                        <span className="ml-2 normal-case font-medium text-[var(--text-tertiary)]">
                             {t('admin_subscriptions.plan_editor_step', '· Step {n} of {total} · {label}', { n: activeIdx + 1, total: SECTIONS.length, label: sectionLabels[active.id] })}
                         </span>
                     </div>
@@ -123,11 +115,11 @@ export function PlanEditor({ plan, onSave, onDelete, onBack, saving, isNew: isNe
                                 }`}
                             >
                                 <span className={`shrink-0 w-5 h-5 inline-flex items-center justify-center rounded-md text-[10px] font-bold ${
-                                    isActive ? 'bg-blue-500/20 text-blue-300' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
+                                    isActive ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
                                 }`}>
                                     {idx + 1}
                                 </span>
-                                <Icon className={`w-4 h-4 ${isActive ? ACCENT_ICON[s.accent] : 'text-[var(--text-muted)]'}`} />
+                                <Icon className={`w-4 h-4 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`} />
                                 <span className="flex-1">{sectionLabels[s.id]}</span>
                                 <Dot tone={ok ? 'success' : 'neutral'} />
                             </button>

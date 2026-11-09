@@ -23,7 +23,7 @@ function SelectedCountries({ settings, update }: GeoRestrictionsProps) {
         <>
             <div className="flex flex-wrap gap-1.5">
                 {geoCountries.length === 0 && (
-                    <span className="text-[11.5px] text-[var(--text-muted)] italic">
+                    <span className="text-[11.5px] text-[var(--text-tertiary)] italic">
                         {geoMode === 'allowlist' ? t('admin_subscriptions.access_geo_none_allow', 'No countries selected: all signups will be blocked.') : t('admin_subscriptions.access_geo_none', 'No countries selected.')}
                     </span>
                 )}
@@ -33,7 +33,7 @@ function SelectedCountries({ settings, update }: GeoRestrictionsProps) {
                         type="button"
                         onClick={() => removeCountry(code)}
                         title={t('admin_subscriptions.access_remove', 'Remove')}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11.5px] font-medium bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-rose-500/40 hover:text-rose-400"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11.5px] font-medium bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-[color-mix(in_srgb,var(--error)_40%,transparent)] hover:text-[var(--error-ink)]"
                     >
                         <span>{countryFlag(code)}</span>
                         <span>{countryName(code)}</span>
@@ -77,11 +77,11 @@ function CountryPicker({ settings, update, countrySearch, setCountrySearch }: Co
                 value={countrySearch}
                 onChange={e => setCountrySearch(e.target.value)}
                 placeholder={t('admin_subscriptions.access_search_countries', 'Search countries to add…')}
-                className="w-full px-3 py-2 text-[13px] rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50"
+                className="w-full px-3 py-2 text-[13px] rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)]"
             />
             <div className="mt-1.5 max-h-44 overflow-y-auto rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
                 {availableCountries.length === 0 ? (
-                    <div className="px-3 py-2 text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.access_no_matches', 'No matches.')}</div>
+                    <div className="px-3 py-2 text-[12px] text-[var(--text-tertiary)]">{t('admin_subscriptions.access_no_matches', 'No matches.')}</div>
                 ) : availableCountries.map(c => (
                     <button
                         key={c.code}
@@ -91,7 +91,7 @@ function CountryPicker({ settings, update, countrySearch, setCountrySearch }: Co
                     >
                         <span>{countryFlag(c.code)}</span>
                         <span className="flex-1">{c.name}</span>
-                        <span className="text-[10.5px] text-[var(--text-muted)]">{c.code}</span>
+                        <span className="text-[10.5px] text-[var(--text-tertiary)]">{c.code}</span>
                     </button>
                 ))}
             </div>
@@ -112,10 +112,10 @@ export default function GeoRestrictions({ settings, update }: GeoRestrictionsPro
     return (
         <Card className="space-y-4 !p-5 mb-4">
             <div className="flex items-start gap-2">
-                <Globe className="w-4 h-4 mt-0.5 text-teal-400 shrink-0" />
+                <Globe className="w-4 h-4 mt-0.5 text-[var(--text-secondary)] shrink-0" />
                 <div>
                     <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">{t('admin_subscriptions.access_geo_title', 'Geo restrictions')}</h3>
-                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                    <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
                         {t('admin_subscriptions.access_geo_desc', 'Restrict which countries can create accounts, based on the signup request\'s IP location.')}
                     </p>
                 </div>
@@ -130,7 +130,7 @@ export default function GeoRestrictions({ settings, update }: GeoRestrictionsPro
                         onClick={() => update('geoMode', m.id)}
                         className={`px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
                             geoMode === m.id
-                                ? 'bg-blue-600 text-white'
+                                ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]'
                                 : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         }`}
                     >
@@ -155,7 +155,6 @@ export default function GeoRestrictions({ settings, update }: GeoRestrictionsPro
                     <Checkbox
                         checked={settings.geoBlockUnknown}
                         onChange={v => update('geoBlockUnknown', v)}
-                        accent="amber"
                         label={t('admin_subscriptions.access_geo_unknown', 'Block signups when the country can\'t be determined')}
                     />
 
@@ -163,7 +162,6 @@ export default function GeoRestrictions({ settings, update }: GeoRestrictionsPro
                         checked={settings.geoApplyConnector}
                         onChange={v => update('geoApplyConnector', v)}
                         icon={Network}
-                        iconClass="text-sky-400"
                         label={t('admin_subscriptions.access_geo_connector', 'Also apply to Nextcloud connector signups')}
                         description={t('admin_subscriptions.access_geo_connector_desc', 'When a new Nextcloud user is auto-provisioned, check the connecting Nextcloud server\'s location (not the individual user\'s).')}
                     />

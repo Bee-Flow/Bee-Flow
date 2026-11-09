@@ -7,8 +7,8 @@ import WaitlistQueue from './WaitlistQueue';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/shared/Button';
 import { Banner } from '../ui/Banner';
-import { SectionHeader } from '../ui/SectionHeader';
-import { Spinner } from '../ui/Spinner';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
 
 /** Why the switches are overridden, or that they take effect at once. */
 function OverrideBanners({ settings, env }: { settings: SignupSettings; env: SignupEnvironment }) {
@@ -46,13 +46,13 @@ function CreateAccountState({ settings, env }: { settings: SignupSettings; env: 
     const effectiveAllowSignups = anySignups && !settings.connectorOnly && env.allowSignupsEnv;
     return (
         <span className="inline-flex items-center gap-1.5 text-[12px] font-medium">
-            <span className={`w-2 h-2 rounded-full ${effectiveAllowSignups ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-            <span className="text-[var(--text-muted)]">{t('admin_subscriptions.access_button_state', 'Create Account button:')}</span>
-            <span className={effectiveAllowSignups ? 'text-emerald-400' : 'text-rose-400'}>
+            <span className={`w-2 h-2 rounded-full ${effectiveAllowSignups ? 'bg-[var(--success)]' : 'bg-[var(--error)]'}`} />
+            <span className="text-[var(--text-tertiary)]">{t('admin_subscriptions.access_button_state', 'Create Account button:')}</span>
+            <span className={effectiveAllowSignups ? 'text-[var(--success-ink)]' : 'text-[var(--error-ink)]'}>
                 {effectiveAllowSignups ? t('admin_subscriptions.access_button_visible', 'visible on the login page') : t('admin_subscriptions.access_button_hidden', 'hidden')}
             </span>
             {!effectiveAllowSignups && anySignups && (
-                <span className="text-[var(--text-muted)]">
+                <span className="text-[var(--text-tertiary)]">
                     ({!env.allowSignupsEnv ? t('admin_subscriptions.access_reason_env', 'ALLOW_SIGNUPS=false') : settings.connectorOnly ? t('admin_subscriptions.access_reason_connector', 'connector-only mode') : t('admin_subscriptions.access_reason_overridden', 'overridden')})
                 </span>
             )}
@@ -64,11 +64,11 @@ export function AccessView() {
     const { t } = useTranslation();
     const { loading, saving, settings, update, env, waitlistUsers, handleSave, approve, reject, confirmDialog } = useSignupSettings();
 
-    if (loading) return <Spinner label={t('admin_subscriptions.access_loading', 'Loading settings…')} />;
+    if (loading) return <div className="flex justify-center py-12"><Spinner label={t('admin_subscriptions.access_loading', 'Loading settings…')} /></div>;
 
     return (
-        <div className="px-6 py-6 max-w-3xl mx-auto">
-            <SectionHeader
+        <div className="max-w-3xl p-6 md:p-8">
+            <SectionHeader className="mb-5"
                 title={t('admin_subscriptions.access_title', 'Access Control')}
                 description={t('admin_subscriptions.access_desc', 'Control which types of accounts can be created on this platform.')}
             />

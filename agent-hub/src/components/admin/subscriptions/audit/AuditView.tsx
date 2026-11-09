@@ -9,9 +9,9 @@ import { Dot } from '../ui/Badge';
 import type { BadgeTone } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { SearchInput } from '../ui/SearchInput';
-import { SectionHeader } from '../ui/SectionHeader';
-import { Spinner } from '../ui/Spinner';
-import { FilterPills } from '../ui/Tabs';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
+import FilterPills from '@/components/shared/FilterPills';
 
 /** One row of `GET /api/subscriptions/audit`. */
 interface AuditLog {
@@ -86,19 +86,19 @@ function LogRow({ log, unresolvedFailureIds, onRetryDone }: LogRowProps) {
                         <span className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-primary)]">
                             {(log.action || '').replace(/_/g, ' ')}
                         </span>
-                        <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                        <span className="text-[11px] font-mono text-[var(--text-tertiary)]">
                             {log.target_type}:{(log.target_id || '').slice(0, 12)}
                         </span>
                     </div>
-                    <div className="mt-0.5 text-[11.5px] text-[var(--text-muted)]">
+                    <div className="mt-0.5 text-[11.5px] text-[var(--text-tertiary)]">
                         {t('admin_subscriptions.audit_by', 'by {name}', { name: log.changed_by || t('admin_subscriptions.audit_system', 'system') })}{' • '}
                         {new Date(log.created_at).toLocaleString()}
                     </div>
                     {!open && summary && (
-                        <div className="mt-1 text-[11px] text-[var(--text-muted)] truncate max-w-full">{summary}</div>
+                        <div className="mt-1 text-[11px] text-[var(--text-tertiary)] truncate max-w-full">{summary}</div>
                     )}
                     {retryError && (
-                        <div className="mt-1 text-[11px] text-rose-400">{t('admin_subscriptions.audit_retry_failed', 'Retry failed: {error}', { error: retryError })}</div>
+                        <div className="mt-1 text-[11px] text-[var(--error-ink)]">{t('admin_subscriptions.audit_retry_failed', 'Retry failed: {error}', { error: retryError })}</div>
                     )}
                 </div>
                 {showRetry && (
@@ -106,15 +106,15 @@ function LogRow({ log, unresolvedFailureIds, onRetryDone }: LogRowProps) {
                         type="button"
                         onClick={handleRetry}
                         disabled={retrying}
-                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 disabled:opacity-50"
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-[color-mix(in_srgb,var(--error)_40%,transparent)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-[var(--error-ink)] hover:bg-[color-mix(in_srgb,var(--error)_18%,transparent)] disabled:opacity-50"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${retrying ? 'animate-spin' : ''}`} />
                         {retrying ? t('admin_subscriptions.audit_retrying', 'Retrying…') : t('admin_subscriptions.audit_retry', 'Retry')}
                     </button>
                 )}
                 {hasDetails && (
-                    open ? <ChevronDown className="w-4 h-4 text-[var(--text-muted)] shrink-0 mt-1" />
-                         : <ChevronRight className="w-4 h-4 text-[var(--text-muted)] shrink-0 mt-1" />
+                    open ? <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)] shrink-0 mt-1" />
+                         : <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)] shrink-0 mt-1" />
                 )}
             </button>
 
@@ -136,7 +136,7 @@ export function AuditView() {
     const { data: logs = [], loading, reload: reloadLogs } = useResource<AuditLog[]>('/api/subscriptions/audit?limit=100', { initial: [] });
     const { data: failures = [], reload: reloadFailures } = useResource<IssuanceFailure[]>('/api/subscriptions/license-issuance-failures?limit=200', { initial: [] });
     const [query, setQuery]       = useState('');
-    const [entity, setEntity]     = useState<string | string[] | null>(null);
+    const [entity, setEntity]     = useState<string | null>(null);
 
     const unresolvedFailureIds = useMemo(
         () => new Set((Array.isArray(failures) ? failures : []).map(f => f.id)),
@@ -162,24 +162,24 @@ export function AuditView() {
     }, [logs, entity, query]);
 
     return (
-        <div className="px-6 py-6 max-w-3xl mx-auto">
-            <SectionHeader
+        <div className="max-w-3xl p-6 md:p-8">
+            <SectionHeader className="mb-5"
                 title={t('admin_subscriptions.audit_title', 'Subscription Audit Log')}
                 description={t('admin_subscriptions.audit_desc', 'Track all subscription plan and organization changes.')}
-                action={<SearchInput value={query} onChange={setQuery} placeholder={t('admin_subscriptions.audit_filter', 'Filter by action, target, user…')} className="w-72" />}
+                status={<SearchInput value={query} onChange={setQuery} placeholder={t('admin_subscriptions.audit_filter', 'Filter by action, target, user…')} className="w-72" />}
             />
 
             {unresolvedFailureIds.size > 0 && (
-                <Card className="!p-3.5 mb-4 border-rose-500/40 bg-rose-500/5">
+                <Card className="!p-3.5 mb-4 border-[color-mix(in_srgb,var(--error)_40%,transparent)] bg-[color-mix(in_srgb,var(--error)_6%,transparent)]">
                     <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-5 h-5 text-[var(--error-ink)] shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                             <div className="text-[13px] font-semibold text-[var(--text-primary)]">
                                 {unresolvedFailureIds.size === 1
                                     ? t('admin_subscriptions.audit_failures_one', '{count} unresolved license-issuance failure', { count: unresolvedFailureIds.size })
                                     : t('admin_subscriptions.audit_failures_many', '{count} unresolved license-issuance failures', { count: unresolvedFailureIds.size })}
                             </div>
-                            <div className="mt-0.5 text-[11.5px] text-[var(--text-muted)]">
+                            <div className="mt-0.5 text-[11.5px] text-[var(--text-tertiary)]">
                                 {t('admin_subscriptions.audit_failures_hint', 'Customers paid but didn\'t receive a license JWT. Use the Retry button on a failure row to re-attempt issuance.')}
                             </div>
                         </div>
@@ -188,14 +188,14 @@ export function AuditView() {
             )}
 
             <FilterPills
-                value={entity}
-                onChange={setEntity}
+                value={entity ?? undefined}
+                onChange={v => setEntity(v === entity ? null : v)}
                 options={ENTITY_TYPES}
                 className="mb-5"
             />
 
             {loading ? (
-                <Spinner label={t('admin_subscriptions.audit_loading', 'Loading audit log…')} />
+                <div className="flex justify-center py-12"><Spinner label={t('admin_subscriptions.audit_loading', 'Loading audit log…')} /></div>
             ) : visible.length === 0 ? (
                 <EmptyState
                     icon={<ScrollText className="w-6 h-6" />}

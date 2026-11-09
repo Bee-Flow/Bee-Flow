@@ -1,7 +1,7 @@
 import { Building2, Users } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { ChoiceCards } from '../../ui/Choice';
+import ChoiceCards from '@/components/shared/ChoiceCards';
 import { Field, Input, Textarea } from '../../ui/Input';
 import type { PlanSectionProps } from '../usePlanForm';
 
@@ -11,7 +11,7 @@ export function BasicsSection({ form, update }: PlanSectionProps) {
         <div className="space-y-5">
             <div>
                 <h3 className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{t('admin_subscriptions.basics_title', 'Basics')}</h3>
-                <p className="text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.basics_desc', 'Who this plan is for and how it appears to customers.')}</p>
+                <p className="text-[12px] text-[var(--text-tertiary)]">{t('admin_subscriptions.basics_desc', 'Who this plan is for and how it appears to customers.')}</p>
             </div>
 
             <Field label={t('admin_subscriptions.basics_type', 'Plan type')} hint={t('admin_subscriptions.basics_type_hint', 'who this plan is sold to')}>
@@ -19,8 +19,8 @@ export function BasicsSection({ form, update }: PlanSectionProps) {
                     value={form.plan_type}
                     onChange={v => update('plan_type', v)}
                     options={[
-                        { value: 'organization', label: t('admin_subscriptions.basics_org', 'Organization'), description: t('admin_subscriptions.basics_org_desc', 'For teams & companies'), icon: Building2, accent: 'sky' },
-                        { value: 'consumer',     label: t('admin_subscriptions.basics_consumer', 'Consumer'), description: t('admin_subscriptions.basics_consumer_desc', 'For individuals'),      icon: Users,     accent: 'emerald' },
+                        { value: 'organization', label: t('admin_subscriptions.basics_org', 'Organization'), description: t('admin_subscriptions.basics_org_desc', 'For teams & companies'), Icon: Building2 },
+                        { value: 'consumer',     label: t('admin_subscriptions.basics_consumer', 'Consumer'), description: t('admin_subscriptions.basics_consumer_desc', 'For individuals'),      Icon: Users },
                     ]}
                 />
             </Field>

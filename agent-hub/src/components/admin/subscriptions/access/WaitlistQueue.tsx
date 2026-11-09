@@ -20,11 +20,11 @@ export default function WaitlistQueue({ users, onApprove, onReject }: WaitlistQu
             <div className="flex items-end justify-between gap-4 mb-3">
                 <div>
                     <h3 className="flex items-center gap-2 text-[16px] font-bold text-[var(--text-primary)]">
-                        <Clock className="w-4 h-4 text-amber-400" />
+                        <Clock className="w-4 h-4 text-[var(--warning-ink)]" />
                         {t('admin_subscriptions.access_waitlist_queue', 'Waitlist queue')}
                         {users.length > 0 && <Badge tone="warning" size="sm">{users.length}</Badge>}
                     </h3>
-                    <p className="text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.access_waitlist_queue_desc', 'Users waiting for account approval.')}</p>
+                    <p className="text-[12px] text-[var(--text-tertiary)]">{t('admin_subscriptions.access_waitlist_queue_desc', 'Users waiting for account approval.')}</p>
                 </div>
             </div>
 
@@ -43,7 +43,7 @@ export default function WaitlistQueue({ users, onApprove, onReject }: WaitlistQu
                         >
                             <div className="min-w-0">
                                 <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{u.displayName || u.username}</div>
-                                <div className="flex flex-wrap gap-x-3 mt-0.5 text-[11.5px] text-[var(--text-muted)]">
+                                <div className="flex flex-wrap gap-x-3 mt-0.5 text-[11.5px] text-[var(--text-tertiary)]">
                                     {u.email && <span>{u.email}</span>}
                                     {u.createdAt && <span>{t('admin_subscriptions.access_signed_up', 'Signed up {date}', { date: new Date(u.createdAt).toLocaleDateString() })}</span>}
                                 </div>

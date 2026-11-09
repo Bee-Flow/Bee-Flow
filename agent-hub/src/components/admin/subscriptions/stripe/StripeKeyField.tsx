@@ -26,7 +26,7 @@ export function StripeKeyField({ label, type = 'password', placeholderConfigured
                 <span className="inline-flex items-center gap-2">
                     {label}
                     {configured && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400">
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--success-ink)]">
                             <CheckCircle className="w-3 h-3" /> {t('admin_subscriptions.stripe_key_saved', 'saved')}
                         </span>
                     )}
@@ -40,7 +40,7 @@ export function StripeKeyField({ label, type = 'password', placeholderConfigured
                     value={value}
                     onChange={e => onChange(e.target.value)}
                     placeholder={configured ? placeholderConfigured : placeholderEmpty}
-                    className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[12.5px] font-mono placeholder:text-[var(--text-muted)] outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20"
+                    className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[12.5px] font-mono placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]"
                 />
                 {value ? (
                     <Button icon={Save} onClick={onSave} busy={busy} size="md">{t('admin_subscriptions.stripe_key_save', 'Save')}</Button>

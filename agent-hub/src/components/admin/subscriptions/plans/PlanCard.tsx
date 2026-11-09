@@ -5,7 +5,7 @@ import { Button } from '@/components/shared/Button';
 import { CURRENCY_SYMBOL } from '../constants';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
-import { IconButton } from '../ui/IconButton';
+import IconButton from '@/components/shared/IconButton';
 import { StatRow, StatGrid } from '../ui/StatRow';
 
 interface PlanCardProps {
@@ -51,7 +51,7 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }: Plan
                         )}
                     </div>
                     <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight truncate">{plan.name}</h3>
-                    {plan.tagline && <div className="mt-0.5 text-[11.5px] text-[var(--text-muted)] line-clamp-1">{plan.tagline}</div>}
+                    {plan.tagline && <div className="mt-0.5 text-[11.5px] text-[var(--text-tertiary)] line-clamp-1">{plan.tagline}</div>}
                 </div>
             </div>
 
@@ -59,22 +59,22 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }: Plan
             <div className="mb-4">
                 {metered ? (
                     <div className="flex items-baseline gap-2">
-                        <TrendingUp className="w-5 h-5 self-center text-emerald-400" />
-                        <span className="text-[22px] font-extrabold text-emerald-400 leading-none">
+                        <TrendingUp className="w-5 h-5 self-center text-[var(--success-ink)]" />
+                        <span className="text-[22px] font-extrabold text-[var(--success-ink)] leading-none">
                             {t('admin_subscriptions.plan_card_payg', 'PAYG · +{percent}%', { percent: Number(plan.markup_percent ?? 0).toFixed((plan.markup_percent as number) % 1 === 0 ? 0 : 1) })}
                         </span>
-                        <span className="text-[11.5px] text-[var(--text-muted)]">{t('admin_subscriptions.plan_card_metered', 'metered / {interval}', { interval: plan.billing_interval || t('admin_subscriptions.plan_card_month', 'month') })}</span>
+                        <span className="text-[11.5px] text-[var(--text-tertiary)]">{t('admin_subscriptions.plan_card_metered', 'metered / {interval}', { interval: plan.billing_interval || t('admin_subscriptions.plan_card_month', 'month') })}</span>
                     </div>
                 ) : plan.price != null ? (
                     <div className="flex items-baseline gap-2">
                         <span className="text-[26px] font-extrabold text-[var(--text-primary)] leading-none">{sym}{plan.price.toFixed(2)}</span>
-                        <span className="text-[12px] text-[var(--text-muted)]">/ {perSeat ? t('admin_subscriptions.plan_card_seat_month', 'seat / month') : (plan.billing_interval || t('admin_subscriptions.plan_card_month', 'month'))}</span>
+                        <span className="text-[12px] text-[var(--text-tertiary)]">/ {perSeat ? t('admin_subscriptions.plan_card_seat_month', 'seat / month') : (plan.billing_interval || t('admin_subscriptions.plan_card_month', 'month'))}</span>
                         {(plan.trial_days as number) > 0 && (
                             <Badge tone="success" size="sm" className="ml-auto">{t('admin_subscriptions.plan_card_trial_days', '{days}d trial', { days: plan.trial_days })}</Badge>
                         )}
                     </div>
                 ) : (
-                    <div className="text-[14px] font-semibold text-[var(--text-muted)]">{t('admin_subscriptions.plan_card_free_internal', 'Free / Internal')}</div>
+                    <div className="text-[14px] font-semibold text-[var(--text-tertiary)]">{t('admin_subscriptions.plan_card_free_internal', 'Free / Internal')}</div>
                 )}
             </div>
 
@@ -95,7 +95,7 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }: Plan
             {isPaid && (
                 <div className="mb-3">
                     {plan.stripe_price_id ? (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--success-ink)]">
                             <CreditCard className="w-3.5 h-3.5" />
                             {t('admin_subscriptions.plan_card_synced', 'Stripe synced')}
                         </span>
@@ -119,7 +119,7 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }: Plan
                 <Button variant="secondary" icon={Pencil} onClick={onEdit} className="flex-1">
                     {t('admin_subscriptions.plan_card_edit', 'Edit')}
                 </Button>
-                <IconButton icon={Trash2} variant="danger" title={t('admin_subscriptions.plan_card_delete', 'Delete plan')} onClick={onDelete} />
+                <IconButton variant="danger" ariaLabel={t('admin_subscriptions.plan_card_delete', 'Delete plan')} onClick={onDelete}><Trash2 /></IconButton>
             </div>
         </Card>
     );

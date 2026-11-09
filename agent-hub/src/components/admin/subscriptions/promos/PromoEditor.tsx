@@ -5,8 +5,8 @@ import { Button } from '@/components/shared/Button';
 import { toast } from '@/components/shared/Toast';
 import { apiJson } from '../hooks/useApi';
 import { Banner } from '../ui/Banner';
-import { ChoiceCards } from '../ui/Choice';
-import { IconButton } from '../ui/IconButton';
+import ChoiceCards from '@/components/shared/ChoiceCards';
+import IconButton from '@/components/shared/IconButton';
 import { Field, Input, Select, NumberInput } from '../ui/Input';
 import { Toggle } from '../ui/Toggle';
 
@@ -80,9 +80,9 @@ export function PromoEditor({ onBack, onCreated }: PromoEditorProps) {
     return (
         <div className="absolute inset-0 flex flex-col bg-[var(--bg-primary)]">
             <header className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <IconButton icon={ArrowLeft} size="sm" onClick={onBack} title={t('admin_subscriptions.promos_back', 'Back to promo codes')} />
+                <IconButton size="sm" onClick={onBack} ariaLabel={t('admin_subscriptions.promos_back', 'Back to promo codes')}><ArrowLeft /></IconButton>
                 <div className="min-w-0">
-                    <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">{t('admin_subscriptions.promos_new', 'New promotion code')}</div>
+                    <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">{t('admin_subscriptions.promos_new', 'New promotion code')}</div>
                     <h1 className="text-[16px] font-bold text-[var(--text-primary)] truncate">
                         {form.code || t('admin_subscriptions.promos_untitled', 'Untitled code')}
                     </h1>
@@ -117,8 +117,8 @@ export function PromoEditor({ onBack, onCreated }: PromoEditorProps) {
                             value={form.discountType}
                             onChange={v => update('discountType', v)}
                             options={[
-                                { value: 'percent', label: t('admin_subscriptions.promos_percentage', 'Percentage'), description: t('admin_subscriptions.promos_percentage_desc', '% off the price'), icon: Percent, accent: 'blue' },
-                                { value: 'fixed',   label: t('admin_subscriptions.promos_fixed', 'Fixed amount'), description: t('admin_subscriptions.promos_fixed_desc', 'currency off'), icon: Euro,    accent: 'emerald' },
+                                { value: 'percent', label: t('admin_subscriptions.promos_percentage', 'Percentage'), description: t('admin_subscriptions.promos_percentage_desc', '% off the price'), Icon: Percent },
+                                { value: 'fixed',   label: t('admin_subscriptions.promos_fixed', 'Fixed amount'), description: t('admin_subscriptions.promos_fixed_desc', 'currency off'), Icon: Euro },
                             ]}
                         />
                     </Field>

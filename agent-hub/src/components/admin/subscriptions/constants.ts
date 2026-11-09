@@ -1,23 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
-import { Package, Building2, KeyRound, ShieldCheck, Tag, CreditCard, ScrollText } from 'lucide-react';
 import { FEATURE_CATALOG } from '@/shared/featureCatalog';
-
-export interface SectionDef {
-    id: string;
-    label: string;
-    icon: LucideIcon;
-    accent: string;
-}
-
-export const SECTIONS: SectionDef[] = [
-    { id: 'plans',         label: 'Plans',  icon: Package,     accent: 'blue' },
-    { id: 'organizations', label: 'Orgs',   icon: Building2,   accent: 'sky' },
-    { id: 'grants',        label: 'Grants', icon: KeyRound,    accent: 'cyan' },
-    { id: 'access',        label: 'Access', icon: ShieldCheck, accent: 'amber' },
-    { id: 'promos',        label: 'Promos', icon: Tag,         accent: 'emerald' },
-    { id: 'settings',      label: 'Stripe', icon: CreditCard,  accent: 'blue' },
-    { id: 'audit',         label: 'Audit',  icon: ScrollText,  accent: 'rose' },
-];
 
 // Re-exported from the shared, framework-free catalog so the admin plan
 // editor and the marketing pricing block share one id→label source.

@@ -8,7 +8,7 @@ import { useResource } from '../hooks/useApi';
 import type { PlanRecord } from '../plans/usePlanForm';
 import { Banner } from '../ui/Banner';
 import { Card } from '../ui/Card';
-import { IconButton } from '../ui/IconButton';
+import IconButton from '@/components/shared/IconButton';
 import { Field, Select, Textarea } from '../ui/Input';
 import { LimitField } from '../ui/LimitField';
 import { UsageBar } from '../ui/UsageBar';
@@ -117,9 +117,9 @@ export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTria
     return (
         <div className="absolute inset-0 flex flex-col bg-[var(--bg-primary)]">
             <header className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <IconButton icon={ArrowLeft} size="sm" onClick={onBack} title={t('admin_subscriptions.org_editor_back', 'Back to orgs')} />
+                <IconButton size="sm" onClick={onBack} ariaLabel={t('admin_subscriptions.org_editor_back', 'Back to orgs')}><ArrowLeft /></IconButton>
                 <div className="min-w-0">
-                    <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">{t('admin_subscriptions.org_editor_title', 'Organization subscription')}</div>
+                    <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">{t('admin_subscriptions.org_editor_title', 'Organization subscription')}</div>
                     <h1 className="text-[16px] font-bold text-[var(--text-primary)] truncate">{orgSub?.org_name || t('admin_subscriptions.org_editor_org_fallback', 'Organization')}</h1>
                 </div>
             </header>
@@ -138,10 +138,10 @@ export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTria
                     {(access?.features?.length as number) > 0 && (
                         <Card>
                             <div className="flex items-center gap-2 mb-1">
-                                <FlaskConical className="w-4 h-4 text-emerald-400" />
+                                <FlaskConical className="w-4 h-4 text-[var(--success-ink)]" />
                                 <div className="text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t('admin_subscriptions.org_editor_access_title', 'Effective access')}</div>
                             </div>
-                            <p className="text-[11px] text-[var(--text-muted)] mb-3">
+                            <p className="text-[11px] text-[var(--text-tertiary)] mb-3">
                                 {t('admin_subscriptions.org_editor_access_desc', 'What works for this org under its saved plan (tier {tier}). Save plan changes to refresh.', { tier: (access as EffectiveAccess).tier })}
                             </p>
                             <div className="space-y-1.5">
@@ -152,15 +152,15 @@ export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTria
                                     return (
                                         <div key={f.id} className="flex items-center gap-2 text-[12px]">
                                             {f.effective ? (
-                                                <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                                <Check className="w-3.5 h-3.5 text-[var(--success-ink)] shrink-0" />
                                             ) : (
-                                                <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                                <Lock className="w-3.5 h-3.5 text-[var(--warning-ink)] shrink-0" />
                                             )}
                                             <span className="text-[var(--text-primary)] font-medium">{f.name}</span>
                                             {f.effective ? (
-                                                <span className="text-emerald-500">{t('admin_subscriptions.org_editor_enabled', 'enabled')}</span>
+                                                <span className="text-[var(--success-ink)]">{t('admin_subscriptions.org_editor_enabled', 'enabled')}</span>
                                             ) : (
-                                                <span className="text-[var(--text-muted)]">{t('admin_subscriptions.org_editor_blocked', 'blocked: {reason}', { reason })}</span>
+                                                <span className="text-[var(--text-tertiary)]">{t('admin_subscriptions.org_editor_blocked', 'blocked: {reason}', { reason })}</span>
                                             )}
                                         </div>
                                     );
@@ -203,16 +203,16 @@ export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTria
                         </Banner>
                     )}
                     {trialUsedAt && (
-                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
                             <Clock className="w-3.5 h-3.5" /> {t('admin_subscriptions.org_editor_trial_used', 'Trial used on {date}', { date: new Date(trialUsedAt).toLocaleDateString() })}
                         </div>
                     )}
 
                     <div>
                         <h3 className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)] mb-3">
-                            <Shield className="w-4 h-4 text-teal-400" />
+                            <Shield className="w-4 h-4 text-[var(--text-secondary)]" />
                             {t('admin_subscriptions.org_editor_overrides', 'Limit overrides')}
-                            <span className="font-normal text-[11px] text-[var(--text-muted)]">{t('admin_subscriptions.org_editor_overrides_hint', 'toggle Override to set per-org caps')}</span>
+                            <span className="font-normal text-[11px] text-[var(--text-tertiary)]">{t('admin_subscriptions.org_editor_overrides_hint', 'toggle Override to set per-org caps')}</span>
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                             {LIMIT_FIELDS.map(f => (
