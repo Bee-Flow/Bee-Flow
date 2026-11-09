@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { Dispatch, SetStateAction } from 'react';
 import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER } from './constants';
 import type { StatusMessage, TierConfig, TierSettings } from './tierTypes';
@@ -49,6 +50,7 @@ function withRecommended(current: TierSettings | undefined, rec: ClaudeRecommend
  * which keeps the action reviewable.
  */
 export default function useClaudeSettings(config: TierConfig, setConfig: Dispatch<SetStateAction<TierConfig>>): ClaudeSettingsState {
+    const { t } = useTranslation();
     const [claudeAutoRetry, setClaudeAutoRetry] = useState(true);
     const [claudeSaving, setClaudeSaving] = useState(false);
     const [claudeMessage, setClaudeMessage] = useState<StatusMessage | null>(null);
@@ -69,12 +71,12 @@ export default function useClaudeSettings(config: TierConfig, setConfig: Dispatc
         try {
             const res = await postAiConfig('claude-settings', { autoRetryOnEmpty: next });
             if (res.ok) {
-                flash(setClaudeMessage, { type: 'success', text: 'Claude settings saved' }, 3000);
+                flash(setClaudeMessage, { type: 'success', text: t('admin_ai_config.claude_saved', 'Claude settings saved') }, 3000);
             } else {
-                setClaudeMessage({ type: 'error', text: 'Failed to save Claude settings' });
+                setClaudeMessage({ type: 'error', text: t('admin_ai_config.claude_save_failed', 'Failed to save Claude settings') });
             }
         } catch (e) {
-            setClaudeMessage({ type: 'error', text: 'Failed to save Claude settings' });
+            setClaudeMessage({ type: 'error', text: t('admin_ai_config.claude_save_failed', 'Failed to save Claude settings') });
         }
         setClaudeSaving(false);
     };
@@ -96,7 +98,7 @@ export default function useClaudeSettings(config: TierConfig, setConfig: Dispatc
             next[tierKey] = withRecommended(next[tierKey], rec);
         }
         setConfig(next);
-        flash(setClaudeMessage, { type: 'success', text: 'Recommended Claude defaults applied to all tiers — click Save Tier Configuration to persist.' }, 5000);
+        flash(setClaudeMessage, { type: 'success', text: t('admin_ai_config.claude_applied_all', 'Recommended Claude defaults applied to all tiers. Click Save Tier Configuration to keep them.') }, 5000);
     };
 
     return {

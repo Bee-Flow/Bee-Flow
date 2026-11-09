@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
+import SectionHeader from './SectionHeader';
+import { FIELD_INPUT, SAVE_BUTTON, SettingRow, SettingsList } from './ui/SettingsList';
+import { useToastOnMessage } from './ui/useToastOnMessage';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -99,49 +102,42 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
     const isAzure = selectedProvider?.type === 'azure';
     const useModelDropdown = providerModels.length > 0 && !isAzure;
 
+    useToastOnMessage(message);
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.embed_loading', 'Loading settings...')}</div>;
 
     return (
-        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl [background:rgba(16,185,129,0.15)]">
-                        🔍
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_ai_config.embed_title', 'Embedding Configuration')}</h3>
-                        <p className="text-sm text-[var(--text-muted)]">{t('admin_ai_config.embed_subtitle', 'Configure vectors for Knowledge Base')}</p>
-                    </div>
-                </div>
-                {message && (
-                    <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
-                        {message.text}
-                    </span>
-                )}
-            </div>
-
-            <div className="space-y-6 max-w-2xl">
-                <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.embed_provider', 'Embedding Provider')}</label>
+        <div className="flex max-w-4xl flex-col gap-6">
+            <SectionHeader
+                title={t('admin_ai_config.embed_title', 'Embedding Configuration')}
+                description={t('admin_ai_config.embed_subtitle', 'Configure vectors for Knowledge Base')}
+            />
+            <SettingsList>
+                <SettingRow htmlFor="embed-provider" label={t('admin_ai_config.embed_provider', 'Embedding Provider')}>
                     <select
+                        id="embed-provider"
                         value={config.embeddingProviderId}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingProviderId: e.target.value, embeddingModel: '' })}
-                        className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
+                        className={FIELD_INPUT}
                     >
                         <option value="">{t('admin_ai_config.embed_select_provider', 'Select Provider...')}</option>
                         {providers.map((p: EmbeddingProvider) => (
                             <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
                         ))}
                     </select>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.embed_model', 'Embedding Model')}</label>
+                </SettingRow>
+                <SettingRow
+                    htmlFor="embed-model"
+                    label={t('admin_ai_config.embed_model', 'Embedding Model')}
+                    hint={isAzure
+                        ? t('admin_ai_config.embed_azure_hint', 'For Azure, enter the deployment name of your embedding model (not the base model name).')
+                        : t('admin_ai_config.embed_mistral_hint', 'For Mistral, "mistral-embed" is recommended.')}
+                >
                     {useModelDropdown ? (
                         <select
+                            id="embed-model"
                             value={config.embeddingModel}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingModel: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
+                            className={FIELD_INPUT}
                         >
                             <option value="">{t('admin_ai_config.embed_select_model', 'Select Model...')}</option>
                             {modelChoices.map((m: EmbeddingModel) => (
@@ -150,29 +146,20 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                         </select>
                     ) : (
                         <input
+                            id="embed-model"
                             type="text"
                             value={config.embeddingModel}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingModel: e.target.value })}
                             placeholder={isAzure ? t('admin_ai_config.embed_azure_placeholder', 'Your Azure deployment name, e.g. text-embedding-3-small') : t('admin_ai_config.embed_model_placeholder', 'e.g. text-embedding-3-small')}
-                            className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
+                            className={FIELD_INPUT}
                         />
                     )}
-                    <p className="text-xs mt-1 text-[var(--text-muted)]">
-                        {isAzure
-                            ? t('admin_ai_config.embed_azure_hint', 'For Azure, enter the deployment name of your embedding model (not the base model name).')
-                            : t('admin_ai_config.embed_mistral_hint', 'For Mistral, "mistral-embed" is recommended.')}
-                    </p>
-                </div>
-
-                <div className="pt-4">
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="px-6 py-2.5 rounded-xl font-medium text-white transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
-                    >
-                        {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.embed_save', 'Save Configuration')}
-                    </button>
-                </div>
+                </SettingRow>
+            </SettingsList>
+            <div>
+                <button type="button" onClick={handleSave} disabled={saving} className={SAVE_BUTTON}>
+                    {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.embed_save', 'Save Configuration')}
+                </button>
             </div>
         </div>
     );

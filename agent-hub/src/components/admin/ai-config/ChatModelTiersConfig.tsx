@@ -9,12 +9,15 @@ import MemoryExtractionModelSection from './chatModelTiers/MemoryExtractionModel
 import TitleModelSection from './chatModelTiers/TitleModelSection';
 import useChatModelTiersState from './chatModelTiers/useChatModelTiersState';
 import type { CatalogModel } from './chatModelTiers/tierTypes';
+import { SettingsGroup, SettingsList } from './ui/SettingsList';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ChatModelTiersConfigProps {
     allModels?: CatalogModel[];
 }
 
 const ChatModelTiersConfig = ({ allModels = [] }: ChatModelTiersConfigProps) => {
+    const { t } = useTranslation();
     const {
         config, euConfig, customTiers, saving, euSaving, message, euMessage,
         expandedTier, setExpandedTier, expandedCustomId, setExpandedCustomId,
@@ -73,7 +76,12 @@ const ChatModelTiersConfig = ({ allModels = [] }: ChatModelTiersConfigProps) => 
                 applyAllClaudeRecommended={applyAllClaudeRecommended}
             />
 
-            {/* Auto-tier Classifier Model */}
+            {/* Background models: one small model per job, one row each */}
+            <SettingsGroup
+                title={t('admin_ai_config.bg_models_title', 'Background models')}
+                description={t('admin_ai_config.bg_models_hint', 'Small models for the jobs that run beside a chat. Pick the cheapest, fastest one that does the job.')}
+            >
+            <SettingsList>
             <ClassifierModelSection
                 classifierModel={classifierModel}
                 setClassifierModel={setClassifierModel}
@@ -137,6 +145,8 @@ const ChatModelTiersConfig = ({ allModels = [] }: ChatModelTiersConfigProps) => 
                 hiddenModelIds={hiddenModelIds}
                 toggleHiddenModel={toggleHiddenModel}
             />
+            </SettingsList>
+            </SettingsGroup>
 
             {/* EU Chat Model Tiers */}
             <EuTiersSection

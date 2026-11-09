@@ -1,17 +1,17 @@
-// Per-provider metadata for the simple "one API key" provider cards
-// (Claude, OpenAI, Google AI, Mistral, Scaleway, EU GPT, IONOS, ElevenLabs). Each entry drives one
-// <ProviderApiKeyCard/>; the card files themselves are thin wrappers around
-// it. Fields:
+// Per-provider metadata for the simple "one API key" providers (Claude, OpenAI,
+// Google AI, Mistral, Scaleway, EU GPT, ElevenLabs). Each entry drives the
+// API-key section of the provider detail (providers/ApiKeyDetail.tsx); the
+// texts (description, placeholder, docs label) live in providers/providerTexts.ts
+// so they go through t(). Fields:
 //
-//   name        — display name; the card derives the "<name> API Key" title
-//                 and the "<name> API key saved!/removed" toasts from it
-//   statusField — boolean has-key flag in the GET /ai/config response
-//   bodyField   — POST /ai/config body field that stores the key
-//   deleteSlug  — DELETE /ai/config/key/<slug> identifier
-//   icon / iconBackground — card avatar emoji + background style
-//   description — helper text shown while no key is configured
-//   placeholder — input placeholder while no key is configured
-//   docsUrl / docsLabel — "Get your API key from …" footer link
+//   name        - display name; the detail derives the "<name> API key saved!"
+//                 and "<name> API key removed" toasts from it
+//   statusField - boolean has-key flag in the GET /ai/config response
+//   bodyField   - POST /ai/config body field that stores the key
+//   deleteSlug  - DELETE /ai/config/key/<slug> identifier
+//   icon / iconClass - avatar emoji + Tailwind background class (literal, so
+//                 the scanner keeps it)
+//   docsUrl     - "Get your API key from ..." link
 
 export type ProviderKeyConfig = {
     name: string;
@@ -19,11 +19,8 @@ export type ProviderKeyConfig = {
     bodyField: string;
     deleteSlug: string;
     icon: string;
-    iconBackground: string;
-    description: string;
-    placeholder: string;
+    iconClass: string;
     docsUrl: string;
-    docsLabel: string;
 };
 
 export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
@@ -33,11 +30,8 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'claudeApiKey',
         deleteSlug: 'claude_api_key',
         icon: '🧠',
-        iconBackground: 'rgba(217, 119, 6, 0.15)',
-        description: 'Required for Claude models (Opus, Sonnet, Haiku)',
-        placeholder: 'Enter your Claude API key',
+        iconClass: 'bg-[rgba(217,119,6,0.15)]',
         docsUrl: 'https://console.anthropic.com/settings/keys',
-        docsLabel: 'console.anthropic.com'
     },
     openai: {
         name: 'OpenAI',
@@ -45,11 +39,8 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'openaiApiKey',
         deleteSlug: 'openai_api_key',
         icon: '🤖',
-        iconBackground: 'rgba(16, 185, 129, 0.15)',
-        description: 'Required for OpenAI models (GPT-6 Astra, GPT-5.6, o-series)',
-        placeholder: 'Enter your OpenAI API key',
+        iconClass: 'bg-[rgba(16,185,129,0.15)]',
         docsUrl: 'https://platform.openai.com/api-keys',
-        docsLabel: 'platform.openai.com'
     },
     google: {
         name: 'Google AI',
@@ -57,11 +48,8 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'googleApiKey',
         deleteSlug: 'google_api_key',
         icon: '✨',
-        iconBackground: 'linear-gradient(135deg, rgba(66,133,244,0.2), rgba(234,67,53,0.2), rgba(251,188,4,0.2), rgba(52,168,83,0.2))',
-        description: 'Required for Gemini models + Image Generation',
-        placeholder: 'Enter your Google AI API key',
+        iconClass: '[background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(234,67,53,0.2),rgba(251,188,4,0.2),rgba(52,168,83,0.2))]',
         docsUrl: 'https://aistudio.google.com/apikey',
-        docsLabel: 'aistudio.google.com'
     },
     mistral: {
         name: 'Mistral',
@@ -69,11 +57,8 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'mistralApiKey',
         deleteSlug: 'mistral_api_key',
         icon: '🌪️',
-        iconBackground: 'rgba(139, 92, 246, 0.15)',
-        description: 'Required for Mistral AI models',
-        placeholder: 'Enter your Mistral API key',
+        iconClass: 'bg-[rgba(139,92,246,0.15)]',
         docsUrl: 'https://console.mistral.ai',
-        docsLabel: 'console.mistral.ai'
     },
     scaleway: {
         name: 'Scaleway',
@@ -81,23 +66,8 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'scalewayApiKey',
         deleteSlug: 'scaleway_api_key',
         icon: '🇪🇺',
-        iconBackground: 'rgba(79, 13, 224, 0.15)',
-        description: 'Open-weight models on EU serverless endpoints (Generative APIs)',
-        placeholder: 'Enter your Scaleway secret key',
+        iconClass: 'bg-[rgba(79,13,224,0.15)]',
         docsUrl: 'https://console.scaleway.com/iam/api-keys',
-        docsLabel: 'console.scaleway.com'
-    },
-    ionos: {
-        name: 'IONOS',
-        statusField: 'hasIonosKey',
-        bodyField: 'ionosApiKey',
-        deleteSlug: 'ionos_api_key',
-        icon: '🇪🇺',
-        iconBackground: 'rgba(0, 61, 142, 0.15)',
-        description: 'EU-hosted (Germany) open-weight models: chat, embeddings and reranking (AI Model Hub)',
-        placeholder: 'Enter your IONOS AI Model Hub API token',
-        docsUrl: 'https://docs.ionos.com/cloud/ai/ai-model-hub',
-        docsLabel: 'docs.ionos.com'
     },
     eugpt: {
         name: 'EU GPT',
@@ -105,11 +75,17 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'eugptApiKey',
         deleteSlug: 'eugpt_api_key',
         icon: '🇪🇺',
-        iconBackground: 'rgba(37, 99, 235, 0.15)',
-        description: 'EU-hosted models, routed per request by EU GPT. No tool calling, so agents and builders that use tools need another model',
-        placeholder: 'Enter your EU GPT API key (eugpt_…)',
+        iconClass: 'bg-[rgba(37,99,235,0.15)]',
         docsUrl: 'https://chat.eugpt.ai',
-        docsLabel: 'chat.eugpt.ai → Settings → API Keys'
+    },
+    ionos: {
+        name: 'IONOS',
+        statusField: 'hasIonosKey',
+        bodyField: 'ionosApiKey',
+        deleteSlug: 'ionos_api_key',
+        icon: '🇪🇺',
+        iconClass: 'bg-[rgba(0,61,142,0.15)]',
+        docsUrl: 'https://docs.ionos.com/cloud/ai/ai-model-hub',
     },
     elevenlabs: {
         name: 'ElevenLabs',
@@ -117,11 +93,7 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'elevenlabsApiKey',
         deleteSlug: 'elevenlabs_api_key',
         icon: '🎵',
-        iconBackground: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2))',
-        description: 'Required for Music (with vocals), TTS & Sound Effects',
-        placeholder: 'Enter your ElevenLabs API key',
+        iconClass: '[background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(236,72,153,0.2))]',
         docsUrl: 'https://elevenlabs.io/app/settings/api-keys',
-        docsLabel: 'elevenlabs.io'
-    }
+    },
 };
-

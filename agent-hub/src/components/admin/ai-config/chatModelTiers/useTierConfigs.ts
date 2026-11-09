@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { CustomTier, StatusMessage, TierConfig } from './tierTypes';
 import { flash } from './tierTypes';
 import { getAiConfig, postAiConfig } from '@/api/aiConfig';
+import { useTranslation } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
 
 const initialTiers = (): TierConfig => ({
@@ -49,6 +50,7 @@ async function readCustomSave(customRes: Response, setCustomTiers: (tiers: Custo
  * admin edited in that section.
  */
 export default function useTierConfigs(customTiers: CustomTier[], setCustomTiers: (tiers: CustomTier[]) => void): TierConfigsState {
+    const { t } = useTranslation();
     const [config, setConfig] = useState<TierConfig>(initialTiers);
     const [euConfig, setEuConfig] = useState<TierConfig>(initialTiers);
     const [saving, setSaving] = useState(false);
@@ -81,12 +83,12 @@ export default function useTierConfigs(customTiers: CustomTier[], setCustomTiers
             const bothOk = res.ok && customRes.ok;
             const warn = await readCustomSave(customRes, setCustomTiers);
             if (bothOk) {
-                flash(setMessage, { type: warn ? 'warning' : 'success', text: `Chat model tiers saved${warn}` }, 4000);
+                flash(setMessage, { type: warn ? 'warning' : 'success', text: t('admin_ai_config.tiers_saved', 'Chat model tiers saved{warn}', { warn }) }, 4000);
             } else {
-                setMessage({ type: 'error', text: 'Failed to save (one or more configs)' });
+                setMessage({ type: 'error', text: t('admin_ai_config.tiers_save_failed_some', 'Failed to save (one or more configs)') });
             }
         } catch (e) {
-            setMessage({ type: 'error', text: 'Failed to save tier config' });
+            setMessage({ type: 'error', text: t('admin_ai_config.tiers_save_failed', 'Failed to save tier config') });
         }
         setSaving(false);
     };
@@ -103,12 +105,12 @@ export default function useTierConfigs(customTiers: CustomTier[], setCustomTiers
                 postAiConfig('custom-chat-models', { tiers: customTiers }),
             ]);
             if (res.ok && customRes.ok) {
-                flash(setEuMessage, { type: 'success', text: 'EU model tiers saved!' }, 3000);
+                flash(setEuMessage, { type: 'success', text: t('admin_ai_config.tiers_eu_saved', 'EU model tiers saved!') }, 3000);
             } else {
-                setEuMessage({ type: 'error', text: 'Failed to save' });
+                setEuMessage({ type: 'error', text: t('admin_ai_config.tiers_eu_save_failed_short', 'Failed to save') });
             }
         } catch (e) {
-            setEuMessage({ type: 'error', text: 'Failed to save EU tier config' });
+            setEuMessage({ type: 'error', text: t('admin_ai_config.tiers_eu_save_failed', 'Failed to save EU tier config') });
         }
         setEuSaving(false);
     };

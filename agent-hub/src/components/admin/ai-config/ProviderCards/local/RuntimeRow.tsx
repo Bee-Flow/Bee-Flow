@@ -70,16 +70,15 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                 {isEnvManaged && <ProviderStatusPill tone="orange">{t('admin_ai_config.row_from_env', 'from environment')}</ProviderStatusPill>}
                 <span className="text-xs font-mono truncate text-[var(--text-muted)]">{provider.url}</span>
                 <div className="flex-1" />
-                <button className={BTN_GHOST} style={{ color: 'var(--text-muted)' }} disabled={testing} onClick={runTest}>
+                <button className={`${BTN_GHOST} text-[var(--text-muted)]`} disabled={testing} onClick={runTest}>
                     {testing ? t('admin_ai_config.testing', 'Testing…') : t('admin_ai_config.row_test', 'Test')}
                 </button>
                 {runtime.canPull && (
                     <button
-                        className={BTN_GHOST}
-                        style={{ color: 'var(--text-muted)' }}
+                        className={`${BTN_GHOST} text-[var(--text-muted)]`}
                         onClick={() => { setPullOpen(o => !o); setPullInput(''); }}
                     >
-                        {pullOpen ? t('admin_ai_config.close', 'Close') : t('admin_ai_config.row_add_model', '↓ Add model')}
+                        {pullOpen ? t('admin_ai_config.close', 'Close') : t('admin_ai_config.row_add_model', 'Add model')}
                     </button>
                 )}
                 <DeleteConfirmButtons
@@ -145,8 +144,8 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                     {pull.pct !== null && !pull.error && (
                         <div className="h-1.5 rounded-full mt-1 overflow-hidden bg-[var(--bg-tertiary)]">
                             <div
-                                className="h-full rounded-full transition-all"
-                                style={{ width: `${pull.pct}%`, background: 'var(--accent-primary)' }}
+                                className="h-full rounded-full bg-[var(--accent-primary)] transition-all"
+                                style={{ width: `${pull.pct}%` }}
                             />
                         </div>
                     )}

@@ -25,6 +25,7 @@ vi.mock('../../shared/SearchableModelSelect', () => ({
     ),
 }));
 
+import toast from '@/components/shared/Toast';
 import AiStepModelSection from './AiStepModelSection';
 
 const chatModels = [
@@ -68,12 +69,14 @@ describe('AiStepModelSection', () => {
         expect(props.saveAiStepModel).toHaveBeenCalledTimes(1);
     });
 
-    it('shows the result message and disables Save while saving', () => {
+    it('says the result message as a toast and disables Save while saving', () => {
+        const success = vi.spyOn(toast, 'success').mockReturnValue(1);
         renderSection({ aiStepModelMessage: { type: 'success', text: 'AI step model saved' } });
-        expect(screen.getByText('AI step model saved')).toBeTruthy();
+        expect(success).toHaveBeenCalledWith('AI step model saved');
         cleanup();
         renderSection({ aiStepModelSaving: true });
         const btn = screen.getByRole('button', { name: 'Saving...' });
+        success.mockRestore();
         expect((btn as HTMLInputElement).disabled).toBe(true);
     });
 });

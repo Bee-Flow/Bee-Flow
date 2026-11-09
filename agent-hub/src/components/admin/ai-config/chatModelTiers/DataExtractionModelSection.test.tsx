@@ -25,6 +25,7 @@ vi.mock('../../shared/SearchableModelSelect', () => ({
     ),
 }));
 
+import toast from '@/components/shared/Toast';
 import DataExtractionModelSection from './DataExtractionModelSection';
 
 const chatModels = [
@@ -68,12 +69,14 @@ describe('DataExtractionModelSection', () => {
         expect(props.saveDataExtractionModel).toHaveBeenCalledTimes(1);
     });
 
-    it('shows the result message and disables Save while saving', () => {
+    it('says the result message as a toast and disables Save while saving', () => {
+        const success = vi.spyOn(toast, 'success').mockReturnValue(1);
         renderSection({ dataExtractionModelMessage: { type: 'success', text: 'Data extraction model saved' } });
-        expect(screen.getByText('Data extraction model saved')).toBeTruthy();
+        expect(success).toHaveBeenCalledWith('Data extraction model saved');
         cleanup();
         renderSection({ dataExtractionModelSaving: true });
         const btn = screen.getByRole('button', { name: 'Saving...' });
+        success.mockRestore();
         expect((btn as HTMLInputElement).disabled).toBe(true);
     });
 });

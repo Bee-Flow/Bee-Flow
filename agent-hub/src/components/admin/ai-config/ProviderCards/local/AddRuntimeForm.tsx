@@ -93,8 +93,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }: AddRuntimeFormProps) =>
 
             <div className="flex gap-2 items-center flex-wrap">
                 <button
-                    className={BTN_GHOST}
-                    style={{ color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}
+                    className={`${BTN_GHOST} border border-[var(--border-default)] text-[var(--text-muted)]`}
                     disabled={!form.url.trim() || testing}
                     onClick={runTest}
                 >

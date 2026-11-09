@@ -46,8 +46,7 @@ const DeleteConfirmButtons = ({ onConfirm, label = '🗑️', title, size = 'sm'
         return (
             <button
                 onClick={() => setConfirming(true)}
-                className={classes.trigger}
-                style={{ color: 'var(--text-muted)' }}
+                className={`${classes.trigger} text-[var(--text-muted)]`}
                 title={title}
             >
                 {label}
@@ -62,8 +61,7 @@ const DeleteConfirmButtons = ({ onConfirm, label = '🗑️', title, size = 'sm'
             </button>
             <button
                 onClick={() => setConfirming(false)}
-                className={classes.cancel}
-                style={{ color: 'var(--text-muted)' }}
+                className={`${classes.cancel} text-[var(--text-muted)]`}
             >
                 ✕
             </button>

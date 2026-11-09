@@ -18,15 +18,17 @@ export interface ModelSetting {
 }
 
 interface ModelSettingLabels {
-    /** e.g. 'classifier model' — used in the console and the error text. */
+    /** e.g. 'classifier model' — used in the console only. */
     noun: string;
-    /** e.g. 'Classifier model saved' */
+    /** e.g. 'Classifier model saved' (already translated) */
     saved: string;
+    /** e.g. 'Failed to save classifier model' (already translated) */
+    failed: string;
 }
 
 const modelIdOf = (data: { modelId?: unknown }) => (typeof data.modelId === 'string' ? data.modelId : '');
 
-export default function useModelSetting(path: string, { noun, saved }: ModelSettingLabels): ModelSetting {
+export default function useModelSetting(path: string, { noun, saved, failed }: ModelSettingLabels): ModelSetting {
     const [model, setModel] = useState('');
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<StatusMessage | null>(null);
@@ -50,10 +52,10 @@ export default function useModelSetting(path: string, { noun, saved }: ModelSett
                 setTimeout(() => setMessage(null), 3000);
             } else {
                 const data = await res.json().catch(() => ({}));
-                setMessage({ type: 'error', text: data.error || `Failed to save ${noun}` });
+                setMessage({ type: 'error', text: data.error || failed });
             }
         } catch (e) {
-            setMessage({ type: 'error', text: `Failed to save ${noun}` });
+            setMessage({ type: 'error', text: failed });
         }
         setSaving(false);
     };
