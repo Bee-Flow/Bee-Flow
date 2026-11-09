@@ -77,6 +77,17 @@ function spawnSlot() {
     return slot;
 }
 
+/**
+ * Take a slot whose worker is ending (deadline, crash) out of the pool NOW.
+ * Its 'exit' event only arrives later; until then the slot would look free,
+ * and the next queued parse would be posted to a worker that is going away.
+ * @param {Slot} slot
+ */
+function discard(slot) {
+    const i = slots.indexOf(slot);
+    if (i >= 0) slots.splice(i, 1);
+}
+
 /** @param {Slot} slot */
 function retireLater(slot) {
     if (slot.idleTimer) clearTimeout(slot.idleTimer);
@@ -114,11 +125,13 @@ function runOn(slot, item, timeoutMs) {
     /** @param {Error & { code?: string }} err */
     const onError = (err) => {
         const memory = err?.code === 'ERR_WORKER_OUT_OF_MEMORY';
+        discard(slot);
         finish(() => reject(new DocumentParseError(memory ? 'the document needs more memory than a parse may use' : `the parser stopped: ${err.message}`, memory ? 'memory' : 'worker')));
     };
     const onExit = () => finish(() => reject(new DocumentParseError('the parser stopped before answering', 'worker')));
     const timer = setTimeout(() => {
         log.warn(`[DocumentParser] parsing ${log.nameForLog(job.filename)} exceeded ${timeoutMs} ms; stopping its worker`);
+        discard(slot);
         slot.worker.terminate().catch((e) => bestEffort('documentParsePool:terminate', e));
         finish(() => reject(new DocumentParseError(`parsing took longer than ${Math.round(timeoutMs / 1000)} s`, 'timeout')));
     }, timeoutMs);

@@ -335,3 +335,10 @@ test('deckTheme keeps the emphasis variant so themeFor can recognise a slide on 
     assert.strictEqual(deckTheme(slideVariant(resolveDeckTheme(null), 'dark')).variant, 'dark');
     assert.strictEqual(deckTheme(resolveDeckTheme(null)).variant, null);
 });
+
+test('buildPresentation — stampPptxCoreProperties writes "$" sequences in the marking literally', async () => {
+    const out = await office.buildPresentation({ deck: sampleDeck() });
+    const stamped = await office._internal.stampPptxCoreProperties(out.buffer, { keywords: ['cost=$$5'], description: 'pay $$ or $& now' });
+    const core = await (await JSZip.loadAsync(stamped)).file('docProps/core.xml').async('string');
+    assert.ok(core.includes('<cp:keywords>cost=$$5</cp:keywords><dc:description>pay $$ or $&amp; now</dc:description></cp:coreProperties>'), core.slice(-300));
+});

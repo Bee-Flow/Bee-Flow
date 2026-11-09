@@ -27,8 +27,8 @@ const configStore = require('./configStore');
 const saved = { getConfig: configStore.getConfig, setConfig: configStore.setConfig, deleteConfig: configStore.deleteConfig };
 const table = new Map();
 configStore.getConfig = async (key) => (table.has(key) ? JSON.parse(table.get(key)) : null);
-configStore.setConfig = async (key, value) => { table.set(key, JSON.stringify(value)); };
-configStore.deleteConfig = async (key) => { table.delete(key); };
+configStore.setConfig = async (key, value) => { table.set(key, JSON.stringify(value)); return true; };
+configStore.deleteConfig = async (key) => { return table.delete(key); };
 
 const languageStore = require('./languageStore');
 

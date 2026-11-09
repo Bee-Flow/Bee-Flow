@@ -668,3 +668,12 @@ test('a page with its own og:image keeps it; an unpublished site gets no generat
     });
     assert.ok(!/\/api\/cms\/og\//.test(unpublished));
 });
+
+test('head and body are inserted literally: "$&" and "$$" in page content are not replacement patterns', () => {
+    const body = '<pre>s.replace(re, "\\\\$&")</pre><p>pid is $$ and the price is $$5</p>';
+    const head = '<meta name="description" content="Earn $$ with $& today">';
+    const out = injectIntoShell(SHELL, { head, body, lang: 'en' });
+    assert.ok(out.includes(`<div id="root">${body}</div>`), 'the body arrives byte for byte');
+    assert.ok(out.includes(head), 'the head arrives byte for byte');
+    assert.strictEqual((out.match(/<\/head>/g) || []).length, 1);
+});

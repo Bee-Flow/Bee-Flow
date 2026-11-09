@@ -302,9 +302,10 @@ function htmlToPlainish(html) {
         .replace(/<\s*\/?(p|div|br|tr)[^>]*>/gi, '\n')
         .replace(/<[^>]+>/g, '')
         .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
+        // &amp; last: decoded first, "&amp;lt;" (the text "&lt;") would come out as "<".
+        .replace(/&amp;/g, '&')
         .replace(/\n{3,}/g, '\n\n');
 }
 

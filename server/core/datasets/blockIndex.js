@@ -139,6 +139,10 @@ function findRange(index, chrom, start, end, { maxBlocks = 256 } = {}) {
     // The block BEFORE the first one whose firstPos exceeds `start` can still
     // hold in-range rows (they start mid-block); blocks whose firstPos exceeds
     // `end` cannot hold any (rows are sorted). Walk forward to the last usable.
+    // Rows sharing one POS (multi-allelic split lines) can straddle a block
+    // boundary: a block whose firstPos equals `start` may be preceded by a
+    // block that ENDS with rows at that same position. Step back to cover them.
+    while (sIdx > lo0 && index.firstPosAt(sIdx) === start) sIdx--;
     if (index.firstPosAt(sIdx) > end) return { empty: true };
     let lIdx = sIdx;
     while (lIdx + 1 <= hi0 && index.firstPosAt(lIdx + 1) <= end) lIdx++;

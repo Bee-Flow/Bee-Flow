@@ -287,7 +287,8 @@ function deckToSlidesHtml(deck, { theme = null, marking = null, date = '', title
     // The chrome goes INSIDE each section (before its closing tag) so it is
     // positioned against the slide, not the desk.
     const framed = all.map((html, i) => {
-        const withChrome = html.replace(/<\/section>\s*$/, `${screenChromeHtml(t, marking, i, all.length)}</section>`);
+        const chrome = screenChromeHtml(t, marking, i, all.length);
+        const withChrome = html.replace(/<\/section>\s*$/, () => `${chrome}</section>`);
         return `<div class="deck-frame" tabindex="0" data-slide="${i + 1}" aria-label="Slide ${i + 1} of ${all.length}">${withChrome}</div>`;
     });
     return slidesDocument({

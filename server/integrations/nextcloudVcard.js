@@ -31,11 +31,9 @@ function escapeText(s) {
  */
 function unescapeText(s) {
     if (s == null) return null;
-    return String(s)
-        .replace(/\\n/gi, '\n')
-        .replace(/\\,/g, ',')
-        .replace(/\\;/g, ';')
-        .replace(/\\\\/g, '\\');
+    // ONE pass, so an escaped backslash is consumed together with its escape:
+    // four chained replaces read the "\\n" of an escaped `C:\new` as a newline.
+    return String(s).replace(/\\([\\,;nN])/g, (_m, ch) => (ch === 'n' || ch === 'N' ? '\n' : ch));
 }
 
 // Split a structured value (N, ORG) on unescaped semicolons.
