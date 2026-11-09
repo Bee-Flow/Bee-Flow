@@ -170,9 +170,8 @@ export default function useAutomationPersistence({
         //
         // `commit` applies through applyVisualDraft, which also schedules its
         // own debounced PUT. We persist below — awaited, so the caller can
-        // surface a save error, and via the /api/step router when mode='step',
-        // which the visual-save path does not do — so that second write is
-        // suppressed instead of duplicated. `commit` runs `apply` synchronously,
+        // surface a save error — so that second write is suppressed instead
+        // of duplicated. `commit` runs `apply` synchronously,
         // so the flag can't leak past this call.
         suppressVisualPersistRef.current = true;
         try { draftHistory.commit(nextDef); }
@@ -229,7 +228,7 @@ export default function useAutomationPersistence({
     }, [api, state.automationId, state.draft, serverAutomation, hydrate]);
 
     const { suppressVisualPersistRef, applyVisualDraft, forceSaveNow } = useVisualSave({
-        api, ensureAutomationCreated, setServerAutomation, setDraft, markServerConfirmed,
+        updateOne: apiUpdateOne, unwrapRow, ensureAutomationCreated, setServerAutomation, setDraft, markServerConfirmed,
         adoptSaveValidation, adoptSaveRejection, noteManagedRefusal, setSavingState, savedTimer,
         readOnlyRef, effectiveDef,
     });
