@@ -111,7 +111,9 @@ function idOf(entry) {
  * @param {boolean} isFolder
  */
 function writableOf(entry, isFolder) {
-    return entry.permissions == null ? true : (isFolder ? /[CK]/ : /W/).test(entry.permissions);
+    if (entry.permissions == null) return true;
+    const p = String(entry.permissions);
+    return isFolder ? (p.includes('C') || p.includes('K')) : p.includes('W');
 }
 
 /**

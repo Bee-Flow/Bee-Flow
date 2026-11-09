@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * "1 sources" on the first screen of a section is the kind of wrong that
  * makes a careful product look careless, and every counted phrase in

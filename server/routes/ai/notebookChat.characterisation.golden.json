@@ -42,6 +42,8 @@
        "sourceId": "s1",
        "sourceName": null,
        "documentId": null,
+       "kbId": null,
+       "hasOriginal": false,
        "chunkId": null,
        "datatableId": null,
        "rowId": null,
