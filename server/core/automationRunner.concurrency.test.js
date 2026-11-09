@@ -220,12 +220,14 @@ test('§WS2.4 — markRunning that THROWS fails open (run proceeds)', async () =
     assert.ok(steps.some(s => s.stepId === 'A'), 'DAG ran despite marker throwing');
 });
 
-test('§WS2.4 — a SCHEDULE trigger is never blocked by markRunning (marker skipped)', async () => {
-    // Schedule runs are already claimed atomically upstream; executeAutomation
-    // must NOT consult the marker for them, so even a false marker cannot block.
+test('§WS2.4 — a run the SCHEDULER claimed is never blocked by markRunning (marker skipped)', async () => {
+    // The tick claimed the row atomically (claimDueAutomations) and says so with
+    // markerClaimed; executeAutomation must NOT consult the marker again, so
+    // even a false marker cannot block. The trigger KIND alone is not that
+    // claim: see automationRunner/runHeartbeat.scheduleKind.test.js.
     spies.markRunningResult = false;
 
-    const result = await runner.executeAutomation(freshAutomation(), { triggerKind: 'schedule', mode: 'live' });
+    const result = await runner.executeAutomation(freshAutomation(), { triggerKind: 'schedule', mode: 'live', markerClaimed: true });
 
     assert.strictEqual(spies.markRunning, 0, 'markRunning was NOT consulted for a schedule run');
     assert.strictEqual(result.status, 'success', `schedule run succeeded (got ${result.status})`);

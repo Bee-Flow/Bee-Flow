@@ -162,7 +162,7 @@ function acquireRunMarker(automationId, triggerKind, opts) {
     return heartbeat.acquireRunMarker(RUN_DEPS, automationId, triggerKind, opts);
 }
 
-async function executeAutomation(automation, /** @type {ExecuteOptions} */ { triggerKind = 'manual', triggerPayload = null, triggerHeaders = null, mode = 'live', confirmFirstRun: _confirmFirstRun = false, parentRunId = null, rootRunId = null, onRunCreated = null, onRunFinished = null, replayState = null, replayGaps = null, skipUntilStepId = null, onlyStepId = null, fromStepId = null, untilStepId = null, rootStepId = null, loopVars = null, stepRecord = null, schedule = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, lockedConnectionsMode = null, harness = null, partial = null, origin = null, pausesRequested = false, profileOverride = null } = {}) {
+async function executeAutomation(automation, /** @type {ExecuteOptions} */ { triggerKind = 'manual', triggerPayload = null, triggerHeaders = null, mode = 'live', confirmFirstRun: _confirmFirstRun = false, parentRunId = null, rootRunId = null, onRunCreated = null, onRunFinished = null, replayState = null, replayGaps = null, skipUntilStepId = null, onlyStepId = null, fromStepId = null, untilStepId = null, rootStepId = null, loopVars = null, stepRecord = null, schedule = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, lockedConnectionsMode = null, harness = null, partial = null, origin = null, pausesRequested = false, profileOverride = null, markerClaimed = false } = {}) {
     const startedAt = Date.now();
     // ── Live or working copy (handoff 5) ── decided once, here, for every
     // caller (runSetup.selectRunCopy). From this line on `automation` is the
@@ -250,7 +250,7 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     const isResume = !!skipUntilStepId;
     // Only a run whose profile holds the marker claims it (production): a test,
     // partial or dry run runs alongside a live one and never owns it (RM-12).
-    const claim = await heartbeat.claimRunMarker(RUN_DEPS, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle, holdsMarker: profile.holdsMarker });
+    const claim = await heartbeat.claimRunMarker(RUN_DEPS, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle, holdsMarker: profile.holdsMarker, markerClaimed: markerClaimed && triggerKind === 'schedule' });
     if (claim.skipped) return claim.row;
     const ownsMarker = claim.ownsMarker;
 
@@ -359,5 +359,6 @@ module.exports = { runOrgFor, isManagedAutomation, disabledPassThroughBranch, re
  *   origin?: string | null,
  *   pausesRequested?: boolean,
  *   profileOverride?: import('../automationModel/runProfile.mts').RunProfile | null,
+ *   markerClaimed?: boolean,
  * }} ExecuteOptions
  */

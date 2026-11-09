@@ -163,6 +163,8 @@ async function processDueSchedules() {
             rootStepId: s.triggerStepId,
             triggerPayload: { now },
             schedule: { id: s.id, cron: s.cron, tz: s.tz, scheduledFor: s.nextRunAt },
+            // claimDueSchedules flipped the automations row to running for us.
+            markerClaimed: true,
         }));
     });
 }
@@ -249,7 +251,7 @@ async function processDuePrimarySchedules() {
             // schedule trigger (`__schedule.now`); without it the promise of
             // `trigger.output.now` is not kept and it resolves undefined.
             const now = new Date().toISOString();
-            return batch.map(a => executeAutomation(a, { triggerKind: 'schedule', triggerPayload: { now } }));
+            return batch.map(a => executeAutomation(a, { triggerKind: 'schedule', triggerPayload: { now }, markerClaimed: true }));
         });
     } catch (e) {
         log.error('[AutomationRunner] processDueAutomations error:', e.message);

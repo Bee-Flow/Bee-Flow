@@ -110,7 +110,7 @@ function makeLifecycleEmitter({ run, automation, effectiveMode, startedByUserId 
  *   `skipped` with the cancelled run row (lastOutput attached) when the run
  *   was dropped because the automation was already running.
  */
-async function claimRunMarker(deps, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle, holdsMarker = true }) {
+async function claimRunMarker(deps, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle, holdsMarker = true, markerClaimed = false }) {
     const { automationStore, clearRunCancellation } = deps;
     // §WS2.4 — concurrency guard. markRunning atomically flips the automations
     // row to 'running' and RETURNS FALSE if a run is already in flight. We honour
@@ -150,7 +150,11 @@ async function claimRunMarker(deps, { automation, run, runPolicy, triggerKind, e
     if (!holdsMarker) return { ownsMarker: false, skipped: false, row: null };
     const parallel = runPolicy.concurrency === 'parallel';
     let ownsMarker = effectiveMode === 'live';
-    if (triggerKind !== 'schedule' && effectiveMode === 'live') {
+    // Only the scheduler's own claim (`markerClaimed`, set by the tick) stands in
+    // for the acquisition. The trigger KIND does not: a retry or a resume of a
+    // scheduled run carries 'schedule' too, with no claim behind it, and would
+    // otherwise own — and at its end release — a marker another run holds.
+    if (!markerClaimed && effectiveMode === 'live') {
         // Event/webhook runs wait (bounded) for a busy automation instead of
         // being dropped — see acquireRunMarker. A resume never waits.
         const acquired = await acquireRunMarker(deps, automation.id, triggerKind, { wait: !isResume && !parallel });
