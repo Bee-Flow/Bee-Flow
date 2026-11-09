@@ -66,6 +66,8 @@ describe('chat signals: who can send the marker', () => {
     it('the screens that run the chat engine are the reviewed list', () => {
         expect(ENGINE_HOSTS).toEqual([
             'AgentHub/useAgentHubData.ts',
+            // The builder's test chat (Test tab): an ephemeral test turn, passes no marker getter.
+            'components/agents/AgentWizard/builderSplit/BuilderTabPanels.tsx',
             'pages/TemplatesPage.tsx',
             'pages/documents/notebook/detail/useNotebookChat.ts',
             'pages/meeting-notes/detail/AssistantSidebar.tsx',

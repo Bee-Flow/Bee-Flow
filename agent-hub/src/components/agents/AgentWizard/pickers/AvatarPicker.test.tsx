@@ -2,14 +2,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// jsdom has no canvas: the resize itself is the boundary, its result is the input here.
-vi.mock('@/utils/imageResize', () => ({ resizeImageForUpload: vi.fn() }));
-
 import AvatarPicker from './AvatarPicker';
 import { toast } from '@/components/shared/Toast';
-import { resizeImageForUpload } from '@/utils/imageResize';
+import type { resizeImageForUpload } from '@/utils/imageResize';
 
-const resize = vi.mocked(resizeImageForUpload);
+// jsdom has no canvas: the resize is handed in through the `resize` prop, and
+// its result is the input here.
+const resize = vi.fn<typeof resizeImageForUpload>();
 const t = (_key: string | undefined, fallback?: unknown) => (typeof fallback === 'string' ? fallback : '');
 
 function result(resizedSize: number) {
@@ -22,7 +21,7 @@ function result(resizedSize: number) {
 async function upload(file: File) {
     const onChange = vi.fn();
     const ui = userEvent.setup();
-    const { container } = render(<AvatarPicker avatar="🤖" onChange={onChange} t={t} size="hero" />);
+    const { container } = render(<AvatarPicker avatar="🤖" onChange={onChange} t={t} size="hero" resize={resize} />);
     await ui.click(screen.getByRole('button'));
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     await ui.upload(input, file);

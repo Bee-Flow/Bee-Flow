@@ -36,9 +36,11 @@ interface AvatarPickerProps {
     onChange: (avatar: string) => void;
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
     size: string;
+    /** The image scaler; a seam for tests, where jsdom has no canvas. */
+    resize?: typeof resizeImageForUpload;
 }
 
-export default function AvatarPicker({ avatar, onChange, t, size }: AvatarPickerProps) {
+export default function AvatarPicker({ avatar, onChange, t, size, resize = resizeImageForUpload }: AvatarPickerProps) {
     const [open, setOpen] = useState(false);
     const [category, setCategory] = useState('tech');
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -62,7 +64,7 @@ export default function AvatarPicker({ avatar, onChange, t, size }: AvatarPicker
         const file = e.target.files?.[0];
         e.target.value = '';
         if (!file) return;
-        const { dataUrl, resizedSize } = await resizeImageForUpload(file, { maxLongestEdge: AVATAR_MAX_EDGE, skipIfBytesUnder: 0 });
+        const { dataUrl, resizedSize } = await resize(file, { maxLongestEdge: AVATAR_MAX_EDGE, skipIfBytesUnder: 0 });
         if (resizedSize > AVATAR_MAX_BYTES) { toast.error(t('agent_wizard.avatar.too_large', 'Image must be under 512KB')); return; }
         onChange(dataUrl);
         setOpen(false);
