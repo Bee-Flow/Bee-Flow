@@ -56,8 +56,8 @@ export default function ApiKeyDetail({ provider, texts, onMessage, children }: A
 
     return (
         <Section
-            title={t('admin_ai_config.apikey_section', 'API key')}
-            description={hasKey ? t('admin_ai_config.apikey_replace_hint', 'A key is stored. Enter a new one to replace it.') : undefined}
+            title={t('admin_ai_config.provider_key_section', 'API key')}
+            description={hasKey ? t('admin_ai_config.provider_key_replace_hint', 'A key is stored. Enter a new one to replace it.') : undefined}
         >
             <div className="flex gap-2">
                 <SecretInput
@@ -74,7 +74,7 @@ export default function ApiKeyDetail({ provider, texts, onMessage, children }: A
                     disabled={saving || !apiKey.trim()}
                     className={PRIMARY_BTN}
                 >
-                    {saving ? '...' : hasKey ? t('admin_ai_config.apikey_replace', 'Replace key') : t('admin_ai_config.save', 'Save')}
+                    {saving ? '...' : hasKey ? t('admin_ai_config.provider_key_replace', 'Replace key') : t('admin_ai_config.save', 'Save')}
                 </button>
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 {hasKey && <DeleteConfirmButtons onConfirm={handleDelete} title={t('admin_ai_config.apikey_delete_title', 'Delete API key')} />}

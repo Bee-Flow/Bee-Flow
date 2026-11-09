@@ -33,7 +33,7 @@ export default function PaneHeader({ icon, iconClass, title, connected, statusLa
                 {description ? <p className="m-0 mt-1 text-xs text-[var(--text-secondary)]">{description}</p> : null}
                 {docsUrl ? (
                     <p className="m-0 mt-1 text-xs text-[var(--text-tertiary)]">
-                        {t('admin_ai_config.apikey_get_from', 'Get your API key from')}{' '}
+                        {t('admin_ai_config.apikey_get_from')}{' '}
                         <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">{docsLabel || docsUrl}</a>
                     </p>
                 ) : null}
