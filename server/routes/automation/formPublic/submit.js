@@ -14,7 +14,7 @@ const { normalizeFields, coerceSubmission } = require('../../../automation/formT
 const formAnswers = () => require('../../../automation/formAnswers').write;
 const { describeClaimedUpload } = require('../../../automation/formUploadText');
 const formQueue = require('../../../automation/formQueue');
-const { acceptSubmission, queueSubmission, profileForFound } = require('../../../automation/formSubmission.mts');
+const { acceptSubmission, queueSubmission, profileForFound, submissionErrors } = require('../../../automation/formSubmission.mts');
 const { privateHeaders, loadForm, loadSession, pendingPageFor, PUBLIC_FORMS_ENABLED } = require('./access');
 const { ipLimiter, tokenLimiter, sessionLimiter, contentLengthGuard } = require('./limits');
 const { resolvePicks } = require('./picks');
@@ -52,6 +52,13 @@ async function submitForm(req, res) {
     if (honeypotFilled || tooFast) {
         return res.status(200).json({ accepted: true });
     }
+
+    // Answers that need attention go back BEFORE the nonce is recorded. The
+    // page keeps one nonce while it is on screen, so recording it for a
+    // refused submission made the corrected one answer "already received"
+    // and run nothing.
+    const invalid = submissionErrors(found, body);
+    if (invalid.length) return res.status(400).json({ error: 'Some answers need attention', fields: invalid });
 
     // Replay dedup on the shared nonce table (namespaced by token, exactly
     // like the webhook route). A double-click or a refresh-resubmit is the
@@ -100,9 +107,19 @@ async function answerPage(req, res) {
         return res.status(403).json({ error: 'This form expired — reload the page and try again.' });
     }
 
+    // Coerce against the fields as RENDERED — that is literally what the
+    // visitor was shown, including the interpolated labels the error
+    // messages quote back at them. Answers that need attention go back
+    // BEFORE the nonce is recorded: the page keeps one nonce while it is on
+    // screen, so a recorded one would turn the corrected answers into
+    // "already received" with nothing resumed.
+    const pending = await pendingPageFor(loaded.session);
+    const coerced = pending ? coerceSubmission(normalizeFields(pending.form), body) : null;
+    if (coerced && coerced.errors.length) return res.status(400).json({ error: 'Some answers need attention', fields: coerced.errors });
+
     // No honeypot / minimum-age here: this visitor already cleared both on
-    // page one. Replay dedup still applies, and it runs BEFORE the "is the
-    // run still paused" check on purpose: by the time a double-click's
+    // page one. Replay dedup still applies, and it is answered BEFORE the "is
+    // the run still paused" 404 on purpose: by the time a double-click's
     // second request lands, the first may already have resumed the run, and
     // the visitor should see a benign ack rather than a 404.
     const nonce = typeof body.nonce === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(body.nonce) ? body.nonce : null;
@@ -111,15 +128,8 @@ async function answerPage(req, res) {
         if (!fresh) return res.status(200).json({ accepted: true, duplicate: true });
     }
 
-    const pending = await pendingPageFor(loaded.session);
-    if (!pending) return res.status(404).json({ error: 'Not found' });
-
-    // Coerce against the fields as RENDERED — that is literally what the
-    // visitor was shown, including the interpolated labels the error
-    // messages quote back at them.
-    const fields = normalizeFields(pending.form);
-    const { values, files, picks, errors } = coerceSubmission(fields, body);
-    if (errors.length) return res.status(400).json({ error: 'Some answers need attention', fields: errors });
+    if (!pending || !coerced) return res.status(404).json({ error: 'Not found' });
+    const { values, files, picks } = coerced;
 
     for (const { field, fileId } of files) {
         const claimed = await automationStore.claimFormUpload(fileId, found.token);
