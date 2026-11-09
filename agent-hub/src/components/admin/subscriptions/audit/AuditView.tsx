@@ -166,7 +166,7 @@ export function AuditView() {
             <SectionHeader className="mb-5"
                 title={t('admin_subscriptions.audit_title', 'Subscription Audit Log')}
                 description={t('admin_subscriptions.audit_desc', 'Track all subscription plan and organization changes.')}
-                status={<SearchInput value={query} onChange={setQuery} placeholder={t('admin_subscriptions.audit_filter', 'Filter by action, target, user…')} className="w-72" />}
+                status={<SearchInput value={query} onChange={setQuery} placeholder={t('admin_subscriptions.audit_filter', 'Filter by action, target, user…')} className="w-72 max-w-full" />}
             />
 
             {unresolvedFailureIds.size > 0 && (

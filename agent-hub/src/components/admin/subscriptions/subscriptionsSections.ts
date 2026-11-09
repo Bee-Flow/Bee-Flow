@@ -17,7 +17,7 @@ export const SUBSCRIPTIONS_SECTIONS: readonly { id: SubscriptionsSectionId; icon
     { id: 'audit', icon: ScrollText, labelKey: 'admin_subscriptions.shell_audit', label: 'Audit' },
 ];
 
-export const DEFAULT_SUBSCRIPTIONS_SECTION: SubscriptionsSectionId = 'plans';
+const DEFAULT_SUBSCRIPTIONS_SECTION: SubscriptionsSectionId = 'plans';
 
 /** The section a URL segment names, or the default one when it is missing or unknown. */
 export function subscriptionsSectionOf(segment: string | undefined): SubscriptionsSectionId {
