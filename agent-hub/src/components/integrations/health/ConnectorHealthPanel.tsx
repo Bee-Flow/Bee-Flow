@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, ChevronRight, Loader2, RefreshCw, Search } from 'lucide-react';
+import { AlertTriangle, ChevronRight, RefreshCw, Search } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { STATUS_META, STATUS_IDS, statusRank, orgIsBlocked } from './healthMeta';
 import type { FleetOrg } from './healthMeta';
@@ -6,6 +6,9 @@ import OrgHealthDrawer from './OrgHealthDrawer';
 import { useTranslation } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import { request, RefusedError } from '@/api/mutate';
+import { ALERT_ERROR, DANGER_BTN, EYEBROW, FILTER_CHIP_OFF, FILTER_CHIP_ON } from '@/components/mcpLibrary/ui';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
 
 /**
  * ConnectorHealthPanel — super-admin fleet overview of every Nextcloud-connected
@@ -35,7 +38,7 @@ export function HealthChip({ health }: HealthChipProps) {
     const Icon = meta.Icon;
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium whitespace-nowrap ${meta.chip}`}>
-            <Icon size={12} style={{ color: meta.color }} />
+            <Icon size={12} aria-hidden="true" />
             {t(meta.labelKey, meta.fallback)}
         </span>
     );
@@ -47,12 +50,13 @@ interface StatProps {
     tone?: 'rose' | 'amber' | 'green';
 }
 
+const TONE_TEXT = { rose: 'text-[var(--error-ink)]', amber: 'text-[var(--warning-ink)]', green: 'text-[var(--success-ink)]' } as const;
+
 function Stat({ label, value, tone }: StatProps) {
-    const toneColor = tone === 'rose' ? '#ef4444' : tone === 'amber' ? '#f59e0b' : tone === 'green' ? '#22c55e' : 'var(--text-primary)';
     return (
-        <div className="flex-1 min-w-[120px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-3">
-            <div className="text-2xl font-semibold" style={{ color: toneColor }}>{value}</div>
-            <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mt-0.5">{label}</div>
+        <div className="min-w-[120px] flex-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-4 py-3">
+            <div className={`text-2xl font-semibold ${tone ? TONE_TEXT[tone] : 'text-[var(--text-primary)]'}`}>{value}</div>
+            <div className={`mt-0.5 ${EYEBROW}`}>{label}</div>
         </div>
     );
 }
@@ -138,7 +142,7 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
     if (loading && orgs.length === 0 && !loadFailed) {
         return (
             <div className="flex items-center gap-2 p-4 text-sm text-[var(--text-tertiary)]">
-                <Loader2 size={18} className="animate-spin" />
+                <Spinner size="sm" />
                 {t('admin.ch_loading', 'Loading connector health…')}
             </div>
         );
@@ -146,26 +150,19 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
 
     return (
         <div className="max-w-5xl">
-            <div className="flex items-center gap-2.5 mb-1">
-                <Activity size={20} className="[color:#14b8a6]" />
-                <h2 className="text-lg font-semibold text-[var(--text-primary)] m-0">
-                    {t('admin.ch_title', 'Nextcloud connector health')}
-                </h2>
-            </div>
-            <p className="text-sm text-[var(--text-tertiary)] mt-0 mb-4 leading-relaxed">
-                {t('admin.ch_desc', 'Per-organisation status of Nextcloud-connected workspaces: why users can or cannot reach AI chat.')}
-            </p>
+            <SectionHeader
+                className="mb-4"
+                title={t('admin.ch_title', 'Nextcloud connector health')}
+                description={t('admin.ch_desc', 'Per-organisation status of Nextcloud-connected workspaces: why users can or cannot reach AI chat.')}
+            />
 
             {loadFailed && (
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-500/40 bg-rose-500/5 px-4 py-3 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                        <AlertTriangle size={16} className="text-rose-500 shrink-0" />
+                <div className={`mb-4 items-center justify-between ${ALERT_ERROR}`}>
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle size={16} className="shrink-0" aria-hidden="true" />
                         {t('admin.ch_load_failed', 'Failed to load connector health')}
                     </div>
-                    <button
-                        onClick={load}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20"
-                    >
+                    <button type="button" onClick={load} className={DANGER_BTN}>
                         <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
                         {t('admin.ch_retry', 'Retry')}
                     </button>
@@ -184,9 +181,9 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
 
                     {/* Blocked banner */}
                     {blockedCount > 0 && (
-                        <div className="flex items-start gap-3 rounded-xl border border-rose-500/40 bg-rose-500/5 px-4 py-3 mb-4">
-                            <AlertTriangle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-                            <div className="text-sm text-[var(--text-primary)]">
+                        <div className={`mb-4 ${ALERT_ERROR}`}>
+                            <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                            <div>
                                 {t('admin.ch_blocked_banner', '{count} organisation(s) cannot send AI messages right now').replace('{count}', String(blockedCount))}
                             </div>
                         </div>
@@ -197,9 +194,9 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
                         <button
                             data-testid="ch-pill-all"
                             onClick={() => setStatusFilter(null)}
-                            className={`px-2.5 py-1 rounded-full border text-[11px] font-medium ${statusFilter === null
-                                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] bg-[var(--accent-primary)]/10'
-                                : 'border-[var(--border-default)] text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]'}`}
+                            type="button"
+                            aria-pressed={statusFilter === null}
+                            className={statusFilter === null ? FILTER_CHIP_ON : FILTER_CHIP_OFF}
                         >
                             {t('admin.ch_filter_all', 'All')}
                         </button>
@@ -207,10 +204,10 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
                             <button
                                 key={id}
                                 data-testid={`ch-pill-${id}`}
+                                type="button"
+                                aria-pressed={statusFilter === id}
                                 onClick={() => setStatusFilter((f: string | null) => (f === id ? null : id))}
-                                className={`px-2.5 py-1 rounded-full border text-[11px] font-medium ${statusFilter === id
-                                    ? STATUS_META[id].chip
-                                    : 'border-[var(--border-default)] text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]'}`}
+                                className={statusFilter === id ? `${FILTER_CHIP_ON} ${STATUS_META[id].chip}` : FILTER_CHIP_OFF}
                             >
                                 {t(STATUS_META[id].labelKey, STATUS_META[id].fallback)}
                             </button>
@@ -229,16 +226,16 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
 
                     {/* Fleet table */}
                     {visible.length === 0 ? (
-                        <div className="p-6 text-center text-sm rounded-xl border border-[var(--border-default)] text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+                        <div className="rounded-lg border border-dashed border-[var(--border-default)] p-6 text-center text-sm text-[var(--text-tertiary)]">
                             {orgs.length === 0
                                 ? t('admin.ch_empty', 'No Nextcloud-connected organisations yet.')
                                 : t('admin.ch_no_match', 'No organisations match the current filters.')}
                         </div>
                     ) : (
-                        <div className="rounded-xl border border-[var(--border-default)] overflow-x-auto">
+                        <div className="overflow-x-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)]">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="text-left text-[var(--text-tertiary)] bg-[var(--bg-tertiary)]">
+                                    <tr className="bg-[var(--bg-secondary)] text-left text-xs text-[var(--text-tertiary)]">
                                         <th className="font-medium px-4 py-2">{t('admin.ch_col_org', 'Organisation')}</th>
                                         <th className="font-medium px-4 py-2">{t('admin.ch_col_status', 'Status')}</th>
                                         <th className="font-medium px-4 py-2">{t('admin.ch_col_problem', 'Top problem')}</th>
@@ -257,7 +254,7 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
                                             <tr
                                                 key={org.id}
                                                 onClick={() => openOrg(org)}
-                                                className="border-t border-[var(--border-subtle)] cursor-pointer hover:bg-[var(--bg-secondary)]"
+                                                className="cursor-pointer border-t border-[var(--border-default)] hover:bg-[var(--bg-secondary)]"
                                             >
                                                 <td className="px-4 py-2.5">
                                                     <div className="font-medium text-[var(--text-primary)]">{org.name}</div>
@@ -279,7 +276,7 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
                                                 <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">
                                                     {org.users?.active ?? 0}/{org.users?.total ?? 0}
                                                     {pending > 0 && (
-                                                        <span className="ml-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                                                        <span className="ml-1.5 text-[11px] font-medium text-[var(--warning-ink)]">
                                                             +{pending} {t('admin.ch_pending_short', 'pending')}
                                                         </span>
                                                     )}

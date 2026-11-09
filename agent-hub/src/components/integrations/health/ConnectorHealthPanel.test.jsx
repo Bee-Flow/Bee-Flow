@@ -73,6 +73,17 @@ describe('ConnectorHealthPanel', () => {
         expect(screen.queryByText(/cannot send AI messages right now/)).toBeNull();
     });
 
+    it('marks the pressed filter pill', async () => {
+        const user = userEvent.setup();
+        mockFleet();
+        render(<ConnectorHealthPanel />);
+        await screen.findByText('Blokkade BV');
+        expect(screen.getByTestId('ch-pill-all').getAttribute('aria-pressed')).toBe('true');
+        await user.click(screen.getByTestId('ch-pill-ok'));
+        expect(screen.getByTestId('ch-pill-ok').getAttribute('aria-pressed')).toBe('true');
+        expect(screen.getByTestId('ch-pill-all').getAttribute('aria-pressed')).toBe('false');
+    });
+
     it('narrows rows with the status filter pills', async () => {
         const user = userEvent.setup();
         mockFleet();

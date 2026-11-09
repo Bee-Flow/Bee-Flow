@@ -1,5 +1,5 @@
 import {
-    CARD, CODE, INPUT_STYLE, LABEL,
+    CARD, CODE, INPUT, LABEL,
     ClientIdField, ClientSecretField, ProviderActions, ProviderHeader, SetupInstructions,
 } from './SsoFormParts';
 import type { SsoProvidersState } from './useSsoProviders';
@@ -13,12 +13,11 @@ export function NextcloudSsoTab({ sso }: TabProps) {
     const { t } = useTranslation();
     const { providers, updateProviderField, redirectBase } = sso;
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-4">
             <div className={CARD}>
                 <ProviderHeader
-                    logoBackground="rgba(0, 130, 201, 0.15)"
                     logo={(
-                        <svg className="w-7 h-7 [color:#0082c9]" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-7 h-7 text-[#0082c9]" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
                         </svg>
                     )}
@@ -27,7 +26,7 @@ export function NextcloudSsoTab({ sso }: TabProps) {
                     config={providers.nextcloud}
                 />
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <div className="lg:col-span-2">
                         <label className={LABEL}>{t('admin_security.sso_nc_url', 'Nextcloud URL')}</label>
                         <input
@@ -35,8 +34,7 @@ export function NextcloudSsoTab({ sso }: TabProps) {
                             value={providers.nextcloud.url}
                             onChange={(e) => updateProviderField('nextcloud', 'url', e.target.value)}
                             placeholder="https://your-nextcloud.com"
-                            className="w-full px-4 py-2.5 rounded-lg text-sm"
-                            style={INPUT_STYLE}
+                            className={INPUT}
                         />
                     </div>
                     <ClientIdField provider="nextcloud" sso={sso} label={t('admin.sso_client_id')} placeholder={t('admin_security.sso_nc_client_id_ph', 'OAuth Client ID')} />
@@ -60,10 +58,9 @@ export function GoogleSsoTab({ sso }: TabProps) {
     const { t } = useTranslation();
     const { providers, redirectBase } = sso;
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-4">
             <div className={CARD}>
                 <ProviderHeader
-                    logoBackground="rgba(66, 133, 244, 0.15)"
                     logo={(
                         <svg className="w-7 h-7" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -77,14 +74,14 @@ export function GoogleSsoTab({ sso }: TabProps) {
                     config={providers.google}
                 />
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <ClientIdField provider="google" sso={sso} label={t('admin.sso_client_id')} placeholder="xxxxxxxxxxxx.apps.googleusercontent.com" />
                     <ClientSecretField provider="google" sso={sso} />
                 </div>
             </div>
 
             <SetupInstructions>
-                <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{t('admin_security.sso_g_console', 'Google Cloud Console → Credentials')}</a></li>
+                <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">{t('admin_security.sso_g_console', 'Google Cloud Console → Credentials')}</a></li>
                 <li>{t('admin_security.sso_g_step2', 'Create a new OAuth 2.0 Client ID (Web application)')}</li>
                 <li>{t('admin_security.sso_g_step3', 'Add authorized redirect URI:')} <code className={CODE}>{redirectBase}/auth/callback/google</code></li>
                 <li>{t('admin_security.sso_copy_client', 'Copy the Client ID and Client Secret here')}</li>

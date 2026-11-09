@@ -66,14 +66,14 @@ export interface FleetOrg {
     problems?: HealthProblem[];
 }
 
-const GREEN = '#22c55e';
-const AMBER = '#f59e0b';
-const ROSE = '#ef4444';
+const GREEN = 'var(--success)';
+const AMBER = 'var(--warning)';
+const ROSE = 'var(--error)';
 const NEUTRAL = 'var(--text-tertiary)';
 
-const GREEN_CHIP = 'text-green-600 dark:text-green-400 border-green-500/30 bg-green-500/10';
-const AMBER_CHIP = 'text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/10';
-const ROSE_CHIP = 'text-rose-600 dark:text-rose-400 border-rose-500/30 bg-rose-500/10';
+const GREEN_CHIP = 'text-[var(--success-ink)] border-[color-mix(in_srgb,var(--success)_30%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]';
+const AMBER_CHIP = 'text-[var(--warning-ink)] border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)]';
+const ROSE_CHIP = 'text-[var(--error-ink)] border-[color-mix(in_srgb,var(--error)_30%,transparent)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)]';
 const NEUTRAL_CHIP = 'text-[var(--text-tertiary)] border-[var(--border-default)] bg-[var(--bg-secondary)]';
 
 // Pinned health enum (API contract): higher severityRank = worse. The fleet

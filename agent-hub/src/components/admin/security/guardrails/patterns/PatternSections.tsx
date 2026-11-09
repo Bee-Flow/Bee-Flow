@@ -157,7 +157,7 @@ export function AiGenerate({ setRules, setCollections, onSaved }: AiGenerateProp
                 </button>
             </div>
             {aiMessage && (
-                <p className={`mt-2 text-xs ${aiMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`} role="status">
+                <p className={`mt-2 text-xs ${aiMessage.type === 'success' ? 'text-[var(--success-ink)]' : 'text-[var(--error-ink)]'}`} role="status">
                     {aiMessage.text}
                 </p>
             )}

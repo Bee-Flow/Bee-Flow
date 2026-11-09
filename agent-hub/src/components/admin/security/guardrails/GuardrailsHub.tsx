@@ -88,14 +88,14 @@ const GuardrailsHub = ({ section, onNavigate }: GuardrailsHubProps) => {
             <HealthBanner status={data.guardStatus} />
 
             {(error as Error | null) && (
-                <div role="alert" className="flex items-center justify-between gap-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+                <div role="alert" className="flex items-center justify-between gap-4 rounded-xl border border-[color-mix(in_srgb,var(--error)_30%,transparent)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)] px-4 py-3">
                     <p className="text-sm text-[var(--text-primary)]">
                         {t('admin.gr_load_failed', 'Could not load the guardrail configuration.')}
                     </p>
                     <button
                         onClick={data.reload}
-                        className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg border border-red-500/40 text-red-400
-                                   hover:bg-red-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                        className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg border border-[color-mix(in_srgb,var(--error)_40%,transparent)] text-[var(--error-ink)]
+                                   hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--error)]"
                     >
                         {t('admin.gr_retry', 'Retry')}
                     </button>

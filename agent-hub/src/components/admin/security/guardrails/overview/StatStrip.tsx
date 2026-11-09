@@ -15,10 +15,10 @@ interface StatProps {
  * the two admin overviews read as the same product.
  */
 function Stat({ label, value, tone, onClick, title }: StatProps) {
-    const toneColor = tone === 'rose' ? '#ef4444'
-        : tone === 'amber' ? '#f59e0b'
-            : tone === 'green' ? '#22c55e'
-                : 'var(--text-primary)';
+    const toneText = tone === 'rose' ? 'text-[var(--error-ink)]'
+        : tone === 'amber' ? 'text-[var(--warning-ink)]'
+            : tone === 'green' ? 'text-[var(--success-ink)]'
+                : 'text-[var(--text-primary)]';
     const Wrapper = onClick ? 'button' : 'div';
     return (
         <Wrapper
@@ -34,7 +34,7 @@ function Stat({ label, value, tone, onClick, title }: StatProps) {
                     : '')
             }
         >
-            <div className="text-2xl font-semibold" style={{ color: toneColor }}>{value}</div>
+            <div className={`text-2xl font-semibold ${toneText}`}>{value}</div>
             <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mt-0.5">{label}</div>
         </Wrapper>
     );

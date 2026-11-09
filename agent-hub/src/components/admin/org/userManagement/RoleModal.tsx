@@ -4,10 +4,10 @@ import Modal from '@/components/shared/Modal';
 import type { AdminPermission, RoleFormData } from './types';
 
 const PERMISSION_GROUPS = [
-    { key: 'pages', labelKey: 'admin_org.role_modal_group_pages', label: '📄 Pages', color: '#3b82f6' },
-    { key: 'admin', labelKey: 'admin_org.role_modal_group_admin', label: '🛡️ Admin Pages', color: '#8b5cf6' },
-    { key: 'actions', labelKey: 'admin_org.role_modal_group_actions', label: '⚡ Actions', color: '#f59e0b' },
-    { key: 'super', labelKey: 'admin_org.role_modal_group_super', label: '🔑 Super', color: '#ef4444' },
+    { key: 'pages', labelKey: 'admin_org.role_modal_group_pages', label: '📄 Pages' },
+    { key: 'admin', labelKey: 'admin_org.role_modal_group_admin', label: '🛡️ Admin Pages' },
+    { key: 'actions', labelKey: 'admin_org.role_modal_group_actions', label: '⚡ Actions' },
+    { key: 'super', labelKey: 'admin_org.role_modal_group_super', label: '🔑 Super' },
 ];
 
 export interface RoleModalProps {
@@ -54,7 +54,7 @@ export default function RoleModal({ open, onClose, showEditRole, roleData, setRo
                             if (groupPerms.length === 0) return null;
                             return (
                                 <div key={group.key}>
-                                    <div className="text-xs font-semibold uppercase tracking-wider mb-1.5 px-1" style={{ color: group.color }}>{t(group.labelKey, group.label)}</div>
+                                    <div className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">{t(group.labelKey, group.label)}</div>
                                     <div className="space-y-0.5">
                                         {groupPerms.map(p => (
                                             <label key={p.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">

@@ -5,6 +5,7 @@ import type { AuthFetchOptions } from '@/utils/helpers.types';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import { CARD, LABEL } from './sso/SsoFormParts';
+import { ALERT_ERROR } from '@/components/mcpLibrary/ui';
 
 /** A pending Microsoft identity link request. */
 interface LinkRequest {
@@ -56,7 +57,7 @@ export default function MicrosoftIdentityPanel() {
             <h3 className="text-lg font-semibold text-primary">{t('azure.identity_admin_title', 'Microsoft identities and directory sync')}</h3>
             <p className="text-sm text-muted">{t('azure.identity_admin_help', 'Verify the person and their tenant before linking an identity. An email match alone is insufficient.')}</p>
         </div>
-        {error && <p role="alert" className="p-3 rounded-lg text-sm bg-red-500/10 text-red-400 border border-red-500/20">{error}</p>}
+        {error && <p role="alert" className={ALERT_ERROR}>{error}</p>}
 
         <div className="space-y-3">
             <h4 className="font-semibold text-primary">{t('azure.identity_requests_title', 'Pending identity links')}</h4>
