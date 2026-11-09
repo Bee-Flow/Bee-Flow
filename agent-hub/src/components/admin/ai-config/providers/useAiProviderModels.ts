@@ -3,7 +3,7 @@
 // only read while `modelsEnabled` is set, the sections that show them.
 
 import { useCallback, useMemo } from 'react';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CatalogModel } from '../chatModelTiers/tierTypes';
 import { aiProvidersKey, useAiProvidersQuery } from '@/api/queries/adminConfigReads';
 import { readOrNull } from '@/api/queries/refusableRead';
@@ -28,36 +28,40 @@ const NO_PROVIDERS: ProviderRow[] = [];
 
 interface ModelsAnswer { models?: CatalogModel[] }
 
-const combine = (results: { data?: ModelsAnswer | null; isFetching: boolean }[]) => ({
-    answers: results.map(r => r.data),
-    loading: results.some(r => r.isFetching),
-});
+const NO_MODELS: ModelRow[] = [];
+
+/**
+ * Every provider's models in one query. Deliberately one `useQuery` and not
+ * `useQueries`: the latter pulls query-core's QueriesObserver into this lazy
+ * chunk, and the first-load vendor-misc chunk then imports it from here, so
+ * every page preloads the admin dashboard (bundle budget).
+ */
+async function readAllModels(providers: ProviderRow[], signal: AbortSignal): Promise<ModelRow[]> {
+    const answers = await Promise.all(
+        providers.map(p => readOrNull<ModelsAnswer>(`${API_BASE}/ai/providers/${p.id}/models`, signal).catch(() => null)),
+    );
+    return providers.flatMap((provider, i) => (answers[i]?.models || []).map(m => ({
+        ...m,
+        providerId: provider.id,
+        providerName: provider.name,
+        providerType: provider.type,
+    })));
+}
 
 export function useAiProviderModels(modelsEnabled: boolean) {
     const queryClient = useQueryClient();
     const providersQuery = useAiProvidersQuery<ProviderRow>();
     const providers = providersQuery.data ?? NO_PROVIDERS;
 
-    const { answers, loading } = useQueries({
-        queries: providers.map(provider => ({
-            queryKey: [...modelsKeyPrefix, provider.id],
-            queryFn: ({ signal }: { signal: AbortSignal }) => readOrNull<ModelsAnswer>(`${API_BASE}/ai/providers/${provider.id}/models`, signal),
-            enabled: modelsEnabled,
-            staleTime: 0,
-            retry: false,
-        })),
-        combine,
+    const providerIds = useMemo(() => providers.map(p => p.id), [providers]);
+    const modelsQuery = useQuery({
+        queryKey: [...modelsKeyPrefix, providerIds],
+        queryFn: ({ signal }) => readAllModels(providers, signal),
+        enabled: modelsEnabled && providers.length > 0,
+        staleTime: 0,
+        retry: false,
     });
-
-    const allModels = useMemo<ModelRow[]>(
-        () => providers.flatMap((provider, i) => (answers[i]?.models || []).map(m => ({
-            ...m,
-            providerId: provider.id,
-            providerName: provider.name,
-            providerType: provider.type,
-        }))),
-        [providers, answers],
-    );
+    const allModels = modelsQuery.data ?? NO_MODELS;
 
     /** Read both lists again (a runtime was connected or a model pulled). */
     const refresh = useCallback(() => {
@@ -65,5 +69,5 @@ export function useAiProviderModels(modelsEnabled: boolean) {
         void queryClient.invalidateQueries({ queryKey: modelsKeyPrefix });
     }, [queryClient]);
 
-    return { providers, providersLoading: providersQuery.isPending, allModels, loadingModels: loading, refresh };
+    return { providers, providersLoading: providersQuery.isPending, allModels, loadingModels: modelsQuery.isFetching, refresh };
 }
