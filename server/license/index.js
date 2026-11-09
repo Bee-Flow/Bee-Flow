@@ -593,6 +593,13 @@ async function activateLicense(/** @type {{ token: string, organizationId?: stri
             err.code = 'malformed_admin_blob';
             throw err;
         }
+        // The envelope is JSON of the caller's making: `null`, a number or a list
+        // decodes fine and then has no fields to read.
+        if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) {
+            const err = new Error(`License verification failed: malformed_admin_blob`);
+            err.code = 'malformed_admin_blob';
+            throw err;
+        }
         if (decoded.v !== 1) {
             const err = new Error(`License verification failed: unsupported_blob_version`);
             err.code = 'unsupported_blob_version';

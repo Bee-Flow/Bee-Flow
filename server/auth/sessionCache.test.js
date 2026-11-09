@@ -291,3 +291,31 @@ test('with a sealer the cache holds sealed rows: on write, and on the write-back
     assert.ok(writeBack, 'written back');
     assert.ok(isSealed(JSON.parse(String(writeBack[2])).encryptionKey), 'write-back sealed');
 });
+
+test('a session in its last second, or past its expiry, is not cached for the default 15 minutes', async () => {
+    for (const msLeft of [400, -60_000]) {
+        const redis = fakeRedis();
+        const session = { cookie: { expires: new Date(Date.now() + msLeft).toISOString() }, user: { id: 'u1' } };
+        const store = wrapWithRedisCache(fakePgStore({ s1: session }), /** @type {any} */ (redis));
+
+        const got = await new Promise((resolve, reject) => store.get('s1', (/** @type {Error | null} */ err, /** @type {unknown} */ sess) => (err ? reject(err) : resolve(sess))));
+        assert.deepEqual(got, session);
+        await new Promise((resolve) => store.touch('s1', session, resolve));
+        await new Promise((resolve) => store.set('s1', session, resolve));
+        await tick();
+
+        assert.deepEqual(redis.calls.filter((c) => c[0] === 'set'), [], `no cache write with ${msLeft} ms left`);
+    }
+});
+
+test('a session with time left is cached for no longer than it lives', async () => {
+    const redis = fakeRedis();
+    const session = { cookie: { expires: new Date(Date.now() + 90_500).toISOString() } };
+    const store = wrapWithRedisCache(fakePgStore({ s1: session }), /** @type {any} */ (redis));
+    await new Promise((resolve) => store.get('s1', resolve));
+    await tick();
+    const sets = redis.calls.filter((c) => c[0] === 'set');
+    assert.equal(sets.length, 1);
+    assert.equal(sets[0][3], 'EX');
+    assert.ok(Number(sets[0][4]) >= 89 && Number(sets[0][4]) <= 90, `ttl ${sets[0][4]}`);
+});

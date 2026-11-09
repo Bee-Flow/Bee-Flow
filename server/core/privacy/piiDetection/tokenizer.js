@@ -285,8 +285,14 @@ function tokenizeText(text, entities, /** @type {Record<string, string> | null} 
         if (!existingByValue.has(dedupKey)) existingByValue.set(dedupKey, tok);
     }
 
-    // Sort by offset descending so we can splice from end without shifting offsets
-    const sorted = [...prepared].sort((a, b) => b.entity.offset - a.entity.offset);
+    // Sort by offset descending so we can splice from end without shifting offsets.
+    // Spans without a usable offset are replaced by their text and go LAST: such a
+    // replace changes the length of the text, so one that ran before a splice moved
+    // every offset after it (the splice then cut the wrong characters and left the
+    // value it was meant to hide), and its missing offset made the comparator answer
+    // NaN, which leaves the order of the positioned spans undefined as well.
+    const positioned = prepared.filter(p => p.inRange).sort((a, b) => b.entity.offset - a.entity.offset);
+    const sorted = positioned.concat(prepared.filter(p => !p.inRange));
     /** @type {Record<string, string>} */
     const tokenMap = {};
     // Dedup within a category (this call): values that resolve to the same

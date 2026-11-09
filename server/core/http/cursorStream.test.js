@@ -199,6 +199,33 @@ test('a refused write pauses the drain until the socket drains; nothing is lost 
     req.emit('close');
 });
 
+test('pausing for backpressure leaves no listeners behind on the response', async () => {
+    const f = feed();
+    const res = standInResponse();
+    const req = new EventEmitter();
+    await openCursorStream(req, res, {
+        cursor: 0, head: async () => 0, readSince: f.readSince, subscribe: f.subscribe, pollMs: () => 60_000, log: quiet,
+    });
+    const before = { close: res.listenerCount('close'), error: res.listenerCount('error'), drain: res.listenerCount('drain') };
+    // Twelve refused writes, each released by a 'drain': more than the default
+    // listener ceiling of an emitter, which is where the leak became a warning.
+    for (let i = 0; i < 12; i++) {
+        res.full = true;
+        f.add(`e${i}`);
+        f.bus.emit('ev', { kind: 'e' });
+        await new Promise((r) => setTimeout(r, 5));
+        res.full = false;
+        res.emit('drain');
+        await new Promise((r) => setTimeout(r, 5));
+    }
+    assert.strictEqual(res.written.filter((w) => w.startsWith('id: ')).length, 12, 'every frame was delivered');
+    assert.deepStrictEqual(
+        { close: res.listenerCount('close'), error: res.listenerCount('error'), drain: res.listenerCount('drain') },
+        before,
+    );
+    req.emit('close');
+});
+
 test('a reader that buffers past the cap is disconnected after onSlowConsumer', async () => {
     const f = feed();
     const res = standInResponse();
