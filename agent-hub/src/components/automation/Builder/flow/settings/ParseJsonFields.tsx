@@ -3,8 +3,8 @@ import { useMemo, useRef, useState } from 'react';
 import AccordionSection from '../AccordionSection';
 import { inputClass, textareaClass, FormRow } from './formPrimitives';
 import useAutomationApi from '@/hooks/useAutomationApi';
-import { walkPath, previewValue, suggestKeyFromPath } from '@/utils/bindingHelpers';
-import { walkRelativePath } from '@/utils/bindingHelpers.helpers';
+import { walkPath, previewValue, suggestKeyFromPath, walkRelativePath } from '@/utils/bindingHelpers';
+import { appendFields } from './ParseJsonFields.helpers';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
@@ -167,16 +167,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 added.push(row);
                 if (f.verified === false) amber.add(f.name);
             }
-            // Onto the fields as they are NOW (an updater): the answer takes
-            // seconds, and `fields` here is the list from before the question.
-            // Writing that list back erased every row typed or added meanwhile.
-            if (added.length) {
-                set('fields', (current: unknown) => {
-                    const now: ParseField[] = Array.isArray(current) ? current : [];
-                    const have = new Set(now.map(f => f?.name).filter(Boolean));
-                    return [...now, ...added.filter(f => !have.has(f.name))];
-                });
-            }
+            if (added.length) set('fields', appendFields(added));
             setUnverified(amber);
         } catch (e) {
             setMapError((e as Error)?.message || 'Mapping failed');

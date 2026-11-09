@@ -180,9 +180,8 @@ function getUnlockClaim(/** @type {import('express').Request} */ req, shareId) {
     const cookieHeader = req.headers.cookie || '';
     const m = cookieHeader.match(new RegExp(`(?:^|;\\s*)${UNLOCK_COOKIE_NAME}=([^;]+)`));
     if (!m) return null;
-    // A cookie value with a broken escape is no claim, not a 500 on a public page.
     let value;
-    try { value = decodeURIComponent(m[1]); } catch (_) { return null; }
+    try { value = decodeURIComponent(m[1]); } catch (_) { return null; } // a broken escape is no claim, not a 500 on a public page
     return publicShareToken.verifyUnlockCookie(value, shareId);
 }
 

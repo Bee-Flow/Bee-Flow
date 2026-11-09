@@ -121,7 +121,7 @@ function chunkText(text) {
                               /^```[\s\S]*```$/.test(section) ||
                               /^(\|[^\n]+\n){2,}/.test(section);
 
-        // The hierarchy as it stood BEFORE this section: the buffered text that
+        // The hierarchy as it stands AHEAD of this section: the buffered text that
         // gets flushed below sits under those headings, not under this section's.
         const stackBefore = headingStack.slice();
         // Track ALL headings in this section and update the hierarchy stack

@@ -237,7 +237,7 @@ async function execSummarize(step, ctx, runState) {
         };
     }
     // A missing value is not a zero: `Number(null)` and `Number('')` are 0, so
-    // an empty cell used to pull avg down, win every min and count as "used".
+    // an empty cell would pull avg down, win every min and count as "used".
     const values = arr.map(item => item?.[step.field])
         .filter(v => v != null && !(typeof v === 'string' && v.trim() === ''))
         .map(Number).filter(v => Number.isFinite(v));

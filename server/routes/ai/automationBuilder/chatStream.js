@@ -199,7 +199,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         const clientAbort = new AbortController();
         turn.clientAbort = clientAbort;
         // The RESPONSE's close: a POST's request stream closes once its body
-        // is read, before this handler runs, so req 'close' never fired here.
+        // is read, ahead of this handler, so req 'close' says nothing here.
         res.on('close', () => {
             if (res.writableEnded) return;
             turn.clientGone = true;

@@ -20,6 +20,7 @@
  */
 const crypto = require('crypto');
 const { walkRelativePath } = require('../bind');
+const { emitDisappeared } = require('./pollDiffDisappear');
 const log = require('../../telemetry/log');
 
 const CURSOR_VERSION = 1;
@@ -433,21 +434,7 @@ async function runPollDiff(sub, eventDef, passCtx, deps = {}) {
     }
 
     if (src.emitOnDisappear && prevMap && prev !== null && !trunc) {
-        for (const [id12, before] of prevMap) {
-            if (seenIds.has(id12)) continue;
-            if (emitted.length >= maxPerTick) {
-                // Over the per-tick cap: keep it in the cursor so the next
-                // tick still sees it as gone, instead of dropping the event.
-                entries.push({ id12, chg12: before.chg12, vals: before.vals });
-                continue;
-            }
-            emitted.push({
-                ...(before.vals || {}),
-                changedKeys: [],
-                changedAt: new Date().toISOString(),
-                _reason: 'disappeared',
-            });
-        }
+        emitDisappeared({ prevMap, seenIds, emitted, entries, maxPerTick });
     }
 
     await store.updateSubscription(sub.id, {

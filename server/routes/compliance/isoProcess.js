@@ -39,7 +39,7 @@ const incidentStore = require('../../stores/incidentStore');
 const configStore = require('../../stores/configStore');
 const { getAll } = require('../../db');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
-const { resolveOrgId, _riskStore, _auditStore, _obligationStore } = require('./shared');
+const { resolveOrgId, _riskStore, _auditStore, _obligationStore, latestOf } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -301,9 +301,7 @@ router.put('/iso/risks/:id', requireAuth, requirePermission('admin_compliance'),
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const saved = await _riskStore().updateRisk(orgId, req.params.id, req.body || {}, actorId);
-    // Risk acceptance is an auditor-relevant decision — chain it. Only for a
-    // risk that exists here: an unknown id saved nothing, and the chain must
-    // not record the acceptance of a risk this organisation does not have.
+    // Risk acceptance is an auditor-relevant decision — chain it, for a risk this organisation has (an unknown id saves nothing).
     if (saved && req.body?.status === 'accepted') {
         await complianceStore.addEvidence({
             organization_id: orgId, check_id: null,
@@ -367,20 +365,6 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
     const inserted = await _riskStore().seedMissing(orgId, seeds);
     res.json({ inserted, offered: seeds.length });
 });
-
-/**
- * The latest of some stamps, or null. By instant: the stamps are Dates, and a
- * plain sort() orders their text, which starts with the name of the weekday.
- * @param {Array<Date | string | null | undefined>} stamps
- */
-function latestOf(stamps) {
-    /** @type {Date | string | null} */
-    let latest = null;
-    for (const s of stamps) {
-        if (s && (latest === null || new Date(s).getTime() > new Date(latest).getTime())) latest = s;
-    }
-    return latest;
-}
 
 // The audit & review bundle. mr_inputs is the auto-built 9.3.2 agenda; the
 // minutes and decisions stay human.
@@ -582,4 +566,4 @@ router.post('/iso/obligations/:id/complete', requireAuth, requirePermission('adm
     res.json(await _obligationStore().completeObligation(orgId, req.params.id, actorId));
 });
 
-module.exports = Object.assign(router, { _test_latestOf: latestOf });
+module.exports = router;

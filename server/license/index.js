@@ -587,15 +587,8 @@ async function activateLicense(/** @type {{ token: string, organizationId?: stri
     if (typeof token === 'string' && token.startsWith(adminIssuance.BLOB_PREFIX)) {
         let decoded;
         try {
-            decoded = adminIssuance.decodeAdminLicenseBlob(token);
+            decoded = adminIssuance.decodeAdminLicenseEnvelope(token);
         } catch (e) {
-            const err = new Error(`License verification failed: malformed_admin_blob`);
-            err.code = 'malformed_admin_blob';
-            throw err;
-        }
-        // The envelope is JSON of the caller's making: `null`, a number or a list
-        // decodes fine and then has no fields to read.
-        if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) {
             const err = new Error(`License verification failed: malformed_admin_blob`);
             err.code = 'malformed_admin_blob';
             throw err;

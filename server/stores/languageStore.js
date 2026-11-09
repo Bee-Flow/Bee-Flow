@@ -67,11 +67,8 @@ const AVAILABLE_LOCALE_CATALOG = [
 async function getAvailableLocales() {
     let locales = await configStore.getConfig('i18n_locales');
     if (!locales || !Array.isArray(locales) || locales.length === 0) {
-        // A copy: addLocale and importLocale push onto what this returns, and
-        // the baseline list is also what the merge below reads on every call.
-        const seeded = DEFAULT_LOCALES.map((l) => ({ ...l }));
-        await configStore.setConfig('i18n_locales', seeded);
-        return seeded;
+        await configStore.setConfig('i18n_locales', DEFAULT_LOCALES);
+        return DEFAULT_LOCALES.map((l) => ({ ...l }));  // a copy: addLocale and importLocale push onto it, and the merge below reads the baseline on every call
     }
     // Non-destructive merge for existing deployments seeded with English-only:
     // ensure the baseline locales (en/nl/de/fr) are always present so the

@@ -12,7 +12,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { _test_latestOf: latestOf } = require('./isoProcess');
+const { latestOf } = require('./shared');
 
 test('the latest closed audit is the latest instant, whatever its weekday', () => {
     const wednesday = new Date('2026-10-28T10:00:00Z');   // older

@@ -126,6 +126,19 @@ function startSseHeartbeat(res, intervalMs = 10000, opts = {}) {
     return stop;
 }
 
+/**
+ * Call `onGone` when the client leaves before the response has ended.
+ *
+ * On the RESPONSE's close: a POST's request stream closes once its body is
+ * read, ahead of the handler, so req 'close' says nothing about the client.
+ * A response that ended by itself closes too, hence the writableEnded check.
+ * @param {{ writableEnded?: boolean, on: (event: string, listener: () => void) => unknown }} res
+ * @param {() => void} onGone
+ */
+function onClientGone(res, onGone) {
+    res.on('close', () => { if (!res.writableEnded) onGone(); });
+}
+
 /** The head every stream sends, so none writes it by hand. */
 const SSE_HEADERS = Object.freeze({
     'Content-Type': 'text/event-stream',
@@ -334,6 +347,6 @@ async function getOrCreateAgentConversation(agent, conversationId, userId, encry
     return conversation;
 }
 
-module.exports = { SSE_HEADERS, setupSSE, openSse, sendSSEError, startSseHeartbeat, persistAndTitle, getOrCreateAgentConversation };
+module.exports = { SSE_HEADERS, setupSSE, openSse, onClientGone, sendSSEError, startSseHeartbeat, persistAndTitle, getOrCreateAgentConversation };
 
 /** @typedef {{ role?: string, content?: string | Array<{ type?: string, text?: unknown }> | null }} TitleMessage */

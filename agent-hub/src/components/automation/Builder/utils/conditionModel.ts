@@ -14,6 +14,7 @@ import {
 } from '@shared/expr/rules.mjs';
 import { renderBindingValue, isCleanPath, bindingFromInput, canonicalRefPath } from '../../../../utils/bindingHelpers.helpers';
 import { ISO_DATE_RE } from '../mapping/core';
+import { quotedLiteral } from './conditionModel.literal';
 import type {
     Binding, Comparator, ConditionRow, FieldShape, Operator, OperatorOption, OperatorOptions, ParsedCall,
     QuantifiedCall, Translate, Value,
@@ -193,31 +194,13 @@ const SYMBOL_TO_KEY: Record<string, string> = { '==': 'eq', '!=': 'neq', '===': 
 const ref = (path: string): Binding => ({ kind: 'ref', path });
 const blank = (): Binding => ({ kind: 'literal', value: '' });
 
-/** The text of a double-quoted JSON string literal, or null when `token` is not one. */
-function doubleQuotedText(token: string): string | null {
-    if (token.length < 2 || !token.startsWith('"') || !token.endsWith('"')) return null;
-    try {
-        const value: unknown = JSON.parse(token);
-        return typeof value === 'string' ? value : null;
-    } catch {
-        return null;
-    }
-}
-
 /** Convert a raw right-hand-side token (`"file"`, `1000`, `steps.x.y`) to a binding. */
 function valueRawToBinding(rawText: unknown): Binding {
     const trimmed = String(rawText ?? '').trim();
     if (/^(true|false|null)$/.test(trimmed)) return { kind: 'literal', value: trimmed === 'null' ? null : trimmed === 'true' };
     if (/^-?\d+(\.\d+)?$/.test(trimmed)) return { kind: 'literal', value: Number(trimmed) };
-    // A double-quoted literal is JSON as it stands. Turning its apostrophes
-    // into quotes first made `"it's \"x\""` unparseable, and the fallback
-    // below then kept the backslashes as text.
-    const asWritten = doubleQuotedText(trimmed);
-    if (asWritten !== null) return { kind: 'literal', value: asWritten };
-    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-        try { return { kind: 'literal', value: JSON.parse(trimmed.replace(/'/g, '"')) }; }
-        catch { return { kind: 'literal', value: trimmed.slice(1, -1) }; }
-    }
+    const quoted = quotedLiteral(trimmed);
+    if (quoted !== undefined) return { kind: 'literal', value: quoted };
     return bindingFromInput(trimmed, 'expression');
 }
 

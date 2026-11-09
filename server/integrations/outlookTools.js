@@ -170,8 +170,7 @@ function stripHtml(html) {
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
-        // &amp; last: decoded first, "&amp;lt;" (the text "&lt;") would come out as "<".
-        .replace(/&amp;/g, '&')
+        .replace(/&amp;/g, '&') // last: decoded first, "&amp;lt;" (the text "&lt;") would come out as "<"
         .replace(/\s+/g, ' ')
         .trim();
 }

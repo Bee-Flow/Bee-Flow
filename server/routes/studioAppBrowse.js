@@ -173,8 +173,8 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
 
         let cancelled = false;
         // On the RESPONSE: a POST's request stream closes as soon as its body
-        // is read, long before this handler runs, so req 'close' never fires
-        // here and a closed tab kept the browser session running.
+        // is read, long ahead of this handler, so req 'close' never fires
+        // here and a closed tab would keep the browser session running.
         const onClose = () => { if (!res.writableEnded) cancelled = true; };
         res.on('close', onClose);
         const hardTimer = setTimeout(() => { cancelled = true; }, BROWSE_HARD_MS);

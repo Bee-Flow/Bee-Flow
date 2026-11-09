@@ -10,10 +10,8 @@
  * Run: node --test license/malformedInput.test.js
  */
 
-const { test, afterEach } = require('node:test');
+const { test, afterEach, after } = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
-const Module = require('module');
 
 process.env.LICENSE_REFRESH_URL = 'https://license.invalid/v1/refresh';
 
@@ -30,18 +28,18 @@ const fakeStore = {
     async logLicenseAudit() {},
 };
 
-const FAKE_STORE_PATH = path.join(__dirname, '__fake_store_malformed__.js');
-const origResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (request === './store' && parent?.filename && path.dirname(parent.filename) === __dirname) return FAKE_STORE_PATH;
-    return origResolve.call(this, request, parent, ...rest);
-};
-require.cache[FAKE_STORE_PATH] = /** @type {any} */ ({ id: FAKE_STORE_PATH, filename: FAKE_STORE_PATH, loaded: true, exports: fakeStore });
+// The licence module and the refresher call the store as `store.fn(...)`, so
+// the stand-ins go on the store object they share; no statement of this file
+// reaches a database.
+require('../testUtils/routeHarness').recordDb();
+const store = require('./store');
+const realStore = Object.fromEntries(Object.keys(fakeStore).map((name) => [name, store[name]]));
+Object.assign(store, fakeStore);
+after(() => Object.assign(store, realStore));
 
 const license = require('./index');
 const verify = require('./verify');
 const refresh = require('./refresh');
-Module._resolveFilename = origResolve;
 
 const b64url = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const realFetch = globalThis.fetch;
