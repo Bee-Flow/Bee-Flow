@@ -70,3 +70,20 @@ describe('IntegrationsAdminPanel — service email OAuth', () => {
         expect(btn).toBeDisabled();
     });
 });
+
+describe('IntegrationsAdminPanel — section navigation', () => {
+    it('lists the sections in a named navigation and marks the one from the URL', async () => {
+        render(<IntegrationsAdminPanel activeSection="search" />);
+        const nav = await screen.findByRole('navigation', { name: 'admin.tab_integrations' });
+        expect(nav).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'admin.integ_search' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'admin.integ_features' })).not.toHaveAttribute('aria-current');
+    });
+
+    it('navigates to admin/integrations/<id> when a section is clicked', async () => {
+        const onNavigate = vi.fn();
+        render(<IntegrationsAdminPanel activeSection="features" onNavigate={onNavigate} />);
+        await userEvent.click(await screen.findByRole('button', { name: 'admin.integ_email' }));
+        expect(onNavigate).toHaveBeenCalledWith('admin/integrations/email');
+    });
+});

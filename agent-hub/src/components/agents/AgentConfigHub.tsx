@@ -2,7 +2,8 @@ import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Bot, Settings } from 'lucide-react';
 import AgentDesigner from './AgentDesigner/index';
-import HubScaffold from '../admin/shared/HubScaffold';
+import SectionNav from '../shared/SectionNav';
+import StudioShell from '../shared/StudioShell';
 import type { AgentDesignerProps } from './AgentDesigner/index';
 
 interface AgentConfigHubUser {
@@ -21,11 +22,12 @@ interface AgentConfigHubProps {
 
 /**
  * AgentConfigHub — Unified agent configuration page
- * Wraps all agent-type panels behind a compact left sidebar.
+ * Wraps all agent-type panels in a StudioShell with a SectionNav sidebar;
+ * the section is the URL (admin/<id>).
  */
 const SECTIONS = [
-    { id: 'chat', labelKey: 'admin.agents_chat', icon: Bot, color: '#6366f1' },
-    { id: 'system', labelKey: 'admin.agents_system', icon: Settings, color: '#8b5cf6' },
+    { id: 'chat', labelKey: 'admin.agents_chat', icon: Bot },
+    { id: 'system', labelKey: 'admin.agents_system', icon: Settings },
 ];
 
 const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', onNavigate }: AgentConfigHubProps) => {
@@ -44,25 +46,31 @@ const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', 
     const active = VALID_IDS.includes(activeSection) ? activeSection : (VALID_IDS[0] || 'chat');
 
     return (
-        <HubScaffold
-            sections={visibleSections}
-            activeId={active}
-            onSelect={(id) => { if (onNavigate) onNavigate(`admin/${id}`); }}
-            labelFor={(sec) => t(sec.labelKey).split(' ')[0]}
-            titleFor={(sec) => t(sec.labelKey)}
-            truncateLabel
+        <StudioShell
+            responsive
+            sidebarTitle={t('admin.tab_agents')}
+            sidebar={(
+                <SectionNav
+                    label={t('admin.tab_agents')}
+                    items={visibleSections.map(sec => ({ id: sec.id, icon: sec.icon, label: t(sec.labelKey) }))}
+                    activeId={active}
+                    onSelect={(id) => { if (onNavigate) onNavigate(`admin/${id}`); }}
+                />
+            )}
         >
-            {active === 'chat' && (
-                <div className="[position:absolute] [inset:0]">
-                    <AgentDesigner onBack={null} hasPermission={hasPermission} />
-                </div>
-            )}
-            {active === 'system' && (
-                <div className="[position:absolute] [inset:0]">
-                    <AgentDesigner key="system-agents" onBack={null} systemMode={true} hasPermission={hasPermission} />
-                </div>
-            )}
-        </HubScaffold>
+            <div className="relative h-full">
+                {active === 'chat' && (
+                    <div className="absolute inset-0">
+                        <AgentDesigner onBack={null} hasPermission={hasPermission} />
+                    </div>
+                )}
+                {active === 'system' && (
+                    <div className="absolute inset-0">
+                        <AgentDesigner key="system-agents" onBack={null} systemMode={true} hasPermission={hasPermission} />
+                    </div>
+                )}
+            </div>
+        </StudioShell>
     );
 };
 
