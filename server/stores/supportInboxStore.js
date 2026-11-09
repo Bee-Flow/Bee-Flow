@@ -416,11 +416,14 @@ async function deleteInbox(id, organizationId = null) {
 
 async function getDueInboxes() {
     await initDB();
+    // In flight is the lease alone (sync_locked_until), which expires by
+    // itself. sync_status is not consulted: nothing writes 'syncing' any more
+    // (services/supportInboxSyncEngine.js), and a row an older build left at
+    // 'syncing' when its process died would otherwise never be due again.
     const { rows } = await pool.query(
         `SELECT * FROM support_inboxes
           WHERE active = true
             AND encrypted_tokens IS NOT NULL
-            AND sync_status != 'syncing'
             AND (sync_locked_until IS NULL OR sync_locked_until <= now())
             AND (last_sync_at IS NULL OR last_sync_at + (sync_interval_minutes || ' minutes')::interval <= now())
           ORDER BY last_sync_at ASC NULLS FIRST
@@ -557,7 +560,11 @@ async function getDueScans() {
         `SELECT * FROM support_inboxes
           WHERE active = true
             AND encrypted_tokens IS NOT NULL
-            AND scan_status = 'queued'
+            -- 'running' with a lapsed lease is a scan whose process died: it is
+            -- due again, as acquireScanLock allows. Leaving it out left the row
+            -- at 'running' for good, and the route refuses a new scan while one
+            -- is "in progress".
+            AND scan_status IN ('queued','running')
             AND (scan_locked_until IS NULL OR scan_locked_until <= now())
           ORDER BY updated_at ASC
           LIMIT 5`

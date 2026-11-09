@@ -295,12 +295,27 @@ function advanceNextRun(currentNextRun, interval, daysOfWeek = null) {
         }
         case 'weekly':    d.setDate(d.getDate() + 7); break;
         case 'biweekly':  d.setDate(d.getDate() + 14); break;
-        case 'monthly':   d.setMonth(d.getMonth() + 1); break;
-        case 'quarterly': d.setMonth(d.getMonth() + 3); break;
-        case 'yearly':    d.setFullYear(d.getFullYear() + 1); break;
+        case 'monthly':   addMonthsClamped(d, 1); break;
+        case 'quarterly': addMonthsClamped(d, 3); break;
+        case 'yearly':    addMonthsClamped(d, 12); break;
         default: return null;
     }
     return d.toISOString();
+}
+
+/**
+ * Calendar roll in place, clamped to the last day of the target month. A bare
+ * setMonth overflows instead: 31 Jan + 1 month is "31 Feb", which JS reads as
+ * 3 March, so a schedule on the 31st skipped February and ran on the 3rd from
+ * then on (and 29 Feb + 1 year landed on 1 March).
+ * @param {Date} d
+ * @param {number} months
+ */
+function addMonthsClamped(d, months) {
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + months);
+    d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
 }
 
 /**

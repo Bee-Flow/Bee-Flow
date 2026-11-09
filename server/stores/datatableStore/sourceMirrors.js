@@ -204,19 +204,31 @@ async function markSourceStale(id, reason) {
  * mirror that has never been refreshed (its first pass died with the
  * process) and is due; a NULL `nextRunAt` INSIDE a state is a schedule of
  * "never" and is not.
+ *
+ * A pass that has been "running" for longer than `staleMs` is one whose
+ * replica died: claimSourceSync hands exactly those out again, so they are
+ * candidates here too. Leaving them out parked the mirror's scheduled
+ * refresh for good, because the ticker only ever claims what this lists.
  * @param {number} [limit]
+ * @param {{ staleMs?: number }} [opts]  the same window claimSourceSync uses
  */
-async function listDueSourceSyncs(limit = 20) {
+async function listDueSourceSyncs(limit = 20, { staleMs = 10 * 60 * 1000 } = {}) {
     await initDB();
     const res = await getAll(
         `SELECT * FROM datatables
           WHERE managed_kind IN (${KIND_LIST})
-            AND (sync_state IS NULL
-                 OR sync_state->>'nextRunAt' <= $2)
-            AND sync_state->>'status' IS DISTINCT FROM 'running'
+            AND (
+                  ((sync_state IS NULL OR sync_state->>'nextRunAt' <= $2)
+                    AND sync_state->>'status' IS DISTINCT FROM 'running')
+               OR (sync_state->>'status' = 'running'
+                    AND (sync_state->>'startedAt' IS NULL
+                         OR (sync_state->>'startedAt')::timestamptz < $3::timestamptz)
+                    AND (sync_state->>'nextRunAt' IS NULL OR sync_state->>'nextRunAt' <= $2))
+            )
           ORDER BY sync_state->>'nextRunAt' ASC NULLS FIRST, id ASC
           LIMIT $1`,
-        [Math.max(1, Math.min(200, Number(limit) || 20)), new Date().toISOString()],
+        [Math.max(1, Math.min(200, Number(limit) || 20)), new Date().toISOString(),
+            new Date(Date.now() - staleMs).toISOString()],
     );
     return (res || []).map(rowToDatatable);
 }

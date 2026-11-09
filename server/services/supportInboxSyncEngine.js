@@ -98,21 +98,19 @@ async function tickOnce() {
  * part of this handshake the DATABASE can undo on its own: it expires after
  * SYNC_LOCK_TTL_MINUTES whether or not this process is still alive.
  *
- * Writing sync_status='syncing' here would wedge a mailbox permanently: a
+ * Writing sync_status='syncing' here used to wedge a mailbox permanently: a
  * SIGKILL / OOM / pod eviction anywhere inside the provider round-trips skips
  * both the catch and the finally, leaving the row at 'syncing' forever, and
- * getDueInboxes() filters those rows out (`AND sync_status != 'syncing'`) — a
- * predicate no lease expiry, PATCH route or re-OAuth can clear, so the mailbox
+ * getDueInboxes() filtered those rows out (`AND sync_status != 'syncing'`) — a
+ * predicate no lease expiry, PATCH route or re-OAuth could clear, so the mailbox
  * silently stopped producing tickets until someone ran manual SQL. The lease
  * already provides the mutual exclusion that marker was doubling up on
  * (acquireSyncLock is an atomic compare-and-set on sync_locked_until), so
  * dropping the write costs nothing and makes a crash self-healing.
  *
- * NOTE for whoever owns stores/supportInboxStore.js: rows wedged at 'syncing'
- * by a pre-fix build stay invisible to getDueInboxes forever. Dropping the now
- * write-less `AND sync_status != 'syncing'` predicate from getDueInboxes()
- * releases them (the lease check on the next line is what actually guards
- * concurrency).
+ * getDueInboxes() no longer reads sync_status either, so the rows an older
+ * build left at 'syncing' are due again
+ * (stores/supportInboxStore.due.pg.test.js).
  */
 async function syncOneInbox(inboxRow) {
     const lock = await supportInboxStore.acquireSyncLock(inboxRow.id, SYNC_LOCK_TTL_MINUTES);
