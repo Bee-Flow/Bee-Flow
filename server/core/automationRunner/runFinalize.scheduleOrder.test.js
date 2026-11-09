@@ -55,7 +55,7 @@ const indexOf = (pred) => ops.findIndex(pred);
 
 test('the primary schedule is advanced before the marker is released', async () => {
     ops = [];
-    await executeAutomation({ ...AUTOMATION }, { triggerKind: 'schedule', triggerPayload: { now: new Date().toISOString() } });
+    await executeAutomation({ ...AUTOMATION }, { triggerKind: 'schedule', markerClaimed: true, triggerPayload: { now: new Date().toISOString() } });
 
     const advanced = indexOf(o => o.op === 'updateAutomation' && o.patch && o.patch.nextRunAt);
     const statusWritten = indexOf(o => o.op === 'updateAutomation' && o.patch && o.patch.lastStatus && o.patch.lastStatus !== 'running');
@@ -76,4 +76,25 @@ test('a run through a secondary schedule still leaves the primary slot alone', a
     assert.ok(!ops.some(o => o.op === 'updateAutomation' && o.patch && 'nextRunAt' in o.patch), 'the primary next_run_at moved for a secondary schedule run');
     const advanced = indexOf(o => o.op === 'advanceSchedule' && o.id === 'sch_1');
     assert.ok(advanced > -1 && advanced < indexOf(o => o.op === 'releaseAutomation'), 'the secondary schedule advances before the release');
+});
+
+// Only the run that CONSUMED the primary slot moves it. The advance is
+// "the next match after now", so for any other run it is at best a no-op and
+// at worst skips a slot: a webhook run that is busy at 09:00 keeps the tick
+// from claiming the 09:00 slot (the automation is running), and when it
+// finished it used to write next_run_at = tomorrow 09:00 — today's scheduled
+// run never happened.
+const movedPrimary = () => ops.some(o => o.op === 'updateAutomation' && o.patch && 'nextRunAt' in o.patch);
+
+test('a webhook run of an automation with a primary schedule leaves the schedule slot alone', async () => {
+    ops = [];
+    await executeAutomation({ ...AUTOMATION }, { triggerKind: 'webhook', triggerPayload: { order: 1 } });
+    assert.ok(ops.some(o => o.op === 'releaseAutomation'), 'the run itself completed and released');
+    assert.ok(!movedPrimary(), 'a run that did not come from the scheduler moved next_run_at past a slot that may still be due');
+});
+
+test('a retry or resume of a scheduled run (no scheduler claim) leaves the slot alone too', async () => {
+    ops = [];
+    await executeAutomation({ ...AUTOMATION }, { triggerKind: 'schedule', triggerPayload: { now: new Date().toISOString() } });
+    assert.ok(!movedPrimary());
 });

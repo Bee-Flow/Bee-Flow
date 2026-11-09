@@ -58,6 +58,7 @@ const heartbeat = require('./runHeartbeat');
 const { disabledPassThroughBranch, makeStepDispatcher } = require('./stepDispatch');
 const { raceRunDag } = require('./runDeadline');
 const { finalizeRun } = require('./runFinalize');
+const { advancePrimarySchedule, advanceSecondarySchedule } = require('./runFinalizeEffects');
 
 /**
  * What the run modules get instead of requiring it themselves. The lazy
@@ -157,6 +158,18 @@ async function assertOwnerMayRun(automation, triggerKind) {
     throw new HttpError(409, 'automation_owner_inactive', 'The owner of this automation can no longer run it.');
 }
 
+/**
+ * Move the schedule a scheduler-claimed run consumed to its next slot, for a
+ * run that ends before finalizeRun (which does this for every other run).
+ */
+async function advanceClaimedSlot(deps, { automation, schedule, rootStepId, triggerKind }) {
+    if (schedule) {
+        await advanceSecondarySchedule(deps, { automation, schedule, rootStepId, runStatus: 'error', finishedAt: new Date().toISOString() });
+        return;
+    }
+    await advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm: false, schedule: null, triggerKind, scheduleClaimed: true });
+}
+
 /** See runHeartbeat.acquireRunMarker (exported for the scheduler and tests). */
 function acquireRunMarker(automationId, triggerKind, opts) {
     return heartbeat.acquireRunMarker(RUN_DEPS, automationId, triggerKind, opts);
@@ -250,7 +263,9 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     const isResume = !!skipUntilStepId;
     // Only a run whose profile holds the marker claims it (production): a test,
     // partial or dry run runs alongside a live one and never owns it (RM-12).
-    const claim = await heartbeat.claimRunMarker(RUN_DEPS, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle, holdsMarker: profile.holdsMarker, markerClaimed: markerClaimed && triggerKind === 'schedule' });
+    // The scheduler's tick claimed this row (and its due slot) for this run.
+    const scheduleClaimed = markerClaimed && triggerKind === 'schedule';
+    const claim = await heartbeat.claimRunMarker(RUN_DEPS, { automation, run, runPolicy, triggerKind, effectiveMode, isResume, startedAt, emitLifecycle, holdsMarker: profile.holdsMarker, markerClaimed: scheduleClaimed });
     if (claim.skipped) return claim.row;
     const ownsMarker = claim.ownsMarker;
 
@@ -305,6 +320,10 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     } catch (e) {
         const error = /** @type {Error & { errorClass?: string }} */ (e);
         log.error(`[AutomationRunner] run ${run.id} of automation ${automation.id} failed during setup: ${error.message}`);
+        // A claimed slot is spent by this failure, as it is by a run that
+        // fails in a step: left due, the tick would claim it again every
+        // minute. Moved before the marker goes, like everywhere else.
+        if (scheduleClaimed) await advanceClaimedSlot(RUN_DEPS, { automation, schedule, rootStepId, triggerKind }).catch((err) => log.warn(`[AutomationRunner] could not advance the schedule of ${automation.id} after a setup failure: ${err.message}`));
         await failRunBeforeSteps(RUN_DEPS, {
             error: { message: error.message || String(e), errorClass: error.errorClass || 'run_setup_failed' },
             run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle,
@@ -322,7 +341,7 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     return finalizeRun(RUN_DEPS, {
         automation, run, ctx, runState, tokenVault, startedAt, firstRunNeedsConfirm, outcome,
         ownsMarker, schedule, rootStepId, triggerKind, effectiveMode, testRun, profile,
-        onRunFinished, emitLifecycle,
+        onRunFinished, emitLifecycle, scheduleClaimed,
     });
 }
 

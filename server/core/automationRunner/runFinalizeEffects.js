@@ -178,9 +178,16 @@ async function notifyRunEnd(deps, end) {
  * through a secondary schedule (`schedule` set, advanced by releaseMarker)
  * must not move the primary's next_run_at.
  */
-async function advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, schedule, triggerKind }) {
+async function advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, schedule, triggerKind, scheduleClaimed = false }) {
     const { automationStore, notifyRunEvent } = deps;
+    // Only the run that CONSUMED the primary slot moves it: the one the
+    // scheduler claimed (`scheduleClaimed`). The advance is "the next match
+    // after now", so for any other run of this automation (a webhook or event
+    // on an extra trigger, a retry or a resume of an earlier scheduled run) it
+    // is at best a no-op and at worst skips a slot that is due but could not be
+    // claimed yet, because that very run kept the automation busy.
     if (automation.triggerType !== 'schedule'
+        || !scheduleClaimed
         || firstRunNeedsConfirm
         || schedule
         || triggerKind === 'manual'
@@ -212,7 +219,7 @@ async function advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, 
     }
 }
 
-module.exports = { releaseMarker, notifyRunEnd, advancePrimarySchedule };
+module.exports = { releaseMarker, notifyRunEnd, advancePrimarySchedule, advanceSecondarySchedule };
 
 /**
  * @typedef {import('./runSetup').RunAutomation} RunAutomation

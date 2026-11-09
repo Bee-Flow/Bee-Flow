@@ -142,7 +142,7 @@ async function finalizeRun(deps, {
     automation, run, ctx, runState, tokenVault, startedAt, firstRunNeedsConfirm,
     outcome: { runResult, runErrorObj, runErrorMsg, runStatus },
     ownsMarker, schedule, rootStepId, triggerKind, effectiveMode, testRun, profile = null,
-    onRunFinished, emitLifecycle,
+    onRunFinished, emitLifecycle, scheduleClaimed = false,
 }) {
     const { automationStore, loadApprovalLifecycle } = deps;
     const { ApprovalRequiredError } = deps.engine;
@@ -229,7 +229,7 @@ async function finalizeRun(deps, {
     // (last_status off 'running') with next_run_at still in the past for as
     // long as the notifications below take, and the next tick of any instance
     // claims the same slot a second time.
-    await advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, schedule, triggerKind });
+    await advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, schedule, triggerKind, scheduleClaimed });
     if (ownsMarker) await releaseMarker(deps, { automation, firstRunNeedsConfirm, runStatus, finishedAt, schedule, rootStepId, profile });
     await notifyRunEnd(deps, { automation, run, firstRunNeedsConfirm, runStatus, runErrorObj, summary, userSafeError, triggerKind, effectiveMode, testRun, approvalRow });
 

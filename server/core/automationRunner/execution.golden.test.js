@@ -292,6 +292,9 @@ test('a failing step records every attempt, then the run fails with a sanitised 
         'recordRunStep:bad:running:1',
         'getRun',
         'recordRunStep:bad:error:1',
+        // The retry asks whether the run was cancelled before it sends the
+        // step again (stepDispatch.retryCancel.test.js).
+        'getRun',
         'recordRunStep:bad:error:2',
         'updateRun:error:durationMs,error,errorClass,finishedAt,status,summary',
         'resolveRunOutcome:error',
