@@ -3,13 +3,13 @@
  * running marker.
  *
  * claimDueAutomations takes every row with `next_run_at <= NOW()` whose
- * last_status is not 'running'. The finalisation used to release the marker
- * (last_status = the run's result), then send the run notifications — an
- * e-mail and a Talk card, seconds on a slow relay — and only then write the
- * next next_run_at. For that whole stretch the row was due AND free, so the
- * next tick of any instance claimed the same slot again: one schedule slot,
- * two runs. The secondary schedules were already advanced before the release
- * (runFinalizeEffects.advanceSecondarySchedule); the primary now is too.
+ * last_status is not 'running'. Releasing the marker (last_status = the run's
+ * result) and only then sending the run notifications — an e-mail and a Talk
+ * card, seconds on a slow relay — and writing the next next_run_at leaves the
+ * row due AND free for that whole stretch, so the next tick of any instance
+ * claims the same slot again: one schedule slot, two runs. The secondary
+ * schedules are advanced before the release
+ * (runFinalizeEffects.advanceSecondarySchedule), and so is the primary.
  *
  * Run: cd server && node --test core/automationRunner/runFinalize.scheduleOrder.test.js
  */

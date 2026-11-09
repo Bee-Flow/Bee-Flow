@@ -278,9 +278,9 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     const heartbeatTimer = heartbeat.startHeartbeat(RUN_DEPS, { effectiveMode, emitLifecycle, run, touchRunMarker });
 
     // Everything from here to the DAG race runs with the heartbeat ticking and
-    // (for a live run) the marker held. An exception in this stretch used to
-    // leave both behind: the heartbeat kept the marker fresh, so the reaper
-    // never freed the automation and every later trigger was skipped as
+    // (for a live run) the marker held. An exception in this stretch must not
+    // leave both behind: the heartbeat keeps the marker fresh, so the reaper
+    // never frees the automation and every later trigger is skipped as
     // "already running" until a restart. Fail the run the way the other
     // before-step-1 refusals do, then let the caller see the error.
     let runState, tokenVault, ctx;

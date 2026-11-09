@@ -1,15 +1,14 @@
 /**
  * Only the SCHEDULER's own claim lets a run skip the marker acquisition.
  *
- * claimRunMarker used to read "triggerKind === 'schedule'" as "the tick
- * already claimed this row for me" and handed the run ownership of the marker
- * without asking. But two other callers start a run with that kind and no
- * claim: a retry of a scheduled run (POST /:id/runs/:runId/retry passes the
- * original run's triggerKind) and the resume of a scheduled run after an
- * approval or form pause (resume.js does the same). Both then ran alongside
- * whatever live run held the marker, and at their end wrote the automation's
- * last status and RELEASED that other run's marker — after which the scheduler
- * could start yet another run on top of it.
+ * "triggerKind === 'schedule'" does not mean "the tick already claimed this
+ * row for me". Two other callers start a run with that kind and no claim: a
+ * retry of a scheduled run (POST /:id/runs/:runId/retry passes the original
+ * run's triggerKind) and the resume of a scheduled run after an approval or
+ * form pause (resume.js does the same). Handed ownership of the marker without
+ * asking, both run alongside whatever live run holds it, and at their end
+ * write the automation's last status and RELEASE that other run's marker —
+ * after which the scheduler can start yet another run on top of it.
  *
  * The tick now says so explicitly (`markerClaimed: true`); every other
  * schedule-kind run asks for the marker like any other live run.

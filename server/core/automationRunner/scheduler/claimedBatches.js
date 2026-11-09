@@ -15,7 +15,7 @@ const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Of the claimed rows still WAITING for their batch: refresh the running marker
- * of each, and drop the ones that are no longer ours.
+ * of each, and drop the ones another instance took over.
  *
  * A claim stamps running_started_at once. Only a row that is actually running
  * has a heartbeat to keep that fresh; a row waiting behind earlier batches has
