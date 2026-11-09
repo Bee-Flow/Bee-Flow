@@ -48,6 +48,8 @@
 'use strict';
 
 const RETRY_MAX = 5;
+// The longest wait between two tries of one step: the default run budget.
+const RETRY_BACKOFF_MAX_MS = 300_000;
 const RETRY_THEN = Object.freeze(['stop_notify', 'continue']);
 const DURATION_MIN = 1;
 const DURATION_MAX = 60;
@@ -163,9 +165,29 @@ function resolveRunPolicy(definition) {
     };
 }
 
-/** The retry a step gets: its own when it has one, else the automation's default (or null). */
+/**
+ * A step's stored `retry`, bounded. Nothing validates the field on save, so
+ * what a run follows is clamped here: at most RETRY_MAX extra tries (the
+ * automation default's own ceiling, and the most the editor offers) and at
+ * most RETRY_BACKOFF_MAX_MS between two of them. Anything that is not a number
+ * reads as 0, which is the runner's "do not retry".
+ * @param {unknown} retry
+ * @returns {{ max: number, backoffMs: number } | null}
+ */
+function boundedStepRetry(retry) {
+    if (!retry || typeof retry !== 'object') return null;
+    const r = /** @type {{ max?: unknown, backoffMs?: unknown }} */ (retry);
+    /** @param {unknown} v @param {number} ceiling */
+    const bounded = (v, ceiling) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? Math.min(Math.max(Math.trunc(n), 0), ceiling) : 0;
+    };
+    return { max: bounded(r.max, RETRY_MAX), backoffMs: bounded(r.backoffMs, RETRY_BACKOFF_MAX_MS) };
+}
+
+/** The retry a step gets: its own (bounded) when it has one, else the automation's default (or null). */
 function stepRetryFor(step, policy) {
-    if (step && step.retry) return step.retry;
+    if (step && step.retry) return boundedStepRetry(step.retry);
     const max = policy?.retry?.max || 0;
     return max > 0 ? { max } : null;
 }
@@ -177,10 +199,11 @@ function runTimeoutMsFor(policy) {
 
 module.exports = {
     DEFAULT_RUN_POLICY,
-    RETRY_MAX, RETRY_THEN, DURATION_MIN, DURATION_MAX, CONCURRENCY, CONNECTIONS, RETENTION_MIN, RETENTION_MAX,
+    RETRY_MAX, RETRY_BACKOFF_MAX_MS, RETRY_THEN, DURATION_MIN, DURATION_MAX, CONCURRENCY, CONNECTIONS, RETENTION_MIN, RETENTION_MAX,
     sanitizeRunPolicy,
     withSanitizedRunPolicy,
     resolveRunPolicy,
+    boundedStepRetry,
     stepRetryFor,
     runTimeoutMsFor,
 };

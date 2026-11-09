@@ -22,6 +22,8 @@ const { coerceLayerInputs } = require('./layerParams');
 const { forEachConcurrencyFor, runIndexedPool } = require('./forEachConcurrency');
 const { failedItemRow, allItemsFailedError } = require('./forEachFailure.mts');
 const { fallback } = require('../../utils/bestEffort');
+const { boundedStepRetry } = require('./runPolicy');
+const { cancellableSleep } = require('./cancellableSleep');
 
 // ── Parallel branches ───────────────────────────────────
 //
@@ -255,7 +257,10 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // step body, so retrying the WHOLE forEach from the outer dispatch loop would
     // re-run already-succeeded items. We own retry at the item level instead.
     // nosemgrep: ajinabraham.njsscan.eval.eval_node.eval_nodejs -- the only timer below is setTimeout(fn, ms) with a function and a numeric delay; nothing is evaluated
-    const retry = (step.retry && step.retry.max > 0) ? step.retry : null;
+    // Bounded like the single-step retry (runPolicy.boundedStepRetry): the
+    // stored value is not validated anywhere else.
+    const storedRetry = boundedStepRetry(step.retry);
+    const retry = (storedRetry && storedRetry.max > 0) ? storedRetry : null;
     const maxAttempts = retry ? retry.max + 1 : 1;
     // Which steps may run items side by side, and how many, is decided in
     // forEachConcurrency.js: read-only fetches, data_extraction and an ai_step
@@ -301,8 +306,11 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
                 // into the results.
                 if (isRunPause(e) || /** @type {Error} */ (e).message === 'Run cancelled') throw e;
                 lastErr = e;
-                if (attempt < maxAttempts && retry?.backoffMs) {
-                    await new Promise(r => setTimeout(r, Number(retry.backoffMs) || 0));
+                if (attempt < maxAttempts) {
+                    // The wait ends with the run, and a cancelled run does not
+                    // try the item again.
+                    await cancellableSleep(retry?.backoffMs || 0, ctx?.cancelSignal);
+                    if (checkCancel) await checkCancel();
                 }
             }
         }
