@@ -1,14 +1,13 @@
-import { useState, useMemo, SetStateAction, Dispatch } from 'react';
+import { useState, useMemo } from 'react';
+import { CHIP } from '@/components/mcpLibrary/ui';
 import {
-    Cpu, Bot, Users, MessageSquare, ChevronRight} from 'lucide-react';
-import {
-    fmt, fmtCost, fmtDuration, shortModel, COLORS, MODEL_COLORS,
-    Card, Empty, FilterBar, SortableTable, InOutBar, InOutLabel,
-    getAgentStyle, 
+    fmt, fmtCost, shortModel,
+    FilterBar, SortableTable, InOutBar, InOutLabel, SeriesDot, TablePanel,
     type AgentUsage, type FilterState, type ModelUsage, type SortableColumn, type UsageRecord, type UserUsage,
 } from './shared';
-import type { ModelRate } from './drawer/drawerTypes';
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { chartSeriesVar } from '@/components/shared/charts/chartChrome';
+import { AgentTable } from './usage/AgentTable';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
 interface UsageExplorerPageProps {
     byModel: ModelUsage[];
@@ -16,267 +15,140 @@ interface UsageExplorerPageProps {
     byUser: UserUsage[];
     byConversation: UsageRecord[];
     costPerModel: Record<string, number>;
-    modelCosts: Record<string, ModelRate>;
     onSelectModel?: (model: UsageRecord) => void;
-    onSelectAgent?: (agent: UsageRecord) => void;
 }
 
-export function UsageExplorerPage({
-    byModel, byAgent, byUser, byConversation, costPerModel, modelCosts,
-    onSelectModel, onSelectAgent
-}: UsageExplorerPageProps) {
-    const { t } = useTranslation();
-    const [filters, setFilters] = useState<FilterState>({ user: null, agent: null, model: null, source: null });
-    const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
+const NUM = 'text-xs tabular-nums text-[var(--text-primary)]';
+const NUM_QUIET = 'text-xs tabular-nums text-[var(--text-secondary)]';
 
-    // Generate filter options
-    const userOptions = useMemo(() => byUser.map(u => ({ value: u.user_id, label: u.display_name || u.user_id })), [byUser]);
-    const agentOptions = useMemo(() => byAgent.map(a => ({ value: a.agent_name || a.agent_id, label: a.agent_name || t('admin_monitoring.unknown', 'Unknown') })), [byAgent, t]);
-    const modelOptions = useMemo(() => byModel.map(m => ({ value: m.model, label: shortModel(m.model) })), [byModel]);
-
-    // Filtered data
-    const filteredModels = useMemo(() => {
-        let data = byModel;
-        if (filters.model) data = data.filter(m => m.model === filters.model);
-        return data;
-    }, [byModel, filters.model]);
-
-    const filteredAgents = useMemo(() => {
-        let data = byAgent;
-        if (filters.agent) data = data.filter(a => (a.agent_name || a.agent_id) === filters.agent);
-        return data;
-    }, [byAgent, filters.agent]);
-
-    const filteredUsers = useMemo(() => {
-        let data = byUser;
-        if (filters.user) data = data.filter(u => u.user_id === filters.user);
-        return data;
-    }, [byUser, filters.user]);
-
-    const filteredConversations = useMemo(() => {
-        let data = byConversation;
-        if (filters.agent) data = data.filter((c) => c.agent_name === filters.agent);
-        if (filters.user) data = data.filter((c) => c.user_id === filters.user);
-        return data;
-    }, [byConversation, filters.agent, filters.user]);
-
-    // Model table columns
-    const modelColumns: SortableColumn<ModelUsage>[] = [
+function modelColumns(t: TranslateFn, costPerModel: Record<string, number>): SortableColumn<ModelUsage>[] {
+    return [
         {
             key: 'model', label: t('admin_monitoring.col_model', 'Model'), width: '2fr', sortable: true,
             render: (row, i) => (
-                <div className="[display:flex] [align-items:center] [gap:8px]">
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: MODEL_COLORS[i % MODEL_COLORS.length], flexShrink: 0 }} />
-                    <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]" title={row.model}>
-                        {shortModel(row.model)}
-                    </span>
-                </div>
+                <span className="flex min-w-0 items-center gap-2">
+                    <SeriesDot color={chartSeriesVar(i)} />
+                    <span className="truncate text-xs font-semibold text-[var(--text-primary)]" title={row.model}>{shortModel(row.model)}</span>
+                </span>
             ),
         },
         {
             key: 'tokens_bar', label: t('admin_monitoring.usage_in_out', 'In / Out'), width: '1.2fr', sortable: false,
             render: (row) => (
                 <div>
-                    <InOutBar input={row.prompt_tokens} output={row.completion_tokens} height={4} style={{ maxWidth: '100px' }} />
+                    <InOutBar input={row.prompt_tokens} output={row.completion_tokens} className="max-w-[100px]" />
                     <InOutLabel input={row.prompt_tokens} output={row.completion_tokens} />
                 </div>
             ),
         },
+        { key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true, render: (row) => <span className={`${NUM} font-semibold`}>{fmt(row.total_tokens)}</span> },
+        { key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '70px', align: 'right', sortable: true, render: row => <span className={NUM_QUIET}>{row.calls}</span> },
+        { key: 'cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: false, render: row => <span className={NUM}>{fmtCost(costPerModel[row.model] || row.estimated_cost || 0)}</span> },
+    ];
+}
+
+function userColumns(t: TranslateFn): SortableColumn<UserUsage>[] {
+    return [
         {
-            key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true,
-            render: (row) => <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green }}>{fmt(row.total_tokens)}</span>,
+            key: 'display_name', label: t('admin_monitoring.d_user', 'User'), width: '1.5fr', sortable: true,
+            render: (row) => (
+                <span className="flex min-w-0 items-center gap-2">
+                    <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--bg-tertiary)] text-[10px] font-semibold text-[var(--text-secondary)]">
+                        {(row.display_name || '?')[0].toUpperCase()}
+                    </span>
+                    <span className="min-w-0">
+                        <span className="block truncate text-xs font-semibold text-[var(--text-primary)]">{row.display_name || row.user_id}</span>
+                        {row.display_name && row.user_id && row.display_name !== row.user_id && (
+                            <span className="block truncate text-[10px] text-[var(--text-tertiary)]">{row.user_id}</span>
+                        )}
+                    </span>
+                </span>
+            ),
         },
+        { key: 'tokens_bar', label: t('admin_monitoring.usage_in_out', 'In / Out'), width: '1fr', sortable: false, render: row => <InOutBar input={row.prompt_tokens} output={row.completion_tokens} className="max-w-[100px]" /> },
+        { key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true, render: row => <span className={`${NUM} font-semibold`}>{fmt(row.total_tokens)}</span> },
+        { key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '60px', align: 'right', sortable: true, render: row => <span className={NUM_QUIET}>{row.calls}</span> },
+        { key: 'estimated_cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: true, render: row => <span className={NUM}>{fmtCost(row.estimated_cost || 0)}</span> },
+    ];
+}
+
+function conversationColumns(t: TranslateFn): SortableColumn<UsageRecord>[] {
+    return [
         {
-            key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '70px', align: 'right', sortable: true,
-            render: row => <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">{row.calls}</span>,
-        },
-        {
-            key: 'cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: false,
+            key: 'agent_name', label: t('admin_monitoring.col_agent', 'Agent'), width: '1.5fr', sortable: true,
             render: row => (
-                <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber }}>
-                    {fmtCost(costPerModel[row.model] || row.estimated_cost || 0)}
+                <span className="block min-w-0">
+                    <span className="block truncate text-xs font-semibold text-[var(--text-primary)]">{row.agent_name || 'Direct Chat'}</span>
+                    <span className="block font-mono text-[10px] text-[var(--text-tertiary)]">{row.conversation_id?.slice(0, 8)}…</span>
+                </span>
+            ),
+        },
+        { key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '70px', align: 'right', sortable: true, render: row => <span className={NUM_QUIET}>{row.calls}</span> },
+        { key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true, render: row => <span className={`${NUM} font-semibold`}>{fmt(row.total_tokens)}</span> },
+        { key: 'estimated_cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: true, render: row => <span className={NUM}>{fmtCost(row.estimated_cost || 0)}</span> },
+        {
+            key: 'models_used', label: t('admin_monitoring.usage_col_models', 'Models'), width: '1.2fr', sortable: false,
+            render: row => (
+                <span className="flex flex-wrap gap-1">
+                    {(row.models_used || '').split(',').filter(Boolean).slice(0, 3).map((m, j) => (
+                        <span key={j} className={CHIP}><SeriesDot color={chartSeriesVar(j)} />{shortModel(m.trim())}</span>
+                    ))}
                 </span>
             ),
         },
     ];
+}
 
-    // User table columns
-    const userColumns: SortableColumn<UserUsage>[] = [
-        {
-            key: 'display_name', label: t('admin_monitoring.d_user', 'User'), width: '1.5fr', sortable: true,
-            render: (row, i) => (
-                <div className="[display:flex] [align-items:center] [gap:8px]">
-                    <div style={{
-                        width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '10px', fontWeight: 700, color: '#fff', flexShrink: 0,
-                        background: `linear-gradient(135deg, ${MODEL_COLORS[i % MODEL_COLORS.length]}, ${MODEL_COLORS[i % MODEL_COLORS.length]}99)`,
-                    }}>
-                        {(row.display_name || '?')[0].toUpperCase()}
-                    </div>
-                    <div>
-                        <div className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)]">{row.display_name || row.user_id}</div>
-                        {row.display_name && row.user_id && row.display_name !== row.user_id && (
-                            <div className="[font-size:10px] [color:var(--text-muted,#666)]">{row.user_id}</div>
-                        )}
-                    </div>
-                </div>
-            ),
-        },
-        {
-            key: 'tokens_bar', label: t('admin_monitoring.usage_in_out', 'In / Out'), width: '1fr', sortable: false,
-            render: row => (
-                <InOutBar input={row.prompt_tokens} output={row.completion_tokens} height={4} style={{ maxWidth: '100px' }} />
-            ),
-        },
-        {
-            key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true,
-            render: row => <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green }}>{fmt(row.total_tokens)}</span>,
-        },
-        {
-            key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '60px', align: 'right', sortable: true,
-            render: row => <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">{row.calls}</span>,
-        },
-        {
-            key: 'estimated_cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: true,
-            render: row => <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber }}>{fmtCost(row.estimated_cost || 0)}</span>,
-        },
-    ];
+/** The filters narrow every table on the page: users, agents and models by their own key, conversations by agent and user. */
+function useFiltered({ byModel, byAgent, byUser, byConversation }: UsageExplorerPageProps, filters: FilterState) {
+    return useMemo(() => ({
+        models: filters.model ? byModel.filter(m => m.model === filters.model) : byModel,
+        agents: filters.agent ? byAgent.filter(a => (a.agent_name || a.agent_id) === filters.agent) : byAgent,
+        users: filters.user ? byUser.filter(u => u.user_id === filters.user) : byUser,
+        conversations: byConversation
+            .filter(c => !filters.agent || c.agent_name === filters.agent)
+            .filter(c => !filters.user || c.user_id === filters.user),
+    }), [byModel, byAgent, byUser, byConversation, filters]);
+}
+
+export function UsageExplorerPage(props: UsageExplorerPageProps) {
+    const { byModel, byAgent, byUser, costPerModel, onSelectModel } = props;
+    const { t } = useTranslation();
+    const [filters, setFilters] = useState<FilterState>({ user: null, agent: null, model: null, source: null });
+    const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
+
+    const userOptions = useMemo(() => byUser.map(u => ({ value: u.user_id, label: u.display_name || u.user_id })), [byUser]);
+    const agentOptions = useMemo(() => byAgent.map(a => ({ value: a.agent_name || a.agent_id, label: a.agent_name || t('admin_monitoring.unknown', 'Unknown') })), [byAgent, t]);
+    const modelOptions = useMemo(() => byModel.map(m => ({ value: m.model, label: shortModel(m.model) })), [byModel]);
+    const filtered = useFiltered(props, filters);
+    const byModelTitle = t('admin_monitoring.usage_by_model', 'By Model');
+    const byUserTitle = t('admin_monitoring.usage_by_user', 'By User');
+    const conversationsTitle = t('admin_monitoring.usage_conversations', 'Conversations');
 
     return (
-        <div className="[animation:fadeIn_0.3s_ease]">
-            {/* Filter Bar */}
-            <FilterBar
-                filters={filters} setFilters={setFilters}
-                userOptions={userOptions}
-                agentOptions={agentOptions}
-                modelOptions={modelOptions}
-            />
+        <div className="flex flex-col gap-5">
+            <FilterBar filters={filters} setFilters={setFilters} userOptions={userOptions} agentOptions={agentOptions} modelOptions={modelOptions} />
 
-            {/* By Model + By User */}
-            <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:14px] [margin-bottom:1.25rem]">
-                <Card title={t('admin_monitoring.usage_by_model', 'By Model')} icon={Cpu}>
+            <div className="grid gap-5 xl:grid-cols-2">
+                <TablePanel title={byModelTitle}>
+                    <SortableTable ariaLabel={byModelTitle} columns={modelColumns(t, costPerModel)} data={filtered.models} emptyText={t('admin_monitoring.usage_no_model', 'No model data')} onRowClick={onSelectModel} />
+                </TablePanel>
+                <TablePanel title={byUserTitle}>
                     <SortableTable
-                        columns={modelColumns} data={filteredModels} emptyText={t('admin_monitoring.usage_no_model', 'No model data')}
-                        onRowClick={onSelectModel}
-                    />
-                </Card>
-                <Card title={t('admin_monitoring.usage_by_user', 'By User')} icon={Users}>
-                    <SortableTable
-                        columns={userColumns} data={filteredUsers} emptyText={t('admin_monitoring.usage_no_user', 'No user data')}
+                        ariaLabel={byUserTitle} columns={userColumns(t)} data={filtered.users} emptyText={t('admin_monitoring.usage_no_user', 'No user data')}
                         onRowClick={u => setFilters(f => ({ ...f, user: f.user === u.user_id ? null : u.user_id }))}
                     />
-                </Card>
+                </TablePanel>
             </div>
 
-            {/* By Agent — expandable with model sub-rows */}
-            <UsageExplorerPageCard t={t} filteredAgents={filteredAgents} expandedAgent={expandedAgent} setExpandedAgent={setExpandedAgent} />
+            <AgentTable agents={filtered.agents} expandedAgent={expandedAgent} setExpandedAgent={setExpandedAgent} />
 
-            {/* By Conversation */}
-            {filteredConversations.length > 0 && (
-                <Card title={t('admin_monitoring.usage_conversations', 'Conversations')} icon={MessageSquare}>
-                    <SortableTable
-                        columns={[
-                            {
-                                key: 'agent_name', label: t('admin_monitoring.col_agent', 'Agent'), width: '1.5fr', sortable: true,
-                                render: row => (
-                                    <div>
-                                        <div className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)]">
-                                            {row.agent_name || 'Direct Chat'}
-                                        </div>
-                                        <div className="[font-size:10px] [color:var(--text-muted,#666)] [font-family:monospace]">
-                                            {row.conversation_id?.slice(0, 8)}…
-                                        </div>
-                                    </div>
-                                ),
-                            },
-                            { key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '70px', align: 'right', sortable: true,
-                              render: row => <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">{row.calls}</span> },
-                            { key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true,
-                              render: row => <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green }}>{fmt(row.total_tokens)}</span> },
-                            { key: 'estimated_cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: true,
-                              render: row => <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber }}>{fmtCost(row.estimated_cost || 0)}</span> },
-                            {
-                                key: 'models_used', label: t('admin_monitoring.usage_col_models', 'Models'), width: '1.2fr', sortable: false,
-                                render: row => (
-                                    <div className="[display:flex] [gap:4px] [flex-wrap:wrap]">
-                                        {(row.models_used || '').split(',').filter(Boolean).slice(0, 3).map((m, j) => (
-                                            <span key={j} style={{
-                                                padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600,
-                                                background: 'var(--bg-tertiary, rgba(255,255,255,0.04))',
-                                                color: MODEL_COLORS[j % MODEL_COLORS.length],
-                                            }}>{shortModel(m.trim())}</span>
-                                        ))}
-                                    </div>
-                                ),
-                            },
-                        ]}
-                        data={filteredConversations}
-                        emptyText={t('admin_monitoring.usage_no_convo', 'No conversation data')}
-                        maxRows={20}
-                    />
-                </Card>
+            {filtered.conversations.length > 0 && (
+                <TablePanel title={conversationsTitle}>
+                    <SortableTable ariaLabel={conversationsTitle} columns={conversationColumns(t)} data={filtered.conversations} emptyText={t('admin_monitoring.usage_no_convo', 'No conversation data')} maxRows={20} />
+                </TablePanel>
             )}
         </div>
     );
 }
 
-function UsageExplorerPageCard({ t, filteredAgents, expandedAgent, setExpandedAgent }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; filteredAgents: AgentUsage[]; expandedAgent: string | null; setExpandedAgent: Dispatch<SetStateAction<string | null>>; }) {
-    return <Card title={t('admin_monitoring.usage_by_agent', 'By Agent')} icon={Bot} style={{ marginBottom: '1.25rem' }}>
-        {filteredAgents.length === 0 ? <Empty text={t('admin_monitoring.usage_no_agent', 'No agent data')} /> : filteredAgents.map((a, i) => {
-            const isExpanded = expandedAgent === (a.agent_name || a.agent_id);
-            const style = getAgentStyle(a.agent_type);
-
-            return (
-                <div key={i}>
-                    <div
-                        onClick={() => setExpandedAgent(isExpanded ? null : (a.agent_name || a.agent_id))}
-                        className="[display:flex] [justify-content:space-between] [align-items:center] [padding:10px_2px] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))] [cursor:pointer] [transition:background_0.12s] [border-radius:4px]"
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary, rgba(255,255,255,0.03))'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                        <div className="[display:flex] [align-items:center] [gap:10px] min-w-[0]">
-                            <span style={{
-                                padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
-                                background: style.bg, color: style.text, flexShrink: 0,
-                            }}>{a.agent_type || 'chat'}</span>
-                            <span className="[font-size:13px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
-                        </div>
-                        <div className="[display:flex] [align-items:center] [gap:16px] [flex-shrink:0]">
-                            <span className="[font-size:12px] [color:var(--text-muted,#888)]">
-                                {t('admin_monitoring.usage_avg', '{duration} avg', { duration: fmtDuration(a.avg_duration_ms) })}
-                            </span>
-                            <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>
-                                {fmt(a.total_tokens)}
-                            </span>
-                            <span className="[font-size:12px] [color:var(--text-muted,#888)]">
-                                {t('admin_monitoring.usage_n_calls', '{n} calls', { n: a.calls })}
-                            </span>
-                            <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber, minWidth: '50px', textAlign: 'right' }}>
-                                {fmtCost(a.estimated_cost || 0)}
-                            </span>
-                            <ChevronRight className={`[width:14px] [height:14px] [color:var(--text-muted,_#888)] [transition:transform_0.2s] ${isExpanded ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
-                        </div>
-                    </div>
-                    {/* Expanded sub-models */}
-                    {isExpanded && (a.models || []).length > 0 && (
-                        <div className="[padding:4px_0_8px_32px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))] [border-radius:0_0_8px_8px]">
-                            {(a.models || []).map((m, mi) => (
-                                <div key={mi} className="[display:flex] [align-items:center] [justify-content:space-between] [padding:6px_8px] [font-size:11px] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.03))]">
-                                    <div className="[display:flex] [align-items:center] [gap:6px]">
-                                        <Cpu style={{ width: 11, height: 11, color: MODEL_COLORS[mi % MODEL_COLORS.length] }} />
-                                        <span className="[font-weight:600] [color:var(--text-primary,#fff)]">{shortModel(m.model)}</span>
-                                    </div>
-                                    <div className="[display:flex] [gap:12px] [align-items:center]">
-                                        <span style={{ color: COLORS.green, fontWeight: 600 }}>{fmt(m.total_tokens)}</span>
-                                        <span className="[color:var(--text-muted,#888)]">{t('admin_monitoring.usage_n_calls', '{n} calls', { n: m.calls })}</span>
-                                        <span style={{ color: COLORS.amber, fontWeight: 600 }}>{fmtCost(m.estimated_cost || 0)}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            );
-        })}
-    </Card>;
-}

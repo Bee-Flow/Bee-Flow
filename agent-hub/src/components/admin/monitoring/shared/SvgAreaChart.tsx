@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { CHART_SERIES } from '@/components/shared/charts/chartChrome';
 import type { EmptyProps, SvgAreaChartProps } from '../shared.types';
 
 export function fmt(n: number | null | undefined) {
@@ -8,30 +9,33 @@ export function fmt(n: number | null | undefined) {
     return String(Math.round(n));
 }
 
-export const COLORS = {
-    primary: '#6366f1',
-    purple: '#8b5cf6',
-    blue: '#3b82f6',
-    green: '#10b981',
-    emerald: '#059669',
-    amber: '#f59e0b',
-    orange: '#f97316',
-    rose: '#f43f5e',
-    pink: '#ec4899',
-    cyan: '#06b6d4',
-    teal: '#14b8a6',
-};
+/**
+ * The AI Monitor's series colours by role, on the theme's chart slots
+ * (`--chart-1..8`, components/shared/charts/chartChrome): one validated
+ * categorical palette per surface lightness, no purple. Input tokens and the
+ * token trend are slot 1, output and cost slot 4, billed cost slot 3. Text,
+ * axes and tooltips stay on the text/border tokens.
+ */
+export const SERIES = Object.freeze({
+    tokens: CHART_SERIES[0],
+    input: CHART_SERIES[0],
+    output: CHART_SERIES[3],
+    cost: CHART_SERIES[3],
+    billed: CHART_SERIES[2],
+});
 
+/** A quiet "nothing here" line inside a card or table. */
 export function Empty({ text }: EmptyProps) {
     return (
-        <div className="[padding:2.5rem_1rem] [text-align:center] [color:var(--text-muted,#666)] [font-size:13px] [border-radius:10px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))]">
+        <div className="rounded-lg border border-dashed border-[var(--border-default)] px-4 py-8 text-center text-xs text-[var(--text-tertiary)]">
             {text}
         </div>
     );
 }
 
-export function SvgAreaChart({ data, yKey = 'total_tokens', label = 'value', color = COLORS.primary, height = 140, formatY = fmt, formatLabel }: SvgAreaChartProps) {
+export function SvgAreaChart({ data, yKey = 'total_tokens', color = SERIES.tokens, height = 140, formatY = fmt, formatLabel }: SvgAreaChartProps) {
     const [hover, setHover] = useState<number | null>(null);
+    const gradientId = `area-${useId().replace(/:/g, '')}`;
     if (!data || data.length === 0) return <Empty text="No data to display" />;
     const maxY = Math.max(...data.map(d => d[yKey] || 0), 1);
     const points = data.map((d, i) => {
@@ -41,18 +45,18 @@ export function SvgAreaChart({ data, yKey = 'total_tokens', label = 'value', col
     });
     const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
     const areaPath = `${linePath} L100,100 L0,100 Z`;
+    const hovered = hover != null ? points[hover] : undefined;
     return (
-        <div style={{ position: 'relative', height }}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-[100%] h-[100%] [overflow:visible]">
+        <div className="relative" style={{ height }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
                 <defs>
-                    <linearGradient id={`grad-${yKey}-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={color} stopOpacity="0.25" />
                         <stop offset="100%" stopColor={color} stopOpacity="0.02" />
                     </linearGradient>
                 </defs>
-                <path d={areaPath} fill={`url(#grad-${yKey}-${color.replace('#', '')})`} />
+                <path d={areaPath} fill={`url(#${gradientId})`} />
                 <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-                {/* Hover zones */}
                 {points.map((p, i) => (
                     <rect
                         key={i}
@@ -63,38 +67,27 @@ export function SvgAreaChart({ data, yKey = 'total_tokens', label = 'value', col
                         fill="transparent"
                         onMouseEnter={() => setHover(i)}
                         onMouseLeave={() => setHover(null)}
-                        className="[cursor:crosshair]"
+                        className="cursor-crosshair"
                     />
                 ))}
-                {/* Hover dot */}
-                {hover != null && points[hover] && (
-                    <circle cx={points[hover].x} cy={points[hover].y} r="3" fill={color} stroke="#fff" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                {hovered && (
+                    <circle cx={hovered.x} cy={hovered.y} r="3" fill={color} stroke="var(--bg-card)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                 )}
             </svg>
-            {/* Hover tooltip */}
-            {hover != null && points[hover] && (
-                <div style={{
-                    position: 'absolute',
-                    left: `${points[hover].x}%`, top: '-6px',
-                    transform: 'translateX(-50%)',
-                    padding: '4px 10px', borderRadius: '8px',
-                    background: 'var(--bg-primary, #0f0f1a)',
-                    border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
-                    fontSize: '11px', fontWeight: 600, color: 'var(--text-primary, #fff)',
-                    whiteSpace: 'nowrap', pointerEvents: 'none',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    zIndex: 10,
-                }}>
-                    <div style={{ color }}>{formatY(points[hover].d[yKey] || 0)}</div>
-                    <div className="[font-size:10px] [color:var(--text-muted,#888)] [margin-top:1px]">
-                        {formatLabel ? formatLabel(points[hover].d) : points[hover].d.period || ''}
+            {hovered && (
+                <div
+                    className="pointer-events-none absolute -top-1.5 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-primary)] shadow-[var(--shadow-popover)]"
+                    style={{ left: `${hovered.x}%` }}
+                >
+                    <div className="tabular-nums">{formatY(hovered.d[yKey] || 0)}</div>
+                    <div className="mt-px text-[10px] font-normal text-[var(--text-tertiary)]">
+                        {formatLabel ? formatLabel(hovered.d) : hovered.d.period || ''}
                     </div>
                 </div>
             )}
-            {/* X-axis labels */}
-            <div className="[display:flex] [justify-content:space-between] [margin-top:6px]">
-                <span className="[font-size:10px] [color:var(--text-muted,#666)]">{data[0]?.period?.slice(5) || ''}</span>
-                <span className="[font-size:10px] [color:var(--text-muted,#666)]">{data[data.length - 1]?.period?.slice(5) || ''}</span>
+            <div className="mt-1.5 flex justify-between text-[10px] text-[var(--text-tertiary)]">
+                <span>{data[0]?.period?.slice(5) || ''}</span>
+                <span>{data[data.length - 1]?.period?.slice(5) || ''}</span>
             </div>
         </div>
     );

@@ -30,7 +30,7 @@ describe('DetailDrawer', () => {
         expect(screen.getByText('€2/1M tokens')).toBeTruthy();
         expect(screen.getByText('Recent Calls (1)')).toBeTruthy();
         expect(screen.getByText('1.5s')).toBeTruthy();
-        await userEvent.click(screen.getByRole('button', { name: '×' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
         expect(onClose).toHaveBeenCalled();
     });
 

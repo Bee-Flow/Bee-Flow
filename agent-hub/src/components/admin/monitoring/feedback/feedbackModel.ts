@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-
 /** One thumbs up/down, as the feedback endpoint returns it. */
 export interface FeedbackItem {
     id: string;
@@ -64,19 +62,3 @@ export function filterFeedback(feedback: FeedbackItem[], filter: FeedbackFilter,
     }
     return data;
 }
-
-/** A small rounded label next to the user's name. */
-export function chipStyle(background: string, color: string, withIcon = false): CSSProperties {
-    return {
-        ...(withIcon ? { display: 'flex', alignItems: 'center', gap: '3px' } : {}),
-        padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600,
-        background, color,
-    };
-}
-
-export const paginationBtn: CSSProperties = {
-    padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-    border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
-    background: 'var(--bg-secondary, #1a1a2e)', color: 'var(--text-secondary, #aaa)',
-    cursor: 'pointer',
-};

@@ -1,10 +1,12 @@
-import { MessageCircle, MessageSquare, Search, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { PAGE_SIZE, filterFeedback, paginationBtn } from './feedback/feedbackModel';
+import StatGrid from '@/components/shared/dashboard/StatGrid';
+import FilterPills from '@/components/shared/FilterPills';
+import Pager from '@/components/shared/Pager';
+import { PAGE_SIZE, filterFeedback } from './feedback/feedbackModel';
 import type { FeedbackFilter, FeedbackItem, FeedbackSummary } from './feedback/feedbackModel';
 import FeedbackRow from './feedback/FeedbackRow';
-import { COLORS } from './shared';
-import { Card, Empty, MetricCard } from './sharedTyped';
+import { Empty, MetricTile } from './sharedTyped';
+import { SearchField } from './shared/FilterControls';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface FeedbackPageProps {
@@ -15,22 +17,17 @@ interface FeedbackPageProps {
 function FeedbackKpis({ feedback, summary }: FeedbackPageProps) {
     const { t } = useTranslation();
     const posCount = summary?.thumbs_up || 0;
-    const negCount = summary?.thumbs_down || 0;
     const total = summary?.total || 0;
     const posRate = total > 0 ? ((posCount / total) * 100).toFixed(0) : '—';
     // Count items with conversation snapshots
     const withConvoCount = useMemo(() => feedback.filter(f => f.conversation_snapshot).length, [feedback]);
     return (
-        <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))] [gap:12px] [margin-bottom:1.25rem]">
-            <MetricCard icon={ThumbsUp} label={t('admin_monitoring.feedback_positive', 'Positive')} color={COLORS.green}
-                value={posCount} subtitle={t('admin_monitoring.feedback_approval', '{rate}% approval', { rate: posRate })} />
-            <MetricCard icon={ThumbsDown} label={t('admin_monitoring.feedback_negative', 'Negative')} color={COLORS.rose}
-                value={negCount} />
-            <MetricCard icon={MessageCircle} label={t('admin_monitoring.feedback_with_comments', 'With Comments')} color={COLORS.purple}
-                value={summary?.with_comments || 0} />
-            <MetricCard icon={MessageSquare} label={t('admin_monitoring.feedback_with_convo', 'With Conversation')} color={COLORS.blue}
-                value={withConvoCount} subtitle={t('admin_monitoring.feedback_shared_context', 'Shared context')} />
-        </div>
+        <StatGrid>
+            <MetricTile label={t('admin_monitoring.feedback_positive', 'Positive')} value={posCount} subtitle={t('admin_monitoring.feedback_approval', '{rate}% approval', { rate: posRate })} />
+            <MetricTile label={t('admin_monitoring.feedback_negative', 'Negative')} value={summary?.thumbs_down || 0} />
+            <MetricTile label={t('admin_monitoring.feedback_with_comments', 'With Comments')} value={summary?.with_comments || 0} />
+            <MetricTile label={t('admin_monitoring.feedback_with_convo', 'With Conversation')} value={withConvoCount} subtitle={t('admin_monitoring.feedback_shared_context', 'Shared context')} />
+        </StatGrid>
     );
 }
 
@@ -43,56 +40,17 @@ interface FilterBarProps {
 
 function FeedbackFilterBar({ filter, onFilter, search, onSearch }: FilterBarProps) {
     const { t } = useTranslation();
-    const filters: { id: FeedbackFilter; label: string }[] = [
-        { id: 'all', label: t('admin_monitoring.feedback_f_all', 'All') },
-        { id: 'positive', label: `👍 ${t('admin_monitoring.feedback_positive', 'Positive')}` },
-        { id: 'negative', label: `👎 ${t('admin_monitoring.feedback_negative', 'Negative')}` },
-        { id: 'comments', label: `💬 ${t('admin_monitoring.feedback_f_comments', 'Comments')}` },
-        { id: 'with_convo', label: `🗨️ ${t('admin_monitoring.feedback_with_convo', 'With Conversation')}` },
+    const options: { value: FeedbackFilter; label: string }[] = [
+        { value: 'all', label: t('admin_monitoring.feedback_f_all', 'All') },
+        { value: 'positive', label: t('admin_monitoring.feedback_positive', 'Positive') },
+        { value: 'negative', label: t('admin_monitoring.feedback_negative', 'Negative') },
+        { value: 'comments', label: t('admin_monitoring.feedback_f_comments', 'Comments') },
+        { value: 'with_convo', label: t('admin_monitoring.feedback_with_convo', 'With Conversation') },
     ];
     return (
-        <div className="[display:flex] [gap:8px] [margin-bottom:14px] [flex-wrap:wrap] [align-items:center]">
-            {filters.map(f => (
-                <button
-                    key={f.id}
-                    onClick={() => onFilter(f.id)}
-                    style={{
-                        padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                        border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                        background: filter === f.id ? COLORS.primary + '20' : 'var(--bg-tertiary, rgba(255,255,255,0.04))',
-                        color: filter === f.id ? COLORS.primary : 'var(--text-secondary, #aaa)',
-                    }}
-                >{f.label}</button>
-            ))}
-            <div className="[flex:1]" />
-            <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))]">
-                <Search className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
-                <input
-                    value={search} onChange={e => onSearch(e.target.value)}
-                    placeholder={t('admin_monitoring.feedback_search', 'Search feedback...')}
-                    className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary,#fff)] w-[140px]"
-                />
-            </div>
-        </div>
-    );
-}
-
-function Pagination({ pageNum, totalPages, setPageNum }: { pageNum: number; totalPages: number; setPageNum: (f: (p: number) => number) => void }) {
-    return (
-        <div className="[display:flex] [justify-content:center] [gap:6px] [margin-top:14px] [align-items:center]">
-            <button
-                onClick={() => setPageNum(p => Math.max(0, p - 1))}
-                disabled={pageNum === 0}
-                style={paginationBtn}
-            >←</button>
-            <span className="[font-size:12px] [color:var(--text-muted,#888)] [padding:0_8px]">
-                {pageNum + 1} / {totalPages}
-            </span>
-            <button
-                onClick={() => setPageNum(p => Math.min(totalPages - 1, p + 1))}
-                disabled={pageNum >= totalPages - 1}
-                style={paginationBtn}
-            >→</button>
+        <div className="flex flex-wrap items-center gap-2">
+            <FilterPills value={filter} onChange={onFilter} options={options} ariaLabel={t('admin_monitoring.shared_filters', 'Filters')} />
+            <SearchField value={search} onChange={onSearch} placeholder={t('admin_monitoring.feedback_search', 'Search feedback...')} className="w-full sm:ml-auto sm:w-56" />
         </div>
     );
 }
@@ -100,40 +58,39 @@ function Pagination({ pageNum, totalPages, setPageNum }: { pageNum: number; tota
 export function FeedbackPage({ feedback, summary }: FeedbackPageProps) {
     const { t } = useTranslation();
     const [filter, setFilter] = useState<FeedbackFilter>('all');
-    const [pageNum, setPageNum] = useState(0);
+    const [offset, setOffset] = useState(0);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [search, setSearch] = useState('');
 
     const filtered = useMemo(() => filterFeedback(feedback, filter, search), [feedback, filter, search]);
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     // The list can shrink under the reader (a shorter range, the minute refresh):
     // a page past the end would read as "no entries" while there are some.
-    const currentPage = Math.min(pageNum, totalPages - 1);
-    const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+    const lastPage = Math.max(0, Math.ceil(filtered.length / PAGE_SIZE) - 1) * PAGE_SIZE;
+    const currentOffset = Math.min(offset, lastPage);
+    const paged = filtered.slice(currentOffset, currentOffset + PAGE_SIZE);
 
     return (
-        <div className="[animation:fadeIn_0.3s_ease]">
+        <div className="flex flex-col gap-4">
             <FeedbackKpis feedback={feedback} summary={summary} />
-
-            <Card>
-                <FeedbackFilterBar
-                    filter={filter}
-                    onFilter={(f) => { setFilter(f); setPageNum(0); }}
-                    search={search}
-                    onSearch={(q) => { setSearch(q); setPageNum(0); }}
-                />
-
-                {paged.length === 0 ? <Empty text={t('admin_monitoring.feedback_empty', 'No feedback entries')} /> : paged.map((item, i) => (
-                    <FeedbackRow
-                        key={item.id || i}
-                        item={item}
-                        expanded={expanded === item.id}
-                        onToggle={() => setExpanded(expanded === item.id ? null : item.id)}
-                    />
-                ))}
-
-                {totalPages > 1 && <Pagination pageNum={currentPage} totalPages={totalPages} setPageNum={(f) => setPageNum(f(currentPage))} />}
-            </Card>
+            <FeedbackFilterBar
+                filter={filter}
+                onFilter={(f) => { setFilter(f); setOffset(0); }}
+                search={search}
+                onSearch={(q) => { setSearch(q); setOffset(0); }}
+            />
+            {paged.length === 0 ? <Empty text={t('admin_monitoring.feedback_empty', 'No feedback entries')} /> : (
+                <section aria-label={t('admin.mon_feedback')} className="overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-[var(--shadow-sm)]">
+                    {paged.map((item, i) => (
+                        <FeedbackRow
+                            key={item.id || i}
+                            item={item}
+                            expanded={expanded === item.id}
+                            onToggle={() => setExpanded(expanded === item.id ? null : item.id)}
+                        />
+                    ))}
+                    {filtered.length > PAGE_SIZE && <Pager offset={currentOffset} limit={PAGE_SIZE} total={filtered.length} onOffset={setOffset} />}
+                </section>
+            )}
         </div>
     );
 }

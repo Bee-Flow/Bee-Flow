@@ -1,7 +1,6 @@
 import type { UsageRow } from './drawer/drawerTypes';
 import type React from 'react';
-import type { ReactNode, ComponentType, CSSProperties } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 /** A usage row or one recent call, with the fields the monitoring pages read beyond UsageRow's. */
 export interface UsageRecord extends UsageRow {
@@ -54,39 +53,33 @@ export interface ChartPoint {
 
 export interface CardProps {
     title?: ReactNode;
-    icon?: ComponentType<{ style?: CSSProperties }>;
-    style?: CSSProperties;
     children?: ReactNode;
     action?: ReactNode;
+    className?: string;
 }
 
 export interface EmptyProps {
     text: ReactNode;
 }
 
-export interface MetricCardProps {
-    icon: ComponentType<{ style?: CSSProperties }>;
-    label: ReactNode;
-    value: ReactNode;
-    color: string;
+export interface MetricTileProps {
+    label: string;
+    value: string | number;
     subtitle?: ReactNode;
     delta?: number | null;
     deltaLabel?: ReactNode;
+    testId?: string;
 }
 
 export interface InOutBarProps {
     input?: number;
     output?: number;
-    height?: number;
-    style?: CSSProperties;
+    className?: string;
 }
 
 export interface InOutLabelProps {
     input?: number;
     output?: number;
-    inputCost?: number | null;
-    outputCost?: number | null;
-    showCost?: boolean;
 }
 
 export interface SvgAreaChartProps {
@@ -99,7 +92,7 @@ export interface SvgAreaChartProps {
     formatLabel?: (point: ChartPoint) => ReactNode;
 }
 
-export interface DonutItem {
+interface DonutItem {
     label: string;
     value?: number;
     color?: string;
@@ -115,14 +108,6 @@ export interface DonutChartProps {
 export interface FilterOption {
     value: string;
     label: string;
-}
-
-export interface FilterSelectProps {
-    icon: LucideIcon;
-    value: string | null;
-    onChange: (value: string | null) => void;
-    options: FilterOption[];
-    placeholder: string;
 }
 
 export interface FilterState {
@@ -157,21 +142,13 @@ export interface SortableTableProps<Row> {
     onRowClick?: (row: Row) => void;
     emptyText?: ReactNode;
     maxRows?: number;
+    ariaLabel?: string;
+    testId?: string;
 }
 
 export interface ModelRowProps {
     model: UsageRecord;
     index: number;
-    maxTokens: number;
     cost?: number | null;
-}
-
-export interface SkeletonProps {
-    height?: number;
-    style?: CSSProperties;
-}
-
-export interface SkeletonGridProps {
-    count?: number;
-    height?: number;
+    onClick?: () => void;
 }

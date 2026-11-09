@@ -1,31 +1,16 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import React, { type CSSProperties } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Card as BaseCard } from '../../monitoring/shared';
 import { Empty } from '../../monitoring/shared/SvgAreaChart';
 import type { AsyncCardProps, CardProps, ErrorNoteProps, SkeletonProps } from './ui.types';
-import { ACCENT } from './BarList';
 
 /**
- * Card, shadowing MonitoringPanel's.
- *
- * Identical prop surface, but the icon defaults to ACCENT instead of
- * COLORS.primary — which is #6366f1, the indigo this project bans. Wrapping
- * here fixes every card on the dashboard without touching the monitoring
- * dashboard that legitimately uses the shared one.
+ * Card: the monitor's card (the shared DashCard). The icon and style props
+ * are accepted for the callers' sake and no longer drawn: the Studio card
+ * carries a title, not a tinted glyph.
  */
-export function Card({ title, icon: Icon, children, style, action, iconColor = ACCENT }: CardProps) {
-    // Memoised: a component type created inline during render is a new type on
-    // every render, which would remount the icon each time.
-    const Tinted = React.useMemo(
-        () => (Icon ? (props: { style?: CSSProperties }) => <Icon {...props} style={{ ...props?.style, color: iconColor }} /> : undefined),
-        [Icon, iconColor],
-    );
-    return (
-        <BaseCard title={title} icon={Tinted} action={action} style={style}>
-            {children}
-        </BaseCard>
-    );
+export function Card({ title, children, action }: CardProps) {
+    return <BaseCard title={title} action={action}>{children}</BaseCard>;
 }
 
 /**

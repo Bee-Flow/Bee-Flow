@@ -275,6 +275,7 @@ const NL_TRANSLATIONS = [
     'add-nl-kb-query-log-translations-2026-11', // Knowledge base search log: Studio tab and enable form, Compliance Center pages, App Studio and automation steps
     'add-nl-admin-studio-2026-11-translations', // Admin dashboard in the Studio layout: rail groups, phone drawer, access sections, server licence / modules / languages / release notes copy
     'add-nl-admin-studio-2-2026-11-translations', // Admin dashboard in the Studio layout, second round: the Appearance sections and the Look editor's section list
+    'add-nl-admin-studio-3b-2026-11-translations', // Admin dashboard in the Studio layout, round 3b: the AI Monitor and Website analytics chrome
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',
     // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen",
