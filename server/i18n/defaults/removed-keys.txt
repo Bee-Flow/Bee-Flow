@@ -3184,3 +3184,13 @@ admin_ai_config.tier_cls_label
 admin_ai_config.tier_dx_label
 admin_ai_config.tier_mem_label
 admin_ai_config.tier_title_label
+# App Studio assistant: the quick-action chips and the old empty state gave way to the welcome.
+app_studio.builder.quick.use_data
+app_studio.builder.quick.use_data_title
+app_studio.builder.quick.new_screen
+app_studio.builder.quick.new_screen_title
+app_studio.builder.quick.fix_errors
+app_studio.builder.quick.fix_errors_title
+app_studio.builder.quick.fix_errors_none
+app_studio.builder.chat.empty_hint
+app_studio.builder.chat.empty_title

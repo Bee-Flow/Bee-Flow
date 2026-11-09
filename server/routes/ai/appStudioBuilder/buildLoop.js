@@ -95,6 +95,10 @@ async function runRound(turn, iter, ctx, ls) {
     ctx.messages.push(assistantToolMessage(response, thinkingForReplay));
     const mutatedThisIter = await runRoundTools(turn, response.toolCalls, ctx, ls);
     if (turn.persistBroken) return 'end';
+    // A question card is out: the refusals of calls made after it in the
+    // same round are expected, not a stuck model, so they never print the
+    // repeated-refusal message next to the card.
+    if (turn.reviewQuestions) return 'end';
     if (ls.repeatedStop) {
         ctx.send('message', { content: repeatedStopMessage(ls.repeatedStop) });
         return 'end';

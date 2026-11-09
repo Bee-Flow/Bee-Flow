@@ -18,6 +18,14 @@ export interface BuilderToolDraft {
     at?: number;
 }
 
+/** One question the builder asks before it plans (the shared QuestionsCard shape). */
+export interface ReviewQuestion {
+    id: string;
+    prompt: string;
+    options: string[];
+    header?: string;
+}
+
 /** What one turn finished with; the caller adopts the drafts and unlocks. */
 export interface AppBuilderDoneInfo {
     appId?: string;
@@ -46,6 +54,10 @@ export interface AppBuilderSendOptions {
     /** Data-URL pictures the user attached. */
     images?: string[];
     continueToken?: string;
+    /** The mode the person chose; absent for a host's brief and a pinned-tier mount. */
+    workMode?: string;
+    /** 'auto' | 'always' | 'never' — force/suppress the plan-first flow. */
+    planMode?: string;
     [key: string]: unknown;
 }
 
@@ -80,6 +92,7 @@ export interface AppBuilderStreamDeps {
     setLastValidation: Dispatch<SetStateAction<BuilderValidation | null>>;
     setLastDataModel: Dispatch<SetStateAction<unknown>>;
     setPendingPlan: Dispatch<SetStateAction<unknown>>;
+    setReviewQuestions: Dispatch<SetStateAction<ReviewQuestion[] | null>>;
     setPhases: Dispatch<SetStateAction<unknown[]>>;
     setCheckpoints: Dispatch<SetStateAction<unknown[]>>;
     setEngine: Dispatch<SetStateAction<BuilderEngine | null>>;

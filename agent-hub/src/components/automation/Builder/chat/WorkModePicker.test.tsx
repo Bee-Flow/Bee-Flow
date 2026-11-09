@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import WorkModePicker from './WorkModePicker';
+import WorkModePicker, { WORK_MODES } from './WorkModePicker';
 
 vi.mock('@/hooks/useTranslation', () => {
     const t = (_k: string, d: string, p?: Record<string, unknown>) => d.replace(/\{(\w+)\}/g, (_m, k) => String(p?.[k] ?? `{${k}}`));
@@ -127,5 +127,20 @@ describe('WorkModePicker — an approved plan is being built', () => {
         expect(screen.getByRole('button').textContent).toContain('Ask, plan, then build');
         rerender(<WorkModePicker value="plan" onChange={vi.fn()} planStatus="review" planVersion={2} />);
         expect(screen.getByRole('button').textContent).toContain('Ask, plan, then build');
+    });
+});
+
+describe('WorkModePicker with its own modes', () => {
+    it('lists the given modes in order under the given i18n prefix, and leaves the default list alone', async () => {
+        const user = userEvent.setup();
+        const modes = [
+            { id: 'a', Icon: WORK_MODES[0].Icon, key: 'alpha', label: 'Alpha', description: 'First one.' },
+            { id: 'b', Icon: WORK_MODES[1].Icon, key: 'beta', label: 'Beta', description: 'Second one.' },
+        ];
+        render(<WorkModePicker value="b" onChange={vi.fn()} modes={modes} keyPrefix="x.mode" />);
+        await user.click(screen.getByRole('button', { name: /beta/i }));
+        const items = screen.getAllByRole('menuitemradio');
+        expect(items.map((i) => i.textContent)).toEqual(['AlphaFirst one.', 'BetaSecond one.']);
+        expect(screen.queryByRole('menuitemradio', { name: /describe it/i })).toBeNull();
     });
 });

@@ -17,6 +17,7 @@ const { inferAppPlanProgress } = require('./planProgress');
 const { toolCallEvent, labelForTool } = require('./toolCallEvents');
 const { dataModelEvent } = require('./dataModelEvent');
 const { parseToolArgs, renderValidationNote, truncateJson, RECOVERED_CALL_HINT, REPAIRED_CALL_HINT } = require('./turnLoop');
+const { gateWorkModeCall, askQuestions } = require('./workMode.mts');
 const log = require('../../../telemetry/log');
 
 /**
@@ -60,6 +61,46 @@ function setPlan(args, ctx) {
     draftWrap._todos = todos;
     send('plan', { todos });
     return planEcho(todos);
+}
+
+/**
+ * app_ask_questions (work modes): the refusal, or the accepted question card.
+ * Accepting sends `review_questions` once and records the questions on the
+ * turn; the loop ends the turn after the round.
+ * @param {unknown} args
+ * @param {BuilderTurn} turn
+ * @param {BuildCtx} ctx
+ * @returns {CallResult}
+ */
+function askQuestionsCall(args, turn, ctx) {
+    const wm = ctx.workMode;
+    const outcome = askQuestions(args, { mode: wm.mode, approved: wm.approved, closed: wm.closed });
+    if ('error' in outcome) return { error: outcome.error };
+    turn.reviewQuestions = outcome.questions;
+    ctx.send('review_questions', { questions: outcome.questions });
+    return outcome.result;
+}
+
+/**
+ * What a work mode (workMode.mts) says about a call before it runs: null to
+ * let it through, or the tool result to use instead. Discuss refuses every
+ * tool that is not a known read; once the question card is out, nothing else
+ * runs this turn.
+ * @param {string} name
+ * @param {unknown} args
+ * @param {BuilderTurn} turn
+ * @param {BuildCtx} ctx
+ * @returns {CallResult|null}
+ */
+function workModeCall(name, args, turn, ctx) {
+    const wm = ctx.workMode;
+    if (!wm) return null;
+    const refusal = gateWorkModeCall(name, wm.mode);
+    if (refusal) return { error: refusal };
+    if (turn.reviewQuestions) return { error: 'Wait for the user to answer the questions before continuing.' };
+    // A plan card is out: a question card on top would leave the user two cards to answer.
+    if (turn.proposedPlan && name === 'app_ask_questions') return { error: 'You already proposed a plan this turn: wait for the user to approve it.' };
+    return name === 'app_ask_questions' ? askQuestionsCall(args, turn, ctx) : null;
 }
 
 /**
@@ -232,10 +273,9 @@ async function runToolCall(turn, tc, ctx, ls) {
     if (truncated) {
         toolResult = { error: `Your arguments for ${name} were not valid JSON (likely truncated mid-call). Resend just THIS single tool call with complete, valid JSON arguments.` };
         ls.escalateNextRound = true;
-    } else if (name === 'app_set_plan') {
-        toolResult = setPlan(args, ctx);
     } else {
-        toolResult = await applyToolCall(name, args, draftWrap);
+        toolResult = workModeCall(name, args, turn, ctx)
+            || (name === 'app_set_plan' ? setPlan(args, ctx) : await applyToolCall(name, args, draftWrap));
     }
     addCallHints(tc, toolResult);
     const ok = !(toolResult && typeof toolResult === 'object' && toolResult.error);

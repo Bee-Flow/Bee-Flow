@@ -34,6 +34,7 @@ const { bestEffort } = require('../../../utils/bestEffort');
  *   modelEndedTurn: boolean,
  *   builtThisTurn: boolean,
  *   proposedPlan: { planId?: string, plan?: unknown }|null,
+ *   reviewQuestions: Array<{ id: string, prompt: string, options: string[], header?: string }>|null,
  *   lastPhaseIndex: number|null,
  *   lastValidation: { ok?: boolean, errors?: unknown[], warnings?: unknown[] }|null,
  *   persistBroken: boolean,
@@ -54,8 +55,12 @@ async function handleProposedPlan(turn, { draftWrap, send }) {
     //    it (pendingPlan) so a refresh mid-review rehydrates the PlanCard —
     //    which needs an app row, so create one for a still-fresh draft. ──
     let awaitingPlan = false;
+    // An open question card needs an app row too: its snapshot is what the
+    // next turn (and a reload) reads the questions from.
+    if ((turn.proposedPlan || turn.reviewQuestions) && !draftWrap.appId) {
+        try { await persistDraft(draftWrap); } catch (err) { bestEffort('routes/ai/appStudioBuilder/turnClosing:handleProposedPlan', err); /* no persistence this turn */ }
+    }
     if (turn.proposedPlan) {
-        if (!draftWrap.appId) { try { await persistDraft(draftWrap); } catch (err) { bestEffort('routes/ai/appStudioBuilder/turnClosing:handleProposedPlan', err); /* no persistence this turn */ } }
         send('plan', turn.proposedPlan);
         awaitingPlan = true;
     }
@@ -65,10 +70,10 @@ async function handleProposedPlan(turn, { draftWrap, send }) {
 /**
  * The auto-finalize net — see the note inside for the two exits it runs on.
  * @param {BuilderTurn} turn
- * @param {{ draftWrap: TurnDraft, iterationBudget: number, approvedPlanForTurn: ApprovedPlan|null, send: import('../builderShared').BuilderSend, sendError: (code: string, userMessage: string) => void }} opts
+ * @param {{ draftWrap: TurnDraft, iterationBudget: number, approvedPlanForTurn: ApprovedPlan|null, send: import('../builderShared').BuilderSend, sendError: (code: string, userMessage: string) => void, workMode?: string|null }} opts
  * @returns {Promise<{ continuation: Continuation|null, budgetExhausted: boolean }>}
  */
-async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPlanForTurn, send, sendError }) {
+async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPlanForTurn, send, sendError, workMode = null }) {
     // The auto-finalize net. It runs on exactly two exits:
     //  • the BUDGET ran out (iter reached iterationBudget) — the original
     //    net: a small model that produced a valid app and never got to
@@ -99,7 +104,10 @@ async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPl
     let budgetExhausted = false;
     const budgetOut = turn.iter >= iterationBudget;
     const builtAndEnded = turn.modelEndedTurn && turn.builtThisTurn && !approvedPlanForTurn;
-    if (!turn.lastFinalized && !turn.persistBroken && !turn.proposedPlan && draftWrap.appId && (budgetOut || builtAndEnded)) {
+    // Never in Just advise (the app must stay as it is) or while a question
+    // card waits for the user's answer.
+    const netAllowed = workMode !== 'discuss' && !turn.reviewQuestions;
+    if (netAllowed && !turn.lastFinalized && !turn.persistBroken && !turn.proposedPlan && draftWrap.appId && (budgetOut || builtAndEnded)) {
         const finalCheck = validateAppDefinition(draftWrap.def, {
             dataModel: draftWrap.dataModel,
             datasets: draftWrap.datasetIds,
@@ -148,7 +156,7 @@ async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPl
  *   draftWrap: TurnDraft, userId: string, history: Array<{ role: string, content: string }>,
  *   inboundImages: unknown[], effectiveMessage: string, proseParts: string[], resolvedTier: string,
  *   approvedPlanForTurn: ApprovedPlan|null, isApproval: boolean,
- *   priorSnapshot?: { pendingPlan?: unknown }|null, continuation: Continuation|null,
+ *   priorSnapshot?: { pendingPlan?: unknown, questionsMeta?: unknown }|null, continuation: Continuation|null,
  * }} opts
  */
 async function persistTurnSnapshot(turn, {
@@ -170,7 +178,7 @@ async function persistTurnSnapshot(turn, {
                     : String(effectiveMessage) },
                 ...(proseParts.length ? [{ role: 'assistant', content: proseParts.join('') }] : []),
             ];
-            /** @type {{ sessionId: string, appId: string, messages: Array<{ role: string, content: string }>, lastValidation: unknown, summary: string, updatedAt: string, lastTier: string, todos?: unknown, brief?: string, approvedPlan?: unknown, pendingPlan?: unknown, continueToken?: string }} */
+            /** @type {{ sessionId: string, appId: string, messages: Array<{ role: string, content: string }>, lastValidation: unknown, summary: string, updatedAt: string, lastTier: string, todos?: unknown, brief?: string, approvedPlan?: unknown, pendingPlan?: unknown, continueToken?: string, reviewQuestions?: unknown, questionsMeta?: unknown }} */
             const snapshotBody = {
                 sessionId: draftWrap.builderSessionId,
                 appId: draftWrap.appId,
@@ -192,6 +200,15 @@ async function persistTurnSnapshot(turn, {
                 if (pendingPlan) snapshotBody.pendingPlan = pendingPlan;
                 if (continuation) snapshotBody.continueToken = continuation.token;
             }
+            // Work modes: the open question card, and the mark that this plan
+            // has had its one question round. The mark lasts until a plan is
+            // proposed, approved or finalized (a new plan cycle).
+            if (turn.reviewQuestions) {
+                snapshotBody.reviewQuestions = turn.reviewQuestions;
+                snapshotBody.questionsMeta = { round: 1 };
+            } else if (!turn.proposedPlan && !isApproval && !turn.lastFinalized && priorSnapshot?.questionsMeta) {
+                snapshotBody.questionsMeta = priorSnapshot.questionsMeta;
+            }
             // Uncapped here; the store evicts from the HEAD in whole
             // blocks when the snapshot is over size, so the prefix the
             // model saw survives between evictions (the automation builder's
@@ -209,7 +226,8 @@ async function persistTurnSnapshot(turn, {
 function classifyTurnOutcome(turn, { awaitingPlan, continuation, budgetExhausted }) {
     return turn.lastFinalized ? 'finalized'
         : awaitingPlan ? 'awaiting_plan'
-            : continuation ? 'continuation'
+            : turn.reviewQuestions ? 'awaiting_questions'
+                : continuation ? 'continuation'
                 : turn.persistBroken ? 'save_conflict'
                     : budgetExhausted ? 'budget_exhausted'
                         : turn.clientGone ? 'client_disconnected'

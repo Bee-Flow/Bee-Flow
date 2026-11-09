@@ -120,6 +120,41 @@ describe('useAppBuilderStream — turn record, engine, tool calls, checklist', (
         expect(result.current.pendingPlan).toBeNull();
     });
 
+    it('review_questions (and a done that repeats them) fill reviewQuestions; the next send clears them; a snapshot restores them', async () => {
+        const q = [{ id: 'q1', prompt: 'Who uses it?', options: ['Team', 'Customers'], header: 'Users' }];
+        authFetch.mockResolvedValueOnce(sseResponse([
+            sse('review_questions', { questions: [...q, { nope: true }] }),
+            sse('done', { appId: 'app-1', finalized: false }),
+        ]));
+        const { result } = renderHook(() => useAppBuilderStream({ appId: 'app-1' }));
+        expect(result.current.reviewQuestions).toBeNull();
+        await act(async () => { await result.current.send('Plan an app'); });
+        expect(result.current.reviewQuestions).toEqual(q);
+
+        authFetch.mockResolvedValueOnce(sseResponse([
+            sse('done', { appId: 'app-1', finalized: false, reviewQuestions: null }),
+        ]));
+        await act(async () => { await result.current.send('Team'); });
+        expect(result.current.reviewQuestions).toBeNull();
+
+        authFetch.mockResolvedValueOnce(sseResponse([
+            sse('done', { appId: 'app-1', finalized: false, reviewQuestions: q }),
+        ]));
+        await act(async () => { await result.current.send('Again'); });
+        expect(result.current.reviewQuestions).toEqual(q);
+    });
+
+    it('sends workMode and planMode in the request body, and omits workMode when none is given', async () => {
+        authFetch.mockImplementation(() => Promise.resolve(sseResponse([sse('done', { appId: 'app-1' })])));
+        const { result } = renderHook(() => useAppBuilderStream({ appId: 'app-1' }));
+        await act(async () => { await result.current.send('Hi', { workMode: 'plan', planMode: 'always' }); });
+        await act(async () => { await result.current.send('Hi again', { planMode: 'never' }); });
+        const bodies = authFetch.mock.calls.map(([, init]) => JSON.parse(init.body));
+        expect(bodies[0]).toMatchObject({ workMode: 'plan', planMode: 'always' });
+        expect(bodies[1].planMode).toBe('never');
+        expect(bodies[1]).not.toHaveProperty('workMode');
+    });
+
     it('openTurn and rateOf follow the automation builder contract', () => {
         const t = openTurn('fast');
         expect(Object.keys(t).sort()).toEqual(['firstEventAt', 'iter', 'lastPingAt', 'local', 'modelId', 'phase', 'pings', 'progress', 'promptChars', 'providerType', 'roundStartedAt', 'sentAt', 'sessionAt', 'tier', 'usage']);

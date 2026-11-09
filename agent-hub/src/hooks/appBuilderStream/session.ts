@@ -1,7 +1,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { BuilderMessage, BuilderTodo, BuilderTurn, BuilderValidation } from '../builderStream';
 import { finalizeStreaming, openTurn } from '../builderStream';
-import type { AppBuilderSendOptions, BuilderToolDraft } from './types';
+import type { AppBuilderSendOptions, BuilderToolDraft, ReviewQuestion } from './types';
 
 /** The saved-session snapshot GET /builder/session/:appId hands back. */
 interface RestoredSnapshot {
@@ -11,6 +11,16 @@ interface RestoredSnapshot {
     pendingPlan?: unknown;
     checkpoints?: unknown;
     todos?: unknown;
+    reviewQuestions?: unknown;
+}
+
+/** The questions as the shared card wants them; anything malformed drops out, an empty list is null. */
+export function cleanReviewQuestions(raw: unknown): ReviewQuestion[] | null {
+    if (!Array.isArray(raw)) return null;
+    const list = raw.filter((q): q is ReviewQuestion => !!q && typeof q === 'object'
+        && typeof (q as ReviewQuestion).id === 'string' && typeof (q as ReviewQuestion).prompt === 'string'
+        && Array.isArray((q as ReviewQuestion).options));
+    return list.length ? list : null;
 }
 
 export interface RestoreSetters {
@@ -19,6 +29,7 @@ export interface RestoreSetters {
     setSessionId: Dispatch<SetStateAction<string | null>>;
     setLastValidation: Dispatch<SetStateAction<BuilderValidation | null>>;
     setPendingPlan: Dispatch<SetStateAction<unknown>>;
+    setReviewQuestions: Dispatch<SetStateAction<ReviewQuestion[] | null>>;
     setCheckpoints: Dispatch<SetStateAction<unknown[]>>;
     setTodos: Dispatch<SetStateAction<BuilderTodo[]>>;
 }
@@ -42,6 +53,8 @@ export function applyBuilderSnapshot(snap: RestoredSnapshot, s: RestoreSetters):
     if (snap.pendingPlan && typeof snap.pendingPlan === 'object') {
         s.setPendingPlan(snap.pendingPlan);
     }
+    const restoredQuestions = cleanReviewQuestions(snap.reviewQuestions);
+    if (restoredQuestions) s.setReviewQuestions(restoredQuestions);
     if (Array.isArray(snap.checkpoints)) {
         s.setCheckpoints(snap.checkpoints.filter((c: unknown) => c && typeof c === 'object'));
     }
@@ -85,6 +98,7 @@ export interface ActionStartSetters {
     setRunning: Dispatch<SetStateAction<boolean>>;
     setLastValidation: Dispatch<SetStateAction<BuilderValidation | null>>;
     setPendingPlan: Dispatch<SetStateAction<unknown>>;
+    setReviewQuestions: Dispatch<SetStateAction<ReviewQuestion[] | null>>;
     setPhases: Dispatch<SetStateAction<unknown[]>>;
     setCheckpoints: Dispatch<SetStateAction<unknown[]>>;
     setContinuation: Dispatch<SetStateAction<{ phase: unknown; total: number | null } | null>>;
@@ -101,6 +115,7 @@ export function startBuilderAction(s: ActionStartSetters, p: ParsedSend): void {
     // A fresh user action starts a clean plan/phase/checkpoint slate. The
     // approval turn clears the pending card (the build is starting).
     s.setPendingPlan(null);
+    s.setReviewQuestions(null);
     s.setPhases([]);
     s.setCheckpoints([]);
     s.setContinuation(null);

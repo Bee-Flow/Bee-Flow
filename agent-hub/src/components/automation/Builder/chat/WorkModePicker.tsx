@@ -23,6 +23,10 @@ interface Props {
     anchor?: 'self' | 'composer';
     planStatus?: string | null;
     planVersion?: number | string | null;
+    /** The modes on offer, in menu order. Default: the automations modes. */
+    modes?: readonly WorkMode[];
+    /** i18n prefix of the mode labels (`<prefix>.<key>` and `<prefix>.<key>_hint`). */
+    keyPrefix?: string;
 }
 
 // Plain words (owner, 2026-11-04): the menu answers "How should I work?", and
@@ -49,7 +53,7 @@ export const WORK_MODES: WorkMode[] = [
 // that box's toolbar, a few dozen pixels from its left edge, so a 320px menu
 // hung off the button spilled past the right edge of a 240-360px side panel;
 // anchored to the composer it takes the composer's width.
-export default function WorkModePicker({ value = 'approve', onChange, disabled = false, alwaysPlanLarge = true, onAlwaysPlanLargeChange = null, anchor = 'self', planStatus = /** @type {string | null} */ (null), planVersion = /** @type {number | string | null} */ (null) }: Props) {
+export default function WorkModePicker({ value = 'approve', onChange, disabled = false, alwaysPlanLarge = true, onAlwaysPlanLargeChange = null, anchor = 'self', planStatus = /** @type {string | null} */ (null), planVersion = /** @type {number | string | null} */ (null), modes = WORK_MODES, keyPrefix = 'automations.assistant.mode' }: Props) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
@@ -79,9 +83,9 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
         e.preventDefault();
         items[to].focus();
     };
-    const selected = WORK_MODES.find((m: WorkMode) => m.id === value) || WORK_MODES.find((m: WorkMode) => m.id === 'approve') || WORK_MODES[0];
+    const selected = modes.find((m: WorkMode) => m.id === value) || modes.find((m: WorkMode) => m.id === 'approve') || modes[0];
     const buildingPlan = isPlanStatusInProgress(planStatus);
-    const triggerLabel = buildingPlan ? t('automations.assistant.mode.building_plan', 'Building plan v{version}', { version: planVersion ?? '' }) : t(`automations.assistant.mode.${selected.key}`, selected.label);
+    const triggerLabel = buildingPlan ? t('automations.assistant.mode.building_plan', 'Building plan v{version}', { version: planVersion ?? '' }) : t(`${keyPrefix}.${selected.key}`, selected.label);
     const TriggerIcon = buildingPlan ? Hammer : selected.Icon;
     return <div ref={ref} className={`min-w-0 ${anchor === 'composer' ? '' : 'relative'}`}>
         <button ref={triggerRef} type="button" disabled={disabled} aria-haspopup="menu" aria-expanded={open} aria-keyshortcuts="Alt+M" onClick={() => setOpen(!open)}
@@ -93,10 +97,10 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
             className={`absolute bottom-full mb-2 z-50 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1.5 shadow-lg ${anchor === 'composer' ? 'inset-x-0 max-w-full' : 'left-0 w-[min(320px,calc(100vw-48px))] max-w-[calc(100cqw-24px)]'}`}>
             <div className="flex justify-between p-2 text-[11px] text-[var(--text-tertiary)]"><span>{t('automations.assistant.how_to_work', 'How should I work?')}</span><kbd title={t('automations.assistant.work_mode_shortcut', 'Alt+M switches the work mode')} className="font-sans">{WORK_MODE_SHORTCUT_LABEL}</kbd></div>
             {buildingPlan && <p className="px-2 pb-2 text-[11px] leading-4 text-[var(--text-tertiary)]">{t('automations.assistant.mode.building_plan_hint', 'Follow-up messages continue this plan. Your own work mode applies again when it is done.')}</p>}
-            {WORK_MODES.map((m: WorkMode) => <button key={m.id} type="button" role="menuitemradio" aria-checked={value === m.id}
+            {modes.map((m: WorkMode) => <button key={m.id} type="button" role="menuitemradio" aria-checked={value === m.id}
                 onClick={() => { onChange(m.id); closeToTrigger(); }} className={`flex w-full gap-2.5 rounded-lg p-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--type-ai)] ${value === m.id ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}>
                 <m.Icon size={15} className="mt-0.5 shrink-0 text-[var(--text-secondary)]" />
-                <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-primary)]">{t(`automations.assistant.mode.${m.key}`, m.label)}</span><span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-tertiary)]">{t(`automations.assistant.mode.${m.key}_hint`, m.description)}</span></span>
+                <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-[var(--text-primary)]">{t(`${keyPrefix}.${m.key}`, m.label)}</span><span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-tertiary)]">{t(`${keyPrefix}.${m.key}_hint`, m.description)}</span></span>
                 {value === m.id && <Check size={13} className="shrink-0 mt-0.5" />}
             </button>)}
             {onAlwaysPlanLargeChange && <label className="flex items-center gap-2 border-t border-[var(--border-default)] mt-1 p-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1">{t('automations.assistant.check_big_changes', 'Check with me for big changes')}</span><input type="checkbox" checked={alwaysPlanLarge} onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAlwaysPlanLargeChange(e.target.checked)} /></label>}

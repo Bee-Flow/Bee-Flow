@@ -55,6 +55,8 @@ interface ValidationNoticeProps {
     validation: { errors?: unknown; warnings?: unknown } | null | undefined;
     running: boolean;
     onFix: ((message: string, nodeId: string | null) => void) | null;
+    /** One ask to repair every issue at once. */
+    onFixAll?: (() => void) | null;
     disabled?: boolean;
 }
 
@@ -89,13 +91,36 @@ function IssueRow({ g, running, onFix, disabled }: { g: IssueGroup; running: boo
     );
 }
 
+function NoticeHeader({ n, running, onFixAll, disabled }: { n: number; running: boolean; onFixAll: (() => void) | null; disabled: boolean }) {
+    const { t } = useTranslation();
+    let text: string;
+    if (running) text = n === 1 ? t('app_studio.builder.validation.fixing_one', 'The AI is fixing 1 issue…') : t('app_studio.builder.validation.fixing', 'The AI is fixing {n} issues…', { n });
+    else text = n === 1 ? t('app_studio.builder.validation.to_review_one', '1 issue to review') : t('app_studio.builder.validation.to_review', '{n} issues to review', { n });
+    return (
+        <div className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+            <span className="min-w-0 flex-1">{text}</span>
+            {!running && onFixAll ? (
+                <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={onFixAll}
+                    className="inline-flex shrink-0 items-center gap-1 rounded border border-amber-500/40 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-500/15 disabled:opacity-40 dark:text-amber-300"
+                >
+                    <Wrench className="h-3 w-3" aria-hidden="true" />
+                    {t('app_studio.builder.validation.fix_all', 'Fix all')}
+                </button>
+            ) : null}
+        </div>
+    );
+}
+
 /**
  * Compact amber list of the latest validation records. While the stream is
  * running the AI is actively repairing them, so lead with that; otherwise each
  * issue gets a per-issue "Fix" button that asks the AI to repair just that one
  * (scoped to its node when the record carries a nodeId).
  */
-export default function ValidationNotice({ validation, running, onFix, disabled = false }: ValidationNoticeProps) {
+export default function ValidationNotice({ validation, running, onFix, onFixAll = null, disabled = false }: ValidationNoticeProps) {
     const { t } = useTranslation();
     const errors: unknown[] = Array.isArray(validation?.errors) ? validation.errors : [];
     const warnings: unknown[] = Array.isArray(validation?.warnings) ? validation.warnings : [];
@@ -107,13 +132,7 @@ export default function ValidationNotice({ validation, running, onFix, disabled 
 
     return (
         <div className="shrink-0 border-t border-amber-500/30 bg-amber-500/10 px-3 py-2">
-            {n > 0 && (
-                <div className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                    {running
-                        ? (n === 1 ? t('app_studio.builder.validation.fixing_one', 'The AI is fixing 1 issue…') : t('app_studio.builder.validation.fixing', 'The AI is fixing {n} issues…', { n }))
-                        : (n === 1 ? t('app_studio.builder.validation.to_review_one', '1 issue to review') : t('app_studio.builder.validation.to_review', '{n} issues to review', { n }))}
-                </div>
-            )}
+            {n > 0 && <NoticeHeader n={n} running={running} onFixAll={onFixAll} disabled={disabled} />}
             <ul className="mt-1 flex flex-col gap-0.5">
                 {shown.map((g, i) => (
                     <IssueRow key={i} g={g} running={running} onFix={onFix} disabled={disabled} />
