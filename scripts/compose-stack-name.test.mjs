@@ -87,7 +87,9 @@ test('selfhost.sh runs a named stack as its own compose project with its own env
 
 test('the generated networks file and per-stack env files are ignored by git', () => {
     const ignore = read('.gitignore');
-    for (const line of ['.env.*', '!.env.example', '!.env.*.example', 'components.*/', 'docker-compose.sidecars.networks.yml']) {
+    // `/components.*/` is anchored to the root: unanchored, knip read it as a file
+    // pattern and skipped agent-hub's integrations/azure/components.tsx.
+    for (const line of ['.env.*', '!.env.example', '!.env.*.example', '/components.*/', 'docker-compose.sidecars.networks.yml']) {
         assert.ok(ignore.split('\n').includes(line), `.gitignore lacks ${line}`);
     }
 });
