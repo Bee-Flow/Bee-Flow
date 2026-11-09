@@ -112,14 +112,22 @@ export default function useAutomationLibrary({
     const [steps, setSteps] = useState<StepRow[]>([]);
     const [stepsLoading, setStepsLoading] = useState(false);
 
+    // Every action re-reads the list, so two reads can be in the air at once
+    // (a toggle on one row while another row's re-read is still going). Only
+    // the newest read may write: an older answer arriving late would put a
+    // state on screen the server has already moved past.
+    const listReadSeq = useRef(0);
     const fetchAutomations = useCallback(async () => {
+        const seq = ++listReadSeq.current;
         setAutomationsLoading(true);
         try {
             const r = await automationApi.listAutomations<{ automations?: AutomationListRow[] }>();
+            if (seq !== listReadSeq.current) return;
             setAutomations(r.automations || []);
             setAutomationsLoadFailed(false);
         } catch (err) {
             console.warn('[AITasksDesigner] fetchAutomations failed:', failureText(err));
+            if (seq !== listReadSeq.current) return;
             setAutomationsLoadFailed(true);
         }
         setAutomationsLoading(false);
@@ -177,6 +185,9 @@ export default function useAutomationLibrary({
     useEffect(() => {
         let alive = true;
         const tick = async () => {
+            // A tab nobody is looking at needs no live dot; the read happens
+            // again the moment the tab comes back.
+            if (document.visibilityState === 'hidden') return;
             try {
                 const r = await automationApi.getActiveRuns<{ active?: Array<{ automationId: string }> }>();
                 if (!alive || !r) return;
@@ -193,7 +204,9 @@ export default function useAutomationLibrary({
         };
         tick();
         const handle = setInterval(tick, 5000);
-        return () => { alive = false; clearInterval(handle); };
+        const onVisible = () => { if (document.visibilityState !== 'hidden') void tick(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { alive = false; clearInterval(handle); document.removeEventListener('visibilitychange', onVisible); };
     }, [automationApi]);
 
     // Per-row in-flight dedupe for the active/pause toggle. Without this,
@@ -218,8 +231,12 @@ export default function useAutomationLibrary({
     }, [automationApi, fetchAutomations]);
 
     const requestDeleteAutomation = useCallback((a: AutomationListRow) => setPendingDeleteAutomation(a), []);
+    // The dialog stays up until the delete and the re-read are done; a second
+    // click in that window must not send a second DELETE.
+    const deletePendingRef = useRef(false);
     const confirmDeleteAutomation = useCallback(async () => {
-        if (!pendingDeleteAutomation) return;
+        if (!pendingDeleteAutomation || deletePendingRef.current) return;
+        deletePendingRef.current = true;
         try {
             // A delete moves the automation to the trash (runs are kept); the
             // "Recently deleted" section reads it fresh.
@@ -233,6 +250,8 @@ export default function useAutomationLibrary({
         } catch (err) {
             console.warn('[AITasksDesigner] deleteAutomation failed:', failureText(err));
             toast.error(failureText(err) || 'Could not delete that automation.');
+        } finally {
+            deletePendingRef.current = false;
         }
         setPendingDeleteAutomation(null);
     }, [pendingDeleteAutomation, automationApi, fetchAutomations, builderAutomationId, setBuilderAutomationId, setOpeningBuilder]);
