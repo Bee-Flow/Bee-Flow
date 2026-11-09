@@ -299,6 +299,25 @@ const NEXTCLOUD_DECK_TOOLS = [
 
 // ─── Tool execution ──────────────────────────────────────────────
 
+// The ids that go into a Deck URL as a path segment. The schema says integer,
+// but a model's arguments are not validated against it: text with `/`, `..`
+// or `?` in it would become part of the path and reach another endpoint.
+const PATH_IDS = ['boardId', 'stackId', 'targetStackId', 'cardId', 'labelId'];
+
+/**
+ * The first path id in `args` that is not a positive whole number, or null.
+ * @param {Record<string, unknown>} args
+ * @returns {string | null}
+ */
+function firstBadId(args) {
+    for (const key of PATH_IDS) {
+        const value = args ? args[key] : undefined;
+        if (value === undefined || value === null || value === '') continue;
+        if (!/^[1-9]\d{0,15}$/.test(String(value))) return key;
+    }
+    return null;
+}
+
 /**
  * @param {string} toolName
  * @param {import('./nextcloudDeckHandlers').DeckArgs} args
@@ -334,6 +353,8 @@ async function executeNextcloudDeckTool(toolName, args, userId, session) {
 
     const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
     if (!handler) return { error: `Unknown Nextcloud Deck tool: ${toolName}` };
+    const badId = firstBadId(args);
+    if (badId) return { error: `${badId} must be a whole number (the id Deck lists).` };
     return handler(args, { api, ncFetch, authError, baseUrl, toolName });
 }
 
