@@ -98,7 +98,7 @@ export default function useClaudeSettings(config: TierConfig, setConfig: Dispatc
             next[tierKey] = withRecommended(next[tierKey], rec);
         }
         setConfig(next);
-        flash(setClaudeMessage, { type: 'success', text: t('admin_ai_config.claude_applied_all', 'Recommended Claude defaults applied to all tiers — click Save Tier Configuration to persist.') }, 5000);
+        flash(setClaudeMessage, { type: 'success', text: t('admin_ai_config.claude_applied_all', 'Recommended Claude defaults applied to all tiers. Click Save Tier Configuration to keep them.') }, 5000);
     };
 
     return {

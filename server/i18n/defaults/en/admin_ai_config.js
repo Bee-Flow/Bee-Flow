@@ -33,7 +33,7 @@ module.exports = {
     "admin_ai_config.bg_models_title": "Background models",
     "admin_ai_config.cancel": "Cancel",
     "admin_ai_config.claude_adaptive": "adaptive",
-    "admin_ai_config.claude_applied_all": "Recommended Claude defaults applied to all tiers — click Save Tier Configuration to persist.",
+    "admin_ai_config.claude_applied_all": "Recommended Claude defaults applied to all tiers. Click Save Tier Configuration to keep them.",
     "admin_ai_config.claude_apply": "Apply",
     "admin_ai_config.claude_apply_all": "Apply all recommended",
     "admin_ai_config.claude_apply_hint": "Apply patches the local tier configuration above: click \"Save Tier Configuration\" to persist.",
