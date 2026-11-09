@@ -103,7 +103,7 @@ RUN set -eu; \
     fi; \
     ls -l /geo
 
-# Buildx 0.38.0 with the corrected archive extractor and golang.org/x/net 0.60.0,
+# Buildx 0.38.0 with the corrected archive extractor and golang.org/x/net 0.62.0 (CVE-2026-78661),
 # built with Go 1.27.2 (CVE-2026-78667/78669/97031); API/CLI stays unchanged.
 FROM golang:1.27.3-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS buildx-build
 RUN apk add --no-cache git
@@ -113,7 +113,7 @@ RUN git init -q . \
     && git fetch --depth=1 origin 0dbe87f36ed472fe36b6796c3f70b4210a731fc5 \
     && git checkout -q FETCH_HEAD \
     && go get github.com/moby/go-archive@v0.3.0 \
-    && go get golang.org/x/net@v0.60.0 \
+    && go get golang.org/x/net@v0.62.0 \
     && go mod tidy \
     && CGO_ENABLED=0 go build -mod=mod -trimpath -ldflags='-s -w -X github.com/docker/buildx/version.Version=v0.38.0 -X github.com/docker/buildx/version.Revision=0dbe87f36ed472fe36b6796c3f70b4210a731fc5' -o /out/docker-buildx ./cmd/buildx
 
