@@ -91,7 +91,9 @@ export function parseDeepLink(raw: string): DeepLinkAction {
             return action;
         }
         case 'ask': {
-            const text = params.get('text') ?? decodeSafely(rest);
+            // `rest` is already decoded; decoding it again turned a literal
+            // "%41" in the question into "A".
+            const text = params.get('text') ?? rest;
             if (!text.trim()) return { kind: 'unknown', reason: 'That link asked nothing.', needsConfirmation: false };
             return { kind: 'quick-ask', text: text.slice(0, 4000), needsConfirmation: false };
         }
@@ -106,7 +108,7 @@ export function parseDeepLink(raw: string): DeepLinkAction {
             return { kind: 'pair-nextcloud', server, needsConfirmation: true };
         }
         case 'open': {
-            const target = params.get('path') ?? decodeSafely(rest);
+            const target = params.get('path') ?? rest;
             if (!target) return { kind: 'unknown', reason: 'That link named no file.', needsConfirmation: false };
             return { kind: 'open-path', path: target, needsConfirmation: true };
         }
@@ -129,6 +131,12 @@ function navigateTo(path: string): DeepLinkAction {
         return { kind: 'unknown', reason: 'That link points outside the app.', needsConfirmation: false };
     }
     if (cleaned.includes('..') || /^\/+(https?:)?\/\//i.test(path)) {
+        return { kind: 'unknown', reason: 'That link points outside the app.', needsConfirmation: false };
+    }
+    // The path has been decoded once, so a link that wrote `%252e%252e` still
+    // carries `%2e%2e` here — and the URL parser of the window that loads it
+    // reads that as `..` and walks out of the SPA all the same.
+    if (/(^|\/)(\.|%2e){2}(\/|$)/i.test(cleaned)) {
         return { kind: 'unknown', reason: 'That link points outside the app.', needsConfirmation: false };
     }
     // A deep link arrives from outside the app, and a NUL or an escape in a

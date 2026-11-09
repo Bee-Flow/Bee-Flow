@@ -215,3 +215,19 @@ describe('a 401', () => {
         expect(handler).toHaveBeenCalledWith('/api/things');
     });
 });
+
+describe('a caller whose signal is already aborted', () => {
+    it('is not sent: the request carries an aborted signal from the first moment', async () => {
+        // An aborted signal fires no further event, so listening for one was
+        // not enough — the cancelled request went out and ran to the end.
+        mockExpoFetch.mockImplementation((_url: string, init: { signal: AbortSignal }) =>
+            init.signal.aborted ? Promise.reject(new Error('Aborted')) : serverAnswer(200, { ok: true }),
+        );
+        const controller = new AbortController();
+        controller.abort();
+
+        await expect(api.get('/api/things', { signal: controller.signal })).rejects.toThrow('Aborted');
+        expect(mockExpoFetch).toHaveBeenCalledTimes(1);
+        expect(mockExpoFetch.mock.calls[0][1].signal.aborted).toBe(true);
+    });
+});

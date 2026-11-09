@@ -104,17 +104,26 @@ async function signBuffer(bfmodBuf, privatePem, publicPem, opts = {}) {
     return { buf, kid, jws };
 }
 
-async function main() {
-    const args = process.argv.slice(2);
+/**
+ * Split the command line into the two positional paths and the two options.
+ * An option that is absent takes nothing out of the positionals: `indexOf`
+ * answers -1 for it, and the slot after -1 is argument 0, the .bfmod path.
+ * @param {string[]} args
+ * @returns {{ bfmodPath?: string, keyPath?: string, pubPath: string | null, licenseClass: string | null }}
+ */
+function parseSignArgs(args) {
     const pubIdx = args.indexOf('--pub');
-    const pubPath = pubIdx >= 0 ? args[pubIdx + 1] : null;
+    const pubPath = pubIdx >= 0 ? args[pubIdx + 1] ?? null : null;
     const lcIdx = args.indexOf('--license-class');
-    const licenseClass = lcIdx >= 0 ? args[lcIdx + 1] : null;
-    const skip = new Set([pubIdx, pubIdx + 1, lcIdx, lcIdx + 1].filter(i => i >= 0));
+    const licenseClass = lcIdx >= 0 ? args[lcIdx + 1] ?? null : null;
+    const skip = new Set([pubIdx, lcIdx].filter(i => i >= 0).flatMap(i => [i, i + 1]));
     const positional = args.filter((a, i) => !skip.has(i));
+    return { bfmodPath: positional[0], keyPath: positional[1], pubPath, licenseClass };
+}
 
-    const bfmodPath = positional[0];
-    const keyPath = positional[1];
+async function main() {
+    const { bfmodPath, keyPath, pubPath, licenseClass } = parseSignArgs(process.argv.slice(2));
+
     if (!bfmodPath || !keyPath) {
         console.error('Usage: node scripts/sign.mjs <file.bfmod> <private-key.pem> [--pub <public.pem>] [--license-class free]');
         process.exit(2);
@@ -139,4 +148,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     main().catch((e) => { console.error('sign failed:', e.message); process.exit(1); });
 }
 
-export { signBuffer, signJws, kidForPem, sha256hex };
+export { signBuffer, signJws, kidForPem, sha256hex, parseSignArgs };

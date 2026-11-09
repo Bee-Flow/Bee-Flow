@@ -101,6 +101,14 @@ describe('remotePathFor', () => {
         assert.equal(remotePathFor(root, '/home/tom/Nextcloud'), '/');
         assert.equal(remotePathFor(projects, '/home/tom/Nextcloud/Projecten'), '/Gedeeld/Projecten');
     });
+
+    it('resolves "." and ".." before cutting the folder off the front', () => {
+        // isInside resolves them, so these ARE in the folder; the cut used the raw text.
+        assert.equal(remotePathFor(root, '/home/tom/x/../Nextcloud/a.txt'), '/a.txt');
+        assert.equal(remotePathFor(projects, '/home/tom/./Nextcloud/Projecten/bee/../readme.md'), '/Gedeeld/Projecten/readme.md');
+        const reference = resolveLocalPath('/home/tom/x/../Nextcloud/a.txt', accounts, { platform: 'linux' });
+        assert.equal(reference?.webdavUrl, 'https://cloud.example.com/remote.php/dav/files/tom/a.txt');
+    });
 });
 
 describe('resolveLocalPath', () => {

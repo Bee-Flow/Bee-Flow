@@ -61,3 +61,11 @@ test('an unknown link does nothing at all', () => {
     routeDeepLink('https://not-ours.example/', host);
     assert.deepEqual([calls, prompts], [[], []]);
 });
+
+test('a navigation link keeps the path of a server installed under one', () => {
+    // `new URL('/app/chat/42', 'https://intranet.example/beeflow')` resolved to
+    // https://intranet.example/app/chat/42: another application on that host.
+    const { host, calls } = setup(true, 'https://intranet.example/beeflow');
+    routeDeepLink('beeflow://chat/42', host);
+    assert.equal(calls[1], 'load https://intranet.example/beeflow/app/chat/42');
+});

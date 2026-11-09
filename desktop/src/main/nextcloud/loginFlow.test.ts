@@ -161,4 +161,32 @@ describe('pollLoginFlow', () => {
             /HTTP 500/,
         );
     });
+    it('leaves no listener behind on the cancel signal after each wait', async () => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+        let listening = 0;
+        const add = signal.addEventListener.bind(signal);
+        const remove = signal.removeEventListener.bind(signal);
+        signal.addEventListener = ((...args: Parameters<typeof add>) => {
+            listening += 1;
+            add(...args);
+        }) as typeof signal.addEventListener;
+        signal.removeEventListener = ((...args: Parameters<typeof remove>) => {
+            listening -= 1;
+            remove(...args);
+        }) as typeof signal.removeEventListener;
+
+        let attempts = 0;
+        await pollLoginFlow(start, {
+            intervalMs: 1,
+            signal,
+            fetch: async () => {
+                attempts += 1;
+                if (attempts < 15) return reply(404, {});
+                return reply(200, { server: 'https://cloud.example.com', loginName: 'tom', appPassword: 'app-password-not-real' });
+            },
+        });
+        assert.equal(attempts, 15);
+        assert.equal(listening, 0, 'one listener per poll used to pile up on the signal');
+    });
 });

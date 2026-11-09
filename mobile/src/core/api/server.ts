@@ -68,6 +68,10 @@ export function isPrivateHost(url: string): boolean {
     try {
         const { hostname } = new URL(url);
         if (hostname === 'localhost' || hostname.endsWith('.local')) return true;
+        // Only an IPv4 LITERAL is an address. Matched on the prefix alone,
+        // `10.example.com` and `192.168.evil.org` — public names anyone can
+        // register — counted as the user's own network and lost the warning.
+        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) return false;
         if (/^10\./.test(hostname)) return true;
         if (/^192\.168\./.test(hostname)) return true;
         if (/^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return true;
