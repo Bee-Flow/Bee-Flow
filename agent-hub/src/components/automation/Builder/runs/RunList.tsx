@@ -21,6 +21,8 @@ interface RunListProps {
     runs: RunRowData[];
     loading: boolean;
     failed: boolean;
+    /** Read the list again after a failed read. */
+    onReload?: () => void;
     selectedRunId: string | null;
     onOpenRun: (runId: string) => void;
     onOpenEditor?: (stepId?: string | null) => void;
@@ -28,7 +30,7 @@ interface RunListProps {
 
 /** The runs, one group per day, each row with its own next move. */
 export default function RunList({
-    automationId, runs, loading, failed, selectedRunId, onOpenRun, onOpenEditor,
+    automationId, runs, loading, failed, onReload, selectedRunId, onOpenRun, onOpenEditor,
 }: RunListProps) {
     const { t, locale } = useTranslation();
     const groups = useMemo(() => groupRunsByDay(t, runs, locale), [t, runs, locale]);
@@ -74,7 +76,20 @@ export default function RunList({
         return <div className="px-4 py-6 text-xs text-[var(--text-tertiary)]">{t('runs.tab.loading', 'Loading runs…')}</div>;
     }
     if (failed) {
-        return <div className="px-4 py-6 text-xs text-[var(--error)]">{t('runs.tab.load_failed', 'Could not read the runs.')}</div>;
+        return (
+            <div role="alert" className="px-4 py-6 text-xs text-[var(--error)]">
+                <div>{t('runs.tab.load_failed', 'Could not read the runs.')}</div>
+                {onReload && (
+                    <button
+                        type="button"
+                        onClick={onReload}
+                        className="mt-2 px-3 py-1 rounded-full border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                    >
+                        {t('runs.tab.load_retry', 'Try again')}
+                    </button>
+                )}
+            </div>
+        );
     }
     if (!runs.length) {
         return (

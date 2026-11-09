@@ -125,6 +125,7 @@ export default {
     "runs.tab.link_copy_failed": "Could not copy the link.",
     "runs.tab.list_label": "Runs",
     "runs.tab.load_failed": "Could not read the runs.",
+    "runs.tab.load_retry": "Try again",
     "runs.tab.loading": "Loading runs…",
     "runs.tab.no_output": "This step passed nothing on.",
     "runs.tab.no_steps": "No steps recorded for this run yet.",
