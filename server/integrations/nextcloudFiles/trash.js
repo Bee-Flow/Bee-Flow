@@ -6,6 +6,36 @@
 
 const { parseMultistatus, isCollectionProp } = require('./webdav');
 
+const TRASH_PROPFIND_BODY = `<?xml version="1.0"?>
+<d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+  <d:prop>
+    <d:displayname/>
+    <d:getcontentlength/>
+    <d:getcontenttype/>
+    <d:getlastmodified/>
+    <d:resourcetype/>
+    <oc:fileid/>
+    <nc:trashbin-original-location/>
+    <nc:trashbin-deletion-time/>
+  </d:prop>
+</d:propfind>`;
+
+const NOT_IN_TRASH = 'trashPath must be an item inside the trash, as returned by nextcloud_list_trash (it starts with "/trash/").';
+
+/**
+ * The segments of a path inside the trash (`trash/<item>[/…]`), or null. A
+ * `.` or `..` segment is refused: the URL parser would resolve it, and
+ * `../../files/<uid>/x` is a live file, not a trash item.
+ * @param {string} trashPath
+ * @returns {string[] | null}
+ */
+function trashSegments(trashPath) {
+    const segments = String(trashPath).replace(/^\/+|\/+$/g, '').split('/');
+    if (segments.length < 2 || segments[0] !== 'trash') return null;
+    if (segments.some((s) => !s || s === '.' || s === '..')) return null;
+    return segments;
+}
+
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
 /**
@@ -19,24 +49,11 @@ async function executeTrashTool(toolName, args, ctx) {
     switch (toolName) {
         case 'nextcloud_list_trash': {
             const limit = Math.min(Math.max(args.limit || 200, 1), 1000);
-            const body = `<?xml version="1.0"?>
-<d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
-  <d:prop>
-    <d:displayname/>
-    <d:getcontentlength/>
-    <d:getcontenttype/>
-    <d:getlastmodified/>
-    <d:resourcetype/>
-    <oc:fileid/>
-    <nc:trashbin-original-location/>
-    <nc:trashbin-deletion-time/>
-  </d:prop>
-</d:propfind>`;
             const url = `${baseUrl}/remote.php/dav/trashbin/${encodeURIComponent(uid)}/trash/`;
             const res = await ncFetch(url, {
                 method: 'PROPFIND',
                 headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
-                body,
+                body: TRASH_PROPFIND_BODY,
             });
             if (res.status === 401) return { error: authError };
             if (!res.ok) return { error: `Trash list failed (${res.status})` };
@@ -65,11 +82,14 @@ async function executeTrashTool(toolName, args, ctx) {
 
         case 'nextcloud_restore_from_trash': {
             if (!args.trashPath) return { error: 'trashPath is required' };
-            // The trashbin path returned by list_trash starts with "/trash/<file>" — strip leading /.
-            const cleaned = String(args.trashPath).replace(/^\/+/, '');
-            const sourceUrl = `${baseUrl}/remote.php/dav/trashbin/${encodeURIComponent(uid)}/${cleaned.split('/').map(encodeURIComponent).join('/')}`;
-            const destPath = args.originalPath || cleaned.replace(/^trash\//, '');
-            const destUrl = `${baseUrl}/remote.php/dav/trashbin/${encodeURIComponent(uid)}/restore/${destPath.split('/').map(encodeURIComponent).join('/')}`;
+            const segments = trashSegments(args.trashPath);
+            if (!segments) return { error: NOT_IN_TRASH };
+            const trashbin = `${baseUrl}/remote.php/dav/trashbin/${encodeURIComponent(uid)}`;
+            const sourceUrl = `${trashbin}/${segments.map(encodeURIComponent).join('/')}`;
+            // Nextcloud restores to the original location by itself. The restore
+            // folder is flat, so the destination is the item's own name: a
+            // destination with folders in it has no parent collection (409).
+            const destUrl = `${trashbin}/restore/${encodeURIComponent(segments[segments.length - 1])}`;
             const res = await ncFetch(sourceUrl, {
                 method: 'MOVE',
                 headers: { 'Destination': destUrl },
@@ -84,8 +104,9 @@ async function executeTrashTool(toolName, args, ctx) {
 
         case 'nextcloud_permanent_delete_trash': {
             if (!args.trashPath) return { error: 'trashPath is required' };
-            const cleaned = String(args.trashPath).replace(/^\/+/, '');
-            const url = `${baseUrl}/remote.php/dav/trashbin/${encodeURIComponent(uid)}/${cleaned.split('/').map(encodeURIComponent).join('/')}`;
+            const segments = trashSegments(args.trashPath);
+            if (!segments) return { error: NOT_IN_TRASH };
+            const url = `${baseUrl}/remote.php/dav/trashbin/${encodeURIComponent(uid)}/${segments.map(encodeURIComponent).join('/')}`;
             const res = await ncFetch(url, { method: 'DELETE' });
             if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: `Trash item not found: ${args.trashPath}` };
