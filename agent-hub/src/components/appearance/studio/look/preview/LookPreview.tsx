@@ -5,6 +5,7 @@ import { PREVIEW_SURFACES } from './previewSurfaces';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DraftPayload } from '../useLookForm';
 import type { PreviewSurface } from './previewSurfaces';
+import { CHIP_INFO } from '@/components/mcpLibrary/ui';
 
 interface Props {
     draftPayload: DraftPayload | null;
@@ -37,12 +38,12 @@ export default function LookPreview({ draftPayload }: Props) {
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                         {t('appearance.look_preview_live_preview', 'Live preview')}
                     </h3>
-                    <p className="text-[11px] mt-0.5 text-[var(--text-muted)]">
+                    <p className="text-[11px] mt-0.5 text-[var(--text-tertiary)]">
                         {t('appearance.look_preview_real_app_signed_in_as_you_clicks_hit', 'Real app, signed in as you. Clicks hit the backend.')}
                     </p>
                 </div>
                 <span
-                    className="inline-flex items-center gap-1 text-[10px] uppercase font-semibold tracking-wider px-2 py-1 rounded-full [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]!"
+                    className={CHIP_INFO}
                 >
                     <span
                         className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]"
@@ -52,7 +53,7 @@ export default function LookPreview({ draftPayload }: Props) {
             </div>
 
             <div
-                className="flex-1 min-h-0 rounded-xl border overflow-hidden flex flex-col [border-color:var(--border-default)] [background:var(--bg-card)]"
+                className="flex-1 min-h-0 rounded-xl border overflow-hidden flex flex-col border-[var(--border-default)] bg-[var(--bg-card)]"
                 data-surface="opaque"
             >
                 <LookPreviewToolbar

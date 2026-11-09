@@ -9,6 +9,7 @@ import useConfirm from '@/components/shared/useConfirm';
 import type { AddPackModalProps, IconCategory, IconPack, PackListItemProps } from './IconsEditor.types';
 import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
 import { API, PackEditor } from './PackEditor';
+import { ALERT_ERROR, CHIP_SUCCESS, INPUT, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 
 /**
  * IconsEditor — icon-pack management. Moved verbatim from the old
@@ -167,7 +168,7 @@ export default function IconsEditor() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
+            <div className="flex items-center justify-center h-full text-[var(--text-tertiary)]">
                 {t('appearance.icons_editor_loading_icon_packs', 'Loading icon packs...')}
             </div>
         );
@@ -176,7 +177,7 @@ export default function IconsEditor() {
     return (
         <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]">
             {error && (
-                <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:#ef4444]!">
+                <div className={`mx-4 mt-3 ${ALERT_ERROR}`}>
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{error}</span>
                     <button onClick={() => setError('')} className="ml-auto" aria-label={t('appearance.icons_editor_dismiss_error', 'Dismiss error')}><X className="w-3.5 h-3.5" /></button>
@@ -201,7 +202,7 @@ export default function IconsEditor() {
                             }}
                         />
                     ) : (
-                        <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
+                        <div className="flex-1 flex items-center justify-center text-[var(--text-tertiary)]">
                             <div className="text-center">
                                 <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                 <p className="text-sm">{t('appearance.icons_editor_select_a_pack_to_edit_or_create_a_new', 'Select a pack to edit, or create a new one.')}</p>
@@ -225,8 +226,7 @@ const PackListItem = ({ label, sub, isActive, isSelected, onSelect, onActivate, 
     return (
         <div
             onClick={onSelect}
-            className={`group px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between transition-all ${isHighlight ? 'bg-[var(--accent-primary)]' : 'hover:bg-[var(--bg-tertiary)]'}`}
-            style={isHighlight ? { color: 'var(--accent-primary-fg, #ffffff)' } : undefined}
+            className={`group px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between transition-all ${isHighlight ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}`}
         >
             <div className="flex items-center gap-2 min-w-0">
                 <Package className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? '' : 'opacity-60'}`} />
@@ -236,11 +236,7 @@ const PackListItem = ({ label, sub, isActive, isSelected, onSelect, onActivate, 
                 </div>
                 {isActive && (
                     <span
-                        className="text-[10px] px-1.5 py-0.5 rounded-full font-medium ml-1 shrink-0"
-                        style={{
-                            background: isHighlight ? 'rgba(255,255,255,0.2)' : 'var(--accent-primary)',
-                            color: 'var(--accent-primary-fg, #ffffff)',
-                        }}
+                        className={`ml-1 ${CHIP_SUCCESS}`}
                     >
                         {t('appearance.icons_editor_active', 'Active')}
                     </span>
@@ -278,7 +274,7 @@ const AddPackModal = ({ onAdd, onClose }: AddPackModalProps) => {
     const titleId = useId();
     return (
         <Modal open onClose={onClose} variant="bare" size="sm" labelledBy={titleId}>
-            <div className="w-full rounded-2xl border shadow-2xl p-5 [background:var(--bg-secondary)] [border-color:var(--border-default)]" data-surface="opaque">
+            <div className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-5 shadow-2xl" data-surface="opaque">
                 <h3 id={titleId} className="text-lg font-semibold mb-3 text-[var(--text-primary)]">{t('appearance.icons_editor_new_icon_pack', 'New Icon Pack')}</h3>
                 <input
                     autoFocus
@@ -286,7 +282,7 @@ const AddPackModal = ({ onAdd, onClose }: AddPackModalProps) => {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                     onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') onAdd(name); }}
                     placeholder={t('appearance.icons_editor_pack_name', 'Pack name')}
-                    className="w-full px-3 py-2 rounded-lg text-sm border bg-[var(--bg-primary)] mb-4 [border-color:var(--border-default)] [color:var(--text-primary)]! [outline:none]"
+                    className={`${INPUT} mb-4`}
                 />
                 <div className="flex gap-2">
                     <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
@@ -295,7 +291,7 @@ const AddPackModal = ({ onAdd, onClose }: AddPackModalProps) => {
                     <button
                         onClick={() => onAdd(name)}
                         disabled={!name.trim()}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium disabled:opacity-40 [background:var(--accent-primary)] [color:var(--accent-primary-fg,#ffffff)]!"
+                        className={`${PRIMARY_BTN} flex-1 py-2`}
                     >
                         {t('appearance.icons_editor_create', 'Create')}
                     </button>
@@ -345,7 +341,7 @@ function IconsEditorSection({ t, handleImport, setShowAddModal, activePackId, ha
             ))}
 
             {packs.length === 0 && (
-                <p className="text-xs text-center py-6 text-[var(--text-muted)]">
+                <p className="text-xs text-center py-6 text-[var(--text-tertiary)]">
                     {t('appearance.icons_editor_no_custom_packs_yet_click_to_create', 'No custom packs yet — click + to create one.')}
                 </p>
             )}
