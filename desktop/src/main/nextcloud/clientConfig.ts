@@ -149,6 +149,13 @@ interface FolderDraft {
 }
 
 /**
+ * The groups under an account that hold sync folders. The client loads all
+ * three (folderman.cpp): plain folders, folders in a newer journal format, and
+ * virtual-files folders, which is where a new sync on Windows lands.
+ */
+const FOLDER_GROUPS: ReadonlySet<string> = new Set(['Folders', 'Multifolders', 'FoldersWithPlaceholders']);
+
+/**
  * Turn the parsed INI into accounts and their sync folders.
  *
  * Two layouts are handled because both are in the wild: modern clients nest
@@ -171,8 +178,9 @@ export function accountsFrom(ini: ParsedIni): NextcloudAccount[] {
         // `version=2` and friends live at the top of [Accounts] with no index.
         if (parts.length === 1) continue;
 
-        if (parts[1] === 'Folders' && parts.length >= 4) {
-            const folderKey = `${accountId}/${parts[2]}`;
+        if (FOLDER_GROUPS.has(String(parts[1])) && parts.length >= 4) {
+            // The same index can exist in more than one group.
+            const folderKey = `${accountId}/${parts[1]}/${parts[2]}`;
             const draft = folders.get(folderKey) ?? { accountId };
             applyFolderField(draft, String(parts[3]), value);
             folders.set(folderKey, draft);
