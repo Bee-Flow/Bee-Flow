@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import SectionHeader from './SectionHeader';
-import { OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, SettingsList } from './ui/SettingsList';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from './ui/useToastOnMessage';
 import { useWebSearchInferenceQuery } from '@/api/queries/adminConfigReads';
 import useDraftOverServer from '@/hooks/useDraftOverServer';

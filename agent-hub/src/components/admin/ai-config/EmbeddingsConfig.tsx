@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
-import SectionHeader from './SectionHeader';
-import { FIELD_INPUT, SAVE_BUTTON, SettingRow, SettingsList } from './ui/SettingsList';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { FIELD_INPUT, SAVE_BUTTON, SettingRow, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from './ui/useToastOnMessage';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
 import useDraftOverServer from '@/hooks/useDraftOverServer';

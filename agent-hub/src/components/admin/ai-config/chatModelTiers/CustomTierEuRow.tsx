@@ -6,7 +6,7 @@ import type { CustomTier } from './tierTypes';
 import type { CustomTiersState } from './useCustomTiers';
 import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { SettingRow } from '../ui/SettingsList';
+import { SettingRow } from '@/components/shared/SettingsList';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface CustomTierEuRowProps extends ModelPickerSource {

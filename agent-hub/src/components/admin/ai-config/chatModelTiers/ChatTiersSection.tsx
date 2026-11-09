@@ -10,7 +10,7 @@ import type { TierConfigsState } from './useTierConfigs';
 import { TIERS, TIER_DEFAULTS } from './constants';
 import CustomTierCard from './CustomTierCard';
 import TierCard from './TierCard';
-import { QUIET_BUTTON, SAVE_BUTTON, SettingsGroup, SettingsList } from '../ui/SettingsList';
+import { QUIET_BUTTON, SAVE_BUTTON, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from '../ui/useToastOnMessage';
 import { useTranslation } from '@/hooks/useTranslation';
 

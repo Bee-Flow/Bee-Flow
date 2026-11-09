@@ -1,4 +1,4 @@
-import { Boxes, Loader2, RefreshCw, Store } from 'lucide-react';
+import { Boxes, RefreshCw, Store } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import MarketplaceTab from './MarketplaceTab';
 import ModuleCard from './ModuleCard';
@@ -7,6 +7,14 @@ import { useAdminModules, useImportModule, useRemoveModule } from '@/api/queries
 import { type AdminModule } from '@/api/queries/modules.types';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
+import EmptyState from '@/components/shared/EmptyState';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
+import Tabs from '@/components/shared/Tabs';
+import { ALERT_ERROR, ALERT_INFO, ALERT_SUCCESS, CHIP_SUCCESS } from '@/components/mcpLibrary/ui';
+
+/** The look of a flash message, by its type. */
+const FLASH_CLASS: Record<string, string> = { success: ALERT_SUCCESS, info: ALERT_INFO, error: ALERT_ERROR };
 
 export default function ModulesPanel() {
     const { t } = useTranslation();
@@ -72,12 +80,12 @@ export default function ModulesPanel() {
     const importedCount = modules.filter(m => m.status === 'imported').length;
 
     const TABS = [
-        { id: 'installed', label: t('modules.tab_installed'), Icon: Boxes },
-        { id: 'marketplace', label: t('modules.tab_marketplace'), Icon: Store },
+        { id: 'installed', label: t('modules.tab_installed'), icon: <Boxes className="h-3.5 w-3.5" aria-hidden="true" /> },
+        { id: 'marketplace', label: t('modules.tab_marketplace'), icon: <Store className="h-3.5 w-3.5" aria-hidden="true" /> },
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-5">
             {removeTarget && (
                 <RemoveModuleDialog
                     module={removeTarget}
@@ -87,49 +95,18 @@ export default function ModulesPanel() {
                 />
             )}
 
-            {/* Header */}
-            <div>
-                <h2 className="text-lg font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                    <Boxes className="w-5 h-5 [color:#f59e0b]" />
-                    {t('modules.title')}
-                    {importedCount > 0 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">
-                            {t('modules.imported_count', { count: importedCount })}
-                        </span>
-                    )}
-                </h2>
-                <p className="text-xs mt-1 text-[var(--text-muted)]">
-                    {t('modules.subtitle')}
-                </p>
-                <p className="text-xs mt-1 text-[var(--text-muted)]">
-                    {t('modules.members_reload_hint')}
-                </p>
-            </div>
+            <SectionHeader
+                title={t('modules.title')}
+                description={<>{t('modules.subtitle')} {t('modules.members_reload_hint')}</>}
+                status={importedCount > 0 ? <span className={CHIP_SUCCESS}>{t('modules.imported_count', { count: importedCount })}</span> : null}
+            />
 
             {/* Installed | Marketplace tabs */}
-            <div className="flex gap-1.5">
-                {TABS.map(tb => {
-                    const active = tab === tb.id;
-                    return (
-                        <button
-                            key={tb.id}
-                            onClick={() => setTab(tb.id)}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all border"
-                            style={{
-                                background: active ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-                                color: active ? '#fff' : 'var(--text-secondary)',
-                                borderColor: active ? 'transparent' : 'var(--border-default)',
-                            }}
-                        >
-                            <tb.Icon className="w-3.5 h-3.5" /> {tb.label}
-                        </button>
-                    );
-                })}
-            </div>
+            <Tabs value={tab} onChange={setTab} items={TABS} size="sm" ariaLabel={t('modules.title')} />
 
             {/* Success / info / error flash */}
             {message && (
-                <div className={`text-xs px-3 py-2 rounded-lg ${message.type === 'success' ? 'bg-green-500/10 text-green-400' : message.type === 'info' ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>
+                <div className={FLASH_CLASS[message.type] ?? ALERT_ERROR} role="status">
                     {message.text}
                 </div>
             )}
@@ -138,22 +115,25 @@ export default function ModulesPanel() {
                 <MarketplaceTab flash={flash} reloadEntitlements={reloadEntitlements} />
             ) : isLoading ? (
                 <div className="flex items-center justify-center py-20" data-testid="modules-loading">
-                    <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
+                    <Spinner />
                 </div>
             ) : isError ? (
-                <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-between gap-3" data-testid="modules-error">
+                <div className={`${ALERT_ERROR} items-center justify-between`} data-testid="modules-error">
                     <span>{t('modules.error_load')}</span>
-                    <button onClick={() => refetch()} className="flex items-center gap-1 font-medium hover:opacity-80">
-                        <RefreshCw className="w-3.5 h-3.5" /> {t('modules.retry')}
+                    <button type="button" onClick={() => refetch()} className="flex items-center gap-1 font-medium hover:opacity-80">
+                        <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> {t('modules.retry')}
                     </button>
                 </div>
             ) : modules.length === 0 ? (
-                <div className="text-center py-12" data-testid="modules-empty">
-                    <Boxes className="w-8 h-8 mx-auto mb-2 text-[var(--text-muted)]" />
-                    <p className="text-sm text-[var(--text-muted)]">{t('modules.empty')}</p>
+                <div data-testid="modules-empty">
+                    <EmptyState
+                        className="h-auto rounded-lg border border-dashed border-[var(--border-default)]"
+                        icon={<Boxes className="h-8 w-8" strokeWidth={1.5} />}
+                        title={t('modules.empty')}
+                    />
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {modules.map(module => (
                         <ModuleCard
                             key={module.id}

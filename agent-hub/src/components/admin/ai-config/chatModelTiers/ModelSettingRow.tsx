@@ -6,7 +6,7 @@ import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { SettingRow, SAVE_BUTTON } from '../ui/SettingsList';
+import { SettingRow, SAVE_BUTTON } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from '../ui/useToastOnMessage';
 import { useTranslation } from '@/hooks/useTranslation';
 

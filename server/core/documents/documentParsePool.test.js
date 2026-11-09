@@ -19,6 +19,10 @@ test('a parse queued behind one that hits the deadline runs on a fresh worker, n
     try {
         const job = (/** @type {string} */ filename) => ({ buffer: Buffer.from('x'), mimeType: 'application/pdf', filename, options: {} });
         const hung = pool.parseInWorker(job('hang'));
+        // The deadline is read when a parse is handed to a worker. The queued parse gets a
+        // generous one: its fresh worker has to start first, and on a loaded machine that
+        // alone can take longer than the 100 ms the hanging parse is given.
+        process.env.DOCUMENT_PARSE_TIMEOUT_MS = '30000';
         const queued = pool.parseInWorker(job('next.pdf'));
         await assert.rejects(hung, /parsing took longer than/);
         assert.strictEqual(await queued, 'parsed next.pdf');

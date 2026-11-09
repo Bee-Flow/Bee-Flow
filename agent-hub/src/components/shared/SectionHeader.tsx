@@ -7,7 +7,7 @@ interface SectionHeaderProps {
     status?: ReactNode;
 }
 
-/** Title and one-line description at the top of an AI-configuration section, in the look of PaneHeader. */
+/** Title and one-line description at the top of a settings section (AI configuration, server licence, ...). */
 export default function SectionHeader({ title, description, status }: SectionHeaderProps) {
     return (
         <header className="flex items-start justify-between gap-3">

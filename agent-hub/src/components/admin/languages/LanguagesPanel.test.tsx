@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { renderWithClient } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -58,6 +58,18 @@ describe('LanguagesPanel', () => {
         expect(screen.getByText('chat.stop')).toBeTruthy();
         await user.click(screen.getByTitle('Add language'));
         expect(screen.getByText('Deutsch')).toBeTruthy();
-        expect(screen.queryByRole('button', { name: /Nederlands/ })).toBeNull();
+        const dialog = screen.getByRole('dialog');
+        expect(within(dialog).queryByRole('button', { name: /Nederlands/ })).toBeNull();
+    });
+
+    it('lists the locales in a navigation, marks the open one, and shows its sections as tabs', async () => {
+        const user = userEvent.setup();
+        renderWithClient(<LanguagesPanel />);
+        const nav = await screen.findByRole('navigation', { name: 'Languages' });
+        expect(within(nav).getByRole('button', { name: /Nederlands/ })).toHaveAttribute('aria-current', 'page');
+        expect(within(nav).getByRole('button', { name: /English/ })).not.toHaveAttribute('aria-current');
+        expect(screen.getByRole('tab', { name: 'GUI Translations' })).toHaveAttribute('aria-selected', 'true');
+        await user.click(screen.getByRole('tab', { name: 'System Prompts' }));
+        expect(screen.getByRole('tab', { name: 'System Prompts' })).toHaveAttribute('aria-selected', 'true');
     });
 });

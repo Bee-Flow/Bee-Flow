@@ -129,4 +129,11 @@ describe('SecurityHub', () => {
         render(<SecurityHub user={fullAdmin} activeSection="guardrails" />);
         expect(screen.getByTestId('guardrails-panel').getAttribute('data-section')).toBe('');
     });
+
+    it('marks the section from the URL as the current page of a named navigation', () => {
+        render(<SecurityHub user={fullAdmin} activeSection="sso" />);
+        expect(screen.getByRole('navigation', { name: 'admin.tab_security' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'admin.sec_sso' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'admin.sec_users' })).not.toHaveAttribute('aria-current');
+    });
 });

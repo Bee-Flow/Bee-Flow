@@ -1,12 +1,16 @@
-import { ShieldCheck, Key, AlertCircle, Loader2, X, Globe } from 'lucide-react';
+import { ShieldCheck, Key, AlertCircle, Loader2, X } from 'lucide-react';
 import React, { useState, useCallback } from 'react';
 import { useLicenseContext } from './LicenseContext';
-import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
+import { ServerLicenseFacts, ServerLicenseToken, ServerLicenseWarning } from './ServerLicenseParts';
+import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE } from '../../utils/helpers';
 import { useLicenseStatus } from '../../api/queries/serverLicense';
 import useConfirm from '../shared/useConfirm';
 import { messageOf } from '../../utils/caughtError';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import SectionHeader from '../shared/SectionHeader';
+import { SettingRow, SettingsList } from '../shared/SettingsList';
+import { ALERT_ERROR, ALERT_INFO, CHIP, CHIP_SUCCESS, CHIP_WARNING, DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from '../mcpLibrary/ui';
 
 interface ServerLicenseRecord {
     tier?: string;
@@ -38,24 +42,11 @@ interface LicenseActionResponse {
  * check on activate/deactivate.
  */
 
-const TIER_BADGE: Record<string, { label: string; bg: string; fg: string; border: string }> = {
-    community: { label: 'Community', bg: 'bg-slate-500/15', fg: 'text-slate-400', border: 'border-slate-500/30' },
-    enterprise: { label: 'Enterprise', bg: 'bg-emerald-500/15', fg: 'text-emerald-500', border: 'border-emerald-500/30' },
-    full: { label: 'Full', bg: 'bg-amber-500/15', fg: 'text-amber-500', border: 'border-amber-500/30' },
+const TIER_BADGE: Record<string, { label: string; chip: string }> = {
+    community: { label: 'Community', chip: CHIP },
+    enterprise: { label: 'Enterprise', chip: CHIP_SUCCESS },
+    full: { label: 'Full', chip: CHIP_WARNING },
 };
-
-function fmtDate(s: string | null | undefined) {
-    if (!s) return '—';
-    try { return new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
-    catch { return s; }
-}
-
-function daysUntil(s: string | null | undefined) {
-    if (!s) return null;
-    const ms = new Date(s).getTime() - Date.now();
-    if (Number.isNaN(ms)) return null;
-    return Math.ceil(ms / 86400000);
-}
 
 export default function ServerLicensePanel() {
     const { t } = useTranslation();
@@ -90,8 +81,6 @@ export default function ServerLicensePanel() {
     const isGoverning = status?.serverOverride === true;
     const tier = serverLicense?.tier || 'community';
     const badge = TIER_BADGE[tier] || TIER_BADGE.community;
-    const expiresAt = serverLicense?.expiresAt || null;
-    const daysLeft = daysUntil(expiresAt);
 
     const handleActivate = async () => {
         const token = tokenInput.trim();
@@ -161,174 +150,91 @@ export default function ServerLicensePanel() {
         }
     };
 
+    const header = (
+        <SectionHeader
+            title={t('admin.server_license.title', 'Server licence')}
+            description={t('admin.server_license.intro', 'One licence key applied install-wide. Every organisation on this server runs at the tier this licence carries; per-organisation licences are ignored while this is active.')}
+        />
+    );
+
     if (loading) {
         return (
-            <div className="rounded-2xl border p-5 animate-pulse bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
-                <div className="h-5 w-48 rounded mb-3 bg-[var(--bg-tertiary)]" />
-                <div className="h-10 rounded bg-[var(--bg-tertiary)]" />
+            <div className="flex max-w-4xl flex-col gap-4" aria-busy="true">
+                {header}
+                <SettingsList className="animate-pulse">
+                    <div className="px-4 py-3"><div className="h-4 w-48 rounded bg-[var(--bg-tertiary)]" /></div>
+                    <div className="px-4 py-3"><div className="h-4 w-64 rounded bg-[var(--bg-tertiary)]" /></div>
+                </SettingsList>
             </div>
         );
     }
 
+    const actions = isServerScope ? (
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            <button type="button" onClick={() => setShowInput((v: boolean) => !v)} className={SECONDARY_BTN} disabled={!!busy}>
+                <Key className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('admin.server_license.replace', 'Replace licence')}
+            </button>
+            <button type="button" onClick={handleDeactivate} className={DANGER_BTN} disabled={!!busy}>
+                {busy === 'deactivate'
+                    ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />{t('admin.server_license.deactivating', 'Deactivating…')}</>)
+                    : (t('admin.server_license.deactivate', 'Deactivate'))}
+            </button>
+        </div>
+    ) : (
+        <div className="flex md:justify-end">
+            <button type="button" onClick={() => setShowInput(true)} className={PRIMARY_BTN} disabled={!!busy}>
+                <Key className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('admin.server_license.activate', 'Apply server-wide licence')}
+            </button>
+        </div>
+    );
+
     return (
-        <div className="space-y-5">
-            {/* Heading */}
-            <ServerLicensePanelSection2 t={t} />
+        <div className="flex max-w-4xl flex-col gap-4">
+            {header}
 
-            {/* Active state card */}
-            <div className="rounded-2xl border p-5 bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
-                <div className="flex items-center gap-3 mb-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${badge.bg} ${badge.fg} ${badge.border}`}>
-                        {badge.label}
-                    </span>
-                    {isServerScope ? (
-                        <span className="text-xs font-medium text-[var(--text-secondary)]">
-                            <ShieldCheck className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />
-                            {t('admin.server_license.active_badge', 'Server-wide licence active')}
-                        </span>
-                    ) : (
-                        <span className="text-xs text-[var(--text-muted)]">
-                            {t('admin.server_license.inactive_badge', 'No server-wide licence applied')}
-                        </span>
-                    )}
+            <SettingsList>
+                <SettingRow
+                    icon={<ShieldCheck className="h-4 w-4" />}
+                    label={isServerScope
+                        ? t('admin.server_license.active_badge', 'Server-wide licence active')
+                        : t('admin.server_license.inactive_badge', 'No server-wide licence applied')}
+                    hint={<span className={badge.chip}>{badge.label}</span>}
+                >
+                    {actions}
+                </SettingRow>
+                {isServerScope && serverLicense ? <ServerLicenseFacts licence={serverLicense} /> : null}
+                {showInput ? (
+                    <ServerLicenseToken
+                        value={tokenInput}
+                        onChange={setTokenInput}
+                        busy={busy}
+                        onCancel={() => { setShowInput(false); setTokenInput(''); setActionError(null); }}
+                        onActivate={handleActivate}
+                    />
+                ) : null}
+            </SettingsList>
+
+            {/* On cloud a server licence exists but does NOT govern per-org
+                billing — make that explicit so an operator isn't surprised
+                that orgs still need their own subscription. */}
+            {isServerScope && !isGoverning && (
+                <div className={ALERT_INFO}>
+                    {t('admin.server_license.not_governing', 'This licence is recorded but does not cover organisations on this deployment — each organisation still needs its own subscription.')}
                 </div>
+            )}
 
-                {isServerScope && serverLicense && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-[var(--text-secondary)]">
-                        <div>
-                            <div className="opacity-60 mb-0.5">{t('admin.server_license.issuer', 'Issuer')}</div>
-                            <div className="font-mono truncate">{serverLicense.issuer || '—'}</div>
-                        </div>
-                        <div>
-                            <div className="opacity-60 mb-0.5">{t('admin.server_license.expires', 'Expires')}</div>
-                            <div>{fmtDate(expiresAt)} {daysLeft != null && daysLeft >= 0 ? `· ${daysLeft}d` : ''}</div>
-                        </div>
-                        <div>
-                            <div className="opacity-60 mb-0.5">{t('admin.server_license.billing', 'Billing')}</div>
-                            <div>{serverLicense.billingInterval || '—'}</div>
-                        </div>
-                    </div>
-                )}
-
-                {/* On cloud a server licence exists but does NOT govern per-org
-                    billing — make that explicit so an operator isn't surprised
-                    that orgs still need their own subscription. */}
-                {isServerScope && !isGoverning && (
-                    <div className="mt-3 p-2.5 rounded-lg text-xs [background:rgba(59,130,246,0.08)] [color:var(--text-secondary)]! [border:1px_solid_rgba(59,130,246,0.2)]">
-                        {t('admin.server_license.not_governing', 'This licence is recorded but does not cover organisations on this deployment — each organisation still needs its own subscription.')}
-                    </div>
-                )}
-
-                {actionError && (
-                    <div className="flex items-start gap-2 mt-3 p-2.5 rounded-lg text-xs [background:rgba(239,68,68,0.08)] [color:#dc2626]! [border:1px_solid_rgba(239,68,68,0.2)]">
-                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">{actionError}</div>
-                        <button onClick={() => setActionError(null)} className="opacity-70 hover:opacity-100"><X className="w-3.5 h-3.5" /></button>
-                    </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 mt-4">
-                    {isServerScope ? (
-                        <>
-                            <button
-                                onClick={() => setShowInput((v: boolean) => !v)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--border-subtle)] text-[var(--text-primary)]"
-                                disabled={!!busy}
-                            >
-                                <Key className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />
-                                {t('admin.server_license.replace', 'Replace licence')}
-                            </button>
-                            <button
-                                onClick={handleDeactivate}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold [background:rgba(239,68,68,0.10)] [color:#dc2626]!"
-                                disabled={!!busy}
-                            >
-                                {busy === 'deactivate'
-                                    ? (<><Loader2 className="inline w-3.5 h-3.5 mr-1 -mt-0.5 animate-spin" />{t('admin.server_license.deactivating', 'Deactivating…')}</>)
-                                    : (t('admin.server_license.deactivate', 'Deactivate'))}
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            onClick={() => setShowInput(true)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500 text-white hover:bg-blue-600"
-                            disabled={!!busy}
-                        >
-                            <Key className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />
-                            {t('admin.server_license.activate', 'Apply server-wide licence')}
-                        </button>
-                    )}
+            {actionError && (
+                <div className={ALERT_ERROR} role="alert">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <div className="flex-1">{actionError}</div>
+                    <button type="button" onClick={() => setActionError(null)} className="opacity-70 hover:opacity-100" aria-label={t('common.close', 'Close')}><X className="h-3.5 w-3.5" /></button>
                 </div>
+            )}
 
-                {showInput && (
-                    <div className="mt-4 p-3 rounded-lg border bg-[var(--bg-tertiary)] border-[var(--border-subtle)]">
-                        <textarea
-                            value={tokenInput}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setTokenInput(e.target.value)}
-                            placeholder={t('admin.server_license.token_placeholder', 'Paste licence JWT or admin blob (beeflow-admin-v1.…)')}
-                            className="w-full h-24 rounded-md px-2 py-1.5 text-xs font-mono [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-primary)]!"
-                        />
-                        <div className="flex items-center justify-end gap-2 mt-2">
-                            <button
-                                onClick={() => { setShowInput(false); setTokenInput(''); setActionError(null); }}
-                                className="px-3 py-1 rounded-md text-xs font-medium text-[var(--text-secondary)]"
-                                disabled={!!busy}
-                            >
-                                {t('common.cancel', 'Cancel')}
-                            </button>
-                            <button
-                                onClick={handleActivate}
-                                disabled={!tokenInput.trim() || busy === 'activate'}
-                                className="px-3 py-1 rounded-md text-xs font-semibold bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
-                            >
-                                {busy === 'activate'
-                                    ? (<><Loader2 className="inline w-3.5 h-3.5 mr-1 -mt-0.5 animate-spin" />{t('admin.server_license.activating', 'Activating…')}</>)
-                                    : (t('admin.server_license.activate_confirm', 'Activate server-wide'))}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Warning panel */}
-            <ServerLicensePanelSection t={t} />
+            <ServerLicenseWarning />
             {confirmDialog}
         </div>
     );
-}
-
-function ServerLicensePanelSection2({ t }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
-    return <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:rgba(16,185,129,0.10)] [color:#10b981]">
-            <Globe className="w-5 h-5" />
-        </div>
-        <div className="flex-1">
-            <h2 className="text-lg font-bold text-[var(--text-primary)]">
-                {t('admin.server_license.title', 'Server licence')}
-            </h2>
-            <p className="text-sm mt-1 text-[var(--text-muted)]">
-                {t('admin.server_license.intro', 'One licence key applied install-wide. Every organisation on this server runs at the tier this licence carries; per-organisation licences are ignored while this is active.')}
-            </p>
-        </div>
-    </div>;
-}
-
-function ServerLicensePanelSection({ t }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
-    return <div className="rounded-xl border p-4 text-xs [background:rgba(245,158,11,0.06)] [border-color:rgba(245,158,11,0.25)] [color:var(--text-secondary)]!">
-        <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 [color:#f59e0b]" />
-            <div>
-                <div className="font-semibold mb-1 text-[var(--text-primary)]">
-                    {t('admin.server_license.warn_title', 'Override semantics')}
-                </div>
-                <ul className="list-disc pl-4 space-y-0.5 opacity-90">
-                    <li>{t('admin.server_license.warn_override', 'Every organisation on this install will resolve to the server-wide tier.')}</li>
-                    <li>{t('admin.server_license.warn_per_org_hidden', 'Per-organisation activation is disabled in Org Settings while a server-wide licence is active.')}</li>
-                    <li>{t('admin.server_license.warn_rollback', 'Per-organisation licences are preserved — deactivating restores them.')}</li>
-                    <li>{t('admin.server_license.warn_tier_min', 'Community-tier licences are rejected: Community is the default floor already.')}</li>
-                </ul>
-            </div>
-        </div>
-    </div>;
 }

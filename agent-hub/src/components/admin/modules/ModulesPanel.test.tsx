@@ -62,6 +62,14 @@ describe('ModulesPanel', () => {
         reloadSpy.mockReset();
     });
 
+    it('titles the page and offers Installed and Marketplace as tabs', () => {
+        asMock(authFetch).mockImplementation(() => new Promise(() => {}));
+        renderPanel();
+        expect(screen.getByRole('heading', { name: 'modules.title' })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'modules.tab_installed' })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: 'modules.tab_marketplace' })).toHaveAttribute('aria-selected', 'false');
+    });
+
     it('shows a loading spinner while the module list loads', () => {
         asMock(authFetch).mockImplementation(() => new Promise(() => {}));
         renderPanel();

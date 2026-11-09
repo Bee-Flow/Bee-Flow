@@ -1,6 +1,7 @@
 import React from 'react';
 import { Loader2, Plug } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 
 interface ConnectHubBannerProps {
     licensed?: boolean;
@@ -14,22 +15,23 @@ export default function ConnectHubBanner({ licensed = true, busy, onConnect }: C
     const { t } = useTranslation();
     return (
         <div
-            className="rounded-xl border p-5 flex flex-col sm:flex-row sm:items-center gap-4 bg-[var(--bg-secondary)] border-[var(--border-default)]"
+            className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center gap-4 bg-[var(--bg-primary)] border-[var(--border-default)]"
             data-testid="connect-hub-banner"
         >
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 [background:rgba(245,158,11,0.12)]">
-                <Plug className="w-5 h-5 [color:#f59e0b]" />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+                <Plug className="w-5 h-5" aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('modules.connect_title')}</h3>
-                <p className="text-xs mt-1 leading-relaxed text-[var(--text-muted)]">
+                <p className="text-xs mt-1 leading-relaxed text-[var(--text-secondary)]">
                     {licensed ? t('modules.connect_body') : t('modules.connect_body_unlicensed')}
                 </p>
             </div>
             <button
+                type="button"
                 onClick={onConnect}
                 disabled={busy}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 flex-shrink-0 [background:var(--accent-primary)] [color:#fff]!"
+                className={`${PRIMARY_BTN} flex-shrink-0`}
             >
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
                 {t('modules.connect_cta')}

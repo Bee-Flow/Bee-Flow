@@ -4,12 +4,12 @@ import { Cloud, ExternalLink, Layers, Mail, Search as SearchIcon, Settings } fro
 import { INTEGRATION_CATALOG } from '@/config/integrationCatalog';
 
 export const SECTIONS = [
-    { id: 'features', labelKey: 'admin.integ_features', icon: Layers, color: '#10b981' },
-    { id: 'integrations', labelKey: 'admin.integ_integrations', icon: Settings, color: '#3b82f6' },
-    { id: 'email', labelKey: 'admin.integ_email', icon: Mail, color: '#ea4335' },
-    { id: 'search', labelKey: 'admin.integ_search', icon: SearchIcon, color: '#10b981' },
-    { id: 'transcription', labelKey: 'admin.integ_transcription', icon: Cloud, color: '#0ea5e9' },
-    { id: 'services', labelKey: 'admin.integ_services', icon: ExternalLink, color: '#0A66C2' },
+    { id: 'features', labelKey: 'admin.integ_features', icon: Layers },
+    { id: 'integrations', labelKey: 'admin.integ_integrations', icon: Settings },
+    { id: 'email', labelKey: 'admin.integ_email', icon: Mail },
+    { id: 'search', labelKey: 'admin.integ_search', icon: SearchIcon },
+    { id: 'transcription', labelKey: 'admin.integ_transcription', icon: Cloud },
+    { id: 'services', labelKey: 'admin.integ_services', icon: ExternalLink },
 ];
 
 // Sidebar sections gated by an Enterprise licence feature — hidden on Community

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import SectionHeader from './SectionHeader';
-import { FIELD_INPUT, SAVE_BUTTON, SettingBlock, SettingsList } from './ui/SettingsList';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { FIELD_INPUT, SAVE_BUTTON, SettingBlock, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from './ui/useToastOnMessage';
 import { API_BASE } from '@/utils/helpers';
 import { useDirectChatPrompt } from '@/api/queries/orgAdminReads';
