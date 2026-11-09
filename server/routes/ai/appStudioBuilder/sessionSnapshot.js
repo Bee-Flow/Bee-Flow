@@ -6,7 +6,9 @@
  * Written at the end of every turn by ./turnClosing.js: {sessionId, appId,
  * messages, lastValidation, summary, lastTier, todos, brief} plus the
  * plan-first keys (approvedPlan / pendingPlan / continueToken) until the
- * build finalizes. The store trims the HEAD in whole blocks so the prefix the
+ * build finalizes. With a work mode (workMode.mts) it also carries
+ * `reviewQuestions` (the unanswered question card, shown again after a reload)
+ * and `questionsMeta` (this plan has had its question round). The store trims the HEAD in whole blocks so the prefix the
  * model saw survives between evictions.
  *
  * There is one snapshot per app and this route returns it whole, so it reads

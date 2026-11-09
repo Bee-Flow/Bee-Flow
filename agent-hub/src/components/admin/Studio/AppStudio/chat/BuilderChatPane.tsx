@@ -1,14 +1,18 @@
 import { Sparkles } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AppAssistantWelcome from './AppAssistantWelcome';
+import type { WelcomePickKind } from './AppAssistantWelcome';
+import { planModeFor, useAppWorkModePrefs } from './appWorkModes';
 import BuilderComposer from './BuilderComposer';
 import type { EditorChrome } from './builderPaneModel';
-import BuilderTranscript, { TranscriptEmptyState } from './BuilderTranscript';
-import QuickActions from './QuickActions';
+import BuilderTranscript from './BuilderTranscript';
 import { useBuildCue } from './useBuildCue';
 import { useBuilderTurn } from './useBuilderTurn';
 import type { AppMetaUpdate, TurnEnd } from './useBuilderTurn';
+import type { AppBuilderSendOptions } from '@/hooks/useAppBuilderStream';
 import { useTurnControls } from './useTurnControls';
 import ValidationNotice from './ValidationNotice';
+import useAppTables from '../bi/useAppTables';
 import useModelTierSelection from '@/hooks/useModelTierSelection';
 import useStickToBottom from '@/hooks/useStickToBottom';
 import useTranslation from '@/hooks/useTranslation';
@@ -58,14 +62,12 @@ export interface BuilderChatPaneProps {
 function PaneHeader() {
     const { t } = useTranslation();
     return (
-        <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2 border-[var(--border-default)]">
-            <span
-                className="flex h-7 w-7 items-center justify-center rounded-lg [background:color-mix(in_srgb,var(--accent-primary)_15%,transparent)] [color:var(--accent-primary)]"
-            >
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--border-default)] bg-[var(--bg-card)] px-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--type-ai)_14%,transparent)] text-[var(--type-ai)]">
                 <Sparkles size={14} aria-hidden="true" />
             </span>
-            <span className="text-sm font-semibold text-[var(--text-primary)]">
-                {t('app_studio.builder.chat.title', 'AI builder')}
+            <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                {t('app_studio.builder.chat.title', 'Assistant')}
             </span>
         </div>
     );
@@ -86,6 +88,21 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
     const { modelTiers, selectedTier, setSelectedTier } = useModelTierSelection({ storageKey: 'appBuilderTier', taskType: 'automation' });
     const tierForSend = forcedTier || selectedTier || 'auto';
 
+    // The work mode rides every turn: the mode itself and the plan-first
+    // setting derived from it. A pinned-tier mount (Playbooks) keeps today's
+    // behaviour: no mode and no planMode on a typed message (the model
+    // decides, as before); its auto-sent brief sets planMode 'never' itself.
+    const { workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge } = useAppWorkModePrefs();
+    const modeOptions = useMemo<AppBuilderSendOptions>(
+        () => (forcedTier ? {} : { workMode, planMode: planModeFor(workMode, alwaysPlanLarge) }),
+        [forcedTier, workMode, alwaysPlanLarge],
+    );
+    // A small targeted ask (an idea, a Fix): never worth the plan-first flow.
+    const smallAsk = useMemo<AppBuilderSendOptions>(
+        () => (forcedTier ? { planMode: 'never' } : { workMode: 'build', planMode: 'never' }),
+        [forcedTier],
+    );
+
     // Refs for the stream callbacks — SSE events fire between renders.
     const definitionRef = useRef(definition);
     const screenIdRef = useRef(screenId);
@@ -97,14 +114,14 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
     });
 
     const { stream, lastChange, setLastChange, changeOpen, setChangeOpen, reveal, doneInfoRef, beginTurn } = useBuilderTurn({ appId, t, dispatch, definitionRef, chromeRef, onTurnEnd, onAppUpdated });
-    const { messages, running, send, stop, lastValidation, pendingPlan, phases, checkpoints, continuation, turn, engine, toolDraft, todos } = stream;
+    const { messages, running, send, stop, lastValidation, pendingPlan, reviewQuestions, phases, checkpoints, continuation, turn, engine, toolDraft, todos } = stream;
 
     // A turn is being prepared (the pre-turn flush is still saving). The canvas
     // isn't locked yet, so this is what keeps the UI closed until it is.
     const [starting, setStarting] = useState(false);
     const busy = running || streamLock || starting;
     const { startTurn, retryLastTurn, approvePlan } = useTurnControls({
-        busy, send, tierForSend, autoSend, messageCount: messages.length, pendingPlan: pendingPlan as { planId?: unknown } | null,
+        busy, send, tierForSend, modeOptions, autoSend, messageCount: messages.length, pendingPlan: pendingPlan as { planId?: unknown } | null,
         dispatch, setStarting, beginTurn, definitionRef, screenIdRef, chromeRef, selectedNodeId, selectedNodeIds,
     });
 
@@ -154,18 +171,34 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
     const { onScroll, forceStick } = useStickToBottom({ containerRef: listRef, contentRef: listBodyRef });
     useEffect(() => { if (running) forceStick(); }, [running, forceStick]);
 
-    const showEmptyState = messages.length === 0 && !running && !pendingPlan;
+    const { tables, isLoading: tablesLoading, isError: tablesFailed } = useAppTables(appId);
+    const tableCount = tablesLoading || tablesFailed ? null : tables.length;
+    const showWelcome = messages.length === 0 && !running && !pendingPlan && !reviewQuestions?.length;
+    const onPickWelcome = useCallback((text: string, kind: WelcomePickKind) => {
+        startTurn(text, undefined, kind === 'idea' ? smallAsk : undefined);
+    }, [startTurn, smallAsk]);
+    const fixAll = useCallback(() => startTurn('Fix the validation errors in this app so it passes checks, without removing working features.', undefined, smallAsk), [startTurn, smallAsk]);
     const currentPhase = phases.length ? phases[phases.length - 1] as BuildPhaseInfo : null;
     const { waitingForFirstToken } = useBuildCue({ running, messages, turn, engine, toolDraft: toolDraft as ToolDraft | null, todos, currentPhase, reveal, doneInfoRef, definitionRef, chromeRef });
 
     return (
-        <div className="flex h-full min-h-0 flex-col bg-[var(--bg-primary)]">
+        <div className="flex h-full min-h-0 flex-col bg-[var(--bg-secondary)]">
             <PaneHeader />
 
             {/* Messages */}
-            <div ref={listRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
-                {showEmptyState ? <TranscriptEmptyState /> : (
-                    <div ref={listBodyRef} className="flex w-full flex-col gap-3">
+            <div ref={listRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
+                {showWelcome && (
+                    <AppAssistantWelcome
+                        definition={definition}
+                        selectedNodeId={selectedNodeId}
+                        tableCount={tableCount}
+                        onPick={busy ? undefined : onPickWelcome}
+                        workMode={workMode}
+                        onWorkModeChange={forcedTier ? null : setWorkMode}
+                    />
+                )}
+                {!showWelcome && (
+                    <div ref={listBodyRef} className="flex w-full flex-col gap-4">
                         <BuilderTranscript
                             messages={messages} running={running} busy={busy} pendingPlan={pendingPlan}
                             currentPhase={currentPhase} continuation={continuation}
@@ -173,6 +206,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
                             onSelectChanged={selectChangedNode} onUndoTurn={chrome?.undoTurn ? undoTurn : null}
                             onRevert={checkpoints.length ? revertToCheckpoint : null} onRetry={retryLastTurn}
                             onApprovePlan={approvePlan} onDiscussPlan={focusComposer} waitingForFirstToken={waitingForFirstToken}
+                            reviewQuestions={reviewQuestions} onAnswerQuestions={(text) => startTurn(text)}
                         />
                     </div>
                 )}
@@ -181,14 +215,9 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
             <ValidationNotice
                 validation={lastValidation}
                 running={running}
-                onFix={(message, nodeId) => startTurn(`Fix: ${message}`, nodeId ? { nodeId } : undefined)}
+                onFix={(message, nodeId) => startTurn(`Fix: ${message}`, nodeId ? { nodeId } : undefined, smallAsk)}
+                onFixAll={Array.isArray(lastValidation?.errors) && lastValidation.errors.length > 0 ? fixAll : null}
                 disabled={busy}
-            />
-
-            <QuickActions
-                onAction={(prompt: string, opts: Record<string, unknown> | undefined) => startTurn(prompt, undefined, opts)}
-                disabled={busy}
-                hasErrors={Array.isArray(lastValidation?.errors) && lastValidation.errors.length > 0}
             />
 
             <BuilderComposer
@@ -201,6 +230,10 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
                 tier={tierForSend}
                 onTierChange={setSelectedTier}
                 forcedTier={forcedTier}
+                workMode={workMode}
+                onWorkModeChange={forcedTier ? null : setWorkMode}
+                alwaysPlanLarge={alwaysPlanLarge}
+                onAlwaysPlanLargeChange={setAlwaysPlanLarge}
             />
         </div>
     );

@@ -27,12 +27,14 @@ const EDITOR_CONTEXT_PREFIX = '[EDITOR CONTEXT — machine-generated: what the u
 // state, so (like the notes above) they are stripped from cross-turn history.
 const APPROVED_PLAN_PREFIX = '[APPROVED PLAN — machine-generated: build exactly this]';
 const PLAN_POLICY_PREFIX = '[PLAN POLICY — machine-generated]';
+// The work mode's directive and the status of the last question card (workMode.mts).
+const WORK_MODE_PREFIX = '[WORK MODE — machine-generated]';
 // Told to a blind (non-vision) model when the human attached a picture.
 const IMAGE_NOTE_PREFIX = '[IMAGE NOTE — machine-generated]';
 
 const MACHINE_PREFIXES = [
     VALIDATION_NOTE_PREFIX, DRAFT_STATE_PREFIX, EDITOR_CONTEXT_PREFIX,
-    APPROVED_PLAN_PREFIX, PLAN_POLICY_PREFIX, IMAGE_NOTE_PREFIX,
+    APPROVED_PLAN_PREFIX, PLAN_POLICY_PREFIX, WORK_MODE_PREFIX, IMAGE_NOTE_PREFIX,
     // 2026-09-17: the owner's automations/documents moved out of the system
     // prompt into a per-turn note (prefix-cache discipline: the system
     // prompt is now identical across users). Re-rendered every turn, so it
@@ -135,6 +137,7 @@ module.exports = {
     EDITOR_CONTEXT_PREFIX,
     APPROVED_PLAN_PREFIX,
     PLAN_POLICY_PREFIX,
+    WORK_MODE_PREFIX,
     IMAGE_NOTE_PREFIX,
     OWNER_CONTEXT_PREFIX,
     MACHINE_PREFIXES,

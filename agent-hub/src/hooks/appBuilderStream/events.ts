@@ -1,6 +1,7 @@
 import type { BuilderMessage, BuilderStreamData, BuilderTodo, ThinkingPart } from '../builderStream';
 import { rateOf } from '../builderStream';
 import type { AppBuilderEventCtx } from './types';
+import { cleanReviewQuestions } from './session';
 
 // The per-event handlers of the App Studio builder stream. Each takes the turn's
 // context (the hook's setters/refs plus this leg's options and outcome) and
@@ -203,6 +204,12 @@ function onPlan(ctx: AppBuilderEventCtx, data: BuilderStreamData): void {
     }
 }
 
+// The builder asked its questions (describe / plan modes): the pane shows the
+// shared card; the next send clears it.
+function onReviewQuestions(ctx: AppBuilderEventCtx, data: BuilderStreamData): void {
+    ctx.setReviewQuestions(cleanReviewQuestions(data.questions));
+}
+
 function onPhase(ctx: AppBuilderEventCtx, data: BuilderStreamData): void {
     if (typeof data.index === 'number') {
         if (typeof data.total === 'number') ctx.phasesTotalRef.current = data.total;
@@ -261,6 +268,8 @@ function onDone(ctx: AppBuilderEventCtx, data: BuilderStreamData): void {
         finalized: !!data.finalized,
         awaitingPlan: !!data.awaitingPlan,
     };
+    const fromDone = cleanReviewQuestions(data.reviewQuestions);
+    if (fromDone) ctx.setReviewQuestions(fromDone);
     if (data.continuation && data.continuation.token) {
         ctx.outcome.continuation = data.continuation;
     }
@@ -289,6 +298,7 @@ const HANDLERS: Record<string, Handler> = {
     image: onImage,
     data_model: onDataModel,
     plan: onPlan,
+    review_questions: onReviewQuestions,
     phase: onPhase,
     checkpoint: onCheckpoint,
     validation_errors: onValidationErrors,

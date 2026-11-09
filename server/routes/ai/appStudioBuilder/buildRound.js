@@ -57,6 +57,7 @@ const log = require('../../../telemetry/log');
  *   modelSupportsVision: boolean,
  *   approvedPlanForTurn: import('./turnClosing').ApprovedPlan|null,
  *   writeCheckpoint: (summary: string) => Promise<void>,
+ *   workMode?: AssembledTurn['workModeState'],
  *   usageTotals: Parameters<typeof trackUsageTotals>[0],
  *   proseParts: string[],
  *   clientAbort: AbortController,

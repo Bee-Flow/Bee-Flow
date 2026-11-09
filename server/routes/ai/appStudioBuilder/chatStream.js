@@ -54,7 +54,11 @@
  *       completion_tokens, cached_tokens?, timings?, totals } — the cumulative
  *       pair the first clients read, plus this round's adapter payload verbatim
  *       (llama.cpp `timings` carry prompt_n/cache_n/predicted_per_second).
- *   done              { appId, finalized }
+ *   review_questions  { questions:[{id,prompt,options,header?}] } — ONE question card (app_ask_questions;
+ *       only with a request `workMode`), sent once when the call is accepted. The turn ends there:
+ *       the answer comes back as the next message, "Q: …\nA: …" per question.
+ *   done              { appId, finalized, reviewQuestions? } — `reviewQuestions` (array|null) is present
+ *       only when the request carried a `workMode`; `awaitingPlan`/`continuation` as before.
  *   error             { message, code }         — code ∈ subscription_limit |
  *       rate_limited | model_unavailable | transient_upstream | model_rejected |
  *       model_truncated | model_empty_reply | budget_exhausted | validation_failed |
@@ -128,7 +132,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     if (turnRequest.failed) return res.status(turnRequest.failed.status).json(turnRequest.failed.body);
     const {
         message, requestedAppId, clientSession, modelTier, editorContext,
-        planMode, planApproval, isApproval, continueToken, inboundImages, effectiveMessage,
+        planMode, planApproval, isApproval, continueToken, inboundImages, effectiveMessage, workMode,
     } = turnRequest;
 
     // ── Subscription limit enforcement — BEFORE switching to SSE, so the
@@ -231,6 +235,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         modelEndedTurn: false,
         builtThisTurn: false,
         proposedPlan: null,    // { planId, plan } once app_propose_plan fires
+        reviewQuestions: null, // [{ id, prompt, options, header? }] once app_ask_questions is accepted (work modes)
         lastPhaseIndex: null,  // highest phase index marked this turn
         lastValidation: null,
         persistBroken: false,
@@ -246,8 +251,8 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         if (draftWrap._todos.length) send('plan', { todos: draftWrap._todos });
 
         // The system prompt, the tool menu and this turn's folded user message.
-        const { profile, tools, toolNameSet, history, approvedPlanForTurn, messages } = await assembleTurnPrompt({
-            send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode,
+        const { profile, tools, toolNameSet, history, approvedPlanForTurn, workModeState, messages } = await assembleTurnPrompt({
+            send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode, workMode,
             editorContext, inboundImages, modelSupportsVision, effectiveMessage,
         });
 
@@ -282,13 +287,13 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
 
         await runBuildLoop(turn, {
             res, send, sendError, messages, adapter, cfg, modelId, tier, profile, tools, toolNameSet,
-            iterationBudget, draftWrap, userId, modelSupportsVision, approvedPlanForTurn, writeCheckpoint,
+            iterationBudget, draftWrap, userId, modelSupportsVision, approvedPlanForTurn, writeCheckpoint, workMode: workModeState,
             usageTotals, proseParts, clientAbort,
         });
 
         const awaitingPlan = await handleProposedPlan(turn, { draftWrap, send });
         const { continuation, budgetExhausted } = await runAutoFinalizeNet(turn, {
-            draftWrap, iterationBudget, approvedPlanForTurn, send, sendError,
+            draftWrap, iterationBudget, approvedPlanForTurn, send, sendError, workMode: workModeState?.mode ?? null,
         });
         await persistTurnSnapshot(turn, {
             draftWrap, userId, history, inboundImages, effectiveMessage, proseParts,
@@ -301,10 +306,11 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         const outcome = classifyTurnOutcome(turn, { awaitingPlan, continuation, budgetExhausted });
         logTurnUsage(outcome);
 
-        /** @type {{ appId: string|null|undefined, finalized: boolean, awaitingPlan?: boolean, continuation?: import('./turnClosing').Continuation }} */
+        /** @type {{ appId: string|null|undefined, finalized: boolean, awaitingPlan?: boolean, continuation?: import('./turnClosing').Continuation, reviewQuestions?: import('./turnClosing').BuilderTurn['reviewQuestions'] }} */
         const donePayload = { appId: draftWrap.appId, finalized: turn.lastFinalized };
         if (awaitingPlan) donePayload.awaitingPlan = true;
         if (continuation) donePayload.continuation = continuation;
+        if (workMode) donePayload.reviewQuestions = turn.reviewQuestions;
         send('done', donePayload);
         stopHeartbeat();
         res.end();

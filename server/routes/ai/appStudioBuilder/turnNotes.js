@@ -13,8 +13,9 @@
 
 const { renderDraftState } = require('../../../appStudio/builderPrompt');
 const {
-    APPROVED_PLAN_PREFIX, PLAN_POLICY_PREFIX, DRAFT_STATE_PREFIX, EDITOR_CONTEXT_PREFIX,
+    APPROVED_PLAN_PREFIX, PLAN_POLICY_PREFIX, WORK_MODE_PREFIX, DRAFT_STATE_PREFIX, EDITOR_CONTEXT_PREFIX,
 } = require('./turnLoop');
+const { workModeDirective, questionStatusNote } = require('./workMode.mts');
 
 /**
  * The approved plan, re-rendered as a machine message every turn until finalize.
@@ -32,6 +33,18 @@ function renderPlanPolicyNote(mode) {
     if (mode === 'always') return `${PLAN_POLICY_PREFIX}\nPropose a build plan with app_propose_plan before building anything this turn.`;
     if (mode === 'never') return `${PLAN_POLICY_PREFIX}\nDo NOT propose a plan — build the app directly with the tools.`;
     return null;
+}
+
+/**
+ * The work mode's directive plus what became of the last question card, as one
+ * machine note (workMode.mts); null when the turn has no work mode.
+ * @param {{ mode: import('./workMode.mts').WorkMode, approved: boolean, fresh: boolean, closed: boolean }|null|undefined} state
+ * @param {{ priorQuestions?: unknown, message?: unknown }} [opts]
+ */
+function renderWorkModeNote(state, { priorQuestions = null, message = '' } = {}) {
+    if (!state) return null;
+    const status = questionStatusNote({ prior: priorQuestions, answeredText: message, mode: state.mode, approved: state.approved });
+    return [WORK_MODE_PREFIX, workModeDirective(state), status].filter(Boolean).join('\n');
 }
 
 /**
@@ -98,6 +111,7 @@ function renderEditorContextNote(context) {
 module.exports = {
     renderApprovedPlanNote,
     renderPlanPolicyNote,
+    renderWorkModeNote,
     renderDraftStateNote,
     sanitizeEditorContext,
     renderEditorContextNote,

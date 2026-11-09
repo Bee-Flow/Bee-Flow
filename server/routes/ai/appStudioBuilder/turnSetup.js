@@ -48,6 +48,7 @@ const { normalizeRowCounts } = require('./dataModelEvent');
 const { fallback } = require('../../../utils/bestEffort');
 
 const PLAN_MODES = ['auto', 'always', 'never'];
+const { WORK_MODES } = require('./workMode.mts');
 
 const TurnBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     // Optional: approval, continuation and image-only turns may carry none.
@@ -59,6 +60,8 @@ const TurnBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z
     timezone: z.string({ error: typeError({ invalid: 'timezone is a zone name, like Europe/Amsterdam.' }) }).optional(),
     context: z.record(z.string(), z.unknown(), { error: typeError({ invalid: "context is the editor's focus, an object." }) }).nullish(),
     planMode: z.enum(PLAN_MODES, { error: () => "planMode is 'auto', 'always' or 'never'." }).optional(),
+    // The assistant work mode (workMode.mts). Absent = the builder as it always was: no question tool, no mode note.
+    workMode: z.enum(WORK_MODES, { error: () => "workMode is 'describe', 'discuss', 'plan' or 'build'." }).optional(),
     // An APPROVAL turn: inject + persist the approved plan, checkpoint, build.
     plan: z.object({
         planId: z.string({ error: typeError({ invalid: 'plan.planId must be text.' }) }).optional(),
@@ -126,6 +129,7 @@ function readTurnRequest(req) {
     return {
         message, requestedAppId, clientSession, modelTier, editorContext,
         planMode, planApproval, isApproval, continueToken, inboundImages, effectiveMessage,
+        workMode: body.workMode,
     };
 }
 

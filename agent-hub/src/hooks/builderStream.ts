@@ -190,6 +190,8 @@ export interface BuilderStreamData {
     hasSideEffects?: boolean;
     inspect?: unknown;
     questions?: unknown[];
+    /** The `done` event may repeat the open questions. */
+    reviewQuestions?: unknown[] | null;
 
     // what the build produced
     definition?: unknown;

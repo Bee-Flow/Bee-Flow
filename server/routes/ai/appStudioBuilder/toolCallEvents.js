@@ -49,6 +49,7 @@ const TOOL_LABELS = {
     app_dry_run: 'Dry-run app',
     app_screenshot: 'Screenshot',
     app_propose_plan: 'Propose a plan',
+    app_ask_questions: 'Ask questions',
     app_mark_phase: 'Start phase',
     app_list_templates: 'List templates',
     app_apply_template: 'Apply template',

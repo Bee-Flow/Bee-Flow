@@ -22,7 +22,9 @@ const { TOOL_SCHEMAS } = require('../../../appStudio/builderTools');
 const { systemPrefixFingerprint, toolSetFingerprint, toolBytesFingerprint } = require('../../../core/llm/promptCacheStability');
 const { sanitizeHistory } = require('./turnLoop');
 const { composeAppTurnMessages } = require('./turnMessages');
-const { renderDraftStateNote, renderApprovedPlanNote, renderPlanPolicyNote, renderEditorContextNote } = require('./turnNotes');
+const { renderDraftStateNote, renderApprovedPlanNote, renderPlanPolicyNote, renderEditorContextNote, renderWorkModeNote } = require('./turnNotes');
+const { ASK_QUESTIONS_TOOL } = require('./workMode.mts');
+const { isFreshDraft } = require('../../../appStudio/builderTools/templateTools');
 const { renderBlindImageNote, renderUserImageFraming, renderVisionUnsupportedNotice } = require('./inboundImages');
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
@@ -38,10 +40,11 @@ const { fallback } = require('../../../utils/bestEffort');
  *   modelId: string,
  *   resolvedTier: string,
  *   draftWrap: import('../../../appStudio/builderTools').BuilderDraft & { _documentDiscoveryRequired?: boolean },
- *   priorSnapshot?: { messages?: Array<{ role?: string, content?: unknown }>, pendingPlan?: { plan?: unknown }, approvedPlan?: unknown }|null,
+ *   priorSnapshot?: { messages?: Array<{ role?: string, content?: unknown }>, pendingPlan?: { plan?: unknown }, approvedPlan?: unknown, reviewQuestions?: unknown, questionsMeta?: unknown }|null,
  *   isApproval?: boolean,
  *   planApproval?: { planId?: string, action: 'approve', plan?: unknown },
  *   planMode?: string,
+ *   workMode?: import('./workMode.mts').WorkMode,
  *   editorContext?: import('./turnNotes').EditorContext|null,
  *   inboundImages: Array<{ dataUrl: string, mimeType: string, bytes: number }>,
  *   modelSupportsVision?: boolean,
@@ -49,7 +52,7 @@ const { fallback } = require('../../../utils/bestEffort');
  * }} opts
  */
 async function assembleTurnPrompt({
-    send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode,
+    send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode, workMode,
     editorContext, inboundImages, modelSupportsVision, effectiveMessage,
 }) {
     // Capability profile for this model — with the admin override map
@@ -120,7 +123,11 @@ async function assembleTurnPrompt({
     // Tool menu keys off the capability profile: small models get the
     // reduced core subset; every capable model (Claude-4.5-class and up)
     // gets the FULL menu, app_screenshot included.
-    const tools = selectToolMenu(profile, TOOL_SCHEMAS);
+    // With a work mode the question card's tool joins the menu, in EVERY mode,
+    // so switching mode between turns keeps the cached tools array; discuss is
+    // enforced by refusing calls (workMode.mts), not by a smaller menu.
+    const baseTools = selectToolMenu(profile, TOOL_SCHEMAS);
+    const tools = workMode ? [...baseTools, ASK_QUESTIONS_TOOL] : baseTools;
     const toolNameSet = new Set(tools.map((/** @type {{ function?: { name?: string }, name?: string }} */ t) => (t && t.function && t.function.name) || t.name).filter(Boolean));
 
     // Prior conversation from the persisted snapshot (server-owned — the
@@ -151,6 +158,13 @@ async function assembleTurnPrompt({
     const contextNote = renderEditorContextNote(editorContext);
     const approvedPlanNote = approvedPlanForTurn ? renderApprovedPlanNote(approvedPlanForTurn) : null;
     const planPolicyNote = renderPlanPolicyNote(planMode);
+    // The work mode's state for this turn. `closed`: this plan already had its
+    // question round (the snapshot's questionsMeta, cleared by a proposed plan,
+    // an approval or a finalize).
+    const workModeState = workMode
+        ? { mode: workMode, approved: !!approvedPlanForTurn, fresh: isFreshDraft(draftWrap), closed: !!priorSnapshot?.questionsMeta }
+        : null;
+    const workModeNote = renderWorkModeNote(workModeState, { priorQuestions: priorSnapshot?.reviewQuestions, message: effectiveMessage });
 
     // ── The human's attached image(s). Vision-capable models get them as
     //    image content blocks on the USER turn message (the same
@@ -174,7 +188,7 @@ async function assembleTurnPrompt({
     const composed = composeAppTurnMessages({
         profile, modelId, sys,
         history: priorSnapshot?.messages,
-        notes: [renderDraftStateNote(draftWrap.def, draftWrap), renderOwnerContextNote(automationRows, documentRows), approvedPlanNote, contextNote, planPolicyNote, imageNote],
+        notes: [renderDraftStateNote(draftWrap.def, draftWrap), renderOwnerContextNote(automationRows, documentRows), approvedPlanNote, contextNote, planPolicyNote, workModeNote, imageNote],
         userTurnContent,
     });
     const { messages } = composed;
@@ -185,7 +199,7 @@ async function assembleTurnPrompt({
     // the bytes, like the automation builder's line, so two sessions can be
     // compared with grep.
     log.info(`[AppStudioBuilder] prefix sys=${systemPrefixFingerprint(sys)} tools=${toolSetFingerprint(tools)} toolBytes=${toolBytesFingerprint(tools)} fewShots=${systemPrefixFingerprint(JSON.stringify(composed.fewShotMessages))} n=${composed.fewShotMessages.length} history=${composed.windowedHistory.length}`);
-    return { profile, sys, tools, toolNameSet, history, approvedPlanForTurn, composed, messages };
+    return { profile, sys, tools, toolNameSet, history, approvedPlanForTurn, workModeState, composed, messages };
 }
 
 module.exports = { assembleTurnPrompt };

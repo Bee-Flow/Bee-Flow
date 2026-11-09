@@ -116,3 +116,15 @@ test('a continuation and an image-only turn still need no text', () => {
     assert.strictEqual(img.inboundImages.length, 1);
     assert.strictEqual(turn({ message: 'x' }).planMode, 'auto', 'absent is still auto');
 });
+
+test('workMode is describe / discuss / plan / build, or absent; anything else is refused', () => {
+    for (const workMode of ['describe', 'discuss', 'plan', 'build']) {
+        assert.strictEqual(turn({ message: 'Build a CRM', workMode }).workMode, workMode);
+    }
+    assert.strictEqual(turn({ message: 'Build a CRM' }).workMode, undefined);
+    const r = turn({ message: 'Build a CRM', workMode: 'approve' });
+    assert.strictEqual(r.failed.status, 400);
+    assert.strictEqual(r.failed.body.code, 'invalid_request');
+    assert.strictEqual(r.failed.body.error, "workMode is 'describe', 'discuss', 'plan' or 'build'.");
+    assert.strictEqual(r.failed.body.details[0].path, 'body.workMode');
+});

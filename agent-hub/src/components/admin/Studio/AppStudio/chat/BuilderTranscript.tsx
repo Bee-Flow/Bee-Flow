@@ -6,7 +6,6 @@
  * scrolling away with the conversation. The shell draws it from the build
  * cue this pane publishes (AppEditorShell).
  */
-import { Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import AppBuilderActivity from './AppBuilderActivity';
 import PlanCard from './PlanCard';
@@ -18,27 +17,9 @@ import type { BuilderMessage } from '@/hooks/builderStream';
 import type { BuildPhaseInfo } from '../editor/BuildCueContext';
 import useTranslation from '@/hooks/useTranslation';
 import MessageBubble from '@/components/automation/Builder/chat/MessageBubble';
+import QuestionsCard from '@/components/automation/Builder/chat/QuestionsCard';
+import type { BuilderQuestion } from '@/components/automation/Builder/chat/QuestionsCard';
 import BuilderWaitingCard from '@/components/shared/builder/BuilderWaitingCard';
-
-/** The empty pane's invitation. */
-export function TranscriptEmptyState() {
-    const { t } = useTranslation();
-    return (
-        <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-            <span
-                className="flex h-10 w-10 items-center justify-center rounded-full [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]"
-            >
-                <Sparkles size={18} aria-hidden="true" />
-            </span>
-            <p className="text-sm font-medium text-[var(--text-primary)]">
-                {t('app_studio.builder.chat.empty_title', 'Build with AI')}
-            </p>
-            <p className="text-xs leading-relaxed text-[var(--text-tertiary)]">
-                {t('app_studio.builder.chat.empty_hint', "Describe the app you want — I'll build it on the canvas")}
-            </p>
-        </div>
-    );
-}
 
 interface BuilderTranscriptProps {
     messages: BuilderMessage[];
@@ -57,6 +38,9 @@ interface BuilderTranscriptProps {
     onApprovePlan: (plan: unknown) => void;
     onDiscussPlan: () => void;
     waitingForFirstToken: boolean;
+    /** The questions the builder asked before planning; the shared card answers them. */
+    reviewQuestions: BuilderQuestion[] | null;
+    onAnswerQuestions: (text: string) => void;
 }
 
 function TranscriptItem({ item, isLatest, running, busy, onRetry }: { item: BuilderMessage; isLatest: boolean; running: boolean; busy: boolean; onRetry: () => void }): ReactNode {
@@ -87,6 +71,7 @@ function TranscriptItem({ item, isLatest, running, busy, onRetry }: { item: Buil
 export default function BuilderTranscript({
     messages, running, busy, pendingPlan, currentPhase, continuation, lastChange, changeOpen, onToggleChange,
     onSelectChanged, onUndoTurn, onRevert, onRetry, onApprovePlan, onDiscussPlan, waitingForFirstToken,
+    reviewQuestions, onAnswerQuestions,
 }: BuilderTranscriptProps) {
     const { t } = useTranslation();
     return (
@@ -134,6 +119,18 @@ export default function BuilderTranscript({
             {waitingForFirstToken && (
                 <BuilderWaitingCard />
             )}
+
+            {/* The builder's questions, not while a plan card waits for its OK. */}
+            {reviewQuestions?.length && !pendingPlan ? (
+                <QuestionsCard
+                    key={reviewQuestions[0].id}
+                    questions={reviewQuestions}
+                    // The card can arrive while the turn is still closing:
+                    // greyed out until it has, so an answer is never dropped.
+                    running={busy}
+                    onAnswer={(text) => onAnswerQuestions(text)}
+                />
+            ) : null}
         </>
     );
 }

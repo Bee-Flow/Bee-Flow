@@ -99,6 +99,11 @@ export const BUILDER_EVENT_READERS: EventReaders = {
         datasets: shapeListOf({ id: field.str(''), name: field.str('') }),
     }),
     plan: readPlan,
+    // Sent only to a turn that carried a workMode, which the phone does not
+    // send yet: read so the lockstep holds, not acted on.
+    review_questions: shapeOf({
+        questions: shapeListOf({ id: field.str(''), prompt: field.str(''), options: field.strArray, header: field.strOrNull }),
+    }),
     phase: shapeOf({ index: field.num(0), total: field.num(0), label: field.str('') }),
     checkpoint: shapeOf({ versionId: field.strOrNull, summary: field.str('') }),
     image: shapeOf({ data: field.str(''), mimeType: field.str('image/png'), caption: field.strOrNull }),

@@ -9,7 +9,7 @@ import type {
 import { finalizeStreaming, openTurn, useAbortOnUnmount, usePatchAssistant } from './builderStream';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { studioAppsApi } from '../components/admin/Studio/AppStudio/studioAppsApi';
-import type { AppBuilderSendOptions, BuilderToolDraft, AppBuilderStreamDeps, UseAppBuilderStreamOptions } from './appBuilderStream/types';
+import type { AppBuilderSendOptions, BuilderToolDraft, AppBuilderStreamDeps, ReviewQuestion, UseAppBuilderStreamOptions } from './appBuilderStream/types';
 import { applyBuilderSnapshot, parseSendArgs, startBuilderAction } from './appBuilderStream/session';
 import { runBuilderTurn } from '../api/turn';
 import type { RunTurnParams } from '../api/turn';
@@ -89,6 +89,7 @@ const MAX_CONTINUATIONS = 3;
  * send(text, options?) OR send(options):
  *   options = { modelTier?, context?, planMode?, plan?, continueToken?, images? }
  *     planMode 'auto'|'always'|'never' — force/suppress the plan-first flow
+ *     workMode 'describe'|'discuss'|'plan'|'build' — the mode the person chose
  *     plan { planId, action:'approve', plan } — approve an edited plan artifact
  *     continueToken — resume an interrupted phased build (used internally by
  *                     the auto-continuation loop; callers rarely pass it)
@@ -123,6 +124,8 @@ export default function useAppBuilderStream({
     // AI checkpoints, and the live "continuing…" status for an auto-continued
     // multi-phase build.
     const [pendingPlan, setPendingPlan] = useState<unknown>(null);
+    // The questions the builder asked before planning (describe / plan modes).
+    const [reviewQuestions, setReviewQuestions] = useState<ReviewQuestion[] | null>(null);
     const [phases, setPhases] = useState<unknown[]>([]);
     const [checkpoints, setCheckpoints] = useState<unknown[]>([]);
     const [continuation, setContinuation] = useState<{ phase: unknown; total: number | null } | null>(null);
@@ -168,7 +171,7 @@ export default function useAppBuilderStream({
                 if (!alive || !snap) return;
                 applyBuilderSnapshot(snap, {
                     sessionIdRef, setMessages, setSessionId, setLastValidation,
-                    setPendingPlan, setCheckpoints, setTodos,
+                    setPendingPlan, setReviewQuestions, setCheckpoints, setTodos,
                 });
             } catch (err) { logger.debug('404 = no session yet; anything else degrades to a fresh chat.', err); }
         })();
@@ -207,7 +210,7 @@ export default function useAppBuilderStream({
                 onDataModel: onDataModelRef, onPlan: onPlanRef, onPhase: onPhaseRef,
                 onCheckpoint: onCheckpointRef,
             },
-            setMessages, setSessionId, setLastValidation, setLastDataModel, setPendingPlan,
+            setMessages, setSessionId, setLastValidation, setLastDataModel, setPendingPlan, setReviewQuestions,
             setPhases, setCheckpoints, setEngine, setToolDraft, setTodos,
             patchAssistant, patchTurn, markFirstEvent,
         };
@@ -237,7 +240,7 @@ export default function useAppBuilderStream({
         };
 
         startBuilderAction({
-            lastToolCallRef, phasesTotalRef, setRunning, setLastValidation, setPendingPlan,
+            lastToolCallRef, phasesTotalRef, setRunning, setLastValidation, setPendingPlan, setReviewQuestions,
             setPhases, setCheckpoints, setContinuation, setTurn, setToolDraft, setMessages,
         }, parsed);
 
@@ -305,7 +308,7 @@ export default function useAppBuilderStream({
 
     return {
         messages, thinkingParts, running, send, stop, sessionId, lastValidation, lastDataModel,
-        pendingPlan, phases, checkpoints, continuation,
+        pendingPlan, reviewQuestions, phases, checkpoints, continuation,
         turn, engine, toolDraft, todos,
     };
 }

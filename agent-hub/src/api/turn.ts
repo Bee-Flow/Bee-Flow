@@ -48,6 +48,8 @@ function requestBody(
         // Plan-first UX: force/suppress the plan (quick actions send
         // 'never'); approve an edited plan; resume a phased build.
         planMode: options.planMode || undefined,
+        // The assistant's work mode; absent for a host's brief / pinned tier.
+        workMode: options.workMode || undefined,
         plan,
         continueToken: options.continueToken || undefined,
         // Screenshots the user pasted/attached, as data URLs.

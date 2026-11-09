@@ -34,9 +34,10 @@ vi.mock('@/utils/imageResize', async (importOriginal) => {
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { authFetch } from '@/utils/helpers';
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 import { EditorChromeContext } from '../editor/EditorChromeContext';
 import { AppEditorProvider, useAppEditor } from '../state/AppEditorContext';
-import { KITCHEN_SINK } from '../state/sampleDefinitions';
+import { BLANK_APP, KITCHEN_SINK } from '../state/sampleDefinitions';
 import { studioAppsApi } from '../studioAppsApi';
 import BuilderChatPane from './BuilderChatPane';
 
@@ -93,6 +94,7 @@ function sseResponse(events) {
 function mockAuthFetchStreams(...streams) {
     let i = 0;
     authFetch.mockImplementation((url) => {
+        if (String(url).includes('/data/tables')) return Promise.resolve({ ok: true, status: 200, json: async () => ({ tables: [] }) });
         if (String(url).includes('/ai/config/tiers-for-user')) {
             return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
         }
@@ -109,12 +111,12 @@ function Probe() {
     return null;
 }
 
-function renderPane({ chrome, queryClient, onAppUpdated } = {}) {
+function renderPane({ chrome, queryClient, onAppUpdated, definition } = {}) {
     const c = chrome || { commitTurn: vi.fn(), markSaved: vi.fn() };
     const qc = queryClient || new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
         <QueryClientProvider client={qc}>
-            <AppEditorProvider app={{ id: 'app-1', definition: KITCHEN_SINK, version: 3 }}>
+            <AppEditorProvider app={{ id: 'app-1', definition: definition || KITCHEN_SINK, version: 3 }}>
                 <EditorChromeContext.Provider value={c}>
                     <BuilderChatPane appId="app-1" onAppUpdated={onAppUpdated || null} />
                     <Probe />
@@ -140,18 +142,29 @@ async function sendMessage(text) {
 beforeEach(() => {
     vi.clearAllMocks();
     ctxRef.current = null;
+    setCurrentUser('u1');
+    scopedStorage.removeItem?.('appBuilderWorkMode');
+    scopedStorage.removeItem?.('appBuilderPlanLarge');
     const notFound = new Error('no session');
     notFound.status = 404;
     studioAppsApi.getBuilderSession.mockRejectedValue(notFound);
 });
 
 describe('BuilderChatPane', () => {
-    it('shows the empty state and header before any conversation', () => {
+    it('shows the header and the welcome of a blank app before any conversation', () => {
+        renderPane({ definition: BLANK_APP });
+        expect(screen.getByText('Assistant')).toBeInTheDocument();
+        expect(screen.getByText('What should the app do? Tell me in your own words.')).toBeInTheDocument();
+        expect(screen.getAllByTestId('app-assistant-example-brief')).toHaveLength(3);
+    });
+
+    it('shows what it sees and up to three ideas for an app that already has content', async () => {
+        mockAuthFetchStreams(sseResponse([sse('done', { appId: 'app-1' })]));
         renderPane();
-        expect(screen.getByText('AI builder')).toBeInTheDocument();
-        expect(
-            screen.getByText("Describe the app you want — I'll build it on the canvas"),
-        ).toBeInTheDocument();
+        expect(screen.getByText('What would you like to change?')).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByTestId('app-assistant-seen')).toHaveTextContent(/I can see 2 screens and no tables yet\./));
+        expect(screen.getAllByTestId('app-assistant-idea').length).toBeLessThanOrEqual(3);
+        expect(screen.queryByText('Fix errors')).toBeNull();
     });
 
     it('runs a full AI turn: lock → transient drafts + pulses → one commit + markSaved → unlock', async () => {
@@ -732,21 +745,6 @@ describe('BuilderChatPane', () => {
         const img = screen.getByAltText('Screenshot · Dashboard');
         expect(img).toHaveAttribute('src', 'data:image/png;base64,AAAA');
         expect(screen.getByText('Screenshot · Dashboard')).toBeInTheDocument();
-    });
-
-    it('quick actions force planMode:"never" (small asks skip the plan)', async () => {
-        const user = userEvent.setup();
-        authFetch.mockResolvedValue(sseResponse([sse('done', { appId: 'app-1', finalized: true })]));
-        renderPane({ chrome: { flush: vi.fn().mockResolvedValue(), commitTurn: vi.fn(), markSaved: vi.fn() } });
-
-        await waitFor(() => expect(ctxRef.current).not.toBeNull());
-        await user.click(screen.getByText('New screen'));
-
-        await waitFor(() => expect(
-            authFetch.mock.calls.some(([u]) => String(u).includes('/builder/stream')),
-        ).toBe(true));
-        const call = authFetch.mock.calls.find(([u]) => String(u).includes('/builder/stream'));
-        expect(JSON.parse(call[1].body).planMode).toBe('never');
     });
 
     // ── Showing the builder a picture ────────────────────────────────

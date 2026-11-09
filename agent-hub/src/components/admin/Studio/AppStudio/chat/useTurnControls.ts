@@ -2,6 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useRef } from 'react';
 import type { Dispatch, RefObject } from 'react';
 import { boundTableIdFor, canAutoSendApp } from './builderPaneModel';
 import type { EditorChrome } from './builderPaneModel';
+import { approvalWorkMode } from './appWorkModes';
 import type { AppBuilderSendOptions } from '@/hooks/useAppBuilderStream';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';
@@ -12,6 +13,11 @@ interface TurnControlInputs {
     busy: boolean;
     send: Send;
     tierForSend: string;
+    /**
+     * What every typed turn carries: the work mode and the plan-first setting
+     * derived from it. A pinned-tier mount passes `{ planMode: 'never' }` only.
+     */
+    modeOptions: AppBuilderSendOptions;
     autoSend: string | null;
     messageCount: number;
     pendingPlan: { planId?: unknown } | null;
@@ -26,12 +32,12 @@ interface TurnControlInputs {
 }
 
 /**
- * Starting AI turns: a typed message, a quick action, a per-issue Fix, a
+ * Starting AI turns: a typed message, an idea, a per-issue Fix, a
  * plan approval, "Try again" and a host's auto-sent brief all go through the
  * SAME streamLock/flush/commitTurn flow.
  */
 export function useTurnControls({
-    busy, send, tierForSend, autoSend, messageCount, pendingPlan, dispatch, setStarting, beginTurn,
+    busy, send, tierForSend, modeOptions, autoSend, messageCount, pendingPlan, dispatch, setStarting, beginTurn,
     definitionRef, screenIdRef, chromeRef, selectedNodeId, selectedNodeIds,
 }: TurnControlInputs) {
     const lastTurnRef = useRef<{ text: string; extraContext: unknown; sendOptions: AppBuilderSendOptions | undefined } | null>(null);    // for retry-after-error
@@ -73,8 +79,8 @@ export function useTurnControls({
 
     /**
      * Start one AI turn with `text`, threading editor focus as context.
-     * `sendOptions` passes stream options through (e.g. quick actions force
-     * `planMode:'never'`). Goes through the SAME streamLock/flush/commitTurn
+     * `sendOptions` override the mode's defaults (e.g. an idea or a Fix
+     * sends `workMode:'build'` + `planMode:'never'`). Goes through the SAME streamLock/flush/commitTurn
      * flow as a typed message.
      */
     const startTurn = useCallback((text: unknown, extraContext?: unknown, sendOptions?: AppBuilderSendOptions) => {
@@ -84,10 +90,11 @@ export function useTurnControls({
         const attached = Array.isArray(sendOptions?.images) ? sendOptions.images.filter(Boolean) : [];
         if ((!message && !attached.length) || busy) return;
         // Remember the turn so a retryable error (Wave 6c) can re-run it verbatim.
-        lastTurnRef.current = { text: message, extraContext, sendOptions };
+        const merged: AppBuilderSendOptions = { ...modeOptions, ...(sendOptions || {}) };
+        lastTurnRef.current = { text: message, extraContext, sendOptions: merged };
         const context = buildContext(extraContext);
-        lockAndRun(() => send(message, { modelTier: tierForSend, context, ...(sendOptions || {}) }));
-    }, [busy, send, buildContext, lockAndRun, tierForSend]);
+        lockAndRun(() => send(message, { modelTier: tierForSend, context, ...merged }));
+    }, [busy, send, buildContext, lockAndRun, tierForSend, modeOptions]);
 
     // A host's brief, sent once at mount (canAutoSendApp): the pane is fresh
     // (no messages, nothing in flight), so this is the first turn of a phase.
@@ -95,7 +102,7 @@ export function useTurnControls({
     // is a new mount (the host's `key`). Rehydrated history that lands later
     // does not undo a send already made.
     const autoSentRef = useRef(false);
-    const sendBrief = useEffectEvent(() => startTurn(autoSend, undefined, { planMode: 'never' }));
+    const sendBrief = useEffectEvent(() => startTurn(autoSend, undefined, { planMode: 'never', workMode: undefined }));
     useEffect(() => {
         if (autoSentRef.current) return;
         if (!canAutoSendApp({ autoSend, messageCount, busy })) return;
@@ -121,8 +128,11 @@ export function useTurnControls({
             plan: { planId: pendingPlan.planId, action: 'approve', plan: editedPlan },
             modelTier: tierForSend,
             context,
+            // A plan approval keeps the everyday words of 'describe'; every
+            // other mode approves as 'plan'. No mode for a pinned-tier mount.
+            ...(modeOptions.workMode ? { workMode: approvalWorkMode(modeOptions.workMode) } : {}),
         }));
-    }, [busy, pendingPlan, send, buildContext, lockAndRun, tierForSend]);
+    }, [busy, pendingPlan, send, buildContext, lockAndRun, tierForSend, modeOptions]);
 
     return { startTurn, retryLastTurn, approvePlan };
 }
