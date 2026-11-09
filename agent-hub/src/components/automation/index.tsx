@@ -17,6 +17,7 @@ import { parseAppRefParam, stickyFrom } from '../admin/Studio/studioRoutes';
 import { useEntitlements } from '../licensing/EntitlementsContext';
 import useConfirm from '../shared/useConfirm';
 import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary';
+import LibraryLoadFailed from './LibraryLoadFailed';
 import type { BuilderTab } from './Builder/useBuilderTabUrl';
 import type { AutomationRouting } from './useAutomationRouting';
 import type { AppUserLike } from '../projects/workspace/types';
@@ -54,18 +55,7 @@ function AutomationListSection({ library, visibleAutomations, visibleStepCount, 
             {automationsLoading && automations.length === 0 && (
                 <div className="text-xs text-[var(--text-tertiary)] p-3">{t('automations.automation_page.loading', 'Loading…')}</div>
             )}
-            {loadFailed && (
-                <div role="alert" className="text-xs text-[var(--error)] p-4 text-center">
-                    <div>{t('automations.library.loadFailed', 'Could not load your automations.')}</div>
-                    <button
-                        type="button"
-                        onClick={() => { void library.fetchAutomations(); }}
-                        className="mt-2 px-3 py-1 rounded-full border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                    >
-                        {t('automations.library.retry', 'Try again')}
-                    </button>
-                </div>
-            )}
+            {loadFailed && <LibraryLoadFailed onRetry={library.fetchAutomations} />}
             {emptyNote}
             <FolderedAutomationList
                 automations={visibleAutomations}
