@@ -224,9 +224,14 @@ async function finalizeRun(deps, {
         emitLifecycle('run.finished', { status: finalStatus, durationMs: Date.now() - startedAt, handledErrorCount });
     }
 
+    // The primary schedule moves on BEFORE the marker is released, like a
+    // secondary one does inside releaseMarker. Released first, the row is free
+    // (last_status off 'running') with next_run_at still in the past for as
+    // long as the notifications below take, and the next tick of any instance
+    // claims the same slot a second time.
+    await advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, schedule, triggerKind });
     if (ownsMarker) await releaseMarker(deps, { automation, firstRunNeedsConfirm, runStatus, finishedAt, schedule, rootStepId, profile });
     await notifyRunEnd(deps, { automation, run, firstRunNeedsConfirm, runStatus, runErrorObj, summary, userSafeError, triggerKind, effectiveMode, testRun, approvalRow });
-    await advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, schedule, triggerKind });
 
     return withLastOutput(await automationStore.getRun(run.id), runResult?.lastOutput ?? null);
 }
