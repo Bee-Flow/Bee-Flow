@@ -2,6 +2,7 @@
 const { run, getOne, getClient } = require('../../db');
 const { initDB } = require('./schema');
 const { getEffectiveLimits } = require('./subscriptions');
+const { planResourceCapsApply } = require('../../license/planCaps.mts');
 const log = require('../../telemetry/log');
 const { unavailable } = require('../../shared/httpErrors');
 const { syncSeatQuantity } = require('./seatSyncPort');
@@ -133,8 +134,11 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
     // A cap that cannot be read is not "no cap": refuse rather than create past a seat licence.
     let capUnknown = false;
     try {
-        const limits = await getEffectiveLimits(orgId);
-        max = limits?.max_users ?? null;
+        // Plan caps bind only on cloud; self-hosted runs on the server licence.
+        if (planResourceCapsApply()) {
+            const limits = await getEffectiveLimits(orgId);
+            max = limits?.max_users ?? null;
+        }
     } catch (err) { log.warn(`[seat.cap] plan limit lookup failed org=${orgId}: ${/** @type {Error} */ (err).message}`); capUnknown = true; }
     try {
         const seatCap = await require('../../license/seats').getMaxSeatsForOrg(orgId);

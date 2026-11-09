@@ -134,8 +134,13 @@ function StatusGlyph({ status }: StatusGlyphProps) {
     return <Check size={12} className="flex-shrink-0 text-emerald-500" />;
 }
 
-/** Bounded: a search result is kilobytes of JSON, and this pane is a glance, not a viewer. */
-const RESULT_MAX = 4000;
+/**
+ * Bounded at the size the server lets a tool result reach the model
+ * (MAX_TOOL_CONTENT_BYTES in server/core/agentRuntime/toolRound/toolContent.js),
+ * so the pane shows everything the agent read and a cut here means it was cut
+ * there too. The pane scrolls.
+ */
+const RESULT_MAX = 128 * 1024;
 function renderPayloadPart(value: { query?: string; path?: string; to?: string; error?: string; skill_ids?: string[] } | null) {
     if (value == null) return null;
     const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);

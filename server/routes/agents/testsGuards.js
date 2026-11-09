@@ -215,7 +215,28 @@ const logGradeUsage = (row) => logTestModelUsage({ ...row, agentName: 'agent-tes
 /** The suggestion call's row — a different source, see above. */
 const logSuggestUsage = (row) => logTestModelUsage({ ...row, agentName: 'agent-test-suggest', source: 'agent_test_suggest' });
 
+/**
+ * A positive whole number from the environment, or the default. Missing,
+ * blank, non-numeric, fractional and <= 0 values all mean the default: 0 must
+ * never become "send 0 tokens".
+ * @param {string} name
+ * @param {number} fallback
+ * @returns {number}
+ */
+function envPositiveInt(name, fallback) {
+    const raw = process.env[name];
+    if (raw === undefined || String(raw).trim() === '') return fallback;
+    const n = Number(raw);
+    return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
+/** Output-token cap of the grading call (AGENT_TEST_GRADE_MAX_TOKENS, default 1024). */
+const gradeMaxTokens = () => envPositiveInt('AGENT_TEST_GRADE_MAX_TOKENS', 1024);
+/** Output-token cap of the suggestion call (AGENT_TEST_SUGGEST_MAX_TOKENS, default 1024). */
+const suggestMaxTokens = () => envPositiveInt('AGENT_TEST_SUGGEST_MAX_TOKENS', 1024);
+
 module.exports = {
+    envPositiveInt, gradeMaxTokens, suggestMaxTokens,
     requireEditableAgent, versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
     GRADER_MODEL, SUGGEST_MODEL, logGradeUsage, logSuggestUsage,
 };

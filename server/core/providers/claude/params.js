@@ -93,11 +93,18 @@ function stripUnsupportedSchemaKeywords(node) {
     return out;
 }
 
-/** @param {import('../claude')} provider @param {string} model @param {import('../claude').ClaudeOptions} [options] */
-function buildThinking(provider, model, options = {}) {
-    if (!provider.supportsReasoning(model)) return undefined;
+/** @typedef {{ thinking: { type: string, budget_tokens?: number, display?: string }, effort?: string }} ThinkingConfig */
+/** @type {ThinkingConfig} */
+const THINKING_DISABLED = Object.freeze({ thinking: Object.freeze({ type: 'disabled' }) });
 
+/** @param {import('../claude')} provider @param {string} model @param {import('../claude').ClaudeOptions} [options] @returns {ThinkingConfig | undefined} */
+function buildThinking(provider, model, options = {}) {
     const effortRaw = options.reasoningEffort;
+    // Where omitting `thinking` means "adaptive" (Opus 5, Haiku 5.x) the API has
+    // to be told to stay off; this runs before the supportsReasoning gate since
+    // Haiku 5.x is not a reasoning model for the product.
+    if (effortRaw === 'none' && describeClaudeModel(model).thinkingOnByDefault) return THINKING_DISABLED;
+    if (!provider.supportsReasoning(model)) return undefined;
     if (effortRaw === 'none') return undefined; // Explicitly disabled
 
     // Adaptive-only models reject manual budget_tokens. Legacy 4.x (Opus 4.6 /
@@ -144,10 +151,14 @@ function buildSdkParams(provider, model, messages, options = {}) {
     const forcedName = tc && typeof tc === 'object' ? (tc.name || tc.function?.name || null) : null;
     const forcedChoice = tc === 'any' || tc === 'required' || !!forcedName;
     const unforced = forcedChoice && (options._noForcedToolChoice || !provider.supportsForcedToolChoice(model));
-    if (forcedChoice && !unforced && thinkingConfig) {
-        thinkingConfig = undefined;
+    if (forcedChoice && !unforced) {
+        // Omitting `thinking` means adaptive on the models that think by default,
+        // and adaptive + forced choice is a 400: those must send an explicit off.
+        if (describeClaudeModel(model).thinkingOnByDefault) thinkingConfig = THINKING_DISABLED;
+        else if (thinkingConfig) thinkingConfig = undefined;
     }
-    const keepThinking = !!thinkingConfig && !options._noThinkingReplay;
+    const thinkingActive = !!thinkingConfig && thinkingConfig.thinking.type !== 'disabled';
+    const keepThinking = thinkingActive && !options._noThinkingReplay;
 
     const params = {
         model,
@@ -225,7 +236,7 @@ function buildSdkParams(provider, model, messages, options = {}) {
     if (!CONTEXT_EDITING_DISABLED && !options._noContextEditing && provider.supportsContextEditing(model)) {
         const edits = [];
 
-        if (thinkingConfig && KEEP_THINKING_TURNS !== 'off') {
+        if (thinkingActive && KEEP_THINKING_TURNS !== 'off') {
             edits.push({
                 type: 'clear_thinking_20251015',
                 keep: KEEP_THINKING_TURNS === 'all'
@@ -250,7 +261,7 @@ function buildSdkParams(provider, model, messages, options = {}) {
         params.thinking = thinkingConfig.thinking;
         // Legacy 4.x require temperature=1 when thinking is enabled; the
         // adaptive-only family rejects sampling params, so leave it unset.
-        if (!adaptiveOnly) params.temperature = 1;
+        if (!adaptiveOnly && thinkingActive) params.temperature = 1;
         if (thinkingConfig.thinking.type === 'adaptive') {
             // effort belongs inside output_config per SDK v0.78.0 OutputConfig interface
             if (thinkingConfig.effort) {

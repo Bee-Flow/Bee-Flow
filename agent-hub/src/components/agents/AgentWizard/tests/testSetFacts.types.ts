@@ -51,6 +51,8 @@ export interface TestItem {
     status: string;
     reason?: string;
     decidedBy?: string;
+    /** Why an `error` item errored: a closed value from the server, absent on old runs. */
+    errorKind?: 'grading' | 'no_answer' | 'turn_failed';
     forbiddenHits?: string[];
     toolsMissing?: string[];
     toolsWithheld?: string[];

@@ -9,6 +9,8 @@ export const RUN_STATE = Object.freeze({
 });
 
 /** Wat er met één test gebeurde. Spiegelt `testSandbox.STATUSES`. */
+/** `errorKind` from the server -> the problem kind the card writes a sentence for. */
+const ERROR_PROBLEM_KIND: Record<string, string> = Object.freeze({ grading: 'ungraded_grading', turn_failed: 'ungraded_turn' });
 const ITEM_STATUS = Object.freeze(['pass', 'fail', 'blocked', 'error']);
 
 /**
@@ -130,6 +132,15 @@ export function summariseRun({ lastRun = null, lastRunUnknown = false, tests = n
 }
 
 /**
+ * The problem of an `error` item. `errorKind` is a closed value from the server; a run stored
+ * before it existed, or a value we do not know, keeps the plain 'ungraded' sentence.
+ */
+function errorProblem(item: TestItem) {
+    const kind = ERROR_PROBLEM_KIND[item.errorKind ?? ''] || 'ungraded';
+    return { status: 'error', kind, names: [] as string[], reason: item.reason || '' };
+}
+
+/**
  * Why this test is not green, as a FACT and not as a sentence.
  *
  * The `reason` the server stored is English and comes from a closed list. The card writes
@@ -146,7 +157,7 @@ export function problemFor(item: TestItem | null | undefined) {
     const withheld = asArray<string>(item.toolsWithheld).filter(n => typeof n === 'string' && n);
 
     if (status === 'blocked') return { status, kind: 'withheld', names: withheld, reason: item.reason || '' };
-    if (status === 'error') return { status, kind: 'ungraded', names: [], reason: item.reason || '' };
+    if (status === 'error') return errorProblem(item);
     // A fail that is decided by a FACT says which fact. That is more precise than the sentence
     // from the closed list, and it is not written by a model.
     if (forbidden.length) return { status, kind: 'forbidden', names: forbidden, reason: item.reason || '' };

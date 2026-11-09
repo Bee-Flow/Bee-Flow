@@ -3,6 +3,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '@/utils/agentAvatar';
 import { toast } from '@/components/shared/Toast';
+import { resizeImageForUpload } from '@/utils/imageResize';
+
+// The avatar is shown at 80px at most; 256px keeps it sharp on a 3x screen.
+const AVATAR_MAX_EDGE = 256;
+const AVATAR_MAX_BYTES = 512 * 1024;
 
 // Avatar can be either an emoji string OR a data-URL / http URL / server
 // upload path for an image. The picker offers both: tabbed emoji grid + a
@@ -31,9 +36,11 @@ interface AvatarPickerProps {
     onChange: (avatar: string) => void;
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
     size: string;
+    /** The image scaler; a seam for tests, where jsdom has no canvas. */
+    resize?: typeof resizeImageForUpload;
 }
 
-export default function AvatarPicker({ avatar, onChange, t, size }: AvatarPickerProps) {
+export default function AvatarPicker({ avatar, onChange, t, size, resize = resizeImageForUpload }: AvatarPickerProps) {
     const [open, setOpen] = useState(false);
     const [category, setCategory] = useState('tech');
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -51,14 +58,16 @@ export default function AvatarPicker({ avatar, onChange, t, size }: AvatarPicker
         return () => document.removeEventListener('mousedown', onDoc);
     }, [open]);
 
-    const onFile = (e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) => {
+    // A large photo is scaled down to avatar size instead of refused; only what
+    // is still over the cap after that (an animated GIF, an SVG) is refused.
+    const onFile = async (e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
-        if (file.size > 512 * 1024) { toast.error(t('agent_wizard.avatar.too_large', 'Image must be under 512KB')); e.target.value = ''; return; }
-        const reader = new FileReader();
-        reader.onload = (ev) => { onChange((ev.target as FileReader).result as string); setOpen(false); };
-        reader.readAsDataURL(file);
         e.target.value = '';
+        if (!file) return;
+        const { dataUrl, resizedSize } = await resize(file, { maxLongestEdge: AVATAR_MAX_EDGE, skipIfBytesUnder: 0 });
+        if (resizedSize > AVATAR_MAX_BYTES) { toast.error(t('agent_wizard.avatar.too_large', 'Image must be under 512KB')); return; }
+        onChange(dataUrl);
+        setOpen(false);
     };
     const pickEmoji = (em: string) => { onChange(em); setOpen(false); };
 

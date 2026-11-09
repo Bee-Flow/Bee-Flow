@@ -6,11 +6,16 @@
 import { FlaskConical, Sparkles, X } from 'lucide-react';
 import EmptyState from '@/components/shared/EmptyState';
 import UsedByTab from '@/components/shared/UsedByTab';
+import useChatEngine from '@/hooks/useChatEngine';
 import { READ } from '../canUse/canUseFacts';
 import KnowledgeCard from '../canUse/KnowledgeCard';
 import SkillsCard from '../canUse/SkillsCard';
 import ToolsCard from '../canUse/ToolsCard';
+import SuggestedTestForm from '../tests/SuggestedTestForm';
+import TestChatPanel from '../tests/TestChatPanel';
+import { lastCompletedTurn } from '../tests/testChatTurn';
 import TestSetCard from '../tests/TestSetCard';
+import useAddFromChat from '../tests/useAddFromChat';
 
 // The editor's state is server JSON and untyped JS callbacks, passed through as is.
 type Loose = any;
@@ -102,32 +107,74 @@ export function CanUseTabPanel({
     );
 }
 
-/** "Test": the test set of a saved agent; an unsaved one has nothing to hang questions on. */
+// A test chat runs on the saved draft and leaves no conversation behind.
+const TEST_CHAT = { enabled: true };
+
+/**
+ * "Test": ask the saved draft a question, then turn that answer into a test of the
+ * test set. An unsaved agent has nothing to hang questions on.
+ */
 export function TestTabPanel({ t, ro, rel, agent, testSet }: Loose) {
+    const chat = useChatEngine({ selectedAgent: agent?.id ? agent : null, testChat: TEST_CHAT });
+    const addFromChat = useAddFromChat({ t, testSet });
+    const turn = chat.isLoading ? null : lastCompletedTurn(chat.messages);
     return (
         <div className="max-w-4xl mx-auto px-10 py-10">
             {agent?.id ? (
-                <TestSetCard
-                    t={t}
-                    ro={ro}
-                    rel={rel}
-                    tests={testSet.tests}
-                    testsState={testSet.testsState}
-                    onRetryTests={testSet.refetch}
-                    readRefusal={testSet.readRefusal}
-                    lastRun={testSet.lastRun}
-                    lastRunUnknown={testSet.lastRunUnknown}
-                    runs={testSet.runs}
-                    runsState={testSet.runsState}
-                    runsUnknown={testSet.runsUnknown}
-                    runsKeep={testSet.runsKeep}
-                    onOpenDetail={testSet.loadRuns}
-                    progress={testSet.progress}
-                    running={testSet.running}
-                    refusal={testSet.refusal}
-                    onRetryRun={testSet.runTests}
-                    onRun={testSet.runTests}
-                />
+                <>
+                    <TestChatPanel
+                        t={t}
+                        ro={ro}
+                        messages={chat.messages}
+                        isLoading={chat.isLoading}
+                        onSend={(text: string) => { void chat.sendMessage(text); }}
+                        onStop={chat.stopGenerating}
+                        onToolDecision={chat.decideTool as never}
+                        toolDecisions={chat.toolDecisions}
+                    />
+                    {addFromChat.turn && (
+                        <div className="mb-6">
+                            {/* Keyed on the state: the form starts from the proposal it is given at
+                                mount, so it must mount again when the proposal arrives. */}
+                            <SuggestedTestForm
+                                key={addFromChat.state}
+                                t={t}
+                                turn={addFromChat.turn}
+                                suggestion={addFromChat.suggestion}
+                                state={addFromChat.state}
+                                refusal={addFromChat.refusal}
+                                saving={addFromChat.saving}
+                                saveError={addFromChat.saveError}
+                                onSave={addFromChat.save}
+                                onCancel={addFromChat.close}
+                            />
+                        </div>
+                    )}
+                    <TestSetCard
+                        t={t}
+                        ro={ro}
+                        rel={rel}
+                        tests={testSet.tests}
+                        testsState={testSet.testsState}
+                        onRetryTests={testSet.refetch}
+                        readRefusal={testSet.readRefusal}
+                        lastRun={testSet.lastRun}
+                        lastRunUnknown={testSet.lastRunUnknown}
+                        runs={testSet.runs}
+                        runsState={testSet.runsState}
+                        runsUnknown={testSet.runsUnknown}
+                        runsKeep={testSet.runsKeep}
+                        onOpenDetail={testSet.loadRuns}
+                        progress={testSet.progress}
+                        running={testSet.running}
+                        refusal={testSet.refusal}
+                        onRetryRun={testSet.runTests}
+                        onRun={testSet.runTests}
+                        onAddFromChat={() => { if (turn) void addFromChat.open(turn); }}
+                        canAddFromChat={!!turn}
+                        addFromChatBusy={addFromChat.busy}
+                    />
+                </>
             ) : (
                 // An agent without an id is not saved anywhere yet,
                 // so there is nothing to attach the questions to.

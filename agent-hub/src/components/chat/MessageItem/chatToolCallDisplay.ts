@@ -169,11 +169,25 @@ export function describeChatTool(entry: ToolEntry | null | undefined, { t = null
  * What the row shows behind its chevron: the call's arguments without the
  * model-facing `_` fields, and the result — the whole thing while the message
  * is live, the stored preview once it has been reloaded.
+ *
+ * The result loses its `_` fields too: those are the UI side channel (kb_search's
+ * `_sources` repeats every chunk twice, as `content` and `preview`, next to the
+ * `results` the model reads), and the server strips them before the model sees
+ * the result (toolRound/toolContent.js). What is left is what the agent got. A
+ * result made only of `_` fields is shown whole, so the pane is never empty.
  */
 export function detailPayload(entry: ToolEntry | null | undefined, result: unknown) {
-    const args = isPlainObject(entry?.args)
-        ? Object.fromEntries(Object.entries(entry.args).filter(([k]) => !k.startsWith('_')))
-        : entry?.args;
-    const out = result != null ? result : (str(entry?.resultPreview) || null);
+    const args = isPlainObject(entry?.args) ? withoutUnderscoreKeys(entry.args) : entry?.args;
+    const out = result != null ? modelFacing(result) : (str(entry?.resultPreview) || null);
     return { args: args ?? null, result: out };
+}
+
+function withoutUnderscoreKeys(value: Record<string, unknown>) {
+    return Object.fromEntries(Object.entries(value).filter(([k]) => !k.startsWith('_')));
+}
+
+function modelFacing(result: NonNullable<unknown>): NonNullable<unknown> {
+    if (!isPlainObject(result)) return result;
+    const kept = withoutUnderscoreKeys(result);
+    return Object.keys(kept).length > 0 ? kept : result;
 }

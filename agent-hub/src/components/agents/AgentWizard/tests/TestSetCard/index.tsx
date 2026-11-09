@@ -170,7 +170,7 @@ export default function TestSetCard({
     progress = null,
     refusal = null, onRetryRun = null,
     onRun = null, running = false,
-    onAddFromChat = null, canAddFromChat = false,
+    onAddFromChat = null, canAddFromChat = false, addFromChatBusy = false,
 }: TestSetCardProps) {
     const [open, setOpen] = useState(false);
     const summary = summariseRun({ lastRun, lastRunUnknown, tests });
@@ -274,7 +274,8 @@ export default function TestSetCard({
                         type="button"
                         data-testid="agent-tests-add-from-chat"
                         onClick={onAddFromChat}
-                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition"
+                        disabled={addFromChatBusy}
+                        className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-50 disabled:pointer-events-none"
                     >
                         <Plus size={14} aria-hidden="true" />
                         {t('agent_studio.test.add_from_chat', 'This conversation as a test')}

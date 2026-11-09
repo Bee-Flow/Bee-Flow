@@ -80,4 +80,6 @@ export interface TestSetCardProps {
     refusal?: Refusal | null;
     running?: boolean;
     canAddFromChat?: boolean;
+    /** The proposal form is loading or open: the button waits. */
+    addFromChatBusy?: boolean;
 }

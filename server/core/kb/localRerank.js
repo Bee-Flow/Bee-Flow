@@ -113,8 +113,9 @@ async function rerankCandidates(candidates, query, topK) {
     // cross-encoder that is both better and cheaper than the alternatives, so it
     // goes first — and it keeps the query on the box, which the cloud tier does
     // not. Returns [] on any failure, which falls through to the tiers below.
-    const { rerankLlamaCpp, isEnabled: llamaCppRerankEnabled } = loadLlamaCppRerank();
-    const useLlamaCppRerank = results.length > 0 && await llamaCppRerankEnabled();
+    // isAvailable: turned on and not backing off after the router was unreachable.
+    const { rerankLlamaCpp, isAvailable: llamaCppRerankAvailable } = loadLlamaCppRerank();
+    const useLlamaCppRerank = results.length > 0 && await llamaCppRerankAvailable();
     let llamaCppReranked = false;
     if (useLlamaCppRerank) {
         const t0 = Date.now();

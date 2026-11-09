@@ -374,7 +374,7 @@ function _guessProfile(id) {
 
     // Fable/Mythos are an always-thinking family regardless of generation.
     const fableLike = family === 'fable' || family === 'mythos';
-    // Haiku: this product does not drive thinking on it (see catalog note).
+    // Haiku stays non-reasoning for the product. On 5+ the API thinks adaptively when `thinking` is omitted, so the only thing we send is an explicit off-switch.
     const haiku = family === 'haiku';
 
     // Claude 3.x has no extended thinking as this product drives it, and sending
@@ -394,7 +394,7 @@ function _guessProfile(id) {
         family, generation,
         context: (fableLike || gen5 || generation >= 4.6) && !haiku ? 1_000_000 : 200_000,
         maxOutput: haiku ? 64_000 : 128_000,
-        thinking,
+        thinking, ...(haiku && gen5 ? { thinkingOnByDefault: true, disableThinkingMaxEffort: 'high' } : {}),
         efforts: (haiku || legacy3x) ? null : (modern || fableLike ? EFFORT_FULL : EFFORT_NO_XHIGH),
         defaultEffort: (haiku || legacy3x) ? null : 'medium',
         // Only 4.6 and older accept sampling params — and only in the
@@ -405,10 +405,10 @@ function _guessProfile(id) {
         tools: true,
         // Forced tool choice was removed from Fable 5.1 on, and from Opus 5.5
         // and Sonnet 5.5 on (`tool_choice: type "tool" and "any" are not
-        // supported for this model.`). Assume every later generation keeps it
-        // removed: a wrongly-unforced call still answers through the adapter's
+        // supported for this model.`). Haiku 5.5 still accepts it. Later non-Haiku
+        // generations are assumed to keep it removed: a wrongly-unforced call still answers through the adapter's
         // `auto` fallback, a wrongly-forced one is a hard 400.
-        forcedToolChoice: !((fableLike && generation >= 5.1) || generation >= 5.5),
+        forcedToolChoice: !((fableLike && generation >= 5.1) || (!haiku && generation >= 5.5)),
         midConvSystem: fableLike || (family === 'opus' && generation >= 4.8),
         contextEditing: generation >= 4,
         refusalStop: fableLike || gen5,

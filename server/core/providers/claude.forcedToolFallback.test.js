@@ -72,7 +72,9 @@ test('models that accept a forced choice are unchanged: Sonnet 5, Sonnet 4.6, Ha
     for (const model of ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-haiku-4-5', 'claude-opus-5']) {
         const params = p._buildSdkParams(model, MSGS, { tools: [TOOL], toolChoice: NAMED });
         assert.deepStrictEqual(params.tool_choice, { type: 'tool', name: 'emit_columns' }, model);
-        assert.strictEqual(params.thinking, undefined, `${model}: forced choice still drops thinking`);
+        // Opus 5 thinks by default, so "dropping" thinking means sending disabled.
+        const want = model === 'claude-opus-5' ? { type: 'disabled' } : undefined;
+        assert.deepStrictEqual(params.thinking, want, `${model}: forced choice still drops thinking`);
         assert.doesNotMatch(systemText(params), /exactly once/, model);
     }
 });

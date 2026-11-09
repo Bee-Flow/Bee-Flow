@@ -177,6 +177,26 @@ describe('TestSetCard — de faalregel', () => {
         expect(screen.getByTestId('agent-tests-more-problems').textContent).toBe('2 more questions are not green.');
     });
 
+    it.each([
+        ['grading', /grading failed\. Run again/],
+        ['turn_failed', /could not answer this question in the test run/],
+        ['no_answer', /no answer to grade/],
+        [undefined, /no answer to grade/],
+    ])('an error with errorKind %s says what actually happened', (errorKind, expected) => {
+        const errored = run({
+            passed: 11,
+            results: {
+                ...run().results,
+                items: [
+                    ...Array.from({ length: 11 }, (_, i) => item({ testId: `t${i}` })),
+                    item({ testId: 't11', name: 'Errored one', status: 'error', errorKind }),
+                ],
+            },
+        });
+        render(<TestSetCard {...base} lastRun={errored} />);
+        expect(screen.getByTestId('agent-tests-fail-line').textContent).toMatch(expected);
+    });
+
     it('een groene run heeft geen faalregel', () => {
         const green = run({ passed: 12, results: { ...run().results, items: Array.from({ length: 12 }, (_, i) => item({ testId: `t${i}` })) } });
         render(<TestSetCard {...base} lastRun={green} />);
@@ -305,6 +325,11 @@ describe('TestSetCard — de knoppen', () => {
         rerender(<TestSetCard {...base} onAddFromChat={onAddFromChat} canAddFromChat />);
         await user.click(screen.getByTestId('agent-tests-add-from-chat'));
         expect(onAddFromChat).toHaveBeenCalled();
+    });
+
+    it('the button waits while the proposal form is loading or open', () => {
+        render(<TestSetCard {...base} onAddFromChat={() => {}} canAddFromChat addFromChatBusy />);
+        expect(screen.getByTestId('agent-tests-add-from-chat')).toBeDisabled();
     });
 
     it('alleen-lezen haalt de acties weg, niet de feiten', () => {

@@ -32,6 +32,42 @@ const TIMEOUT_MS = Number(process.env.LLAMACPP_RERANK_TIMEOUT_MS) || 15_000;
 /** @param {number} x */
 function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
 
+// ── Unreachable router: back off instead of failing every search ──────────
+// Turned on while llama.cpp is not running (a stopped host process, a laptop),
+// every knowledge search paid a failed request and logged two warnings before
+// falling through to the next tier. After a network failure the router is
+// skipped for LLAMACPP_RERANK_RETRY_MS (default 5 minutes; 0 = try every time)
+// and that is logged once. An HTTP error does not trip it: the router answered.
+const DEFAULT_RETRY_MS = 5 * 60_000;
+/** @type {Map<string, number>} base URL -> epoch ms until which it is skipped */
+const skipUntil = new Map();
+
+function retryMs() {
+    const raw = process.env.LLAMACPP_RERANK_RETRY_MS;
+    const n = raw === undefined || raw === '' ? DEFAULT_RETRY_MS : Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : DEFAULT_RETRY_MS;
+}
+
+/** @param {string} base */
+function coolingDown(base) {
+    const until = skipUntil.get(base);
+    if (until === undefined) return false;
+    if (Date.now() < until) return true;
+    skipUntil.delete(base);
+    return false;
+}
+
+/** @param {string} base @param {string} reason */
+function markUnreachable(base, reason) {
+    const ms = retryMs();
+    if (ms === 0) {
+        log.warn(`[LlamaCppRerank] unavailable (${reason})`);
+        return;
+    }
+    skipUntil.set(base, Date.now() + ms);
+    log.warn(`[LlamaCppRerank] unreachable at ${base} (${reason}); using the next reranker for ${Math.round(ms / 1000)}s`);
+}
+
 async function getSettings() {
     const enabled = (await configStore.getConfig('llamacpp_rerank_enabled')) === true
         || process.env.LLAMACPP_RERANK_ENABLED === '1';
@@ -43,6 +79,12 @@ async function getSettings() {
 /** Whether an admin has turned this on. Cheap: config only, no network. */
 async function isEnabled() {
     return (await getSettings()).enabled;
+}
+
+/** Turned on and not backing off after a network failure. Cheap: no network. */
+async function isAvailable() {
+    const { enabled, base } = await getSettings();
+    return enabled && !coolingDown(base);
 }
 
 /**
@@ -58,7 +100,7 @@ async function isEnabled() {
 async function rerankLlamaCpp(query, documents, topN) {
     if (!query || !Array.isArray(documents) || documents.length === 0) return [];
     const { enabled, base, model } = await getSettings();
-    if (!enabled) return [];
+    if (!enabled || coolingDown(base)) return [];
 
     try {
         const res = await fetch(`${base}/v1/rerank`, {
@@ -90,9 +132,12 @@ async function rerankLlamaCpp(query, documents, topN) {
         scored.sort((a, b) => b.relevance_score - a.relevance_score);
         return scored;
     } catch (err) {
-        log.warn(`[LlamaCppRerank] unavailable (${/** @type {Error} */ (err).message})`);
+        markUnreachable(base, /** @type {Error} */ (err).message);
         return [];
     }
 }
 
-module.exports = { rerankLlamaCpp, isEnabled, _internals: { sigmoid, getSettings } };
+module.exports = {
+    rerankLlamaCpp, isEnabled, isAvailable,
+    _internals: { sigmoid, getSettings, resetBackoff: () => skipUntil.clear() },
+};
