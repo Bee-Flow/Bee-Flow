@@ -330,21 +330,19 @@ describe('useRunStream — pausing on a hidden tab', () => {
         expect(result.current.state).toBe('live');
     });
 
-    it('does not open a stream at all when the tab is already hidden at mount — yet still calls itself "live" (wrat)', () => {
+    it('opens no stream when the tab is already hidden at mount, and says "paused"', () => {
         hidden = true;
         const { fn } = deferredStream();
         apiMock.streamRuns = fn;
         const { result } = mount();
         expect(fn).not.toHaveBeenCalled();
-        // …and it still calls itself "live" — nothing is connected. (wrat)
-        expect(result.current.state).toBe('live');
+        expect(result.current.state).toBe('paused');
     });
 
-    it('leaves a poll loop running ALONGSIDE the new stream when the tab returns mid-poll (wrat)', async () => {
-        // The poll tick that was in flight while the tab was hidden reschedules
-        // itself on resolve — it checks only `stopped`, never `polling`. So the
-        // hook ends up on SSE *and* on a 5s poll it can no longer stop, and the
-        // shared `timer` handle now points at the poll, not at the reconnect.
+    it('retires the poll loop when the tab returns mid-poll: the new stream is the only source', async () => {
+        // The poll tick that was in flight while the tab was hidden used to
+        // reschedule itself on resolve (it checked only `stopped`), so the hook
+        // ended up on SSE *and* on a 5s poll it could no longer stop.
         const { fn, calls } = deferredStream();
         apiMock.streamRuns = fn;
         let releasePoll;
@@ -366,8 +364,8 @@ describe('useRunStream — pausing on a hidden tab', () => {
         // The hidden-tab poll finally answers…
         await act(async () => { releasePoll({ runs: [] }); await Promise.resolve(); });
         await tick(5000);
-        // …and the poll loop is alive again, next to the live stream.
-        expect(apiMock.listRecentRuns).toHaveBeenCalledTimes(2);
+        // …and stays the last one: no second loop next to the live stream.
+        expect(apiMock.listRecentRuns).toHaveBeenCalledTimes(1);
         expect(fn.mock.calls.length).toBe(streamCalls);
         expect(result.current.state).toBe('live');
     });
