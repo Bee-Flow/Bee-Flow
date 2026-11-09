@@ -71,6 +71,9 @@ describe('AgentDesigner', () => {
         render(<AgentDesigner />);
         expect(await screen.findByText('Edit Agent')).toBeInTheDocument();
         expect(screen.getByTestId('identity-section')).toBeInTheDocument();
+        const nav = screen.getByRole('navigation', { name: 'Agent settings' });
+        expect(within(nav).getByRole('button', { name: 'Identity' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('heading', { level: 2, name: 'Edit Agent' })).toBeInTheDocument();
         // No integration status yet: no Integrations section.
         expect(screen.queryByRole('button', { name: 'Integrations' })).toBeNull();
         await userEvent.click(screen.getByRole('button', { name: /Personal/ }));

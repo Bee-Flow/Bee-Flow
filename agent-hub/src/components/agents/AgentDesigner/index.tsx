@@ -18,6 +18,8 @@ import { ToolsSection as ToolsSectionJs } from "./sections/ToolsSection";
 import type { DesignerSectionProps } from "./sections/sectionProps";
 import { useTranslation } from '@/hooks/useTranslation';
 import { API_BASE, authFetch } from "@/utils/helpers";
+import { CHIP_ERROR, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import SectionHeader from '@/components/shared/SectionHeader';
 
 /** The designer's state (hooks/useAgentState.ts). */
 type DesignerState = ReturnType<typeof useAgentState>;
@@ -90,10 +92,8 @@ const AgentDesigner = ({
     <div className="h-full flex flex-col bg-[var(--bg-primary)]">
       {/* Title bar — only rendered when inline (onClose provided) */}
       {onClose && (
-        <div
-          className="flex-shrink-0 flex items-center px-5 h-[48px] [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-subtle)]"
-        >
-          <span className="text-[15px] font-semibold text-[var(--text-primary)]">{t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}</span>
+        <div className="flex flex-shrink-0 items-center border-b border-[var(--border-default)] px-5 py-3">
+          <span className="text-sm font-semibold text-[var(--text-primary)]">{t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}</span>
         </div>
       )}
       {/* Main Content */}
@@ -132,13 +132,9 @@ function SaveControls({ isReadonly, saving, canSave, onSave }: { isReadonly: boo
   return (
     <div className="flex items-center gap-2">
       {isReadonly && (
-        <span className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-500 font-medium">{t('agent_studio.agent_designer_read_only_unpublished', 'Read-only (Unpublished)')}</span>
+        <span className={CHIP_ERROR}>{t('agent_studio.agent_designer_read_only_unpublished', 'Read-only (Unpublished)')}</span>
       )}
-      <button
-        onClick={onSave}
-        disabled={saving || !canSave || isReadonly}
-        className="px-5 py-1.5 text-sm font-medium rounded-lg border bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-all disabled:opacity-40 disabled:cursor-not-allowed border-[var(--border-default)] text-[var(--text-secondary)]"
-      >
+      <button type="button" onClick={onSave} disabled={saving || !canSave || isReadonly} className={PRIMARY_BTN}>
         {saving ? "Saving..." : "Save Changes"}
       </button>
     </div>
@@ -160,16 +156,11 @@ function AgentWorkspace({ state, api, systemMode, isReadonly, sharedProps }: {
       {/* Configuration Area */}
       <div className="flex-1 flex flex-col min-w-[600px] border-r border-[var(--border-default)]">
         {/* Header */}
-        <div className="px-6 py-3 border-b flex items-center justify-between border-[var(--border-default)]">
-          <div>
-            <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-              {isCreating ? "Create New Agent" : "Edit Agent"}
-            </h1>
-            <p className="text-xs text-muted">
-              {t('agent_studio.agent_designer_configure_identity_logic_and', 'Configure identity, logic, and safeguards.')}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+        <div className="border-b border-[var(--border-default)] px-6 py-4">
+          <SectionHeader
+            title={isCreating ? "Create New Agent" : "Edit Agent"}
+            description={t('agent_studio.agent_designer_configure_identity_logic_and', 'Configure identity, logic, and safeguards.')}
+            status={<div className="flex items-center gap-2">
             {!systemMode && selectedAgent && (
               <PublishMenu
                 isReadonly={isReadonly}
@@ -186,11 +177,12 @@ function AgentWorkspace({ state, api, systemMode, isReadonly, sharedProps }: {
               />
             )}
             <SaveControls isReadonly={isReadonly} saving={state.saving} canSave={!!state.name.trim()} onSave={api.saveAgent} />
-          </div>
+            </div>}
+          />
         </div>
 
         {/* Config Content (Sidebar + Main) */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
           <DesignerSectionNav integrationStatus={state.integrationStatus} activeSection={activeSection} setActiveSection={state.setActiveSection} />
 
           {/* Section Content */}
