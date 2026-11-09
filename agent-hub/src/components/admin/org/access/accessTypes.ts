@@ -1,3 +1,4 @@
+import { Layers, Settings, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /** One capability row, as the group-access / org-availability payloads carry it. */
@@ -42,3 +43,14 @@ export interface AccessKindSection {
     label: string;
     icon: LucideIcon;
 }
+
+/**
+ * The kinds a capability list groups by, in display order. MCP servers are
+ * integrations (kind 'integration', category 'MCP servers'), so they have no
+ * group of their own.
+ */
+export const ACCESS_KIND_SECTIONS: readonly AccessKindSection[] = [
+    { kind: 'core', labelKey: 'admin_org.access_matrix_features', label: 'Features', icon: Layers },
+    { kind: 'beta', labelKey: 'admin_org.access_matrix_beta_features', label: 'Beta features', icon: Sparkles },
+    { kind: 'integration', labelKey: 'admin_org.access_matrix_integrations', label: 'Integrations', icon: Settings },
+];
