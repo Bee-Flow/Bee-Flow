@@ -20,7 +20,8 @@ The connector is the Nextcloud ExApp that bridges your Nextcloud to the Bee Flow
 | Authenticate users | Nextcloud session validated by AppAPI's signed proxy — no second login |
 | Forward API calls | Reverse-proxy `^api/` and `^auth/` to the Bee Flow service over TLS |
 | Call back into Nextcloud | HMAC-signed `/nc/*` proxy lets the Bee Flow service reach Files / Mail / Calendar / Deck / Talk on the user's behalf |
-| Sync user/group changes | Subscribes to 5 NC events; forwards to the Bee Flow service via `/webhook/nc-events` |
+| Deliver Nextcloud events to automations | Registers rows with Nextcloud's `webhook_listeners` app (Files, tags, Calendar, and Forms / Tables / Deck when installed); deliveries arrive on `/hooks/nextcloud` |
+| Sync user/group changes | Periodic sync from the Bee Flow service plus a manual "Sync now" (Nextcloud's user and group events cannot be delivered as webhooks) |
 
 ## Deployment topology
 
@@ -60,23 +61,22 @@ The connector and Nextcloud always sit on the same network. The connector talks 
 
 | NC | Status |
 |----|:------:|
-| 31 | ✅ |
 | 32 | ✅ |
-| 33.0.0 | ⚠️ broken events listener — sync degrades gracefully, fix in 33.0.1 |
-| 33.0.1+ | ✅ |
+| 33 | ✅ |
 | 34 | ✅ |
+| 35 | ✅ |
 
 The supported range is declared in [`appinfo/info.xml`](https://github.com/Bee-Flow/connector/blob/main/appinfo/info.xml):
 
 ```xml
 <dependencies>
-  <nextcloud min-version="31" max-version="34"/>
+  <nextcloud min-version="32" max-version="35"/>
 </dependencies>
 ```
 
 ## Trust model in one paragraph
 
-The connector trusts AppAPI's signature on every inbound `/init`, `/heartbeat`, `/enabled`, `/api/*`, `/auth/*`, `/webhook/*` request. It trusts an HMAC signed with the tenant key on every inbound `/nc/*` request from the Bee Flow service. It trusts no other input. Outbound, it signs every request to the Bee Flow service with the same tenant-key HMAC, and signs every NC OCS / DAV call with AppAPI's user-impersonation header. There is no shared secret beyond the AppAPI app secret (set by Nextcloud) and the tenant key (provisioned at first install).
+The connector trusts AppAPI's shared secret on every inbound `/init`, `/enabled`, `/api/*`, `/auth/*`, `/setup/*`, `/webhook/*` request; `/heartbeat` is the one route it answers without it, and there it discloses only liveness and a coarse setup state. It trusts an HMAC signed with the tenant key on every inbound `/nc/*` request from the Bee Flow service. It trusts no other input. Outbound, it signs every request to the Bee Flow service with the same tenant-key HMAC, and signs every NC OCS / DAV call with AppAPI's user-impersonation header. There is no shared secret beyond the AppAPI app secret (set by Nextcloud) and the tenant key (provisioned at first install).
 
 ## Deeper reading
 

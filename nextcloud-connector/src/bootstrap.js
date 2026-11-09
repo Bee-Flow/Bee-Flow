@@ -196,12 +196,18 @@ async function fetchCapabilities() {
     let instanceId = data?.capabilities?.theming?.instanceid
         || data?.capabilities?.core?.instanceid;
     if (!instanceId) {
-        // No stable id from NC. Derive one from the public base URL host (the
-        // same value we send as X-Beeflow-NC-Base-Url and that the SaaS
-        // re-derives) so it doesn't change when NC is upgraded — which would
-        // otherwise create a duplicate org on the next re-bootstrap.
+        // This is the normal case, not an exception: Nextcloud 32-35 publishes
+        // no instance id in its capabilities (OC\OCS\CoreCapabilities has
+        // pollinterval, webdav-root, reference-api, reference-regex and
+        // mod-rewrite-working; the theming capabilities have none either), so
+        // the two reads above only ever match a server that adds one.
+        // Derive the id from the public base URL host (the same value we send
+        // as X-Beeflow-NC-Base-Url and that the SaaS re-derives) so it doesn't
+        // change when NC is upgraded — which would otherwise create a duplicate
+        // org on the next re-bootstrap. It DOES change when that host changes;
+        // the cached tenant key file keeps the id it was bootstrapped with.
         instanceId = stableInstanceIdFallback(config.nextcloudPublicUrl || config.nextcloudUrl, themingName);
-        log.warn(`[Bootstrap] NC exposes no theming/core instanceid; using stable host fallback '${instanceId}'`);
+        log.info(`[Bootstrap] Nextcloud publishes no instance id in its capabilities; using the host-derived id '${instanceId}'`);
     }
     return { instanceId, themingName, version: data?.version?.string || 'unknown' };
 }
