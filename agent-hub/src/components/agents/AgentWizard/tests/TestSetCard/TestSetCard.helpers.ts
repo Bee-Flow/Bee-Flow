@@ -21,6 +21,10 @@ export function problemSentence(t: TranslateFn, problem: { status: string; kind:
             return names
                 ? t('agent_studio.test.blocked_withheld', 'A test run never uses {names}, so this could not be checked.', { names })
                 : t('agent_studio.test.blocked_plain', 'This expectation cannot be checked in a test run.');
+        case 'ungraded_grading':
+            return t('agent_studio.test.errored_grading', 'The agent answered, but grading failed. Run again.');
+        case 'ungraded_turn':
+            return t('agent_studio.test.errored_turn', 'The agent could not answer this question in the test run.');
         case 'ungraded':
             return t('agent_studio.test.errored', 'There was no answer to grade, so this says nothing about the agent.');
         case 'decided:must_mention':

@@ -151,6 +151,10 @@ describe('problemFor / firstProblem — de faalregel', () => {
     it('geblokkeerd en fout zijn eigen soorten, geen fail', () => {
         expect(problemFor(item({ status: 'blocked', toolsWithheld: ['gmail_send'] }))).toMatchObject({ status: 'blocked', kind: 'withheld', names: ['gmail_send'] });
         expect(problemFor(item({ status: 'error', reason: 'The agent could not answer: boom' }))).toMatchObject({ status: 'error', kind: 'ungraded' });
+        expect(problemFor(item({ status: 'error', errorKind: 'grading' })).kind).toBe('ungraded_grading');
+        expect(problemFor(item({ status: 'error', errorKind: 'turn_failed' })).kind).toBe('ungraded_turn');
+        expect(problemFor(item({ status: 'error', errorKind: 'no_answer' })).kind).toBe('ungraded');
+        expect(problemFor(item({ status: 'error', errorKind: 'made up' })).kind).toBe('ungraded');
         expect(problemFor(item({ status: 'pass' }))).toBeNull();
     });
 

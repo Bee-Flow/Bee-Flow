@@ -15,11 +15,13 @@ const sandbox = require('../../core/agentRuntime/testSandbox');
 const testAsMod = require('../../core/agentRuntime/testAs');
 const {
     requireEditableAgent, versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
-    GRADER_MODEL, logGradeUsage,
+    GRADER_MODEL, logGradeUsage, gradeMaxTokens,
 } = require('./testsGuards');
 
 const MAX_ANSWER_STREAMED = 8000;
-const MAX_GRADE_TOKENS = 400;
+
+/** Why a test ended in `error`. A closed value, never free text. */
+const ERROR_KINDS = Object.freeze(['grading', 'no_answer', 'turn_failed']);
 
 /**
  * @typedef {{ index: number }} BuildTestResultRecordArgs
@@ -46,6 +48,7 @@ function buildTestResultRecord({ verdict, test, facts, index, turn }) {
         status: verdict.status,
         reason: verdict.reason,
         decidedBy: verdict.decidedBy || null,
+        ...(verdict.status === 'error' && ERROR_KINDS.includes(verdict.errorKind) ? { errorKind: verdict.errorKind } : {}),
         toolsUsed: facts.toolsUsed,
         toolsMissing: facts.toolsMissing,
         toolsWithheld: facts.toolsWithheld,
@@ -119,6 +122,40 @@ async function runOneTest({ agentId, test, userId, userAuth, orgId, timezone, si
         log.warn(`[agents/tests] turn failed for test "${test.name}":`, /** @type {Error} */ (err).message);
         return { answer: '', toolsUsed, withheld, error: /** @type {Error} */ (err).message };
     }
+}
+
+/**
+ * The grading call, with one retry when the answer comes back unreadable
+ * (no structured result, or one `parseGrading` cannot read), at double the
+ * output cap: a model that spent the whole budget before it reached the tool
+ * call usually has room on the second go. A call that THROWS is not retried.
+ * Both calls are logged as usage. Returns the parsed grading or null.
+ * @param {{ gradeModelId: string, test: any, turn: any, facts: any, userId: string, orgId?: string | null }} param0
+ */
+async function gradeAnswer({ gradeModelId, test, turn, facts, userId, orgId }) {
+    const llmClient = require('../../core/llm/llmClient');
+    const messages = sandbox.buildGradingMessages({ test, answer: turn.answer, facts, withheld: turn.withheld });
+    const baseCap = gradeMaxTokens();
+    try {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const startMs = Date.now();
+            const out = await llmClient.chatForcedTool(
+                gradeModelId,
+                messages,
+                sandbox.GRADE_TOOL,
+                { maxTokens: baseCap * (attempt + 1), temperature: 0, reasoningEffort: 'none', budgetTokens: 0 },
+            );
+            const graded = sandbox.parseGrading(out?.structured);
+            await logGradeUsage({ userId, userOrgId: orgId, modelId: gradeModelId, usage: out?.usage, startMs });
+            if (graded) return graded;
+            // Key NAMES only: the values are the model's sentence about a customer's text.
+            const keys = out?.structured && typeof out.structured === 'object' ? Object.keys(out.structured) : [];
+            log.warn(`[agents/tests] grading unreadable (attempt ${attempt + 1}): stopReason=${out?.stopReason ?? 'unknown'} keys=[${keys.join(',')}]`);
+        }
+    } catch (e) {
+        log.warn('[agents/tests] grading failed:', /** @type {Error} */ (e).message);
+    }
+    return null;
 }
 
 async function runTests(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
@@ -212,32 +249,17 @@ async function runTests(/** @type {import('express').Request} */ req, /** @type 
 
             let verdict;
             if (turn.error) {
-                verdict = { status: 'error', pass: false, reason: ('The agent could not answer: ' + turn.error).slice(0, sandbox.LIMITS.reason) };
+                verdict = { status: 'error', pass: false, reason: ('The agent could not answer: ' + turn.error).slice(0, sandbox.LIMITS.reason), errorKind: 'turn_failed' };
             } else if (!turn.answer.trim()) {
                 // Not a fail: an empty turn is as likely to be the runtime as
                 // the agent, and neither of those is "the test passed".
-                verdict = { status: 'error', pass: false, reason: 'The agent returned no answer, so there was nothing to grade.' };
+                verdict = { status: 'error', pass: false, reason: 'The agent returned no answer, so there was nothing to grade.', errorKind: 'no_answer' };
             } else if (sandbox.decidedByFacts(facts)) {
                 verdict = sandbox.verdictFor(facts, null);
             } else {
-                /** @type {{ pass: boolean; reason: string; decidedBy: string | undefined; } | null} */
-                let graded = null;
-                const startMs = Date.now();
-                try {
-                    const llmClient = require('../../core/llm/llmClient');
-                    const out = await llmClient.chatForcedTool(
-                        gradeModelId,
-                        sandbox.buildGradingMessages({ test, answer: turn.answer, facts, withheld: turn.withheld }),
-                        sandbox.GRADE_TOOL,
-                        { maxTokens: MAX_GRADE_TOKENS, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 },
-                    );
-                    graded = sandbox.parseGrading(out?.structured);
-                    await logGradeUsage({ userId, userOrgId: orgId, modelId: gradeModelId, usage: out?.usage, startMs });
-                } catch (e) {
-                    log.warn('[agents/tests] grading failed:', /** @type {Error} */ (e).message);
-                    graded = null;
-                }
+                const graded = await gradeAnswer({ gradeModelId, test, turn, facts, userId, orgId });
                 verdict = sandbox.verdictFor(facts, graded);
+                if (verdict.status === 'error') verdict.errorKind = 'grading';
             }
 
             if (verdict.status === 'pass') passed++;

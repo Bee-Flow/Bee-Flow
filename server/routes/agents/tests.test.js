@@ -540,9 +540,75 @@ test('a grading call that fails is error, never pass', async () => {
 test('a grader answer nobody can read is error, never pass', async () => {
     fx.tests = [TEST()];
     fx.turns = [{ content: 'Some answer' }];
-    fx.grades = [{ pass: 'probably', reason: 'hmm' }];
+    fx.grades = [{ pass: 'probably', reason: 'hmm' }, { pass: 'probably', reason: 'hmm' }];
     const res = await dispatch({ method: 'POST', url: '/a1/tests/run' });
     assert.strictEqual(ev(res, 'test_result')[0].status, 'error');
+});
+
+test('an unreadable grading is retried once with double the cap, and a valid verdict then passes', async () => {
+    fx.tests = [TEST()];
+    fx.turns = [{ content: 'Some answer' }];
+    fx.grades = [null, { pass: true, reason: 'fine' }];
+    const res = await dispatch({ method: 'POST', url: '/a1/tests/run' });
+    assert.strictEqual(ev(res, 'test_result')[0].status, 'pass');
+    assert.strictEqual(fx.gradeCalls.length, 2);
+    assert.strictEqual(fx.gradeCalls[1].opts.maxTokens, fx.gradeCalls[0].opts.maxTokens * 2);
+    assert.strictEqual(fx.usageRows.length, 2, 'both calls are billed');
+});
+
+test('grading unreadable twice is error with errorKind grading, stored as a closed value', async () => {
+    fx.tests = [TEST()];
+    fx.turns = [{ content: 'Some answer' }];
+    fx.grades = [null, { reason: 'no pass field' }];
+    const res = await dispatch({ method: 'POST', url: '/a1/tests/run' });
+    const result = ev(res, 'test_result')[0];
+    assert.strictEqual(result.status, 'error');
+    assert.strictEqual(result.errorKind, 'grading');
+    assert.strictEqual(fx.gradeCalls.length, 2);
+    assert.strictEqual(fx.recorded[0].results.items[0].errorKind, 'grading');
+});
+
+test('a grading call that throws is not retried', async () => {
+    fx.tests = [TEST()];
+    fx.turns = [{ content: 'Some answer' }];
+    fx.gradeThrows = true;
+    const res = await dispatch({ method: 'POST', url: '/a1/tests/run' });
+    assert.strictEqual(ev(res, 'test_result')[0].errorKind, 'grading');
+    assert.strictEqual(fx.gradeCalls.length, 1);
+});
+
+test('an empty answer is errorKind no_answer and a failed turn is turn_failed', async () => {
+    fx.tests = [TEST(), TEST({ id: 't2' })];
+    fx.turns = [{ content: '' }, { throws: 'boom' }];
+    const res = await dispatch({ method: 'POST', url: '/a1/tests/run' });
+    const results = ev(res, 'test_result');
+    assert.strictEqual(results[0].errorKind, 'no_answer');
+    assert.strictEqual(results[1].errorKind, 'turn_failed');
+});
+
+test('a passing test carries no errorKind', async () => {
+    fx.tests = [TEST()];
+    fx.turns = [{ content: 'Some answer' }];
+    const res = await dispatch({ method: 'POST', url: '/a1/tests/run' });
+    assert.ok(!('errorKind' in ev(res, 'test_result')[0]));
+});
+
+test('AGENT_TEST_GRADE_MAX_TOKENS sets the grading cap; 0 or junk means the default', async () => {
+    const saved = process.env.AGENT_TEST_GRADE_MAX_TOKENS;
+    try {
+        for (const [value, expected] of [[undefined, 1024], ['', 1024], ['0', 1024], ['-5', 1024], ['abc', 1024], ['1.5', 1024], ['2000', 2000]]) {
+            if (value === undefined) delete process.env.AGENT_TEST_GRADE_MAX_TOKENS;
+            else process.env.AGENT_TEST_GRADE_MAX_TOKENS = value;
+            fx.gradeCalls = [];
+            fx.tests = [TEST()];
+            fx.turns = [{ content: 'Some answer' }];
+            await dispatch({ method: 'POST', url: '/a1/tests/run' });
+            assert.strictEqual(fx.gradeCalls[0].opts.maxTokens, expected, `value ${value}`);
+        }
+    } finally {
+        if (saved === undefined) delete process.env.AGENT_TEST_GRADE_MAX_TOKENS;
+        else process.env.AGENT_TEST_GRADE_MAX_TOKENS = saved;
+    }
 });
 
 test('a tool the sandbox withheld makes the test blocked, not failed', async () => {

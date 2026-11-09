@@ -138,6 +138,8 @@ module.exports = {
     'agent_studio.test.covers_then': 'covers {ran} of the {count} question this agent had then',
     'agent_studio.test.covers_then_plural': 'covers {ran} of the {count} questions this agent had then',
     'agent_studio.test.empty': 'No questions yet — turn an answer you liked into the first one.',
+    'agent_studio.test.errored_grading': 'The agent answered, but grading failed. Run again.',
+    'agent_studio.test.errored_turn': 'The agent could not answer this question in the test run.',
     'agent_studio.test.errored': 'There was no answer to grade, so this says nothing about the agent.',
     'agent_studio.test.fail_forbidden': 'Said something this test forbids: {names}',
     'agent_studio.test.fail_must_mention': 'Did not get across everything this test asks for.',

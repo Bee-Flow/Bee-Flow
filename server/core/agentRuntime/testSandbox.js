@@ -172,7 +172,7 @@ function normaliseTest(raw) {
     if (!question) return { test: null, error: 'no_question' };
     return {
         test: {
-            name: _str(src.name, LIMITS.name) || question.slice(0, 60),
+            name: _str(src.name, LIMITS.name) || require('./testName').defaultName(question),
             question,
             expect: normaliseExpect(src.expect),
         },

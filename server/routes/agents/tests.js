@@ -194,7 +194,7 @@ const testAsMod = require('../../core/agentRuntime/testAs');
 // the suggestion and the route table.
 const {
     requireEditableAgent, versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
-    SUGGEST_MODEL, logSuggestUsage,
+    SUGGEST_MODEL, logSuggestUsage, suggestMaxTokens,
 } = require('./testsGuards');
 const { buildTestResultRecord, runOneTest, runTests } = require('./testsRun');
 
@@ -206,8 +206,6 @@ const runLimiter = perUserRateLimit({ windowMs: 60_000, max: 4 });
 // Suggesting is ONE model call, so it sits between the two: more room than a
 // run, far less than a form submit.
 const suggestLimiter = perUserRateLimit({ windowMs: 60_000, max: 12 });
-
-const MAX_SUGGEST_TOKENS = 300;
 
 // ── The questions ────────────────────────────────────────────────────
 
@@ -404,7 +402,7 @@ router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLim
             modelId,
             suggest.buildSuggestionMessages({ question, answer, toolsUsed }),
             suggest.SUGGEST_TOOL,
-            { maxTokens: MAX_SUGGEST_TOKENS, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 },
+            { maxTokens: suggestMaxTokens(), temperature: 0, reasoningEffort: 'none', budgetTokens: 0 },
         );
         parsed = suggest.parseSuggestion(out?.structured);
         await logSuggestUsage({ userId: gate.userId, userOrgId: orgId, modelId, usage: out?.usage, startMs });

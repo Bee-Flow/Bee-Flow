@@ -327,3 +327,10 @@ test('a test with no expectations still produces a usable instruction', () => {
     assert.ok(S.expectIsEmpty({}));
     assert.ok(!S.expectIsEmpty({ notes: 'be polite' }));
 });
+
+test('normaliseTest uses the shortened default name and keeps the full question', () => {
+    const question = 'word '.repeat(30).trim();
+    const { test: t } = require('./testSandbox').normaliseTest({ question });
+    assert.strictEqual(t.question, question);
+    assert.ok(t.name.endsWith('\u2026') && t.name.length <= 60);
+});

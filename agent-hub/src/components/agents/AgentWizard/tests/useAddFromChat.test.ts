@@ -67,4 +67,24 @@ describe('useAddFromChat', () => {
         expect(result.current.turn).toBeNull();
         expect(result.current.state).toBe('loading');
     });
+
+    it('a double press sends one suggestion call', async () => {
+        let release: (v: unknown) => void = () => {};
+        const { result, testSet } = setup({ suggest: vi.fn(() => new Promise(r => { release = r; })) });
+        let first: Promise<void> = Promise.resolve();
+        let second: Promise<void> = Promise.resolve();
+        act(() => { first = result.current.open(turn); second = result.current.open(turn); });
+        expect(testSet.suggest).toHaveBeenCalledTimes(1);
+        expect(result.current.busy).toBe(true);
+        await act(async () => { release({ suggestion: null, refusal: null }); await first; await second; });
+        expect(testSet.suggest).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens again after the form was closed', async () => {
+        const { result, testSet } = setup();
+        await act(async () => { await result.current.open(turn); });
+        act(() => { result.current.close(); });
+        await act(async () => { await result.current.open(turn); });
+        expect(testSet.suggest).toHaveBeenCalledTimes(2);
+    });
 });

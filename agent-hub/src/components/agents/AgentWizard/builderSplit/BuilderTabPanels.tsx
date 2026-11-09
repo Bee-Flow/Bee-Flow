@@ -172,6 +172,7 @@ export function TestTabPanel({ t, ro, rel, agent, testSet }: Loose) {
                         onRun={testSet.runTests}
                         onAddFromChat={() => { if (turn) void addFromChat.open(turn); }}
                         canAddFromChat={!!turn}
+                        addFromChatBusy={addFromChat.busy}
                     />
                 </>
             ) : (
