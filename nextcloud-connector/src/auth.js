@@ -15,8 +15,8 @@
  *
  * userId is empty for service-level calls (no human in the loop) and a
  * Nextcloud uid otherwise. We mint a SaaS-bound JWT only for human-bound
- * calls; service-level calls don't reach the proxy here (they hit lifecycle
- * endpoints which are exempt).
+ * calls; service-level calls don't reach the proxy here (they hit /init,
+ * /enabled and /trigger, which need the secret but no user).
  */
 
 const crypto = require('crypto');
@@ -36,21 +36,32 @@ const HDR = {
     requestId: 'aa-request-id',
 };
 
-// AppAPI 5.x sends NO auth header on the lifecycle calls (test/lifecycle.test.js),
-// so these three are let through before a single header is parsed — the check
-// below never runs for them. That is not the same as "they are unauthenticated
-// by design": info.xml declares /init and /enabled ADMIN, and the connector binds
-// 0.0.0.0 on a docker network it shares with every other ExApp. Because the gate
-// cannot see them, each route carries its own check — see heartbeat.js
-// (isTrustedLifecycleCaller + untrustedLifecycleAllowed). Adding a lifecycle route
-// here without one leaves it open to every container on that network.
-const LIFECYCLE_PATHS = new Set(['/heartbeat', '/init', '/enabled']);
+// AppAPI sends NO auth header on /heartbeat (it polls it before the install has
+// got far enough for anything else), so that one path is let through before a
+// single header is parsed. heartbeat.js decides per caller how much it
+// discloses (isTrustedLifecycleCaller).
+const LIFECYCLE_PATHS = new Set(['/heartbeat']);
+
+// /init and /enabled are NOT in that set. AppAPI signs both with the shared
+// secret and an empty userId, base64(":" + APP_SECRET):
+//   - /init:    AppAPIService::dispatchExAppInitInternal posts with
+//               buildAppAPIAuthHeaders(null, null, $exApp)
+//   - /enabled: AppAPIService::enableExApp / disableExApp go through
+//               requestToExApp, which adds the same headers
+// Read in nextcloud/app_api on stable32, stable33, stable34 and stable35 (the
+// versions info.xml supports); HaRP forwards the header unchanged. An earlier
+// revision assumed AppAPI sent no header here and let both through
+// unauthenticated behind a rate budget; the connector binds 0.0.0.0 on a docker
+// network it shares with every other ExApp, so that left /init (about 42 OCS
+// writes into the customer's Nextcloud per call) reachable by any neighbour.
+// They pass once the secret is verified, whatever the userId part says.
+const SIGNED_LIFECYCLE_PATHS = new Set(['/init', '/enabled']);
 
 // Service-level AppAPI calls that carry the shared secret but NO user context.
 // AppAPI's Task Processing trigger (ITriggerableProvider) calls the ExApp at
 // POST /trigger?providerId=… via requestToExApp with a null userId, so the
 // header is base64(":"+APP_SECRET) — a valid secret, empty userId. These paths
-// must run rather than 401, but UNLIKE the lifecycle paths they still pass the
+// must run rather than 401, but UNLIKE /heartbeat they still pass the
 // constant-time secret check below (they are allow-listed in the empty-userId
 // branch, not in LIFECYCLE_PATHS which skips the secret entirely).
 // The /setup routes that still answer while Nextcloud's certificate is refused
@@ -359,7 +370,7 @@ function warnSecretMismatch(userId) {
         + `AUTHORIZATION-APP-API shared secret does not match this container's APP_SECRET. `
         + `If this is not an attack, Nextcloud and the container hold different secrets — `
         + `re-register the ExApp (occ app_api:app:unregister ${config.appId} && `
-        + `occ app_api:app:register ${config.appId} --force-scopes) to mint a matching pair.`);
+        + `occ app_api:app:register ${config.appId}) to mint a matching pair.`);
 }
 
 /**
@@ -387,6 +398,9 @@ function appApiAuthMiddleware(req, res, next) {
     if (expectedAppId && expectedAppId !== config.appId) {
         return res.status(401).json({ error: 'EX-APP-ID mismatch' });
     }
+
+    // Lifecycle calls need the secret and nothing else: no user lookup, no JWT.
+    if (SIGNED_LIFECYCLE_PATHS.has(req.path)) return next();
 
     if (!decoded.userId) {
         // Service-level AppAPI calls (Task Processing trigger) carry the secret
