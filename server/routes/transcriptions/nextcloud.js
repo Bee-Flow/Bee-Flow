@@ -32,6 +32,7 @@ const AUDIO_EXTS = ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.flac', '.mp4', '.
 const { ACCEPTED_RECORDING_EXTS, parseTalkRoomToken } = require('../../core/meetingNotes/ingestNextcloudRecording');
 const { DEFAULT_RECORDING_FOLDER, talkRecordingRoots } = require('../../core/meetingNotes/talkRecordingPaths');
 const ncClient = require('../../integrations/nextcloudClient');
+const { parsePropfind } = require('../../integrations/nextcloudFiles/webdav');
 
 /**
  * Resolve the configured Talk recordings folder (org+user scoped, default
@@ -124,40 +125,18 @@ router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery 
         if (r.status === 401) return res.status(401).json({ error: ctx.authError || 'Nextcloud auth failed' });
         if (!r.ok) throw new HttpError(502, 'nextcloud_propfind_failed', `Nextcloud PROPFIND failed (${r.status})`);
 
-        const xml = await r.text();
-        // Naive but sufficient parse — pull <d:response> blocks and extract href + props.
+        const folderPath = '/' + folder.split('/').filter(Boolean).join('/');
         const items = [];
-        const blocks = xml.split(/<d:response[^>]*>/i).slice(1);
-        for (const block of blocks) {
-            const hrefMatch = block.match(/<d:href>([^<]+)<\/d:href>/i);
-            if (!hrefMatch) continue;
-            const href = decodeURIComponent(hrefMatch[1]);
-            // Skip the folder itself (its href ends with the folder path)
-            const folderHrefSuffix = (`/${segs.join('/')}/`).replace(/\/+$/, '/');
-            if (href.endsWith(folderHrefSuffix)) continue;
-            // Drop folders
-            if (/<d:resourcetype>\s*<d:collection\s*\/>\s*<\/d:resourcetype>/i.test(block)) continue;
-
-            const name = decodeURIComponent(href.split('/').filter(Boolean).pop() || '');
-            const ext = path.extname(name).toLowerCase();
-            if (!AUDIO_EXTS.includes(ext)) continue;
-
-            const sizeMatch = block.match(/<d:getcontentlength>(\d+)<\/d:getcontentlength>/i);
-            const ctMatch   = block.match(/<d:getcontenttype>([^<]+)<\/d:getcontenttype>/i);
-            const lmMatch   = block.match(/<d:getlastmodified>([^<]+)<\/d:getlastmodified>/i);
-
-            // Reconstruct the path within the user's Files root from the href.
-            // href example: /remote.php/dav/files/<uid>/Recordings/foo.mp3
-            const filesRoot = `/remote.php/dav/files/${ctx.uid}/`;
-            const idx = href.indexOf(filesRoot);
-            const filePath = idx !== -1 ? '/' + href.slice(idx + filesRoot.length) : href;
-
+        for (const entry of parsePropfind(await r.text(), ctx.baseUrl, ctx.uid)) {
+            // Depth 1 includes the folder itself; subfolders are not listed.
+            if (entry.type !== 'file' || entry.path === folderPath) continue;
+            if (!AUDIO_EXTS.includes(path.extname(entry.name).toLowerCase())) continue;
             items.push({
-                name,
-                path: filePath,
-                size: sizeMatch ? Number(sizeMatch[1]) : null,
-                contentType: ctMatch ? ctMatch[1] : null,
-                lastModified: lmMatch ? lmMatch[1] : null,
+                name: entry.name,
+                path: entry.path,
+                size: Number.isFinite(entry.size) ? entry.size : null,
+                contentType: entry.contentType || null,
+                lastModified: entry.modified || null,
             });
         }
         items.sort(byNewestFirst);
@@ -208,28 +187,19 @@ async function propfindChildren(ctx, folderPath) {
     });
     if (!r.ok) return { status: r.status, entries: [] };
 
-    const xml = await r.text();
-    const filesRoot = `/remote.php/dav/files/${ctx.uid}/`;
     const selfPath = '/' + folderPath.split('/').filter(Boolean).join('/');
     const entries = [];
-    for (const block of xml.split(/<d:response[^>]*>/i).slice(1)) {
-        const hrefMatch = block.match(/<d:href>([^<]+)<\/d:href>/i);
-        if (!hrefMatch) continue;
-        const href = decodeURIComponent(hrefMatch[1]);
-        const idx = href.indexOf(filesRoot);
-        const raw = idx !== -1 ? '/' + href.slice(idx + filesRoot.length) : href;
-        const entryPath = '/' + raw.split('/').filter(Boolean).join('/');
+    for (const entry of parsePropfind(await r.text(), ctx.baseUrl, ctx.uid)) {
+        const entryPath = '/' + entry.path.split('/').filter(Boolean).join('/');
         // Depth 1 includes the folder itself.
         if (entryPath.toLowerCase() === selfPath.toLowerCase()) continue;
-
-        const sizeMatch = block.match(/<d:getcontentlength>(\d+)<\/d:getcontentlength>/i);
-        const lmMatch = block.match(/<d:getlastmodified>([^<]+)<\/d:getlastmodified>/i);
+        const isCollection = entry.type === 'folder';
         entries.push({
             path: entryPath,
-            name: entryPath.split('/').filter(Boolean).pop() || '',
-            isCollection: /<d:resourcetype>\s*<d:collection\s*\/>\s*<\/d:resourcetype>/i.test(block),
-            size: sizeMatch ? Number(sizeMatch[1]) : null,
-            lastModified: lmMatch ? lmMatch[1] : null,
+            name: entry.name,
+            isCollection,
+            size: !isCollection && Number.isFinite(entry.size) ? /** @type {number} */ (entry.size) : null,
+            lastModified: entry.modified || null,
         });
     }
     return { status: r.status, entries };
