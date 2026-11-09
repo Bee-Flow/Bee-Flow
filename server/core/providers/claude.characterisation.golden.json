@@ -286,7 +286,11 @@
           },
           "effort": "high"
         },
-        "thinkingNone": null,
+        "thinkingNone": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
         "thinkingBudget": {
           "thinking": {
             "type": "adaptive",
