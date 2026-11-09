@@ -49,4 +49,33 @@ function calendarQueryReport(rangeStart, rangeEnd) {
 </c:calendar-query>`;
 }
 
-module.exports = { PROPFIND_CALENDARS, calendarQueryReport };
+/** @param {string} text */
+function xmlText(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * A calendar-query REPORT for the object that holds one UID. The file name of
+ * an event is the client's choice: an invitation Nextcloud delivers is stored
+ * as `sabredav-<random>.ics` under the organiser's UID.
+ * @param {string} eventUid
+ */
+function calendarUidReport(eventUid) {
+    return `<?xml version="1.0" encoding="utf-8" ?>
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <d:getetag/>
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VEVENT">
+        <c:prop-filter name="UID">
+          <c:text-match collation="i;octet">${xmlText(eventUid)}</c:text-match>
+        </c:prop-filter>
+      </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>`;
+}
+
+module.exports = { PROPFIND_CALENDARS, calendarQueryReport, calendarUidReport };
