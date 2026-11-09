@@ -452,9 +452,11 @@ async function reapExpiredFormWaits() {
  * run stops heartbeating and is flipped to error after the window. Falls back to
  * started_at for runs that died before their first heartbeat. Returns reaped runs
  * so the caller can emit run.failed lifecycle events.
+ * @param {{ staleAfterMs?: number, queuedStaleAfterMs?: number | null }} [opts]
  */
-async function reapStuckRuns({ staleAfterMs = 6 * 60_000, queuedStaleAfterMs = staleAfterMs + 5 * 60_000 } = {}) {
+async function reapStuckRuns({ staleAfterMs = 6 * 60_000, queuedStaleAfterMs = null } = {}) {
     await initDB();
+    const queuedWindowMs = queuedStaleAfterMs ?? staleAfterMs + 5 * 60_000;
     // A row that never left 'queued' is orphaned the same way: it is created
     // queued and only becomes running once the run holds the automation's
     // marker, which a webhook or event run may wait minutes for. A worker
@@ -477,7 +479,7 @@ async function reapStuckRuns({ staleAfterMs = 6 * 60_000, queuedStaleAfterMs = s
                  AND started_at IS NOT NULL
                  AND started_at < NOW() - ($2::int * INTERVAL '1 millisecond'))
           RETURNING id, automation_id, user_id`,
-        [staleAfterMs, queuedStaleAfterMs],
+        [staleAfterMs, queuedWindowMs],
     );
     return rows.map(r => ({ id: r.id, automationId: r.automation_id, userId: r.user_id }));
 }
