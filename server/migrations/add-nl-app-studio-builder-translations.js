@@ -13,7 +13,8 @@
  * English is: what the AI DID, in the product's words, never the tool's name.
  *
  * Idempotent: only fills keys that are missing, so a workspace that curated
- * its own wording keeps it. ADD, NEVER RENAME. Auto-runs from server boot
+ * its own wording keeps it (NL_REWORDED only replaces the old shipped Dutch).
+ * ADD, NEVER RENAME. Auto-runs from server boot
  * (boot/bootMigrations.js). Manual usage:
  *   node server/migrations/add-nl-app-studio-builder-translations.js
  */
@@ -80,13 +81,6 @@ const NL_TRANSLATIONS = {
     'app_studio.builder.act.calls': '{n} aanroepen',
     'app_studio.builder.act.refused_count': '{n} geweigerd',
     'app_studio.builder.act.refused_title': 'Aanroepen die de bouwer weigerde — elke regel zegt waarom',
-    'app_studio.builder.quick.use_data': 'Mijn data gebruiken',
-    'app_studio.builder.quick.use_data_title': 'Koppel het geselecteerde component aan data uit een van de tabellen van deze app',
-    'app_studio.builder.quick.new_screen': 'Nieuw scherm',
-    'app_studio.builder.quick.new_screen_title': 'Ontwerp en voeg een nieuw scherm toe dat past bij wat deze app al doet',
-    'app_studio.builder.quick.fix_errors': 'Fouten herstellen',
-    'app_studio.builder.quick.fix_errors_title': 'Vraag de AI de huidige problemen te herstellen',
-    'app_studio.builder.quick.fix_errors_none': 'Geen problemen om te herstellen',
     'app_studio.builder.validation.fixing': 'De AI herstelt {n} problemen…',
     'app_studio.builder.validation.fixing_one': 'De AI herstelt 1 probleem…',
     'app_studio.builder.validation.to_review': '{n} problemen om na te kijken',
@@ -105,8 +99,6 @@ const NL_TRANSLATIONS = {
     'app_studio.builder.chat.attach_title': 'Afbeelding toevoegen (of plak een schermafbeelding)',
     'app_studio.builder.chat.composer_aria': 'Bericht aan de AI-bouwer',
     'app_studio.builder.chat.continuing': 'Gaat verder{phase}…',
-    'app_studio.builder.chat.empty_hint': 'Beschrijf de app die je wilt — ik bouw hem op het canvas',
-    'app_studio.builder.chat.empty_title': 'Bouwen met AI',
     'app_studio.builder.chat.err_budget_exhausted': 'Ik heb geen bouwbeurten meer voor deze vraag, maar je voortgang is bewaard. Stuur nog een bericht en ik ga verder.',
     'app_studio.builder.chat.err_generic': 'De AI-bouwer liep tegen een probleem aan.',
     'app_studio.builder.chat.err_internal': 'De AI-bouwer liep tegen een onverwacht probleem aan. Je voortgang is bewaard.',
@@ -126,8 +118,45 @@ const NL_TRANSLATIONS = {
     'app_studio.builder.chat.send': 'Versturen',
     'app_studio.builder.chat.send_title': 'Versturen (Enter)',
     'app_studio.builder.chat.stop_title': 'Stoppen met bouwen',
-    'app_studio.builder.chat.title': 'AI-bouwer',
+    'app_studio.builder.chat.title': 'Assistent',
     'app_studio.builder.chat.try_again': 'Opnieuw proberen',
+    // ── Werkmodi, welkom en "Alles herstellen" (2026-11-09) ─────────────────
+    // Dezelfde woorden als de assistent van automatiseringen.
+    'app_studio.builder.mode.describe': 'Beschrijf het',
+    'app_studio.builder.mode.describe_hint': 'Vertel in je eigen woorden wat de app moet doen. Ik stel een paar vragen, schrijf een plan en bouw het na jouw akkoord.',
+    'app_studio.builder.mode.discuss': 'Alleen advies geven',
+    'app_studio.builder.mode.discuss_hint': 'Beantwoordt vragen en geeft advies. Laat de app zoals hij is.',
+    'app_studio.builder.mode.plan': 'Vragen, plannen, dan bouwen',
+    'app_studio.builder.mode.plan_hint': 'Stelt een paar vragen, schrijft een plan in gewone taal en bouwt na jouw akkoord.',
+    'app_studio.builder.mode.build': 'Meteen aanpassen',
+    'app_studio.builder.mode.build_hint': 'Voert de wijzigingen meteen door. Je kunt ze ongedaan maken.',
+    'app_studio.builder.welcome.empty': 'Wat moet de app doen? Vertel het in je eigen woorden.',
+    'app_studio.builder.welcome.empty_hint': 'Ik bouw het samen met je. Kies een voorbeeld of beschrijf hieronder wat jij wilt.',
+    'app_studio.builder.welcome.ask_first': 'Beschrijf het',
+    'app_studio.builder.welcome.recommended': 'Aanbevolen',
+    'app_studio.builder.welcome.ask_first_hint': 'Ik stel eerst een paar vragen, schrijf dan een plan in gewone taal en bouw het na jouw akkoord.',
+    'app_studio.builder.welcome.ask_first_on': 'Ik stel eerst een paar vragen en maak dan een plan. Vertel me ongeveer wat de app moet doen.',
+    'app_studio.builder.welcome.examples': 'Bijvoorbeeld',
+    'app_studio.builder.welcome.existing': 'Wat wil je veranderen?',
+    'app_studio.builder.welcome.sees': 'Ik zie {screens} en {tables}.',
+    'app_studio.builder.welcome.sees_screens_only': 'Ik zie {screens}.',
+    'app_studio.builder.welcome.screens_none': 'nog geen schermen',
+    'app_studio.builder.welcome.screens_one': '1 scherm',
+    'app_studio.builder.welcome.screens_many': '{n} schermen',
+    'app_studio.builder.welcome.tables_none': 'nog geen tabellen',
+    'app_studio.builder.welcome.tables_one': '1 tabel',
+    'app_studio.builder.welcome.tables_many': '{n} tabellen',
+    'app_studio.builder.welcome.selected': 'Je hebt \'{label}\' geselecteerd.',
+    'app_studio.builder.welcome.suggest.connect': 'Koppel het geselecteerde component aan data uit een tabel',
+    'app_studio.builder.welcome.suggest.layout': 'Verbeter de opmaak van het geselecteerde component',
+    'app_studio.builder.welcome.suggest.store': 'Bewaar wat mensen invullen in een tabel',
+    'app_studio.builder.welcome.suggest.explain': 'Leg per scherm uit wat deze app doet',
+    'app_studio.builder.welcome.suggest.new_screen': 'Voeg een nieuw scherm toe dat past bij wat deze app doet',
+    'app_studio.builder.welcome.brief.intake': 'Een intake-app: mensen vullen een aanvraagformulier in, ik zie alle aanvragen in een tabel en een overzichtsscherm laat zien wat nog open staat',
+    'app_studio.builder.welcome.brief.planner': 'Een teamplanner: wie werkt deze week aan wat, met een tabel met taken en een scherm om ze toe te voegen en anders te verdelen',
+    'app_studio.builder.welcome.brief.crm': 'Een eenvoudige CRM: een tabel met contacten en notities, een scherm om een contact toe te voegen en een overzicht van de laatste gesprekken',
+    'app_studio.builder.validation.fix_all': 'Alles herstellen',
+    'app_studio.builder.chat.composer_form': 'Berichtvak van de assistent',
 };
 
 /**
@@ -140,13 +169,31 @@ const SAME_AS_ENGLISH = [
     'app_studio.builder.chat.stop',            // "Stop"
 ];
 
+/**
+ * Keys whose English changed meaning: replaced only while a workspace still
+ * has the OLD shipped Dutch (`was`), so an admin's own wording stays.
+ * "AI builder" became "Assistant", like the automations assistant.
+ */
+const NL_REWORDED = Object.freeze({
+    'app_studio.builder.chat.title': { was: 'AI-bouwer', now: 'Assistent' },
+});
+
 async function up() {
     const languageStore = require('../stores/languageStore');
     const { added } = await languageStore.addMissingGUITranslations('nl', NL_TRANSLATIONS);
-    if (added > 0) {
-        console.log(`[Migration] add-nl-app-studio-builder-translations applied (+${added} keys)`);
+    let reworded = 0;
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
+        reworded = 0; // the mutator can run again: count per attempt
+        const merged = { ...current };
+        for (const [key, { was, now }] of Object.entries(NL_REWORDED)) {
+            if (merged[key] === was) { merged[key] = now; reworded++; }
+        }
+        return merged;
+    });
+    if (added > 0 || reworded > 0) {
+        console.log(`[Migration] add-nl-app-studio-builder-translations applied (+${added} keys, ${reworded} reworded)`);
     }
-    return { added };
+    return { added, reworded };
 }
 
 module.exports = { up, NL_TRANSLATIONS, SAME_AS_ENGLISH };

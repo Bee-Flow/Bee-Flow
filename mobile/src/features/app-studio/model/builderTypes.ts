@@ -101,6 +101,10 @@ export type BuilderEvent =
           datasets: { id: string; name: string }[];
       }
     | { type: 'plan'; planId: string | null; plan: OpenRecord | null; todos: BuilderTodo[] | null }
+    | {
+          type: 'review_questions';
+          questions: { id: string; prompt: string; options: string[]; header: string | null }[];
+      }
     | { type: 'phase'; index: number; total: number; label: string }
     | { type: 'checkpoint'; versionId: string | null; summary: string }
     | { type: 'image'; data: string; mimeType: string; caption: string | null }
