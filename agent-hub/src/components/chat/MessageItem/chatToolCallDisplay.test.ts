@@ -93,4 +93,24 @@ describe('detailPayload', () => {
         expect(detailPayload(e, null)).toEqual({ args: { q: 'a' }, result: 'prev' });
         expect(detailPayload({ name: 'x' }, null)).toEqual({ args: null, result: null });
     });
+
+    it('shows the result as the model got it: without the _ side channel', () => {
+        const kb = {
+            _action: 'kb_sources',
+            _sources: [{ content: 'full', preview: 'full' }],
+            query: 'loonrun',
+            results: [{ chunk_id: '291', title: 'Handboek.docx', section: 'Loonrun', content: 'full' }],
+        };
+        expect(detailPayload(entry('kb_search'), kb).result).toEqual({
+            query: 'loonrun',
+            results: [{ chunk_id: '291', title: 'Handboek.docx', section: 'Loonrun', content: 'full' }],
+        });
+    });
+
+    it('keeps a result that is only _ fields whole, and passes non-objects through', () => {
+        const onlySide = { _action: 'workspace_update', _doc: 'x' };
+        expect(detailPayload(entry('x'), onlySide).result).toEqual(onlySide);
+        expect(detailPayload(entry('x'), 'text').result).toBe('text');
+        expect(detailPayload(entry('x'), [1, 2]).result).toEqual([1, 2]);
+    });
 });
