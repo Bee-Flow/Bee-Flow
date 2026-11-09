@@ -61,30 +61,28 @@ const AIConfigPanel = ({ activeSection, activeProvider, onNavigate }: AIConfigPa
     );
 
     return (
-        <div className="h-full overflow-hidden rounded-xl border border-[var(--border-default)]">
-            <StudioShell responsive sidebarTitle={t('admin_ai_config.index_title', 'AI Configuration')} sidebar={sidebar}>
-                <div className="p-6 md:p-8">
-                    {section === 'providers' && (
-                        <ProvidersSection
-                            selectedId={decodedProvider}
-                            onSelect={(id) => go(aiConfigPath('providers', id))}
-                            providers={models.providers}
-                            allModels={models.allModels}
-                            loadingModels={models.loadingModels}
-                            onProvidersChanged={models.refresh}
-                            onMessage={notify}
-                        />
-                    )}
-                    {section === 'chat-models' && <ChatModelTiersConfig allModels={models.allModels} />}
-                    {section === 'embeddings' && (
-                        <EmbeddingsConfig providers={models.providers} allModels={models.allModels} fetchAllModels={models.refresh} />
-                    )}
-                    {section === 'direct-chat' && <DirectChatConfig />}
-                    {section === 'web-search' && <WebSearchInferenceConfig allModels={models.allModels} onNavigateToTab={goToTab} />}
-                    {section === 'limits' && <LimitsConfig onNavigateToTab={goToTab} />}
-                </div>
-            </StudioShell>
-        </div>
+        <StudioShell responsive sidebarTitle={t('admin_ai_config.index_title', 'AI Configuration')} sidebar={sidebar}>
+            <div className="p-6 md:p-8">
+                {section === 'providers' && (
+                    <ProvidersSection
+                        selectedId={decodedProvider}
+                        onSelect={(id) => go(aiConfigPath('providers', id))}
+                        providers={models.providers}
+                        allModels={models.allModels}
+                        loadingModels={models.loadingModels}
+                        onProvidersChanged={models.refresh}
+                        onMessage={notify}
+                    />
+                )}
+                {section === 'chat-models' && <ChatModelTiersConfig allModels={models.allModels} />}
+                {section === 'embeddings' && (
+                    <EmbeddingsConfig providers={models.providers} allModels={models.allModels} fetchAllModels={models.refresh} />
+                )}
+                {section === 'direct-chat' && <DirectChatConfig />}
+                {section === 'web-search' && <WebSearchInferenceConfig allModels={models.allModels} onNavigateToTab={goToTab} />}
+                {section === 'limits' && <LimitsConfig onNavigateToTab={goToTab} />}
+            </div>
+        </StudioShell>
     );
 };
 

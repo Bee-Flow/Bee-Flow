@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "admin.access_ceiling": "Plafond",
+    "admin.nav_group_ai": "AI en agents",
+    "admin.nav_group_operations": "Beheer",
+    "admin.nav_group_security": "Beveiliging en toegang",
+    "admin.nav_sections": "Beheeronderdelen"
+  },
+  "sameAsEnglish": [
+    "admin.nav_group_platform",
+    "admin.nav_group_website"
+  ]
+}

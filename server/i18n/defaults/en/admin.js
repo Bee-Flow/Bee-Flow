@@ -952,4 +952,12 @@ module.exports = {
     "admin.shield_tool_block_moved_link": "category matrix",
     "admin.shield_tool_block_moved_tail": "where you see, per kind, both whether we look for it and whether it may leave.",
     "admin.shield_unsaved_on": "on {n} steps:",
+    // ── Admin dashboard in the Studio layout (2026-11): rail groups, phone drawer ──
+    "admin.nav_group_ai": "AI & agents",
+    "admin.nav_group_security": "Security & access",
+    "admin.nav_group_platform": "Platform",
+    "admin.nav_group_operations": "Operations",
+    "admin.nav_group_website": "Website",
+    "admin.nav_sections": "Admin sections",
+    "admin.access_ceiling": "Ceiling",
 };
