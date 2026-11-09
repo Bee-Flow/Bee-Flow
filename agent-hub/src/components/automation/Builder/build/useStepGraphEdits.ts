@@ -1,6 +1,7 @@
 import { followSuccessors } from '@shared/expr/routeFollow.mjs';
 import { useCallback } from 'react';
 import { toast } from '@/components/shared/Toast';
+import { withFreshNestedIds } from '../flow/freshNestedIds';
 import { decomposeInlineGraph as decomposeInlineGraphJs, parseInlineId, prefixAddedStep } from '../flow/inlineFlowlets';
 import { applyDeleteNodes as applyDeleteNodesJs, applyDuplicateNode } from '../flow/nodeOps';
 import { renameFormField as renameFormFieldJs } from '../flow/renameFormField';
@@ -105,8 +106,10 @@ export default function useStepGraphEdits({
 
     const onDuplicateStep = useCallback((stepId: string) => {
         if (!flatDef || running || !stepId) return;
-        const { definition: next, newStepId } = applyDuplicateNode(flatDef, stepId) as { definition: FlowDefinition; newStepId?: string };
+        const { definition: duplicated, newStepId } = applyDuplicateNode(flatDef, stepId) as { definition: FlowDefinition; newStepId?: string };
         if (!newStepId) return; // triggers aren't duplicable
+        // The copy of a loop holds copies of its body steps: ids of their own.
+        const next = withFreshNestedIds(duplicated, newStepId);
         // The copy of a step inside an expanded flowlet belongs to that
         // flowlet, not to the flow around it.
         const { prefix } = parseInlineId(stepId);

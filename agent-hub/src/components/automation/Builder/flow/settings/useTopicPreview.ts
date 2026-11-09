@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import { useTranslation } from '@/hooks/useTranslation';
 import { matchCounts } from './routeIntents';
@@ -40,13 +40,21 @@ export default function useTopicPreview({ rules, rows, root = null, itemVar = 'i
     const key = plan ? JSON.stringify([plan.labels, plan.texts]) : '';
     const [state, setState] = useState<State>({ key: '', host: null, error: '', loading: false });
 
+    // Which ask is the newest. An answer to an earlier one may arrive after it
+    // (the rules changed, the author asked again): written to the state it
+    // would take the newer answer's place under a key that no longer applies,
+    // and the check just made would show nothing.
+    const asked = useRef(0);
     const check = async () => {
         if (!plan || !plan.texts.length) return;
+        const mine = ++asked.current;
         setState({ key, host: null, error: '', loading: true });
         try {
             const res = await api.previewTopics({ texts: plan.texts, labels: plan.labels }) as TopicPreviewResponse;
+            if (asked.current !== mine) return;
             setState({ key, host: hostFromPreview(res), error: '', loading: false });
         } catch (e) {
+            if (asked.current !== mine) return;
             const status = errorStatus(e);
             const error = status === 409
                 ? t('automations.builder.topics.check_not_installed', 'No topic classifier is installed on this server, so these rules cannot be checked.')

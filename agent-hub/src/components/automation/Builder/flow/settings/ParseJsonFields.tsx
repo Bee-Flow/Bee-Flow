@@ -157,7 +157,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 set('itemsRef', res.itemsRef);
             }
             const taken = new Set(fields.map(f => f?.name).filter(Boolean));
-            const added = [];
+            const added: ParseField[] = [];
             const amber = new Set(unverified);
             for (const f of (res?.fields || [])) {
                 if (!f?.name || taken.has(f.name)) continue;
@@ -167,7 +167,16 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 added.push(row);
                 if (f.verified === false) amber.add(f.name);
             }
-            if (added.length) set('fields', [...fields, ...added]);
+            // Onto the fields as they are NOW (an updater): the answer takes
+            // seconds, and `fields` here is the list from before the question.
+            // Writing that list back erased every row typed or added meanwhile.
+            if (added.length) {
+                set('fields', (current: unknown) => {
+                    const now: ParseField[] = Array.isArray(current) ? current : [];
+                    const have = new Set(now.map(f => f?.name).filter(Boolean));
+                    return [...now, ...added.filter(f => !have.has(f.name))];
+                });
+            }
             setUnverified(amber);
         } catch (e) {
             setMapError((e as Error)?.message || 'Mapping failed');
