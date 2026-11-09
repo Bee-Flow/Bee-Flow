@@ -328,10 +328,7 @@ router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (/** 
     if (!approvalService.canDecide(approval, viewer)) {
         return res.status(403).json({ error: 'You cannot decide this approval.' });
     }
-    // NOT caught: decide() reads "no run" as "the run moved on" and closes the
-    // approval as cancelled. A lookup that merely failed must not do that; it
-    // is a 500 the approver can retry, with the approval still pending.
-    const run = approval.runId ? await automationStore.getRun(approval.runId) : null;
+    const run = approval.runId ? await automationStore.getRun(approval.runId) : null; // NOT caught: decide() cancels the approval on "no run"; a failed lookup is a retryable 500
     const { code, body } = await approvalService.decide({
         approval,
         run,
