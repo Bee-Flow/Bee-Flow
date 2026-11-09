@@ -96,7 +96,17 @@ async function passthrough(file: File) {
     };
 }
 
-export async function resizeImageForUpload(file: File) {
+interface ResizeOptions {
+    /** Longest edge of the result in px. Default: the chat-upload sweet spot above. */
+    maxLongestEdge?: number;
+    /** A file this small that already fits is passed through untouched. */
+    skipIfBytesUnder?: number;
+}
+
+export async function resizeImageForUpload(
+    file: File,
+    { maxLongestEdge = MAX_LONGEST_EDGE, skipIfBytesUnder = SKIP_IF_BYTES_UNDER }: ResizeOptions = {},
+) {
     if (!file || !file.type || !file.type.startsWith('image/')) {
         return passthrough(file);
     }
@@ -115,12 +125,12 @@ export async function resizeImageForUpload(file: File) {
     const srcHeight = bitmap.height;
     const longest = Math.max(srcWidth, srcHeight);
 
-    if (longest <= MAX_LONGEST_EDGE && file.size <= SKIP_IF_BYTES_UNDER) {
+    if (longest <= maxLongestEdge && file.size <= skipIfBytesUnder) {
         if (bitmap.close) bitmap.close();
         return passthrough(file);
     }
 
-    const scale = longest > MAX_LONGEST_EDGE ? MAX_LONGEST_EDGE / longest : 1;
+    const scale = longest > maxLongestEdge ? maxLongestEdge / longest : 1;
     const targetWidth = Math.max(1, Math.round(srcWidth * scale));
     const targetHeight = Math.max(1, Math.round(srcHeight * scale));
 
