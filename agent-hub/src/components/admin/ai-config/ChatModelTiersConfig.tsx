@@ -9,7 +9,7 @@ import MemoryExtractionModelSection from './chatModelTiers/MemoryExtractionModel
 import TitleModelSection from './chatModelTiers/TitleModelSection';
 import useChatModelTiersState from './chatModelTiers/useChatModelTiersState';
 import type { CatalogModel } from './chatModelTiers/tierTypes';
-import { SettingsGroup, SettingsList } from './ui/SettingsList';
+import { SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface ChatModelTiersConfigProps {

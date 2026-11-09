@@ -1,4 +1,5 @@
-// The settings-list pattern of the AI configuration: one bordered surface with
+// The settings-list pattern of the admin screens (first in the AI
+// configuration): one bordered surface with
 // a row per setting (label and a one-line hint on the left, the control on the
 // right), thin dividers between rows, and an inset area under a row for the
 // settings that most people never touch.

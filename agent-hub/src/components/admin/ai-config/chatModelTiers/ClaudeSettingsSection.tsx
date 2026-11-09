@@ -5,7 +5,7 @@ import React from 'react';
 import type { ClaudeSettingsState } from './useClaudeSettings';
 import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER, TIERS } from './constants';
 import { getModelMeta } from './modelMeta';
-import { QUIET_BUTTON, SettingRow, SettingsGroup, SettingsList } from '../ui/SettingsList';
+import { QUIET_BUTTON, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from '../ui/useToastOnMessage';
 import Toggle from '@/components/shared/Toggle';
 import { useTranslation } from '@/hooks/useTranslation';

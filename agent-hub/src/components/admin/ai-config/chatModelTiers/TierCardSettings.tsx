@@ -8,7 +8,7 @@ import TierThinkingFields from './TierThinkingFields';
 import type { TierSettings, CatalogModel } from './tierTypes';
 import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { FIELD_INPUT, FieldGrid, Field, InlineHint, QUIET_BUTTON } from '../ui/SettingsList';
+import { FIELD_INPUT, FieldGrid, Field, InlineHint, QUIET_BUTTON } from '@/components/shared/SettingsList';
 import Toggle from '@/components/shared/Toggle';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 

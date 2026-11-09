@@ -8,6 +8,7 @@ import { AI_CONFIG_SECTIONS, MODEL_SECTIONS, aiConfigPath, sectionIdOf } from '.
 import type { AiConfigSectionId } from './aiConfigSections';
 import ProvidersSection from './providers/ProvidersSection';
 import { useAiProviderModels } from './providers/useAiProviderModels';
+import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
 import toast from '@/components/shared/Toast';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -51,27 +52,17 @@ const AIConfigPanel = ({ activeSection, activeProvider, onNavigate }: AIConfigPa
     };
 
     const sidebar = (
-        <nav aria-label={t('admin_ai_config.index_title', 'AI Configuration')} className="flex flex-col gap-0.5 p-2">
-            {AI_CONFIG_SECTIONS.map(({ id, icon: Icon }) => (
-                <button
-                    key={id}
-                    type="button"
-                    onClick={() => go(aiConfigPath(id))}
-                    aria-current={section === id ? 'page' : undefined}
-                    className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm ${section === id
-                        ? 'bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)]'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}`}
-                >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    <span className="truncate">{labels[id]}</span>
-                </button>
-            ))}
-        </nav>
+        <SectionNav
+            label={t('admin_ai_config.index_title', 'AI Configuration')}
+            items={AI_CONFIG_SECTIONS.map(({ id, icon }) => ({ id, icon, label: labels[id] }))}
+            activeId={section}
+            onSelect={(id) => go(aiConfigPath(id as AiConfigSectionId))}
+        />
     );
 
     return (
         <div className="h-full overflow-hidden rounded-xl border border-[var(--border-default)]">
-            <StudioShell sidebarTitle={t('admin_ai_config.index_title', 'AI Configuration')} sidebar={sidebar}>
+            <StudioShell responsive sidebarTitle={t('admin_ai_config.index_title', 'AI Configuration')} sidebar={sidebar}>
                 <div className="p-6 md:p-8">
                     {section === 'providers' && (
                         <ProvidersSection

@@ -6,7 +6,7 @@ import { clampToEfforts, getModelMeta, isClaudeAdaptiveOnly, isClaudeReasoning, 
 import TierThinkingFields from './TierThinkingFields';
 import type { CustomTier } from './tierTypes';
 import type { CustomTiersState } from './useCustomTiers';
-import { FIELD_INPUT, FieldGrid, Field } from '../ui/SettingsList';
+import { FIELD_INPUT, FieldGrid, Field } from '@/components/shared/SettingsList';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
 interface CustomTierSettingsProps {
