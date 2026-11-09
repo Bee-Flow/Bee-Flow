@@ -1,9 +1,12 @@
-// "Integrations" section of the IntegrationsAdminPanel (Global Defaults for
-// new organisations). Subtree moved verbatim from IntegrationsAdminPanel.jsx;
-// all bindings are threaded in as props from the panel.
-import { Settings, ToggleLeft, ToggleRight } from 'lucide-react';
-import React from 'react';
+// "Integrations" section of the IntegrationsAdminPanel: the integrations a new
+// organisation starts with, one settings list per category with a switch per
+// integration. Who may use an integration is managed under Access.
+import { Info } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { ALERT_INFO, QUIET_BTN } from '@/components/mcpLibrary/ui';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import Toggle from '@/components/shared/Toggle';
 import type { GlobalDefaultsSectionProps } from './adminPanel.types';
 
 export default function GlobalDefaultsSection({
@@ -11,68 +14,42 @@ export default function GlobalDefaultsSection({
     isDefaultEnabled, toggleDefault,
 }: GlobalDefaultsSectionProps) {
     const { t } = useTranslation();
+    const actions = (
+        <div className="flex items-center gap-1">
+            <button type="button" onClick={enableAllDefaults} className={QUIET_BTN}>{t('integ.global_defaults_enable_all', 'Enable All')}</button>
+            <button type="button" onClick={disableAllDefaults} className={QUIET_BTN}>{t('integ.global_defaults_disable_all', 'Disable All')}</button>
+        </div>
+    );
     return (
-            <div className="p-6">
-            <div className="max-w-4xl mx-auto space-y-8">
+        <div className="flex max-w-4xl flex-col gap-6">
+            <SectionHeader
+                title={t('integ.global_defaults_global_defaults', 'Global Defaults')}
+                description={t('integ.global_defaults_default_integrations_for_new', 'Default integrations for new organizations. Changes here don\'t affect existing orgs.')}
+                status={actions}
+            />
 
-                {/* Global Defaults */}
-                <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <div className="px-6 py-4 border-b flex items-center justify-between border-[var(--border-subtle)]">
-                        <div>
-                            <h3 className="font-semibold text-[var(--text-primary)]">{t('integ.global_defaults_global_defaults', 'Global Defaults')}</h3>
-                            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
-                                {t('integ.global_defaults_default_integrations_for_new', 'Default integrations for new organizations. Changes here don\'t affect existing orgs.')}
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={enableAllDefaults} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80 [background:rgba(16,185,129,0.1)] [color:#10b981]!">
-                                {t('integ.global_defaults_enable_all', 'Enable All')}
-                            </button>
-                            <button onClick={disableAllDefaults} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80 [background:rgba(239,68,68,0.1)] [color:#ef4444]!">
-                                {t('integ.global_defaults_disable_all', 'Disable All')}
-                            </button>
-                        </div>
-                    </div>
-                    <div className="p-4">
-                        {categories.map(cat => (
-                            <div key={cat} className="mb-4 last:mb-0">
-                                <div className="text-xs font-semibold uppercase tracking-wider mb-2 px-2 text-[var(--text-muted)]">{cat}</div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                    {allIntegrations.filter(i => i.category === cat).map(integ => {
-                                        const enabled = isDefaultEnabled(integ.id);
-                                        return (
-                                            <button key={integ.id} onClick={() => toggleDefault(integ.id)}
-                                                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all hover:scale-[1.01]"
-                                                style={{ background: enabled ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-primary)', border: `1px solid ${enabled ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}` }}>
-                                                {enabled
-                                                    ? <ToggleRight className="w-5 h-5 shrink-0 [color:#10b981]" />
-                                                    : <ToggleLeft className="w-5 h-5 shrink-0 text-[var(--text-muted)]" />
-                                                }
-                                                {integ.icon && <span className="text-base shrink-0">{integ.icon}</span>}
-                                                <div className="min-w-0">
-                                                    <div className="text-sm font-medium truncate" style={{ color: enabled ? 'var(--text-primary)' : 'var(--text-muted)' }}>{integ.label}</div>
-                                                    <div className="text-xs truncate text-[var(--text-muted)]">{integ.description}</div>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
+            {categories.map(cat => (
+                <SettingsGroup key={cat} title={cat}>
+                    <SettingsList>
+                        {allIntegrations.filter(i => i.category === cat).map(integ => (
+                            <SettingRow key={integ.id} icon={integ.icon || undefined} label={integ.label} hint={integ.description}>
+                                <div className="flex justify-end">
+                                    <Toggle checked={isDefaultEnabled(integ.id)} onChange={() => toggleDefault(integ.id)} ariaLabel={integ.label} />
                                 </div>
-                            </div>
+                            </SettingRow>
                         ))}
-                    </div>
-                </div>
+                    </SettingsList>
+                </SettingsGroup>
+            ))}
 
-                {/* Per-organisation & per-group integration access moved to the
-                    unified Access & Permissions hub (Admin → Access). */}
-                <div className="rounded-2xl border p-4 flex items-start gap-3 bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <Settings className="w-4 h-4 mt-0.5 flex-shrink-0 [color:#3b82f6]" />
-                    <p className="text-xs text-[var(--text-muted)]">
-                        {t('integ.global_defaults_who_may_use_each_integration_per', 'Who may use each integration — per organisation, per group, or for all members — is now managed in')}
-                        <strong> {t('integ.global_defaults_admin_access_permissions', 'Admin → Access & Permissions')}</strong>{t('integ.global_defaults_the_defaults_above_only_seed', '. The defaults above only seed integrations for newly created organisations.')}
-                    </p>
-                </div>
-
+            {/* Per-organisation and per-group access lives in Admin → Access & Permissions. */}
+            <div className={ALERT_INFO}>
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <p className="m-0">
+                    {t('integ.global_defaults_who_may_use_each_integration_per', 'Who may use each integration — per organisation, per group, or for all members — is now managed in')}
+                    <strong> {t('integ.global_defaults_admin_access_permissions', 'Admin → Access & Permissions')}</strong>{t('integ.global_defaults_the_defaults_above_only_seed', '. The defaults above only seed integrations for newly created organisations.')}
+                </p>
             </div>
-            </div>
+        </div>
     );
 }

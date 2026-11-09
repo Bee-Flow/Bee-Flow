@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import IntegrationsAdminPanel from './IntegrationsAdminPanel';
+import { Toaster } from '@/components/shared/Toast';
 import { authFetch } from '../../utils/helpers';
 import { asMock, partial } from '@/test/mocks';
 
@@ -34,7 +35,8 @@ afterEach(() => {
 });
 
 const openEmailSection = async () => {
-    render(<IntegrationsAdminPanel activeSection="email" />);
+    // A section's message is said as a toast.
+    render(<><Toaster /><IntegrationsAdminPanel activeSection="email" /></>);
     return screen.findByRole('button', { name: /connect google account/i });
 };
 

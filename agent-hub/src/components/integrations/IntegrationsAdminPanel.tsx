@@ -1,4 +1,3 @@
-import { Loader2 } from 'lucide-react';
 import React from 'react';
 import FeatureKillSwitches from './FeatureKillSwitches';
 import { useLicenseContext } from '../licensing/LicenseContext';
@@ -15,6 +14,9 @@ import useTranscriptionSettings from './IntegrationsAdminPanel/useTranscriptionS
 import { useTranslation } from '../../hooks/useTranslation';
 import SectionNav from '../shared/SectionNav';
 import StudioShell from '../shared/StudioShell';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
+import { useToastOnMessage } from '@/components/admin/ai-config/ui/useToastOnMessage';
 
 interface IntegrationsAdminPanelProps {
     activeSection?: string;
@@ -132,11 +134,13 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
         allIntegrations, isDefaultEnabled, toggleDefault,
         enableAllDefaults, disableAllDefaults, categories,
     } = useIntegrationDefaults({ defaults, setDefaults, setSaving, setMessage, mcpServers });
+    // A section reports a save as a message; it is said once, as a toast.
+    useToastOnMessage(message);
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
-                <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t('integ.integrations_admin_loading_integrations', 'Loading integrations...')}
+            <div className="flex h-full items-center justify-center gap-2 text-sm text-[var(--text-tertiary)]">
+                <Spinner size="sm" /> {t('integ.integrations_admin_loading_integrations', 'Loading integrations...')}
             </div>
         );
     }
@@ -154,24 +158,12 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
                 />
             )}
         >
-            <div className="relative">
-            {/* Status message toast */}
-            {message && (
-                <div className="[position:sticky] [top:0] [z-index:10] [padding:8px_24px]">
-                    <span className={`text-sm font-medium px-3 py-1.5 rounded-lg inline-block ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                        {message.text}
-                    </span>
-                </div>
-            )}
-
+            <div className="p-6 md:p-8">
             {active === 'features' && (
-            <div className="p-6">
-            <div className="max-w-4xl mx-auto space-y-8">
-
-                <FeatureKillSwitches />
-
-            </div>
-            </div>
+                <div className="flex max-w-4xl flex-col gap-6">
+                    <SectionHeader title={t('admin.integ_features')} description={t('integ.features_section_hint', 'Switch platform features on or off for everyone on this server.')} />
+                    <FeatureKillSwitches />
+                </div>
             )}
 
             {active === 'integrations' && (
