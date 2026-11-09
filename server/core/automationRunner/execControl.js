@@ -53,6 +53,9 @@ function noteRunMisses(entries, scopes, matched) {
     counter.report(total, null, { matched });
 }
 
+/** How often a sleeping Wait reads the run row's cancel_requested flag. */
+const CANCEL_FLAG_POLL_MS = 30_000;
+
 /**
  * Pause the runner. Capped at 24h to keep a misconfigured cron from
  * holding a runner pod hostage. Dry-run skips the actual sleep so a
@@ -83,8 +86,18 @@ async function execWait(step, ctx, runState, mode) {
     // unrelated numbers.
     ctx.extendRunDeadline?.(seconds * 1000);
     const until = Date.now() + seconds * 1000;
+    // The abort signal only fires for a cancel issued on THIS instance. One
+    // issued on another sets cancel_requested on the run row, which
+    // dispatchStep reads between steps — and a Wait is a single step that may
+    // last a day. So the sleep reads that flag as well (ctx.cancelRequested,
+    // runDeadline.js), every 30 seconds; a failed lookup is not a cancel.
+    let flagCheckedAt = Date.now();
     while (Date.now() < until) {
         if (ctx.cancelSignal?.aborted) throw new Error('Run cancelled');
+        if (typeof ctx.cancelRequested === 'function' && Date.now() - flagCheckedAt >= CANCEL_FLAG_POLL_MS) {
+            flagCheckedAt = Date.now();
+            if (await Promise.resolve().then(() => ctx.cancelRequested()).catch(() => false)) throw new Error('Run cancelled');
+        }
         await new Promise(r => {
             const t = setTimeout(r, Math.min(5_000, Math.max(0, until - Date.now())));
             if (t.unref) t.unref();
