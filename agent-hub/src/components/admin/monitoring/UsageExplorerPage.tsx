@@ -129,7 +129,7 @@ export function UsageExplorerPage(props: UsageExplorerPageProps) {
         <div className="flex flex-col gap-5">
             <FilterBar filters={filters} setFilters={setFilters} userOptions={userOptions} agentOptions={agentOptions} modelOptions={modelOptions} />
 
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="grid gap-5 2xl:grid-cols-2">
                 <TablePanel title={byModelTitle}>
                     <SortableTable ariaLabel={byModelTitle} columns={modelColumns(t, costPerModel)} data={filtered.models} emptyText={t('admin_monitoring.usage_no_model', 'No model data')} onRowClick={onSelectModel} />
                 </TablePanel>

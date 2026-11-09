@@ -36,11 +36,11 @@ function columnsOf(t: TranslateFn): TableColumn[] {
     return [
         { id: 'time', label: t('admin_monitoring.col_time', 'Time'), width: '84px' },
         { id: 'agent', label: t('admin_monitoring.col_agent', 'Agent'), width: 'minmax(0,1fr)' },
-        { id: 'model', label: t('admin_monitoring.col_model', 'Model'), width: 'minmax(0,1fr)', foldBelow: 900 },
+        { id: 'model', label: t('admin_monitoring.col_model', 'Model'), width: 'minmax(0,1fr)' },
         { id: 'type', label: t('admin_monitoring.col_type', 'Type'), width: '150px' },
-        { id: 'code', label: t('admin_monitoring.term_col_error_code', 'Error code'), width: '100px', foldBelow: 1180 },
-        { id: 'iter', label: t('admin_monitoring.term_col_iter', 'Iter.'), width: '50px', align: 'right', foldBelow: 1180 },
-        { id: 'duration', label: t('admin_monitoring.term_col_duration', 'Duration'), width: '70px', align: 'right', foldBelow: 900 },
+        { id: 'code', label: t('admin_monitoring.term_col_error_code', 'Error code'), width: '100px', foldBelow: 900 },
+        { id: 'iter', label: t('admin_monitoring.term_col_iter', 'Iter.'), width: '50px', align: 'right', foldBelow: 900 },
+        { id: 'duration', label: t('admin_monitoring.term_col_duration', 'Duration'), width: '70px', align: 'right' },
         { id: 'tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '76px', align: 'right' },
         { id: 'open', label: '', width: '16px' },
     ];

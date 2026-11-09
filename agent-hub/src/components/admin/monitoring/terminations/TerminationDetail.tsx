@@ -50,6 +50,8 @@ export function TerminationDetail({ r }: { r: TerminationRow }) {
             <DetailRow label={t('admin_monitoring.term_d_conversation', 'Conversation')} value={r.conversation_id} mono />
             <DetailRow label={t('admin_monitoring.term_d_user', 'User')} value={r.user_id} mono />
             <DetailRow label={t('admin_monitoring.term_d_org', 'Organization')} value={r.organization_id} mono />
+            <DetailRow label={t('admin_monitoring.term_col_error_code', 'Error code')} value={r.error_code} mono />
+            <DetailRow label={t('admin_monitoring.term_col_iter', 'Iter.')} value={String(r.iteration_count || 0)} />
             <DetailRow label={t('admin_monitoring.term_d_error_class', 'Error class')} value={r.error_class} />
             <DetailRow label={t('admin_monitoring.term_d_error', 'Error')} value={r.error_first_line} mono />
             <DetailRow label={t('admin_monitoring.term_d_stack', 'Stack')} value={r.stack_first_line} mono />

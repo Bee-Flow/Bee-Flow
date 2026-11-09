@@ -47,8 +47,8 @@ export function SvgAreaChart({ data, yKey = 'total_tokens', color = SERIES.token
     const areaPath = `${linePath} L100,100 L0,100 Z`;
     const hovered = hover != null ? points[hover] : undefined;
     return (
-        <div className="relative" style={{ height }}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+        <div className="relative">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="block w-full overflow-visible" style={{ height }}>
                 <defs>
                     <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={color} stopOpacity="0.25" />

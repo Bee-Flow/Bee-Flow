@@ -48,9 +48,9 @@ function activityColumns(t: TranslateFn): TableColumn[] {
         { id: 'source', label: t('admin_monitoring.col_source_agent', 'Source / Agent'), width: 'minmax(0,1fr)' },
         { id: 'model', label: t('admin_monitoring.col_model', 'Model'), width: 'minmax(0,1fr)', foldBelow: 900 },
         { id: 'tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '70px', align: 'right' },
-        { id: 'latency', label: t('admin_monitoring.col_latency', 'Latency'), width: '70px', align: 'right', foldBelow: 900 },
+        { id: 'latency', label: t('admin_monitoring.col_latency', 'Latency'), width: '70px', align: 'right' },
         { id: 'cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '84px', align: 'right' },
-        { id: 'type', label: t('admin_monitoring.col_type', 'Type'), width: '76px', align: 'right', foldBelow: 1180 },
+        { id: 'type', label: t('admin_monitoring.col_type', 'Type'), width: '76px', align: 'right', foldBelow: 900 },
         { id: 'open', label: '', width: '16px' },
     ];
 }
@@ -67,7 +67,7 @@ function CallRow({ r, columns, open, onToggle }: { r: UsageRecord; columns: Tabl
                     <SourceIcon className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <span className="truncate font-semibold text-[var(--text-primary)]">{r.agent_name || src.label}</span>
                 </span>
-                <span className={`${TABLE_FOLDED_ONLY[900]} truncate text-[10px] text-[var(--text-tertiary)]`}>{shortModel(r.model)}</span>
+                <span className={`${TABLE_FOLDED_ONLY[900]} truncate text-[10px] text-[var(--text-tertiary)]`}>{shortModel(r.model)}{r.type ? ` · ${r.type}` : ''}</span>
             </TableCell>
             <TableCell column={columns[2]} className="truncate text-[11px] text-[var(--text-secondary)]">{shortModel(r.model)}</TableCell>
             <TableCell column={columns[3]} className="font-semibold tabular-nums text-[var(--text-primary)]">{fmt(r.total_tokens)}</TableCell>

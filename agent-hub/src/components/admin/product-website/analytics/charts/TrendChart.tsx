@@ -132,7 +132,7 @@ export default function TrendChart({
                         <g key={s.key || si}>
                             {s.style !== 'line' && s.style !== 'dashed' && (
                                 <path
-                                    d={`${d}L${scaleX(s.data.length - 1)},100L${scaleX(0)},100Z`}
+                                    d={`${d}L${scaleX(solid.length - 1)},100L${scaleX(0)},100Z`}
                                     fill={color} opacity={0.12}
                                 />
                             )}

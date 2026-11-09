@@ -40,9 +40,9 @@ export function AgentTable({ agents, expandedAgent, setExpandedAgent }: AgentTab
     const title = t('admin_monitoring.usage_by_agent', 'By Agent');
     const columns: TableColumn[] = [
         { id: 'agent', label: t('admin_monitoring.col_agent', 'Agent'), width: 'minmax(0,1fr)' },
-        { id: 'avg', label: t('admin_monitoring.col_latency', 'Latency'), width: '90px', align: 'right', foldBelow: 900 },
+        { id: 'avg', label: t('admin_monitoring.col_latency', 'Latency'), width: '90px', align: 'right' },
         { id: 'tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right' },
-        { id: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '80px', align: 'right', foldBelow: 900 },
+        { id: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '90px', align: 'right' },
         { id: 'cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right' },
         { id: 'open', label: '', width: '20px' },
     ];

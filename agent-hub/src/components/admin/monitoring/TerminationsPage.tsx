@@ -70,9 +70,9 @@ function agentColumns(t: TranslateFn): TableColumn[] {
         { id: 'agent', label: t('admin_monitoring.col_agent', 'Agent'), width: 'minmax(0,1fr)' },
         { id: 'total', label: t('admin_monitoring.col_total', 'Total'), width: '70px', align: 'right' },
         { id: 'max_tokens', label: t('admin_monitoring.col_max_tok', 'Max tok.'), width: '70px', align: 'right' },
-        { id: 'max_iterations', label: t('admin_monitoring.col_max_iter', 'Max iter.'), width: '70px', align: 'right', foldBelow: 900 },
+        { id: 'max_iterations', label: t('admin_monitoring.col_max_iter', 'Max iter.'), width: '70px', align: 'right' },
         { id: 'errors', label: t('admin_monitoring.col_errors', 'Errors'), width: '70px', align: 'right' },
-        { id: 'aborted', label: t('admin_monitoring.col_aborted', 'Aborted'), width: '70px', align: 'right', foldBelow: 900 },
+        { id: 'aborted', label: t('admin_monitoring.col_aborted', 'Aborted'), width: '70px', align: 'right' },
     ];
 }
 
@@ -114,16 +114,12 @@ export function TerminationsPage(props: TerminationsPageProps) {
         <div className="flex flex-col gap-5">
             <TerminationKpis summary={summary} largeInputCount={largeInputCount} />
 
-            <Card
-                title={t('admin_monitoring.term_over_time', 'Terminations over time')}
-                action={(
-                    <ul className="m-0 flex list-none flex-wrap gap-3 p-0 text-[11px] text-[var(--text-secondary)]">
-                        {TYPE_ORDER.map(ty => (
-                            <li key={ty} className="inline-flex items-center gap-1"><SeriesDot color={TYPE_META[ty].color} square />{typeLabel(t, ty)}</li>
-                        ))}
-                    </ul>
-                )}
-            >
+            <Card title={t('admin_monitoring.term_over_time', 'Terminations over time')}>
+                <ul className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-[11px] text-[var(--text-secondary)]">
+                    {TYPE_ORDER.map(ty => (
+                        <li key={ty} className="inline-flex items-center gap-1"><SeriesDot color={TYPE_META[ty].color} square />{typeLabel(t, ty)}</li>
+                    ))}
+                </ul>
                 <StackedBarChart data={timeline} />
             </Card>
 
