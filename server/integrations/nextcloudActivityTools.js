@@ -57,6 +57,16 @@ function activityApi(baseUrl) {
     return `${baseUrl}/ocs/v2.php/apps/activity/api/v2/activity`;
 }
 
+/**
+ * The Activity API has two answers that mean "nothing to list": 304 when the
+ * end of the list is reached (nothing newer than `since`, or no activity at
+ * all) and 204 when the user has no activity types selected.
+ * @param {{ status: number }} res
+ */
+function isEmptyAnswer(res) {
+    return res.status === 304 || res.status === 204;
+}
+
 async function readJsonSafe(res) {
     const text = await res.text().catch(() => '');
     try { return JSON.parse(text); } catch { return text; }
@@ -103,6 +113,7 @@ async function executeNextcloudActivityTool(toolName, args, userId, session) {
             if (args.since) params.set('since', String(args.since));
             const url = `${activityApi(baseUrl)}/${encodeURIComponent(filter)}?${params.toString()}`;
             const res = await ncFetch(url, { headers });
+            if (isEmptyAnswer(res)) return { count: 0, activities: [] };
             if (!res.ok) return nextcloudHttpError(res, { authError, what: `activity fetch for filter "${filter}"`, app: 'Activity' });
             const data = await readJsonSafe(res);
             let items = Array.isArray(data?.ocs?.data) ? data.ocs.data : [];
@@ -122,6 +133,7 @@ async function executeNextcloudActivityTool(toolName, args, userId, session) {
             const limit = Math.min(Math.max(args.limit || 50, 1), 200);
             const url = `${activityApi(baseUrl)}/filter?format=json&limit=${limit}&object_type=files&object_id=${encodeURIComponent(args.fileId)}`;
             const res = await ncFetch(url, { headers });
+            if (isEmptyAnswer(res)) return { fileId: args.fileId, count: 0, activities: [] };
             if (!res.ok) return nextcloudHttpError(res, { authError, what: 'activity fetch for this file', app: 'Activity' });
             const data = await readJsonSafe(res);
             const items = Array.isArray(data?.ocs?.data) ? data.ocs.data : [];
