@@ -19,7 +19,9 @@ const configStore = require('../../stores/configStore');
 const { safeFetch } = require('../../utils/ssrfGuard');
 const log = require('../../telemetry/log');
 
-const TIMEOUT_MS = Number(process.env.PROVIDER_RERANK_TIMEOUT_MS) || 15_000;
+// Unset or not a positive number: the default. Never `|| n`, which turns a set 0 into n.
+const ENV_TIMEOUT_MS = Number(process.env.PROVIDER_RERANK_TIMEOUT_MS);
+const TIMEOUT_MS = Number.isFinite(ENV_TIMEOUT_MS) && ENV_TIMEOUT_MS > 0 ? ENV_TIMEOUT_MS : 15_000;
 // The documented upper bound of the IONOS endpoint (1..1000); harmless elsewhere.
 const MAX_DOCUMENTS = 1000;
 
