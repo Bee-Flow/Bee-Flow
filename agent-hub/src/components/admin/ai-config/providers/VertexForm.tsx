@@ -36,7 +36,7 @@ const VertexForm = ({ onMessage }: ProviderPaneProps) => {
                         onClick={() => setShowKeyInput(true)}
                         className="text-xs px-3 py-1.5 rounded-lg transition-all hover:bg-white/10 [background:var(--bg-secondary)]! [color:var(--text-muted)]! [border:1px_solid_var(--border-default)]"
                     >
-                        {hasKey ? t('admin_ai_config.vertex_update_key', '🔑 Update Service Account Key') : t('admin_ai_config.vertex_add_key', '🔑 Add Service Account Key')}
+                        {hasKey ? t('admin_ai_config.vertex_update_key', 'Update Service Account Key') : t('admin_ai_config.vertex_add_key', 'Add Service Account Key')}
                     </button>
                 ) : (
                     <div>
@@ -60,10 +60,10 @@ const VertexForm = ({ onMessage }: ProviderPaneProps) => {
                 <div className="flex justify-between items-center">
                     <div className="flex gap-2">
                         {hasProject && (
-                            <DeleteConfirmButtons onConfirm={handleDeleteProject} label={t('admin_ai_config.vertex_delete_project', '🗑️ Project')} title={t('admin_ai_config.vertex_remove_project', 'Remove Vertex project')} size="xs" />
+                            <DeleteConfirmButtons onConfirm={handleDeleteProject} label={t('admin_ai_config.vertex_delete_project', 'Project')} title={t('admin_ai_config.vertex_remove_project', 'Remove Vertex project')} size="xs" />
                         )}
                         {hasKey && (
-                            <DeleteConfirmButtons onConfirm={handleDeleteServiceKey} label={t('admin_ai_config.delete_key', '🗑️ Key')} title={t('admin_ai_config.vertex_remove_key', 'Remove service account key')} size="xs" />
+                            <DeleteConfirmButtons onConfirm={handleDeleteServiceKey} label={t('admin_ai_config.delete_key', 'Key')} title={t('admin_ai_config.vertex_remove_key', 'Remove service account key')} size="xs" />
                         )}
                     </div>
                     <button

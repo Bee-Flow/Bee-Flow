@@ -78,7 +78,7 @@ export default function OpenAIRegionToggle({ onMessage }: ProviderPaneProps) {
                 checked={isEU}
                 onChange={toggle}
                 disabled={saving}
-                label={t('admin_ai_config.openai_eu_title', '🇪🇺 Process in the EU')}
+                label={t('admin_ai_config.openai_eu_title', 'Process in the EU')}
                 description={isEU
                     ? t('admin_ai_config.openai_eu_hint_on', 'Requests go to eu.api.openai.com: inference runs inside the EU. Models released since March 2026 cost 10% more on this endpoint.')
                     : t('admin_ai_config.openai_eu_hint_off', 'Requests go to the default endpoint, where inference runs in the US. Turn this on to keep processing inside the EU (10% surcharge on newer models).')}

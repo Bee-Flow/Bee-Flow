@@ -9,11 +9,9 @@
 // 26B chat model. Unset falls back to the Fast tier's model; the ai_step
 // override next to it is a separate lever and stays as it is.
 import React from 'react';
+import ModelSettingRow from './ModelSettingRow';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';
-import { getModelDisplayName } from '@/api/modelMeta';
-import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import Section from '@/components/shared/Section';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface DataExtractionModelSectionProps extends ModelPickerSource {
@@ -30,44 +28,20 @@ export default function DataExtractionModelSection({
 }: DataExtractionModelSectionProps) {
     const { t } = useTranslation();
     return (
-            <Section title={t('admin_ai_config.tier_dx_title', 'Data Extraction Model')} description={t('admin_ai_config.tier_dx_hint', 'The model every Data extraction step in an automation runs on, whatever tier the automation itself uses: one small call per document, thinking off, temperature zero, answering in a fixed set of fields. Pick a small, fast model here; a large chat model gains nothing on this job and holds the slot. Unset falls back to the Fast tier\'s model.')}>
-
-                {dataExtractionModelMessage && (
-                    <div className={`mb-4 p-3 rounded-lg text-sm ${dataExtractionModelMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {dataExtractionModelMessage.text}
-                    </div>
-                )}
-
-                <div>
-                    <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide text-[var(--text-muted)]">
-                        {t('admin_ai_config.tier_dx_label', 'Data extraction model')}
-                    </label>
-                    {(() => {
-                        const selected = chatModels.find(m => m.id === dataExtractionModel);
-                        const display = selected ? getModelDisplayName(selected) : null;
-                        const label = selected
-                            ? (display !== selected.id ? display : selected.id)
-                            : t('admin_ai_config.tier_use_fast', '— Use Fast tier model —');
-                        return (
-                            <SearchableModelSelect
-                                value={dataExtractionModel || ''}
-                                label={label}
-                                groups={byProvider}
-                                onChange={({ modelId }) => setDataExtractionModel(modelId || '')}
-                                hiddenIds={hiddenModelIds}
-                                onToggleHidden={toggleHiddenModel}
-                            />
-                        );
-                    })()}
-                </div>
-
-                <button
-                    onClick={() => saveDataExtractionModel()}
-                    disabled={dataExtractionModelSaving}
-                    className="mt-4 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
-                >
-                    {dataExtractionModelSaving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_dx_save', 'Save Data Extraction Model')}
-                </button>
-            </Section>
+        <ModelSettingRow
+            title={t('admin_ai_config.tier_dx_title', 'Data Extraction Model')}
+            hint={t('admin_ai_config.tier_dx_hint', 'The model every Data extraction step in an automation runs on, whatever tier the automation itself uses: one small call per document, thinking off, temperature zero, answering in a fixed set of fields. Pick a small, fast model here; a large chat model gains nothing on this job and holds the slot. Unset falls back to the Fast tier\'s model.')}
+            emptyLabel={t('admin_ai_config.tier_use_fast', '— Use Fast tier model —')}
+            saveLabel={t('admin_ai_config.tier_dx_save', 'Save Data Extraction Model')}
+            model={dataExtractionModel}
+            setModel={setDataExtractionModel}
+            saving={dataExtractionModelSaving}
+            message={dataExtractionModelMessage}
+            save={saveDataExtractionModel}
+            chatModels={chatModels}
+            byProvider={byProvider}
+            hiddenModelIds={hiddenModelIds}
+            toggleHiddenModel={toggleHiddenModel}
+        />
     );
 }

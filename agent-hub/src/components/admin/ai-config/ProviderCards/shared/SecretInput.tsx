@@ -42,8 +42,7 @@ const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow
                 value={value}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm pr-10"
-                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-1.5 pr-10 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
                 onKeyDown={onEnter ? ((e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && onEnter()) : undefined}
             />
             <button

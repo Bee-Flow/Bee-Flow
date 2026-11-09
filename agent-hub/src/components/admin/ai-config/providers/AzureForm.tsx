@@ -56,11 +56,11 @@ const AzureForm = ({ onMessage }: ProviderPaneProps) => {
                 </div>
                 <div className="flex gap-2 items-center">
                     {hasEndpoint && (
-                        <DeleteConfirmButtons onConfirm={handleDeleteEndpoint} label={t('admin_ai_config.delete_endpoint', '🗑️ Endpoint')} title={t('admin_ai_config.remove_endpoint', 'Remove endpoint')} size="xs" />
+                        <DeleteConfirmButtons onConfirm={handleDeleteEndpoint} label={t('admin_ai_config.delete_endpoint', 'Endpoint')} title={t('admin_ai_config.remove_endpoint', 'Remove endpoint')} size="xs" />
                     )}
                     {hasKey && (
                         /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
-                        <DeleteConfirmButtons onConfirm={handleDeleteKey} label={t('admin_ai_config.delete_key', '🗑️ Key')} title={t('admin_ai_config.remove_api_key', 'Remove API key')} size="xs" />
+                        <DeleteConfirmButtons onConfirm={handleDeleteKey} label={t('admin_ai_config.delete_key', 'Key')} title={t('admin_ai_config.remove_api_key', 'Remove API key')} size="xs" />
                     )}
                     <button
                         type="button"

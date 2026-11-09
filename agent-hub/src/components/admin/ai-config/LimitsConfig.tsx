@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
 import SectionHeader from './SectionHeader';
-import Section from '@/components/shared/Section';
+import { FIELD_INPUT, Field, OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, SettingsGroup, SettingsList } from './ui/SettingsList';
+import { useToastOnMessage } from './ui/useToastOnMessage';
 import Toggle from '@/components/shared/Toggle';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import { API_BASE } from '@/utils/helpers';
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
 import { mutate, ApiError } from '@/api/mutate';
 
@@ -96,6 +97,7 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
         }
     };
 
+    useToastOnMessage(message);
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
 
     const KB_OPTIONS = [
@@ -105,77 +107,73 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
     ];
 
     return (
-        <div className="space-y-4">
+        <div className="flex max-w-4xl flex-col gap-6">
             <SectionHeader
                 title={t('admin_ai_config.limits_title', 'Limits & Self-host')}
                 description={t('admin_ai_config.limits_subtitle', 'Runtime caps and routing for self-hosted deployments. Background agents (AI tasks, swarms, browser, automation builder) keep their own internal limits and are out of scope.')}
             />
 
-            {message && (
-                <div className={`mb-4 p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {message.text}
-                </div>
-            )}
+            <LimitsStatus t={t} onNavigateToTab={onNavigateToTab} status={status} kbProvider={kbProvider} cpuRerankerEnabled={cpuRerankerEnabled} />
 
-            {/* ── Self-host status summary ─────────────────────────────── */}
-            <LimitsConfigSection t={t} onNavigateToTab={onNavigateToTab} status={status} kbProvider={kbProvider} cpuRerankerEnabled={cpuRerankerEnabled} />
-
-            {/* ── Tool-call rounds ─────────────────────────────────────── */}
-            <LimitsConfigSection2 t={t} value={value} setValue={setValue} PER_SURFACE_DEFAULTS={PER_SURFACE_DEFAULTS} />
-
-            {/* ── KB provider ──────────────────────────────────────────── */}
-            <Section
-                title={t('admin_ai_config.limits_kbp_title', 'Knowledge-base provider')}
-                description={t('admin_ai_config.limits_kbp_hint', 'Where KB chunk retrieval and ranking happens. Local routes everything through the in-process pgvector + reranker pipeline; remote forwards to the external search-service.')}
-            >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {KB_OPTIONS.map((opt: { id: string; label: string; desc: string }) => {
-                        const selected = kbProvider === opt.id;
-                        return (
-                            <button
-                                key={opt.id}
-                                onClick={() => setKbProvider(opt.id)}
-                                className="text-left p-3 rounded-lg border transition-all"
-                                style={{
-                                    background: selected ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)',
-                                    borderColor: selected ? '#10B981' : 'var(--border-default)',
-                                }}
-                            >
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
-                                        style={{ borderColor: selected ? '#10B981' : 'var(--border-default)', background: selected ? '#10B981' : 'transparent' }}>
-                                        {selected && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
-                                    </span>
-                                    <span className="text-sm font-medium" style={{ color: selected ? '#10B981' : 'var(--text-primary)' }}>
-                                        {opt.label}
-                                    </span>
+            <SettingsGroup title={t('admin_ai_config.limits_group', 'Limits')}>
+                <SettingsList>
+                    <SettingRow
+                        htmlFor="limits-rounds"
+                        label={t('admin_ai_config.limits_rounds_title', 'Tool calls per chat turn')}
+                        hint={t('admin_ai_config.limits_rounds_hint', 'Maximum number of tool-call rounds the model is allowed before it must produce a final answer. Applies uniformly to direct chat, notebook chat, webpage chat, and the native streaming loop.')}
+                        expanded={(
+                            <Field label={t('admin_ai_config.limits_surface_title', 'Per-surface defaults (when empty)')}>
+                                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                                    {PER_SURFACE_DEFAULTS.map((d: { name: string; value: number }) => (
+                                        <div key={d.name} className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-xs">
+                                            <div className="text-[var(--text-tertiary)]">{d.name}</div>
+                                            <div className="mt-0.5 font-semibold text-[var(--text-primary)]">{d.value} {t('admin_ai_config.limits_rounds_unit', 'rounds')}</div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">{opt.desc}</p>
-                            </button>
-                        );
-                    })}
-                </div>
-            </Section>
+                            </Field>
+                        )}
+                    >
+                        <input
+                            id="limits-rounds"
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={value}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
+                            placeholder={t('admin_ai_config.limits_rounds_placeholder', 'Use per-surface defaults')}
+                            title={t('admin_ai_config.limits_rounds_range', 'Range 1 to 50. Leave empty to use per-surface defaults.')}
+                            className={FIELD_INPUT} />
+                    </SettingRow>
 
-            {/* ── CPU reranker ─────────────────────────────────────────── */}
-            <Section
-                title={t('admin_ai_config.limits_cpu_title', 'In-process CPU reranker')}
-                description={t('admin_ai_config.limits_cpu_hint', 'When Azure Cohere reranker is not configured, fall back to the in-process Transformers.js cross-encoder (Xenova/bge-reranker-base, MIT, ~280 MB). First call downloads the model; subsequent calls run locally with no network round-trip.')}
-            >
-                <Toggle
-                    checked={cpuRerankerEnabled}
-                    onChange={(next) => patch({ cpuRerankerEnabled: next })}
-                    label={t('admin_ai_config.limits_cpu_enable', 'Enable CPU cross-encoder reranker (recommended)')}
-                />
-            </Section>
+                    <SettingBlock
+                        label={t('admin_ai_config.limits_kbp_title', 'Knowledge-base provider')}
+                        hint={t('admin_ai_config.limits_kbp_hint', 'Where KB chunk retrieval and ranking happens. Local routes everything through the in-process pgvector + reranker pipeline; remote forwards to the external search-service.')}
+                    >
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                            {KB_OPTIONS.map((opt: { id: string; label: string; desc: string }) => (
+                                <OptionCard key={opt.id} selected={kbProvider === opt.id} onClick={() => setKbProvider(opt.id)} title={opt.label} description={opt.desc} />
+                            ))}
+                        </div>
+                    </SettingBlock>
 
-            <div className="flex justify-end">
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{ background: saving ? 'var(--bg-tertiary)' : 'var(--accent-primary)', color: 'white', opacity: saving ? 0.6 : 1 }}
-                >
+                    <SettingRow
+                        label={t('admin_ai_config.limits_cpu_title', 'In-process CPU reranker')}
+                        hint={t('admin_ai_config.limits_cpu_hint', 'When Azure Cohere reranker is not configured, fall back to the in-process Transformers.js cross-encoder (Xenova/bge-reranker-base, MIT, ~280 MB). First call downloads the model; subsequent calls run locally with no network round-trip.')}
+                    >
+                        <div className="flex justify-end">
+                            <Toggle
+                                checked={cpuRerankerEnabled}
+                                onChange={(next) => patch({ cpuRerankerEnabled: next })}
+                                ariaLabel={t('admin_ai_config.limits_cpu_enable', 'Enable CPU cross-encoder reranker (recommended)')}
+                            />
+                        </div>
+                    </SettingRow>
+                </SettingsList>
+            </SettingsGroup>
+
+            <div>
+                <button type="button" onClick={handleSave} disabled={saving} className={SAVE_BUTTON}>
                     {saving ? t('admin_ai_config.saving_ellipsis', 'Saving…') : t('admin_ai_config.save', 'Save')}
                 </button>
             </div>
@@ -185,100 +183,60 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
 
 export default LimitsConfig;
 
-function LimitsConfigSection2({ t, value, setValue, PER_SURFACE_DEFAULTS }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; value: string; setValue: React.Dispatch<React.SetStateAction<string>>; PER_SURFACE_DEFAULTS: { name: string; value: number; }[]; }) {
-    return <Section
-        title={t('admin_ai_config.limits_rounds_title', 'Tool calls per chat turn')}
-        description={t('admin_ai_config.limits_rounds_hint', 'Maximum number of tool-call rounds the model is allowed before it must produce a final answer. Applies uniformly to direct chat, notebook chat, webpage chat, and the native streaming loop.')}
-    >
-        <div className="flex items-center gap-3">
-            <input
-                type="number"
-                min="1"
-                max="50"
-                value={value}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
-                placeholder={t('admin_ai_config.limits_rounds_placeholder', 'Use per-surface defaults')}
-                className="w-48 px-3 py-2.5 rounded-lg border outline-none text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!" />
-            <span className="text-xs text-[var(--text-muted)]">
-                {t('admin_ai_config.limits_rounds_range', 'Range 1 to 50. Leave empty to use per-surface defaults.')}
-            </span>
-        </div>
-        <div className="mt-4">
-            <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-muted)]">
-                {t('admin_ai_config.limits_surface_title', 'Per-surface defaults (when empty)')}
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {PER_SURFACE_DEFAULTS.map((s: { name: string; value: number; }) => (
-                    <div key={s.name} className="px-3 py-2 rounded-lg text-xs [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)]">
-                        <div className="text-[var(--text-muted)]">{s.name}</div>
-                        <div className="font-semibold mt-0.5 text-[var(--text-primary)]">{s.value} {t('admin_ai_config.limits_rounds_unit', 'rounds')}</div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    </Section>;
+type StatusRowProps = { label: string; value: React.ReactNode; onClick?: () => void };
+
+function StatusRow({ label, value, onClick }: StatusRowProps) {
+    return (
+        <SettingRow label={label}>
+            {onClick
+                ? <button type="button" onClick={onClick} className="w-full rounded-md px-2 py-1 text-left text-[13px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] md:text-right">{value}</button>
+                : <div className="px-2 text-[13px] font-medium text-[var(--text-primary)] md:text-right">{value}</div>}
+        </SettingRow>
+    );
 }
 
-function LimitsConfigSection({ t, onNavigateToTab, status, kbProvider, cpuRerankerEnabled }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigateToTab: ((tab: string) => void) | undefined; status: LimitsStatus; kbProvider: string; cpuRerankerEnabled: boolean; }) {
-    return <Section
-        title={t('admin_ai_config.limits_status_title', 'Setup status')}
-        description={t('admin_ai_config.limits_status_hint', 'What this server will use right now. Click a row to jump to the tab that controls it.')}
-    >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-            {/* Embedding model */}
-            <button
-                type="button"
-                onClick={() => onNavigateToTab && onNavigateToTab('embeddings')}
-                className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors [background:var(--bg-secondary)]! [border-color:var(--border-default)]"
-            >
-                <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_embed_model', 'Embedding model (global)')}</div>
-                <div className={`font-semibold mt-0.5 ${status.embedModel ? '[color:var(--text-primary)]' : '[color:#f59e0b]'}`}>
-                    {status.embedModel ? `${status.embedModel}${status.embedProvider ? ` · ${status.embedProvider}` : ''}` : t('admin_ai_config.limits_embed_not_set', 'Not set: pick one in Embeddings')}
-                </div>
-            </button>
+type LimitsStatusProps = { t: TranslateFn; onNavigateToTab: ((tab: string) => void) | undefined; status: LimitsStatus; kbProvider: string; cpuRerankerEnabled: boolean };
 
-            {/* Search provider */}
-            <button
-                type="button"
-                onClick={() => onNavigateToTab && onNavigateToTab('webSearchInference')}
-                className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors [background:var(--bg-secondary)]! [border-color:var(--border-default)]"
-            >
-                <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_search_provider', 'Web search provider')}</div>
-                <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
-                    {status.searchProvider === 'node-search' ? t('admin_ai_config.limits_search_cloud', 'Cloud-only (Serper + provider APIs)')
-                        : status.searchProvider === 'bing' ? t('admin_ai_config.limits_search_bing', 'Azure Bing Web Search')
-                            : status.searchProvider === 'disabled' ? t('admin_ai_config.disabled', 'Disabled')
-                                : t('admin_ai_config.limits_search_self', 'Self-hosted (Agent Search + Serper)')}
-                    {(status.searchProvider === 'node-search' && !status.hasSerperKey) && (
-                        <span className="ml-2 [color:#f59e0b]">{t('admin_ai_config.limits_needs_serper', '· needs Serper key')}</span>
+/** What this server will use right now; the first two rows jump to the section that controls them. */
+function LimitsStatus({ t, onNavigateToTab, status, kbProvider, cpuRerankerEnabled }: LimitsStatusProps) {
+    const warn = 'text-[var(--warning-ink)]';
+    const search = status.searchProvider === 'node-search' ? t('admin_ai_config.limits_search_cloud', 'Cloud-only (Serper + provider APIs)')
+        : status.searchProvider === 'bing' ? t('admin_ai_config.limits_search_bing', 'Azure Bing Web Search')
+            : status.searchProvider === 'disabled' ? t('admin_ai_config.disabled', 'Disabled')
+                : t('admin_ai_config.limits_search_self', 'Self-hosted (Agent Search + Serper)');
+    return (
+        <SettingsGroup
+            title={t('admin_ai_config.limits_status_title', 'Setup status')}
+            description={t('admin_ai_config.limits_status_hint', 'What this server will use right now. Click a row to jump to the tab that controls it.')}
+        >
+            <SettingsList>
+                <StatusRow
+                    label={t('admin_ai_config.limits_embed_model', 'Embedding model (global)')}
+                    onClick={() => onNavigateToTab?.('embeddings')}
+                    value={status.embedModel
+                        ? `${status.embedModel}${status.embedProvider ? ` · ${status.embedProvider}` : ''}`
+                        : <span className={warn}>{t('admin_ai_config.limits_embed_not_set', 'Not set: pick one in Embeddings')}</span>}
+                />
+                <StatusRow
+                    label={t('admin_ai_config.limits_search_provider', 'Web search provider')}
+                    onClick={() => onNavigateToTab?.('webSearchInference')}
+                    value={(
+                        <>
+                            {search}
+                            {(status.searchProvider === 'node-search' && !status.hasSerperKey) && <span className={`ml-2 ${warn}`}>{t('admin_ai_config.limits_needs_serper', '· needs Serper key')}</span>}
+                            {(status.searchProvider === 'agent-search' && !status.hasAgentSearchUrl) && <span className={`ml-2 ${warn}`}>{t('admin_ai_config.limits_needs_search_url', '· needs SEARCH_SERVICE_URL')}</span>}
+                        </>
                     )}
-                    {(status.searchProvider === 'agent-search' && !status.hasAgentSearchUrl) && (
-                        <span className="ml-2 [color:#f59e0b]">{t('admin_ai_config.limits_needs_search_url', '· needs SEARCH_SERVICE_URL')}</span>
-                    )}
-                </div>
-            </button>
-
-            {/* KB provider (current) */}
-            <button
-                type="button"
-                className="text-left px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
-            >
-                <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_kb_provider', 'KB provider')}</div>
-                <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
-                    {kbProvider === 'auto' ? t('admin_ai_config.limits_kb_auto', 'Auto') : kbProvider === 'local' ? t('admin_ai_config.limits_kb_local', 'Local (in-process)') : t('admin_ai_config.limits_kb_remote', 'Remote search-service')}
-                </div>
-            </button>
-
-            {/* CPU reranker */}
-            <button
-                type="button"
-                className="text-left px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
-            >
-                <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_cpu_reranker', 'CPU cross-encoder reranker')}</div>
-                <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
-                    {cpuRerankerEnabled ? t('admin_ai_config.enabled', 'Enabled') : t('admin_ai_config.disabled', 'Disabled')}
-                </div>
-            </button>
-        </div>
-    </Section>;
+                />
+                <StatusRow
+                    label={t('admin_ai_config.limits_kb_provider', 'KB provider')}
+                    value={kbProvider === 'auto' ? t('admin_ai_config.limits_kb_auto', 'Auto') : kbProvider === 'local' ? t('admin_ai_config.limits_kb_local', 'Local (in-process)') : t('admin_ai_config.limits_kb_remote', 'Remote search-service')}
+                />
+                <StatusRow
+                    label={t('admin_ai_config.limits_cpu_reranker', 'CPU cross-encoder reranker')}
+                    value={cpuRerankerEnabled ? t('admin_ai_config.enabled', 'Enabled') : t('admin_ai_config.disabled', 'Disabled')}
+                />
+            </SettingsList>
+        </SettingsGroup>
+    );
 }

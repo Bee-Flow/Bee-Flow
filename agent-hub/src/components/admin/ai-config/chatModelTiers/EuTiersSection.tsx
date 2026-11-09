@@ -1,6 +1,6 @@
-// "EU Chat Model Tiers" section of ChatModelTiersConfig. Subtree moved
-// verbatim from ChatModelTiersConfig.jsx; all bindings are threaded in as
-// props.
+// "EU Chat Model Tiers" section of ChatModelTiersConfig: the standard tiers and
+// the EU override of each custom tier as settings lists. All bindings are
+// threaded in as props.
 import React from 'react';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { TierConfig, CustomTier, StatusMessage } from './tierTypes';
@@ -10,7 +10,8 @@ import type { TierConfigsState } from './useTierConfigs';
 import { TIERS } from './constants';
 import CustomTierEuRow from './CustomTierEuRow';
 import TierCard from './TierCard';
-import Section from '@/components/shared/Section';
+import { SAVE_BUTTON, SettingsGroup, SettingsList } from '../ui/SettingsList';
+import { useToastOnMessage } from '../ui/useToastOnMessage';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface EuTiersSectionProps extends ModelPickerSource {
@@ -35,16 +36,11 @@ export default function EuTiersSection({
     applyClaudeRecommendedForTier, updateCustomTier,
 }: EuTiersSectionProps) {
     const { t } = useTranslation();
+    useToastOnMessage(euMessage);
     return (
-            <Section title={t('admin_ai_config.tier_eu_title', 'EU Chat Model Tiers')} description={t('admin_ai_config.tier_eu_subtitle', 'EU-hosted models used when an organization has EU mode enabled in their Privacy Shield')}>
-
-                {euMessage && (
-                    <div className={`mb-4 p-3 rounded-lg text-sm ${euMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {euMessage.text}
-                    </div>
-                )}
-
-                <div className="space-y-4">
+        <div className="flex max-w-4xl flex-col gap-6">
+            <SettingsGroup title={t('admin_ai_config.tier_eu_title', 'EU Chat Model Tiers')} description={t('admin_ai_config.tier_eu_subtitle', 'EU-hosted models used when an organization has EU mode enabled in their Privacy Shield')}>
+                <SettingsList>
                     {TIERS.map(tier => (
                         <TierCard
                             key={tier.key}
@@ -63,40 +59,36 @@ export default function EuTiersSection({
                             applyClaudeRecommendedForTier={applyClaudeRecommendedForTier}
                         />
                     ))}
-                </div>
+                </SettingsList>
+            </SettingsGroup>
 
-                {/* Custom tiers — EU model picker per tier. Only shown when any custom tier exists. */}
-                {customTiers.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-[var(--border-default)]">
-                        <h4 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">
-                            {t('admin_ai_config.tier_eu_custom_title', 'Custom Tiers: EU override')}
-                        </h4>
-                        <p className="text-xs mb-3 text-[var(--text-muted)]">
-                            {t('admin_ai_config.tier_eu_custom_hint', 'Pick an EU-hosted model for each custom tier. Used automatically when an organization has EU mode enabled.')}
-                        </p>
-                        <div className="space-y-4">
-                            {customTiers.map(tier => (
-                                <CustomTierEuRow
-                                    key={tier.id}
-                                    tier={tier}
-                                    chatModels={chatModels}
-                                    byProvider={byProvider}
-                                    hiddenModelIds={hiddenModelIds}
-                                    toggleHiddenModel={toggleHiddenModel}
-                                    updateCustomTier={updateCustomTier}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                <button
-                    onClick={saveEu}
-                    disabled={euSaving}
-                    className="mt-6 px-6 py-2.5 rounded-lg font-medium text-sm transition-all text-white hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
+            {/* Custom tiers: EU model picker per tier. Only shown when any custom tier exists. */}
+            {customTiers.length > 0 && (
+                <SettingsGroup
+                    title={t('admin_ai_config.tier_eu_custom_title', 'Custom Tiers: EU override')}
+                    description={t('admin_ai_config.tier_eu_custom_hint', 'Pick an EU-hosted model for each custom tier. Used automatically when an organization has EU mode enabled.')}
                 >
+                    <SettingsList>
+                        {customTiers.map(tier => (
+                            <CustomTierEuRow
+                                key={tier.id}
+                                tier={tier}
+                                chatModels={chatModels}
+                                byProvider={byProvider}
+                                hiddenModelIds={hiddenModelIds}
+                                toggleHiddenModel={toggleHiddenModel}
+                                updateCustomTier={updateCustomTier}
+                            />
+                        ))}
+                    </SettingsList>
+                </SettingsGroup>
+            )}
+
+            <div>
+                <button type="button" onClick={saveEu} disabled={euSaving} className={SAVE_BUTTON}>
                     {euSaving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.tier_eu_save', 'Save EU Tier Configuration')}
                 </button>
-            </Section>
+            </div>
+        </div>
     );
 }

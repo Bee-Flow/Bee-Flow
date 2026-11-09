@@ -108,7 +108,7 @@ export default function AddRuntimePane({ runtimes, unsupported, connectedCount, 
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         <button type="button" className={PRIMARY_BTN} disabled={detecting} onClick={handleDetect}>
-                            {detecting ? t('admin_ai_config.local_scanning', 'Scanning…') : t('admin_ai_config.local_find', '🔍 Find running runtimes')}
+                            {detecting ? t('admin_ai_config.local_scanning', 'Scanning…') : t('admin_ai_config.local_find', 'Find running runtimes')}
                         </button>
                         <button type="button" className={SECONDARY_BTN} onClick={() => setShowAdd(s => !s)}>
                             {showAdd ? t('admin_ai_config.cancel', 'Cancel') : t('admin_ai_config.local_add_manual', '+ Add manually')}

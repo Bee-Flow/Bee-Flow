@@ -3177,3 +3177,10 @@ admin_ai_config.local_connected_count
 admin_ai_config.local_title
 admin_ai_config.vertex_project_pill
 admin_ai_config.vertex_title
+admin_ai_config.custom_settings_closed
+admin_ai_config.custom_settings_open
+admin_ai_config.tier_aistep_label
+admin_ai_config.tier_cls_label
+admin_ai_config.tier_dx_label
+admin_ai_config.tier_mem_label
+admin_ai_config.tier_title_label

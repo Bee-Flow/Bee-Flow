@@ -97,7 +97,7 @@ const RerankerConfig = ({ onMessage, providers = [], allModels = [] }: RerankerC
 
     return (
         <Section
-            description={isConfigured ? t('admin_ai_config.rerank_configured', '✅ Configured: Knowledge Base search results are reranked') : t('admin_ai_config.rerank_subtitle', 'Improve Knowledge Base search accuracy with neural reranking')}
+            description={isConfigured ? t('admin_ai_config.rerank_configured', 'Configured: Knowledge Base search results are reranked') : t('admin_ai_config.rerank_subtitle', 'Improve Knowledge Base search accuracy with neural reranking')}
         >
         <div className="space-y-3">
             <RerankerProviderSection providers={providers} allModels={allModels} onMessage={onMessage} />
@@ -140,11 +140,11 @@ const RerankerConfig = ({ onMessage, providers = [], allModels = [] }: RerankerC
                 </p>
                 <div className="flex gap-2 items-center">
                     {hasEndpoint && (
-                        <DeleteConfirmButtons onConfirm={handleDeleteEndpoint} label={t('admin_ai_config.delete_endpoint', '🗑️ Endpoint')} title={t('admin_ai_config.remove_endpoint', 'Remove endpoint')} size="xs" />
+                        <DeleteConfirmButtons onConfirm={handleDeleteEndpoint} label={t('admin_ai_config.delete_endpoint', 'Endpoint')} title={t('admin_ai_config.remove_endpoint', 'Remove endpoint')} size="xs" />
                     )}
                     {hasKey && (
                         /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
-                        <DeleteConfirmButtons onConfirm={handleDeleteKey} label={t('admin_ai_config.delete_key', '🗑️ Key')} title={t('admin_ai_config.remove_api_key', 'Remove API key')} size="xs" />
+                        <DeleteConfirmButtons onConfirm={handleDeleteKey} label={t('admin_ai_config.delete_key', 'Key')} title={t('admin_ai_config.remove_api_key', 'Remove API key')} size="xs" />
                     )}
                     {isConfigured && (
                         <button
@@ -152,7 +152,7 @@ const RerankerConfig = ({ onMessage, providers = [], allModels = [] }: RerankerC
                             disabled={testing}
                             className="px-3 py-2 rounded-lg text-xs font-medium transition-all hover:bg-white/10 [background:var(--bg-secondary)]! [color:var(--text-primary)]!"
                         >
-                            {testing ? '...' : t('admin_ai_config.rerank_test', '🧪 Test')}
+                            {testing ? '...' : t('admin_ai_config.rerank_test', 'Test')}
                         </button>
                     )}
                     <button

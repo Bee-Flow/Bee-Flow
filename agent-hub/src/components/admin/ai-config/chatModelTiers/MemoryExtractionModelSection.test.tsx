@@ -25,6 +25,7 @@ vi.mock('../../shared/SearchableModelSelect', () => ({
     ),
 }));
 
+import toast from '@/components/shared/Toast';
 import MemoryExtractionModelSection from './MemoryExtractionModelSection';
 
 const chatModels = [
@@ -68,12 +69,14 @@ describe('MemoryExtractionModelSection', () => {
         expect(props.saveMemoryModel).toHaveBeenCalledTimes(1);
     });
 
-    it('shows the result message and disables Save while saving', () => {
+    it('says the result message as a toast and disables Save while saving', () => {
+        const success = vi.spyOn(toast, 'success').mockReturnValue(1);
         renderSection({ memoryModelMessage: { type: 'success', text: 'Memory extraction model saved' } });
-        expect(screen.getByText('Memory extraction model saved')).toBeTruthy();
+        expect(success).toHaveBeenCalledWith('Memory extraction model saved');
         cleanup();
         renderSection({ memoryModelSaving: true });
         const btn = screen.getByRole('button', { name: 'Saving...' });
+        success.mockRestore();
         expect((btn as HTMLInputElement).disabled).toBe(true);
     });
 });

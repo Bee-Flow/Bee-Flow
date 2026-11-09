@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import SectionHeader from './SectionHeader';
-import Section from '@/components/shared/Section';
+import { OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, SettingsList } from './ui/SettingsList';
+import { useToastOnMessage } from './ui/useToastOnMessage';
 import { useWebSearchInferenceQuery } from '@/api/queries/adminConfigReads';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import { API_BASE } from '@/utils/helpers';
 import { getModelMeta, getModelDisplayName, type ModelEntry } from '@/api/modelMeta';
 import SearchableModelSelect from '../shared/SearchableModelSelect';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import type { StatusMessage } from './chatModelTiers/tierTypes';
 import { mutate, ApiError } from '@/api/mutate';
 
 const getRerankMethods = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
@@ -98,7 +100,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
     const embedSummary: EmbedSummary = stored?.embedSummary ?? NO_EMBED_SUMMARY;
     const loading = inference.isPending;
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: string; text: string; } | null>(null);
+    const [message, setMessage] = useState<StatusMessage | null>(null);
     const { refetch: fetchAll } = inference;
 
     const handleSave = async () => {
@@ -126,6 +128,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
         }
     };
 
+    useToastOnMessage(message);
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
 
     // Filter to chat-completion models only — same exclusions ChatModelTiersConfig uses.
@@ -149,27 +152,16 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
     const rerankLabel = modelLabel(findSelected(chatModels, config.rerank), t('admin_ai_config.ws_pick_model', 'Pick a model'));
 
     return (
-        <div className="space-y-4">
+        <div className="flex max-w-4xl flex-col gap-6">
             <SectionHeader
                 title={t('admin_ai_config.ws_title', 'Web Search: Inference')}
                 description={t('admin_ai_config.ws_subtitle', 'Three tasks the search-service runs for every web query. Embeddings inherit your global Embeddings settings; rerank is a method-only choice; cleanup picks any chat model from a configured provider.')}
             />
 
-            {message && (
-                <div className={`mb-4 p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {message.text}
-                </div>
-            )}
-
             <WebSearchInferenceConfigSection t={t} onNavigateToTab={onNavigateToTab} config={config} embedLabel={embedLabel} embedGroups={embedGroups} setConfig={setConfig} RERANK_METHODS={RERANK_METHODS} rerankLabel={rerankLabel} cleanupGroups={cleanupGroups} cleanupLabel={cleanupLabel} />
 
-            <div className="flex justify-end">
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{ background: saving ? 'var(--bg-tertiary)' : 'var(--accent-primary)', color: 'white', opacity: saving ? 0.6 : 1 }}
-                >
+            <div>
+                <button type="button" onClick={handleSave} disabled={saving} className={SAVE_BUTTON}>
                     {saving ? t('admin_ai_config.saving_ellipsis', 'Saving…') : t('admin_ai_config.save', 'Save')}
                 </button>
             </div>
@@ -180,18 +172,19 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
 export default WebSearchInferenceConfig;
 
 function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabel, embedGroups, setConfig, RERANK_METHODS, rerankLabel, cleanupGroups, cleanupLabel }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigateToTab: (tab: string) => void; config: { embed: { providerId: string; modelId: string; }; rerank: { method: string; providerId: string; modelId: string; }; cleanup: { providerId: string; modelId: string; }; }; embedLabel: string; embedGroups: Record<string, InferenceModel[]>; setConfig: React.Dispatch<React.SetStateAction<{ embed: { providerId: string; modelId: string; }; rerank: { method: string; providerId: string; modelId: string; }; cleanup: { providerId: string; modelId: string; }; }>>; RERANK_METHODS: { id: string; label: string; desc: string; }[]; rerankLabel: string; cleanupGroups: Record<string, InferenceModel[]>; cleanupLabel: string; }) {
-    return <div className="space-y-4">
-        {/* ── Embeddings (per-feature picker; empty -> inherit global) ── */}
-        <Section
-            title={t('admin_ai_config.ws_embeddings', 'Embeddings')}
-            description={t('admin_ai_config.ws_embed_hint', 'Vectorise queries and pages for semantic search. Pick a model to override, or leave on “Inherit global” to use the model from the Embeddings tab.')}
-            actions={onNavigateToTab && (
-                <button
-                    onClick={() => onNavigateToTab('embeddings')}
-                    className="text-xs px-3 py-1.5 rounded-lg border hover:bg-white/5 transition-colors text-[var(--text-secondary)] border-[var(--border-default)]"
-                >
-                    {t('admin_ai_config.ws_open_embed', 'Open Embeddings settings →')}
-                </button>
+    return <SettingsList>
+        {/* Embeddings (per-feature picker; empty -> inherit global) */}
+        <SettingRow
+            label={t('admin_ai_config.ws_embeddings', 'Embeddings')}
+            hint={(
+                <>
+                    {t('admin_ai_config.ws_embed_hint', 'Vectorise queries and pages for semantic search. Pick a model to override, or leave on “Inherit global” to use the model from the Embeddings tab.')}{' '}
+                    {onNavigateToTab && (
+                        <button type="button" onClick={() => onNavigateToTab('embeddings')} className="text-[var(--accent-primary)] underline-offset-2 hover:underline">
+                            {t('admin_ai_config.ws_open_embed', 'Open Embeddings settings →')}
+                        </button>
+                    )}
+                </>
             )}
         >
             <SearchableModelSelect
@@ -202,51 +195,35 @@ function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabe
                 clearLabel={t('admin_ai_config.ws_embed_clear', 'Inherit from global Embeddings settings')}
                 onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, embed: { providerId, modelId } }))} />
             {Object.keys(embedGroups).length === 0 && (
-                <p className="text-xs mt-2 text-[var(--text-muted)]">
+                <p className="m-0 mt-2 text-xs text-[var(--text-tertiary)]">
                     {t('admin_ai_config.ws_embed_none', 'No embedding models found in your configured providers: add a provider with embeddings (e.g. OpenAI, Mistral) or set one globally in the Embeddings tab.')}
                 </p>
             )}
-        </Section>
+        </SettingRow>
 
-        {/* ── Reranking ─────────────────────────────────────── */}
-        <Section
-            title={t('admin_ai_config.ws_reranking', 'Reranking')}
-            description={t('admin_ai_config.ws_rerank_hint', 'Re-score search results to surface the most relevant. Provider-agnostic.')}
+        {/* Reranking */}
+        <SettingBlock
+            label={t('admin_ai_config.ws_reranking', 'Reranking')}
+            hint={t('admin_ai_config.ws_rerank_hint', 'Re-score search results to surface the most relevant. Provider-agnostic.')}
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                {RERANK_METHODS.map(opt => {
-                    const selected = config.rerank.method === opt.id;
-                    return (
-                        <button
-                            key={opt.id}
-                            onClick={() => setConfig(prev => ({
-                                ...prev,
-                                rerank: opt.id === 'provider'
-                                    ? { method: 'provider', providerId: prev.rerank.providerId, modelId: prev.rerank.modelId }
-                                    : { method: opt.id, providerId: '', modelId: '' },
-                            }))}
-                            className="text-left p-3 rounded-lg border transition-all"
-                            style={{
-                                background: selected ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)',
-                                borderColor: selected ? '#10B981' : 'var(--border-default)',
-                            }}
-                        >
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
-                                    style={{ borderColor: selected ? '#10B981' : 'var(--border-default)', background: selected ? '#10B981' : 'transparent' }}>
-                                    {selected && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
-                                </span>
-                                <span className="text-sm font-medium" style={{ color: selected ? '#10B981' : 'var(--text-primary)' }}>
-                                    {opt.label}
-                                </span>
-                            </div>
-                            <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">{opt.desc}</p>
-                        </button>
-                    );
-                })}
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+                {RERANK_METHODS.map(opt => (
+                    <OptionCard
+                        key={opt.id}
+                        selected={config.rerank.method === opt.id}
+                        title={opt.label}
+                        description={opt.desc}
+                        onClick={() => setConfig(prev => ({
+                            ...prev,
+                            rerank: opt.id === 'provider'
+                                ? { method: 'provider', providerId: prev.rerank.providerId, modelId: prev.rerank.modelId }
+                                : { method: opt.id, providerId: '', modelId: '' },
+                        }))}
+                    />
+                ))}
             </div>
             {config.rerank.method === 'provider' && (
-                <div className="mt-3">
+                <div className="mt-1 max-w-sm">
                     <SearchableModelSelect
                         value={{ providerId: config.rerank.providerId, modelId: config.rerank.modelId }}
                         label={rerankLabel}
@@ -255,18 +232,18 @@ function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabe
                         clearLabel={t('admin_ai_config.ws_rerank_clear', 'Pick a model (required for provider rerank)')}
                         onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, rerank: { method: 'provider', providerId, modelId } }))} />
                     {!config.rerank.modelId && (
-                        <p className="text-xs mt-1.5 text-[var(--text-muted)]">
+                        <p className="m-0 mt-1.5 text-xs text-[var(--text-tertiary)]">
                             {t('admin_ai_config.ws_rerank_pick_hint', 'Pick a model: without one, “Provider model” falls back to cosine similarity at runtime.')}
                         </p>
                     )}
                 </div>
             )}
-        </Section>
+        </SettingBlock>
 
-        {/* ── Cleanup ───────────────────────────────────────── */}
-        <Section
-            title={t('admin_ai_config.ws_cleanup', 'Webpage cleanup')}
-            description={t('admin_ai_config.ws_cleanup_hint', 'Convert raw scraped HTML into clean, agent-readable text. Pick any chat model from a configured provider.')}
+        {/* Cleanup */}
+        <SettingRow
+            label={t('admin_ai_config.ws_cleanup', 'Webpage cleanup')}
+            hint={t('admin_ai_config.ws_cleanup_hint', 'Convert raw scraped HTML into clean, agent-readable text. Pick any chat model from a configured provider.')}
         >
             <SearchableModelSelect
                 value={config.cleanup}
@@ -276,10 +253,10 @@ function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabe
                 clearLabel={t('admin_ai_config.ws_cleanup_clear', 'Disabled (skip cleanup)')}
                 onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, cleanup: { providerId, modelId } }))} />
             {Object.keys(cleanupGroups).length === 0 && (
-                <p className="text-xs mt-2 text-[var(--text-muted)]">
+                <p className="m-0 mt-2 text-xs text-[var(--text-tertiary)]">
                     {t('admin_ai_config.ws_no_providers', 'No providers configured yet: add an API key in the Providers tab to enable model selection.')}
                 </p>
             )}
-        </Section>
-    </div>;
+        </SettingRow>
+    </SettingsList>;
 }

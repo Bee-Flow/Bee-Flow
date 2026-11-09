@@ -2415,28 +2415,12 @@
       "count": 1
     }
   },
-  "src/components/admin/ai-config/chatModelTiers/ChatTiersSection.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/ai-config/chatModelTiers/ClaudeSettingsSection.tsx": {
     "max-lines-per-function": {
       "count": 1
     }
   },
   "src/components/admin/ai-config/chatModelTiers/CustomTierCard.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/ai-config/chatModelTiers/TierCard.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }

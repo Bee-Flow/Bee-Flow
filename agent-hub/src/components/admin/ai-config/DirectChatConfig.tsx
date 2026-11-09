@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import FormField from '@/components/shared/FormField';
-import Section from '@/components/shared/Section';
+import SectionHeader from './SectionHeader';
+import { FIELD_INPUT, SAVE_BUTTON, SettingBlock, SettingsList } from './ui/SettingsList';
+import { useToastOnMessage } from './ui/useToastOnMessage';
 import { API_BASE } from '@/utils/helpers';
 import { useDirectChatPrompt } from '@/api/queries/orgAdminReads';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -40,20 +41,17 @@ const DirectChatConfig = () => {
         }
     };
 
+    useToastOnMessage(message);
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading', 'Loading...')}</div>;
 
     return (
-        <Section
-            title={t('admin_ai_config.direct_title', 'Direct Chat Settings')}
-            description={t('admin_ai_config.direct_subtitle', 'Configure the system prompt for Direct Chat')}
-            actions={message && (
-                <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
-                    {message.text}
-                </span>
-            )}
-        >
-            <div className="space-y-4 max-w-3xl">
-                <FormField
+        <div className="flex max-w-4xl flex-col gap-6">
+            <SectionHeader
+                title={t('admin_ai_config.direct_title', 'Direct Chat Settings')}
+                description={t('admin_ai_config.direct_subtitle', 'Configure the system prompt for Direct Chat')}
+            />
+            <SettingsList>
+                <SettingBlock
                     label={t('admin_ai_config.direct_prompt_label', 'System Prompt')}
                     htmlFor="direct-chat-prompt"
                     hint={t('admin_ai_config.direct_prompt_hint', 'This prompt defines the AI personality for Direct Chat. The current date and available tools are appended automatically. Leave empty to use the default.')}
@@ -64,21 +62,16 @@ const DirectChatConfig = () => {
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
                         placeholder={t('admin_ai_config.direct_prompt_placeholder', 'You are a helpful AI assistant. Respond thoughtfully and concisely.')}
                         rows={8}
-                        className="w-full px-4 py-3 rounded-lg border outline-none focus:border-[var(--accent-primary)] resize-y font-mono text-sm leading-relaxed [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]! min-h-[120px]"
+                        className={`${FIELD_INPUT} min-h-[120px] resize-y font-mono leading-relaxed`}
                     />
-                </FormField>
-
-                <div className="pt-2">
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="px-6 py-2.5 rounded-xl font-medium text-white transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
-                    >
-                        {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.direct_save', 'Save System Prompt')}
-                    </button>
-                </div>
+                </SettingBlock>
+            </SettingsList>
+            <div>
+                <button type="button" onClick={handleSave} disabled={saving} className={SAVE_BUTTON}>
+                    {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.direct_save', 'Save System Prompt')}
+                </button>
             </div>
-        </Section>
+        </div>
     );
 };
 
