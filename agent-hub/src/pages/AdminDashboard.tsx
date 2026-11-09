@@ -97,7 +97,6 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
         activeTab,
         onSelect: handleTabClick,
         onBack,
-        backLabel: t('studio.rail.back_to_chat', 'Chat'),
         backTitle: t('admin.back_to_chat'),
     };
 

@@ -88,7 +88,7 @@ function LocaleEditor({ locale, localeName, activeSection, setActiveSection, onE
     ];
     return (
         <div className="flex h-full flex-col">
-            <div className="flex shrink-0 flex-col gap-3 px-6 pt-5">
+            <div className="flex shrink-0 flex-col gap-3 px-4 pt-5">
                 <SectionHeader
                     title={localeName}
                     description={locale}

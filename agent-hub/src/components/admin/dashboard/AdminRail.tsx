@@ -26,7 +26,6 @@ interface AdminRailProps {
     activeTab: string;
     onSelect: (tabId: string) => void;
     onBack?: React.MouseEventHandler<HTMLButtonElement>;
-    backLabel: string;
     backTitle: string;
     /** Inside the phone drawer the rail fills it instead of being a 240px column. */
     inDrawer?: boolean;
@@ -50,7 +49,7 @@ function RailRow({ id, label, Icon, active, onSelect }: { id: string; label: str
     );
 }
 
-export default function AdminRail({ title, groups, activeTab, onSelect, onBack, backLabel, backTitle, inDrawer = false, className = '' }: AdminRailProps) {
+export default function AdminRail({ title, groups, activeTab, onSelect, onBack, backTitle, inDrawer = false, className = '' }: AdminRailProps) {
     const navRef = useRef<HTMLElement>(null);
     // A long rail on a short window: keep the current row in view.
     useEffect(() => {
@@ -74,10 +73,9 @@ export default function AdminRail({ title, groups, activeTab, onSelect, onBack, 
                         onClick={onBack}
                         title={backTitle}
                         aria-label={backTitle}
-                        className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-[12px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)]"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)]"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
-                        {backLabel}
                     </button>
                 )}
             </div>
