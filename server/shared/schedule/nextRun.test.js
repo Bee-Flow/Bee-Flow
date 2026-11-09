@@ -4,7 +4,7 @@
 // the answer of both. The rows marked CHANGED are where the server used to
 // differ from what the web UI showed as "next run", and now follows the UI.
 //
-// Hourly uses the process's local clock (setMinutes), so the table runs in UTC.
+// The table runs in UTC so a missing tz argument resolves the same everywhere.
 process.env.TZ = 'UTC';
 
 const { test, mock } = require('node:test');
@@ -51,6 +51,16 @@ const CASES = [
     ['timeOfDay "noon" -> 08:00', '2026-10-13T06:00:00Z', { repeatInterval: 'daily', timeOfDay: 'noon' }, 'UTC', '2026-10-13T08:00:00.000Z'],
     ['timeOfDay "25:99" -> 08:00', '2026-10-13T06:00:00Z', { repeatInterval: 'daily', timeOfDay: '25:99' }, 'UTC', '2026-10-13T08:00:00.000Z'],
     ['no schedule at all', '2026-10-13T06:00:00Z', null, 'UTC', '2026-10-13T08:00:00.000Z'],
+    // Regressions: later days are calendar days in the zone, not "+24 hours".
+    // Friday before the EU DST start (29 March): Monday 08:00 CEST is 06:00Z; it was 07:00Z (09:00 local).
+    ['weekly across the DST start keeps HH:MM', '2026-03-27T12:00:00Z', { repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '08:00' }, 'Europe/Amsterdam', '2026-03-30T06:00:00.000Z'],
+    ['weekdays across the DST end keeps HH:MM', '2026-10-23T12:00:00Z', { repeatInterval: 'weekdays', timeOfDay: '08:00' }, 'Europe/Amsterdam', '2026-10-26T07:00:00.000Z'],
+    // On the 25-hour day "now + 24h" is still today: 00:15 has passed at 00:30, the answer was 00:15 TODAY (in the past).
+    ['daily on the 25-hour day rolls to tomorrow', '2026-10-24T22:30:00Z', { repeatInterval: 'daily', timeOfDay: '00:15' }, 'Europe/Amsterdam', '2026-10-25T23:15:00.000Z'],
+    // Hourly reads :MM on the zone's clock: 17:40 in Kolkata (+05:30), the next :00 there is 12:30Z; it was 13:00Z (18:30 local).
+    ['hourly in a half-hour zone', '2026-03-27T12:10:00Z', { repeatInterval: 'hourly', timeOfDay: '09:00' }, 'Asia/Kolkata', '2026-03-27T12:30:00.000Z'],
+    ['hourly with an unknown zone still answers', '2026-10-13T10:15:00Z', { repeatInterval: 'hourly', timeOfDay: '09:30' }, 'Not/AZone', '2026-10-13T10:30:00.000Z'],
+    ['hourly at :15 in a half-hour zone', '2026-03-27T12:10:00Z', { repeatInterval: 'hourly', timeOfDay: '09:15' }, 'Asia/Kolkata', '2026-03-27T12:45:00.000Z'],
 ];
 
 for (const [name, now, schedule, tz, expected] of CASES) {

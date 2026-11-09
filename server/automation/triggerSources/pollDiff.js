@@ -424,7 +424,9 @@ async function runPollDiff(sub, eventDef, passCtx, deps = {}) {
         } else if (fires) {
             // Over the per-tick cap: keep the OLD state so the next tick sees
             // this item as still-changed rather than dropping the event.
-            entries.push({ id12, chg12: before.chg12, vals: before.vals });
+            // An item that APPEARED over the cap has no old state: leave it
+            // out of the cursor, so it is new again on the next tick.
+            if (before) entries.push({ id12, chg12: before.chg12, vals: before.vals });
         } else {
             entries.push({ id12, chg12, vals: src.trackValues ? projected : undefined });
         }
@@ -433,7 +435,12 @@ async function runPollDiff(sub, eventDef, passCtx, deps = {}) {
     if (src.emitOnDisappear && prevMap && prev !== null && !trunc) {
         for (const [id12, before] of prevMap) {
             if (seenIds.has(id12)) continue;
-            if (emitted.length >= maxPerTick) break;
+            if (emitted.length >= maxPerTick) {
+                // Over the per-tick cap: keep it in the cursor so the next
+                // tick still sees it as gone, instead of dropping the event.
+                entries.push({ id12, chg12: before.chg12, vals: before.vals });
+                continue;
+            }
             emitted.push({
                 ...(before.vals || {}),
                 changedKeys: [],

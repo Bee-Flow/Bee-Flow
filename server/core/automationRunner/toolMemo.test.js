@@ -328,3 +328,18 @@ test('the key prefix is still v1 — shipping the http cache must invalidate no 
     const identity = memoKeyParts({ toolName: 'http_request', args: {} });
     assert.strictEqual(identity.split('\0')[0], 'v1');
 });
+
+test('storing a key again replaces it: bytes are counted once and nothing else is evicted', () => {
+    const memo = createToolMemo({ maxEntries: 2 });
+    memo.store('other', { v: 'kept' });
+    memo.store('k', { v: 'first' });
+    const once = memo.stats().bytes;
+    memo.store('k', { v: 'again' });
+    memo.store('k', { v: 'third' });
+    // The old entry's bytes stayed in the total for good (it only ever grew),
+    // and a full memo evicted its oldest entry to "make room" for a replacement.
+    assert.strictEqual(memo.stats().bytes, once);
+    assert.strictEqual(memo.stats().entries, 2);
+    assert.deepStrictEqual(memo.peek('other'), { v: 'kept' });
+    assert.deepStrictEqual(memo.peek('k'), { v: 'third' });
+});
