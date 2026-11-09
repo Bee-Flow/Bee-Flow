@@ -185,7 +185,7 @@ export const MAIL_ACCESS_APPS: readonly string[] = Object.freeze(['gmail', 'outl
 export const MAIL_ACCESS = Object.freeze({ READ: 'read', DRAFT: 'draft', SEND_REPLY: 'send_reply' });
 
 /** The stored `mailAccess` of an app, or `null` if the owner made no choice. */
-export function storedMailAccessOf(toolsConfig: ToolsConfigIn, appId: string): string | null {
+function storedMailAccessOf(toolsConfig: ToolsConfigIn, appId: string): string | null {
     const entry = isPlainObject(toolsConfig) ? toolsConfig[appId] : null;
     if (!isPlainObject(entry)) return null;
     const v = entry.mailAccess;

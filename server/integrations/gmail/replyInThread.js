@@ -71,7 +71,7 @@ function replyTo(headers, replyAll, own) {
     return {
         to: to.join(', '),
         cc: cc.join(', ') || undefined,
-        subject: /^re:/i.test(origSubject) ? origSubject : `Re: ${origSubject}`.trim(),
+        subject: origSubject.slice(0, 3).toLowerCase() === 're:' ? origSubject : `Re: ${origSubject}`.trim(),
         inReplyTo: getHeader(headers, 'Message-ID') || null,
         references: getHeader(headers, 'References') || null,
         count: to.length + cc.length,

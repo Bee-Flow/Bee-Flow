@@ -328,7 +328,7 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
 function keepInMailRun(name, appId, toolsConfig) {
     const { effectOf } = require('../automationModel/sideEffectMap');
     if (appId !== 'gmail' && appId !== 'outlook') return effectOf(name) !== 'sends';
-    if (/_compose$/.test(name) || /forward/.test(name)) return false;
+    if (name.endsWith('_compose') || name.includes('forward')) return false;
     if (effectOf(name) === 'reads') return true;
     const level = mailAccessOf(appId, toolsConfig ? toolsConfig[appId] : null);
     const apps = MAIL_APPS[appId];

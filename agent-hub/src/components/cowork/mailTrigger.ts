@@ -18,7 +18,7 @@ export function defaultMailTrigger(provider: MailProvider = 'gmail'): MailTrigge
 }
 
 /** Drop empty strings and keys that do not belong to the provider, so the server only sees what was meant. */
-export function cleanMailFilter(provider: MailProvider, filter: MailTriggerFilter | undefined): MailTriggerFilter {
+function cleanMailFilter(provider: MailProvider, filter: MailTriggerFilter | undefined): MailTriggerFilter {
     const f = filter || {};
     const out: MailTriggerFilter = {};
     if (f.from?.trim()) out.from = f.from.trim();
