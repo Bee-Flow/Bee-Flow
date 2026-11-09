@@ -17,6 +17,40 @@ const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
+ * The reaper gives up on an automation: switch it off, then tell the owner.
+ *
+ * 'error' alone does not stop anything — claimDueAutomations takes every due
+ * row that is not 'running', so a schedule whose run takes the worker down was
+ * claimed again on the next tick, reaped again, and its owner notified again,
+ * without end. Switched off, it waits for someone to look at it, which is what
+ * the notification has always said. When the pause cannot be written the
+ * message does not claim it.
+ * @param {{ id: string, userId: string, title?: string }} a
+ */
+async function giveUpOn(a) {
+    let paused = true;
+    try {
+        await automationStore.updateAutomation(a.id, { isActive: false }, a.userId);
+        // A fresh budget for when the owner switches it back on: left at the
+        // ceiling, the first hiccup after that would give up on the spot.
+        await automationStore.resetAttempts(a.id).catch((e) => bestEffort('core/automationRunner/scheduler/reapers:giveUpOn', e));
+    } catch (e) {
+        paused = false;
+        log.error(`[AutomationRunner] could not pause ${a.id} after ${REAPER_MAX_ATTEMPTS} attempts: ${/** @type {Error} */ (e).message}`);
+    }
+    try {
+        await notificationStore.createNotification({
+            userId: a.userId,
+            category: 'urgent',
+            title: `⚠️ Automation failed: ${a.title}`,
+            message: paused
+                ? `The automation could not complete after ${REAPER_MAX_ATTEMPTS} attempts and was paused. Open it to inspect the last run.`
+                : `The automation could not complete after ${REAPER_MAX_ATTEMPTS} attempts. Open it to inspect the last run.`,
+        });
+    } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations', err); /* non-fatal */ }
+}
+
+/**
  * Reaper — finds rows stuck in `running` longer than REAPER_STALE_AFTER_MS
  * (a runner crash / OOM / pod kill leaves them this way) and resets them
  * so the next tick can re-claim. After REAPER_MAX_ATTEMPTS the row is
@@ -33,16 +67,7 @@ async function reapStuckAutomations() {
         for (const a of reaped) {
             const giveUp = (a.attempts || 0) >= REAPER_MAX_ATTEMPTS;
             log.warn(`[AutomationRunner] Reaper reset stuck row ${a.id} (attempts=${a.attempts}${giveUp ? ', giving up' : ''})`);
-            if (giveUp) {
-                try {
-                    await notificationStore.createNotification({
-                        userId: a.userId,
-                        category: 'urgent',
-                        title: `⚠️ Automation failed: ${a.title}`,
-                        message: `The automation could not complete after ${REAPER_MAX_ATTEMPTS} attempts and was paused. Open it to inspect the last run.`,
-                    });
-                } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations', err); /* non-fatal */ }
-            }
+            if (giveUp) await giveUpOn(a);
         }
     } catch (e) {
         log.error('[AutomationRunner] reapStuckAutomations error:', /** @type {Error} */ (e).message);
