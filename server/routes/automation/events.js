@@ -273,13 +273,14 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
     // mark the copy stale and re-read it, behind the ack, in the same
     // guarded shape as the two above. The Bee Flow user the ncUid mapping
     // resolved rides along — a rename by the linker re-points the stored
-    // path. Not awaited, for the same reason.
+    // path. Not awaited, for the same reason. Also arms the actor's knowledge-base cloud folders set to "on change" (cloudFolderEvents).
     if (typeof event === 'string' && /^file\.(changed|new|deleted|renamed|restored|copied)$/.test(event)) {
         setImmediate(() => {
             try {
                 require('../../core/dataEngine/sources/spreadsheetFile/events')
                     .onFileEvent({ orgId: org.id, event, payload: payload || {}, actorUserId: user?.id || null })
                     .catch(e => log.warn(`[automation/events/nextcloud] spreadsheet mirror refresh failed: ${e.message}`));
+                if (user?.id) require('../../core/kb/sources/cloudFolderEvents.mts').scheduleCloudFileEvent({ provider: 'nextcloud_files', userId: user.id, path: payload?.path, oldPath: payload?.oldPath });
             } catch (e) {
                 log.warn(`[automation/events/nextcloud] spreadsheet mirror dispatch failed: ${/** @type {Error} */ (e).message}`);
             }
@@ -356,6 +357,7 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
                         require('../../core/dataEngine/sources/spreadsheetFile/events')
                             .onProviderHint({ provider: 'onedrive', userId: sub.userId })
                             .catch(e => log.warn(`[automation/events/msgraph] spreadsheet mirror hint failed: ${e.message}`));
+                        require('../../core/kb/sources/cloudFolderEvents.mts').scheduleCloudFileEvent({ provider: 'onedrive', userId: sub.userId });
                     } catch (e) {
                         log.warn(`[automation/events/msgraph] spreadsheet mirror hint dispatch failed: ${/** @type {Error} */ (e).message}`);
                     }

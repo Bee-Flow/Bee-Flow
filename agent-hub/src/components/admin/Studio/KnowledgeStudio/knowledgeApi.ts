@@ -74,6 +74,10 @@ export type KbDocument = {
     page_count?: number;
     sheet_count?: number;
     size_bytes?: number;
+    /** The original file was kept and can be downloaded. */
+    has_original?: boolean;
+    /** Where the file lives in its cloud (cloud_folder sources), or null. */
+    web_url?: string | null;
 };
 
 /** A knowledge base: `GET /:id` sends snake_case, the decorated list camelCase, so both spellings are here. */
@@ -110,6 +114,43 @@ export type KnowledgeBase = {
     queryLogAttestedAt?: string | null;
     query_log_enabled?: boolean;
     query_log_retention_days?: number;
+    /** Keep the original file of every new document (for downloads and form filling). */
+    keep_originals?: boolean;
+    keepOriginals?: boolean;
+    /** Why the switch cannot be on: `privacy_redaction` = privacy redaction is on for this base. */
+    originals_blocked_reason?: 'privacy_redaction' | null;
+    originalsBlockedReason?: 'privacy_redaction' | null;
+};
+
+/** A cloud storage and whether this account can use it right now. */
+export type CloudProvider = {
+    provider: string;
+    connected?: boolean;
+    reason?: string | null;
+};
+
+/** One entry of a cloud folder listing. */
+export type CloudItem = {
+    provider: string;
+    fileId: string;
+    driveId?: string | null;
+    path?: string | null;
+    name: string;
+    mimeType?: string | null;
+    isFolder: boolean;
+    size?: number | null;
+    modifiedAt?: string | null;
+    webUrl?: string | null;
+};
+
+/** `GET /cloud/browse` query. */
+export type CloudBrowseParams = {
+    provider: string;
+    parentId?: string | null;
+    path?: string | null;
+    driveId?: string | null;
+    pageToken?: string | null;
+    q?: string | null;
 };
 
 /** One knowledge base's row of the usage summary. */
@@ -224,6 +265,13 @@ export const knowledgeApi = {
      */
     remove: (id: Id, opts: { confirm?: boolean } = {}) => request(`${base}/${enc(id)}${qs({ confirm: opts.confirm ? '1' : null })}`, { method: 'DELETE' }),
     categories: () => request(`${base}/categories`),
+
+    // ── Cloud folders (cloud_folder sources) ─────────────────────────
+    /** `{ providers: [{ provider, connected, reason }] }` */
+    cloudProviders: (): Promise<{ providers?: CloudProvider[] }> => request(`${base}/cloud/providers`),
+    /** `{ items: CloudItem[], nextPageToken }` — one folder of one cloud. */
+    cloudBrowse: (params: CloudBrowseParams): Promise<{ items?: CloudItem[]; nextPageToken?: string | null }> =>
+        request(`${base}/cloud/browse${qs({ ...params })}`),
 
     // ── The test question (K6) ───────────────────────────────────────
     /**

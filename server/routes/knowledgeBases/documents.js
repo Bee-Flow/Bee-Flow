@@ -34,6 +34,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, orEmpty } = require('../../core/http/schemaParts');
 const { bestEffort } = require('../../utils/bestEffort');
+const { HttpError } = require('../../core/http/errors');
 
 // ── What a caller may send ──────────────────────────────────────────
 
@@ -273,6 +274,37 @@ router.get('/:id/documents/:docId/content', requireAuth, validate({ query: NoQue
         content,
         remote_only: !content && (doc.chunk_count || 0) > 0,
     });
+});
+
+/**
+ * The kept original file of one document (core/kb/originals.mts), for a base that opted in to keeping them.
+ *
+ * Same door as the text above: the caller must be able to read the base, the document must sit in THAT
+ * base and tenant, and there is exactly one answer for "no such document" and "no such file". The bytes are
+ * decrypted here and never leave under their storage key. PDFs and (non-SVG) images may open in the
+ * browser; everything else is an attachment, and nothing is sniffed.
+ */
+router.get('/:id/documents/:docId/original', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
+    const kb = await kbStore.getKB(req.params.id);
+    if (!kb) throw new HttpError(404, 'kb_not_found', 'KB not found');
+    if (!(await canAccessKB(req, kb))) throw new HttpError(403, 'access_denied', 'Access denied');
+
+    const doc = await kbStore.getDocument(req.params.docId);
+    if (!doc || String(doc.knowledge_base_id) !== String(kb.id) || String(doc.tenant_id) !== String(kb.tenant_id)) {
+        throw new HttpError(404, 'document_not_found', 'Document not found');
+    }
+
+    const original = await require('../../core/kb/originals.mts').openOriginal({ tenantId: kb.tenant_id, kbId: kb.id, documentId: doc.id });
+    if (!original) throw new HttpError(404, 'no_original', 'This document has no stored original');
+
+    const inline = (/^image\//.test(original.mime) && original.mime !== 'image/svg+xml') || original.mime === 'application/pdf';
+    const ascii = original.filename.replace(/[^\x20-\x7e]/g, '').replace(/["\\]/g, '') || 'download';
+    res.setHeader('Content-Type', original.mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(original.filename).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)}`);
+    res.setHeader('Content-Length', String(original.buffer.length));
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.end(original.buffer);
 });
 
 /**

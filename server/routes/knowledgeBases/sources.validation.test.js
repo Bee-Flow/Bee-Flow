@@ -55,6 +55,8 @@ const MOCKS = {
         listByKb: async () => adopt.sources,
         create: async (p) => { touched.push({ what: 'create', args: [p] }); return { ...SOURCE, ...p, id: 's9' }; },
         update: async (id, patch) => { touched.push({ what: 'update', args: [id, patch] }); return { ...SOURCE, ...patch }; },
+        setSyncCursor: async (id, cursor) => { touched.push({ what: 'setSyncCursor', args: [id, cursor] }); return { ...SOURCE }; },
+        requestRefresh: async (id) => { touched.push({ what: 'requestRefresh', args: [id] }); return { ...SOURCE }; },
     },
     '../../stores/kb/adoptOrphanDocuments': () => ({
         adoptOrphanDocuments: async (kbId) => {
@@ -69,7 +71,10 @@ const MOCKS = {
             return n;
         },
     }),
-    '../../stores/userStore': { getUser: async (id) => ({ id, name: 'Tom' }) },
+    '../../stores/userStore': {
+        getUser: async (id) => ({ id, name: 'Tom' }),
+        getOrganization: async (id) => ({ id, nc_instance_id: 'nc-instance-1' }),
+    },
     '../../auth': { requireAuth: pass, requirePermission: () => pass },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
@@ -144,7 +149,7 @@ async function refuses(request, field) {
 test('a source with no kind is refused in words, not with "Required"', async () => {
     const res = await dispatch({ method: 'POST', url: '/kb1/sources', body: {} });
     assert.strictEqual(res.statusCode, 400);
-    assert.strictEqual(res.body.error, 'A source needs a kind — one of: text, upload, webpage, meeting_tag, datatable.',
+    assert.strictEqual(res.body.error, 'A source needs a kind — one of: text, upload, webpage, meeting_tag, datatable, cloud_folder.',
         'the caller reads this sentence');
     assert.ok(res.body.details.some((d) => d.path === 'body.kind'));
     assert.deepStrictEqual(touched, []);
@@ -208,7 +213,7 @@ test('a kind the product cannot create yet keeps its own answer, with the list a
     const res = await dispatch({ method: 'POST', url: '/kb1/sources', body: { kind: 'telepathy' } });
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(res.body.code, 'kind_not_available');
-    assert.deepStrictEqual(res.body.availableKinds, ['text', 'upload', 'webpage', 'meeting_tag', 'datatable']);
+    assert.deepStrictEqual(res.body.availableKinds, ['text', 'upload', 'webpage', 'meeting_tag', 'datatable', 'cloud_folder']);
 });
 
 test('a name the schema accepts reaches the store trimmed, and the source is created', async () => {
@@ -295,4 +300,130 @@ test("a project's files KB is listed but never adopted into", async () => {
     const res = await dispatch({ method: 'GET', url: '/kb1/sources' });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(adopt.calls, []);
+});
+
+// ═══ cloud_folder ═══════════════════════════════════════════════════
+// Creating a cloud-folder source and what a client may read back of it. The storage probe
+// (cloudAccess.openCloudFolder) is a recording double; the schema, the policy and the creator are
+// the real ones. What a wrong answer costs: a source created for a folder its creator cannot read
+// fails every five minutes with nobody watching; a public config that carries the change cursor or
+// the Nextcloud instance id hands a client what only the engine needs; a first import that is never
+// queued is a source that sits empty until somebody presses the button.
+
+const cloudAccess = require('./cloudAccess');
+const { HttpError } = require('../../core/http/errors');
+const realProbe = cloudAccess.openCloudFolder;
+const probes = [];
+test.after(() => { cloudAccess.openCloudFolder = realProbe; });
+test.beforeEach(() => {
+    probes.length = 0;
+    cloudAccess.openCloudFolder = async (req, cfg, kb) => { probes.push({ cfg, kb: kb.id }); return { orgId: 'org1' }; };
+});
+
+const post = (body) => dispatch({ method: 'POST', url: '/kb1/sources', body });
+const NC = { kind: 'cloud_folder', config: { provider: 'nextcloud_files', path: '/Docs', folderName: 'Docs' } };
+
+test('a Nextcloud folder is created for its creator, with its first import queued and a config from an explicit list', async () => {
+    const before = Date.now();
+    const res = await post({ ...NC, refresh: { mode: 'on_change' } });
+    assert.strictEqual(res.statusCode, 201, JSON.stringify(res.body));
+    const created = touched.find((t) => t.what === 'create').args[0];
+    assert.strictEqual(created.kind, 'cloud_folder');
+    assert.strictEqual(created.name, 'Docs');
+    assert.strictEqual(created.createdBy, 'u1');
+    assert.strictEqual(created.refreshMode, 'on_change');
+    assert.deepStrictEqual(created.config, { provider: 'nextcloud_files', folderName: 'Docs', recursive: true, path: '/Docs', ncInstanceId: 'nc-instance-1' });
+    const due = Date.parse(created.nextRefreshAt);
+    assert.ok(due >= before - 1000 && due <= Date.now() + 1000, 'the first import is due now');
+    assert.deepStrictEqual(probes, [{ cfg: { provider: 'nextcloud_files', path: '/Docs', folderName: 'Docs', recursive: true }, kb: 'kb1' }]);
+    // What a client reads back: no instance id, no cursor, no ids.
+    assert.deepStrictEqual(res.body.source.config, { provider: 'nextcloud_files', folderName: 'Docs', path: '/Docs', recursive: true });
+    assert.deepStrictEqual(res.body.source.supportsModes, ['manual', 'schedule', 'on_change']);
+});
+
+test('OneDrive and Google Drive keep the folder id (and drive), not a path; recursive:false is kept', async () => {
+    await post({ kind: 'cloud_folder', name: ' Contracts ', config: { provider: 'onedrive', folderId: 'F1', driveId: 'D1', folderName: 'Contracts', recursive: false } });
+    const od = touched.find((t) => t.what === 'create').args[0];
+    assert.strictEqual(od.name, 'Contracts');
+    assert.deepStrictEqual(od.config, { provider: 'onedrive', folderName: 'Contracts', recursive: false, folderId: 'F1', driveId: 'D1' });
+    assert.strictEqual(od.refreshMode, undefined, 'manual unless a refresh rule says otherwise');
+    touched.length = 0;
+    await post({ kind: 'cloud_folder', config: { provider: 'google_drive', folderName: 'My Drive' }, refresh: { mode: 'schedule', cron: '0 6 * * *' } });
+    const gd = touched.find((t) => t.what === 'create').args[0];
+    assert.deepStrictEqual(gd.config, { provider: 'google_drive', folderName: 'My Drive', recursive: true });
+    assert.deepStrictEqual([gd.refreshMode, gd.refreshCron], ['schedule', '0 6 * * *']);
+});
+
+test('the refusals name the field, and nothing is probed or created', async () => {
+    const cases = [
+        [{ kind: 'cloud_folder', config: { provider: 'dropbox', folderName: 'x' } }, 'body.config.provider'],
+        [{ kind: 'cloud_folder', config: { folderName: 'x' } }, 'body.config.provider'],
+        [{ kind: 'cloud_folder', config: { provider: 'nextcloud_files', folderName: 'x' } }, 'body.config.path'],
+        [{ kind: 'cloud_folder', config: { provider: 'onedrive', path: '/x', folderName: 'x' } }, 'body.config.path'],
+        [{ kind: 'cloud_folder', config: { provider: 'nextcloud_files', path: '/x', driveId: 'd', folderName: 'x' } }, 'body.config.driveId'],
+        [{ kind: 'cloud_folder', config: { provider: 'onedrive', folderId: 'F' } }, 'body.config.folderName'],
+        [{ kind: 'cloud_folder', config: { provider: 'onedrive', folderId: 'F', folderName: 'x', recursive: 'yes' } }, 'body.config.recursive'],
+        [{ kind: 'cloud_folder', config: { provider: 'onedrive', folderId: 'F', folderName: 'x', syncCursor: 'abc' } }, 'body.config'],
+        [{ kind: 'cloud_folder', config: { provider: 'onedrive', folderId: 'F', folderName: 'x', token: 'abc' } }, 'body.config'],
+    ];
+    for (const [body, field] of cases) {
+        const res = await post(body);
+        assert.strictEqual(res.statusCode, 400, JSON.stringify(body));
+        assert.strictEqual(res.body.code, 'invalid_request', JSON.stringify(body));
+        assert.ok(res.body.details.some((d) => d.path === field), `${JSON.stringify(body)} must name ${field}: ${JSON.stringify(res.body.details)}`);
+    }
+    assert.deepStrictEqual(probes, []);
+    assert.deepStrictEqual(touched.filter((t) => t.what === 'create'), []);
+});
+
+test('a folder the creator cannot use is refused with the probe\'s own code, and no source is created', async () => {
+    for (const [status, code] of [[400, 'cloud_not_connected'], [400, 'cloud_folder_unreadable'], [403, 'cloud_folder_out_of_scope']]) {
+        cloudAccess.openCloudFolder = async () => { throw new HttpError(status, code, `because ${code}`); };
+        const res = await post(NC);
+        assert.strictEqual(res.statusCode, status, code);
+        assert.strictEqual(res.body.code, code);
+        assert.match(res.body.error, new RegExp(`because ${code}`));
+    }
+    assert.deepStrictEqual(touched.filter((t) => t.what === 'create'), []);
+});
+
+test('the refresh modes of a cloud folder: manual, schedule, on_change — not "live" and not "after a meeting"', async () => {
+    for (const mode of ['live', 'after_meeting']) {
+        const res = await post({ ...NC, refresh: { mode } });
+        assert.strictEqual(res.statusCode, 400, mode);
+        assert.strictEqual(res.body.code, 'refresh_mode_not_available', mode);
+    }
+    for (const mode of ['manual', 'schedule', 'on_change']) {
+        assert.strictEqual((await post({ ...NC, refresh: { mode } })).statusCode, 201, mode);
+    }
+});
+
+test('publicSourceConfig of a stored cloud folder never carries the cursor, the instance id or the ids', () => {
+    const { publicSourceConfig, REFRESH_MODES_BY_KIND, CREATABLE_KINDS } = require('./sourcePolicy');
+    const stored = { provider: 'google_drive', folderId: 'F', driveId: 'D', folderName: 'Plans', recursive: false, syncCursor: 'https://graph/delta?token=SECRET', ncInstanceId: 'nc-1', path: null, accessToken: 'AT' };
+    assert.deepStrictEqual(publicSourceConfig('cloud_folder', stored), { provider: 'google_drive', folderName: 'Plans', path: null, recursive: false });
+    assert.deepStrictEqual(publicSourceConfig('cloud_folder', {}), { provider: null, folderName: null, path: null, recursive: true });
+    assert.deepStrictEqual(REFRESH_MODES_BY_KIND.cloud_folder, ['manual', 'schedule', 'on_change']);
+    assert.ok(CREATABLE_KINDS.includes('cloud_folder'));
+    assert.ok(!CREATABLE_KINDS.includes('nextcloud_folder'), 'the reserved kind is still not creatable');
+});
+
+test('"Refresh now" on a cloud folder drops its change cursor so the pass reads everything; other kinds keep theirs', async () => {
+    const kind = SOURCE.kind;
+    try {
+        SOURCE.kind = 'cloud_folder';
+        touched.length = 0;
+        const cloud = await dispatch({ method: 'POST', url: '/kb1/sources/s1/refresh' });
+        assert.strictEqual(cloud.statusCode, 202);
+        const writes = touched.filter((t) => t.what === 'setSyncCursor' || t.what === 'requestRefresh').map((t) => [t.what, ...t.args]);
+        assert.deepStrictEqual(writes, [['setSyncCursor', 's1', null], ['requestRefresh', 's1']]);
+
+        SOURCE.kind = 'webpage';
+        touched.length = 0;
+        const web = await dispatch({ method: 'POST', url: '/kb1/sources/s1/refresh' });
+        assert.strictEqual(web.statusCode, 202);
+        assert.ok(!touched.some((t) => t.what === 'setSyncCursor'));
+    } finally {
+        SOURCE.kind = kind;
+    }
 });

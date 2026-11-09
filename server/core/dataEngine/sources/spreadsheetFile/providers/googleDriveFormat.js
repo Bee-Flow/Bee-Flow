@@ -11,6 +11,7 @@
 
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formatOf } = require('./index');
+const { documentFormatOf, isDocumentsMode } = require('./documents');
 
 /** @typedef {import('./index').FileRef} FileRef */
 /** @typedef {import('./index').FileProbe} FileProbe */
@@ -33,7 +34,11 @@ const { formatOf } = require('./index');
  *   drive: { files: {
  *     list: (params: object) => Promise<{ data: { files?: DriveFile[], nextPageToken?: string } }>,
  *     get: { (params: { alt: 'media', [k: string]: unknown }, opts: { responseType: string }): Promise<{ data: unknown }>; (params: object): Promise<{ data: DriveFile }> },
- *     update: (params: object) => Promise<{ data: DriveFile }> } },
+ *     update: (params: object) => Promise<{ data: DriveFile }>,
+ *     export: (params: object, opts: { responseType: string }) => Promise<{ data: unknown }> },
+ *   changes: {
+ *     getStartPageToken: (params?: object) => Promise<{ data: { startPageToken?: string } }>,
+ *     list: (params: object) => Promise<{ data: { changes?: unknown[], newStartPageToken?: string, nextPageToken?: string } }> } },
  *   sheets: { spreadsheets: {
  *     get: (params: object) => Promise<{ data: { sheets?: Array<{
  *       properties?: { sheetId?: number, title?: string, index?: number, hidden?: boolean, gridProperties?: { rowCount?: number, columnCount?: number } },
@@ -48,7 +53,7 @@ const { formatOf } = require('./index');
 /**
  * The drive context makeApi builds and every function in ./googleDrive.js
  * and ./googleSheetsCells.js takes.
- * @typedef {{ clients: () => Promise<GoogleClients>, idOf: (file: FileRef) => string,
+ * @typedef {{ clients: () => Promise<GoogleClients>, idOf: (file: FileRef) => string, accept?: string|null,
  *             probe?: (file: FileRef) => Promise<FileProbe & { marker: DriveMarker }>,
  *             guard?: (file: FileRef, ifMatch: DriveMarker|null) => Promise<FileProbe & { marker: DriveMarker }> }} DriveCtx
  */
@@ -166,16 +171,23 @@ function markerEquals(a, b) {
  * A Drive file resource → FileRef. A shortcut becomes a ref to its TARGET
  * (the id the engine will probe and read); a shortcut to something that is
  * neither a folder nor a spreadsheet is dropped.
+ *
+ * In documents mode (`accept: 'documents'`, the knowledge-base folder source)
+ * a file is kept when the text extractor can read it (a native Doc, Slide or
+ * Sheet included, see ./documents.js), it carries its change `marker`, and a
+ * shortcut is dropped: its own version says nothing about the target's.
  * @param {DriveFile} f
- * @param {{ parentId?: string|null }} [opts]
+ * @param {{ parentId?: string|null, accept?: string|null }} [opts]
  * @returns {FileRef|null}
  */
-function toFileRef(f, { parentId = null } = {}) {
+function toFileRef(f, { parentId = null, accept = null } = {}) {
     if (!f || !f.id) return null;
+    const documents = isDocumentsMode(accept);
     let id = f.id;
     let mimeType = f.mimeType || null;
     let shortcut = false;
     if (mimeType === SHORTCUT_MIME) {
+        if (documents) return null;
         const t = f.shortcutDetails || {};
         if (!t.targetId) return null;
         id = t.targetId;
@@ -183,7 +195,7 @@ function toFileRef(f, { parentId = null } = {}) {
         shortcut = true;
     }
     const isFolder = mimeType === FOLDER_MIME;
-    const format = isFolder ? null : formatOf({ name: f.name, mimeType });
+    const format = isFolder ? null : (documents ? documentFormatOf({ name: f.name, mimeType }) : formatOf({ name: f.name, mimeType }));
     if (!isFolder && !format) return null;
     return {
         provider,
@@ -202,6 +214,7 @@ function toFileRef(f, { parentId = null } = {}) {
         owned: f.ownedByMe === true,
         writable: !(f.capabilities && f.capabilities.canEdit === false),
         ...(shortcut ? { shortcut: true, shortcutId: f.id } : {}),
+        ...(documents ? { marker: markerOf(f) } : {}),
     };
 }
 

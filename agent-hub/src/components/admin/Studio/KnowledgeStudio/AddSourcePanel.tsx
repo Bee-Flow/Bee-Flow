@@ -1,11 +1,13 @@
-import { ArrowLeft, Loader2, Upload as UploadIcon, Workflow } from 'lucide-react';
+import { ArrowLeft, Loader2, Upload as UploadIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import CloudFolderForm from './CloudFolderForm';
+import { cloudErrorMessage } from './cloudErrors';
 import { ADD_SOURCE_KINDS, isOfferable, sourceKind } from './sourceKinds';
 import useTranslation from '@/hooks/useTranslation';
+import AutomationSignpost from './AutomationSignpost';
 import { kindColorVar } from '@/components/shared/kindColors';
 import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import Tooltip from '@/components/shared/Tooltip';
-import useRelativeTime from '@/hooks/useRelativeTime';
 import { errorBodyRecord, errorCode, errorMessage, messageOf } from '@/utils/caughtError';
 import type { AddSourcePanelProps, FormProps, KindButtonProps, NewSource, SignpostProps, SubmitProps, TableField, TableOption, UploadFormProps } from './AddSourcePanel.types';
 
@@ -18,11 +20,11 @@ const MAX_FILE_BYTES = 20 * 1024 * 1024;
  * "Bron toevoegen" — the seven-button card and the inline form each button
  * opens (Knowledge artboard 1a, right column, `shadow-popover`).
  *
- * ── ALL SEVEN BUTTONS, SIX OF THEM ALIVE ────────────────────────────
- * `text`, `upload` and `webpage` work today; tables (K8), meeting notes (K7)
- * and the automation step (K10) joined them. Only the Nextcloud folder is
- * still ahead, and until it lands its button is DISABLED WITH A TOOLTIP that
- * says so — not hidden, and not live-but-400ing.
+ * ── ALL SEVEN BUTTONS ARE ALIVE ─────────────────────────────────────
+ * `text`, `upload`, `webpage`, tables (K8), meeting notes (K7), the automation
+ * step (K10) and the cloud folder (Nextcloud, OneDrive, Google Drive) all work.
+ * A kind that is ever ahead of the server is DISABLED WITH A TOOLTIP that says
+ * so — not hidden, and not live-but-400ing.
  *
  * Hiding them would teach that the product cannot do these things, and the
  * person goes off and builds a CSV export by hand. Leaving them enabled
@@ -93,93 +95,32 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
                 </div>
             ) : (
                 <div className="p-3.5">
-                    {openKind === 'text' && <PasteTextForm t={t} busy={busy} onSubmit={submit} />}
-                    {openKind === 'webpage' && <WebpageForm t={t} busy={busy} onSubmit={submit} />}
-                    {openKind === 'upload' && <UploadFilesForm t={t} busy={busy} onUpload={async (files: File[]) => { await onUpload?.(files); close(); }} />}
-                    {openKind === 'meeting_tag' && <MeetingTagForm t={t} busy={busy} onSubmit={submit} />}
-                    {openKind === 'datatable' && <DatatableForm t={t} busy={busy} onSubmit={submit} />}
-                    {openKind === 'automation' && <AutomationSignpost t={t} kbName={kbName} onNavigate={onNavigate} sources={sources} />}
+                    <OpenForm
+                        kind={openKind} t={t} busy={busy} onSubmit={submit}
+                        onUpload={async (files: File[]) => { await onUpload?.(files); close(); }}
+                        kbName={kbName} onNavigate={onNavigate} sources={sources}
+                    />
                 </div>
             )}
         </div>
     );
 }
 
-/**
- * The automation card's panel. An explanation and a door, not a form.
- *
- * Why a whole panel rather than a tooltip: the relationship is genuinely
- * backwards from every other card here, and a person who has just been told
- * "you cannot add this one" needs to know what to do INSTEAD, in the same
- * breath. Two sentences and a link is the shortest thing that does that.
- *
- * The link goes to the automations builder rather than deep-linking a
- * pre-configured step: which automation should write here is the interesting
- * decision, and pre-answering it with a new empty automation would be a guess
- * most of the time — the usual case is an automation that already exists.
- */
-function AutomationSignpost({ t, kbName = '', onNavigate = null, sources = [] }: SignpostProps) {
-    // The same relative-time hook the Sources list itself uses, so the two
-    // never disagree about when a source last ran.
-    const rel = useRelativeTime();
-    const automationSources = (Array.isArray(sources) ? sources : []).filter(s => s.kind === 'automation');
-    return (
-        <div className="space-y-2.5" data-testid="kb-signpost-automation">
-            <p className="text-[var(--text-secondary)]">
-                {t('knowledge.automation_signpost.what',
-                    'An automation adds itself here. Give any automation the “To knowledge base” step, point that step at {name}, and it appears in this list the moment the automation is saved.',
-                    { name: kbName || t('knowledge.automation_signpost.this_base', 'this knowledge base') })}
-            </p>
-            <p className="text-[var(--text-tertiary)]">
-                {t('knowledge.automation_signpost.why',
-                    'Whatever it writes becomes an answer your agents give, with a citation — so send it finished text, not working notes.')}
-            </p>
-            {automationSources.length > 0 && (
-                /**
-                 * The other half of what this card is for: which automations are
-                 * ALREADY feeding this base, and when each last did. Without it
-                 * the card explains a mechanism while staying silent about the
-                 * instances of it sitting in the list right below.
-                 */
-                <div className="rounded-[10px] overflow-hidden [border:1px_solid_var(--border-default)]">
-                    {automationSources.map((src, i) => (
-                        <div
-                            key={src.id}
-                            data-testid="kb-signpost-automation-source"
-                            className="flex items-center gap-2 px-2.5 py-2"
-                            style={i ? { borderTop: '1px solid var(--border-default)' } : undefined}
-                        >
-                            <Workflow className="w-3.5 h-3.5 shrink-0" style={{ color: kindColorVar('automation') }} aria-hidden="true" />
-                            <span className="truncate text-[var(--text-primary)]">{src.name}</span>
-                            <span className="ml-auto shrink-0 text-[var(--text-tertiary)]">
-                                {t('knowledge.automation_signpost.feeds', 'passes data through')}
-                                {' · '}
-                                {rel(src.lastRefreshAt)
-                                    ? t('knowledge.automation_signpost.last_run', 'last run {when}', { when: rel(src.lastRefreshAt) })
-                                    : t('knowledge.automation_signpost.no_run_yet', 'no run yet')}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
-            <a
-                href="/app/studio/automations"
-                data-testid="kb-signpost-automation-link"
-                onClick={(e) => {
-                    // In-SPA when it can be: a raw href full-reloads the app and
-                    // loses the reader's place in the studio. The href stays for
-                    // middle-click and for "open in new tab".
-                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0 || !onNavigate) return;
-                    e.preventDefault();
-                    onNavigate('studio/automations');
-                }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}
-            >
-                {t('knowledge.automation_signpost.go', 'Open Automations')}
-            </a>
-        </div>
-    );
+/** The form (or signpost) that the opened kind's button leads to. */
+function OpenForm({ kind, t, busy, onSubmit, onUpload, kbName, onNavigate, sources }: {
+    kind: string; t: FormProps['t']; busy: boolean; onSubmit: FormProps['onSubmit'];
+    onUpload: UploadFormProps['onUpload']; kbName: string; onNavigate: SignpostProps['onNavigate']; sources: SignpostProps['sources'];
+}) {
+    switch (kind) {
+        case 'text': return <PasteTextForm t={t} busy={busy} onSubmit={onSubmit} />;
+        case 'webpage': return <WebpageForm t={t} busy={busy} onSubmit={onSubmit} />;
+        case 'upload': return <UploadFilesForm t={t} busy={busy} onUpload={onUpload} />;
+        case 'meeting_tag': return <MeetingTagForm t={t} busy={busy} onSubmit={onSubmit} />;
+        case 'datatable': return <DatatableForm t={t} busy={busy} onSubmit={onSubmit} />;
+        case 'cloud_folder': return <CloudFolderForm t={t} busy={busy} onSubmit={onSubmit} />;
+        case 'automation': return <AutomationSignpost t={t} kbName={kbName} onNavigate={onNavigate} sources={sources} />;
+        default: return null;
+    }
 }
 
 function KindButton({ t, kind, disabled, reason, onClick }: KindButtonProps) {
@@ -688,6 +629,8 @@ function Submit({ t, busy, disabled }: SubmitProps) {
  * many.
  */
 export function messageFor(t: FormProps['t'], e: unknown): string {
+    const cloud = cloudErrorMessage(t, e);
+    if (cloud) return cloud;
     switch (errorCode(e)) {
         case 'kind_not_available':
             return t('knowledge.err_kind', 'That kind of source is not available yet.');

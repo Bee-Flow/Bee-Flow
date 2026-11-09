@@ -19,7 +19,7 @@
 
 const { SourceError, MAX_DETAIL } = require('../mirror/errors');
 
-/** @typedef {{ provider?: string, fileId?: string, sheet?: string|null, [k: string]: unknown }} ErrorRef */
+/** @typedef {{ provider?: string, fileId?: string|null, sheet?: string|null, [k: string]: unknown }} ErrorRef */
 
 /** @type {Readonly<Record<string, string>>} */
 const ERROR_CLASS = Object.freeze({

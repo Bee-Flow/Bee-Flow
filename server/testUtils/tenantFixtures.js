@@ -174,6 +174,8 @@ const FIXTURES = [
         },
         routes: [
             'GET /api/kb/:id', 'GET /api/kb/:id/documents', 'GET /api/kb/:id/usage', 'GET /api/kb/:id/sources',
+            // The kept original file of a document: the base's gate answers before any document is looked up.
+            'GET /api/kb/:id/documents/:docId/original',
             'PUT /api/kb/:id/query-log/settings', 'GET /api/kb/:id/query-log/settings', 'GET /api/kb/:id/query-log', 'GET /api/kb/:id/query-log/export.csv',
             'GET /api/kb/:id/query-log/:entryId', 'PATCH /api/kb/:id/query-log/:entryId/review', 'DELETE /api/kb/:id/query-log',
         ],

@@ -5,6 +5,7 @@
  * service is the provider, that service's index. The service only removes
  * chunks per document (DELETE /kb/documents/{id}), so the documents are walked
  * while their rows still exist; the local table is cleared per base.
+ * The kept original files of the base (core/kb/originals.mts) go last.
  *
  * Callers: the knowledge-base delete route, web page delete, and account and
  * organisation erasure. `strict` makes a failed removal throw, which erasure
@@ -25,6 +26,7 @@ export interface KbPurgeDeps {
     listDocuments: (kbId: string, opts: { limit: number; offset: number }) => Promise<Array<{ id: string }> | null>;
     purgeDocumentChunks: (kbId: string, docId: string, tenantId: string, opts: { strict: boolean; deleteLocal: () => Promise<void> }) => Promise<void>;
     deleteChunksLocally: (tenantId: string, kbId: string) => Promise<void>;
+    deleteOriginals: (kb: KbRef, opts: { strict: boolean }) => Promise<void>;
     warn: (msg: string, detail?: unknown) => void;
 }
 
@@ -38,6 +40,7 @@ function defaultDeps(): KbPurgeDeps {
         listDocuments: (kbId, opts) => nodeRequire('../../stores/knowledgeBases.js').listDocuments(kbId, opts),
         purgeDocumentChunks: (kbId, docId, tenantId, opts) => nodeRequire('./kbReingest.js').purgeDocumentChunks(kbId, docId, tenantId, opts),
         deleteChunksLocally: (tenantId, kbId) => nodeRequire('./localKBIngest.js').deleteChunksLocally(tenantId, kbId),
+        deleteOriginals: (kb, opts) => nodeRequire('./originals.mts').deleteOriginalsForKb(kb, opts),
         warn: (msg, detail) => log.warn(msg, detail),
     };
 }
@@ -65,5 +68,12 @@ export async function purgeKbChunks(kb: KbRef, { strict = false, deps }: { stric
     } catch (e) {
         if (strict) throw e;
         d.warn('[KB] Local chunk cleanup failed:', (e as Error).message);
+    }
+    // The kept original files of the base (encrypted blobs in object storage), if it kept any.
+    try {
+        await d.deleteOriginals(kb, { strict });
+    } catch (e) {
+        if (strict) throw e;
+        d.warn('[KB] Original-file cleanup failed:', (e as Error).message);
     }
 }

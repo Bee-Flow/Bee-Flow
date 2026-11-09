@@ -1,7 +1,7 @@
 // @typecheck
 /**
  * Knowledge Bases — sources (K1): creating one (POST /:id/sources). One
- * creator per kind (text, meeting tag, datatable, upload, webpage) behind the
+ * creator per kind (text, meeting tag, datatable, upload, webpage, cloud folder) behind the
  * shared checks (the kind is available, the plan's source cap, the refresh
  * rule). The route itself is registered in sources.js. Split out of
  * sources.js; behaviour unchanged.
@@ -238,6 +238,47 @@ async function createDatatableSource(res, { kb, name, cfg, userId, refreshPatch 
     return res.status(201).json({ source: await sourceForApi(source) });
 }
 
+/**
+ * ── cloud_folder: a folder in Nextcloud, OneDrive or Google Drive ─────
+ *
+ * The source reads the folder later AS THE PERSON WHO ADDS IT, from a job with nobody watching,
+ * so everything that person could not do today is refused today: the storage has to be connected
+ * and switched on for them, they have to be able to list the folder (the probe is a real listing
+ * through their own session), and for Nextcloud the folder has to sit inside the folders they
+ * allowed Bee Flow to touch (the same scope guard the agent tools and the spreadsheet mirror pass).
+ * The first import is queued right away (`next_refresh_at = now()`): a manual source is read once
+ * and then left alone; a scheduled or on-change one carries on from there.
+ *
+ * The stored config is built from an explicit list of fields. The change cursor the engine keeps
+ * there later is never part of it, and never part of what a client sees (publicSourceConfig).
+ */
+async function createCloudFolderSource(res, { kb, name, cfg, userId, refreshPatch, req }) {
+    const { orgId } = await require('./cloudAccess').openCloudFolder(req, cfg, kb);
+    let ncInstanceId = null;
+    if (cfg.provider === 'nextcloud_files' && orgId) {
+        const org = await require('../../stores/userStore').getOrganization(orgId).catch((e) => fallback('routes/knowledgeBases/sourceCreate:createCloudFolderSource', e, null));
+        ncInstanceId = (org && (org.nc_instance_id || org.ncInstanceId)) || null;
+    }
+    const config = {
+        provider: cfg.provider,
+        folderName: cfg.folderName,
+        recursive: cfg.recursive !== false,
+        ...(cfg.provider === 'nextcloud_files' ? { path: cfg.path } : {}),
+        ...(cfg.provider !== 'nextcloud_files' && cfg.folderId ? { folderId: cfg.folderId } : {}),
+        ...(cfg.provider !== 'nextcloud_files' && cfg.driveId ? { driveId: cfg.driveId } : {}),
+        ...(ncInstanceId ? { ncInstanceId } : {}),
+    };
+    const source = await kbSourcesStore.create({
+        knowledgeBaseId: kb.id, kind: 'cloud_folder',
+        name: String(name || cfg.folderName).slice(0, 200),
+        config,
+        createdBy: userId,
+        nextRefreshAt: new Date().toISOString(),
+        ...refreshPatch,
+    });
+    return res.status(201).json({ source: await sourceForApi(source) });
+}
+
 /** upload: an empty bucket; files arrive on the next route. */
 async function createUploadSource(res, { kb, name, userId, refreshPatch }) {
     const source = await kbSourcesStore.create({
@@ -301,7 +342,7 @@ async function assertUnderSourceLimit(/** @type {import('express').Response} */ 
     return false;
 }
 
-/** POST /:id/sources — create one (text | upload | webpage | meeting_tag | datatable). */
+/** POST /:id/sources — create one (text | upload | webpage | meeting_tag | datatable | cloud_folder). */
 async function createSource(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     try {
         const kb = await resolveKb(req, res, { manage: true });
@@ -319,11 +360,12 @@ async function createSource(/** @type {import('express').Request} */ req, /** @t
         }
         if (!(await assertUnderSourceLimit(res, kb, req))) return;
 
-        const args = { kb, name, cfg: config, userId: getUserId(req), refreshPatch: refreshPatchFor(refresh, kind) };
+        const args = { kb, name, cfg: config, userId: getUserId(req), refreshPatch: refreshPatchFor(refresh, kind), req };
         if (kind === 'text') return await createTextSource(res, args);
         if (kind === 'meeting_tag') return await createMeetingTagSource(res, args);
         if (kind === 'datatable') return await createDatatableSource(res, args);
         if (kind === 'upload') return await createUploadSource(res, args);
+        if (kind === 'cloud_folder') return await createCloudFolderSource(res, args);
         return await createWebpageSource(res, next, args);
     } catch (e) {
         if (e instanceof HttpError) return next(e);
@@ -340,5 +382,5 @@ module.exports = { createSource };
 /**
  * What every create helper receives from createSource (the body is already
  * parsed by CreateSourceBody, so `cfg` has the shape of its kind's schema).
- * @typedef {{ kb: Record<string, any>, name?: string, userId: string | null, refreshPatch: ReturnType<typeof refreshPatchFor> }} SourceArgsBase
+ * @typedef {{ kb: Record<string, any>, name?: string, userId: string | null, refreshPatch: ReturnType<typeof refreshPatchFor>, req: import('express').Request }} SourceArgsBase
  */

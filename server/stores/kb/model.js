@@ -55,7 +55,9 @@ const DOCUMENT_COLUMNS = [
     'size_bytes', 'page_count', 'sheet_count', 'mime', 'extract_summary', 'pii_status',
     'pii_categories', 'overlaps_document_id', 'created_by',
 ];
-const DOC_SELECT = DOCUMENT_COLUMNS.join(', ');
+// Derived columns on top of the projection: whether an original is kept and its
+// type/size (never the storage key or hash), and the page a cloud file opens at.
+const DOC_SELECT = `${DOCUMENT_COLUMNS.join(', ')}, (original_storage_key IS NOT NULL) AS has_original, original_mime, original_size::float8 AS original_size, metadata->>'webUrl' AS web_url`;
 
 // KB row + counters. document_count / total_chunks count ACTIVE rows only;
 // document_count_all is every row (the "38 files" half of "38 files · 36
@@ -151,6 +153,7 @@ const KB_UPDATE_COLUMNS = Object.freeze({
     categoryId: 'category_id',
     usageContexts: { col: 'usage_contexts', transform: (v) => (Array.isArray(v) ? v : null) },
     organizationId: 'organization_id',
+    keepOriginals: 'keep_originals',
 });
 
 /**

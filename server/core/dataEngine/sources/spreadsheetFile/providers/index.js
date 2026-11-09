@@ -12,6 +12,7 @@
  *   download(file, { maxBytes }) → { buffer, marker }
  *   upload(file, buffer, { ifMatch, contentType }) → { marker }
  *   markerEquals(a, b)
+ *   changeCursor?(folder, cursor) → { changed, cursor } — documents mode only (see ./documents.js)
  *   cells?  — a cell-precise API where the storage has one (Google Sheets,
  *             Excel in OneDrive through the Graph workbook API); absent on
  *             Nextcloud, where a change is a download and a write is a PUT.
@@ -51,7 +52,7 @@ const MODULES = Object.freeze({
  * over the MIME type: storages type an uploaded `.csv` as text/plain and an
  * `.xlsx` as application/octet-stream often enough that the MIME alone would
  * hide real spreadsheets; the MIME is what identifies a native Google Sheet.
- * @param {{ name?:string, mimeType?:string }} [file]
+ * @param {{ name?:string|null, mimeType?:string|null }} [file]
  * @returns {string|null} one of FORMATS, or null for anything else
  */
 function formatOf({ name, mimeType } = {}) {
@@ -86,7 +87,7 @@ function providerFor(name) {
 
 module.exports = { providerFor, formatOf, isSpreadsheetName, SPREADSHEET_MIMES, EXT_TO_FORMAT, PROVIDERS };
 
-/** @typedef {{ provider?: string, fileId?: string, id?: string, driveId?: string|null, path?: string|null, name?: string|null, owned?: boolean, writable?: boolean, size?: number, mimeType?: string, format?: string|null, webUrl?: string, [k: string]: unknown }} FileRef */
+/** @typedef {{ provider?: string, fileId?: string, id?: string, driveId?: string|null, path?: string|null, name?: string|null, owned?: boolean, writable?: boolean, size?: number, mimeType?: string, format?: string|null, webUrl?: string, marker?: object, [k: string]: unknown }} FileRef */
 
 /** @typedef {{ marker?: { modified?: string, modifiedTime?: string, lastModifiedDateTime?: string }, name?: string, size?: number, mimeType?: string, format?: string|null, path?: string, webUrl?: string, owned?: boolean, writable?: boolean, file: FileRef }} FileProbe */
 
@@ -104,6 +105,7 @@ module.exports = { providerFor, formatOf, isSpreadsheetName, SPREADSHEET_MIMES, 
  *             download: (file: FileRef, opts?: { maxBytes?: number }) => Promise<{ buffer: Buffer, marker?: object }>,
  *             markerEquals: (a: object, b: object) => boolean,
  *             cells?: FileCells,
+ *             changeCursor?: (folder?: { folderId?: string|null, driveId?: string|null, path?: string|null }, cursor?: string|null) => Promise<{ changed: boolean, cursor: string|null }>,
  *             list?: (opts: { view: string, parentId?: unknown, path?: string, q?: string|null, pageToken?: string|null }) => Promise<{ items?: FileRef[], nextPageToken?: string|null }>,
  *             [verb: string]: unknown }} FileApi
  */

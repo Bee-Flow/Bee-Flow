@@ -10,6 +10,13 @@ interface NewSourceConfig {
     datatableId?: string;
     columns?: string[];
     titleColumn?: string;
+    /** cloud_folder */
+    provider?: string;
+    folderId?: string;
+    driveId?: string;
+    path?: string;
+    folderName?: string;
+    recursive?: boolean;
 }
 
 /** What a form hands to `onCreate`. */
@@ -17,6 +24,8 @@ export interface NewSource {
     kind: string;
     name?: string;
     config: NewSourceConfig;
+    /** How the source keeps itself current; omitted = the kind's default (manual). */
+    refresh?: { mode: string; cron?: string; tz?: string };
 }
 
 /** The fields of an existing source the automation signpost lists. */

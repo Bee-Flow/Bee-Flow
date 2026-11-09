@@ -34,10 +34,14 @@ const { runDdl } = require('./lib/_ddl');
 const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const { meetingArms } = require('./kbSourcesMeetingArm');
+const { cloudFolders, widenKindCheckDdl } = require('./kbSourcesCloud');
 
 const SOURCE_KINDS = Object.freeze([
-    'upload', 'text', 'webpage', 'nextcloud_folder', 'datatable', 'meeting_tag', 'automation', 'legacy',
+    'upload', 'text', 'webpage', 'nextcloud_folder', 'cloud_folder', 'datatable', 'meeting_tag', 'automation', 'legacy',
 ]);
+// The CREATE TABLE below spells the list out (the row-type generator reads that statement as text);
+// this one widens the CHECK of a table that exists already (./kbSourcesCloud.js).
+const KIND_CHECK_SQL = `kind IN (${SOURCE_KINDS.map(k => `'${k}'`).join(',')})`;
 const REFRESH_MODES = Object.freeze(['manual', 'schedule', 'on_change', 'after_meeting', 'live']);
 const SOURCE_STATUSES = Object.freeze(['idle', 'refreshing', 'error']);
 
@@ -52,7 +56,7 @@ async function createSchema() {
         CREATE TABLE IF NOT EXISTS kb_sources (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             knowledge_base_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE,
-            kind TEXT NOT NULL CHECK (kind IN ('upload','text','webpage','nextcloud_folder','datatable','meeting_tag','automation','legacy')),
+            kind TEXT NOT NULL CHECK (kind IN ('upload','text','webpage','nextcloud_folder','cloud_folder','datatable','meeting_tag','automation','legacy')),
             name TEXT NOT NULL DEFAULT '',
             config JSONB NOT NULL DEFAULT '{}'::jsonb,
             refresh_mode TEXT NOT NULL DEFAULT 'manual' CHECK (refresh_mode IN ('manual','schedule','on_change','after_meeting','live')),
@@ -93,6 +97,7 @@ async function createSchema() {
         // automation save, from five different paths. GIN over the config, narrowed to
         // the one kind that carries an automationId so the index stays small.
         `CREATE INDEX IF NOT EXISTS idx_kb_sources_automation ON kb_sources USING GIN (config jsonb_path_ops) WHERE kind = 'automation'`,
+        widenKindCheckDdl(KIND_CHECK_SQL),
     ]);
 }
 
@@ -590,6 +595,9 @@ const KbSourcesStore = {
             [id, JSON.stringify(patch)],
         ));
     },
+
+    // setSyncCursor / listCloudFoldersByUser: ./kbSourcesCloud.js.
+    ...cloudFolders({ initDB, getOne, getAll, mapRow }),
 
     /**
      * Ask a running refresh to stop at its next document boundary.

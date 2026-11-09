@@ -44,7 +44,7 @@ describe('the catalogue itself', () => {
     const PAIRS = [
         'knowledge.n_sources', 'knowledge.n_documents', 'knowledge.n_auto_refresh',
         'knowledge.docs.pages', 'knowledge.docs.sheets',
-        'knowledge.subline.folder', 'knowledge.subline.upload',
+        'knowledge.subline.cloud_folder', 'knowledge.subline.upload',
         'knowledge.subline.datatable', 'knowledge.subline.datatable_columns',
         'knowledge.subline.meeting',
         'knowledge.subline.webpage', 'knowledge.subline.webpage_site',
@@ -64,12 +64,13 @@ describe('the catalogue itself', () => {
 
 describe('sublineFor picks the form the count needs', () => {
     it('switches per kind on the document count', () => {
-        const one = sublineFor({ kind: 'nextcloud_folder', documentCount: 1 });
-        const many = sublineFor({ kind: 'nextcloud_folder', documentCount: 38 });
-        expect(one.key).toBe('knowledge.subline.folder');
-        expect(many.key).toBe('knowledge.subline.folder_plural');
-        expect(t(one.key, '', one.params)).toBe('folder · 1 file');
-        expect(t(many.key, '', many.params)).toBe('folder · 38 files');
+        const config = { provider: 'onedrive', folderName: 'Sales' };
+        const single = sublineFor({ kind: 'cloud_folder', documentCount: 1, config });
+        const many = sublineFor({ kind: 'cloud_folder', documentCount: 38, config });
+        expect(single.key).toBe('knowledge.subline.cloud_folder');
+        expect(many.key).toBe('knowledge.subline.cloud_folder_plural');
+        expect(t(single.key, '', single.params)).toBe('OneDrive · Sales · 1 file');
+        expect(t(many.key, '', many.params)).toBe('OneDrive · Sales · 38 files');
     });
 
     it('leaves the uncounted text source alone', () => {

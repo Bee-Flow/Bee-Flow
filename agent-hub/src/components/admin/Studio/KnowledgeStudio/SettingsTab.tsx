@@ -9,6 +9,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SettingsTabProps, NameFieldsProps } from './SettingsTab.types';
 import { SURFACE_CARDS, SettingsTabSection2 } from './SettingsTabSection2';
 import { SettingsTabSection } from './SettingsTabSection';
+import OriginalsCard from './OriginalsCard';
 import QueryLogCard from './queryLog/QueryLogCard';
 export { SURFACE_CARDS, attachedCount } from './SettingsTabSection2';
 
@@ -111,7 +112,7 @@ export default function SettingsTab({
     }), [kb]);
     const isPersonal = !view.orgId;
 
-    const save = useCallback(async (patch: { usageContexts?: string[]; name?: string; organizationId?: string; description?: string; categoryId?: string | null }) => {
+    const save = useCallback(async (patch: { usageContexts?: string[]; name?: string; organizationId?: string; description?: string; categoryId?: string | null; keepOriginals?: boolean }) => {
         if (!kb?.id) return;
         setSaving(true);
         setError(null);
@@ -225,6 +226,9 @@ export default function SettingsTab({
                     onChange={(categoryId) => save({ categoryId })}
                 />
             </section>
+
+            {/* ── Original files ────────────────────────────────── */}
+            <OriginalsCard t={t} kb={kb} canManage={canManage} saving={saving} onChange={(keepOriginals) => save({ keepOriginals })} />
 
             {/* ── Query log (managers; locked without the licence) ── */}
             <QueryLogCard kb={kb} canManage={canManage} onSaved={onSaved} />

@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 const { purgeKbChunks } = require('./kbPurge.mts');
 
 function fakes({ provider = 'remote', docs = [{ id: 'd1' }, { id: 'd2' }], remoteFails = false } = {}) {
-    const calls = { remote: [], local: [], warn: [] };
+    const calls = { remote: [], local: [], originals: [], warn: [] };
     return {
         calls,
         deps: {
@@ -20,6 +20,7 @@ function fakes({ provider = 'remote', docs = [{ id: 'd1' }, { id: 'd2' }], remot
                 calls.remote.push([kbId, docId, tenantId]);
             },
             deleteChunksLocally: async (tenantId, kbId) => { calls.local.push([tenantId, kbId]); },
+            deleteOriginals: async (kb, opts) => { calls.originals.push([kb.id, kb.tenant_id, opts.strict]); },
             warn: (m) => calls.warn.push(m),
         },
     };
@@ -47,4 +48,18 @@ test('a failed service purge is logged by default and thrown in strict mode', as
 
     const strict = fakes({ remoteFails: true });
     await assert.rejects(() => purgeKbChunks({ id: 'kb1', tenant_id: 'u1' }, { strict: true, deps: strict.deps }), /503/);
+});
+
+test('the kept original files of the base go too, and strict is passed on', async () => {
+    const { calls, deps } = fakes({ provider: 'local' });
+    await purgeKbChunks({ id: 'kb1', tenant_id: 'u1' }, { strict: true, deps });
+    assert.deepEqual(calls.originals, [['kb1', 'u1', true]]);
+});
+
+test('a failing original-file cleanup is logged, or thrown when strict', async () => {
+    const { calls, deps } = fakes({ provider: 'local' });
+    const broken = { ...deps, deleteOriginals: async () => { throw new Error('storage down'); } };
+    await purgeKbChunks({ id: 'kb1', tenant_id: 'u1' }, { deps: broken });
+    assert.equal(calls.warn.length, 1);
+    await assert.rejects(purgeKbChunks({ id: 'kb1', tenant_id: 'u1' }, { strict: true, deps: broken }), /storage down/);
 });

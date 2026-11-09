@@ -479,13 +479,13 @@ test('a system-managed KB is read-only even for someone who may manage it', asyn
 
 test('a kind whose engine has not landed yet is refused with kind_not_available', async () => {
     // `meeting_tag` left this list in K7 and `datatable` in K8, when their
-    // adapters landed. Still ahead: K9 (nextcloud_folder), K10 (automation).
+    // adapters landed. Still ahead: nextcloud_folder (reserved; the cloud_folder kind covers Nextcloud), K10 (automation).
     resetFx();
     for (const kind of ['nextcloud_folder', 'automation', 'legacy']) {
         const res = await dispatch({ method: 'POST', url: '/kb1/sources', body: { kind } });
         assert.strictEqual(res.statusCode, 400, kind);
         assert.strictEqual(res.body.code, 'kind_not_available', kind);
-        assert.deepStrictEqual(res.body.availableKinds, ['text', 'upload', 'webpage', 'meeting_tag', 'datatable']);
+        assert.deepStrictEqual(res.body.availableKinds, ['text', 'upload', 'webpage', 'meeting_tag', 'datatable', 'cloud_folder']);
     }
     const unknown = await dispatch({ method: 'POST', url: '/kb1/sources', body: { kind: 'telepathy' } });
     assert.strictEqual(unknown.statusCode, 400);

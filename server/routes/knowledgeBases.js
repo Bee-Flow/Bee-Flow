@@ -22,6 +22,8 @@ router.use('/', require('./knowledgeBases/categories'));
 router.use('/', require('./knowledgeBases/create'));
 router.use('/', require('./knowledgeBases/system'));
 router.use('/', require('./knowledgeBases/favorites'));
+// The cloud-folder picker: /cloud/providers and /cloud/browse are literal paths, so before every /:id route.
+router.use('/', require('./knowledgeBases/cloudBrowse'));
 // Sources before detail: /:id/sources/... must never be reached through the
 // single-KB handlers, and DELETE /:id/sources/:sid is registered ahead of
 // DELETE /:id/documents/:docId for the same reason the literals above are.

@@ -108,6 +108,9 @@ async function addKnowledgeBaseColumns({ exec, getOne, runDdl, log }) {
         `CREATE INDEX IF NOT EXISTS idx_kb_org_published ON knowledge_bases(organization_id, is_published) WHERE is_published = TRUE`,
         // Query log settings (Enterprise `kb_query_log`); written only by the query-log store.
         ...require('./queryLog/ddl.mts').KB_QUERY_LOG_COLUMN_DDL,
+        // Per-KB opt-in to keep the uploaded file itself (encrypted), next to its extracted text.
+        // Off by default: a base that never asked keeps only text, as before (core/kb/originals.mts).
+        `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS keep_originals BOOLEAN NOT NULL DEFAULT false`,
     ]);
     // First-deploy backfill: org KBs that already existed before the publish flow
     // were visible to the whole org; preserve that by marking them published.
@@ -225,6 +228,12 @@ async function addSourceAndDocumentColumns({ runDdl, CODES, ensureSourcesSchema 
         `pii_categories JSONB`,
         `overlaps_document_id UUID`,
         `created_by TEXT`,
+        // The kept original (core/kb/originals.mts): where the encrypted bytes sit and what they were.
+        // The key never leaves the server; clients get has_original.
+        `original_storage_key TEXT`,
+        `original_mime TEXT`,
+        `original_size BIGINT`,
+        `original_sha256 TEXT`,
     ];
     await runDdl('knowledgeBases', [
         `ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS last_content_at TIMESTAMPTZ`,

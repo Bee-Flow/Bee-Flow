@@ -47,6 +47,9 @@ const URL_TEXT = 'A web source needs an address.';
 const TAG_TEXT = 'A meeting source needs a tag.';
 const TABLE_TEXT = 'A table source needs a table.';
 const CONFIG_TEXT = 'config is an object describing the source.';
+const CLOUD_PROVIDERS = Object.freeze(['nextcloud_files', 'onedrive', 'google_drive']);
+const PROVIDER_TEXT = `A cloud folder needs a provider: one of ${CLOUD_PROVIDERS.join(', ')}.`;
+const FOLDER_NAME_TEXT = 'A cloud folder needs a folder name.';
 
 /** The `config` each CREATABLE kind accepts; a kind absent here has no shape yet. */
 const CONFIG_BY_KIND = Object.freeze({
@@ -76,6 +79,25 @@ const CONFIG_BY_KIND = Object.freeze({
             { error: typeError({ invalid: 'fields is a list of meeting fields.' }) },
         ).optional(),
     }, { error: typeError({ invalid: CONFIG_TEXT }) }).strict(),
+    cloud_folder: z.object({
+        provider: z.enum(CLOUD_PROVIDERS, { error: () => PROVIDER_TEXT }),
+        // Nextcloud addresses a folder by path; OneDrive and Google Drive by id (OneDrive plus the drive it is in).
+        folderId: worded('folderId must be text.').trim().min(1).max(500).optional(),
+        driveId: worded('driveId must be text.').trim().min(1).max(500).optional(),
+        path: worded('path must be text.').trim().min(1).max(2000).optional(),
+        folderName: worded(FOLDER_NAME_TEXT).trim().min(1, FOLDER_NAME_TEXT).max(500),
+        recursive: z.boolean({ error: () => 'recursive is true or false.' }).default(true),
+    }, { error: typeError({ invalid: CONFIG_TEXT }) }).strict().superRefine((cfg, ctx) => {
+        if (cfg.provider === 'nextcloud_files' && !cfg.path) {
+            ctx.addIssue({ code: 'custom', path: ['path'], message: 'A Nextcloud folder needs a path.' });
+        }
+        if (cfg.provider !== 'nextcloud_files' && cfg.path) {
+            ctx.addIssue({ code: 'custom', path: ['path'], message: 'Only a Nextcloud folder has a path; OneDrive and Google Drive use folderId.' });
+        }
+        if (cfg.provider === 'nextcloud_files' && cfg.driveId) {
+            ctx.addIssue({ code: 'custom', path: ['driveId'], message: 'Only OneDrive and Google Drive folders have a driveId.' });
+        }
+    }),
     datatable: z.object({
         datatableId: worded(TABLE_TEXT).trim().min(1, TABLE_TEXT),
         columns: z.array(worded('A column name must be text.'), { error: typeError({ invalid: 'columns is a list of column names.' }) }).optional(),

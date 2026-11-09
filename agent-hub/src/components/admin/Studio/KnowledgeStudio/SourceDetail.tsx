@@ -1,13 +1,12 @@
-import {
-    Check, ChevronDown, Ellipsis, FileSpreadsheet, FileText, Image as ImageIcon,
-    Loader2, Search, ShieldCheck, TriangleAlert,
-} from 'lucide-react';
+import { Check, ChevronDown, Ellipsis, FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Search, ShieldCheck, TriangleAlert } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { refreshModeKey } from './freshness';
 import { knowledgeApi, type KbDocument, type KbSource } from './knowledgeApi';
 import { nOf } from './plural';
 import ScheduleMenu from './ScheduleMenu';
+import { DownloadOriginalButton, OpenInCloudLink } from './OriginalActions';
 import { sourceKind } from './sourceKinds';
+import CloudFolderSummary from './CloudFolderSummary';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import useTranslation from '@/hooks/useTranslation';
 import AnchoredMenu from '@/components/shared/AnchoredMenu';
@@ -20,16 +19,7 @@ import type { SourceDetailProps, LoadArgs, FilterChipsProps, DocRowProps, PagerP
 const PAGE_SIZE = 50;
 const POLL_MS = 3000;
 
-export default function SourceDetail({
-    kbId,
-    kbName,
-    source,
-    canManage = false,
-    onBack,
-    onChanged,
-    onRenamed,
-    onSchedule,
-}: SourceDetailProps) {
+export default function SourceDetail({ kbId, kbName, source, canManage = false, onBack, onChanged, onRenamed, onSchedule }: SourceDetailProps) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const [docs, setDocs] = useState<KbDocument[]>([]);
@@ -130,6 +120,7 @@ export default function SourceDetail({
             />
 
             <div className="flex-1 overflow-y-auto px-7 py-5 flex flex-col gap-3 text-[12px]">
+                {source?.kind === 'cloud_folder' && <CloudFolderSummary t={t} source={source} />}
                 <div className="flex items-center gap-2.5">
                     <FilterChips t={t} value={filter} onChange={(v) => { setFilter(v); setOffset(0); }} source={source} />
                     <label className="relative block shrink-0 ml-auto w-[220px]">
@@ -148,7 +139,7 @@ export default function SourceDetail({
                     className="overflow-hidden [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]"
                 >
                     <div
-                        className="grid gap-3 px-3.5 py-2 text-[10px] font-semibold uppercase [grid-template-columns:1fr_1.2fr_130px_130px_32px] [letter-spacing:.08em] [color:var(--text-tertiary)]! [border-bottom:1px_solid_var(--border-default)]"
+                        className="grid gap-3 px-3.5 py-2 text-[10px] font-semibold uppercase [grid-template-columns:1fr_1.2fr_130px_130px_88px] [letter-spacing:.08em] [color:var(--text-tertiary)]! [border-bottom:1px_solid_var(--border-default)]"
                     >
                         <span>{t('knowledge.docs.col_file', 'File')}</span>
                         <span>{t('knowledge.docs.col_extracted', 'What the AI took from it')}</span>
@@ -177,6 +168,7 @@ export default function SourceDetail({
                             last={i === docs.length - 1}
                             canManage={canManage}
                             kbId={kbId}
+                            provider={source?.config?.provider}
                             onChanged={() => { load(); onChanged?.(); }}
                         />
                     ))}
@@ -244,14 +236,14 @@ function FilterChips({ t, value, onChange, source = {} }: FilterChipsProps) {
     );
 }
 
-function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }: DocRowProps) {
+function DocRow({ t, rel, doc, last, canManage, kbId, provider, onChanged }: DocRowProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLButtonElement>(null);
     const status = statusOfDoc(doc);
 
     return (
         <div
-            className={`grid gap-3 items-center px-3.5 py-2.5 [grid-template-columns:1fr_1.2fr_130px_130px_32px] ${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`}
+            className={`grid gap-3 items-center px-3.5 py-2.5 [grid-template-columns:1fr_1.2fr_130px_130px_88px] ${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`}
             data-testid="kb-doc-row"
             data-doc-id={doc.id}
             data-status={doc.status || 'processed'}
@@ -296,7 +288,9 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }: DocRowProps) 
                 {rel(doc.source_modified_at || doc.updated_at || doc.created_at)}
             </span>
 
-            <span className="justify-self-end">
+            <span className="justify-self-end inline-flex items-center">
+                {doc.web_url && <OpenInCloudLink url={doc.web_url} provider={provider} name={doc.title} />}
+                {doc.has_original && <DownloadOriginalButton kbId={kbId} docId={doc.id} name={doc.title} />}
                 {canManage && (
                     <>
                         <button

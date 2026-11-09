@@ -253,6 +253,23 @@ test('an ordinary rename still works and touches no organisation', async () => {
     assert.deepStrictEqual(fx.snapshots, [{ id: 'kb1', reason: 'metadata_update' }]);
 });
 
+test('keepOriginals is a boolean setting of the base, passed to the store as such', async () => {
+    const res = await dispatch({ method: 'PATCH', url: '/kb1', body: { keepOriginals: true } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(fx.updates[0].patch.keepOriginals, true);
+    assert.strictEqual(res.body.keep_originals, undefined, 'the store row is returned as it is');
+    assert.ok('originals_blocked_reason' in res.body, 'the response says whether originals can be kept');
+    await assert.rejects(dispatch({ method: 'PATCH', url: '/kb1', body: { keepOriginals: 'yes' } }), /keepOriginals is true or false/);
+});
+
+test('the base payload carries keep_originals and why originals are blocked', async () => {
+    fx.kb = { ...fx.kb, keep_originals: true };
+    const res = await dispatch({ url: '/kb1' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.keep_originals, true);
+    assert.ok([null, 'privacy_redaction'].includes(res.body.originals_blocked_reason));
+});
+
 test('re-sending the organisation a base already has is not an error', async () => {
     // The settings form PATCHes the whole shape; sending back what is already
     // there must be a no-op, not a 400.

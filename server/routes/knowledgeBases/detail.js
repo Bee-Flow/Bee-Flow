@@ -46,6 +46,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, orEmpty } = require('../../core/http/schemaParts');
 const { bestEffort } = require('../../utils/bestEffort');
+const originalsBlockedReason = (/** @type {Record<string, any>} */ kb) => require('../../core/kb/originals.mts').originalsBlockedReason(/** @type {import('../../core/kb/originals.mts').KbRow} */ (kb));
 
 // ── What a caller may send ──────────────────────────────────────────
 
@@ -77,6 +78,9 @@ const UpdateKbBody = orEmpty(z.object({
     // Whether the caller may use this organisation is assertUserCanUseOrg's
     // answer; null means "leave it", exactly as before.
     organizationId: worded(ORG_TEXT).trim().min(1, ORG_TEXT).nullable().optional(),
+    // Keep the uploaded file of each document (encrypted) next to its text. Off by default; a base whose
+    // privacy screening redacts text accepts the setting but keeps nothing (originals_blocked_reason).
+    keepOriginals: z.boolean({ error: 'keepOriginals is true or false.' }).optional(),
 }).strict());
 
 const PUBLISHED_TEXT = 'Say whether the knowledge base is published: isPublished is true or false.';
@@ -147,6 +151,8 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {
         sourceCount,
         lastContentAt: kb.last_content_at || null,
         ...kbQueryLogFields(kb, { manager: await canManageKB(req, kb) }),
+        keep_originals: !!kb.keep_originals,
+        originals_blocked_reason: await originalsBlockedReason(kb),
         managed: await managedOf(kb.id),
         documents,
     });
@@ -161,7 +167,7 @@ router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validat
     if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
     if (blockIfSystemKB(kb, res)) return;
 
-    const { name, description, categoryId, icon, usageContexts, organizationId } = req.body;
+    const { name, description, categoryId, icon, usageContexts, organizationId, keepOriginals } = req.body;
     const cleanedContexts = sanitizeUsageContexts(usageContexts);
 
     /**
@@ -211,12 +217,12 @@ router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validat
     }
 
     const updated = await kbStore.updateKB(kb.id, {
-        name, description, categoryId, icon,
+        name, description, categoryId, icon, keepOriginals,
         ...(cleanedContexts ? { usageContexts: cleanedContexts } : {}),
         ...(adoptOrgId ? { organizationId: adoptOrgId } : {}),
     });
     kbStore.snapshotKBVersion(kb.id, getUserId(req), adoptOrgId ? 'moved_to_organisation' : 'metadata_update').catch((e) => bestEffort('routes/knowledgeBases/detail:anon', e));
-    res.json(updated);
+    res.json(updated ? { ...updated, originals_blocked_reason: await originalsBlockedReason(updated) } : updated);
 });
 
 /**

@@ -20,6 +20,7 @@ const {
     ingestDocument,
 } = require('../../core/kb/kbIngestionHelpers');
 const { getUserId, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
+const { keepUploadedOriginal } = require('../../core/kb/sources/keepOriginals');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -142,6 +143,9 @@ router.post('/:id/ingest/file', requireAuth, requirePermission('manage_knowledge
                 pages: Array.isArray(meta && meta.pages) ? meta.pages : null,
             }
         );
+
+        // The file itself, when this base opted in to keeping it (never fails the document).
+        await keepUploadedOriginal({ kb, docId: /** @type {{ id?: string }} */ (result.document)?.id, status: result.status, file: req.file, log: (msg) => log.info(`[KB] ${msg}`) });
 
         res.status(201).json({
             success: true,
