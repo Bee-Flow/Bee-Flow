@@ -24,6 +24,17 @@ interface UseRunStreamOptions {
     onEvent?: (type: string, data: unknown) => void;
 }
 
+/** The run.* event a polled run whose status moved stands for. */
+function polledEvent(r: PolledRun): [type: string, data: unknown] {
+    if (r.status === 'running' || r.status === 'queued') {
+        return ['run.started', { runId: r.id, automationId: r.automationId, status: r.status, triggerKind: r.triggerKind, title: r.automationTitle, kind: r.automationKind, at: r.startedAt }];
+    }
+    if (r.status === 'error') {
+        return ['run.failed', { runId: r.id, automationId: r.automationId, status: 'error', durationMs: r.durationMs }];
+    }
+    return ['run.finished', { runId: r.id, automationId: r.automationId, status: r.status, durationMs: r.durationMs }];
+}
+
 /** Nothing connects while the tab is hidden, so a stream that starts there starts 'paused'. */
 const startState = (enabled: boolean): RunStreamState => (enabled && !document.hidden ? 'live' : 'paused');
 
@@ -89,13 +100,7 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
                     const prev = lastSeen.get(r.id);
                     lastSeen.set(r.id, r.status);
                     if (firstPoll || prev === r.status) continue; // seed silently / no change
-                    if (r.status === 'running' || r.status === 'queued') {
-                        emit('run.started', { runId: r.id, automationId: r.automationId, status: r.status, triggerKind: r.triggerKind, title: r.automationTitle, kind: r.automationKind, at: r.startedAt });
-                    } else if (r.status === 'error') {
-                        emit('run.failed', { runId: r.id, automationId: r.automationId, status: 'error', durationMs: r.durationMs });
-                    } else {
-                        emit('run.finished', { runId: r.id, automationId: r.automationId, status: r.status, durationMs: r.durationMs });
-                    }
+                    emit(...polledEvent(r));
                 }
                 firstPoll = false;
             } catch (err) { logger.debug('keep polling', err); }

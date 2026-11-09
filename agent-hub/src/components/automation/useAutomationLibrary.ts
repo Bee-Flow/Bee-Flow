@@ -91,26 +91,13 @@ export interface UseAutomationLibraryOptions {
 const failureText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
- * Everything the sidebar lists: automations, their folders, the reusable
- * Steps, and which of them are running right now. Every action here is a
- * call plus the refetch that keeps the list true — the list is the source of
- * truth for the sidebar, Cmd/Ctrl+K and the open builder alike.
- *
- * The builder setters come in because a duplicate, an import and a delete all
- * move the user: a fresh copy opens, an imported automation opens, and deleting
- * the open one closes it.
+ * The automation list and the read behind it: the rows, whether a read is
+ * going, and whether the last one failed (an empty list is then not the truth).
  */
-export default function useAutomationLibrary({
-    confirm, builderAutomationId, openingBuilder, builderStepId,
-    setBuilderAutomationId, setBuilderInitialTab, setBuilderStepId, setOpeningBuilder,
-}: UseAutomationLibraryOptions): AutomationLibrary {
-    const automationApi = useAutomationApi();
+function useAutomationList(automationApi: ReturnType<typeof useAutomationApi>) {
     const [automations, setAutomations] = useState<AutomationListRow[]>([]);
     const [automationsLoading, setAutomationsLoading] = useState(false);
     const [automationsLoadFailed, setAutomationsLoadFailed] = useState(false);
-    const [pendingDeleteAutomation, setPendingDeleteAutomation] = useState<AutomationListRow | null>(null);
-    const [steps, setSteps] = useState<StepRow[]>([]);
-    const [stepsLoading, setStepsLoading] = useState(false);
 
     // Every action re-reads the list, so two reads can be in the air at once
     // (a toggle on one row while another row's re-read is still going). Only
@@ -132,6 +119,68 @@ export default function useAutomationLibrary({
         }
         setAutomationsLoading(false);
     }, [automationApi]);
+
+    return { automations, setAutomations, automationsLoading, automationsLoadFailed, fetchAutomations };
+}
+
+/**
+ * Ids of the automations executing right now, read every 5 s so the sidebar
+ * can show a live dot: n8n-style ambient awareness, so the user knows their
+ * scheduled flows ran without opening each one.
+ */
+function useActiveRunIds(automationApi: ReturnType<typeof useAutomationApi>): Set<string> {
+    // Poll active runs every 5s so the sidebar can show a live ● dot on
+    // any automation currently executing. n8n-style ambient awareness so
+    // the user knows their scheduled flows ran without opening each one.
+    const [activeRunIds, setActiveRunIds] = useState<Set<string>>(new Set());
+    useEffect(() => {
+        let alive = true;
+        const tick = async () => {
+            // A tab nobody is looking at needs no live dot; the read happens
+            // again the moment the tab comes back.
+            if (document.visibilityState === 'hidden') return;
+            try {
+                const r = await automationApi.getActiveRuns<{ active?: Array<{ automationId: string }> }>();
+                if (!alive || !r) return;
+                const nextIds = (r.active || []).map(x => x.automationId);
+                // Only replace the Set (and re-render the whole designer —
+                // sidebar + open builder) when the set of active runs actually
+                // CHANGED. Every 5s tick previously minted a fresh Set even
+                // when identical, forcing a full re-render on a timer.
+                setActiveRunIds(prev => {
+                    if (prev.size === nextIds.length && nextIds.every(id => prev.has(id))) return prev;
+                    return new Set(nextIds);
+                });
+            } catch (err) { logger.debug('silent — non-critical', err); }
+        };
+        tick();
+        const handle = setInterval(tick, 5000);
+        const onVisible = () => { if (document.visibilityState !== 'hidden') void tick(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { alive = false; clearInterval(handle); document.removeEventListener('visibilitychange', onVisible); };
+    }, [automationApi]);
+    return activeRunIds;
+}
+
+/**
+ * Everything the sidebar lists: automations, their folders, the reusable
+ * Steps, and which of them are running right now. Every action here is a
+ * call plus the refetch that keeps the list true — the list is the source of
+ * truth for the sidebar, Cmd/Ctrl+K and the open builder alike.
+ *
+ * The builder setters come in because a duplicate, an import and a delete all
+ * move the user: a fresh copy opens, an imported automation opens, and deleting
+ * the open one closes it.
+ */
+export default function useAutomationLibrary({
+    confirm, builderAutomationId, openingBuilder, builderStepId,
+    setBuilderAutomationId, setBuilderInitialTab, setBuilderStepId, setOpeningBuilder,
+}: UseAutomationLibraryOptions): AutomationLibrary {
+    const automationApi = useAutomationApi();
+    const { automations, setAutomations, automationsLoading, automationsLoadFailed, fetchAutomations } = useAutomationList(automationApi);
+    const [pendingDeleteAutomation, setPendingDeleteAutomation] = useState<AutomationListRow | null>(null);
+    const [steps, setSteps] = useState<StepRow[]>([]);
+    const [stepsLoading, setStepsLoading] = useState(false);
 
     const { folders, fetchFolders, createFolder, renameFolder, moveFolder, deleteFolder, moveToFolder } = useAutomationFolders({
         automationApi, automations, setAutomations, fetchAutomations,
@@ -178,36 +227,7 @@ export default function useAutomationLibrary({
         }
     }, [automationApi, fetchSteps, builderStepId, confirm, setBuilderStepId]);
 
-    // Poll active runs every 5s so the sidebar can show a live ● dot on
-    // any automation currently executing. n8n-style ambient awareness so
-    // the user knows their scheduled flows ran without opening each one.
-    const [activeRunIds, setActiveRunIds] = useState<Set<string>>(new Set());
-    useEffect(() => {
-        let alive = true;
-        const tick = async () => {
-            // A tab nobody is looking at needs no live dot; the read happens
-            // again the moment the tab comes back.
-            if (document.visibilityState === 'hidden') return;
-            try {
-                const r = await automationApi.getActiveRuns<{ active?: Array<{ automationId: string }> }>();
-                if (!alive || !r) return;
-                const nextIds = (r.active || []).map(x => x.automationId);
-                // Only replace the Set (and re-render the whole designer —
-                // sidebar + open builder) when the set of active runs actually
-                // CHANGED. Every 5s tick previously minted a fresh Set even
-                // when identical, forcing a full re-render on a timer.
-                setActiveRunIds(prev => {
-                    if (prev.size === nextIds.length && nextIds.every(id => prev.has(id))) return prev;
-                    return new Set(nextIds);
-                });
-            } catch (err) { logger.debug('silent — non-critical', err); }
-        };
-        tick();
-        const handle = setInterval(tick, 5000);
-        const onVisible = () => { if (document.visibilityState !== 'hidden') void tick(); };
-        document.addEventListener('visibilitychange', onVisible);
-        return () => { alive = false; clearInterval(handle); document.removeEventListener('visibilitychange', onVisible); };
-    }, [automationApi]);
+    const activeRunIds = useActiveRunIds(automationApi);
 
     // Per-row in-flight dedupe for the active/pause toggle. Without this,
     // a rapid double-click fires two PATCHes against the same automation

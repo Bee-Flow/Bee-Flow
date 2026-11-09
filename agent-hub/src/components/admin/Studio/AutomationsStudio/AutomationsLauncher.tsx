@@ -89,20 +89,6 @@ export default function AutomationsLauncher({
         try { scopedStorage.setItem(TAB_KEY, id); } catch (err) { logger.debug('storage best-effort', err); }
     };
 
-    // Left/Right (and Home/End) move between the tabs, as a tablist promises;
-    // only the selected tab is in the Tab order.
-    const onTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        const at = TABS.findIndex(tab => tab.id === activeTab);
-        const to = e.key === 'ArrowRight' ? (at + 1) % TABS.length
-            : e.key === 'ArrowLeft' ? (at - 1 + TABS.length) % TABS.length
-                : e.key === 'Home' ? 0
-                    : e.key === 'End' ? TABS.length - 1 : -1;
-        if (to < 0) return;
-        e.preventDefault();
-        selectTab(TABS[to].id);
-        e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
-    };
-
     return (
         // @container/launcher: the launcher panels widen by the launcher's OWN
         // width (the sidebar beside it takes a share of the screen), never by
@@ -112,17 +98,7 @@ export default function AutomationsLauncher({
                 data-tour anchor lets the Learning Center spotlight the ways
                 into the feature (see onboarding/tourAnchors.js). */}
             <div className="flex-shrink-0 border-b border-[var(--border-default)]">
-                <div
-                    role="tablist"
-                    aria-label={t('automations.tabs.label', 'Automations views')}
-                    onKeyDown={onTabKeyDown}
-                    className="max-w-3xl mx-auto px-6 flex items-center justify-center gap-1"
-                    data-tour="automation-start-tabs"
-                >
-                    {TABS.map(tab => (
-                        <Tab key={tab.id} id={tab.id} active={activeTab} onClick={selectTab}>{t(tab.key, tab.en)}</Tab>
-                    ))}
-                </div>
+                <TabBar active={activeTab} onSelect={selectTab} />
             </div>
 
             {/* Panels. The two "launcher" tabs stay mounted (so each keeps its
@@ -178,6 +154,43 @@ export default function AutomationsLauncher({
                     </Suspense>
                 </div>
             </div>
+        </div>
+    );
+}
+
+/** Which tab an arrow, Home or End key moves to from `at`; -1 for any other key. */
+function tabAfterKey(key: string, at: number): number {
+    if (key === 'ArrowRight') return (at + 1) % TABS.length;
+    if (key === 'ArrowLeft') return (at - 1 + TABS.length) % TABS.length;
+    if (key === 'Home') return 0;
+    if (key === 'End') return TABS.length - 1;
+    return -1;
+}
+
+/**
+ * The launcher's tab bar, as a tablist: Left/Right and Home/End move between
+ * the tabs, and only the selected tab is in the Tab order.
+ */
+function TabBar({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
+    const { t } = useTranslation();
+    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const to = tabAfterKey(e.key, TABS.findIndex(tab => tab.id === active));
+        if (to < 0) return;
+        e.preventDefault();
+        onSelect(TABS[to].id);
+        e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
+    };
+    return (
+        <div
+            role="tablist"
+            aria-label={t('automations.tabs.label', 'Automations views')}
+            onKeyDown={onKeyDown}
+            className="max-w-3xl mx-auto px-6 flex items-center justify-center gap-1"
+            data-tour="automation-start-tabs"
+        >
+            {TABS.map(tab => (
+                <Tab key={tab.id} id={tab.id} active={active} onClick={onSelect}>{t(tab.key, tab.en)}</Tab>
+            ))}
         </div>
     );
 }

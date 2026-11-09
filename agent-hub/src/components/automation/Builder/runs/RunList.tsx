@@ -16,6 +16,24 @@ function remindRefused(t: TranslateFn, e: unknown) {
     else toast.error(t('runs.tab.reminder_failed', 'Could not send a reminder.'));
 }
 
+/** The list could not be read: say so, with a way to read it again. */
+function LoadFailed({ t, onReload }: { t: TranslateFn; onReload?: () => void }) {
+    return (
+        <div role="alert" className="px-4 py-6 text-xs text-[var(--error)]">
+            <div>{t('runs.tab.load_failed', 'Could not read the runs.')}</div>
+            {onReload && (
+                <button
+                    type="button"
+                    onClick={onReload}
+                    className="mt-2 px-3 py-1 rounded-full border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                >
+                    {t('runs.tab.load_retry', 'Try again')}
+                </button>
+            )}
+        </div>
+    );
+}
+
 interface RunListProps {
     automationId: string;
     runs: RunRowData[];
@@ -76,20 +94,7 @@ export default function RunList({
         return <div className="px-4 py-6 text-xs text-[var(--text-tertiary)]">{t('runs.tab.loading', 'Loading runs…')}</div>;
     }
     if (failed) {
-        return (
-            <div role="alert" className="px-4 py-6 text-xs text-[var(--error)]">
-                <div>{t('runs.tab.load_failed', 'Could not read the runs.')}</div>
-                {onReload && (
-                    <button
-                        type="button"
-                        onClick={onReload}
-                        className="mt-2 px-3 py-1 rounded-full border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                    >
-                        {t('runs.tab.load_retry', 'Try again')}
-                    </button>
-                )}
-            </div>
-        );
+        return <LoadFailed t={t} onReload={onReload} />;
     }
     if (!runs.length) {
         return (
