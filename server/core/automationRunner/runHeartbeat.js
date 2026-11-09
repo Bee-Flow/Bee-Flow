@@ -34,7 +34,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  * Resumes never wait: a resume continues alongside whatever holds the marker
  * (see the guard in executeAutomation).
  */
-const { CONCURRENT_WAIT_MS } = require('./shared');
+const { CONCURRENT_WAIT_MS } = require('./markerWait');
 const CONCURRENT_POLL_MS = Math.max(50, Number(process.env.AUTOMATION_CONCURRENT_POLL_MS) || 5_000);
 const WAITS_FOR_MARKER = new Set(['app_event', 'webhook']);
 /**

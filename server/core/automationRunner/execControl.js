@@ -9,6 +9,7 @@ const { evaluate, parsePath, walkTokens, parseJsonText, jsonCacheFor } = require
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
 const { createRuleMissCounter } = require('./ruleMisses');
+const { sleepUntil } = require('./cancellableSleep');
 // Literals only, no requires of its own — the validator's vocabulary module is
 // safe to pull into the runner, and sharing it is the point: the values the
 // validator accepts and the values the runner forwards to the app must be the
@@ -53,9 +54,6 @@ function noteRunMisses(entries, scopes, matched) {
     counter.report(total, null, { matched });
 }
 
-/** How often a sleeping Wait reads the run row's cancel_requested flag. */
-const CANCEL_FLAG_POLL_MS = 30_000;
-
 /**
  * Pause the runner. Capped at 24h to keep a misconfigured cron from
  * holding a runner pod hostage. Dry-run skips the actual sleep so a
@@ -85,24 +83,7 @@ async function execWait(step, ctx, runState, mode) {
     // driven by the same fact — this runner is still alive — instead of by two
     // unrelated numbers.
     ctx.extendRunDeadline?.(seconds * 1000);
-    const until = Date.now() + seconds * 1000;
-    // The abort signal only fires for a cancel issued on THIS instance. One
-    // issued on another sets cancel_requested on the run row, which
-    // dispatchStep reads between steps — and a Wait is a single step that may
-    // last a day. So the sleep reads that flag as well (ctx.cancelRequested,
-    // runDeadline.js), every 30 seconds; a failed lookup is not a cancel.
-    let flagCheckedAt = Date.now();
-    while (Date.now() < until) {
-        if (ctx.cancelSignal?.aborted) throw new Error('Run cancelled');
-        if (typeof ctx.cancelRequested === 'function' && Date.now() - flagCheckedAt >= CANCEL_FLAG_POLL_MS) {
-            flagCheckedAt = Date.now();
-            if (await Promise.resolve().then(() => ctx.cancelRequested()).catch(() => false)) throw new Error('Run cancelled');
-        }
-        await new Promise(r => {
-            const t = setTimeout(r, Math.min(5_000, Math.max(0, until - Date.now())));
-            if (t.unref) t.unref();
-        });
-    }
+    await sleepUntil(Date.now() + seconds * 1000, ctx);
     // "Once per run" is not a time bound. A run that slept an hour must not
     // answer the next lookup from before the sleep — waiting is usually the
     // author saying "let the other system catch up", which is exactly when a

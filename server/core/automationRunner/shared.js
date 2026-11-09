@@ -34,10 +34,6 @@ const MAX_RUN_TIMEOUT_MS = 60 * 60_000;
 const REAPER_FLOOR_MS = 6 * 60_000;
 const REAPER_BUFFER_MS = 60_000;
 const REAPER_MAX_ATTEMPTS = 5;
-// How long an event- or webhook-started run waits for a busy automation's
-// marker (runHeartbeat.acquireRunMarker). Its run row is 'queued' for that
-// long, so the stuck-run reaper allows a queued row this much on top.
-const CONCURRENT_WAIT_MS = Math.max(0, Number(process.env.AUTOMATION_CONCURRENT_WAIT_MS ?? 300_000) || 0);
 // §WS2.2 — approval deadline. A run paused at an approval step expires after
 // this window if no decision is made; the reaper then flips it to error
 // (ApprovalExpired) so paused runs don't accumulate forever. A step may shorten
@@ -382,7 +378,7 @@ function stepInputsSynthetic(step, runState, ctx) {
 module.exports = {
     RUNNER_INTERVAL_MS, POLLING_INTERVAL_MS, REAPER_INTERVAL_MS, RETENTION_INTERVAL_MS,
     MAX_CONCURRENT, MAX_LAYER_DEPTH, RUN_HARD_TIMEOUT_MS, MAX_RUN_TIMEOUT_MS,
-    REAPER_FLOOR_MS, REAPER_BUFFER_MS, REAPER_MAX_ATTEMPTS, CONCURRENT_WAIT_MS,
+    REAPER_FLOOR_MS, REAPER_BUFFER_MS, REAPER_MAX_ATTEMPTS,
     APPROVAL_DEFAULT_TTL_MS, APPROVAL_MAX_TTL_MS, resolveApprovalTtlMs,
     COLLECTION_OP_MAX_ITEMS, clampRunTimeout, cloneRunValue, secretValuesFor,
     isEmptyToolResult, isToolErrorResult, isEnvironmentToolError, enrichNextcloudError,

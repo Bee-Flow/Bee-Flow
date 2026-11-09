@@ -12,45 +12,36 @@
  * Run: cd server && node --test core/automationRunner/execution.setupFailure.test.js
  */
 
-const test = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert');
-const path = require('node:path');
+const { installRunnerStoreStubs } = require('../automationRunner.testkit');
 
-process.env.NODE_ENV = 'test';
-
+// The kit puts its in-memory store in place of stores/automationStore; this
+// suite records what the runner writes to it.
+const { storeStub } = installRunnerStoreStubs();
 let ops = [];
-const storeStub = {
-    createRun: async (row) => { const r = { id: 'run-1', ...row }; ops.push({ op: 'createRun', row: r }); return r; },
-    updateRun: async (id, patch) => { ops.push({ op: 'updateRun', id, patch }); return { id, ...patch }; },
-    getRun: async (id) => {
-        const last = [...ops].reverse().find(o => o.op === 'updateRun');
-        return last ? { id, ...last.patch } : { id, status: 'queued' };
-    },
-    getAutomation: async () => AUTOMATION,
-    getRunSteps: async () => [],
-    getRunStepsForRuns: async () => [],
-    getRunsForAutomation: async () => [],
-    markRunning: async () => true,
-    advanceSchedule: async () => {},
-    getRunTokenMap: async () => ({}),
-    recordRunStep: async () => ({ id: 'step-1' }),
+const kitUpdateRun = storeStub.updateRun;
+Object.assign(storeStub, {
+    updateRun: async (id, patch) => { ops.push({ op: 'updateRun', id, patch }); return kitUpdateRun(id, patch); },
     releaseAutomation: async (id) => { ops.push({ op: 'releaseAutomation', id }); },
-    resetAttempts: async () => {},
-    touchAutomationRunning: async () => {},
-    touchRunHeartbeat: async () => {},
-    updateAutomation: async (id, patch) => { ops.push({ op: 'updateAutomation', id, patch }); },
-};
+    updateAutomation: async (id, patch) => { ops.push({ op: 'updateAutomation', id, patch }); return true; },
+    touchAutomationRunning: async () => true,
+    getRunTokenMap: async () => ({}),
+});
 
-const storePath = require.resolve('../../stores/automationStore');
-require.cache[storePath] = { id: storePath, filename: storePath, loaded: true, exports: storeStub };
-
-const { executeAutomation } = require(path.join(__dirname, 'execution.js'));
+const { executeAutomation } = require('../automationRunner');
 const safety = require('./safety');
 const { getActiveController } = require('./cancellation');
 
+after(() => { setImmediate(() => process.exit(process.exitCode || 0)); });
+
 const AUTOMATION = {
-    id: 'a1', title: 'test automation', userId: 'u1', organizationId: null, isActive: true,
-    definition: { trigger: { type: 'webhook' }, steps: [{ id: 's1', type: 'set', fields: { greeting: 'hi' } }] },
+    id: 'a1', version: 1, title: 'test automation', userId: 'u1', organizationId: null, isActive: true, triggerType: 'webhook',
+    definition: {
+        trigger: { id: 'trig', type: 'trigger', kind: 'webhook' },
+        steps: [{ id: 's1', type: 'set', fields: { ok: { kind: 'literal', value: true } } }],
+        edges: [{ from: 'trig', to: 's1' }],
+    },
 };
 
 test('an exception in the run setup stops the heartbeat, fails the run and frees the marker', async (t) => {
@@ -76,7 +67,7 @@ test('an exception in the run setup stops the heartbeat, fails the run and frees
     );
 
     assert.strictEqual(live.size, 0, 'the heartbeat is still running: it keeps the marker fresh, so the reaper never frees the automation');
-    assert.strictEqual(getActiveController('run-1'), null, 'the cancel controller of the dead run is still registered');
+    assert.ok(![...ops].some(o => o.op === 'updateRun' && getActiveController(o.id)), 'the cancel controller of the dead run is still registered');
     const terminal = ops.findLast(o => o.op === 'updateRun' && o.patch.finishedAt);
     assert.ok(terminal, 'the run row was left non-terminal');
     assert.strictEqual(terminal.patch.status, 'error');

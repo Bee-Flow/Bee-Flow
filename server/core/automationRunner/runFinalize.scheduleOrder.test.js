@@ -14,41 +14,34 @@
  * Run: cd server && node --test core/automationRunner/runFinalize.scheduleOrder.test.js
  */
 
-const test = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert');
-const path = require('node:path');
+const { installRunnerStoreStubs } = require('../automationRunner.testkit');
 
-process.env.NODE_ENV = 'test';
-
+// The kit puts its in-memory store in place of stores/automationStore; this
+// suite records what the runner writes to the automations and schedules rows.
+const { storeStub } = installRunnerStoreStubs();
 let ops = [];
-const storeStub = {
-    createRun: async (row) => ({ id: 'run-1', ...row }),
-    updateRun: async (id, patch) => ({ id, ...patch }),
-    getRun: async (id) => ({ id, status: 'success' }),
-    getAutomation: async () => null,
-    getRunSteps: async () => [],
-    getRunStepsForRuns: async () => [],
-    getRunsForAutomation: async () => [],
-    markRunning: async () => true,
+Object.assign(storeStub, {
     advanceSchedule: async (id, patch) => { ops.push({ op: 'advanceSchedule', id, patch }); },
-    getRunTokenMap: async () => ({}),
-    recordRunStep: async () => ({ id: 'step-1' }),
     releaseAutomation: async (id) => { ops.push({ op: 'releaseAutomation', id }); },
-    resetAttempts: async () => {},
+    updateAutomation: async (id, patch) => { ops.push({ op: 'updateAutomation', id, patch }); return true; },
     touchAutomationRunning: async () => true,
-    touchRunHeartbeat: async () => {},
-    updateAutomation: async (id, patch) => { ops.push({ op: 'updateAutomation', id, patch }); },
-};
+    getRunTokenMap: async () => ({}),
+});
 
-const storePath = require.resolve('../../stores/automationStore');
-require.cache[storePath] = { id: storePath, filename: storePath, loaded: true, exports: storeStub };
+const { executeAutomation } = require('../automationRunner');
 
-const { executeAutomation } = require(path.join(__dirname, 'execution.js'));
+after(() => { setImmediate(() => process.exit(process.exitCode || 0)); });
 
 const AUTOMATION = {
-    id: 'a1', title: 'nightly report', userId: 'u1', organizationId: null, isActive: true,
+    id: 'a1', version: 1, title: 'nightly report', userId: 'u1', organizationId: null, isActive: true,
     triggerType: 'schedule', scheduleCron: '0 7 * * *', scheduleTz: 'UTC',
-    definition: { trigger: { type: 'schedule' }, steps: [{ id: 's1', type: 'set', fields: { greeting: 'hi' } }] },
+    definition: {
+        trigger: { id: 'trig', type: 'trigger', kind: 'schedule' },
+        steps: [{ id: 's1', type: 'set', fields: { ok: { kind: 'literal', value: true } } }],
+        edges: [{ from: 'trig', to: 's1' }],
+    },
 };
 
 const indexOf = (pred) => ops.findIndex(pred);
