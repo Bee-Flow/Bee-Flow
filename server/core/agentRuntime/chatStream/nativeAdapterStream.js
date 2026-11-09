@@ -88,10 +88,16 @@ async function streamNativeAdapterRound({
 
     /** @type {(RawUsage & { stop_reason?: string }) | null} */
     let _adapterStreamUsage = null;
+    let _guardTripped = false;
     const thinkingCtx = { onEvent, _thinkingParts, _getThinkingPart };
     // The adapter's event callback. It closes over this round's live state.
     const onAdapterEvent = (/** @type {string} */ type, /** @type {AdapterEventData} */ data) => {
         if (signal?.aborted) return; // Drop callbacks once client aborted
+        // Once the output guard replaced the answer, the rest of this stream is
+        // void (the raw-SSE path cancels its reader at this point): text that
+        // follows must not be appended to the replacement, and a tool call
+        // that follows must not run.
+        if (_guardTripped && (type === 'text' || type === 'tool_use' || type === 'tool_use_invalid')) return;
         if (type === 'text') {
             const textChunk = data.text || '';
             contentBuffer += textChunk;
@@ -105,6 +111,7 @@ async function streamNativeAdapterRound({
                     contentBuffer = `I apologize, but I cannot provide that response as it contains content that violates the ${ruleNames} policy.`;
                     onEvent('content_replace', { text: contentBuffer });
                     guardrailViolation = ruleNames;
+                    _guardTripped = true;
                     return;
                 }
             }
@@ -167,6 +174,7 @@ async function streamNativeAdapterRound({
         _invalidToolCalls = [];
         contentBuffer = '';
         _adapterStreamUsage = null;
+        _guardTripped = false;
         _thinking = _thinking.slice(0, _preAttemptThinkingLen);
         _thinkingParts.length = _preAttemptThinkingParts;
         // Keep the snapshot cursor inside the truncated array, or the

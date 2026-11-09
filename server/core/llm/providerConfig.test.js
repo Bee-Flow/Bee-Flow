@@ -80,6 +80,29 @@ test('getAIConfig answers from the default provider when there is one', async ()
     assert.deepStrictEqual(cfg.piiDetectionScope, { userInput: true, agentOutput: false });
 });
 
+test('getAIConfig pairs the default provider\'s url with ITS key, not with the saved Mistral secret', async () => {
+    store.config.set('ai', {
+        providers: [
+            { id: 'p1', name: 'One', type: 'openai', url: 'https://one.example/v1', model: 'm1', apiKey: 'k1' },
+            { id: 'p2', name: 'Two', type: 'mistral', url: 'https://api.mistral.ai/v1', model: 'm2', apiKey: 'k2' },
+            { id: 'p3', name: 'Local', type: 'ollama', url: 'http://ollama:11434', model: 'm3', apiKey: '' },
+        ],
+        defaultProviderId: 'p1',
+    });
+    store.secrets.set('mistral_api_key', 'mistral-secret');
+
+    const openai = await getAIConfig();
+    assert.strictEqual(openai.url, 'https://one.example/v1');
+    assert.strictEqual(openai.apiKey, 'k1', 'the Mistral secret is not sent to another vendor');
+    assert.strictEqual(openai.mistralApiKey, 'mistral-secret', 'still available on its own field');
+
+    store.config.set('ai', { ...ai(), defaultProviderId: 'p3' });
+    assert.strictEqual((await getAIConfig()).apiKey, '', 'a keyless local default gets no key at all');
+
+    store.config.set('ai', { ...ai(), defaultProviderId: 'p2' });
+    assert.strictEqual((await getAIConfig()).apiKey, 'mistral-secret', 'for a Mistral default the saved secret still wins');
+});
+
 test('getAIConfig falls back to the legacy single-provider fields, and the saved Mistral key wins over both', async () => {
     store.config.set('ai', { url: 'https://legacy.example', model: 'legacy-model', apiKey: 'in-config' });
     store.secrets.set('mistral_api_key', 'from-secret');

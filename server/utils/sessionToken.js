@@ -110,12 +110,22 @@ async function getSessionToken(token) {
     const entry = _sessionTokenFallback.get(token);
     if (!entry) return null;
     if (entry.expiresAt <= Date.now()) {
-        _sessionTokenFallback.delete(token);
+        evictFallback(token);
         return null;
     }
     const data = unpackPayload(token, entry.stored);
-    if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(data)) { _sessionTokenFallback.delete(token); return null; }
+    if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(data)) { evictFallback(token); return null; }
     return data;
+}
+
+/** Drop a fallback row AND its entry in the per-user index (which nothing else frees). @param {string} token */
+function evictFallback(token) {
+    const entry = _sessionTokenFallback.get(token);
+    _sessionTokenFallback.delete(token);
+    const owned = entry && entry.userId ? _userTokensFallback.get(entry.userId) : null;
+    if (!owned) return;
+    owned.delete(token);
+    if (owned.size === 0) _userTokensFallback.delete(entry.userId);
 }
 
 /**
@@ -148,7 +158,7 @@ async function setSessionToken(token, data, ttlSeconds = SESSION_TOKEN_TTL_SECON
     // hint, clamped so it can never misfire, and unref'd so a month-long timer
     // cannot hold the process open at shutdown.
     const expiresAt = Date.now() + ttlSeconds * 1000;
-    _sessionTokenFallback.set(token, { stored, expiresAt });
+    _sessionTokenFallback.set(token, { stored, expiresAt, userId });
     armEviction(token, expiresAt);
 }
 
@@ -170,7 +180,7 @@ function armEviction(token, expiresAt) {
         // Gone, or replaced by a later mint that owns its own timer.
         if (!entry || entry.expiresAt !== expiresAt) return;
         if (Date.now() >= entry.expiresAt) {
-            _sessionTokenFallback.delete(token);
+            evictFallback(token);
             return;
         }
         armEviction(token, expiresAt);

@@ -177,14 +177,16 @@ async function _saveAudioToStorage(buffer, ext, prefix, mimeType, userId) {
 function _logUsage(source, model, promptLen, who) {
     try {
         const usageStore = require('../../stores/usageStore');
-        usageStore.logUsage({
+        // logUsage is async: a rejection (database down) is not caught by the
+        // try around the call and would surface as an unhandled rejection.
+        Promise.resolve(usageStore.logUsage({
             ...who,
             model,
             prompt_tokens: promptLen,
             completion_tokens: 0,
             total_tokens: promptLen,
             source,
-        });
+        })).catch((e) => bestEffort('core/tools/elevenLabsTools:_logUsage#2', e));
     } catch (e) { bestEffort('core/tools/elevenLabsTools:_logUsage', e); /* ignore */ }
 }
 

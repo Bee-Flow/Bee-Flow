@@ -65,6 +65,7 @@ async function loadSDK() {
  * Connections are kept alive for IDLE_TIMEOUT_MS then auto-closed.
  */
 const connectionPool = new Map();
+const connecting = new Map(); // poolKey → the connection being opened
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -93,13 +94,18 @@ async function getConnection(serverId, userId) {
     const existing = connectionPool.get(poolKey);
     if (existing) {
         existing.lastUsed = Date.now();
-        // Reset idle timer
         clearTimeout(existing.timer);
         existing.timer = setTimeout(() => closeConnection(poolKey), IDLE_TIMEOUT_MS);
         return existing.client;
     }
 
-    // Load server config
+    // One spawn per key: two calls of one round both ask before the first connect has finished.
+    if (!connecting.has(poolKey)) connecting.set(poolKey, openConnection(serverId, userId, poolKey).finally(() => connecting.delete(poolKey)));
+    return connecting.get(poolKey);
+}
+
+/** Spawn (or connect to) the server for one user and pool the connection. @param {string} poolKey */
+async function openConnection(serverId, userId, poolKey) {
     const server = await mcpStore.getServer(serverId);
     if (!server || !server.enabled) {
         throw new Error(`MCP server ${serverId} not available`);
@@ -111,14 +117,11 @@ async function getConnection(serverId, userId) {
     const userEnv = {};
     for (const cred of (server.required_credentials || [])) {
         const value = await configStore.getSecret(`mcp_cred_${serverId}_${cred.key}_user_${userId}`);
-        if (value) {
-            userEnv[cred.key] = value;
-        }
+        if (value) userEnv[cred.key] = value;
     }
 
     let transport;
     if (server.transport === 'http' && server.url) {
-        // Remote HTTP server
         if (!_StreamableHTTPClientTransport) {
             throw new Error('StreamableHTTP transport not available — update @modelcontextprotocol/sdk');
         }
@@ -130,7 +133,6 @@ async function getConnection(serverId, userId) {
         else if (userEnv.API_KEY) httpHeaders['Authorization'] = `Bearer ${userEnv.API_KEY}`;
         transport = new _StreamableHTTPClientTransport(new URL(server.url), { requestInit: { headers: httpHeaders } });
     } else {
-        // Local stdio server
         if (!server.command) throw new Error(`MCP server ${serverId} has no command configured`);
         log.info(`[MCP] Spawning "${server.name}" for user ${userId}: ${server.command} ${(server.args || []).join(' ')}`);
         transport = new _StdioClientTransport({
@@ -145,10 +147,7 @@ async function getConnection(serverId, userId) {
         });
     }
 
-    const client = new _Client({
-        name: 'beeflow-agent',
-        version: '1.0.0',
-    });
+    const client = new _Client({ name: 'beeflow-agent', version: '1.0.0' });
 
     await client.connect(transport);
 
@@ -531,4 +530,5 @@ module.exports = {
     getServersForUser,
     saveUserCredential,
     resolveBundledArgs,
+    _setSdkForTests: ({ Client, StdioClientTransport }) => { _Client = Client; _StdioClientTransport = StdioClientTransport; },
 };
