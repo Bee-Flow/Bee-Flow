@@ -264,9 +264,50 @@ test('resolveAuth: a saved app password still wins over the DB-backed connector 
     seedNcOrg();
     seedBoundUser();
     state.appPasswords.set(USER, { username: 'tom', password: 'app-pass', url: 'https://cloud.example.com' });
-    const auth = await ncClient.resolveAuth(standaloneSession(), USER);
+    const auth = await withFetch(async () => new Response('', { status: 503 }),
+        () => ncClient.resolveAuth(standaloneSession(), USER));
     assert.equal(auth.mode, 'basic');
     assert.equal(auth.username, 'tom');
+});
+
+// ── App password: the login name is not the WebDAV uid ──────────────────────
+
+/** Run `body` with the global fetch replaced by `impl`. */
+async function withFetch(impl, body) {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = impl;
+    try { return await body(); } finally { globalThis.fetch = realFetch; }
+}
+
+test('app password: the WebDAV uid comes from Nextcloud, the login name stays for Basic auth', async () => {
+    // Login Flow v2 hands back the name the person signed in with — an e-mail
+    // address, or an LDAP login — while /remote.php/dav/files/<uid>/ wants the uid.
+    state.appPasswords.set(USER, { username: 'jan@example.org', password: 'app-pass', url: 'https://cloud-a.example.com' });
+    const seen = [];
+    const auth = await withFetch(async (url, init) => {
+        seen.push({ url: String(url), authorization: new Headers(init?.headers).get('authorization') });
+        return new Response(JSON.stringify({ ocs: { data: { id: 'jan' } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }, async () => {
+        const first = await ncClient.resolveAuth(standaloneSession(), USER);
+        await ncClient.resolveAuth(standaloneSession(), USER);
+        const basicOnly = await ncClient.resolveBasicAuthOrNull(USER);
+        assert.equal(basicOnly.uid, 'jan');
+        return first;
+    });
+    assert.equal(auth.mode, 'basic');
+    assert.equal(auth.uid, 'jan');
+    assert.equal(auth.username, 'jan@example.org', 'Basic auth keeps the name the app password was made for');
+    assert.equal(ncClient.webdavRoot(auth.baseUrl, auth.uid), 'https://cloud-a.example.com/remote.php/dav/files/jan');
+    assert.deepEqual(seen.map((c) => c.url), ['https://cloud-a.example.com/ocs/v2.php/cloud/user?format=json'], 'asked once, then remembered');
+    assert.equal(seen[0].authorization, 'Basic ' + Buffer.from('jan@example.org:app-pass').toString('base64'));
+});
+
+test('app password: when Nextcloud cannot be asked, the login name is used as before', async () => {
+    state.appPasswords.set(USER, { username: 'piet', password: 'app-pass', url: 'https://cloud-b.example.com' });
+    for (const impl of [async () => new Response('', { status: 401 }), async () => { throw new Error('ECONNREFUSED'); }, async () => new Response('<html>', { status: 200 })]) {
+        const auth = await withFetch(impl, () => ncClient.resolveAuth(standaloneSession(), USER));
+        assert.equal(auth.uid, 'piet');
+    }
 });
 
 // ── HMAC v2 contract vector (shared with nextcloud-connector/test) ──────────
