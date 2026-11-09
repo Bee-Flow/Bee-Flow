@@ -21,6 +21,7 @@ const log = require('../../telemetry/log');
 const { unavailable } = require('../../shared/httpErrors');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { checkSelfHostedUserLimit } = require('./selfHostedBudget.mts');
+const { planCap } = require('../../license/planCaps.mts');
 
 // One-shot 80 %-of-cap notification. Sends a single email to the org's
 // admin(s) per billing period. Idempotency is enforced via the
@@ -345,7 +346,7 @@ async function checkResourceLimits(orgId, resourceType, currentCount, userId = n
     const field = fieldMap[resourceType];
     if (!field) return null;
 
-    let max = limits ? limits[field] : null;
+    let max = planCap(limits, field); // null off cloud: the server licence governs there
 
     // For 'users', a license-issued seat cap also applies. When both a
     // subscription plan limit and a license max_seats exist, the lower of
@@ -364,9 +365,8 @@ async function checkResourceLimits(orgId, resourceType, currentCount, userId = n
         }
     }
 
-    // Inclusive-cap convention: `max` means "you may have up to N", so the
-    // (N+1)th creation is blocked. Matches the seat-cap enforcement in
-    // userStore.createUserWithSeatCheck (FOR UPDATE COUNT ≥ max → block).
+    // Inclusive cap: `max` means "up to N", so the (N+1)th creation is blocked,
+    // as in userStore.createUserWithSeatCheck (FOR UPDATE COUNT ≥ max → block).
     if (max !== null && max !== undefined && currentCount >= max) {
         /** @type {Record<string, string>} */
         const labels = { users: 'users', agents: 'agents', knowledge_sources: 'knowledge sources' };

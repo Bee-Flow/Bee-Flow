@@ -43,6 +43,7 @@ const invitationInviterLimiter = perUserRateLimit({ windowMs: 60 * 60_000, max: 
 // ═══════════════════════════════════════════════════════════
 const invitationStore = require('../../stores/invitationStore');
 const { sendInvitationEmail } = require('../../utils/emailService');
+const { planResourceCapsApply } = require('../../license/planCaps.mts');
 
 // Per-org daily cap. In-memory rolling 24h window keyed on orgId. Cheap,
 // resets on process restart (acceptable — the cap is anti-spam, not a hard
@@ -125,7 +126,8 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     // Pending (unaccepted, unexpired) invites count toward the cap so an
     // admin can't queue up more redemptions than seats.
     try {
-        const limits = await userStore.getEffectiveLimits(orgId);
+        // Plan caps bind only on cloud; self-hosted runs on the server licence.
+        const limits = planResourceCapsApply() ? await userStore.getEffectiveLimits(orgId) : null;
         let maxUsers = limits?.max_users;
         // A licence seat cap applies too (same rule as createUserWithSeatCheck):
         // the lower of plan limit and licence max_seats wins.
