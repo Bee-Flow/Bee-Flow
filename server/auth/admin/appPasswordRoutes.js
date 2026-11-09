@@ -110,8 +110,11 @@ router.post('/create-app-password', requireAuth, async (req, res) => {
         return res.status(400).json({ error: 'Nextcloud URL not configured' });
     }
 
-    // Nextcloud uid for WebDAV Basic auth — falls back to id, then displayName
-    const nextcloudUsername = req.session.user?.id || req.session.user?.['display-name'] || userId;
+    // Nextcloud uid for WebDAV paths and Basic auth. The OAuth callback keeps
+    // the raw uid on the session; `session.user.id` is the Bee Flow account id
+    // (or the `nextcloud-<uid>` SSO id), which Nextcloud does not know. The old
+    // chain stays as a last resort for a session written before the uid was kept.
+    const nextcloudUsername = req.session.nextcloudUid || req.session.user?.id || req.session.user?.['display-name'] || userId;
 
     // Correct OCS endpoint per Nextcloud docs: /core/getapppassword (not /core/apppassword)
     // https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html
