@@ -179,12 +179,14 @@ async function uploadBinaryFile(ncFetch, root, path, buffer, contentType, authEr
 }
 
 /**
- * The numeric file id out of an `OC-FileId` header value, or null.
+ * The numeric file id out of an `OC-FileId` header value, or null. Nextcloud
+ * builds the value as sprintf('%08d', id) + instance id ("oc…"): eight digits
+ * is the minimum width, a larger id simply has more.
  * @param {string | null | undefined} value
  */
 function parseOcFileId(value) {
     const v = String(value || '').trim();
-    const m = /^(\d{8})/.exec(v);
+    const m = /^(\d{8,})/.exec(v);
     if (!m) return null;
     const n = parseInt(m[1], 10);
     return Number.isFinite(n) && n > 0 ? String(n) : null;
