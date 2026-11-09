@@ -61,7 +61,11 @@ function makeTrashHandlers(deps) {
     async function trash(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const userId = req.session.user.id;
         const a = await store.getAutomation(req.params.id);
-        if (!a) return res.status(404).json({ error: 'Not found' });
+        // Automations only. A reusable Step (kind 'block') lives in the same
+        // table but has its own delete (routes/step.js), which refuses while
+        // an automation still calls it; and the trash lists automations only,
+        // so a Step moved there would be gone from view with its callers broken.
+        if (!a || (a.kind || 'automation') !== 'automation') return res.status(404).json({ error: 'Not found' });
         const access = await ownerOnly(req, res, a);
         if (!access) return;
         // An automation a Solution stage manages is retired by a deploy, never

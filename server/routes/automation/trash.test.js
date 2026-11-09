@@ -98,6 +98,18 @@ test('DELETE: 404 unknown, 403 someone else\'s — nothing touched', async () =>
     assert.deepStrictEqual(store.calls.revoked, []);
 });
 
+test('DELETE refuses a reusable Step: it has its own delete, which checks who still calls it', async () => {
+    // The trash lists automations only (store listTrash), so a Step moved
+    // there would vanish from view while every automation calling it broke.
+    const store = fakeStore([{ id: 's1', userId: 'u1', kind: 'block', isActive: false }]);
+    const h = handlers(store);
+    const r = await call(h.trash, { params: { id: 's1' } });
+    assert.strictEqual(r.status, 404);
+    assert.deepStrictEqual(store.calls.revoked, []);
+    assert.deepStrictEqual(store.calls.subsDeleted, []);
+    assert.ok(await store.getAutomation('s1'), 'the Step is still there');
+});
+
 test('GET /_trash lists only the caller\'s trashed automations', async () => {
     const store = fakeStore([
         { id: 'a1', userId: 'u1', deletedAt: '2026-09-01T10:00:00.000Z' },
