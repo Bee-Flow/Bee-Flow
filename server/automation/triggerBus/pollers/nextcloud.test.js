@@ -45,6 +45,46 @@ test('plain in-place EDIT (file_changed, "changed") is NOT file.new', () => {
     assert.strictEqual(p._isFileChanged, true);
 });
 
+// ── Recognised on the rich subject's parameter names, in any language ────
+// (subjects as Nextcloud words them for a German, French and Dutch user)
+
+test('German: a file moved into the folder → file.new; an edit stays file.changed only', () => {
+    const moved = norm({ id: 20, type: 'file_changed', subject: 'Du hast Rechnung.pdf nach Rechnungen/Rechnung.pdf verschoben', richKeys: ['newfile', 'oldfile'], objectName: '/Rechnungen/Rechnung.pdf' });
+    assert.strictEqual(moved._isFileCreated, true);
+    assert.strictEqual(moved._isFileChanged, true);
+    const byOther = norm({ id: 21, type: 'file_changed', subject: 'bob hat Rechnung.pdf nach Rechnungen/Rechnung.pdf verschoben', richKeys: ['newfile', 'user', 'oldfile'], objectName: '/Rechnungen/Rechnung.pdf' });
+    assert.strictEqual(byOther._isFileCreated, true);
+    const edit = norm({ id: 22, type: 'file_changed', subject: 'Du hast Rechnung.pdf geändert', richKeys: ['file'], objectName: '/Rechnungen/Rechnung.pdf' });
+    assert.strictEqual(edit._isFileCreated, false);
+    assert.strictEqual(edit._isFileChanged, true);
+});
+
+test('French: a move and a rename → file.new; an edit stays file.changed only', () => {
+    assert.strictEqual(norm({ id: 23, type: 'file_changed', subject: 'Vous avez déplacé Facture.pdf dans Factures/Facture.pdf', richKeys: ['newfile', 'oldfile'], objectName: '/Factures/Facture.pdf' })._isFileCreated, true);
+    assert.strictEqual(norm({ id: 24, type: 'file_changed', subject: 'alice a renommé A.pdf en B.pdf', richKeys: ['newfile', 'user', 'oldfile'], objectName: '/Factures/B.pdf' })._isFileCreated, true);
+    assert.strictEqual(norm({ id: 25, type: 'file_changed', subject: 'Vous avez modifié Facture.pdf', richKeys: ['file'], objectName: '/Factures/Facture.pdf' })._isFileCreated, false);
+});
+
+test('Dutch: a move in the wording Nextcloud uses → file.new; several files in one row (numbered names) too', () => {
+    assert.strictEqual(norm({ id: 26, type: 'file_changed', subject: 'Je verplaatste Factuur.pdf naar Facturen/Factuur.pdf', richKeys: ['newfile', 'oldfile'], objectName: '/Facturen/Factuur.pdf' })._isFileCreated, true);
+    assert.strictEqual(norm({ id: 27, type: 'file_changed', subject: 'Je hernoemde A.pdf naar B.pdf', richKeys: ['newfile1', 'oldfile1', 'newfile2', 'oldfile2'], objectName: '/Facturen/B.pdf' })._isFileCreated, true);
+    assert.strictEqual(norm({ id: 28, type: 'file_changed', subject: 'Je wijzigde Factuur.pdf', richKeys: ['file'], objectName: '/Facturen/Factuur.pdf' })._isFileCreated, false);
+});
+
+test('a share: the English subject still decides; a share the user made is not a received one', () => {
+    const me = { nextcloudUid: 'alice' };
+    const received = _ncNormaliseActivity({ id: 30, type: 'shared', actor: 'bob', subject: 'bob shared Plan.docx with you', richKeys: ['file', 'actor'], objectId: 55 }, me);
+    assert.strictEqual(received._isShareReceived, true);
+    const withdrawn = _ncNormaliseActivity({ id: 31, type: 'shared', actor: 'bob', subject: 'bob removed you from the share named Plan.docx', richKeys: ['file', 'actor'], objectId: 55 }, me);
+    assert.strictEqual(withdrawn._isShareReceived, false);
+    const made = _ncNormaliseActivity({ id: 32, type: 'shared', actor: 'alice', subject: 'You shared Plan.docx with bob', richKeys: ['file', 'user'], objectId: 55 }, me);
+    assert.strictEqual(made._isShareReceived, false);
+    const reshared = _ncNormaliseActivity({ id: 33, type: 'shared', actor: 'bob', subject: 'bob shared Plan.docx with carol', richKeys: ['file', 'user', 'actor'], objectId: 55 }, me);
+    assert.strictEqual(reshared._isShareReceived, false);
+    // A row without rich parameters keeps the subject match.
+    assert.strictEqual(norm({ id: 34, type: 'shared', subject: 'bob shared Plan.docx with you' })._isShareReceived, true);
+});
+
 test('path + name + extension are normalised from objectName', () => {
     const p = norm({ id: 8, type: 'file_created', subject: 'created', objectName: '/Invoices/test/Factuur.pdf' });
     assert.strictEqual(p.path, '/Invoices/test/Factuur.pdf');
@@ -55,7 +95,7 @@ test('path + name + extension are normalised from objectName', () => {
 
 // ── Pollers, driven through a fake ctx (no Nextcloud, no DB) ────────────
 
-const { createNextcloudPollers } = require('./nextcloud');
+const { createNextcloudPollers, _ncActivityCacheReset } = require('./nextcloud');
 
 function ncCtx({ activities = [], notifications = [], events = [] } = {}) {
     const updates = [];
@@ -87,6 +127,113 @@ test('activity channel: emits only fresh rows the predicate accepts and advances
     const out = await createNextcloudPollers(ctx)['file.new']({ id: 'sub-2', userId: 'nc-user-fresh', lastCursor: '3' }, {});
     assert.deepStrictEqual(out.map(e => e.activityId), [6], 'an in-place edit is not file.new; the old row is behind the cursor');
     assert.deepStrictEqual(updates, [{ id: 'sub-2', lastCursor: '6' }]);
+});
+
+test('activity channel: an error answer from the activity read is logged, once per interval per user', async (t) => {
+    const log = require('../../../telemetry/log');
+    const warn = t.mock.method(log, 'warn', () => {});
+    const saved = process.env.AUTOMATION_NC_ACTIVITY_WARN_INTERVAL_SECONDS;
+    t.after(() => {
+        if (saved === undefined) delete process.env.AUTOMATION_NC_ACTIVITY_WARN_INTERVAL_SECONDS;
+        else process.env.AUTOMATION_NC_ACTIVITY_WARN_INTERVAL_SECONDS = saved;
+    });
+    delete process.env.AUTOMATION_NC_ACTIVITY_WARN_INTERVAL_SECONDS;
+    const { ctx, updates } = ncCtx();
+    /** @type {any} */ (ctx).nextcloudActivityTools = () => ({ executeNextcloudActivityTool: async () => ({ error: 'Nextcloud Activity is not available (404)' }) });
+    const { _ncFetchActivityRows } = require('./nextcloud');
+
+    const out = await createNextcloudPollers(ctx)['share.received']({ id: 'sub-e', userId: 'nc-user-error', lastCursor: '3' }, {});
+    assert.deepStrictEqual(out, []);
+    assert.deepStrictEqual(updates, [], 'nothing was read, so the cursor stays');
+    assert.strictEqual(warn.mock.callCount(), 1);
+    assert.match(String(warn.mock.calls[0].arguments[0]), /activity fetch failed for user nc-user-error: Nextcloud Activity is not available \(404\)/);
+
+    // The same user again inside the interval: no second line. Another user: its own line.
+    _ncActivityCacheReset('nc-user-error');
+    await _ncFetchActivityRows(ctx, 'nc-user-error', {});
+    assert.strictEqual(warn.mock.callCount(), 1);
+    await _ncFetchActivityRows(ctx, 'nc-user-error-2', {});
+    assert.strictEqual(warn.mock.callCount(), 2);
+
+    // 0 = every failed read is logged.
+    process.env.AUTOMATION_NC_ACTIVITY_WARN_INTERVAL_SECONDS = '0';
+    _ncActivityCacheReset('nc-user-error');
+    await _ncFetchActivityRows(ctx, 'nc-user-error', {});
+    assert.strictEqual(warn.mock.callCount(), 3);
+});
+
+// ── share.received in any language: asked from the incoming shares ──────
+
+/** A share.received ctx: `shared` = file ids shared with the user now (null = the read fails). */
+function shareCtx(activities, shared) {
+    const made = ncCtx({ activities });
+    let reads = 0;
+    made.ctx.nextcloudActivityTools = () => ({
+        executeNextcloudActivityTool: async () => ({ activities: activities.slice() }),
+        incomingShareFileIds: async () => { reads += 1; return shared ? new Set(shared) : null; },
+    });
+    return { ...made, reads: () => reads };
+}
+
+const ME = { nextcloudUid: 'alice' };
+const shareRow = (id, subject, extra = {}) => ({ id, type: 'shared', actor: 'bob', subject, richKeys: ['file', 'actor'], objectId: 55, objectName: '/Plan.docx', ...extra });
+
+test('share.received: a Dutch, German and French received share fires', async () => {
+    const { ctx, reads } = shareCtx([
+        shareRow(11, 'bob heeft Plan.docx met je gedeeld', { objectId: 55 }),
+        shareRow(12, 'bob hat Plan.docx mit dir geteilt', { objectId: 56 }),
+        shareRow(13, 'bob a partagé Plan.docx avec vous', { objectId: 57 }),
+    ], ['55', '56', '57']);
+    const out = await createNextcloudPollers(ctx)['share.received']({ id: 's-nl', userId: 'nc-share-langs', lastCursor: '10' }, ME);
+    assert.deepStrictEqual(out.map(e => e.activityId), [11, 12, 13]);
+    assert.strictEqual(reads(), 1, 'one read of the incoming shares per tick');
+});
+
+test('share.received: a withdrawn share, a share the user made and an own action do not fire', async () => {
+    const { ctx } = shareCtx([
+        shareRow(11, 'bob verwijderde je van share Plan.docx', { objectId: 55 }),
+        shareRow(12, 'Du hast Plan.docx mit bob geteilt', { actor: 'alice', richKeys: ['file', 'user'], objectId: 56 }),
+        shareRow(13, 'Je verwijderde jezelf van Plan.docx', { actor: 'alice', objectId: 57 }),
+        shareRow(14, 'bob a partagé Plan.docx avec carol', { richKeys: ['file', 'user', 'actor'], objectId: 58 }),
+    ], ['56', '57', '58']);
+    const out = await createNextcloudPollers(ctx)['share.received']({ id: 's-no', userId: 'nc-share-none', lastCursor: '10' }, ME);
+    assert.deepStrictEqual(out, []);
+});
+
+test('share.received: per file only the newest row counts', async () => {
+    // Withdrawn, then shared again: one event, for the newest row.
+    const again = shareCtx([
+        shareRow(11, 'bob hat dich aus der Freigabe von Plan.docx entfernt'),
+        shareRow(12, 'bob hat Plan.docx mit dir geteilt'),
+    ], ['55']);
+    const out = await createNextcloudPollers(again.ctx)['share.received']({ id: 's-a', userId: 'nc-share-again', lastCursor: '10' }, ME);
+    assert.deepStrictEqual(out.map(e => e.activityId), [12]);
+    // English: shared, then withdrawn while another share keeps the file visible. The subject decided the first row; the second is not asked.
+    const en = shareCtx([
+        shareRow(11, 'bob removed you from the share named Plan.docx'),
+        shareRow(12, 'bob shared Plan.docx with you'),
+    ], ['55']);
+    const enOut = await createNextcloudPollers(en.ctx)['share.received']({ id: 's-en', userId: 'nc-share-en', lastCursor: '10' }, ME);
+    assert.deepStrictEqual(enOut.map(e => e.activityId), [12]);
+    assert.strictEqual(en.reads(), 0, 'English subjects need no read');
+});
+
+test('share.received: the incoming shares cannot be read → those rows stay unrecognised, the cursor moves on', async (t) => {
+    const log = require('../../../telemetry/log');
+    const warn = t.mock.method(log, 'warn', () => {});
+    const { ctx, updates } = shareCtx([shareRow(11, 'bob heeft Plan.docx met je gedeeld')], null);
+    const out = await createNextcloudPollers(ctx)['share.received']({ id: 's-f', userId: 'nc-share-fail', lastCursor: '10' }, ME);
+    assert.deepStrictEqual(out, []);
+    assert.deepStrictEqual(updates, [{ id: 's-f', lastCursor: '11' }]);
+    assert.match(String(warn.mock.calls[0].arguments[0]), /incoming share list failed for user nc-share-fail/);
+});
+
+test('share.received: the other channels never read the incoming shares', async () => {
+    const { ctx, reads } = shareCtx([shareRow(11, 'bob heeft Plan.docx met je gedeeld')], ['55']);
+    const out = await createNextcloudPollers(ctx)['activity.new']({ id: 's-o', userId: 'nc-share-other', lastCursor: '10' }, ME);
+    assert.strictEqual(out.length, 1);
+    assert.strictEqual(out[0]._isShareReceived, false);
+    assert.strictEqual(reads(), 0);
 });
 
 test('notification.new: anchors on the first non-empty poll, then emits only newer ids', async () => {

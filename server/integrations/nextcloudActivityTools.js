@@ -72,7 +72,22 @@ async function readJsonSafe(res) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/**
+ * The parameter names of the rich subject (`file`, `oldfile`, `newfile`,
+ * `actor`, `user`, ...). `subject_rich` is `[template, parameters]`; some
+ * serialisers send it as an object with the keys "0" and "1", and empty
+ * parameters arrive as an empty array.
+ * @param {{ subject_rich?: unknown }} a
+ * @returns {string[]}
+ */
+function richSubjectKeys(a) {
+    const rich = /** @type {Record<string, unknown> | null | undefined} */ (a.subject_rich);
+    const params = rich && typeof rich === 'object' ? rich[1] : null;
+    return params && typeof params === 'object' && !Array.isArray(params) ? Object.keys(params) : [];
+}
+
 function mapActivity(a) {
+    const richKeys = richSubjectKeys(a);
     return {
         // The poller (triggerBus _ncPollChannel) cursors on this id; tolerate
         // both the OCS v2 `activity_id` and a plain `id` across NC versions.
@@ -88,7 +103,33 @@ function mapActivity(a) {
         icon: a.icon,
         datetime: a.datetime,
         affectedUser: a.affecteduser,
+        // What the subject is about, in any language: the activity triggers read it.
+        ...(richKeys.length ? { richKeys } : {}),
     };
+}
+
+/**
+ * The ids of the files and folders that are shared with this user right now
+ * (Sharing API, incoming shares). The activity triggers use it to tell a
+ * received share from a withdrawn one, which the feed describes alike.
+ * @param {string} userId
+ * @returns {Promise<Set<string> | null>}  null when the list cannot be read
+ */
+async function incomingShareFileIds(userId, session) {
+    const { baseUrl, fetch: ncFetch } = await ncClient.resolveAuth(session, userId);
+    const res = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json&shared_with_me=true`, {
+        headers: { 'Accept': 'application/json', 'OCS-APIRequest': 'true' },
+    });
+    if (!res.ok) return null;
+    const data = await readJsonSafe(res);
+    if (!Array.isArray(data?.ocs?.data)) return null;
+    /** @type {Set<string>} */
+    const ids = new Set();
+    for (const share of data.ocs.data) {
+        if (share?.file_source != null) ids.add(String(share.file_source));
+        if (share?.item_source != null) ids.add(String(share.item_source));
+    }
+    return ids;
 }
 
 /**
@@ -156,6 +197,7 @@ module.exports = {
     NEXTCLOUD_ACTIVITY_TOOLS,
     executeNextcloudActivityTool,
     isNextcloudActivityTool,
+    incomingShareFileIds,
 };
 
 /**
