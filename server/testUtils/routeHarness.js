@@ -183,6 +183,31 @@ function assertRefused(assert, res, path, message) {
 }
 
 /**
+ * A response body as text WITHOUT its correlationId. The id is a random UUID,
+ * so it can hold any digits or hex: a leak check over the whole body
+ * (`/…|5432/`) fails by chance on a correct answer whose id contains them.
+ * @param {{ body?: unknown, text?: string }} res
+ */
+function textWithoutCorrelationId(res) {
+    const body = res.body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return String(res.text ?? '');
+    const { correlationId: _correlationId, ...rest } = /** @type {Record<string, unknown>} */ (body);
+    return JSON.stringify(rest);
+}
+
+/**
+ * The generic 500 of core/http/terminalErrorHandler.js: its fixed sentence, a
+ * correlationId the client can quote, and none of `leaks` anywhere else in
+ * the body.
+ */
+function assertGeneric500(assert, res, leaks) {
+    assert.strictEqual(res.status, 500, res.text);
+    assert.strictEqual(res.body.error, 'Internal server error');
+    assert.ok(res.body.correlationId, 'the client can quote a correlationId');
+    if (leaks) assert.doesNotMatch(textWithoutCorrelationId(res), leaks);
+}
+
+/**
  * The whole preamble of a validation test in one call: record the database,
  * open the gates (`gates: false` leaves them alone, an object overrides some),
  * THEN load the router — routes destructure the gates when they are required —
@@ -261,4 +286,4 @@ function limitersOn(router, method, path) {
     return names;
 }
 
-module.exports = { USER, recordDb, openGates, serve, routeUnderTest, assertRefused, dispatcher, limitersOn };
+module.exports = { USER, recordDb, openGates, serve, routeUnderTest, assertRefused, assertGeneric500, textWithoutCorrelationId, dispatcher, limitersOn };
