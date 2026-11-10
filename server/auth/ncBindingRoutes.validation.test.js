@@ -11,6 +11,11 @@
  *   - the message is a sentence;
  *   - no code is minted for a request that was not understood.
  *
+ * And what removing a binding leaves on the organisation row: the binding
+ * fields are cleared, and with them what says "the sync mode is chosen"
+ * (services/ncSyncStart.mts), so the next Nextcloud this organisation is bound
+ * to is asked who gets an account before anything is mirrored.
+ *
  * Run: cd server && node --test --test-force-exit auth/ncBindingRoutes.validation.test.js
  */
 'use strict';
@@ -24,18 +29,21 @@ const Module = require('module');
 // Every store and side-effect call lands in `touched`. A refused request must
 // leave it empty.
 const touched = [];
+/** Extra fields of the organisation row the store stub returns (the binding tests set them). */
+let boundOrg = {};
 const pass = (req, res, next) => next();
 
 const MOCKS = {
     './permissions': { requireAuth: pass, isOrgAdminRole: () => true },
     '../stores/userStore': {
         getUser: async (id) => ({ id, organizationId: 'orgA', orgRole: 'org_admin', role: 'admin' }),
-        getOrganization: async (id) => ({ id, name: 'Acme' }),
+        getOrganization: async (id) => ({ id, name: 'Acme', ...boundOrg }),
+        updateOrganization: async (id, updates) => { touched.push({ what: 'updateOrganization', args: [id, updates] }); return true; },
         createOrgPairingCode: async (orgId) => { touched.push({ what: 'createOrgPairingCode', args: [orgId] }); return { code: 'ABC', expiresAt: 'later' }; },
         listOrgPairingCodes: async () => [],
         logAccessAudit: async () => {},
     },
-    '../stores/configStore': { getConfig: async () => null, setConfig: async () => {} },
+    '../stores/configStore': { getConfig: async () => null, setConfig: async () => {}, deleteConfig: async (key) => { touched.push({ what: 'deleteConfig', args: [key] }); } },
     './connectorJwt': { invalidateTenantKeyCache: () => {} },
     './connectorBootstrap': { helpers: { ensureOrgAdminUser: async () => {}, bindOrgToNcInstance: async () => {}, getOrMintTenantKey: async () => 'k' } },
     '../services/orgHealth': { event: async () => {}, emit: () => {} },
@@ -88,7 +96,7 @@ function dispatch({ method, url, body = {}, session }) {
     });
 }
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; boundOrg = {}; });
 
 /** Assert: refused with 400, the named field is in `details`, nothing touched. */
 async function refuses(request, field) {
@@ -118,4 +126,43 @@ test('an empty body still means "my own organisation"', async () => {
     const res = await dispatch({ method: 'POST', url: '/admin/nc-bindings/generate-pairing-code', body: {} });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'createOrgPairingCode').args[0], 'orgA');
+});
+
+// ── Removing a binding ──────────────────────────────────────────────────────
+
+const { chosenByRow, syncModeChosen } = require('../services/ncSyncStart.mts');
+
+test('removing a binding clears it, puts the sync mode back to the column default and forgets the last sync', async () => {
+    boundOrg = {
+        authMethod: 'nextcloud_connector', nc_instance_id: 'inst-1', nc_base_url: 'https://cloud.example.org', nc_admin_uid: 'root',
+        nc_provisioned_at: '2026-01-05T09:00:00Z', nc_onboarding_completed_at: '2026-01-05T10:00:00Z',
+        nc_sync_mode: 'selective_groups', nc_last_sync_at: '2026-11-09T06:00:00Z',
+    };
+    const res = await dispatch({ method: 'DELETE', url: '/admin/nc-bindings/org/orgB' });
+    assert.strictEqual(res.statusCode, 200);
+    const updates = touched.filter((t) => t.what === 'updateOrganization');
+    assert.deepStrictEqual(updates, [{ what: 'updateOrganization', args: ['orgB', {
+        ncInstanceId: null, ncBaseUrl: null, ncAdminUid: null, ncProvisionedAt: null,
+        connectorCallbackUrl: null, ncOnboardingCompletedAt: null,
+        ncSyncMode: 'mirror_all', ncLastSyncAt: null, authMethod: null,
+    }] }]);
+    assert.deepStrictEqual(touched.filter((t) => t.what === 'deleteConfig').map((t) => t.args[0]), ['connector_tenant_key_orgB']);
+
+    // The row as it is after a new binding: the sync mode does not count as chosen,
+    // and the users of the earlier binding are asked for by the day of the new one.
+    const u = updates[0].args[1];
+    const boundAgain = {
+        id: 'orgB', nc_instance_id: 'inst-2', nc_provisioned_at: '2026-11-10T09:00:00Z',
+        nc_onboarding_completed_at: u.ncOnboardingCompletedAt, nc_sync_mode: u.ncSyncMode, nc_last_sync_at: u.ncLastSyncAt,
+    };
+    assert.strictEqual(chosenByRow(boundAgain), false);
+    const asked = [];
+    assert.strictEqual(await syncModeChosen(boundAgain, async (id, afterDay) => { asked.push([id, afterDay]); return false; }), false);
+    assert.deepStrictEqual(asked, [['orgB', '2026-11-10']]);
+});
+
+test('an organisation without a binding answers 409 and is left as it is', async () => {
+    const res = await dispatch({ method: 'DELETE', url: '/admin/nc-bindings/org/orgB' });
+    assert.strictEqual(res.statusCode, 409);
+    assert.deepStrictEqual(touched, []);
 });

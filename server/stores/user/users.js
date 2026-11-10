@@ -204,13 +204,17 @@ async function getUserByNcUid(organizationId, ncUid) {
     return { ...u, groups: parseJSON(u.groups, []), appPassword: parseJSON(u.appPassword, u.appPassword) };
 }
 
-/** Does the organisation have users mirrored from Nextcloud (its administrators aside)? */
-async function hasMirroredNcUsers(organizationId) {
+/**
+ * Does the organisation have users mirrored from Nextcloud (its administrators aside)? With
+ * `afterDay` (YYYY-MM-DD) only users created after that day count ("createdAt" holds a day).
+ */
+async function hasMirroredNcUsers(organizationId, /** @type {string | null} */ afterDay = null) {
     if (!organizationId) return false;
     await initDB();
+    const after = afterDay ? ' AND "createdAt" > $2' : '';
     return !!(await getOne(
         `SELECT 1 AS hit FROM users WHERE "organizationId" = $1 AND provider = 'nextcloud_connector' AND "nc_uid" IS NOT NULL
-           AND COALESCE("orgRole", '') NOT IN ('org_admin', 'admin') LIMIT 1`, [organizationId]));
+           AND COALESCE("orgRole", '') NOT IN ('org_admin', 'admin')${after} LIMIT 1`, afterDay ? [organizationId, String(afterDay)] : [organizationId]));
 }
 
 // ── Solution stages: the run-as wall (design 3.1, 3.4) ─────────────

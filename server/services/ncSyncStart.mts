@@ -12,9 +12,14 @@
  *   - its onboarding is completed;
  *   - a mode other than the column's own default is stored (`mirror_all` is
  *     what a new row holds before anyone chose, so that value says nothing);
- *   - it has synchronised before;
- *   - it has users that were mirrored from Nextcloud.
- * The last two keep an organisation that already synchronises doing so.
+ *   - it has synchronised since it was bound to its Nextcloud;
+ *   - it has users that were mirrored from Nextcloud after the day it was bound.
+ * The last two keep an organisation that already synchronises doing so. Both
+ * are about the Nextcloud the organisation is bound to now (`nc_provisioned_at`
+ * is written when it is bound): a sync or a user from an earlier binding says
+ * nothing about this one, and removing a binding puts the mode back to the
+ * column default (auth/ncBindingRoutes.js). An organisation without a stored
+ * binding time counts every earlier sync and every mirrored user.
  */
 
 import { createRequire } from 'node:module';
@@ -32,20 +37,45 @@ export interface SyncStartOrg {
     nc_sync_mode?: string | null;
     nc_onboarding_completed_at?: unknown;
     nc_last_sync_at?: unknown;
+    nc_provisioned_at?: unknown;
     [key: string]: unknown;
 }
 
-/** Does the organisation have users mirrored from Nextcloud? (userStore.hasMirroredNcUsers) */
-export type HasMirroredUsers = (orgId: string) => Promise<boolean>;
+/**
+ * Does the organisation have users mirrored from Nextcloud, created after the
+ * day `afterDay` (YYYY-MM-DD; none = ever)? (userStore.hasMirroredNcUsers)
+ */
+export type HasMirroredUsers = (orgId: string, afterDay?: string | null) => Promise<boolean>;
 
 function storeLookup(): HasMirroredUsers {
     return (nodeRequire('../stores/userStore.js') as { hasMirroredNcUsers: HasMirroredUsers }).hasMirroredNcUsers;
 }
 
+/** A stored time in ms, or null when there is none (or it is not a time). */
+function timeOf(value: unknown): number | null {
+    if (!value) return null;
+    const ms = value instanceof Date ? value.getTime() : Date.parse(String(value));
+    return Number.isFinite(ms) ? ms : null;
+}
+
+/** Has the organisation synchronised since it was bound to its Nextcloud? */
+function syncedSinceBound(org: SyncStartOrg): boolean {
+    const synced = timeOf(org.nc_last_sync_at);
+    if (synced === null) return false;
+    const bound = timeOf(org.nc_provisioned_at);
+    return bound === null || synced >= bound;
+}
+
+/** The day (UTC, YYYY-MM-DD) the organisation was bound to its Nextcloud, or null. */
+export function boundDay(org: SyncStartOrg | null | undefined): string | null {
+    const bound = timeOf(org?.nc_provisioned_at);
+    return bound === null ? null : new Date(bound).toISOString().slice(0, 10);
+}
+
 /** What the organisation row alone says: chosen, or not to be told from the row. */
 export function chosenByRow(org: SyncStartOrg | null | undefined): boolean {
     if (!org) return false;
-    if (org.nc_onboarding_completed_at || org.nc_last_sync_at) return true;
+    if (org.nc_onboarding_completed_at || syncedSinceBound(org)) return true;
     return !!org.nc_sync_mode && org.nc_sync_mode !== 'mirror_all';
 }
 
@@ -57,7 +87,7 @@ export async function syncModeChosen(org: SyncStartOrg | null | undefined, hasMi
     if (!org?.id) return false;
     if (chosenByRow(org)) return true;
     try {
-        return (await (hasMirroredUsers || storeLookup())(org.id)) === true;
+        return (await (hasMirroredUsers || storeLookup())(org.id, boundDay(org))) === true;
     } catch {
         return false;
     }

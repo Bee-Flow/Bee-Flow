@@ -22,7 +22,7 @@ const { pg, close } = usePglitePool();
 const users = require('./users');
 
 before(async () => {
-    await pg.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, "organizationId" TEXT DEFAULT '', provider TEXT, "nc_uid" TEXT, "orgRole" TEXT)`);
+    await pg.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, "organizationId" TEXT DEFAULT '', provider TEXT, "nc_uid" TEXT, "orgRole" TEXT, "createdAt" TEXT)`);
     for (const row of [
         ['a_admin', 'org_admins_only', 'nextcloud_connector', 'root', 'org_admin'],
         ['a_legacy', 'org_admins_only', 'nextcloud_connector', 'boss', 'admin'],
@@ -32,7 +32,10 @@ before(async () => {
         ['b_user', 'org_mirrored', 'nextcloud_connector', 'alice', ''],
         ['c_user', 'org_null_role', 'nextcloud_connector', 'bob', null],
         ['d_user', 'org_no_uid', 'nextcloud_connector', null, ''],
-    ]) await pg.query('INSERT INTO users (id, "organizationId", provider, "nc_uid", "orgRole") VALUES ($1, $2, $3, $4, $5)', row);
+        ['e_old', 'org_dated', 'nextcloud_connector', 'old', '', '2026-03-01'],
+        ['e_day', 'org_dated', 'nextcloud_connector', 'day', '', '2026-11-10'],
+        ['e_none', 'org_dated', 'nextcloud_connector', 'none', '', null],
+    ]) await pg.query('INSERT INTO users (id, "organizationId", provider, "nc_uid", "orgRole", "createdAt") VALUES ($1, $2, $3, $4, $5, $6)', [...row, row[5] ?? null].slice(0, 6));
 });
 after(close);
 
@@ -49,4 +52,14 @@ test('a regular user that came from Nextcloud is one, with or without a stored r
 test('an organisation sees only its own users', async () => {
     assert.equal(await users.hasMirroredNcUsers('org_empty'), false);
     assert.equal(await users.hasMirroredNcUsers(''), false);
+});
+
+test('with a day, only users created after that day count', async () => {
+    assert.equal(await users.hasMirroredNcUsers('org_dated'), true);
+    assert.equal(await users.hasMirroredNcUsers('org_dated', null), true);
+    assert.equal(await users.hasMirroredNcUsers('org_dated', '2026-03-01'), true, 'the user of 2026-11-10');
+    assert.equal(await users.hasMirroredNcUsers('org_dated', '2026-11-09'), true);
+    assert.equal(await users.hasMirroredNcUsers('org_dated', '2026-11-10'), false, 'a user created on the day itself does not count');
+    assert.equal(await users.hasMirroredNcUsers('org_dated', '2026-12-01'), false);
+    assert.equal(await users.hasMirroredNcUsers('org_mirrored', '2026-01-01'), false, 'a user without a stored day does not count');
 });

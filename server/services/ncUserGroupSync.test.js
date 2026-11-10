@@ -48,8 +48,9 @@ inject('../stores/userStore.js', {
     getUserByNcUid: async (orgId, ncUid) => state.byNcUid.get(`${orgId}|${ncUid}`) || null,
     getUser: async (id) => state.users.get(id) || null,
     getAllUsers: async () => [...state.users.values()],
-    hasMirroredNcUsers: async (orgId) => [...state.users.values()].some(u => u.organizationId === orgId
-        && u.provider === 'nextcloud_connector' && u.nc_uid && !['org_admin', 'admin'].includes(u.orgRole || '')),
+    hasMirroredNcUsers: async (orgId, afterDay = null) => [...state.users.values()].some(u => u.organizationId === orgId
+        && u.provider === 'nextcloud_connector' && u.nc_uid && !['org_admin', 'admin'].includes(u.orgRole || '')
+        && (!afterDay || String(u.createdAt || '') > afterDay)),
     getAllGroups: async () => [...state.groups.values()],
     updateUser: async (id, updates) => { state.updates.push({ id, updates }); },
     createUserWithSeatCheck: async (u) => { state.creates.push(u); return { created: true }; },
@@ -884,6 +885,35 @@ test('an existing organisation without a stored mode keeps synchronising when it
     assert.equal((await sync.applyUserCreated(org, 'carol')).action, 'create');
     assert.equal((await sync.applyGroupMemberChange(org, 'dave', 'staff')).action, 'create');
     assert.deepEqual(state.creates.map(u => u.ncUid), ['alice', 'carol', 'dave']);
+});
+
+// Bound again to a Nextcloud: what an earlier binding left behind (a last
+// sync, mirrored users) does not start the sync for this one.
+const BOUND_AGAIN = { ...NEWLY_BOUND, nc_provisioned_at: '2026-11-10T09:00:00Z' };
+
+test('an organisation bound again is not synchronised on the strength of an earlier binding', async () => {
+    seedBootstrapAdmin(BOUND_AGAIN);
+    seedExistingUser({ ncUid: 'bob', status: 'active' }).createdAt = '2026-03-01';
+    seedExistingUser({ ncUid: 'eve', status: 'active' }).createdAt = '2026-11-10'; // the day of the binding itself
+    ncUserList = ['admin', 'alice', 'bob'];
+    const org = { ...BOUND_AGAIN, nc_last_sync_at: '2026-11-09T06:00:00Z' };
+
+    assert.deepEqual(await sync.runFullSync(org), { skipped: 'sync_mode_not_chosen' });
+    assert.deepEqual(await sync.applyUserCreated(org, 'alice'), NOT_CHOSEN);
+    assert.deepEqual(await sync.applyGroupMemberChange(org, 'alice', 'staff'), NOT_CHOSEN);
+    assert.deepEqual(requests, [], 'nothing is asked of Nextcloud');
+    assert.deepEqual(state.creates, []);
+});
+
+test('an organisation bound again synchronises once its mode is chosen, has synchronised since, or has users mirrored since', async () => {
+    stubHealthStore();
+    ncUserList = ['alice'];
+    assert.equal((await sync.runFullSync({ ...BOUND_AGAIN, nc_onboarding_completed_at: '2026-11-10T10:00:00Z' })).created, 1);
+    assert.equal((await sync.runFullSync({ ...BOUND_AGAIN, nc_last_sync_at: '2026-11-10T12:00:00Z' })).created, 1);
+    assert.equal((await sync.runFullSync({ ...BOUND_AGAIN, nc_last_sync_at: new Date('2026-11-10T09:00:00Z') })).created, 1, 'a Date from the database');
+    seedExistingUser({ ncUid: 'bob', status: 'active' }).createdAt = '2026-11-11';
+    ncUserList = ['bob', 'carol'];
+    assert.equal((await sync.runFullSync(BOUND_AGAIN)).created, 1);
 });
 
 test('mirrored users of another organisation do not start this one', async () => {
