@@ -261,7 +261,7 @@ test('app_inspect_catalog serves the keys outside the component and kind tables,
         });
         assert.deepEqual(answered('screenKeys'), { 'screen.zz_layout': 'screen.zz_layout: null|"split" — split = two columns of sections side by side.' });
         assert.deepEqual(answered('sectionKeys'), {
-            'section.style.weight': 'section.style.weight(regular|medium|semibold) — The weight of the text in the section band.',
+            'section.style.weight': 'section.style.weight(regular|medium|semibold|bold) — The weight of the text in the section band.',
             'section.zz_title': 'section.zz_title: string ≤80 — A title shown above the section. Empty hides it.',
         });
         assert.deepEqual(answered('nodeKeys'), {

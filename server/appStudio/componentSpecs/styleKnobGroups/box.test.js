@@ -92,8 +92,10 @@ test('canonicalize keeps what was set, leaves the rest absent, and repairs bad v
     assert.deepEqual(c.style, { span: 3 });
     assert.ok(notes.some((n) => n.code === 'style.unknown_key' && n.path.endsWith('children[2].style')));
     // null and an unusable colour are "not set" for these colour knobs (nothing is written);
-    // out-of-range numbers clamp; an unknown enum resets.
-    assert.deepEqual(d.style, { span: 12, opacity: 100, marginTop: 0, shadow: 'none' });
+    // out-of-range numbers clamp; an unknown value of a knob added after the base is dropped
+    // (canonicalize/style.js: its default is never written).
+    assert.deepEqual(d.style, { span: 12, opacity: 100, marginTop: 0 });
+    assert.ok(notes.some((n) => n.code === 'style.invalid' && n.path.endsWith('children[3].style.shadow')));
     assert.ok(notes.some((n) => n.code === 'style.invalid' && n.path.endsWith('children[3].style.borderColor')));
     assert.equal(def.schemaVersion, 3);
 

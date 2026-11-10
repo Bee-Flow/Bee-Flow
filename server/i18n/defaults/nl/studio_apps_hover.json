@@ -5,8 +5,7 @@
     "studio_apps_hover.values.grow": "Vergroten",
     "studio_apps_hover.values.lift": "Opheffen",
     "studio_apps_hover.values.none": "Geen",
-    "studio_apps_hover.values.outline": "Omlijnen",
-    "studio_apps_hover.values.tint": "Tint"
+    "studio_apps_hover.values.outline": "Omlijnen"
   },
   "sameAsEnglish": [
     "studio_apps_hover.values.tint"
