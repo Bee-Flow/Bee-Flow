@@ -1,4 +1,4 @@
-import { Copy, Rows3, Trash2 } from 'lucide-react';
+import { Copy, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import type { ReactNode } from 'react';
 import ActionsSection from './ActionsSection';
@@ -10,6 +10,7 @@ import { getInspectorForType } from './registry';
 import { TYPE_EVENT_LISTS } from './styleKnobMeta';
 import StyleSection, { findSectionById } from './StyleSection';
 import ThemePanel from './ThemePanel';
+import SectionInspector from './SectionInspector';
 import useTranslation from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import IconButton from '@/components/shared/IconButton';
@@ -44,7 +45,7 @@ export interface EditorInspectorPanelProps {
  * InspectorPanel — the fixed right-hand property inspector.
  *
  *   nothing selected      → ThemePanel (whole-app theme + meta + this screen)
- *   a section (sec_*)     → the section style knobs (padding/gap/background)
+ *   a section (sec_*)     → SectionInspector (order, settings, style)
  *   a component node      → header (icon/label + Duplicate/Delete) and
  *                           Content / Style / Actions accordions
  *
@@ -165,26 +166,11 @@ export default function InspectorPanel({ onCommit, onTestActionResult }: EditorI
         return shell(<ThemePanel definition={definition} onCommit={onCommit} disabled={disabled} screenId={screenId} />);
     }
 
-    // ── Section selected → section style knobs ─────────────────────────────
+    // ── Section selected → its settings, order and style (SectionInspector) ──
     if (selectedNodeId.startsWith('sec_')) {
         const found = findSectionById(definition, selectedNodeId);
         if (!found) return shell(<ThemePanel definition={definition} onCommit={onCommit} disabled={disabled} screenId={screenId} />);
-        return shell(
-            <div className="p-4 flex flex-col gap-3">
-                <header className="flex items-center gap-2">
-                    <Rows3 className="w-4 h-4 shrink-0 text-[var(--text-tertiary)]" />
-                    <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t('app_studio.inspector.section', 'Section')}</h2>
-                </header>
-                <AccordionSection stepType="appstudio.section" sectionKey="style" title={t('app_studio.inspector.style', 'Style')} defaultOpen>
-                    <StyleSection
-                        definition={definition}
-                        sectionId={selectedNodeId}
-                        onCommit={onCommit}
-                        disabled={disabled}
-                    />
-                </AccordionSection>
-            </div>,
-        );
+        return shell(<SectionInspector definition={definition} section={found.section} onCommit={onCommit} disabled={disabled} />);
     }
 
     // ── Component node selected ────────────────────────────────────────────

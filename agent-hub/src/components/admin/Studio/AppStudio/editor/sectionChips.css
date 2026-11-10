@@ -1,0 +1,74 @@
+/*
+ * App Studio editor: the section chip and the selected-section ring (SectionChips.tsx). Both are
+ * portaled into the renderer's own <section data-section-id> elements, positioned absolutely so
+ * they take no grid cell: the canvas lays a screen out exactly as the running app does.
+ */
+
+[data-app-edit='true'] section[data-section-id] {
+    position: relative;
+}
+
+.ase-section-chip {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: calc(100% - 4px);
+    height: 18px;
+    padding: 0 6px;
+    border: 1px solid var(--border-default);
+    border-radius: 999px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 120ms ease;
+}
+.ase-section-chip > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ase-section-chip svg {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+}
+section[data-section-id]:hover > .ase-section-chip,
+.ase-section-chip:focus-visible,
+.ase-section-chip[aria-pressed='true'] {
+    opacity: 1;
+}
+.ase-section-chip[aria-pressed='true'] {
+    border-color: var(--editor-accent);
+    background: var(--editor-accent);
+    color: var(--editor-accent-contrast, #fff);
+}
+.ase-section-chip:focus-visible {
+    outline: 2px solid var(--editor-accent);
+    outline-offset: 1px;
+}
+.ase-section-chip:disabled {
+    cursor: default;
+}
+
+.ase-section-ring {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 2px var(--editor-accent);
+}
+
+.ase-add-section {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0 4px;
+}

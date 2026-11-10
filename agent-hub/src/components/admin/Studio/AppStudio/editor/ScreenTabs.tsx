@@ -1,8 +1,11 @@
 import { useDroppable } from '@dnd-kit/core';
-import { Home, MoreHorizontal, PanelsTopLeft, Pencil, Plus, Trash2, type LucideIcon } from 'lucide-react';
+import { Home, MoreHorizontal, PanelsTopLeft, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type AnimationEventHandler, type RefObject } from 'react';
 import { screenTabDroppableId } from './dnd';
 import NavGroupsDialog from './NavGroupsDialog';
+import MenuItem from './ScreenMenuItem';
+import ScreenOrderMenuItems from './ScreenOrderMenuItems';
+import { useScreenDrag, type ScreenDropHint } from './screenOrder';
 import AppIcon from '@/components/icons/AppIcon';
 import AnchoredMenu from '@/components/shared/AnchoredMenu';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
@@ -23,10 +26,13 @@ interface DroppableTabProps {
     active: boolean;
     recent?: boolean;
     onRevealed: AnimationEventHandler<HTMLDivElement>;
+    /** Reordering by dragging the tab itself (screenOrder.ts), and where a drop would land. */
+    dragProps?: React.HTMLAttributes<HTMLDivElement>;
+    dropHint?: ScreenDropHint | null;
     children?: React.ReactNode;
 }
 
-function DroppableTab({ screenId, active, recent = false, onRevealed, children }: DroppableTabProps) {
+function DroppableTab({ screenId, active, recent = false, onRevealed, dragProps, dropHint = null, children }: DroppableTabProps) {
     const { setNodeRef, isOver } = useDroppable({
         id: screenTabDroppableId(screenId),
         data: { type: 'screentab', screenId },
@@ -39,7 +45,9 @@ function DroppableTab({ screenId, active, recent = false, onRevealed, children }
             // A screen the AI just added rings its pill — the chapter break of
             // the build film. Same class/clear cycle as a component cell.
             data-just-added={recent || undefined}
-            className={`group relative flex shrink-0 items-center rounded-md transition-colors ${recent ? 'ase-added-pulse' : ''}`}
+            data-screentab-drop={dropHint && dropHint.screenId === screenId ? (dropHint.after ? 'after' : 'before') : undefined}
+            {...dragProps}
+            className={`group relative flex shrink-0 items-center rounded-md transition-colors ${recent ? 'ase-added-pulse' : ''} data-[screentab-drop=before]:shadow-[inset_2px_0_0_var(--editor-accent)]! data-[screentab-drop=after]:shadow-[inset_-2px_0_0_var(--editor-accent)]!`}
             onAnimationEnd={recent ? onRevealed : undefined}
             style={{
                 ...(active ? { background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)' } : undefined),
@@ -58,9 +66,11 @@ function DroppableTab({ screenId, active, recent = false, onRevealed, children }
  *
  * One pill per screen (icon + name, a little Home badge on the home screen),
  * a + pill appending a screen, and a per-tab kebab menu: inline rename,
- * set-as-home, manage navigation, delete (disabled on the last screen —
- * removeScreen refuses it anyway). All edits build the next definition via
- * definitionOps and go through onCommit.
+ * duplicate, move left/right (ScreenOrderMenuItems), set-as-home, manage
+ * navigation, delete (disabled on the last screen — removeScreen refuses it
+ * anyway). A tab can also be dragged to a new place (screenOrder.ts, native
+ * drag so it never competes with the canvas drag below). All edits build the
+ * next definition via definitionOps / structureOps and go through onCommit.
  *
  * Every pill is still a DROP TARGET (`useDroppable(screenTabDroppableId)` +
  * `data-screentab-over`, which dnd.js reads): dragging a canvas node or a
@@ -92,6 +102,7 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
     const menuAnchorRef = useRef<EventTarget & HTMLButtonElement>(null);
     // Tab buttons, so a screen switch can scroll its tab into view.
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+    const drag = useScreenDrag(definition, onCommit, streamLock);
 
     useEffect(() => {
         if (renamingId) renameInputRef.current?.select();
@@ -174,6 +185,8 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
                             active={active}
                             recent={recentlyAddedIds instanceof Set && recentlyAddedIds.has(screen.id as string)}
                             onRevealed={() => dispatch({ type: 'clear_recent_id', nodeId: screen.id as string })}
+                            dragProps={drag.tabDragProps(screen.id as string, renamingId !== screen.id)}
+                            dropHint={drag.hint}
                         >
                             <ScreenTabBody
                                 screen={screen} active={active} isHome={isHome} untitled={untitled} t={t}
@@ -193,16 +206,7 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
                 })}
             </div>
 
-            <button
-                type="button"
-                onClick={handleAdd}
-                disabled={streamLock}
-                aria-label={t('app_studio.screens.add', 'Add screen')}
-                title={t('app_studio.screens.add', 'Add screen')}
-                className="inline-flex shrink-0 items-center rounded-md px-2 py-1 hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-tertiary)]"
-            >
-                <Plus className="h-3 w-3" />
-            </button>
+            <AddScreenPill label={t('app_studio.screens.add', 'Add screen')} onAdd={handleAdd} disabled={streamLock} />
 
             <AnchoredMenu
                 open={!!menuScreen}
@@ -216,6 +220,7 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
                 {menuScreen ? (
                     <>
                         <MenuItem icon={Pencil} label={t('app_studio.screens.rename', 'Rename')} onClick={() => startRename(menuScreen)} />
+                        <ScreenOrderMenuItems screen={menuScreen} definition={definition as AppDefinition} onCommit={onCommit} dispatch={dispatch} onDone={() => setMenuFor(null)} />
                         <MenuItem
                             icon={Home}
                             label={t('app_studio.screens.set_home', 'Set as home screen')}
@@ -271,6 +276,22 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
         >
             {strip}
         </div>
+    );
+}
+
+/** The + pill after the tabs: appends a screen. */
+function AddScreenPill({ label, onAdd, disabled }: { label: string; onAdd: () => void; disabled: boolean }) {
+    return (
+        <button
+            type="button"
+            onClick={onAdd}
+            disabled={disabled}
+            aria-label={label}
+            title={label}
+            className="inline-flex shrink-0 items-center rounded-md px-2 py-1 hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-tertiary)]"
+        >
+            <Plus className="h-3 w-3" />
+        </button>
     );
 }
 
@@ -346,32 +367,5 @@ function ScreenTabBody({
                 <MoreHorizontal className="h-3 w-3" />
             </button>
         </>
-    );
-}
-
-interface MenuItemProps {
-    icon: LucideIcon;
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
-    danger?: boolean;
-    title?: string | undefined;
-}
-
-function MenuItem({ icon, label, onClick, disabled = false, danger = false, title }: MenuItemProps) {
-    const Icon = icon;
-    return (
-        <button
-            type="button"
-            role="menuitem"
-            disabled={disabled}
-            title={title}
-            onClick={onClick}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-card-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ color: danger ? 'var(--error)' : 'var(--text-primary)' }}
-        >
-            <Icon className="h-3.5 w-3.5 shrink-0" />
-            {label}
-        </button>
     );
 }
