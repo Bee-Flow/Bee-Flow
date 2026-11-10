@@ -16,7 +16,7 @@ const { seedVariableDefaults } = require('./componentSpecs');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
-const { relatedForAggregate } = require('./aggregateRelated.mts');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
 const log = require('../telemetry/log');
 
 // Read-only probe page — a couple of rows is enough to prove a binding returns

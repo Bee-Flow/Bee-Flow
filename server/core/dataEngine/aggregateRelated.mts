@@ -4,7 +4,8 @@
  * access predicate on it, for queryCompiler.compileAggregate's `related`
  * argument.
  *
- * Every App Studio read path that compiles an aggregate over the app's own
+ * Lives in core/ next to the access filter it compiles (the App Studio read
+ * paths and the server render both call it). Every App Studio read path that compiles an aggregate over the app's own
  * storage calls this with the role and viewer it already compiled the main
  * table's access filter for, so the related table is read under the same
  * identity. The rules:
@@ -28,7 +29,7 @@ type Table = { id?: string; key?: string; fields?: Field[]; source?: unknown };
 type AccessFilter = { where: string; params: unknown[] };
 type Related = Record<string, { tableMeta: Table; accessFilter: AccessFilter }>;
 
-const rlsGateway = nodeRequire('./rlsGateway') as {
+const accessFilter = nodeRequire('./accessFilter') as {
     canRead(table: Table, role: unknown): boolean;
     compileAccessFilter(table: Table, role: unknown, viewer: unknown, action: string, opts?: { dialect?: string }): AccessFilter;
 };
@@ -67,10 +68,10 @@ export function relatedForAggregate(
         const ref = field && field.type === 'relation' && field.relation ? field.relation.table : undefined;
         const target = typeof ref === 'string' ? tables.find((t) => t && (t.id === ref || t.key === ref)) : undefined;
         if (!target || (target.source !== undefined && target.source !== null)) continue;
-        const accessFilter = rlsGateway.canRead(target, who.role)
-            ? rlsGateway.compileAccessFilter(target, who.role, who.viewer, 'read', { dialect: who.dialect })
+        const filter = accessFilter.canRead(target, who.role)
+            ? accessFilter.compileAccessFilter(target, who.role, who.viewer, 'read', { dialect: who.dialect })
             : NO_ROWS;
-        out[key] = { tableMeta: target, accessFilter };
+        out[key] = { tableMeta: target, accessFilter: filter };
     }
     return Object.keys(out).length ? out : undefined;
 }

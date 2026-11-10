@@ -51,7 +51,7 @@ const MAX_CONTEXT_ROWS = 50;
 const DATA_KINDS = new Set(['record', 'records', 'aggregate']);
 const { resolveFilterList } = require('../shared/expr/index.mjs');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
-const { relatedForAggregate } = require('./aggregateRelated.mts');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
 
 function isDataBinding(binding) {
     return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);

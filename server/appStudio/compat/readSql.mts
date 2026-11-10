@@ -50,7 +50,7 @@ const queryCompiler = nodeRequire('../queryCompiler') as {
     compileRecordList: (table: Obj, opts: Obj, access: unknown) => Compiled;
     compileAggregate: (table: Obj, opts: Obj, access: unknown, related?: unknown) => Compiled;
 };
-const { relatedForAggregate } = nodeRequire('../aggregateRelated.mts') as {
+const { relatedForAggregate } = nodeRequire('../../core/dataEngine/aggregateRelated.mts') as {
     relatedForAggregate: (model: Obj, table: Obj, groupBy: unknown, who: { role: string; viewer: Obj }) => unknown;
 };
 const { isDatatableBacked } = nodeRequire('../datatableSource') as { isDatatableBacked: (table: Obj) => boolean };

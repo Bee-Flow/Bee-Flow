@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Aggregate descriptors of the vocabulary after schema version 2, pinned by
  * queryCompiler.snapshot.test.js in their own sections (`aggregateExtended`,

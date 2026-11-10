@@ -48,7 +48,7 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const datatableSource = require('./datatableSource');
 const { readError } = require('./readError');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
-const { relatedForAggregate } = require('./aggregateRelated.mts');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 

@@ -45,7 +45,7 @@ const studioAppDbStore = require('../stores/studioAppDbStore');
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
 const { aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
-const { relatedForAggregate } = require('./aggregateRelated.mts');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
 const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_TTL_SECONDS = 60;
