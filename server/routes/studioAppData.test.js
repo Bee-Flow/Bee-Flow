@@ -35,6 +35,7 @@ const dbCalls = [];            // every studioAppDbStore call (IDOR audit)
 const saveModelCalls = [];
 const previewCalls = [];
 let nextSaveResult = null;
+let nextPreviewUnsupported = null;
 const memberMutations = [];
 const rowCountsByApp = new Map(); // appId → row_counts map (quota reads)
 const rowBumps = [];              // bumpRowCount calls
@@ -95,7 +96,9 @@ stub('../stores/studioAppDataStore', {
     },
     previewDataModelChange: async (appId, ownerId, model, opts) => {
         previewCalls.push({ appId, ownerId, opts });
-        return { ok: true, dryRun: true, currentVersion: 3, report: { statements: 0, summary: 'no schema change', recomputed: [], converted: [{ table: 't', field: 'f', from: 'text', to: 'select', rows: 4, unconvertible: 2, samples: ['x'], action: 'refuse' }], unsupported: [] } };
+        const unsupported = nextPreviewUnsupported || [];
+        nextPreviewUnsupported = null;
+        return { ok: true, dryRun: true, currentVersion: 3, report: { statements: 0, summary: 'no schema change', recomputed: [], converted: [{ table: 't', field: 'f', from: 'text', to: 'select', rows: 4, unconvertible: 2, samples: ['x'], action: 'refuse' }], unsupported } };
     },
     getDataset: async () => null,
     listMembers: async (appId, ownerId) => { memberMutations.push({ op: 'list', appId, ownerId }); return []; },
@@ -601,6 +604,18 @@ test('owner PUT schema: refused conversion and failed migration are 422 with the
     assert.strictEqual(failed.statusCode, 422);
     assert.strictEqual(failed.body.code, 'migration_failed');
     assert.strictEqual(failed.body.error, 'The expression divides by zero for at least one row.');
+});
+
+test('owner PUT schema: a type change outside the safe pairs is 422 conversion_unsupported, on a save and on a dry run', async () => {
+    const app = makeApp();
+    const entry = { tableId: 'tbl_x', table: 't', fieldId: 'fld_x', field: 'f', from: 'date', to: 'number' };
+    nextSaveResult = { ok: false, conversionUnsupported: true, conversions: [entry] };
+    const saved = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel() } });
+    assert.deepStrictEqual([saved.statusCode, saved.body.code, saved.body.conversions], [422, 'conversion_unsupported', [entry]]);
+    assert.match(saved.body.error, /cannot change to this type in place/);
+    nextPreviewUnsupported = [entry];
+    const dry = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel(), dryRun: true } });
+    assert.deepStrictEqual([dry.statusCode, dry.body.code], [422, 'conversion_unsupported']);
 });
 
 test('owner can add + remove members', async () => {
