@@ -10,6 +10,15 @@ const { isObject, pushDataRef } = require('./shared');
 const { checkCallAction } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
+const { STEP_META, EXTENSION_STEP_ENTRIES } = require('../componentSpecs/stepRegistry');
+
+// The base kinds are told in this order (the order the warnings have always come in); registry kinds follow.
+const LOOP_FINDING_ORDER = ['generate_presentation', 'generate_file', 'fill_document'];
+const LOOP_FINDING_KINDS = [
+    ...LOOP_FINDING_ORDER.filter((k) => STEP_META[k]?.inLoop),
+    ...Object.keys(STEP_META).filter((k) => STEP_META[k].inLoop && !LOOP_FINDING_ORDER.includes(k)),
+];
+const REGISTRY_NO_LOOP_KINDS = EXTENSION_STEP_ENTRIES.filter((e) => e.noLoop === true).map((e) => e.kind);
 
 /**
  * A step of `kind` under these steps, or in an action they call.
@@ -259,38 +268,20 @@ function checkGeneratePresentation(step, path, ctx) {
 
 function checkLoopCosts(step, path, ctx) {
     const { pushW } = ctx;
-// A deck inside a loop is the fill_document shape: one stored file per
-// iteration, against the attachment quota. A warning about the cost.
-if (step.kind === 'loop' && containsThroughCalls(step.steps, 'generate_presentation', ctx)) {
-    pushW({
-        code: 'action.generate_presentation_in_loop', severity: 'warning', path: `${path}.steps`,
-        message: 'A "generate presentation" step runs inside a loop — one stored deck per iteration.',
-        hint: 'Usually one deck over all rows is wanted; bind `slides` to the whole set instead of looping.',
-    });
-}
-
-// A generate_file inside a loop is legal (one file per order is a real
-// shape) but easy to reach by accident — each iteration writes a blob
-// against the app's attachment quota, and a quota 409 halfway leaves a
-// partial run. A warning, where send_email-in-loop is an error.
-if (step.kind === 'loop' && containsThroughCalls(step.steps, 'generate_file', ctx)) {
-    pushW({
-        code: 'action.generate_file_in_loop', severity: 'warning', path: `${path}.steps`,
-        message: 'A "generate file" step runs inside a loop — one stored file per iteration.',
-        hint: 'Usually one file over all rows is wanted; bind `rows` to the whole set instead of looping.',
-    });
-}
-
-// fill_document in a loop is the same quota shape — but the other way
-// round: one invoice PER row is the normal thing to want, where one export
-// over all rows is. So it warns about the cost rather than the intent.
-if (step.kind === 'loop' && containsThroughCalls(step.steps, 'fill_document', ctx)) {
-    pushW({
-        code: 'action.fill_document_in_loop', severity: 'warning', path: `${path}.steps`,
-        message: 'A "fill document" step runs inside a loop — one stored PDF per iteration.',
-        hint: 'That is usually intended (one invoice per row); keep the list short, since each file counts against the app\'s storage quota.',
-    });
-}
+    if (step.kind !== 'loop') return;
+    // What a loop holding a kind is told is on the kind's catalogue entry (`inLoop`, `noLoop`).
+    for (const kind of LOOP_FINDING_KINDS) {
+        const finding = STEP_META[kind].inLoop;
+        if (finding && containsThroughCalls(step.steps, kind, ctx)) {
+            (finding.severity === 'error' ? ctx.pushE : pushW)({ code: finding.code, severity: finding.severity, path: `${path}.steps`, message: finding.message, hint: finding.hint });
+        }
+    }
+    // A registry kind marked `noLoop` gets the generic refusal (send_email keeps its own, in actions.js).
+    for (const kind of REGISTRY_NO_LOOP_KINDS) {
+        if (containsThroughCalls(step.steps, kind, ctx)) {
+            ctx.pushE({ code: 'action.step_in_loop', severity: 'error', path: `${path}.steps`, message: `A "${kind}" step may not run inside a loop.`, hint: 'Run it once, before or after the loop.' });
+        }
+    }
 }
 
 function checkAiBrowse(step, path, ctx) {
