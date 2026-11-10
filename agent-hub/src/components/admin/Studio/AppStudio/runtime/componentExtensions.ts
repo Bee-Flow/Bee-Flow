@@ -27,7 +27,10 @@ type CatalogTypes = Record<string, { since?: number } | undefined>;
  */
 function extensionModules(): ExtensionModules {
     try {
-        return import.meta.glob<{ default: ComponentExtension }>(['./components/registry/*.ts', '!./components/registry/*.test.ts'], { eager: true });
+        // No type argument on the call, on purpose: vitest keeps a transformed module on disk
+        // between runs unless its text holds the call exactly as `import.meta.glob(`, and a
+        // kept copy would not see a file added to the folder.
+        return import.meta.glob(['./components/registry/*.ts', '!./components/registry/*.test.ts'], { eager: true }) as Record<string, { default: ComponentExtension }>;
     } catch {
         return {};
     }

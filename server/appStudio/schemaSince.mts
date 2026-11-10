@@ -12,6 +12,20 @@
  *   STEP_SPECS[kind].since, ACTION_SPECS[kind].since
  *   BINDING_KIND_SINCE[kind]                       (BINDING_KINDS is a list of names)
  *   definitionKeys/<key>.js `since`                a top-level key
+ *   STEP_SPECS[kind].fields[name].since / .valuesSince    a field added to an existing step kind
+ *   ACTION_SPECS[kind].fields[name].since / .valuesSince  the same for an action kind
+ *   …props[name].itemShape[key].since / .valuesSince      a key of the items of a list prop
+ *                                                  (and of a list nested in those items)
+ *   COMPONENT_SPECS[type].eventsSince              { [event]: n }, an event an existing type newly fires
+ *   SCREEN_SPEC[key].since / .valuesSince          a screen key, an enum value of one
+ *   THEME_SPEC[key] / DESIGN_SPEC[key] .since / .valuesSince   a theme or design key, a value
+ *   componentSpecs/keys/<family>/<key>.js          a section, node, nav or nav-group key, a
+ *                                                  knob newly allowed on sections (keyMarks.js)
+ *   core/dataEngine/dataModel/vocabularySince.js   a filter operator, an aggregate function,
+ *                                                  a date bucket (query vocabulary in a binding)
+ *
+ * One VALUE form has a version too: `asset:<id>`, an uploaded file of the app, accepted in
+ * props and design keys that took only an https URL before (appAssets.mts ASSET_REF_SINCE).
  *
  * An entry without `since` belongs to the base. The walk itself is the pure
  * shared/appDefinition/schemaVersion.mjs; this module builds its index from the
@@ -21,6 +35,8 @@
 import { createRequire } from 'node:module';
 import {
     SCHEMA_VERSION_BASE,
+    KEY_FAMILIES,
+    QUERY_FAMILY,
     emptySinceIndex,
     requiredSchemaVersion as requiredWithIndex,
     isNewerSchemaVersion,
@@ -28,12 +44,15 @@ import {
     supportedEnvelopeVersions,
 } from '../shared/appDefinition/schemaVersion.mjs';
 import { definitionKeys } from './definitionKeyRegistry.mts';
+import { ASSET_REF_SINCE, hasAssetRef } from './appAssets.mts';
 import type { DefinitionKeyEntry } from './definitionKeyRegistry.mts';
 
 type SinceMap = Record<string, number>;
 type SinceIndex = ReturnType<typeof emptySinceIndex>;
-type Spec = { since?: unknown; valuesSince?: unknown; props?: Record<string, Spec> };
+type ShapeMarks = SinceIndex['itemShapes'][string][string];
+type Spec = { since?: unknown; valuesSince?: unknown; eventsSince?: unknown; props?: Record<string, Spec>; fields?: Record<string, Spec>; itemShape?: Record<string, Spec> };
 type SpecTable = Record<string, Spec>;
+type KeyFamily = typeof KEY_FAMILIES[number];
 
 export interface Catalogue {
     componentSpecs?: SpecTable;
@@ -42,6 +61,10 @@ export interface Catalogue {
     actionSpecs?: SpecTable;
     bindingKindSince?: Record<string, unknown>;
     definitionKeys?: Pick<DefinitionKeyEntry, 'key' | 'since'>[];
+    /** Per family of schemaVersion.mjs KEY_FAMILIES: the table whose entries carry `since` / `valuesSince`. */
+    keyTables?: Partial<Record<KeyFamily, SpecTable>>;
+    /** The query vocabulary: `{ op: { <operator>: n }, fn: { <function>: n }, bucket: { <bucket>: n } }`. */
+    queryValuesSince?: Record<string, unknown>;
 }
 
 const nodeRequire = createRequire(import.meta.url);
@@ -52,7 +75,12 @@ const specs = nodeRequire('./componentSpecs.js') as {
     STEP_SPECS: SpecTable;
     ACTION_SPECS: SpecTable;
     BINDING_KIND_SINCE: Record<string, unknown>;
+    SCREEN_SPEC: SpecTable;
+    THEME_SPEC: SpecTable;
+    DESIGN_SPEC: SpecTable;
+    KEY_MARKS: Record<'section' | 'sectionStyle' | 'node' | 'nav' | 'navGroup', SpecTable>;
 };
+const { QUERY_VALUES_SINCE } = nodeRequire('../core/dataEngine/dataModel/vocabularySince.js') as { QUERY_VALUES_SINCE: Record<string, unknown> };
 const { HttpError } = nodeRequire('../core/http/errors.js') as {
     HttpError: new (status: number, code: string, message: string) => Error;
 };
@@ -84,32 +112,85 @@ function readTable(table: SpecTable | undefined, keys: SinceMap, values: Record<
     }
 }
 
+/**
+ * Fill `intoKeys[owner]` and `intoValues[owner]` from one table, leaving `owner` out of a
+ * group it has nothing in (an empty index answers the base without a walk).
+ */
+function readOwned(owner: string, table: SpecTable | undefined, intoKeys: Record<string, SinceMap>, intoValues: Record<string, Record<string, SinceMap>>): void {
+    const keys: SinceMap = Object.create(null);
+    const values: Record<string, SinceMap> = Object.create(null);
+    readTable(table, keys, values);
+    if (Object.keys(keys).length) intoKeys[owner] = keys;
+    if (Object.keys(values).length) intoValues[owner] = values;
+}
+
+/** The marks of one item shape (and of the lists nested in it), or null when it has none. */
+function shapeMarks(itemShape: Record<string, Spec> | undefined, depth = 0): ShapeMarks | null {
+    if (!itemShape || typeof itemShape !== 'object' || depth > 4) return null;
+    const keys: Record<string, SinceMap> = Object.create(null);
+    const values: Record<string, Record<string, SinceMap>> = Object.create(null);
+    readOwned('own', itemShape, keys, values);
+    const items: Record<string, ShapeMarks> = Object.create(null);
+    for (const [key, spec] of Object.entries(itemShape)) {
+        const nested = spec && typeof spec === 'object' ? shapeMarks(spec.itemShape, depth + 1) : null;
+        if (nested) items[key] = nested;
+    }
+    const marks: ShapeMarks = {};
+    if (keys.own) marks.keys = keys.own;
+    if (values.own) marks.values = values.own;
+    if (Object.keys(items).length) marks.items = items;
+    return Object.keys(marks).length ? marks : null;
+}
+
+function readComponents(table: SpecTable | undefined, index: SinceIndex): void {
+    for (const [type, spec] of Object.entries(table || {})) {
+        if (!spec || typeof spec !== 'object') continue;
+        if (above(spec.since)) index.componentTypes[type] = above(spec.since);
+        readOwned(type, spec.props, index.props, index.propValues);
+        const shapes: Record<string, ShapeMarks> = Object.create(null);
+        for (const [prop, propSpec] of Object.entries(spec.props || {})) {
+            const marks = propSpec && typeof propSpec === 'object' ? shapeMarks(propSpec.itemShape) : null;
+            if (marks) shapes[prop] = marks;
+        }
+        if (Object.keys(shapes).length) index.itemShapes[type] = shapes;
+        const events = valuesAbove(spec.eventsSince);
+        if (events) index.typeNodeKeys[type] = events;
+    }
+}
+
+/** Step or action kinds: the kind itself, and the fields added to a kind. */
+function readKinds(table: SpecTable | undefined, kinds: SinceMap, fields: Record<string, SinceMap>, fieldValues: Record<string, Record<string, SinceMap>>): void {
+    readTable(table, kinds, Object.create(null));
+    for (const [kind, spec] of Object.entries(table || {})) {
+        if (spec && typeof spec === 'object') readOwned(kind, spec.fields, fields, fieldValues);
+    }
+}
+
 /** The since index of a catalogue: only what is marked above the base. */
 export function buildSinceIndex(catalogue: Catalogue): SinceIndex {
     const index = emptySinceIndex();
-    const unused: Record<string, SinceMap> = Object.create(null);
-    for (const [type, spec] of Object.entries(catalogue.componentSpecs || {})) {
-        if (!spec || typeof spec !== 'object') continue;
-        if (above(spec.since)) index.componentTypes[type] = above(spec.since);
-        const props: SinceMap = Object.create(null);
-        const propValues: Record<string, SinceMap> = Object.create(null);
-        readTable(spec.props, props, propValues);
-        if (Object.keys(props).length) index.props[type] = props;
-        if (Object.keys(propValues).length) index.propValues[type] = propValues;
-    }
+    readComponents(catalogue.componentSpecs, index);
     readTable(catalogue.styleKnobs, index.styleKnobs, index.styleValues);
-    readTable(catalogue.stepSpecs, index.stepKinds, unused);
-    readTable(catalogue.actionSpecs, index.actionKinds, unused);
+    readKinds(catalogue.stepSpecs, index.stepKinds, index.stepFields, index.stepFieldValues);
+    readKinds(catalogue.actionSpecs, index.actionKinds, index.actionFields, index.actionFieldValues);
     for (const [kind, since] of Object.entries(catalogue.bindingKindSince || {})) {
         if (above(since)) index.bindingKinds[kind] = above(since);
     }
     for (const entry of catalogue.definitionKeys || []) {
         if (above(entry.since)) index.topLevelKeys[entry.key] = above(entry.since);
     }
+    for (const family of KEY_FAMILIES) readOwned(family, catalogue.keyTables?.[family], index.keys, index.values);
+    const query: Record<string, SinceMap> = Object.create(null);
+    for (const [key, marks] of Object.entries(catalogue.queryValuesSince || {})) {
+        const perValue = valuesAbove(marks);
+        if (perValue) query[key] = perValue;
+    }
+    if (Object.keys(query).length) index.values[QUERY_FAMILY] = query;
     return index;
 }
 
-function liveCatalogue(): Catalogue {
+/** The whole live catalogue, as buildSinceIndex reads it. Also what a test passes to _withCatalogue after changing a table in place. */
+export function liveCatalogue(): Catalogue {
     return {
         componentSpecs: specs.COMPONENT_SPECS,
         styleKnobs: specs.STYLE_KNOBS,
@@ -117,6 +198,17 @@ function liveCatalogue(): Catalogue {
         actionSpecs: specs.ACTION_SPECS,
         bindingKindSince: specs.BINDING_KIND_SINCE,
         definitionKeys: definitionKeys(),
+        keyTables: {
+            screen: specs.SCREEN_SPEC,
+            theme: specs.THEME_SPEC,
+            design: specs.DESIGN_SPEC,
+            section: specs.KEY_MARKS.section,
+            sectionStyle: specs.KEY_MARKS.sectionStyle,
+            node: specs.KEY_MARKS.node,
+            nav: specs.KEY_MARKS.nav,
+            navGroup: specs.KEY_MARKS.navGroup,
+        },
+        queryValuesSince: QUERY_VALUES_SINCE,
     };
 }
 
@@ -130,7 +222,8 @@ function currentIndex(): SinceIndex {
 
 /** The lowest schema version `definition` can be stored as (2 unless it uses something marked since 3 or higher). */
 export function requiredSchemaVersion(definition: unknown): number {
-    return requiredWithIndex(definition, currentIndex());
+    const required = requiredWithIndex(definition, currentIndex());
+    return required >= ASSET_REF_SINCE || !hasAssetRef(definition) ? required : ASSET_REF_SINCE;
 }
 
 /** True when `definition` was written by an install that knows a newer schema than this one. */

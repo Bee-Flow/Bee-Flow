@@ -2204,7 +2204,7 @@ const {
     EVENT_NAMES, ACTION_KINDS, STEP_KINDS, VARIABLE_TYPES, LIMITS, COMPONENT_SPECS,
 } = require('./componentSpecs');
 const { APP_DESIGN_PRESETS } = require('./appDesignPresets');
-const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('./dataModel');
+const { FIELD_TYPES, ACCESS_MODES } = require('./dataModel'), { BASE_FILTER_OPS: FILTER_OPS, BASE_AGG_FNS: AGG_FNS, BASE_DATE_BUCKETS: DATE_BUCKETS } = require('../core/dataEngine/dataModel/vocabularySince'); // enums take the whole list, descriptions the base words
 const {
     MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, TEMP_ID_MAX, TEMP_ID_RX, SECTION_HEIGHT_MODES,
 } = require('./builderTools/schemas');

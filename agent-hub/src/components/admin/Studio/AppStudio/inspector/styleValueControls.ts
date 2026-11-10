@@ -37,7 +37,10 @@ export const isBaseValueType = (type: string): boolean => BASE_VALUE_TYPES.inclu
 
 function controlModules(): ControlModules {
     try {
-        return import.meta.glob<{ default?: StyleValueControl }>(['./styleValueControls/*.tsx', '!./styleValueControls/*.test.tsx'], { eager: true });
+        // No type argument on the call, on purpose: vitest keeps a transformed module on disk
+        // between runs unless its text holds the call exactly as `import.meta.glob(`, and a
+        // kept copy would not see a file added to the folder.
+        return import.meta.glob(['./styleValueControls/*.tsx', '!./styleValueControls/*.test.tsx'], { eager: true }) as Record<string, { default?: StyleValueControl }>;
     } catch {
         return {};
     }

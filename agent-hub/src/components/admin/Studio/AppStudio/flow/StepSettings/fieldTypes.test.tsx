@@ -38,9 +38,12 @@ describe('step field types: a control is one file', () => {
         expect(() => buildFieldControls({ './fieldTypes/other.tsx': { default: shout } })).toThrow(/its own type/);
     });
 
-    it('ships no control yet, so every type StepField knows draws as before', () => {
+    it('ships a control for each structured step field type, and none that takes over a built-in', () => {
         expect(fieldControlFor('zzShout')).toBe(null);
         for (const type of BUILT_IN_FIELD_TYPES) expect(fieldControlFor(type)).toBe(null);
+        for (const type of ['aiSchema', 'aiWriteTo', 'contextSources', 'stringList', 'approvalStages', 'approvalQuestions', 'approvalOnDecided']) {
+            expect(typeof fieldControlFor(type)).toBe('function');
+        }
     });
 
     it('StepField draws the registered control for its type, with the label it worked out', async () => {

@@ -71,6 +71,7 @@ const { definitionKeys } = require('./definitionKeyRegistry.mts');
 const { LIMITS } = require('./componentSpecs/limits');
 const { THEME_SPEC, HEX_RE, canonicalizeTheme } = require('../core/cms/themeSpec');
 const { DESIGN_SPEC } = require('./appDesignSpec');
+const { isAssetRef, valueTypeOf, isCleanValue } = require('./componentSpecs/valueTypes');
 // The reserved anonymous role. It lives in dataModel because the RLS gateway —
 // which must recognise it by name to deny by default — already reads that
 // module, and a constant defined here would make the gateway depend on the
@@ -102,8 +103,10 @@ function isThemeValue(spec, v) {
  */
 function isDesignValue(spec, v) {
     if (spec.type === 'enum') return spec.values.includes(v);
-    if (spec.type === 'url') return typeof v === 'string' && /^https:\/\//.test(v) && v.length <= spec.maxLen;
-    return false;
+    if (spec.type === 'url') return (typeof v === 'string' && /^https:\/\//.test(v) && v.length <= spec.maxLen) || isAssetRef(v);
+    // A design key of a later value type (componentSpecs/valueTypes.js): the value its own clean() keeps.
+    const valueType = valueTypeOf(spec);
+    return !!valueType && isCleanValue(valueType, v, spec);
 }
 
 /**

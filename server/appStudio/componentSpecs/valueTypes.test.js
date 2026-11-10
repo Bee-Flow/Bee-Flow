@@ -3,8 +3,8 @@
  * valueTypes.js and the plumbing that reads it: value types of style knobs and design keys,
  * optional design keys, slot containers and emit-when-present keys.
  *
- * Nothing in the shipped catalogue uses any of it; knobs, keys and types made up here prove
- * each mechanism and are removed again.
+ * Knobs, keys and types made up here prove each mechanism and are removed again; whatever the
+ * shipped catalogue uses of it is only held to the rules below.
  * Run: node --test appStudio/componentSpecs/valueTypes.test.js
  */
 
@@ -24,7 +24,8 @@ const { emitOptionalKeys } = require('../canonicalize/shared');
 const { canonDesign, DESIGN_SPEC } = require('../appDesignSpec');
 const { canonicalizeAppDefinition } = require('../canonicalize');
 const { validateAppDefinition } = require('../validate');
-const { buildCatalogSections } = require('../builderPrompt/catalogRender');
+const { buildCatalogSections, renderStyleKnobEntry } = require('../builderPrompt/catalogRender');
+const { _catalogueChanged } = require('../catalogTiers.mts');
 
 const { STYLE_KNOBS } = specs;
 
@@ -39,14 +40,37 @@ function withKnobs(knobs, fn) {
     try { return fn(); } finally { for (const k of Object.keys(knobs)) delete STYLE_KNOBS[k]; }
 }
 
-test('nothing shipped uses a value type or an optional design key', () => {
-    assert.deepEqual(Object.keys(VALUE_TYPES), ['asset', 'css']);
-    for (const [name, knob] of Object.entries(STYLE_KNOBS)) assert.equal(valueTypeOf(knob), null, name);
-    for (const [key, spec] of Object.entries(DESIGN_SPEC)) {
-        assert.equal(valueTypeOf(spec), null, key);
-        assert.equal(/** @type {{ optional?: boolean }} */ (spec).optional, undefined, key);
+/** The seven design keys of the frozen base: always written, never optional, never value-typed. */
+const BASE_DESIGN_KEYS = ['preset', 'font', 'surface', 'motion', 'chartPalette', 'accentEdge', 'logoUrl'];
+
+test('whatever ships uses a value type, an optional design key or a slot container by the rules', () => {
+    for (const name of ['asset', 'css']) assert.ok(Object.hasOwn(VALUE_TYPES, name), name);
+    // A value-typed knob is new vocabulary, unset by default and passes its type's own check.
+    for (const [name, knob] of Object.entries(STYLE_KNOBS)) {
+        const valueType = valueTypeOf(knob);
+        if (!valueType) continue;
+        assert.ok(/** @type {any} */ (knob).since >= 3, `knob ${name} (${knob.type}): since 3 or more`);
+        assert.equal(knob.default, null, `knob ${name} (${knob.type}): default null, so it is never written for a style that did not set it`);
+        valueType.check(knob, `knob ${name}`);
     }
-    for (const [type, spec] of Object.entries(specs.COMPONENT_SPECS)) assert.equal(/** @type {any} */ (spec).slotContainer, undefined, type);
+    // The base design keys are as they were; a key added later is optional and marked.
+    assert.deepEqual(Object.keys(DESIGN_SPEC).slice(0, BASE_DESIGN_KEYS.length), BASE_DESIGN_KEYS);
+    for (const [name, spec] of Object.entries(/** @type {Record<string, any>} */ (DESIGN_SPEC))) {
+        if (BASE_DESIGN_KEYS.includes(name)) {
+            assert.equal(valueTypeOf(spec), null, name);
+            assert.equal(spec.optional, undefined, `${name} is a base design key: always written`);
+            continue;
+        }
+        assert.equal(spec.optional, true, `design.${name}: a key added after the base is optional (written only when set)`);
+        assert.ok(spec.since >= 3, `design.${name}: since 3 or more`);
+        const valueType = valueTypeOf(spec);
+        if (valueType) valueType.check(spec, `design.${name}`);
+    }
+    // A slot container is always a container.
+    for (const [type, spec] of Object.entries(/** @type {Record<string, any>} */ (specs.COMPONENT_SPECS))) {
+        if (!spec.slotContainer) continue;
+        assert.equal(spec.container, true, `${type}: a slot container is a container`);
+    }
 });
 
 test('asset: only the string asset:<id>', () => {
@@ -110,11 +134,15 @@ test('validate and the AI catalogue read the same table', () => {
             assert.equal(errors.length, 1, JSON.stringify(errors));
             assert.equal(errors[0].code, 'style.invalid');
             assert.match(errors[0].hint, /asset:<id>/);
-            // The catalogue lists every knob once (and caches the text: this file has its own process).
-            assert.match(JSON.stringify(buildCatalogSections()), /image\(null\|asset:<id>\)/);
+            // The knob is marked since 3, so it is an extension (catalogTiers.mts): the catalogue
+            // text leaves it out, and its entry is rendered from the same table on request.
+            _catalogueChanged();
+            assert.match(renderStyleKnobEntry('image'), /^image\(null\|asset:<id>\)$/);
+            assert.doesNotMatch(JSON.stringify(buildCatalogSections()), /asset:<id>/);
         } finally {
             spec.styleKnobs.length = 0;
             spec.styleKnobs.push(...before);
+            _catalogueChanged();
         }
     });
 });

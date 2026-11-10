@@ -40,7 +40,10 @@ export function buildFieldControls(modules: Record<string, { default: StepFieldT
     return controls;
 }
 
-const CONTROLS = buildFieldControls(import.meta.glob<{ default: StepFieldTypeModule }>(['./fieldTypes/*.tsx', '!./fieldTypes/*.test.tsx'], { eager: true }));
+// No type argument on the call, on purpose: vitest keeps a transformed module on disk
+// between runs unless its text holds the call exactly as `import.meta.glob(`, and a
+// kept copy would not see a file added to the folder.
+const CONTROLS = buildFieldControls(import.meta.glob(['./fieldTypes/*.tsx', '!./fieldTypes/*.test.tsx'], { eager: true }) as Record<string, { default: StepFieldTypeModule }>);
 
 /** The registered control of a field type, or null (StepField then draws its own). */
 export function fieldControlFor(type: string, controls: Record<string, ComponentType<StepFieldControlProps>> = CONTROLS): ComponentType<StepFieldControlProps> | null {

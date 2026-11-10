@@ -12,6 +12,8 @@
 // blob cannot blow the stack before validation ever runs.
 const HARD_DEPTH_CAP = 32;
 
+const { SCHEMA_VERSION_BASE } = require('../componentSpecs/ids');
+
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 // JSON-semantics deep copy (functions/undefined dropped, depth-capped) so
@@ -76,4 +78,17 @@ function emitOptionalKeys(out, raw, cleaners, path, push) {
     return out;
 }
 
-module.exports = { HARD_DEPTH_CAP, isObject, deepCopy, truncate, isFormulaObj, emitOptionalKeys };
+/**
+ * True for a spec entry (a prop, a step or action field) added after the frozen base: it
+ * carries `since` above the base schema version. Such an entry is EMIT-WHEN-PRESENT: it is
+ * cleaned when the definition carries it and left out otherwise, never filled with a default.
+ * Filling it would write the key into every stored node or step of that type on its next
+ * save, and raise that definition's schema version for something its author never used.
+ * @param {unknown} spec
+ */
+function isLateEntry(spec) {
+    const since = /** @type {{ since?: unknown } | null | undefined} */ (spec)?.since;
+    return typeof since === 'number' && Number.isInteger(since) && since > SCHEMA_VERSION_BASE;
+}
+
+module.exports = { HARD_DEPTH_CAP, isObject, deepCopy, truncate, isFormulaObj, emitOptionalKeys, isLateEntry };

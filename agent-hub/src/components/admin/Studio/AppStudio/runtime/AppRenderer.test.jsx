@@ -81,10 +81,14 @@ describe('componentRegistry', () => {
     });
 });
 
+// The fixtures hold the base types. A type added later is rendered from its own sample
+// (componentExtensions.test.tsx), so the sweeps below run over the base types only.
+const BASE_REGISTRY_TYPES = Object.keys(APP_COMPONENT_TYPES).filter((type) => !APP_COMPONENT_TYPES[type].sample);
+
 describe('AppRenderer — run mode', () => {
     it('renders every registry type across the fixtures', () => {
         const { container } = renderBothScreens('run', { runAction: vi.fn() });
-        for (const type of Object.keys(APP_COMPONENT_TYPES)) {
+        for (const type of BASE_REGISTRY_TYPES) {
             // A CLOSED modal deliberately renders nothing in run mode — not
             // even its grid cell (an empty padded span-12 row painted a dead
             // band into every section hosting one). Its cell exists in edit
@@ -147,7 +151,7 @@ describe('AppRenderer — edit mode', () => {
             </div>
         );
         const { container, getByText } = renderBothScreens('edit', { NodeWrapper });
-        for (const type of Object.keys(APP_COMPONENT_TYPES)) {
+        for (const type of BASE_REGISTRY_TYPES) {
             expect(
                 container.querySelector(`[data-app-type="${type}"]`),
                 `type '${type}' did not render in edit mode`,

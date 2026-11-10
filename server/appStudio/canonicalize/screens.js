@@ -24,7 +24,9 @@ const { canonNode, cleanRoleRefs } = require('./nodes');
  * Every one is optional: emitOptionalKeys writes a key only when the section carries a value
  * its cleaner keeps, after the three base keys, so a section stored without it keeps its
  * bytes. Empty: a section has no such key yet. A key that needs ids or references resolved
- * also needs the second pass in canonicalize/references.js.
+ * also needs the second pass in canonicalize/references.js. Every key here also has its mark
+ * file componentSpecs/keys/section/<key>.js (since: 3, shape, description): that is what
+ * raises the schema version of a definition using it and lists it for the AI builder.
  * @type {Readonly<Record<string, import('./shared').OptionalKeyCleaner>>}
  */
 const SECTION_OPTIONAL_KEYS = Object.freeze({});
@@ -129,4 +131,4 @@ function canonScreen(screen, path, ids, push) {
     return out;
 }
 
-module.exports = { canonScreen };
+module.exports = { canonScreen, SECTION_OPTIONAL_KEYS };

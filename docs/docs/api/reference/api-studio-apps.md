@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-82 routes, 46 with a request schema. Back to the [endpoint reference](../reference.md).
+86 routes, 50 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -222,6 +222,58 @@ No request schema.
 | `messages` | array of object | yes |  |
 | `messages[].role` | string |  | max length 20 |
 | `messages[].content` | any |  |  |
+
+### `GET /api/studio-apps/:id/assets`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Query:** object (no other keys)
+
+### `POST /api/studio-apps/:id/assets`
+
+**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireOwnedApp`, `uploadGuardMiddleware`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Query:** object (no other keys)
+
+**Body:** object (no other keys)
+
+### `GET /api/studio-apps/:id/assets/:assetId`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `assetId` | string | yes |  |
+
+**Query:** object (no other keys)
+
+### `DELETE /api/studio-apps/:id/assets/:assetId`
+
+**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `assetId` | string | yes |  |
+
+**Query:** object (no other keys)
 
 ### `POST /api/studio-apps/:id/check`
 

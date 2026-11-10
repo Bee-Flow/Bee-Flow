@@ -94,10 +94,12 @@ const {
 const {
     BINDING_KINDS,
     BINDING_KIND_SINCE,
+    BINDING_KIND_DOCS,
     INPUT_MAPPING_KINDS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
 } = require('./componentSpecs/bindings');
+const { KEY_MARKS } = require('./componentSpecs/keyMarks');
 const {
     VARIABLE_TYPES,
     VARIABLE_TYPE_DEFAULTS,
@@ -329,6 +331,7 @@ module.exports = {
     COLOR_ROLES,
     BINDING_KINDS,
     BINDING_KIND_SINCE,
+    BINDING_KIND_DOCS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
     INPUT_MAPPING_KINDS,
@@ -354,6 +357,7 @@ module.exports = {
     EVENT_NAMES,
     SECTION_STYLE_KNOBS,
     SECTION_STYLE_DEFAULTS,
+    KEY_MARKS,
     BASE_COMPONENT_TYPES,
     COMPONENT_SPECS,
     COMPONENT_TYPES,

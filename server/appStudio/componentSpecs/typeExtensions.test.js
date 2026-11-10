@@ -2,7 +2,8 @@
 /**
  * typeExtensions.js: component types added as files in componentSpecs/types/.
  *
- * The shipped registry is empty; a fixture directory written per test proves the mechanism.
+ * A fixture directory written per test proves the mechanism; what the registry ships (nothing,
+ * or any number of files) is only held to the rules every entry follows.
  * Run: node --test appStudio/componentSpecs/typeExtensions.test.js
  */
 
@@ -49,9 +50,19 @@ function fixtureDir(files) {
     return dir;
 }
 
-test('the shipped registry is empty: the catalog is exactly the base', () => {
-    assert.deepEqual(specs.COMPONENT_TYPES, [...specs.BASE_COMPONENT_TYPES]);
-    assert.deepEqual(Object.keys(loadTypeExtensions(path.join(__dirname, 'types'), CTX)), []);
+test('the catalog is the base types, then the registry files in file-name order', () => {
+    const base = [...specs.BASE_COMPONENT_TYPES];
+    assert.deepEqual(specs.COMPONENT_TYPES.slice(0, base.length), base, 'the base types come first, in their own order');
+    // Read the shipped directory against the base only, the way the hub does.
+    const baseSpecs = Object.fromEntries(base.map((type) => [type, specs.COMPONENT_SPECS[type]]));
+    const shipped = loadTypeExtensions(path.join(__dirname, 'types'), { ...CTX, baseSpecs });
+    assert.deepEqual(specs.COMPONENT_TYPES.slice(base.length), Object.keys(shipped));
+    for (const [type, spec] of Object.entries(shipped)) {
+        assert.equal(specs.COMPONENT_SPECS[type], spec, `${type}: the hub serves the registry file's own object`);
+        assert.ok(Number.isInteger(spec.since) && spec.since >= 3, `componentSpecs/types/${type}.js: since is an integer of 3 or more`);
+        assert.ok(spec.mobile && spec.mobile.reason.trim(), `componentSpecs/types/${type}.js: mobile.reason says why the phone leaves it to the browser`);
+    }
+    for (const type of base) assert.equal(specs.COMPONENT_SPECS[type].since, undefined, `${type} is base: no since`);
 });
 
 test('a missing directory is an empty registry', () => {

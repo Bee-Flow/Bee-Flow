@@ -39,7 +39,10 @@ type SectionModules = Record<string, { default?: ThemeSectionEntry }>;
 
 function sectionModules(): SectionModules {
     try {
-        return import.meta.glob<{ default?: ThemeSectionEntry }>(['./themeSections/*.tsx', '!./themeSections/*.test.tsx'], { eager: true });
+        // No type argument on the call, on purpose: vitest keeps a transformed module on disk
+        // between runs unless its text holds the call exactly as `import.meta.glob(`, and a
+        // kept copy would not see a file added to the folder.
+        return import.meta.glob(['./themeSections/*.tsx', '!./themeSections/*.test.tsx'], { eager: true }) as Record<string, { default?: ThemeSectionEntry }>;
     } catch {
         return {};
     }

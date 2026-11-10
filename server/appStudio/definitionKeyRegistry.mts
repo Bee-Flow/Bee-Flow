@@ -34,6 +34,10 @@ export interface DefinitionKeyEntry {
     canon: (value: unknown, push: Push, ctx: CanonContext) => unknown;
     validate?: (value: unknown, ctx: ValidateContext) => void;
     public?: boolean;
+    /** For the AI builder's catalogue: one sentence on what the key does and which tool writes it. */
+    description?: string;
+    /** For the AI builder's catalogue: the value's shape, as catalogue text. */
+    shape?: string;
 }
 
 /** Keys the canonicalizer builds itself: a registry entry may never claim one. */

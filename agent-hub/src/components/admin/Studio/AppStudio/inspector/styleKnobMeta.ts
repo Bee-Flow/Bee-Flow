@@ -12,6 +12,7 @@
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { KIND_OPTIONS } from './actionKindCatalog';
 import type { StyleKnobTable, UnitRange } from './styleKnobMeta.types';
+import { STYLE_KNOB_LABELS } from '../runtime/styleKnobHandlers';
 import {
     advancedHeightKnobs,
     advancedWidthKnobs,
@@ -51,7 +52,7 @@ const RESPONSIVE_VISIBILITY_KNOBS: string[] = responsiveVisibilityKnobs;
  * the literal string "undefined". knobLabel() falls back to the key, so the
  * next knob added to STYLE_KNOBS shows its own name rather than nothing.
  */
-const KNOB_KEYS: Record<string, [string, string]> = {
+const BASE_KNOB_KEYS: Record<string, [string, string]> = {
     span: ['studio_apps_insp.knobs.span', 'Width'],
     size: ['studio_apps_insp.knobs.size', 'Size'],
     align: ['studio_apps_insp.knobs.align', 'Align'],
@@ -70,6 +71,9 @@ const KNOB_KEYS: Record<string, [string, string]> = {
     hideBelow: ['studio_apps_insp.knobs.hide_below', 'Hide below'],
     hideAbove: ['studio_apps_insp.knobs.hide_above', 'Hide from'],
 };
+
+// The knobs of a group added after the base are named by the group's own file (runtime/styleKnobs/<group>.ts `labels`).
+const KNOB_KEYS: Record<string, [string, string]> = { ...STYLE_KNOB_LABELS, ...BASE_KNOB_KEYS };
 
 export const KNOB_LABELS: Record<string, string> = Object.fromEntries(Object.entries(KNOB_KEYS).map(([k, [, en]]) => [k, en]));
 

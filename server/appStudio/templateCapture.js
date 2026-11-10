@@ -35,6 +35,8 @@
  *   • Seed rows lose `file` fields. A file value points at a row in
  *     studio_app_attachments belonging to THIS app; the bytes do not travel
  *     with the template, so the value would resolve to nothing.
+ *   • `asset:<id>` values (an uploaded logo, image or font) become null, for
+ *     the same reason, with a warning in the report (appAssets.mts).
  *   • Seed rows lose `computed` fields — derived by definition, and a stored
  *     computed column is written by the engine, not by the seed.
  *   • Relations become { $ref } aliases. A relation holds a real rec_ id, which
@@ -77,6 +79,7 @@ const { canonicalizeAppDefinition } = require('./canonicalize');
 const { validateAppDefinition } = require('./validate');
 const { canonicalizeDataModel, SYSTEM_COLUMNS } = require('./dataModel');
 const log = require('../telemetry/log');
+const { cleanStr, cleanTags } = require('./templateCaptureText.mts');
 
 // Mirrors templateInstall.MAX_SEED_ROWS_PER_TABLE. Kept as a default rather
 // than a require so the pure half of this module loads without the store graph;
@@ -400,29 +403,6 @@ function normalizeSeedPeople(spec, model) {
 }
 
 /**
- * Trim + cap a string field, returning null when nothing is left.
- * @param {number} max
- */
-function cleanStr(value, max) {
-    if (typeof value !== 'string') return null;
-    const trimmed = value.trim();
-    return trimmed ? trimmed.slice(0, max) : null;
-}
-
-/** Tag list: strings only, deduped, capped. */
-function cleanTags(value) {
-    if (!Array.isArray(value)) return [];
-    /** @type {string[]} */
-    const out = [];
-    for (const tag of value) {
-        const clean = cleanStr(tag, 40);
-        if (clean && !out.includes(clean)) out.push(clean);
-        if (out.length >= 8) break;
-    }
-    return out;
-}
-
-/**
  * captureTemplate — the pure half. Everything it needs is passed in; it does no
  * I/O, so the interesting rules are testable without a database.
  *
@@ -473,7 +453,6 @@ function captureTemplate({
     // One sweep, shared with automation export and with Blueprint packaging.
     // It nulls automation references as this module always did, and additionally
     // removes the approver seats and knowledge-base references that NEITHER
-    // removes the approver seats and knowledge-base references that NEITHER
     // export path would otherwise remove — one organisation's user, group and KB ids
     const { scrubAppDefinition, RULES } = require('../core/packaging/scrub');
     const scrubbed = scrubAppDefinition(def);
@@ -481,6 +460,9 @@ function captureTemplate({
         .filter(r => r.rule === RULES.APP_AUTOMATION_REFERENCE)
         .map(r => r.automationId);
     const approverSeatsRemoved = scrubbed.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY).length;
+    // Uploaded files of this app (`asset:<id>`) do not travel yet: their bytes stay here, so
+    // the copy would point at nothing. Cut, and said in the report (appAssets.mts).
+    const assetRefsRemoved = require('./appAssets.mts').stripAssetRefs(def);
 
     // The template's own meta drives the app card of anything installed from
     // it, so it carries the template's name rather than the source app's.
@@ -601,6 +583,9 @@ function captureTemplate({
         if (seedDropped.rows) warnings.push(`${seedDropped.rows} seed row(s) dropped (not an object, or over the ${seedCeiling}-row per-table ceiling).`);
         if (seedDropped.refs) warnings.push(`${seedDropped.refs} relation value(s) emptied: they pointed at rows this file does not carry.`);
         if (seedDropped.duplicateAliases) warnings.push(`${seedDropped.duplicateAliases} seed row(s) reuse an alias another row already claimed; a reference to it resolves to the last one seeded.`);
+    }
+    if (assetRefsRemoved.length) {
+        warnings.push(`${assetRefsRemoved.length} uploaded file reference(s) removed (${assetRefsRemoved.slice(0, 3).join(', ')}): uploaded images, logos and fonts do not travel with a template or an export yet. Upload them again in the new app.`);
     }
     for (const what of peopleDropped) {
         warnings.push(`The demo-people declaration was dropped (${what}) — seeded rows keep the names the file carries.`);

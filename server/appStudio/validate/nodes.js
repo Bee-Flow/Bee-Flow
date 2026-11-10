@@ -18,7 +18,7 @@ const {
     FORMULA_SCOPE_ROOTS,
     COMPONENT_SPECS, COMPONENT_TYPES,
 } = require('../componentSpecs');
-const { valueTypeOf, isCleanValue } = require('../componentSpecs/valueTypes');
+const { valueTypeOf, isCleanValue, isAssetRef } = require('../componentSpecs/valueTypes');
 const { isObject, pickClosestId } = require('./shared');
 const { validateFormula } = require('./formulas');
 const { checkTableRef, checkTableSource } = require('./refs');
@@ -56,6 +56,8 @@ function validatePropValue(key, fs, value, path, ctx) {
             return;
         }
         case 'url': {
+            // An uploaded file of the app; whether it still exists is checked once per definition (validate/assetChecks.mts).
+            if (isAssetRef(value)) return;
             if (typeof value !== 'string') { pushE({ code: 'prop.type', severity: 'error', path, message: `\`${key}\` must be a URL string.`, hint: 'Pass an https:// URL.' }); return; }
             let ok = false;
             try { ok = new URL(value).protocol === 'https:'; } catch { ok = false; }

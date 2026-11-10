@@ -5,8 +5,8 @@
 
 'use strict';
 
-const { LIMITS, SCHEMA_VERSION_BASE } = require('../componentSpecs');
-const { isObject, deepCopy, truncate } = require('./shared');
+const { LIMITS } = require('../componentSpecs');
+const { isObject, deepCopy, truncate, isLateEntry } = require('./shared');
 const { cleanBinding } = require('./bindings');
 
 // ---------------------------------------------------------------------------
@@ -79,22 +79,15 @@ function cleanPropValue(fs, raw, path, push) {
 }
 
 /**
- * Whether cleanProps leaves `key` out. A prop marked `since` above the base
- * version is written only when it is set, so a definition that does not use
- * it keeps its bytes and its version; it is never filled from its default.
- * @param {{ since?: unknown, default?: unknown }} fs
+ * The props of a type that a node's canonical form holds: every base prop (filled from its
+ * default when the node lacks it), and a prop added after the base only when the node carries
+ * a value for it (null means not set).
+ * @param {Record<string, any>} specProps
  * @param {Record<string, unknown>} provided
- * @param {string} key
+ * @returns {Array<[string, any]>}
  */
-function skipsUnsetLaterProp(fs, provided, key) {
-    if (!(typeof fs.since === 'number' && fs.since > SCHEMA_VERSION_BASE)) return false;
-    const v = provided[key];
-    return v === undefined || (v === null && fs.default == null);
-}
-
-/** The value a missing prop is filled with: its spec default, null when it has none. */
-function defaultOf(fs) {
-    return deepCopy(fs.default === undefined ? null : fs.default);
+function propsToWrite(specProps, provided) {
+    return Object.entries(specProps).filter(([key, fs]) => !isLateEntry(fs) || (provided[key] !== undefined && provided[key] !== null));
 }
 
 /**
@@ -111,12 +104,11 @@ function cleanProps(node, spec, id, path, push) {
     const props = {};
     /** @type {string[]} */
     const filled = [];
-    for (const [key, fs] of Object.entries(spec.props)) {
-        if (skipsUnsetLaterProp(fs, provided, key)) continue;
+    for (const [key, fs] of propsToWrite(spec.props, provided)) {
         if (key in provided) {
             props[key] = cleanPropValue(fs, provided[key], `${path}.props.${key}`, push);
         } else {
-            props[key] = defaultOf(fs);
+            props[key] = deepCopy(fs.default === undefined ? null : fs.default);
             filled.push(key);
         }
     }
@@ -142,7 +134,7 @@ module.exports = { cleanPropValue, cleanProps };
 
 /**
  * @typedef {{
- *   type: string, maxLen?: number, itemMaxLen?: number, default?: unknown, since?: number,
+ *   type: string, maxLen?: number, itemMaxLen?: number, default?: unknown,
  *   itemShape?: Record<string, { maxLen?: number }>,
  * }} PropFieldSpec  One entry of a COMPONENT_SPECS `props` table.
  */

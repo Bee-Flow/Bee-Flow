@@ -72,6 +72,7 @@ export default function RecordTargetField({ step, onChange, definition, node = n
                         filters={filters}
                         onChange={(next) => onChange({ ...step, filter: next })}
                         allowFormula
+                        allowGroups
                         definition={definition}
                         node={node}
                         disabled={disabled}

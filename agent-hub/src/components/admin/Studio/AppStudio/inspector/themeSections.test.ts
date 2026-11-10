@@ -6,8 +6,13 @@ const Section = (_props: ThemeSectionProps) => null;
 const late: ThemeSectionEntry = { Section, order: 200 };
 
 describe('theme panel sections added as files', () => {
-    it('ships empty: the panel is exactly its own sections', () => {
-        expect(THEME_SECTIONS).toEqual([]);
+    it('every shipped section is a component under its own name, in panel order', () => {
+        // Nothing, or any number of files: the panel draws them between its own sections.
+        for (const section of THEME_SECTIONS) expect(typeof section.Section, section.name).toBe('function');
+        const names = THEME_SECTIONS.map((s) => s.name);
+        expect(new Set(names).size).toBe(names.length);
+        const order = THEME_SECTIONS.map((s) => s.order ?? 100);
+        expect(order).toEqual([...order].sort((a, b) => a - b));
     });
 
     it('orders by `order`, then by file name', () => {

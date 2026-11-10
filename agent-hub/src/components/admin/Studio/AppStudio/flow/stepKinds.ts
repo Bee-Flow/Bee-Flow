@@ -82,7 +82,10 @@ export function buildStepKinds(modules: Record<string, { default: StepKindModule
     return { extension, stepMeta, paletteGroups, newStep };
 }
 
-const catalog = buildStepKinds(import.meta.glob<{ default: StepKindModule }>(['./steps/*.ts', '!./steps/*.test.ts'], { eager: true }));
+// No type argument on the call, on purpose: vitest keeps a transformed module on disk
+// between runs unless its text holds the call exactly as `import.meta.glob(`, and a
+// kept copy would not see a file added to the folder.
+const catalog = buildStepKinds(import.meta.glob(['./steps/*.ts', '!./steps/*.test.ts'], { eager: true }) as Record<string, { default: StepKindModule }>);
 
 /** The registry kinds the editor knows, by kind. */
 export const EXTENSION_STEP_KINDS = catalog.extension;

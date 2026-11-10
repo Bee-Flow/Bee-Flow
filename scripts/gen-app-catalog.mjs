@@ -66,16 +66,22 @@ export const DEMO_TYPES = [
 const OPTIONAL_TYPE_FIELDS = ['since', 'mobile', 'parts'];
 
 /**
- * The spec's per-prop defaults: exactly what canonicalize fills in (absent = null).
- * A prop marked `since` 3 or later is never filled in, so it is not here either.
+ * The spec's per-prop defaults: exactly what canonicalize fills in (absent = null). A prop
+ * added after the base (`since` 3 or higher) is not filled by canonicalize and is left out
+ * here too, so a node made from the palette does not carry it until its author sets it.
  */
 export function defaultPropsOf(spec) {
     const out = {};
     for (const [key, field] of Object.entries(spec.props || {})) {
-        if (typeof field.since === 'number' && field.since >= 3) continue;
+        if (isLate(field)) continue;
         out[key] = field.default === undefined ? null : field.default;
     }
     return out;
+}
+
+/** True for an entry added after the frozen base (schema version 2): it carries `since` 3 or higher. */
+function isLate(field) {
+    return Number.isInteger(field?.since) && field.since > 2;
 }
 
 function typeEntry(spec) {
@@ -94,8 +100,9 @@ function enumFields(table) {
     return out;
 }
 
+/** The defaults a new screen starts with. A key added after the base is not one of them: it is written only when set. */
 function defaultsOf(table) {
-    return Object.fromEntries(Object.entries(table).map(([key, field]) => [key, field.default === undefined ? null : field.default]));
+    return Object.fromEntries(Object.entries(table).filter(([, field]) => !isLate(field)).map(([key, field]) => [key, field.default === undefined ? null : field.default]));
 }
 
 function stepEntry(kind, spec, clientKinds) {
