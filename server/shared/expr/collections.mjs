@@ -189,6 +189,15 @@ export const COLLECTION_FUNCTIONS = {
     range: (/** @type {unknown} */ a, /** @type {unknown} */ b, /** @type {unknown} */ c) => rangeOf(a, b, c),
 };
 
+/**
+ * What a function built besides its own result list, for the work budget
+ * (limits.mjs spendOn): groupBy() files every item of its list in a group.
+ * @param {string} name @param {unknown[]} args
+ */
+export function builtBesides(name, args) {
+    return name === 'groupBy' && Array.isArray(args[0]) ? args[0].length : 0;
+}
+
 /** reduce(list, expr, start): a special form in the engine (the body reads `acc` and `it`). */
 export const REDUCE_FN = 'reduce';
 

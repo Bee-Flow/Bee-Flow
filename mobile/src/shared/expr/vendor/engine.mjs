@@ -79,7 +79,7 @@ import { checkRegexCall } from './regex.mjs';
 import { checkDateUnit } from './dates.mjs';
 import { LIST_FUNCTION_DOCS, EACH_FUNCTIONS } from './lists.mjs';
 import { COLLECTION_FUNCTION_DOCS, REDUCE_FN } from './collections.mjs';
-import { ExprError, MAX_LITERAL_DEPTH } from './limits.mjs';
+import { ExprError, MAX_LITERAL_DEPTH, asLimitError } from './limits.mjs';
 import { evalNode, newEnv } from './evaluator.mjs';
 
 export { ExprError }; // defined in limits.mjs so the functions can throw it
@@ -404,7 +404,8 @@ function parse(tokens, host) {
 
 /** Parse an expression string → AST. Throws ExprError on bad grammar. */
 export function parseExpr(src, opts) {
-    return parse(tokenize(src, opts), opts?.host || null);
+    // A text nested so deep that the parser runs out of stack is a limit, like any other.
+    try { return parse(tokenize(src, opts), opts?.host || null); } catch (e) { throw asLimitError(e); }
 }
 
 /** Parse + collect referenced roots WITHOUT executing. Throws on bad grammar. */
@@ -420,7 +421,9 @@ export function compile(src, opts) {
  */
 export function evaluate(src, scope, opts) {
     const ast = typeof src === 'string' ? parseExpr(src, opts) : src;
-    return evalNode(ast, scope || {}, newEnv(opts?.host));
+    // One budget for the whole evaluation (evaluator.mjs newEnv). A value or tree too deep for the
+    // runtime (toStr, equals and JSON.stringify recurse) ends as an ExprError as well.
+    try { return evalNode(ast, scope || {}, newEnv(opts?.host, countsAllWork(ast))); } catch (e) { throw asLimitError(e); }
 }
 
 /**
@@ -444,6 +447,22 @@ const EXPR_FUNCTION_NAMES = [...PLAIN_FUNCTION_NAMES, ...EACH_FUNCTIONS, REDUCE_
 /** @type {Map<string, number>} */
 const SINCE_BY_NAME = new Map();
 for (const doc of COLLECTION_FUNCTION_DOCS) SINCE_BY_NAME.set(doc.name, doc.since);
+
+/** @type {WeakMap<object, boolean>} */
+const ALL_WORK = new WeakMap();
+
+/**
+ * Whether an evaluation of this tree counts what its functions hand back
+ * against the work budget (limits.mjs): a tree that uses something the
+ * earlier language did not have. Remembered per tree: a tree is evaluated
+ * once per row.
+ */
+function countsAllWork(ast) {
+    if (!ast || typeof ast !== 'object') return false;
+    let full = ALL_WORK.get(ast);
+    if (full === undefined) { full = sinceOf(ast, SINCE_BY_NAME) >= 3; ALL_WORK.set(ast, full); }
+    return full;
+}
 
 /**
  * The schema version of the app definition an expression needs: 3 when it

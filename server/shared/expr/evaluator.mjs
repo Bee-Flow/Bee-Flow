@@ -7,7 +7,8 @@
 
 import { FUNCTIONS } from './functions.mjs';
 import { jsonCacheFor, stepInto, stepMatch, walkTokens } from './path.mjs';
-import { ExprError, MAX_USER_FUNCTIONS, guardSize, guardValue, tickEach } from './limits.mjs';
+import { ExprError, MAX_USER_FUNCTIONS, guardSize, guardValue, spendOn, tickEach } from './limits.mjs';
+import { builtBesides } from './collections.mjs';
 
 const hasOwn = (/** @type {unknown} */ o, /** @type {string} */ k) => o != null && Object.prototype.hasOwnProperty.call(o, k);
 
@@ -16,10 +17,10 @@ const hasOwn = (/** @type {unknown} */ o, /** @type {string} */ k) => o != null 
  * The evaluation environment: the host table, the item of the innermost
  * map/filter/some/every/reduce (`it`), the result so far of the innermost
  * reduce (`acc`), how many author functions are being answered (`depth`), and
- * the item budget shared by the whole evaluation (limits.mjs tickEach, guardSize).
+ * the budget shared by the whole evaluation (limits.mjs tickEach, spend, guardSize).
  * @typedef {{ kind: string, [field: string]: any }} Node a parsed node or path segment
  * @typedef {{ fn?: (...args: unknown[]) => unknown, unanswered?: string, pure?: boolean, params?: string[], body?: Node }} HostEntry
- * @typedef {{ host: Record<string, HostEntry> | null, it: unknown, acc: unknown, depth: number, budget: { used: number, sizes?: WeakMap<object, number> } }} EvalEnv
+ * @typedef {{ host: Record<string, HostEntry> | null, it: unknown, acc: unknown, depth: number, budget: { used: number, work: number, full: boolean, sizes?: WeakMap<object, { size: number, depth: number }> } }} EvalEnv
  */
 
 /** @param {Node[]} segments @param {unknown} runState @param {EvalEnv} env @returns {any} */
@@ -99,8 +100,11 @@ function evalArgs(n, ctx, env) {
 function evalCall(n, ctx, env) {
     const fn = /** @type {Record<string, (...args: any[]) => unknown>} */ (FUNCTIONS)[n.name];
     if (!fn) throw new ExprError(`Unknown function: ${n.name}`);
-    // Every produced text passes the cap (limits.mjs).
-    return guardValue(fn(...evalArgs(n, ctx, env)));
+    const values = evalArgs(n, ctx, env);
+    // Every produced text passes the cap, and every result counts as work (limits.mjs).
+    const out = guardValue(fn(...values));
+    // An argument handed back as it came (default(x, y)) was not produced here.
+    return values.includes(out) ? out : spendOn(out, env.budget, builtBesides(n.name, values));
 }
 
 /** A host function the caller answers. @param {Node} n @param {unknown} ctx @param {EvalEnv} env @returns {any} */
@@ -127,7 +131,7 @@ function evalUnop(n, ctx, env) {
  * @type {Record<string, (a: any, b: any) => unknown>}
  */
 const BINARY_OPS = {
-    '+': (a, b) => guardValue(a + b), // a text `+` grows like concat(): same cap
+    '+': (a, b) => guardValue(a + b), // a text `+` grows like concat(): same cap (and it counts as work: evalBinop)
     '-': (a, b) => a - b,
     '*': (a, b) => a * b,
     '/': (a, b) => a / b,
@@ -155,7 +159,8 @@ function evalBinop(n, ctx, env) {
     const b = evalNode(n.b, ctx, env);
     const op = hasOwn(BINARY_OPS, n.op) ? BINARY_OPS[n.op] : undefined;
     if (!op) throw new ExprError(`Unknown operator: ${n.op}`);
-    return op(a, b);
+    const out = op(a, b);
+    return typeof out === 'string' ? spendOn(out, env.budget) : out;
 }
 
 /**
@@ -178,7 +183,7 @@ function evalEach(n, ctx, env) {
         else if (n.name === 'some') { if (v) return true; }
         else if (!v) return false;
     }
-    if (many) return out;
+    if (many) return spendOn(out, env.budget, -out.length); // its items were counted one by one
     return n.name === 'every' && list.length > 0;
 }
 
@@ -215,15 +220,18 @@ function evalUserCall(n, ctx, env) {
     if (env.depth >= MAX_USER_FUNCTIONS) throw new ExprError(`${n.name}(): functions call each other more than ${MAX_USER_FUNCTIONS} deep`);
     tickEach(env.budget);
     const values = evalArgs(n, ctx, env);
-    if (typeof h.fn === 'function') return guardSize(guardValue(h.fn(...values)), env.budget);
+    if (typeof h.fn === 'function') return guardSize(spendOn(guardValue(h.fn(...values)), env.budget), env.budget);
     const params = Array.isArray(h.params) ? h.params : [];
     const scope = Object.fromEntries(params.map((p, i) => [p, values[i]]));
     return guardSize(evalNode(/** @type {Node} */ (body), scope, { host: env.host, it: undefined, acc: undefined, depth: env.depth + 1, budget: env.budget }), env.budget);
 }
 
-/** A fresh environment for one evaluation. @param {EvalEnv['host'] | undefined} host @returns {EvalEnv} */
-function newEnv(host) {
-    return { host: host || null, it: undefined, acc: undefined, depth: 0, budget: { used: 0 } };
+/**
+ * A fresh environment for one evaluation. `full`: count what functions hand back as work (limits.mjs).
+ * @param {EvalEnv['host'] | undefined} host @param {boolean} [full] @returns {EvalEnv}
+ */
+function newEnv(host, full = false) {
+    return { host: host || null, it: undefined, acc: undefined, depth: 0, budget: { used: 0, work: 0, full } };
 }
 
 /**
@@ -238,9 +246,9 @@ const EVALUATORS = Object.assign(Object.create(null), {
     path: (/** @type {Node} */ n, /** @type {unknown} */ ctx, /** @type {EvalEnv} */ env) => walkPath(n.segments, ctx, env),
     each: evalEach,
     reduce: evalReduce,
-    list: (/** @type {Node} */ n, /** @type {unknown} */ ctx, /** @type {EvalEnv} */ env) => guardSize(evalArgs(n, ctx, env), env.budget),
+    list: (/** @type {Node} */ n, /** @type {unknown} */ ctx, /** @type {EvalEnv} */ env) => guardSize(spendOn(evalArgs(n, ctx, env), env.budget), env.budget),
     // fromEntries defines own properties, so a "__proto__" key stays a key.
-    object: (/** @type {Node} */ n, /** @type {unknown} */ ctx, /** @type {EvalEnv} */ env) => guardSize(Object.fromEntries(n.keys.map((/** @type {string} */ k, /** @type {number} */ i) => [k, evalNode(n.args[i], ctx, env)])), env.budget),
+    object: (/** @type {Node} */ n, /** @type {unknown} */ ctx, /** @type {EvalEnv} */ env) => guardSize(spendOn(Object.fromEntries(n.keys.map((/** @type {string} */ k, /** @type {number} */ i) => [k, evalNode(n.args[i], ctx, env)])), env.budget), env.budget),
     usercall: evalUserCall,
     call: evalCall,
     hostcall: evalHostCall,

@@ -16,6 +16,14 @@
  *
  * It is never regenerated with the engine it is meant to check. A new corpus file or a new
  * golden case is simply not in it.
+ *
+ * `formulaAdditions.json` is the other half, written by the same old engine:
+ *
+ *   node server/appStudio/compat/formulaBaseline.mts --additions <dir>/server/shared/expr --base <rev>
+ *
+ * For every text of ADDITIONS below (one or more per thing that was added) it keeps the error the
+ * OLD parser gave. A text is only written when the old engine refused it, so the file is the
+ * proof that each addition could not be written in a formula that was valid before.
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -24,7 +32,16 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const BASELINE_FILE = path.join(HERE, 'formulaBaseline.json');
+export const ADDITIONS_FILE = path.join(HERE, 'formulaAdditions.json');
 const CORPUS_DIR = path.join(HERE, 'corpus');
+
+/** What the engine gained after the baseline: every function, literal form and operator, in use. */
+export const ADDITIONS: readonly string[] = Object.freeze([
+    'sort(a)', 'sort(a, "k", "desc")', 'reverse(a)', 'slice(a, 1)', 'slice(a, 1, 2)', 'groupBy(a, "k")',
+    'reduce(a, acc + it, 0)', 'keys(a)', 'values(a)', 'merge(a, b)', 'range(3)', 'range(1, 9, 2)',
+    '[1, 2]', '[]', '[a, [b]]', '[1, 2][0]', '{ a: 1 }', '{}', '{ "a b": 1 }.a', 'a ?? b', 'a ? [1] : b',
+    'len([1])', 'map(a, { id: it.id })', 'sum(map(range(3), it))',
+]);
 
 /** The scope every candidate is evaluated against. Fixed: the fingerprints depend on it. */
 export const SCOPE = Object.freeze({
@@ -106,14 +123,33 @@ async function write(engineDir: string, base: string): Promise<void> {
     process.stdout.write(`${about.parsed} of ${about.candidates} candidates parsed at ${base}\n`);
 }
 
+/** The error an engine's parser gives for a text, or null when it parses. */
+export function parseError(engine: Engine, expr: string): string | null {
+    try { engine.parseExpr(expr); return null; } catch (e) { return e instanceof Error ? `${e.name}: ${e.message}` : String(e); }
+}
+
+async function writeAdditions(engineDir: string, base: string): Promise<void> {
+    const engine: Engine & { EXPR_FUNCTION_NAMES: string[] } = await import(pathToFileURL(path.join(engineDir, 'index.mjs')).href);
+    const rejected: Record<string, string> = {};
+    for (const expr of ADDITIONS) {
+        const error = parseError(engine, expr);
+        if (error === null) throw new Error(`the engine at ${base} parses ${expr}: it is not an addition`);
+        rejected[expr] = error;
+    }
+    const about = { base, note: 'The parse error of the engine at `base` for every text of ADDITIONS, and the functions it had; see formulaBaseline.mts. Never regenerate with a later engine.', functions: engine.EXPR_FUNCTION_NAMES };
+    fs.writeFileSync(ADDITIONS_FILE, `${JSON.stringify({ about, rejected }, null, 2)}\n`);
+    process.stdout.write(`${ADDITIONS.length} additions refused at ${base}\n`);
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    const at = process.argv.indexOf('--write');
+    const additions = process.argv.indexOf('--additions');
+    const at = additions > 0 ? additions : process.argv.indexOf('--write');
     const b = process.argv.indexOf('--base');
     if (at < 0 || !process.argv[at + 1]) {
-        process.stderr.write('usage: formulaBaseline.mts --write <dir of the OLD server/shared/expr> [--base <rev>]\n');
+        process.stderr.write('usage: formulaBaseline.mts --write|--additions <dir of the OLD server/shared/expr> [--base <rev>]\n');
         process.exitCode = 2;
     } else {
         // No top-level await: formulas.test.js loads this file with require().
-        write(path.resolve(process.argv[at + 1]), (b > 0 && process.argv[b + 1]) || 'unknown').catch((e: unknown) => { process.stderr.write(`${e instanceof Error ? e.stack : String(e)}\n`); process.exitCode = 1; });
+        (additions > 0 ? writeAdditions : write)(path.resolve(process.argv[at + 1]), (b > 0 && process.argv[b + 1]) || 'unknown').catch((e: unknown) => { process.stderr.write(`${e instanceof Error ? e.stack : String(e)}\n`); process.exitCode = 1; });
     }
 }
