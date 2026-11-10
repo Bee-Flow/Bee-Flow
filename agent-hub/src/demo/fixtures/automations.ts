@@ -15,7 +15,7 @@
 import { COMMON_ROUTES, daysAgo, minutesAgo } from './common';
 import { AI_ACT_ROUTES, seedAiAct } from './automationsAiAct';
 import { REPEATING_ROUTES } from './automationsRepeating';
-import { recordRun, runRoutes, seedRuns } from './automationsRuns';
+import { heldBackInDryRun, recordRun, rowOf, runRoutes, seedRuns } from './automationsRuns';
 import type { DemoRun } from './automationsRuns';
 import { SETTINGS_LIBRARY_ROUTES, SETTINGS_ROUTES, seedFolders, seedShares, seedTrash, seedWebhooks } from './automationsSettings';
 import { TEMPLATE_ROUTES } from './automationsTemplates';
@@ -27,6 +27,7 @@ import { MAIL_FANOUT_CATALOG_APP, MAIL_FANOUT_STEP_RESULTS, mailFanoutAutomation
 import { MAIL_FLATTEN_STEP_RESULTS, ORDERS_FLATTEN_STEP_RESULTS, mailFlattenAutomationFields, ordersFlattenAutomationFields, seedMailFlattenRuns } from './automationsMailFlatten';
 import { NESTED_CATALOG_APPS, NESTED_STEP_RESULTS, nestedAutomationFields, seedNestedRuns } from './automationsNested';
 import { VERSION_ROUTES, recordSave, seedVersions } from './automationsVersions';
+import { demoDate, demoNow } from '../demoClock';
 
 type Obj = Record<string, unknown>;
 
@@ -629,8 +630,8 @@ function runEnvelope(automationId: string, stepIds: string[]) {
             id: 'run_demo_live',
             automationId,
             status: 'success',
-            startedAt: new Date(Date.now() - 1200).toISOString(),
-            finishedAt: new Date().toISOString(),
+            startedAt: new Date(demoNow() - 1200).toISOString(),
+            finishedAt: demoDate().toISOString(),
             stepCount: stepIds.length,
             demo: true,
         },
@@ -676,7 +677,7 @@ export const ROUTES = {
         const task = find(state.tasks, params.id);
         if (!task) return notFound();
         task.lastStatus = 'success';
-        task.lastRunAt = new Date().toISOString();
+        task.lastRunAt = demoDate().toISOString();
         task.runCount += 1;
         task.lastResult = 'Demo run — this is sample output. In the product this is what the model actually returned.';
         return { success: true, message: 'Cowork started. The result arrives in your notifications.' };
@@ -696,7 +697,7 @@ export const ROUTES = {
             description: body?.description || '',
             definition: body?.definition || { trigger: { id: 'trg', kind: 'manual' }, steps: [], edges: [] },
             version: 1, liveVersion: null, liveAt: null, neverLive: true, isDraft: true, isActive: false,
-            lastRunAt: null, lastStatus: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+            lastRunAt: null, lastStatus: null, createdAt: demoDate().toISOString(), updatedAt: demoDate().toISOString(),
         });
         state.automations.unshift(created);
         return { success: true, automation: created };
@@ -708,7 +709,7 @@ export const ROUTES = {
         if (!a) return notFound();
         const { version: _v, liveVersion: _l, pendingChanges: _p, ...changes } = body || {};
         const previous = a.definition;
-        Object.assign(a, changes, { updatedAt: new Date().toISOString() });
+        Object.assign(a, changes, { updatedAt: demoDate().toISOString() });
         recordSave(state, a, previous);
         return { success: true, automation: a, warnings: [] };
     },
@@ -716,7 +717,7 @@ export const ROUTES = {
     'POST /api/automation/:id/activate': ({ state, params }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
-        if (a.liveVersion == null) Object.assign(a, { liveVersion: a.version, liveAt: new Date().toISOString(), neverLive: false, isDraft: false, pendingChanges: 0 });
+        if (a.liveVersion == null) Object.assign(a, { liveVersion: a.version, liveAt: demoDate().toISOString(), neverLive: false, isDraft: false, pendingChanges: 0 });
         a.isActive = true;
         return { success: true, automation: a, warnings: [] };
     },
@@ -729,7 +730,7 @@ export const ROUTES = {
     'POST /api/automation/:id/run': ({ state, params, body }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
-        a.lastRunAt = new Date().toISOString();
+        a.lastRunAt = demoDate().toISOString();
         a.lastStatus = 'success';
         // Every node lights up with its sample output, so "Run flow" shows the
         // whole behaviour rather than a toast; the Runs tab lists the run.
@@ -751,11 +752,13 @@ export const ROUTES = {
         return { ...env, stepRecord: env.steps[0] };
     },
 
-    // Dry run — same rows, flagged so the UI can label it.
-    'POST /api/automation/:id/dry-run': ({ params }: Ctx) => ({
-        ...runEnvelope(params.id, RUN_ORDER),
-        dryRun: true,
-    }),
+    // Dry run: the same rows, but the sending step is held back and says so,
+    // and the run is recorded as a dry run so the Runs tab can open it.
+    'POST /api/automation/:id/dry-run': ({ state, params }: Ctx) => {
+        if (!find(state.automations, params.id)) return notFound();
+        const run = recordRun(state, params.id, true, true);
+        return { run: rowOf(run), steps: runEnvelope(params.id, RUN_ORDER).steps.map(heldBackInDryRun), dryRun: true };
+    },
 
     // The Runs tab, the Versions tab and Settings (handoff 5). The builder
     // rehydrates the canvas from the newest run's step rows on mount

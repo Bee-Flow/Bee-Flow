@@ -20,6 +20,13 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
+// The REAL token map (in memory) and the REAL outbound guard and argument
+// restorer, loaded before the stubs go in: the Privacy Shield cases below run
+// the helpers the streaming route runs.
+const tokenMaps = require('../dlp/dlpTokenMaps');
+const realOutbound = require('../dlp/applyTokenMapToOutbound');
+const { restoreTokens } = require('../privacy/piiDetection/tokenRestore');
+
 const SYNTH_EMAIL = 'someone@example.test';
 
 const fx = {
@@ -35,6 +42,10 @@ const fx = {
     writes: [],
     /** @type {string[] | null} the tool names offered this turn (null: the one the round asks for) */
     offered: null,
+    /** @type {((messages: Array<{ content: string }>) => unknown) | null} the input-side privacy pass (null: finds nothing) */
+    validateInput: null,
+    /** @type {string | null} the model's final answer (null: 'done') */
+    answer: null,
 };
 
 // Round 1 asks for fx.toolCall; round 2 answers. Records what the model read.
@@ -47,7 +58,7 @@ const adapter = {
                 toolCalls: [{ id: 'call_1', type: 'function', function: { name: fx.toolCall.name, arguments: JSON.stringify(fx.toolCall.args) } }],
             };
         }
-        return { content: 'done', toolCalls: [] };
+        return { content: fx.answer ?? 'done', toolCalls: [] };
     },
 };
 
@@ -80,11 +91,11 @@ const restore = installResolveStub({
     './agentTools': { getAgentTools: async () => (fx.offered || [fx.toolCall.name]).map((name) => ({ type: 'function', function: { name, parameters: {} } })) },
     './toolPolicy': { mayLendOwnerConnection: () => false },
     '../llm/promptUtils': { processSystemPrompt: (s) => s },
-    '../privacy/piiDetection': { validateInputForPii: async () => null },
+    '../privacy/piiDetection': { validateInputForPii: async (messages) => (fx.validateInput ? fx.validateInput(messages) : null), restoreTokens },
     '../privacy/orgShield': { resolveShieldFor: async () => fx.shield },
-    '../dlp/dlpRunner': { getConversationTokenMap: () => ({}), mergeTokenMap: () => {} },
+    '../dlp/dlpRunner': { getConversationTokenMap: tokenMaps.getConversationTokenMap, mergeTokenMap: (id, map) => tokenMaps._mergeIntoTokenMap(id, map) },
     '../dlp/tokenPreservationPrompt': { buildTokenPreservationAddendum: () => '' },
-    '../dlp/applyTokenMapToOutbound': { applyTokenMapToOutbound: ({ systemPrompt, messages }) => ({ systemPrompt, messages }) },
+    '../dlp/applyTokenMapToOutbound': realOutbound,
     '../../telemetry/metrics': { recordAgentRun: () => {} },
     // The gate loads the REAL orgShield (classifyToolClass / isBlockedForTool);
     // only its config store is stubbed.
@@ -117,6 +128,9 @@ function reset({ shield = OWN_SERVER_EMAIL, toolCall, dispatchResult = { ok: tru
     fx.dispatched = [];
     fx.guardrailRows = [];
     fx.modelTurns = [];
+    fx.validateInput = null;
+    fx.answer = null;
+    tokenMaps.clearConversationState('conv-1', { ephemeral: true });
 }
 
 /** What the model read as the tool's answer in round 2. */
@@ -211,4 +225,63 @@ test('a tool name the model was not offered this turn is refused, not dispatched
     assert.strictEqual(fx.dispatched.length, 0, 'not dispatched');
     assert.match(JSON.parse(toolMessageSeen().content).error, /not available and was not called/);
     assert.deepStrictEqual(out.toolCalls[0].result, { error: 'tool not offered' });
+});
+
+// ── A tokenising Privacy Shield (the reply and the tool arguments) ──────────
+
+/** The input pass of a shield that tokenises: the address in the last message becomes [email_1]. */
+const tokeniseEmail = (messages) => {
+    const last = messages[messages.length - 1];
+    if (!String(last.content).includes(SYNTH_EMAIL)) return null;
+    return { tokenizedText: String(last.content).split(SYNTH_EMAIL).join('[email_1]'), tokenMap: { '[email_1]': SYNTH_EMAIL } };
+};
+const TOKENISING = { enabled: true, privacyAction: 'redact', toolPiiPolicy: { external: { blockCategories: [] }, internal: { blockCategories: [] } } };
+const everythingTheProviderRead = () => JSON.stringify(fx.modelTurns);
+
+test('a tokenised turn: the provider reads tokens only, the caller and the stored turn get the real value back', async () => {
+    reset({ shield: TOKENISING, toolCall: { name: 'gmail_send', args: { to: '[email_1]', body: 'Hello [email_1]' } }, dispatchResult: { sent: true } });
+    fx.validateInput = tokeniseEmail;
+    fx.answer = 'I wrote to [email_1] as you asked.';
+
+    const out = await chatWithAgent('agent-1', 'user-1', `Mail ${SYNTH_EMAIL} about the invoice`);
+
+    assert.strictEqual(out.message, `I wrote to ${SYNTH_EMAIL} as you asked.`, 'the reply carries the real value');
+    assert.ok(!everythingTheProviderRead().includes(SYNTH_EMAIL), 'the provider never saw the real value');
+    assert.ok(everythingTheProviderRead().includes('[email_1]'));
+
+    const [, , { rows }] = /** @type {[string, string, { rows: Array<{ role: string, content: string }> }]} */ (fx.writes[0]);
+    assert.strictEqual(rows[rows.length - 1].content, `I wrote to ${SYNTH_EMAIL} as you asked.`, 'the stored reply is the one the person reads');
+});
+
+test('a tokenised turn: the tool is dispatched with the real arguments, and the gate judges those', async () => {
+    reset({ shield: TOKENISING, toolCall: { name: 'gmail_send', args: { to: '[email_1]', cc: ['[email_1]'], options: { note: 'for [email_1]' }, count: 2 } }, dispatchResult: { sent: true } });
+    fx.validateInput = tokeniseEmail;
+    const out = await chatWithAgent('agent-1', 'user-1', `Mail ${SYNTH_EMAIL}`);
+
+    assert.deepStrictEqual(fx.dispatched[0].args, { to: SYNTH_EMAIL, cc: [SYNTH_EMAIL], options: { note: `for ${SYNTH_EMAIL}` }, count: 2 });
+    assert.deepStrictEqual(out.toolCalls[0].args.to, SYNTH_EMAIL);
+    // The assistant's own tool call goes back to the provider as it wrote it: with the token.
+    assert.ok(!everythingTheProviderRead().includes(SYNTH_EMAIL));
+
+    // The own-server block list is applied to the REAL arguments, not to a placeholder it cannot read.
+    reset({ shield: { ...TOKENISING, toolPiiPolicy: OWN_SERVER_EMAIL.toolPiiPolicy }, toolCall: { name: 'notebook_read', args: { note: 'about [email_1]' } } });
+    fx.validateInput = tokeniseEmail;
+    await chatWithAgent('agent-1', 'user-1', `Look up ${SYNTH_EMAIL}`);
+    assert.strictEqual(fx.dispatched.length, 0, 'a blocked category behind a token is still refused');
+});
+
+test('a real value a tool returns goes back to the provider as its token', async () => {
+    reset({ shield: TOKENISING, toolCall: { name: 'gmail_send', args: { to: '[email_1]' } }, dispatchResult: { sentTo: SYNTH_EMAIL } });
+    fx.validateInput = tokeniseEmail;
+    await chatWithAgent('agent-1', 'user-1', `Mail ${SYNTH_EMAIL}`);
+    assert.ok(!toolMessageSeen().content.includes(SYNTH_EMAIL));
+    assert.ok(toolMessageSeen().content.includes('[email_1]'));
+});
+
+test('without a token map the reply and the arguments pass through untouched', async () => {
+    reset({ shield: null, toolCall: { name: 'gmail_send', args: { to: '[email_1]' } }, dispatchResult: { ok: true } });
+    fx.answer = 'Sent to [email_1].';
+    const out = await chatWithAgent('agent-1', 'user-1', 'send it');
+    assert.strictEqual(out.message, 'Sent to [email_1].');
+    assert.deepStrictEqual(fx.dispatched[0].args, { to: '[email_1]' });
 });

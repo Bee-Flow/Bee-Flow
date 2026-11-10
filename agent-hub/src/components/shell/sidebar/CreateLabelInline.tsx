@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -56,6 +57,7 @@ const CreateLabelInline = ({ onCreateLabel, t }: CreateLabelInlineProps) => {
                     value={name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                     onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (isImeEnter(e)) return;
                         if (e.key === 'Enter' && name.trim()) handleCreate();
                         if (e.key === 'Escape') { setName(''); setIsCreating(false); }
                     }}

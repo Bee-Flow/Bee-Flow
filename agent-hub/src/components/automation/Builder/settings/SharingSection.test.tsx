@@ -58,6 +58,18 @@ describe('SharingSection', () => {
         expect(screen.getByRole('button', { name: 'Change' })).toBeInTheDocument();
     });
 
+    it('says whose connections a run uses, in the section and in the dialog', async () => {
+        const user = userEvent.setup();
+        const { unmount } = render(withQueryClient(<SharingSection automation={automation} onSave={vi.fn()} />));
+        expect(await screen.findByTestId('sharing-connections-note')).toHaveTextContent('Runs use the owner\'s connections. Someone who can edit can add steps that read and send with them.');
+        await user.click(screen.getByRole('button', { name: 'Change' }));
+        expect(within(await screen.findByRole('dialog')).getByTestId('sharing-connections-note')).toHaveTextContent('Runs use the owner\'s connections.');
+        unmount();
+        // With "Only the person who runs it" the sentence is the other one.
+        render(withQueryClient(<SharingSection automation={{ ...automation, definition: { runPolicy: { connections: 'caller' } } }} onSave={vi.fn()} />));
+        expect(await screen.findByTestId('sharing-connections-note')).toHaveTextContent('A run someone else starts uses that person\'s own connections.');
+    });
+
     it('is locked without automation_sharing in the plan: owner only, no Change', async () => {
         list.current = [];
         ent.current = { loading: false, error: null, lockReason: (id: string) => (id === 'automation_sharing' ? 'ceiling' : null) };

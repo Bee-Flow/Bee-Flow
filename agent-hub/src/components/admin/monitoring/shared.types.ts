@@ -133,6 +133,8 @@ export interface SortableColumn<Row> {
     align?: string;
     sortable?: boolean;
     color?: string;
+    /** Fold the column when the card is narrower than 1180 or 900 px (DataTable's container query). */
+    foldBelow?: 1180 | 900;
     render?: (row: Row, index: number) => ReactNode;
 }
 

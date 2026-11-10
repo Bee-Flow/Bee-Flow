@@ -203,3 +203,31 @@ describe('renameFormField — conditions on the same page', () => {
         expect(JSON.stringify(d)).toBe(before);
     });
 });
+
+describe('renameFormField — references without a binding wrapper', () => {
+    const plain = {
+        trigger: { id: 'trg', type: 'trigger', kind: 'form', form: { fields: [{ name: 'naam' }, { name: 'naam_bedrijf' }] } },
+        steps: [
+            { id: 'c1', type: 'condition', expr: 'trigger.output.naam == "trigger.output.naam" && trigger.output.naam_bedrijf != ""' },
+            { id: 'sw', type: 'switch', cases: [{ name: 'a', expr: 'contains(trigger.output.naam, "x")' }] },
+            { id: 'lp', type: 'loop', overRef: 'trigger.output.naam', body: [{ id: 'b', type: 'ai_step', prompt: 'Greet {{ trigger.output.naam }} of {{trigger.output.naam_bedrijf}}' }] },
+            { id: 'ex', type: 'data_extraction', sourceRef: 'trigger.output.naam.text', arrayRef: 'trigger.output.naam_bedrijf' },
+            { id: 'n1', type: 'notification', title: 'About trigger.output.naam', body: 'Dag {{trigger.output.naam}}', pinnedOutput: { body: 'Dag {{trigger.output.naam}}', ref: 'trigger.output.naam' } },
+        ],
+    };
+
+    it('rewrites expressions, whole reference paths and {{…}} placeholders, and nothing else', () => {
+        const out = renameFormField(plain, { base: 'trigger.output', from: 'naam', to: 'contact' });
+        const [c1, sw, lp, ex, n1] = out.definition.steps;
+        expect(c1.expr).toBe('trigger.output.contact == "trigger.output.naam" && trigger.output.naam_bedrijf != ""');
+        expect(sw.cases[0].expr).toBe('contains(trigger.output.contact, "x")');
+        expect(lp.overRef).toBe('trigger.output.contact');
+        expect(lp.body[0].prompt).toBe('Greet {{ trigger.output.contact }} of {{trigger.output.naam_bedrijf}}');
+        expect(ex).toMatchObject({ sourceRef: 'trigger.output.contact.text', arrayRef: 'trigger.output.naam_bedrijf' });
+        // Prose that names the path is not a reference; a pinned output is data from a run.
+        expect(n1.title).toBe('About trigger.output.naam');
+        expect(n1.body).toBe('Dag {{trigger.output.contact}}');
+        expect(n1.pinnedOutput).toEqual(plain.steps[4].pinnedOutput);
+        expect(out.rewritten).toBe(6);
+    });
+});

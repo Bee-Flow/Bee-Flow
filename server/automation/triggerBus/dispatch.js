@@ -264,9 +264,9 @@ async function dispatchEvent({ provider, event, payload: rawPayload = {}, userId
      */
     const matcher = (p, f) => applyDslFilter(p, f, baseMatcher);
     // userId identifies the exact subscriber — filter to just that user.
-    // Otherwise, for org-scoped providers (Nextcloud) scope fan-out to
-    // subscribers who belong to the event's org.
-    const orgScoped = !userId && isOrgScoped(provider);
+    // Otherwise an event that names an org reaches that org's subscribers
+    // only, whether or not its provider declares itself org-scoped.
+    const orgScoped = !userId && (isOrgScoped(provider) || !!orgId);
     const lookupOrg = orgScoped ? makeOrgLookup() : null;
     const pollerOwned = provider === 'nextcloud' && NC_POLLER_OWNED_EVENTS.has(event);
     // Nextcloud org fan-out: the actor is not a subscriber filter.

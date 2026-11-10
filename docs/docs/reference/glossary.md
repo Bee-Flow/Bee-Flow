@@ -9,7 +9,7 @@ title: Glossary
 | **Action item** | A discrete task extracted from a conversation / transcript. |
 | **Agent** | A configured AI persona with a name, system prompt, model, tool selection, KB list, and visibility. |
 | **AppAPI** | Nextcloud's app system for ExApps. Handles install, lifecycle, signed proxy. |
-| **Audit log** | The persistent record of guardrail events + admin actions. Stored in Postgres, queryable in **Admin → Audit**. |
+| **Audit log** | The persistent record of guardrail events + admin actions. Stored in Postgres, queryable in **Admin → Compliance**. |
 | **Automation** | A trigger-driven workflow that runs steps (AI / tool / code / approval / condition / loop). |
 | **Backstop** | The 6-hourly cron that re-syncs NC users / groups in case webhook events were missed. |
 | **bge-m3** | The default multilingual embedding model used by Knowledge Bases. 1024-dim. |

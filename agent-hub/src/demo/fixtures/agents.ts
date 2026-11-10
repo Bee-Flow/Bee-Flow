@@ -16,6 +16,7 @@
 
 import { COMMON_ROUTES, daysAgo } from './common';
 import { pick } from '../lang';
+import { demoDate } from '../demoClock';
 
 interface DemoAgent {
     id: string;
@@ -358,7 +359,7 @@ export const ROUTES = {
         const a = find(state.agents, params.id);
         if (!a) return notFound();
         Object.assign(a, body || {});
-        a.updatedAt = new Date().toISOString();
+        a.updatedAt = demoDate().toISOString();
         return { success: true, agent: a };
     },
     'POST /agents': ({ state, body }: { state: AgentsState; body: { name?: string; description?: string } | null }) => {
@@ -367,8 +368,8 @@ export const ROUTES = {
             id: `agent_demo_new_${state.agents.length + 1}`,
             name: body?.name || 'New assistant',
             description: body?.description || '',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt: demoDate().toISOString(),
+            updatedAt: demoDate().toISOString(),
         };
         state.agents.unshift(created);
         return { success: true, agent: created };

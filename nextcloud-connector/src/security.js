@@ -122,6 +122,11 @@ function shouldWarnAboutOrigin(key) {
 function frameAncestorsFor(req) {
     const trusted = trustedEmbedOrigins();
     const ancestors = new Set(["'self'", ...trusted]);
+    // The browser says the request comes from this app's own origin (the
+    // address users reach Nextcloud on, which can differ from NEXTCLOUD_URL):
+    // `'self'` already allows that frame, so there is nothing to report.
+    // Page script cannot set this header.
+    if (req.headers?.['sec-fetch-site'] === 'same-origin') return [...ancestors].join(' ');
     for (const hdr of ['origin', 'referer']) {
         const value = req.headers?.[hdr];
         if (!value || typeof value !== 'string') continue;
@@ -138,8 +143,11 @@ function frameAncestorsFor(req) {
         }
         log.warn(`[Security] refusing to allow ${origin} to frame this app — it is not this `
             + `Nextcloud's origin. If the app is embedded there legitimately, add it to `
-            + `BEEFLOW_TRUSTED_EMBED_ORIGINS (occ app_api:app:setenv ${config.appId} `
-            + `BEEFLOW_TRUSTED_EMBED_ORIGINS ${origin}).`);
+            + 'BEEFLOW_TRUSTED_EMBED_ORIGINS. That is an install-time value: enter it in the '
+            + 'deploy options when installing, or register the app again with '
+            + `--env BEEFLOW_TRUSTED_EMBED_ORIGINS=${origin} `
+            + `(occ app_api:app:unregister ${config.appId}, without --rm-data so the data is `
+            + `kept, then occ app_api:app:register ${config.appId} <daemon> --env ...).`);
     }
     return [...ancestors].join(' ');
 }

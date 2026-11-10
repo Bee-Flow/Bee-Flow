@@ -9,7 +9,7 @@ title: Nextcloud — Notes
 | | |
 |---|---|
 | Integration ID | `nextcloud-notes` |
-| Auth | NC session |
+| Auth | NC session (through the connector), or an app password. An OAuth sign-in alone is not enough for Notes: see [No Docker on your Nextcloud host?](nextcloud.md#no-docker) |
 | Required NC app | `notes` |
 | Source | `server/integrations/nextcloudNotesTools.js` |
 

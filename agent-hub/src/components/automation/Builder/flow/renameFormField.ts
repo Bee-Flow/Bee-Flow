@@ -19,6 +19,9 @@
  *   ref       { kind:'ref', path:'trigger.output.old' }        → …output.new
  *   template  "Dag {{trigger.output.old}}"                      → {{…output.new}}
  *   expr      "trigger.output.old == 'x'"                       → …output.new
+ *   plain     a condition's `expr`, a loop's `overRef`, a `sourceRef`, the
+ *             `{{…}}` of a prompt or a notification body: the same three,
+ *             without the wrapper
  *   showIf    "form.old == 'x'" on the other questions of the page → form.new
  *
  * Three rules it follows, each of which is a bug it exists to avoid:
@@ -140,32 +143,62 @@ const BINDING_RENAMERS = new Map<string, { field: 'path' | 'value'; rename: (tex
     ['expr', { field: 'value', rename: renameInExpr }],
 ]);
 
+/** The plain-string fields that hold an EXPRESSION: a condition's or a switch case's `expr`, a stage's or a step's `when`. */
+const EXPR_KEYS = new Set(['expr', 'when']);
+
+/** One rename in flight, and how many bindings it has moved so far. */
+interface Rename { base: string; from: string; to: string; counter: { count: number } }
+
+/**
+ * A reference that is not wrapped in a binding: a condition's `expr`, a
+ * loop's `overRef`, a `sourceRef` / `arrayRef`, the `{{…}}` of a prompt or a
+ * notification body. The field's role decides how it is read (the server's
+ * validate/stepRules/refSurfaces.js): an expression under an expression key,
+ * a template when it has placeholders, otherwise one whole reference path.
+ * Prose is none of these and is left alone.
+ */
+function renamePlain(text: string, key: string, r: Rename): string {
+    if (EXPR_KEYS.has(key)) return renameInExpr(text, r.base, r.from, r.to);
+    if (text.includes('{{')) return renameInTemplate(text, r.base, r.from, r.to);
+    return renameFieldPath(text, r.base, r.from, r.to);
+}
+
 /**
  * Deep-walk a value, returning a rewritten COPY and counting what changed.
  *
  * Only objects whose `kind` is one of the four binding kinds are wrappers;
  * a `literal` ships verbatim at run time, so its payload is left alone — the
- * same carve-out bind.js and portability.js make.
+ * same carve-out bind.js and portability.js make. `key` is the field a plain
+ * string sits under; null inside a pinned output, which is data from a run
+ * and never a reference.
  */
-function rewriteDeep(value: JsonValue, base: string, from: string, to: string, counter: { count: number }): JsonValue {
-    if (Array.isArray(value)) return value.map((v: JsonValue) => rewriteDeep(v, base, from, to, counter));
+function rewriteDeep(value: JsonValue, r: Rename, key: string | null): JsonValue {
+    if (typeof value === 'string' && key !== null) {
+        const next = renamePlain(value, key, r);
+        if (next !== value) r.counter.count += 1;
+        return next;
+    }
+    if (Array.isArray(value)) return value.map((v: JsonValue) => rewriteDeep(v, r, key));
     if (value === null || typeof value !== 'object') return value;
 
+    const bound = rewriteWrapper(value, r);
+    if (bound) return bound;
+
+    const out: JsonObject = {};
+    for (const k of Object.keys(value)) out[k] = rewriteDeep(value[k], r, key === null || k === 'pinnedOutput' ? null : k);
+    return out;
+}
+
+/** A binding wrapper with its payload renamed (a literal: copied as it is), or null when `value` is not one. */
+function rewriteWrapper(value: JsonObject, r: Rename): JsonObject | null {
     const kind = typeof value.kind === 'string' ? value.kind : null;
     if (kind === 'literal') return { ...value };
     const wrapper = kind ? BINDING_RENAMERS.get(kind) : undefined;
-    if (wrapper) {
-        const current = value[wrapper.field];
-        if (typeof current === 'string') {
-            const next = wrapper.rename(current, base, from, to);
-            if (next !== current) counter.count += 1;
-            return { ...value, [wrapper.field]: next };
-        }
-    }
-
-    const out: JsonObject = {};
-    for (const k of Object.keys(value)) out[k] = rewriteDeep(value[k], base, from, to, counter);
-    return out;
+    const current = wrapper ? value[wrapper.field] : undefined;
+    if (!wrapper || typeof current !== 'string') return null;
+    const next = wrapper.rename(current, r.base, r.from, r.to);
+    if (next !== current) r.counter.count += 1;
+    return { ...value, [wrapper.field]: next };
 }
 
 /**
@@ -255,7 +288,7 @@ export function renameFormField(definition: unknown, { base, from, to }: { base?
     // result (they touch disjoint keys) but this way a failure to find the
     // field cannot leave half a rename behind.
     const renamed = mapForms(definition as Def, base, from, to, counter);
-    const rewritten = rewriteDeep(renamed as JsonObject, base, from, to, counter);
+    const rewritten = rewriteDeep(renamed as JsonObject, { base, from, to, counter }, '');
     return { definition: rewritten, rewritten: counter.count, ok: true };
 }
 

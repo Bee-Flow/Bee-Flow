@@ -114,3 +114,52 @@ test('a row at the plain id without a stored uid and with another e-mail address
     assert.equal(r.action, 'create');
     assert.match(r.userId, /^nc_org-1_john-doe-[0-9a-f]{8}$/);
 });
+
+// ── Groups assigned in Bee Flow survive the sync ─────────────────────────────
+
+const lastGroups = () => state.updates.filter(u => 'groups' in u.updates).map(u => u.updates.groups).pop();
+const NC = (name) => `nc_${ORG.id}_${name}`;
+
+test('the backstop sync keeps a group assigned in Bee Flow, adds the Nextcloud ones and drops only Nextcloud ones that are gone', async () => {
+    const user = seedExistingUser({ ncUid: 'erin', status: 'active' });
+    user.groups = ['finance-approvers', NC('staff'), NC('old-team')];
+    groupsByUid.erin = ['staff', 'designers', 'admin'];
+    await sync.applyUserCreated(ORG, 'erin');
+    assert.deepEqual([...lastGroups()].sort(), ['finance-approvers', NC('designers'), NC('staff')].sort());
+});
+
+test('a user whose Nextcloud groups did not change is not rewritten because of a local group', async () => {
+    const user = seedExistingUser({ ncUid: 'finn', status: 'active' });
+    user.groups = [NC('staff'), 'finance-approvers'];
+    groupsByUid.finn = ['staff'];
+    await sync.applyUserCreated(ORG, 'finn');
+    assert.deepEqual(state.updates.filter(u => 'groups' in u.updates), []);
+});
+
+test('a group-membership event keeps the local groups too: on a plain change, a deactivation and a reactivation', async () => {
+    const changed = seedExistingUser({ ncUid: 'gus', status: 'active' });
+    changed.groups = ['finance-approvers', NC('staff')];
+    groupsByUid.gus = ['staff', 'designers'];
+    assert.equal((await sync.applyGroupMemberChange(ORG, 'gus')).action, 'groups_updated');
+    assert.deepEqual([...lastGroups()].sort(), ['finance-approvers', NC('designers'), NC('staff')].sort());
+
+    const leaving = seedExistingUser({ ncUid: 'hana', status: 'active' });
+    leaving.groups = ['finance-approvers', NC('staff')];
+    groupsByUid.hana = ['contractors']; // outside selective_groups
+    assert.equal((await sync.applyGroupMemberChange(ORG, 'hana')).action, 'deactivate');
+    assert.deepEqual([...lastGroups()].sort(), ['finance-approvers', NC('contractors')].sort());
+
+    const back = seedExistingUser({ ncUid: 'ida', status: 'inactive' });
+    back.groups = ['finance-approvers'];
+    groupsByUid.ida = ['staff'];
+    assert.equal((await sync.applyGroupMemberChange(ORG, 'ida')).action, 'reactivate');
+    assert.deepEqual([...lastGroups()].sort(), ['finance-approvers', NC('staff')].sort());
+});
+
+test('another organisation\'s mirrored group id is not this organisation\'s to remove', async () => {
+    const user = seedExistingUser({ ncUid: 'jo', status: 'active' });
+    user.groups = ['nc_org-10_staff', NC('old-team')];
+    groupsByUid.jo = ['staff'];
+    await sync.applyUserCreated(ORG, 'jo');
+    assert.deepEqual([...lastGroups()].sort(), ['nc_org-10_staff', NC('staff')].sort());
+});

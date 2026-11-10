@@ -17,6 +17,8 @@ export function subscriptionStatusLabel(status: string, t: TranslateFn): string 
             return t('mobile.billing.status_past_due', 'Payment overdue');
         case 'suspended':
             return t('mobile.billing.status_suspended', 'Suspended');
+        case 'manual_action_required':
+            return t('mobile.billing.status_manual_action_required', 'Payment action required');
         case 'cancelled':
         case 'canceled':
             return t('mobile.billing.status_cancelled', 'Cancelled');

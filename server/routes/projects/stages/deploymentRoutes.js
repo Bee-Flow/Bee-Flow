@@ -105,11 +105,12 @@ function makeDeploymentRouter(d) {
 
         const fetched = await Promise.all(wanted.map(async (row) => ({
             row,
-            list: await d.stageStore.listDeployments(row.projectId, { limit: Math.min(limit + 1, 100), before: typeof cursor[row.stage] === 'string' ? cursor[row.stage] : null }),
+            list: await d.stageStore.listDeployments(row.projectId, { limit: limit + 1, before: typeof cursor[row.stage] === 'string' ? cursor[row.stage] : null }),
         })));
         const merged = fetched.flatMap(f => f.list).sort(byNewest);
         const page = merged.slice(0, limit);
-        const more = merged.length > limit || fetched.some(f => f.list.length >= 100);
+        // Each stage was asked for one row more than the page: more than a page in hand means another page follows.
+        const more = merged.length > limit;
         /** @type {string | null} */
         let nextCursor = null;
         if (more && page.length) {

@@ -86,13 +86,13 @@ describe('RunDetailHeader: "Run again with this input"', () => {
     });
 });
 
-describe('TestRunMenu: "Run live"', () => {
+describe('TestRunMenu: "Run for real"', () => {
     it('is disabled with the reason for a viewer, and starts nothing', async () => {
         const user = userEvent.setup();
         const onRunLive = vi.fn();
         render(<TestRunMenu onDryRun={vi.fn()} onRunLive={onRunLive} canRunLive={false} />);
         await user.click(screen.getByRole('button', { name: 'More ways to run' }));
-        const item = screen.getByRole('menuitem', { name: /Run live/ }) as HTMLButtonElement;
+        const item = screen.getByRole('menuitem', { name: /Run for real/ }) as HTMLButtonElement;
         expect(item.disabled).toBe(true);
         expect(item.getAttribute('title')).toBe(HINT);
         await user.click(item);
@@ -104,7 +104,7 @@ describe('TestRunMenu: "Run live"', () => {
         const onRunLive = vi.fn();
         render(<TestRunMenu onDryRun={vi.fn()} onRunLive={onRunLive} />);
         await user.click(screen.getByRole('button', { name: 'More ways to run' }));
-        await user.click(screen.getByRole('menuitem', { name: /Run live/ }));
+        await user.click(screen.getByRole('menuitem', { name: /Run for real/ }));
         expect(onRunLive).toHaveBeenCalledTimes(1);
     });
 });

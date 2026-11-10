@@ -36,8 +36,8 @@ const MOCKS = {
         getPlan: async (id) => ({ id, price: 0 }),
         getActiveSeatCount: async () => 1,
         getOrganization: async () => ({}),
-        setOrgSubscriptionWithLock: async (orgId, payload) => {
-            touched.push({ what: 'setOrgSubscriptionWithLock', args: [orgId, payload] });
+        setOrgSubscriptionWithLock: async (orgId, payload, opts) => {
+            touched.push({ what: 'setOrgSubscriptionWithLock', args: [orgId, payload, opts] });
             return { ok: true, snapshot: null, displaced: false };
         },
         logSubscriptionAudit: async () => {},
@@ -105,7 +105,7 @@ test('a misspelled cap is refused rather than saved as a no-op', async () => {
 test('a misspelled status is refused with the same sentence as before', async () => {
     const res = await dispatch({ method: 'PUT', url: '/orgs/orgA', body: { status: 'activ' } });
     assert.strictEqual(res.statusCode, 400);
-    assert.strictEqual(res.body.error, 'Invalid status. Must be: active, suspended, cancelled, trialing, past_due');
+    assert.strictEqual(res.body.error, 'Invalid status. Must be: active, suspended, cancelled, trialing, past_due, manual_action_required');
     assert.deepStrictEqual(touched, []);
 });
 
@@ -133,6 +133,19 @@ test('the shape the org editor actually posts is still accepted', async () => {
     });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'setOrgSubscriptionWithLock').args[1].notes, 'paid up front');
+});
+
+test('a plan_id in the body is an assignment: stale limits are reset, also for the same plan (BFSF-249)', async () => {
+    // getOrgSubscription answers plan p1, so this re-assigns the current plan.
+    const res = await dispatch({ method: 'PUT', url: '/orgs/orgA', body: { plan_id: 'p1' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'setOrgSubscriptionWithLock').args[2], { resetLimits: true });
+});
+
+test('a save without plan_id does not reset the limits', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/orgs/orgA', body: { notes: 'just a note' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'setOrgSubscriptionWithLock').args[2], { resetLimits: false });
 });
 
 test('an override window is still translated into the two override columns', async () => {

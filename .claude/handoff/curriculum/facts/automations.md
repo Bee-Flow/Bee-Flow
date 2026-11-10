@@ -486,7 +486,7 @@ Two palette rules a builder must know:
 - **Edit data**: max **20 table operations**.
 - **Extract data**: max **30 fields**, instructions max **2000 chars**, source text max
   **60 000 chars**. No model picker — it runs on the ONE extraction model an admin set
-  (`data_extraction_model`, Admin → AI config). The field names ARE the output shape and
+  (`data_extraction_model`, Admin → AI Config → Chat Models). The field names ARE the output shape and
   are coerced to lowercase snake_case as you type.
 - **Approval**: deadline default **7 days** (`AUTOMATION_APPROVAL_TTL_MS`), hard cap
   **30 days / 720 hours**; max **5 attachments**, max **20 fields**.
@@ -573,7 +573,7 @@ the hosted form — are mounted *above* `requireAuth` by design.)
 - **Licence feature `automations` is Community** (`server/license/tiers.js`) — the
   "n8n-style free builder". Building is free.
 - **Beta feature `automations`** (GA lifecycle) must also be on for the org; admins
-  toggle it in the admin dashboard → Security → Beta. Super admins always pass.
+  toggle it in the admin dashboard → Access → Grants (the Beta capabilities, for All members or a group). Super admins always pass.
 - **`/api/automation/builder` (Build with AI)** carries the same pair.
 - **Enterprise, on top**: `automation_sharing` (org-wide sharing; declared, no route
   consumes it yet), `projects` (team workspaces), and **`approvals`**. The approvals

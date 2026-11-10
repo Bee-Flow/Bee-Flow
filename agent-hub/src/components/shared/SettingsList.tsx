@@ -62,12 +62,21 @@ interface SettingRowProps {
     htmlFor?: string;
     /** Replaces the icon, label and hint block (for a row whose label is itself editable). */
     lead?: ReactNode;
+    /** A small control (a switch, a status) that stays beside the label at every width instead of wrapping under it. */
+    inline?: boolean;
 }
 
-export function SettingRow({ label, hint, icon, children, expanded, htmlFor, lead }: SettingRowProps) {
+// The row measures its OWN width (a named @container), not the viewport: in a
+// narrow pane (the detail column of a list + detail section) the 22rem control
+// column would squeeze the label and hint into a sliver, so below 40rem the
+// row stacks the control under the label wherever it sits.
+const ROW_SPLIT = 'flex flex-col gap-2 px-4 py-3 @[40rem]/srow:grid @[40rem]/srow:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] @[40rem]/srow:items-center @[40rem]/srow:gap-4';
+const ROW_INLINE = 'flex items-center justify-between gap-4 px-4 py-3';
+
+export function SettingRow({ label, hint, icon, children, expanded, htmlFor, lead, inline = false }: SettingRowProps) {
     return (
-        <div>
-            <div className="flex flex-col gap-2 px-4 py-3 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-center md:gap-4">
+        <div className="@container/srow">
+            <div className={inline ? ROW_INLINE : ROW_SPLIT}>
                 {lead ? <div className="min-w-0">{lead}</div> : <div className="flex min-w-0 items-start gap-2.5">
                     {icon ? <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-[var(--text-secondary)]" aria-hidden="true">{icon}</span> : null}
                     <div className="min-w-0">
@@ -77,7 +86,7 @@ export function SettingRow({ label, hint, icon, children, expanded, htmlFor, lea
                         {hint ? <p className="m-0 mt-0.5 text-xs text-[var(--text-tertiary)]">{hint}</p> : null}
                     </div>
                 </div>}
-                {children ? <div className="min-w-0">{children}</div> : null}
+                {children ? <div className={inline ? 'shrink-0' : 'min-w-0'}>{children}</div> : null}
             </div>
             {expanded ? <div className="bg-[var(--bg-secondary)] px-4 py-3">{expanded}</div> : null}
         </div>

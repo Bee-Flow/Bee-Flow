@@ -19,6 +19,46 @@ There are two admin levels:
 
 The first user to register on a fresh install becomes an org admin automatically. Promote / demote others under [Users & groups](users-and-groups.md).
 
+## The admin dashboard
+
+`/app/admin` opens the global admin dashboard. It has three columns:
+
+1. **The rail** on the left, with the tabs in five groups:
+
+   | Group | Tabs |
+   |-------|------|
+   | **AI & agents** | Agents, AI Config |
+   | **Security & access** | Security, Access, Compliance |
+   | **Platform** | Integrations, Modules, Appearance, Languages |
+   | **Operations** | Monitoring, Support, Subscriptions, Server licence |
+   | **Website** | Product Website, Website Analytics, Release Notes |
+
+   You only see the tabs you may open: most are for super-admins, several need an
+   Enterprise licence, and Subscriptions and the three Website tabs exist on Bee Flow
+   Cloud only. On a self-hosted Community install a super-admin sees AI Config,
+   Security, Access, Integrations, Modules, Languages and Server licence.
+2. **The section list** of the open tab (for example AI Config → API Keys, Chat Models,
+   Embeddings, Direct Chat, Web Search Inference, Limits & Self-host).
+3. **The section itself.**
+
+The tab and the section are in the URL, so every screen can be bookmarked or linked:
+`/app/admin/<tab>/<section>`, for example `/app/admin/ai-config/embeddings`,
+`/app/admin/integrations/transcription`, `/app/admin/security/sso` or
+`/app/admin/subscriptions/promos`. A third part opens one item or tab: a provider under
+API Keys (`/app/admin/ai-config/providers/<provider>`) or a tab under Security → Users
+`/app/admin/security/users/roles`. Website Analytics keeps its section in a query
+parameter instead: `/app/admin/website-analytics?section=pages`.
+
+On a phone the rail folds into a menu under the tab's name at the top, and the section
+list becomes a row of tabs you can scroll sideways.
+
+Sections that hold a list of things with settings per item show the list on the left
+and the selected item on the right: Integrations → Transcription (the engines),
+Security → SSO (Nextcloud, Google, Microsoft) and AI Config → API Keys (the providers).
+
+In this documentation a path such as **Admin → Integrations → Transcription** means:
+the Integrations tab in the rail, then the Transcription section.
+
 ## Pages
 
 <div className="bf-grid">
@@ -58,9 +98,9 @@ The first user to register on a fresh install becomes an org admin automatically
 | Task | Where |
 |------|-------|
 | Invite a user | [Users & groups](users-and-groups.md) |
-| Disable Mail integration for the Sales group | [NC integrations](nc-integrations.md) |
+| Turn off Nextcloud Mail for one Nextcloud group | [NC integrations](nc-integrations.md) |
 | Apply a licence key | [Organisation settings](organisation-settings.md) → Licence & usage |
-| Turn on the Notebooks beta | [Beta features](beta-features.md) |
+| Give a beta feature to one group | [Beta features](beta-features.md) |
 | Export the last 30 days of guardrail events | [Audit & compliance](audit-and-compliance.md) |
 | Set up SAML SSO | [Organisation settings](organisation-settings.md) → SSO (Enterprise+) |
 | Configure a custom domain (white-label) | [Organisation settings](organisation-settings.md) → Branding (Full tier) |

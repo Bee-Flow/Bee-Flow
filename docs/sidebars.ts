@@ -39,7 +39,9 @@ const sidebars: SidebarsConfig = {
           type: 'category',
           label: 'Operations',
           items: [
+            'connector/deploy-daemon',
             'connector/setup-picker',
+            'connector/own-server',
             'connector/troubleshooting',
           ],
         },
@@ -312,6 +314,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/assistant-sees-what-the-canvas-shows',
             'contributing/decisions/per-person-adoption-view',
             'contributing/decisions/kb-query-log',
+            'contributing/decisions/connector-no-default-server',
           ],
         },
       ],

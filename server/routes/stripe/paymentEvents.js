@@ -6,7 +6,7 @@
 
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
-const { findSubscriptionTargetBySubId, findSubscriptionTargetByCustomerId, stripOverriddenFields } = require('./webhookShared');
+const { findSubscriptionTargetBySubId, findSubscriptionTargetByCustomerId, stripOverriddenFields, storeForTarget } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
@@ -31,16 +31,21 @@ async function handleChargeRefunded(charge) {
         log.warn(`[Stripe Webhook] charge.refunded could not locate subscription charge_id=${charge.id}`);
         return;
     }
-    const payload = { payment_status: 'refunded' };
-    if (target.scope === 'organization') {
-        await userStore.setOrgSubscription(target.id, payload);
-        await userStore.logSubscriptionAudit('refund_processed', 'organization', target.id, 'stripe_webhook', null, { charge_id: charge.id, amount_refunded: charge.amount_refunded });
-        log.info(`[Stripe Webhook] stripe.refund.processed scope=org org=${target.id} amount=${charge.amount_refunded}`);
-    } else {
-        await userStore.setConsumerSubscription(target.id, payload);
-        await userStore.logSubscriptionAudit('refund_processed', 'consumer', target.id, 'stripe_webhook', null, { charge_id: charge.id, amount_refunded: charge.amount_refunded });
-        log.info(`[Stripe Webhook] stripe.refund.processed scope=consumer user=${target.id} amount=${charge.amount_refunded}`);
-    }
+    const who = scopeOf(target);
+    await storeForTarget(target, { payment_status: 'refunded' });
+    await userStore.logSubscriptionAudit('refund_processed', who.type, target.id, 'stripe_webhook', null, { charge_id: charge.id, amount_refunded: charge.amount_refunded });
+    log.info(`[Stripe Webhook] stripe.refund.processed ${who.tag}=${target.id} amount=${charge.amount_refunded}`);
+}
+
+/**
+ * What differs between the two kinds of subscriber: the audit target type,
+ * the tag in a log line, and the store calls for the row and its counter.
+ * @param {SubscriptionTarget} target
+ */
+function scopeOf(target) {
+    return target.scope === 'organization'
+        ? { type: 'organization', tag: 'scope=org org', read: () => userStore.getOrgSubscription(target.id), recordFailure: () => userStore.recordPaymentFailureForOrg(target.id) }
+        : { type: 'consumer', tag: 'scope=consumer user', read: () => userStore.getConsumerSubscription(target.id), recordFailure: () => userStore.recordPaymentFailureForConsumer(target.id) };
 }
 
 /**
@@ -68,16 +73,10 @@ async function handleChargeDisputeCreated(dispute) {
         log.warn(`[Stripe Webhook] charge.dispute.created could not locate subscription dispute_id=${dispute.id}`);
         return;
     }
-    const payload = { status: 'suspended', payment_status: 'disputed' };
-    if (target.scope === 'organization') {
-        await userStore.setOrgSubscription(target.id, payload);
-        await userStore.logSubscriptionAudit('dispute_opened', 'organization', target.id, 'stripe_webhook', null, { dispute_id: dispute.id, reason: dispute.reason, amount: dispute.amount });
-        log.info(`[Stripe Webhook] stripe.dispute.opened scope=org org=${target.id} dispute_id=${dispute.id} reason=${dispute.reason}`);
-    } else {
-        await userStore.setConsumerSubscription(target.id, payload);
-        await userStore.logSubscriptionAudit('dispute_opened', 'consumer', target.id, 'stripe_webhook', null, { dispute_id: dispute.id, reason: dispute.reason, amount: dispute.amount });
-        log.info(`[Stripe Webhook] stripe.dispute.opened scope=consumer user=${target.id} dispute_id=${dispute.id} reason=${dispute.reason}`);
-    }
+    const who = scopeOf(target);
+    await storeForTarget(target, { status: 'suspended', payment_status: 'disputed' });
+    await userStore.logSubscriptionAudit('dispute_opened', who.type, target.id, 'stripe_webhook', null, { dispute_id: dispute.id, reason: dispute.reason, amount: dispute.amount });
+    log.info(`[Stripe Webhook] stripe.dispute.opened ${who.tag}=${target.id} dispute_id=${dispute.id} reason=${dispute.reason}`);
 }
 
 /**
@@ -255,67 +254,54 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
  * suspends — that's where the actual feature lockout happens.
  */
 // Dunning cap. After this many failed retries, stop the per-attempt email
-// stream, transition the sub to `manual_action_required`, and send a single
-// "final dunning" email. Customer can re-trigger via portal. Stripe Smart
+// stream, transition the sub to `manual_action_required` (which locks out
+// like `suspended`), and send a single "final dunning" email. Customer can
+// re-trigger via portal. Stripe Smart
 // Retries usually try at ~3, 5, 7, 14 days; capping at 4 keeps the email
 // stream short of the typical "this account is dead" point.
 const DUNNING_MAX_ATTEMPTS = 4;
 
 async function handleInvoicePaymentFailed(invoice) {
-    const subId = invoice.subscription;
-    if (!subId) return;
-    const target = await findSubscriptionTargetBySubId(subId);
+    const target = invoice.subscription ? await findSubscriptionTargetBySubId(invoice.subscription) : null;
     if (!target) return;
+    const who = scopeOf(target);
 
-    let attempt = 0;
-    if (target.scope === 'organization') {
-        await userStore.setOrgSubscription(target.id, { status: 'past_due', payment_status: 'failed' });
-        const updated = await userStore.recordPaymentFailureForOrg(target.id);
-        attempt = updated?.payment_attempt_count ?? 0;
-        await userStore.logSubscriptionAudit('payment_attempt_failed', 'organization', target.id, 'stripe_webhook', null, { attempt_count: attempt, invoice_id: invoice.id });
-        log.info(`[Stripe Webhook] stripe.invoice.payment_failed scope=org org=${target.id} attempt=${attempt}`);
-    } else {
-        await userStore.setConsumerSubscription(target.id, { status: 'past_due', payment_status: 'failed' });
-        const updated = await userStore.recordPaymentFailureForConsumer(target.id);
-        attempt = updated?.payment_attempt_count ?? 0;
-        await userStore.logSubscriptionAudit('payment_attempt_failed', 'consumer', target.id, 'stripe_webhook', null, { attempt_count: attempt, invoice_id: invoice.id });
-        log.info(`[Stripe Webhook] stripe.invoice.payment_failed scope=consumer user=${target.id} attempt=${attempt}`);
+    // The status goes in ONE write, before the counter, the audit rows and any
+    // mail: a write the database refuses throws, the event is delivered again,
+    // and nothing has run twice. The failure that reaches the cap, and every
+    // failure after it, stores manual_action_required.
+    const capped = reachesDunningCap(await who.read());
+    await storeForTarget(target, { status: capped ? 'manual_action_required' : 'past_due', payment_status: 'failed' });
+
+    const attempt = (await who.recordFailure())?.payment_attempt_count ?? 0;
+    await userStore.logSubscriptionAudit('payment_attempt_failed', who.type, target.id, 'stripe_webhook', null, { attempt_count: attempt, invoice_id: invoice.id });
+    log.info(`[Stripe Webhook] stripe.invoice.payment_failed ${who.tag}=${target.id} attempt=${attempt}`);
+
+    const customerId = invoice.customer || null;
+    // At the cap: no per-attempt mail any more, one final dunning mail
+    // (`claimNotification('payment_dunning_capped')` sends it at most once).
+    if (capped || attempt >= DUNNING_MAX_ATTEMPTS) {
+        // A failure counted concurrently can reach the cap after the status was chosen.
+        if (!capped) await storeForTarget(target, { status: 'manual_action_required' });
+        await userStore.logSubscriptionAudit('payment_dunning_capped', who.type, target.id, 'stripe_webhook', null, { attempt_count: attempt, cap: DUNNING_MAX_ATTEMPTS });
+        await _sendFinalDunningEmailOnce({ target, customerId });
+        return;
     }
 
-    // Reached the cap: transition to manual_action_required (silences future
-    // per-attempt emails) and send the one final dunning email. The status
-    // flip is idempotent — `claimNotification('payment_dunning_capped')`
-    // ensures the final email is sent at most once.
-    if (attempt >= DUNNING_MAX_ATTEMPTS) {
-        try {
-            if (target.scope === 'organization') {
-                await userStore.setOrgSubscription(target.id, { status: 'manual_action_required' });
-            } else {
-                await userStore.setConsumerSubscription(target.id, { status: 'manual_action_required' });
-            }
-            await userStore.logSubscriptionAudit(
-                'payment_dunning_capped',
-                target.scope === 'organization' ? 'organization' : 'consumer',
-                target.id,
-                'stripe_webhook',
-                null,
-                { attempt_count: attempt, cap: DUNNING_MAX_ATTEMPTS },
-            );
-            await _sendFinalDunningEmailOnce({ target, customerId: invoice.customer || null });
-        } catch (e) {
-            log.warn('[Stripe Webhook] dunning-cap transition failed:', /** @type {Error} */ (e).message);
-        }
-        return; // do NOT fire the per-attempt email once we've capped
-    }
+    // "Payment failed" mail, gated on the attempt counter so each failure
+    // (Stripe Smart Retries: ~3, 5, 7 days) gets at most one: a redelivered
+    // webhook claims against the same key.
+    await _sendPaymentFailedEmailOnce({ target, attempt, customerId });
+}
 
-    // Fire-and-forget "payment failed" email, gated on the attempt counter
-    // so each failure (Stripe Smart Retries: ~3, 5, 7 days) gets at most
-    // one email — webhook redeliveries claim against the same key.
-    await _sendPaymentFailedEmailOnce({
-        target,
-        attempt,
-        customerId: invoice.customer || null,
-    });
+/**
+ * Whether the failure about to be counted puts the subscriber at the dunning
+ * cap: already there, or one attempt short of it.
+ * @param {{ status?: string, payment_attempt_count?: number | null } | null} row
+ */
+function reachesDunningCap(row) {
+    if (row?.status === 'manual_action_required') return true;
+    return (Number(row?.payment_attempt_count) || 0) + 1 >= DUNNING_MAX_ATTEMPTS;
 }
 
 /**

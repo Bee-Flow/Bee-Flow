@@ -235,3 +235,30 @@ export async function fetchDisabledUids(org: NcOrgRef, ncProxyFetch: NcProxyFetc
         return null;
     }
 }
+
+/**
+ * A user's groups after a sync: the groups Nextcloud says they are in, plus
+ * every group they hold that did not come from Nextcloud.
+ *
+ * Where a membership came from is not recorded; where a GROUP came from is.
+ * The sync only ever hands out ids of this organisation's mirrored groups
+ * (`nc_<orgId>_<slug>`, the rows mirrorGroups creates with source
+ * 'nextcloud'), so those are the ones it owns and may take away again when
+ * Nextcloud stops listing them. Any other id (a group made and assigned in
+ * Bee Flow, or one mirrored for another organisation) is left as it is. The
+ * price of the rule: a membership of a MIRRORED group that an admin assigned
+ * by hand in Bee Flow is Nextcloud's to decide, and goes at the next sync when
+ * Nextcloud does not list it.
+ */
+export function groupsAfterSync(
+    orgId: string,
+    currentGroups: unknown,
+    ncGroups: string[] | null | undefined,
+    toBfId: (orgId: string, ncGroupName: string) => string,
+): string[] {
+    const mirrored = `nc_${orgId}_`;
+    const local = (Array.isArray(currentGroups) ? currentGroups : []).filter((g): g is string => typeof g === 'string' && !g.startsWith(mirrored));
+    // NC's `admin` group is not mirrored: it must not gate Bee Flow capabilities.
+    const fromNc = (ncGroups || []).filter(g => g !== 'admin').map(g => toBfId(orgId, g));
+    return [...new Set([...local, ...fromNc])];
+}

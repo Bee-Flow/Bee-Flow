@@ -1,16 +1,55 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { usePolicyBodyQuery, usePublishedPoliciesQuery } from '../../api/queries/complianceReads';
 import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { mutate, ApiError } from '../../api/mutate';
+import { ALERT_ERROR } from '../../components/mcpLibrary/ui';
+
+/** The body of the open policy while it is not there: on its way, or failed with a way to ask again. */
+function PolicyBodyPending({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
+    const { t } = useTranslation();
+    if (!failed) return <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />;
+    return (
+        <div role="alert" className={`${ALERT_ERROR} items-center justify-between`}>
+            <span>{t('settings.policy_ack_load_failed', 'Could not load this policy.')}</span>
+            <button type="button" onClick={onRetry} className="shrink-0 font-semibold underline">{t('error.try_again', 'Try again')}</button>
+        </div>
+    );
+}
+
+/**
+ * The confirm button of the open policy. A policy can only be confirmed once
+ * its text is on screen: while the text loads the button is disabled and says
+ * why; when the text could not be loaded the caller leaves it out entirely and
+ * only "Try again" is offered.
+ */
+function ConfirmPolicy({ bodyLoaded, busy, onConfirm }: { bodyLoaded: boolean; busy: boolean; onConfirm: () => void }) {
+    const { t } = useTranslation();
+    const hintId = useId();
+    return (
+        <div className="space-y-1">
+            <button type="button" onClick={onConfirm} disabled={busy || !bodyLoaded}
+                aria-describedby={bodyLoaded ? undefined : hintId}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50 bg-[var(--accent-primary)]">
+                <Check className="w-3.5 h-3.5" /> {t('settings.policy_ack_confirm')}
+            </button>
+            {!bodyLoaded && (
+                <p id={hintId} className="text-[11px] text-[var(--text-muted)]">
+                    {t('settings.policy_ack_confirm_wait', 'You can confirm once the policy text has loaded.')}
+                </p>
+            )}
+        </div>
+    );
+}
 
 /**
  * Member-facing ISMS policy acknowledgements (ISO 27001 clause 7.3 awareness).
  *
  * Lists the org's published policies with this user's acknowledgement state;
  * reading expands the markdown body inline, confirming binds the user to the
- * exact published version (sha256'd server-side). Renders nothing when the org
+ * exact published version (sha256'd server-side). Confirming is only offered
+ * once that body has loaded: nobody confirms a policy they could not read. Renders nothing when the org
  * has no published policies or the compliance module isn't licensed — this is
  * an Enterprise surface that must not clutter everyone else's settings.
  */
@@ -21,7 +60,11 @@ export default function PolicyAcknowledgements() {
     // 402/403 (unlicensed or no access) reads as none, so the card stays invisible.
     const docs: PolicyDoc[] | null = policies.isPending ? null : (policies.data ?? []);
     const [openSlug, setOpenSlug] = useState<string | null>(null);
-    const body = usePolicyBodyQuery(openSlug).data ?? null;
+    const bodyQuery = usePolicyBodyQuery(openSlug);
+    const body = bodyQuery.data ?? null;
+    // The read answered (or was refused) without a text: say so and offer
+    // another try. It used to leave the spinner turning for good.
+    const bodyFailed = !body && !bodyQuery.isFetching;
     const [busySlug, setBusySlug] = useState<string | null>(null);
     const { refetch: refresh } = policies;
 
@@ -72,17 +115,18 @@ export default function PolicyAcknowledgements() {
                         {openSlug === d.slug && (
                             <div className="px-4 pb-3 space-y-3">
                                 {body === null ? (
-                                    <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />
+                                    <PolicyBodyPending failed={bodyFailed} onRetry={() => { void bodyQuery.refetch(); }} />
                                 ) : (
                                     <pre className="whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-[var(--text-secondary)] max-h-80 overflow-y-auto rounded-lg bg-[var(--bg-secondary)] p-3">
                                         {body.body}
                                     </pre>
                                 )}
-                                {!d.acknowledged && (
-                                    <button onClick={() => confirm(d.slug)} disabled={busySlug === d.slug}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50 bg-[var(--accent-primary)]">
-                                        <Check className="w-3.5 h-3.5" /> {t('settings.policy_ack_confirm')}
-                                    </button>
+                                {!d.acknowledged && !bodyFailed && (
+                                    <ConfirmPolicy
+                                        bodyLoaded={body !== null}
+                                        busy={busySlug === d.slug}
+                                        onConfirm={() => { void confirm(d.slug); }}
+                                    />
                                 )}
                             </div>
                         )}

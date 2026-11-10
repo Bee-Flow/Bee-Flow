@@ -65,7 +65,7 @@ describe('AutomationRow shared with me', () => {
         expect(screen.getByTitle('Move to trash')).toBeTruthy();
     });
 
-    it.each([['run', 'Can run'], ['view', 'Can view'], ['edit', 'Can edit']])('shows "%s" as %s', (role, label) => {
+    it.each([['run', 'Can start'], ['view', 'Can view'], ['edit', 'Can edit']])('shows "%s" as %s', (role, label) => {
         renderRow({ myRole: role });
         expect(screen.getByTestId('automation-role-chip').textContent).toBe(label);
     });
@@ -75,7 +75,7 @@ describe('AutomationRow shared with me', () => {
         renderRow({ myRole: 'run' });
         expect(screen.queryByTitle('Move to trash')).toBeNull();
         await user.click(screen.getByLabelText('More options'));
-        expect(screen.getByText('View executions')).toBeTruthy();
+        expect(screen.getByText('View runs')).toBeTruthy();
         expect(screen.getByText('Copy ID')).toBeTruthy();
         expect(screen.queryByText('Duplicate')).toBeNull();
         expect(screen.queryByText('Delete')).toBeNull();

@@ -8,6 +8,7 @@ import StatStrip from './overview/StatStrip';
 import PatternsView from './patterns/PatternsView';
 import { useTranslation } from '@/hooks/useTranslation';
 import Spinner from '@/components/shared/Spinner';
+import SectionHeader from '@/components/shared/SectionHeader';
 import Tabs from '@/components/shared/Tabs';
 
 /**
@@ -67,14 +68,10 @@ const GuardrailsHub = ({ section, onNavigate }: GuardrailsHubProps) => {
     return (
         <div className="space-y-5">
 
-            <header>
-                <h1 className="text-xl font-bold text-[var(--text-primary)]">
-                    {t('admin.gr_title', 'Guardrail configs')}
-                </h1>
-                <p className="text-sm text-[var(--text-secondary)]">
-                    {t('admin.gr_subtitle', 'Reusable security configuration for organisations on this server.')}
-                </p>
-            </header>
+            <SectionHeader
+                title={t('admin.gr_title', 'Guardrail configs')}
+                description={t('admin.gr_subtitle', 'Reusable security configuration for organisations on this server.')}
+            />
 
             <StatStrip
                 rules={data.rules.length}

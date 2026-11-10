@@ -73,7 +73,7 @@ export function isSharedWithMe(r: AutomationStatusInput): boolean {
 }
 
 export function roleLabel(role: AutomationRole, t: TranslateFn): string | null {
-    if (role === 'run') return t('automations.role.canRun', 'Can run');
+    if (role === 'run') return t('automations.role.canRun', 'Can start');
     if (role === 'view') return t('automations.role.canView', 'Can view');
     if (role === 'edit') return t('automations.role.canEdit', 'Can edit');
     return null;

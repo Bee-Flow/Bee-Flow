@@ -329,7 +329,7 @@ then inside `server/routes/automation.js`: `requireAuth` → `requireBetaFeature
 `server/routes/automation/formPublic.js` is mounted **before** `requireAuth` (it is the "public" surface) but installs its own `router.use(requireAuth)` while `PUBLIC_FORMS_ENABLED === false`.
 
 **The forms routes carry no extra licence gate of their own** — one entitlement, one lock. Note it is
-`requireBetaFeature('automations')` (admins toggle it per organisation in admin → Security → Beta; super admins always pass), **not** a per-route permission.
+`requireBetaFeature('automations')` (admins toggle it per organisation in admin → Access → Grants, under Beta; super admins always pass), **not** a per-route permission.
 
 **Frontend gate** (`studioApps.jsx`, Forms descriptor):
 ```js

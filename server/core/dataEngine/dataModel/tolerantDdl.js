@@ -26,6 +26,9 @@ const { qi } = require('./ddl');
 //   • ALTER TABLE … ADD COLUMN failing with "duplicate column name" → skipped.
 //   • ALTER TABLE … RENAME TO / RENAME COLUMN whose target name already
 //     exists AND whose source is gone → no-op'd without executing.
+//   • ALTER TABLE … DROP COLUMN of a column that is already gone from a table
+//     that exists → no-op'd without executing (a stored-computed rename drops
+//     the OLD key; pg emits DROP COLUMN IF EXISTS for the same reason).
 //
 // Anything else still throws — tolerance must never mask a genuinely broken
 // plan. Skipped statements are logged.
@@ -35,6 +38,7 @@ const { qi } = require('./ddl');
 const RENAME_TABLE_RE = /^ALTER TABLE\s+"((?:[^"]|"")+)"\s+RENAME TO\s+"((?:[^"]|"")+)"\s*;?\s*$/i;
 const RENAME_COLUMN_RE = /^ALTER TABLE\s+"((?:[^"]|"")+)"\s+RENAME COLUMN\s+"((?:[^"]|"")+)"\s+TO\s+"((?:[^"]|"")+)"\s*;?\s*$/i;
 const ADD_COLUMN_RE = /^ALTER TABLE\s+"(?:[^"]|"")+"\s+ADD COLUMN\s+/i;
+const DROP_COLUMN_RE = /^ALTER TABLE\s+"((?:[^"]|"")+)"\s+DROP COLUMN\s+"((?:[^"]|"")+)"\s*;?\s*$/i;
 
 /**
  * @param {string} s
@@ -59,7 +63,8 @@ function tableExists(db, name) {
  */
 function columnExists(db, tableName, colName) {
     try {
-        return db.prepare(`PRAGMA table_info(${qi(tableName)})`).all().some(c => c.name === colName);
+        // table_xinfo, not table_info: table_info hides generated (computed) columns.
+        return db.prepare(`PRAGMA table_xinfo(${qi(tableName)})`).all().some(c => c.name === colName);
     } catch (_) {
         return false;
     }
@@ -143,6 +148,14 @@ function applyPlanTolerantly(db, orderedDDL, { log = console, probes = [] } = {}
             const to = unquoteIdent(rc[3]);
             if (from !== to && tableExists(db, tbl) && !columnExists(db, tbl, from) && columnExists(db, tbl, to)) {
                 skip(sql, 'column already renamed');
+                continue;
+            }
+        }
+        const dc = (rt || rc) ? null : sql.match(DROP_COLUMN_RE);
+        if (dc) {
+            const tbl = unquoteIdent(dc[1]);
+            if (tableExists(db, tbl) && !columnExists(db, tbl, unquoteIdent(dc[2]))) {
+                skip(sql, 'column already dropped');
                 continue;
             }
         }

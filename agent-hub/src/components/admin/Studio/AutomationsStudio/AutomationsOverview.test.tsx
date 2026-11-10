@@ -195,7 +195,7 @@ describe('AutomationsOverview', () => {
         expect(props.get('d').onSelect).toHaveBeenCalledTimes(1);
 
         await user.click(within(first).getByRole('button', { name: 'More options' }));
-        for (const label of ['Activate', 'View executions', 'Duplicate', 'Export JSON', 'Move to folder…', 'Copy ID', 'Delete']) {
+        for (const label of ['Activate', 'View runs', 'Duplicate', 'Export', 'Move to folder…', 'Copy ID', 'Delete']) {
             expect(screen.getByText(label)).toBeTruthy();
         }
         await user.click(screen.getByText('Move to folder…'));

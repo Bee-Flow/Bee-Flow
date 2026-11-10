@@ -8,6 +8,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import { isTruncatedOutput } from '../mapping/realOutputs';
 import { MAX_PINNED_BYTES, jsonByteLength, safeJsonText } from '../outputDrafts';
 import OutputEditorPanel from '../OutputEditorPanel';
+import type { PatchSource } from './useStepPatchSave';
 import { errorMessage, messageOf } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
 
@@ -26,7 +27,7 @@ export default function useOutputEditor({
     outputEdited: boolean;
     canEditOutput: boolean;
     saving: boolean;
-    persistStepPatch: (patch: Record<string, unknown>) => Promise<void>;
+    persistStepPatch: (patch: Record<string, unknown>, source?: PatchSource) => Promise<void>;
     onOpened: () => void;
 }) {
     const [open, setOpen] = useState(false);
@@ -75,7 +76,7 @@ export default function useOutputEditor({
             return;
         }
         try {
-            await persistStepPatch({ pinnedOutput: parsed, pinnedAt: new Date().toISOString(), pinnedSource: 'edited' });
+            await persistStepPatch({ pinnedOutput: parsed, pinnedAt: new Date().toISOString(), pinnedSource: 'edited' }, 'action');
             setOpen(false);
             setError(null);
         } catch (e) {
@@ -84,7 +85,7 @@ export default function useOutputEditor({
     };
     const remove = async () => {
         try {
-            await persistStepPatch({ pinnedOutput: null, pinnedAt: null, pinnedSource: undefined });
+            await persistStepPatch({ pinnedOutput: null, pinnedAt: null, pinnedSource: undefined }, 'action');
             setOpen(false);
             setError(null);
         } catch (err) { logger.debug('the save chip in the header reports it', err); }

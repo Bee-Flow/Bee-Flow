@@ -5,8 +5,37 @@ import { API_BASE } from '@/utils/helpers';
 import { useOrgDefaultLanguage } from '@/api/queries/orgAdminReads';
 import { mutate, ApiError } from '@/api/mutate';
 
+/**
+ * The default is ONE value for the whole server (`org_default_locale`), so
+ * only a platform administrator may set it: the server refuses the PUT for
+ * anyone else. An organisation admin reads it here and is not offered a
+ * control whose every use would come back 403.
+ */
+function ReadOnlyDefaultLanguage() {
+    const { t } = useTranslation();
+    const { data: loaded, loading } = useOrgDefaultLanguage();
+    const locales = loaded?.locales ?? [];
+    if (loading || locales.length <= 1) return null;
+    const code = loaded?.defaultLocale ?? 'en';
+    const name = locales.find(l => l.code === code)?.name || code;
+    return (
+        <div className="space-y-5">
+            <div>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('org.default_language')}</h3>
+            </div>
+            <dl className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                <dt className="text-[13px] font-medium text-[var(--text-primary)]">{t('org.new_user_language')}</dt>
+                <dd className="text-[13px] text-[var(--text-secondary)] mt-1">{name}</dd>
+                <dd className="text-[11px] text-[var(--text-muted)] mt-2">
+                    {t('org.default_language_platform_only', 'This applies to the whole server. Only a platform administrator can change it.')}
+                </dd>
+            </dl>
+        </div>
+    );
+}
+
 // ── Org Default Language ───────────────────────────────────────────────────
-const OrgDefaultLanguage = () => {
+const EditableDefaultLanguage = () => {
     const { t } = useTranslation();
     const { data: loaded, loading } = useOrgDefaultLanguage();
     const locales = loaded?.locales ?? [];
@@ -106,5 +135,8 @@ const OrgDefaultLanguage = () => {
         </div>
     );
 };
+
+/** `canEdit`: a platform administrator, the only one the server lets set it. Read-only unless told so. */
+const OrgDefaultLanguage = ({ canEdit = false }: { canEdit?: boolean }) => (canEdit ? <EditableDefaultLanguage /> : <ReadOnlyDefaultLanguage />);
 
 export default OrgDefaultLanguage;

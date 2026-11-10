@@ -74,7 +74,13 @@ describe('schedule builder', () => {
         undefined, 42, '', '   ', '* * * * *', '*/5 * * * *', '*/0 * * * *', '*/60 * * * *', '15 * * * *', '75 * * * *',
         '0 9 * * *', '30 23 * * *', '0 25 * * *', '0 9 * * 1,3,5', '0 9 * * 7', '99 99 * * 1', '0 9 1 * *', '0 9 31 * *',
         '0 9 32 * *', '0 9 1 1 *', '0 9 * * MON', '0 0 1 1 * 2026', 'nonsense', '0 9 1-5 * *',
+        '75 9 * * 1', '0 24 * * 1,2', '60 9 15 * *', '0 99 15 * *', '59 23 * * 1', '59 23 15 * *',
     ];
+    it.each(['75 9 * * 1', '0 24 * * 1,2', '99 99 * * 1', '60 9 15 * *', '0 99 15 * *'])('%s is out of range: it stays the raw expression', (cron) => {
+        expect(schedule.presetFromCron(cron)).toEqual({ mode: 'custom', cron });
+        expect(schedule.cronFromPreset(schedule.presetFromCron(cron))).toBe(cron);
+    });
+
     it.each(CRONS.map((c) => [JSON.stringify(c), c] as const))('presetFromCron / describeCron %s', (_l, cron) => {
         expect(schedule.presetFromCron(cron)).toEqual(webSchedule.presetFromCron(cron));
         expect(schedule.describeCron(cron)).toBe(webSchedule.describeCron(cron));

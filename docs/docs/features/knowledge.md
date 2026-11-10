@@ -15,11 +15,11 @@ KB ingestion + retrieval can run in either of two backends. Both expose the same
 | **Local (in-process)** — default | Postgres `kb_chunks` table with pgvector | Chunk + embed via global provider (or CPU fallback) + pgvector + BM25 (FTS) + RRF + reranker | Self-hosted setups, no GPU box |
 | **Remote search-service** | External Postgres / Qdrant on the search-service host | Same pipeline, run by a search service at `SEARCH_SERVICE_URL` | Tenants served by a hosted search service |
 
-Pick under **Admin → AI Configuratie → Limits & Self-host → Knowledge-base provider** (Auto / Local / Remote). See [Limits & Self-host](../admin/limits-and-self-host.md) for switching, vector-dim reconciliation, and re-ingest semantics.
+Pick under **Admin → AI Config → Limits & Self-host → Knowledge-base provider** (Auto / Local / Remote). See [Limits & Self-host](../admin/limits-and-self-host.md) for switching, vector-dim reconciliation, and re-ingest semantics.
 
 ## Embedding model
 
-Picked under **Admin → AI Configuratie → Embeddings**. Common choices:
+Picked under **Admin → AI Config → Embeddings**. Common choices:
 
 | Model | Provider | Dim | Notes |
 |---|---|---|---|

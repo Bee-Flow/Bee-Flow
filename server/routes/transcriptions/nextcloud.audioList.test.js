@@ -42,3 +42,20 @@ test('a recording with a percent sign in its name is listed under that name', as
         ['a%41.wav', '/Recordings/a%41.wav'],
     ]);
 });
+
+test('an ampersand in a name arrives as the XML entity and is listed as the character; a malformed href costs one odd name, not the folder', async (t) => {
+    const xml = `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:">${[
+        entry('/remote.php/dav/files/ada/Recordings/Q&amp;A%20session.mp3'),
+        entry('/remote.php/dav/files/ada/Recordings/bad%ZZname.mp3'),
+        entry('/remote.php/dav/files/ada/Recordings/caf%C3%A9.wav'),
+    ].join('')}</d:multistatus>`;
+    const original = { resolveAuth: ncClient.resolveAuth, webdavRoot: ncClient.webdavRoot };
+    ncClient.resolveAuth = async () => ({ baseUrl: 'https://nc.example', uid: 'ada', fetch: async () => ({ status: 207, ok: true, text: async () => xml }) });
+    ncClient.webdavRoot = (base, uid) => `${base}/remote.php/dav/files/${uid}`;
+    t.after(() => Object.assign(ncClient, original));
+
+    const res = await api.call('GET', '/nextcloud-audio-files');
+    assert.strictEqual(res.status, 200, res.text);
+    assert.deepStrictEqual(res.body.items.map((i) => i.name).sort(), ['Q&A session.mp3', 'bad%ZZname.mp3', 'café.wav']);
+    assert.strictEqual(res.body.items.find((i) => i.name === 'Q&A session.mp3').path, '/Recordings/Q&A session.mp3');
+});

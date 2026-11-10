@@ -1,8 +1,9 @@
 /**
  * Quality tab fixtures of the Usage & Monitoring demo.
  */
+import { demoNow } from '../demoClock';
 
-const dayKey = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+const dayKey = (n: number) => new Date(demoNow() - n * 86_400_000).toISOString().slice(0, 10);
 
 /* ── Quality: feedback and terminations ───────────────────────────────
    The exact wire shape of GET /api/feedback/org[/summary] and

@@ -129,6 +129,8 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                         setOrgData={setOrgData}
                         handleLogoUpload={handleLogoUpload}
                         handleLogoRemove={handleLogoRemove}
+                        // The dashboard's own line (pages/AdminDashboard.tsx): users.role === 'admin', never the 'all' permission.
+                        isPlatformAdmin={user?.isAdmin === true || user?.role === 'admin'}
                     />
                 )}
                 {/* ── Privacy Shield ── */}

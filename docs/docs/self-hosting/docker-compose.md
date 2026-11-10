@@ -49,7 +49,7 @@ PROFILES="core local-llm" ./selfhost.sh
 ```
 
 Then set `OLLAMA_URL=http://ollama:11434` in `.env`, restart, and download a model
-from **Admin → AI → Providers → Local models**. Full guide:
+from **Admin → AI Config → API Keys** (the Local group). Full guide:
 [Local models](../admin/local-models.md).
 
 This runs in `DEPLOYMENT_MODE=self-hosted`: no billing, and paid features unlock when you activate a
@@ -89,20 +89,23 @@ Self-hosted installs run on the free **community** tier by default — **no lice
 community is a fully usable floor (chat, knowledge bases, multi-user, the Nextcloud connector). You only
 need a licence to unlock premium features (automations, meeting notes, guardrails, and more).
 
-To unlock enterprise features for the whole install, sign in as a super-admin → **Admin → Licence** →
+To unlock enterprise features for the whole install, sign in as a super-admin → **Admin → Server licence** →
 paste your **server-wide** licence key (a JWT issued by Bee Flow, or an admin-issued blob). Pricing and
 keys are at [beeflow.nl](https://beeflow.nl); see [Applying a licence key](../licensing/apply.md). To
 verify production keys, set `LICENSE_PUBLIC_KEY` (or `LICENSE_PUBLIC_KEY_FILE`) in `.env`.
 
 ## Connect your Nextcloud {#connect-nextcloud}
 
-You do **not** need to set any Nextcloud env vars on the server. Instead, point the Bee Flow connector
-(the Nextcloud ExApp) at your self-hosted server from the Nextcloud admin UI:
+You do **not** need to set any Nextcloud env vars on the server. Instead, choose your self-hosted
+server in the Bee Flow connector (the Nextcloud ExApp):
 
 1. Install the Bee Flow connector on your Nextcloud (App Store, or `occ app_api:app:register bee_flow …`
    — see [Getting started → Nextcloud](../getting-started/nextcloud.md)).
-2. In Nextcloud, go to **Settings → Administration → AI → Bee Flow**.
-3. Set **Deployment mode** to **Self-hosted server** and enter your server's base URL
+2. As a Nextcloud administrator, open **Bee Flow** from the top bar. A new install shows the setup
+   page: the connector has no Bee Flow server until you choose one. (On an install that is already
+   connected, use the [setup page](../connector/setup-picker.md#where-the-setup-page-is) or
+   **Settings → Administration → AI → Bee Flow**.)
+3. Choose **Self-hosted server** and enter your server's base URL
    (e.g. `https://bee-flow.your-domain.com`, or `http://<host>:5176` on a LAN).
 
    :::caution The API port is loopback-only by default
@@ -117,11 +120,23 @@ You do **not** need to set any Nextcloud env vars on the server. Instead, point 
    only offer on secure (HTTPS) pages. On a Nextcloud served over plain HTTP the embedded sign-in
    fails; put Nextcloud behind TLS.
    :::
-4. Within ~60 s the connector re-bootstraps against your server (it provisions an organisation and a
-   tenant key automatically). Nextcloud users can now open Bee Flow and sign in.
+4. Generate a pairing code in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and
+   enter it on the same page. A self-hosted server links a Nextcloud by pairing code by default: it
+   does not create an organisation for a Nextcloud it does not know.
+5. Press **Connect**. The connector first asks your server for `/api/health`; when it does not
+   answer, nothing is saved and nothing is sent. Then it connects, and the page reports the outcome.
 
-The connector keeps working against Bee Flow Cloud by default — switching to *Self-hosted server* is
-opt-in per Nextcloud and is reversible (a bad URL rolls back to the previous target).
+The same route, with what the host needs and what stays yours to look after, is in
+[Bee Flow on your own server next to Nextcloud](../connector/own-server.md). A Nextcloud that has
+only a private address needs one server setting:
+[Nextcloud is not reachable from the internet](../connector/troubleshooting.md#not-reachable).
+
+The connector has no default server: a Nextcloud talks to your server only because an administrator
+chose it, and to nothing before that. To fix the choice at install time, give the install-time value
+`BEEFLOW_API_BASE_URL=<your server URL>`; it then cannot be changed from inside Nextcloud. A later
+switch to another server that does not connect goes back to the previous one. If your server's
+certificate comes from your own certificate authority, see `BEEFLOW_SERVER_CA_CERT` in
+[Connector → Architecture](../connector/architecture.md#connector-environment-variables).
 
 ## Manual / advanced installs {#manual}
 
@@ -362,6 +377,6 @@ The download limits are also listed under [Environment variables](./env.md#downl
 - [ ] HTTPS in front of the stack (`COOKIE_SECURE=true` once behind TLS)
 - [ ] `LICENSE_PUBLIC_KEY` set if you activate production licence keys
 - [ ] Daily `pg_dump` running and tested-restored at least once
-- [ ] At least one model provider key set (in-app, Admin → AI settings)
+- [ ] At least one model provider key set (in-app, Admin → AI Config → API Keys)
 - [ ] Rate limit at the reverse proxy (e.g. Caddy `request_body max_size 10MB`, Nginx `limit_req_zone`)
 - [ ] Audit log shipped off-host (Loki / ELK / Splunk) — see [Reference → Telemetry](../reference/telemetry.md)

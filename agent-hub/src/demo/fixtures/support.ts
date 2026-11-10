@@ -20,6 +20,7 @@
 
 import { COMMON_ROUTES, daysAgo } from './common';
 import { pick } from '../lang';
+import { demoDate } from '../demoClock';
 
 interface Inbox {
     id: string;
@@ -518,7 +519,7 @@ export const ROUTES = {
             // Nothing is sent. Saying so in the field the UI already renders
             // is better than a silent no-op that looks like a delivery.
             email_send_status: 'demo_not_sent',
-            created_at: new Date().toISOString(),
+            created_at: demoDate().toISOString(),
         };
         list.push(message);
 

@@ -40,13 +40,13 @@ const text = (what) => worded(`${what} must be text.`);
 const cap = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .min(0, `${name} must be non-negative.`).nullish();
 
-const STATUS_TEXT = 'Invalid status. Must be: active, suspended, cancelled, trialing, past_due';
+const STATUSES = /** @type {const} */ (['active', 'suspended', 'cancelled', 'trialing', 'past_due', 'manual_action_required']);
 const PLAN_ID_TEXT = 'plan_id is required — the plan to start the trial on.';
 
 const OrgSubscriptionBody = z.object({
     // '' is how the editor spells "no plan"; it is stored as-is today.
     plan_id: text('plan_id').nullish(),
-    status: z.enum(['active', 'suspended', 'cancelled', 'trialing', 'past_due'], { error: () => STATUS_TEXT }).optional(),
+    status: z.enum(STATUSES, { error: () => `Invalid status. Must be: ${STATUSES.join(', ')}` }).optional(),
 
     max_messages_per_month: cap('max_messages_per_month'),
     max_tokens_per_month: cap('max_tokens_per_month'),
@@ -334,8 +334,8 @@ router.put('/orgs/:orgId', validate({ body: OrgSubscriptionBody }), async (/** @
 
         // Atomic read-modify-write: serialises two admins racing on the same
         // org and reports when this write displaced another admin's active
-        // override. Both attempts are then visible in the audit log.
-        const lockResult = await userStore.setOrgSubscriptionWithLock(req.params.orgId, payload);
+        // override. Both attempts are then visible in the audit log. A plan_id (re)assigns: stale limits reset (BFSF-249).
+        const lockResult = await userStore.setOrgSubscriptionWithLock(req.params.orgId, payload, { resetLimits: payload.plan_id !== undefined });
         if (!lockResult.ok) return res.status(400).json({ error: 'Failed to set subscription' });
         const oldSub = lockResult.snapshot;
 

@@ -6,6 +6,7 @@ import { AddAfterButton, BadgeSlot, StepActionToolbar, ValidationDot } from './S
 import { StepNodeText, StepNodeTile } from './StepNodeFace';
 import { SourcePorts, ToolPort } from './StepNodePorts';
 import { useStepNodeRuntime } from './useStepNodeRuntime';
+import { simulatedWriteKind } from '../simulatedStep';
 import { useZoomLod, LOD_FAR, LOD_NEAR } from '../useZoomLod';
 import useTranslation from '@/hooks/useTranslation';
 import type { Binding, NodeStep, StepNodeBaseProps } from './StepNodeBase.types';
@@ -109,8 +110,10 @@ export default function StepNodeBase({
     const status = runStep?.status;
     const r = useStepNodeRuntime({ nodeId, issues, familyProp, stepTypeProp });
     const { rt, family, stepNumber, isSource, errCount, warnCount } = r;
+    // A dry run records a step it only simulated as `success` (flow/simulatedStep.ts).
+    const simulatedKind = simulatedWriteKind({ stepType: r.stepType, status, output: runStep?.output });
     const { chrome, tileStyle, glyphStyle, familyColor, cardStyle } = stepNodeLook({
-        family, stepType: r.stepType, status, pinned: r.pinned, disabled: r.disabled, selected: r.selected, editing: r.editing,
+        family, stepType: r.stepType, status, simulated: simulatedKind !== null, pinned: r.pinned, disabled: r.disabled, selected: r.selected, editing: r.editing,
         isSource, isTarget: r.isTarget, errorTone, tileColor, far, dim, branchHandleCount: branchHandles ? branchHandles.length : 0,
     });
     const glyphSize = far ? 20 : 16;
@@ -242,6 +245,7 @@ export default function StepNodeBase({
                 subTitle={subTitle}
                 subDetail={subDetail}
                 runStep={runStep}
+                simulatedKind={simulatedKind}
                 stepNumber={stepNumber}
                 isSource={isSource}
                 familyColor={familyColor}

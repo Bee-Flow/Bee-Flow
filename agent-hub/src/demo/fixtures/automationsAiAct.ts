@@ -19,6 +19,7 @@
 import { daysAgo } from './common';
 import { rowOf, type DemoRun } from './automationsRuns';
 import { CASEY } from './automationsPeople';
+import { demoDate } from '../demoClock';
 
 type Obj = Record<string, unknown>;
 type Tri = 'yes' | 'no' | 'unknown';
@@ -148,7 +149,7 @@ function answer(r: AiActRecord, body: Obj, manual: boolean): boolean {
     }
     if (r.questions.length) return false;
     Object.assign(r, {
-        status: 'valid', source: manual ? 'manual' : 'mixed', attestedAt: new Date().toISOString(), attestedBy: 'demo-user',
+        status: 'valid', source: manual ? 'manual' : 'mixed', attestedAt: demoDate().toISOString(), attestedBy: 'demo-user',
         expiresAt: daysAgo(-365), outcome: outcomeOf(r),
     });
     return true;

@@ -51,4 +51,41 @@ describe('useStepPatchSave — a patch queued behind a save in flight', () => {
         expect(saved.label).toBe('New name');
         await act(async () => { result.current.saves[1].land(); });
     });
+
+    it('keeps a waiting form patch when an action is queued after it, and the other way round', async () => {
+        const { result } = renderHook(() => useHarness());
+        act(() => { void result.current.save.persistStepPatch({ label: 'New name' }); });
+
+        // Behind that save: the form's next autosave, then Switch off, then Pin.
+        // The later ones used to REPLACE the waiting patch, so the prompt was
+        // never saved while the form took it for saved.
+        act(() => { void result.current.save.persistStepPatch({ prompt: 'new prompt' }); });
+        act(() => { void result.current.save.persistStepPatch({ disabled: true }, 'action'); });
+        act(() => { void result.current.save.persistStepPatch({ pinnedOutput: { a: 1 } }, 'action'); });
+        expect(result.current.saves).toHaveLength(1);
+
+        await act(async () => { result.current.saves[0].land(); });
+        await waitFor(() => expect(result.current.saves).toHaveLength(2));
+        expect(result.current.saves[1].next.steps?.[0]).toMatchObject({
+            label: 'New name', prompt: 'new prompt', disabled: true, pinnedOutput: { a: 1 },
+        });
+        await act(async () => { result.current.saves[1].land(); });
+    });
+
+    it('lets the form\'s newer patch replace its waiting one: a field put back in between is not written', async () => {
+        const { result } = renderHook(() => useHarness());
+        act(() => { void result.current.save.persistStepPatch({ disabled: true }, 'action'); });
+
+        // The form diffs its whole draft against the step on screen. First the
+        // label and the prompt differ; then the label is typed back to what it
+        // was, so the next patch no longer names it.
+        act(() => { void result.current.save.persistStepPatch({ label: 'Typo', prompt: 'new prompt' }); });
+        act(() => { void result.current.save.persistStepPatch({ prompt: 'new prompt' }); });
+
+        await act(async () => { result.current.saves[0].land(); });
+        await waitFor(() => expect(result.current.saves).toHaveLength(2));
+        const saved = result.current.saves[1].next.steps?.[0] as FlowStep;
+        expect(saved).toMatchObject({ label: 'Old name', prompt: 'new prompt', disabled: true });
+        await act(async () => { result.current.saves[1].land(); });
+    });
 });

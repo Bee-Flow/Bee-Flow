@@ -123,6 +123,7 @@ const CREDENTIAL_UNCHANGED = [
 const MAY_SET_THE_DATE = new Set([
     'stores/user/users.js',   // the choke point itself
     'stores/user/usersCreate.js', // the create half of the same choke point, split out of users.js
+    'stores/user/passwordReset.js', // the e-mailed reset: hash, date and token check are ONE statement, so it cannot go through updateUser
     OPAQUE_ROUTES,            // the documented exception: its credential is not a hash
 ]);
 

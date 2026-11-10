@@ -58,6 +58,28 @@ Clients registered before the provider-parameterised routes existed use `https:/
 
 For users who didn't connect via OAuth. The user sets it in **Settings → Account → Integrations → Nextcloud → Add app password**. NC generates the password and stores it AES-encrypted in Postgres (`BEEFLOW_ENCRYPTION_KEY`).
 
+## No Docker on your Nextcloud host? {#no-docker}
+
+The [Nextcloud connector](../connector/index.md) is an app that Nextcloud starts as a Docker container. On managed or shared hosting, or on any host where you cannot run Docker for Nextcloud's AppAPI, it cannot be installed ([compatibility](../connector/index.md#compatibility)).
+
+Bee Flow still works with such a Nextcloud. Without the connector, Bee Flow reaches Nextcloud from outside, as each user: through [OAuth](#standalone-no-connector) or an [app password](#basic--app-password-fallback), as described above. What you need:
+
+- A Bee Flow server: Bee Flow Cloud, or [your own](../self-hosting/index.md) on a machine where Docker does run.
+- A Nextcloud that this server can reach over HTTPS. A server refuses private network addresses unless it is set up to allow them ([details](../connector/troubleshooting.md#not-reachable)).
+- For OAuth: a Nextcloud administrator who can register an OAuth 2.0 client. An app password needs no administrator; each user creates one.
+
+What is different without the connector:
+
+| | With the connector | Without it |
+|---|---|---|
+| Where users open Bee Flow | Inside Nextcloud, from the top bar, with their Nextcloud session | In Bee Flow itself (browser, desktop or mobile app), where they sign in to Bee Flow |
+| Nextcloud tools in chat, agents and automations | Yes | Yes, with the user's own OAuth sign-in or app password |
+| Deck and Notes tools | Yes | Only with an app password. With an OAuth sign-in alone these tools ask for one (**Settings → Connections**). |
+| Bee Flow bot in Talk | Yes | No: the connector registers it |
+| Bee Flow as a provider for Nextcloud Assistant | Yes | No: the connector registers it |
+| Bee Flow actions in the Nextcloud Files app | Yes | No: the connector registers them |
+| Automations started at once by a Nextcloud event (file, tag, calendar, Forms, Tables, Deck) | Yes | No: Nextcloud delivers these events to the connector |
+
 ## Scopes & permissions
 
 All tools run under the calling user's NC permissions. The assistant cannot access other users' files; sharing tools require the user's existing share permissions.
@@ -77,4 +99,4 @@ File contents pulled via `nextcloud_read_file` are scanned by the Privacy Shield
 
 ## Group-level disable
 
-Org admins can disable `nextcloud` at the org or per-group level. Disabling for a group removes all 11 file tools from that group's users. See [Admin → NC integrations](../admin/nc-integrations.md).
+Org admins can switch Files & WebDAV (`nextcloud`) off for the whole organisation, or disable it for a Nextcloud group, under **Settings → Organisation → Integrations → Integration settings**. A group exception removes the file tools from a user only when every group they belong to disables it (enable wins). See [Nextcloud integrations](../admin/nc-integrations.md).

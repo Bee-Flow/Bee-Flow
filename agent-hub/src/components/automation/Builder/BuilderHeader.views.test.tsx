@@ -119,7 +119,7 @@ describe('BuilderHeader: right cluster per view', () => {
         await user.click(screen.getByRole('button', { name: 'More ways to run' }));
         expect(screen.getByRole('menuitemradio', { name: 'New email' }).getAttribute('aria-checked')).toBe('true');
         await user.click(screen.getByRole('menuitemradio', { name: 'Label commands' }));
-        await user.click(screen.getByRole('menuitem', { name: /run live/i }));
+        await user.click(screen.getByRole('menuitem', { name: /run for real/i }));
         expect(p.onRunLive).toHaveBeenLastCalledWith('trig_b');
         // The choice sticks for the Test button too.
         await user.click(screen.getByRole('button', { name: 'Test' }));

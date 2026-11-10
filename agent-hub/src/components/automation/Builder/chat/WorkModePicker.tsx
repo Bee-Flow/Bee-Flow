@@ -27,6 +27,8 @@ interface Props {
     modes?: readonly WorkMode[];
     /** i18n prefix of the mode labels (`<prefix>.<key>` and `<prefix>.<key>_hint`). */
     keyPrefix?: string;
+    /** One sentence above the modes about where the assistant's changes land; the caller decides whether it applies. */
+    note?: string | null;
 }
 
 // Plain words (owner, 2026-11-04): the menu answers "How should I work?", and
@@ -39,7 +41,7 @@ export const WORK_MODES: WorkMode[] = [
     { id: 'discuss', Icon: MessageCircleQuestion, key: 'advise', label: 'Just advise', description: 'Answers and gives advice. Leaves the automation as it is.' },
     { id: 'approve', Icon: Hand, key: 'show_first', label: 'Show me before changing', description: 'Shows each change first. You decide whether to make it.' },
     { id: 'plan', Icon: ListChecks, key: 'ask_plan', label: 'Ask, plan, then build', description: 'Asks a few questions, writes a plan in plain words, and builds after your OK.' },
-    { id: 'build', Icon: Hammer, key: 'right_away', label: 'Change it right away', description: 'Makes the changes straight away. You can undo them.' },
+    { id: 'build', Icon: Hammer, key: 'right_away', label: 'Change it right away', description: 'Changes the steps straight away. You can undo that. A table it creates stays.' },
 ];
 
 // `planStatus` / `planVersion` describe the plan the builder is working through.
@@ -53,7 +55,7 @@ export const WORK_MODES: WorkMode[] = [
 // that box's toolbar, a few dozen pixels from its left edge, so a 320px menu
 // hung off the button spilled past the right edge of a 240-360px side panel;
 // anchored to the composer it takes the composer's width.
-export default function WorkModePicker({ value = 'approve', onChange, disabled = false, alwaysPlanLarge = true, onAlwaysPlanLargeChange = null, anchor = 'self', planStatus = /** @type {string | null} */ (null), planVersion = /** @type {number | string | null} */ (null), modes = WORK_MODES, keyPrefix = 'automations.assistant.mode' }: Props) {
+export default function WorkModePicker({ value = 'approve', onChange, disabled = false, alwaysPlanLarge = true, onAlwaysPlanLargeChange = null, anchor = 'self', planStatus = /** @type {string | null} */ (null), planVersion = /** @type {number | string | null} */ (null), modes = WORK_MODES, keyPrefix = 'automations.assistant.mode', note = null }: Props) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
@@ -97,6 +99,7 @@ export default function WorkModePicker({ value = 'approve', onChange, disabled =
             className={`absolute bottom-full mb-2 z-50 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1.5 shadow-lg ${anchor === 'composer' ? 'inset-x-0 max-w-full' : 'left-0 w-[min(320px,calc(100vw-48px))] max-w-[calc(100cqw-24px)]'}`}>
             <div className="flex justify-between p-2 text-[11px] text-[var(--text-tertiary)]"><span>{t('automations.assistant.how_to_work', 'How should I work?')}</span><kbd title={t('automations.assistant.work_mode_shortcut', 'Alt+M switches the work mode')} className="font-sans">{WORK_MODE_SHORTCUT_LABEL}</kbd></div>
             {buildingPlan && <p className="px-2 pb-2 text-[11px] leading-4 text-[var(--text-tertiary)]">{t('automations.assistant.mode.building_plan_hint', 'Follow-up messages continue this plan. Your own work mode applies again when it is done.')}</p>}
+            {note && <p data-testid="work-mode-note" className="px-2 pb-2 text-[11px] leading-4 text-[var(--text-tertiary)]">{note}</p>}
             {modes.map((m: WorkMode) => <button key={m.id} type="button" role="menuitemradio" aria-checked={value === m.id}
                 onClick={() => { onChange(m.id); closeToTrigger(); }} className={`flex w-full gap-2.5 rounded-lg p-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--type-ai)] ${value === m.id ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}>
                 <m.Icon size={15} className="mt-0.5 shrink-0 text-[var(--text-secondary)]" />

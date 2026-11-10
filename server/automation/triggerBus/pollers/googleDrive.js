@@ -11,6 +11,41 @@
  */
 
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
+
+const NEW_WINDOW_MS = 24 * 60 * 60_000;
+const MAX_FIRED = 200;
+
+/**
+ * The cursor is the Drive page token, or JSON `{ p, fired }` once files have
+ * fired: `fired` maps a file id to its createdTime (ms). A file counts as new
+ * for 24 h after its creation, and every edit in that window is another
+ * change row, so the ids that fired are kept until that window has closed.
+ * @param {string} raw
+ * @returns {{ pageToken: string, fired: Record<string, number> }}
+ */
+function parseCursor(raw) {
+    if (raw.startsWith('{')) {
+        let c = null;
+        // Not ours when it does not parse: read as a page token below.
+        try { c = JSON.parse(raw); } catch (err) { c = fallback('automation/triggerBus/pollers/googleDrive:parseCursor', err, null); }
+        if (c && typeof c.p === 'string') return { pageToken: c.p, fired: { ...(c.fired || {}) } };
+    }
+    return { pageToken: raw, fired: {} };
+}
+
+/**
+ * @param {string} pageToken
+ * @param {Record<string, number>} fired
+ * @param {number} nowMs
+ */
+function formatCursor(pageToken, fired, nowMs) {
+    // A file created longer ago than the window cannot count as new again.
+    const live = Object.entries(fired).filter(([, created]) => nowMs - created <= NEW_WINDOW_MS + 60 * 60_000);
+    live.sort((a, b) => b[1] - a[1]);
+    if (live.length === 0) return pageToken;
+    return JSON.stringify({ p: pageToken, fired: Object.fromEntries(live.slice(0, MAX_FIRED)) });
+}
 
 /** @param {Pick<import('./gmail').PollerCtx, 'store' | 'googleClient'>} ctx */
 function createGoogleDrivePollers(ctx) {
@@ -18,7 +53,7 @@ function createGoogleDrivePollers(ctx) {
         /**
          * file.new — fires when a file is created in the user's Drive.
          * Bootstraps with `getStartPageToken`; subsequent ticks use
-         * `changes.list({pageToken})` and emit creates only.
+         * `changes.list({pageToken})` and emit creates only, once per file.
          */
         'file.new': async (sub, session) => {
             const { createGoogleApiClient } = ctx.googleClient();
@@ -43,9 +78,10 @@ function createGoogleDrivePollers(ctx) {
                 return [];
             }
 
+            const { pageToken, fired } = parseCursor(String(sub.lastCursor));
             try {
                 const r = await drive.changes.list({
-                    pageToken: sub.lastCursor,
+                    pageToken,
                     includeRemoved: false,
                     spaces: 'drive',
                     fields: 'changes(time,removed,fileId,file(id,name,mimeType,parents,createdTime,modifiedTime,owners(emailAddress,me),webViewLink,trashed)),newStartPageToken,nextPageToken',
@@ -61,7 +97,10 @@ function createGoogleDrivePollers(ctx) {
                     // and are skipped.
                     const created = Date.parse(f.createdTime || '') || 0;
                     const changeT = Date.parse(ch.time || '') || Date.now();
-                    if (changeT - created > 24 * 60 * 60_000) continue;
+                    if (changeT - created > NEW_WINDOW_MS) continue;
+                    // A change to a file that already fired is an edit, not a new file.
+                    if (Object.hasOwn(fired, f.id)) continue;
+                    fired[f.id] = created;
                     events.push({
                         fileId: f.id,
                         name: f.name || '',
@@ -73,7 +112,8 @@ function createGoogleDrivePollers(ctx) {
                     });
                 }
                 const next = r.data.newStartPageToken || r.data.nextPageToken;
-                if (next) await ctx.store().updateSubscription(sub.id, { lastCursor: String(next) });
+                const cursor = formatCursor(String(next || pageToken), fired, Date.now());
+                if (cursor !== sub.lastCursor) await ctx.store().updateSubscription(sub.id, { lastCursor: cursor });
                 return events;
             } catch (err) {
                 if (isStaleCursor(err)) {

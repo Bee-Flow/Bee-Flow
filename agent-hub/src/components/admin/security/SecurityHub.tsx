@@ -73,7 +73,7 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
                 </div>
             )}
             {active === 'guardrails' && (
-                <div className="p-6">
+                <div className="p-6 md:p-8">
                     {/* `userSection` is the third admin path segment — the same one
                         ConnectorHealthPanel receives. Threading it here is what makes
                         /app/admin/security/guardrails/<section> a real, bookmarkable
@@ -82,17 +82,17 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
                 </div>
             )}
             {active === 'sso' && (
-                <div className="p-6">
+                <div className="p-6 md:p-8">
                     <SSOConfigPanel />
                 </div>
             )}
             {active === 'email-domains' && (
-                <div className="p-6">
+                <div className="p-6 md:p-8">
                     <FreeEmailDomainsPanel />
                 </div>
             )}
             {active === 'connector-health' && (
-                <div className="p-6">
+                <div className="p-6 md:p-8">
                     <ConnectorHealthPanel initialOrgId={userSection} onNavigate={onNavigate} />
                 </div>
             )}

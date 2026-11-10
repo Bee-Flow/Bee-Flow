@@ -103,7 +103,7 @@ async function executeWorkflow(workflow, userAuth = {}) {
 
         // Prepare Inputs - start with static values from node configuration
         // Check both 'inputs' and 'inputValues' for compatibility
-        const inputs = { ...(node.data.inputs || {}), ...(node.data.inputValues || {}) };
+        const inputs = { ...(node.data?.inputs || {}), ...(node.data?.inputValues || {}) };
 
         // Inject user auth info for components that need it
         if (userAuth.accessToken) {
@@ -239,7 +239,6 @@ async function executeWorkflow(workflow, userAuth = {}) {
                             }
                         }
 
-                        // Get previous state from SQLite
                         const prevState = await watcherStateStore.getWatcherState(watcherId);
                         const prevItems = prevState?.items || {};
                         const previousItems = Object.values(prevItems).map(p => p.data);
@@ -249,7 +248,8 @@ async function executeWorkflow(workflow, userAuth = {}) {
                         const getModified = (item) => item.lastmod || item.modified || item.updatedAt || item.mtime;
 
                         const changes = { added: [], modified: [], removed: [] };
-                        const currentItemMap = {};
+                        // Keyed by item id, which is foreign text: no prototype, so `constructor` or `__proto__` is a key like any other.
+                        const currentItemMap = Object.create(null);
 
                         currentItems.forEach(item => {
                             const itemId = getId(item);
@@ -258,7 +258,7 @@ async function executeWorkflow(workflow, userAuth = {}) {
                                 data: item
                             };
 
-                            if (!prevItems[itemId]) {
+                            if (!Object.hasOwn(prevItems, itemId)) {
                                 changes.added.push(item);
                             } else if (prevItems[itemId].modified !== getModified(item)) {
                                 changes.modified.push(item);

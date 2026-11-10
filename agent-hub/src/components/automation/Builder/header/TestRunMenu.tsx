@@ -103,7 +103,7 @@ export default function TestRunMenu({ busy = false, runBlocked = false, onDryRun
                         >
                             <Play size={14} className="mt-0.5 shrink-0 text-[var(--accent-primary)]" />
                             <span className="min-w-0">
-                                <span className="block text-[var(--text-primary)]">{t('automation_testing.header.run_live', 'Run live (test, real actions)')}</span>
+                                <span className="block text-[var(--text-primary)]">{t('automation_testing.header.run_live', 'Run for real (sends and writes)')}</span>
                                 <span className="block text-[11px] text-[var(--text-tertiary)]">{canRunLive ? t('automation_testing.header.run_live_hint', 'Every step acts for real; approvals go to you') : viewOnlyRunHint(t)}</span>
                             </span>
                         </button>

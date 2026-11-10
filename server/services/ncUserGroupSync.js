@@ -36,7 +36,7 @@ const { fallback } = require('../utils/bestEffort');
 
 const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
 const { resolveNcUserId } = require('../utils/ncUserId.mts');
-const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, sameGroups, firstSighting, ADMIN_RIGHTS_MISSING } = require('./ncAccountState.mts');
+const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, sameGroups, firstSighting, ADMIN_RIGHTS_MISSING, groupsAfterSync: mergedGroups } = require('./ncAccountState.mts');
 const { syncModeChosen, fullSyncHold, SKIP_NOT_CHOSEN } = require('./ncSyncStart.mts');
 
 /**
@@ -223,23 +223,13 @@ async function _applyUserCreated(org, ncUid, state) {
         let ncGroups = null;
         try {
             ncGroups = await fetchNcUserGroups(org, ncUid);
-            const expected = ncGroups.filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
+            const expected = groupsAfterSync(org, existing.groups, ncGroups);
             if (!sameGroups(existing.groups, expected)) updates.groups = expected;
         } catch (err) { fallback('services/ncUserGroupSync:_applyUserCreated#2', err); /* leave groups untouched on transient errors */ }
-        // Reactivate only when the sync mode still admits this user.
-        //
-        // This used to be an unconditional `status = 'active'` at the top of
-        // the branch — before the groups were even fetched, and never
-        // consulting shouldMirrorUser (which only gated the create path). So
-        // every user that applyGroupMemberChange had just deactivated for
-        // falling outside selective_groups / entering an excluded group came
-        // back at the next backstop run, and the one after that: an access
-        // decision quietly undone every six hours.
-        //
-        // A null ncGroups means the OCS read failed: a status UPGRADE must
-        // fail closed, or an excluded user returns whenever Nextcloud hiccups.
-        // The same holds for the account itself: only one that Nextcloud
-        // reports as enabled comes back.
+        // Reactivate only when the sync mode still admits this user, decided
+        // on groups that were read: a null ncGroups (the read failed) keeps
+        // the user as they are, and only an account Nextcloud reports as
+        // enabled comes back.
         if (existing.status === 'inactive'
             && state === 'enabled'
             && ncGroups !== null
@@ -335,7 +325,8 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
     // Re-evaluate membership: user may have entered/left a group that
     // changes their inclusion under selective_groups / excluded_groups.
     // Always also propagates the NC group set to the BF user.groups[] so
-    // group-based access in Bee Flow tracks NC.
+    // group-based access in Bee Flow tracks NC (groupsAfterSync: the groups
+    // assigned in Bee Flow stay).
     const user = await userStore.getUserByNcUid(org.id, ncUid);
     let groups;
     try { groups = await fetchNcUserGroups(org, ncUid); } catch { return { action: 'noop' }; }
@@ -343,7 +334,7 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
     if (shouldExist && !user) {
         return applyUserCreated(org, ncUid);
     }
-    const expectedGroups = groups.filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
+    const expectedGroups = groupsAfterSync(org, groupsOf(user), groups);
     // Manual mode: a group event updates a linked user's groups, never the status.
     if (org.nc_sync_mode === 'manual') return user ? _writeGroups(user, expectedGroups) : { action: 'noop' };
     if (!shouldExist && user && user.status === 'active') {
@@ -359,6 +350,9 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
     return shouldExist && user ? _writeGroups(user, expectedGroups) : { action: 'noop' };
 }
 
+/** @type {(user: { groups?: string[] } | null | undefined) => string[] | undefined} */
+const groupsOf = (user) => user?.groups;
+
 /** @type {(user: { id: string, groups?: string[] }, expectedGroups: string[]) => Promise<object>} Store the groups when they differ. */
 async function _writeGroups(user, expectedGroups) {
     if (sameGroups(user.groups, expectedGroups)) return { action: 'noop' };
@@ -373,6 +367,9 @@ async function _writeGroups(user, expectedGroups) {
 function ncGroupToBfId(orgId, ncGroupName) {
     return `nc_${orgId}_${String(ncGroupName).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
 }
+
+/** @type {(org: NcOrg, currentGroups: unknown, ncGroups: string[] | null | undefined) => string[]} See ncAccountState.groupsAfterSync. */
+const groupsAfterSync = (org, currentGroups, ncGroups) => mergedGroups(org.id, currentGroups, ncGroups, ncGroupToBfId);
 
 /** @param {NcOrg} org */
 async function mirrorGroups(org) {

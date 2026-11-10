@@ -12,6 +12,23 @@ import type { FlowStep } from '../flow/types';
 type Patch = Record<string, unknown>;
 type Definition = Record<string, unknown> | null;
 type SaveFn = ((next: unknown) => Promise<unknown> | unknown) | null;
+/**
+ * Where a patch comes from decides how it queues. The settings FORM diffs its
+ * whole draft against the step on screen, so its next patch replaces the one
+ * still waiting (a field changed and put back in between must not be written
+ * after all). An ACTION (switch off, pin) is one key of its own: it waits
+ * beside the form's patch instead of throwing it away, or being thrown away.
+ */
+export type PatchSource = 'form' | 'action';
+interface Queued { form: Patch | null; action: Patch | null }
+
+/** What is waiting, as one patch (null when nothing is), and the queue emptied. */
+function takeQueued(queue: Queued): Patch | null {
+    const { form, action } = queue;
+    queue.form = null;
+    queue.action = null;
+    return form || action ? { ...form, ...action } : null;
+}
 
 const merge = mergeStepPatchIntoDefinition as (def: unknown, step: unknown, patch: unknown) => unknown;
 const normalize = normalizeDefinitionShape as (def: unknown) => unknown;
@@ -30,19 +47,24 @@ export default function useStepPatchSave({ definition, step, onSaveStep, t }: {
     const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
     const failedPatchRef = useRef<Patch | null>(null);
     const saveInflightRef = useRef<Promise<void> | null>(null);
-    const saveQueuedRef = useRef<Patch | null>(null);
+    const saveQueuedRef = useRef<Queued>({ form: null, action: null });
     const definitionRef = useRef(definition);
     const stepRef = useRef(step);
     const onSaveStepRef = useRef(onSaveStep);
     // The queued patch is saved by the persist of the render that is current
     // WHEN ITS TURN COMES: the save in front of it has already put its own
     // change in the definition, and a patch is only the keys that changed.
-    const persistRef = useRef<((patch: Patch) => Promise<void>) | null>(null);
+    const persistRef = useRef<((patch: Patch, source?: PatchSource) => Promise<void>) | null>(null);
     useEffect(() => { definitionRef.current = definition; stepRef.current = step; onSaveStepRef.current = onSaveStep; });
 
-    const persistStepPatch = useCallback(async (patch: Patch): Promise<void> => {
+    const persistStepPatch = useCallback(async (patch: Patch, source: PatchSource = 'form'): Promise<void> => {
         if (!definition || typeof onSaveStep !== 'function' || !step) return undefined;
-        if (saveInflightRef.current) { saveQueuedRef.current = patch; return saveInflightRef.current; }
+        if (saveInflightRef.current) {
+            const queue = saveQueuedRef.current;
+            if (source === 'form') queue.form = patch;
+            else queue.action = { ...queue.action, ...patch };
+            return saveInflightRef.current;
+        }
         const doSave = async (currentPatch: Patch) => {
             // Normalize before patching: a trigger-only merge on a base that
             // lacks steps/edges would PUT a graph the server rejects (BFSF-318).
@@ -69,8 +91,7 @@ export default function useStepPatchSave({ definition, step, onSaveStep, t }: {
         };
         saveInflightRef.current = (async () => {
             try { await doSave(patch); } finally {
-                const queued = saveQueuedRef.current;
-                saveQueuedRef.current = null;
+                const queued = takeQueued(saveQueuedRef.current);
                 saveInflightRef.current = null;
                 // Not this closure's own persist: it would lay the queued patch
                 // over the definition from BEFORE the save that just landed, and
@@ -90,9 +111,8 @@ export default function useStepPatchSave({ definition, step, onSaveStep, t }: {
     }, [persistStepPatch]);
 
     useEffect(() => () => {
-        const queued = saveQueuedRef.current;
+        const queued = takeQueued(saveQueuedRef.current);
         if (!queued) return;
-        saveQueuedRef.current = null;
         const def = definitionRef.current, stp = stepRef.current, save = onSaveStepRef.current;
         if (!def || !stp || typeof save !== 'function') return;
         const next = merge(normalize(def) || def, stp, queued);

@@ -19,6 +19,7 @@
 
 import { daysAgo, minutesAgo } from './common';
 import { LOTTE, MARK, ME, CASEY, type DemoPerson } from './automationsPeople';
+import { demoDate } from '../demoClock';
 
 type Obj = Record<string, unknown>;
 interface FlowDef { trigger?: Obj; steps: Obj[]; edges: Obj[]; [key: string]: unknown }
@@ -353,7 +354,7 @@ export function recordSave(state: VersionState, a: AutomationLike, previous: unk
     const entry = describeSave(previous as FlowDef, a.definition as FlowDef);
     a.version += 1;
     if (a.liveVersion != null) a.pendingChanges = (a.pendingChanges || 0) + 1;
-    rows.push(row({ ...saved(`ver_${a.id}_${a.version}`, a.version, new Date().toISOString(), ME), entry, description: 'Saved in the demo', definition: clone(a.definition as FlowDef) }));
+    rows.push(row({ ...saved(`ver_${a.id}_${a.version}`, a.version, demoDate().toISOString(), ME), entry, description: 'Saved in the demo', definition: clone(a.definition as FlowDef) }));
 }
 
 const notFound = (code: string) => new Response(JSON.stringify({ error: 'Not found', code }), { status: 404, headers: { 'Content-Type': 'application/json' } });
@@ -401,7 +402,7 @@ export const VERSION_ROUTES = {
         a.version += 1;
         if (a.liveVersion != null) a.pendingChanges = (a.pendingChanges || 0) + 1;
         rows.push(row({
-            ...saved(`ver_${a.id}_${a.version}`, a.version, new Date().toISOString(), ME), entry: { code: 'restored', params: { version: v.version } },
+            ...saved(`ver_${a.id}_${a.version}`, a.version, demoDate().toISOString(), ME), entry: { code: 'restored', params: { version: v.version } },
             description: `Restored from v${v.version}`, definition: clone(v.definition), changes: back,
         }));
         return { automation: a, restoredFromVersion: v.version };
@@ -411,7 +412,7 @@ export const VERSION_ROUTES = {
         const a = automationOf(state, params.id);
         if (!a) return notFound('not_found');
         a.liveVersion = a.version;
-        a.liveAt = new Date().toISOString();
+        a.liveAt = demoDate().toISOString();
         a.pendingChanges = 0;
         a.neverLive = false;
         const live = historyOf(state, a).find(v => v.version === a.version);

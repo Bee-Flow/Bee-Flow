@@ -24,6 +24,7 @@
 import { pick } from '../lang';
 import { COMMON_ROUTES, daysAgo, minutesAgo } from './common';
 import { DEMO_CATALOG } from './appStudioCatalog';
+import { demoDate } from '../demoClock';
 
 const APP_ID = 'app_demo_pipeline';
 
@@ -553,7 +554,7 @@ export const ROUTES = {
         for (const k of ['name', 'description', 'icon', 'accentColor'] as const) {
             if (typeof body?.[k] === 'string') app[k] = body[k] as string;
         }
-        app.updatedAt = new Date().toISOString();
+        app.updatedAt = demoDate().toISOString();
         return { success: true, app: metaRow(app) };
     },
     'DELETE /api/studio-apps/:id': ({ state, params }: Ctx) => {
@@ -565,7 +566,7 @@ export const ROUTES = {
         if (!app) return notFound();
         if (body?.definition) app.definition = body.definition as AppDefinition;
         app.definitionVersion = (Number.isFinite(body?.baseVersion) ? (body?.baseVersion as number) : app.definitionVersion) + 1;
-        app.updatedAt = new Date().toISOString();
+        app.updatedAt = demoDate().toISOString();
         return { success: true, version: app.definitionVersion, warnings: [], repairs: [] };
     },
     'PATCH /api/studio-apps/:id/publish': ({ state, params, body }: Ctx) => {
@@ -576,7 +577,7 @@ export const ROUTES = {
         if (app.isPublished) {
             app.publishedDefinition = app.definition;
             app.publishedVersion = app.definitionVersion;
-            app.publishedAt = new Date().toISOString();
+            app.publishedAt = demoDate().toISOString();
         }
         return { success: true, isPublished: app.isPublished, sharedGroups: app.sharedGroups, publishedVersion: app.publishedVersion };
     },

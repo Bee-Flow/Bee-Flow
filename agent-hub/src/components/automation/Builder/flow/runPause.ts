@@ -59,6 +59,7 @@ export function isParked(focus: Pick<RunFocus, 'state' | 'awaitingForm' | 'await
  */
 export function bannerTitle(focus: RunFocus, pause: RunPause | null | undefined, t: TranslateFn): string {
     if (focus.state === 'error') return t('automations.canvas.run_step_failed', 'Step failed');
+    if (focus.state === 'dry_done') return t('automations.canvas.run_dry_done', 'Dry run: nothing was sent or written');
     if (focus.awaitingApproval) {
         if (!pause) return t('automations.canvas.run_waiting_decision_any', 'Waiting for a decision');
         if (pause.canDecide === false) return waitingOnText(pause.waitingOn, t);

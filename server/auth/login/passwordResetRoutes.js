@@ -92,9 +92,9 @@ router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBod
     const { token, newPassword } = req.body;
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const user = await userStore.getUserByPasswordResetToken(tokenHash);
-    if (!user || !user.password_reset_expires_at || new Date(user.password_reset_expires_at).getTime() < Date.now()) {
-        return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
-    }
+    // An expiry that is absent or does not parse is an expired one.
+    const expiresAt = user?.password_reset_expires_at ? new Date(user.password_reset_expires_at).getTime() : NaN;
+    if (!user || !(expiresAt > Date.now())) return res.status(400).json({ error: TOKEN_TEXT });
     // Policy is applied AFTER the token is validated, so an anonymous caller
     // cannot use this endpoint as a free oracle for what the password rules
     // are — and, more usefully, so the rules can be applied with the account's
@@ -107,12 +107,11 @@ router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBod
     });
     if (!policy.ok) return res.status(400).json({ error: policy.error, code: policy.code });
     const passwordHash = await passwords.hash(newPassword);
-    await userStore.updateUser(user.id, {
-        passwordHash,
-        passwordResetTokenHash: null,
-        passwordResetExpiresAt: null,
-        passwordResetRequired: 0,
-    });
+    // The token is consumed by the same statement that writes the hash: of two
+    // requests carrying this link, one resets the password and the other is refused.
+    if (!(await userStore.completePasswordReset(user.id, tokenHash, passwordHash))) {
+        return res.status(400).json({ error: TOKEN_TEXT });
+    }
     // Whoever was signed in with the old password is signed out everywhere:
     // a reset is how a person takes an account back.
     try {

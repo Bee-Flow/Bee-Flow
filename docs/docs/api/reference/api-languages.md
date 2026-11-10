@@ -204,7 +204,7 @@ No request schema.
 
 ### `PUT /api/languages/org/default`
 
-**Access:** middleware `requireOrgAdmin`
+**Access:** Platform admin
 
 **Body**
 

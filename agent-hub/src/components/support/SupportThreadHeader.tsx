@@ -3,7 +3,7 @@ import type React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { CsatStars, SlaBadge, TagChips } from './SupportInboxBadges';
 import type { SupportThread } from './SupportInboxPanel.types';
-import { PRIORITY_BADGES, STATUS_LABELS, roleLabel } from './supportInboxLabels';
+import { priorityBadges, roleLabel, statusLabels } from './supportInboxLabels';
 import type { useSupportThreadEdits } from './useSupportInboxActions';
 
 interface SupportThreadHeaderProps {
@@ -23,7 +23,7 @@ export default function SupportThreadHeader({ thread, edits }: SupportThreadHead
                     <div className="text-xs flex flex-wrap items-center gap-3 text-[var(--text-tertiary)]">
                         <span>From: {thread.requester_name ? `${thread.requester_name} <${thread.requester_email}>` : thread.requester_email}</span>
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                            <Shield className="w-3 h-3" /> {roleLabel(thread.requester_org_role)}
+                            <Shield className="w-3 h-3" /> {roleLabel(thread.requester_org_role, t)}
                         </span>
                         {thread.requester_org_name && (
                             <span>{t('support.support_inbox_at', 'at')} <strong className="text-[var(--text-primary)]">{thread.requester_org_name}</strong></span>
@@ -52,14 +52,14 @@ export default function SupportThreadHeader({ thread, edits }: SupportThreadHead
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => patchThread({ status: e.target.value })}
                         className="rounded-md border px-2 py-1 text-xs border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
                     >
-                        {Object.entries(STATUS_LABELS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
+                        {Object.entries(statusLabels(t)).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
                     </select>
                     <select
                         value={thread.priority}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => patchThread({ priority: e.target.value })}
                         className="rounded-md border px-2 py-1 text-xs border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
                     >
-                        {Object.entries(PRIORITY_BADGES).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
+                        {Object.entries(priorityBadges(t)).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
                     </select>
                     {thread.status !== 'resolved' && (
                         <button

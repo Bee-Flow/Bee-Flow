@@ -35,7 +35,6 @@
  */
 
 'use strict';
-
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 
@@ -277,16 +276,17 @@ const NL_TRANSLATIONS = [
     'add-nl-admin-studio-2-2026-11-translations', // Admin dashboard in the Studio layout, second round: the Appearance sections and the Look editor's section list
     'add-nl-admin-studio-3a-2026-11-translations', // Admin dashboard in the Studio layout, round 3a: Integrations sections and transcription engines, SSO and Agent Designer section lists
     'add-nl-admin-studio-3b-2026-11-translations', // Admin dashboard in the Studio layout, round 3b: the AI Monitor and Website analytics chrome
+    'add-nl-admin-studio-4a-2026-11-translations', // Admin dashboard in the Studio layout, round 4a: Agent Designer section bodies, Support views, Subscriptions tables
+    'add-nl-web-fixes-2026-11-translations', // Web fixes: a policy text that could not be loaded, a vault entry that could not be forgotten, the read-only default language
+    'add-nl-billing-status-2026-11-translations', // Subscriptions: the label of the status manual_action_required (payment failed until the dunning cap)
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',
-    // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen",
-    // "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only).
+    // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen", "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only).
     // After the memory catalogue, whose "Context in lange gesprekken" it rewords.
     'update-nl-settings-nav-2026-10',
-    // The colleagues switch now covers calendar events: its Dutch hint says so (old shipped text only).
-    'update-nl-nc-trigger-scope-calendar-2026-10',
-    // Last, after every catalogue: stored translations follow the routine →
-    // automation keys, and shipped Dutch "routine" becomes "automatisering".
+    'update-nl-nc-trigger-scope-calendar-2026-10', // The colleagues switch covers calendar events: its Dutch hint says so (old shipped text only)
+    'update-nl-automation-wording-2026-11', // Automation wording round: six reworded English texts get their Dutch (old shipped text only)
+    // Last, after every catalogue: stored translations follow the routine → automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',
 ];
 
@@ -305,9 +305,9 @@ const MANUAL_MIGRATIONS = [
     // Publishes KBs that hang on org agents — a visibility widening that you
     // do not want to silently repeat on every boot.
     'publish-kbs-linked-to-org-agents',
-    // Eénmalige backfill van agents.published_config; stores/agent/initSchema.js
-    // zegt er expliciet bij dat hij NIET bij boot draait.
+    // One-off agents.published_config backfill; stores/agent/initSchema.js: NOT at boot.
     'agents-published-config',
+    'stale-free-limits-repair-2026-11', // BFSF-249: a deliberate 5/3 override looks the same, --dry-run first
 ];
 
 const { LEDGER_TABLE, ensureLedgerTable } = require('../stores/lib/ddlLedgerTable');

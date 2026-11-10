@@ -62,7 +62,7 @@ describe('FolderedAutomationList — shared with me', () => {
         const shared = screen.getByTestId('folder-shared');
         expect(within(shared).getByText('Shared with me')).toBeTruthy();
         expect(within(shared).getByText('Automation theirs')).toBeTruthy();
-        expect(within(shared).getByText('Can run')).toBeTruthy();
+        expect(within(shared).getByText('Can start')).toBeTruthy();
         expect(within(shared).getByText('Can edit')).toBeTruthy();
         expect(within(screen.getByTestId('folder-loose')).queryByText('Automation theirs')).toBeNull();
         expect(within(screen.getByTestId('folder-loose')).getByText('Automation mine')).toBeTruthy();

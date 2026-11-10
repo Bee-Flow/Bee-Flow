@@ -147,7 +147,7 @@ There is no separate "Studio policy" screen. What governs Studio is the combinat
   [Licensing → Tiers](../licensing/tiers.md).
 - **Your organisation role** and the permissions on it — `manage_agents`,
   `manage_skills`, `manage_knowledge`, `manage_automations`, `manage_datatables`,
-  `use_datatables`. Roles are configured under **Admin → Users and groups**.
+  `use_datatables`. Roles are configured under **Admin → Security → Users → Roles**.
 - **Per-object sharing**, which each section owns: a datatable's read/write axes, a
   webpage's audience, an agent's publish state.
 

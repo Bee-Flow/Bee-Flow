@@ -33,4 +33,14 @@ describe('runIdentityOf', () => {
     it('knows nothing it was not told', () => {
         expect(runIdentityOf({ id: 'r6', mode: 'live' }, null).pause).toMatchObject({ canDecide: null, waitingOn: null, versionBehind: false });
     });
+    it('says when the run is a dry run that has finished, and only then', () => {
+        expect(runIdentityOf({ id: 'r7', mode: 'dry_run', status: 'success' }, null).dryFinished).toBe(true);
+        expect(runIdentityOf({ id: 'r7', profile: { kind: 'dry' }, status: 'success' }, null).dryFinished).toBe(true);
+        expect(runIdentityOf({ id: 'r7', mode: 'dry_run', status: 'running' }, null).dryFinished).toBe(false);
+        expect(runIdentityOf({ id: 'r7', mode: 'dry_run', status: 'error' }, null).dryFinished).toBe(false);
+        // A live test really sent what it sent.
+        expect(runIdentityOf({ id: 'r8', mode: 'live', isTest: true, status: 'success' }, null).dryFinished).toBe(false);
+        // The start stub has no status yet.
+        expect(runIdentityOf({ id: 'r9' }, null).dryFinished).toBe(false);
+    });
 });

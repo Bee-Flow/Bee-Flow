@@ -188,7 +188,7 @@ Three columns: **Sources** (left drawer) · document editor · **AI Chat** (righ
   **Self-hosted (Agent Search + Serper)**, plus **"Agent Search Service URL"** and
   **"Agent Search Default Options"** (Default Mode, Include citations, per-mode Max Results / Fetch Top N /
   Max Tokens / Detail Level).
-- **Admin → Security → Privacy Shield → Outbound**: **"Protect web searches"** —
+- **Admin → Security → Guardrails → Organisations**, an organisation's shield, tab **"Leaving your org"**: **"Protect web searches"** —
   *"Stop search terms that contain personal data from being sent to an outside search engine."*
   (locked note: **"Protecting web searches is an Enterprise feature."**) and
   **"No web search while a file is attached"** — *"When someone attaches a document, do not let the AI search

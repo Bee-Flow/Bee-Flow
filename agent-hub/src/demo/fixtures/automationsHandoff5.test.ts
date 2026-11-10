@@ -13,6 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { createDemoTransport } from '../demoTransport';
 import { COMMON_ROUTES } from './common';
 import * as automations from './automations';
+import { demoNow } from '../demoClock';
 
 type Json = Record<string, any>;
 
@@ -69,7 +70,7 @@ describe('automations demo: runs', () => {
 
     it('counts the facets over the same rows the list shows', async () => {
         const { call } = demo();
-        const { body } = await call(`${SR}/runs?limit=100&since=${encodeURIComponent(new Date(Date.now() - 7 * 86_400_000).toISOString())}`);
+        const { body } = await call(`${SR}/runs?limit=100&since=${encodeURIComponent(new Date(demoNow() - 7 * 86_400_000).toISOString())}`);
         expect(body.facets.all).toBe(body.runs.length);
         expect(body.facets.failed).toBe(body.runs.filter((r: Json) => r.status === 'error').length);
         expect(body.facets.waiting).toBe(1);
@@ -97,6 +98,28 @@ describe('automations demo: runs', () => {
         const { body } = await demo().call(`${SR}/counts`);
         expect(body).toMatchObject({ versions: 5, pendingChanges: 2 });
         expect(body.runs7d).toBeGreaterThan(0);
+    });
+});
+
+describe('automations demo: a dry run', () => {
+    it('answers as a dry run whose sending step was held back, and records it', async () => {
+        const { call } = demo();
+        const { body } = await call(`${SR}/dry-run`, { method: 'POST', body: '{}' });
+        expect(body.run).toMatchObject({ mode: 'dry_run', isTest: true, status: 'success', profile: { kind: 'dry' } });
+        const notify = body.steps.find((s: Json) => s.stepId === 'notify_finance');
+        expect(notify.output).toMatchObject({ _dryRun: true });
+        expect(body.steps.find((s: Json) => s.stepId === 'search_invoices').output).not.toHaveProperty('_dryRun');
+        // The same run, read back the way the Runs tab reads it.
+        const read = await call(`/api/automation/runs/${body.run.id}`);
+        expect(read.body.run.mode).toBe('dry_run');
+        const rows = await call(`/api/automation/runs/${body.run.id}/steps`);
+        expect(rows.body.steps.find((s: Json) => s.stepId === 'notify_finance').output).toMatchObject({ _dryRun: true });
+    });
+
+    it('a live run of the same flow carries no marker', async () => {
+        const { call } = demo();
+        const { body } = await call(`${SR}/run`, { method: 'POST', body: '{}' });
+        expect(body.steps.find((s: Json) => s.stepId === 'notify_finance').output).not.toHaveProperty('_dryRun');
     });
 });
 

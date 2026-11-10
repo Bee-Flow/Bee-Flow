@@ -104,3 +104,28 @@ test('once per tick, after every org, the dismissals of deleted projects and peo
     assert.strictEqual(lost.ran, false);
     assert.ok(!order.includes('prune-lost'), 'the replica that did not sweep does not prune either');
 });
+
+test('a client whose unlock failed still holds the lock: it is destroyed, not handed back to the pool', async () => {
+    const releasedWith = [];
+    const pool = {
+        connect: async () => ({
+            query: async (sql) => {
+                if (/pg_advisory_unlock/.test(sql)) throw new Error('connection reset');
+                return { rows: [{ locked: true }] };
+            },
+            release: (err) => { releasedWith.push(err); },
+        }),
+    };
+    const r = await scheduler._runAllOrgs(deps({ pool, userStore: { getAllOrganizations: async () => [] } }));
+    assert.strictEqual(r.ran, true);
+    assert.strictEqual(releasedWith.length, 1);
+    assert.ok(releasedWith[0] instanceof Error, 'release(err) makes pg-pool destroy the connection');
+    assert.match(releasedWith[0].message, /connection reset/);
+});
+
+test('a client that unlocked goes back to the pool as it is', async () => {
+    const releasedWith = [];
+    const pool = { connect: async () => ({ query: async () => ({ rows: [{ locked: true }] }), release: (err) => { releasedWith.push(err); } }) };
+    await scheduler._runAllOrgs(deps({ pool, userStore: { getAllOrganizations: async () => [] } }));
+    assert.deepStrictEqual(releasedWith, [undefined]);
+});

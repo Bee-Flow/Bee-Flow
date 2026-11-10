@@ -197,6 +197,9 @@ class GoogleVertexProvider extends GoogleProvider {
             /** @type {((e: Error) => void) | undefined} */
             let fail;
             const done = new Promise((resolve, reject) => { finish = () => resolve(undefined); fail = reject; });
+            // onerror can reject `done` while the setup below still awaits: handled here, so that
+            // is never an unhandled rejection. `await done` still throws it.
+            done.catch((e) => bestEffort('core/providers/googleVertex:GoogleVertexProvider.generateMusic#done', e));
 
             session = await ai.live.music.connect({
                 model: 'models/lyria-realtime-exp',

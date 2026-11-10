@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import type { CategoryResult, CategoryRow } from './agentEditor.types';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface CategoryFieldProps {
@@ -93,7 +94,7 @@ export default function CategoryField({ t, value, categories, onChange, onCreate
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter') { e.preventDefault(); submit(); }
+                            if (e.key === 'Enter' && !isImeEnter(e)) { e.preventDefault(); submit(); }
                             if (e.key === 'Escape') { setDraft(''); setCreating(false); }
                         }}
                         placeholder={t('agent_wizard.builder.category_new_placeholder', 'New category name')}
@@ -246,7 +247,7 @@ function ManageRow({ t, category, others, onRename, onDelete }: {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter') { e.preventDefault(); saveRename(); }
+                                if (e.key === 'Enter' && !isImeEnter(e)) { e.preventDefault(); saveRename(); }
                                 if (e.key === 'Escape') { setEditing(false); setName(category.name); setError(null); }
                             }}
                             className="flex-1 min-w-0 bg-[var(--bg-secondary)]/60 border border-[var(--accent)] outline-none rounded px-2 py-1 text-sm text-[var(--text-primary)]"

@@ -99,7 +99,7 @@ swap('../kb/resolveProvider', { resolveKbProvider: async () => 'local' });
 swap('../kb/localKBIngest', {
     searchLocally: async (userId, kbIds, query) => { SEARCHED.push({ userId, kbIds: [...kbIds], query }); return []; },
 });
-swap('../agentRuntime/kbQueryCache', { get: () => null, set: () => {} });
+swap('../agentRuntime/kbQueryCache', { get: () => null, set: () => {}, scopeFor: (conversationId) => conversationId || '' });
 
 const { visibleKbIdsForTurn, performKnowledgeSearch } = require('./knowledgeSearch');
 

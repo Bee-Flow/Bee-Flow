@@ -105,21 +105,24 @@ Legend: ✅ available · — not available
 
 The **MCP Server Marketplace** is a Community feature but a *later
 implementation* — treat it as on the roadmap rather than fully stabilised. It
-lives in the (Community-visible) **Admin → Integrations** tab.
+lives under **Settings → Organisation → MCP library**; a server administrator
+also gets its **Server-wide** tab there.
 
 ## Admin dashboard by tier
 
 Admin dashboard tabs are gated by the install's **resolved tier**. The gate
 reads the real tier (there is no super-admin elevation in
 `LicenseContext.hasTier`), so a Community install shows the limited set even to
-its own operator. Tabs above the tier are **hidden** from the tab bar — not
-shown locked.
+its own operator. Tabs above the tier are **hidden** from the rail on the left
+of the dashboard — not shown locked.
 
 | Admin tab | Community | Enterprise+ |
 |-----------|:---------:|:-----------:|
 | AI Config | ✅ | ✅ |
 | Security (incl. user & group management) | ✅ | ✅ |
-| Integrations (Global Defaults · OAuth services) | ✅ | ✅ |
+| Access (grants per organisation and group) | ✅ | ✅ |
+| Integrations (Features · Integrations · Search; Email and Services on Enterprise; Transcription with the `meeting_notes` feature) | ✅ | ✅ |
+| Modules | ✅ | ✅ |
 | Server licence | ✅ | ✅ |
 | Languages | ✅ | ✅ |
 | Agents | — | ✅ |
@@ -127,7 +130,7 @@ shown locked.
 | Compliance | — | ✅ |
 | Support (Bee Flow inbox) | — | ✅ |
 | Appearance (branding studio) | — | ✅ |
-| Product Website | — | ✅ |
+| Product Website, Website Analytics, Release Notes (cloud only) | — | ✅ |
 
 **Subscriptions** is a Bee Flow Cloud operator surface — it's cloud-only and
 never appears on a self-hosted install, so it carries no tier flag.
@@ -135,8 +138,8 @@ never appears on a self-hosted install, so it carries no tier flag.
 Community keeps the **Integrations** tab on purpose: an operator needs it to
 wire up OAuth credentials and (later) install MCP servers — without it the free
 built-in integrations couldn't be configured. The gate lives in
-[`agent-hub/src/pages/AdminDashboard.tsx`](https://github.com/Bee-Flow/beeflow/blob/main/agent-hub/src/pages/AdminDashboard.tsx)
-(`minTier` per tab, enforced in `checkTabAccess`).
+[`agent-hub/src/components/admin/dashboard/adminTabs.ts`](https://github.com/Bee-Flow/beeflow/blob/main/agent-hub/src/components/admin/dashboard/adminTabs.ts)
+(`minTier` per tab, enforced in `canOpenAdminTab`).
 
 ## Feature-flag names
 

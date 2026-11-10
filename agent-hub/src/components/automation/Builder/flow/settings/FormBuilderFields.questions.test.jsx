@@ -127,7 +127,12 @@ describe('FormBuilderFields — the per-type controls', () => {
     it('falls back to 10 MB rather than storing a nonsense limit', async () => {
         const user = userEvent.setup();
         const { onChange } = renderEditor(form([{ name: 'proof', type: 'file', label: 'Proof', maxSizeMb: 5 }]));
-        await user.clear(screen.getByText('Max MB').parentElement.querySelector('input'));
+        const box = screen.getByText('Max MB').parentElement.querySelector('input');
+        // An emptied box is someone retyping: it stores nothing (it used to
+        // store 10 and snap back, so the field could not be cleared).
+        await user.clear(box);
+        expect(onChange).not.toHaveBeenCalled();
+        await user.type(box, '0');
         expect(onChange.mock.calls[0][0].fields[0].maxSizeMb).toBe(10);
     });
 

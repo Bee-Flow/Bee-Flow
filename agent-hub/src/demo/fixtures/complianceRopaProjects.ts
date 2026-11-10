@@ -47,12 +47,13 @@ interface ProjectRegistration {
 export interface RopaProjectsState { projects: ProjectSignal[]; registrations: ProjectRegistration[] }
 
 import { pick } from '../lang';
+import { demoDate, demoNow } from '../demoClock';
 
 type Body = { purpose?: unknown; lawful_basis?: unknown; retention_days?: unknown } | null;
 type Ctx = { state: { ropaProjects: RopaProjectsState }; params: { projectId: string }; body: Body };
 
 /** The seed: the projects signals show, and the one record an admin keeps. */
-export function ropaProjectsSeed(now: number = Date.now()): RopaProjectsState {
+export function ropaProjectsSeed(now: number = demoNow()): RopaProjectsState {
     return {
         projects: [
             { project_id: 'prj_schadedossiers', name: pick({ en: 'Claim files 2026', nl: 'Schadedossiers 2026' }), kinds: ['address', 'health', 'name'], sources: ['files', 'threads'] },
@@ -118,7 +119,7 @@ export function projectSubjects(s: RopaProjectsState) {
 }
 
 /** checks/gdpr/art30-project-personal-data verdict for one project. */
-export function projectVerdict(s: RopaProjectsState, project: ProjectSignal, now: number = Date.now()) {
+export function projectVerdict(s: RopaProjectsState, project: ProjectSignal, now: number = demoNow()) {
     const registration = registrationOf(s, project.project_id);
     const isSpecial = special(project.kinds);
     const confirmed = registration ? Date.parse(registration.confirmed_at) : NaN;
@@ -171,7 +172,7 @@ export function ropaProjectRoutes(onChange: (state: Ctx['state'], projectId: str
             const purpose = typeof body?.purpose === 'string' && body.purpose.trim() ? body.purpose.trim().slice(0, 1000) : null;
             const registration: ProjectRegistration = {
                 subject_kind: 'project', subject_id: params.projectId, purpose, lawful_basis: basis,
-                retention_days: (days as number | null | undefined) ?? null, confirmed_by: 'u_alex', confirmed_at: new Date().toISOString(),
+                retention_days: (days as number | null | undefined) ?? null, confirmed_by: 'u_alex', confirmed_at: demoDate().toISOString(),
             };
             state.ropaProjects = { ...s, registrations: [registration, ...s.registrations.filter(r => r.subject_id !== params.projectId)] };
             onChange(state, params.projectId);

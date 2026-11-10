@@ -1,6 +1,7 @@
 import React from 'react';
 import type { LimitFieldDef } from '../constants';
 import { Field, NumberInput } from './Input';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export type LimitValue = number | '' | null;
 
@@ -13,10 +14,11 @@ interface LimitFieldProps {
 }
 
 export function LimitField({ field, value, onChange, planDefault, showOverride = false }: LimitFieldProps) {
+    const { t } = useTranslation();
     const isOverridden = value !== null && value !== undefined;
     const placeholder = planDefault != null
-        ? `Plan: ${planDefault.toLocaleString()}`
-        : 'Unlimited';
+        ? t('admin_subscriptions.limit_plan_default', 'Plan: {value}', { value: planDefault.toLocaleString() })
+        : t('admin_subscriptions.limit_unlimited', 'Unlimited');
 
     return (
         <Field
@@ -33,7 +35,7 @@ export function LimitField({ field, value, onChange, planDefault, showOverride =
                                     : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                             }`}
                         >
-                            {isOverridden ? 'Override ✓' : 'Override'}
+                            {isOverridden ? t('admin_subscriptions.limit_override_on', 'Override ✓') : t('admin_subscriptions.limit_override', 'Override')}
                         </button>
                     )}
                 </span>

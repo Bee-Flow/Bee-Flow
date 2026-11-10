@@ -44,7 +44,7 @@ describe('roles', () => {
     });
 
     it('labels each shared role and none for the owner', () => {
-        expect(roleLabel('run', t)).toBe('Can run');
+        expect(roleLabel('run', t)).toBe('Can start');
         expect(roleLabel('view', t)).toBe('Can view');
         expect(roleLabel('edit', t)).toBe('Can edit');
         expect(roleLabel('owner', t)).toBeNull();

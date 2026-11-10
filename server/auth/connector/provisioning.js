@@ -18,6 +18,7 @@ const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 const { resolveNcUserId } = require('../../utils/ncUserId.mts');
 const userStore = require('../../stores/userStore');
+const { assertStored } = require('../../stores/user/assertStored');
 const configStore = require('../../stores/configStore');
 const { invalidateTenantKeyCache } = require('../connectorJwt');
 const { orgHealth, planEntitlements } = require('./serviceDeps');
@@ -72,7 +73,7 @@ async function applyNcDefaultPlanIfConfigured(orgId, source) {
         // NC plan. Then applyPlanToOrg syncs the enabled integrations/features
         // (nc_recommended case only — the fallback path applies plan defaults
         // without touching hand-configured org integrations).
-        await userStore.setOrgSubscription(orgId, { plan_id: planId, status: 'active' });
+        assertStored(await userStore.setOrgSubscription(orgId, { plan_id: planId, status: 'active' }), `subscription of organization ${orgId}`);
         if (!fallback) {
             await planEntitlements.applyPlanToOrg(orgId, planId, { mode: 'reset' });
         }

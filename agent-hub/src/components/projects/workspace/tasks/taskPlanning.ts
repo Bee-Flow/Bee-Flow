@@ -27,8 +27,12 @@ export function storyPoints(task: Pick<ProjectTask, 'labels'> & Partial<Pick<Pro
 export function sprintName(task: Pick<ProjectTask, 'labels'>): string | null {
     return task.labels.find(label => label.startsWith(`${META}sprint:`))?.slice(10) || null;
 }
+const isSprintLabel = (label: string) => label.startsWith(`${META}sprint:`) || label.startsWith(`${META}sprint-start:`) || label.startsWith(`${META}sprint-end:`);
 export function withPlanningMeta(labels: string[], patch: { sprint?: string | null; sprintStart?: string; sprintEnd?: string }) {
-    const next = labels.filter(label => !label.startsWith(META));
+    // Only the sprint labels are rewritten here. A task from before the fields
+    // existed keeps its type and points in `bf:type:` / `bf:points:` labels, and
+    // this patch carries labels alone: dropping them lost the points for good.
+    const next = labels.filter(label => !isSprintLabel(label));
     const currentSprint = labels.find(label => label.startsWith(`${META}sprint:`));
     const sprint = patch.sprint === undefined ? currentSprint?.slice(10) : patch.sprint;
     if (sprint) next.push(`${META}sprint:${sprint}`);
@@ -42,7 +46,7 @@ export function withPlanningMeta(labels: string[], patch: { sprint?: string | nu
 }
 export function visibleLabels(labels: string[]) { return labels.filter(label => !label.startsWith(META)); }
 export function retainSprintLabels(oldLabels: string[], nextLabels: string[]) {
-    return [...nextLabels, ...oldLabels.filter(label => label.startsWith(`${META}sprint:`) || label.startsWith(`${META}sprint-start:`) || label.startsWith(`${META}sprint-end:`))];
+    return [...nextLabels, ...oldLabels.filter(isSprintLabel)];
 }
 
 // ── Hierarchy (epic → story → task) ─────────────────────────────────────────

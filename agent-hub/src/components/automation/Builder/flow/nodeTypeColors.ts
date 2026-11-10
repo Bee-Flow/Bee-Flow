@@ -46,6 +46,8 @@ interface ChromeArgs {
     disabled?: boolean;
     selected?: boolean;
     error?: boolean;
+    /** A settled dry-run step that only pretended to send or write (flow/simulatedStep.ts). */
+    simulated?: boolean;
 }
 
 export const TYPE_GROUPS = NODE_FAMILIES;
@@ -137,6 +139,16 @@ export const STATUS_BADGE: Readonly<Record<string, { key: string; en: string }>>
     pinned: { key: 'automations.card.badge_pinned', en: 'pinned' },
 });
 
+/**
+ * The badge of a step a dry run simulated instead of carrying out. Its row is
+ * `success`, and a green "done" would say the mail went out. Not a status
+ * word, so it is not in STATUS_BADGE: the card keeps its neutral border and
+ * the chip is drawn in text colours rather than a status colour.
+ */
+const SIMULATED_BADGE: Readonly<ChromeBadge> = Object.freeze({
+    key: 'automations.card.badge_simulated', en: 'simulated', bg: 'var(--text-secondary)', fg: 'var(--bg-card)',
+});
+
 /** Card geometry from the design: 240×72, layout box 240×96 with the tool port. */
 export const CARD_W = 240;
 export const CARD_H = 72;
@@ -208,7 +220,7 @@ export function typeTileStyle(group: Group, { type = null, error = false }: { ty
  *           outline/animation for `running`, opacity for disabled, radius.
  *   badge — `{ key, en, bg, fg }` or null.
  */
-export function cardChrome({ group, type = null, status = null, pinned = false, disabled = false, selected = false, error = false }: ChromeArgs = {}) {
+export function cardChrome({ group, type = null, status = null, pinned = false, disabled = false, selected = false, error = false, simulated = false }: ChromeArgs = {}) {
     const bar = error ? 'var(--error)' : typeColorVar(group);
     const parts = [`inset 4px 0 0 ${bar}`, 'var(--shadow-sm)'];
     let border = '1px solid var(--border-default)';
@@ -223,7 +235,9 @@ export function cardChrome({ group, type = null, status = null, pinned = false, 
     // Through statusVar, so an unknown word (and `constructor`, which is a
     // function on every object literal) yields null rather than a border
     // painted with something that is not a colour.
-    const sc = statusVar(effective);
+    const heldBack = simulated && effective === 'success';
+    const sc = heldBack ? null : statusVar(effective);
+    if (heldBack) badge = { ...SIMULATED_BADGE };
     if (sc) {
         border = `1.5px solid ${sc}`;
         parts.push(`0 0 0 4px color-mix(in srgb, ${sc} 22%, transparent)`);

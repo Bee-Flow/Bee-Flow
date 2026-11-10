@@ -12,6 +12,13 @@ import type { LiveState } from './liveState';
  * into "editing v5 · …". Below that it is the pill's tooltip, and "Make vN
  * live" says the rest.
  */
+/** The pill's tooltip: both versions by name first (when one is live and another is being edited), then the count line. */
+function pillTitle(live: LiveState, pendingText: string | undefined, t: ReturnType<typeof useTranslation>['t']): string | undefined {
+    if (!pendingText || live.kind !== 'live' || live.liveVersion == null || live.workingVersion == null) return pendingText;
+    const both = t('automations.header.live_and_editing', 'v{live} is live. You are editing v{version}.', { live: live.liveVersion, version: live.workingVersion });
+    return `${both}\n${pendingText}`;
+}
+
 export default function LiveStatusPill({ live }: { live: LiveState }) {
     const { t } = useTranslation();
     let label: string;
@@ -33,12 +40,13 @@ export default function LiveStatusPill({ live }: { live: LiveState }) {
     const pendingText = !pending ? undefined : (live.pendingChanges === 1
         ? t('automations.header.editing_pending_one', 'editing v{version} · 1 change not live yet', { version: live.workingVersion ?? '' })
         : t('automations.header.editing_pending_other', 'editing v{version} · {n} changes not live yet', { version: live.workingVersion ?? '', n: live.pendingChanges }));
+    const title = pillTitle(live, pendingText, t);
     return (
         <>
             <span
                 data-testid="live-status"
                 data-kind={live.kind}
-                title={pendingText}
+                title={title}
                 className={`inline-flex items-center gap-[5px] px-2 py-0.5 rounded-full text-[12px] whitespace-nowrap flex-shrink-0 ${tone}`}
             >
                 <span aria-hidden="true" className={`w-[7px] h-[7px] rounded-full box-border ${dot}`} />

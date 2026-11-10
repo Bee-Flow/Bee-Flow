@@ -23,6 +23,7 @@
  */
 import { ArrowUp } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { UseCoworkComposerReturn } from './useCoworkComposer';
 import useTranslation from '../../hooks/useTranslation';
@@ -129,7 +130,8 @@ export default function CoworkComposer({
     // same box behaving differently depending on where you opened it.
     const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key !== 'Enter') return;
-        if (e.shiftKey) return;
+        // The Enter that confirms an IME candidate belongs to the IME.
+        if (e.shiftKey || isImeEnter(e)) return;
         e.preventDefault();
         submit();
     };

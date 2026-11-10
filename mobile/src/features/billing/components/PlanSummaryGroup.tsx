@@ -17,7 +17,7 @@ import type { Subscription } from '../model/types';
 
 function statusTone(status: string): Tone {
     if (status === 'active') return 'success';
-    if (status === 'suspended') return 'error';
+    if (status === 'suspended' || status === 'manual_action_required') return 'error';
     return 'neutral';
 }
 

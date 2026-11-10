@@ -73,7 +73,8 @@ export function secondsUntil(endsAt: string, now: number = Date.now()): number {
  */
 export function coarseEta(seconds: number): CoarseEta {
     if (!Number.isFinite(seconds) || seconds <= 0) return { unit: 'moment', value: 0 };
-    if (seconds < 60) return { unit: 'seconds', value: Math.max(10, Math.round(seconds / 10) * 10) };
+    // Up to 55: from there the nearest ten is 60, and "about 60 seconds" is a minute.
+    if (seconds < 55) return { unit: 'seconds', value: Math.max(10, Math.round(seconds / 10) * 10) };
     const mins = Math.round(seconds / 60);
     return mins === 1 ? { unit: 'minute', value: 1 } : { unit: 'minutes', value: mins };
 }

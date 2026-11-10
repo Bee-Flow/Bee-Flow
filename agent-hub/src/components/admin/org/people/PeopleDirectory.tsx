@@ -11,6 +11,7 @@ import { membershipFor } from './orgMembership';
 import PeopleGroupSection from './PeopleGroupSection';
 import type { PeopleUser } from './PeopleRow';
 import { GROUP_BY, useUserDirectory } from './useUserDirectory';
+import { AddButton, EntitySectionHeader } from '../userManagement/EntityRows';
 
 interface PeopleDirectoryProps {
     users?: PeopleUser[];
@@ -102,32 +103,22 @@ export default function PeopleDirectory({
     ];
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                        {t('admin.sec_people_title', 'People')}
-                    </h3>
-                    <p className="text-sm text-[var(--text-muted)]">
-                        {t('admin.sec_people_summary', '{people} people · {orgs} organisations · {groups} groups', {
-                            people: people.length,
-                            orgs: organizations.length,
-                            groups: groups.length,
-                        })}
-                    </p>
-                </div>
-                {canManageUsers && (
-                    <button
-                        onClick={onAddUser}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm bg-[var(--accent-primary)] text-white hover:opacity-90 transition-opacity flex-shrink-0"
-                    >
-                        <UserPlus className="w-4 h-4" />
+        <div>
+            <EntitySectionHeader
+                title={t('admin.sec_people_title', 'People')}
+                description={t('admin.sec_people_summary', '{people} people · {orgs} organisations · {groups} groups', {
+                    people: people.length,
+                    orgs: organizations.length,
+                    groups: groups.length,
+                })}
+                action={canManageUsers ? (
+                    <AddButton onClick={onAddUser} icon={<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />}>
                         {t('admin.sec_people_add', 'Add user')}
-                    </button>
-                )}
-            </div>
+                    </AddButton>
+                ) : undefined}
+            />
 
-            <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden">
+            <div className="overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)]">
                 {loading ? (
                     <UserListSkeleton />
                 ) : people.length === 0 ? (

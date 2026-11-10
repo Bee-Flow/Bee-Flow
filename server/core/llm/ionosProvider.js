@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { IONOS_BASE_URL } = require('../providers/ionosModels');
+const { loadAiForWrite } = require('./aiRecord');
 
 /**
  * Auto-create or update the IONOS AI Model Hub provider when an IONOS API key
@@ -13,7 +14,7 @@ const { IONOS_BASE_URL } = require('../providers/ionosModels');
  * without a config write per request. An admin-chosen URL stays.
  */
 async function ensureIonosProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const apiKey = (await configStore.getSecret('ionos_api_key')) || process.env.IONOS_API_KEY;
 
     if (!apiKey) return;

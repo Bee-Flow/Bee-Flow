@@ -45,18 +45,29 @@ function makeEngine(overrides = {}) {
 }
 const freshId = () => `thing-${crypto.randomBytes(6).toString('hex')}`;
 
+// Two deadlines. A statement that has to COMPLETE (the setup, a follow-up read,
+// another owner's statement) runs under GENEROUS_MS, which includes forking its
+// statement process: a loaded machine must not be able to fail it. A statement
+// that has to be CUT OFF runs under CUTOFF_MS, set on its owner's lane just
+// before it is sent, so the stop itself stays quick.
+const GENEROUS_MS = 30_000;
+const CUTOFF_MS = 300;
+/** The deadline of the statements `ownerId` sends from here on. */
+const setDeadline = (engine, ownerId, ms) => { engine._runner.laneFor(ownerId).timeoutMs = ms; };
+
 // A query that never finishes on its own: an unbounded recursive count.
 const ENDLESS = 'WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT count(*) FROM c';
 
 test.after(() => fs.rmSync(workDir, { recursive: true, force: true }));
 
 test('a statement past the deadline is stopped, reported, and the engine serves the file again', async (t) => {
-    const engine = makeEngine({ statementTimeoutMs: 300 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const id = freshId();
     await engine.exec(OWNER, id, 'CREATE TABLE t (a)');
     await engine.exec(OWNER, id, 'INSERT INTO t VALUES (1)');
 
+    setDeadline(engine, OWNER, CUTOFF_MS);
     const t0 = Date.now();
     await assert.rejects(engine.query(OWNER, id, ENDLESS), (err) => {
         assert.ok(err instanceof StatementTimeoutError, `${err.name}: ${err.message}`);
@@ -66,27 +77,30 @@ test('a statement past the deadline is stopped, reported, and the engine serves 
     assert.ok(Date.now() - t0 < 5000, 'cut off near the deadline, not at the end of the query');
 
     // A fresh statement process answers, on the same file, with the data intact.
+    setDeadline(engine, OWNER, GENEROUS_MS);
     const { rows } = await engine.query(OWNER, id, 'SELECT a FROM t');
     assert.deepStrictEqual(rows, [{ a: 1 }]);
 });
 
 test('a write stopped at the deadline leaves the file as it was', async (t) => {
-    const engine = makeEngine({ statementTimeoutMs: 300 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const id = freshId();
     await engine.exec(OWNER, id, 'CREATE TABLE t (a)');
     await engine.exec(OWNER, id, 'INSERT INTO t VALUES (1)');
     // The transaction writes a row and then never ends.
+    setDeadline(engine, OWNER, CUTOFF_MS);
     await assert.rejects(
         engine.batch(OWNER, id, [{ sql: 'INSERT INTO t VALUES (2)' }, { sql: ENDLESS }]),
         StatementTimeoutError,
     );
+    setDeadline(engine, OWNER, GENEROUS_MS);
     const { rows } = await engine.query(OWNER, id, 'SELECT count(*) AS n FROM t');
     assert.deepStrictEqual(rows, [{ n: 1 }], 'the half-done transaction was rolled back');
 });
 
 test('a batch_no_rows failure crosses the process boundary with its statementIndex', async (t) => {
-    const engine = makeEngine({ statementTimeoutMs: 5000 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const id = freshId();
     await engine.exec(OWNER, id, 'CREATE TABLE t (a)');
@@ -99,10 +113,11 @@ test('a batch_no_rows failure crosses the process boundary with its statementInd
 });
 
 test('a write in flight when the process is stopped fails with the timeout error', async (t) => {
-    const engine = makeEngine({ statementTimeoutMs: 300 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const id = freshId();
     await engine.exec(OWNER, id, 'CREATE TABLE t (a)');
+    setDeadline(engine, OWNER, CUTOFF_MS);
     const results = await Promise.allSettled([
         engine.query(OWNER, id, ENDLESS),
         engine.exec(OWNER, id, 'INSERT INTO t VALUES (1)'),
@@ -113,13 +128,14 @@ test('a write in flight when the process is stopped fails with the timeout error
 });
 
 test('a read of another owner waiting behind a stopped statement is sent again and answers', async (t) => {
-    const engine = makeEngine({ statementTimeoutMs: 300 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const slow = freshId();
     const other = freshId();
     await engine.exec(OWNER, slow, 'CREATE TABLE t (a)');
     await engine.exec('owner-B', other, 'CREATE TABLE u (b)');
     await engine.exec('owner-B', other, 'INSERT INTO u VALUES (7)');
+    setDeadline(engine, OWNER, CUTOFF_MS);
     const results = await Promise.allSettled([
         engine.query(OWNER, slow, ENDLESS),
         engine.query('owner-B', other, 'SELECT b FROM u'),
@@ -133,10 +149,11 @@ test('a read of another owner waiting behind a stopped statement is sent again a
 });
 
 test('a read that is itself stopped after being sent again fails; it is not sent a third time', async (t) => {
-    const engine = makeEngine({ statementTimeoutMs: 300 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const id = freshId();
     await engine.exec(OWNER, id, 'CREATE TABLE t (a)');
+    setDeadline(engine, OWNER, CUTOFF_MS);
     const results = await Promise.allSettled([
         engine.query(OWNER, id, ENDLESS),
         engine.query(OWNER, id, ENDLESS),
@@ -146,7 +163,7 @@ test('a read that is itself stopped after being sent again fails; it is not sent
 });
 
 test('blob parameters and blob cells cross the process boundary as Buffers', async (t) => {
-    const engine = makeEngine({ statementTimeoutMs: 2000 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const id = freshId();
     const blob = Buffer.from([0, 1, 2, 255]);
@@ -191,7 +208,7 @@ test('the deadline and the page ceiling come from the environment, 0 = unlimited
 test('a page database cannot grow past the page ceiling', async (t) => {
     process.env.SQLITE_MAX_PAGE_COUNT = '16'; // 64 KiB at 4 KiB pages
     t.after(() => { delete process.env.SQLITE_MAX_PAGE_COUNT; });
-    const engine = makeEngine({ statementTimeoutMs: 5000 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const id = freshId();
     await engine.exec(OWNER, id, 'CREATE TABLE big (v)');
@@ -202,12 +219,13 @@ test('a page database cannot grow past the page ceiling', async (t) => {
 });
 
 test('a stop at the deadline leaves the statements of another owner alone, writes included', async (t) => {
-    const engine = makeEngine({ statementTimeoutMs: 300 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => engine.closeAll());
     const slow = freshId();
     const other = freshId();
     await engine.exec(OWNER, slow, 'CREATE TABLE t (a)');
     await engine.exec('owner-B', other, 'CREATE TABLE u (b)');
+    setDeadline(engine, OWNER, CUTOFF_MS);
     const results = await Promise.allSettled([
         engine.query(OWNER, slow, ENDLESS),
         engine.exec('owner-B', other, 'INSERT INTO u VALUES (1)'),
@@ -218,8 +236,8 @@ test('a stop at the deadline leaves the statements of another owner alone, write
 });
 
 test('the process count is capped and an idle process is retired', async (t) => {
-    const runner = createStatementRunner({ timeoutMs: 2000, entityLabel: 'x', logPrefix: 'x', maxProcesses: 2, idleMs: 150 });
-    const engine = makeEngine({ statementTimeoutMs: 2000 });
+    const runner = createStatementRunner({ timeoutMs: GENEROUS_MS, entityLabel: 'x', logPrefix: 'x', maxProcesses: 2, idleMs: 150 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
     t.after(() => { runner.stop(); return engine.closeAll(); });
     // Real files from the engine; statements sent through a runner with a small cap.
     const ids = [freshId(), freshId(), freshId()];

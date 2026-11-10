@@ -47,7 +47,7 @@ Pick which Nextcloud integrations are enabled for new users **by default**. The 
 | `nextcloud-notifications` | Notifications | List & dismiss NC notifications |
 | `nextcloud-status` | User Status | Get / set the user's availability and custom message |
 
-Per-group overrides are configurable later in **Admin → Nextcloud integrations**: any group can **disable** integrations for its members. The rule is **"enable wins"** — a user gets access if **any** of their groups still allows it. [Read more](../admin/nc-integrations.md).
+Per-group exceptions are configurable later in **Settings → Organisation → Integrations → Integration settings**: a Nextcloud group can **disable** Nextcloud integrations for its members. The rule is **"enable wins"** — a user gets access if **any** of their groups still allows it. [Read more](../admin/nc-integrations.md).
 
 ![Step 2: integrations](../img/screenshots/getting-started/wizard/step-2-integrations/)
 

@@ -6,7 +6,9 @@
  * is created via notificationStore. Recurring reminders advance their
  * remind_at automatically.
  *
- * A background checker runs every 60s to fire due reminders.
+ * A background checker runs every 60s to fire due reminders, on every
+ * replica: a reminder is claimed in the database before it is sent, so each
+ * one fires once however many replicas run.
  */
 
 const crypto = require('crypto');
@@ -144,11 +146,34 @@ function advanceRemindAt(remindAt, interval) {
     return d.toISOString();
 }
 
+/**
+ * Claim one due reminder for this pass, before anything is sent: a one-off is
+ * completed, a repeating one moves to its next occurrence, in ONE UPDATE that
+ * only matches while the row is still as this pass read it. Of several
+ * replicas (or passes) that read the same due row, the database lets exactly
+ * one through; the others see rowCount 0 and send nothing.
+ * @param {{ id: string, remind_at: Date | string, remind_at_exact?: string, repeat_interval?: string | null }} r
+ * @returns {Promise<(() => Promise<unknown>) | null>} null when another pass holds it, otherwise the undo of this claim
+ */
+async function claimDue(r) {
+    // The value as Postgres holds it (microseconds): a JS Date would drop them and never compare equal.
+    const readAt = r.remind_at_exact || r.remind_at;
+    const nextAt = r.repeat_interval ? advanceRemindAt(r.remind_at, r.repeat_interval) : null;
+    const claim = nextAt
+        ? await run('UPDATE reminders SET remind_at = $1 WHERE id = $2 AND is_completed = FALSE AND remind_at = $3::timestamptz', [nextAt, r.id, readAt])
+        : await run('UPDATE reminders SET is_completed = TRUE WHERE id = $1 AND is_completed = FALSE AND remind_at = $2::timestamptz', [r.id, readAt]);
+    if (!(claim?.rowCount > 0)) return null;
+    return nextAt
+        ? () => run('UPDATE reminders SET remind_at = $1::timestamptz WHERE id = $2 AND remind_at = $3::timestamptz', [readAt, r.id, nextAt])
+        : () => run('UPDATE reminders SET is_completed = FALSE WHERE id = $1 AND remind_at = $2::timestamptz', [r.id, readAt]);
+}
+
 async function processDueReminders() {
-    await initDB();
+    // Runs under setInterval: nothing in here may reject, the schema init included.
     try {
+        await initDB();
         const rows = await getAll(
-            `SELECT * FROM reminders WHERE remind_at <= NOW() AND is_completed = FALSE`
+            `SELECT *, remind_at::text AS remind_at_exact FROM reminders WHERE remind_at <= NOW() AND is_completed = FALSE`
         );
 
         if (rows.length === 0) return;
@@ -156,31 +181,27 @@ async function processDueReminders() {
         // Lazy-require to avoid circular deps
         const notificationStore = require('./notificationStore');
 
+        let fired = 0;
         for (const r of rows) {
-            // Fire notification
-            await notificationStore.createNotification({
-                userId: r.user_id,
-                category: 'info',
-                title: `🔔 Reminder: ${r.title}`,
-                message: r.message || '',
-            });
-
-            if (r.repeat_interval) {
-                // Advance to next occurrence
-                const nextAt = advanceRemindAt(r.remind_at, r.repeat_interval);
-                if (nextAt) {
-                    await run('UPDATE reminders SET remind_at = $1 WHERE id = $2', [nextAt, r.id]);
-                } else {
-                    await markCompleted(r.id);
-                }
-            } else {
-                // One-time → mark completed
-                await markCompleted(r.id);
+            const undo = await claimDue(r);
+            if (!undo) continue;
+            try {
+                await notificationStore.createNotification({
+                    userId: r.user_id,
+                    category: 'info',
+                    title: `🔔 Reminder: ${r.title}`,
+                    message: r.message || '',
+                });
+                fired += 1;
+            } catch (err) {
+                // Not delivered: hand the reminder back, so the next pass sends it.
+                log.error(`[ReminderStore] Reminder ${r.id} not delivered:`, /** @type {Error} */ (err).message);
+                await undo().catch((e) => log.warn(`[ReminderStore] Reminder ${r.id} could not be handed back:`, e.message));
             }
         }
 
-        if (rows.length > 0) {
-            log.info(`[ReminderStore] Fired ${rows.length} reminder(s)`);
+        if (fired > 0) {
+            log.info(`[ReminderStore] Fired ${fired} reminder(s)`);
         }
     } catch (err) {
         log.error('[ReminderStore] Background checker error:', /** @type {Error} */ (err).message);

@@ -318,7 +318,7 @@ export const parseSaveError = async (res: Pick<Response, 'status' | 'text'>): Pr
     let body = '';
     try { body = await res.text(); } catch (err) { logger.debug('ignore', err); }
     let info: SaveErrorBody = {};
-    try { info = JSON.parse(body); } catch (_) { info = { error: body }; }
+    try { info = JSON.parse(body) || {}; } catch (_) { info = { error: body }; } // `|| {}`: a body of literal `null` is valid JSON
     const message = info.error || info.message || `Save failed (${res.status})`;
     const isLimit = res.status === 403 && (info.code === 'limit_reached' || /reached (its|the) limit|seat limit/i.test(message));
     return { message, code: info.code, resource: info.resource, isLimit };

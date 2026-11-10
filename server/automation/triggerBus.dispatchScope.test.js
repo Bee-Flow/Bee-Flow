@@ -21,7 +21,7 @@ const { installDispatchStubs, tick } = require('./triggerBus.testkit');
 const { dispatchedRuns, storePath, USERS } = installDispatchStubs();
 
 const { registerTriggerSource } = require('./triggerSources');
-const { dispatchEvent, dispatchOrgScopedEvent } = require('./triggerBus/dispatch');
+const { dispatchEvent, dispatchOrgScopedEvent, dispatchToSubscription } = require('./triggerBus/dispatch');
 
 const declaration = (id, scope) => ({
     id,
@@ -74,6 +74,17 @@ test('a declared provider still honours the identified subscriber', async () => 
     await dispatchEvent({ provider: 'acme-user', event: 'thing.happened', payload: {}, userId: 'user-orgB' });
     await tick();
     assert.deepStrictEqual(dispatchedRuns, ['auto-orgB']);
+});
+
+test('an event with an orgId and no userId stays inside that organisation, whatever its provider declares', async () => {
+    // No declared scope and not in a hardcoded set: the orgId is all there is to scope by.
+    for (const provider of ['never-declared', 'github']) {
+        dispatchedRuns.length = 0;
+        const runs = await dispatchEvent({ provider, event: 'thing.happened', payload: {}, orgId: 'org-A' });
+        await tick();
+        assert.strictEqual(runs.length, 1, provider);
+        assert.deepStrictEqual(dispatchedRuns, ['auto-orgA'], `${provider}: org B never sees org A's event`);
+    }
 });
 
 test('github keeps working — the legacy allowlist is not collateral damage', async () => {
@@ -143,5 +154,23 @@ test('meeting-notes: "Meeting note ready" reaches only the note owner\'s automat
         store.getSubscriptionsForProvider = original;
         delete USERS['user-colleague'];
         if (kbBefore) require.cache[kbPath] = kbBefore; else delete require.cache[kbPath];
+    }
+});
+
+test('a null payload reads as an empty one on every dispatch path: a filter rejects it, nothing throws', async () => {
+    const store = require.cache[storePath].exports;
+    const original = store.getSubscriptionsForProvider;
+    const sub = { id: 'sub-orgA', automationId: 'auto-orgA', userId: 'user-orgA', filter: { nameContains: 'report' } };
+    store.getSubscriptionsForProvider = async () => [sub];
+    try {
+        dispatchedRuns.length = 0;
+        assert.deepStrictEqual(dispatchToSubscription(sub, { provider: 'google-drive', event: 'file.new', payload: null }), []);
+        assert.deepStrictEqual(dispatchToSubscription(sub, { provider: 'nextcloud', event: 'share.created', payload: null }), []);
+        assert.deepStrictEqual(await dispatchEvent({ provider: 'google-drive', event: 'file.new', payload: null, userId: 'user-orgA' }), []);
+        assert.deepStrictEqual(await dispatchOrgScopedEvent('support', 'ticket.resolved', null, 'org-A'), []);
+        await tick();
+        assert.deepStrictEqual(dispatchedRuns, []);
+    } finally {
+        store.getSubscriptionsForProvider = original;
     }
 });

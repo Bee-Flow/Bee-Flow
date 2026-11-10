@@ -1,6 +1,7 @@
 import React from 'react';
 import type { CSSProperties } from 'react';
 import { StepIcon } from '../stepIcons';
+import { simulatedResultText, type SimulatedKind } from '../simulatedStep';
 import { describeStepResult } from '../stepResultChip';
 import useTranslation from '@/hooks/useTranslation';
 import type { NodeRunStep } from './nodeProps';
@@ -66,6 +67,8 @@ interface StepNodeTextProps {
     subTitle: string | undefined;
     subDetail: CardText;
     runStep: NodeRunStep | null | undefined;
+    /** Set when a dry run simulated this step: the result line says what did not happen. */
+    simulatedKind?: SimulatedKind | null;
     stepNumber: number | string | null | undefined;
     isSource: boolean;
     familyColor: string;
@@ -74,7 +77,7 @@ interface StepNodeTextProps {
 
 /** The text column of the card: name, summary line, optional second line and result chip, by zoom level. */
 export function StepNodeText({
-    far, near, name, typeLabel, help, body, sub, subTitle, subDetail, runStep, stepNumber, isSource, familyColor, touchedAt,
+    far, near, name, typeLabel, help, body, sub, subTitle, subDetail, runStep, simulatedKind = null, stepNumber, isSource, familyColor, touchedAt,
 }: StepNodeTextProps) {
     const { t } = useTranslation();
     // What the step PRODUCED, once its row has settled (flow/stepResultChip.js):
@@ -82,7 +85,7 @@ export function StepNodeText({
     // and near LOD — the card keeps its 72px, the summary truncates beside it.
     // Null while running (the badge already says so) and with no row at all,
     // so a card without a run renders exactly as before.
-    const resultText = describeStepResult(runStep, t);
+    const resultText = simulatedKind ? simulatedResultText(simulatedKind, t) : describeStepResult(runStep, t);
     // Keyed on its text: a new result remounts the chip and its wipe plays
     // again (`.bf-result-chip`, index.css). Wraps the summary line in a row
     // only when there IS a chip, so the card's markup is untouched otherwise.

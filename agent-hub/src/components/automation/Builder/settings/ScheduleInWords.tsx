@@ -4,6 +4,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useSchedulePreviewQuery } from '@/api/queries/automation/settings';
 import Toggle from '@/components/shared/Toggle';
 import { TIMEZONE_OPTIONS, describeCron } from '../flow/scheduleBuilderUtils';
+import TypedNumberInput from '../flow/settings/TypedNumberInput';
 import { LINK_BTN, SELECT } from './settingsUi';
 import { cronFromWords, toggleDay, withFrequency } from './startChoice';
 import type { Frequency, ScheduleWords } from './startChoice';
@@ -87,15 +88,15 @@ export default function ScheduleInWords({ words, tz, skipHolidays, onChange }: P
                 {words.freq === 'month' && (
                     <>
                         <span>{t('automations.settings.on_day', 'on day')}</span>
-                        <input
-                            type="number"
+                        <TypedNumberInput
                             min={1}
                             max={31}
                             aria-label={t('automations.settings.day_of_month', 'Day of the month')}
                             className={`${SELECT} w-16`}
                             value={words.dayOfMonth}
-                            onChange={(e) => {
-                                const next = { ...words, dayOfMonth: Number(e.target.value) || 1 };
+                            fallback={1}
+                            onNumber={(n) => {
+                                const next = { ...words, dayOfMonth: n };
                                 onChange({ words: { ...next, cron: cronFromWords(next) } });
                             }}
                         />

@@ -108,7 +108,7 @@ function makeAdmissionReads(db, ready) {
      */
     async function listDeployments(stageProjectId, { limit = 20, before = null } = {}) {
         await ready();
-        const cap = Math.min(Math.max(Number(limit) || 20, 1), 100);
+        const cap = Math.min(Math.max(Number(limit) || 20, 1), 101); // the largest page (100) plus the row that says more follow
         const params = [stageProjectId, cap];
         let cursor = '';
         if (typeof before === 'string' && before) {

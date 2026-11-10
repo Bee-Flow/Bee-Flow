@@ -64,6 +64,20 @@ function checkActionWiring(node, path, props, spec, ctx) {
             }
         });
     }
+
+    // A data grid's add-row button and the columns that run an action are the
+    // same UI wiring: a dangling id would render a button that does nothing.
+    const unresolved = (/** @type {unknown} */ ref, /** @type {string} */ at, /** @type {string} */ label) => {
+        if (ref === undefined || ref === null || ref === '') return;
+        if (typeof ref !== 'string' || !actionIds.has(ref)) {
+            const suggestion = pickClosestId(String(ref), Array.from(actionIds));
+            pushE({ code: 'event.action_unresolved', severity: 'error', path: `${path}.props.${at}`, message: `${label} references unknown action ${JSON.stringify(ref)}.`, hint: suggestion ? `Did you mean "${suggestion}"?` : 'Add the action to definition.actions first.' });
+        }
+    };
+    unresolved(props.addRowActionId, 'addRowActionId', 'addRowActionId');
+    if (Array.isArray(props.columns)) {
+        props.columns.forEach((col, i) => unresolved(isObject(col) ? col.actionId : undefined, `columns[${i}].actionId`, 'columns'));
+    }
 }
 
 /**

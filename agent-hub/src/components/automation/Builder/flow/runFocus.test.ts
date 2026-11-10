@@ -193,4 +193,30 @@ describe('a run parked on a form, and how long it has been going', () => {
         expect(focus!.stepId).toBe('a2');
         expect(focus!.awaitingForm).toBe(false);
     });
+
+    describe('a finished dry run', () => {
+        const settled = [{ stepId: 't1', status: 'success' }, { stepId: 'a1', status: 'success' }, { stepId: 'a2', status: 'skipped' }];
+
+        it('is a notice of its own: no step, no clock, nothing waiting', () => {
+            const focus = computeRunFocus({ definition: DEF, runSteps: settled, dryFinished: true });
+            expect(focus).toMatchObject({ state: 'dry_done', stepId: null, label: '', startedAt: null, awaitingForm: false, awaitingApproval: false });
+            expect(focus!.done).toBe(3);
+        });
+
+        it('says nothing for a finished run that was not a dry run', () => {
+            expect(computeRunFocus({ definition: DEF, runSteps: settled })).toBeNull();
+            expect(computeRunFocus({ definition: DEF, runSteps: settled, dryFinished: false })).toBeNull();
+        });
+
+        it('says nothing without rows on the canvas to talk about', () => {
+            expect(computeRunFocus({ definition: DEF, runSteps: [], dryFinished: true })).toBeNull();
+            expect(computeRunFocus({ definition: DEF, runSteps: [{ stepId: 'gone', status: 'success' }], dryFinished: true })).toBeNull();
+        });
+
+        it('a failure, a wait and a run in flight keep their own banner', () => {
+            expect(computeRunFocus({ definition: DEF, runSteps: [{ stepId: 'a1', status: 'error' }], dryFinished: true })!.state).toBe('error');
+            expect(computeRunFocus({ definition: DEF, runSteps: [{ stepId: 'a1', status: 'awaiting_form' }], dryFinished: true })!.awaitingForm).toBe(true);
+            expect(computeRunFocus({ definition: DEF, runSteps: settled, runInFlight: true, dryFinished: true })!.state).toBe('running');
+        });
+    });
 });

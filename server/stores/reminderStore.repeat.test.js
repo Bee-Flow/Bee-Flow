@@ -25,7 +25,8 @@ const reminders = require('./reminderStore');
 
 beforeEach(db.reset);
 
-const moved = () => db.calls.filter((q) => /^UPDATE reminders SET remind_at/.test(q.sql.trim())).map((q) => q.params);
+// The claim's first two parameters: where the reminder goes, and which one.
+const moved = () => db.calls.filter((q) => /^UPDATE reminders SET remind_at/.test(q.sql.trim())).map((q) => q.params.slice(0, 2));
 
 const reminder = (id, remindAt, repeat) => ({ id, user_id: 'u1', title: 'Synthetic', message: '', remind_at: new Date(remindAt), repeat_interval: repeat });
 

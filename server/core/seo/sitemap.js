@@ -74,7 +74,8 @@ function urlEntry({ origin, slug, locale, defaultLocale, locales, lastmod }) {
     }
 
     if (lastmod) lines.push(`    <lastmod>${esc(lastmod)}</lastmod>`);
-    const priority = PRIORITY[slug] || DEFAULT_PRIORITY;
+    // Own keys only: a slug such as `constructor` must not read Object.prototype.
+    const priority = Object.hasOwn(PRIORITY, slug) ? PRIORITY[slug] : DEFAULT_PRIORITY;
     lines.push(`    <priority>${priority}</priority>`);
     lines.push(`  </url>`);
     return lines.join('\n');

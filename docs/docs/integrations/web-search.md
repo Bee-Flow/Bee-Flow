@@ -4,7 +4,7 @@ title: Web search
 
 # Web search
 
-Bee Flow exposes a single agent tool — `agent_search` — backed by one of three providers. Pick one in **Admin → Integrations → Zoeken**:
+Bee Flow exposes a single agent tool — `agent_search` — backed by one of three providers. Pick one in **Admin → Integrations → Search**:
 
 | Provider | Where the search loop runs | Needs | Best for |
 |---|---|---|---|
@@ -18,9 +18,9 @@ The agent always calls the same tool name, so swapping providers is invisible to
 ## Setup — Cloud-only (recommended for self-hosted)
 
 1. Get a Serper.dev API key at [serper.dev](https://serper.dev/).
-2. **Admin → Integrations → Zoeken** → Search Provider: **Cloud-only (Serper + provider APIs)**.
+2. **Admin → Integrations → Search** → Search Provider: **Cloud-only (Serper + provider APIs)**.
 3. Paste the Serper key.
-4. **Admin → AI Configuratie → Web Search Inference**:
+4. **Admin → AI Config → Web Search Inference**:
    - **Embeddings**: pick a model (or leave empty to inherit the global Embeddings setting).
    - **Reranking**: pick `Cosine similarity` (no extra model), `CPU cross-encoder` (in-process Transformers.js, recommended for self-hosted), `Provider model` (LLM-as-rerank), or `Disabled`.
    - **Webpage cleanup**: pick a chat model that converts raw scraped HTML to compact markdown (e.g. `Ministral 3B` for speed).
@@ -28,13 +28,13 @@ The agent always calls the same tool name, so swapping providers is invisible to
 ## Setup — Self-hosted Agent Search service
 
 1. Set `SEARCH_SERVICE_URL` env var on the server (e.g. `https://services.beeflow.nl`). The bundled compose files already set it to the server's own `/api/search`.
-2. **Admin → Integrations → Zoeken** → Search Provider: **Self-hosted (Agent Search + Serper)**.
+2. **Admin → Integrations → Search** → Search Provider: **Self-hosted (Agent Search + Serper)**.
 3. Paste the Serper.dev API key. The search service uses it for SERP retrieval; embeddings / reranking use the providers configured under **Web Search Inference**.
 
 ## Setup — Bing
 
 1. Subscribe to Microsoft Bing Search v7 in Azure.
-2. **Admin → Integrations → Zoeken** → Search Provider: **Azure Bing Web Search**.
+2. **Admin → Integrations → Search** → Search Provider: **Azure Bing Web Search**.
 3. Paste the Azure subscription key. Optionally set a market (e.g. `nl-NL` for Dutch results).
 
 ## Search modes
@@ -48,7 +48,7 @@ The `agent_search` tool accepts a `mode` argument that controls how much work th
 | `kb` | Search the knowledge base only (no web call) | &lt;500 ms | varies |
 | `auto` | KB first, fall back to web if no high-confidence match | varies | varies |
 
-`web_fast` is intended for trivial single-fact lookups. The agent picks the mode automatically based on the query — admin defaults live under **Admin → Integrations → Zoeken → Agent Search Default Options**.
+`web_fast` is intended for trivial single-fact lookups. The agent picks the mode automatically based on the query — admin defaults live under **Admin → Integrations → Search → Agent Search Default Options**.
 
 ## How "Cloud-only" works under the hood
 
@@ -87,7 +87,7 @@ Web results pass through the Privacy Shield (`piiDetectionEnabled` in [Privacy S
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `Serper API key not configured` | Cloud-only / Self-hosted picked, no Serper key | Set in **Admin → Integrations → Zoeken**. |
+| `Serper API key not configured` | Cloud-only / Self-hosted picked, no Serper key | Set in **Admin → Integrations → Search**. |
 | `Search returned 0 results` | Serper quota exhausted / overly narrow query | Check Serper dashboard; agent retries with different keywords. |
 | `Bing Search API error (403)` | Azure subscription expired | Renew Azure subscription. |
 | `Bing Search API error (429)` | Provider rate-limited | Raise tier or switch provider. |

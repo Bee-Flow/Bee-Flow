@@ -49,7 +49,7 @@ URL: **`/app/studio/skills`** and `/app/studio/skills/<skillId>`. There is **no 
   empty section. The hint string is **"Not switched on for your organisation — ask an admin"**
   (`studio.locked_not_granted`); the "upgrade" variant is **"Available on a higher plan"** (`studio.locked_upgrade`).
   Registry: `gate: ({ can }) => can('skills')`, `gateCapability: 'skills'`, `lockOn: 'disable'`.
-- Where an admin grants it: **Admin → Access & permissions** (`AccessPermissionsPanel`) — left rail **Grants**
+- Where an admin grants it: **Admin → Access** (`AccessPermissionsPanel`) — section **Grants**
   (capability matrix: "All members" + per group) and **Ceiling** (what the plan/licence permits; super-admin editable,
   org-admin read-only). The ceiling's section heading for this kind is **"Beta features"**.
   On cloud the subscription plan's `allowed_beta_features` must contain `skills`.

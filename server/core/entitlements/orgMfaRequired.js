@@ -60,8 +60,8 @@ function normalizeOrgMfaRequired(stored) {
  * Resolve the org-level MFA duty. `orgId` may be null/'' (consumer account,
  * org-less signup) — those have no org duty by definition.
  *
- * Never throws; memoised for CACHE_TTL_MS because this sits on the /auth/user
- * hot path.
+ * Never throws; an answer from the store is memoised for CACHE_TTL_MS because
+ * this sits on the /auth/user hot path.
  *
  * @param {string|null} orgId
  * @returns {Promise<boolean>}
@@ -76,6 +76,9 @@ async function resolveOrgMfaRequired(orgId) {
         stored = await configStore.getConfig(orgMfaConfigKey(orgId));
     } catch (err) {
         log.warn(`[OrgMfaRequired] Failed to read flag for org ${orgId}: ${err.message}`);
+        // A failed read is no answer. Memoising it would switch an org's duty
+        // off for the whole TTL after one hiccup: the next call asks again.
+        return false;
     }
     const required = normalizeOrgMfaRequired(stored);
     _cache.set(orgId, { at: Date.now(), required });

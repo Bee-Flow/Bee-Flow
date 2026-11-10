@@ -8,7 +8,7 @@
 
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
-const { getSubscriberType, verifyMetadataMatchesLocal, stripOverriddenFields } = require('./webhookShared');
+const { getSubscriberType, verifyMetadataMatchesLocal, stripOverriddenFields, holdDunningCap, storeForTarget } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -162,6 +162,7 @@ async function handleSubscriptionUpdated(subscription) {
         }
         // Atomic: override decision + write happen under a row-level lock so
         // two concurrent webhooks for the same subscription serialise.
+        holdDunningCap(updateData, await userStore.getConsumerSubscription(userId));
         const strippedUpdate = stripOverriddenFields(updateData);
         const result = await userStore.setConsumerSubscriptionRespectingOverride(userId, updateData, strippedUpdate);
         const applied = result.applied === 'stripped' ? strippedUpdate : updateData;
@@ -191,8 +192,13 @@ async function handleSubscriptionUpdated(subscription) {
         // transition (e.g. a scheduled downgrade reaching its period boundary).
         const priorSub = await userStore.getOrgSubscription(orgId);
         const priorPlanId = priorSub?.plan_id || null;
+        holdDunningCap(updateData, priorSub);
         const strippedUpdate = stripOverriddenFields(updateData);
-        const result = await userStore.setOrgSubscriptionRespectingOverride(orgId, updateData, strippedUpdate);
+        // A scheduled downgrade that lands clears its bookkeeping in the SAME
+        // write as the plan (not under an override, which keeps the plan).
+        const landed = !!priorSub?.pending_plan_id && updateData.plan_id === priorSub.pending_plan_id;
+        const fullUpdate = landed ? { ...updateData, .../** @type {Record<string, null>} */ ({ pending_plan_id: null, pending_plan_effective: null, stripe_schedule_id: null }) } : updateData;
+        const result = await userStore.setOrgSubscriptionRespectingOverride(orgId, fullUpdate, strippedUpdate);
         const applied = result.applied === 'stripped' ? strippedUpdate : updateData;
         await userStore.logSubscriptionAudit('update_subscription', 'organization', orgId, 'stripe_webhook', null, { stripe_status: subscription.status, beeflow_status: applied.status, override_respected: result.overrideActive });
         if (result.overrideActive) {
@@ -210,9 +216,6 @@ async function handleSubscriptionUpdated(subscription) {
                 log.warn('[Stripe Webhook] applyPlanToOrg (plan change) failed:', e.message);
             }
             await userStore.logSubscriptionAudit('plan_changed_via_stripe', 'organization', orgId, 'stripe_webhook', { plan_id: priorPlanId }, { plan_id: applied.plan_id });
-        }
-        if (priorSub?.pending_plan_id && applied.plan_id === priorSub.pending_plan_id) {
-            await userStore.setOrgSubscription(orgId, { pending_plan_id: null, pending_plan_effective: null, stripe_schedule_id: null });
         }
         if (planUnmatched) {
             log.warn(`[Stripe Webhook] stripe.plan.unmatched scope=org org=${orgId} price_id=${priceId} sub_id=${subscription.id}`);
@@ -401,10 +404,7 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
     }
 }
 
-/**
- * customer.subscription.deleted — Subscription cancelled or expired
- */
-/** @param {WebhookSubscription} subscription */
+/** customer.subscription.deleted: the subscription was cancelled or expired. @param {WebhookSubscription} subscription */
 async function handleSubscriptionDeleted(subscription) {
     const subscriberType = getSubscriberType(subscription.metadata);
 
@@ -420,13 +420,14 @@ async function handleSubscriptionDeleted(subscription) {
             await handleSubscriptionDeletedForConsumer(userId, subscription);
         } else {
             // Fallback: search consumer_subscriptions by stripe_subscription_id.
-            // Metadata is missing so we can't cross-check — audit before
-            // touching the row so any later forensic review can spot it.
+            // Metadata is missing so we can't cross-check: audited for a later
+            // forensic review, once the row is written (a refused write
+            // throws and the redelivery audits it then).
             const allSubs = await userStore.getAllConsumerSubscriptions();
             const match = allSubs.find(s => s.stripe_subscription_id === subscription.id);
             if (match) {
-                await userStore.logSubscriptionAudit('webhook_metadata_missing', 'consumer', match.user_id, 'stripe_webhook', null, { event: 'subscription.deleted', sub_id: subscription.id, resolved_via: 'stripe_subscription_id_lookup' });
                 await handleSubscriptionDeletedForConsumer(match.user_id, subscription);
+                await userStore.logSubscriptionAudit('webhook_metadata_missing', 'consumer', match.user_id, 'stripe_webhook', null, { event: 'subscription.deleted', sub_id: subscription.id, resolved_via: 'stripe_subscription_id_lookup' });
             } else {
                 log.warn('[Stripe Webhook] subscription.deleted (consumer) — could not find matching user');
             }
@@ -445,8 +446,8 @@ async function handleSubscriptionDeleted(subscription) {
             const allSubs = await userStore.getAllOrgSubscriptions();
             const match = allSubs.find(s => s.stripe_subscription_id === subscription.id);
             if (match) {
-                await userStore.logSubscriptionAudit('webhook_metadata_missing', 'organization', match.organization_id, 'stripe_webhook', null, { event: 'subscription.deleted', sub_id: subscription.id, resolved_via: 'stripe_subscription_id_lookup' });
                 await handleSubscriptionDeletedForOrg(match.organization_id, subscription);
+                await userStore.logSubscriptionAudit('webhook_metadata_missing', 'organization', match.organization_id, 'stripe_webhook', null, { event: 'subscription.deleted', sub_id: subscription.id, resolved_via: 'stripe_subscription_id_lookup' });
             } else {
                 log.warn('[Stripe Webhook] subscription.deleted (org) — could not find matching org');
             }
@@ -474,10 +475,7 @@ async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
         }
         // No Free plan to fall back to — fall through to the cancelled state.
     }
-    await userStore.setOrgSubscription(orgId, {
-        status: 'cancelled',
-        payment_status: 'cancelled',
-    });
+    await storeForTarget({ scope: 'organization', id: orgId }, { status: 'cancelled', payment_status: 'cancelled' });
     await userStore.logSubscriptionAudit('update_subscription', 'organization', orgId, 'stripe_webhook', null, { status: 'cancelled', reason: 'stripe_subscription_deleted' });
     log.info(`[Stripe Webhook] Subscription cancelled for org ${orgId}`);
 }
@@ -487,10 +485,7 @@ async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
  * @param {WebhookSubscription} _subscription
  */
 async function handleSubscriptionDeletedForConsumer(userId, _subscription) {
-    await userStore.setConsumerSubscription(userId, {
-        status: 'cancelled',
-        payment_status: 'cancelled',
-    });
+    await storeForTarget({ scope: 'consumer', id: userId }, { status: 'cancelled', payment_status: 'cancelled' });
     await userStore.logSubscriptionAudit('update_subscription', 'consumer', userId, 'stripe_webhook', null, { status: 'cancelled', reason: 'stripe_subscription_deleted' });
     log.info(`[Stripe Webhook] Consumer subscription cancelled for user ${userId}`);
 }

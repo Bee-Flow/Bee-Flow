@@ -5,6 +5,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import { isTruncatedOutput } from '../mapping/realOutputs';
 import type { FlowStep } from '../flow/types';
 import type { NdvStepMenuProps } from './NdvStepMenu';
+import type { PatchSource } from './useStepPatchSave';
 
 const isTruncated = isTruncatedOutput as (v: unknown) => boolean;
 
@@ -16,7 +17,7 @@ export default function stepPlumbing({
     quick: boolean;
     isTrigger: boolean;
     outputPinned: boolean;
-    persistStepPatch: (patch: Record<string, unknown>) => Promise<void>;
+    persistStepPatch: (patch: Record<string, unknown>, source?: PatchSource) => Promise<void>;
     onDuplicateStep: ((id: string) => void) | null;
     onDeleteStep: ((id: string) => void) | null;
     onClose: (() => void) | null | undefined;
@@ -27,8 +28,8 @@ export default function stepPlumbing({
     // `pinnedSource: undefined`, not null: the key drops out of the JSON, so
     // "absent" keeps meaning "captured from a run".
     const togglePin = async () => {
-        if (outputPinned) await persistStepPatch({ pinnedOutput: null, pinnedAt: null, pinnedSource: undefined });
-        else if (canPin) await persistStepPatch({ pinnedOutput: runStep?.output, pinnedAt: new Date().toISOString(), pinnedSource: undefined });
+        if (outputPinned) await persistStepPatch({ pinnedOutput: null, pinnedAt: null, pinnedSource: undefined }, 'action');
+        else if (canPin) await persistStepPatch({ pinnedOutput: runStep?.output, pinnedAt: new Date().toISOString(), pinnedSource: undefined }, 'action');
     };
     const pinTitle = outputPinned
         ? t('automations.ndv.unpin_title', 'Unpin output (re-enable live execution)')
@@ -42,7 +43,7 @@ export default function stepPlumbing({
         pinTitle,
         onTogglePin: () => { void togglePin(); },
         disabled: !!step.disabled,
-        onToggleDisabled: () => { void persistStepPatch({ disabled: !step.disabled }); },
+        onToggleDisabled: () => { void persistStepPatch({ disabled: !step.disabled }, 'action'); },
         onDuplicate: typeof onDuplicateStep === 'function' ? () => { onDuplicateStep(step.id); onClose?.(); } : null,
         onDelete: typeof onDeleteStep === 'function' ? () => { onDeleteStep(step.id); onClose?.(); } : null,
     } : null;

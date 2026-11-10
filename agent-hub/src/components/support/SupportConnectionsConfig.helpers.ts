@@ -1,3 +1,5 @@
+import type { TranslateFn } from '@/hooks/useTranslation';
+
 /** GET /api/support/youtrack/status. */
 export interface YouTrackConnection {
     configured?: boolean;
@@ -34,11 +36,13 @@ export const PROVIDERS = [
     { id: 'generic', label: 'Plain JSON webhook' },
 ];
 
-// Written from the reader's side: what happens, not which table it touches.
-export const EVENT_LABELS: Record<string, string> = {
-    ticket_created: 'A new ticket arrives',
-    customer_message: 'A customer replies',
-    sla_breach: 'An SLA is breached',
-    escalation: 'A ticket is escalated to engineering',
-    issue_resolved: 'A linked issue is resolved',
-};
+/** The chat events in words, written from the reader's side: what happens, not which table it touches. */
+export function eventLabelsFor(t: TranslateFn): Record<string, string> {
+    return {
+        ticket_created: t('support.connections_event_ticket_created', 'A new ticket arrives'),
+        customer_message: t('support.connections_event_customer_message', 'A customer replies'),
+        sla_breach: t('support.connections_event_sla_breach', 'An SLA is breached'),
+        escalation: t('support.connections_event_escalation', 'A ticket is escalated to engineering'),
+        issue_resolved: t('support.connections_event_issue_resolved', 'A linked issue is resolved'),
+    };
+}

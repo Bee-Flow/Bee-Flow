@@ -4,6 +4,7 @@
  */
 
 import { pick } from '../lang';
+import { demoDate, demoNow } from '../demoClock';
 
 /* ── Adoption tab ─────────────────────────────────────────────────────
    GET /api/usage/adoption/* (pages/settings/usage/adoption). One organisation
@@ -43,7 +44,7 @@ const AD_CALLS = AD_AREAS.reduce((s, a) => s + a[2], 0);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 function adRange(query: URLSearchParams) {
-    const end = new Date();
+    const end = demoDate();
     const days = Number(query.get('days')) || 30;
     const startDate = query.get('startDate');
     const endDate = query.get('endDate');
@@ -82,7 +83,7 @@ const AD_AREAS_ROUTE = () => {
         area, kind: AD_AREA_KIND[area] ?? null, calls, cost, people, objects,
         sources: sources.map(([source, share]) => ({ source, calls: Math.round(calls * share), cost: round2(cost * share) })),
     }));
-    const now = Date.now();
+    const now = demoNow();
     const weeks = AD_WEEK_SHARE.map((share, i) => {
         const start = new Date(now - (AD_WEEK_SHARE.length - 1 - i) * 7 * 86_400_000);
         const byArea: Record<string, number> = {};
@@ -149,8 +150,8 @@ function adItems(kind: string) {
             ownerId: `user_demo_${i % AD_MAKERS.length}`,
             ownerName: AD_MAKERS[i % AD_MAKERS.length],
             audience: (i < published * 0.6 ? 'org' : i < published ? 'group' : 'private'),
-            createdAt: new Date(Date.now() - (30 + i * 9) * 86_400_000).toISOString(),
-            lastUsedAt: uses ? new Date(Date.now() - (i + 1) * 3_600_000 * 7).toISOString() : null,
+            createdAt: new Date(demoNow() - (30 + i * 9) * 86_400_000).toISOString(),
+            lastUsedAt: uses ? new Date(demoNow() - (i + 1) * 3_600_000 * 7).toISOString() : null,
             people: usage ? Math.round((usage[1] / 3) * weight) : null,
             uses,
             cost: cost == null ? null : round2((cost / 5) * weight),
@@ -206,13 +207,13 @@ function adPeopleAll() {
             name: `${AD_FIRST[i % AD_FIRST.length]} ${AD_LAST[(i * 7) % AD_LAST.length]}`,
             role: AD_ROLES[i % AD_ROLES.length],
             groups: groupOf[(i * 41) % 148] ? [groupOf[(i * 41) % 148]] : [],
-            lastSeenAt: new Date(Date.now() - (active ? (i % 9) : seen ? 10 + (i % 15) : 35 + (i % 40)) * 86_400_000).toISOString(),
+            lastSeenAt: new Date(demoNow() - (active ? (i % 9) : seen ? 10 + (i % 15) : 35 + (i % 40)) * 86_400_000).toISOString(),
             status: active ? 'ai_active' : seen ? 'seen_only' : 'dormant',
             calls: active ? Math.round((weights[i] / wSum) * AD_CALLS) : 0,
             cost,
             areas: active ? areas.slice(i % 3, (i % 3) + 1 + (i % 3)) : [],
             built: i < 31 ? { agent: (i % 4) + 1, ...(i % 3 === 0 ? { automation: 2 } : {}) } : {},
-            firstAiUseAt: active ? new Date(Date.now() - (60 + i) * 86_400_000).toISOString() : null,
+            firstAiUseAt: active ? new Date(demoNow() - (60 + i) * 86_400_000).toISOString() : null,
         };
     });
 }

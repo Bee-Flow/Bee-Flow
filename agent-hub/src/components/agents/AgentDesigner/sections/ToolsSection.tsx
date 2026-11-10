@@ -1,130 +1,99 @@
-import React from 'react';
+import { Link2 } from 'lucide-react';
 import { INTEGRATION_CATALOG } from '../integrations';
 import ConnectionPolicyPicker from '@/components/shared/ConnectionPolicyPicker';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { SettingsGroup } from '@/components/shared/SettingsList';
+import Toggle from '@/components/shared/Toggle';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DesignerSectionProps } from './sectionProps';
 
-export const ToolsSection = ({
-  selectedAgent, name, setName, description, setDescription,
-  systemPrompt, setSystemPrompt, avatar, setAvatar,
-  showEmojiPicker, setShowEmojiPicker, emojiCategory, setEmojiCategory, emojiPickerRef,
-  model, setModel, modelTiers, authFetch, API_BASE,
-  activeGuardrailTab, setActiveGuardrailTab, llamaGuardEnabled, setLlamaGuardEnabled,
-  webSearchGuardEnabled, setWebSearchGuardEnabled, regexGuardrailsEnabled, setRegexGuardrailsEnabled,
-  availableCollections, selectedCollections, setSelectedCollections,
-  regexScope, setRegexScope, guardrailAction, setGuardrailAction,
-  enabledIntegrations, setEnabledIntegrations, integrationStatus,
-  sequentialThinkingEnabled, setSequentialThinkingEnabled,
-  sequentialThinkingModel, setSequentialThinkingModel, availableModels,
-  CAPABILITIES, checkCapability, toggleCapability,
-  allowCopy, setAllowCopy, embedEnabled, setEmbedEnabled,
-  bubbleColor, setBubbleColor, bubblePosition, setBubblePosition,
-  bubbleSize, setBubbleSize, bubbleIcon, setBubbleIcon,
-  windowWidth, setWindowWidth, windowHeight, setWindowHeight,
-  chatFont, setChatFont, chatFontSize, setChatFontSize,
-  chatLineHeight, setChatLineHeight, userBubbleColor, setUserBubbleColor,
-  assistantBubbleColor, setAssistantBubbleColor, warningText, setWarningText,
-  setPromptDesignerMessages, setPromptDesignerInput, setShowPromptDesigner
-}: DesignerSectionProps) => {
-  const { t } = useTranslation();
+type CatalogItem = (typeof INTEGRATION_CATALOG)[number];
+type Status = DesignerSectionProps['integrationStatus'];
+
+/** Whether this person can attach one catalogue integration: org gating, then the credential or SSO it needs. */
+function isAvailable(item: { id: string; group?: string }, status: Status): boolean {
+  if (!status) return false;
+  const orgEnabled = status.orgEnabledIntegrations;
+  if (orgEnabled && !orgEnabled.includes(item.id)) return false;
+  if (item.group === 'google') return !!status.isGoogleUser;
+  const byId: Record<string, () => boolean> = {
+    fireflies: () => !!status.hasFirefliesKey,
+    youtrack: () => !!status.hasYouTrackConfig,
+    gamma: () => !!status.hasGammaKey,
+    'afas-profit': () => !!status.hasAfasConfig,
+    nmbrs: () => !!status.hasNmbrsConfig,
+    n8n: () => !!status.hasN8nConfig,
+    linkedin: () => !!status.hasLinkedInConfig || !!status.linkedInConnected,
+  };
+  return byId[item.id] ? byId[item.id]() : true;
+}
+
+const TILE_ON = 'flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-secondary)]';
+const TILE_OFF = 'flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-[var(--border-default)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-secondary)]';
+
+/** One integration: the whole tile toggles it, as does the switch. */
+function IntegrationTile({ item, selected, onToggle }: { item: CatalogItem; selected: boolean; onToggle: () => void }) {
   return (
-                                                <div className="space-y-6 animate-fadeIn">
-                                                    <div>
-                                                        <h2 data-tour="agent-tools" className="text-base font-semibold text-primary">{t('agent_studio.tools_capabilities_integrations', 'Capabilities & Integrations')}</h2>
-                                                        <p className="text-xs text-muted mt-0.5">{t('agent_studio.tools_select_which_integrations_this_agent', 'Select which integrations this agent can use. Only integrations you have access to are shown.')}</p>
-                                                    </div>
+    <div className={selected ? TILE_ON : TILE_OFF} onClick={onToggle}>
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--bg-secondary)] ${selected ? '' : 'opacity-50'}`}>
+        {item.iconSvg}
+      </div>
+      <div className={`min-w-0 flex-1 ${selected ? '' : 'opacity-60'}`}>
+        <p className="m-0 truncate text-[13px] font-medium text-[var(--text-primary)]">{item.label}</p>
+        <p className="m-0 truncate text-[11px] text-[var(--text-tertiary)]">{item.description}</p>
+      </div>
+      <span className="shrink-0" onClick={e => e.stopPropagation()}>
+        <Toggle size="sm" checked={selected} onChange={onToggle} ariaLabel={item.label} />
+      </span>
+    </div>
+  );
+}
 
-                                                    {/* Integration Status Grid */}
-                                                    {(() => {
-                                                        const isAvailable = (item: { id: string; group?: string }) => {
-                                                            if (!integrationStatus) return false;
-                                                            // Org-level gating only
-                                                            const orgEnabled = integrationStatus.orgEnabledIntegrations;
-                                                            if (orgEnabled && !orgEnabled.includes(item.id)) return false;
-                                                            // Credential/SSO requirements
-                                                            if (item.group === 'google') return !!integrationStatus.isGoogleUser;
-                                                            if (item.id === 'fireflies') return !!integrationStatus.hasFirefliesKey;
-                                                            if (item.id === 'youtrack') return !!integrationStatus.hasYouTrackConfig;
-                                                            if (item.id === 'gamma') return !!integrationStatus.hasGammaKey;
-                                                            if (item.id === 'afas-profit') return !!integrationStatus.hasAfasConfig;
-                                                            if (item.id === 'nmbrs') return !!integrationStatus.hasNmbrsConfig;
-                                                            if (item.id === 'n8n') return !!integrationStatus.hasN8nConfig;
-                                                            if (item.id === 'linkedin') return !!integrationStatus.hasLinkedInConfig || !!integrationStatus.linkedInConnected;
-                                                            return true;
-                                                        };
+export const ToolsSection = ({ selectedAgent, enabledIntegrations, setEnabledIntegrations, integrationStatus }: DesignerSectionProps) => {
+  const { t } = useTranslation();
+  const available = INTEGRATION_CATALOG.filter(item => isAvailable(item, integrationStatus));
+  // null = all enabled by default
+  const isSelected = (id: string) => !enabledIntegrations || enabledIntegrations.includes(id);
+  const toggleIntegration = (id: string) => {
+    setEnabledIntegrations(prev => {
+      const currentList = prev || available.map(a => a.id);
+      return currentList.includes(id) ? currentList.filter(x => x !== id) : [...currentList, id];
+    });
+  };
+  const selectedCount = available.filter(a => isSelected(a.id)).length;
 
-                                                        const available = INTEGRATION_CATALOG.filter(isAvailable);
+  return (
+    <div className="flex max-w-4xl flex-col gap-6 animate-fadeIn">
+      <div data-tour="agent-tools">
+        <SectionHeader
+          title={t('agent_studio.tools_capabilities_integrations', 'Capabilities & Integrations')}
+          description={t('agent_studio.tools_select_which_integrations_this_agent', 'Select which integrations this agent can use. Only integrations you have access to are shown.')}
+        />
+      </div>
 
-                                                        const isSelected = (id: string) => {
-                                                            if (!enabledIntegrations) return true; // null = all enabled by default
-                                                            return enabledIntegrations.includes(id);
-                                                        };
+      {available.length > 0 ? (
+        <SettingsGroup title={t('agent_studio.tools_agent_integrations_selected_count', 'Agent Integrations ({selected_count}/{count})', { selected_count: selectedCount, count: available.length })}>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {available.map(item => (
+              <IntegrationTile key={item.id} item={item} selected={isSelected(item.id)} onToggle={() => toggleIntegration(item.id)} />
+            ))}
+          </div>
+        </SettingsGroup>
+      ) : (
+        <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-[var(--border-default)] px-6 py-8 text-center">
+          <Link2 className="mb-1 h-6 w-6 text-[var(--text-tertiary)]" aria-hidden="true" />
+          <p className="m-0 text-[13px] font-medium text-[var(--text-secondary)]">{t('agent_studio.tools_no_integrations_available', 'No integrations available')}</p>
+          <p className="m-0 text-xs text-[var(--text-tertiary)]">{t('agent_studio.tools_connect_via_google_sso_or_configure', 'Connect via Google SSO or configure API keys in Settings')}</p>
+        </div>
+      )}
 
-                                                        const toggleIntegration = (id: string) => {
-                                                            setEnabledIntegrations(prev => {
-                                                                const currentList = prev || available.map(a => a.id);
-                                                                if (currentList.includes(id)) {
-                                                                    return currentList.filter(x => x !== id);
-                                                                } else {
-                                                                    return [...currentList, id];
-                                                                }
-                                                            });
-                                                        };
-
-                                                        const selectedCount = available.filter(a => isSelected(a.id)).length;
-
-                                                        return (
-                                                            <>
-                                                                {available.length > 0 ? (
-                                                                    <div>
-                                                                        <h3 className="text-xs font-medium text-muted mb-3 flex items-center gap-1.5">
-                                                                            <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
-                                                                            {t('agent_studio.tools_agent_integrations_selected_count', 'Agent Integrations ({selected_count}/{count})', { selected_count: selectedCount, count: available.length })}
-                                                                        </h3>
-                                                                        <div className="grid grid-cols-2 gap-2">
-                                                                            {available.map(item => {
-                                                                                const selected = isSelected(item.id);
-                                                                                return (
-                                                                                    <div
-                                                                                        key={item.id}
-                                                                                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${selected ? '' : 'opacity-50'}`}
-                                                                                        style={{ borderColor: selected ? 'var(--accent-primary)' : 'var(--border-subtle)', background: selected ? 'rgba(16, 185, 129, 0.04)' : 'transparent' }}
-                                                                                        onClick={() => toggleIntegration(item.id)}
-                                                                                    >
-                                                                                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
-                                                                                            {item.iconSvg}
-                                                                                        </div>
-                                                                                        <div className="min-w-0 flex-1">
-                                                                                            <p className="text-sm font-medium text-primary truncate">{item.label}</p>
-                                                                                            <p className="text-[10px] text-muted truncate">{item.description}</p>
-                                                                                        </div>
-                                                                                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
-                                                                                            <input type="checkbox" checked={selected} onChange={() => toggleIntegration(item.id)} className="sr-only peer" />
-                                                                                            <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                                                                                        </label>
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="text-center py-8 rounded-xl border border-dashed border-[var(--border-subtle)]">
-                                                                        <svg className="w-8 h-8 mx-auto mb-2 text-muted opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                                                                        <p className="text-sm text-muted">{t('agent_studio.tools_no_integrations_available', 'No integrations available')}</p>
-                                                                        <p className="text-[10px] text-muted mt-1">{t('agent_studio.tools_connect_via_google_sso_or_configure', 'Connect via Google SSO or configure API keys in Settings')}</p>
-                                                                    </div>
-                                                                )}
-                                                            </>
-                                                        );
-                                                    })()}
-
-                                                    {/* Connection lending (gated): owner lends a named connection for
-                                                        this agent, or recipients bring their own (default). */}
-                                                    <ConnectionPolicyPicker
-                                                        resourceType="agent"
-                                                        resourceId={selectedAgent?.id || null}
-                                                        providers={enabledIntegrations || INTEGRATION_CATALOG.map(i => i.id)}
-                                                    />
-                                                </div>
+      {/* Connection lending (gated): owner lends a named connection for
+          this agent, or recipients bring their own (default). */}
+      <ConnectionPolicyPicker
+        resourceType="agent"
+        resourceId={selectedAgent?.id || null}
+        providers={enabledIntegrations || INTEGRATION_CATALOG.map(i => i.id)}
+      />
+    </div>
   );
 };

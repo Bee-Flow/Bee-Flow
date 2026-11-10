@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AutomationRow from './AutomationRow';
 
 /**
- * BFSF-403: the per-row actions menu (Activate, View executions, Duplicate,
+ * BFSF-403: the per-row actions menu (Activate, View runs, Duplicate,
  * Export JSON, Move to folder, Copy ID, Delete) was reachable only via
  * right-click — undiscoverable on a normal click, and unreachable at all on
  * touch input. These tests pin the visible "More options" button that opens
@@ -48,12 +48,12 @@ describe('AutomationRow — more options button', () => {
         renderRow();
         await user.click(screen.getByLabelText('More options'));
         expect(screen.getByText('Duplicate')).toBeTruthy();
-        expect(screen.getByText('Export JSON')).toBeTruthy();
+        expect(screen.getByText('Export')).toBeTruthy();
         expect(screen.getByText('Move to folder…')).toBeTruthy();
         expect(screen.getByText('Copy ID')).toBeTruthy();
         expect(screen.getByText('Delete')).toBeTruthy();
         expect(screen.getByText('Pause')).toBeTruthy();
-        expect(screen.getByText('View executions')).toBeTruthy();
+        expect(screen.getByText('View runs')).toBeTruthy();
     });
 
     it('does not trigger onSelect when opening the menu via the button', async () => {

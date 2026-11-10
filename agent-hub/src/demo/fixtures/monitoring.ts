@@ -25,8 +25,9 @@ import { pick } from '../lang';
 import { COMMON_ROUTES } from './common';
 import { ADOPTION_ROUTES } from './monitoringAdoption';
 import { QUALITY_ROUTES } from './monitoringQuality';
+import { demoNow } from '../demoClock';
 
-const dayKey = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+const dayKey = (n: number) => new Date(demoNow() - n * 86_400_000).toISOString().slice(0, 10);
 
 /* ── Overview ─────────────────────────────────────────────────────────
    One model table is the source of truth; every other view derives from it,

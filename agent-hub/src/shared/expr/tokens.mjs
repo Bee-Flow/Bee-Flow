@@ -67,7 +67,7 @@ export function tokenize(src) {
                 } else { out += src[j]; j++; }
             }
             if (j >= src.length) throw new ExprError('Unterminated string in expression', i);
-            tokens.push({ t: TOKEN.STRING, v: out, i });
+            tokens.push({ t: TOKEN.STRING, v: out, raw: src.slice(i + 1, j), i });
             i = j + 1; continue;
         }
         if (/[\p{L}_$]/u.test(c)) {

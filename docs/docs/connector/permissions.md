@@ -31,6 +31,7 @@ this *before* the connector sees a request:
 | `^/?api/.*`, `^/?auth/.*`, catch-all | `USER` | Requires a signed-in Nextcloud user; AppAPI forwards their uid. A `PUBLIC` catch-all would let anonymous traffic through. |
 | `^/?heartbeat$`, static shell | `PUBLIC` | Lifecycle and assets; no user session exists. |
 | `^/?init$`, `^/?enabled$`, `^/?setup/...` | `ADMIN` | Anything that could disrupt the whole organisation (rotate the tenant key, repoint the server, redeem a pairing code). |
+| `^/?setup/diagnostics$` (GET) | `USER` | The web app asks it for every signed-in user. The connector itself checks for a Nextcloud administrator: an administrator gets the diagnosis, anybody else `{"canConfigure":false}`. |
 | `^/?hooks/.*` | `PUBLIC` + brute-force protection | Delivered by a Nextcloud background job with no session; authenticated by a static header secret, so Nextcloud throttles repeated rejections. |
 | `^/?nc/.*` | `PUBLIC` | The Bee Flow server calling back into Nextcloud; authenticated by HMAC (below), not by a session. |
 
@@ -102,7 +103,7 @@ Properties that make it auditable rather than decorative:
 
 ## Org-level controls
 
-In **Admin → Nextcloud integrations** an org admin can:
+In **Admin → Access → Grants** an org admin can:
 
 - set which Nextcloud integrations are enabled org-wide, and
 - override per group — disabling specific integrations for a group's members
@@ -128,7 +129,7 @@ most-restrictive-first, so an integration is available only if the org allows it
 | Level | Action | Effect |
 |---|---|---|
 | User | **Settings → Connections → Nextcloud → Revoke all Nextcloud access** | Every Nextcloud integration off for you, immediately. Data already in Bee Flow stays. |
-| Org admin | **Admin → Nextcloud integrations** | Removes an integration for the whole organisation, or for one group. |
+| Org admin | **Admin → Access → Grants** | Removes an integration for the whole organisation, or for one group. |
 | Nextcloud admin | **Apps → Disable Bee Flow** | Stops the connector; the bee icon disappears for everyone. Tenant data is **not** auto-deleted (use the Danger zone). |
 | Nextcloud admin | Rotate the tenant key (**/setup**) | Invalidates every signed callback the Bee Flow server holds. |
 
@@ -142,4 +143,4 @@ tail -f data/nextcloud.log | grep '"app":"app_api"' | grep bee_flow
 ```
 
 Bee Flow-side, access-scope changes and tool-level activity are in
-[Admin → Audit & compliance](../admin/audit-and-compliance.md).
+[Admin → Compliance](../admin/audit-and-compliance.md).

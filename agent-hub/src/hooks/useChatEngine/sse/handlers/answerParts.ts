@@ -1,4 +1,18 @@
 import type { SseHandlerMap } from '../handlerTypes';
+import type { KbSource } from '../../types';
+
+/**
+ * What makes two citations the same passage, as the server's own turn dedup
+ * reads it (toolRound/sideChannels.js): the chunk or live table row it quotes,
+ * else its title, section and opening text. The opening text ALONE is not it:
+ * the chunks of one table all start with the same header row and a source
+ * without text has none, so a later search in the turn lost every such source.
+ */
+function sourceKey(s: KbSource): string {
+    if (s.chunkId != null) return `chunk:${String(s.chunkId)}`;
+    if (s.datatableId != null && s.rowId != null) return `row:${String(s.datatableId)}:${String(s.rowId)}`;
+    return `text:${String(s.title ?? '')}::${String(s.section ?? '')}::${(s.content || '').slice(0, 100)}`;
+}
 
 /**
  * What lands on the reply next to its text: maps, media, files, knowledge-base
@@ -84,10 +98,10 @@ export const answerPartHandlers: SseHandlerMap = {
             const sources = data.sources;
             setMessages(prev => prev.map(m => {
                 if (m.id !== assistantMsgId) return m;
-                // Merge with existing sources, deduplicate by content (not title — allows multiple chunks from same doc)
+                // Merge with what the turn already has; a passage is cited once.
                 const existing = m.kbSources || [];
-                const existingContentKeys = new Set(existing.map(s => (s.content || '').slice(0, 100)));
-                const newSources = sources.filter(s => !existingContentKeys.has((s.content || '').slice(0, 100)));
+                const seen = new Set(existing.map(sourceKey));
+                const newSources = sources.filter(s => !seen.has(sourceKey(s)));
                 return { ...m, kbSources: [...existing, ...newSources] };
             }));
         }

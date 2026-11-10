@@ -112,6 +112,11 @@ To point at a different URL:
 API_BASE_URL=http://host.docker.internal:9000 ./scripts/local-sandbox.sh up
 ```
 
+Without a local server (`WITH_SERVER=0`) and without `API_BASE_URL`, the connector starts with no
+Bee Flow server, exactly like a new install: open Bee Flow as `admin` and the setup page asks where
+it runs. `./scripts/local-sandbox.sh up --cloud` fixes the connector on Bee Flow Cloud instead (it
+passes `BEEFLOW_API_BASE_URL=cloud`) and starts a public tunnel.
+
 ---
 
 ## Path B — manual setup
@@ -215,8 +220,12 @@ docker exec -u www-data bee-flow-nc-sandbox php occ \
 ### 7. Verify
 
 ```bash
-# Heartbeat from NC's perspective
-docker exec -u www-data bee-flow-nc-sandbox php occ app_api:app:heartbeat bee_flow
+# The app as AppAPI sees it
+docker exec -u www-data bee-flow-nc-sandbox php occ app_api:app:list
+# → bee_flow (Bee Flow): <version> [enabled]
+
+# The heartbeat answer, from inside the connector container
+docker exec nc_app_bee_flow sh -c 'curl -fsS "http://127.0.0.1:$APP_PORT/heartbeat"'
 # → {"status":"ok"}
 
 # Connector logs
@@ -270,16 +279,15 @@ If that hangs, your Docker network setup doesn't have `host-gateway` mapping. Th
 
 ### Stuck "Setup in progress" forever
 
-The SPA polls `/api/...` against the configured `BEEFLOW_API_BASE_URL`. With the default `http://host.docker.internal:3101` and no Bee Flow server running, it'll never resolve.
+The SPA polls `/api/...` against the Bee Flow server the connector is on. When that is a local address and no Bee Flow server is running there, it'll never resolve.
 
-Fix: either run the Bee Flow server locally on `:3101`, or override:
+Fix: run the Bee Flow server locally, or start the connector with another server. A `manual-install` daemon does not start the container and passes it no values: `BEEFLOW_API_BASE_URL` is set where the container is started. With the sandbox script:
 
 ```bash
-docker exec -u www-data bee-flow-nc-sandbox php occ \
-    app_api:app:setenv bee_flow BEEFLOW_API_BASE_URL https://server.beeflow.nl
+API_BASE_URL=cloud FORCE=1 ./scripts/local-sandbox.sh up        # or the URL of a Bee Flow server
 ```
 
-…and restart the connector container.
+When you start the container by hand, give it there: `docker run -e BEEFLOW_API_BASE_URL=<url|cloud> …`. Leave the variable out to choose on the setup page instead (with the script: `WITH_SERVER=0 FORCE=1 ./scripts/local-sandbox.sh up`).
 
 ### Wiped sandbox after testing
 
@@ -299,21 +307,14 @@ docker rmi  bee-flow-connector:dev
 
 ## Pointing at a real Bee Flow server
 
-Once you have the local install working, swap the dummy tenant key for the bootstrap flow against a real Bee Flow service:
+Once you have the local install working, start the connector again without the dummy tenant key and without a server address, so the server you choose issues a real key. On the `manual-install` daemon these values are the environment the container is started with (`docker run -e …`); registering the app again does not change them. With the sandbox script:
 
 ```bash
-# Remove the dummy key, switch to "auto"
-docker exec -u www-data bee-flow-nc-sandbox php occ \
-    app_api:app:setenv bee_flow BEEFLOW_TENANT_KEY auto
-
-# Point at server.beeflow.nl (or your self-hosted server)
-docker exec -u www-data bee-flow-nc-sandbox php occ \
-    app_api:app:setenv bee_flow BEEFLOW_API_BASE_URL https://server.beeflow.nl
-
-docker restart nc_app_bee_flow
+# TENANT_KEY defaults to "auto"; WITH_SERVER=0 and no API_BASE_URL: no Bee Flow server
+WITH_SERVER=0 FORCE=1 ./scripts/local-sandbox.sh up
 ```
 
-The connector now bootstraps a real tenant key against the SaaS on next start. Watch the logs:
+Open Bee Flow as `admin` and choose Bee Flow Cloud or your own server on the setup page. Nothing is sent before that choice; after it the connector gets its tenant key from the chosen server. (To fix the server when the container starts instead, give `API_BASE_URL=cloud` or `API_BASE_URL=<your server URL>`, which the script passes as `BEEFLOW_API_BASE_URL`.) Watch the logs:
 
 ```bash
 docker logs nc_app_bee_flow -f | grep -i bootstrap
