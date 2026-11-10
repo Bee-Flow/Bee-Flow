@@ -33,6 +33,19 @@ const _cache = new Map();
 const MAX_CHUNKS_PER_CONV = 256;
 
 /**
+ * The cache bucket of one asker in one conversation. What a search returns is
+ * decided by the bases the ASKER may read, and a shared thread has several
+ * askers: a bucket per conversation alone would hand one person's chunks to
+ * the next (kb_fetch resolves by chunk id only). No conversation, no cache.
+ * @param {string | undefined} conversationId
+ * @param {string | undefined} askerId
+ * @returns {string}
+ */
+function scopeFor(conversationId, askerId) {
+    return conversationId ? `${conversationId}\u0000${askerId ?? ''}` : '';
+}
+
+/**
  * @param {string} q
  */
 function normalizeQuery(q) {
@@ -164,4 +177,4 @@ function gc() {
 
 setInterval(gc, GC_INTERVAL_MS).unref?.();
 
-module.exports = { get, set, invalidate, setChunks, getChunk };
+module.exports = { get, set, invalidate, setChunks, getChunk, scopeFor };

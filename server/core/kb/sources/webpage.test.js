@@ -247,3 +247,30 @@ test('a sitemap over KB_SITEMAP_MAX_BYTES is skipped; the entry page still belon
         assert.strictEqual(items.length, 1);
     });
 });
+
+test('a site whose sitemap indexes only lead to more indexes is given up on after a bounded number of fetches', async () => {
+    reset();
+    // Every index names two more that nobody has seen; the fixture stops at 400 so the test ends either way.
+    let minted = 0;
+    respond = (url) => {
+        if (!/\.xml$/.test(url)) return { status: 404, headers: {}, body: '' };
+        const nested = minted < 400 ? [`https://example.com/map-${++minted}.xml`, `https://example.com/map-${++minted}.xml`] : [];
+        return { status: 200, headers: { 'content-type': 'application/xml' }, body: `<sitemapindex>${nested.map((l) => `<sitemap><loc>${l}</loc></sitemap>`).join('')}</sitemapindex>` };
+    };
+    const out = await webpage.enumerate({ id: 's1', kind: 'webpage', config: { url: 'https://example.com/', crawl: { maxPages: 50 } } }, CTX);
+    assert.deepStrictEqual(out.map((e) => e.url), ['https://example.com/'], 'only the entry page');
+    const sitemapFetches = calls.filter((c) => /\.xml$/.test(c.url)).length;
+    assert.strictEqual(sitemapFetches, webpage.MAX_SITEMAP_FETCHES);
+});
+
+test('nested sitemap indexes within the bound still contribute their pages', async () => {
+    reset();
+    respond = (url) => {
+        const xml = (body) => ({ status: 200, headers: { 'content-type': 'application/xml' }, body });
+        if (url.endsWith('/sitemap.xml')) return xml('<sitemapindex><sitemap><loc>https://example.com/a.xml</loc></sitemap></sitemapindex>');
+        if (url.endsWith('/a.xml')) return xml('<urlset><url><loc>https://example.com/one</loc></url><url><loc>https://example.com/two</loc></url></urlset>');
+        return { status: 404, headers: {}, body: '' };
+    };
+    const out = await webpage.enumerate({ id: 's1', kind: 'webpage', config: { url: 'https://example.com/', crawl: { maxPages: 50 } } }, CTX);
+    assert.deepStrictEqual(out.map((e) => e.url), ['https://example.com/', 'https://example.com/one', 'https://example.com/two']);
+});

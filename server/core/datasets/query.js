@@ -193,7 +193,7 @@ async function queryRegion(dataset, params = {}) {
         spans = [loc];
     } else if (rsid != null) {
         const rsNum = typeof rsid === 'number' ? rsid : rsNumberOf(String(rsid).trim());
-        if (rsNum === null) throw new DatasetQueryError(`unreadable rsID "${rsid}" — expected rs<number>`);
+        if (rsNum === null || !Number.isSafeInteger(rsNum) || rsNum < 0) throw new DatasetQueryError(`unreadable rsID "${rsid}" — expected rs<number>`);
         resolvedRsid = `rs${rsNum}`;
         const shard = await dataset.readRsidShard(rsidIndex.shardOf(rsNum));
         if (shard === null) {

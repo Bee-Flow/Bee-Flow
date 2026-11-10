@@ -677,3 +677,10 @@ test('head and body are inserted literally: "$&" and "$$" in page content are no
     assert.ok(out.includes(head), 'the head arrives byte for byte');
     assert.strictEqual((out.match(/<\/head>/g) || []).length, 1);
 });
+
+test('a page whose slug is a name on Object.prototype gets the default priority, not a function body', () => {
+    const pages = ['constructor', 'toString', '__proto__'].map((slug, i) => ({ id: `proto-${i}`, slug, seo: {}, locales: ['en'] }));
+    const xml = buildSitemap(pages, { origin: ORIGIN, defaultLocale: 'en', locales: ['en'] });
+    const priorities = [...xml.matchAll(/<priority>([^<]*)<\/priority>/g)].map((m) => m[1]);
+    assert.deepStrictEqual(priorities, ['0.5', '0.5', '0.5']);
+});

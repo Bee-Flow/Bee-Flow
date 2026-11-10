@@ -16,6 +16,9 @@
  *   { error: 'tier_required', required: 'enterprise', current: 'community',
  *     feature: 'sso_saml' (optional), upgrade_url: 'https://beeflow.nl/pricing' }
  *
+ * That is the whole body. How the tier was resolved (the caller's organisations
+ * and the tier of each) goes to the server log, never to the client.
+ *
  * When the underlying tier lookup hits a real DB error (not a missing table
  * during early boot), the middleware fails *closed* with 503 rather than
  * silently downgrading every user to community — that would mask outages.
@@ -202,7 +205,6 @@ function requireTier(requiredTier) {
                 error: 'tier_required',
                 required: requiredTier,
                 current: resolution.tier,
-                debug: resolution,
                 upgrade_url: UPGRADE_URL,
             });
         }
@@ -254,7 +256,6 @@ function requireFeature(featureName) {
                 feature: featureName,
                 required,
                 current: resolution.tier,
-                debug: resolution,
                 upgrade_url: UPGRADE_URL,
             });
         }

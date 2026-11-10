@@ -12,14 +12,14 @@ const assert = require('node:assert');
 
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
-const store = { config: new Map(), secrets: new Map(), writes: [], failing: false };
+const store = { config: new Map(), secrets: new Map(), writes: [], failing: false, failingWrites: false };
 const configStoreStub = {
     getConfig: async (key) => {
         if (store.failing) throw new Error('database is down');
         return store.config.has(key) ? store.config.get(key) : null;
     },
     setConfig: async (key, value) => {
-        if (store.failing) throw new Error('database is down');
+        if (store.failing || store.failingWrites) throw new Error('database is down');
         store.writes.push(key);
         // Deep copy, like a round trip through Postgres: a later mutation of
         // the object the caller still holds must not leak into the store.
@@ -52,6 +52,7 @@ test.beforeEach(() => {
     store.secrets.clear();
     store.writes = [];
     store.failing = false;
+    store.failingWrites = false;
     delete process.env.SCALEWAY_API_KEY;
     delete process.env.SCALEWAY_URL;
     delete process.env.EUGPT_API_KEY;
@@ -316,4 +317,32 @@ test('setDefaultProvider refuses an unknown id without writing', async () => {
     assert.deepStrictEqual(store.writes, []);
     assert.strictEqual(await setDefaultProvider('p1'), true);
     assert.strictEqual(ai().defaultProviderId, 'p1');
+});
+
+// getConfig hands out the store's own object, as configStore's cache does. A
+// write that fails must leave that object exactly as it was.
+const SEEDED = () => ({ providers: [{ id: 'p1', name: 'One', type: 'openai', url: 'u', model: 'm', apiKey: 'k' }, { id: 'p2', name: 'Two', type: 'mistral', url: 'u', model: '', apiKey: 'k2' }], defaultProviderId: 'p1' });
+
+test('a provider change whose write fails leaves the in-memory config where the database is', async () => {
+    store.config.set('ai', SEEDED());
+    store.failingWrites = true;
+
+    assert.strictEqual(await addProvider({ id: 'p3', name: 'Three', url: 'u' }), null);
+    assert.strictEqual(await updateProvider('p1', { name: 'Renamed' }), false);
+    assert.strictEqual(await deleteProvider('p1'), false);
+    assert.strictEqual(await setDefaultProvider('p2'), false);
+    assert.deepStrictEqual(ai(), SEEDED());
+});
+
+test('an ensure* whose write fails does not leave its row in the in-memory config', async () => {
+    store.config.set('ai', SEEDED());
+    store.secrets.set('scaleway_api_key', 'scw');
+    store.secrets.set('ionos_api_key', 'ion');
+    process.env.EUGPT_API_KEY = 'eu';
+    store.failingWrites = true;
+
+    await assert.rejects(() => ensureScalewayProvider());
+    await assert.rejects(() => ensureIonosProvider());
+    await assert.rejects(() => ensureEuGptProvider());
+    assert.deepStrictEqual(ai(), SEEDED());
 });

@@ -103,17 +103,19 @@ router.get('/list', (req, res) => {
 
     const files = fs.readdirSync(OUTPUT_DIR)
         .filter(f => DOCUMENT_NAME.test(f))
-        .map(f => {
-            const stat = fs.statSync(path.join(OUTPUT_DIR, f));
+        .flatMap(f => {
+            // The renderer cleans this directory up: a file can be gone between the read above and its stat.
+            let stat;
+            try { stat = fs.statSync(path.join(OUTPUT_DIR, f)); } catch { return []; }
             const parts = f.split('_');
-            return {
+            return [{
                 id: f,
                 name: parts.length > 1 ? parts.slice(1).join('_') : f,
                 sizeBytes: stat.size,
                 createdAt: stat.birthtime,
                 downloadUrl: `/api/documents/download/${f}`,
                 viewUrl: `/api/documents/view/${f}`
-            };
+            }];
         })
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 

@@ -256,3 +256,25 @@ test('KINDS and URGENT_BELOW_MS are the contract the client reads', () => {
     assert.equal(deadlines.URGENT_BELOW_MS.cra_early_warning, 6 * H);
     assert.equal(deadlines.URGENT_BELOW_MS.cra_notification, 24 * H);
 });
+
+test('a stored regime list that is not an array (JSON "null", an object, a number) falls back to the column default', async () => {
+    const detected = NOW - 20 * H;
+    const row = (id, kind, regimes) => ({ id, kind, regimes, title: `Incident ${id}`, status: 'open',
+        detected_at: at(detected), deadline_at: at(detected + 72 * H), authority_notified_at: null });
+    const out = await deadlines.build('org1', {
+        now: NOW,
+        deps: deps({
+            incidentStore: {
+                nextOpenDeadline: incidentStore.nextOpenDeadline,
+                REGIME_CLOCKS: incidentStore.REGIME_CLOCKS,
+                listOpenClocks: async () => [row(31, 'breach', 'null'), row(32, 'breach', '{"a":1}'), row(33, 'vulnerability', '7'), row(34, 'breach', null)],
+            },
+        }),
+    });
+    assert.equal(out.complete, true, 'the incident source did not fail');
+    const regimesOf = (id) => out.items.find((i) => String(i.id).endsWith(`:${id}`)).meta.regimes;
+    assert.deepEqual(regimesOf(31), ['GDPR']);
+    assert.deepEqual(regimesOf(32), ['GDPR']);
+    assert.deepEqual(regimesOf(33), ['CRA']);
+    assert.deepEqual(regimesOf(34), ['GDPR']);
+});

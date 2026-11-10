@@ -81,6 +81,14 @@ test('a config-store failure degrades to false and does not throw', async () => 
         'the platform flag (missing⇒ON) remains the backstop; the org flag only ever ADDS the duty');
 });
 
+test('a failed read is not memoised: the duty applies as soon as the store answers again', async () => {
+    config.rows[orgMfaConfigKey(ORG)] = { required: true };
+    config.failOn(true);
+    assert.strictEqual(await resolveOrgMfaRequired(ORG), false, 'fail-open while the store is down');
+    config.failOn(null);
+    assert.strictEqual(await resolveOrgMfaRequired(ORG), true, 'the failure was not cached as "not required" for the TTL');
+});
+
 test('resolution is memoised and invalidate busts it', async () => {
     assert.strictEqual(await resolveOrgMfaRequired(ORG), false);
     const after = config.reads.length;

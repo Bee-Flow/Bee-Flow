@@ -213,9 +213,12 @@ async function updateRisk(orgId, id, patch = {}, actorId = null) {
 }
 
 /**
- * Add one treatment to a risk. Unknown options fall back to 'mitigate'.
+ * Add one treatment to a risk of this organisation. Unknown options fall back
+ * to 'mitigate'. The row is inserted FROM the risk, so a risk id of another
+ * organisation, an unknown one, or one that is not a whole number adds nothing
+ * and answers null (what updateRisk answers for a risk it does not find).
  * @param {string} orgId
- * @param {string} riskId
+ * @param {string | number} riskId
  * @param {TreatmentFields} [fields]
  * @param {string | null} [actorId]
  */
@@ -223,14 +226,17 @@ async function addTreatment(orgId, riskId, fields = {}, actorId = null) {
     await initDB();
     if (!orgId) throw new Error('orgId is required');
     if (!riskId) throw new Error('riskId is required');
+    const id = /^\d{1,9}$/.test(String(riskId)) ? Number(riskId) : null;
+    if (id === null) return null;
     const { rows } = await run(`
         INSERT INTO iso_risk_treatments
             (organization_id, risk_id, option, description, due_at, owner_user_id)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        SELECT r.organization_id, r.id, $3::text, $4::text, $5::timestamptz, $6::text
+          FROM iso_risks r WHERE r.organization_id = $1 AND r.id = $2::int
         RETURNING *
     `, [
         orgId,
-        riskId,
+        id,
         VALID_OPTIONS.has(fields.option) ? fields.option : 'mitigate',
         fields.description || null,
         fields.due_at || null,

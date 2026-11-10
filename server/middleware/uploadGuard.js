@@ -277,6 +277,15 @@ async function scanBuffer(buffer) {
 // ── Middleware factory ──────────────────────────────────────────────
 
 /**
+ * The size cap as the 413 names it: whole megabytes, or kilobytes for a cap under 1 MB.
+ * @param {number} maxBytes
+ */
+function capLabel(maxBytes) {
+    const mb = Math.floor(maxBytes / (1024 * 1024));
+    return mb >= 1 ? `${mb}MB` : `${Math.max(1, Math.floor(maxBytes / 1024))}KB`;
+}
+
+/**
  * @param {{ maxBytes?: number, allow?: readonly string[], field?: string }} [opts]  `maxBytes` is the
  *   size cap (bytes), 413 when exceeded; `allow` the declared-MIME allowlist, 415 otherwise;
  *   `field` the multipart field name (default 'file')
@@ -295,7 +304,7 @@ function uploadGuard({ maxBytes = DEFAULT_MAX_BYTES, allow = DEFAULT_ALLOW, fiel
         parseOne(req, res, (err) => {
             if (err) {
                 if (err.code === 'LIMIT_FILE_SIZE') {
-                    return res.status(413).json({ error: `File exceeds the ${Math.floor(maxBytes / (1024 * 1024))}MB limit` });
+                    return res.status(413).json({ error: `File exceeds the ${capLabel(maxBytes)} limit` });
                 }
                 return res.status(400).json({ error: 'Upload failed' });
             }
@@ -304,7 +313,7 @@ function uploadGuard({ maxBytes = DEFAULT_MAX_BYTES, allow = DEFAULT_ALLOW, fiel
                 return res.status(400).json({ error: 'No file uploaded' });
             }
             if (file.size > maxBytes) {
-                return res.status(413).json({ error: `File exceeds the ${Math.floor(maxBytes / (1024 * 1024))}MB limit` });
+                return res.status(413).json({ error: `File exceeds the ${capLabel(maxBytes)} limit` });
             }
 
             const declaredRaw = String(file.mimetype || '').toLowerCase();

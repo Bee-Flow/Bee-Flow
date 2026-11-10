@@ -26,6 +26,20 @@ function trialAlreadyUsed() {
 }
 
 /**
+ * The store's subscription writes answer false on a database error. A trial
+ * whose row was not stored must not be marked used: the subscriber would have
+ * spent their one trial without getting it.
+ * @param {boolean} stored
+ * @param {string} who
+ * @param {{ stripeSubscriptionId?: string }} trialResult
+ */
+function assertTrialStored(stored, who, trialResult) {
+    if (stored !== false) return;
+    log.error(`[TrialService] trial subscription for ${who} was not stored; Stripe subscription ${trialResult.stripeSubscriptionId} has no local row`);
+    throw new Error('Failed to store the trial subscription');
+}
+
+/**
  * @param {{ trial_days?: number, stripe_price_id?: string } | null} plan
  */
 async function assertPlanTrialReady(plan) {
@@ -67,14 +81,14 @@ async function startOrgTrial(orgId, planId, { changedBy } = {}) {
         trialDays: plan.trial_days,
     });
 
-    await store.setOrgSubscription(orgId, {
+    assertTrialStored(await store.setOrgSubscription(orgId, {
         plan_id: planId,
         status: 'trialing',
         payment_status: 'trialing',
         trial_end_date: trialResult.trialEnd,
         stripe_customer_id: trialResult.stripeCustomerId,
         stripe_subscription_id: trialResult.stripeSubscriptionId,
-    });
+    }), `org ${orgId}`, trialResult);
     try {
         await require('./planEntitlements').applyPlanToOrg(orgId, planId, { mode: 'reset' });
     } catch (e) {
@@ -130,14 +144,14 @@ async function startConsumerTrial(userId, planId, { changedBy } = {}) {
         trialDays: plan.trial_days,
     });
 
-    await store.setConsumerSubscription(userId, {
+    assertTrialStored(await store.setConsumerSubscription(userId, {
         plan_id: planId,
         status: 'trialing',
         payment_status: 'trialing',
         trial_end_date: trialResult.trialEnd,
         stripe_customer_id: trialResult.stripeCustomerId,
         stripe_subscription_id: trialResult.stripeSubscriptionId,
-    });
+    }), `user ${userId}`, trialResult);
     await store.markTrialUsed('consumer', userId);
     await store.recordTrialHistory({
         scope: 'consumer',

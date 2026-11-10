@@ -214,7 +214,7 @@ async function _applyUserCreated(org, ncUid) {
         let ncGroups = null;
         try {
             ncGroups = await fetchNcUserGroups(org, ncUid);
-            const expected = ncGroups.filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
+            const expected = groupsAfterSync(org, existing.groups, ncGroups);
             const current = Array.isArray(existing.groups) ? existing.groups.slice().sort() : [];
             const next = expected.slice().sort();
             if (current.join(',') !== next.join(',')) updates.groups = expected;
@@ -320,7 +320,8 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
     // Re-evaluate membership: user may have entered/left a group that
     // changes their inclusion under selective_groups / excluded_groups.
     // Always also propagates the NC group set to the BF user.groups[] so
-    // group-based access in Bee Flow tracks NC.
+    // group-based access in Bee Flow tracks NC (groupsAfterSync: the groups
+    // assigned in Bee Flow stay).
     const user = await userStore.getUserByNcUid(org.id, ncUid);
     let groups;
     try { groups = await fetchNcUserGroups(org, ncUid); } catch { return { action: 'noop' }; }
@@ -328,7 +329,7 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
     if (shouldExist && !user) {
         return applyUserCreated(org, ncUid);
     }
-    const expectedGroups = (groups || []).filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
+    const expectedGroups = groupsAfterSync(org, user?.groups, groups);
     if (!shouldExist && user && user.status === 'active') {
         await userStore.updateUser(user.id, { status: 'inactive', groups: expectedGroups });
         return { action: 'deactivate', userId: user.id };
@@ -354,6 +355,32 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
  */
 function ncGroupToBfId(orgId, ncGroupName) {
     return `nc_${orgId}_${String(ncGroupName).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
+}
+
+/**
+ * A user's groups after a sync: the groups Nextcloud says they are in, plus
+ * every group they hold that did not come from Nextcloud.
+ *
+ * Where a membership came from is not recorded; where a GROUP came from is.
+ * The sync only ever hands out ids of this organisation's mirrored groups
+ * (`ncGroupToBfId`: `nc_<orgId>_<slug>`, the rows mirrorGroups creates with
+ * source 'nextcloud'), so those are the ones it owns and may take away again
+ * when Nextcloud stops listing them. Any other id (a group made and assigned
+ * in Bee Flow, or one mirrored for another organisation) is left as it is.
+ * The price of the rule: a membership of a MIRRORED group that an admin
+ * assigned by hand in Bee Flow is Nextcloud's to decide, and goes at the next
+ * sync when Nextcloud does not list it.
+ * @param {NcOrg} org
+ * @param {unknown} currentGroups  the user's stored group ids
+ * @param {string[] | null | undefined} ncGroups  the Nextcloud group names of the user
+ * @returns {string[]}
+ */
+function groupsAfterSync(org, currentGroups, ncGroups) {
+    const mirrored = `nc_${org.id}_`;
+    const local = (Array.isArray(currentGroups) ? currentGroups : []).filter(g => typeof g === 'string' && !g.startsWith(mirrored));
+    // NC's `admin` group is not mirrored: it must not gate Bee Flow capabilities.
+    const fromNc = (ncGroups || []).filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
+    return [...new Set([...local, ...fromNc])];
 }
 
 /** @param {NcOrg} org */

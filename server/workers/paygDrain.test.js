@@ -36,7 +36,7 @@ function makeStack(stripeFails = () => true) {
     const realNow = Date.now;
     Date.now = () => clock.now;
 
-    const state = { rows: [], stripeCalls: 0, audits: [], claims: [] };
+    const state = { rows: [], stripeCalls: 0, audits: [], claims: [], stampFails: false };
     let nextId = 1;
 
     function enqueue({ ageMs = 0, attemptCount = 0 } = {}) {
@@ -85,6 +85,7 @@ function makeStack(stripeFails = () => true) {
             const row = state.rows.find(r => r.id === params[params.length - 1]);
             if (!row) return { rowCount: 0 };
             if (sql.includes('delivered_at = NOW()')) {
+                if (state.stampFails) throw new Error('database is down');
                 row.delivered_at = new Date(clock.now);
                 row.last_error = null;
             } else if (sql.includes('attempt_count = attempt_count + 1')) {
@@ -241,5 +242,37 @@ test('hard-failed rows stop crowding deliverable rows out of the batch', async (
 
         assert.strictEqual(live.filter(r => !s.state.rows.find(x => x.id === r.id).delivered_at).length, 0,
             'deliverable rows must reach Stripe once the dead head of the queue is terminal');
+    } finally { s.restore(); }
+});
+
+test('an event Stripe accepted whose delivered stamp failed is not a send failure', async () => {
+    const s = makeStack(() => false);
+    try {
+        const row = s.enqueue();
+        s.state.stampFails = true;
+        const first = await s.tick();
+        assert.strictEqual(first.failed, 0, 'Stripe did not fail');
+        assert.strictEqual(first.delivered, 0);
+        assert.strictEqual(first.unstamped, 1);
+        assert.strictEqual(row.attempt_count, 0, 'no failed attempt is counted against the row');
+        assert.strictEqual(row.last_error, null, 'and no Stripe error is recorded for it');
+        assert.deepStrictEqual(s.drain.getCircuitState(), { state: 'closed', failures: 0, openedAt: 0 }, 'the Stripe breaker is not fed');
+
+        // The stamp is retried on the next tick, under the same idempotency key.
+        s.state.stampFails = false;
+        const second = await s.tick();
+        assert.strictEqual(second.delivered, 1);
+        assert.ok(row.delivered_at);
+    } finally { s.restore(); }
+});
+
+test('fifty accepted events with a failing stamp do not open the Stripe breaker', async () => {
+    const s = makeStack(() => false);
+    try {
+        for (let i = 0; i < 60; i++) s.enqueue();
+        s.state.stampFails = true;
+        await s.tick();
+        await s.tick();
+        assert.strictEqual(s.drain.getCircuitState().state, 'closed');
     } finally { s.restore(); }
 });

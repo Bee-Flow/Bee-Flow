@@ -576,8 +576,13 @@ class OpenAIProvider extends BaseProvider {
         log.info(`[${this.name}] SDK streaming (completions) for model:`, model);
         const stream = await client.chat.completions.create(params);
 
-        // Accumulate tool calls across streaming chunks
+        // Tool calls accumulate across chunks. The flush emits and drains, so the
+        // finish-reason flush and the end-of-stream one never deliver a call twice.
         const toolCallAccumulator = {};
+        const flushToolCalls = () => {
+            for (const tc of Object.values(toolCallAccumulator)) this._emitToolCall(tc, onEvent);
+            for (const key of Object.keys(toolCallAccumulator)) delete toolCallAccumulator[key];
+        };
         /** @type {Record<string, any> | null} */
         let streamUsage = null;
         let streamFinishReason = null;
@@ -615,15 +620,12 @@ class OpenAIProvider extends BaseProvider {
                     }
                 }
             }
-            // Check for finish_reason to emit accumulated tool calls
             const finishReason = chunk.choices?.[0]?.finish_reason;
             if (finishReason) streamFinishReason = finishReason;
-            if (finishReason === 'tool_calls' || finishReason === 'stop') {
-                for (const [, tc] of Object.entries(toolCallAccumulator)) {
-                    this._emitToolCall(tc, onEvent);
-                }
-            }
+            if (finishReason === 'tool_calls' || finishReason === 'stop') flushToolCalls();
         }
+        // A compatible gateway may end the stream with no finish reason, or another one.
+        flushToolCalls();
 
         if (streamFinishReason) {
             streamUsage = streamUsage || {};

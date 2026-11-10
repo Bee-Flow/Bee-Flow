@@ -110,7 +110,7 @@ KB_SEARCH_TOOLS.push(KB_GET_ORIGINAL_TOOL);
 
 async function executeKbFetchTool(args, context = {}) {
     const kbQueryCache = require('../core/agentRuntime/kbQueryCache');
-    const { conversationId } = context;
+    const conversationId = kbQueryCache.scopeFor(context.conversationId, context.userId);
     let ids = Array.isArray(args?.chunk_ids) ? args.chunk_ids : [];
     ids = ids.slice(0, 3); // Hard server-side cap; description also says max 3.
 
@@ -127,9 +127,10 @@ async function executeKbFetchTool(args, context = {}) {
         }
     }
 
-    // Only chunks a kb_search in THIS conversation returned are served: that
-    // search already applied the asker's knowledge-base visibility. An id the
-    // cache does not hold is answered with "run kb_search again".
+    // Only chunks a kb_search by THIS asker in this conversation returned are
+    // served: that search already applied the asker's knowledge-base
+    // visibility. An id the cache does not hold is answered with "run
+    // kb_search again".
     if (misses.length > 0) {
         log.info(`[KBFetch] ${misses.length} chunk id(s) not in this conversation's search results`);
     }
@@ -266,14 +267,17 @@ async function executeKbSearchTool(toolName, args, context = {}) {
     const topK = Math.min(Math.max(parseInt(top_k) || 5, 1), 10);
     const retrievalT0 = Date.now();
 
-    // Per-conversation cache: if the agent re-asks the same question later in
-    // this conversation, skip the whole retrieval stack. Cache key is
-    // (conversationId, normalized query, sorted kb_ids).
+    // Per-asker, per-conversation cache: the same question asked again skips
+    // the whole retrieval stack. The bucket is the asker's own (a shared thread
+    // has several askers with different bases); the key is the normalised
+    // query, top_k, the preview mode and the sorted kb_ids.
     const kbQueryCache = require('../core/agentRuntime/kbQueryCache');
-    const { conversationId } = context;
-    const cached = kbQueryCache.get(conversationId, `${query}|top_k=${topK}`, kbIds);
+    const conversationId = kbQueryCache.scopeFor(context.conversationId, userId);
+    const previewMode = process.env.KB_PREVIEW_MODE === 'true';
+    const cacheQuery = `${query}|top_k=${topK}|preview=${previewMode}`;
+    const cached = kbQueryCache.get(conversationId, cacheQuery, kbIds);
     if (cached) {
-        log.info(`[KBSearch] Cache HIT: conv=${conversationId} "${query}" → ${cached._sources?.length || 0} chunks`);
+        log.info(`[KBSearch] Cache HIT: conv=${context.conversationId} "${query}" → ${cached._sources?.length || 0} chunks`);
         return cached;
     }
 
@@ -330,8 +334,6 @@ async function executeKbSearchTool(toolName, args, context = {}) {
         // The rows first learn which base their document sits in and whether its file is kept: what lets a chip offer the download.
         const annotated = labelSections(await withOriginalFlags(dedupResults));
 
-        const previewMode = process.env.KB_PREVIEW_MODE === 'true';
-
         // Stash every chunk in the per-conversation cache so kb_fetch can
         // resolve full content by chunk_id on a later tool call.
         kbQueryCache.setChunks(conversationId, annotated.map(({ r, sectionLabel }) => ({
@@ -376,7 +378,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
                 return { ...base, content: r.content };
             }),
         };
-        kbQueryCache.set(conversationId, `${query}|top_k=${topK}|preview=${previewMode}`, kbIds, payload);
+        kbQueryCache.set(conversationId, cacheQuery, kbIds, payload);
         // The cached object stays handle-free: a cache hit is not a new search.
         return queryLogHandle ? attachHandle({ ...payload }, queryLogHandle) : payload;
 

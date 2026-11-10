@@ -17,18 +17,18 @@ require('../tools/toolExecution');
 const { resolveAgentModelWithTier } = require('./modelResolver');
 const { getAgentTools } = require('./agentTools');
 const { processSystemPrompt } = require('../llm/promptUtils');
-const { applyTokenMapToOutbound } = require('../dlp/applyTokenMapToOutbound');
+const { applyTokenMapToOutbound, untokeniseToolArgs } = require('../dlp/applyTokenMapToOutbound');
 const { recordAgentRun } = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
 const { resolveGenerationSettings, loadToolParamsMap, shieldIncomingMessages, tokenPreservationAddendum } = require('./chatWithAgentPrep');
 const { executeChatToolCall } = require('./chatWithAgentTools');
 const { turnSaver } = require('../conversation/historyMerge');
 const { getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel } = require('../llm/modelResolver');
-const { validateInputForPii } = require('../privacy/piiDetection');
+const { validateInputForPii, restoreTokens } = require('../privacy/piiDetection');
 const { resolveShieldFor } = require('../privacy/orgShield');
 const dlpRunner = require('../dlp/dlpRunner');
 const { mayLendOwnerConnection } = require('./toolPolicy');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { finishTurnLogs, failTurnLogs } = require('../kb/queryLog/hook.mts');
 
 // What ./chatWithAgentPrep and ./chatWithAgentTools work with, handed in:
@@ -43,7 +43,32 @@ const TOOL_DEPS = {
     connectionResolution: () => require('../integrations/connectionResolution'),
     toolDispatcher: () => require('../tools/toolDispatcher'),
     toolPiiGate: () => require('../privacy/toolPiiGate'),
+    // The streaming route's step (toolRound/piiPolicy.restoreDlpArgs), with its helper: the real values go
+    // back into a tool's arguments. Best-effort like there: on an error the arguments stay tokenised.
+    /** @type {(conversation: { id?: string } | null | undefined, toolArgs: Record<string, unknown>) => Record<string, unknown>} */
+    restoreToolArgs: (conversation, toolArgs) => {
+        try {
+            return untokeniseToolArgs(toolArgs, dlpRunner.getConversationTokenMap(conversation?.id));
+        } catch (err) {
+            return fallback('core/agentRuntime/chatWithAgent:restoreToolArgs', err, toolArgs);
+        }
+    },
 };
+
+/**
+ * The model's answer as the person reads it. The Privacy Shield tokenised what
+ * went to the provider, and the model answers in those tokens (`[email_1]`):
+ * the real values go back in here, as the streaming route does for its text.
+ * Both the returned reply and the stored turn carry this text; the outbound
+ * guard in callModel tokenises the stored history again before the next round.
+ * @param {string | null} content
+ * @param {{ id?: string } | null | undefined} conversation
+ */
+function replyForReader(content, conversation) {
+    if (typeof content !== 'string' || !conversation?.id) return content;
+    const tokenMap = dlpRunner.getConversationTokenMap(conversation.id);
+    return tokenMap && Object.keys(tokenMap).length ? restoreTokens(content, tokenMap) : content;
+}
 
 async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
     const _agentT0 = Date.now();
@@ -97,9 +122,10 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
             }
 
             // No tool calls - we have the final response
+            const reply = replyForReader(assistantMessage.content, conversation);
             messages.push({
                 role: 'assistant',
-                content: assistantMessage.content,
+                content: reply,
             });
 
             // Save this turn's rows right after the history it was asked
@@ -108,9 +134,9 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
             await run.saveTurn((turn) => agentStore.saveConversationTurn(conversation.id, turn, userAuth.encryptionKey, userAuth.userId));
 
             recordAgentRun({ agentType: 'chat', status: 'ok', durationMs: Date.now() - _agentT0 });
-            finishTurnLogs(queryLogCarrier, { outcome: 'answered', answer: assistantMessage.content, model: modelToUse, answerMs: Date.now() - _agentT0 });
+            finishTurnLogs(queryLogCarrier, { outcome: 'answered', answer: reply, model: modelToUse, answerMs: Date.now() - _agentT0 });
             return {
-                message: assistantMessage.content,
+                message: reply,
                 model: modelToUse,
                 toolCalls,
                 conversationLength: messages.length,

@@ -32,6 +32,9 @@ const { fallback } = require('../../../utils/bestEffort');
 
 /** A crawl source will not walk more than this, whatever its config says. */
 const MAX_CRAWL_PAGES = 500;
+// Sitemaps (index files included) one enumeration reads at most. The page cap does not bound them:
+// an index can name only further indexes, each a fetch that contributes no page.
+const MAX_SITEMAP_FETCHES = 50;
 
 const supportsModes = ['manual', 'schedule'];
 const defaultMode = 'manual';
@@ -172,7 +175,7 @@ async function sitemapPages(entryUrl, maxPages, ctx) {
     const urls = [];
     const seenMaps = new Set();
     for (const candidate of candidates) {
-        if (urls.length >= maxPages) break;
+        if (urls.length >= maxPages || seenMaps.size >= MAX_SITEMAP_FETCHES) break;
         if (seenMaps.has(candidate)) continue;
         seenMaps.add(candidate);
         try {
@@ -198,4 +201,4 @@ async function sitemapPages(entryUrl, maxPages, ctx) {
     return urls;
 }
 
-module.exports = { enumerate, fetch, isUnchanged, supportsModes, defaultMode, MAX_CRAWL_PAGES, sitemapPages };
+module.exports = { enumerate, fetch, isUnchanged, supportsModes, defaultMode, MAX_CRAWL_PAGES, MAX_SITEMAP_FETCHES, sitemapPages };

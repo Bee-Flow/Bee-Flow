@@ -7071,8 +7071,8 @@
       "via": "requireAdmin"
     },
     "PUT /api/languages/org/default": {
-      "gate": "middleware",
-      "via": "requireOrgAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/mcp-library/me/:id/credential": {
       "gate": "auth"

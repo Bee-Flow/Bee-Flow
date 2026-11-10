@@ -52,3 +52,25 @@ test('close without audio gives a null result', async () => {
     const out = await p.generateMusic('k', 'lofi', opts);
     assert.strictEqual(out.audioBase64, null);
 });
+
+test('an error that arrives while the session is still being set up is the call\'s rejection, not an unhandled one', async () => {
+    const unhandled = [];
+    const onUnhandled = (reason) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+        const { p, session } = providerWith(() => {});
+        // The socket errors during setup, and the setup call then fails as well.
+        session.setWeightedPrompts = async () => {
+            session.cb.onerror({ message: 'socket dropped' });
+            await new Promise((r) => setImmediate(r));
+            throw new Error('setup failed');
+        };
+        await assert.rejects(() => p.generateMusic('k', 'lofi', opts), /Music generation failed: setup failed/);
+        assert.ok(session.closed);
+        // An unhandled rejection is reported after the microtask queue drains.
+        await new Promise((r) => setTimeout(r, 20));
+        assert.deepStrictEqual(unhandled.map((e) => e.message), []);
+    } finally {
+        process.off('unhandledRejection', onUnhandled);
+    }
+});
