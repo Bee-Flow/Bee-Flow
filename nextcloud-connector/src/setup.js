@@ -36,13 +36,14 @@ const { shellBaseUrl } = require('./embedTarget');
 const ncProxy = require('./ncProxy');
 const log = require('./log'); // callback-signature health for diagnostics
 const { errMessage, errCode, asError } = require('./errors');
+const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE } = require('./serverChoice');
 
 /**
  * @typedef {{ ok: boolean, status: number, url: string, error: string | null, version?: string | null, tier?: string | null }} ProbeResult
  *
  * What POST /diagnose answers: this connector's view next to the Bee Flow server's.
  * @typedef {object} DiagnoseResult
- * @property {{ apiBaseUrl: string, organizationId: string | null, ncInstanceId: string | null, hasTenantKey: boolean, tenantKeyFingerprint: string | null, liveNcInstanceId?: string }} local
+ * @property {{ apiBaseUrl: string | null, organizationId: string | null, ncInstanceId: string | null, hasTenantKey: boolean, tenantKeyFingerprint: string | null, liveNcInstanceId?: string }} local
  * @property {({ status: number, raw?: string, tenantKey?: { fingerprint?: string, exists?: boolean } } & Record<string, unknown>) | null} saas
  * @property {string | null} match
  * @property {string | null} error
@@ -110,6 +111,35 @@ function requirePinRecovery(req, res, next) {
         return next();
     }
     return requireNcAdmin(req, res, next);
+}
+
+/**
+ * Guard for the routes that act on the chosen Bee Flow server (re-bind, rotate,
+ * verify, diagnose). While no server is chosen they have nothing to act on, and
+ * a pending or error file left on disk is not acted on either: 409, before any
+ * file is read and before any request is made. No normal page load makes these
+ * calls in that state.
+ * @param {import('express').Request} _req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+function requireServerChosen(_req, res, next) {
+    if (config.apiBaseUrl) return next();
+    return res.status(409).json({ ok: false, code: NOT_CHOSEN_CODE, error: NOT_CHOSEN_MESSAGE });
+}
+
+/**
+ * GET /setup/status while no server is chosen, asked by somebody who is not a
+ * Nextcloud administrator: a plain 200 that says they cannot configure, and
+ * nothing else. The first-run page shows its notice on that answer.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+function firstRunStatusForNonAdmin(req, res, next) {
+    const user = req.beeflow?.user;
+    if (!config.apiBaseUrl && user?.uid && !user.isNcAdmin) return res.json({ canConfigure: false });
+    return next();
 }
 
 // Budgets. Generous enough that a real admin clicking around never sees one,
@@ -258,11 +288,13 @@ router.get('/', (req, res) => {
     res.sendFile(HTML_PATH);
 });
 
-router.get('/status', requireNcAdmin, (req, res) => {
+router.get('/status', firstRunStatusForNonAdmin, requireNcAdmin, (req, res) => {
     const stored = setupConfig.get();
     res.json({
+        canConfigure: true,
         envOverridden: config.apiBaseUrlLocked,
         envApiBaseUrl: process.env.BEEFLOW_API_BASE_URL || null,
+        // null: no Bee Flow server is chosen yet.
         active: config.apiBaseUrl,
         chosen: stored,
         cloudUrl: setupConfig.CLOUD_URL,
@@ -308,7 +340,8 @@ router.get('/diagnostics', requireNcAdmin, (req, res) => {
 
     const hasTenantKey = !!config.tenantKey;
     let state = 'ok';
-    if (!hasTenantKey && pending && pending.status === 'awaiting_email_verification') state = 'awaiting_email_verification';
+    if (!config.apiBaseUrl) state = NOT_CHOSEN_CODE;
+    else if (!hasTenantKey && pending && pending.status === 'awaiting_email_verification') state = 'awaiting_email_verification';
     else if (!hasTenantKey && pending && pending.status === 'pending') state = 'awaiting_admin_approval';
     else if (!hasTenantKey && lastError && lastError.status === 'failed') state = 'failed';
     else if (!hasTenantKey) state = 'initialising';
@@ -427,8 +460,9 @@ router.post('/public-nc-url', requireNcAdmin, limits.rebind, express.json(), asy
 
     // Drop the cached tenant key + retry bootstrap with the new public URL
     // so the admin sees a clear success/new error within ~5s instead of
-    // restarting the container manually.
-    if (typeof bootstrap.invalidateAndRebootstrap === 'function') {
+    // restarting the container manually. While no server is chosen the URL is
+    // only saved: it is used when an administrator chooses one.
+    if (config.apiBaseUrl && typeof bootstrap.invalidateAndRebootstrap === 'function') {
         bootstrap.invalidateAndRebootstrap().catch(err => {
             log.warn('[Setup] public NC URL re-bootstrap failed (non-fatal):', errMessage(err));
         });
@@ -546,7 +580,7 @@ router.post('/accept-nc-certificate', requirePinRecovery, limits.rebind, express
 // leaked. The org binding survives. Synchronous, so the "Rotate tenant key"
 // button on the /setup page shows the outcome in one click. It used to
 // re-bootstrap, which always got the SAME key back, and reported it as new.
-router.post('/rotate-tenant-key', requireNcAdmin, limits.rebind, express.json(), async (req, res) => {
+router.post('/rotate-tenant-key', requireNcAdmin, requireServerChosen, limits.rebind, express.json(), async (req, res) => {
     const uid = req.beeflow?.user?.uid || 'unknown';
     log.info(`[Setup] tenant-key rotation requested by uid=${log.ref(uid)}`);
     try {
@@ -572,7 +606,7 @@ router.post('/rotate-tenant-key', requireNcAdmin, limits.rebind, express.json(),
 // pending-bootstrap.json, clears the in-memory binding, and re-bootstraps: if
 // the org still exists it re-binds to it, otherwise it provisions a fresh one.
 // Rollback to the previous key happens automatically if the re-bootstrap fails.
-router.post('/clear-cache', requireNcAdmin, limits.rebind, express.json(), async (req, res) => {
+router.post('/clear-cache', requireNcAdmin, requireServerChosen, limits.rebind, express.json(), async (req, res) => {
     const uid = req.beeflow?.user?.uid || 'unknown';
     log.info(`[Setup] organisation cache clear requested by uid=${log.ref(uid)}`);
     try {
@@ -598,7 +632,7 @@ router.post('/clear-cache', requireNcAdmin, limits.rebind, express.json(), async
 // BEEFLOW_PAIRING_CODE via `occ app_api:app:setenv` + container restart —
 // a flow no real Nextcloud admin would tolerate.
 const PAIRING_CODE_RE = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-router.post('/apply-pairing-code', requireNcAdmin, limits.verify, express.json(), async (req, res) => {
+router.post('/apply-pairing-code', requireNcAdmin, requireServerChosen, limits.verify, express.json(), async (req, res) => {
     const uid = req.beeflow?.user?.uid || 'unknown';
     const raw = String(bodyOf(req).pairingCode || '').toUpperCase().trim();
     if (!PAIRING_CODE_RE.test(raw)) {
@@ -632,7 +666,7 @@ router.post('/apply-pairing-code', requireNcAdmin, limits.verify, express.json()
 // rate-limits attempts, and the Bee Flow server attempt-caps the code itself.
 // Nextcloud's manual asks for exactly this shape — a limiter in front of an
 // operation with a guessable secret, answering 429 when the budget is spent.
-router.post('/verify-email-code', requireNcAdmin, limits.verify, express.json(), async (req, res) => {
+router.post('/verify-email-code', requireNcAdmin, requireServerChosen, limits.verify, express.json(), async (req, res) => {
     const code = String(bodyOf(req).code || '').trim();
     if (!/^\d{6}$/.test(code)) {
         return res.status(400).json({ ok: false, code: 'invalid_code', error: 'Enter the 6-digit code from the email.' });
@@ -663,7 +697,7 @@ router.post('/verify-email-code', requireNcAdmin, limits.verify, express.json(),
 // — the current NC user in the embedded view. Re-points the pending binding at
 // them so the code reaches the right person and they become the org admin on
 // success. NC-authenticated via AppAPI; gated to NC admins with an email.
-router.post('/request-verification-code', limits.sendCode, express.json(), async (req, res) => {
+router.post('/request-verification-code', requireServerChosen, limits.sendCode, express.json(), async (req, res) => {
     const current = req.beeflow?.user;
     if (!current?.uid) {
         return res.status(401).json({ ok: false, code: 'no_user', error: 'Could not identify your Nextcloud account. Refresh and try again.' });
@@ -693,7 +727,7 @@ router.post('/request-verification-code', limits.sendCode, express.json(), async
 // Re-send the verification code to the same admin mailbox. Admin-gated and
 // rate-limited: without both, any user on the instance could make the Bee Flow
 // server mail the admin on demand.
-router.post('/resend-email-code', requireNcAdmin, limits.sendCode, express.json(), async (req, res) => {
+router.post('/resend-email-code', requireNcAdmin, requireServerChosen, limits.sendCode, express.json(), async (req, res) => {
     try {
         const result = await bootstrap.resendVerificationCode();
         return res.json({ ok: true, maskedEmail: result.maskedEmail, expiresAt: result.expiresAt, emailSent: result.emailSent });
@@ -713,7 +747,7 @@ router.post('/resend-email-code', requireNcAdmin, limits.sendCode, express.json(
 // SaaS has no key, has an unrelated key, or has the right key but the
 // signature verification is failing for some other reason (clock skew,
 // encryption key rotation on the server pod, …).
-router.post('/diagnose', requireNcAdmin, limits.probe, express.json(), async (_req, res) => {
+router.post('/diagnose', requireNcAdmin, requireServerChosen, limits.probe, express.json(), async (_req, res) => {
     /** @type {DiagnoseResult} */
     const out = {
         local: {

@@ -2,17 +2,16 @@
  * User-facing setup choice: which Bee Flow service does this NC point at?
  *
  * Persisted as JSON next to the tenant-key cache so it survives container
- * restarts. Read at boot to override the env-var default for `apiBaseUrl`.
+ * restarts. Read at boot by serverChoice.js, which decides the connector's
+ * effective `apiBaseUrl`. In short:
+ *   1. BEEFLOW_API_BASE_URL fixing the server at install time (the word
+ *      `cloud` or a server URL; see config.apiBaseUrlLocked)
+ *   2. the server an existing binding (tenant-key.json) belongs to
+ *   3. setup-config.json `apiBaseUrl`, written by the in-app picker
+ *   4. no server: the connector waits for an administrator to choose
  *
- * Priority for the connector's effective `apiBaseUrl`:
- *   1. BEEFLOW_API_BASE_URL env naming a server other than Cloud (set via
- *      `occ app_api:app:setenv`; AppAPI injects the Cloud default otherwise,
- *      which is not a lock, see config.apiBaseUrlLocked)
- *   2. setup-config.json `apiBaseUrl` written by the in-app picker
- *   3. https://server.beeflow.nl (Bee Flow Cloud)
- *
- * The env-var explicit override stays first so that an admin who locks the
- * value via AppAPI can't be silently flipped from the in-app picker.
+ * The install-time value stays first so that an admin who fixes the server
+ * there can't be silently flipped from the in-app picker.
  */
 
 const fs = require('fs');

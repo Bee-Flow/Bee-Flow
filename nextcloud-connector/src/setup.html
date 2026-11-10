@@ -180,14 +180,34 @@
         color: var(--text-muted);
     }
     .meta strong { color: var(--text); }
+
+    /* First-run mode: no Bee Flow server is chosen yet. The connector serves
+       this page as the embedded app with `data-first-run` on the body element, and adds
+       `data-can-configure` for a Nextcloud administrator. Everybody sees the
+       notice; the picker appears once the script has confirmed the
+       administrator (class `can-configure`). The tools that act on a chosen
+       server stay hidden in this mode. */
+    .first-run-notice { display: none; max-width: 760px; margin: 0 auto; padding: 48px 24px; }
+    .first-run-only { display: none; }
+    body[data-first-run]:not(.can-configure) .first-run-notice { display: block; }
+    body[data-first-run]:not(.can-configure) .wrap { display: none; }
+    body[data-first-run] > .card:not(#card-nc-cert),
+    body[data-first-run]:not(.can-configure) > .card { display: none; }
+    body[data-first-run] .first-run-only { display: block; }
 </style>
 </head>
 <body>
+<div class="first-run-notice" id="first-run-notice">
+    <h1>Bee Flow is not set up yet</h1>
+    <p class="lede">Ask your Nextcloud administrator to open Bee Flow and choose where it runs.</p>
+</div>
 <div class="wrap">
     <header>
         <span class="badge" id="badge-current">Loading…</span>
         <h1>Connect Bee Flow</h1>
         <p class="lede">Pick where this Nextcloud should send Bee Flow API traffic.</p>
+        <p class="lede first-run-only">No Bee Flow server is chosen yet. Nothing about this Nextcloud
+           is sent to a Bee Flow server before a choice is saved.</p>
     </header>
 
     <div class="cards">
@@ -390,6 +410,11 @@
 
 <script>
 (() => {
+    // First-run mode (see the style block). Without `data-can-configure` the
+    // notice is the whole page: stop here, before any request.
+    const firstRun = document.body.hasAttribute('data-first-run');
+    if (firstRun && !document.body.hasAttribute('data-can-configure')) return;
+
     const $ = (id) => document.getElementById(id);
     const cards = document.querySelectorAll('.card');
     const formSelf = $('form-self');
@@ -412,8 +437,9 @@
     // like `/setup/status` would hit NC at `:port/setup/status` (404 HTML
     // → "Unexpected token '<'" in JSON.parse). Compute the connector mount
     // prefix from the current URL so every fetch goes back through the
-    // signed proxy.
-    const BASE = window.location.pathname.replace(/\/setup\/?$/, '') + '/';
+    // signed proxy. In first-run mode the page is the embedded app itself,
+    // at `…/proxy/bee_flow/index.html` or `/exapps/bee_flow/`.
+    const BASE = window.location.pathname.replace(/\/(?:setup\/?|index\.html)?$/, '') + '/';
 
     function setMode(m) {
         mode = m;
@@ -526,7 +552,7 @@
                 ? `Server is reachable.`
                 : `Saved, but the server isn't reachable yet (<code>${esc(d.probe?.error || 'unknown')}</code>). Check the URL or start the server, then retry the test.`;
             showStatus(d.probe?.ok ? 'ok' : 'info',
-                `<strong>Saved.</strong> ${probeMsg}`);
+                `<strong>Saved.</strong> ${probeMsg}${firstRun ? ' Reload this page to open Bee Flow.' : ''}`);
         } catch (e) {
             showStatusText('err', `Save failed: ${e.message}`);
         } finally {
@@ -536,9 +562,18 @@
     });
 
     // Initial state
-    fetch(BASE + 'setup/status').then(r => r.json()).then(s => {
+    fetch(BASE + 'setup/status').then(async r => {
+        const s = await r.json();
+        if (firstRun) {
+            // Anything but a clear yes leaves the notice in place.
+            if (!r.ok || s.canConfigure !== true) return null;
+            document.body.classList.add('can-configure');
+        }
+        return s;
+    }).then(s => {
+        if (!s) return;
         cloudUrl = s.cloudUrl || cloudUrl;
-        metaActive.textContent = s.active;
+        metaActive.textContent = s.active || 'none (no server chosen yet)';
         envLocked = !!s.envOverridden;
         if (envLocked) {
             metaEnv.style.display = '';
@@ -555,6 +590,10 @@
                 inputWebUrl.value = s.chosen.embedBaseUrl || '';
             }
             setMode(s.chosen.mode);
+        } else if (!s.active) {
+            // No server chosen and no card preselected: the administrator
+            // picks one.
+            badgeCurrent.textContent = '⚠️ Not set up yet';
         } else {
             badgeCurrent.textContent = '⚠️ Not configured';
             // Default-select Cloud as the recommended path.

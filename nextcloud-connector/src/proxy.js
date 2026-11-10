@@ -15,6 +15,7 @@ const log = require('./log');
 const { errMessage } = require('./errors');
 const { isExpressResponse } = require('./httpGuards');
 const { shellBaseUrl } = require('./embedTarget');
+const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE } = require('./serverChoice');
 
 // How long the SaaS may take to send RESPONSE HEADERS before we give up.
 // Deliberately not a whole-request timeout: an SSE chat turn legitimately
@@ -300,9 +301,13 @@ function buildApiProxy() {
     const proxyFor = perTarget(buildApiProxyFor);
     /** @type {(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => unknown} */
     return (req, res, next) => {
+        // No server chosen: there is nowhere to forward to, and nothing about
+        // this request leaves the connector.
+        const target = config.apiBaseUrl;
+        if (!target) return res.status(503).json({ error: NOT_CHOSEN_MESSAGE, code: NOT_CHOSEN_CODE });
         rewriteRequestHeaders(req, API_REQUEST_HEADERS, apiRequestHeaders(req));
         armHeadersTimeout(req, res, 'Proxy');
-        return proxyFor(config.apiBaseUrl)(req, res, next);
+        return proxyFor(target)(req, res, next);
     };
 }
 

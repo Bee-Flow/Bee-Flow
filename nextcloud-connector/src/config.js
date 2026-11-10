@@ -5,9 +5,14 @@
  * container — see ExApp lifecycle docs:
  *   https://docs.nextcloud.com/server/32/developer_manual/exapp_development/development_overview/ExAppLifecycle.html
  *
- * BEEFLOW_TENANT_KEY and BEEFLOW_API_BASE_URL are configured by the customer
- * admin via `occ app_api:app:setenv bee_flow KEY VALUE` after install.
+ * BEEFLOW_TENANT_KEY and BEEFLOW_API_BASE_URL are optional install-time values
+ * (`occ app_api:app:register bee_flow <daemon> --env NAME=VALUE`, or the
+ * advanced deploy options in the Nextcloud UI). Without them an administrator
+ * chooses the Bee Flow server after installing; see serverChoice.js.
  */
+
+const { envLock } = require('./serverChoice');
+const log = require('./log');
 
 /** @param {string} name */
 function required(name) {
@@ -17,20 +22,23 @@ function required(name) {
 }
 
 // Auto-bootstrap mode: when BEEFLOW_TENANT_KEY is unset or set to literal
-// "auto", the connector calls /auth/connector/bootstrap on first boot to
-// auto-provision an org + mint a tenant key. The result is cached in
-// APP_PERSISTENT_STORAGE (survives container restarts but not disk wipe).
-// This is what enables one-click install from the Nextcloud App Store —
-// the customer admin doesn't need to mint or paste any keys.
+// "auto", the connector calls /auth/connector/bootstrap on the server an
+// administrator chose, to provision an org + mint a tenant key. The result is
+// cached in APP_PERSISTENT_STORAGE (survives container restarts but not disk
+// wipe), so the admin doesn't need to mint or paste any keys. Without a chosen
+// server there is no bootstrap.
 const rawTenantKey = process.env.BEEFLOW_TENANT_KEY || 'auto';
 
-// Bee Flow Cloud's API. Same value as setupConfig.CLOUD_URL (that module
-// needs config, so it cannot be the source here).
-const CLOUD_API_BASE_URL = 'https://server.beeflow.nl';
-const envApiBaseUrl = (process.env.BEEFLOW_API_BASE_URL || '').trim().replace(/\/+$/, '');
+// Rule 1 of serverChoice.js: BEEFLOW_API_BASE_URL fixes the server when it is
+// the word `cloud` or the URL of a server. The literal Cloud URL is not a
+// lock and by itself not a choice.
+const serverLock = envLock(process.env.BEEFLOW_API_BASE_URL);
+if (serverLock.invalid) {
+    log.warn(`[Config] ignoring BEEFLOW_API_BASE_URL: ${serverLock.invalid}`);
+}
 // Bee Flow Cloud's frontend, where the embedded SPA shell comes from while the
-// connector talks to Cloud. Same value as setupConfig.CLOUD_EMBED_URL. AppAPI injects this info.xml <default> like the one
-// above, so the same value is no lock either.
+// connector talks to Cloud. Same value as setupConfig.CLOUD_EMBED_URL. That
+// same value in BEEFLOW_EMBED_BASE_URL is no lock.
 const CLOUD_EMBED_BASE_URL = 'https://beeflow.nl';
 const envEmbedBaseUrl = (process.env.BEEFLOW_EMBED_BASE_URL || '').trim().replace(/\/+$/, '');
 const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
@@ -45,13 +53,15 @@ const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
  * @property {string} persistentStorage
  * @property {string} nextcloudUrl
  * @property {string | null} nextcloudPublicUrl
- * @property {string | null} tenantKey        filled in at runtime (env, bootstrap cache or the bootstrap call)
+ * @property {string | null} tenantKey        filled in at runtime (env, bootstrap cache or the bootstrap call); always null while no server is chosen
+ * @property {string | null} envTenantKey     an explicit BEEFLOW_TENANT_KEY (null in auto mode); it becomes tenantKey once a server is known
  * @property {boolean} isAutoTenantKey
  * @property {string | null} organizationId
  * @property {string | null} organizationName
  * @property {string | null} ncInstanceId
- * @property {string} apiBaseUrl
- * @property {boolean} apiBaseUrlLocked     BEEFLOW_API_BASE_URL names a server other than Cloud: the admin's lock
+ * @property {string | null} apiBaseUrl      the chosen Bee Flow server; null until an administrator chooses one
+ * @property {import('./serverChoice').ServerSource} serverSource  where apiBaseUrl came from at boot (serverChoice.js)
+ * @property {boolean} apiBaseUrlLocked     BEEFLOW_API_BASE_URL fixes the server (the word `cloud` or a server URL): the admin's lock
  * @property {string} embedBaseUrl
  * @property {boolean} embedBaseUrlLocked   BEEFLOW_EMBED_BASE_URL names a host other than Cloud's frontend: the admin's lock
  * @property {string | null} pairingCode
@@ -85,8 +95,12 @@ const config = {
 
     // ── Customer-configured / auto-provisioned ─────────────────
     // tenantKey is filled in at runtime: either from env, or from the bootstrap
-    // cache file, or by calling the SaaS bootstrap endpoint. See bootstrap.js.
-    tenantKey: isAutoTenantKey ? null : rawTenantKey,
+    // cache file, or by calling the bootstrap endpoint of the chosen server.
+    // See bootstrap.js. No server means no key in memory: an explicit
+    // BEEFLOW_TENANT_KEY is applied here only when the env also fixes the
+    // server, and otherwise by serverChoice.applyAtBoot once a server is known.
+    tenantKey: (!isAutoTenantKey && serverLock.url) ? rawTenantKey : null,
+    envTenantKey: isAutoTenantKey ? null : rawTenantKey,
     isAutoTenantKey,
     // Cache for auto-provisioned tenant key + org id. Written by bootstrap.js.
     organizationId: null,
@@ -94,18 +108,20 @@ const config = {
     // the admin by /setup/clear-cache. Null until a binding is applied.
     organizationName: null,
     ncInstanceId: null,
-    // Override only for staging / on-prem. Default points at the Bee Flow dev
-    // environment.
-    apiBaseUrl: envApiBaseUrl || CLOUD_API_BASE_URL,
+    // The Bee Flow server. Null until one is known: at load only the env lock
+    // counts; serverChoice.applyAtBoot (server.js) then resolves what the
+    // install already holds (an existing binding, a saved choice), and the
+    // setup page or the settings form set it when an administrator chooses.
+    // Never an empty string or a placeholder.
+    apiBaseUrl: serverLock.url,
+    serverSource: serverLock.url ? 'env-lock' : 'none',
     // Whether BEEFLOW_API_BASE_URL is a deliberate admin lock that the /setup
     // picker, the admin settings form and the bound-server pin must not
-    // override. AppAPI exports every variable info.xml declares, with its
-    // <default> when nobody typed a value (ExAppEnvVarsHelper::
-    // normalizeAndValidate), so every App Store install runs with
-    // BEEFLOW_API_BASE_URL=https://server.beeflow.nl. Reading "set" as "locked"
-    // made the settings form a no-op and reverted a /setup switch on every
-    // restart. Only a value other than the Cloud default is a lock.
-    apiBaseUrlLocked: !!envApiBaseUrl && envApiBaseUrl !== CLOUD_API_BASE_URL,
+    // override: the word `cloud`, or the URL of a server. AppAPI replays the
+    // value it stored at install time on every update, so the literal Cloud
+    // URL can be present without anybody having typed it; that value is not a
+    // lock.
+    apiBaseUrlLocked: !!serverLock.url,
 
     // Upstream for the embedded SPA SHELL (index.html + hashed assets). The
     // connector proxies the shell from a frontend host's `/embed/` build
@@ -120,10 +136,10 @@ const config = {
     embedBaseUrlLocked: !!envEmbedBaseUrl && envEmbedBaseUrl !== CLOUD_EMBED_BASE_URL,
 
     // One-shot pairing code for binding this NC to an existing Bee Flow org
-    // (instead of creating a new one). Admin sets this via
-    // `occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>` after
-    // generating the code in the existing org's Settings → Organisation →
-    // Nextcloud Sync panel. Consumed once at bootstrap; clear after.
+    // (instead of creating a new one). An install-time value, or entered on
+    // the setup page after generating the code in the existing org's
+    // Settings → Organisation → Nextcloud Sync panel. Consumed once at
+    // bootstrap; clear after.
     pairingCode: (process.env.BEEFLOW_PAIRING_CODE || '').trim().toUpperCase() || null,
 
     // ── Operational knobs ──────────────────────────────────────

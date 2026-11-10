@@ -71,6 +71,55 @@ test('buildApiProxy / buildEmbedProxy return middleware functions', () => {
     assert.equal(typeof buildEmbedProxy(), 'function');
 });
 
+// No Bee Flow server chosen: the API proxy has nowhere to forward to and
+// answers by itself, and the shell proxy hands every path to the baked bundle,
+// also when BEEFLOW_EMBED_BASE_URL locks a frontend host. A local listener
+// stands in for that host and must see no connection.
+test('no server chosen: nothing is proxied, the shell is the baked one, also with the embed lock', async () => {
+    let connections = 0;
+    const host = http.createServer((_req, res) => res.end('FROM_A_BEE_FLOW_HOST'));
+    host.on('connection', () => { connections += 1; });
+    await new Promise((r) => host.listen(0, '127.0.0.1', r));
+    const hostUrl = `http://127.0.0.1:${host.address().port}`;
+
+    const before = { apiBaseUrl: config.apiBaseUrl, embedBaseUrl: config.embedBaseUrl, embedBaseUrlLocked: config.embedBaseUrlLocked };
+    config.apiBaseUrl = null;
+    config.embedBaseUrl = hostUrl;
+    config.embedBaseUrlLocked = true;
+
+    const api = buildApiProxy();
+    const embed = buildEmbedProxy();
+    const front = http.createServer((req, res) => {
+        if (req.url.startsWith('/shell')) {
+            req.url = req.url.slice('/shell'.length) || '/';
+            req.__shellNext = () => { res.statusCode = 200; res.end('BAKED'); };
+            return embed(req, res, req.__shellNext);
+        }
+        // What express gives the API proxy.
+        res.status = (code) => { res.statusCode = code; return res; };
+        res.json = (body) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(body)); };
+        return api(req, res, () => res.end('NEXT'));
+    });
+    await new Promise((r) => front.listen(0, '127.0.0.1', r));
+    const base = `http://127.0.0.1:${front.address().port}`;
+    try {
+        for (const p of ['/shell/', '/shell/index.html', '/shell/assets/index-abc.js']) {
+            const res = await fetch(base + p);
+            assert.equal(await res.text(), 'BAKED', p);
+        }
+        for (const [method, p] of [['GET', '/auth/user'], ['POST', '/api/chat'], ['GET', '/agents']]) {
+            const res = await fetch(base + p, { method });
+            assert.equal(res.status, 503, `${method} ${p}`);
+            assert.equal((await res.json()).code, 'server_not_chosen', `${method} ${p}`);
+        }
+        assert.equal(connections, 0, 'no connection to a Bee Flow host');
+    } finally {
+        Object.assign(config, before);
+        front.close();
+        host.close();
+    }
+});
+
 // When the cloud frontend host is unreachable, the embed proxy must NOT 502 —
 // it calls the stashed req.__shellNext so the request falls through to the
 // baked /public static handler (offline fallback). Point the proxy at a

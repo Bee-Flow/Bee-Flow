@@ -14,7 +14,18 @@
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const config = require('./config');
+const serverChoice = require('./serverChoice');
+const setupConfig = require('./setupConfig');
+
+// Which Bee Flow server this install talks to, before anything else runs: the
+// env lock, an existing binding or a saved choice, else none. With none the
+// connector sends nothing to any Bee Flow server until an administrator
+// chooses one (serverChoice.js).
+const stored = setupConfig.init(config.persistentStorage);
+serverChoice.applyAtBoot(config, stored);
+
 const { appApiAuthMiddleware } = require('./auth');
 const { securityHeaders, rejectCrossSiteWrites } = require('./security');
 const { registerLifecycle } = require('./heartbeat');
@@ -95,15 +106,10 @@ app.use((req, res, next) => {
 app.use('/', require('./eventsWebhook'));
 
 // User-facing setup picker — choose Bee Flow Cloud vs a self-hosted server.
-// Routes auth-checked by appApiAuthMiddleware above (admin only via NC).
-const setupConfig = require('./setupConfig');
-const stored = setupConfig.init(config.persistentStorage);
-if (stored && !config.apiBaseUrlLocked && stored.apiBaseUrl) {
-    config.apiBaseUrl = stored.apiBaseUrl;
-    log.info(`[Setup] applying user-chosen apiBaseUrl: ${config.apiBaseUrl} (${stored.mode})`);
-}
-// Admin-supplied public NC URL — only used when the env override is unset.
-// Same precedence rule as apiBaseUrl: env wins, then picker, then fallback.
+// Routes auth-checked by appApiAuthMiddleware above (admin only via NC). The
+// server itself was resolved at the top of this file.
+// Admin-supplied public NC URL — only used when the env override is unset:
+// env wins, then the saved value, then NEXTCLOUD_URL.
 if (stored && !process.env.BEEFLOW_NC_PUBLIC_URL && stored.publicNcUrl) {
     config.nextcloudPublicUrl = stored.publicNcUrl;
     log.info(`[Setup] applying user-chosen publicNcUrl: ${config.nextcloudPublicUrl}`);
@@ -128,6 +134,23 @@ require('./taskProcessing').registerRoutes(app);
 // Bee Flow entry from the right-click menu. Behind the AppAPI gate: it is a
 // user action and must carry their identity.
 require('./filesActions').registerRoutes(app);
+
+// While no Bee Flow server is chosen, everything below this line is closed: a
+// page load gets the setup page in first-run mode (the picker for an
+// administrator, a short notice for everybody else), and nothing is proxied or
+// fetched from a Bee Flow host. The routes above stay open because Nextcloud
+// and the setup page need them, and none of them contacts a Bee Flow server
+// without a tenant key, which does not exist without a server. The page is
+// read once, here.
+const SETUP_HTML_PATH = path.join(__dirname, 'setup.html');
+/** @type {string | null} */
+let setupHtml = null;
+try {
+    setupHtml = fs.readFileSync(SETUP_HTML_PATH, 'utf8');
+} catch (err) {
+    log.error(`[Boot] setup.html could not be read: ${errMessage(err)}`);
+}
+app.use(serverChoice.unconfiguredGate({ pageHtml: () => setupHtml }));
 
 // Re-run UI registration (top-menu, embed script, settings form, event
 // listeners) on every boot. AppAPI only calls /init on install/upgrade, so
@@ -287,8 +310,7 @@ const publicDir = path.join(__dirname, '..', 'public');
 // literal (which would 404 inside the NC iframe).
 app.get('/img/app.svg', (_req, res) => {
     const logoPath = path.join(publicDir, 'app-icon.svg');
-    const fs3 = require('fs');
-    fs3.access(logoPath, fs3.constants.R_OK, (err) => {
+    fs.access(logoPath, fs.constants.R_OK, (err) => {
         if (err) {
             // Fallback to an inline shield if the bundled logo is missing
             // (shouldn't happen with a normal build, but keeps the navbar
@@ -301,7 +323,7 @@ app.get('/img/app.svg', (_req, res) => {
             return;
         }
         res.type('image/svg+xml');
-        fs3.createReadStream(logoPath).pipe(res);
+        fs.createReadStream(logoPath).pipe(res);
     });
 });
 // SPA SHELL → proxy to the cloud `/embed/` build (always-fresh), with the
@@ -340,10 +362,11 @@ app.get('/{*splat}', (_req, res) => {
     res.sendFile(indexHtmlPath);
 });
 
-// One-shot auto-bootstrap: provision a Bee Flow org + tenant key on first
-// boot. Runs in the background so the connector keeps serving heartbeats
-// even if the SaaS is briefly unreachable. Failures are logged and retried
-// on the next /init lifecycle hit.
+// One-shot auto-bootstrap on the chosen Bee Flow server: load the cached
+// binding, or provision an org + tenant key. Runs in the background so the
+// connector keeps serving heartbeats even if the server is briefly
+// unreachable. Failures are logged and retried on the next /init lifecycle
+// hit. A no-op while no server is chosen.
 const { bootstrapIfNeeded } = require('./bootstrap');
 bootstrapIfNeeded().catch(err => {
     log.error(`[Bootstrap] Failed: ${errMessage(err)}. Will retry on /init.`);
@@ -352,20 +375,19 @@ bootstrapIfNeeded().catch(err => {
 // HaRP-compatible: when HP_SHARED_KEY is set (HaRP daemon mode), bind to a
 // Unix domain socket that frpc tunnels back to HaRP. Otherwise bind TCP for
 // manual-install / direct access.
-const fs2 = require('fs');
 if (process.env.HP_SHARED_KEY) {
     const sockPath = '/tmp/exapp.sock';
-    try { fs2.unlinkSync(sockPath); } catch (_) { /* socket may not exist yet */ }
+    try { fs.unlinkSync(sockPath); } catch (_) { /* socket may not exist yet */ }
     app.listen(sockPath, () => {
-        try { fs2.chmodSync(sockPath, 0o660); } catch (_) {}
+        try { fs.chmodSync(sockPath, 0o660); } catch (_) {}
         log.info(`[BeeFlowConnector] ${config.appId} v${config.appVersion} listening on unix:${sockPath} (HaRP mode)`);
-        log.info(`[BeeFlowConnector] SaaS target: ${config.apiBaseUrl}`);
+        log.info(`[BeeFlowConnector] Bee Flow server: ${config.apiBaseUrl || '(not chosen)'}`);
         log.info(`[BeeFlowConnector] Nextcloud:   ${config.nextcloudUrl}`);
     });
 } else {
     app.listen(config.appPort, config.appHost, () => {
         log.info(`[BeeFlowConnector] ${config.appId} v${config.appVersion} listening on ${config.appHost}:${config.appPort}`);
-        log.info(`[BeeFlowConnector] SaaS target: ${config.apiBaseUrl}`);
+        log.info(`[BeeFlowConnector] Bee Flow server: ${config.apiBaseUrl || '(not chosen)'}`);
         log.info(`[BeeFlowConnector] Nextcloud:   ${config.nextcloudUrl}`);
     });
 }
