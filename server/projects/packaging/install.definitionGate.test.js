@@ -73,6 +73,15 @@ test('an app whose definition is not an object is skipped', async () => {
     assert.strictEqual(called('createStudioApp').length, 0);
 });
 
+test('an app without a definition still installs with the store default, as before the gate', async () => {
+    reset();
+    const { report, stamps } = await runInstallApps([{ ref: 'app_1', name: 'Bare' }]);
+    assert.deepStrictEqual(report.skipped, []);
+    assert.deepStrictEqual(Object.keys(report.installed.apps[0]), ['ref', 'id', 'name']);
+    assert.strictEqual(called('createStudioApp').length, 1);
+    assert.strictEqual(stamps[0].payload, undefined);
+});
+
 test('through installBlueprint: the report carries the findings of an app that has errors', async () => {
     reset();
     const result = await install({ apps: [{ ref: 'app_1', name: 'Desk', definition: { actions: {} } }] });

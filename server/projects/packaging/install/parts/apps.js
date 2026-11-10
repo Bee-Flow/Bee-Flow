@@ -58,10 +58,11 @@ async function installApps(entities, ctx, report) {
     for (const entity of entities) {
         try {
             // The definition is stored and stamped as given; the gate only says whether, and what it found.
-            const gate = gateDefinition(entity.definition);
-            if (gate.verdict === 'refuse') throw new Error(gate.errors[0].message);
+            // A part without a definition gets the store's empty app, as it always did: there is nothing to gate.
+            const gate = entity.definition == null ? null : gateDefinition(entity.definition);
+            if (gate && gate.verdict === 'refuse') throw new Error(gate.errors[0].message);
             // Errors only: a warning can name an id canonicalize would generate, which differs per call.
-            const findings = gate.verdict === 'warn' ? { errors: gate.errors } : null;
+            const findings = gate && gate.verdict === 'warn' ? { errors: gate.errors } : null;
             const created = await studioAppStore.createStudioApp({
                 userId: ctx.ownerId,
                 organizationId: ctx.organizationId,
