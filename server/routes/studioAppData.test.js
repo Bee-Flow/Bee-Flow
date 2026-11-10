@@ -332,6 +332,17 @@ test('member list is scoped to own rows; foreign rows are invisible', async () =
     assert.deepStrictEqual(r.body.records.map((x) => x.id), ['rec_alice']);
 });
 
+test('fields narrows the columns of a page; expand is checked against the model', async () => {
+    const app = makeApp();
+    membership.set(`${app.id}:alice`, 'member');
+    seedRow({ id: 'rec_a', by: 'alice', title: 'mine', region: 'EU', amount: 2 });
+    const url = `/${app.id}/data/tables/tbl_tasks0/records`;
+    const r = await dispatch({ url, query: { fields: '["title"]', sort: '{"field":"amount","dir":"asc"}' }, user: 'alice', orgIds: [ORG] });
+    assert.deepStrictEqual(r.body.records, [{ id: 'rec_a', title: 'mine' }]);
+    const bad = await dispatch({ url, query: { expand: '[{"field":"title"}]' }, user: 'alice', orgIds: [ORG] });
+    assert.strictEqual(bad.statusCode, 422);
+});
+
 test('orderBy pages on several columns and a filter tree stays inside the row rules', async () => {
     const app = makeApp();
     membership.set(`${app.id}:alice`, 'member');

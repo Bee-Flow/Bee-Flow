@@ -5,6 +5,7 @@ import FilterRowsEditor from '@/components/admin/Studio/AppStudio/bi/FilterRowsE
 import { AGGS, DATE_BUCKETS } from '@/components/admin/Studio/AppStudio/bi/QueryBuilder';
 import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudio/bi/useAppTables';
 import GroupByExtras from '@/components/admin/Studio/AppStudio/bi/GroupByExtras';
+import { relationFilterFields } from '@/components/admin/Studio/AppStudio/bi/relationRead';
 import { groupByColumnName } from '@/components/admin/Studio/AppStudio/bi/aggregateExtras';
 import type { BindingDraft, AggregateBindingProps, PickValueFieldProps } from '../BindingField.types';
 
@@ -128,7 +129,7 @@ export function AggregateBinding({ binding, onChange, appId, disabled, definitio
                     ) : null}
 
                     <FilterRowsEditor
-                        fields={fields}
+                        fields={[...fields, ...relationFilterFields(tables, tableId)]}
                         filters={Array.isArray(binding.filter) ? binding.filter : []}
                         onChange={(filter) => patch({ filter: filter.length ? filter : undefined })}
                         allowFormula

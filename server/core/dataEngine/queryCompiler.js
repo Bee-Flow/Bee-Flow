@@ -71,6 +71,7 @@
 //   queryCompilerSelect.mts     the select list of a record read
 //   queryCompilerOrder.mts      sort, ORDER BY and the keyset cursor
 //   queryCompilerAggregate.mts  group-by, date buckets, aggregate functions, percentiles
+//   queryCompilerRelation.mts   reads through a relation: expand lookups, relation.field filters, the fields list
 //   queryCompilerWrite.js / queryCompilerMaintenance.js / queryCompilerBulk.mts  the writes
 // This file composes the record reads and is the one import every caller uses.
 const { resolveDialect } = require('./engineFlag');

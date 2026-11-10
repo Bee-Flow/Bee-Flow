@@ -24,5 +24,8 @@ describe('dataCacheKey with expand and fields', () => {
         expect(narrowed).toContain('"fields":["title"]');
         expect(new Set([dataCacheKey(base), expanded, other, narrowed]).size).toBe(4);
         expect(dataCacheKey({ ...base, kind: 'record', fields: ['title'] })).toContain('"fields":["title"]');
+        // The same string services/appStudioRender.js builds (core/dataEngine/aggregateRelated.test.js pins it there).
+        expect(dataCacheKey({ ...base, expand: [{ field: 'customer', pick: ['name'] }], fields: ['title'] }))
+            .toBe('records:tbl_a:{"expand":[{"field":"customer","pick":["name"]}],"fields":["title"],"filter":[{"field":"customer.region","op":"eq","value":"north"}],"limit":null,"sort":null}');
     });
 });

@@ -61,3 +61,26 @@ test('groupFilter joins the dataset params hash and the render key only when pre
     assert.strictEqual(render.dataCacheKey(b), 'aggregate:tbl_ord01:{"aggregates":[{"as":"n","fn":"count"}],"filter":null,"groupBy":[{"field":"customer"}],"limit":null,"sort":null}');
     assert.ok(render.dataCacheKey({ ...b, groupFilter: [{ field: 'n', op: 'gt', value: 1 }] }).includes('"groupFilter":['));
 });
+
+test('the render port keys a record read with expand and fields the way the web runtime does', () => {
+    const base = { kind: 'records', tableId: 'tbl_a', filter: [{ field: 'customer.region', op: 'eq', value: 'north' }] };
+    assert.strictEqual(render.dataCacheKey(base), 'records:tbl_a:{"filter":[{"field":"customer.region","op":"eq","value":"north"}],"limit":null,"sort":null}');
+    assert.strictEqual(render.dataCacheKey({ ...base, expand: null, fields: undefined }), render.dataCacheKey(base));
+    assert.strictEqual(render.dataCacheKey({ ...base, expand: [{ field: 'customer', pick: ['name'] }], fields: ['title'] }),
+        'records:tbl_a:{"expand":[{"field":"customer","pick":["name"]}],"fields":["title"],"filter":[{"field":"customer.region","op":"eq","value":"north"}],"limit":null,"sort":null}');
+});
+
+test('a filter through a relation hands over the related table, so a saved dataset partitions by its predicate', () => {
+    const filters = [{ any: [{ field: 'customer.segment', op: 'eq', value: 'retail' }, { not: { field: 'amount', op: 'gt', value: 1 } }] }];
+    const who = (segment) => ({ role: 'member', viewer: { id: 'u1', segment } });
+    const retail = relatedForAggregate(MODEL, ORDERS, undefined, who('retail'), filters);
+    const wholesale = relatedForAggregate(MODEL, ORDERS, undefined, who('wholesale'), filters);
+    assert.deepStrictEqual(Object.keys(retail), ['customer']);
+    assert.notDeepStrictEqual(retail.customer.accessFilter.params, wholesale.customer.accessFilter.params);
+    const access = { where: '"created_by" = ?', params: ['u1'] };
+    const { computeViewerScopeKey } = require('../../appStudio/datasetCache');
+    assert.notStrictEqual(computeViewerScopeKey('member', access, retail), computeViewerScopeKey('member', access, wholesale));
+    assert.strictEqual(relatedForAggregate(MODEL, ORDERS, undefined, who('retail'), [{ field: 'amount', op: 'gt', value: 1 }]), undefined);
+    // A relation the model cannot resolve still hands over a map, so the compiler names the clause it refuses.
+    assert.deepStrictEqual(relatedForAggregate({ tables: [ORDERS] }, ORDERS, undefined, who('retail'), filters), {});
+});
