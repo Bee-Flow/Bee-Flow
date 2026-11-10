@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-    FIXED_NOW, THEMES, VIEWPORT_NAMES, buildJobs, compareKeySets, diffImageData, diffPixels, main, parseArgs, prepareDocument, safeName,
+    FIXED_NOW, STILL_STYLE, THEMES, VIEWPORT_NAMES, buildJobs, compareKeySets, diffImageData, diffPixels, main, parseArgs, prepareDocument, safeName,
 } from './app-compat-pixels.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -19,7 +19,7 @@ test('parseArgs: a write run with a local browser', () => {
     assert.equal(opts.bundle, path.resolve('/b'));
     assert.equal(opts.chrome, path.resolve('/usr/bin/chrome'));
     assert.equal(opts.concurrency, 2);
-    assert.equal(opts.tolerance, 0);
+    assert.equal(opts.tolerance, 4);
 });
 
 test('parseArgs: compare with options, the browser from BROWSER_WS_ENDPOINT', () => {
@@ -74,6 +74,7 @@ test('prepareDocument: theme on <html>, a fixed clock first in <head>, the rest 
     const out = prepareDocument(doc, 'high-contrast');
     assert.ok(out.startsWith('<!DOCTYPE html>\n<html data-theme="high-contrast">\n<head>\n<script>'));
     assert.ok(out.includes(`var F=${Date.parse(FIXED_NOW)},`));
+    assert.ok(out.includes(`</script>${STILL_STYLE}\n<meta`), 'animation is switched off right after the clock');
     assert.ok(out.endsWith('<meta charset="utf-8">\n</head>\n<body><script type="application/json">{"a":"\\u003chtml>"}</script></body>\n</html>'));
     assert.throws(() => prepareDocument('<p>no document</p>', 'light'), /no <html>/);
 });

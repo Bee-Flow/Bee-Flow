@@ -21,6 +21,11 @@
  * the SPA sets it) and a fixed clock, so "today" and the default dates do not move between
  * the baseline run and the compare run.
  *
+ * One known gap: the render service builds its data keys with the server's real clock, the
+ * page with the fixed one, so a binding whose filter reads `today` or `now` finds no entry and
+ * shows its loading state (still, with animation off) rather than its empty state. That is
+ * the same on every run, so it does not hide a difference elsewhere on the screen.
+ *
  * The browser: `--chrome <path>` launches a local Chrome or Chromium through the server's
  * Playwright as a Playwright server (TZ=UTC, LANG=en_US.UTF-8); `--ws <url>` (or
  * BROWSER_WS_ENDPOINT) uses a running Playwright server, e.g. the browser sidecar. Without
@@ -29,8 +34,11 @@
  *
  * The baseline lives OUTSIDE the repository (the argument): build the bundle from main,
  * --write, build it from the branch, --compare. Compare exits 1 when any screenshot differs
- * in size or in more than 0 pixels (a channel off by more than --tolerance counts), or when
- * the baseline lacks one the corpus has now; --diff writes a red-on-grey image per difference.
+ * in size or in any pixel, or when the baseline lacks one the corpus has now; --diff writes a
+ * red-on-grey image per difference. A pixel differs when a channel is off by more than
+ * --tolerance (default 4): the same bundle rendered twice on one machine moves a handful of
+ * anti-aliased edge pixels by up to 3, and a real change (a 1px shift, another colour) moves
+ * far more. --tolerance 0 compares exactly.
  *
  * The server is loaded in-process for its render service. Its database module connects on
  * load, so CORE_DATABASE_URL is pointed at a port nothing listens on before that: the script
@@ -55,12 +63,14 @@ export const VIEWPORT_NAMES = ['desktop', 'tablet', 'mobile'];
 export const THEMES = ['light', 'dark', 'high-contrast'];
 /** The instant the page's clock is fixed at. */
 export const FIXED_NOW = '2026-01-15T12:00:00.000Z';
+/** Channel difference below which a pixel counts as the same (see the header). */
+export const DEFAULT_TOLERANCE = 4;
 
 const USAGE = 'usage: app-compat-pixels.mjs (--write <dir> | --compare <dir>) --bundle <dir> (--chrome <path> | --ws <url>) [--diff <dir>] [--only a,b] [--concurrency n] [--tolerance n]';
 
 /** argv → options, or { error }. */
 export function parseArgs(argv, env = {}) {
-    const opts = { mode: null, baseline: null, bundle: null, chrome: null, ws: env.BROWSER_WS_ENDPOINT || null, diff: null, only: null, concurrency: 2, tolerance: 0 };
+    const opts = { mode: null, baseline: null, bundle: null, chrome: null, ws: env.BROWSER_WS_ENDPOINT || null, diff: null, only: null, concurrency: 2, tolerance: DEFAULT_TOLERANCE };
     const takes = new Set(['--write', '--compare', '--bundle', '--chrome', '--ws', '--diff', '--only', '--concurrency', '--tolerance']);
     for (let i = 0; i < argv.length; i += 1) {
         const flag = argv[i];
@@ -116,12 +126,20 @@ export function buildJobs(apps) {
     return jobs;
 }
 
-/** The render document with the host theme on <html> and the page clock fixed. */
+/**
+ * CSS animations and transitions off, the way Playwright's `animations: 'disabled'` takes
+ * them out of a screenshot: a loading skeleton's shimmer is caught at a different phase on
+ * every run otherwise. The render service forces design motion off for the same reason;
+ * this also covers the animations that setting does not reach.
+ */
+export const STILL_STYLE = '<style>*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}</style>';
+
+/** The render document with the host theme on <html>, the page clock fixed and animation off. */
 export function prepareDocument(doc, theme, nowIso = FIXED_NOW) {
     const ms = Date.parse(nowIso);
     const clock = '<script>(function(){var F=' + ms + ',R=Date;function D(){var a=Array.prototype.slice.call(arguments);'
         + 'if(!(this instanceof D))return new R(F).toString();return a.length?new (Function.prototype.bind.apply(R,[null].concat(a)))():new R(F);}'
-        + 'D.prototype=R.prototype;D.now=function(){return F};D.parse=R.parse;D.UTC=R.UTC;window.Date=D;})();</script>';
+        + 'D.prototype=R.prototype;D.now=function(){return F};D.parse=R.parse;D.UTC=R.UTC;window.Date=D;})();</script>' + STILL_STYLE;
     const html = doc.indexOf('<html>');
     const head = doc.indexOf('<head>');
     if (html === -1 || head === -1) throw new Error('the render document has no <html> or <head> to add the theme and clock to');
