@@ -5,8 +5,9 @@
  *   - the provisioning mode (may an unknown Nextcloud create a fresh org?);
  *   - the default plan an NC org starts on;
  *   - the per-org tenant key the connector signs with;
- *   - the NC admins as org admins;
- *   - binding an existing org to an NC instance.
+ *   - the NC admins as org admins.
+ *
+ * Binding an existing org to an NC instance is connector/instanceBinding.js.
  *
  * Used by the bootstrap branches (connector/bootstrapBranches.js), the
  * verification route in auth/connectorBootstrap.js and, through that file's
@@ -317,35 +318,6 @@ async function ensureAdditionalOrgAdmins(org, ncAdmins, primaryUid) {
     }
 }
 
-// Bind an existing un-bound org to this NC instance. Used by the approval
-// handler in ncBindingRoutes.js.
-/**
- * @param {OrgRow} org
- * @param {{ ncInstanceId: string, ncBaseUrl: string, ncAdminUid: string, connectorCallbackUrl?: string|null }} params
- */
-async function bindOrgToNcInstance(org, params) {
-    const { ncInstanceId, ncBaseUrl, ncAdminUid, connectorCallbackUrl } = params;
-    let existingIntegrations = [];
-    if (Array.isArray(org.enabledIntegrations)) {
-        existingIntegrations = org.enabledIntegrations;
-    } else if (typeof org.enabledIntegrations === 'string' && org.enabledIntegrations) {
-        try { existingIntegrations = JSON.parse(org.enabledIntegrations) || []; } catch (_) { existingIntegrations = []; }
-    }
-    const merged = Array.from(new Set([...existingIntegrations, ...NC_INTEGRATIONS]));
-    await userStore.updateOrganization(org.id, {
-        authMethod: 'nextcloud_connector',
-        autoApproveSSO: true,
-        connectorCallbackUrl: connectorCallbackUrl || null,
-        ncInstanceId,
-        ncBaseUrl,
-        ncAdminUid,
-        ncProvisionedAt: new Date().toISOString(),
-        enabledIntegrations: merged,
-    });
-    return await userStore.getOrganizationByNcInstanceId(ncInstanceId);
-}
-
-
 module.exports = {
     TENANT_KEY_PREFIX,
     PROVISIONING_MODES,
@@ -359,5 +331,4 @@ module.exports = {
     ensureOrgAdminUser,
     _selectSecondaryAdmins,
     ensureAdditionalOrgAdmins,
-    bindOrgToNcInstance,
 };

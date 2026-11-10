@@ -58,8 +58,8 @@ const {
     ensureOrgAdminUser,
     ensureAdditionalOrgAdmins,
     _selectSecondaryAdmins,
-    bindOrgToNcInstance,
 } = require('./connector/provisioning');
+const { INSTANCE_BOUND_ELSEWHERE_PROBLEM, bindOrgToNcInstance, bindOrRefuse } = require('./connector/instanceBinding');
 const { stableInstanceIdFallback, verifyNcInstance } = require('./connector/ncVerify');
 const { readBootstrapHeaders, callbackUrlRefusal } = require('./connector/bootstrapHeaders');
 const { PENDING_TTL_SECONDS, generateVerificationCode, maskEmail } = require('./connector/verificationCode');
@@ -246,21 +246,24 @@ router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async
     const row = result.row;
     const org = await userStore.getOrganization(row.orgId);
     if (!org) return res.status(410).json({ status: 'expired', code: 'org_gone' });
-    if (org.nc_instance_id && org.nc_instance_id !== row.ncInstanceId) {
-        return res.status(409).json({ error: 'Organisation is already bound to a different Nextcloud instance', code: 'already_bound' });
-    }
-
-    let boundOrg = org;
-    const wasUnbound = !org.nc_instance_id;
-    if (wasUnbound) {
-        boundOrg = await bindOrgToNcInstance(org, {
-            ncInstanceId: row.ncInstanceId,
-            ncBaseUrl: row.ncBaseUrl,
-            ncAdminUid: row.ncAdminUid,
-            connectorCallbackUrl: row.connectorCallbackUrl,
+    // The emailed code links a Nextcloud to an organisation that has none; the
+    // key of a linked organisation goes only to a signed bootstrap or to a
+    // pairing code issued for it (connector/bootstrapBranches.js).
+    if (org.nc_instance_id) {
+        return res.status(409).json({
+            error: `Organisation is already bound to ${org.nc_instance_id === row.ncInstanceId ? 'this' : 'a different'} Nextcloud instance`,
+            code: 'already_bound',
+            remediation: 'To connect again, ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
         });
-        await applyNcDefaultPlanIfConfigured(boundOrg.id, 'email_verification');
     }
+    // And it links the Nextcloud to that organisation only (connector/instanceBinding.js).
+    const boundOrg = await bindOrRefuse({ res, ncInstanceId: row.ncInstanceId }, org, {
+        ncBaseUrl: row.ncBaseUrl,
+        ncAdminUid: row.ncAdminUid,
+        connectorCallbackUrl: row.connectorCallbackUrl,
+    }, 'email_verification');
+    if (!boundOrg) return;
+    await applyNcDefaultPlanIfConfigured(boundOrg.id, 'email_verification');
     try {
         await ensureOrgAdminUser(boundOrg, {
             ncAdminEmail: row.ncAdminEmail,
@@ -283,12 +286,10 @@ router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async
     orgHealth.event('bootstrap.verification_succeeded', {
         orgId: boundOrg.id, actorKind: 'connector', req, meta: { ncInstanceId: row.ncInstanceId },
     });
-    if (wasUnbound) {
-        orgHealth.event('bootstrap.org_adopted', {
-            orgId: boundOrg.id, actorKind: 'connector', req, meta: { ncInstanceId: row.ncInstanceId },
-        });
-    }
-    orgHealth.resolve(boundOrg.id, ['bootstrap.verification_pending']);
+    orgHealth.event('bootstrap.org_adopted', {
+        orgId: boundOrg.id, actorKind: 'connector', req, meta: { ncInstanceId: row.ncInstanceId },
+    });
+    orgHealth.resolve(boundOrg.id, ['bootstrap.verification_pending', INSTANCE_BOUND_ELSEWHERE_PROBLEM]);
     orgHealth.resolve(`nc:${row.ncInstanceId}`, NC_SUBJECT_PROBLEM_CODES);
     return res.json({
         tenantKey,

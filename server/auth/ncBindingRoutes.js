@@ -156,12 +156,21 @@ router.post('/admin/nc-bindings/:id/approve', requireAuth, async (req, res) => {
 
     let boundOrg = org;
     if (!org.nc_instance_id) {
-        boundOrg = await bindOrgToNcInstance(org, {
-            ncInstanceId: row.ncInstanceId,
-            ncBaseUrl: row.ncBaseUrl,
-            ncAdminUid: row.ncAdminUid,
-            connectorCallbackUrl: row.connectorCallbackUrl,
-        });
+        // An approval links the Nextcloud to this organisation only: the bind
+        // refuses an instance id that belongs to another one.
+        try {
+            boundOrg = await bindOrgToNcInstance(org, {
+                ncInstanceId: row.ncInstanceId,
+                ncBaseUrl: row.ncBaseUrl,
+                ncAdminUid: row.ncAdminUid,
+                connectorCallbackUrl: row.connectorCallbackUrl,
+            });
+        } catch (e) {
+            if (/** @type {{ code?: string }} */ (e).code === 'nc_instance_bound_elsewhere') {
+                throw new HttpError(409, 'nc_instance_bound_elsewhere', /** @type {Error} */ (e).message);
+            }
+            throw e;
+        }
     }
 
     try {
