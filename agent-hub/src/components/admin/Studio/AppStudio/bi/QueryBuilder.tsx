@@ -6,7 +6,7 @@ import { buildDescriptor } from './buildDescriptor';
 import FilterRowsEditor from './FilterRowsEditor';
 import type { FilterEntry } from './FilterRowsEditor.types';
 import SortLimitFields from './SortLimitFields';
-import { outputColumnsOf, withSortLimit, type DatasetSort } from './datasetShape';
+import { outputColumnsOf, type DatasetSort } from './datasetShape';
 import useAppTables, { fieldsForTable } from './useAppTables';
 import useDatasets from './useDatasets';
 import useTranslation from '@/hooks/useTranslation';
@@ -16,7 +16,8 @@ import toast from '@/components/shared/Toast';
 import { inputCls } from '@/components/admin/product-website/fields';
 import { BreakdownField, DATE_TYPES, MeasuresField, NoTables, PreviewResult, QueryFooter } from './QueryBuilderParts';
 import DatasetParamsField from './DatasetParamsField';
-import { applyParamRows, paramProblems, type ParamRow } from './datasetParamRows';
+import type { ParamRow } from './datasetParamRows';
+import { useQueryDescriptors } from './useQueryDescriptors';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import AppChart from '../runtime/components/AppChart';
 import { DEFAULT_RUNTIME, RuntimeProvider, type RuntimeValue } from '../runtime/RuntimeContext';
@@ -130,19 +131,9 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
         () => buildDescriptor(tableId, fields, groupBy, aggregates, filters),
         [tableId, fields, groupBy, aggregates, filters],
     );
-    const { valid: baseValid, unknownFields } = built;
-    // Parameters: the saved descriptor declares them; the preview runs each at
-    // its default (it has no binding to send values). No rows: both are the
-    // built descriptor, unchanged.
-    const paramsOk = useMemo(() => Object.keys(paramProblems(paramRows, fields)).length === 0, [paramRows, fields]);
-    const withParams = useMemo(
-        () => applyParamRows(built.descriptor, paramsOk ? paramRows : [], fields),
-        [built.descriptor, paramRows, paramsOk, fields],
-    );
-    const valid = baseValid && paramsOk;
-    // Sort and limit ride on the built descriptor; absent, the descriptor keeps exactly the keys it had.
-    const descriptor = useMemo(() => withSortLimit(withParams.saved, sort, limit), [withParams.saved, sort, limit]);
-    const previewDescriptor = useMemo(() => withSortLimit(withParams.preview, sort, limit), [withParams.preview, sort, limit]);
+    const { unknownFields } = built;
+    // Parameters, sort and limit ride on the built descriptor; absent, it keeps exactly the keys it had.
+    const { descriptor, previewDescriptor, valid } = useQueryDescriptors(built, paramRows, fields, sort, limit);
 
     // Debounced live preview: the key carries the exact payload, so the fetch
     // always matches the key. `enabled` is gated on the DEBOUNCED payload's
