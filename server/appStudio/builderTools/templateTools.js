@@ -8,6 +8,7 @@
 'use strict';
 
 const { canonicalizeAppDefinition } = require('../canonicalize');
+const { schemaNewerMessage } = require('../schemaSince.mts');
 const { capStr } = require('./shared');
 const { persistDraft } = require('./persistence');
 const { rowCountsById } = require('./dataTools');
@@ -176,7 +177,9 @@ async function applyApplyTemplate(draftWrap, args) {
     const copy = JSON.parse(JSON.stringify(template.definition || {}));
     const keepName = draftWrap.def?.meta?.name;
     copy.meta = { ...(copy.meta || {}), ...(keepName ? { name: keepName } : {}) };
-    draftWrap.def = canonicalizeAppDefinition(copy).def;
+    const fromTemplate = canonicalizeAppDefinition(copy);
+    if (fromTemplate.refused) return { error: `Template "${templateId}" cannot be applied: ${schemaNewerMessage(copy)}` };
+    draftWrap.def = fromTemplate.def;
 
     // Persist before the data install: templateInstall's seed rows go through
     // writeRecord against the STORED app, and a definition still sitting in
@@ -218,9 +221,11 @@ async function applyApplyTemplate(draftWrap, args) {
         const reloadStore = require('../../stores/studioAppStore');
         const app = await reloadStore.getStudioApp(draftWrap.appId);
         if (app && app.definition && Object.keys(app.definition).length) {
-            const { def } = canonicalizeAppDefinition(app.definition);
-            draftWrap.def = def;
-            draftWrap.version = app.definitionVersion;
+            const { def, refused } = canonicalizeAppDefinition(app.definition);
+            if (!refused) {
+                draftWrap.def = def;
+                draftWrap.version = app.definitionVersion;
+            }
         }
     } catch (err) { fallback('appStudio/builderTools/templateTools:applyApplyTemplate', err); /* keep the current def — the route re-persists on the next mutation */ }
     try {

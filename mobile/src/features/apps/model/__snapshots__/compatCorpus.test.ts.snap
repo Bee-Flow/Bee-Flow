@@ -1,5 +1,51 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`compat corpus: what the phone plans for every stored app asset-refs 1`] = `
+{
+  "defaultScreen": "scr_assets01",
+  "navigable": [
+    "scr_assets01",
+    "scr_public01",
+  ],
+  "screens": [
+    {
+      "id": "scr_assets01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_assets01",
+            "unsupported": [
+              "image",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_public01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_public01",
+            "unsupported": [
+              "image",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app data-model-field-rules 1`] = `
 {
   "defaultScreen": "scr_order1",

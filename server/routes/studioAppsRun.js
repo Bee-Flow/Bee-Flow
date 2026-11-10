@@ -80,6 +80,7 @@ async function runBody(run) {
 }
 const { resolveAudienceContext } = require('../auth/audience');
 const { DATA_MUTATING_STEP_KINDS } = require('../appStudio/componentSpecs');
+const { stepPolicy } = require('../appStudio/componentSpecs/stepRegistry');
 const { actionRunLimiter, stepLimiter, jobStatusLimiter } = require('./studioAppRateLimits');
 const runEventBus = require('../core/runEventBus');
 
@@ -207,6 +208,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     if (step.kind === 'ai_browse') {
         return res.status(400).json({ error: 'This step streams — call the /step/stream endpoint' });
     }
+    // A kind whose catalogue row does not say a click may post it (or says nothing) is refused.
+    if (stepPolicy(step.kind, 'click') !== 'step') return res.status(403).json({ error: 'This step cannot be run from a click' });
     // Role FIRST, before any budget is charged. Resolving the viewer's role
     // needs the data model anyway (the executor context below reuses both),
     // and a 403 that has already spent someone's daily mail allowance is a

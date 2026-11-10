@@ -404,7 +404,7 @@ const v2 = (solution = {}) => buildManifest({
 
 test('the format is version 2, and a version-1 file still sanitizes', () => {
     assert.strictEqual(SCHEMA_VERSION, 2);
-    assert.deepStrictEqual(SUPPORTED_VERSIONS, [1, 2]);
+    assert.deepStrictEqual(SUPPORTED_VERSIONS, [1, 2, 3]);
     const v1 = {
         format: FORMAT, schemaVersion: 1,
         solution: { key: 'sol_p1', version: 3, entities: { apps: [{ ref: 'app_1', definition: { actions: { go: { automationId: { $ref: 'aut_1' } } } } }], automations: [{ ref: 'aut_1' }] } },

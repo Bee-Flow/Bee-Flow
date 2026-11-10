@@ -1,21 +1,28 @@
 /**
- * Catalog lockstep — kills the mirror tax.
+ * Catalog lockstep.
  *
  * server/appStudio/componentSpecs.js is the single source of truth for the
- * component catalog; the frontend keeps two hand-mirrors so the palette and
- * inspector render offline:
- *   - runtime/componentRegistry.jsx  (renderer + label/category/defaults)
- *   - inspector/styleKnobMeta.js     (style knobs / events / input types)
+ * component catalog. The web bundles a generated slice of it,
+ * catalogSnapshot.generated.json (scripts/gen-app-catalog.mjs, `npm run
+ * gen:shared`), and derives from it:
+ *   - runtime/componentRegistry.ts   (label/category/defaults beside the renderers)
+ *   - inspector/styleKnobMeta.ts     (style knobs, input types, screen enums, ...)
+ *   - inspector/typeEventLists.ts    (generated TypeScript, also mirrored to the phone)
  *
- * This test imports the SERVER file directly (CJS via createRequire — it is
- * dependency-free plain data) and asserts both mirrors agree per type, so any
- * catalog drift becomes a CI failure instead of a silent inspector gap.
+ * lint:shared-mirror fails on a stale snapshot; this test fails on one too
+ * (it rebuilds the snapshot from the server file, CJS via createRequire, which
+ * is dependency-free plain data), and pins what the derivation cannot: every
+ * spec type has a renderer and an icon, and the hand-kept pieces stay inside
+ * the spec's vocabulary.
  */
 
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
 import { MAX_CALL_DEPTH } from './actionRunner/stepWalk';
+import snapshot from './catalogSnapshot.generated.json';
 import { APP_COMPONENT_TYPES, PALETTE_CATEGORIES } from './componentRegistry';
+import { buildSnapshot, renderTypeEventLists } from '../../../../../../../scripts/gen-app-catalog.mjs';
 import {
     COLOR_ROLES as FE_COLOR_ROLES,
     STYLE_KNOBS as FE_STYLE_KNOBS,
@@ -32,6 +39,7 @@ import {
 
 const require = createRequire(import.meta.url);
 const specs = require('../../../../../../../server/appStudio/componentSpecs.js');
+const typeEventListsSource = readFileSync(require.resolve('../inspector/typeEventLists.ts'), 'utf8');
 
 const {
     COMPONENT_SPECS,
@@ -45,23 +53,37 @@ const {
     SCREEN_SPEC,
 } = specs;
 
-/** The spec's per-prop defaults — exactly what canonicalize fills in. */
+/**
+ * The spec's per-prop defaults — exactly what canonicalize fills in. A prop marked since 3 or
+ * higher is emit-when-present (canonicalize/shared.js isLateEntry): never filled, so not here.
+ */
 function specDefaultProps(spec) {
     const out = {};
     for (const [key, fs] of Object.entries(spec.props || {})) {
+        if (Number.isInteger(fs.since) && fs.since > 2) continue;
         out[key] = fs.default === undefined ? null : fs.default;
     }
     return out;
 }
 
-describe('catalog lockstep — componentRegistry.jsx mirrors componentSpecs.js', () => {
+describe('catalog lockstep — the generated files are fresh', () => {
+    it('catalogSnapshot.generated.json is what the server spec generates', () => {
+        expect(snapshot).toEqual(buildSnapshot(specs));
+    });
+
+    it('typeEventLists.ts is what the snapshot generates', () => {
+        expect(typeEventListsSource).toBe(renderTypeEventLists(buildSnapshot(specs)));
+    });
+});
+
+describe('catalog lockstep — componentRegistry.ts against componentSpecs.js', () => {
     it('has a registry entry for every catalog type, and no extras', () => {
         expect(Object.keys(APP_COMPONENT_TYPES).sort()).toEqual([...COMPONENT_TYPES].sort());
     });
 
     for (const type of Object.keys(COMPONENT_SPECS)) {
         const spec = COMPONENT_SPECS[type];
-        it(`${type}: label/category/container/isInput/defaults match the server spec`, () => {
+        it(`${type}: renderer, icon, label/category/container/isInput/defaults`, () => {
             const entry = APP_COMPONENT_TYPES[type];
             expect(entry, `missing registry entry for ${type}`).toBeTruthy();
             expect(typeof entry.Component).toBe('function');
@@ -81,7 +103,7 @@ describe('catalog lockstep — componentRegistry.jsx mirrors componentSpecs.js',
     });
 });
 
-describe('catalog lockstep — styleKnobMeta.js mirrors componentSpecs.js', () => {
+describe('catalog lockstep — styleKnobMeta.ts against componentSpecs.js', () => {
     for (const type of Object.keys(COMPONENT_SPECS)) {
         const spec = COMPONENT_SPECS[type];
         it(`${type}: style knobs and events match the server spec`, () => {
@@ -105,7 +127,7 @@ describe('catalog lockstep — styleKnobMeta.js mirrors componentSpecs.js', () =
         expect([...FE_INPUT_TYPES].sort()).toEqual([...INPUT_TYPES].sort());
     });
 
-    it('STYLE_KNOBS / COLOR_ROLES / section knob mirrors are verbatim', () => {
+    it('STYLE_KNOBS / COLOR_ROLES / section knobs equal the spec', () => {
         expect(FE_STYLE_KNOBS).toEqual(STYLE_KNOBS);
         expect(FE_COLOR_ROLES).toEqual(COLOR_ROLES);
         expect(FE_SECTION_STYLE_KNOBS).toEqual(SECTION_STYLE_KNOBS);
@@ -113,8 +135,6 @@ describe('catalog lockstep — styleKnobMeta.js mirrors componentSpecs.js', () =
     });
 
     it('SCREEN_ENUMS mirrors the enum-valued SCREEN_SPEC fields', () => {
-        // The screen settings UI is new; without this it would be a fresh drift
-        // surface with no guard, in a file whose entire job is guarding them.
         for (const [key, values] of Object.entries(FE_SCREEN_ENUMS)) {
             const spec = SCREEN_SPEC[key];
             expect(spec, `SCREEN_SPEC has no ${key}`).toBeTruthy();
@@ -128,7 +148,7 @@ describe('catalog lockstep — styleKnobMeta.js mirrors componentSpecs.js', () =
     // root added server-side but missing here silently stops autocompleting —
     // the failure mode is "the feature looks broken for the new root", which is
     // invisible until someone reports it.
-    it('FORMULA_SCOPE_ROOTS is a verbatim mirror', () => {
+    it('FORMULA_SCOPE_ROOTS equals the spec list', () => {
         expect(FE_FORMULA_SCOPE_ROOTS).toEqual(specs.FORMULA_SCOPE_ROOTS);
     });
 

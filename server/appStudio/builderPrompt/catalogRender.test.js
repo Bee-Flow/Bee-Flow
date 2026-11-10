@@ -33,22 +33,22 @@ const {
 } = require('./catalogRender');
 const crypto = require('node:crypto');
 const {
-    BINDING_KINDS,
-    ACTION_KINDS,
-    ACTION_SPECS,
-    STEP_KINDS,
-    STEP_SPECS,
-    COMPONENT_TYPES,
-    COMPONENT_SPECS,
-    DATA_MUTATING_STEP_KINDS,
+    BINDING_KIND_SINCE,
     LIMITS,
-    STYLE_KNOBS,
     SECTION_STYLE_KNOBS,
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
     expandStyleKnobs,
 } = require('../componentSpecs');
-const { FIELD_TYPES, FILTER_OPS, ACCESS_MODES, SYSTEM_COLUMNS } = require('../dataModel');
+// The catalogue TEXT is the base tier (catalogTiers.mts): what it has to carry is every BASE type,
+// knob and kind. Entries marked since 3 are indexed and inspected (extensionIndex.test.js).
+const { baseCatalogue, isExtensionSince } = require('../catalogTiers.mts');
+const { ACTION_KINDS, ACTION_SPECS, STEP_KINDS, STEP_SPECS, COMPONENT_SPECS, DATA_MUTATING_STEP_KINDS, STYLE_KNOBS } = baseCatalogue();
+const COMPONENT_TYPES = Object.keys(COMPONENT_SPECS);
+const BINDING_KINDS = require('../componentSpecs').BINDING_KINDS.filter((/** @type {string} */ kind) => !isExtensionSince(BINDING_KIND_SINCE[kind]));
+const { ACCESS_MODES, SYSTEM_COLUMNS } = require('../dataModel');
+// The data vocabulary the text names is its base tier too (core/dataEngine/dataModel/vocabularySince.js).
+const { FIELD_TYPES, FILTER_OPS } = baseCatalogue();
 const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr');
 
 /**
@@ -307,10 +307,7 @@ test('all step kinds are rendered from STEP_SPECS with the client/server partiti
 test('the data-model contract section is rendered from dataModel.js constants', () => {
     const text = renderCatalogText();
     assert.ok(text.includes('### Data model'), 'section present');
-    // The pinned text names the classic types; the schema-3 ones (FIELD_TYPE_SINCE) are served by the tool schema.
-    const { FIELD_TYPE_SINCE } = require('../../core/dataEngine/dataModel/vocabulary');
-    assert.ok(text.includes(`Field types: ${FIELD_TYPES.filter((t) => !FIELD_TYPE_SINCE[t]).join(', ')}.`), 'classic FIELD_TYPES listed');
-    for (const t of Object.keys(FIELD_TYPE_SINCE)) assert.ok(!text.includes(`, ${t}`), `${t} (since 3) stays out of the pinned text`);
+    assert.ok(text.includes(FIELD_TYPES.join(', ')), 'FIELD_TYPES listed');
     assert.ok(text.includes(ACCESS_MODES.join(' | ')), 'ACCESS_MODES listed');
     assert.ok(text.includes(SYSTEM_COLUMNS.join(', ')), 'system columns listed');
     assert.ok(/\d+ tables\/app/.test(text), 'DATA_LIMITS caps rendered');
@@ -640,7 +637,8 @@ test('compact steps: the common kinds in full, the rest named once with the insp
         assert.ok(new RegExp(`^${kind} \\[(client|SERVER)\\]: \\{`, 'm').test(section), `${kind} rendered in full`);
         // The full step line, minus the bulk-write fields (filter, limit) the compact band does not get.
         assert.ok(section.includes(renderStepKindCompactLine(kind)), `${kind}: the compact line IS the full step line`);
-        if (!/filter: |limit: /.test(renderStepEntry(kind))) assert.strictEqual(renderStepKindCompactLine(kind), renderStepEntry(kind));
+        const fullLine = renderCatalogText().split('\n').find((l) => l.startsWith(`${kind} [`));
+        if (!/filter: |limit: /.test(fullLine)) assert.strictEqual(renderStepKindCompactLine(kind), fullLine);
     }
     const rest = STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
     assert.ok(rest.length > 0);
@@ -704,12 +702,13 @@ test('the compact catalog keeps the whole formula vocabulary and the core bindin
 
 test('renderComponentEntry / renderStepEntry serve the full entry the compact line points at', () => {
     const full = renderCatalogText();
-    assert.ok(full.includes(renderComponentEntry('data_grid')), 'the entry is the full catalog block');
+    // The head line of the catalog block; the entry may carry props (since 3) the catalog text leaves out.
+    assert.ok(full.includes(`\n${renderComponentEntry('data_grid').split('\n')[0]}\n`), 'the entry is the full catalog block');
     assert.match(renderComponentEntry('data_grid'), /^data_grid \[Data\]/);
     assert.match(renderComponentEntry('data_grid'), /\n  props: /);
     assert.match(renderComponentEntry('data_grid'), /\n  style: /);
     assert.strictEqual(renderComponentEntry('nope'), null);
-    assert.ok(full.includes(renderStepEntry('request_approval')));
+    assert.ok(full.includes(`\n${renderStepEntry('request_approval').split(': {')[0]}: {`));
     assert.match(renderStepEntry('request_approval'), /^request_approval \[SERVER\]: \{/);
     assert.strictEqual(renderStepEntry('nope'), null);
 });

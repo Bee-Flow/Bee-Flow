@@ -30,6 +30,7 @@
 'use strict';
 
 const { MAX_BATCH_PATCHES_PER_CALL } = require('./schemas');
+const { stripExtensionTier } = require('./schemaTiers.mts');
 
 const CORE_PRUNE = {
     app_set_theme: {
@@ -72,7 +73,7 @@ const CORE_PRUNE = {
         description: 'Create or evolve ONE table in the app\'s OWN database (a table that already exists in Studio is linked with app_link_datatable instead). Omit `tableId` to create; pass an existing tbl_… id to evolve. `fields` is the COMPLETE field list — fields you leave out are dropped. Returns the real tbl_ id and field keys to bind and seed with. A field\'s type converts in place only text↔select, number↔text, integer↔text and integer↔number; a required field added to a populated table needs a `default`.',
         drop: ['dryRun', 'onUnconvertible'],
         at: {
-            'fields.items': { drop: ['fieldId', 'computed', 'validation', 'dynamicDefault', 'format', 'display'] },
+            'fields.items': { drop: ['fieldId', 'computed'] },
             access: { keep: ['default'], description: 'Row access. default "app": everyone with the app reads/writes (use it for demo/shared data — seeded rows are invisible to members under "owner"); "owner": each user sees only their own rows.' },
         },
     },
@@ -123,6 +124,7 @@ function projectOne(tool) {
     // JSON round trip is a faithful deep clone — and the only mutation
     // below is on the clone.
     const out = JSON.parse(JSON.stringify(tool));
+    stripExtensionTier(out); // the small band is the base catalogue only
     if (!rule) return out;
     const fn = out.function;
     if (typeof rule.description === 'string') fn.description = rule.description;

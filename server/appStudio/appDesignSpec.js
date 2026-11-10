@@ -28,6 +28,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { valueTypeOf, isAssetRef } = require('./componentSpecs/valueTypes');
 
 // Font PAIRING ids, not raw family names: the closed vocabulary keeps the
 // builder/editor honest and every family on the CMS DESIGN_FONTS allowlist.
@@ -44,7 +45,14 @@ const FONT_FAMILIES = Object.freeze({
     poppins: 'Poppins',
 });
 
-/** @typedef {{ type: 'enum', values: string[], default: string } | { type: 'url', default: string | null, maxLen: number }} DesignSpecEntry */
+/**
+ * One design key. `optional: true` marks a key added after the base seven: it is written
+ * only when the design carries a valid value for it, never as a default, so a design stored
+ * before the key existed keeps its bytes. A base key is always written (its default when
+ * absent). A key added later is optional and may use a value type of
+ * componentSpecs/valueTypes.js as its `type`.
+ * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean } | { type: 'url', default: string | null, maxLen: number, optional?: boolean }} DesignSpecEntry
+ */
 
 const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry>} */ ({
     // Provenance only: applying a preset MATERIALIZES its values into theme /
@@ -94,36 +102,92 @@ function isObject(v) {
 }
 
 /**
+ * @typedef {{ type: string, [k: string]: any }} DesignKeySpec  A design key as canonDesign reads it.
+ * @typedef {(code: string, path: string, message: string) => void} DesignPush
+ */
+
+/**
+ * @param {string} key
+ * @param {DesignKeySpec} spec
+ * @param {unknown} v
+ * @param {DesignPush} push
+ */
+function canonDesignEnum(key, spec, v, push) {
+    if (spec.values.includes(v)) return v;
+    if (v !== undefined) {
+        push('design.value_invalid', `design.${key}`, `design.${key} ${JSON.stringify(v)} is invalid — ${spec.optional ? 'dropped' : `defaulted to ${JSON.stringify(spec.default)}`}. Legal: ${spec.values.join(', ')}.`);
+    }
+    return spec.optional ? undefined : spec.default;
+}
+
+/**
+ * @param {string} key
+ * @param {DesignKeySpec} spec
+ * @param {unknown} v
+ * @param {DesignPush} push
+ */
+function canonDesignUrl(key, spec, v, push) {
+    if (v === null || v === undefined) return spec.default;
+    if (typeof v === 'string' && v.startsWith('https://') && v.length <= spec.maxLen) return v;
+    // An uploaded file of the app (`asset:<id>`, appAssets.mts), e.g. the logo.
+    if (isAssetRef(v)) return v;
+    push('design.value_invalid', `design.${key}`, `design.${key} must be an https:// URL of at most ${spec.maxLen} characters, or asset:<id> of an uploaded file — ${spec.optional ? 'dropped' : 'reset to null'}.`);
+    return spec.optional ? undefined : spec.default;
+}
+
+/**
+ * A value type added later (componentSpecs/valueTypes.js). It has no default to write, so
+ * it only exists as an optional key.
+ * @param {string} key
+ * @param {DesignKeySpec} spec
+ * @param {unknown} v
+ * @param {DesignPush} push
+ */
+function canonDesignTyped(key, spec, v, push) {
+    const valueType = valueTypeOf(spec);
+    if (!valueType || !spec.optional) return undefined;
+    const cleaned = valueType.clean(v, spec);
+    if (cleaned === undefined) push('design.value_invalid', `design.${key}`, `design.${key} is not an acceptable value — dropped. ${valueType.hint(spec)}`);
+    return cleaned;
+}
+
+/**
+ * The value to write for one design key, or undefined to leave the key out. Only an
+ * `optional` key is ever left out: a base key falls back to its default.
+ * @param {string} key
+ * @param {DesignKeySpec} spec
+ * @param {unknown} v
+ * @param {DesignPush} push
+ */
+function canonDesignValue(key, spec, v, push) {
+    // An optional key that is absent (or null: "not set") leaves no trace.
+    if (spec.optional && (v === undefined || v === null)) return undefined;
+    if (spec.type === 'enum') return canonDesignEnum(key, spec, v, push);
+    if (spec.type === 'url') return canonDesignUrl(key, spec, v, push);
+    return canonDesignTyped(key, spec, v, push);
+}
+
+/**
  * Canonicalize a PRESENT `definition.design` object into the complete,
  * deterministic form (all spec keys, invalid values defaulted with a repair).
  * The caller only invokes this when input.design is an object — absence stays
- * absence.
+ * absence. A key marked `optional` is the exception to "all spec keys": it is
+ * written only when present and valid.
+ * @param {unknown} raw
+ * @param {(code: string, path: string, message: string) => void} push
+ * @param {Record<string, unknown>} [designSpec] The key table; DESIGN_SPEC unless a test passes its own.
  */
-function canonDesign(raw, push) {
-    /** @type {Record<string, string | null>} */
+function canonDesign(raw, push, designSpec = DESIGN_SPEC) {
+    /** @type {Record<string, unknown>} */
     const out = {};
     const src = isObject(raw) ? raw : {};
-    for (const [key, spec] of Object.entries(DESIGN_SPEC)) {
-        const v = src[key];
-        if (spec.type === 'enum') {
-            if (spec.values.includes(v)) { out[key] = v; continue; }
-            out[key] = spec.default;
-            if (v !== undefined) {
-                push('design.value_invalid', `design.${key}`, `design.${key} ${JSON.stringify(v)} is invalid — defaulted to ${JSON.stringify(spec.default)}. Legal: ${spec.values.join(', ')}.`);
-            }
-        } else if (spec.type === 'url') {
-            if (v === null || v === undefined) { out[key] = spec.default; continue; }
-            if (typeof v === 'string' && /^https:\/\//.test(v) && v.length <= spec.maxLen) {
-                out[key] = v;
-            } else {
-                out[key] = spec.default;
-                push('design.value_invalid', `design.${key}`, `design.${key} must be an https:// URL of at most ${spec.maxLen} characters — reset to null.`);
-            }
-        }
+    for (const [key, spec] of Object.entries(/** @type {Record<string, DesignKeySpec>} */ (designSpec))) {
+        const value = canonDesignValue(key, spec, src[key], push);
+        if (value !== undefined) out[key] = value;
     }
-    const unknown = Object.keys(src).filter((k) => !(k in DESIGN_SPEC));
+    const unknown = Object.keys(src).filter((k) => !(k in designSpec));
     if (unknown.length) {
-        push('design.unknown_key', 'design', `Dropped unknown design keys: ${unknown.join(', ')}. Legal keys: ${Object.keys(DESIGN_SPEC).join(', ')}.`);
+        push('design.unknown_key', 'design', `Dropped unknown design keys: ${unknown.join(', ')}. Legal keys: ${Object.keys(designSpec).join(', ')}.`);
     }
     return out;
 }

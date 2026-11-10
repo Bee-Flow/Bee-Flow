@@ -10,6 +10,7 @@
 const { DESIGN_SPEC, NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL } = require('../componentSpecs');
 const { validateTheme } = require('../../core/cms/themeSpec');
 const { isObject } = require('./shared');
+const { isAssetRef } = require('../componentSpecs/valueTypes');
 
 /**
  * design / nav (App Design v2 — OPTIONAL top-level keys).
@@ -30,7 +31,7 @@ function checkDesignAndNav(def, screens, pushE, pushW) {
                     pushE({ code: 'design.unknown_key', severity: 'error', path: `design.${key}`, message: `Unknown design key "${key}".`, hint: `Use one of: ${Object.keys(DESIGN_SPEC).join(', ')}.` });
                 } else if (spec.type === 'enum' && !spec.values.includes(value)) {
                     pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} must be one of ${spec.values.join(', ')}.`, hint: `Got ${JSON.stringify(value)}.` });
-                } else if (spec.type === 'url' && value !== null
+                } else if (spec.type === 'url' && value !== null && !isAssetRef(value)
                     && (typeof value !== 'string' || !/^https:\/\//.test(value) || value.length > spec.maxLen)) {
                     pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} must be null or an https:// URL of at most ${spec.maxLen} characters.`, hint: 'Upload the logo somewhere reachable and paste its https URL.' });
                 }
@@ -108,7 +109,7 @@ function checkPublicAccess(def, pushE, pushW) {
                     continue; // "no override for this knob"
                 } else if (spec.type === 'enum' && !spec.values.includes(value)) {
                     pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} must be one of ${spec.values.join(', ')}.`, hint: `Got ${JSON.stringify(value)}.` });
-                } else if (spec.type === 'url' && !(typeof value === 'string' && /^https:\/\//.test(value) && value.length <= spec.maxLen)) {
+                } else if (spec.type === 'url' && !isAssetRef(value) && !(typeof value === 'string' && /^https:\/\//.test(value) && value.length <= spec.maxLen)) {
                     pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} must be an https:// URL of at most ${spec.maxLen} characters.`, hint: 'Upload the logo somewhere reachable and paste its https URL.' });
                 }
             }

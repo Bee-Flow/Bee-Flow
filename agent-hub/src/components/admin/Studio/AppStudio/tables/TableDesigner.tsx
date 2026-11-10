@@ -9,6 +9,7 @@ import FieldDisplayEditor from './FieldDisplayEditor';
 import { withTypeShape } from './fieldDisplay';
 import FieldRulesEditor from './FieldRulesEditor';
 import { withoutRules } from './fieldRules';
+import RelationDisplayField from './RelationDisplayField';
 import type { ModelField, ModelTable } from './tablesManagerModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -227,21 +228,28 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
             </div>}
 
             {field.type === 'relation' ? (
-                <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
-                    {t('studio_apps_tables.designer.related_table', 'Related table')}
-                    <select
-                        className={FIELD_CLS}
-                        value={field.relation?.table || ''}
-                        onChange={(e) => set({ relation: { table: e.target.value } })}
-                        disabled={disabled}
-                        aria-label={t('studio_apps_tables.designer.related_table', 'Related table')}
-                    >
-                        <option value="">{t('studio_apps_tables.designer.choose_table', 'Choose a table…')}</option>
-                        {(tables || []).filter((tb) => tb.id !== currentTableId).map((tb) => (
-                            <option key={tb.id} value={tb.id}>{tb.name || tb.key}</option>
-                        ))}
-                    </select>
-                </label>
+                <div className="flex flex-col gap-2">
+                    <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {t('studio_apps_tables.designer.related_table', 'Related table')}
+                        <select
+                            className={FIELD_CLS}
+                            value={field.relation?.table || ''}
+                            // Another table has other columns, so the old display column goes with the old table.
+                            onChange={(e) => {
+                                const { displayField: _drop, ...rest } = field.relation || {};
+                                set({ relation: { ...rest, table: e.target.value } });
+                            }}
+                            disabled={disabled}
+                            aria-label={t('studio_apps_tables.designer.related_table', 'Related table')}
+                        >
+                            <option value="">{t('studio_apps_tables.designer.choose_table', 'Choose a table…')}</option>
+                            {(tables || []).filter((tb) => tb.id !== currentTableId).map((tb) => (
+                                <option key={tb.id} value={tb.id}>{tb.name || tb.key}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <RelationDisplayField field={field} set={set} tables={tables} disabled={disabled} />
+                </div>
             ) : field.type === 'computed' ? (
                 <div className="flex flex-col gap-1">
                     <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_tables.designer.computed_expr', 'Computed expression')}</span>

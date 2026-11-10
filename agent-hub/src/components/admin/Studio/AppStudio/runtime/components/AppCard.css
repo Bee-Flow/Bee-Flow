@@ -3,7 +3,7 @@
  *
  * A card's visible surface is its grid CELL (.app-node): resolveNodeStyle
  * paints the background/padding knobs there as INLINE styles and .app-surface
- * adds the hairline (runtime.css). The component cannot reach that cell from
+ * adds the hairline (css/look.css). The component cannot reach that cell from
  * the inside, so the look classes it stamps on its own root are matched from
  * the cell with :has().
  *
