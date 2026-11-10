@@ -62,6 +62,8 @@ export type ExpressionScope = {
     connectors: Record<string, unknown>;
     now: string;
     today: string;
+    /** What components keep on screen (./uiState.ts); only present when the caller passed it. */
+    ui?: unknown;
 };
 
 /** What buildScope reads; every part is optional. */
@@ -80,6 +82,8 @@ export interface BuildScopeInput {
     error?: Record<string, unknown> | null;
     now?: unknown;
     today?: unknown;
+    /** The `ui` root (./uiState.ts). Left out, the scope has no `ui` key at all: today's shape. */
+    ui?: unknown;
 }
 
 /** Per node id, the UI state that node starts in. The node's component decides what it reads. */
@@ -214,6 +218,7 @@ export function buildScope(input: BuildScopeInput = {}): ExpressionScope {
         connectors,
         now: stampNow,
         today: stampToday,
+        ...(input.ui !== undefined ? { ui: input.ui } : {}),
     };
 }
 

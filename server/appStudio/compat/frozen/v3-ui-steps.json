@@ -1,0 +1,73 @@
+{
+  "corpus": "v3-ui-steps",
+  "canonical": {
+    "sha256": "28289c429e072fe9c631d9ff9643e920a7e743fa47698c82b3c96fa7e28f01e2",
+    "bytes": 5252,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "8d7825356c0acfd4",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_orders1": "efbdddaffb64dd71",
+      "screens[1] scr_second1": "f37b3031beb69ac9",
+      "actions.act_copyref": "4c6d12e1fceba22a",
+      "actions.act_fillfrm": "1555881f17c93fc9",
+      "actions.act_details": "0e97d299077c7aa5",
+      "actions.act_gonext1": "000ce2385cecf6db",
+      "actions.act_goback1": "9e175e687073e32b",
+      "homeScreenId": "c6fd4d90568760ad"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_copyref": [
+        "0 copy_to_clipboard",
+        "1 toast"
+      ],
+      "act_fillfrm": [
+        "0 set_ui",
+        "1 set_form_field",
+        "2 scroll_to",
+        "3 focus"
+      ],
+      "act_details": [
+        "0 set_ui",
+        "1 wait",
+        "2 set_ui",
+        "3 scroll_to"
+      ],
+      "act_gonext1": [
+        "0 navigate"
+      ],
+      "act_goback1": [
+        "0 back"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

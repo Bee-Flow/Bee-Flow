@@ -14,6 +14,7 @@ const {
 const { isObject, truncate, emitOptionalKeys } = require('./shared');
 const { cleanStyle } = require('./style');
 const { canonNode, cleanRoleRefs } = require('./nodes');
+const { SCREEN_TRIGGER_CLEANERS } = require('./clientTriggers');
 
 // ---------------------------------------------------------------------------
 // Screens & sections
@@ -128,7 +129,8 @@ function canonScreen(screen, path, ids, push) {
         out.sections.push(emitOptionalKeys({ id: sid, style, children }, section, SECTION_OPTIONAL_KEYS, sp, push));
     });
 
-    return out;
+    // v3 optional: screen.events / screen.timers after the sections, only when present.
+    return emitOptionalKeys(out, screen, SCREEN_TRIGGER_CLEANERS, path, push);
 }
 
 module.exports = { canonScreen, SECTION_OPTIONAL_KEYS };

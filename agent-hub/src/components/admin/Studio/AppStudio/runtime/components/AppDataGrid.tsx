@@ -18,6 +18,7 @@ import { useGridViewPrefs, useGroupCollapse } from './grid/useGridDisplay';
 import { rowKey, useGridEditQueue } from './grid/useGridEditQueue';
 import { useGridTableState } from './grid/useGridTableState';
 import { useRowSelectNotify } from './grid/useRowSelectNotify';
+import { useGridUiSelection } from './grid/useGridUiSelection';
 import type { GridRow } from './grid/gridTypes';
 import type { NodeProps } from './appNode.types';
 import type { DataGridProps } from './AppDataGrid.types';
@@ -108,6 +109,7 @@ function DataGridBody({ node, source: resolved }: NodeProps<DataGridProps> & { s
     });
 
     useRowSelectNotify({ rowSelection, isRun, onRowSelect: node.onRowSelect, table, runAction });
+    useGridUiSelection({ nodeId: node.id, isRun, selectable, rowSelection, setRowSelection, table });
 
     const pageRows = table.getRowModel().rows;
     // Grouping turns virtualization OFF rather than teaching the virtualizer

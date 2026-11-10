@@ -21,6 +21,9 @@
  *                 resolve per instance, and `now` drifts by milliseconds between
  *                 the render's key and the runtime's, so a formula reading them
  *                 is needs-scope. A formula that does not compile is needs-scope.
+ *                 The `ui` root (schema 3: tabs, modals, grid selections) is
+ *                 browser state, in neither server set, so it is needs-scope here
+ *                 and in the dry run.
  *   DRY_RUN_PLAN  the dry run (server/appStudio/appDryRunReads.js): the synthetic
  *                 owner/role scope (`now` included), no aggregate shape
  *                 resolution, `required` is not enforced, a LITERAL null stays as

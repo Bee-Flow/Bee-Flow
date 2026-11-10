@@ -11,6 +11,11 @@
 
 /** @type {Readonly<Record<string, { childSlots: readonly { field: string, each?: string, walked?: boolean }[], retrySafe: boolean, server: boolean }>>} */
 export const EXTENSION_STEP_KINDS = Object.freeze({
+    "back": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
     "break": {
         "childSlots": [],
         "retrySafe": true,
@@ -22,6 +27,16 @@ export const EXTENSION_STEP_KINDS = Object.freeze({
         "server": true
     },
     "continue": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "copy_to_clipboard": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "focus": {
         "childSlots": [],
         "retrySafe": true,
         "server": false
@@ -51,6 +66,21 @@ export const EXTENSION_STEP_KINDS = Object.freeze({
         "retrySafe": true,
         "server": false
     },
+    "scroll_to": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "set_form_field": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "set_ui": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
     "try": {
         "childSlots": [
             {
@@ -63,6 +93,11 @@ export const EXTENSION_STEP_KINDS = Object.freeze({
                 "field": "finally"
             }
         ],
+        "retrySafe": true,
+        "server": false
+    },
+    "wait": {
+        "childSlots": [],
         "retrySafe": true,
         "server": false
     },

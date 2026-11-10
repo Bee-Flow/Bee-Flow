@@ -10,6 +10,8 @@ import { resolveNavParams, showToast } from './core';
 import type { RunOpts, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
 import { runSequence } from './sequence';
+import { slotActionIds } from '@shared/appDefinition/clientTriggers.mjs';
+import type { ActionSlot } from './core';
 
 function navigate(ctx: RunnerContext, action: RunnableAction, opts: RunOpts): void {
     const live = ctx.live.current;
@@ -79,22 +81,60 @@ function runInlineAction(ctx: RunnerContext, action: RunnableAction, opts: RunOp
 // call_action runs here too: the coordinator walks the called action's steps.
 const SERVER_STEP_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record', 'call_action']);
 
-export async function runActionById(ctx: RunnerContext, actionId: string, opts: RunOpts = {}): Promise<void> {
+/**
+ * `ctx` with a setEntry that remembers the last status written for `actionId`: how the
+ * runners that report through actionState (an automation, a background job) say whether
+ * they ran. Started (running) or done (success) counts as having run.
+ */
+function observed(ctx: RunnerContext, actionId: string): { ctx: RunnerContext; ran: () => boolean } {
+    let last: string | null = null;
+    const setEntry: RunnerContext['setEntry'] = (id, entry) => {
+        if (id === actionId) last = entry.status;
+        ctx.setEntry(id, entry);
+    };
+    return { ctx: { ...ctx, setEntry }, ran: () => last === 'success' || last === 'running' };
+}
+
+/**
+ * Run one action. Resolves true when it ran to the end (or, for a background job, started),
+ * false when it failed, was declined or did not start: an event slot that lists several
+ * actions stops there (runActionSlot).
+ */
+async function runActionById(ctx: RunnerContext, actionId: string, opts: RunOpts = {}): Promise<boolean> {
     const action = ctx.live.current.definition?.actions?.[actionId];
-    if (!action) return;
+    if (!action) return false;
 
     // A background sequence runs as a server job the browser follows. Loaded on first use:
     // most apps never run one, and the public entry budget counts every static import.
     if (action.kind === 'sequence' && action.background === true) {
         const { runBackgroundAction } = await import('./backgroundRun');
-        return runBackgroundAction(ctx, actionId, action, opts);
+        const watch = observed(ctx, actionId);
+        await runBackgroundAction(watch.ctx, actionId, action, opts);
+        return watch.ran();
     }
     // v2 sequences use the coordinator; bare v1 actions keep their exact
     // legacy behaviour so existing call sites and semantics are unchanged.
     if (action.kind === 'sequence' || SERVER_STEP_KINDS.has(action.kind as string)) {
         return runSequence(ctx, actionId, action, opts);
     }
-    if (runInlineAction(ctx, action, opts)) return;
-    if (action.kind === 'run_automation') return runAutomationAction(ctx, actionId, action, opts);
+    if (runInlineAction(ctx, action, opts)) return true;
+    if (action.kind === 'run_automation') {
+        const watch = observed(ctx, actionId);
+        await runAutomationAction(watch.ctx, actionId, action, opts);
+        return watch.ran();
+    }
     reportUnsupported(ctx, actionId, action);
+    return false;
+}
+
+/**
+ * An event slot: one action id, or (schema 3) a list of them run one after the other,
+ * stopping at the first that does not run to the end. Resolves like runActionById.
+ */
+export async function runActionSlot(ctx: RunnerContext, slot: ActionSlot, opts: RunOpts = {}): Promise<boolean> {
+    if (typeof slot === 'string') return runActionById(ctx, slot, opts);
+    for (const actionId of slotActionIds(slot)) {
+        if (!ctx.alive.current || !(await runActionById(ctx, actionId, opts))) return false;
+    }
+    return true;
 }

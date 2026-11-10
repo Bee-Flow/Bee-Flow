@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { AppNode } from '../inspector/appDefinition';
 import { useFormContext } from './formContext';
 import { useRuntime } from './RuntimeContext';
@@ -31,4 +31,24 @@ export default function useInputChange(node: Pick<AppNode, 'onChange'> | null | 
         if (name) values[name] = nextValue;
         runAction(actionId, { formValues: values });
     }, [mode, runAction, node?.onChange, form, name]);
+}
+
+/**
+ * `onChange` for a TEXT editor (input_richtext, input_html; schema 3): once, when the field
+ * loses focus with a value other than the one it had when it got focus. Firing per keystroke
+ * would run the action on every letter, which is why plain text fields have no onChange.
+ *
+ * `focus(value)` goes on the editor's focus, `blur(value)` on its blur with the committed
+ * value. Run mode only, like useInputChange.
+ */
+export function useBlurChange(node: Pick<AppNode, 'onChange'> | null | undefined, name: string | null | undefined) {
+    const fire = useInputChange(node, name);
+    const atFocus = useRef<unknown>(undefined);
+    const focus = useCallback((value: unknown) => { atFocus.current = value; }, []);
+    const blur = useCallback((value: unknown) => {
+        if (value === undefined || value === atFocus.current) return;
+        atFocus.current = value;
+        fire(value);
+    }, [fire]);
+    return { focus, blur };
 }

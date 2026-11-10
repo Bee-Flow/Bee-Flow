@@ -11,6 +11,8 @@
 const { STEP_RETRY, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
 // The parallel rules are shared with the browser coordinator the same way.
 const { MAX_PARALLEL_BRANCHES } = require('../../shared/appDefinition/parallelRules.mjs');
+// The client trigger bounds (schema 3) live with their shapes, for the same reason.
+const { CLIENT_TRIGGER_LIMITS } = require('../../shared/appDefinition/clientTriggers.mjs');
 
 // ---------------------------------------------------------------------------
 // Hard ceilings (abuse guards; far above any real app)
@@ -68,6 +70,7 @@ const LIMITS = {
     MAX_LOCK_KEY_LEN: 200,             // a resolved lockKey; longer keys are hashed
     MAX_PROGRESS_TEXT_LEN: 200,        // the progressVar text a job shows
     MAX_DEFERRED_EFFECTS: 10,          // toast/refresh steps a job replays at the end
+    MAX_CLIENT_WAIT_SECONDS: 30,       // wait (schema 3): the longest pause the browser holds a sequence
     // Bulk writes (2026-11): update/delete_record with a filter, writeTo upsertKey/replaceWhere.
     MAX_BULK_WRITE_ROWS: 500,          // rows one filter-mode update/delete (or replaceWhere) may change
     MAX_WRITE_FILTER_CLAUSES: 20,      // clauses in a write filter / replaceWhere
@@ -107,6 +110,13 @@ const LIMITS = {
     MAX_CODE_STEP_CHARS: 20000,        // code: the JavaScript source
     MAX_CODE_STEP_INPUTS: 20,          // inputs: named bindings
     MAX_HTTP_STEP_ENTRIES: 30,         // http_request: entries in `query`, and in `headers`
+    // Client triggers (schema 3): several actions per event, screen timers, watchers.
+    MAX_ACTIONS_PER_EVENT: CLIENT_TRIGGER_LIMITS.MAX_ACTIONS_PER_EVENT,
+    MIN_TIMER_SECONDS: CLIENT_TRIGGER_LIMITS.MIN_TIMER_SECONDS,
+    MAX_TIMER_SECONDS: CLIENT_TRIGGER_LIMITS.MAX_TIMER_SECONDS,
+    MAX_SCREEN_TIMERS: CLIENT_TRIGGER_LIMITS.MAX_SCREEN_TIMERS,
+    MAX_WATCHERS: CLIENT_TRIGGER_LIMITS.MAX_WATCHERS,
+    MAX_WATCHER_DEBOUNCE_MS: CLIENT_TRIGGER_LIMITS.MAX_WATCHER_DEBOUNCE_MS,
 };
 
 module.exports = {

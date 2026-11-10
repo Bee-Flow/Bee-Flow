@@ -381,6 +381,8 @@ const KIND_CHECKS = {
     http_request: require('./httpRequestChecks.mts').checkHttpRequest,
 };
 
+// The browser steps that name a component (focus, scroll_to, set_ui, set_form_field).
+Object.assign(KIND_CHECKS, require('./uiStepChecks.mts').UI_STEP_CHECKS);
 module.exports = { containsSendEmail, KIND_CHECKS, validateStepBranches };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */

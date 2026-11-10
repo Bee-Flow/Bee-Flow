@@ -339,8 +339,11 @@ function buildPublicDefinition(definition, surface) {
     //
     // A registered top-level key (definitionKeyRegistry.mts) ships only when
     // its entry says `public: true`; every other one stays in the process.
+    // An entry with `publicValue` ships only what that function keeps for this surface.
     for (const entry of definitionKeys()) {
-        if (entry.public === true && definition[entry.key] !== undefined) out[entry.key] = definition[entry.key];
+        if (entry.public !== true || definition[entry.key] === undefined) continue;
+        const value = typeof entry.publicValue === 'function' ? entry.publicValue(definition[entry.key], surface) : definition[entry.key];
+        if (value !== undefined) out[entry.key] = value;
     }
     return out;
 }

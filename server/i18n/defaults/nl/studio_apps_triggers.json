@@ -1,0 +1,32 @@
+{
+  "translations": {
+    "studio_apps_triggers.runtime.watcher_paused": "Een watcher van deze app liep te vaak en is gepauzeerd: \"{id}\". Laad de pagina opnieuw om hem weer te starten.",
+    "studio_apps_triggers.screen.add_timer": "Timer toevoegen",
+    "studio_apps_triggers.screen.every_seconds": "Om de hoeveel seconden",
+    "studio_apps_triggers.screen.no_actions": "Voeg eerst een actie aan de app toe: een trigger voert een van de acties uit.",
+    "studio_apps_triggers.screen.nothing": "Niets",
+    "studio_apps_triggers.screen.on_open": "Als het scherm opent",
+    "studio_apps_triggers.screen.on_open_aria": "Actie als het scherm opent",
+    "studio_apps_triggers.screen.on_open_hint": "Loopt elke keer dat iemand dit scherm in de app opent. Niet in de editor.",
+    "studio_apps_triggers.screen.remove_timer": "Deze timer verwijderen",
+    "studio_apps_triggers.screen.seconds_run": "s, voer uit",
+    "studio_apps_triggers.screen.timer_action": "Actie van deze timer",
+    "studio_apps_triggers.screen.timers_hint": "Voer elke paar seconden een actie uit zolang het scherm open is en het browsertabblad zichtbaar.",
+    "studio_apps_triggers.slot.add": "Daarna nog een actie uitvoeren",
+    "studio_apps_triggers.slot.extra_action": "Actie {n} van dit event",
+    "studio_apps_triggers.slot.remove": "Deze niet uitvoeren",
+    "studio_apps_triggers.slot.stops": "Als er één mislukt, worden de volgende niet uitgevoerd.",
+    "studio_apps_triggers.slot.then_also": "Daarna ook uitvoeren, in deze volgorde",
+    "studio_apps_triggers.watchers.action": "Uit te voeren actie",
+    "studio_apps_triggers.watchers.add": "Watcher toevoegen",
+    "studio_apps_triggers.watchers.debounce": "Wacht eerst zoveel milliseconden stilte",
+    "studio_apps_triggers.watchers.desc": "Een watcher voert een actie uit elke keer dat de waarde van zijn formule verandert, in de app zelf. Een watcher die vaker dan tien keer per minuut loopt, wordt gepauzeerd.",
+    "studio_apps_triggers.watchers.expr": "Formule om te volgen",
+    "studio_apps_triggers.watchers.remove": "Deze watcher verwijderen",
+    "studio_apps_triggers.watchers.title": "Als een waarde verandert"
+  },
+  "sameAsEnglish": [
+    "studio_apps_triggers.screen.title",
+    "studio_apps_triggers.screen.timers"
+  ]
+}

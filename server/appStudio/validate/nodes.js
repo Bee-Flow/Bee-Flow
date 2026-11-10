@@ -26,6 +26,8 @@ const { validateBinding } = require('./bindings');
 const { checkDocumentPicker } = require('./documentPicker');
 const { checkActionWiring, checkNodeAdvisories } = require('./nodeWiring');
 const { nodeActionRefs } = require('../nodeActionRefs.mts');
+const { noteUiTarget } = require('./uiStepChecks.mts');
+const { screenTriggerRefs, watchersOf } = require('../../shared/appDefinition/clientTriggers.mjs');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -523,6 +525,8 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     }
     // Collect modal ids so open_modal actions can resolve them.
     if (node.type === 'modal' && typeof node.id === 'string') ctx.modalIds.add(node.id);
+    // …and every node's type, and each form's name, for the steps that name a node (uiStepChecks.mts).
+    noteUiTarget(node, props, ctx);
     if (node.type === 'input_document') checkDocumentPicker(props, path, ctx);
 
     checkActionWiring(node, path, props, spec, ctx);
@@ -591,15 +595,24 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
  * Not "referenced anywhere in the JSON": an actionResult BINDING reads a
  * result, it does not produce one, so an action only ever read from would still
  * be unreachable.
+ *
+ * Schema 3 adds three routes that need no gesture: a screen's onOpen and timers (from the
+ * screens passed, so a public surface counts only its own screens) and `watchers` when the
+ * caller passes them (the app-wide check does; the public surface does not).
+ * @param {unknown} screens
+ * @param {unknown} [watchers]
  */
-function collectReferencedActions(screens) {
+function collectReferencedActions(screens, watchers) {
     const out = new Set();
     const visit = (node) => {
         if (!isObject(node)) return;
         for (const ref of nodeActionRefs(node)) out.add(ref.actionId);
         for (const child of (Array.isArray(node.children) ? node.children : [])) visit(child);
     };
+    // Schema 3: a watcher runs its action, and so do a screen's onOpen and timers.
+    for (const w of watchersOf({ watchers })) out.add(w.actionId);
     for (const screen of (Array.isArray(screens) ? screens : [])) {
+        for (const ref of screenTriggerRefs(screen)) out.add(ref.actionId);
         for (const section of (isObject(screen) && Array.isArray(screen.sections) ? screen.sections : [])) {
             for (const child of (isObject(section) && Array.isArray(section.children) ? section.children : [])) visit(child);
         }

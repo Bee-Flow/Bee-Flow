@@ -15,6 +15,8 @@ import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
 import { resolveNodeStyle } from './styleResolver';
 import { themeVars } from './themeVars';
+import { tileClickProps } from './tileClick';
+import { definitionReadsUi, useUiScope } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
 import type { ActionState } from './actionRunner/core';
@@ -70,9 +72,10 @@ function roleAllows(nodeOrScreen: { visibleToRoles?: string[] } | null | undefin
     if (!Array.isArray(gate) || gate.length === 0) return true;
     return gate.includes(previewRole);
 }
-function DefaultNodeWrapper({ node, className, style, children }: NodeWrapperProps) {
+function DefaultNodeWrapper({ node, className, style, children, interactive = null }: NodeWrapperProps) {
+    // `interactive`: a clickable tile (./tileClick.ts), run mode only; absent, the cell is what it was.
     return (
-        <div data-node-id={node.id} data-app-type={node.type} className={className} style={style}>
+        <div data-node-id={node.id} data-app-type={node.type} className={interactive ? `${className || ''} cursor-pointer` : className} style={style} {...interactive}>
             {children}
         </div>
     );
@@ -297,8 +300,9 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
     const { className, style } = resolveNodeStyle(node);
     const cellStyle = hidden ? { ...style, opacity: 0.4 } : style;
 
+    const interactive = tileClickProps(node, mode, runtime.runAction, enabled.disabled);
     const cell = (
-        <NodeWrapper node={node} className={className} style={cellStyle}>
+        <NodeWrapper node={node} className={className} style={cellStyle} {...(interactive ? { interactive } : null)}>
             <NodeErrorBoundary type={node.type} signature={nodeSignature(node)} scope={nodeScope} mode={mode}>
                 {hidden ? <HiddenBadge /> : null}
                 {mode === 'edit' && formulaError ? <FormulaErrorBadge message={formulaError} /> : null}
@@ -358,6 +362,9 @@ export default function AppRenderer({
         return { ...d, primary: themePrimary || '' };
     }, [definition?.design, themePrimary]);
 
+    // The `ui` root (uiState.ts): only for a definition that reads it, so no other app re-renders for a tab switch.
+    const ui = useUiScope(definitionReadsUi(definition));
+
     const baseScope = useMemo(() => buildScope({
         actionState: actionState || {},
         dataState: dataState || {},
@@ -367,7 +374,8 @@ export default function AppRenderer({
         screen: { id: screen?.id, name: screen?.name, params: screenParams || {} },
         now: nowStamp,
         today: todayStamp,
-    }), [actionState, dataState, currentUser, vars, forms, screen?.id, screen?.name, screenParams, nowStamp, todayStamp]);
+        ui,
+    }), [actionState, dataState, currentUser, vars, forms, screen?.id, screen?.name, screenParams, nowStamp, todayStamp, ui]);
 
     const runtimeValue = useMemo<RuntimeValue>(() => ({
         mode: mode === 'edit' ? 'edit' : 'run',

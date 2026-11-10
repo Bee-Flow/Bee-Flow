@@ -11,6 +11,7 @@
 
 const { EVENT_NAMES } = require('../componentSpecs');
 const { isObject, pickClosestId } = require('./shared');
+const { checkActionList } = require('./clientTriggerChecks.mts');
 
 // How many children a non-scrolling pane may stack before the ones at the
 // bottom are, in practice, off screen. Six is roughly a header + a control row +
@@ -45,6 +46,11 @@ function checkActionWiring(node, path, props, spec, ctx) {
         if (ref === undefined || ref === null) continue;
         if (!Array.isArray(spec.events) || !spec.events.includes(ev)) {
             pushE({ code: 'event.not_supported', severity: 'error', path: `${path}.${ev}`, message: `${node.type} does not support ${ev}.`, hint: spec.events && spec.events.length ? `${node.type} supports: ${spec.events.join(', ')}.` : `${node.type} carries no events; wire the action to a button or form instead.` });
+        }
+        // Schema 3: a list of action ids (validate/clientTriggerChecks.mts checks each one).
+        if (Array.isArray(ref)) {
+            checkActionList(ref, `${path}.${ev}`, ev, ctx);
+            continue;
         }
         if (typeof ref !== 'string' || !actionIds.has(ref)) {
             const suggestion = pickClosestId(String(ref), Array.from(actionIds));

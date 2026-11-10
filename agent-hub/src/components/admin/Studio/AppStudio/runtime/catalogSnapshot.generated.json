@@ -28,6 +28,7 @@
         "MAX_LOCK_KEY_LEN": 200,
         "MAX_PROGRESS_TEXT_LEN": 200,
         "MAX_DEFERRED_EFFECTS": 10,
+        "MAX_CLIENT_WAIT_SECONDS": 30,
         "MAX_BULK_WRITE_ROWS": 500,
         "MAX_WRITE_FILTER_CLAUSES": 20,
         "MAX_UPSERT_KEY_COLUMNS": 5,
@@ -53,7 +54,13 @@
         "MAX_PARALLEL_BRANCHES": 8,
         "MAX_CODE_STEP_CHARS": 20000,
         "MAX_CODE_STEP_INPUTS": 20,
-        "MAX_HTTP_STEP_ENTRIES": 30
+        "MAX_HTTP_STEP_ENTRIES": 30,
+        "MAX_ACTIONS_PER_EVENT": 5,
+        "MIN_TIMER_SECONDS": 5,
+        "MAX_TIMER_SECONDS": 3600,
+        "MAX_SCREEN_TIMERS": 3,
+        "MAX_WATCHERS": 10,
+        "MAX_WATCHER_DEBOUNCE_MS": 10000
     },
     "colorRoles": [
         "primary",
@@ -505,6 +512,11 @@
             "client": false,
             "mutatesData": true
         },
+        "back": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
         "break": {
             "client": true,
             "mutatesData": false,
@@ -516,6 +528,16 @@
             "since": 3
         },
         "continue": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "copy_to_clipboard": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "focus": {
             "client": true,
             "mutatesData": false,
             "since": 3
@@ -540,7 +562,27 @@
             "mutatesData": false,
             "since": 3
         },
+        "scroll_to": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "set_form_field": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "set_ui": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
         "try": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "wait": {
             "client": true,
             "mutatesData": false,
             "since": 3
@@ -1899,11 +1941,23 @@
         "button": [
             "onClick"
         ],
+        "image": [
+            "onClick"
+        ],
+        "callout": [
+            "onClick"
+        ],
+        "stat": [
+            "onClick"
+        ],
         "list": [
             "onRowClick"
         ],
         "approval_list": [
             "onDecided"
+        ],
+        "card": [
+            "onClick"
         ],
         "form": [
             "onSubmit"
@@ -1930,8 +1984,26 @@
         "input_dataset": [
             "onChange"
         ],
+        "input_richtext": [
+            "onChange"
+        ],
+        "input_html": [
+            "onChange"
+        ],
+        "input_datetime": [
+            "onChange"
+        ],
+        "input_relation": [
+            "onChange"
+        ],
+        "input_person": [
+            "onChange"
+        ],
         "input_multiselect": [
             "onChange"
+        ],
+        "container": [
+            "onClick"
         ],
         "badge_list": [
             "onRowClick"

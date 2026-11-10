@@ -61,6 +61,16 @@ const FORMULA_SCOPE_ROOTS = [
     'today',        // ISO date string
 ];
 
+// Scope roots added after the base (schema 3 or later). Not in FORMULA_SCOPE_ROOTS: that
+// list is prompt text and catalogue bytes. A root here is known to the validator; a
+// `clientOnly` one is filled by the browser only, so a server step reading it gets a warning.
+//   ui — the state components keep on screen: ui.tabs.<id>.active, ui.modals.<id>.open,
+//        ui.selection.<id> (documented with the set_ui step, steps/set_ui.js).
+/** @type {Readonly<Record<string, Readonly<{ since: number, clientOnly: boolean }>>>} */
+const EXTENSION_SCOPE_ROOTS = Object.freeze({
+    ui: Object.freeze({ since: 3, clientOnly: true }),
+});
+
 /**
  * The `currentUser` attributes a formula may read.
  *
@@ -85,4 +95,5 @@ module.exports = {
     INPUT_MAPPING_KINDS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
+    EXTENSION_SCOPE_ROOTS,
 };

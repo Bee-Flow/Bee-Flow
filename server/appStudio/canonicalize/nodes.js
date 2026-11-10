@@ -12,6 +12,7 @@ const { HARD_DEPTH_CAP, isObject, deepCopy, truncate, isFormulaObj } = require('
 const { cleanFormula } = require('./bindings');
 const { cleanStyle } = require('./style');
 const { cleanProps } = require('./props');
+const { canonActionSlot } = require('./clientTriggers');
 
 // ---------------------------------------------------------------------------
 // v2 node logic — visibility/enablement flags (boolean | formula), computed
@@ -152,8 +153,9 @@ function canonNode(node, path, depth, ids, push) {
 
     for (const ev of EVENT_NAMES) {
         if (node[ev] === undefined || node[ev] === null) continue;
-        if (typeof node[ev] === 'string' && node[ev]) out[ev] = node[ev];
-        else push('event.invalid', `${path}.${ev}`, `${ev} must be an action id string — dropped.`);
+        // An action id, or since schema 3 a list of them (canonicalize/clientTriggers.js).
+        const slot = canonActionSlot(node[ev], `${path}.${ev}`, push, ev);
+        if (slot !== undefined) out[ev] = slot;
     }
 
     const isContainer = !!(spec && spec.container);

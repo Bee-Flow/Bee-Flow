@@ -2,6 +2,7 @@ import { Bold, Italic, Link2, List, ListOrdered, X, type LucideIcon } from 'luci
 import { useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
+import { useBlurChange } from '../useInputChange';
 import { Field } from '../uiBits';
 import useValueFrom from '../useValueFrom';
 import type { BindingInput } from '../resolveBinding.types';
@@ -183,7 +184,10 @@ export default function AppInputRichtext({ node }: NodeProps<InputRichtextProps>
         const md = htmlToMarkdown(el);
         lastRef.current = md;
         setValue(md);
+        return md;
     };
+    // onChange (schema 3): once per edit, when the editor loses focus with a new value.
+    const blurChange = useBlurChange(node, name);
 
     // execCommand is deprecated and still the only thing every browser
     // implements for this. styleWithCSS off keeps bold as <b> rather than a
@@ -263,7 +267,8 @@ export default function AppInputRichtext({ node }: NodeProps<InputRichtextProps>
                     data-app-richtext="true"
                     data-placeholder={placeholder || t('studio_apps_runtime.rich_text.richtext_placeholder', 'Write here…')}
                     onInput={commit}
-                    onBlur={commit}
+                    onFocus={() => blurChange.focus(lastRef.current ?? text)}
+                    onBlur={() => blurChange.blur(commit())}
                     className="app-richtext w-full px-2.5 py-2 text-sm outline-none min-h-[6rem] overflow-auto text-[var(--text-primary)]"
                 />
                 {/* The markdown is what the form submits; the box above is only

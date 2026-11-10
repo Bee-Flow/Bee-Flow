@@ -12,6 +12,7 @@ import type { TranslateParams } from '@/hooks/useTranslation';
 import type { RowBinding, SwitchCase, Placeholder, StepFieldProps, ReferenceFieldProps, AutomationRefFieldProps, SwitchCasesFieldProps } from '../StepSettings.types';
 import { FIELD_LABELS, HINTS } from './StepSettings.constants';
 import { fieldControlFor } from './fieldTypes';
+import { nodeRefOptions } from '../nodeRefOptions';
 import { KeyedBindingsField } from './KeyedBindingsField';
 import TierChoiceField from './TierChoiceField';
 import RetryField from './RetryField';
@@ -63,7 +64,7 @@ export function StepField({
                 kind={refKind}
                 value={value as string}
                 onChange={onChange}
-                options={options[refKind] || []}
+                options={refKind === 'node' ? nodeRefOptions(step, options.node, t) : (options[refKind] || [])}
                 disabled={disabled}
             />
         );

@@ -32,6 +32,7 @@
         "MAX_LOCK_KEY_LEN": 200,
         "MAX_PROGRESS_TEXT_LEN": 200,
         "MAX_DEFERRED_EFFECTS": 10,
+        "MAX_CLIENT_WAIT_SECONDS": 30,
         "MAX_BULK_WRITE_ROWS": 500,
         "MAX_WRITE_FILTER_CLAUSES": 20,
         "MAX_UPSERT_KEY_COLUMNS": 5,
@@ -57,7 +58,13 @@
         "MAX_PARALLEL_BRANCHES": 8,
         "MAX_CODE_STEP_CHARS": 20000,
         "MAX_CODE_STEP_INPUTS": 20,
-        "MAX_HTTP_STEP_ENTRIES": 30
+        "MAX_HTTP_STEP_ENTRIES": 30,
+        "MAX_ACTIONS_PER_EVENT": 5,
+        "MIN_TIMER_SECONDS": 5,
+        "MAX_TIMER_SECONDS": 3600,
+        "MAX_SCREEN_TIMERS": 3,
+        "MAX_WATCHERS": 10,
+        "MAX_WATCHER_DEBOUNCE_MS": 10000
     },
     "theme": {
         "primary": {
@@ -389,6 +396,31 @@
                 300
             ],
             "default": 0
+        },
+        "events": {
+            "type": "object",
+            "since": 3,
+            "description": "Screen events: onOpen runs actions each time the screen opens. Shape { onOpen: \"act_x\" }, or a list of up to 5 action ids { onOpen: [\"act_a\", \"act_b\"] } that run one after the other and stop at the first that fails. It fires in the live app only (also after a navigate to this screen with other params), never in the editor or a screenshot. Use it to prepare the screen: set_variable to reset a filter, a refresh step, a dataset query into a resultVar. Do not use it for something a binding already loads by itself. On a public page it runs only actions of the public screens. Write it with app_update_screen { screenId, events: { onOpen: \"act_…\" } }, and events: null removes it. The same list form works on every component event slot (onClick, onSubmit, onChange, …) through app_bind_action."
+        },
+        "timers": {
+            "type": "list",
+            "since": 3,
+            "maxItems": 3,
+            "itemShape": {
+                "id": {
+                    "type": "string",
+                    "required": true
+                },
+                "everySeconds": {
+                    "type": "int",
+                    "required": true
+                },
+                "actionId": {
+                    "type": "string",
+                    "required": true
+                }
+            },
+            "description": "Timers that run an action every few seconds while the screen is open. everySeconds is 5 to 3600, at most 3 timers per screen, id is a short name (letters, digits, _ or -). A timer pauses while the browser tab is hidden and skips a tick while its previous run is still busy. It never runs in the editor or a screenshot. Only to reload the data on screen, use the screen's refreshInterval instead: a timer is for running an action, such as a check that writes a variable or a step that advances a status. Write the complete list with app_update_screen { screenId, timers: [{ id: \"poll\", everySeconds: 30, actionId: \"act_…\" }] }, and timers: null removes them."
         }
     },
     "section": {
@@ -906,6 +938,12 @@
             "label": "Callout",
             "category": "Content",
             "description": "A highlighted note with a tone (info, success, warning, danger).",
+            "events": [
+                "onClick"
+            ],
+            "eventsSince": {
+                "onClick": 3
+            },
             "props": {
                 "title": {
                     "type": "string",
@@ -971,6 +1009,12 @@
             "label": "Stat",
             "category": "Data",
             "description": "A KPI tile: a label and a big value. The value can bind to an action result. v2 adds an optional delta/trend row.",
+            "events": [
+                "onClick"
+            ],
+            "eventsSince": {
+                "onClick": 3
+            },
             "props": {
                 "label": {
                     "type": "string",
@@ -2030,6 +2074,12 @@
             "label": "Card",
             "category": "Layout",
             "description": "A surface that groups other components. Children lay out on the card’s own 12-column grid.",
+            "events": [
+                "onClick"
+            ],
+            "eventsSince": {
+                "onClick": 3
+            },
             "container": true,
             "props": {
                 "title": {
@@ -2744,14 +2794,21 @@
             "switch",
             "call_action",
             "transaction",
+            "back",
             "break",
             "code",
             "continue",
+            "copy_to_clipboard",
+            "focus",
             "http_request",
             "parallel",
             "raise_error",
             "return",
+            "scroll_to",
+            "set_form_field",
+            "set_ui",
             "try",
+            "wait",
             "while"
         ],
         "stepSpecs": {
@@ -3970,6 +4027,12 @@
                     }
                 }
             },
+            "back": {
+                "mutatesData": false,
+                "fields": {},
+                "since": 3,
+                "retrySafe": true
+            },
             "break": {
                 "mutatesData": false,
                 "fields": {},
@@ -4011,6 +4074,31 @@
             "continue": {
                 "mutatesData": false,
                 "fields": {},
+                "since": 3,
+                "retrySafe": true
+            },
+            "copy_to_clipboard": {
+                "mutatesData": false,
+                "fields": {
+                    "text": {
+                        "type": "binding",
+                        "required": true,
+                        "description": "What is copied: { kind: \"static\", value } or a formula. A number or a list is copied as text."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "focus": {
+                "mutatesData": false,
+                "fields": {
+                    "nodeId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80,
+                        "description": "The id of the component to focus."
+                    }
+                },
                 "since": 3,
                 "retrySafe": true
             },
@@ -4136,6 +4224,71 @@
                 "since": 3,
                 "retrySafe": true
             },
+            "scroll_to": {
+                "mutatesData": false,
+                "fields": {
+                    "nodeId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80,
+                        "description": "The id of the component to scroll to, or \"top\" for the top of the screen."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "set_form_field": {
+                "mutatesData": false,
+                "fields": {
+                    "form": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 100,
+                        "description": "The form, by name: its props.name, or its node id when it has no name (the key reset_form takes)."
+                    },
+                    "field": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 100,
+                        "description": "The input inside that form, by its props.name."
+                    },
+                    "value": {
+                        "type": "binding",
+                        "required": true,
+                        "description": "The new value: { kind: \"static\", value } or { kind: \"formula\", expr }."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "set_ui": {
+                "mutatesData": false,
+                "fields": {
+                    "nodeId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80,
+                        "description": "The id of the tabs, modal or data_grid component."
+                    },
+                    "state": {
+                        "type": "enum",
+                        "required": true,
+                        "values": [
+                            "activeTab",
+                            "open",
+                            "selection"
+                        ],
+                        "description": "Which state: activeTab (a tabs group), open (a modal) or selection (a data_grid)."
+                    },
+                    "value": {
+                        "type": "binding",
+                        "required": true,
+                        "description": "The new state: a tab id or 0-based position, true or false, or the row id(s) to select."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
             "try": {
                 "mutatesData": false,
                 "fields": {
@@ -4152,6 +4305,20 @@
                     "finally": {
                         "type": "steps",
                         "description": "Always runs last: after `steps` succeeded, after `catch`, and before a return, break or continue leaves the try."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "wait": {
+                "mutatesData": false,
+                "fields": {
+                    "seconds": {
+                        "type": "int",
+                        "required": true,
+                        "min": 1,
+                        "max": 30,
+                        "description": "How long to pause, in whole seconds (1 to 30)."
                     }
                 },
                 "since": 3,
@@ -4196,12 +4363,19 @@
             "loop",
             "switch",
             "call_action",
+            "back",
             "break",
             "continue",
+            "copy_to_clipboard",
+            "focus",
             "parallel",
             "raise_error",
             "return",
+            "scroll_to",
+            "set_form_field",
+            "set_ui",
             "try",
+            "wait",
             "while"
         ],
         "dataMutatingStepKinds": [

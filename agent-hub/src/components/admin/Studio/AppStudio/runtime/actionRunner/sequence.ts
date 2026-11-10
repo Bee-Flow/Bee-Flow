@@ -85,6 +85,8 @@ function makeLiveBag(ctx: RunnerContext, actionId: string): LiveBag {
                 params: st.params || {},
                 error: (st.errorScope as Record<string, unknown> | null | undefined) || null,
                 currentUser: live.currentUser || null,
+                // What components show right now (ui.tabs / ui.modals / ui.selection), read fresh per step.
+                ui: live.readUi ? live.readUi() : undefined,
             }),
         };
     };
@@ -322,41 +324,56 @@ function runEnder(ctx: RunnerContext, actionId: string, state: SeqState, hasServ
     };
 }
 
-export async function runSequence(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<void> {
+/** How a sequence that threw settles: the run log, the control's state, the toast. False: it did not run to the end. */
+interface ThrownRun {
+    env: SeqEnv;
+    action: RunnableAction;
+    opts: RunOpts;
+    state: SeqState;
+    end: (outcome: RunOutcome, error?: string | null) => void;
+}
+async function settleThrown({ env, action, opts, state, end }: ThrownRun, e: unknown): Promise<boolean> {
+    const { ctx, actionId, hasServer } = env;
+    if (e === SEQ_ABORT) {
+        end('aborted');
+        // Declined confirm / handled onError — settle without an error.
+        if (hasServer) {
+            ctx.setEntry(actionId, state.lastResult !== undefined
+                ? { status: 'success', result: state.lastResult, error: null }
+                : { status: 'idle', result: undefined, error: null });
+        }
+        return !!state.run?.handled;
+    }
+    if (e === CANCELLED || !ctx.alive.current) { end('cancelled'); return false; }
+    const message = state.error || failureMessage(e, ctx.tr);
+    end('error', message);
+    // A server-touching sequence surfaces the error on the triggering
+    // control (status:'error'); every failed sequence also toasts so the
+    // abort is never silent. onError effects (if any) apply afterwards.
+    if (hasServer) ctx.setEntry(actionId, errorEntry(message, e));
+    showToast('danger', message);
+    await ctx.applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
+    return false;
+}
+
+/** Resolves true when the sequence settled as a success (an event slot with several actions goes on to the next one), false otherwise. */
+export async function runSequence(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<boolean> {
     const steps = normalizeSequence(action);
     // Follows call_action, so a server step inside a called action shows the spinner too.
     const hasServer = sequenceHasServerStep(steps, ctx.live.current.definition?.actions);
-    if (hasServer && !(await prepareServerRun(ctx, actionId))) return;
+    if (hasServer && !(await prepareServerRun(ctx, actionId))) return false;
 
     const env: SeqEnv = { ctx, actionId, hasServer, indexMap: buildStepIndexMap(steps), liveBag: makeLiveBag(ctx, actionId), callChain: [actionId], echoKind: usesRegistryKind(steps) };
     const state = initialState(ctx, actionId, opts);
     const end = runEnder(ctx, actionId, state, hasServer);
-    const { setEntry, applyEffects } = ctx;
     try {
         const returned = await runActionSteps(execSteps, env, steps, state);
         end('success');
         // A return with a value leaves it as the action's result, also when no step reached the server.
-        if (hasServer || (returned && state.lastResult !== undefined)) setEntry(actionId, { status: 'success', result: state.lastResult, error: null });
-        await applyEffects(mergeAppEffects(action.onSuccess, state.appEffects), { formId: opts.formId, formName: opts.formName, effectsUnknown: !!state.effectsUnknown });
+        if (hasServer || (returned && state.lastResult !== undefined)) ctx.setEntry(actionId, { status: 'success', result: state.lastResult, error: null });
+        await ctx.applyEffects(mergeAppEffects(action.onSuccess, state.appEffects), { formId: opts.formId, formName: opts.formName, effectsUnknown: !!state.effectsUnknown });
+        return true;
     } catch (e) {
-        if (e === SEQ_ABORT) {
-            end('aborted');
-            // Declined confirm / handled onError — settle without an error.
-            if (hasServer) {
-                setEntry(actionId, state.lastResult !== undefined
-                    ? { status: 'success', result: state.lastResult, error: null }
-                    : { status: 'idle', result: undefined, error: null });
-            }
-            return;
-        }
-        if (e === CANCELLED || !ctx.alive.current) { end('cancelled'); return; }
-        const message = state.error || failureMessage(e, ctx.tr);
-        end('error', message);
-        // A server-touching sequence surfaces the error on the triggering
-        // control (status:'error'); every failed sequence also toasts so the
-        // abort is never silent. onError effects (if any) apply afterwards.
-        if (hasServer) setEntry(actionId, errorEntry(message, e));
-        showToast('danger', message);
-        await applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
+        return settleThrown({ env, action, opts, state, end }, e);
     }
 }

@@ -1,6 +1,7 @@
 import { nowLocalIso, todayIso } from './localDate';
 import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
+import useInputChange from '../useInputChange';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import type { NodeProps } from './appNode.types';
 
@@ -30,6 +31,7 @@ export default function AppInputDatetime({ node }: NodeProps<InputDatetimeProps>
     } = node.props || {};
     const seeded = seedValue(defaultValue, withTime);
     const { value, setValue, error } = useFormField<string>({ name, defaultValue: seeded, required, label });
+    const fireChange = useInputChange(node, name); // onChange, schema 3
     const id = `${node.id}-input`;
 
     return (
@@ -42,7 +44,7 @@ export default function AppInputDatetime({ node }: NodeProps<InputDatetimeProps>
                 aria-required={required || undefined}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? `${id}-error` : undefined}
-                onChange={(e) => setValue(e.target.value || null)}
+                onChange={(e) => { const next = e.target.value || null; setValue(next); fireChange(next); }}
                 className={INPUT_CLASS}
                 style={inputStyle(error)}
             />

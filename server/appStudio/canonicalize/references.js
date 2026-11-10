@@ -9,6 +9,7 @@
 const { EVENT_NAMES } = require('../componentSpecs');
 const { isObject } = require('./shared');
 const { extraChildLists } = require('../../shared/appDefinition/stepFlow.mjs');
+const { resolveSlot, resolveScreenTriggerRefs } = require('./clientTriggers');
 
 // ---------------------------------------------------------------------------
 // Pass 2 — reference rewriting + dangling cleanup over the REBUILT tree
@@ -63,6 +64,8 @@ function rewriteAndResolve(def, renameMap, push) {
             for (const ev of EVENT_NAMES) {
                 const to = ren(node[ev]);
                 if (to) node[ev] = to;
+                // A list slot (schema 3): each id renamed in place.
+                if (Array.isArray(node[ev])) node[ev] = node[ev].map((id) => ren(id) || id);
             }
             rewriteActionResults(node.props, renameMap);
         });
@@ -90,9 +93,15 @@ function rewriteAndResolve(def, renameMap, push) {
             if (typeof node[ev] === 'string' && !actionIds.has(node[ev])) {
                 push('event.dangling', `${path}.${ev}`, `${ev} referenced unknown action "${node[ev]}" — removed. Add the action first, then wire the event.`);
                 delete node[ev];
+            } else if (Array.isArray(node[ev])) {
+                const slot = resolveSlot(node[ev], `${path}.${ev}`, ev, { rename: (id) => id, actionIds, push });
+                if (slot === undefined) delete node[ev];
+                else node[ev] = slot;
             }
         }
     });
+    // The screen triggers (schema 3): renamed and resolved the same way.
+    resolveScreenTriggerRefs(def, { rename: (id) => ren(id) || id, actionIds, push });
 
     // homeScreenId must resolve; default to the first screen.
     const screenIds = new Set(def.screens.map((s) => s.id));

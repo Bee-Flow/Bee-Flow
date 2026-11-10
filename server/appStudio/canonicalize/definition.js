@@ -117,10 +117,11 @@ function canonRegisteredKeys(input, out, renameMap, push) {
     const registered = definitionKeys();
     if (!registered.length) return;
     const screenIds = new Set(out.screens.map((/** @type {{ id: string }} */ s) => s.id));
+    const actionIds = new Set(Object.keys(out.actions || {}));
     for (const entry of registered) {
         const name = entry.key;
         if (input[name] === undefined) continue;
-        const value = entry.canon(input[name], push, { renameMap, screenIds });
+        const value = entry.canon(input[name], push, { renameMap, screenIds, actionIds });
         if (value !== undefined) out[name] = value;
     }
 }

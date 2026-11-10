@@ -82,6 +82,8 @@ const LAYOUT_SPECS = {
     container: {
         label: 'Container', category: 'Layout',
         description: 'A chrome-free container. Children lay out on its own 12-column grid — use several side by side for column layouts.',
+        // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
+        events: ['onClick'], eventsSince: { onClick: 3 },
         container: true,
         props: {
             // Look pass. 'plain' = the chrome-free container it has always

@@ -6,6 +6,8 @@
 
 'use strict';
 
+const { SCREEN_TRIGGER_KEYS } = require('./clientTriggerSpecs');
+
 // ---------------------------------------------------------------------------
 // Screens
 // ---------------------------------------------------------------------------
@@ -29,6 +31,10 @@ const SCREEN_SPEC = {
     // one screen would fight and whichever mounted last would win.
     // The runtime never polls in the editor and pauses while the tab is hidden.
     refreshInterval: { type: 'enum', values: [0, 15, 30, 60, 300], default: 0 },
+    // Schema 3 (optional, emit-when-present): the client triggers of a screen. Text in
+    // clientTriggerSpecs.js, the shapes in shared/appDefinition/clientTriggers.mjs.
+    events: SCREEN_TRIGGER_KEYS.events,
+    timers: SCREEN_TRIGGER_KEYS.timers,
 };
 
 // The closed set of node/component EVENT names. Which ones a given type may

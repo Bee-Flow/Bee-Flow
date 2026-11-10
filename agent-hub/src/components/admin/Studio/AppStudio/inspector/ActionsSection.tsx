@@ -10,6 +10,7 @@ import {
 } from './EventWiringParts';
 import { INPUT_CLS } from './panels/kit';
 import RunAutomationEditor from './RunAutomationEditor';
+import ThenAlsoRun from './ThenAlsoRun';
 import { TYPE_EVENT_LISTS } from './styleKnobMeta';
 import useEventWiring, { NEW_ACTION } from './useEventWiring';
 import useAutomationApi from '@/hooks/useAutomationApi';
@@ -129,6 +130,7 @@ export default function ActionsSection({ node, definition, onCommit, onTestActio
                         titleFor={titleFor}
                         appId={appId}
                     />
+                    <ThenAlsoRun node={node} event={event} definition={definition} onCommit={onCommit} titleFor={titleFor} disabled={disabled} />
                 </div>
             ))}
         </div>

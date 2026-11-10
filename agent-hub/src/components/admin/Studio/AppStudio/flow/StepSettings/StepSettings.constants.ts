@@ -50,6 +50,7 @@ export const FIELD_LABELS: Record<string, string[]> = {
     onError: ['studio_apps_edit.step_settings.field_on_error', 'If it still fails'],
     failFast: ['studio_apps_flow_parallel.settings.fail_fast', 'Stop the other branches when one fails'],
     timeoutMs: ['studio_apps_step_code.field.timeout_label', 'Time limit (ms)'],
+    nodeId: ['studio_apps_ui_steps.fields.node', 'Component'],
 };
 
 export const HINTS: Record<string, string[]> = {

@@ -1,0 +1,24 @@
+{
+  "translations": {
+    "studio_apps_ui_steps.catalog.back_blurb": "Terug naar het scherm waar de gebruiker vandaan kwam.",
+    "studio_apps_ui_steps.catalog.back_label": "Terug",
+    "studio_apps_ui_steps.catalog.copy_to_clipboard_blurb": "Kopieer een tekst, zoals een kenmerk of een link, naar het klembord van de gebruiker.",
+    "studio_apps_ui_steps.catalog.copy_to_clipboard_label": "Naar klembord kopiëren",
+    "studio_apps_ui_steps.catalog.focus_blurb": "Zet de toetsenbordfocus op een onderdeel, zodat de gebruiker meteen kan typen.",
+    "studio_apps_ui_steps.catalog.focus_label": "Cursor in een veld zetten",
+    "studio_apps_ui_steps.catalog.scroll_to_blurb": "Breng een onderdeel in beeld, of ga terug naar de bovenkant van het scherm.",
+    "studio_apps_ui_steps.catalog.scroll_to_label": "Scrollen naar",
+    "studio_apps_ui_steps.catalog.set_form_field_blurb": "Zet een waarde in één veld van een formulier, alsof die getypt is.",
+    "studio_apps_ui_steps.catalog.set_form_field_label": "Veld invullen",
+    "studio_apps_ui_steps.catalog.set_ui_blurb": "Kies het open tabblad, open of sluit een dialoog, of kies de geselecteerde rijen van een tabel.",
+    "studio_apps_ui_steps.catalog.set_ui_label": "Tabblad of dialoog wisselen",
+    "studio_apps_ui_steps.catalog.wait_blurb": "Wacht een paar seconden voor de volgende stap (hoogstens 30).",
+    "studio_apps_ui_steps.catalog.wait_label": "Even wachten",
+    "studio_apps_ui_steps.fields.node": "Onderdeel",
+    "studio_apps_ui_steps.refs.empty_node": "Nog geen onderdeel dat bij deze stap past: voeg er eerst een toe aan een scherm.",
+    "studio_apps_ui_steps.refs.pick_node": "Kies een onderdeel…",
+    "studio_apps_ui_steps.refs.top": "Bovenkant van het scherm",
+    "studio_apps_ui_steps.runtime.copy_failed": "De tekst kon niet naar het klembord worden gekopieerd."
+  },
+  "sameAsEnglish": []
+}

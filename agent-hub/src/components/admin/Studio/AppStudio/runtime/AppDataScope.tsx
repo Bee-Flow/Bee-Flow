@@ -8,6 +8,7 @@ import { dataCacheKey, resolveBinding, resolveBindingFilters, resolveBindingPara
 import type { BindingInput, ConnectorBinding, DataBinding as RecordsBinding } from './resolveBinding.types';
 import useAppDataSource, { MIN_REFRESH_MS } from './useAppDataSource';
 import { readsOwnPages } from './pagination';
+import { definitionReadsUi, useUiScope } from './uiState';
 
 /**
  * App Studio runtime — the live-data scope.
@@ -117,11 +118,14 @@ function resolveScreen(definition: ScopeDefinition | null | undefined, screenId:
  * navigation state); id/name come from the definition on both sides.
  */
 function useFetchScope(scope: FetchScope | null | undefined, definition: ScopeDefinition | null | undefined, screenId: string | null | undefined) {
+    // The `ui` root (uiState.ts), for a definition that reads it: a filter can follow a grid's selection.
+    const ui = useUiScope(definitionReadsUi(definition));
     return useMemo(() => {
         const screen = resolveScreen(definition, screenId);
-        if (!screen) return scope;
-        return { ...(scope || {}), screen: { ...(scope?.screen || {}), id: screen.id, name: screen.name } };
-    }, [scope, definition, screenId]);
+        const withUi = ui ? { ...(scope || {}), ui } : scope;
+        if (!screen) return withUi;
+        return { ...(withUi || {}), screen: { ...(scope?.screen || {}), id: screen.id, name: screen.name } };
+    }, [scope, definition, screenId, ui]);
 }
 
 /**

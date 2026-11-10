@@ -30,6 +30,8 @@
  *
  * One VALUE form has a version too: `asset:<id>`, an uploaded file of the app, accepted in
  * props and design keys that took only an https URL before (appAssets.mts ASSET_REF_SINCE).
+ * So does a list of action ids in a component event slot (shared/appDefinition/
+ * clientTriggers.mjs ACTION_LIST_SINCE): a slot held one id before schema 3.
  *
  * An entry without `since` belongs to the base. The walk itself is the pure
  * shared/appDefinition/schemaVersion.mjs; this module builds its index from the
@@ -49,6 +51,7 @@ import {
 } from '../shared/appDefinition/schemaVersion.mjs';
 import { definitionKeys } from './definitionKeyRegistry.mts';
 import { ASSET_REF_SINCE, hasAssetRef } from './appAssets.mts';
+import { ACTION_LIST_SINCE, hasActionListSlot } from '../shared/appDefinition/clientTriggers.mjs';
 import type { DefinitionKeyEntry } from './definitionKeyRegistry.mts';
 
 type SinceMap = Record<string, number>;
@@ -88,6 +91,7 @@ const specs = nodeRequire('./componentSpecs.js') as {
     SCREEN_SPEC: SpecTable;
     THEME_SPEC: SpecTable;
     DESIGN_SPEC: SpecTable;
+    EVENT_NAMES: readonly string[];
     KEY_MARKS: Record<'section' | 'sectionStyle' | 'node' | 'nav' | 'navGroup', SpecTable> & Record<'binding' | 'queryShape', Record<string, QueryMark>>;
 };
 const queryMarks = nodeRequire('./componentSpecs/queryMarks.js') as {
@@ -250,7 +254,8 @@ let override: typeof live | null = null;
 /** The lowest schema version `definition` can be stored as (2 unless it uses something marked since 3 or higher). */
 export function requiredSchemaVersion(definition: unknown): number {
     const { index, tests } = override || live;
-    const required = requiredWithIndex(definition, index, tests);
+    let required = requiredWithIndex(definition, index, tests);
+    if (required < ACTION_LIST_SINCE && hasActionListSlot(definition, specs.EVENT_NAMES)) required = ACTION_LIST_SINCE;
     return required >= ASSET_REF_SINCE || !hasAssetRef(definition) ? required : ASSET_REF_SINCE;
 }
 

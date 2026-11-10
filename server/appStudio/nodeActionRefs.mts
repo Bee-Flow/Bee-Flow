@@ -14,6 +14,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { slotActionIds } from '../shared/appDefinition/clientTriggers.mjs';
 
 const nodeRequire = createRequire(import.meta.url);
 const { EVENT_NAMES } = nodeRequire('./componentSpecs') as { EVENT_NAMES: readonly string[] };
@@ -36,9 +37,9 @@ function isObject(v: unknown): v is Record<string, unknown> {
 export function nodeActionRefs(node: unknown): ActionRef[] {
     if (!isObject(node)) return [];
     const out: ActionRef[] = [];
+    // A slot holds one id, or since schema 3 a list of them (run in order).
     for (const ev of EVENT_NAMES) {
-        const id = node[ev];
-        if (typeof id === 'string' && id) out.push({ actionId: id, via: ev });
+        for (const id of slotActionIds(node[ev])) out.push({ actionId: id, via: ev });
     }
     const props = isObject(node.props) ? node.props : {};
     for (const key of ACTION_LIST_PROPS) {
