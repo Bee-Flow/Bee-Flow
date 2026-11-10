@@ -8,7 +8,8 @@
 #   scripts/stage-server-context.sh [--install] [runtime-bundle|sbom|all]
 #
 #   runtime-bundle  App Studio headless runtime (agent-hub `npm run build:runtime`)
-#                   -> server/vendor/app-runtime/{app-runtime.mjs,app-runtime.css}.
+#                   -> server/vendor/app-runtime/{app-runtime.mjs,app-runtime.css}, plus
+#                   agent-hub/public/fonts -> server/vendor/app-runtime/fonts/.
 #                   The server screenshots Studio apps with it
 #                   (server/services/appStudioRender.js). Without it the render
 #                   service answers "screenshots unavailable".
@@ -66,6 +67,10 @@ stage_runtime_bundle() {
   test -s dist-runtime/app-runtime.css
   mkdir -p ../server/vendor/app-runtime
   cp dist-runtime/app-runtime.mjs dist-runtime/app-runtime.css ../server/vendor/app-runtime/
+  # The self-hosted font files the bundle's @font-face rules name: the render service answers
+  # /fonts/... from here (server/services/appStudioRenderFiles.mts), so a screenshot shows the
+  # app's chosen font. Optional: without them the text falls back to a system face.
+  if [[ -d public/fonts ]]; then cp -R public/fonts ../server/vendor/app-runtime/fonts; fi
   du -h ../server/vendor/app-runtime/*
 }
 

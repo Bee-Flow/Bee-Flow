@@ -35,7 +35,7 @@ export default function AppInputDatetime({ node }: NodeProps<InputDatetimeProps>
     const id = `${node.id}-input`;
 
     return (
-        <Field id={id} label={label} required={required} error={error}>
+        <Field part="input_datetime" id={id} label={label} required={required} error={error}>
             <input
                 id={id}
                 name={name}
@@ -45,7 +45,7 @@ export default function AppInputDatetime({ node }: NodeProps<InputDatetimeProps>
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? `${id}-error` : undefined}
                 onChange={(e) => { const next = e.target.value || null; setValue(next); fireChange(next); }}
-                className={INPUT_CLASS}
+                className={`${INPUT_CLASS} bfa-input_datetime__control`}
                 style={inputStyle(error)}
             />
         </Field>

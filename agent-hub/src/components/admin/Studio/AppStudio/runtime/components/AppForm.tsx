@@ -9,7 +9,8 @@ import { FormContext, registerFormReset, useFormFieldSetter } from '../formConte
 import type { FormFieldMeta } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { gridTemplate, spaceSteps } from '../styleResolver';
+import { initialFormValues } from '../initialUi';
+import { gridClasses, gridColumnStyle, spaceSteps } from '../styleResolver';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -250,10 +251,10 @@ function useLiveValidation(inputs: LiveInputs, fieldsRef: { current: Map<string,
 
 function FormBody({ node, children }: NodeProps<FormProps>) {
     const { t } = useTranslation();
-    const { mode, runAction, actionState, registerFormValue, scope } = useRuntime();
+    const { mode, runAction, actionState, registerFormValue, scope, initialUi } = useRuntime();
     const { submitLabel = t('studio_apps_runtime.form.submit', 'Submit'), showReset = false, showSubmit = true } = node.props || {};
     const formName = node.props?.name || node.id;
-    const [values, setValues] = useState<Record<string, unknown>>({});
+    const [values, setValues] = useState<Record<string, unknown>>(() => initialFormValues(initialUi, node.id));
     const [errors, setErrors] = useState<Record<string, string | undefined>>({});
     const fieldsRef = useRef(new Map<string, FormFieldMeta>()); // name → { required, label, defaultValue }
 
@@ -343,10 +344,10 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     return (
         <FormContext.Provider value={ctx}>
-            <form onSubmit={handleSubmit} onBlur={handleBlur} noValidate className="flex flex-col" style={{ gap: spaceSteps(gap) }}>
+            <form onSubmit={handleSubmit} onBlur={handleBlur} noValidate className="flex flex-col bfa-form__root" style={{ gap: spaceSteps(gap) }}>
                 <div
-                    className="app-grid"
-                    style={{ gridTemplateColumns: gridTemplate(), gap: spaceSteps(gap) }}
+                    className={`app-grid${gridClasses(node)} bfa-form__body`}
+                    style={{ ...gridColumnStyle(node.style), gap: spaceSteps(gap) }}
                 >
                     {children}
                 </div>
@@ -356,7 +357,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                     clicks it, and nothing happens. */}
                 {submitError ? (
                     <p
-                        className="text-sm [color:var(--error)]!"
+                        className="text-sm [color:var(--error)]! bfa-form__error"
                         role="alert"
                         data-app-submit-error="true"
                     >
@@ -365,7 +366,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                 ) : null}
 
                 {showSubmit || showReset ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bfa-form__actions">
                         {showSubmit ? (
                             <button
                                 type="submit"
@@ -376,7 +377,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                                 disabled={pending || !node.onSubmit}
                                 title={node.onSubmit ? undefined : t('studio_apps_runtime.form.no_submit', 'This form has no submit action yet.')}
                                 data-app-submit-inert={node.onSubmit ? undefined : 'true'}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium disabled:opacity-60 [background:var(--app-accent,var(--app-primary))] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! [border-radius:var(--app-radius)]"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium disabled:opacity-60 [background:var(--app-accent,var(--app-primary))] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! [border-radius:var(--app-radius)] bfa-form__submit"
                             >
                                 {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
                                 <span>{submitLabel}</span>
@@ -386,7 +387,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                             <button
                                 type="button"
                                 onClick={handleReset}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm [color:var(--text-secondary)]! [border-radius:var(--app-radius)]"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm [color:var(--text-secondary)]! [border-radius:var(--app-radius)] bfa-form__reset"
                             >
                                 <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                                 <span>{t('studio_apps_runtime.form.reset', 'Reset')}</span>

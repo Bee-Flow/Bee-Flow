@@ -7,6 +7,9 @@ import { runtimeValue } from '@/test/appRuntime';
 import { stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 
+// Part classes (bfa-*) are documentation hooks for custom CSS, not look: the class pins ignore them.
+const bare = (cls: string | null) => (cls || '').split(' ').filter((c) => !c.startsWith('bfa-')).join(' ');
+
 function withRuntime(ui: ReactElement, overrides = {}) {
     const value = {
         ...DEFAULT_RUNTIME,
@@ -69,9 +72,9 @@ describe('AppTable — look variants', () => {
     const DEFAULT_TD_CLS = 'px-2.5 py-1.5 border-b align-middle text-left';
 
     const classesOf = (container: HTMLElement) => ({
-        table: container.querySelector('table')!.getAttribute('class'),
-        th: container.querySelector('thead th')!.getAttribute('class'),
-        td: container.querySelector('tbody td')!.getAttribute('class'),
+        table: bare(container.querySelector('table')!.getAttribute('class')),
+        th: bare(container.querySelector('thead th')!.getAttribute('class')),
+        td: bare(container.querySelector('tbody td')!.getAttribute('class')),
     });
 
     it('default look renders the exact pre-look classes (no new class, no new style)', () => {

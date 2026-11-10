@@ -214,10 +214,8 @@ export function InputNumberInspector({ node, definition, onCommit, disabled = fa
                 <NumberField label={t('studio_apps_panels.input_number.step', 'Step')} value={props.step} onChange={(v) => patch({ step: v ?? 1 })} step="any" disabled={disabled} />
                 <NumberField label={t('studio_apps_panels.input_number.default', 'Default')} value={props.defaultValue} onChange={(v) => patch({ defaultValue: v })} placeholder="—" disabled={disabled} />
             </div>
-            {/* No "Prefill from" here: input_number is one of the two input
-                types whose spec does not declare valueFrom (checkbox is the
-                other), and offering a prop the validator rejects is worse than
-                not offering it. */}
+            {/* No "Prefill from" here: the spec does declare valueFrom for
+                input_number, and "More options" under this panel offers it. */}
             <RequiredToggle props={props} patch={patch} disabled={disabled} />
         </div>
     );
@@ -385,9 +383,9 @@ export function InputDateInspector({ node, definition, onCommit, disabled = fals
     );
 }
 
-registerInspector('input_text', InputTextInspector);
-registerInspector('input_textarea', InputTextareaInspector);
-registerInspector('input_number', InputNumberInspector);
-registerInspector('input_select', InputSelectInspector);
-registerInspector('input_checkbox', InputCheckboxInspector);
-registerInspector('input_date', InputDateInspector);
+registerInspector('input_text', InputTextInspector, { props: ['name', 'label', 'placeholder', 'inputType', 'defaultValue', 'valueFrom', 'required'] });
+registerInspector('input_textarea', InputTextareaInspector, { props: ['name', 'label', 'placeholder', 'rows', 'valueFrom', 'required'] });
+registerInspector('input_number', InputNumberInspector, { props: ['name', 'label', 'min', 'max', 'step', 'defaultValue', 'required'] });
+registerInspector('input_select', InputSelectInspector, { props: ['name', 'label', 'placeholder', 'options', 'defaultValue', 'valueFrom', 'required'], items: { options: ['value', 'label'] } });
+registerInspector('input_checkbox', InputCheckboxInspector, { props: ['name', 'label', 'defaultChecked'] });
+registerInspector('input_date', InputDateInspector, { props: ['name', 'label', 'defaultValue', 'valueFrom', 'required'] });

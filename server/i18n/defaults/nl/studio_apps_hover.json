@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "studio_apps_hover.knobs.hover": "Bij aanwijzen",
+    "studio_apps_hover.title": "Aanwijzen",
+    "studio_apps_hover.values.grow": "Vergroten",
+    "studio_apps_hover.values.lift": "Opheffen",
+    "studio_apps_hover.values.none": "Geen",
+    "studio_apps_hover.values.outline": "Omlijnen"
+  },
+  "sameAsEnglish": [
+    "studio_apps_hover.values.tint"
+  ]
+}

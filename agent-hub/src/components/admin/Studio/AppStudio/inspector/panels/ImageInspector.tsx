@@ -79,4 +79,4 @@ function ImageInspector({ node, definition, onCommit, disabled = false }: PanelP
     );
 }
 
-registerInspector('image', ImageInspector);
+registerInspector('image', ImageInspector, { props: ['src', 'srcFrom', 'alt', 'fit'] });

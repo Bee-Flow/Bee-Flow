@@ -207,7 +207,7 @@ export function RunSurface({
                 sample={false}
                 draft={draft}
                 scope={scope}
-                refreshMs={refreshMs}
+                refreshMs={refreshMs} sectionRole={previewRole}
             >
                 {(dataState, { refresh }) => (
                     <RunBody

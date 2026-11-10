@@ -1,0 +1,28 @@
+{
+  "translations": {
+    "studio_apps_css.class_hint": "Een eigen naam. Geef hem vorm als .u-{name} in de eigen CSS van de app.",
+    "studio_apps_css.class_invalid": "Begin met een kleine letter, daarna kleine letters, cijfers of streepjes (hoogstens {max}).",
+    "studio_apps_css.class_label": "CSS-klasse",
+    "studio_apps_css.high_contrast": "Wordt niet toegepast onder het thema met hoog contrast.",
+    "studio_apps_css.hint": "Geldt alleen voor deze app. Gebruik het voor wat het thema en de stijlinstellingen niet kunnen.",
+    "studio_apps_css.label": "Stijlblad",
+    "studio_apps_css.off_hint": "Toont de app zonder dit stijlblad, alleen in deze editor. Er wordt niets opgeslagen.",
+    "studio_apps_css.off_label": "CSS uit",
+    "studio_apps_css.removed_outside": "een adres dat geen ingesloten afbeelding of geüpload bestand van deze app is",
+    "studio_apps_css.removed_sibling": "een selector die buiten de app reikt",
+    "studio_apps_css.removed_title": "Weggelaten wanneer de app wordt getoond:",
+    "studio_apps_css.removed_too_long": "alles: de CSS is langer dan de limiet",
+    "studio_apps_css.removed_var": "een afbeeldingsadres dat uit een variabele komt",
+    "studio_apps_css.sel_class": "componenten met de CSS-klasse \"name\" (in te stellen onder Stijl)",
+    "studio_apps_css.sel_dark": "zolang de app donker wordt getoond",
+    "studio_apps_css.sel_node": "één component",
+    "studio_apps_css.sel_screen": "één scherm",
+    "studio_apps_css.sel_section": "één sectie",
+    "studio_apps_css.sel_type": "elk component van een type",
+    "studio_apps_css.sheet_title": "Wat je kunt aanspreken",
+    "studio_apps_css.title": "Eigen CSS"
+  },
+  "sameAsEnglish": [
+    "studio_apps_css.class_placeholder"
+  ]
+}

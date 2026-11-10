@@ -46,6 +46,57 @@ exports[`compat corpus: what the phone plans for every stored app asset-refs 1`]
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app box-knobs 1`] = `
+{
+  "defaultScreen": "scr_boxkn01",
+  "navigable": [
+    "scr_boxkn01",
+  ],
+  "screens": [
+    {
+      "id": "scr_boxkn01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_boxkn01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Accent bar and a role fill",
+              },
+              {
+                "id": "cmp_boxkn02",
+                "kind": "stat",
+                "label": "Open items",
+                "value": "12",
+              },
+              {
+                "id": "cmp_boxkn03",
+                "kind": "stat",
+                "label": "Quiet tile",
+                "value": "3",
+              },
+              {
+                "id": "cmp_boxkn04",
+                "kind": "text",
+                "muted": false,
+                "text": "Space above and below, a bottom rule.",
+              },
+            ],
+            "screen": "scr_boxkn01",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app computed-read-time 1`] = `
 {
   "defaultScreen": "scr_lines01",
@@ -75,6 +126,73 @@ exports[`compat corpus: what the phone plans for every stored app computed-read-
           "roles": [
             "(no role)",
             "clerk",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app custom-css 1`] = `
+{
+  "defaultScreen": "scr_css00001",
+  "navigable": [
+    "scr_css00001",
+  ],
+  "screens": [
+    {
+      "id": "scr_css00001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_css00002",
+                "kind": "heading",
+                "level": 2,
+                "text": "A styled heading",
+              },
+              {
+                "id": "cmp_css00003",
+                "kind": "text",
+                "muted": false,
+                "text": "1 234 567",
+              },
+              {
+                "id": "cmp_css00004",
+                "kind": "text",
+                "muted": false,
+                "text": "Hidden on a phone by the stylesheet.",
+              },
+            ],
+            "screen": "scr_css00001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_css00002",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_css00006",
+                "kind": "heading",
+                "level": 2,
+                "text": "Public page",
+              },
+            ],
+            "screen": "scr_css00002",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
           ],
         },
       ],
@@ -319,6 +437,64 @@ exports[`compat corpus: what the phone plans for every stored app dataset-params
           "roles": [
             "(no role)",
             "viewer",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app design-preset-ember 1`] = `
+{
+  "defaultScreen": "scr_p1yp7d",
+  "navigable": [
+    "scr_p1yp7d",
+  ],
+  "screens": [
+    {
+      "id": "scr_p1yp7d",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": true,
+                "id": "cmp_8dufjm",
+                "kind": "page_header",
+                "subtitle": "What waits today",
+                "title": "Repairs",
+              },
+              {
+                "id": "cmp_3eubai",
+                "kind": "stat",
+                "label": "Waiting",
+                "value": "0",
+              },
+              {
+                "id": "cmp_jmxqkg",
+                "kind": "stat",
+                "label": "Planned",
+                "value": "0",
+              },
+              {
+                "id": "cmp_xunx18",
+                "kind": "stat",
+                "label": "Done",
+                "value": "0",
+              },
+              {
+                "id": "cmp_4y25tl",
+                "kind": "text",
+                "muted": false,
+                "text": "Nothing planned yet.",
+              },
+            ],
+            "screen": "scr_p1yp7d",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
           ],
         },
       ],
@@ -874,6 +1050,291 @@ exports[`compat corpus: what the phone plans for every stored app flex-relation-
           "roles": [
             "(no role)",
             "member",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app hover-backdrop 1`] = `
+{
+  "defaultScreen": "scr_hvbg001",
+  "navigable": [
+    "scr_hvbg001",
+  ],
+  "screens": [
+    {
+      "id": "scr_hvbg001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_hvbg01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Lift on hover",
+              },
+              {
+                "id": "cmp_hvbg02",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tint on hover",
+              },
+              {
+                "id": "cmp_hvbg03",
+                "kind": "heading",
+                "level": 2,
+                "text": "Outline on hover",
+              },
+              {
+                "id": "cmp_hvbg04",
+                "kind": "heading",
+                "level": 2,
+                "text": "Grow on hover",
+              },
+              {
+                "id": "cmp_hvbg05",
+                "kind": "heading",
+                "level": 2,
+                "text": "Hover none is the identity",
+              },
+              {
+                "id": "cmp_hvbg06",
+                "kind": "heading",
+                "level": 2,
+                "text": "Picture with a dim veil",
+              },
+              {
+                "id": "cmp_hvbg07",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tiled pattern",
+              },
+              {
+                "id": "cmp_hvbg08",
+                "kind": "heading",
+                "level": 2,
+                "text": "Contained with a hover",
+              },
+            ],
+            "screen": "scr_hvbg001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app layout-v2 1`] = `
+{
+  "defaultScreen": "scr_layout1",
+  "navigable": [
+    "scr_layout1",
+  ],
+  "screens": [
+    {
+      "id": "scr_layout1",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_fivehd",
+                "kind": "heading",
+                "level": 1,
+                "text": "Five across",
+              },
+              {
+                "id": "cmp_fives1",
+                "kind": "stat",
+                "label": "One",
+                "value": "12",
+              },
+              {
+                "id": "cmp_fives2",
+                "kind": "stat",
+                "label": "Two",
+                "value": "12",
+              },
+              {
+                "id": "cmp_fives3",
+                "kind": "stat",
+                "label": "Three",
+                "value": "12",
+              },
+              {
+                "id": "cmp_fives4",
+                "kind": "stat",
+                "label": "Four",
+                "value": "12",
+              },
+              {
+                "id": "cmp_fives5",
+                "kind": "stat",
+                "label": "Five",
+                "value": "12",
+              },
+              {
+                "id": "cmp_tallt1",
+                "kind": "text",
+                "muted": false,
+                "text": "A quarter",
+              },
+              {
+                "id": "cmp_tallt2",
+                "kind": "text",
+                "muted": false,
+                "text": "Three quarters",
+              },
+              {
+                "id": "cmp_tallt3",
+                "kind": "text",
+                "muted": false,
+                "text": "Whole row",
+              },
+              {
+                "id": "cmp_short1",
+                "kind": "stat",
+                "label": "Short one",
+                "value": "12",
+              },
+              {
+                "id": "cmp_short2",
+                "kind": "stat",
+                "label": "Short two",
+                "value": "12",
+              },
+              {
+                "id": "cmp_stickt",
+                "kind": "text",
+                "muted": false,
+                "text": "Stays in view beside the tall block.",
+              },
+              {
+                "id": "cmp_p3m5lq",
+                "kind": "text",
+                "muted": false,
+                "text": "Third",
+              },
+              {
+                "id": "cmp_t5awao",
+                "kind": "text",
+                "muted": false,
+                "text": "Third",
+              },
+              {
+                "id": "cmp_lqzlp4",
+                "kind": "text",
+                "muted": false,
+                "text": "Third",
+              },
+              {
+                "action": null,
+                "description": null,
+                "id": "cmp_form01",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "First name",
+                    "max": null,
+                    "min": null,
+                    "name": "first",
+                    "nodeId": "cmp_first1",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Last name",
+                    "max": null,
+                    "min": null,
+                    "name": "last",
+                    "nodeId": "cmp_last01",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Note",
+                    "max": null,
+                    "min": null,
+                    "name": "note",
+                    "nodeId": "cmp_note01",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_textarea",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Send",
+                "title": "contact",
+              },
+              {
+                "id": "cmp_puwybl",
+                "kind": "text",
+                "muted": false,
+                "text": "One",
+              },
+              {
+                "id": "cmp_rh0uvb",
+                "kind": "text",
+                "muted": false,
+                "text": "Two",
+              },
+              {
+                "id": "cmp_9rcbt0",
+                "kind": "text",
+                "muted": false,
+                "text": "A third",
+              },
+              {
+                "id": "cmp_ejpbvz",
+                "kind": "text",
+                "muted": false,
+                "text": "Two thirds",
+              },
+              {
+                "id": "cmp_repnam",
+                "kind": "text",
+                "muted": false,
+                "text": "Name",
+              },
+              {
+                "id": "cmp_reprol",
+                "kind": "text",
+                "muted": false,
+                "text": "Role",
+              },
+            ],
+            "screen": "scr_layout1",
+            "unsupported": [
+              "tabs",
+              "tab",
+              "modal",
+              "repeater",
+            ],
+          },
+          "roles": [
+            "(no role)",
           ],
         },
       ],
@@ -11100,6 +11561,65 @@ exports[`compat corpus: what the phone plans for every stored app trace-invoice-
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app typography-text-knobs 1`] = `
+{
+  "defaultScreen": "scr_textkn01",
+  "navigable": [
+    "scr_textkn01",
+  ],
+  "screens": [
+    {
+      "id": "scr_textkn01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_textkn01",
+                "kind": "heading",
+                "level": 1,
+                "text": "Quarterly review",
+              },
+              {
+                "id": "cmp_textkn02",
+                "kind": "heading",
+                "level": 3,
+                "text": "Overview",
+              },
+              {
+                "id": "cmp_textkn03",
+                "kind": "text",
+                "muted": false,
+                "text": "Plain paragraph in the default look.",
+              },
+              {
+                "id": "cmp_textkn04",
+                "kind": "text",
+                "muted": false,
+                "text": "A bold paragraph with relaxed lines.",
+              },
+              {
+                "id": "cmp_textkn05",
+                "kind": "text",
+                "muted": false,
+                "text": "INV-2026-0042",
+              },
+            ],
+            "screen": "scr_textkn01",
+            "unsupported": [
+              "markdown",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app v3-code-step-quote 1`] = `
 {
   "defaultScreen": "scr_cqform",
@@ -11445,6 +11965,49 @@ exports[`compat corpus: what the phone plans for every stored app v3-watchers-an
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app value-format 1`] = `
+{
+  "defaultScreen": "scr_w7pbkb",
+  "navigable": [
+    "scr_w7pbkb",
+  ],
+  "screens": [
+    {
+      "id": "scr_w7pbkb",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_vfstat01",
+                "kind": "stat",
+                "label": "Revenue",
+                "value": "1234567.5",
+              },
+              {
+                "id": "cmp_vfstat02",
+                "kind": "stat",
+                "label": "Orders",
+                "value": "4321",
+              },
+            ],
+            "screen": "scr_w7pbkb",
+            "unsupported": [
+              "table",
+              "data_grid",
+              "chart",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app viewer-row-rules 1`] = `
 {
   "defaultScreen": "scr_tasks01",
@@ -11476,6 +12039,118 @@ exports[`compat corpus: what the phone plans for every stored app viewer-row-rul
             "member",
             "lead",
             "auditor",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app vocab-section-model 1`] = `
+{
+  "defaultScreen": "scr_secmod01",
+  "navigable": [
+    "scr_secmod01",
+    "scr_secmod02",
+  ],
+  "screens": [
+    {
+      "id": "scr_secmod01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_secmod01",
+                "kind": "text",
+                "muted": false,
+                "text": "Everything that still needs a reply.",
+              },
+              {
+                "id": "cmp_secmod02",
+                "kind": "text",
+                "muted": false,
+                "text": "Closed last week: 12.",
+              },
+              {
+                "id": "cmp_secmod05",
+                "kind": "text",
+                "muted": false,
+                "text": "Always shown.",
+              },
+            ],
+            "screen": "scr_secmod01",
+            "unsupported": [
+              "text",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_secmod01",
+                "kind": "text",
+                "muted": false,
+                "text": "Everything that still needs a reply.",
+              },
+              {
+                "id": "cmp_secmod02",
+                "kind": "text",
+                "muted": false,
+                "text": "Closed last week: 12.",
+              },
+              {
+                "action": {
+                  "actionId": "act_secmod01",
+                  "kind": "navigate",
+                  "label": "Approve all",
+                  "runnable": false,
+                },
+                "id": "cmp_secmod04",
+                "kind": "button",
+              },
+              {
+                "id": "cmp_secmod05",
+                "kind": "text",
+                "muted": false,
+                "text": "Always shown.",
+              },
+            ],
+            "screen": "scr_secmod01",
+            "unsupported": [
+              "text",
+            ],
+          },
+          "roles": [
+            "manager",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_secmod02",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_secmod06",
+                "kind": "text",
+                "muted": false,
+                "text": "A full-height section with a title.",
+              },
+            ],
+            "screen": "scr_secmod02",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+            "manager",
           ],
         },
       ],

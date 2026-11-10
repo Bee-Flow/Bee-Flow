@@ -4,6 +4,9 @@ import { describe, it, expect, vi } from 'vitest';
 import AppList from './AppList';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
 
+// Part classes (bfa-*) are documentation hooks for custom CSS, not look: the class pins ignore them.
+const bare = (cls) => (cls || '').split(' ').filter((c) => !c.startsWith('bfa-')).join(' ');
+
 /**
  * The list is the sidebar picker of any inbox-shaped app. It shipped declaring
  * an onRowClick event that the component never implemented — clicking a row
@@ -117,12 +120,12 @@ describe('AppList — look', () => {
     it('rows (default) renders todays exact markup and no look marker', () => {
         const { container } = renderList(node());
         const ul = container.querySelector('[data-app-list]');
-        expect(ul.className).toBe('flex flex-col gap-2');
+        expect(bare(ul.className)).toBe('flex flex-col gap-2');
         expect(ul.getAttribute('data-app-list-look')).toBeNull();
         expect(ul.getAttribute('style')).toBeNull();
 
         const item = rowOf(container, 0);
-        expect(item.className).toBe('flex items-center gap-2.5 border w-full text-left px-3 py-2');
+        expect(bare(item.className)).toBe('flex items-center gap-2.5 border w-full text-left px-3 py-2');
         expect(item.style.background).toBe('var(--bg-card)');
         expect(item.style.borderColor).toBe('var(--border-default)');
         expect(item.style.boxShadow).toBe('');
@@ -132,7 +135,7 @@ describe('AppList — look', () => {
         for (const look of ['rows', 'mosaic-of-tomorrow']) {
             const { container } = renderList(node({ look }));
             const ul = container.querySelector('[data-app-list]');
-            expect(ul.className).toBe('flex flex-col gap-2');
+            expect(bare(ul.className)).toBe('flex flex-col gap-2');
             expect(ul.getAttribute('data-app-list-look')).toBeNull();
             expect(rowOf(container, 0).style.boxShadow).toBe('');
         }
@@ -142,7 +145,7 @@ describe('AppList — look', () => {
         const { container } = renderList(node({ look: 'cards' }));
         const ul = container.querySelector('[data-app-list]');
         expect(ul.getAttribute('data-app-list-look')).toBe('cards');
-        expect(ul.className).toBe('flex flex-col gap-3');
+        expect(bare(ul.className)).toBe('flex flex-col gap-3');
 
         const item = rowOf(container, 0);
         expect(item.style.boxShadow).toBe('var(--app-shadow-1)');

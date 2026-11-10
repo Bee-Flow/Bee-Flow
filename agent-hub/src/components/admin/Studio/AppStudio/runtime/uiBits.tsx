@@ -114,20 +114,23 @@ interface FieldProps {
     required?: boolean;
     error?: React.ReactNode;
     children?: React.ReactNode;
+    /** Component type whose part classes (`bfa-<part>__root|label|error`) the frame carries. */
+    part?: string;
 }
 
-export function Field({ id, label, required, error, children }: FieldProps) {
+export function Field({ id, label, required, error, children, part }: FieldProps) {
+    const cls = (name: string, base: string) => (part ? `${base} bfa-${part}__${name}` : base);
     return (
-        <div className="flex flex-col gap-1 text-left">
+        <div className={cls('root', 'flex flex-col gap-1 text-left')}>
             {label ? (
-                <label htmlFor={id} className="text-sm font-medium text-[var(--text-primary)]">
+                <label htmlFor={id} className={cls('label', 'text-sm font-medium text-[var(--text-primary)]')}>
                     {label}
                     {required ? <span aria-hidden="true" className="[color:var(--error)]"> *</span> : null}
                 </label>
             ) : null}
             {children}
             {error ? (
-                <p id={id ? `${id}-error` : undefined} className="text-xs [color:var(--error)]!" role="alert">{error}</p>
+                <p id={id ? `${id}-error` : undefined} className={cls('error', 'text-xs [color:var(--error)]!')} role="alert">{error}</p>
             ) : null}
         </div>
     );

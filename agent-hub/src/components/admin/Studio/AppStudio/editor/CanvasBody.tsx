@@ -3,6 +3,7 @@ import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { MousePointerClick } from 'lucide-react';
 import { RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import BreakpointSwitch from './BreakpointSwitch';
 import BuildBanner from './BuildBanner';
 import { useBuildCue } from './BuildCueContext';
 import { buildNode, sectionDroppableId } from './dnd';
@@ -12,6 +13,8 @@ import useBuildFollow from './useBuildFollow';
 import EditorNodeWrapper from './EditorNodeWrapper';
 import DeviceFrame from './DeviceFrame';
 import Marquee from './Marquee';
+import SectionChips from './SectionChips';
+import AddSectionButton from './AddSectionButton';
 import toast from '@/components/shared/Toast';
 import AppCustomCss from '../runtime/AppCustomCss';
 import AppRenderer from '../runtime/AppRenderer';
@@ -79,6 +82,32 @@ type EditorState = ReturnType<typeof useAppEditor>;
  * surface ref, and the section elements found under it after each render of
  * the edit surface (cleared outside edit mode).
  */
+interface EmptySectionDropZonesProps {
+    sections: AppSection[];
+    sectionEls: Map<string | null | undefined, Element>;
+    ghostContainer: Element | null | undefined;
+    onAddStarter: (sectionId: string, type: string) => void;
+    disabled: boolean;
+}
+
+/** A drop zone in every empty section of the screen being edited. */
+function EmptySectionDropZones({ sections, sectionEls, ghostContainer, onAddStarter, disabled }: EmptySectionDropZonesProps) {
+    return (
+        <>
+            {sections.map((section) => {
+                const container = sectionEls.get(section.id);
+                // The ghost takes the empty section's slot while a card is
+                // being typed into it — a drop zone under a ghost would be
+                // two placeholders for one spot.
+                if (ghostContainer && ghostContainer === container) return null;
+                return container
+                    ? <SectionDropZone key={section.id} sectionId={section.id as string} container={container} onAddStarter={onAddStarter} disabled={disabled} />
+                    : null;
+            })}
+        </>
+    );
+}
+
 function useSectionElements(definition: EditorState['definition'], screenId: EditorState['screenId'], mode: EditorState['mode']) {
     const surfaceRef = useRef<HTMLDivElement>(null);
     const [sectionEls, setSectionEls] = useState(() => new Map<string | null | undefined, Element>());
@@ -273,7 +302,7 @@ export function CanvasBody({
                         : undefined}
                 >
                     <Marquee surfaceRef={surfaceRef} />
-                    <AppCustomCss definition={definition} />
+                    <AppCustomCss definition={definition} appId={appId} />
                     <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
                         <AppRenderer
                             definition={definition}
@@ -297,25 +326,22 @@ export function CanvasBody({
                             registerFormValue={registerFormValue}
                         />
                     </SortableContext>
-                    {emptySections.map((section: AppSection) => {
-                        const container = sectionEls.get(section.id);
-                        // The ghost takes the empty section's slot while a card is
-                        // being typed into it — a drop zone under a ghost would be
-                        // two placeholders for one spot.
-                        if (ghost && ghostContainer === container) return null;
-                        return container
-                            ? (
-                                <SectionDropZone
-                                    key={section.id}
-                                    sectionId={section.id as string}
-                                    container={container}
-                                    onAddStarter={addStarter}
-                                    disabled={streamLock}
-                                />
-                            )
-                            : null;
-                    })}
+                    <EmptySectionDropZones
+                        sections={emptySections}
+                        sectionEls={sectionEls}
+                        ghostContainer={ghost ? ghostContainer : null}
+                        onAddStarter={addStarter}
+                        disabled={streamLock}
+                    />
                     {ghost && ghostContainer ? <GhostCell draft={ghost} container={ghostContainer} /> : null}
+                    <SectionChips
+                        sections={screen?.sections || []}
+                        sectionEls={sectionEls}
+                        selectedId={selectedNodeId && selectedNodeId.startsWith('sec_') ? selectedNodeId : null}
+                        disabled={streamLock}
+                        onSelect={onSelectNode}
+                    />
+                    <AddSectionButton screen={screen} definitionRef={definitionRef} onCommit={onCommit} disabled={streamLock} />
                 </div>
             ) : (
                 <CanvasPreview
@@ -325,6 +351,13 @@ export function CanvasBody({
                     confirmDialog={confirmDialog}
                 />
             )}
+
+            {/* Which screen size the width grip arranges (span, spanMd, spanSm). Edit mode only. */}
+            {mode === 'edit' ? (
+                <div className="pointer-events-none absolute right-4 top-2 z-20 flex justify-end">
+                    <BreakpointSwitch disabled={streamLock} />
+                </div>
+            ) : null}
 
             {/* streamLock shield — always mounted. It blocks pointer events on the
                 canvas while the AI edits, and NOTHING more: it used to dim the

@@ -18,7 +18,7 @@ import type { CSSProperties } from 'react';
 
 // ── Mirrors (server/appStudio/appDesignSpec.js is authoritative) ────────────
 export const DESIGN_ENUMS = {
-    preset: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono'],
+    preset: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono', 'grove', 'ember', 'signal', 'bloom', 'ledger', 'nocturne'],
     font: ['system', 'inter', 'satoshi', 'general-sans', 'cabinet', 'geist', 'plex', 'poppins'],
     surface: ['hairline', 'flat', 'soft', 'elevated'],
     motion: ['none', 'subtle', 'full'],

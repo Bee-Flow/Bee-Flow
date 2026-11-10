@@ -8,11 +8,13 @@
 
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
+const { formatOptionsSpec } = require('./objectShapes');
 
 const ANALYTICS_SPECS = {
     // ── v2 data & visualization ──────────────────────────────────────────
     data_grid: {
         label: 'Data grid', category: 'Data',
+        parts: ['root', 'toolbar', 'table', 'header', 'headcell', 'row', 'cell', 'footer'],
         description: 'A powerful table over an array of objects: sortable/filterable columns, paging, selection, search and row actions.',
         events: ['onRowClick', 'onRowSelect'],
         props: {
@@ -109,6 +111,11 @@ const ANALYTICS_SPECS = {
                     // do it is a detour they have to be taught. The action gets
                     // the row as `item` and as form values, like a row action.
                     actionId: { type: 'string', maxLen: 20 },
+                    // Schema 3: how this column writes its numbers and dates.
+                    formatOptions: formatOptionsSpec(
+                        'How this column writes its numbers, amounts and dates.',
+                        'It applies to the number, currency, percent, progress, date, datetime and relative formats of the column.',
+                    ),
                 },
             },
             pageSize: { type: 'int', min: 5, max: 100, default: 25 },
@@ -229,6 +236,7 @@ const ANALYTICS_SPECS = {
     },
     chart: {
         label: 'Chart', category: 'Data',
+        parts: ['root', 'title', 'plot'],
         description: 'A bar/line/area/pie/donut chart over an array of objects. x-axis from xKey, one or more series by key. xType:"time" spaces points by date rather than evenly, so a gap in the data reads as a gap. referenceLines/referenceBands draw a target or healthy range behind the series; unitLabel suffixes the axis and tooltip. onRowClick fires with the clicked row.',
         props: {
             chartType: { type: 'enum', values: ['bar', 'line', 'area', 'pie', 'donut'], default: 'bar' },
@@ -281,6 +289,11 @@ const ANALYTICS_SPECS = {
             },
             // A bare number on a health axis is unreadable — 72 what?
             unitLabel: { type: 'string', maxLen: 20, default: null },
+            // Schema 3: how the value axis and the tooltip write numbers.
+            formatOptions: formatOptionsSpec(
+                'How the value axis and the tooltip write the numbers of this chart.',
+                'It refines valueFormat (number, currency or percent): pattern does not apply here, and unitLabel is still written after the number.',
+            ),
         },
         events: ['onRowClick'],
         styleKnobs: ['span', 'height'],
@@ -288,6 +301,7 @@ const ANALYTICS_SPECS = {
     },
     pivot: {
         label: 'Pivot table', category: 'Data',
+        parts: ['root', 'table', 'header', 'row', 'rowhead', 'cell', 'total', 'footer'],
         description: 'A cross-tab over an array of objects: group by row and column dimensions, aggregate value fields.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },

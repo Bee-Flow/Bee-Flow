@@ -1,0 +1,200 @@
+# value-format
+## screen scr_w7pbkb (Home)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_w7pbkb" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_288hcx" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_vfstat01" style="grid-column: span 4 / span 4">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Revenue"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="€1.23M">
+                    "€1.23M"
+                  <span class="font-medium gap-0.5 inline-flex items-center text-xs" data-app-stat-delta="true" style="color: rgb(16, 185, 129)">
+                    <svg class="h-3.5 lucide lucide-arrow-up-right w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    "2.3%"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_vfstat02" style="grid-column: span 4 / span 4">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Orders"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="4,321">
+                    "4,321"
+          <div class="app-node app-span-12 min-w-0" data-app-type="table" data-node-id="cmp_vftabl01" style="grid-column: span 12 / span 12">
+            <div class="app-scroll-edges overflow-x-auto w-full">
+              <table class="app-grid-base text-sm w-full">
+                <thead>
+                  <tr>
+                    <th class="border-b font-medium px-2.5 py-1.5 text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Item"
+                    <th class="border-b font-medium px-2.5 py-1.5 text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Amount"
+                    <th class="border-b font-medium px-2.5 py-1.5 text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Share"
+                    <th class="border-b font-medium px-2.5 py-1.5 text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Growth"
+                    <th class="border-b font-medium px-2.5 py-1.5 text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Due"
+                    <th class="border-b font-medium px-2.5 py-1.5 text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Paid"
+                    <th class="border-b font-medium px-2.5 py-1.5 text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Done"
+                <tbody>
+                  <tr>
+                    <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                      "Licences"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                      <span class="tabular-nums">
+                        "$1,234.50"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                      <span class="tabular-nums">
+                        "25.6%"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                      <span class="tabular-nums">
+                        "12.3"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                      "01 Mar 2026"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                      "4 Jul 2026 <time>"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                      <span class="gap-1.5 inline-flex items-center w-full">
+                        <span class="[background:var(--bg-tertiary)] flex-1 h-1.5 inline-block overflow-hidden relative rounded-full" aria-label="40%" role="img">
+                          <span class="absolute inset-y-0 left-0" style="background: var(--app-primary); width: 40%">
+                        <span class="tabular-nums text-[var(--text-secondary)] text-xs">
+                          "40"
+                  <tr>
+                    <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                      "Hosting"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                      <span class="tabular-nums">
+                        "$98,765.43"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                      <span class="tabular-nums">
+                        "5.0%"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                      <span class="tabular-nums">
+                        "-3.0"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                      "31 Dec 2026"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                      "2 Jan 2026 <time>"
+                    <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                      <span class="gap-1.5 inline-flex items-center w-full">
+                        <span class="[background:var(--bg-tertiary)] flex-1 h-1.5 inline-block overflow-hidden relative rounded-full" aria-label="75%" role="img">
+                          <span class="absolute inset-y-0 left-0" style="background: var(--app-primary); width: 75%">
+                        <span class="tabular-nums text-[var(--text-secondary)] text-xs">
+                          "75"
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_vfgrid01" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 min-w-0 w-full" data-app-datagrid="true">
+              <div class="flex flex-wrap gap-x-3 gap-y-2 items-center">
+                <div class="flex gap-2 items-center ml-auto">
+                  <div class="relative shrink-0" data-app-grid-viewmenu="true">
+                    <button class="border font-medium gap-1.5 inline-flex items-center px-2 py-1.5 text-xs" aria-expanded="false" aria-haspopup="dialog" title="How this table is shown" type="button" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-secondary)">
+                      <svg class="h-3.5 lucide lucide-settings-2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "View"
+              <div class="app-scroll-edges overflow-x-auto w-full">
+                <table class="app-grid-base text-sm w-full" style="table-layout: auto">
+                  <thead class="[background:var(--bg-card)] sticky top-0 z-[1]">
+                    <tr>
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Item"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer flex-row-reverse gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Amount"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer flex-row-reverse gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Share"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer flex-row-reverse gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Growth"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Due"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Paid"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer flex-row-reverse gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Done"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <tbody>
+                    <tr>
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "Licences"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <span class="tabular-nums">
+                          "£1,235"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <span class="tabular-nums">
+                          "25.6%"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <span class="tabular-nums">
+                          "12.3"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "01 Mar 2026"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "4 Jul 2026 <time>"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <span class="gap-1.5 inline-flex items-center w-full">
+                          <span class="[background:var(--bg-tertiary)] flex-1 h-1.5 inline-block overflow-hidden relative rounded-full" aria-label="40%" role="img">
+                            <span class="absolute inset-y-0 left-0" style="background: var(--app-primary); width: 40%">
+                          <span class="tabular-nums text-[var(--text-secondary)] text-xs">
+                            "40"
+                    <tr>
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "Hosting"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <span class="tabular-nums">
+                          "£98,765"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <span class="tabular-nums">
+                          "5.0%"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <span class="tabular-nums">
+                          "-3.0"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "31 Dec 2026"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "2 Jan 2026 <time>"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <span class="gap-1.5 inline-flex items-center w-full">
+                          <span class="[background:var(--bg-tertiary)] flex-1 h-1.5 inline-block overflow-hidden relative rounded-full" aria-label="75%" role="img">
+                            <span class="absolute inset-y-0 left-0" style="background: var(--app-primary); width: 75%">
+                          <span class="tabular-nums text-[var(--text-secondary)] text-xs">
+                            "75"
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_vfchart1" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex flex-col h-full min-h-0 min-w-0 w-full" data-app-chart="bar" data-app-chart-fitted="true" data-app-chart-xtype="category">
+              <div class="flex-1 min-h-0 overflow-hidden w-full">
+                <div class="recharts-wrapper" height="200" width="600" style="cursor: default; height: 200px; position: relative; width: 600px">
+                  <div class="recharts-tooltip-wrapper" tabindex="-1" xmlns="http://www.w3.org/1999/xhtml" style="left: 0px; pointer-events: none; position: absolute; top: 0px; visibility: hidden">
+                    <div class="recharts-default-tooltip" aria-live="assertive" role="status" style="background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-default); color: var(--text-primary); font-size: 12px; margin: 0px; padding: 10px; white-space: nowrap">
+                      <p class="recharts-tooltip-label" style="margin: 0px">
+                  <div class="recharts-legend-wrapper" style="bottom: 5px; font-size: 11px; height: auto; left: 5px; position: absolute; width: 590px">
+                    <ul class="recharts-default-legend" style="margin: 0px; padding: 0px; text-align: center">
+                      <li class="legend-item-0 recharts-legend-item" style="display: inline-block; margin-right: 10px; white-space: nowrap">
+                        <svg class="recharts-surface" aria-label="Amount legend icon" height="14" viewBox="0 0 32 32" width="14" style="display: inline-block; margin-right: 4px; vertical-align: middle">
+                        <span class="recharts-legend-item-text" style="color: rgb(59, 130, 246); overflow-wrap: break-word; white-space: normal">
+                          "Amount"
+                  <svg class="recharts-surface" height="200" role="application" tabindex="0" viewBox="0 0 600 200" width="600" style="display: block; height: 100%; width: 100%">
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "$0.0"

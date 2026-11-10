@@ -48,4 +48,4 @@ export default function InputDatetimeInspector({ node, definition, onCommit, dis
     );
 }
 
-registerInspector('input_datetime', InputDatetimeInspector);
+registerInspector('input_datetime', InputDatetimeInspector, { props: ['name', 'label', 'required', 'withTime', 'defaultValue'] });

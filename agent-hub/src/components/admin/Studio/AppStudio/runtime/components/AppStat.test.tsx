@@ -5,6 +5,7 @@ import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext'
 import type { ReactElement } from 'react';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
+import { withoutPartClasses } from '@/test/appPartClasses';
 
 function withRuntime(ui: ReactElement, overrides = {}) {
     const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2020-01-01T00:00:00.000Z' }), ...overrides };
@@ -91,21 +92,21 @@ describe('AppStat looks', () => {
     it("look 'plain' (the default) stamps no look class and no style — identity", () => {
         const { container } = withRuntime(<AppStat node={stub<ComponentProps<typeof AppStat>['node']>(statNode({ look: 'plain' }))} />);
         const root = container.querySelector('.app-stat');
-        expect(root!.className).toBe(IDENTITY_CLASS);
+        expect(withoutPartClasses(root!.className)).toBe(IDENTITY_CLASS);
         expect(root!.getAttribute('style')).toBeNull();
     });
 
     it('an absent look renders the identity too (stored v1/v2 defs)', () => {
         const { container } = withRuntime(<AppStat node={stub<ComponentProps<typeof AppStat>['node']>(statNode())} />);
         const root = container.querySelector('.app-stat');
-        expect(root!.className).toBe(IDENTITY_CLASS);
+        expect(withoutPartClasses(root!.className)).toBe(IDENTITY_CLASS);
         expect(root!.getAttribute('style')).toBeNull();
     });
 
     it('an unknown look value falls back to the identity render', () => {
         const { container } = withRuntime(<AppStat node={stub<ComponentProps<typeof AppStat>['node']>(statNode({ look: 'bogus' }))} />);
         const root = container.querySelector('.app-stat');
-        expect(root!.className).toBe(IDENTITY_CLASS);
+        expect(withoutPartClasses(root!.className)).toBe(IDENTITY_CLASS);
         expect(root!.getAttribute('style')).toBeNull();
     });
 

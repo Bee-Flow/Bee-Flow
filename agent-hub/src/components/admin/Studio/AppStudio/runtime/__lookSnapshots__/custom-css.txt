@@ -1,0 +1,39 @@
+# custom-css
+## screen scr_css00001 (Styled)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0" data-app-css-root="" data-app-dark="false">
+    <style data-app-custom-css="">
+      ".app-shell:has([data-app-css-root]) { position: relative; overflow: clip; } @scope ([data-app-css-root]) { .u-hero { border-top: 4px solid var(--app-primary); letter-spacing: 0.01em; } .u-hero [data-app-type="heading"] { text-transform: uppercase; } [data-app-screen="scr_css00001"] [data-section-id="sec_css00001"] { background-image: url(asset:5f0c2b1e-1111-4222-8333-444455556666); background-size: cover; } [data-node-id="cmp_css00003"] { font-variant-numeric: tabular-nums; } :scope[data-app-dark="true"] .u-hero { border-top-color: var(--app-accent, var(--app-primary)); } @media (max-width: 640px) { .u-quiet { display: none; } } @container (min-width: 40em) { .u-hero { padding-inline: 2rem; } } }"
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_css00001" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_css00001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_css00001" style="background: var(--bg-card); grid-column: span 12 / span 12; padding: calc(12px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "Welcome"
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_css00002" style="grid-column: span 12 / span 12">
+                  <h2 class="break-words font-semibold text-xl">
+                    "A styled heading"
+                <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_css00003" style="grid-column: span 12 / span 12">
+                  <p class="break-words leading-relaxed text-sm">
+                    "1 234 567"
+          <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_css00004" style="grid-column: span 12 / span 12">
+            <p class="break-words leading-relaxed text-sm">
+              "Hidden on a phone by the stylesheet."
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_css00005" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Plain button"
+## screen scr_css00002 (Public)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0" data-app-css-root="" data-app-dark="false">
+    <style data-app-custom-css="">
+      ".app-shell:has([data-app-css-root]) { position: relative; overflow: clip; } @scope ([data-app-css-root]) { .u-hero { border-top: 4px solid var(--app-primary); letter-spacing: 0.01em; } .u-hero [data-app-type="heading"] { text-transform: uppercase; } [data-app-screen="scr_css00001"] [data-section-id="sec_css00001"] { background-image: url(asset:5f0c2b1e-1111-4222-8333-444455556666); background-size: cover; } [data-node-id="cmp_css00003"] { font-variant-numeric: tabular-nums; } :scope[data-app-dark="true"] .u-hero { border-top-color: var(--app-accent, var(--app-primary)); } @media (max-width: 640px) { .u-quiet { display: none; } } @container (min-width: 40em) { .u-hero { padding-inline: 2rem; } } }"
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_css00002" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_css00002" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_css00006" style="grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "Public page"

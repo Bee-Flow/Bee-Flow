@@ -9,6 +9,7 @@
 'use strict';
 
 const { capStr, capStrArray } = require('./shared');
+const { boundPlanDesign } = require('./planDesign.mts');
 
 // ── Plan-first UX, phases & templates (Wave 5) ───────────────────────
 //
@@ -34,7 +35,7 @@ const PLAN_LIMITS = {
  */
 function boundPlanArtifact(args) {
     if (!args || typeof args !== 'object' || Array.isArray(args)) {
-        return { error: 'app_propose_plan needs a plan object { title, summary, screens, tables?, roles?, datasets?, actions?, phases? }.' };
+        return { error: 'app_propose_plan needs a plan object { title, summary, screens, tables?, roles?, datasets?, actions?, phases?, design? }.' };
     }
     const L = PLAN_LIMITS;
     const plan = {};
@@ -130,6 +131,8 @@ function boundPlanArtifact(args) {
     if (openQuestions) plan.openQuestions = openQuestions;
     const baseTemplateId = capStr(args.baseTemplateId, L.STR);
     if (baseTemplateId) plan.baseTemplateId = baseTemplateId;
+    const design = boundPlanDesign(args.design);
+    if (design) plan.design = design;
 
     if (!plan.title && !plan.summary && !plan.screens && !plan.tables) {
         return {

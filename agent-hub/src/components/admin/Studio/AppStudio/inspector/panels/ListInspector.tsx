@@ -1,11 +1,10 @@
 import React from 'react';
 import BindingField from './BindingField';
 import { FieldKeyField, TextField, NumberField, IconField, SelectField, usePatch } from './kit';
-import { SpecListField } from './SpecPanel';
+import { SpecListField } from './SpecListField';
 import useTranslation from '@/hooks/useTranslation';
 import ExpressionInput from '../logic/ExpressionInput';
 import { registerInspector } from '../registry';
-import SpecLaterFields from './SpecLaterFields';
 import FormField from '@/components/shared/FormField';
 import Toggle from '@/components/shared/Toggle';
 import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
@@ -251,12 +250,16 @@ export default function ListInspector({ node, definition, onCommit, disabled = f
                 onChange={(v) => patch({ emptyText: v })}
                 disabled={disabled}
             />
-            <SpecLaterFields node={node} definition={definition} patch={patch} disabled={disabled} />
         </div>
     );
 }
 
-registerInspector('list', ListInspector);
+registerInspector('list', ListInspector, { props: [
+        'source', 'look', 'titleKey', 'subtitleKey', 'metaKey', 'timestampKey', 'badgeKey', 'badgeToneMap', 'unreadKey',
+        'badgePlacement', 'selectedWhen', 'selectedDetailKey', 'groupKey', 'groupOrder', 'groupLabelMap', 'peekSource',
+        'peekMatchKey', 'peekRowKey', 'peekTitleKey', 'peekTextKey', 'peekGroupKey', 'peekGroupLabelMap', 'peekCountKey',
+        'peekLimit', 'peekTitle', 'peekMoreText', 'peekBadge', 'icon', 'emptyText',
+    ], items: { badgeToneMap: ['value', 'label', 'tone'], groupLabelMap: ['value', 'label'], peekGroupLabelMap: ['value', 'label', 'tone'] } });
 
 function ListInspectorFormField({ t, disabled, props, patch }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; disabled: boolean; props: CommonNodeProps & ListProps; patch: (p: Record<string, unknown>) => void; }) {
     return <FormField label={t('studio_apps_panels.list.group_order', 'Group order')} hint={t('studio_apps_panels.list.group_order_hint', 'Fixed order of group values; groups not listed follow in first-seen order.')}>

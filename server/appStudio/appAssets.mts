@@ -13,7 +13,8 @@
  * A definition refers to an asset with the string `asset:<id>` (componentSpecs/valueTypes.js
  * isAssetRef), today in image.src, image.srcFrom, design.logoUrl and publicAccess.design.logoUrl.
  * collectAssetRefs finds every such string anywhere in a definition, so a later key that takes
- * the `asset` value type is covered without being named here.
+ * the `asset` value type is covered without being named here. A stylesheet (design.customCss)
+ * names an asset inside its text, as url(asset:<id>): those are collected from CSS_PATHS.
  *
  * Limits: the size of one file and the number of assets per app are constants (they decide
  * whether an app can be copied to another installation); the total bytes per app is an
@@ -22,6 +23,7 @@
 
 import { createRequire } from 'node:module';
 import { sniffMime } from './attachmentSniff.mts';
+import { cssAssetIds } from './appCss.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { isAssetRef } = nodeRequire('./componentSpecs/valueTypes.js') as { isAssetRef: (v: unknown) => v is string };
@@ -125,10 +127,29 @@ function walk(value: unknown, path: string, depth: number, out: Map<string, stri
     }
 }
 
+/** Where a definition holds stylesheet text, which names an asset inside the text (appCss.mts). */
+const CSS_PATHS: readonly (readonly string[])[] = [['design', 'customCss'], ['publicAccess', 'design', 'customCss']];
+
+function valueAt(root: unknown, path: readonly string[]): unknown {
+    let at: unknown = root;
+    for (const key of path) {
+        if (!at || typeof at !== 'object' || Array.isArray(at)) return undefined;
+        at = (at as Record<string, unknown>)[key];
+    }
+    return at;
+}
+
 /** Every asset a definition refers to: id → the paths that name it (at most 20 each). */
 export function collectAssetRefs(definition: unknown): Map<string, string[]> {
     const out = new Map<string, string[]>();
     walk(definition, '', 0, out);
+    for (const path of CSS_PATHS) {
+        for (const id of cssAssetIds(valueAt(definition, path))) {
+            const paths = out.get(id) || [];
+            if (paths.length < MAX_PATHS_PER_ASSET) paths.push(path.join('.'));
+            out.set(id, paths);
+        }
+    }
     return out;
 }
 

@@ -22,7 +22,11 @@ const { workModeDirective, questionStatusNote } = require('./workMode.mts');
  * @param {unknown} plan
  */
 function renderApprovedPlanNote(plan) {
-    return `${APPROVED_PLAN_PREFIX}\nThe user approved this plan — build exactly it (do not re-propose). Announce each phase with app_mark_phase as you start it.\n${JSON.stringify(plan)}`;
+    // The look was approved with the rest: say so only when the plan carries one.
+    const design = plan && typeof plan === 'object' && /** @type {{ design?: unknown }} */ (plan).design
+        ? ' Its `design` is the look the user approved: set it with app_set_theme before the first component and carry out every signature move.'
+        : '';
+    return `${APPROVED_PLAN_PREFIX}\nThe user approved this plan — build exactly it (do not re-propose). Announce each phase with app_mark_phase as you start it.${design}\n${JSON.stringify(plan)}`;
 }
 
 /**

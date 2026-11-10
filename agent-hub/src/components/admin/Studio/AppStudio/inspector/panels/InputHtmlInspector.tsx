@@ -75,4 +75,4 @@ function InputHtmlInspector({ node, definition, onCommit, disabled = false }: Pa
     );
 }
 
-registerInspector('input_html', InputHtmlInspector);
+registerInspector('input_html', InputHtmlInspector, { props: ['name', 'label', 'required', 'placeholder', 'defaultValue', 'minRows', 'allowImages'] });

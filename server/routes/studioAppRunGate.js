@@ -65,8 +65,8 @@ function roleAllows(nodeOrScreen, role) {
 // trees for an event wiring (EVENT_NAMES, one id or a list of them), a screen's
 // onOpen or timer, a watcher (every viewer runs those), OR a per-row action
 // (props.rowActions on data_grid, props.itemActions on repeater) naming the
-// action; a wiring counts only when its screen AND every ancestor container
-// clear the gate too. referenced:false means NO node wires the action and no
+// action; a wiring counts only when its screen, its section (section.visibleToRoles)
+// AND every ancestor container clear the gate too. referenced:false means NO node wires the action and no
 // other action calls it — it is programmatic (an onSuccess chain), which role
 // gating never described, so the caller keeps running it.
 /**
@@ -109,7 +109,7 @@ function wiredRoleAccess(def, actionId, role) {
             if (screenVisible) allowed = true;
         }
         for (const section of (Array.isArray(screen?.sections) ? screen.sections : [])) {
-            walk(section?.children, screenVisible);
+            walk(section?.children, screenVisible && roleAllows(section, role));
         }
     }
     // A watcher (schema 3) runs in every viewer's browser, whatever screen is open.

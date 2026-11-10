@@ -50,11 +50,11 @@ export default function AppBrowserView({ node }: NodeProps<BrowserViewProps>) {
 
     return (
         <div
-            className="overflow-hidden w-full border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-tertiary)]"
+            className="overflow-hidden w-full border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-tertiary)] bfa-browser_view__root"
             data-app-browser-view={actionId || 'unbound'}
         >
             <div
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs truncate border-b [color:var(--text-secondary)]! [border-color:var(--border-default)]!"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs truncate border-b [color:var(--text-secondary)]! [border-color:var(--border-default)]! bfa-browser_view__header"
             >
                 <Globe className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
                 <span className="truncate">{preview ? label : t('studio_apps_runtime.browser_view.live_browser', 'Live browser')}</span>
@@ -65,11 +65,11 @@ export default function AppBrowserView({ node }: NodeProps<BrowserViewProps>) {
                 <img
                     src={`data:image/jpeg;base64,${frame}`}
                     alt={t('studio_apps_runtime.browser_view.preview_alt', 'Live browser preview')}
-                    className={`w-full h-auto block ${ended ? '[opacity:0.75]' : '[opacity:1]'}`}
+                    className={`w-full h-auto block ${ended ? '[opacity:0.75]' : '[opacity:1]'} bfa-browser_view__frame`}
                 />
             ) : (
                 <div
-                    className="flex items-center justify-center text-center px-4 text-sm"
+                    className="flex items-center justify-center text-center px-4 text-sm bfa-browser_view__placeholder"
                     style={{ aspectRatio, color: 'var(--text-secondary)' }}
                 >
                     {editing
@@ -86,7 +86,7 @@ export default function AppBrowserView({ node }: NodeProps<BrowserViewProps>) {
 
             {!ended && action && frame && (
                 <div
-                    className="px-2.5 py-1 text-xs truncate border-t [color:var(--text-secondary)]! [border-color:var(--border-default)]!"
+                    className="px-2.5 py-1 text-xs truncate border-t [color:var(--text-secondary)]! [border-color:var(--border-default)]! bfa-browser_view__status"
                 >
                     {action}
                 </div>

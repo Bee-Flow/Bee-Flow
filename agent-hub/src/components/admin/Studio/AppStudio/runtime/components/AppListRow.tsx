@@ -127,7 +127,7 @@ interface ListBadgeProps {
 export function ListBadge({ label, tone, hasPeek, onShow, onHide }: ListBadgeProps) {
     return (
         <span
-            className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded"
+            className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded bfa-list__badge"
             style={{ ...badgeStyle(tone), borderRadius: 'var(--app-radius)' }}
             data-app-list-badge={tone || 'neutral'}
             data-app-list-peek={hasPeek ? 'true' : undefined}
@@ -165,7 +165,7 @@ export function ListRowBody({ t, icon, unread, size, title, stamp, badgeInMeta, 
         <>
             {icon ? (
                 <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)] bfa-list__icon"
                 >
                     <AppIcon name={icon} className="w-3.5 h-3.5" />
                 </span>
@@ -180,7 +180,7 @@ export function ListRowBody({ t, icon, unread, size, title, stamp, badgeInMeta, 
             <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">
                     <span
-                        className={`${size === 'sm' ? 'text-xs' : 'text-sm'} truncate ${unread ? 'font-semibold' : 'font-medium'}`}
+                        className={`${size === 'sm' ? 'text-xs' : 'text-sm'} truncate ${unread ? 'font-semibold' : 'font-medium'} bfa-list__title`}
                     >
                         {displayValue(title)}
                     </span>
@@ -207,14 +207,14 @@ export function ListRowBody({ t, icon, unread, size, title, stamp, badgeInMeta, 
 function RowSubtitle({ badgeInMeta, subtitle, badgeEl }: { badgeInMeta: boolean; subtitle: unknown; badgeEl: React.ReactNode }) {
     return badgeInMeta ? (
         subtitle != null && subtitle !== '' ? (
-            <div className="text-xs truncate text-[var(--text-secondary)]">
+            <div className="text-xs truncate text-[var(--text-secondary)] bfa-list__subtitle">
                 {displayValue(subtitle)}
             </div>
         ) : null
     ) : (subtitle != null && subtitle !== '') || badgeEl ? (
         <div className="flex items-baseline gap-2">
             {subtitle != null && subtitle !== '' ? (
-                <span className="text-xs truncate text-[var(--text-secondary)]">
+                <span className="text-xs truncate text-[var(--text-secondary)] bfa-list__subtitle">
                     {displayValue(subtitle)}
                 </span>
             ) : null}
@@ -230,7 +230,7 @@ function RowMeta({ badgeInMeta, meta, badge, badgeEl }: { badgeInMeta: boolean; 
             <div className="mt-1 flex items-center gap-1.5">
                 {badgeEl}
                 {meta != null && meta !== '' ? (
-                    <span className="text-[11px] truncate text-[var(--text-muted)]">
+                    <span className="text-[11px] truncate text-[var(--text-muted)] bfa-list__meta">
                         {displayValue(meta)}
                     </span>
                 ) : null}
@@ -238,7 +238,7 @@ function RowMeta({ badgeInMeta, meta, badge, badgeEl }: { badgeInMeta: boolean; 
         ) : null
     ) : meta != null && meta !== '' ? (
         <div className="mt-1 flex items-center gap-1.5">
-            <span className="text-[11px] truncate text-[var(--text-muted)]">
+            <span className="text-[11px] truncate text-[var(--text-muted)] bfa-list__meta">
                 {displayValue(meta)}
             </span>
         </div>

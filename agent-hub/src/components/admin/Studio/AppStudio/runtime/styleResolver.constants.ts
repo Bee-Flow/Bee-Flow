@@ -20,7 +20,7 @@ export const RADIUS_VALUES: Record<string, string> = { none: '0px', sm: '4px', m
 
 export const ALIGN_VALUES: Record<string, 'left' | 'center' | 'right'> = { start: 'left', center: 'center', end: 'right' };
 
-export const WEIGHT_VALUES: Record<string, number> = { regular: 400, medium: 500, semibold: 600 };
+export const WEIGHT_VALUES: Record<string, number> = { regular: 400, medium: 500, semibold: 600, bold: 700 };
 
 export const SIZE_FONT: Record<string, string | null> = { sm: '0.875em', md: null, lg: '1.125em' };
 

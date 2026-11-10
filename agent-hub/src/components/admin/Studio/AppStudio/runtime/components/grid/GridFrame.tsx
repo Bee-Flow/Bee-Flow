@@ -26,7 +26,7 @@ export interface GridFrameProps {
 export function GridFrame({ fill, boxed, gridHeight, scrollRef, tableEl, peek, selectionBar, chromeRow, footer }: GridFrameProps) {
     return (
         <div
-            className={`w-full min-w-0 flex flex-col gap-2${boxed ? ' h-full min-h-0' : ''}${fill ? ' app-fill' : ''}`}
+            className={`w-full min-w-0 flex flex-col gap-2${boxed ? ' h-full min-h-0' : ''}${fill ? ' app-fill' : ''} bfa-data_grid__root`}
             data-app-datagrid="true"
         >
             {/*

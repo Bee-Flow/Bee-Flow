@@ -3,6 +3,7 @@ import useTranslation from '@/hooks/useTranslation';
 import { registerInspector } from '../registry';
 import BindingField from './BindingField';
 import { TextField, IconField, SelectField, usePatch } from './kit';
+import FormatOptionsFields from './FormatOptionsFields';
 import type { PanelProps } from '../appDefinition';
 
 interface StatProps {
@@ -11,6 +12,7 @@ interface StatProps {
     caption?: string | null;
     icon?: string | null;
     look?: string;
+    formatOptions?: Record<string, unknown>;
 }
 
 // Mirror of the stat `look` enum (componentSpecs.js, authoritative — first
@@ -56,8 +58,9 @@ export default function StatInspector({ node, definition, onCommit, disabled = f
                 options={LOOKS}
                 disabled={disabled}
             />
+            <FormatOptionsFields kind="stat" value={props.formatOptions} onChange={(next) => patch({ formatOptions: next })} disabled={disabled} />
         </div>
     );
 }
 
-registerInspector('stat', StatInspector);
+registerInspector('stat', StatInspector, { props: ['label', 'value', 'caption', 'icon', 'look', 'formatOptions'] });

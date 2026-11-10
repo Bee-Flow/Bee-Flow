@@ -14,14 +14,23 @@ const serverPresets = require('../../../../../../../server/appStudio/appDesignPr
 
 describe('appDesignPresets client/server sync', () => {
     it('the server entry point serves the same presets', () => {
-        expect(APP_DESIGN_PRESETS).toEqual(serverPresets.APP_DESIGN_PRESETS);
+        expect(APP_DESIGN_PRESETS).toEqual(serverPresets.ALL_APP_DESIGN_PRESETS);
+    });
+
+    it('the base seven keep their place and a later preset is marked since 3', () => {
+        expect(serverPresets.APP_DESIGN_PRESETS.map((p: { id: string }) => p.id)).toEqual(['classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono']);
+        expect(APP_DESIGN_PRESETS.slice(0, 7)).toEqual(serverPresets.APP_DESIGN_PRESETS);
+        for (const p of serverPresets.EXTENSION_APP_DESIGN_PRESETS) expect(p.since).toBe(3);
+        expect(new Set(APP_DESIGN_PRESETS.map((p) => p.id)).size).toBe(APP_DESIGN_PRESETS.length);
     });
 
     it('every preset carries a complete theme + design + navStyle', () => {
         const { DESIGN_SPEC, NAV_STYLES } = require('../../../../../../../server/appStudio/appDesignSpec');
         for (const p of APP_DESIGN_PRESETS) {
             expect(Object.keys(p.theme).sort()).toEqual(['appearance', 'density', 'fontScale', 'primary', 'radius']);
-            expect(Object.keys(p.design).sort()).toEqual(Object.keys(DESIGN_SPEC).sort());
+            // An app's own stylesheet (design.customCss, type css) is never part of a preset.
+            const presetKeys = Object.entries(DESIGN_SPEC as Record<string, { type: string }>).filter(([, spec]) => spec.type !== 'css').map(([key]) => key);
+            expect(Object.keys(p.design).sort()).toEqual(presetKeys.sort());
             expect(NAV_STYLES).toContain(p.navStyle);
             for (const [key, spec] of Object.entries(DESIGN_SPEC as Record<string, { type: string; values?: string[] }>)) {
                 if (spec.type === 'enum') expect(spec.values).toContain(p.design[key as keyof typeof p.design]);

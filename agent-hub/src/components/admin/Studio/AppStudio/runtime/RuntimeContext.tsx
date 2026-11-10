@@ -107,6 +107,8 @@ export interface RuntimeValue {
      * which tab is active), keyed by node id. null = none, which is every host today.
      */
     initialUi: InitialUi | null;
+    /** definition.format (schema 3) as AppRenderer found it; absent or null = values written as before (appFormat.ts). */
+    appFormat?: unknown;
     scope: Partial<ExpressionScope>;
     /** Editor-only members (selection, preview role, …) that the canvas adds. */
     [key: string]: unknown;

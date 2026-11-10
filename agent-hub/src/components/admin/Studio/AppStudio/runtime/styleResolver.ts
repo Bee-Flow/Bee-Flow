@@ -21,11 +21,13 @@
 import type { InlineStyle, ResolvedNodeStyle, StyleKnobs, StyledNode } from './styleResolver.types';
 import { STYLE_KNOB_HANDLERS, applyStyleKnobHandlers } from './styleKnobHandlers';
 import { applyNodeBox, applySectionBox } from './styleResolver/box';
-import { applyNodeHeight, applySectionHeight, applyWidth, clampSpan, gridTemplate, hideClasses, spaceSteps, spanGridColumn } from './styleResolver/layout';
+import { applyNodeHeight, applySectionHeight, applyWidth, clampSpan, gridTemplate, hideClasses, keepSmClass, spaceSteps, spanGridColumn } from './styleResolver/layout';
 import { applyTextColor, applyTextShape } from './styleResolver/text';
 export { isFill, fillRowTemplate, resolveHeightCss } from './styleResolver.helpers';
 export { SPACE_STEP_PX, ROLE_COLORS, HEIGHT_PX, FLEX_FILL, SOFT_PRIMARY_GRADIENT } from './styleResolver.constants';
 export { spaceSteps, gridTemplate, spanGridColumn, clampSpan, resolveHeight, resolveWidthCss, resolveSectionHeightCss, applyWidth } from './styleResolver/layout';
+export { gridClasses, gridColumnStyle, gridColumns, effectiveSpan, GRID_CONTAINER_TYPES } from './styleResolver/layout';
+export type { Breakpoint, ParentGrid } from './styleResolver/layout';
 export { roleTextColor, roleFillContrast, resolveColor } from './styleResolver/text';
 export { resolveRadius, resolveBackground, resolveBorder } from './styleResolver/box';
 
@@ -81,7 +83,9 @@ export function resolveSectionStyle(section?: StyledNode | null): ResolvedNodeSt
     const className = 'app-grid'
         + applySectionHeight(s, style)
         + applySectionBox(s, style)
-        + applyStyleKnobHandlers(STYLE_KNOB_HANDLERS, s, style, 'section');
+        + applyStyleKnobHandlers(STYLE_KNOB_HANDLERS, s, style, 'section')
+        // A child that sets spanSm makes this grid keep its columns on a phone.
+        + keepSmClass(section?.children);
     return { className, style };
 }
 

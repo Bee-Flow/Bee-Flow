@@ -9,9 +9,11 @@
 const { LIMITS } = require('./limits');
 const { TOAST_TONES } = require('./actionSpecs');
 const { COLOR_ROLES } = require('./styleKnobs');
+const { formatOptionsSpec } = require('./objectShapes');
 
 const CONTENT_SPECS = {
     heading: {
+        parts: ['root', 'mark'],
         label: 'Heading', category: 'Content',
         description: 'A section or page title.',
         props: {
@@ -28,6 +30,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     text: {
+        parts: ['root'],
         label: 'Text', category: 'Content',
         description: 'A paragraph of text. Supports a small markdown subset (bold, italic, links).',
         props: {
@@ -38,6 +41,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     button: {
+        parts: ['root', 'icon', 'label'],
         label: 'Button', category: 'Basics',
         description: 'A clickable button. Wire its onClick to an action; role "submit" submits the enclosing form.',
         events: ['onClick'],
@@ -61,6 +65,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 3 },
     },
     image: {
+        parts: ['root', 'placeholder'],
         label: 'Image', category: 'Content',
         description: 'An image from an https URL. Broken sources render a neutral placeholder (no layout shift).',
         // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
@@ -90,6 +95,7 @@ const CONTENT_SPECS = {
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'lg' },
+        parts: ['root', 'header', 'name', 'download', 'frame', 'image', 'message'],
     },
     pdf_compare: {
         label: 'PDF compare', category: 'Content',
@@ -105,8 +111,10 @@ const CONTENT_SPECS = {
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'xl' },
+        parts: ['root', 'message', 'toolbar'],
     },
     browser_view: {
+        parts: ['root', 'header', 'frame', 'placeholder', 'status'],
         label: 'Live browser', category: 'Content',
         description: 'Shows the live screenshot stream while an ai_browse step of the named action runs — the viewer watches the agent work. Idle it renders a placeholder; frames are never stored, so a reload shows only the step\'s text result. Wire `actionId` to the action whose sequence contains the ai_browse step.',
         props: {
@@ -118,6 +126,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     divider: {
+        parts: ['root'],
         label: 'Divider', category: 'Layout',
         description: 'A thin separator line.',
         props: {
@@ -130,6 +139,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     spacer: {
+        parts: ['root'],
         label: 'Spacer', category: 'Layout',
         description: 'Empty vertical space.',
         props: { steps: { type: 'int', min: 1, max: 8, default: 2 } },
@@ -137,6 +147,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     callout: {
+        parts: ['root', 'icon', 'title', 'body', 'meta'],
         label: 'Callout', category: 'Content',
         description: 'A highlighted note with a tone (info, success, warning, danger).',
         // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
@@ -171,6 +182,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     stat: {
+        parts: ['root', 'icon', 'label', 'value', 'delta', 'caption', 'trend'],
         label: 'Stat', category: 'Data',
         description: 'A KPI tile: a label and a big value. The value can bind to an action result. v2 adds an optional delta/trend row.',
         // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
@@ -201,11 +213,17 @@ const CONTENT_SPECS = {
                 type: 'enum', values: ['plain', 'tile', 'tinted', 'accent', 'gradient'], default: 'plain',
                 description: 'plain = label and value only; tile = on its own card surface; tinted = soft primary wash; accent = tile with a primary edge bar; gradient = soft primary gradient wash, value in the primary color.',
             },
+            // Schema 3: how the tile writes a numeric value and its delta.
+            formatOptions: formatOptionsSpec(
+                'How the tile writes its value and its delta when they are numbers.',
+                'A numeric value is written as an amount when currency is set (or as a percentage when percentScale is set), as a number otherwise; text values are shown as they are. The delta follows deltaFormat and takes decimals and compact.',
+            ),
         },
         styleKnobs: ['span', 'size', 'align', 'color'],
         defaultStyle: { span: 3 },
     },
     keyValue: {
+        parts: ['root', 'row', 'label', 'value'],
         label: 'Key–value', category: 'Data',
         description: 'Renders an object as label/value rows (e.g. one record from an automation result).',
         props: {

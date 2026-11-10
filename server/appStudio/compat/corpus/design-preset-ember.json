@@ -1,0 +1,217 @@
+{
+  "about": {
+    "source": "Built through the AI builder tools on an empty definition: app_set_theme {preset:\"ember\"} (a design preset marked since 3), then one app_add_components call. Stored as canonicalizeAppDefinition returns it.",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Repairs",
+      "description": "",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#C2410C",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "light"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_p1yp7d",
+        "name": "Home",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_6bk1vl",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_8dufjm",
+                "type": "page_header",
+                "props": {
+                  "title": "Repairs",
+                  "subtitle": "What waits today",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": null,
+                  "showDivider": true,
+                  "look": "banner"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_ipb742",
+                    "type": "button",
+                    "props": {
+                      "label": "Report a repair",
+                      "variant": "primary",
+                      "iconLeft": null,
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_3eubai",
+                "type": "stat",
+                "props": {
+                  "label": "Waiting",
+                  "value": {
+                    "kind": "static",
+                    "value": "0"
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "gradient"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_jmxqkg",
+                "type": "stat",
+                "props": {
+                  "label": "Planned",
+                  "value": {
+                    "kind": "static",
+                    "value": "0"
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "tile"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_xunx18",
+                "type": "stat",
+                "props": {
+                  "label": "Done",
+                  "value": {
+                    "kind": "static",
+                    "value": "0"
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "tile"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_emmz0l",
+                "type": "card",
+                "props": {
+                  "title": "Today",
+                  "description": null,
+                  "look": "raised"
+                },
+                "style": {
+                  "span": 12,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_4y25tl",
+                    "type": "text",
+                    "props": {
+                      "text": "Nothing planned yet.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "design": {
+      "preset": "ember",
+      "font": "inter",
+      "surface": "elevated",
+      "motion": "subtle",
+      "chartPalette": "brand",
+      "accentEdge": "bar",
+      "logoUrl": null
+    },
+    "homeScreenId": "scr_p1yp7d"
+  }
+}

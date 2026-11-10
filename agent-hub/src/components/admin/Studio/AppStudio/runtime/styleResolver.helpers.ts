@@ -11,6 +11,12 @@ import type { StyleKnobs, StyledNode } from './styleResolver.types';
  */
 export const isFill = (node?: StyledNode | null): boolean => !resolveHeightCss(node?.style) && node?.style?.height === 'fill';
 
+/** The columns the flow of a grid is counted in: 12 unless the node sets `columns` (1..12). */
+function ownColumns(node?: StyledNode | null): number {
+    const own = node?.style?.columns;
+    return typeof own === 'number' && Number.isInteger(own) && own >= 1 && own <= 12 ? own : 12;
+}
+
 /**
  * gridTemplateRows for a container/tab/card that fills its height.
  *
@@ -28,12 +34,13 @@ export const isFill = (node?: StyledNode | null): boolean => !resolveHeightCss(n
  */
 export function fillRowTemplate(node?: StyledNode | null): string {
     const kids = Array.isArray(node?.children) ? node.children : [];
+    const columns = ownColumns(node);
     const rows: StyledNode[][] = [];
     let used = 0;
     for (const kid of kids) {
         const raw = Number(kid?.style?.span);
-        const span = Math.min(12, Math.max(1, Number.isFinite(raw) ? raw : 12));
-        if (rows.length === 0 || used + span > 12) { rows.push([kid]); used = span; }
+        const span = Math.min(columns, Math.max(1, Number.isFinite(raw) ? raw : 12));
+        if (rows.length === 0 || used + span > columns) { rows.push([kid]); used = span; }
         else { rows[rows.length - 1].push(kid); used += span; }
     }
     if (rows.length <= 1) return 'minmax(0, 1fr)';

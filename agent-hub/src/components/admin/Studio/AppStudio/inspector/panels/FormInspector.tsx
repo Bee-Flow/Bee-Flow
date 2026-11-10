@@ -73,4 +73,4 @@ function FormInspector({ node, definition, onCommit, disabled = false }: PanelPr
     );
 }
 
-registerInspector('form', FormInspector);
+registerInspector('form', FormInspector, { props: ['name', 'submitLabel', 'showReset', 'resetKey'] });

@@ -32,6 +32,42 @@ const PLAN = {
     },
 };
 
+describe('PlanCard design (plan.design)', () => {
+    const design = {
+        direction: 'A warm field tool with one loud number.', preset: 'ember', primary: '#C2410C', font: 'inter', navStyle: 'tabs', surface: 'elevated',
+        signatureMoves: ['A hero greeting', 'One gradient tile', 'Cards on a raised band'],
+    };
+
+    it('shows nothing for a plan without a design, or with one that holds nothing usable', () => {
+        const { container, rerender } = render(<PlanCard pendingPlan={PLAN} onBuild={vi.fn()} onDiscuss={vi.fn()} />);
+        expect(container.querySelector('[data-plan-design]')).toBeNull();
+        rerender(<PlanCard pendingPlan={{ planId: 'pl-2', plan: { ...PLAN.plan, design: { primary: 'javascript:alert(1)', signatureMoves: 'x', font: 7 } } }} onBuild={vi.fn()} onDiscuss={vi.fn()} />);
+        expect(container.querySelector('[data-plan-design]')).toBeNull();
+    });
+
+    it('shows the direction, the choices and the signature moves', () => {
+        render(<PlanCard pendingPlan={{ planId: 'pl-3', plan: { ...PLAN.plan, design } }} onBuild={vi.fn()} onDiscuss={vi.fn()} />);
+        expect(screen.getByText('Look')).toBeInTheDocument();
+        expect(screen.getByLabelText('Design direction')).toHaveValue(design.direction);
+        expect(screen.getByText('Ember')).toBeInTheDocument(); // the preset by its gallery name
+        expect(screen.getByText('#C2410C')).toBeInTheDocument();
+        expect(screen.getByText('inter')).toBeInTheDocument();
+        expect(screen.getByText('elevated')).toBeInTheDocument();
+        for (const move of design.signatureMoves) expect(screen.getByText(move)).toBeInTheDocument();
+    });
+
+    it('approves the design with the plan, the edited direction included, and the server keeps it', async () => {
+        const onBuild = vi.fn();
+        render(<PlanCard pendingPlan={{ planId: 'pl-4', plan: { ...PLAN.plan, design } }} onBuild={onBuild} onDiscuss={vi.fn()} />);
+        const direction = screen.getByLabelText('Design direction');
+        await userEvent.clear(direction);
+        await userEvent.type(direction, 'Calm and dense.');
+        await userEvent.click(screen.getByText('Build it'));
+        const kept = approved(onBuild.mock.calls[0][0]);
+        expect(kept.design).toEqual({ ...design, direction: 'Calm and dense.' });
+    });
+});
+
 describe('PlanCard', () => {
     it('renders every section plus the open questions', () => {
         render(<PlanCard pendingPlan={PLAN} onBuild={vi.fn()} onDiscuss={vi.fn()} />);

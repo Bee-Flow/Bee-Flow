@@ -20,7 +20,7 @@
  * a navigation or a toast is shown disabled rather than failing on tap.
  */
 
-import { hasFormulaGate, roleAllows } from './gates';
+import { hasFormulaGate, roleAllows, sectionGate } from './gates';
 import { collectInputs, type AppInput } from './inputs';
 import { bool, num, staticBinding, str } from './props';
 import type { AppAction, AppDefinition, AppNode, AppScreen } from './types';
@@ -231,7 +231,17 @@ export function planScreen(
         },
     };
 
-    for (const section of screen.sections ?? []) ctx.walk(section.children);
+    for (const section of screen.sections ?? []) {
+        // A section gate, read like a node's: role-hidden is left out unnamed, a condition the
+        // phone cannot evaluate leaves the section out and names what is in it.
+        const gate = sectionGate(section, viewerRole);
+        if (gate === 'hidden') continue;
+        if (gate === 'unsupported') {
+            for (const node of section.children ?? []) if (roleAllows(node, viewerRole)) ctx.noteUnsupported(node.type);
+            continue;
+        }
+        ctx.walk(section.children);
+    }
 
     return { screen, blocks: ctx.blocks, unsupported };
 }

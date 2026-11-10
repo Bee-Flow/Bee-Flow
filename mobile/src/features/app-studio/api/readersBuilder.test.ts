@@ -49,6 +49,12 @@ describe('readBuilderEvent', () => {
         });
     });
 
+    it('reads a call of a tool it has never heard of (a registry tool added on the server) like any other', () => {
+        expect(readBuilderEvent('tool_call', { name: 'app_zz_registry_tool', ok: true, summary: '' })).toEqual({
+            type: 'tool_call', name: 'app_zz_registry_tool', label: null, ok: true, summary: '', added: [], error: null, hint: null,
+        });
+    });
+
     it('tells the plan artifact from the checklist', () => {
         expect(readBuilderEvent('plan', { planId: 'p1', plan: { phases: [] } })).toEqual({
             type: 'plan', planId: 'p1', plan: { phases: [] }, todos: null,

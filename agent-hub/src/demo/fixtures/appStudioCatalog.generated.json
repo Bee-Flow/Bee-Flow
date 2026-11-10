@@ -65,7 +65,15 @@
         "MAX_SCREEN_TIMERS": 3,
         "MAX_WATCHERS": 10,
         "MAX_WATCHER_DEBOUNCE_MS": 10000,
-        "MAX_ALLOWED_LINK_HOSTS": 50
+        "MAX_ALLOWED_LINK_HOSTS": 50,
+        "MAX_SECTION_TITLE_LEN": 80,
+        "MAX_SECTION_NAME_LEN": 60,
+        "MAX_CUSTOM_CSS_LEN": 20000,
+        "MAX_CSS_CLASS_LEN": 40,
+        "MAX_FORMAT_DECIMALS": 10,
+        "MAX_FORMAT_PATTERN_LEN": 40,
+        "MAX_FORMAT_LANGUAGE_LEN": 35,
+        "MAX_FORMAT_TIME_ZONE_LEN": 64
     },
     "theme": {
         "primary": {
@@ -221,8 +229,12 @@
             "values": [
                 "regular",
                 "medium",
-                "semibold"
+                "semibold",
+                "bold"
             ],
+            "valuesSince": {
+                "bold": 3
+            },
             "default": "regular"
         },
         "height": {
@@ -339,6 +351,273 @@
                     "default": 50
                 }
             }
+        },
+        "backgroundImage": {
+            "type": "asset",
+            "default": null,
+            "since": 3,
+            "description": "A picture behind the component: asset:<id> of an uploaded image, or null. Upload the image to the app first and use its asset id; a web address is not accepted. The picture sits under the content and follows the corners of the box. Text over a picture is hard to read: set backgroundOverlay (dim for light text, light for dark text) and give the text the matching color, or keep the text off the picture. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundFit": {
+            "type": "enum",
+            "values": [
+                "cover",
+                "contain",
+                "tile"
+            ],
+            "default": "cover",
+            "since": 3,
+            "description": "How the picture fills the box: cover, contain or tile. cover fills the box and crops the edges, contain shows the whole picture with room around it, tile repeats it at its own size (patterns, textures). Only has an effect together with backgroundImage. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundOverlay": {
+            "type": "enum",
+            "values": [
+                "none",
+                "dim",
+                "light"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "A veil over the picture for readable content: none, dim or light. dim darkens the picture (for white text), light brightens it (for dark text). The validator warns about a picture without a veil under a component that shows text. Only has an effect together with backgroundImage. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "marginTop": {
+            "type": "int",
+            "min": 0,
+            "max": 8,
+            "step": 1,
+            "default": 0,
+            "since": 3,
+            "description": "Extra space above the component, in spacing steps. 0..8 steps of 4px times the theme density, added outside the box. Use it to set a block apart from the one above it instead of adding a spacer. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "marginBottom": {
+            "type": "int",
+            "min": 0,
+            "max": 8,
+            "step": 1,
+            "default": 0,
+            "since": 3,
+            "description": "Extra space below the component, in spacing steps. 0..8 steps of 4px times the theme density, added outside the box. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "shadow": {
+            "type": "enum",
+            "values": [
+                "none",
+                "sm",
+                "md",
+                "lg"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Elevation of the component box: none, sm, md or lg. Uses the theme elevation tokens, which become outline rings in high contrast, so a raised box stays visible in every theme. Give the box a surface too (backgroundColor, or background \"surface\" on a card) or the shadow outlines bare content. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "opacity": {
+            "type": "int",
+            "min": 10,
+            "max": 100,
+            "step": 5,
+            "default": 100,
+            "since": 3,
+            "description": "How opaque the component is, from 10 to 100 percent. 100 changes nothing. Use it to quiet a secondary block, not to hide one (use visibility for that); text below about 60 gets hard to read. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderWidth": {
+            "type": "int",
+            "min": 1,
+            "max": 4,
+            "step": 1,
+            "default": 1,
+            "since": 3,
+            "description": "Border thickness in pixels, 1 to 4. Setting any of borderWidth, borderSides or borderColor draws a solid border on the box and replaces the border knob where the type has one. Without borderColor the border takes the theme border colour, without borderSides it goes all round. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderSides": {
+            "type": "enum",
+            "values": [
+                "all",
+                "top",
+                "right",
+                "bottom",
+                "left",
+                "x",
+                "y"
+            ],
+            "default": "all",
+            "since": 3,
+            "description": "Which sides get the border: all, top, right, bottom, left, x or y. x is left and right, y is top and bottom. One side with borderWidth 3 and a role colour makes an accent bar. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderColor": {
+            "type": "colorOrRole",
+            "roles": [
+                "primary",
+                "neutral",
+                "success",
+                "warning",
+                "danger",
+                "info"
+            ],
+            "default": null,
+            "since": 3,
+            "description": "Border colour: a role or a #rrggbb colour. A role follows the theme in light, dark and high contrast, a hex colour stays exactly as written in every theme. Draws a border by itself (1px, all sides). Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundColor": {
+            "type": "colorOrRole",
+            "roles": [
+                "primary",
+                "neutral",
+                "success",
+                "warning",
+                "danger",
+                "info"
+            ],
+            "default": null,
+            "since": 3,
+            "description": "Fill of the component box: a role or a #rrggbb colour. Wins over the background knob where the type has one. A role paints a soft wash of that colour over the card surface, so text stays readable in light, dark and high contrast. A hex colour paints exactly that colour in every theme: the validator warns when the text on it would be hard to read, and a role is the safer choice. A card, stat or page_header with a look other than its default paints that look's own surface inside the box, so pick the look or this fill, not both. Most types have no padding knob, so text sits tight against the fill: put it in a card or container for an inset. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "columns": {
+            "type": "int",
+            "min": 1,
+            "max": 12,
+            "step": 1,
+            "since": 3,
+            "description": "Number of equal columns of this grid, 12 when absent. Works on a section, card, container, form, tab, modal and repeater (the grid of each item). The children still size themselves with span, counted in these columns: with columns 5 a span of 1 is a fifth of the row and a span of 5 or more is the full row. Below 12 it also turns off the automatic tablet rule for this grid, so give children a spanMd where a tablet needs another split. Phones still stack."
+        },
+        "responsive": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "manual"
+            ],
+            "default": "auto",
+            "since": 3,
+            "description": "Whether tablet-sized screens may rearrange the children of this grid. auto (the default): between 640 and 1023 px a child with span 1-4 takes half the row and 5-11 the full row. manual: every child keeps its span there unless it sets spanMd. Works on the same types as columns. Phones still stack unless a child sets spanSm."
+        },
+        "hover": {
+            "type": "enum",
+            "values": [
+                "none",
+                "lift",
+                "tint",
+                "outline",
+                "grow"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Reaction to the pointer: none, lift, tint, outline or grow. lift raises it a little with a shadow, tint washes it with the primary colour, outline rings it in the primary colour, grow scales it up by 2 percent. Use it on a block that is clickable (a card that opens a record, a stat that links on) so it reads as one, not on every block. It does nothing on touch screens, in the editor canvas or when the viewer asks for reduced motion, so never make it the only sign that something can be clicked."
+        },
+        "spanMd": {
+            "type": "int",
+            "min": 1,
+            "max": 12,
+            "step": 1,
+            "since": 3,
+            "description": "Width in columns on tablet-sized screens (640 to 1023 px wide). Absent: the automatic rule applies there (a span of 1-4 becomes half the row, 5-11 the full row), or the node keeps its span when the grid sets columns or responsive \"manual\". Counted in the columns of the parent grid, a value at or above that count is the full row."
+        },
+        "spanSm": {
+            "type": "int",
+            "min": 1,
+            "max": 12,
+            "step": 1,
+            "since": 3,
+            "description": "Width in columns on phones (narrower than 640 px). Absent: the node takes the full row, the phone stack every app has. Setting it on one child makes that grid keep its columns on a phone, and the children without spanSm still take a full row each. Use it for small things that fit side by side on a phone: two stats (6 and 6), an icon button beside a field (2 and 10)."
+        },
+        "rowSpan": {
+            "type": "int",
+            "min": 1,
+            "max": 6,
+            "step": 1,
+            "since": 3,
+            "description": "How many grid rows the node covers. For a tall node beside shorter ones: a span-8 chart with rowSpan 2 next to two span-4 stats puts the stats above each other beside the chart. Does not work as a direct child of a section or container with height \"fill\", and is ignored where the grid stacks on a phone."
+        },
+        "alignSelf": {
+            "type": "enum",
+            "values": [
+                "stretch",
+                "start",
+                "center",
+                "end"
+            ],
+            "default": "stretch",
+            "since": 3,
+            "description": "Vertical position of the node inside its grid row. stretch (the default) fills the height of the row, so cards in one row end at the same line. start, center and end keep the node at its own height at the top, middle or bottom of the row."
+        },
+        "sticky": {
+            "type": "enum",
+            "values": [
+                "none",
+                "top",
+                "bottom"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Keeps the node in view while the page scrolls past its row. It moves only inside its own grid row(s), so put it beside taller content: a span-4 summary card with sticky \"top\" next to a long span-8 form follows the scroll. Alone in a row it has nowhere to move. Not for a node inside a card, container or section with a fixed height (that box scrolls by itself). Off in the editor canvas."
+        },
+        "stickyOffset": {
+            "type": "int",
+            "min": 0,
+            "max": 6,
+            "step": 1,
+            "since": 3,
+            "description": "Distance a sticky node keeps from the edge, in spacing steps. Only read when sticky is \"top\" or \"bottom\". 0 (the default) sticks flush to the edge of the scrolling area."
+        },
+        "font": {
+            "type": "enum",
+            "values": [
+                "body",
+                "heading",
+                "mono"
+            ],
+            "default": "body",
+            "since": 3,
+            "description": "Typeface role of the text: body, heading or mono. heading follows the app heading font when the design sets one, otherwise it equals body. Use mono for codes, ids and amounts that should line up."
+        },
+        "textSize": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "xs",
+                "sm",
+                "md",
+                "lg",
+                "xl",
+                "2xl",
+                "3xl",
+                "4xl"
+            ],
+            "default": "auto",
+            "since": 3,
+            "description": "Exact text size from xs to 4xl, md is body size. auto keeps the size the component picks itself. A component that fixes the size of an inner part (a stat value) keeps that size, so use size on a stat instead."
+        },
+        "lineHeight": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "tight",
+                "normal",
+                "relaxed"
+            ],
+            "default": "auto",
+            "since": 3,
+            "description": "Space between lines of text: tight, normal or relaxed. auto keeps the component default. Tight suits big headings, relaxed suits long paragraphs."
+        },
+        "tracking": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "tight",
+                "normal",
+                "wide"
+            ],
+            "default": "auto",
+            "since": 3,
+            "description": "Space between letters: tight, normal or wide. auto keeps the component default. Wide together with transform uppercase makes a small label above a title."
+        },
+        "transform": {
+            "type": "enum",
+            "values": [
+                "none",
+                "uppercase"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Letter case: none keeps what was typed, uppercase shows capitals. Keep uppercase for short labels, it is hard to read in long text."
         }
     },
     "colorRoles": [
@@ -439,6 +718,10 @@
     },
     "components": {
         "heading": {
+            "parts": [
+                "root",
+                "mark"
+            ],
             "label": "Heading",
             "category": "Content",
             "description": "A section or page title.",
@@ -476,6 +759,9 @@
             }
         },
         "text": {
+            "parts": [
+                "root"
+            ],
             "label": "Text",
             "category": "Content",
             "description": "A paragraph of text. Supports a small markdown subset (bold, italic, links).",
@@ -502,6 +788,12 @@
             }
         },
         "filter_bar": {
+            "parts": [
+                "root",
+                "field",
+                "label",
+                "control"
+            ],
             "label": "Filter bar",
             "category": "Data",
             "description": "A row of filter controls (search, select, toggle, date). Each control writes vars.filters.<name>, for use in records-binding filter formulas.",
@@ -561,6 +853,16 @@
         "kanban": {
             "label": "Kanban",
             "category": "Data",
+            "parts": [
+                "root",
+                "header",
+                "lane",
+                "column",
+                "card",
+                "title",
+                "subtitle",
+                "badge"
+            ],
             "description": "A kanban board over an array of objects, grouped into columns by groupByField and optionally into swimlanes by swimlaneField. Columns and swimlanes may be PINNED as literals or BOUND to a table (columnsSource/swimlanesSource) so the people using the app configure the board without opening the builder. Dragging a card fires onCardMove with { item, value, lane, index, beforeId, afterId } — enough to write both the new column and a new rank.",
             "events": [
                 "onRowClick",
@@ -879,9 +1181,21 @@
             ],
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "group",
+                "field",
+                "label",
+                "value"
+            ]
         },
         "button": {
+            "parts": [
+                "root",
+                "icon",
+                "label"
+            ],
             "label": "Button",
             "category": "Basics",
             "description": "A clickable button. Wire its onClick to an action; role \"submit\" submits the enclosing form.",
@@ -936,6 +1250,13 @@
             }
         },
         "callout": {
+            "parts": [
+                "root",
+                "icon",
+                "title",
+                "body",
+                "meta"
+            ],
             "label": "Callout",
             "category": "Content",
             "description": "A highlighted note with a tone (info, success, warning, danger).",
@@ -1007,6 +1328,15 @@
             }
         },
         "stat": {
+            "parts": [
+                "root",
+                "icon",
+                "label",
+                "value",
+                "delta",
+                "caption",
+                "trend"
+            ],
             "label": "Stat",
             "category": "Data",
             "description": "A KPI tile: a label and a big value. The value can bind to an action result. v2 adds an optional delta/trend row.",
@@ -1102,6 +1432,12 @@
                     ],
                     "default": "plain",
                     "description": "plain = label and value only; tile = on its own card surface; tinted = soft primary wash; accent = tile with a primary edge bar; gradient = soft primary gradient wash, value in the primary color."
+                },
+                "formatOptions": {
+                    "type": "object",
+                    "objectShape": "formatOptions",
+                    "since": 3,
+                    "description": "How the tile writes its value and its delta when they are numbers. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. A numeric value is written as an amount when currency is set (or as a percentage when percentScale is set), as a number otherwise; text values are shown as they are. The delta follows deltaFormat and takes decimals and compact. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
                 }
             },
             "styleKnobs": [
@@ -1117,6 +1453,16 @@
         "table": {
             "label": "Table",
             "category": "Data",
+            "parts": [
+                "root",
+                "table",
+                "header",
+                "headcell",
+                "body",
+                "row",
+                "cell",
+                "footer"
+            ],
             "description": "A table over an array of objects — usually an automation result. Missing keys render as “—”.",
             "props": {
                 "source": {
@@ -1222,6 +1568,12 @@
                         "actionId": {
                             "type": "string",
                             "maxLen": 20
+                        },
+                        "formatOptions": {
+                            "type": "object",
+                            "objectShape": "formatOptions",
+                            "since": 3,
+                            "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
                         }
                     }
                 },
@@ -1268,6 +1620,16 @@
         "data_grid": {
             "label": "Data grid",
             "category": "Data",
+            "parts": [
+                "root",
+                "toolbar",
+                "table",
+                "header",
+                "headcell",
+                "row",
+                "cell",
+                "footer"
+            ],
             "description": "A powerful table over an array of objects: sortable/filterable columns, paging, selection, search and row actions.",
             "events": [
                 "onRowClick",
@@ -1435,6 +1797,12 @@
                         "actionId": {
                             "type": "string",
                             "maxLen": 20
+                        },
+                        "formatOptions": {
+                            "type": "object",
+                            "objectShape": "formatOptions",
+                            "since": 3,
+                            "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
                         }
                     }
                 },
@@ -1671,6 +2039,11 @@
         "chart": {
             "label": "Chart",
             "category": "Data",
+            "parts": [
+                "root",
+                "title",
+                "plot"
+            ],
             "description": "A bar/line/area/pie/donut chart over an array of objects. x-axis from xKey, one or more series by key. xType:\"time\" spaces points by date rather than evenly, so a gap in the data reads as a gap. referenceLines/referenceBands draw a target or healthy range behind the series; unitLabel suffixes the axis and tooltip. onRowClick fires with the clicked row.",
             "props": {
                 "chartType": {
@@ -1813,6 +2186,12 @@
                     "type": "string",
                     "maxLen": 20,
                     "default": null
+                },
+                "formatOptions": {
+                    "type": "object",
+                    "objectShape": "formatOptions",
+                    "since": 3,
+                    "description": "How the value axis and the tooltip write the numbers of this chart. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It refines valueFormat (number, currency or percent): pattern does not apply here, and unitLabel is still written after the number. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
                 }
             },
             "events": [
@@ -1830,6 +2209,16 @@
         "list": {
             "label": "List",
             "category": "Data",
+            "parts": [
+                "root",
+                "group",
+                "item",
+                "icon",
+                "title",
+                "subtitle",
+                "meta",
+                "badge"
+            ],
             "description": "A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.",
             "props": {
                 "source": {
@@ -2072,6 +2461,13 @@
             }
         },
         "card": {
+            "parts": [
+                "root",
+                "header",
+                "title",
+                "description",
+                "body"
+            ],
             "label": "Card",
             "category": "Layout",
             "description": "A surface that groups other components. Children lay out on the card’s own 12-column grid.",
@@ -2125,6 +2521,14 @@
             }
         },
         "form": {
+            "parts": [
+                "root",
+                "body",
+                "error",
+                "actions",
+                "submit",
+                "reset"
+            ],
             "label": "Form",
             "category": "Input",
             "description": "Groups inputs and submits them to an action. Renders one built-in submit button; set showSubmit false for a form whose fields save on change.",
@@ -2181,6 +2585,12 @@
             }
         },
         "input_text": {
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ],
             "label": "Text input",
             "category": "Input",
             "isInput": true,
@@ -2238,6 +2648,12 @@
             }
         },
         "input_select": {
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ],
             "label": "Select",
             "category": "Input",
             "isInput": true,
@@ -2370,7 +2786,17 @@
             ],
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "messages",
+                "greeting",
+                "starter",
+                "user",
+                "assistant",
+                "input",
+                "send"
+            ]
         }
     },
     "events": [

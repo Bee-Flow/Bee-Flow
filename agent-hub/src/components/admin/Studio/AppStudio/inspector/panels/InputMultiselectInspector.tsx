@@ -53,4 +53,4 @@ export default function InputMultiselectInspector({ node, definition, onCommit, 
     );
 }
 
-registerInspector('input_multiselect', InputMultiselectInspector);
+registerInspector('input_multiselect', InputMultiselectInspector, { props: ['name', 'label', 'options', 'required'], items: { options: ['value', 'label'] } });

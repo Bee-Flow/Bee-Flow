@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppDivider from './AppDivider';
+import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
  * divider.orientation (spec: server/appStudio/componentSpecs.js).
@@ -16,7 +17,7 @@ describe('AppDivider', () => {
     it('renders the identity horizontal rule with no props at all', () => {
         const { container } = render(<AppDivider />);
         const hr = container.querySelector('hr');
-        expect(hr!.className).toBe('border-t w-full');
+        expect(withoutPartClasses(hr!.className)).toBe('border-t w-full');
         expect(hr!.style.borderColor).toBe('var(--border-default)');
         expect(hr!.getAttribute('data-app-divider')).toBeNull();
     });
@@ -25,7 +26,7 @@ describe('AppDivider', () => {
         for (const orientation of ['horizontal', 'diagonal', undefined]) {
             const { container, unmount } = render(<AppDivider node={node({ orientation })} />);
             const hr = container.querySelector('hr');
-            expect(hr!.className, String(orientation)).toBe('border-t w-full');
+            expect(withoutPartClasses(hr!.className), String(orientation)).toBe('border-t w-full');
             expect(hr!.getAttribute('data-app-divider')).toBeNull();
             unmount();
         }

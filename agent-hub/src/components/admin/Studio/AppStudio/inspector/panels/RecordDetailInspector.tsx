@@ -169,4 +169,4 @@ function RecordDetailInspector({ node, definition, onCommit, disabled = false }:
     );
 }
 
-registerInspector('record_detail', RecordDetailInspector);
+registerInspector('record_detail', RecordDetailInspector, { props: ['source', 'fields', 'layout', 'columns', 'emptyText'], items: { fields: ['key', 'label', 'format', 'group'] } });

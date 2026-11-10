@@ -1,0 +1,30 @@
+// @typecheck strict
+// English GUI defaults — namespace "studio_apps_css": every key whose part before the first "." is "studio_apps_css".
+// Merged into GUI_DEFAULTS by ./index.js, which finds this file by itself (no list to edit). The frontend copy
+// (agent-hub/src/i18n/en-defaults.js) is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+// Dutch: ../nl/studio_apps_css.json. App Studio custom CSS: the stylesheet section of the theme panel and the
+// CSS class field of a component.
+module.exports = {
+    "studio_apps_css.class_hint": "A name of your own. Style it as .u-{name} in the app's custom CSS.",
+    "studio_apps_css.class_invalid": "Start with a lower-case letter, then lower-case letters, digits or dashes (at most {max}).",
+    "studio_apps_css.class_label": "CSS class",
+    "studio_apps_css.class_placeholder": "hero",
+    "studio_apps_css.high_contrast": "Not applied under the high-contrast theme.",
+    "studio_apps_css.hint": "Applies to this app only. Use it for what the theme and the style settings cannot do.",
+    "studio_apps_css.label": "Stylesheet",
+    "studio_apps_css.off_hint": "Shows the app without this stylesheet, in this editor only. Nothing is saved.",
+    "studio_apps_css.off_label": "CSS off",
+    "studio_apps_css.removed_outside": "an address that is not an inline image or an uploaded file of this app",
+    "studio_apps_css.removed_sibling": "a selector that reaches outside the app",
+    "studio_apps_css.removed_title": "Left out when the app is shown:",
+    "studio_apps_css.removed_too_long": "everything: the CSS is over the limit",
+    "studio_apps_css.removed_var": "an image address taken from a variable",
+    "studio_apps_css.sel_class": "components with the CSS class \"name\" (set under Style)",
+    "studio_apps_css.sel_dark": "while the app shows dark",
+    "studio_apps_css.sel_node": "one component",
+    "studio_apps_css.sel_screen": "one screen",
+    "studio_apps_css.sel_section": "one section",
+    "studio_apps_css.sel_type": "every component of a type",
+    "studio_apps_css.sheet_title": "What you can target",
+    "studio_apps_css.title": "Custom CSS",
+};

@@ -161,7 +161,7 @@ function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: R
                         type="button"
                         // Hover was missing entirely, so a clickable row looked
                         // exactly like a static one.
-                        className={`${cls} cursor-pointer transition-colors hover:brightness-[1.06]`}
+                        className={`${cls} cursor-pointer transition-colors hover:brightness-[1.06] bfa-list__item`}
                         style={style}
                         aria-current={selected ? 'true' : undefined}
                         onClick={() => runAction(node.onRowClick as string, { formValues: item, item })}
@@ -171,7 +171,7 @@ function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: R
                         {body}
                     </button>
                 ) : (
-                    <div className={cls} style={style}>{body}</div>
+                    <div className={`${cls} bfa-list__item`} style={style}>{body}</div>
                 )}
                 {peekPanel}
             </li>
@@ -194,7 +194,7 @@ function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: R
             children.push(
                 <li
                     key={`grp-${name}`}
-                    className="flex items-baseline gap-1 uppercase font-semibold px-1 pt-1 first:pt-0 [font-size:11px] [letter-spacing:0.03em] [color:var(--text-muted)] [grid-column:1_/_-1]"
+                    className="flex items-baseline gap-1 uppercase font-semibold px-1 pt-1 first:pt-0 [font-size:11px] [letter-spacing:0.03em] [color:var(--text-muted)] [grid-column:1_/_-1] bfa-list__group"
                     data-app-list-group={name}
                     aria-hidden="true"
                 >
@@ -212,7 +212,7 @@ function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: R
     // support desk shipped with an unscrollable ticket list.
     return (
         <ul
-            className={listCls}
+            className={`${listCls} bfa-list__root`}
             style={listStyle}
             data-app-list="true"
             data-app-list-look={look === 'rows' ? undefined : look}

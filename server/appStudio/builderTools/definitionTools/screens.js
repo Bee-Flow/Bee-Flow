@@ -15,6 +15,7 @@ const ops = require('../../definitionOps');
 const { pickClosestId } = require('../../../automation/validate/helpers');
 const { isBinding: screenRuleBinds, describeScreenConstraints } = require('../../../core/llm/screenConstraints');
 const { idHint, adoptCanonical } = require('../shared');
+const { sectionKeyPatch, SECTION_KEY_NAMES } = require('./sectionKeyArgs.mts');
 
 
 /**
@@ -146,11 +147,15 @@ function applyAddSection(draftWrap, args) {
     if (args?.style && typeof args.style === 'object' && !Array.isArray(args.style)) {
         next = ops.updateSectionStyle(next, sectionId, args.style);
     }
+    const keys = sectionKeyPatch(args);
+    if (keys) next = ops.updateSection(next, sectionId, keys);
     return adoptCanonical(draftWrap, next, { sectionId });
 }
 
 /**
- * app_update_section — restyle a section that already exists.
+ * app_update_section — restyle a section that already exists, and set or (null) clear its
+ * optional keys (title, name, collapsible, maxWidth, visibleWhen, visibleToRoles), which the
+ * call carries beside `style` (sectionKeyArgs.mts). app_add_section takes the same keys.
  *
  * Sections could be created with a style and never changed again: the only way
  * to fix a padding was to rebuild the screen around it. That gap has a sharp
@@ -166,10 +171,13 @@ function applyUpdateSection(draftWrap, args) {
         const suggestion = pickClosestId(sectionId, all);
         return { error: `Unknown sectionId ${JSON.stringify(sectionId)}.${suggestion ? ` Did you mean "${suggestion}"?` : ''}`, _fixHint: idHint(draftWrap.def) };
     }
-    if (!args?.style || typeof args.style !== 'object' || Array.isArray(args.style) || !Object.keys(args.style).length) {
-        return { error: 'Nothing to change — pass a style object (padding, gap, background, height, heightMode, heightValue).' };
+    const style = args?.style && typeof args.style === 'object' && !Array.isArray(args.style) && Object.keys(args.style).length ? args.style : null;
+    const keys = sectionKeyPatch(args);
+    if (!style && !keys) {
+        return { error: `Nothing to change — pass a style object (padding, gap, background, height, heightMode, heightValue) or a section key (${SECTION_KEY_NAMES.join(', ')}).` };
     }
-    const next = ops.updateSectionStyle(draftWrap.def, sectionId, args.style);
+    let next = style ? ops.updateSectionStyle(draftWrap.def, sectionId, style) : draftWrap.def;
+    if (keys) next = ops.updateSection(next, sectionId, keys);
     return adoptCanonical(draftWrap, next, { sectionId });
 }
 

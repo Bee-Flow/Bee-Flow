@@ -37,4 +37,4 @@ function TextInspector({ node, definition, onCommit, disabled = false }: PanelPr
     );
 }
 
-registerInspector('text', TextInspector);
+registerInspector('text', TextInspector, { props: ['text', 'muted'] });

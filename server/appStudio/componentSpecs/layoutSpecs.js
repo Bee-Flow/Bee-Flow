@@ -11,6 +11,7 @@ const { COLOR_ROLES } = require('./styleKnobs');
 const LAYOUT_SPECS = {
     // ── v2 containers ────────────────────────────────────────────────────
     tabs: {
+        parts: ['root', 'list', 'tab', 'icon', 'label', 'badge', 'panel'],
         label: 'Tabs', category: 'Layout',
         description: 'A tab strip. Its children should be `tab` containers; each tab holds its own 12-column grid.',
         container: true,
@@ -26,6 +27,7 @@ const LAYOUT_SPECS = {
         defaultStyle: { span: 12, gap: 3, padding: 0 },
     },
     tab: {
+        parts: ['root'],
         label: 'Tab', category: 'Layout',
         description: 'A single tab panel inside a `tabs` container.',
         container: true,
@@ -46,6 +48,7 @@ const LAYOUT_SPECS = {
         defaultStyle: { gap: 3, padding: 0 },
     },
     modal: {
+        parts: ['root', 'trigger', 'close', 'body'],
         label: 'Modal', category: 'Layout',
         description: 'A dialog opened by an open_modal action (targeting its id). Groups components on its own grid.',
         container: true,
@@ -63,6 +66,7 @@ const LAYOUT_SPECS = {
         defaultStyle: { gap: 3, padding: 4 },
     },
     repeater: {
+        parts: ['root', 'item', 'actions', 'action'],
         label: 'Repeater', category: 'Data',
         description: 'Repeats its child components once per item of an array binding. Inside, `item` and `index` are in scope for formulas.',
         container: true,
@@ -80,6 +84,7 @@ const LAYOUT_SPECS = {
 
     // ── v2.1 layout & content ────────────────────────────────────────────
     container: {
+        parts: ['root'],
         label: 'Container', category: 'Layout',
         description: 'A chrome-free container. Children lay out on its own 12-column grid — use several side by side for column layouts.',
         // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
@@ -98,6 +103,7 @@ const LAYOUT_SPECS = {
         defaultStyle: { span: 6, gap: 3 },
     },
     pane: {
+        parts: ['root'],
         label: 'Pane', category: 'Layout',
         description: 'A stack; children keep their natural size except one with height "fill", which takes the rest. scroll:"auto" gives it its own scrollbar. Two panes in a section with height "fill" = a sidebar plus detail, scrolling independently. Children are stacked, so their span is IGNORED — nest a container for columns.',
         container: true,
@@ -109,6 +115,7 @@ const LAYOUT_SPECS = {
         defaultStyle: { span: 12, gap: 3, height: 'fill' },
     },
     page_header: {
+        parts: ['root', 'icon', 'title', 'subtitle', 'tags', 'actions', 'divider'],
         label: 'Page header', category: 'Content',
         description: 'A page title with optional subtitle, icon and divider. Children render right-aligned as the action area (e.g. buttons).',
         container: true,
@@ -132,13 +139,14 @@ const LAYOUT_SPECS = {
             // generated apps stop opening identically.
             look: {
                 type: 'enum', values: ['plain', 'banner', 'hero', 'split'], default: 'plain',
-                description: 'plain = the current title row; banner = a full-width soft primary band; hero = a tall centered primary-gradient opening; split = title left, actions right on a panel surface.',
+                description: 'plain = the current title row; banner = a full-width soft primary band; hero = a tall centered primary-gradient opening; split = title left, subtitle right-aligned and muted, a hairline below.',
             },
         },
         styleKnobs: ['span', 'padding', 'gap'],
         defaultStyle: { span: 12, gap: 3, padding: 0 },
     },
     markdown: {
+        parts: ['root', 'heading', 'paragraph', 'list', 'item', 'code'],
         label: 'Markdown', category: 'Content',
         description: 'A block of markdown: headings, lists, code blocks, links, bold/italic. No images or raw HTML. Bind contentFrom to show generated text (e.g. an AI summary in a variable).',
         props: {

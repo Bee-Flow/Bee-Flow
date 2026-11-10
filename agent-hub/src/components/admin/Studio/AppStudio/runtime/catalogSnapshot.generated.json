@@ -61,7 +61,15 @@
         "MAX_SCREEN_TIMERS": 3,
         "MAX_WATCHERS": 10,
         "MAX_WATCHER_DEBOUNCE_MS": 10000,
-        "MAX_ALLOWED_LINK_HOSTS": 50
+        "MAX_ALLOWED_LINK_HOSTS": 50,
+        "MAX_SECTION_TITLE_LEN": 80,
+        "MAX_SECTION_NAME_LEN": 60,
+        "MAX_CUSTOM_CSS_LEN": 20000,
+        "MAX_CSS_CLASS_LEN": 40,
+        "MAX_FORMAT_DECIMALS": 10,
+        "MAX_FORMAT_PATTERN_LEN": 40,
+        "MAX_FORMAT_LANGUAGE_LEN": 35,
+        "MAX_FORMAT_TIME_ZONE_LEN": 64
     },
     "colorRoles": [
         "primary",
@@ -140,8 +148,12 @@
             "values": [
                 "regular",
                 "medium",
-                "semibold"
+                "semibold",
+                "bold"
             ],
+            "valuesSince": {
+                "bold": 3
+            },
             "default": "regular"
         },
         "height": {
@@ -258,6 +270,273 @@
                     "default": 50
                 }
             }
+        },
+        "backgroundImage": {
+            "type": "asset",
+            "default": null,
+            "since": 3,
+            "description": "A picture behind the component: asset:<id> of an uploaded image, or null. Upload the image to the app first and use its asset id; a web address is not accepted. The picture sits under the content and follows the corners of the box. Text over a picture is hard to read: set backgroundOverlay (dim for light text, light for dark text) and give the text the matching color, or keep the text off the picture. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundFit": {
+            "type": "enum",
+            "values": [
+                "cover",
+                "contain",
+                "tile"
+            ],
+            "default": "cover",
+            "since": 3,
+            "description": "How the picture fills the box: cover, contain or tile. cover fills the box and crops the edges, contain shows the whole picture with room around it, tile repeats it at its own size (patterns, textures). Only has an effect together with backgroundImage. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundOverlay": {
+            "type": "enum",
+            "values": [
+                "none",
+                "dim",
+                "light"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "A veil over the picture for readable content: none, dim or light. dim darkens the picture (for white text), light brightens it (for dark text). The validator warns about a picture without a veil under a component that shows text. Only has an effect together with backgroundImage. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "marginTop": {
+            "type": "int",
+            "min": 0,
+            "max": 8,
+            "step": 1,
+            "default": 0,
+            "since": 3,
+            "description": "Extra space above the component, in spacing steps. 0..8 steps of 4px times the theme density, added outside the box. Use it to set a block apart from the one above it instead of adding a spacer. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "marginBottom": {
+            "type": "int",
+            "min": 0,
+            "max": 8,
+            "step": 1,
+            "default": 0,
+            "since": 3,
+            "description": "Extra space below the component, in spacing steps. 0..8 steps of 4px times the theme density, added outside the box. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "shadow": {
+            "type": "enum",
+            "values": [
+                "none",
+                "sm",
+                "md",
+                "lg"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Elevation of the component box: none, sm, md or lg. Uses the theme elevation tokens, which become outline rings in high contrast, so a raised box stays visible in every theme. Give the box a surface too (backgroundColor, or background \"surface\" on a card) or the shadow outlines bare content. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "opacity": {
+            "type": "int",
+            "min": 10,
+            "max": 100,
+            "step": 5,
+            "default": 100,
+            "since": 3,
+            "description": "How opaque the component is, from 10 to 100 percent. 100 changes nothing. Use it to quiet a secondary block, not to hide one (use visibility for that); text below about 60 gets hard to read. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderWidth": {
+            "type": "int",
+            "min": 1,
+            "max": 4,
+            "step": 1,
+            "default": 1,
+            "since": 3,
+            "description": "Border thickness in pixels, 1 to 4. Setting any of borderWidth, borderSides or borderColor draws a solid border on the box and replaces the border knob where the type has one. Without borderColor the border takes the theme border colour, without borderSides it goes all round. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderSides": {
+            "type": "enum",
+            "values": [
+                "all",
+                "top",
+                "right",
+                "bottom",
+                "left",
+                "x",
+                "y"
+            ],
+            "default": "all",
+            "since": 3,
+            "description": "Which sides get the border: all, top, right, bottom, left, x or y. x is left and right, y is top and bottom. One side with borderWidth 3 and a role colour makes an accent bar. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderColor": {
+            "type": "colorOrRole",
+            "roles": [
+                "primary",
+                "neutral",
+                "success",
+                "warning",
+                "danger",
+                "info"
+            ],
+            "default": null,
+            "since": 3,
+            "description": "Border colour: a role or a #rrggbb colour. A role follows the theme in light, dark and high contrast, a hex colour stays exactly as written in every theme. Draws a border by itself (1px, all sides). Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundColor": {
+            "type": "colorOrRole",
+            "roles": [
+                "primary",
+                "neutral",
+                "success",
+                "warning",
+                "danger",
+                "info"
+            ],
+            "default": null,
+            "since": 3,
+            "description": "Fill of the component box: a role or a #rrggbb colour. Wins over the background knob where the type has one. A role paints a soft wash of that colour over the card surface, so text stays readable in light, dark and high contrast. A hex colour paints exactly that colour in every theme: the validator warns when the text on it would be hard to read, and a role is the safer choice. A card, stat or page_header with a look other than its default paints that look's own surface inside the box, so pick the look or this fill, not both. Most types have no padding knob, so text sits tight against the fill: put it in a card or container for an inset. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "columns": {
+            "type": "int",
+            "min": 1,
+            "max": 12,
+            "step": 1,
+            "since": 3,
+            "description": "Number of equal columns of this grid, 12 when absent. Works on a section, card, container, form, tab, modal and repeater (the grid of each item). The children still size themselves with span, counted in these columns: with columns 5 a span of 1 is a fifth of the row and a span of 5 or more is the full row. Below 12 it also turns off the automatic tablet rule for this grid, so give children a spanMd where a tablet needs another split. Phones still stack."
+        },
+        "responsive": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "manual"
+            ],
+            "default": "auto",
+            "since": 3,
+            "description": "Whether tablet-sized screens may rearrange the children of this grid. auto (the default): between 640 and 1023 px a child with span 1-4 takes half the row and 5-11 the full row. manual: every child keeps its span there unless it sets spanMd. Works on the same types as columns. Phones still stack unless a child sets spanSm."
+        },
+        "hover": {
+            "type": "enum",
+            "values": [
+                "none",
+                "lift",
+                "tint",
+                "outline",
+                "grow"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Reaction to the pointer: none, lift, tint, outline or grow. lift raises it a little with a shadow, tint washes it with the primary colour, outline rings it in the primary colour, grow scales it up by 2 percent. Use it on a block that is clickable (a card that opens a record, a stat that links on) so it reads as one, not on every block. It does nothing on touch screens, in the editor canvas or when the viewer asks for reduced motion, so never make it the only sign that something can be clicked."
+        },
+        "spanMd": {
+            "type": "int",
+            "min": 1,
+            "max": 12,
+            "step": 1,
+            "since": 3,
+            "description": "Width in columns on tablet-sized screens (640 to 1023 px wide). Absent: the automatic rule applies there (a span of 1-4 becomes half the row, 5-11 the full row), or the node keeps its span when the grid sets columns or responsive \"manual\". Counted in the columns of the parent grid, a value at or above that count is the full row."
+        },
+        "spanSm": {
+            "type": "int",
+            "min": 1,
+            "max": 12,
+            "step": 1,
+            "since": 3,
+            "description": "Width in columns on phones (narrower than 640 px). Absent: the node takes the full row, the phone stack every app has. Setting it on one child makes that grid keep its columns on a phone, and the children without spanSm still take a full row each. Use it for small things that fit side by side on a phone: two stats (6 and 6), an icon button beside a field (2 and 10)."
+        },
+        "rowSpan": {
+            "type": "int",
+            "min": 1,
+            "max": 6,
+            "step": 1,
+            "since": 3,
+            "description": "How many grid rows the node covers. For a tall node beside shorter ones: a span-8 chart with rowSpan 2 next to two span-4 stats puts the stats above each other beside the chart. Does not work as a direct child of a section or container with height \"fill\", and is ignored where the grid stacks on a phone."
+        },
+        "alignSelf": {
+            "type": "enum",
+            "values": [
+                "stretch",
+                "start",
+                "center",
+                "end"
+            ],
+            "default": "stretch",
+            "since": 3,
+            "description": "Vertical position of the node inside its grid row. stretch (the default) fills the height of the row, so cards in one row end at the same line. start, center and end keep the node at its own height at the top, middle or bottom of the row."
+        },
+        "sticky": {
+            "type": "enum",
+            "values": [
+                "none",
+                "top",
+                "bottom"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Keeps the node in view while the page scrolls past its row. It moves only inside its own grid row(s), so put it beside taller content: a span-4 summary card with sticky \"top\" next to a long span-8 form follows the scroll. Alone in a row it has nowhere to move. Not for a node inside a card, container or section with a fixed height (that box scrolls by itself). Off in the editor canvas."
+        },
+        "stickyOffset": {
+            "type": "int",
+            "min": 0,
+            "max": 6,
+            "step": 1,
+            "since": 3,
+            "description": "Distance a sticky node keeps from the edge, in spacing steps. Only read when sticky is \"top\" or \"bottom\". 0 (the default) sticks flush to the edge of the scrolling area."
+        },
+        "font": {
+            "type": "enum",
+            "values": [
+                "body",
+                "heading",
+                "mono"
+            ],
+            "default": "body",
+            "since": 3,
+            "description": "Typeface role of the text: body, heading or mono. heading follows the app heading font when the design sets one, otherwise it equals body. Use mono for codes, ids and amounts that should line up."
+        },
+        "textSize": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "xs",
+                "sm",
+                "md",
+                "lg",
+                "xl",
+                "2xl",
+                "3xl",
+                "4xl"
+            ],
+            "default": "auto",
+            "since": 3,
+            "description": "Exact text size from xs to 4xl, md is body size. auto keeps the size the component picks itself. A component that fixes the size of an inner part (a stat value) keeps that size, so use size on a stat instead."
+        },
+        "lineHeight": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "tight",
+                "normal",
+                "relaxed"
+            ],
+            "default": "auto",
+            "since": 3,
+            "description": "Space between lines of text: tight, normal or relaxed. auto keeps the component default. Tight suits big headings, relaxed suits long paragraphs."
+        },
+        "tracking": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "tight",
+                "normal",
+                "wide"
+            ],
+            "default": "auto",
+            "since": 3,
+            "description": "Space between letters: tight, normal or wide. auto keeps the component default. Wide together with transform uppercase makes a small label above a title."
+        },
+        "transform": {
+            "type": "enum",
+            "values": [
+                "none",
+                "uppercase"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Letter case: none keeps what was typed, uppercase shows capitals. Keep uppercase for short labels, it is hard to read in long text."
         }
     },
     "advancedWidthKnobs": [
@@ -272,7 +551,93 @@
         "hideBelow",
         "hideAbove"
     ],
-    "extensionKnobGroups": [],
+    "extensionKnobGroups": [
+        {
+            "name": "backdrop",
+            "since": 3,
+            "grantedBy": "span",
+            "knobs": [
+                "backgroundImage",
+                "backgroundFit",
+                "backgroundOverlay"
+            ],
+            "withheldFrom": [
+                "button",
+                "callout",
+                "ai_chat",
+                "approval_list",
+                "browser_view",
+                "pdf_compare",
+                "connector_status"
+            ]
+        },
+        {
+            "name": "box",
+            "since": 3,
+            "grantedBy": "span",
+            "knobs": [
+                "marginTop",
+                "marginBottom",
+                "shadow",
+                "opacity",
+                "borderWidth",
+                "borderSides",
+                "borderColor",
+                "backgroundColor"
+            ],
+            "withheldFrom": [
+                "button",
+                "callout",
+                "ai_chat",
+                "approval_list",
+                "browser_view",
+                "pdf_compare",
+                "connector_status"
+            ]
+        },
+        {
+            "name": "grid_columns",
+            "since": 3,
+            "grantedBy": "gap",
+            "knobs": [
+                "columns",
+                "responsive"
+            ]
+        },
+        {
+            "name": "hover",
+            "since": 3,
+            "grantedBy": "span",
+            "knobs": [
+                "hover"
+            ]
+        },
+        {
+            "name": "placement",
+            "since": 3,
+            "grantedBy": "span",
+            "knobs": [
+                "spanMd",
+                "spanSm",
+                "rowSpan",
+                "alignSelf",
+                "sticky",
+                "stickyOffset"
+            ]
+        },
+        {
+            "name": "text",
+            "since": 3,
+            "grantedBy": "color",
+            "knobs": [
+                "font",
+                "textSize",
+                "lineHeight",
+                "tracking",
+                "transform"
+            ]
+        }
+    ],
     "themeEnums": {
         "radius": [
             "none",
@@ -605,7 +970,11 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "mark"
+            ]
         },
         "text": {
             "label": "Text",
@@ -616,7 +985,10 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "button": {
             "label": "Button",
@@ -630,7 +1002,12 @@
             },
             "defaultStyle": {
                 "span": 3
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "label"
+            ]
         },
         "image": {
             "label": "Image",
@@ -643,7 +1020,11 @@
             "defaultStyle": {
                 "span": 6,
                 "height": "md"
-            }
+            },
+            "parts": [
+                "root",
+                "placeholder"
+            ]
         },
         "file_preview": {
             "label": "File preview",
@@ -661,7 +1042,16 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "lg"
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "name",
+                "download",
+                "frame",
+                "image",
+                "message"
+            ]
         },
         "pdf_compare": {
             "label": "PDF compare",
@@ -684,7 +1074,12 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "xl"
-            }
+            },
+            "parts": [
+                "root",
+                "message",
+                "toolbar"
+            ]
         },
         "browser_view": {
             "label": "Live browser",
@@ -696,7 +1091,14 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "frame",
+                "placeholder",
+                "status"
+            ]
         },
         "divider": {
             "label": "Divider",
@@ -706,7 +1108,10 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "spacer": {
             "label": "Spacer",
@@ -716,7 +1121,10 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "callout": {
             "label": "Callout",
@@ -742,7 +1150,14 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "title",
+                "body",
+                "meta"
+            ]
         },
         "stat": {
             "label": "Stat",
@@ -770,7 +1185,16 @@
             },
             "defaultStyle": {
                 "span": 3
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "label",
+                "value",
+                "delta",
+                "caption",
+                "trend"
+            ]
         },
         "keyValue": {
             "label": "Key–value",
@@ -787,7 +1211,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "row",
+                "label",
+                "value"
+            ]
         },
         "table": {
             "label": "Table",
@@ -804,7 +1234,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "table",
+                "header",
+                "headcell",
+                "body",
+                "row",
+                "cell",
+                "footer"
+            ]
         },
         "list": {
             "label": "List",
@@ -846,7 +1286,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "group",
+                "item",
+                "icon",
+                "title",
+                "subtitle",
+                "meta",
+                "badge"
+            ]
         },
         "approval_list": {
             "label": "Approvals",
@@ -860,7 +1310,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "item",
+                "title",
+                "subtitle",
+                "status",
+                "detail"
+            ]
         },
         "card": {
             "label": "Card",
@@ -876,7 +1335,14 @@
                 "padding": 3,
                 "gap": 3,
                 "background": "surface"
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "title",
+                "description",
+                "body"
+            ]
         },
         "form": {
             "label": "Form",
@@ -893,7 +1359,15 @@
                 "span": 6,
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root",
+                "body",
+                "error",
+                "actions",
+                "submit",
+                "reset"
+            ]
         },
         "input_text": {
             "label": "Text input",
@@ -913,7 +1387,13 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_textarea": {
             "label": "Text area",
@@ -939,7 +1419,14 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "snippets",
+                "error"
+            ]
         },
         "input_number": {
             "label": "Number input",
@@ -960,7 +1447,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_select": {
             "label": "Select",
@@ -983,7 +1476,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_checkbox": {
             "label": "Checkbox",
@@ -996,7 +1495,13 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_date": {
             "label": "Date picker",
@@ -1014,7 +1519,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "data_grid": {
             "label": "Data grid",
@@ -1045,7 +1556,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "toolbar",
+                "table",
+                "header",
+                "headcell",
+                "row",
+                "cell",
+                "footer"
+            ]
         },
         "chart": {
             "label": "Chart",
@@ -1074,7 +1595,12 @@
             "defaultStyle": {
                 "span": 6,
                 "height": "md"
-            }
+            },
+            "parts": [
+                "root",
+                "title",
+                "plot"
+            ]
         },
         "pivot": {
             "label": "Pivot table",
@@ -1092,7 +1618,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "table",
+                "header",
+                "row",
+                "rowhead",
+                "cell",
+                "total",
+                "footer"
+            ]
         },
         "input_file": {
             "label": "File upload",
@@ -1108,7 +1644,16 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "button",
+                "items",
+                "item",
+                "remove",
+                "error"
+            ]
         },
         "input_dataset": {
             "label": "Dataset upload",
@@ -1123,7 +1668,15 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "button",
+                "selected",
+                "remove",
+                "error"
+            ]
         },
         "input_richtext": {
             "label": "Rich text",
@@ -1141,7 +1694,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "frame",
+                "toolbar",
+                "tool",
+                "editor",
+                "error"
+            ]
         },
         "input_html": {
             "label": "Formatted text (HTML)",
@@ -1162,7 +1724,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "frame",
+                "toolbar",
+                "tool",
+                "editor",
+                "error"
+            ]
         },
         "input_datetime": {
             "label": "Date & time",
@@ -1177,7 +1748,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_relation": {
             "label": "Relation",
@@ -1194,7 +1771,17 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "chips",
+                "chip",
+                "control",
+                "menu",
+                "option",
+                "error"
+            ]
         },
         "input_person": {
             "label": "Person",
@@ -1209,7 +1796,17 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "chips",
+                "chip",
+                "control",
+                "menu",
+                "option",
+                "error"
+            ]
         },
         "input_multiselect": {
             "label": "Multi-select",
@@ -1228,7 +1825,15 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "chips",
+                "chip",
+                "control",
+                "error"
+            ]
         },
         "tabs": {
             "label": "Tabs",
@@ -1241,7 +1846,16 @@
                 "span": 12,
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root",
+                "list",
+                "tab",
+                "icon",
+                "label",
+                "badge",
+                "panel"
+            ]
         },
         "tab": {
             "label": "Tab",
@@ -1256,7 +1870,10 @@
             "defaultStyle": {
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "modal": {
             "label": "Modal",
@@ -1271,7 +1888,13 @@
             "defaultStyle": {
                 "gap": 3,
                 "padding": 4
-            }
+            },
+            "parts": [
+                "root",
+                "trigger",
+                "close",
+                "body"
+            ]
         },
         "repeater": {
             "label": "Repeater",
@@ -1289,7 +1912,13 @@
                 "span": 12,
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root",
+                "item",
+                "actions",
+                "action"
+            ]
         },
         "container": {
             "label": "Container",
@@ -1301,7 +1930,10 @@
             "defaultStyle": {
                 "span": 6,
                 "gap": 3
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "pane": {
             "label": "Pane",
@@ -1315,7 +1947,10 @@
                 "span": 12,
                 "gap": 3,
                 "height": "fill"
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "page_header": {
             "label": "Page header",
@@ -1344,7 +1979,16 @@
                 "span": 12,
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "title",
+                "subtitle",
+                "tags",
+                "actions",
+                "divider"
+            ]
         },
         "markdown": {
             "label": "Markdown",
@@ -1358,7 +2002,15 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "heading",
+                "paragraph",
+                "list",
+                "item",
+                "code"
+            ]
         },
         "badge_list": {
             "label": "Badge list",
@@ -1378,7 +2030,12 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "item",
+                "count"
+            ]
         },
         "progress": {
             "label": "Progress",
@@ -1402,7 +2059,15 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "caption",
+                "track",
+                "bar",
+                "segment"
+            ]
         },
         "stepper": {
             "label": "Stepper",
@@ -1419,7 +2084,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "item",
+                "step",
+                "marker",
+                "label",
+                "hint",
+                "line"
+            ]
         },
         "file_gallery": {
             "label": "File gallery",
@@ -1442,7 +2116,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "card",
+                "thumb",
+                "icon",
+                "name",
+                "meta",
+                "group",
+                "group-title"
+            ]
         },
         "connector_status": {
             "label": "Connection status",
@@ -1454,7 +2138,15 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "title",
+                "detail",
+                "note",
+                "action"
+            ]
         },
         "timeline": {
             "label": "Timeline",
@@ -1474,7 +2166,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "row",
+                "marker",
+                "line",
+                "content",
+                "title",
+                "meta",
+                "description"
+            ]
         },
         "message_thread": {
             "label": "Message thread",
@@ -1512,7 +2214,17 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "fill"
-            }
+            },
+            "parts": [
+                "root",
+                "row",
+                "bubble",
+                "text",
+                "meta",
+                "author",
+                "time",
+                "avatar"
+            ]
         },
         "record_detail": {
             "label": "Record detail",
@@ -1529,7 +2241,14 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "group",
+                "field",
+                "label",
+                "value"
+            ]
         },
         "filter_bar": {
             "label": "Filter bar",
@@ -1539,7 +2258,13 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "field",
+                "label",
+                "control"
+            ]
         },
         "kanban": {
             "label": "Kanban",
@@ -1570,7 +2295,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "lane",
+                "column",
+                "card",
+                "title",
+                "subtitle",
+                "badge"
+            ]
         },
         "calendar": {
             "label": "Calendar",
@@ -1589,7 +2324,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "nav",
+                "weekday",
+                "grid",
+                "day",
+                "event",
+                "more"
+            ]
         },
         "ai_chat": {
             "label": "AI chat",
@@ -1605,7 +2350,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "messages",
+                "greeting",
+                "starter",
+                "user",
+                "assistant",
+                "input",
+                "send"
+            ]
         },
         "document_viewer": {
             "label": "Document",
@@ -1621,7 +2376,17 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "lg"
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "title",
+                "version",
+                "body",
+                "tabs",
+                "tab",
+                "message"
+            ]
         },
         "document_compare": {
             "label": "Document compare",
@@ -1644,7 +2409,12 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "xl"
-            }
+            },
+            "parts": [
+                "root",
+                "toolbar",
+                "message"
+            ]
         },
         "input_document": {
             "label": "Document picker",
@@ -1660,7 +2430,17 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "chips",
+                "chip",
+                "control",
+                "menu",
+                "option",
+                "error"
+            ]
         }
     },
     "typeStyleKnobs": {

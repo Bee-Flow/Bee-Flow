@@ -14,6 +14,8 @@ import { evalBoolFlag, evalVisibility } from './nodeVisibility';
 import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
 import { resolveNodeStyle } from './styleResolver';
+import BackgroundImageLayer from './assets/BackgroundImageLayer';
+import { withAuthorClass } from './appCss';
 import { themeVars } from './themeVars';
 import { tileClickProps } from './tileClick';
 import { definitionReadsUi, useUiScope } from './uiState';
@@ -302,7 +304,8 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
 
     const interactive = tileClickProps(node, mode, runtime.runAction, enabled.disabled);
     const cell = (
-        <NodeWrapper node={node} className={className} style={cellStyle} {...(interactive ? { interactive } : null)}>
+        <NodeWrapper node={node} className={withAuthorClass(className, node)} style={cellStyle} {...(interactive ? { interactive } : null)}>
+            {node.style?.backgroundImage ? <BackgroundImageLayer image={node.style.backgroundImage} fit={node.style.backgroundFit} overlay={node.style.backgroundOverlay} /> : null}
             <NodeErrorBoundary type={node.type} signature={nodeSignature(node)} scope={nodeScope} mode={mode}>
                 {hidden ? <HiddenBadge /> : null}
                 {mode === 'edit' && formulaError ? <FormulaErrorBadge message={formulaError} /> : null}
@@ -377,6 +380,8 @@ export default function AppRenderer({
         ui,
     }), [actionState, dataState, currentUser, vars, forms, screen?.id, screen?.name, screenParams, nowStamp, todayStamp, ui]);
 
+    // definition.format (schema 3, appFormat.ts); absent = every value written as before.
+    const appFormat = definition?.format ?? null;
     const runtimeValue = useMemo<RuntimeValue>(() => ({
         mode: mode === 'edit' ? 'edit' : 'run',
         selectedNodeId,
@@ -403,8 +408,9 @@ export default function AppRenderer({
         // consumer's fallback is today's behaviour.
         appDesign: appDesignContext,
         initialUi: initialUi && typeof initialUi === 'object' ? initialUi : null,
+        appFormat,
         scope: baseScope,
-    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, baseScope]);
+    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, appFormat, baseScope]);
 
     if (!definition) return null;
     if (!screen) return null;

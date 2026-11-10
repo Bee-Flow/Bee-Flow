@@ -30,7 +30,7 @@ export default function AppImage({ node }: NodeProps<{ src?: string | null; alt?
         <div
             role="img"
             aria-label={alt || t('studio_apps_runtime.image.unavailable', 'Image unavailable')}
-            className="flex items-center justify-center w-full"
+            className="flex items-center justify-center w-full bfa-image__root bfa-image__placeholder"
             style={{
                 height: hasHeight ? '100%' : undefined,
                 minHeight: '96px',
@@ -49,7 +49,7 @@ export default function AppImage({ node }: NodeProps<{ src?: string | null; alt?
             value={shown}
             alt={alt}
             onError={() => setFailedSrc(shown)}
-            className={`block w-full [border-radius:inherit] ${hasHeight ? '[height:100%]' : '[height:auto]'} ${fit === 'contain' ? '[object-fit:contain]' : '[object-fit:cover]'}`}
+            className={`block w-full [border-radius:inherit] ${hasHeight ? '[height:100%]' : '[height:auto]'} ${fit === 'contain' ? '[object-fit:contain]' : '[object-fit:cover]'} bfa-image__root`}
             fallback={placeholder}
         />
     );

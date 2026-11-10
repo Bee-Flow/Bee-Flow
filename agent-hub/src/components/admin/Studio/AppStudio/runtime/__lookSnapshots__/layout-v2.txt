@@ -1,0 +1,158 @@
+# layout-v2
+## screen scr_layout1 (Layout)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_layout1" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-cols-5 app-grid app-grid--keep-sm app-grid--manual" data-section-id="sec_fivecol" style="--app-cols: 5; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(5, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-5 min-w-0" data-app-type="heading" data-node-id="cmp_fivehd" style="grid-column: span 5 / span 5">
+            <h1 class="break-words font-semibold text-2xl">
+              "Five across"
+          <div class="app-node app-span-1 app-span-sm-2 min-w-0" data-app-type="stat" data-node-id="cmp_fives1" style="grid-column: span 1 / span 1">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "One"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-1 app-span-sm-3 min-w-0" data-app-type="stat" data-node-id="cmp_fives2" style="grid-column: span 1 / span 1">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Two"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-1 app-span-md-2 min-w-0" data-app-type="stat" data-node-id="cmp_fives3" style="grid-column: span 1 / span 1">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Three"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-1 app-span-md-3 min-w-0" data-app-type="stat" data-node-id="cmp_fives4" style="grid-column: span 1 / span 1">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Four"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-1 min-w-0" data-app-type="stat" data-node-id="cmp_fives5" style="grid-column: span 1 / span 1">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Five"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+        <section class="app-grid app-grid--keep-sm app-grid--manual" data-section-id="sec_manual1" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-row-span app-span-6 app-surface min-w-0" data-app-type="card" data-node-id="cmp_tallcd" style="background: var(--bg-card); grid-column: span 6 / span 6; grid-row: span 2 / span 2; padding: calc(12px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "Tall"
+              <div class="app-cols-4 app-grid app-grid--manual" style="--app-cols: 4; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(4, minmax(0, 1fr))">
+                <div class="app-node app-span-1 min-w-0" data-app-type="text" data-node-id="cmp_tallt1" style="grid-column: span 1 / span 1">
+                  <p class="break-words leading-relaxed text-sm">
+                    "A quarter"
+                <div class="app-node app-span-3 app-span-md-4 min-w-0" data-app-type="text" data-node-id="cmp_tallt2" style="grid-column: span 3 / span 3">
+                  <p class="break-words leading-relaxed text-sm">
+                    "Three quarters"
+                <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_tallt3" style="grid-column: span 12 / span 12">
+                  <p class="break-words leading-relaxed text-sm">
+                    "Whole row"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_short1" style="align-self: start; grid-column: span 3 / span 3">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Short one"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-3 app-span-md-6 app-span-sm-6 min-w-0" data-app-type="stat" data-node-id="cmp_short2" style="align-self: end; grid-column: span 3 / span 3">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Short two"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-6 app-sticky-top app-surface min-w-0" data-app-type="card" data-node-id="cmp_sticky" style="--app-sticky-offset: calc(8px * var(--app-space, 1)); background: var(--bg-card); grid-column: span 6 / span 6; padding: calc(12px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "Summary"
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_stickt" style="grid-column: span 12 / span 12">
+                  <p class="break-words leading-relaxed text-sm">
+                    "Stays in view beside the tall block."
+        <section class="app-grid" data-section-id="sec_grids1" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_cont01" style="grid-column: span 12 / span 12">
+            <div class="app-cols-3 app-grid app-grid--manual" data-app-container="true" style="--app-cols: 3; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(3, minmax(0, 1fr))">
+              <div class="app-node app-span-1 min-w-0" data-app-type="text" data-node-id="cmp_p3m5lq" style="grid-column: span 1 / span 1">
+                <p class="break-words leading-relaxed text-sm">
+                  "Third"
+              <div class="app-node app-span-1 min-w-0" data-app-type="text" data-node-id="cmp_t5awao" style="align-self: center; grid-column: span 1 / span 1">
+                <p class="break-words leading-relaxed text-sm">
+                  "Third"
+              <div class="app-node app-span-1 min-w-0" data-app-type="text" data-node-id="cmp_lqzlp4" style="align-self: stretch; grid-column: span 1 / span 1">
+                <p class="break-words leading-relaxed text-sm">
+                  "Third"
+          <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_form01" style="grid-column: span 6 / span 6">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-cols-2 app-grid app-grid--keep-sm app-grid--manual" style="--app-cols: 2; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(2, minmax(0, 1fr))">
+                <div class="app-node app-span-1 app-span-sm-1 min-w-0" data-app-type="input_text" data-node-id="cmp_first1" style="grid-column: span 1 / span 1">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_first1-input">
+                      "First name"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_first1-input" name="first" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-1 app-span-sm-1 min-w-0" data-app-type="input_text" data-node-id="cmp_last01" style="grid-column: span 1 / span 1">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_last01-input">
+                      "Last name"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_last01-input" name="last" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-2 min-w-0" data-app-type="input_textarea" data-node-id="cmp_note01" style="grid-column: span 2 / span 2">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_note01-input">
+                      "Note"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_note01-input" name="note" rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" data-app-submit-inert="true" disabled="" title="This form has no submit action yet." type="submit">
+                  <span>
+                    "Send"
+          <div class="app-node app-span-6 min-w-0" data-app-type="tabs" data-node-id="cmp_tabs01" style="grid-column: span 6 / span 6">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <span>
+                    "Grid of three"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <span>
+                    "Kept on tablet"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_tab001" style="grid-column: span 12 / span 12">
+                  <div class="app-cols-3 app-grid app-grid--manual" style="--app-cols: 3; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(3, minmax(0, 1fr))">
+                    <div class="app-node app-span-1 min-w-0" data-app-type="text" data-node-id="cmp_puwybl" style="grid-column: span 1 / span 1">
+                      <p class="break-words leading-relaxed text-sm">
+                        "One"
+                    <div class="app-node app-span-2 min-w-0" data-app-type="text" data-node-id="cmp_rh0uvb" style="grid-column: span 2 / span 2">
+                      <p class="break-words leading-relaxed text-sm">
+                        "Two"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_tab002" style="grid-column: span 12 / span 12">
+                  <div class="app-grid app-grid--manual" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-4 min-w-0" data-app-type="text" data-node-id="cmp_9rcbt0" style="grid-column: span 4 / span 4">
+                      <p class="break-words leading-relaxed text-sm">
+                        "A third"
+                    <div class="app-node app-span-8 min-w-0" data-app-type="text" data-node-id="cmp_ejpbvz" style="grid-column: span 8 / span 8">
+                      <p class="break-words leading-relaxed text-sm">
+                        "Two thirds"
+          <button class="[background:var(--app-primary)] [border-radius:var(--app-radius)] [color:var(--app-primary-contrast)]! font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" data-app-modal-trigger="cmp_modal1" type="button">
+            "Open"
+          <div class="app-node app-span-12 min-w-0" data-app-type="repeater" data-node-id="cmp_rep001" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Nothing to show yet."

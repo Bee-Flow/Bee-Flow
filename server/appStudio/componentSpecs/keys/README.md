@@ -43,4 +43,9 @@ recognises the form (or `entryKey: true` and `clean` for a key of a groupBy or a
 `../queryMarks.js` checks them and `../README.md` ("A key or a form inside a data read") has the
 recipe; for these two the canonicalizer needs no edit.
 
-`../README.md` lists every place a mark can sit. A subfolder holds only the marks a feature shipped (`binding/`: `match`, `search`).
+A **navGroup** mark also carries `toolSchema`, the JSON schema of its value (for example
+`{ type: 'string', enum: ['new', 'beta'] }`): `app_set_nav_groups` then offers the key on every
+group by itself, after the base keys (`builderTools/navGroupSchema.mts`), and
+`builderTools/navGroupSchema.test.js` fails for a marked key without one.
+
+`../README.md` lists every place a mark can sit. A subfolder holds only the marks a feature shipped.

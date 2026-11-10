@@ -1,0 +1,11 @@
+/*
+ * Text knobs (styleKnobs/text.ts). The knob values sit as inline style on the node's grid
+ * cell and reach the text by inheritance. A component that puts its own size, line height or
+ * letter spacing class on its root (a heading's text-2xl, a paragraph's leading-relaxed) would
+ * win over that, so a knob that is set adds a class, and the root takes the value back from
+ * the cell. Two classes on the selector beat a single utility class whatever the order of the
+ * stylesheets.
+ */
+.app-node.app-tk-size > * { font-size: inherit; line-height: inherit; }
+.app-node.app-tk-lh > * { line-height: inherit; }
+.app-node.app-tk-tracking > * { letter-spacing: inherit; }

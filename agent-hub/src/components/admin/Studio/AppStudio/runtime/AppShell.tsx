@@ -89,7 +89,7 @@ export default function AppShell({
      * (ConnectionsPreflight) share the box instead of the banner pushing
      * 100%-of-main past the bottom. Harmless for a normal screen.
      */
-    const main = <main className="flex flex-col flex-1 min-h-0 overflow-auto"><AppCustomCss definition={definition} /><AppKbNotice definition={definition} />{children}</main>;
+    const main = <main className="flex flex-col flex-1 min-h-0 overflow-auto"><AppCustomCss definition={definition} appId={appId} /><AppKbNotice definition={definition} />{children}</main>;
 
     if (navStyle === 'sidebar' || navStyle === 'rail') {
         return (

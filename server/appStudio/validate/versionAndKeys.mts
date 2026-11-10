@@ -9,6 +9,7 @@ import { definitionKeys } from '../definitionKeyRegistry.mts';
 import type { Finding } from '../definitionKeyRegistry.mts';
 import { checkAssetRefs } from './assetChecks.mts';
 import { checkScreenTriggers } from './clientTriggerChecks.mts';
+import { checkLayout } from './layoutChecks.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { SCHEMA_VERSION_BASE, SCHEMA_VERSION_CURRENT, SCHEMA_VERSIONS_ACCEPTED } = nodeRequire('../componentSpecs/ids.js') as {
@@ -56,8 +57,9 @@ export function checkSchemaVersion(def: Def, pushE: PushFinding): void {
 /**
  * The `validate` of every registered top-level key the definition carries, then the checks
  * that read the whole definition against something outside it: the uploaded files it names
- * (opts.assetIds, validate/assetChecks.mts), and the screen triggers of schema 3
- * (validate/clientTriggerChecks.mts).
+ * (opts.assetIds, validate/assetChecks.mts), the screen triggers of schema 3
+ * (validate/clientTriggerChecks.mts), and the layout knobs that cannot work where they
+ * sit (validate/layoutChecks.mts).
  */
 export function validateRegisteredKeys(def: Def, pushE: PushFinding, pushW: PushFinding, opts: { assetIds?: unknown } = {}): void {
     for (const entry of definitionKeys()) {
@@ -67,4 +69,5 @@ export function validateRegisteredKeys(def: Def, pushE: PushFinding, pushW: Push
     }
     checkAssetRefs(def, opts.assetIds, pushW);
     checkScreenTriggers(def, { pushE, pushW });
+    checkLayout(def, pushW);
 }

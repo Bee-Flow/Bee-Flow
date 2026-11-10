@@ -31,6 +31,8 @@ const {
     renderComponentCompact,
     COMPACT_STEP_KINDS,
 } = require('./catalogRender');
+const { renderTopic } = require('./catalogTopics.mts');
+const { ON_REQUEST_TYPES, ON_REQUEST_STEP_KINDS, LONG_TAIL_FUNCTIONS } = require('./catalogDiet.mts');
 const crypto = require('node:crypto');
 const {
     BINDING_KIND_SINCE,
@@ -234,8 +236,16 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * some, every; sum gained its field), one OR-group line under the filters and two formula lines
  * (member access on a call result, `it`, the regex subset) took the catalog to 58_259. ~740
  * headroom; the round's end-state target is <= 59_000 (plan section 4).
+ *
+ * 59_000 → 46_500 (the prompt diet, measured 2026-11-10 at 44_990): rarely used material left
+ * the cached text and is served by app_inspect_catalog (catalogDiet.mts, catalogTopics.mts):
+ * 17 component types are one summary line, 11 step kinds are only named, the long-tail formula
+ * signatures, the sizing detail, the bulk-write and transaction rules, the call_action detail
+ * and the data-model conversion lines are topics. catalogTopics.test.js holds a row per moved
+ * fact. A base entry that grows this text again is the thing to question, not the ceiling: the
+ * extension tier (since 3) has its own budget (extensionIndex.test.js) and never lands here.
  */
-const CATALOG_CHAR_CEILING = 59_000;
+const CATALOG_CHAR_CEILING = 46_500;
 
 test('renderCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCatalogText();
@@ -292,14 +302,17 @@ test('all action kinds are rendered — inline fields, or a pointer to an identi
 
 test('all step kinds are rendered from STEP_SPECS with the client/server partition', () => {
     const text = renderCatalogText();
+    const other = text.split('\n').find((l) => l.startsWith('Other step kinds'));
+    assert.ok(other.includes('app_inspect_catalog {steps:[…]}'), 'the rarely used kinds say how to read them');
     for (const kind of STEP_KINDS) {
-        assert.ok(
-            new RegExp(`^${kind} \\[(client|SERVER)\\]: \\{`, 'm').test(text),
-            `step kind ${kind} rendered with its side tag`,
-        );
-    }
-    for (const kind of DATA_MUTATING_STEP_KINDS) {
-        assert.ok(new RegExp(`^${kind} \\[SERVER\\]:`, 'm').test(text), `${kind} tagged server-side`);
+        const side = DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
+        // A rarely used kind is named with its side; its line is what app_inspect_catalog serves.
+        const line = ON_REQUEST_STEP_KINDS.includes(kind) ? renderStepEntry(kind) : text.split('\n').find((l) => l.startsWith(`${kind} [`));
+        assert.ok(line && line.startsWith(`${kind} [${side}]: {`), `step kind ${kind} rendered with its side tag`);
+        if (ON_REQUEST_STEP_KINDS.includes(kind)) {
+            assert.ok(!text.includes(`\n${kind} [`), `${kind} is not rendered in full`);
+            assert.ok(other.slice(other.indexOf(`[${side}]`)).split(';')[0].includes(kind), `${kind} is named on the ${side} side`);
+        }
     }
     assert.ok(text.includes('run on the API'), 'client-vs-server note present');
 });
@@ -328,14 +341,16 @@ test('every prop description is rendered, on the single props line', () => {
     // ships the default for everything — which is exactly the sameness the
     // look pass exists to end.
     const text = renderCatalogText();
-    const lines = text.split('\n');
     let described = 0;
     for (const [type, spec] of Object.entries(COMPONENT_SPECS)) {
+        // A rarely used type is one summary line in the text; its entry (app_inspect_catalog) carries the descriptions.
+        const where = ON_REQUEST_TYPES.includes(type) ? renderComponentEntry(type) : text;
+        if (ON_REQUEST_TYPES.includes(type)) assert.ok(text.includes(`\n${renderComponentCompact(type)}\n`), `${type} is a summary line in the catalog`);
         for (const [key, fs] of Object.entries(spec.props || {})) {
             if (!fs.description) continue;
             described++;
-            assert.ok(text.includes(`— ${fs.description}`), `${type}.${key} description rendered`);
-            const line = lines.find((l) => l.includes(fs.description));
+            assert.ok(where.includes(`— ${fs.description}`), `${type}.${key} description rendered`);
+            const line = where.split('\n').find((l) => l.includes(fs.description));
             assert.ok(line && line.trimStart().startsWith('props:'),
                 `${type}.${key} description stays compact on the one props line`);
         }
@@ -364,13 +379,21 @@ test('every callable function name in the engine is rendered in the catalog', ()
     // Schema version 3 vocabulary (`since: 3`) stays out of the pinned text and is served on demand.
     const { SINCE_3 } = require('./formulaGuide');
     assert.deepStrictEqual([...SINCE_3].sort(), ['groupBy', 'keys', 'merge', 'range', 'reduce', 'reverse', 'slice', 'sort', 'values']);
+    // Every other name is in the text: with its signature, or (the long tail) by name with the topic that holds it.
+    const topic = renderTopic('formulas');
+    const named = section.split('\n').find((l) => l.startsWith('Also callable'));
+    assert.ok(named.includes('topic:formulas'), 'the long tail says where its signatures are');
     for (const name of EXPR_FUNCTION_NAMES.filter((n) => !SINCE_3.has(n))) {
-        assert.ok(section.includes(`${name}(`), `formula function ${name} is missing from the catalog`);
+        if (LONG_TAIL_FUNCTIONS.has(name)) assert.match(named, new RegExp(`[ ,]${name}[,.]`), `${name} is named`);
+        else assert.ok(section.includes(`${name}(`), `formula function ${name} is missing from the catalog`);
+        assert.ok(topic.includes(`${name}(`), `${name} is in the formulas topic`);
     }
+    for (const name of LONG_TAIL_FUNCTIONS) assert.ok(EXPR_FUNCTION_NAMES.includes(name), `${name} is a real function`);
     // Signatures, not bare names: arity and argument names are most of the
     // teaching value (substring(text, start, end?) vs "substring").
     for (const f of EXPR_FUNCTIONS.filter((x) => !SINCE_3.has(x.name))) {
-        assert.ok(section.includes(f.signature), `signature ${f.signature} rendered verbatim`);
+        if (!LONG_TAIL_FUNCTIONS.has(f.name)) assert.ok(section.includes(f.signature), `signature ${f.signature} rendered verbatim`);
+        assert.ok(topic.includes(f.signature), `signature ${f.signature} is in the formulas topic`);
     }
 });
 
@@ -383,8 +406,13 @@ test('the formula section teaches the operators and the NaN hole in totality', (
     assert.match(text, /-2\^2 = -4/, 'the unary-minus precedence trap is spelled out');
     assert.match(text, /2\^3\^2 = 512/, 'right-associativity is spelled out');
     assert.match(text, /PI\(\) and E\(\)/, 'the constants are taught as bracketed calls');
-    assert.match(text, /is NaN/, 'the operators-leak-NaN rule is stated');
-    assert.match(text, /isEmpty\(x\) \? 0 :/, 'the guard form is given');
+    // The totality rules are the formulas topic's (the prompt's own pitfalls teach the guard).
+    assert.ok(!text.includes('TOTALITY') && text.includes('topic:formulas'));
+    const topic = renderTopic('formulas');
+    assert.match(topic, /is NaN/, 'the operators-leak-NaN rule is stated');
+    assert.match(topic, /isEmpty\(x\) \? 0 :/, 'the guard form is given');
+    assert.match(topic, /x\/0 is Infinity/);
+    assert.match(topic, /no look-around or back-references/, 'the regex subset');
 });
 
 test(`prompt budget: rendered catalog stays under ${CATALOG_CHAR_CEILING} chars`, () => {
@@ -450,9 +478,14 @@ test('the advanced-sizing block teaches the derived availability rule instead of
     assert.match(block, /WIDTH pair exactly when its `style:` line below includes `span`/);
     assert.match(block, /HEIGHT pair exactly when it includes `height`/);
     // 2. The placement/box split — without it, a model sets widthValue and
-    //    deletes the span, and every sibling reflows.
-    assert.match(block, /`span` still owns PLACEMENT/);
-    assert.match(block, /sizes the painted box INSIDE that cell/);
+    //    deletes the span, and every sibling reflows. On request, with the rest of the block.
+    assert.ok(block.includes('topic:sizing'), 'the block says where the rest is');
+    const topic = renderTopic('sizing');
+    assert.ok(topic.includes(buildCatalogSections().advancedSizing), 'the topic is the whole block');
+    assert.match(topic, /`span` still owns PLACEMENT/);
+    assert.match(topic, /sizes the painted box INSIDE that cell/);
+    assert.match(topic, /A FIXED sidebar beside something that takes the remainder/);
+    assert.match(topic, /hideBelow "md" hides the component on viewports narrower than 1024px/);
     // 3. The defaults ARE today's behaviour (identity discipline, stated to the
     //    model as "omit these unless you mean them").
     for (const knob of ['widthMode', 'heightMode']) {
@@ -460,8 +493,8 @@ test('the advanced-sizing block teaches the derived availability rule instead of
     }
     // 4. Mobile: an exact width can never overflow a phone. A model that does
     //    not know this either avoids the feature or invents a workaround.
-    assert.match(block, /max-width:100%/);
-    assert.match(block, /640px/);
+    assert.match(topic, /max-width:100%/);
+    assert.match(topic, /640px/);
 });
 
 test('the catalog teaches the pct-height rule as an ERROR, per height ROUTE', () => {
@@ -479,8 +512,9 @@ test('the catalog teaches the pct-height rule as an ERROR, per height ROUTE', ()
     // card at height "md" validated and then collapsed in the browser, which
     // is the exact failure the error code exists to prevent. validate.js now
     // asks containerPassesHeightDown, and the catalog must teach THAT.
-    const text = renderCatalogText();
-    const block = text.slice(text.indexOf('Advanced sizing'), text.indexOf('### Screens'));
+    // Served on request: the catalog text names the topic, the prompt's own layout bullets keep the short rule.
+    assert.ok(renderCatalogText().includes('which parents a "pct" height may measure') && renderCatalogText().includes('topic:sizing'));
+    const block = renderTopic('sizing');
     assert.match(block, /style\.height_pct_indefinite/, 'the error code the validator emits is named');
     assert.match(block, /PASSES ITS HEIGHT DOWN/, 'the distinction that makes the rule correct is stated');
     assert.match(block, /card` or `container` does ONLY when its own height is "fill"/, 'the card/container route is named');
@@ -505,8 +539,11 @@ test('the advanced-sizing rule agrees with expandStyleKnobs for every component 
         // The rendered `style:` line is what the rule is applied TO, so it must
         // still be the RAW list — rendering the expanded one would make the
         // rule circular and cost ~1_500 chars of budget.
-        const line = lines.find((l) => l === `  style: ${spec.styleKnobs.join(', ')}`
-            || l.startsWith(`  style: ${spec.styleKnobs.join(', ')} (defaults`));
+        // A summary line lists the same knobs after its own `style:` (knob=default,knob).
+        const summary = lines.find((l) => l.startsWith(`${type} [`) && l.includes(' style: '));
+        const line = ON_REQUEST_TYPES.includes(type)
+            ? summary && summary.slice(summary.lastIndexOf(' style: ') + 8).split(',').map((k) => k.split('=')[0]).join(', ') === spec.styleKnobs.join(', ')
+            : lines.find((l) => l === `  style: ${spec.styleKnobs.join(', ')}` || l.startsWith(`  style: ${spec.styleKnobs.join(', ')} (defaults`));
         assert.ok(line, `${type}: style line renders the base knob list the rule reads`);
     }
     // Sections earn the height pair the same way, from the same rule.
@@ -553,7 +590,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // type conversions — 57_567 chars.
 // 2026-11-04, package 6 (formulas and filters): new function signatures, the any-group filter line,
 // member access on call results, map/filter/some/every with it, the regex subset — 58_259 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '4e13f17b2a1faad9faeb211079b87c9aa7ba53407d455a89f52e9fb30edfe179';
+// 2026-11-10, the prompt diet (reset once, by its one writer): rare material on request, the
+// statements MAP 6.4 lists said one way, nested list shapes shown — 44_990 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'ebb07da075ce19ac1235c38397db32fae7fa78968522a4da4a966c4d2e8e749b';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();
@@ -565,9 +604,11 @@ test('renderCatalogText is byte-identical after the section refactor (stored dig
         assert.fail(`the full catalog changed (sha256 ${sha}, ${text.length} chars). If componentSpecs/dataModel changed, update FULL_CATALOG_SHA256_BEFORE_REFACTOR; if only the renderer did, the refactor moved bytes.`);
     }
     const s = buildCatalogSections();
-    for (const key of ['theme', 'design', 'knobs', 'advancedSizing', 'screen', 'components', 'nodeLogic', 'actions', 'steps', 'bindings', 'formulas', 'variables', 'dataModel', 'limits']) {
+    // The sections that ride whole; the others are cut down by catalogDiet.mts and served whole on request.
+    const whole = ['theme', 'design', 'knobs', 'screen', 'nodeLogic', 'bindings', 'variables', 'dataModel', 'limits'];
+    for (const key of [...whole, 'advancedSizing', 'components', 'actions', 'steps', 'formulas', 'dataModelChanges']) {
         assert.ok(typeof s[key] === 'string' && s[key].length, `section ${key} is a non-empty string`);
-        assert.ok(text.includes(s[key]), `section ${key} is used verbatim by the full text`);
+        assert.strictEqual(text.includes(s[key]), whole.includes(key), `section ${key} is ${whole.includes(key) ? 'used verbatim by' : 'cut down in'} the catalog text`);
     }
 });
 
@@ -581,7 +622,10 @@ test('renderCatalogText is byte-identical after the section refactor (stored dig
  * paid on every round of every local build.
  */
 // Raised to 24_100 on 2026-11-06 (KB query log): the two kb_log_* step names, three mentions each (24_019 measured).
-const COMPACT_CHAR_CEILING = 24_100;
+// Lowered to 22_200 on 2026-11-10 (the prompt diet, 21_513 measured): every step kind is named once
+// instead of three times, the AI action kinds point at their step twin, the long-tail formula
+// signatures are a topic. The component lines were left alone (a small model reads its props there).
+const COMPACT_CHAR_CEILING = 22_200;
 
 test('renderCompactCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCompactCatalogText();
@@ -640,7 +684,8 @@ test('compact steps: the common kinds in full, the rest named once with the insp
         assert.ok(new RegExp(`^${kind} \\[(client|SERVER)\\]: \\{`, 'm').test(section), `${kind} rendered in full`);
         // The full step line, minus the bulk-write fields (filter, limit) the compact band does not get.
         assert.ok(section.includes(renderStepKindCompactLine(kind)), `${kind}: the compact line IS the full step line`);
-        const fullLine = renderCatalogText().split('\n').find((l) => l.startsWith(`${kind} [`));
+        // The line the cloud bands' base text carries (base tier: a since-3 field is served on request).
+        const fullLine = renderCatalogText().split('\n').find((l) => l.startsWith(`${kind} [`)) || renderStepEntry(kind);
         if (!/filter: |limit: /.test(fullLine)) assert.strictEqual(renderStepKindCompactLine(kind), fullLine);
     }
     const rest = STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
@@ -652,8 +697,10 @@ test('compact steps: the common kinds in full, the rest named once with the insp
         assert.ok(other.includes(kind), `${kind} is named on the "other" line`);
         assert.ok(!new RegExp(`^${kind} \\[(client|SERVER)\\]:`, 'm').test(section), `${kind} is NOT rendered in full`);
     }
-    // The kinds line still lists everything — a kind the model cannot see is one it will not use.
+    // Every kind is still named — a kind the model cannot see is one it will not use — once, not three times.
     for (const kind of STEP_KINDS) assert.ok(section.includes(kind), `${kind} listed`);
+    assert.ok(!section.includes('Kinds: '), 'no separate enumeration of the kinds');
+    assert.match(other, /\[SERVER\] .*; \[client\] /, 'the other kinds carry their side');
 });
 
 test('the compact catalog keeps the whole formula vocabulary and the core binding kinds, and drops the rest', () => {
@@ -662,8 +709,12 @@ test('the compact catalog keeps the whole formula vocabulary and the core bindin
     // Every name, except the list functions and the regex pair (2026-11-04): the core prompt
     // budget only goes down, so the compact vocabulary is the one before them (formulaGuide.js).
     const { NOT_IN_COMPACT, COMPACT_SIGNATURES, SINCE_3 } = require('./formulaGuide');
-    for (const name of EXPR_FUNCTION_NAMES.filter((n) => !SINCE_3.has(n))) assert.strictEqual(formulas.includes(`${name}(`), !NOT_IN_COMPACT.has(name), `formula function ${name} present unless left out on purpose`);
-    for (const f of EXPR_FUNCTIONS.filter((x) => !NOT_IN_COMPACT.has(x.name) && !SINCE_3.has(x.name))) assert.ok(formulas.includes(COMPACT_SIGNATURES.get(f.name) || f.signature), `signature ${f.signature} verbatim`);
+    // The long tail (catalogDiet.mts) is named without its signature; the formulas topic has every one.
+    const tail = formulas.split('\n').find((l) => l.startsWith('Also callable'));
+    assert.ok(tail.includes('app_inspect_catalog {components:["topic:formulas"]}'));
+    const has = (name) => (LONG_TAIL_FUNCTIONS.has(name) ? new RegExp(`[ ,]${name}[,.]`).test(tail) : formulas.includes(`${name}(`));
+    for (const name of EXPR_FUNCTION_NAMES.filter((n) => !SINCE_3.has(n))) assert.strictEqual(has(name), !NOT_IN_COMPACT.has(name), `formula function ${name} present unless left out on purpose`);
+    for (const f of EXPR_FUNCTIONS.filter((x) => !NOT_IN_COMPACT.has(x.name) && !LONG_TAIL_FUNCTIONS.has(x.name) && !SINCE_3.has(x.name))) assert.ok(formulas.includes(COMPACT_SIGNATURES.get(f.name) || f.signature), `signature ${f.signature} verbatim`);
     for (const kind of ['static', 'actionResult', 'formula', 'record', 'records', 'aggregate']) {
         assert.ok(text.includes(`"kind": "${kind}"`), `binding kind ${kind} taught`);
     }
@@ -689,7 +740,8 @@ test('the compact catalog keeps the whole formula vocabulary and the core bindin
     // fields of their own (run_automation, sequence, open_modal…) inline.
     const actions = text.slice(text.indexOf('### Actions'), text.indexOf('\n### Sequence steps\n'));
     for (const kind of ACTION_KINDS) assert.ok(actions.includes(kind), `action kind ${kind} listed`);
-    assert.match(actions, /take exactly the fields of the step of the same name/);
+    assert.match(actions, /Every kind but run_automation and sequence takes exactly the fields of the step of the same name/);
+    assert.match(actions, /a kind only named there: app_inspect_catalog \{steps:\[…\]\} first/);
     assert.match(actions, /^sequence: \{ steps/m);
     assert.match(actions, /^run_automation: \{ automationId/m);
     assert.ok(!actions.includes('…fields exactly as the'), 'no per-kind pointer lines (four of the twins are not rendered in the compact step list)');
@@ -711,7 +763,11 @@ test('renderComponentEntry / renderStepEntry serve the full entry the compact li
     assert.match(renderComponentEntry('data_grid'), /\n  props: /);
     assert.match(renderComponentEntry('data_grid'), /\n  style: /);
     assert.strictEqual(renderComponentEntry('nope'), null);
-    assert.ok(full.includes(`\n${renderStepEntry('request_approval').split(': {')[0]}: {`));
+    // A rarely used type or kind is NOT in the text in full: its entry is what the summary line points at.
+    assert.ok(!full.includes(renderComponentEntry('message_thread')) && full.includes(`\n${renderComponentCompact('message_thread')}\n`));
+    assert.match(renderComponentEntry('message_thread'), /sideMap: list of/);
+    assert.ok(!full.includes('\nrequest_approval [SERVER]') && full.includes(`\n${renderStepEntry('create_record')}\n`));
+    assert.match(renderStepEntry('request_approval'), /approver questions/);
     assert.match(renderStepEntry('request_approval'), /^request_approval \[SERVER\]: \{/);
     assert.strictEqual(renderStepEntry('nope'), null);
 });
@@ -727,7 +783,9 @@ test('the catalog names the AI step limits: prompt, schema description, context 
 test('the guide teaches call_action (params.<name>, depth 3, never recursive) and modelTier as a formula', () => {
     const text = require('./catalogRender').renderCatalogText();
     assert.match(text, /call_action \[client\]: \{ actionId: string REQUIRED ≤80, params: \{ <name>: binding \} \(≤20, read as params\.<name> in the called action\)/);
-    assert.match(text, /call_action runs another action as a subroutine.*≤3 calls deep, never recursive/);
+    assert.match(text, /call_action runs another action as a subroutine.*topic:actions/);
+    assert.match(renderTopic('actions'), /call_action runs another action as a subroutine.*≤3 calls deep, never recursive/);
+    assert.match(renderTopic('actions'), /On a public page the called actions ship to the browser/);
     assert.match(text, /modelTier: tier name \| \{kind:"formula",expr\} \(not a tier name → default tier, with a note\)/);
     assert.match(require('./catalogRender').renderCompactCatalogText(), /call_action/, 'the compact catalog names the kind');
 });

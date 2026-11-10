@@ -115,6 +115,10 @@ async function applyAppScreenshot(draftWrap, args) {
     // never exposed one, so a builder could not check a layout at phone width —
     // precisely where a 12-column row wraps badly.
     const viewport = SCREENSHOT_VIEWPORTS.has(args?.viewport) ? args.viewport : 'desktop';
+    // chrome, state, appearance, hostTheme, nodeId (screenshotView.mts); none = the plain screen.
+    const { screenshotViewArgs, describeScreenshotView } = require('./screenshotView.mts');
+    const view = screenshotViewArgs(args);
+    const viewText = describeScreenshotView(view);
 
     // The app row is what lets the render read real table rows (owner id +
     // data scoping) — same lookup as applyDryRun, same tolerance.
@@ -135,6 +139,7 @@ async function applyAppScreenshot(draftWrap, args) {
             screenId,
             asRole,
             viewport,
+            ...(view ? { view } : {}),
         });
     } catch (e) {
         // The service contract is "never throws" — this is belt-and-braces.
@@ -150,7 +155,8 @@ async function applyAppScreenshot(draftWrap, args) {
 
     const rendered = screenId ? (draftWrap.def.screens || []).find((s) => s && s.id === screenId) : null;
     const label = rendered ? `"${rendered.name || rendered.id}"` : 'the home screen';
-    const parts = [`Screenshot captured of ${label}${asRole ? ` as role "${asRole}"` : ''} at ${viewport} width (${shot.width}×${shot.height}).`];
+    const parts = [`Screenshot captured of ${label}${asRole ? ` as role "${asRole}"` : ''} at ${viewport} width (${shot.width}×${shot.height})${viewText ? `, ${viewText}` : ''}.`];
+    if (shot.cropNote) parts.push(`Note: ${shot.cropNote}.`);
     if (draftWrap.modelSupportsVision) {
         parts.push('The image follows — actually LOOK at it: rows whose spans wrapped past 12 columns, regions rendered empty because a binding returned no rows, charts with no bars, clipped or overlapping text, cramped spacing. Fix what is wrong before finalizing.');
     } else {
@@ -166,7 +172,7 @@ async function applyAppScreenshot(draftWrap, args) {
     return {
         content: parts.join('\n\n'),
         _screenshotDataUrl: shot.dataUrl,
-        _screenshotCaption: `Screenshot · ${rendered ? (rendered.name || rendered.id) : 'Home'}${asRole ? ` · as ${asRole}` : ''}${viewport !== 'desktop' ? ` · ${viewport}` : ''}`,
+        _screenshotCaption: `Screenshot · ${rendered ? (rendered.name || rendered.id) : 'Home'}${asRole ? ` · as ${asRole}` : ''}${viewport !== 'desktop' ? ` · ${viewport}` : ''}${viewText ? ` · ${viewText}` : ''}`,
     };
 }
 
@@ -227,18 +233,23 @@ function applyInspectCatalog(args) {
     // The extension tier (entries marked since 3, which the prompt only indexes): by name or by family.
     const extensionNames = [...new Set(names(args?.extensions))];
     const family = typeof args?.family === 'string' ? args.family.trim() : '';
-    if (!components.length && !steps.length && !extensionNames.length && !family) {
+    // Topics (builderPrompt/catalogTopics.mts) ride the two name lists as "topic:<name>".
+    const { inspectTopics, isTopicName, describeTopics } = require('../builderPrompt/catalogTopics.mts');
+    const topics = inspectTopics([...components, ...steps, ...names(args?.topics).map((t) => (isTopicName(t) ? t : `topic:${t}`))]);
+    for (const list of [components, steps]) list.splice(0, list.length, ...list.filter((n) => !isTopicName(n)));
+    const askedTopics = Object.keys(topics.topics).length + topics.unknown.length;
+    if (!components.length && !steps.length && !extensionNames.length && !family && !askedTopics) {
         return {
             error: 'Name at least one component type in `components` or one step kind in `steps`.',
-            _fixHint: `e.g. { components: ["data_grid", "kanban"], steps: ["request_approval"] }. Types: ${COMPONENT_TYPES.join(', ')}. Step kinds: ${STEP_KINDS.join(', ')}.`,
+            _fixHint: `e.g. { components: ["data_grid", "kanban"], steps: ["request_approval"] }. Types: ${COMPONENT_TYPES.join(', ')}. Step kinds: ${STEP_KINDS.join(', ')}. Topics, asked as "topic:<name>" in either list: ${describeTopics()}.`,
         };
     }
     const { renderComponentEntry, renderStepEntry } = require('../builderPrompt/catalogRender');
     const { inspectExtensions } = require('../builderPrompt/extensionIndex.mts');
     const extensions = inspectExtensions(extensionNames, family);
-    /** @type {{ components?: Record<string, string>, steps?: Record<string, string>, extensions?: Record<string, string>, _hints?: string[], unknown?: string[], note?: string }} */
-    const out = { components: {}, steps: {}, ...(Object.keys(extensions.entries).length ? { extensions: extensions.entries } : {}) };
-    const unknown = [...extensions.unknown];
+    /** @type {{ components?: Record<string, string>, steps?: Record<string, string>, extensions?: Record<string, string>, topics?: Record<string, string>, _hints?: string[], unknown?: string[], note?: string }} */
+    const out = { components: {}, steps: {}, ...(Object.keys(extensions.entries).length ? { extensions: extensions.entries } : {}), ...(Object.keys(topics.topics).length ? { topics: topics.topics } : {}) };
+    const unknown = [...extensions.unknown, ...topics.unknown];
     /** @type {string[]} */
     const skipped = [];
     /** @type {string[]} */

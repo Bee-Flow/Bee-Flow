@@ -37,6 +37,11 @@ const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { RENDER_PLAN, planShape, planFilters, planParams } = require('../shared/appDefinition/bindingPlan.mjs');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+// The view (chrome, state, appearance, hostTheme, nodeId), the in-process fonts and assets,
+// and the still capture live next to this file: this one is at its line budget.
+const renderView = require('./appStudioRenderView.mts');
+const { makeFileFulfil } = require('./appStudioRenderFiles.mts');
+const { STILL_CSS, shoot, waitForFonts } = require('./appStudioRenderShot.mts');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
 const BUNDLE_JS = 'app-runtime.mjs';
@@ -171,13 +176,15 @@ function findModelTable(model, ref) {
  * currentUser is the IDENTICAL object we pass to mount(), so a filter formula
  * like `currentUser.id` resolves to the same value on both sides of the key.
  */
-function buildRenderScope(currentUser, variables, screen) {
+function buildRenderScope(currentUser, variables, screen, view = null) {
     const now = Date.now();
+    // A view's state lands on the seeded defaults exactly as the page lays it (mergeRecord in
+    // agent-hub appRuntimeScreenshot.tsx), so both sides key a filtered binding the same way.
     return {
         currentUser,
-        vars: seedVariableDefaults(variables),
-        forms: {},
-        screen: { params: {}, id: screen.id, name: screen.name },
+        vars: { ...seedVariableDefaults(variables), ...((view && view.vars) || {}) },
+        forms: (view && view.forms) || {},
+        screen: { params: (view && view.screenParams) || {}, id: screen.id, name: screen.name },
         now,
         today: new Date(now).toISOString().slice(0, 10),
     };
@@ -253,10 +260,10 @@ async function runDatasetEntry(binding, { model, app, viewer, deps }) {
  * runtime DataContext will look them up. Per-binding failures become 'error'
  * entries (what the live screen would show), never a throw.
  */
-async function buildDataState({ definition, model, app, screen, roleArg, viewer, currentUser, deps }) {
+async function buildDataState({ definition, model, app, screen, roleArg, viewer, currentUser, deps, view = null }) {
     const dataState = {};
     if (!app || !app.id) return dataState; // nothing to read against — bindings render as loading
-    const scope = buildRenderScope(currentUser, definition.variables, screen);
+    const scope = buildRenderScope(currentUser, definition.variables, screen, view);
     for (const { binding } of collectDataBindings(definition, screen.id)) {
         // The client's order: shape, filters, params (each a no-op for a kind it does not touch).
         let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ (resolveShape(binding, scope));
@@ -280,15 +287,17 @@ async function buildDataState({ definition, model, app, screen, roleArg, viewer,
  * script imports mount() from the routed bundle URL and flags completion on
  * window so the capture loop knows when to screenshot.
  */
-function composeRenderDocument(payload) {
+function composeRenderDocument(payload, { hostTheme = null } = {}) {
     const json = JSON.stringify(payload).replace(/</g, '\\u003c');
+    // hostTheme is one of renderView.HOST_THEMES (checked before it gets here); none = the page default.
+    const html = hostTheme && renderView.HOST_THEMES.includes(hostTheme) ? `<html data-theme="${hostTheme}">` : '<html>';
     return `<!DOCTYPE html>
-<html>
+${html}
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/${BUNDLE_CSS}">
-<style>html,body{margin:0;padding:0;background:#fff}#root{min-height:100vh}</style>
+<style>html,body{margin:0;padding:0;background:#fff}#root{min-height:100vh}${STILL_CSS}</style>
 </head>
 <body>
 <div id="root"></div>
@@ -313,7 +322,7 @@ try {
  * deliberately has no route to this server, so EVERY url under the fake origin
  * is answered in-process; any other request goes through the host screen.
  */
-async function captureDocument({ doc, assets, viewport }) {
+async function captureDocument({ doc, assets, viewport, fulfil = null, target = null }) {
     const browserProvider = require('./browserProvider');
     const consoleErrors = [];
     const pageErrors = [];
@@ -345,7 +354,10 @@ async function captureDocument({ doc, assets, viewport }) {
                 if (Object.prototype.hasOwnProperty.call(assets, rel)) {
                     return route.fulfill({ status: 200, contentType: assets[rel].contentType, body: assets[rel].body });
                 }
-                return route.fulfill({ status: 204, body: '' });
+                // Fonts and the app's own assets (appStudioRenderFiles.mts); anything else is empty.
+                return Promise.resolve(fulfil ? fulfil(rel) : null)
+                    .catch((e) => fallback('services/appStudioRender:captureDocument#fulfil', e, null))
+                    .then((file) => route.fulfill(file ? { status: 200, contentType: file.contentType, body: file.body } : { status: 204, body: '' }));
             });
             await page.goto(PREVIEW_ORIGIN, { waitUntil: 'load', timeout: NAV_TIMEOUT_MS });
 
@@ -356,15 +368,11 @@ async function captureDocument({ doc, assets, viewport }) {
                 { timeout: MOUNT_WAIT_MS, polling: 100 },
             ).catch((e) => bestEffort('services/appStudioRender:captureDocument#2', e));
             await page.waitForTimeout(SETTLE_MS);
+            await waitForFonts(page);
 
             const mountError = await page.evaluate(() => window.__bfMountError || null).catch((e) => fallback('services/appStudioRender:captureDocument#3', e, null));
-            let png = null;
-            try {
-                const root = await page.$('#root');
-                if (root) png = await root.screenshot({ type: 'png' });
-            } catch (err) { fallback('services/appStudioRender:captureDocument#4', err); /* fall through to viewport shot */ }
-            if (!png) png = await page.screenshot({ type: 'png' });
-            return { png, mountError, consoleErrors, pageErrors };
+            const { png, note } = await shoot(page, target);
+            return { png, mountError, consoleErrors, pageErrors, cropNote: note };
         },
     );
 }
@@ -453,14 +461,17 @@ function unavailable(reason, code) {
  * `input`: `app` is the studio_apps row (data pass skipped without it), `definition` the canonical app
  * definition, `model` the app's data model or null (its `roles` read defensively), `screenId` the screen to
  * render (default: home screen), `asRole` the role to render + read data as (must exist in model.roles),
- * `deps` the injectable edges (tests): readBundle, capture, dbQuery, runDataset, getDataset, hardTimeoutMs.
+ * `deps` the injectable edges (tests): readBundle, capture, dbQuery, runDataset, getDataset, hardTimeoutMs,
+ * files (the fonts/asset fulfilment, appStudioRenderFiles.mts). `view` is app_screenshot's optional
+ * { chrome, state, appearance, hostTheme, nodeId } (appStudioRenderView.mts); absent = the plain screen.
  *
  * @param {{ app?: { id: string, userId: string } | null, definition?: AppDefinition | null,
  *   model?: (Omit<DataModel, 'roles'> & { roles?: unknown }) | null, screenId?: string | null, asRole?: string | null,
  *   viewport?: 'desktop' | 'tablet' | 'mobile' | string | { width: number, height: number },
- *   deps?: Partial<ReturnType<typeof defaultDeps>> | null }} [input]
+ *   deps?: Partial<ReturnType<typeof defaultDeps>> & { files?: Parameters<typeof makeFileFulfil>[1] } | null,
+ *   view?: Record<string, unknown> | null }} [input]
  */
-async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null } = {}) {
+async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null, view: rawView = null } = {}) {
     try {
         const d = { ...defaultDeps(), ...(deps || {}) };
 
@@ -474,6 +485,10 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
         }
         const screen = resolveScreen(definition, screenId);
         if (!screen) return unavailable('the app definition has no screens to render');
+
+        const viewed = rawView ? renderView.resolveRenderView(rawView, definition, screen) : null;
+        if (viewed && !viewed.ok) return unavailable(viewed.error, 'bad_view');
+        const view = viewed ? viewed.value : null;
 
         const roles = (model && Array.isArray(model.roles)) ? model.roles : [];
         const role = asRole ? roles.find((r) => r && r.key === asRole) : null;
@@ -496,7 +511,7 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
         const viewer = { id: currentUser.id, role: roleArg };
 
         const dataState = await buildDataState({
-            definition, model, app, screen, roleArg, viewer, currentUser, deps: d,
+            definition, model, app, screen, roleArg, viewer, currentUser, deps: d, view,
         });
 
         const doc = composeRenderDocument({
@@ -506,20 +521,25 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
             // part-drawn, with its line stopping two-thirds of the way across.
             // A reviewer then reads a complete series as truncated data and
             // "fixes" a binding that was never broken. Forcing motion off makes
-            // the picture agree with the page.
-            definition: { ...definition, design: { ...(definition.design || {}), motion: 'none' } },
+            // the picture agree with the page (viewDefinition; it also applies
+            // the view's appearance).
+            definition: renderView.viewDefinition(definition, view),
             screenId: screen.id,
             dataState,
             currentUser,
             previewRole: asRole || null,
-        });
+            // Screenshot mode of the headless entry: query client, assets, shell, start state.
+            screenshot: view ? renderView.screenshotPayload(view) : {},
+        }, { hostTheme: view ? view.hostTheme : null });
         const assets = {
             [BUNDLE_JS]: { contentType: 'text/javascript; charset=utf-8', body: bundle.js },
             [BUNDLE_CSS]: { contentType: 'text/css; charset=utf-8', body: bundle.css },
         };
         const vp = resolveViewport(viewport);
 
-        const shot = await withHardTimeout(d.capture({ doc, assets, viewport: vp }), d.hardTimeoutMs);
+        const target = view && (view.nodeId || view.openModal) ? { nodeId: view.nodeId, fullPage: !!view.openModal } : null;
+        const fulfil = makeFileFulfil(app && app.id ? app : null, (deps && deps.files) || {});
+        const shot = await withHardTimeout(d.capture({ doc, assets, viewport: vp, fulfil, target }), d.hardTimeoutMs);
         if (!shot || !shot.png) {
             return unavailable(shot && shot.mountError
                 ? `the screen failed to mount: ${shot.mountError}`
@@ -537,6 +557,7 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
             mountError: shot.mountError || null,
             consoleErrors: shot.consoleErrors || [],
             pageErrors: shot.pageErrors || [],
+            ...(shot.cropNote ? { cropNote: shot.cropNote } : {}),
         };
     } catch (e) {
         const msg = e && e.message ? e.message : String(e);

@@ -88,6 +88,13 @@ const DATA_MODEL_TOOLS = new Set([
     'app_seed_records', 'app_update_records', 'app_upsert_dataset', 'app_set_mailbox_hook',
 ]);
 
+// A registry tool (builderTools/tools/<name>.js) joins the two sets by its own flags.
+const { registryTools, registryTool } = require('./builderTools/toolRegistry.mts');
+for (const tool of registryTools()) {
+    if (tool.mutating) MUTATING_TOOLS.add(tool.name);
+    if (tool.dataModel) DATA_MODEL_TOOLS.add(tool.name);
+}
+
 // ── Dispatcher ───────────────────────────────────────────────────────
 
 /**
@@ -193,8 +200,11 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         // Route-handled (the builder route keeps the list and emits the plan
         // event); a direct caller gets a plain answer rather than "unknown tool".
         case 'app_set_plan':          return { error: 'app_set_plan is handled by the builder chat — it records your checklist there and does not change the app.' };
-        default:
-            return { error: `Unknown app builder tool: ${name}` };
+        default: {
+            // A name the switch does not know may be a registry tool; a base name never reaches here.
+            const tool = registryTool(name);
+            return tool ? tool.apply(draftWrap, args) : { error: `Unknown app builder tool: ${name}` };
+        }
     }
 }
 

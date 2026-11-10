@@ -20,7 +20,7 @@ const Module = require('module');
 // Pure at require time (it reads the permitted list only when asked), so the
 // real one can back the stub below.
 const realTierAccess = require('../../core/entitlements/tierAccess');
-
+process.env.STUDIO_APP_DESIGN_BRIEF = 'off'; // the scripts here are BUILD rounds: the brief's own call is in appStudioBuilder/designBrief.test.js
 function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
 
 // ── Shared mutable state the mocks read ─────────────────────────────
@@ -578,7 +578,7 @@ test('scripted build: screen + components → drafts, tool_calls, done', async (
     // INSIDE the single user message that closes the request.
     const first = state.adapterCalls[0].messages;
     assert.strictEqual(first[0].role, 'system');
-    assert.ok(first[0].content.includes('never code'), 'identity present');
+    assert.ok(first[0].content.includes('STRUCTURED COMPONENT TREES'), 'identity present');
     // The owner's automations ride the OWNER CONTEXT note in the folded user
     // message (since 2026-09-17), never the system prompt — which is what
     // keeps that prompt one text for every user of a box.

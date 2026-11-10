@@ -53,7 +53,7 @@ export default function AppInputNumber({ node }: NodeProps<InputNumberProps>) {
     const shownError = error || (badInput ? BAD_INPUT_MESSAGE : null);
     const id = `${node.id}-input`;
     return (
-        <Field id={id} label={label} required={required} error={shownError}>
+        <Field part="input_number" id={id} label={label} required={required} error={shownError}>
             <input
                 id={id}
                 name={name}
@@ -71,7 +71,7 @@ export default function AppInputNumber({ node }: NodeProps<InputNumberProps>) {
                     // Submit numbers, not numeric strings; '' stays empty (fails `required`).
                     setValue(raw === '' ? '' : Number(raw));
                 }}
-                className={INPUT_CLASS}
+                className={`${INPUT_CLASS} bfa-input_number__control`}
                 style={inputStyle(shownError)}
             />
         </Field>

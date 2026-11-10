@@ -13,10 +13,10 @@ export default function AppDivider({ node }: Partial<NodeProps<{ orientation?: s
             <hr
                 aria-orientation="vertical"
                 data-app-divider="vertical"
-                className="self-stretch h-auto w-px shrink-0 border-0"
+                className="self-stretch h-auto w-px shrink-0 border-0 bfa-divider__root"
                 style={{ background: 'var(--border-default)', minHeight: '1.25rem' }}
             />
         );
     }
-    return <hr className="border-t w-full" style={{ borderColor: 'var(--border-default)' }} />;
+    return <hr className="border-t w-full bfa-divider__root" style={{ borderColor: 'var(--border-default)' }} />;
 }

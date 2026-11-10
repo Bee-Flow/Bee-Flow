@@ -41,9 +41,14 @@ const TOOL_SCHEMAS = [
 TOOL_SCHEMAS.push(...require('../../core/documents/documentDiscovery').schemas('app'));
 // The app's uploaded files (builderTools/assetTools.mts), after every captured tool.
 TOOL_SCHEMAS.push(...require('./assetTools.mts').ASSET_TOOL_SCHEMAS);
+// The registry tools (builderTools/tools/<name>.js, toolRegistry.mts) after every base tool, so the
+// base menu keeps its bytes and its order. None ship yet.
+TOOL_SCHEMAS.push(...require('./toolRegistry.mts').registryToolSchemas(TOOL_SCHEMAS.map((tool) => tool.function.name)));
 
 module.exports = {
     TOOL_SCHEMAS,
+    // tool name → { key, en } of each registry tool's chat verb (scripts/gen-app-catalog.mjs --tools).
+    REGISTRY_TOOL_VERBS: require('./toolRegistry.mts').registryToolVerbs(),
     MAX_COMPONENTS_PER_CALL,
     MAX_BATCH_PATCHES_PER_CALL,
     MAX_SEED_RECORDS,

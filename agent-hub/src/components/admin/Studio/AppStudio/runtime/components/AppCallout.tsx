@@ -58,7 +58,7 @@ export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
 
     return (
         <div
-            className={`flex gap-2.5 px-3 py-2.5 text-sm${collapsible ? ' app-callout--collapsed items-center' : ' items-start'}`}
+            className={`flex gap-2.5 px-3 py-2.5 text-sm${collapsible ? ' app-callout--collapsed items-center' : ' items-start'} bfa-callout__root`}
             style={{
                 background: `${color}1a`, // ~10% alpha tint
                 borderLeft: `3px solid ${color}`,
@@ -68,10 +68,10 @@ export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
             data-app-callout={effectiveTone}
             tabIndex={collapsible ? 0 : undefined}
         >
-            <Icon className={`w-4 h-4 shrink-0${collapsible ? '' : ' mt-0.5'}`} style={{ color }} aria-hidden="true" />
+            <Icon className={`w-4 h-4 shrink-0${collapsible ? '' : ' mt-0.5'} bfa-callout__icon`} style={{ color }} aria-hidden="true" />
             <div className="min-w-0">
-                {title ? <div className="font-medium">{title}</div> : null}
-                <div className="app-callout__body text-[var(--text-secondary)]">
+                {title ? <div className="font-medium bfa-callout__title">{title}</div> : null}
+                <div className="app-callout__body text-[var(--text-secondary)] bfa-callout__body">
                     {renderInlineMarkdown(shownText)}
                 </div>
                 {/* The hover panel repeats what the line above already carries in
@@ -85,7 +85,7 @@ export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
             </div>
             {shownMeta ? (
                 <div
-                    className="ml-auto shrink-0 whitespace-nowrap text-xs mt-0.5 text-[var(--text-muted)]"
+                    className="ml-auto shrink-0 whitespace-nowrap text-xs mt-0.5 text-[var(--text-muted)] bfa-callout__meta"
                     data-app-callout-meta="true"
                 >
                     {shownMeta}

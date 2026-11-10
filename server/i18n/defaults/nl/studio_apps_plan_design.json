@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "studio_apps_plan_design.colour": "Kleur",
+    "studio_apps_plan_design.custom": "Eigen ontwerp",
+    "studio_apps_plan_design.direction": "Ontwerprichting",
+    "studio_apps_plan_design.font": "Lettertype",
+    "studio_apps_plan_design.moves": "Wat deze app eigen maakt",
+    "studio_apps_plan_design.navigation": "Navigatie",
+    "studio_apps_plan_design.surface": "Vlakken",
+    "studio_apps_plan_design.title": "Uiterlijk"
+  },
+  "sameAsEnglish": ["studio_apps_plan_design.preset"]
+}

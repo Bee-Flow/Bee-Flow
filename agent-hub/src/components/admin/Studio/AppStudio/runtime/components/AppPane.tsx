@@ -31,7 +31,7 @@ export default function AppPane({ node, children }: NodeProps<{ direction?: stri
                 'flex min-h-0 min-w-0 h-full',
                 horizontal ? 'flex-row' : 'flex-col',
                 scroll === 'auto' ? 'overflow-auto' : 'overflow-hidden',
-            ].join(' ')}
+            ].join(' ') + ' bfa-pane__root'}
             style={{ gap: spaceSteps(gap) }}
         >
             {children}

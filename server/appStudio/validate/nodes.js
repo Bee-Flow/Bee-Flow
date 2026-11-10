@@ -28,6 +28,7 @@ const { checkActionWiring, checkNodeAdvisories } = require('./nodeWiring');
 const { nodeActionRefs } = require('../nodeActionRefs.mts');
 const { noteUiTarget } = require('./uiStepChecks.mts');
 const { screenTriggerRefs, watchersOf } = require('../../shared/appDefinition/clientTriggers.mjs');
+const { checkObjectValue } = require('./objectChecks.mts');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -46,6 +47,7 @@ function validatePropValue(key, fs, value, path, ctx) {
         if (fs.required) pushE({ code: 'prop.required', severity: 'error', path, message: `Missing required prop \`${key}\`.`, hint: `Provide a ${fs.type} value${fs.default !== undefined && fs.default !== null ? ` (spec default: ${JSON.stringify(fs.default)})` : ''}.` });
         return;
     }
+    if (checkObjectValue(fs, value, path, pushE)) return;
 
     switch (fs.type) {
         case 'string':
@@ -119,6 +121,7 @@ function validatePropValue(key, fs, value, path, ctx) {
                         if (ifs.required) pushE({ code: 'prop.item_required', severity: 'error', path: `${ip}.${ik}`, message: `\`${key}\` item ${i} is missing required \`${ik}\`.`, hint: 'Fill the field.' });
                         continue;
                     }
+                    if (checkObjectValue(ifs, iv, `${ip}.${ik}`, pushE)) continue;
                     if (ifs.type === 'string') {
                         if (typeof iv !== 'string') pushE({ code: 'prop.item_invalid', severity: 'error', path: `${ip}.${ik}`, message: `\`${ik}\` must be a string.`, hint: 'Pass a plain string.' });
                         else if (iv.length > (ifs.maxLen || LIMITS.MAX_STRING)) pushE({ code: 'prop.item_invalid', severity: 'error', path: `${ip}.${ik}`, message: `\`${ik}\` is ${iv.length} chars — the maximum is ${ifs.maxLen || LIMITS.MAX_STRING}.`, hint: 'Shorten it.' });
@@ -283,6 +286,9 @@ function validateNodeLogic(node, path, ctx, spec) {
     }
     if (node.validations !== undefined) validateFieldValidations(node, path, ctx, spec);
     if (node.visibleToRoles !== undefined) validateRoleRefs(node.visibleToRoles, `${path}.visibleToRoles`, ctx);
+    if (node.cssClass !== undefined && !require('../appCss.mts').isCssClassName(node.cssClass)) {
+        pushE({ code: 'node.css_class_invalid', severity: 'error', path: `${path}.cssClass`, message: 'cssClass must be a lower-case letter followed by lower-case letters, digits or dashes.', hint: `e.g. "hero" (at most ${LIMITS.MAX_CSS_CLASS_LEN} characters), styled as .u-hero in design.customCss.` });
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -487,7 +493,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
         if (!isObject(node.style)) {
             pushE({ code: 'style.invalid', severity: 'error', path: `${path}.style`, message: 'style must be an object.', hint: 'Use the style knobs from the catalog.' });
         } else {
-            const allowedKnobs = expandStyleKnobs(spec.styleKnobs);
+            const allowedKnobs = expandStyleKnobs(spec.styleKnobs, undefined, node.type);
             for (const [k, v] of Object.entries(node.style)) {
                 if (!allowedKnobs.includes(k)) {
                     pushE({ code: 'style.unknown_key', severity: 'error', path: `${path}.style.${k}`, message: `Style knob \`${k}\` does not apply to ${node.type}.`, hint: `Legal knobs: ${allowedKnobs.join(', ')}.` });

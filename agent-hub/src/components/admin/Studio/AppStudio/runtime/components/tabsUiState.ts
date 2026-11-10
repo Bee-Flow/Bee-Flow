@@ -18,13 +18,13 @@ export function tabIndexOf(tabs: readonly TabLike[], value: unknown): number {
 }
 
 /**
- * A tabs group's active position: its own state, starting at the first tab as it
- * always did, and in run mode (`enabled`) also its side of `ui.tabs.<id>.active`
+ * A tabs group's active position: its own state, starting at `initial` (the first tab
+ * as it always did, unless the host asks for another: initialUi.ts), and in run mode (`enabled`) also its side of `ui.tabs.<id>.active`
  * (runtime/uiState.ts): the id of the active tab is published and a set_ui step
  * can switch it. In edit mode nothing is published.
  */
-export function useActiveTab(nodeId: string | undefined, tabs: readonly TabLike[], enabled: boolean): [number, Dispatch<SetStateAction<number>>] {
-    const [active, setActive] = useState(0);
+export function useActiveTab(nodeId: string | undefined, tabs: readonly TabLike[], enabled: boolean, initial = 0): [number, Dispatch<SetStateAction<number>>] {
+    const [active, setActive] = useState(initial);
     const current = tabs[active]?.id ?? tabs[0]?.id ?? null;
     usePublishedUiState('activeTab', nodeId, current, (value) => {
         const index = tabIndexOf(tabs, value);

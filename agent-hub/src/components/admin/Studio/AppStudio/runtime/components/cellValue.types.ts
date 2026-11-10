@@ -1,4 +1,5 @@
 import type { TranslateParams } from '@/hooks/useTranslation';
+import type { CellFormatters } from './cellFormat';
 
 /** Formats whose natural home is the right edge of the column. */
 /** The column settings a cell reads. A grid column (or its spec) is passed as is; the rest of its keys are ignored here. */
@@ -19,6 +20,8 @@ export interface CellColumn {
     subtextFrom?: string;
     subtextToneFrom?: string;
     truncate?: boolean;
+    /** Schema 3: how this column writes numbers and dates (cellFormat.ts). */
+    formatOptions?: unknown;
 }
 
 /**
@@ -78,6 +81,8 @@ export interface RenderMainValueArgs {
     row?: unknown;
     now: number | null;
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
+    /** The column's number and date writers (cellFormat.ts); default the legacy ones. */
+    fmt?: CellFormatters;
 }
 
 /** @param {import('./cellValue.types').CellValueProps} props */

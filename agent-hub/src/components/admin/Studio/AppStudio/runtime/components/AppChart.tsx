@@ -7,6 +7,7 @@ import {
 } from '../chartPalette';
 import useMeasuredBox from '@/components/shared/charts/useMeasuredBox';
 import { brandPalette } from '../appDesign';
+import { localeDateArgs } from '../appFormat';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver.helpers';
@@ -95,7 +96,7 @@ export function toTimeRows(rows: ChartRow[], xKey: string) {
  * either repeat the same date on every tick or hide the time of day entirely.
  * Exported for tests.
  */
-export function timeTickFormatter(spanMs: number) {
+export function timeTickFormatter(spanMs: number, app: unknown = null) {
     const opts: Intl.DateTimeFormatOptions = spanMs < 2 * 86400_000
         ? { hour: '2-digit', minute: '2-digit' }
         : spanMs < 320 * 86400_000
@@ -104,16 +105,16 @@ export function timeTickFormatter(spanMs: number) {
     return (v: unknown) => {
         const t = Number(v);
         if (!Number.isFinite(t)) return '';
-        return new Date(t).toLocaleDateString(undefined, opts);
+        return new Date(t).toLocaleDateString(...localeDateArgs(app, opts)); // no app format: (undefined, opts)
     };
 }
 
-function timeLabelFormatter(v: unknown) {
+function timeLabelFormatter(v: unknown, app: unknown = null) {
     const t = Number(v);
     if (!Number.isFinite(t)) return '';
-    return new Date(t).toLocaleString(undefined, {
+    return new Date(t).toLocaleString(...localeDateArgs(app, {
         day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
+    }));
 }
 
 /**
@@ -202,7 +203,7 @@ function isNumericColumn(rows: ChartRow[], key: string) {
 
 
 export default function AppChart({ node }: NodeProps<ChartProps>) {
-    const { mode, runAction, actionState, dataState, scope, appDesign } = useRuntime();
+    const { mode, runAction, actionState, dataState, scope, appDesign, appFormat } = useRuntime();
     const props = node.props || {};
     const {
         chartType = 'bar', title = null, xKey = 'label', series = [],
@@ -275,7 +276,7 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
     // 'fill' has to become a measured number: see chartFitOf.
     const fill = isFill(node);
     const { fitted, height } = chartFitOf(fill, node.style?.height ?? '', title, measuredHeight);
-    const baseFmt = makeValueFormatter(valueFormat);
+    const baseFmt = makeValueFormatter(valueFormat, { app: appFormat, options: props.formatOptions });
     // A bare number on a health axis is unreadable — 72 what? The unit rides on
     // both the tick and the tooltip so the two never disagree.
     const unit = typeof unitLabel === 'string' && unitLabel.trim() ? unitLabel.trim() : null;
@@ -304,7 +305,7 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
             domain={timePad
                 ? [(dataMin) => dataMin - timePad, (dataMax) => dataMax + timePad]
                 : ['dataMin', 'dataMax']}
-            tickFormatter={timeTickFormatter(spanMs)}
+            tickFormatter={timeTickFormatter(spanMs, appFormat)}
             {...CHART_AXIS}
         />
     ) : (
@@ -338,7 +339,7 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
         <Tooltip
             contentStyle={CHART_TOOLTIP_STYLE}
             formatter={(v) => fmt(v)}
-            labelFormatter={isTime ? timeLabelFormatter : undefined}
+            labelFormatter={isTime ? (v) => timeLabelFormatter(v, appFormat) : undefined}
         />
     );
     const legend = showLegend ? <Legend wrapperStyle={{ fontSize: 11 }} /> : null;
@@ -367,14 +368,14 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
 
     return (
         <div
-            className={`w-full min-w-0${fitted ? ' flex flex-col h-full min-h-0' : ''}${fill ? ' app-fill' : ''}`}
+            className={`w-full min-w-0${fitted ? ' flex flex-col h-full min-h-0' : ''}${fill ? ' app-fill' : ''} bfa-chart__root`}
             data-app-chart={chartType}
             data-app-chart-orientation={horizontal ? 'horizontal' : undefined}
             data-app-chart-fitted={fitted || undefined}
             data-app-chart-xtype={isTime ? 'time' : 'category'}
         >
             {title ? (
-                <div className={`text-sm font-semibold mb-2${fitted ? ' shrink-0' : ''} text-[var(--text-primary)]`}>{title}</div>
+                <div className={`text-sm font-semibold mb-2${fitted ? ' shrink-0' : ''} text-[var(--text-primary)] bfa-chart__title`}>{title}</div>
             ) : null}
             {/* overflow-hidden, not auto: when the plot is momentarily larger
                 than the room left (the frame before the first measurement) it
@@ -383,7 +384,7 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
                 asking to be scrolled. */}
             <div
                 ref={wrapRef}
-                className={`w-full overflow-hidden${fitted ? ' flex-1 min-h-0' : ''}`}
+                className={`w-full overflow-hidden${fitted ? ' flex-1 min-h-0' : ''} bfa-chart__plot`}
                 style={fitted ? undefined : { height }}
             >
                 {chart}
