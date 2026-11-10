@@ -71,6 +71,11 @@ export function isActiveStatus(status: unknown): boolean {
     return !status || status === 'active';
 }
 
+/** Are these the same groups, in any order? No list counts as no groups. */
+export function sameGroups(current: unknown, expected: readonly string[]): boolean {
+    return (Array.isArray(current) ? current.slice().sort() : []).join(',') === expected.slice().sort().join(',');
+}
+
 // ── Once per key ────────────────────────────────────────────────────────────
 
 const SIGHTINGS_MAX = 20000;

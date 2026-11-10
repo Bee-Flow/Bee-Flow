@@ -12,8 +12,12 @@
  *      (`plainNcUserId`). The admin form folds to lower case first and drops
  *      dashes at both ends.
  *   2. No user row has that id: it is the id.
- *   3. A row has it and is this account (same organisation, same stored
- *      Nextcloud uid): it is that user; nobody is created.
+ *   3. A row has it and is this account: it is that user; nobody is created.
+ *      This account is a row of the same organisation with the same stored
+ *      Nextcloud uid, or one with no stored uid and the account's e-mail
+ *      address (what a sign-in without a uid leaves: its id is built from
+ *      the address, and the uid is filled at that person's next sign-in).
+ *      The address counts only where the caller gives one: the sync does.
  *   4. A row has it and is another account, or no Nextcloud account at all:
  *      the id with a hash (`hashedNcUserId`): the plain slug cut to 31
  *      characters, a dash and the first 8 hex characters of the sha256 of the
@@ -66,6 +70,7 @@ export interface NcUserRow {
     organizationId?: unknown;
     nc_uid?: unknown;
     ncUid?: unknown;
+    email?: unknown;
 }
 
 export interface NcAccount {
@@ -75,6 +80,8 @@ export interface NcAccount {
     /** What the id is built from when it is not the uid (a sign-in without one: the e-mail address). */
     source?: unknown;
     form?: NcUserIdForm;
+    /** The account's e-mail address; with it, a row without a stored uid and with this address is this account. */
+    email?: unknown;
 }
 
 export interface NcUserIdDeps<U extends NcUserRow> {
@@ -91,10 +98,17 @@ export type NcUserIdResolution<U extends NcUserRow> =
     | { state: 'free'; id: string; user: null }
     | { state: 'own' | 'taken'; id: string; user: U };
 
+function sameAddress(a: unknown, b: unknown): boolean {
+    const left = typeof a === 'string' ? a.trim().toLowerCase() : '';
+    return left !== '' && typeof b === 'string' && left === b.trim().toLowerCase();
+}
+
 function isAccount(row: NcUserRow, account: NcAccount): boolean {
+    if (String(row.organizationId ?? '') !== String(account.orgId)) return false;
     const uid = account.ncUid ? String(account.ncUid) : '';
     const stored = row.nc_uid ?? row.ncUid;
-    return uid !== '' && stored === uid && String(row.organizationId ?? '') === String(account.orgId);
+    if (!stored) return sameAddress(account.email, row.email);
+    return uid !== '' && stored === uid;
 }
 
 /** The id under which a Nextcloud account gets its user row (the rule in the header). */

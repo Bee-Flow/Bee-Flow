@@ -36,7 +36,7 @@ const { fallback } = require('../utils/bestEffort');
 
 const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
 const { resolveNcUserId } = require('../utils/ncUserId.mts');
-const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, firstSighting, ADMIN_RIGHTS_MISSING } = require('./ncAccountState.mts');
+const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, sameGroups, firstSighting, ADMIN_RIGHTS_MISSING } = require('./ncAccountState.mts');
 const { syncModeChosen, fullSyncHold, SKIP_NOT_CHOSEN } = require('./ncSyncStart.mts');
 
 /**
@@ -224,9 +224,7 @@ async function _applyUserCreated(org, ncUid, state) {
         try {
             ncGroups = await fetchNcUserGroups(org, ncUid);
             const expected = ncGroups.filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
-            const current = Array.isArray(existing.groups) ? existing.groups.slice().sort() : [];
-            const next = expected.slice().sort();
-            if (current.join(',') !== next.join(',')) updates.groups = expected;
+            if (!sameGroups(existing.groups, expected)) updates.groups = expected;
         } catch (err) { fallback('services/ncUserGroupSync:_applyUserCreated#2', err); /* leave groups untouched on transient errors */ }
         // Reactivate only when the sync mode still admits this user.
         //
@@ -272,8 +270,8 @@ async function _applyUserCreated(org, ncUid, state) {
     if (!shouldMirrorUser(org, ncGroups)) return { action: 'skip', reason: 'sync_mode_excludes' };
     if (skipsNewGuest(org, ncUser, ncGroups)) return { action: 'skip', reason: 'guest' };
     const status = (org.nc_new_user_default_status === 'pending') ? 'pending' : 'active';
-    // The id of a new user row; the rule is in utils/ncUserId.mts.
-    const resolved = await resolveNcUserId({ orgId: org.id, ncUid }, { getUser: (id) => userStore.getUser(id) });
+    // The id of a new user row; the rule (and what the address is for) is in utils/ncUserId.mts.
+    const resolved = await resolveNcUserId({ orgId: org.id, ncUid, email: ncUser.email }, { getUser: (id) => userStore.getUser(id) });
     if (resolved.state !== 'free') return { action: 'skip', reason: 'duplicate_id' };
     const userId = resolved.id;
     // Map NC group memberships to Bee Flow group ids — relies on mirrorGroups
@@ -346,6 +344,8 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
         return applyUserCreated(org, ncUid);
     }
     const expectedGroups = groups.filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
+    // Manual mode: a group event updates a linked user's groups, never the status.
+    if (org.nc_sync_mode === 'manual') return user ? _writeGroups(user, expectedGroups) : { action: 'noop' };
     if (!shouldExist && user && user.status === 'active') {
         await userStore.updateUser(user.id, { status: 'inactive', groups: expectedGroups });
         return { action: 'deactivate', userId: user.id };
@@ -356,15 +356,14 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
         await userStore.updateUser(user.id, { status: 'active', groups: expectedGroups });
         return { action: 'reactivate', userId: user.id };
     }
-    if (shouldExist && user) {
-        const current = Array.isArray(user.groups) ? user.groups.slice().sort() : [];
-        const next = expectedGroups.slice().sort();
-        if (current.join(',') !== next.join(',')) {
-            await userStore.updateUser(user.id, { groups: expectedGroups });
-            return { action: 'groups_updated', userId: user.id, groups: expectedGroups };
-        }
-    }
-    return { action: 'noop' };
+    return shouldExist && user ? _writeGroups(user, expectedGroups) : { action: 'noop' };
+}
+
+/** @type {(user: { id: string, groups?: string[] }, expectedGroups: string[]) => Promise<object>} Store the groups when they differ. */
+async function _writeGroups(user, expectedGroups) {
+    if (sameGroups(user.groups, expectedGroups)) return { action: 'noop' };
+    await userStore.updateUser(user.id, { groups: expectedGroups });
+    return { action: 'groups_updated', userId: user.id, groups: expectedGroups };
 }
 
 /**

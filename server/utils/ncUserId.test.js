@@ -147,6 +147,30 @@ test('a row with the plain id that is no Nextcloud account, or one of another or
     assert.deepEqual(r, { state: 'free', id: `nc_org1_ann-acme-example-${sha8('ann@acme.example')}`, user: null });
 });
 
+test('a row without a stored uid and with the account\'s e-mail address is that user, where the caller gives the address', async () => {
+    const account = { orgId: 'org1', ncUid: 'john.doe', email: 'John.Doe@acme.example' };
+    const hashed = { state: 'free', id: `nc_org1_john-doe-${sha8('john.doe')}`, user: null };
+    for (const row of [
+        { id: 'nc_org1_john-doe', organizationId: 'org1', nc_uid: null, email: 'john.doe@acme.example' },
+        { id: 'nc_org1_john-doe', organizationId: 'org1', email: ' John.Doe@Acme.Example ' },
+    ]) {
+        assert.deepEqual(await resolveNcUserId(account, store([row]).deps), { state: 'own', id: 'nc_org1_john-doe', user: row }, JSON.stringify(row));
+        // Without the address the row says nothing about this account.
+        assert.deepEqual(await resolveNcUserId({ orgId: 'org1', ncUid: 'john.doe' }, store([row]).deps), hashed);
+    }
+    // Another address, no address, another organisation, or a stored uid of its own: another account.
+    for (const row of [
+        { id: 'nc_org1_john-doe', organizationId: 'org1', nc_uid: null, email: 'jane@acme.example' },
+        { id: 'nc_org1_john-doe', organizationId: 'org1', nc_uid: null },
+        { id: 'nc_org1_john-doe', organizationId: 'org1', nc_uid: null, email: '' },
+        { id: 'nc_org1_john-doe', organizationId: 'org9', nc_uid: null, email: 'john.doe@acme.example' },
+        { id: 'nc_org1_john-doe', organizationId: 'org1', nc_uid: 'john_doe', email: 'john.doe@acme.example' },
+    ]) {
+        assert.deepEqual(await resolveNcUserId(account, store([row]).deps), hashed, JSON.stringify(row));
+    }
+    assert.deepEqual(await resolveNcUserId({ ...account, email: '' }, store([{ id: 'nc_org1_john-doe', organizationId: 'org1', email: '' }]).deps), hashed);
+});
+
 test('the id with a hash: own when its row is this account, taken when it is another one', async () => {
     const plain = { id: 'nc_org1_john-doe', organizationId: 'org1', nc_uid: 'john.doe' };
     const hashedId = `nc_org1_john-doe-${sha8('john_doe')}`;
