@@ -156,6 +156,8 @@ jobs:
               # and what those files require in turn
               - 'server/appStudio/{appDesignSpec,componentSpecs,mailboxTableTemplates}.js'
               - 'server/appStudio/componentSpecs/**'
+              # read as text by src/features/apps/model/compatCorpus.test.ts (the stored apps the phone plans)
+              - 'server/appStudio/compat/corpus/**'
               # required by componentSpecs/limits.js (the step-tree slots)
               - 'server/shared/appDefinition/**'
               - 'server/automation/builtinStepTools.js'
