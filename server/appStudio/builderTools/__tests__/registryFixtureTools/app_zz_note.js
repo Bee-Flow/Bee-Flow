@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 // TEST FIXTURE, never shipped (toolRegistry.fixture.test.js): a registry tool that writes the
 // app's description, offered over MCP too.
@@ -10,10 +11,15 @@ module.exports = {
         properties: { text: { type: 'string', description: 'The sentence.' } },
         required: ['text'],
     },
+    /**
+     * @param {{ def: { meta?: Record<string, unknown> } & Record<string, unknown> }} draftWrap
+     * @param {{ text?: unknown }} args
+     */
     apply(draftWrap, args) {
         if (typeof args?.text !== 'string' || !args.text.trim()) return { error: 'Pass `text`: a non-empty sentence.', _fixHint: 'Call again with text.' };
         const ops = require('../../../definitionOps');
         const { adoptCanonical } = require('../../shared');
+        /** @type {Record<string, unknown>} */
         const result = adoptCanonical(draftWrap, ops.updateMeta(draftWrap.def, { description: args.text }), {});
         result.meta = { ...draftWrap.def.meta };
         return result;

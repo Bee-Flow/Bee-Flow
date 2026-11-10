@@ -5,6 +5,7 @@ lower_snake_case). `../toolRegistry.mts` reads this folder in file-name order at
 malformed file (the server does not boot) and documents every field:
 
 ```js
+// @typecheck strict
 'use strict';
 module.exports = {
     name: 'app_set_custom_css',          // = the file name
@@ -34,6 +35,9 @@ What a file here gets without any other edit:
   tools it lists through, so a read-only registry tool is refused there too.
 - **MCP.** `mcp: true` lists it on the Studio MCP endpoint with `appId` spliced in and a write
   annotation from `mutating`; `mcp: false` keeps it out of the list and out of `tools/call`.
+
+The file is new server code, so it carries `// @typecheck strict` (scripts/check-new-code-types.mjs);
+keep the logic in a `.mts` module next to it and let `apply` call that.
 
 What the package that adds a tool still does:
 

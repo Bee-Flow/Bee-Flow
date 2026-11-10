@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 // TEST FIXTURE, never shipped (toolRegistry.fixture.test.js): a read-only registry tool for the
 // in-product builder only.
@@ -6,7 +7,7 @@ module.exports = {
     since: 3,
     description: 'Fixture: answer how many screens the draft has. NO arguments.',
     schema: { type: 'object', properties: {} },
-    apply: (draftWrap) => ({ screens: Array.isArray(draftWrap?.def?.screens) ? draftWrap.def.screens.length : 0 }),
+    apply: (/** @type {{ def?: { screens?: unknown[] } }} */ draftWrap) => ({ screens: Array.isArray(draftWrap?.def?.screens) ? draftWrap.def.screens.length : 0 }),
     mutating: false,
     core: false,
     mcp: false,
