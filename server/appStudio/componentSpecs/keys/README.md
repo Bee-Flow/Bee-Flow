@@ -11,6 +11,8 @@ keys/sectionStyle/<knob>.js  a style knob (of STYLE_KNOBS) a section may newly c
 keys/node/<key>.js           a key of a component node beside id, type, props, style, children
 keys/nav/<key>.js            a key of definition.nav
 keys/navGroup/<key>.js       a key of one entry of definition.nav.groups
+keys/binding/<key>.js        a key a record, records, aggregate or dataset binding newly takes
+keys/queryShape/<key>.<name>.js  a form the value under a key of a data read newly takes
 ```
 
 ```js
@@ -34,5 +36,11 @@ definition that uses the key schema version 3 and lists the key for the AI build
 (`section.<key>`, `node.<key>`, `nav.<key>`, `nav.groups[].<key>`, `section.style.<knob>`). It does
 **not** make the key legal: `canonicalize/` has to keep it (a section key is one entry of
 `SECTION_OPTIONAL_KEYS` in `canonicalize/screens.js`) and `validate/` has to check it.
+
+The last two folders describe a data read and carry more than a mark: a binding key brings the
+`clean` function the canonicalizer keeps it with, a query shape the `uses` predicate that
+recognises the form (or `entryKey: true` and `clean` for a key of a groupBy or aggregates entry).
+`../queryMarks.js` checks them and `../README.md` ("A key or a form inside a data read") has the
+recipe; for these two the canonicalizer needs no edit.
 
 `../README.md` lists every place a mark can sit. The subfolders ship empty.
