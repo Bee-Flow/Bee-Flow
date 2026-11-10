@@ -7,7 +7,9 @@
 
 'use strict';
 
+const path = require('node:path');
 const { DATA_MUTATING_STEP_KINDS } = require('../componentSpecs');
+const { stepMetaOf } = require('../componentSpecs/stepRegistry');
 const { findTable, buildServerScope, resolveBinding, writeViewer } = require('./shared');
 const { writeRecord, createRecord, updateRecord, deleteRecord } = require('./records');
 const { runAutomationStep } = require('./automationBridge');
@@ -27,6 +29,24 @@ const STEP_ERRORS = './stepErrors.mts';
 const TRANSACTION_STEP = './transactionStep.mts';
 const BULK_RECORDS = './bulkRecords.mts';
 const KB_LOG_STEPS = './kbLogSteps.mts';
+
+/**
+ * The executor of a step kind of the registry (componentSpecs/steps/<kind>.js with
+ * `handler: 'file'`): `runStep` of actionExecutor/steps/<kind>.mts. Null for every other
+ * kind. The kind is a file name the registry checked at load, never request text.
+ *
+ * @param {string} kind
+ * @param {(kind: string) => { side?: string, handler?: string } | null} [metaOf]
+ * @param {string} [dir]
+ * @returns {((app: unknown, model: unknown, step: unknown, ctx: unknown) => Promise<unknown>) | null}
+ */
+function fileStepHandler(kind, metaOf = stepMetaOf, dir = path.join(__dirname, 'steps')) {
+    const meta = metaOf(kind);
+    if (!meta || meta.side !== 'server' || meta.handler !== 'file') return null;
+    const mod = require(path.join(dir, `${kind}.mts`));
+    if (typeof mod.runStep !== 'function') throw new Error(`Step module ${kind}.mts does not export runStep`);
+    return mod.runStep;
+}
 
 // ── Public entry ────────────────────────────────────────────────────
 
@@ -132,7 +152,11 @@ async function runStepKind(app, model, step, ctx) {
                     resolveBinding, buildServerScope,
                 });
             }
-            default: return { ok: false, error: `Step "${step.kind}" is not a server step` };
+            // A kind of the step registry runs its own module; anything else is not a server step.
+            default: {
+                const runStep = fileStepHandler(step.kind);
+                return runStep ? await runStep(app, model, step, ctx) : { ok: false, error: `Step "${step.kind}" is not a server step` };
+            }
         }
     } catch (e) {
         // The real reason, never "Step failed" (stepErrors.mts): access/compile/quota
@@ -142,4 +166,4 @@ async function runStepKind(app, model, step, ctx) {
     }
 }
 
-module.exports = { executeDataStep };
+module.exports = { executeDataStep, fileStepHandler };

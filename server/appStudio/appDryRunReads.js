@@ -13,7 +13,7 @@
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
 const { seedVariableDefaults } = require('./componentSpecs');
-const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
+const { DRY_RUN_PLAN, planFilters } = require('../shared/appDefinition/bindingPlan.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
@@ -24,11 +24,6 @@ const log = require('../telemetry/log');
 // SOMETHING (or nothing); we never render the data.
 const DRY_RUN_LIMIT = 3;
 
-// The scope roots the synthetic owner/role scope can populate. A formula filter
-// value referencing anything else (item/index/value in a repeater, the current
-// `form`, actions/records/datasets) can't be simulated statically → the binding
-// is reported skipped:'dynamic' rather than run with a wrong value.
-const SYNTHETIC_SCOPE_ROOTS = new Set(['currentUser', 'vars', 'forms', 'screen', 'now', 'today']);
 function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 /**
@@ -52,39 +47,25 @@ function syntheticScope(currentUser, variables) {
 }
 
 /**
- * Resolve a record/records binding's filter for the dry-run, mirroring the
- * client resolveBindingFilters contract against the synthetic scope:
+ * Resolve a record/records binding's filter for the dry-run: the shared binding
+ * planner with the dry run's own option set (DRY_RUN_PLAN), against the
+ * synthetic scope:
  *   • isNull/isNotNull entries pass through untouched;
- *   • a {kind:'formula',expr} value referencing a non-populatable root → the
- *     WHOLE binding is skipped (dynamic — can't simulate it);
+ *   • a {kind:'formula',expr} value referencing a root the synthetic owner/role
+ *     scope cannot populate (item/index/value in a repeater, the current
+ *     `form`, actions/records/datasets), or one that does not compile → the
+ *     WHOLE binding is skipped (dynamic — can't simulate it, and a bad formula
+ *     is a STATIC error);
  *   • a formula that resolves to undefined/null has its entry OMITTED;
- *   • literals pass through.
+ *   • literals pass through, `required` is not enforced;
+ *   • a legacy whole-filter formula string references live scope → skipped.
  * Returns { filters } (an array, possibly empty) or { skipped:true }.
  */
 function resolveDryRunFilters(binding, scope) {
-    const filter = binding.filter;
-    if (filter === undefined || filter === null) return { filters: undefined };
-    // A legacy whole-filter formula string references live scope — can't simulate.
-    if (typeof filter === 'string') return { skipped: true };
-    if (!Array.isArray(filter)) return { filters: undefined };
-
-    const res = resolveFilterList(filter, (raw) => {
-        const v = /** @type {{ kind?: unknown, expr?: unknown }} */ (raw);
-        if (!isPlainObject(v) || v.kind !== 'formula') return raw;
-        let refs;
-        try { refs = compile(String(v.expr || '')).refs; }
-        catch { return FILTER_SKIP; } // a bad formula is a STATIC error; skip data
-        if (refs.some((r) => !SYNTHETIC_SCOPE_ROOTS.has(r))) return FILTER_SKIP;
-        return tryEvaluate(v.expr, scope).value; // undefined/null → omitted, matches the client
-    }, {
-        ignoreRequired: true,
-        // A literal stays as written (as before); only a formula that resolved to nothing is omitted.
-        isUnset: (value, clause) => (value === undefined || value === null) && isPlainObject(clause.value) && /** @type {{ kind?: unknown }} */ (clause.value).kind === 'formula',
-    });
-    if (res.status !== 'ok') return { skipped: true };
-    return { filters: res.filters };
+    const step = planFilters(binding, scope, DRY_RUN_PLAN);
+    if (step.plan !== 'fetch') return { skipped: true };
+    return { filters: /** @type {{ filter?: unknown[] }} */ (step.binding).filter };
 }
-
 
 const GENERIC_READ_FAILURE = 'The data read failed on the server (details are in the server log).';
 

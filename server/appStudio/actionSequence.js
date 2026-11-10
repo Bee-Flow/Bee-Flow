@@ -19,7 +19,7 @@
 
 const { MAX_FIELD_KEY_LEN, MAX_INPUT_FIELDS } = require('./actionExecutor');
 const { LIMITS } = require('./componentSpecs/limits');
-const { clampErrorScope } = require('../shared/appDefinition/stepFlow.mjs');
+const { clampErrorScope, numberedChildLists, handlerStepsOf } = require('../shared/appDefinition/stepFlow.mjs');
 
 /**
  * @param {import('./actionExecutor/shared').StepDef | null | undefined} action
@@ -39,8 +39,11 @@ function normalizeSequence(action) {
  * names the same step. A transaction's children are not numbered: the
  * transaction is one server step.
  *
- * Self-contained on purpose (the mobile lockstep test evaluates this
- * function's own source text): the walk is an inner closure.
+ * Which fields of a kind hold numbered steps comes from the one child-slot
+ * table (stepFlow.numberedChildLists), so a container kind of the step registry
+ * is numbered here, in the browser and in the public redaction alike. The mobile
+ * lockstep test evaluates this function's own source text with those two
+ * helpers passed in.
  *
  * @param {import('./actionExecutor/shared').StepDef[] | null | undefined} steps
  * @param {import('./actionExecutor/shared').StepDef[]} [out]
@@ -53,24 +56,13 @@ function flattenSteps(steps, out = []) {
         for (const step of (Array.isArray(list) ? list : [])) {
             if (!step || typeof step !== 'object') continue;
             out.push(step);
-            if (step.kind === 'condition') {
-                walk(step.then);
-                walk(step.else);
-            } else if (step.kind === 'loop') {
-                walk(step.steps);
-            } else if (step.kind === 'switch') {
-                for (const c of (Array.isArray(step.cases) ? step.cases : [])) {
-                    if (c && typeof c === 'object') walk(c.steps);
-                }
-                walk(step.default);
-            }
+            for (const children of numberedChildLists(step)) walk(children);
         }
     };
     walk(steps);
     for (let i = start; i < out.length; i++) {
-        const h = out[i] && /** @type {Record<string, unknown>} */ (out[i]).onError;
-        if (Array.isArray(h)) walk(h);
-        else if (h && typeof h === 'object' && Array.isArray(/** @type {Record<string, unknown>} */ (h).steps)) walk(/** @type {Record<string, unknown>} */ (h).steps);
+        const handler = handlerStepsOf(out[i]);
+        if (handler) walk(handler);
     }
     return out;
 }

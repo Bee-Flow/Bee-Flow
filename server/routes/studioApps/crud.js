@@ -14,6 +14,8 @@ const { validate } = require('../../core/http/validate');
 const studioAppStore = require('../../stores/studioAppStore');
 const { emptyDefinition, LIMITS } = require('../../appStudio/componentSpecs');
 const { canonicalizeAppDefinition } = require('../../appStudio/canonicalize');
+const { isSchemaNewer, schemaNewerBody } = require('../../appStudio/schemaSince.mts');
+const { gateDefinition, gateFindings } = require('../../appStudio/definitionGate.mts');
 const { describeAppRef } = require('../../appStudio/appRefLookup');
 const { validateAppDefinition } = require('../../appStudio/validate');
 const { templateVersion } = require('../../appStudio/templates');
@@ -112,6 +114,8 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
     let definition;
     /** @type {ResolvedTemplate | null} */
     let template = null;
+    /** What the validator says about the template's definition: reported, never a reason to refuse the create. */
+    let findings = null;
     if (templateId !== undefined && templateId !== null && templateId !== '') {
         const { orgIdArr } = await audienceFor(req);
         template = await resolveTemplate(templateId, { userId, orgIds: orgIdArr });
@@ -120,7 +124,11 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         // then canonicalize (fills defaults, re-keys any duplicate ids).
         const copy = JSON.parse(JSON.stringify(template.definition));
         if (cleanName) copy.meta = { ...(copy.meta || {}), name: cleanName };
-        definition = canonicalizeAppDefinition(copy).def;
+        const fromTemplate = canonicalizeAppDefinition(copy);
+        // A template written by a newer install is not stripped to what this one knows.
+        if (fromTemplate.refused) return res.status(422).json(schemaNewerBody(copy));
+        definition = fromTemplate.def;
+        findings = gateFindings(gateDefinition(definition));
     } else {
         definition = emptyDefinition(cleanName || 'Untitled app');
     }
@@ -175,7 +183,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         }
     }
 
-    res.json({ success: true, app: sanitizeAppRow(app), ...(dataInstall ? { dataInstall } : {}) });
+    res.json({ success: true, app: sanitizeAppRow(app), ...(dataInstall ? { dataInstall } : {}), ...(findings ? { findings } : {}) });
 });
 
 router.get('/:id', requireAuth, async (req, res) => {
@@ -184,7 +192,12 @@ router.get('/:id', requireAuth, async (req, res) => {
     if (!app) return res.status(404).json({ error: 'App not found' });
 
     if (app.userId === userId) {
-        return res.json({ app: sanitizeAppRow(app), readOnly: false, managed: await managedOf(app) });
+        return res.json({
+            app: sanitizeAppRow(app), readOnly: false, managed: await managedOf(app),
+            // The stored bytes are served as they are; a save would be refused
+            // (422 schema_newer), so the editor is told up front.
+            ...(isSchemaNewer(app.definition) ? { schemaNewer: true } : {}),
+        });
     }
 
     const { orgIdArr, userGroups } = await audienceFor(req);
@@ -290,7 +303,9 @@ router.put('/:id/definition', requireAuth, requireManageApps, validate({ body: D
         return res.status(413).json({ error: `App definition exceeds ${LIMITS.MAX_DEFINITION_BYTES} bytes` });
     }
 
-    const { def: canonical, repairs } = canonicalizeAppDefinition(definition);
+    const { def: canonical, repairs, refused } = canonicalizeAppDefinition(definition);
+    // A definition from a newer install is neither normalised nor stored.
+    if (refused) return res.status(422).json(schemaNewerBody(definition));
     // Data-reference cross-checks run demoted to WARNINGS on human saves:
     // a half-wired draft (binding to a table you'll create next) must stay
     // saveable — publish is where data references become hard errors.

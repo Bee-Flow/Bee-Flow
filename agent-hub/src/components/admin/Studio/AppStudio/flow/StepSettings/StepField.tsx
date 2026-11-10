@@ -1,5 +1,5 @@
 import { AlertTriangle, Workflow } from 'lucide-react';
-import { useState } from 'react';
+import { createElement, useState } from 'react';
 import { columnOptions, isDanglingRef, labelForRef, REFERENCE_EMPTY_HINTS, REFERENCE_FIELDS, REFERENCE_PLACEHOLDERS, referenceText } from '../stepReferences';
 import useTranslation from '@/hooks/useTranslation';
 import FormField from '@/components/shared/FormField';
@@ -11,10 +11,12 @@ import AutomationPicker from '../../inspector/AutomationPicker';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { RowBinding, SwitchCase, Placeholder, StepFieldProps, ReferenceFieldProps, AutomationRefFieldProps, SwitchCasesFieldProps } from '../StepSettings.types';
 import { FIELD_LABELS, HINTS } from './StepSettings.constants';
+import { fieldControlFor } from './fieldTypes';
 import { KeyedBindingsField } from './KeyedBindingsField';
 import TierChoiceField from './TierChoiceField';
 import RetryField from './RetryField';
 import ErrorHandlerField from './ErrorHandlerField';
+import LongTextField, { isLongText } from './LongTextField';
 
 /** 'screenId' → 'Screen', 'maxIterations' → 'Max iterations'. */
 function humanize(key: string) {
@@ -27,7 +29,7 @@ function humanize(key: string) {
 }
 
 export function StepField({
-    fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled,
+    fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, fieldControls, onStepChange,
 }: StepFieldProps) {
     const { t } = useTranslation();
     const labelEntry = FIELD_LABELS[fieldKey];
@@ -65,6 +67,14 @@ export function StepField({
                 disabled={disabled}
             />
         );
+    }
+
+    // A field type that registered its own control (fieldTypes/<type>.tsx).
+    const registered = fieldControlFor(fs.type, fieldControls);
+    if (registered) {
+        return createElement(registered, {
+            fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, label, hint, required, onStepChange,
+        });
     }
 
     switch (fs.type) {
@@ -180,6 +190,9 @@ export function StepField({
         case 'url':
         case 'string':
         default:
+            if (isLongText(fs)) {
+                return <LongTextField label={label} hint={hint} value={value} onChange={onChange} maxLen={fs.maxLen} required={required} nullable={!!fs.nullable} disabled={disabled} />;
+            }
             return (
                 <FormField label={label} hint={hint}>
                     <input

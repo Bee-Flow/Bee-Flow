@@ -26,6 +26,16 @@
 //               makes "count per status" or "median first response" one binding
 //               instead of an automation.
 const BINDING_KINDS = ['static', 'actionResult', 'formula', 'record', 'records', 'dataset', 'connector', 'aggregate'];
+// A binding kind added after the base is listed here with the schema version
+// that introduced it ({ kind: 3 }); BINDING_KINDS is a list of names and has no
+// entry to carry it. Null-prototype: only own keys are kinds.
+/** @type {Record<string, number>} */
+const BINDING_KIND_SINCE = Object.create(null);
+// What the AI builder reads about a kind listed in BINDING_KIND_SINCE: { kind: { shape, description } }.
+// `shape` is the binding as the catalogue writes one ('{ "kind": "…", "tableId": "<tbl_…>" }'),
+// `description` one sentence on what it resolves to. The base kinds are prompt text, not entries here.
+/** @type {Record<string, { shape: string, description: string }>} */
+const BINDING_KIND_DOCS = Object.create(null);
 const INPUT_MAPPING_KINDS = ['static', 'field'];
 
 // The ONLY root identifiers a formula/filter expression may reference. A root
@@ -107,6 +117,8 @@ module.exports = {
     MAX_ORDER_BY,
     BINDING_QUERY_EXTENSIONS,
     BINDING_KINDS,
+    BINDING_KIND_SINCE,
+    BINDING_KIND_DOCS,
     INPUT_MAPPING_KINDS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,

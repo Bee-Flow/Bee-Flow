@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # Other endpoints
 
-227 routes, 116 with a request schema. Back to the [endpoint reference](../reference.md).
+228 routes, 116 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -972,6 +972,12 @@ No request schema.
 | `error.attempts` | integer | yes | min 1; max 4 |
 | `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
 | `runKey` | string |  | pattern `^rk_[A-Za-z0-9_-]{16,64}$` |
+
+### `GET /api/public-app/:token/assets/:assetId`
+
+**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+
+No request schema.
 
 ### `POST /api/public-app/:token/data/attachments`
 

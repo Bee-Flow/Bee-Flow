@@ -11,7 +11,7 @@
  * (bare actions) shares AI_GENERATE_FIELDS and friends with STEP_SPECS, and a bare
  * action keeps its own `onError` effects. `envelope: true` lets the catalog explain
  * the two fields once instead of per kind. A kind whose effect leaves Bee Flow
- * (stepFlow.RETRY_UNSAFE_KINDS) takes no retry: a second attempt would send the
+ * (stepFlow.RETRY_UNSAFE_KINDS, or `retrySafe: false` on a registry kind) takes no retry: a second attempt would send the
  * mail or start the run twice. call_action takes onError but no retry (a retry
  * would re-run every step of the called action).
  *
@@ -30,12 +30,12 @@ const ERROR_HANDLER_FIELD = Object.freeze({ type: 'errorHandler', envelope: true
  * Give every `mutatesData` step spec (and call_action) the envelope fields, in place
  * on the step table, each spec's `fields` replaced by a new object.
  *
- * @param {Record<string, { mutatesData?: boolean, fields: Record<string, unknown> }>} stepSpecs
+ * @param {Record<string, { mutatesData?: boolean, retrySafe?: boolean, fields: Record<string, unknown> }>} stepSpecs
  */
 function withErrorEnvelope(stepSpecs) {
     for (const [kind, spec] of Object.entries(stepSpecs)) {
         if (spec.mutatesData) {
-            spec.fields = { ...spec.fields, ...(RETRY_UNSAFE_KINDS.includes(kind) ? {} : { retry: RETRY_FIELD }), onError: ERROR_HANDLER_FIELD };
+            spec.fields = { ...spec.fields, ...(RETRY_UNSAFE_KINDS.includes(kind) || spec.retrySafe === false ? {} : { retry: RETRY_FIELD }), onError: ERROR_HANDLER_FIELD };
         } else if (kind === 'call_action') {
             spec.fields = { ...spec.fields, onError: ERROR_HANDLER_FIELD };
         }

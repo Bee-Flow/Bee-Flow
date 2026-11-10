@@ -792,3 +792,37 @@ test('wiringFromBindings: nothing kept is no wiring; a stage\'s own slots are no
     assert.deepStrictEqual(wiring.resolutions.tables, [{ key: 'invoices', datatableId: 'tbl_mine' }]);
     assert.ok(wiring.freshTableIds.has('tbl_mine'), 'checked at install time, not warned about again');
 });
+
+// ═══ The definition gate on a replaced app ═══════════════════════════
+
+/** A pristine installed app `app1`, and the manifest that replaces it with `definition`. */
+function appUpgrade(definition) {
+    reset();
+    const installed = { schemaVersion: 2, screens: [], actions: {} };
+    stamps.set('app_1', { ref: 'app_1', kind: 'app', entityId: 'app1', installHash: hashDefinition(installed), installedVersion: 1 });
+    liveApps.set('app1', { id: 'app1', definition: installed });
+    const manifest = manifestWith({ apps: [{ ref: 'app_1', name: 'Desk', definition: { screens: [], actions: { marker: {} } } }] });
+    // Set after the manifest is built: the envelope is not what is under test here.
+    const carried = manifest.solution.entities.apps[0];
+    carried.definition = definition;
+    return apply({ projectId: 'p1', ownerId: 'alice', manifest });
+}
+
+test('a replaced app with validator errors is written as given and carries the errors', async () => {
+    const result = await appUpgrade({ actions: {} });
+    assert.deepStrictEqual(called('saveDefinition').map(c => c.args.definition), [{ actions: {} }]);
+    const [replaced] = result.report.replaced;
+    assert.strictEqual(replaced.ref, 'app_1');
+    assert.ok(replaced.findings.errors.some(e => e.code === 'screens.missing'), JSON.stringify(replaced));
+    assert.deepStrictEqual(called('upsertStamp').map(c => c.args.ref), ['app_1']);
+});
+
+test('a replaced app written by a newer installation fails that part and writes nothing', async () => {
+    const { SCHEMA_VERSION_CURRENT } = require('../../appStudio/componentSpecs');
+    const result = await appUpgrade({ schemaVersion: SCHEMA_VERSION_CURRENT + 1, screens: [], actions: {} });
+    assert.deepStrictEqual(result.report.replaced, []);
+    assert.deepStrictEqual(result.report.failed.map(f => [f.ref, f.kind]), [['app_1', 'app']]);
+    assert.match(result.report.failed[0].why, /newer version/);
+    assert.deepStrictEqual(called('saveDefinition'), []);
+    assert.deepStrictEqual(called('upsertStamp'), []);
+});

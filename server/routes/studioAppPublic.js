@@ -69,7 +69,7 @@ const BatchBody = bodyOf({
     reads: z.unknown().optional(),
 }, 'A batch of reads');
 const UploadFields = bodyOf({
-    fieldKey: worded('fieldKey is the key of the form field.').max(100, 'fieldKey is at most 100 characters.').optional(),
+    fieldKey: worded('fieldKey is the key of the form field.').max(100, 'fieldKey is at most 100 characters.').refine(require('../appStudio/appAssets.mts').isRecordFieldKey, 'fieldKey is the key of the form field.').optional(),
 }, 'An upload');
 
 const studioAppStore = require('../stores/studioAppStore');
@@ -83,7 +83,6 @@ const studioAppQuota = require('../appStudio/studioAppQuota');
 const mailboxAttachments = require('../appStudio/mailboxAttachments');
 const dataReadRunner = require('../appStudio/dataReadRunner');
 const publicAccess = require('../appStudio/publicAccess');
-const { DATA_MUTATING_STEP_KINDS } = require('../appStudio/componentSpecs');
 const { uploadGuard, scanBuffer } = require('../middleware/uploadGuard');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
@@ -169,10 +168,10 @@ const TOKEN_RE = /^[a-f0-9]{24,64}$/;
 // Model-calling kinds get their own budget; every other step kind shares
 // stepLimiter. Heavy kinds touch no table, so RLS never sees them — but they
 // spend the owner's quota, which an anonymous caller must not be able to drain.
-const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
+const { aiStepKinds: AI_STEP_KINDS } = require('../appStudio/componentSpecs/stepRegistry').STEP_POLICY_LISTS;
+// Which kinds an anonymous visitor may post at all (the `public` policy row of the step catalogue).
+const { publicStepRefusal } = require('./studioAppPublicStepGate.mts');
 
-// Server step kinds an anonymous visitor may never run, whatever the definition says.
-const PUBLIC_DENIED_STEP_KINDS = ['kb_log_query', 'kb_log_review'];
 
 /**
  * Resolve `:token` to { page, app, definition, surface } or answer 404 and
@@ -310,6 +309,9 @@ router.get('/:token', ipLimiter, tokenLimiter, async (/** @type {import('express
             icon: found.app.icon || null,
         },
         definition: publicAccess.buildPublicDefinition(found.definition, found.surface),
+        // The page's OWN logo (publicAccess.design.logoUrl), beside the definition so its bytes stay
+        // as they were: the served design also carries the app's logo, which the page header never draws.
+        page: { logoUrl: found.definition.publicAccess?.design?.logoUrl || null },
         entryScreenId: found.surface.entryScreenId,
         visitorToken,
     });
@@ -343,13 +345,10 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         return res.status(404).json({ error: resolved.error === 'action' ? 'Action not found' : 'Step not found' });
     }
     const { step, ownerActionId } = resolved;
-    if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
-        return res.status(400).json({ error: 'This step does not run on the server' });
-    }
-    // The KB query log holds what people asked and got answered: never reachable by an anonymous visitor.
-    if (PUBLIC_DENIED_STEP_KINDS.includes(step.kind)) {
-        return res.status(403).json({ error: 'This step is not available on a public app' });
-    }
+    // Not a server kind: 400. A kind the visitor may never run (the KB query log holds what people
+    // asked and got answered; a kind added later is closed unless its policy opens it): 403.
+    const refusal = publicStepRefusal(step.kind);
+    if (refusal) return res.status(refusal.status).json({ error: refusal.error });
 
     // Budget by kind, before any work. A model call gets its own bucket —
     // an action legitimately repeats one per uploaded photo.

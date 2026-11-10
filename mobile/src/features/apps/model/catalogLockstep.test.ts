@@ -24,20 +24,24 @@ import {
     BROWSER_ONLY_TYPES,
     HANDLED_TYPES,
     SUPPORTED_INPUTS,
+    browserOnlyTypes,
 } from './catalog';
+import { EXTENSION_TYPE_MOBILE_REASONS } from './catalogExtensions.generated';
 
 // The catalog is CommonJS on the server and is deliberately read from there
 // rather than copied — a copy is the thing this test exists to make
 // unnecessary.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const catalog = require('../../../../../server/appStudio/componentSpecs.js') as {
+    BASE_COMPONENT_TYPES: string[];
+    COMPONENT_SPECS: Record<string, { since?: number; mobile?: { reason?: string } }>;
     COMPONENT_TYPES: string[];
     CONTAINER_TYPES: string[];
     INPUT_TYPES: string[];
 };
 
 /**
- * Types the phone does not draw yet and has not ruled out. Shrinking this list
+ * Base types the phone does not draw yet and has not ruled out. Shrinking this list
  * is the roadmap; every entry is a real app screen that reads as a banner.
  */
 const NOT_YET_BUILT = [
@@ -105,8 +109,28 @@ describe('the phone against the App Studio catalog', () => {
             expect(catalog.COMPONENT_TYPES).toContain(type);
         }
         for (const type of NOT_YET_BUILT) {
-            expect(catalog.COMPONENT_TYPES).toContain(type);
+            expect(catalog.BASE_COMPONENT_TYPES).toContain(type);
         }
+    });
+
+    it('lists every type added after the base, with the reason its spec gives', () => {
+        // catalogExtensions.generated.ts is written from the spec (npm run gen:shared);
+        // this is the same fact read straight from the server.
+        const expected: Record<string, string> = {};
+        for (const type of catalog.COMPONENT_TYPES.slice(catalog.BASE_COMPONENT_TYPES.length)) {
+            expected[type] = String(catalog.COMPONENT_SPECS[type]?.mobile?.reason ?? '');
+        }
+        expect(EXTENSION_TYPE_MOBILE_REASONS).toEqual(expected);
+        for (const reason of Object.values(EXTENSION_TYPE_MOBILE_REASONS)) expect(reason.trim()).not.toBe('');
+    });
+
+    it('an extension type is browser-only with its reason unless the phone handles it', () => {
+        const base = { kanban: 'Base reason.' };
+        const extensions = { fixture_a: 'Needs a desktop.', fixture_b: 'Drawn now.', kanban: 'Never overrides the base.' };
+        expect(browserOnlyTypes(base, extensions, ['fixture_b'])).toEqual({
+            kanban: 'Base reason.',
+            fixture_a: 'Needs a desktop.',
+        });
     });
 
     it('accounts for EVERY catalog type exactly once', () => {

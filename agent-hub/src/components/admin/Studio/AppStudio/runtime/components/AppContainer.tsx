@@ -1,5 +1,5 @@
 import type { NodeStyle } from '../../inspector/appDefinition';
-import { spaceSteps } from '../styleResolver';
+import { gridTemplate, spaceSteps } from '../styleResolver';
 import { fillRowTemplate, isFill } from '../styleResolver.helpers';
 import type { NodeProps } from './appNode.types';
 
@@ -52,7 +52,7 @@ export default function AppContainer({ node, children }: NodeProps<ContainerProp
             className={`app-grid${fill ? ' app-fill h-full min-h-0' : ''}${lookStyle ? ` app-container--${look}` : ''}`}
             data-app-container="true"
             style={{
-                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                gridTemplateColumns: gridTemplate(),
                 gap: spaceSteps(gap),
                 ...(fill ? { gridTemplateRows: fillRowTemplate(node) } : null),
                 ...lookStyle,
