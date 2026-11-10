@@ -64,7 +64,7 @@ test('the knobs are kept as written, clamped to their range, and make the defini
     assert.equal(section.style.columns, 5);
     assert.deepEqual(
         { ...section.children[0].style },
-        { span: 2, ...COMPONENT_SPECS.heading.defaultStyle, span: 2, spanMd: 3, spanSm: 12, rowSpan: 2, alignSelf: 'center', sticky: 'top', stickyOffset: 2 },
+        { ...COMPONENT_SPECS.heading.defaultStyle, span: 2, spanMd: 3, spanSm: 12, rowSpan: 2, alignSelf: 'center', sticky: 'top', stickyOffset: 2 },
     );
     assert.equal(section.children[1].style.columns, 4);
     assert.equal(section.children[1].style.responsive, 'manual');
