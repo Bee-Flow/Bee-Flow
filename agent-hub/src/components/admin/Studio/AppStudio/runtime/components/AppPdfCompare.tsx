@@ -37,7 +37,7 @@ interface Props { left?: unknown; right?: unknown; leftLabel?: string; rightLabe
 
 function Message({ icon, children, retry }: { icon?: ReactNode; children: ReactNode; retry?: { label: string; onClick: () => void } }) {
     return (
-        <div className={CENTERED}>
+        <div className={`${CENTERED} bfa-pdf_compare__message`}>
             {icon}
             <span>{children}</span>
             {retry ? (
@@ -78,7 +78,7 @@ export default function AppPdfCompare({ node }: NodeProps<Props>) {
     const boxed = fill || Boolean(resolveHeightCss(style as never)) || Boolean(HEIGHT_PX[style?.height || '']);
     const shell = (children: ReactNode, status: string) => (
         <div
-            className={`flex w-full min-w-0 flex-col overflow-hidden border border-[var(--border-default)] bg-[var(--bg-primary)]${fill ? ' app-fill' : ''}${boxed ? ' h-full min-h-0' : ' h-[36rem]'}`}
+            className={`flex w-full min-w-0 flex-col overflow-hidden border border-[var(--border-default)] bg-[var(--bg-primary)]${fill ? ' app-fill' : ''}${boxed ? ' h-full min-h-0' : ' h-[36rem]'} bfa-pdf_compare__root`}
             style={SHELL_STYLE}
             data-app-pdfcompare={status}
         >

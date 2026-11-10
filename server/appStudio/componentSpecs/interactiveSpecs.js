@@ -198,6 +198,7 @@ const INTERACTIVE_SPECS = {
         },
         styleKnobs: ['span', 'height'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'messages', 'greeting', 'starter', 'user', 'assistant', 'input', 'send'],
     },
 };
 

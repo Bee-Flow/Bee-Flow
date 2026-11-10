@@ -141,24 +141,24 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
 
     return (
         <div
-            className="flex flex-col h-full min-h-[18rem] overflow-hidden border [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
+            className="flex flex-col h-full min-h-[18rem] overflow-hidden border [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] bfa-ai_chat__root"
             data-app-ai-chat="true"
         >
-            <div ref={listRef} className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
+            <div ref={listRef} className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bfa-ai_chat__messages">
                 {empty ? (
                     <div className="m-auto text-center px-4">
                         <Sparkles className="w-5 h-5 mx-auto mb-2 text-[var(--accent-primary)]" aria-hidden="true" />
-                        <p className="text-sm text-[var(--text-secondary)]">
+                        <p className="text-sm text-[var(--text-secondary)] bfa-ai_chat__greeting">
                             {props.greeting || t('studio_apps_runtime.ai_chat.greeting', 'Ask me anything.')}
                         </p>
                     </div>
                 ) : messages.map((m, i) => (
                     m.role === 'user' ? (
-                        <div key={i} className="self-end max-w-[85%] px-3 py-2 text-sm [background:var(--bg-tertiary)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!">
+                        <div key={i} className="self-end max-w-[85%] px-3 py-2 text-sm [background:var(--bg-tertiary)] [border-radius:var(--app-radius)] [color:var(--text-primary)]! bfa-ai_chat__user">
                             {m.content}
                         </div>
                     ) : (
-                        <div key={i} className="self-start max-w-[95%] text-sm text-[var(--text-primary)]">
+                        <div key={i} className="self-start max-w-[95%] text-sm text-[var(--text-primary)] bfa-ai_chat__assistant">
                             {m.content
                                 ? <div className="flex flex-col gap-2"><MarkdownBlocks text={m.content} /></div>
                                 : <span className="opacity-60">…</span>}
@@ -175,7 +175,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                             type="button"
                             onClick={() => send(s)}
                             disabled={!live || busy}
-                            className="px-2.5 py-1 text-xs border transition-colors disabled:opacity-50 [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]!"
+                            className="px-2.5 py-1 text-xs border transition-colors disabled:opacity-50 [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! bfa-ai_chat__starter"
                         >
                             {s}
                         </button>
@@ -198,7 +198,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                     placeholder={props.placeholder || t('studio_apps_runtime.ai_chat.placeholder', 'Ask a question…')}
                     disabled={!live || busy}
                     aria-label={t('studio_apps_runtime.ai_chat.message', 'Message')}
-                    className="flex-1 px-3 py-2 text-sm border outline-none disabled:opacity-60 [background:var(--bg-secondary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
+                    className="flex-1 px-3 py-2 text-sm border outline-none disabled:opacity-60 [background:var(--bg-secondary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]! bfa-ai_chat__input"
                 />
                 <button
                     type="submit"
@@ -208,7 +208,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                     // app's own primary and its paired foreground — not the
                     // platform accent, which is a light grey in the default
                     // themes and left a white icon on it at about 2.5:1.
-                    className="p-2 disabled:opacity-50 [background:var(--app-primary)] [color:var(--app-primary-contrast)] [border-radius:var(--app-radius)]"
+                    className="p-2 disabled:opacity-50 [background:var(--app-primary)] [color:var(--app-primary-contrast)] [border-radius:var(--app-radius)] bfa-ai_chat__send"
                 >
                     <Send className="w-4 h-4" />
                 </button>

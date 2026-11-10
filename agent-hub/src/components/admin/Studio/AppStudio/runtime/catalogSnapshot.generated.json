@@ -568,7 +568,16 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "lg"
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "name",
+                "download",
+                "frame",
+                "image",
+                "message"
+            ]
         },
         "pdf_compare": {
             "label": "PDF compare",
@@ -591,7 +600,12 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "xl"
-            }
+            },
+            "parts": [
+                "root",
+                "message",
+                "toolbar"
+            ]
         },
         "browser_view": {
             "label": "Live browser",
@@ -1285,7 +1299,12 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "item",
+                "count"
+            ]
         },
         "progress": {
             "label": "Progress",
@@ -1309,7 +1328,15 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "caption",
+                "track",
+                "bar",
+                "segment"
+            ]
         },
         "stepper": {
             "label": "Stepper",
@@ -1326,7 +1353,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "item",
+                "step",
+                "marker",
+                "label",
+                "hint",
+                "line"
+            ]
         },
         "file_gallery": {
             "label": "File gallery",
@@ -1349,7 +1385,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "card",
+                "thumb",
+                "icon",
+                "name",
+                "meta",
+                "group",
+                "group-title"
+            ]
         },
         "connector_status": {
             "label": "Connection status",
@@ -1361,7 +1407,15 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "title",
+                "detail",
+                "note",
+                "action"
+            ]
         },
         "timeline": {
             "label": "Timeline",
@@ -1381,7 +1435,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "row",
+                "marker",
+                "line",
+                "content",
+                "title",
+                "meta",
+                "description"
+            ]
         },
         "message_thread": {
             "label": "Message thread",
@@ -1419,7 +1483,17 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "fill"
-            }
+            },
+            "parts": [
+                "root",
+                "row",
+                "bubble",
+                "text",
+                "meta",
+                "author",
+                "time",
+                "avatar"
+            ]
         },
         "record_detail": {
             "label": "Record detail",
@@ -1436,7 +1510,14 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "group",
+                "field",
+                "label",
+                "value"
+            ]
         },
         "filter_bar": {
             "label": "Filter bar",
@@ -1512,7 +1593,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "messages",
+                "greeting",
+                "starter",
+                "user",
+                "assistant",
+                "input",
+                "send"
+            ]
         },
         "document_viewer": {
             "label": "Document",
@@ -1528,7 +1619,17 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "lg"
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "title",
+                "version",
+                "body",
+                "tabs",
+                "tab",
+                "message"
+            ]
         },
         "document_compare": {
             "label": "Document compare",
@@ -1551,7 +1652,12 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "xl"
-            }
+            },
+            "parts": [
+                "root",
+                "toolbar",
+                "message"
+            ]
         },
         "input_document": {
             "label": "Document picker",

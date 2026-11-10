@@ -841,7 +841,14 @@
             ],
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "group",
+                "field",
+                "label",
+                "value"
+            ]
         },
         "button": {
             "label": "Button",
@@ -2275,7 +2282,17 @@
             ],
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "messages",
+                "greeting",
+                "starter",
+                "user",
+                "assistant",
+                "input",
+                "send"
+            ]
         }
     },
     "events": [

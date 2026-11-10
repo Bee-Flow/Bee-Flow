@@ -88,6 +88,7 @@ const CONTENT_SPECS = {
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'lg' },
+        parts: ['root', 'header', 'name', 'download', 'frame', 'image', 'message'],
     },
     pdf_compare: {
         label: 'PDF compare', category: 'Content',
@@ -103,6 +104,7 @@ const CONTENT_SPECS = {
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'xl' },
+        parts: ['root', 'message', 'toolbar'],
     },
     browser_view: {
         label: 'Live browser', category: 'Content',

@@ -50,6 +50,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'align'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'item', 'count'],
     },
     progress: {
         label: 'Progress', category: 'Data',
@@ -101,6 +102,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size'],
         defaultStyle: { span: 6 },
+        parts: ['root', 'label', 'caption', 'track', 'bar', 'segment'],
     },
     stepper: {
         label: 'Stepper', category: 'Data',
@@ -128,6 +130,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'align'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'item', 'step', 'marker', 'label', 'hint', 'line'],
     },
     file_gallery: {
         label: 'File gallery', category: 'Data',
@@ -168,6 +171,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'height'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'card', 'thumb', 'icon', 'name', 'meta', 'group', 'group-title'],
     },
     connector_status: {
         label: 'Connection status', category: 'Data',
@@ -179,6 +183,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'padding', 'background', 'radius', 'border'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'icon', 'title', 'detail', 'note', 'action'],
     },
     timeline: {
         label: 'Timeline', category: 'Data',
@@ -199,6 +204,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'height'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'row', 'marker', 'line', 'content', 'title', 'meta', 'description'],
     },
     message_thread: {
         label: 'Message thread', category: 'Data',
@@ -263,6 +269,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'height'],
         defaultStyle: { span: 12, height: 'fill' },
+        parts: ['root', 'row', 'bubble', 'text', 'meta', 'author', 'time', 'avatar'],
     },
     record_detail: {
         label: 'Record detail', category: 'Data',
@@ -298,6 +305,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'padding', 'background', 'radius', 'border', 'height'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'group', 'field', 'label', 'value'],
     },
 };
 

@@ -16,13 +16,13 @@ import type { TFn } from './summary';
 const CENTERED = 'flex h-full w-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-[var(--text-secondary)]';
 
 /** The bordered box: the style's height when it has one, fill in a fill layout, else a sensible default. */
-export function DocShell<P>({ node, status, children }: { node: AppNode<P>; status: string; children: ReactNode }) {
+export function DocShell<P>({ node, status, children, partClass }: { node: AppNode<P>; status: string; children: ReactNode; partClass?: string }) {
     const fill = isFill(node as never);
     const style = node?.style as { height?: string } | undefined;
     const boxed = fill || Boolean(resolveHeightCss(style as never)) || Boolean(HEIGHT_PX[style?.height || '']);
     return (
         <div
-            className={`flex w-full min-w-0 flex-col overflow-hidden rounded-[var(--app-radius,inherit)] border border-[var(--border-default)] bg-[var(--bg-primary)]${fill ? ' app-fill' : ''}${boxed ? ' h-full min-h-0' : ' h-[36rem]'}`}
+            className={`flex w-full min-w-0 flex-col overflow-hidden rounded-[var(--app-radius,inherit)] border border-[var(--border-default)] bg-[var(--bg-primary)]${fill ? ' app-fill' : ''}${boxed ? ' h-full min-h-0' : ' h-[36rem]'}${partClass ? ` ${partClass}` : ''}`}
             data-app-document={status}
         >
             {children}
@@ -31,10 +31,10 @@ export function DocShell<P>({ node, status, children }: { node: AppNode<P>; stat
 }
 
 /** A centred line with an optional icon and "Try again". */
-export function DocMessage({ icon, children, retry }: { icon?: ReactNode; children: ReactNode; retry?: () => void }) {
+export function DocMessage({ icon, children, retry, partClass }: { icon?: ReactNode; children: ReactNode; retry?: () => void; partClass?: string }) {
     const { t } = useTranslation();
     return (
-        <div className={CENTERED} role={retry ? 'alert' : undefined}>
+        <div className={partClass ? `${CENTERED} ${partClass}` : CENTERED} role={retry ? 'alert' : undefined}>
             {icon}
             <span>{children}</span>
             {retry ? (

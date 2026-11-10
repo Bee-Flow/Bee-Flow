@@ -107,7 +107,7 @@ export default function AppBadgeList({ node }: NodeProps<BadgeListProps>) {
 
     return (
         <div
-            className={`flex flex-wrap items-center gap-1.5 ${justify}`}
+            className={`flex flex-wrap items-center gap-1.5 ${justify} bfa-badge_list__root`}
             data-app-badgelist="true"
             data-app-badgelist-look={look === 'soft' ? undefined : look}
         >
@@ -131,7 +131,7 @@ export default function AppBadgeList({ node }: NodeProps<BadgeListProps>) {
                 // getByText() that expects to land on the badge itself.
                 const hasCount = count !== null && count !== undefined && count !== '';
                 const body = hasCount
-                    ? <>{label}<span className="ml-1.5 tabular-nums opacity-70">{displayValue(count)}</span></>
+                    ? <>{label}<span className="ml-1.5 tabular-nums opacity-70 bfa-badge_list__count">{displayValue(count)}</span></>
                     : label;
 
                 return clickable ? (
@@ -139,7 +139,7 @@ export default function AppBadgeList({ node }: NodeProps<BadgeListProps>) {
                         key={i}
                         type="button"
                         onClick={() => fire(item)}
-                        className={`inline-flex items-center rounded-full font-medium border transition-opacity hover:opacity-80 cursor-pointer ${sizeCls}`}
+                        className={`inline-flex items-center rounded-full font-medium border transition-opacity hover:opacity-80 cursor-pointer ${sizeCls} bfa-badge_list__item`}
                         data-badge-role={role || undefined}
                         data-badge-active={active || undefined}
                         style={swatch}
@@ -149,7 +149,7 @@ export default function AppBadgeList({ node }: NodeProps<BadgeListProps>) {
                 ) : (
                     <span
                         key={i}
-                        className={`inline-flex items-center rounded-full font-medium border ${sizeCls}`}
+                        className={`inline-flex items-center rounded-full font-medium border ${sizeCls} bfa-badge_list__item`}
                         data-badge-role={role || undefined}
                         data-badge-active={active || undefined}
                         style={swatch}

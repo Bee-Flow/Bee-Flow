@@ -34,7 +34,7 @@ describe('AppProgress looks', () => {
         const root = container.querySelector('[data-app-progress]');
         expect(root!.getAttribute('data-app-progress-look')).toBeNull();
         const track = container.querySelector('[role="progressbar"]');
-        expect(track!.className).toBe('w-full h-2 rounded-full overflow-hidden');
+        expect(track!.className.replace(/ bfa-\S+/g, '')).toBe('w-full h-2 rounded-full overflow-hidden');
         expect(container.querySelector('svg')).toBeNull();
         expect((track!.firstChild as HTMLElement).style.width).toBe('45%');
     });
@@ -42,18 +42,18 @@ describe('AppProgress looks', () => {
     it('an absent look renders the identity too (stored definitions)', () => {
         const { container } = withRuntime(<AppProgress node={stub<ComponentProps<typeof AppProgress>['node']>(progressNode())} />);
         expect(container.querySelector('[data-app-progress]')!.getAttribute('data-app-progress-look')).toBeNull();
-        expect(container.querySelector('[role="progressbar"]')!.className).toBe('w-full h-2 rounded-full overflow-hidden');
+        expect(container.querySelector('[role="progressbar"]')!.className.replace(/ bfa-\S+/g, '')).toBe('w-full h-2 rounded-full overflow-hidden');
     });
 
     it('an unknown look value falls back to the identity render', () => {
         const { container } = withRuntime(<AppProgress node={stub<ComponentProps<typeof AppProgress>['node']>(progressNode({ look: 'donut' }))} />);
-        expect(container.querySelector('[role="progressbar"]')!.className).toBe('w-full h-2 rounded-full overflow-hidden');
+        expect(container.querySelector('[role="progressbar"]')!.className.replace(/ bfa-\S+/g, '')).toBe('w-full h-2 rounded-full overflow-hidden');
         expect(container.querySelector('svg')).toBeNull();
     });
 
     it("the size knob still drives the identity track height (lg → h-3)", () => {
         const { container } = withRuntime(<AppProgress node={stub<ComponentProps<typeof AppProgress>['node']>(progressNode({}, { size: 'lg' }))} />);
-        expect(container.querySelector('[role="progressbar"]')!.className).toBe('w-full h-3 rounded-full overflow-hidden');
+        expect(container.querySelector('[role="progressbar"]')!.className.replace(/ bfa-\S+/g, '')).toBe('w-full h-3 rounded-full overflow-hidden');
     });
 
     it("look 'slim' renders a 2px track, keeps caption + clamping", () => {
@@ -61,7 +61,7 @@ describe('AppProgress looks', () => {
         const root = container.querySelector('[data-app-progress]');
         expect(root!.getAttribute('data-app-progress-look')).toBe('slim');
         const track = container.querySelector('[role="progressbar"]');
-        expect(track!.className).toBe('w-full rounded-full overflow-hidden');
+        expect(track!.className.replace(/ bfa-\S+/g, '')).toBe('w-full rounded-full overflow-hidden');
         expect((track! as HTMLElement).style.height).toBe('2px');
         expect((track!.firstChild as HTMLElement).style.width).toBe('45%');
         expect(container.querySelector('[data-app-progress-caption]')!.textContent).toBe('45%');

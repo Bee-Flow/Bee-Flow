@@ -38,7 +38,7 @@ describe('AppProgress — segments', () => {
         const { container } = withRuntime(<AppProgress node={stub<ComponentProps<typeof AppProgress>['node']>(progressNode({ segments: [] }))} />);
         expect(container.querySelector('[data-app-progress-segments]')).toBeNull();
         const track = container.querySelector('[role="progressbar"]');
-        expect(track!.className).toBe('w-full h-2 rounded-full overflow-hidden');
+        expect(track!.className.replace(/ bfa-\S+/g, '')).toBe('w-full h-2 rounded-full overflow-hidden');
         expect((track!.firstChild as HTMLElement).style.width).toBe('45%');
         expect(container.querySelector('[data-app-progress-caption]')!.textContent).toBe('45%');
     });
