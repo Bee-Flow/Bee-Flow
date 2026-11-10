@@ -330,9 +330,10 @@ function validateBinding(key, value, path, ctx) {
  * @param {ValidationCtx} ctx
  */
 function checkDatasetParamFormulas(params, path, ctx) {
-    const soft = { ...ctx, pushE: (/** @type {Record<string, unknown>} */ f) => ctx.pushW({ ...f, severity: 'warning' }) };
+    const soft = { ...ctx, pushE: (/** @type {import('./shared').Finding} */ f) => ctx.pushW({ ...f, severity: 'warning' }) };
     for (const [key, v] of Object.entries(params)) {
-        if (isObject(v) && v.kind === 'formula') validateFormula(v.expr, `${path}.${key}.expr`, soft, FORMULA_SCOPE_ROOTS);
+        const formula = /** @type {{ kind?: unknown, expr?: unknown }} */ (isObject(v) ? v : {});
+        if (formula.kind === 'formula') validateFormula(formula.expr, `${path}.${key}.expr`, soft, FORMULA_SCOPE_ROOTS);
     }
 }
 

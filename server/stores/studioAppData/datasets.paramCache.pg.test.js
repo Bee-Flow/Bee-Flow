@@ -1,8 +1,9 @@
 /**
- * putCache with `maxEntries` (a dataset with parameters) on a real Postgres
- * (PGlite): expired rows of the dataset are pruned first, and nothing is
- * written once the dataset holds that many live rows. Without `maxEntries`
- * the store behaves as it always did (the characterisation golden pins that).
+ * The cache cap of a dataset with parameters, on a real Postgres (PGlite):
+ * roomForParamCacheRow (the step putCache runs when it is given `maxEntries`)
+ * drops the dataset's expired rows first and then answers whether it holds
+ * fewer than the cap. Without `maxEntries` putCache never runs it (the
+ * characterisation golden pins that trace).
  *
  * Run: cd server && node --test stores/studioAppData/datasets.paramCache.pg.test.js
  */
@@ -12,20 +13,9 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { roomForParamCacheRow } = require('./datasets');
 
-const { pg } = pgliteDb();
-const first = (r) => (r.rows && r.rows[0]) || null;
-const restore = installResolveStub({
-    '../../db': {
-        run: (sql, params) => pg.query(sql, params),
-        getOne: async (sql, params) => first(await pg.query(sql, params)),
-        getAll: async (sql, params) => (await pg.query(sql, params)).rows,
-        withTransaction: (fn) => pg.transaction((t) => fn({ query: (sql, params) => t.query(sql, params) })),
-    },
-    './schema': { initDB: async () => {} },
-});
-const store = require('./datasets');
+const { pg, db } = pgliteDb();
 
 test.before(async () => {
     await pg.exec(`
@@ -40,38 +30,35 @@ test.before(async () => {
             computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             expires_at TIMESTAMPTZ
         );
-        CREATE UNIQUE INDEX uq_cache ON studio_app_dataset_cache(dataset_id, viewer_scope_key, params_hash);
     `);
 });
-test.after(async () => { restore(); await pg.close(); });
+test.after(async () => { await pg.close(); });
 
-const put = (hash, extra = {}) => store.putCache('ds-1', { viewerScopeKey: 'v', paramsHash: hash, dataVersion: 1, result: { rows: [hash] }, rowCount: 1, ttlSeconds: 60, ...extra });
-const count = async () => Number(first(await pg.query('SELECT COUNT(*) AS n FROM studio_app_dataset_cache WHERE dataset_id = $1', ['ds-1'])).n);
+let n = 0;
+const add = (datasetId, minutes) => pg.query(
+    `INSERT INTO studio_app_dataset_cache (id, dataset_id, viewer_scope_key, params_hash, expires_at) VALUES ($1, $2, 'v', $1, NOW() + ($3 || ' minutes')::interval)`,
+    [`c${++n}`, datasetId, String(minutes)],
+);
+const count = async (datasetId) => Number((await pg.query('SELECT COUNT(*) AS n FROM studio_app_dataset_cache WHERE dataset_id = $1', [datasetId])).rows[0].n);
+const room = (datasetId, max) => db.tx((client) => roomForParamCacheRow(client, datasetId, max));
 
-test('without maxEntries every value set is written', async () => {
+test('room until the dataset holds maxEntries live rows', async () => {
     await pg.exec('DELETE FROM studio_app_dataset_cache');
-    for (const h of ['a', 'b', 'c', 'd']) await put(h);
-    assert.strictEqual(await count(), 4);
+    assert.strictEqual(await room('ds-1', 2), true);
+    await add('ds-1', 5);
+    assert.strictEqual(await room('ds-1', 2), true);
+    await add('ds-1', 5);
+    assert.strictEqual(await room('ds-1', 2), false);
+    assert.strictEqual(await count('ds-1'), 2, 'live rows are kept');
 });
 
-test('with maxEntries the dataset stops growing at the cap; a replaced tuple still writes', async () => {
+test('expired rows of the dataset are dropped before the count; another dataset is untouched', async () => {
     await pg.exec('DELETE FROM studio_app_dataset_cache');
-    assert.deepStrictEqual((await put('a', { maxEntries: 2 })).ok, true);
-    assert.deepStrictEqual((await put('b', { maxEntries: 2 })).ok, true);
-    assert.deepStrictEqual(await put('c', { maxEntries: 2 }), { ok: false, full: true });
-    assert.strictEqual(await count(), 2);
-    assert.strictEqual((await put('a', { maxEntries: 2 })).ok, true, 'the same tuple replaces itself');
-    assert.ok(await store.getCache('ds-1', 'v', 'a', 1));
-    assert.strictEqual(await store.getCache('ds-1', 'v', 'c', 1), null);
-});
-
-test('expired rows are pruned before the count', async () => {
-    await pg.exec('DELETE FROM studio_app_dataset_cache');
-    await put('old1', { ttlSeconds: -5 });
-    await put('old2', { ttlSeconds: -5 });
-    await pg.query('INSERT INTO studio_app_dataset_cache (id, dataset_id, viewer_scope_key, params_hash, expires_at) VALUES ($1, $2, $3, $4, NOW() - INTERVAL \'1 minute\')', ['other', 'ds-2', 'v', 'x']);
-    assert.strictEqual((await put('fresh', { maxEntries: 2 })).ok, true);
-    assert.strictEqual(await count(), 1, 'the two expired rows of ds-1 are gone');
-    const other = first(await pg.query('SELECT COUNT(*) AS n FROM studio_app_dataset_cache WHERE dataset_id = $1', ['ds-2']));
-    assert.strictEqual(Number(other.n), 1, 'another dataset is not touched');
+    await add('ds-1', -1);
+    await add('ds-1', -1);
+    await add('ds-1', 5);
+    await add('ds-2', -1);
+    assert.strictEqual(await room('ds-1', 2), true);
+    assert.strictEqual(await count('ds-1'), 1);
+    assert.strictEqual(await count('ds-2'), 1);
 });

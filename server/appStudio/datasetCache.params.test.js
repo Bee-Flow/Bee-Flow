@@ -1,7 +1,7 @@
 /**
  * datasetCache.runDataset with dataset parameters, against the REAL
- * queryCompiler and rlsGateway on an in-memory engine (the harness of
- * datasetCache.test.js: only the two stores are stubbed).
+ * queryCompiler and rlsGateway on an in-memory engine (only the two stores'
+ * functions are replaced).
  *
  * Asserts:
  *   - a dataset WITHOUT declared params keeps its cache key and its SQL, and
@@ -19,41 +19,41 @@ const test = require('node:test');
 const assert = require('node:assert');
 const Database = require('better-sqlite3');
 
-function stub(path, exports) {
-    const filename = require.resolve(path);
-    require.cache[filename] = { id: filename, filename, loaded: true, exports };
-}
-
 const memdb = new Database(':memory:');
 memdb.exec(`CREATE TABLE tasks (
     id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, created_by TEXT, org_id TEXT,
     title TEXT, region TEXT, amount INTEGER
 )`);
 
+// The two stores are replaced by patching their exported functions (restored
+// after the file), so datasetCache runs unchanged against the real compiler.
+const studioAppDbStore = require('../stores/studioAppDbStore');
+const studioAppDataStore = require('../stores/studioAppDataStore');
 const dbCalls = [];
-stub('../stores/studioAppDbStore', {
-    query: async (ownerId, appId, sql, params = []) => {
-        dbCalls.push({ sql, params });
-        return { rows: memdb.prepare(sql).all(...params), columns: [], truncated: false };
-    },
-});
-
-const membership = new Map();
 const cacheRows = new Map();
 const putCalls = [];
-stub('../stores/studioAppDataStore', {
-    getMemberRole: async (appId, userId) => membership.get(`${appId}:${userId}`) || null,
-    getDataModel: async () => ({ dataVersions: { tasks: 1 } }),
-    getCache: async (datasetId, viewerScopeKey, paramsHash) => {
-        const row = cacheRows.get(`${datasetId}|${viewerScopeKey}|${paramsHash}`);
-        return row ? { result: row } : null;
+const patches = {
+    db: { query: async (ownerId, appId, sql, params = []) => {
+        dbCalls.push({ sql, params });
+        return { rows: memdb.prepare(sql).all(...params), columns: [], truncated: false };
+    } },
+    data: {
+        getDataModel: async () => ({ dataVersions: { tasks: 1 } }),
+        getCache: async (datasetId, viewerScopeKey, paramsHash) => {
+            const row = cacheRows.get(`${datasetId}|${viewerScopeKey}|${paramsHash}`);
+            return row ? { result: row } : null;
+        },
+        putCache: async (datasetId, opts) => {
+            putCalls.push({ datasetId, ...opts });
+            cacheRows.set(`${datasetId}|${opts.viewerScopeKey}|${opts.paramsHash}`, opts.result);
+            return { ok: true };
+        },
     },
-    putCache: async (datasetId, opts) => {
-        putCalls.push({ datasetId, ...opts });
-        cacheRows.set(`${datasetId}|${opts.viewerScopeKey}|${opts.paramsHash}`, opts.result);
-        return { ok: true };
-    },
-});
+};
+const originals = { db: { query: studioAppDbStore.query }, data: Object.fromEntries(Object.keys(patches.data).map((k) => [k, studioAppDataStore[k]])) };
+Object.assign(studioAppDbStore, patches.db);
+Object.assign(studioAppDataStore, patches.data);
+test.after(() => { Object.assign(studioAppDbStore, originals.db); Object.assign(studioAppDataStore, originals.data); });
 
 const datasetCache = require('./datasetCache');
 

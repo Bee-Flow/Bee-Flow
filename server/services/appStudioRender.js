@@ -34,7 +34,6 @@ const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { fallback, bestEffort } = require('../utils/bestEffort');
-const { resolveBindingParamValues } = require('../appStudio/datasetParams.mts');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
 const BUNDLE_JS = 'app-runtime.mjs';
@@ -70,26 +69,15 @@ function stableStringify(value) {
     return stableJson.stableStringify(value);
 }
 
-/** Port of the client key of a dataset binding: its resolved params join the key only when there are any. */
-function datasetCacheKey(binding) {
-    const p = binding.params;
-    const hasParams = !!p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;
-    return hasParams ? `dataset:${binding.datasetId ?? ''}:${stableStringify(p)}` : `dataset:${binding.datasetId ?? ''}`;
-}
-
-/** Port of the client resolveBindingParams for a dataset binding, with the dynamic-skip guard. */
-function resolveDatasetBindingParams(binding, scope) {
-    const p = binding.params;
-    if (!p || typeof p !== 'object' || Array.isArray(p)) return { binding };
-    const values = resolveBindingParamValues(p, (v) => (formulaRefsResolvable(v.expr) ? evalFormula(v, scope) : FILTER_SKIP), FILTER_SKIP);
-    if (values === FILTER_SKIP) return { skipped: true };
-    return { binding: { ...binding, params: values } };
-}
-
 /** Port of the client dataCacheKey for the server-collected binding kinds. */
 function dataCacheKey(binding) {
     if (!binding || typeof binding !== 'object') return null;
-    if (binding.kind === 'dataset') return datasetCacheKey(binding);
+    if (binding.kind === 'dataset') {
+        // Resolved params join the key only when there are any (the client's rule).
+        const p = binding.params;
+        const keyed = !!p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;
+        return `dataset:${binding.datasetId ?? ''}${keyed ? `:${stableStringify(p)}` : ''}`;
+    }
     if (binding.kind === 'record' || binding.kind === 'records') {
         const shape = stableStringify({
             filter: binding.filter ?? null,
@@ -146,6 +134,19 @@ function resolveShape(binding, scope) {
         else out[field] = value;
     }
     return { binding: changed ? out : binding };
+}
+
+/** Port of the client resolveBindingParams for a dataset binding, plus the dynamic-skip guard. */
+function resolveDatasetParams(binding, scope) {
+    if (!binding.params || typeof binding.params !== 'object' || Array.isArray(binding.params)) return { binding };
+    const params = {};
+    for (const [k, v] of Object.entries(binding.params)) {
+        const isFormula = !!v && typeof v === 'object' && v.kind === 'formula';
+        if (isFormula && !formulaRefsResolvable(v.expr)) return { skipped: true };
+        const value = isFormula ? evalFormula(v, scope) : v;
+        if (value !== undefined) params[k] = value;
+    }
+    return { binding: { ...binding, params } };
 }
 
 /**
@@ -260,8 +261,7 @@ async function runDatasetEntry(binding, { model, app, viewer, deps }) {
         const ds = await deps.getDataset(binding.datasetId, app.id, app.userId);
         // Unknown dataset → the live endpoint 404s → the client stores null.
         if (!ds) return entryBase({ ...base, result: null });
-        const params = binding.params && typeof binding.params === 'object' ? binding.params : null;
-        const out = await deps.runDataset(app, model, ds, viewer, params ? { refresh: false, params } : { refresh: false });
+        const out = await deps.runDataset(app, model, ds, viewer, binding.params ? { refresh: false, params: binding.params } : { refresh: false });
         return entryBase({ ...base, result: Array.isArray(out && out.rows) ? out.rows : [] });
     } catch (e) {
         return entryBase({ ...base, status: 'error', error: e && e.message ? e.message : String(e) });
@@ -278,15 +278,9 @@ async function buildDataState({ definition, model, app, screen, roleArg, viewer,
     if (!app || !app.id) return dataState; // nothing to read against — bindings render as loading
     const scope = buildRenderScope(currentUser, definition.variables, screen);
     for (const { binding } of collectDataBindings(definition, screen.id)) {
-        let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ ({ binding });
-        if (binding.kind !== 'dataset') {
-            resolved = resolveShape(binding, scope);
-            if (!resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
-            if (resolved.skipped) continue;
-        } else {
-            resolved = resolveDatasetBindingParams(binding, scope);
-            if (resolved.skipped) continue;
-        }
+        let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ (binding.kind === 'dataset' ? resolveDatasetParams(binding, scope) : resolveShape(binding, scope));
+        if (binding.kind !== 'dataset' && !resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
+        if (resolved.skipped) continue;
         const key = dataCacheKey(resolved.binding);
         if (!key || Object.prototype.hasOwnProperty.call(dataState, key)) continue;
         dataState[key] = binding.kind === 'dataset'

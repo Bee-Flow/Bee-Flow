@@ -110,6 +110,27 @@ async function getCache(datasetId, viewerScopeKey, paramsHash, dataVersion) {
 }
 
 /**
+ * Whether a dataset with parameters may hold one more cache row: its expired
+ * rows are dropped first, then it may when it holds fewer than `maxEntries`.
+ * Runs on the caller's transaction client.
+ * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows?: Array<Record<string, unknown>> }> }} client
+ * @param {string} datasetId
+ * @param {number} maxEntries
+ */
+async function roomForParamCacheRow(client, datasetId, maxEntries) {
+    await client.query(
+        `DELETE FROM studio_app_dataset_cache WHERE dataset_id = $1 AND expires_at <= $2`,
+        [datasetId, new Date(Date.now()).toISOString()]
+    );
+    const counted = await client.query(
+        `SELECT COUNT(*) AS n FROM studio_app_dataset_cache WHERE dataset_id = $1`,
+        [datasetId]
+    );
+    const first = counted && Array.isArray(counted.rows) ? counted.rows[0] : null;
+    return (Number(first ? first.n : 0) || 0) < maxEntries;
+}
+
+/**
  * `maxEntries` (a dataset with parameters, where every distinct set of values
  * is its own row): expired rows of the dataset are dropped first, and nothing
  * is written while it still holds that many rows. Without it nothing changes.
@@ -128,17 +149,8 @@ async function putCache(datasetId, { viewerScopeKey, paramsHash, dataVersion, re
              WHERE dataset_id = $1 AND viewer_scope_key = $2 AND params_hash = $3`,
             [datasetId, viewerScopeKey, paramsHash]
         );
-        if (Number.isFinite(maxEntries) && maxEntries > 0) {
-            await client.query(
-                `DELETE FROM studio_app_dataset_cache WHERE dataset_id = $1 AND expires_at <= $2`,
-                [datasetId, new Date(Date.now()).toISOString()]
-            );
-            const counted = await client.query(
-                `SELECT COUNT(*) AS n FROM studio_app_dataset_cache WHERE dataset_id = $1`,
-                [datasetId]
-            );
-            const held = parseInt(counted && counted.rows && counted.rows[0] ? counted.rows[0].n : 0, 10) || 0;
-            if (held >= maxEntries) return { ok: false, full: true };
+        if (Number.isFinite(maxEntries) && maxEntries > 0 && !(await roomForParamCacheRow(client, datasetId, maxEntries))) {
+            return { ok: false, full: true };
         }
         await client.query(
             `INSERT INTO studio_app_dataset_cache
@@ -166,4 +178,6 @@ module.exports = {
     getCache,
     putCache,
     invalidateCache,
+    // Not on the studioAppDataStore barrel: putCache's own step, exported for its test.
+    roomForParamCacheRow,
 };
