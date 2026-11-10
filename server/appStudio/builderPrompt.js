@@ -533,6 +533,7 @@ function renderNode(node, indent) {
     bits.push(...nodeBindings(node));
     const span = node.style?.span;
     if (span !== undefined) bits.push(`span=${span}`);
+    bits.push(...require('./builderPrompt/lookReadback.mts').nodeLookBits(node));
     for (const ev of ['onClick', 'onSubmit']) {
         if (node[ev]) bits.push(`${ev}=${node[ev]}`);
     }
@@ -690,7 +691,11 @@ function renderDraftState(def, extras = {}, projection = null) {
         const name = meta.name || 'Untitled app';
         const unnamed = name === 'Untitled app' ? ' — NOT NAMED YET: call app_set_meta' : '';
         lines.push(`app ${q(name)}${meta.description ? ` — ${q(meta.description, 80)}` : ''} icon=${meta.icon || 'none'}${unnamed}`);
-        lines.push(`theme primary=${theme.primary} radius=${theme.radius} density=${theme.density} fontScale=${theme.fontScale} appearance=${theme.appearance} | home=${def.homeScreenId || 'none'}`);
+        // The look read-back (lookReadback.mts) is emit-when-non-default, like nav below.
+        const look = require('./builderPrompt/lookReadback.mts');
+        lines.push(`theme primary=${theme.primary} radius=${theme.radius} density=${theme.density} fontScale=${theme.fontScale} appearance=${theme.appearance}${look.themeLookSuffix(theme)} | home=${def.homeScreenId || 'none'}`);
+        const design = look.designLine(def.design);
+        if (design) lines.push(design);
         // Emit-when-present, like `variables` below: every existing fixture has
         // no nav groups, and builderPrompt.test.js pins renderDraftState
         // byte-for-byte. Without this line app_set_nav_groups would be
@@ -709,7 +714,7 @@ function renderDraftState(def, extras = {}, projection = null) {
             lines.push(`screen ${screen.id} ${q(screen.name)} icon=${screen.icon || 'none'} nav=${screen.showInNav ? 'yes' : 'no'} width=${screen.maxWidth}`);
             for (const section_ of screen.sections || []) {
                 const st = section_.style || {};
-                lines.push(`  section ${section_.id} (padding=${st.padding} gap=${st.gap} bg=${st.background})${(section_.children || []).length ? '' : ' (empty)'}`);
+                lines.push(`  section ${section_.id} (padding=${st.padding} gap=${st.gap} bg=${st.background})${require('./builderPrompt/lookReadback.mts').sectionLookSuffix(st)}${(section_.children || []).length ? '' : ' (empty)'}`);
                 for (const node of section_.children || []) {
                     lines.push(renderNode(node, 2));
                 }
