@@ -224,16 +224,21 @@ function applyInspectCatalog(args) {
     // Duplicates collapse; unknown names are answered but do not use up the cap.
     const components = [...new Set(names(args?.components))];
     const steps = [...new Set(names(args?.steps))];
-    if (!components.length && !steps.length) {
+    // The extension tier (entries marked since 3, which the prompt only indexes): by name or by family.
+    const extensionNames = [...new Set(names(args?.extensions))];
+    const family = typeof args?.family === 'string' ? args.family.trim() : '';
+    if (!components.length && !steps.length && !extensionNames.length && !family) {
         return {
             error: 'Name at least one component type in `components` or one step kind in `steps`.',
             _fixHint: `e.g. { components: ["data_grid", "kanban"], steps: ["request_approval"] }. Types: ${COMPONENT_TYPES.join(', ')}. Step kinds: ${STEP_KINDS.join(', ')}.`,
         };
     }
     const { renderComponentEntry, renderStepEntry } = require('../builderPrompt/catalogRender');
-    const out = { components: {}, steps: {} };
-    /** @type {string[]} */
-    const unknown = [];
+    const { inspectExtensions } = require('../builderPrompt/extensionIndex.mts');
+    const extensions = inspectExtensions(extensionNames, family);
+    /** @type {{ components?: Record<string, string>, steps?: Record<string, string>, extensions?: Record<string, string>, _hints?: string[], unknown?: string[], note?: string }} */
+    const out = { components: {}, steps: {}, ...(Object.keys(extensions.entries).length ? { extensions: extensions.entries } : {}) };
+    const unknown = [...extensions.unknown];
     /** @type {string[]} */
     const skipped = [];
     /** @type {string[]} */
@@ -269,7 +274,8 @@ function applyInspectCatalog(args) {
     if (!Object.keys(out.steps).length) delete out.steps;
     if (aliased.length) out._hints = [`Read as the catalog's own type: ${aliased.join(', ')} — use the real type name in app_add_components.`];
     if (unknown.length) out.unknown = unknown;
-    if (skipped.length) out.note = `Only the first ${INSPECT_CATALOG_MAX_COMPONENTS} component types and ${INSPECT_CATALOG_MAX_STEPS} step kinds per call are answered — ask again for: ${skipped.join(', ')}.`;
+    const notes = [...(skipped.length ? [`Only the first ${INSPECT_CATALOG_MAX_COMPONENTS} component types and ${INSPECT_CATALOG_MAX_STEPS} step kinds per call are answered — ask again for: ${skipped.join(', ')}.`] : []), ...extensions.notes];
+    if (notes.length) out.note = notes.join(' ');
     return out;
 }
 

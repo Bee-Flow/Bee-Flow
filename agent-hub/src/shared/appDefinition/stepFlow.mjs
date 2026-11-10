@@ -1,6 +1,7 @@
 // @typecheck strict
 /**
- * App Studio — where a sequence step holds other steps. Pure, imports nothing.
+ * App Studio — where a sequence step holds other steps. Pure: it imports only
+ * the generated table of extension step kinds next to it.
  *
  * Every static walker (validators, the call-graph helpers) and the server
  * sequence walker (appStudio/sequenceWalk.mts) read the child places of a step
@@ -20,15 +21,18 @@
  * branch, so the control-flow code picks its branches by kind, never by slot
  * position past the kind's own slots.
  *
- * flattenSteps (appStudio/actionSequence.js) deliberately does NOT use this: the
- * mobile lockstep test lifts that function by its own source text, so it stays
- * self-contained. Its order (then, else / steps / cases, default) is the order
- * of the slots below.
+ * ONE table says which fields of a kind hold steps (BASE_CHILD_SLOTS for the
+ * base kinds, stepKinds.generated.mjs for the kinds of the step registry).
+ * flattenSteps (appStudio/actionSequence.js), the browser's buildStepIndexMap
+ * and the public redaction (appStudio/publicAccess.js) all read it through the
+ * helpers below, so the step ordinal means the same step everywhere.
  *
  * The error-handling constants and helpers (retry plan, handler shape, the
  * `error` scope a handler reads) live here too, so the browser coordinator and
  * the server walker read one definition of them (mirrored to agent-hub).
  */
+
+import { EXTENSION_STEP_KINDS } from './stepKinds.generated.mjs';
 
 /** Step retry bounds: `retry: { times 0..MAX_TIMES, delayMs 0..MAX_DELAY_MS }`. */
 export const STEP_RETRY = Object.freeze({ MAX_TIMES: 3, MAX_DELAY_MS: 30000, DEFAULT_DELAY_MS: 1000 });
@@ -44,6 +48,88 @@ export const TRANSACTION_CHILD_KINDS = Object.freeze(['create_record', 'update_r
 /**
  * @typedef {{ suffix: string, steps: unknown[], walked: boolean }} StepSlot
  */
+
+/**
+ * A field of a step kind that holds child steps. `each`: the field is a list of
+ * objects (switch cases) and every one holds its steps under that key.
+ * `walked: false`: the children never run alone and get no ordinal.
+ *
+ * @typedef {{ field: string, each?: string, walked?: boolean }} ChildSlotSpec
+ * @typedef {{ childSlots?: readonly ChildSlotSpec[], retrySafe?: boolean, server?: boolean }} ExtensionStepKind
+ */
+
+/** @type {Readonly<Record<string, readonly ChildSlotSpec[]>>} */
+const BASE_CHILD_SLOTS = Object.freeze({
+    condition: Object.freeze([Object.freeze({ field: 'then' }), Object.freeze({ field: 'else' })]),
+    loop: Object.freeze([Object.freeze({ field: 'steps' })]),
+    switch: Object.freeze([Object.freeze({ field: 'cases', each: 'steps' }), Object.freeze({ field: 'default' })]),
+    transaction: Object.freeze([Object.freeze({ field: 'steps', walked: false })]),
+});
+
+/** @type {Readonly<Record<string, ExtensionStepKind>>} */
+let extensionKinds = EXTENSION_STEP_KINDS;
+
+/** @param {unknown} kind @returns {ExtensionStepKind | null} */
+function extensionKind(kind) {
+    return typeof kind === 'string' && Object.hasOwn(extensionKinds, kind) ? extensionKinds[kind] : null;
+}
+
+/**
+ * The fields of `kind` that hold child steps, in pre-order. Empty for a kind
+ * that holds none and for a kind nobody declared.
+ *
+ * @param {unknown} kind
+ * @returns {readonly ChildSlotSpec[]}
+ */
+export function childSlotSpecs(kind) {
+    if (typeof kind !== 'string') return [];
+    if (Object.hasOwn(BASE_CHILD_SLOTS, kind)) return BASE_CHILD_SLOTS[kind];
+    return extensionKind(kind)?.childSlots ?? [];
+}
+
+/**
+ * The extension step kinds that run on the server (the registry's `side: 'server'`).
+ *
+ * @returns {string[]}
+ */
+export function extensionServerKinds() {
+    return Object.keys(extensionKinds).filter((k) => extensionKinds[k].server === true);
+}
+
+/**
+ * Is `kind` a step kind of the registry (the generated table)?
+ *
+ * @param {unknown} kind
+ * @returns {boolean}
+ */
+export function isExtensionStepKind(kind) {
+    return extensionKind(kind) !== null;
+}
+
+/**
+ * Is a failed step of this kind never tried again (its effect leaves Bee Flow, or waits on a person)?
+ *
+ * @param {string} kind
+ * @returns {boolean}
+ */
+export function isRetryUnsafeKind(kind) {
+    return RETRY_UNSAFE_KINDS.includes(kind) || extensionKind(kind)?.retrySafe === false;
+}
+
+/**
+ * Test seam: run `fn` with `table` as the extension step kinds, then put the
+ * shipped table back. Synchronous only. Product code never calls it.
+ *
+ * @template T
+ * @param {Readonly<Record<string, ExtensionStepKind>>} table
+ * @param {() => T} fn
+ * @returns {T}
+ */
+export function withExtensionStepKinds(table, fn) {
+    const shipped = extensionKinds;
+    extensionKinds = table;
+    try { return fn(); } finally { extensionKinds = shipped; }
+}
 
 /** @param {unknown} v @returns {unknown[]} */
 const listOf = (v) => (Array.isArray(v) ? v : []);
@@ -73,31 +159,53 @@ function handlerList(h) {
 }
 
 /**
- * The slots of the step's own kind (branches, a loop or transaction body).
+ * The slots of the step's own kind (branches, a loop or transaction body),
+ * read from the child-slot table.
  *
  * @param {Record<string, unknown>} s
  * @returns {StepSlot[]}
  */
 function ownSlots(s) {
-    if (s.kind === 'condition') {
-        return [
-            { suffix: '.then', steps: listOf(s.then), walked: true },
-            { suffix: '.else', steps: listOf(s.else), walked: true },
-        ];
-    }
-    if (s.kind === 'loop') return [{ suffix: '.steps', steps: listOf(s.steps), walked: true }];
-    if (s.kind === 'transaction') return [{ suffix: '.steps', steps: listOf(s.steps), walked: false }];
-    if (s.kind === 'switch') {
-        /** @type {StepSlot[]} */
-        const out = listOf(s.cases).map((c, k) => ({
-            suffix: `.cases[${k}].steps`,
-            steps: c && typeof c === 'object' ? listOf(/** @type {Record<string, unknown>} */ (c).steps) : [],
-            walked: true,
+    /** @type {StepSlot[]} */
+    const out = [];
+    for (const spec of childSlotSpecs(s.kind)) {
+        const walked = spec.walked !== false;
+        const each = spec.each;
+        if (each === undefined) {
+            out.push({ suffix: `.${spec.field}`, steps: listOf(s[spec.field]), walked });
+            continue;
+        }
+        listOf(s[spec.field]).forEach((c, k) => out.push({
+            suffix: `.${spec.field}[${k}].${each}`,
+            steps: c && typeof c === 'object' ? listOf(/** @type {Record<string, unknown>} */ (c)[each]) : [],
+            walked,
         }));
-        out.push({ suffix: '.default', steps: listOf(s.default), walked: true });
-        return out;
     }
-    return [];
+    return out;
+}
+
+/**
+ * The child lists of the step's own kind that get step ordinals, in pre-order
+ * (no error handler: handlers are numbered after the whole tree).
+ *
+ * @param {unknown} step
+ * @returns {unknown[][]}
+ */
+export function numberedChildLists(step) {
+    if (!step || typeof step !== 'object' || Array.isArray(step)) return [];
+    return ownSlots(/** @type {Record<string, unknown>} */ (step)).filter((slot) => slot.walked).map((slot) => slot.steps);
+}
+
+/**
+ * The steps of a step's error handler (`onError.steps`, or the legacy array
+ * form), or null when it has none.
+ *
+ * @param {unknown} step
+ * @returns {unknown[] | null}
+ */
+export function handlerStepsOf(step) {
+    if (!step || typeof step !== 'object') return null;
+    return handlerList(/** @type {Record<string, unknown>} */ (step).onError);
 }
 
 /**
@@ -150,7 +258,7 @@ function clampInt(v, max, dflt) {
 export function retryPlanOf(step) {
     if (!step || typeof step !== 'object' || Array.isArray(step)) return { times: 0, delayMs: 0 };
     const s = /** @type {Record<string, unknown>} */ (step);
-    if (typeof s.kind === 'string' && RETRY_UNSAFE_KINDS.includes(s.kind)) return { times: 0, delayMs: 0 };
+    if (typeof s.kind === 'string' && isRetryUnsafeKind(s.kind)) return { times: 0, delayMs: 0 };
     const r = s.retry;
     const raw = typeof r === 'number' ? { times: r } : r && typeof r === 'object' && !Array.isArray(r) ? /** @type {Record<string, unknown>} */ (r) : null;
     if (!raw) return { times: 0, delayMs: 0 };

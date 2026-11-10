@@ -2,7 +2,10 @@ import { CircleSlash } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RunSurface, type ShellDefinition } from './AppRunPage';
 import { appDesignProps } from '../../components/admin/Studio/AppStudio/runtime/appDesign';
+import AppCustomCss from '../../components/admin/Studio/AppStudio/runtime/AppCustomCss';
 import AppFontLoader from '../../components/admin/Studio/AppStudio/runtime/AppFontLoader';
+import { AssetTransportProvider } from '../../components/admin/Studio/AppStudio/runtime/assets/assetTransport';
+import PublicPageLogo from '../../components/admin/Studio/AppStudio/runtime/assets/PublicPageLogo';
 import { createPublicAppTransport } from '../../components/admin/Studio/AppStudio/runtime/publicAppTransport';
 import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
 import { openingRoute, previewRoleFor, type ScreenParams } from '@/components/admin/Studio/AppStudio/runtime/screenRoute';
@@ -21,6 +24,8 @@ interface PublicAppPayload {
     entryScreenId?: string;
     definition?: ShellDefinition | null;
     app?: { id?: string; name?: string };
+    /** The page's own look, beside the definition: `logoUrl` is publicAccess.design.logoUrl only. */
+    page?: { logoUrl?: string | null };
 }
 
 interface PageState {
@@ -198,20 +203,25 @@ export default function PublicAppPage({ token }: { token: string }) {
             style={{ ...themeVars(definition?.theme), ...design.style, background: CANVAS_GROUND }}
         >
             <AppFontLoader definition={definition} />
-            <RunSurface
-                appId={state.payload?.app?.id || null}
-                draft={false}
-                definition={definition}
-                screenId={screenId}
-                // No account, no name, no role to preview as. `currentUser`
-                // resolves to null in every formula, which is the truth.
-                viewer={null}
-                onNavigate={setScreenId}
-                chrome="bare"
-                urlRoute
-                homeScreenId={entryScreenOf(state.payload)}
-                initialScreenParams={entryParams}
-            />
+            <AppCustomCss definition={definition} />
+            {/* An uploaded image or logo (`asset:<id>`) resolves under the page token here. */}
+            <AssetTransportProvider publicToken={token}>
+                <RunSurface
+                    appId={state.payload?.app?.id || null}
+                    draft={false}
+                    definition={definition}
+                    screenId={screenId}
+                    // No account, no name, no role to preview as. `currentUser`
+                    // resolves to null in every formula, which is the truth.
+                    viewer={null}
+                    onNavigate={setScreenId}
+                    chrome="bare"
+                    urlRoute
+                    homeScreenId={entryScreenOf(state.payload)}
+                    initialScreenParams={entryParams}
+                    publicHeader={<PublicPageLogo page={state.payload?.page} alt={appName} />}
+                />
+            </AssetTransportProvider>
         </div>
     );
 }

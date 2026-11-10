@@ -12,12 +12,14 @@
 export const CANVAS_TYPES = new Set(['steps']);
 
 /**
- * Structured object types with no generic input — the default text field
+ * Structured object types with no input here at all — the default text field
  * would render "[object Object]" and write a string back over the config.
- * Authored by the AI builder (like ai_extract's schema); a dedicated editor
- * can land later without touching this filter.
+ * Empty today: request_approval's questions and `onDecided` hook used to be
+ * listed, and now have their controls under fieldTypes/ (approvalQuestions,
+ * approvalOnDecided). A new structured type with no control yet goes here,
+ * never into the text field.
  */
-export const AI_AUTHORED_TYPES = new Set(['approvalQuestions', 'approvalOnDecided']);
+export const AI_AUTHORED_TYPES = new Set<string>();
 
 /**
  * `<kind>.<field>` pairs the server still ACCEPTS but nothing reads. Rendering

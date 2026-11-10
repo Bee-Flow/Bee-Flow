@@ -61,7 +61,7 @@ function ConnectionsPreflight({ appId }: ConnectionsPreflightProps) {
 function RunBody({
     appId, definition, screenId, onNavigate, onExit, viewer, previewRole,
     actionState, runAction, vars, setVar, forms, screenParams, registerFormValue,
-    dataState, refresh, onDataState, refreshRef, versionBanner = null, chrome = 'app',
+    dataState, refresh, onDataState, refreshRef, versionBanner = null, chrome = 'app', publicHeader = null,
 }: RunBodyProps) {
     useEffect(() => { onDataState(dataState); }, [onDataState, dataState]);
     useEffect(() => { refreshRef.current = refresh; }, [refreshRef, refresh]);
@@ -94,6 +94,7 @@ function RunBody({
         return (
             <div className="h-full min-h-0 flex flex-col" style={{ background: CANVAS_GROUND, color: 'var(--text-primary)' }}>
                 {versionBanner}
+                {publicHeader}
                 <div className="flex-1 min-h-0 overflow-auto">{renderer}</div>
             </div>
         );
@@ -116,7 +117,7 @@ function RunBody({
 }
 
 export function RunSurface({
-    appId, draft, definition, screenId, viewer, onNavigate, versionBanner = null, hideExit = false, chrome = 'app',
+    appId, draft, definition, screenId, viewer, onNavigate, versionBanner = null, hideExit = false, chrome = 'app', publicHeader = null,
     urlRoute = false, homeScreenId = null, initialScreenParams = null,
 }: RunSurfaceProps) {
     const { confirm, dialog } = useConfirmDialog();
@@ -221,7 +222,7 @@ export function RunSurface({
                         onDataState={setRunnerDataState}
                         refreshRef={refreshRef}
                         versionBanner={versionBanner}
-                        chrome={chrome}
+                        chrome={chrome} publicHeader={publicHeader}
                     />
                 )}
             </AppDataScope>

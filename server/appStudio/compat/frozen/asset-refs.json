@@ -1,0 +1,115 @@
+{
+  "corpus": "asset-refs",
+  "canonical": {
+    "sha256": "9319fa3221db839c3d1d0e667e9e8125d2bda91d984eadf5bb2bad87dc52ee80",
+    "bytes": 1866,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId",
+      "publicAccess"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "ec89ec4f1b26dd22",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_assets01": "aafe94cec9c5bb67",
+      "screens[1] scr_public01": "1ba5a8faa54a63a5",
+      "design": "98ac498eb2e5aaa9",
+      "homeScreenId": "730cf563a15fb940",
+      "publicAccess": "016a818913f50bf1"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "publicDefinition": {
+    "actionIds": [],
+    "sha256": "4526d6b37dbad3ee251a0aafc98b123778df3686be14402af17362dc0f2550d0",
+    "definition": {
+      "schemaVersion": 3,
+      "meta": {
+        "name": "Uploaded files",
+        "description": "",
+        "icon": "Image"
+      },
+      "theme": {
+        "primary": "#0F766E",
+        "radius": "md",
+        "density": "comfortable",
+        "fontScale": "md",
+        "appearance": "auto"
+      },
+      "homeScreenId": "scr_public01",
+      "roles": [],
+      "screens": [
+        {
+          "id": "scr_public01",
+          "name": "Public",
+          "icon": null,
+          "showInNav": true,
+          "maxWidth": "medium",
+          "sections": [
+            {
+              "id": "sec_public01",
+              "style": {
+                "padding": 4,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_asset004",
+                  "type": "image",
+                  "props": {
+                    "src": "asset:7c9e6679-7425-40de-944b-e07fc1f90ae7",
+                    "alt": "Public picture",
+                    "fit": "cover"
+                  },
+                  "style": {
+                    "span": 6,
+                    "height": "md"
+                  },
+                  "visible": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "actions": {},
+      "design": {
+        "preset": "custom",
+        "font": "system",
+        "surface": "hairline",
+        "motion": "subtle",
+        "chartPalette": "classic",
+        "accentEdge": "bar",
+        "logoUrl": "asset:9a1b2c3d-0000-4000-8000-00000000abcd"
+      }
+    }
+  }
+}

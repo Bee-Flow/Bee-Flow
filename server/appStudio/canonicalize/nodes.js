@@ -177,6 +177,10 @@ function canonNode(node, path, depth, ids, push) {
                 out.children.push(...canonNode(child, `${path}.children[${i}]`, depth + 1, ids, push));
             });
         }
+        // A slot container (spec.slotContainer) holds children only when the author gave it
+        // some: its `children` key is written when non-empty and left out otherwise, so a
+        // type that becomes one keeps the bytes of every node stored before.
+        if (spec.slotContainer && out.children.length === 0) delete out.children;
     } else if (rawChildren !== undefined && rawChildren !== null) {
         // children on a non-container: hoist salvageable component nodes as
         // following siblings, drop the rest.

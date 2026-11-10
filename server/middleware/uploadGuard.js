@@ -96,6 +96,9 @@ function sniffFamily(buffer) {
     // RIFF....WEBP
     if (startsWith(buffer, [0x52, 0x49, 0x46, 0x46]) && buffer.length >= 12 &&
         startsWith(buffer.subarray(8), [0x57, 0x45, 0x42, 0x50])) return 'webp';
+    // WOFF2: the 'wOF2' tag AND the header's own total length (bytes 8..11) equal to the
+    // buffer, so a text file that happens to start with those four letters stays 'text'.
+    if (startsWith(buffer, [0x77, 0x4f, 0x46, 0x32]) && buffer.length >= 48 && buffer.readUInt32BE(8) === buffer.length) return 'woff2';
     // CAD — BEFORE the svg/text checks: STEP, ASCII DXF and IGES are plain
     // text on the wire and would otherwise sniff 'text'.
     const cad = sniffCadFamily(buffer);
@@ -198,6 +201,8 @@ const MIME_FAMILIES = Object.freeze({
     'image/gif': ['gif'],
     'image/webp': ['webp'],
     'image/svg+xml': ['svg'],
+    // Not in DEFAULT_ALLOW: only a route that names it (the App Studio asset store) accepts a font.
+    'font/woff2': ['woff2'],
     'application/pdf': ['pdf'],
     // text/* is WIDENED with the text-shaped CAD families: a genuine STEP or
     // ASCII DXF declared text/plain used to sniff 'text' and pass — now that

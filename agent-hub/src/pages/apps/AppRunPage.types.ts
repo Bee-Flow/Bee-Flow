@@ -76,6 +76,8 @@ export interface RunBodyProps {
     onDataState: React.Dispatch<React.SetStateAction<DataState>>;
     refreshRef: React.RefObject<RunBodyProps['refresh'] | null>;
     chrome?: string;
+    /** The public page's own header (its logo), above the app; only the 'bare' chrome draws it. */
+    publicHeader?: React.ReactNode;
 }
 
 /**
@@ -112,6 +114,7 @@ export interface RunSurfaceProps {
     homeScreenId?: string | null;
     /** The params of the screen the host opened first (from a screen link). */
     initialScreenParams?: Record<string, unknown> | null;
+    publicHeader?: React.ReactNode;
 }
 
 /**
@@ -126,7 +129,7 @@ export interface RunSurfaceProps {
  * live action engine. Toasts fired by actions surface through the shared
  * <Toaster /> that main.jsx mounts once at the app root — standalone pages
  * never mount their own copy (a second Toaster would render every toast
- * twice). Responsive by default: runtime.css stacks the grid below 640px.
+ * twice). Responsive by default: css/layout.css stacks the grid below 640px.
  */
 export interface AppRunPageProps {
     appId: string | null;
