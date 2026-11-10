@@ -41,6 +41,8 @@ export interface DataBinding {
     aggregates?: FilterValue;
     pick?: PickSpec | null;
     path?: unknown;
+    /** dataset only: values for the parameters the dataset declares (literals or formulas). */
+    params?: unknown;
 }
 
 export interface ConnectorBinding {

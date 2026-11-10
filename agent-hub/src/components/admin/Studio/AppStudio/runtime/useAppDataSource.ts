@@ -82,6 +82,16 @@ function recordLimit(binding: DataBinding, sample: boolean) {
 }
 
 /**
+ * A dataset binding's parameter values (already resolved to literals by the
+ * fetcher layer), or null when it sends none: a request without params is the
+ * request it always was.
+ */
+function datasetParams(binding: FetchBinding): Record<string, unknown> | null {
+    const p = binding.kind === 'dataset' ? binding.params : null;
+    return p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0 ? p as Record<string, unknown> : null;
+}
+
+/**
  * The batch descriptor for a binding, or null if this kind never batches.
  *
  * Connectors are excluded because they are not a read: another router, another
@@ -94,7 +104,8 @@ function batchDescriptor(id: string, binding: FetchBinding, limit: unknown) {
     if (binding.kind === 'connector') return null;
     if (binding.kind === 'dataset') {
         if (binding.datasetId === 'sys_org_members') return null;
-        return { id, kind: 'dataset', datasetId: binding.datasetId };
+        const params = datasetParams(binding);
+        return { id, kind: 'dataset', datasetId: binding.datasetId, ...(params ? { params } : {}) };
     }
     if (binding.kind === 'aggregate') {
         return {
@@ -223,12 +234,14 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         return Array.isArray(body?.rows) ? body.rows : [];
     }
     if (binding.kind === 'dataset') {
+        const params = datasetParams(binding);
         const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/query`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sample
-                ? { datasetId: binding.datasetId, sample: true, limit: SAMPLE_LIMIT }
-                : { datasetId: binding.datasetId }),
+            body: JSON.stringify({
+                ...(sample ? { datasetId: binding.datasetId, sample: true, limit: SAMPLE_LIMIT } : { datasetId: binding.datasetId }),
+                ...(params ? { params } : {}),
+            }),
         });
         if (res.status === 404) return null; // endpoint not live yet → empty
         let body = null;

@@ -1,5 +1,42 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`compat corpus: what the phone plans for every stored app dataset-params 1`] = `
+{
+  "defaultScreen": "scr_home01",
+  "navigable": [
+    "scr_home01",
+  ],
+  "screens": [
+    {
+      "id": "scr_home01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders by region",
+              },
+            ],
+            "screen": "scr_home01",
+            "unsupported": [
+              "stat",
+              "chart",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "viewer",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app empty-definition 1`] = `
 {
   "defaultScreen": "scr_6x27gi",

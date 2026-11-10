@@ -108,7 +108,7 @@ function resolveFormula(binding: B, scope: Record<string, unknown> | undefined):
 function resolveData(binding: B, dataState: DataState, scope: Record<string, unknown> | undefined): Resolved {
     // Shape then filters, in the order the fetcher applies them, so the read
     // lands on the key the entry was stored under.
-    const key = dataCacheKey(resolveBindingFilters(resolveBindingShape(binding, scope), scope));
+    const key = dataCacheKey(resolveBindingParams(resolveBindingFilters(resolveBindingShape(binding, scope), scope), scope));
     if (!key) return settled(undefined);
     const entry = fromDataEntry((dataState || {})[key]);
     if (binding.pick) return { ...entry, value: applyPick(entry.value, binding.pick) };

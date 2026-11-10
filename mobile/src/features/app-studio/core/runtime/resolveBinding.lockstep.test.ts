@@ -52,6 +52,11 @@ const BINDINGS: unknown[] = [
     { kind: 'aggregate', tableId: 't1', groupBy: ['status'] },
     { kind: 'dataset', datasetId: 'd1', pick: { column: 'v' } },
     { kind: 'dataset' },
+    // Dataset params: resolved like connector params, in the key only when there are any.
+    { kind: 'dataset', datasetId: 'd1', params: { region: f('vars.q'), gone: f('vars.missing'), n: 3 } },
+    { kind: 'dataset', datasetId: 'd1', params: { lit: 'x' }, pick: { column: 'v' } },
+    { kind: 'dataset', datasetId: 'd1', params: {} },
+    { kind: 'dataset', datasetId: 'd1', params: [1] },
     { kind: 'connector', connectorId: 'c1', params: { q: f('vars.q'), gone: f('vars.missing'), n: f('vars.n'), lit: 'x' } },
     { kind: 'connector', connectorId: 'c1', params: { lit: 'x' } },
     { kind: 'connector', connectorId: 'c1', params: [1] },

@@ -309,11 +309,30 @@ function validateBinding(key, value, path, ctx) {
         checkDatasetRef(value.datasetId, `${path}.datasetId`, ctx, 'dataset binding');
         if (value.params !== undefined && value.params !== null && !isObject(value.params)) {
             pushE({ code: 'binding.params_invalid', severity: 'error', path: `${path}.params`, message: 'dataset params must be an object.', hint: 'Use { paramName: value }.' });
+        } else if (isObject(value.params)) {
+            checkDatasetParamFormulas(value.params, `${path}.params`, ctx);
         }
     }
     if (value.kind === 'connector') {
         checkConnectorRef(value.connectorId, `${path}.connectorId`, ctx, 'connector binding');
         if (value.params !== undefined && value.params !== null) validateConnectorParams(value.params, `${path}.params`, ctx);
+    }
+}
+
+/**
+ * The formula values of a dataset binding's `params`. They were stored and
+ * never read until datasets could declare parameters, so an app may carry one
+ * that does not parse: what the checker finds is a WARNING here, never an
+ * error that would stop such an app from publishing. Checking them is also
+ * what counts their `vars.<name>` reads as uses of the variable.
+ * @param {Record<string, unknown>} params
+ * @param {string} path
+ * @param {ValidationCtx} ctx
+ */
+function checkDatasetParamFormulas(params, path, ctx) {
+    const soft = { ...ctx, pushE: (/** @type {Record<string, unknown>} */ f) => ctx.pushW({ ...f, severity: 'warning' }) };
+    for (const [key, v] of Object.entries(params)) {
+        if (isObject(v) && v.kind === 'formula') validateFormula(v.expr, `${path}.${key}.expr`, soft, FORMULA_SCOPE_ROOTS);
     }
 }
 

@@ -11,6 +11,8 @@ import Modal from '@/components/shared/Modal';
 import toast from '@/components/shared/Toast';
 import { inputCls } from '@/components/admin/product-website/fields';
 import { BreakdownField, DATE_TYPES, MeasuresField, NoTables, PreviewResult, QueryFooter } from './QueryBuilderParts';
+import DatasetParamsField from './DatasetParamsField';
+import { applyParamRows, paramProblems, type ParamRow } from './datasetParamRows';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import AppChart from '../runtime/components/AppChart';
 import { DEFAULT_RUNTIME, RuntimeProvider, type RuntimeValue } from '../runtime/RuntimeContext';
@@ -151,6 +153,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
     const [groupBy, setGroupBy] = useState<DatasetGroup[]>([]);
     const [aggregates, setAggregates] = useState<{ agg: string; field: string; label: string; }[]>([]);
     const [filters, setFilters] = useState<FilterRow[]>([]);
+    const [paramRows, setParamRows] = useState<ParamRow[]>([]);
     const [name, setName] = useState('');
     const [chartMapping, setChartMapping] = useState<ChartMapping | null>(null);
 
@@ -182,20 +185,30 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
         setTableId(nextId);
         setGroupBy([]);
         setFilters([]);
+        setParamRows([]);
         setAggregates([{ agg: 'count', field: '', label: 'Count' }]);
         setChartMapping(null);
     };
 
-    const { descriptor, valid, unknownFields } = useMemo(
+    const { descriptor: baseDescriptor, valid: baseValid, unknownFields } = useMemo(
         () => buildDescriptor(tableId, fields, groupBy, aggregates, filters),
         [tableId, fields, groupBy, aggregates, filters],
     );
+    // Parameters: the saved descriptor declares them; the preview runs each at
+    // its default (it has no binding to send values). No rows: both are the
+    // descriptor above, unchanged.
+    const paramsOk = useMemo(() => Object.keys(paramProblems(paramRows, fields)).length === 0, [paramRows, fields]);
+    const { saved: descriptor, preview: previewDescriptor } = useMemo(
+        () => applyParamRows(baseDescriptor, paramsOk ? paramRows : [], fields),
+        [baseDescriptor, paramRows, paramsOk, fields],
+    );
+    const valid = baseValid && paramsOk;
 
     // Debounced live preview: the key carries the exact payload, so the fetch
     // always matches the key. `enabled` is gated on the DEBOUNCED payload's
     // validity (not the live one) so a mid-debounce empty descriptor can never
     // fire a stale request.
-    const previewKey = useMemo(() => JSON.stringify({ tableId, descriptor }), [tableId, descriptor]);
+    const previewKey = useMemo(() => JSON.stringify({ tableId, descriptor: previewDescriptor }), [tableId, previewDescriptor]);
     const debouncedKey = useDebounced(previewKey, 350);
     const debouncedValid = useMemo(() => {
         try {
@@ -289,6 +302,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
 
                         <FilterRowsEditor fields={fields} filters={filters} onChange={(next) => setFilters(next.filter((f): f is FilterRow => !('any' in f)))} label={t('studio_apps_bi.query.only_count_where', 'Only count rows where')} />
 
+                        <DatasetParamsField rows={paramRows} onChange={setParamRows} fields={fields} />
 
                         <label className="flex flex-col gap-1">
                             <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_bi.query.name_view', 'Name this view')}</span>

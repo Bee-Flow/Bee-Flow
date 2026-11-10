@@ -140,7 +140,7 @@ export function emptyDataState(definition: CorpusDefinition, screen: CorpusScree
         const b = binding as Binding;
         const resolved = b.kind === 'connector'
             ? resolveBindingParams(b, scope)
-            : resolveBindingFilters(resolveBindingShape(b, scope), scope);
+            : resolveBindingParams(resolveBindingFilters(resolveBindingShape(b, scope), scope), scope);
         const key = dataCacheKey(resolved);
         if (!key || Object.prototype.hasOwnProperty.call(out, key)) continue;
         const entry: DataEntry = {

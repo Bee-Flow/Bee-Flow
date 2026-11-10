@@ -26,8 +26,12 @@ export function dataCacheKey(binding: unknown): string | null {
     if (!binding || typeof binding !== 'object') return null;
     const b = binding as Binding;
     switch (b.kind) {
-        case 'dataset':
-            return `dataset:${b.datasetId ?? ''}`;
+        case 'dataset': {
+            // Parameter values join the key only when there are any.
+            const p = b.params;
+            const hasParams = !!p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;
+            return hasParams ? `dataset:${b.datasetId ?? ''}:${stableStringify(p)}` : `dataset:${b.datasetId ?? ''}`;
+        }
         case 'record':
         case 'records':
             return `${b.kind}:${b.tableId ?? ''}:${shapeOf(b, ['filter', 'sort', 'limit'])}`;
@@ -97,11 +101,12 @@ export function resolveBindingFilters<B>(binding: B, scope: Scope): B | null {
 }
 
 /**
- * Resolve a connector binding's dynamic `params`. A param resolving to
- * undefined is omitted (null/''/0/false stay). Unchanged bindings come back as-is.
+ * Resolve a connector or dataset binding's dynamic `params`. A param resolving
+ * to undefined is omitted (null/''/0/false stay). Unchanged bindings come back as-is.
  */
 export function resolveBindingParams<B>(binding: B, scope: Scope): B {
-    if (!binding || typeof binding !== 'object' || (binding as Binding).kind !== 'connector') return binding;
+    const kind = binding && typeof binding === 'object' ? (binding as Binding).kind : undefined;
+    if (kind !== 'connector' && kind !== 'dataset') return binding;
     const params = (binding as Binding).params;
     if (!params || typeof params !== 'object' || Array.isArray(params)) return binding;
     let changed = false;
