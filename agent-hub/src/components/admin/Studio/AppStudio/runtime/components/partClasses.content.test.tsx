@@ -3,13 +3,14 @@
 // stamps `bfa-<type>__<part>` on the matching element, and an app's custom CSS targets them.
 // Mounts every type of this family and asserts the declared parts and the rendered ones are
 // the same set. Where a part only exists in one look or state, several variants are mounted
-// and the union is compared.
+// and the union is compared. file_preview and pdf_compare are held, with every state, by
+// recordPartClasses.fetch.test.tsx and recordPartClasses.documents.test.tsx.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { render, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { ReactElement } from 'react';
 import snapshot from '../catalogSnapshot.generated.json';
 import { BrowserRunProvider } from '../BrowserRunContext';
@@ -22,7 +23,6 @@ import AppCallout from './AppCallout';
 import AppCard from './AppCard';
 import AppContainer from './AppContainer';
 import AppDivider from './AppDivider';
-import AppFilePreview from './AppFilePreview';
 import AppHeading from './AppHeading';
 import AppImage from './AppImage';
 import AppKeyValue from './AppKeyValue';
@@ -30,7 +30,6 @@ import AppMarkdown from './AppMarkdown';
 import AppModal from './AppModal';
 import AppPageHeader from './AppPageHeader';
 import AppPane from './AppPane';
-import AppPdfCompare from './AppPdfCompare';
 import AppProgress from './AppProgress';
 import AppRepeater from './AppRepeater';
 import AppSpacer from './AppSpacer';
@@ -60,7 +59,6 @@ const CASES: Record<string, Case> = {
         Comp: AppImage,
         variants: [{ props: { src: 'https://example.test/a.png', alt: 'a' } }, { props: { src: null } }],
     },
-    pdf_compare: { Comp: AppPdfCompare, variants: [{ props: {} }] },
     divider: { Comp: AppDivider, variants: [{ props: {} }, { props: { orientation: 'vertical' } }] },
     spacer: { Comp: AppSpacer, variants: [{ props: { steps: 2 } }] },
     callout: { Comp: AppCallout, variants: [{ props: { title: 'T', text: 'Body', tone: 'info', meta: 'M' } }] },
@@ -191,33 +189,14 @@ describe('part classes: content and layout types', () => {
         run.unmount();
     });
 
-    describe('file_preview', () => {
-        beforeEach(() => {
-            vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, headers: new Headers(), blob: async () => new Blob(['x'], { type: 'application/pdf' }) })));
-            globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-1');
-            globalThis.URL.revokeObjectURL = vi.fn();
-        });
-        afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
-
-        it('renders exactly its declared parts', async () => {
-            const file = { kind: 'studio_attachment', fileId: 'f1', name: 'invoice.pdf', mime: 'application/pdf', size: 10 };
-            const view = mountVariant('file_preview', AppFilePreview, {
-                props: { source: stat(file), allowDownload: true, viewer: 'browser' },
-                style: { height: 'lg' },
-            });
-            await waitFor(() => expect(view.container.querySelector('iframe'), view.container.innerHTML).toBeTruthy());
-            expectParts('file_preview', tokensIn(view.container));
-        });
-    });
-
     it('declares parts for every type of the family', () => {
-        for (const type of [...Object.keys(CASES), 'browser_view', 'modal', 'file_preview']) {
+        for (const type of [...Object.keys(CASES), 'browser_view', 'modal']) {
             expect(declaredParts(type).length, type).toBeGreaterThan(0);
         }
     });
 
     it('names every part as one lower-case token', () => {
-        for (const type of [...Object.keys(CASES), 'browser_view', 'modal', 'file_preview']) {
+        for (const type of [...Object.keys(CASES), 'browser_view', 'modal']) {
             const parts = declaredParts(type);
             expect(new Set(parts).size, type).toBe(parts.length);
             for (const p of parts) expect(p, `${type}.${p}`).toMatch(/^[a-z][a-z0-9-]*$/);

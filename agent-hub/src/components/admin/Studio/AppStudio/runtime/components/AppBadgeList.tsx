@@ -139,7 +139,7 @@ export default function AppBadgeList({ node }: NodeProps<BadgeListProps>) {
                         key={i}
                         type="button"
                         onClick={() => fire(item)}
-                        className={`inline-flex items-center rounded-full font-medium border transition-opacity hover:opacity-80 cursor-pointer ${sizeCls} bfa-badge_list__badge`}
+                        className={`inline-flex items-center rounded-full font-medium border transition-opacity hover:opacity-80 cursor-pointer ${sizeCls} bfa-badge_list__item`}
                         data-badge-role={role || undefined}
                         data-badge-active={active || undefined}
                         style={swatch}
@@ -149,7 +149,7 @@ export default function AppBadgeList({ node }: NodeProps<BadgeListProps>) {
                 ) : (
                     <span
                         key={i}
-                        className={`inline-flex items-center rounded-full font-medium border ${sizeCls} bfa-badge_list__badge`}
+                        className={`inline-flex items-center rounded-full font-medium border ${sizeCls} bfa-badge_list__item`}
                         data-badge-role={role || undefined}
                         data-badge-active={active || undefined}
                         style={swatch}

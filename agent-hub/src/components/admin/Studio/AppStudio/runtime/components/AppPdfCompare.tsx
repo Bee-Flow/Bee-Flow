@@ -37,7 +37,7 @@ interface Props { left?: unknown; right?: unknown; leftLabel?: string; rightLabe
 
 function Message({ icon, children, retry }: { icon?: ReactNode; children: ReactNode; retry?: { label: string; onClick: () => void } }) {
     return (
-        <div className={CENTERED}>
+        <div className={`${CENTERED} bfa-pdf_compare__message`}>
             {icon}
             <span>{children}</span>
             {retry ? (

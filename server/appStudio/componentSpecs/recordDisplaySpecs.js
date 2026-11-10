@@ -13,7 +13,6 @@ const { COLOR_ROLES } = require('./styleKnobs');
 const RECORD_DISPLAY_SPECS = {
     // ── v2.1 data display ────────────────────────────────────────────────
     badge_list: {
-        parts: ['root', 'badge', 'count'],
         label: 'Badge list', category: 'Data',
         description: 'A row of colored badges over an array of objects (e.g. tags or statuses). colorMap assigns a color role and a readable label per value; countKey shows a number on each badge, so an aggregate binding renders as clickable status pills.',
         events: ['onRowClick'],
@@ -51,9 +50,9 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'align'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'item', 'count'],
     },
     progress: {
-        parts: ['root', 'label', 'caption', 'track', 'fill', 'segment'],
         label: 'Progress', category: 'Data',
         description: 'A progress bar: a bound value against a maximum, with an optional label and a percent/fraction caption.',
         props: {
@@ -103,9 +102,9 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size'],
         defaultStyle: { span: 6 },
+        parts: ['root', 'label', 'caption', 'track', 'bar', 'segment'],
     },
     stepper: {
-        parts: ['root', 'item', 'step', 'marker', 'label', 'hint', 'line'],
         label: 'Stepper', category: 'Data',
         description: 'The stages of a process: the step matching `value` is current, earlier ones done. Says where a record IS, which a status dropdown never does. onRowClick fires with { value, label, index }.',
         events: ['onRowClick'],
@@ -131,6 +130,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'align'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'item', 'step', 'marker', 'label', 'hint', 'line'],
     },
     file_gallery: {
         label: 'File gallery', category: 'Data',
@@ -171,6 +171,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'height'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'card', 'thumb', 'icon', 'name', 'meta', 'group', 'group-title'],
     },
     connector_status: {
         label: 'Connection status', category: 'Data',
@@ -182,10 +183,10 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'padding', 'background', 'radius', 'border'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'icon', 'title', 'detail', 'note', 'action'],
     },
     timeline: {
         label: 'Timeline', category: 'Data',
-        parts: ['root', 'item', 'marker', 'rail', 'title', 'meta', 'description'],
         description: 'A vertical timeline over an array of objects, one entry per row, dated by dateKey.',
         events: ['onRowClick'],
         props: {
@@ -203,6 +204,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'height'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'row', 'marker', 'line', 'content', 'title', 'meta', 'description'],
     },
     message_thread: {
         label: 'Message thread', category: 'Data',
@@ -267,6 +269,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'size', 'height'],
         defaultStyle: { span: 12, height: 'fill' },
+        parts: ['root', 'row', 'bubble', 'text', 'meta', 'author', 'time', 'avatar'],
     },
     record_detail: {
         label: 'Record detail', category: 'Data',
@@ -302,6 +305,7 @@ const RECORD_DISPLAY_SPECS = {
         },
         styleKnobs: ['span', 'padding', 'background', 'radius', 'border', 'height'],
         defaultStyle: { span: 12 },
+        parts: ['root', 'group', 'field', 'label', 'value'],
     },
 };
 

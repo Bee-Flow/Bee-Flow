@@ -81,7 +81,6 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 6, height: 'md' },
     },
     file_preview: {
-        parts: ['root', 'header', 'name', 'download', 'frame'],
         label: 'File preview', category: 'Content',
         description: 'Shows a PDF or image from a file column inline. Other types get a download link. Bind source to a file field. viewer "app": own PDF reader.',
         props: {
@@ -93,9 +92,9 @@ const CONTENT_SPECS = {
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'lg' },
+        parts: ['root', 'header', 'name', 'download', 'frame', 'image', 'message'],
     },
     pdf_compare: {
-        parts: ['root'],
         label: 'PDF compare', category: 'Content',
         description: 'Two PDFs compared (original vs changed copy): synced pages, changed regions boxed in red. Bind left/right to file fields. mode: side, swipe, diff.',
         props: {
@@ -109,6 +108,7 @@ const CONTENT_SPECS = {
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'xl' },
+        parts: ['root', 'message', 'toolbar'],
     },
     browser_view: {
         parts: ['root', 'header', 'frame', 'placeholder', 'status'],

@@ -71,7 +71,7 @@ interface DesignPlaceholderProps {
 
 function DesignPlaceholder({ name }: DesignPlaceholderProps) {
     return (
-        <div className={`${CENTERED} gap-2 [background:var(--bg-tertiary)] [color:var(--text-muted)]`}>
+        <div className={`${CENTERED} gap-2 [background:var(--bg-tertiary)] [color:var(--text-muted)] bfa-file_preview__message`}>
             <FileText className="h-6 w-6" aria-hidden="true" />
             <span className="text-xs">{name}</span>
         </div>
@@ -94,7 +94,7 @@ interface ErrorStateProps {
 function ErrorState({ message, onRetry }: ErrorStateProps) {
     const { t } = useTranslation();
     return (
-        <div className={CENTERED}>
+        <div className={`${CENTERED} bfa-file_preview__message`}>
             <span className="text-sm text-[var(--text-secondary)]">{message}</span>
             <button type="button" onClick={onRetry} className={SMALL_BUTTON} style={BUTTON_STYLE}>
                 <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
@@ -118,7 +118,7 @@ interface DownloadCardProps {
 function DownloadCard({ name, url, allowDownload }: DownloadCardProps) {
     const { t } = useTranslation();
     return (
-        <div className={CENTERED}>
+        <div className={`${CENTERED} bfa-file_preview__message`}>
             <FileText className="h-6 w-6 text-[var(--text-muted)]" aria-hidden="true" />
             <span className="text-sm text-[var(--text-secondary)]">{name}</span>
             {allowDownload ? (
@@ -329,7 +329,7 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                 <img
                     src={state.url ?? undefined}
                     alt={state.name || ''}
-                    className={`w-full${boxed ? ' flex-1 min-h-0' : ' h-full'} [object-fit:contain] bfa-file_preview__frame`}
+                    className={`w-full${boxed ? ' flex-1 min-h-0' : ' h-full'} [object-fit:contain] bfa-file_preview__image`}
                 />
             )}
         </>,

@@ -98,7 +98,7 @@ export default function AppTimeline({ node }: NodeProps<TimelineProps>) {
                     </>
                 );
                 return (
-                    <li key={i} className="relative flex gap-3 pb-4 last:pb-0 bfa-timeline__item" data-app-timeline-row={i}>
+                    <li key={i} className="relative flex gap-3 pb-4 last:pb-0 bfa-timeline__row" data-app-timeline-row={i}>
                         {/* rail + dot */}
                         <div className="flex flex-col items-center shrink-0" aria-hidden="true">
                             <span
@@ -107,19 +107,19 @@ export default function AppTimeline({ node }: NodeProps<TimelineProps>) {
                                 {icon ? <AppIcon name={icon} className="w-3 h-3" /> : <span className="h-1.5 w-1.5 rounded-full [background:currentColor]" />}
                             </span>
                             {i < rows.length - 1 ? (
-                                <span className="w-px flex-1 mt-1 [background:var(--border-default)] bfa-timeline__rail" />
+                                <span className="w-px flex-1 mt-1 [background:var(--border-default)] bfa-timeline__line" />
                             ) : null}
                         </div>
                         {clickable ? (
                             <button
                                 type="button"
-                                className="min-w-0 flex-1 text-left cursor-pointer"
+                                className="min-w-0 flex-1 text-left cursor-pointer bfa-timeline__content"
                                 onClick={() => runAction(node.onRowClick as string, { formValues: row, item: row })}
                             >
                                 {body}
                             </button>
                         ) : (
-                            <div className="min-w-0 flex-1">{body}</div>
+                            <div className="min-w-0 flex-1 bfa-timeline__content">{body}</div>
                         )}
                     </li>
                 );

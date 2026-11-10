@@ -61,7 +61,7 @@ function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label }:
                         strokeDashoffset={c * (1 - pct / 100)}
                         // Start the sweep at 12 o'clock, not 3 o'clock.
                         transform={`rotate(-90 ${dim / 2} ${dim / 2})`}
-                        className="[transition:stroke-dashoffset_var(--app-motion-slow,0ms)_var(--app-ease,ease-out)] bfa-progress__fill"
+                        className="[transition:stroke-dashoffset_var(--app-motion-slow,0ms)_var(--app-ease,ease-out)]"
                     />
                 </svg>
                 {caption ? (
@@ -231,7 +231,7 @@ export default function AppProgress({ node }: NodeProps<ProgressProps>) {
                 aria-valuemax={Math.round(ceiling)}
                 aria-label={label || t('studio_apps_runtime.progress.label', 'Progress')}
             >
-                <div className="h-full rounded-full bfa-progress__fill" style={{ width: `${pct}%`, background: color }} />
+                <div className="h-full rounded-full bfa-progress__bar" style={{ width: `${pct}%`, background: color }} />
             </div>
         </div>
     );

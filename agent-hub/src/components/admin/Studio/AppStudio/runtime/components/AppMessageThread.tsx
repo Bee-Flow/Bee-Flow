@@ -160,7 +160,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
     return (
         <div
             ref={listRef}
-            className="flex flex-col gap-3 h-full overflow-y-auto min-h-0"
+            className="flex flex-col gap-3 h-full overflow-y-auto min-h-0 bfa-message_thread__root"
             data-app-message-thread="true"
         >
             {rows.map((row, i) => {
@@ -217,7 +217,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
 
                 const bubble = (
                     <div
-                        className={`px-3 py-2 rounded-lg ${side === 'center' ? 'text-xs italic' : textSize}`}
+                        className={`px-3 py-2 rounded-lg ${side === 'center' ? 'text-xs italic' : textSize} bfa-message_thread__bubble`}
                         style={{
                             ...toneStyle(side, tone),
                             ...paper,
@@ -249,7 +249,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                             inlineContentIdKey={inlineContentIdKey}
                             onAttachmentClick={isRun ? node.onAttachmentClick : undefined}
                         >
-                            <div className="whitespace-pre-wrap break-words">
+                            <div className="whitespace-pre-wrap break-words bfa-message_thread__text">
                                 {/* System (center) rows can carry their time inline. */}
                                 {side === 'center' && centerMeta === 'inline' && stamp ? `${stamp} · ` : null}
                                 {displayValue(textOrNull(text))}
@@ -261,7 +261,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                 return (
                     <div
                         key={i}
-                        className={`flex flex-col ${SIDE_ALIGN[side] || SIDE_ALIGN.left}`}
+                        className={`flex flex-col ${SIDE_ALIGN[side] || SIDE_ALIGN.left} bfa-message_thread__row`}
                         data-app-thread-row={i}
                     >
                         {headerInside ? null : meta}
@@ -319,14 +319,14 @@ function MailHeadMeta({ t, side, headerInside, showAvatar, rawAuthor, author, em
     const inkMuted = headerInside ? '#67707b' : 'var(--text-muted)';
     return (
         <div
-            className={headerInside ? 'flex items-start gap-2 px-3 py-2' : 'flex items-start gap-2 mb-1 px-1'}
+            className={`${headerInside ? 'flex items-start gap-2 px-3 py-2' : 'flex items-start gap-2 mb-1 px-1'} bfa-message_thread__meta`}
             style={headerInside ? { borderBottom: '1px solid #e0e3e8' } : undefined}
             data-app-thread-meta={side}
             data-app-thread-mailhead="true"
         >
             {showAvatar ? (
                 <span
-                    className="inline-flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold w-[28px] h-[28px] [background:var(--app-primary-soft)] [color:var(--app-primary)]!"
+                    className="inline-flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold w-[28px] h-[28px] [background:var(--app-primary-soft)] [color:var(--app-primary)]! bfa-message_thread__avatar"
                     data-app-thread-avatar="true"
                 >
                     {initials(rawAuthor)}
@@ -335,13 +335,13 @@ function MailHeadMeta({ t, side, headerInside, showAvatar, rawAuthor, author, em
             <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-1.5">
                     {author ? (
-                        <span className="text-xs font-semibold truncate" {...hoverable(author)} style={{ color: ink }}>{author}</span>
+                        <span className="text-xs font-semibold truncate bfa-message_thread__author" {...hoverable(author)} style={{ color: ink }}>{author}</span>
                     ) : null}
                     {emailStr ? (
                         <span className="text-[11px] truncate" {...hoverable(emailStr)} style={{ color: inkMuted }}>{`<${emailStr}>`}</span>
                     ) : null}
                     {stamp ? (
-                        <span className="ml-auto shrink-0 text-[11px]" style={{ color: inkMuted }}>{stamp}</span>
+                        <span className="ml-auto shrink-0 text-[11px] bfa-message_thread__time" style={{ color: inkMuted }}>{stamp}</span>
                     ) : null}
                 </div>
                 {secondLine ? (
@@ -356,14 +356,14 @@ function MailHeadMeta({ t, side, headerInside, showAvatar, rawAuthor, author, em
 function PlainMeta({ side, author, stamp }: { side: string; author: string | null; stamp: string | null }) {
     return (
             <div
-                className={`flex items-baseline gap-2 mb-1 px-1 ${side === 'right' ? 'flex-row-reverse' : ''}`}
+                className={`flex items-baseline gap-2 mb-1 px-1 ${side === 'right' ? 'flex-row-reverse' : ''} bfa-message_thread__meta`}
                 data-app-thread-meta={side}
             >
                 {author ? (
-                    <span className="text-xs font-medium text-[var(--text-secondary)]">{author}</span>
+                    <span className="text-xs font-medium text-[var(--text-secondary)] bfa-message_thread__author">{author}</span>
                 ) : null}
                 {stamp ? (
-                    <span className="text-[11px] text-[var(--text-muted)]">{stamp}</span>
+                    <span className="text-[11px] text-[var(--text-muted)] bfa-message_thread__time">{stamp}</span>
                 ) : null}
             </div>
     );
