@@ -8,4 +8,9 @@ at load). A server kind also has its executor in `../../actionExecutor/steps/<ki
 
 After adding or changing a file: `node server/appStudio/stepKindsGen.mts`, then `npm run gen:shared`.
 
+The AI builder's prompt does not render a registry kind: it lists the kind in its extension index
+and serves the full field list through `app_inspect_catalog` (`../../catalogTiers.mts`). Give the
+file an optional `description` (one sentence, what the step does): its first sentence is the gloss
+in that index, and the whole of it follows the field list in the full entry.
+
 Only `.js` files belong here: the web and phone tests load this directory as plain CommonJS.

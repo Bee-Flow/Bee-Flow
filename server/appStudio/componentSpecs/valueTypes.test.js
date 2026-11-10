@@ -24,7 +24,8 @@ const { emitOptionalKeys } = require('../canonicalize/shared');
 const { canonDesign, DESIGN_SPEC } = require('../appDesignSpec');
 const { canonicalizeAppDefinition } = require('../canonicalize');
 const { validateAppDefinition } = require('../validate');
-const { buildCatalogSections } = require('../builderPrompt/catalogRender');
+const { buildCatalogSections, renderStyleKnobEntry } = require('../builderPrompt/catalogRender');
+const { _catalogueChanged } = require('../catalogTiers.mts');
 
 const { STYLE_KNOBS } = specs;
 
@@ -110,11 +111,15 @@ test('validate and the AI catalogue read the same table', () => {
             assert.equal(errors.length, 1, JSON.stringify(errors));
             assert.equal(errors[0].code, 'style.invalid');
             assert.match(errors[0].hint, /asset:<id>/);
-            // The catalogue lists every knob once (and caches the text: this file has its own process).
-            assert.match(JSON.stringify(buildCatalogSections()), /image\(null\|asset:<id>\)/);
+            // The knob is marked since 3, so it is an extension (catalogTiers.mts): the catalogue
+            // text leaves it out, and its entry is rendered from the same table on request.
+            _catalogueChanged();
+            assert.match(renderStyleKnobEntry('image'), /^image\(null\|asset:<id>\)$/);
+            assert.doesNotMatch(JSON.stringify(buildCatalogSections()), /asset:<id>/);
         } finally {
             spec.styleKnobs.length = 0;
             spec.styleKnobs.push(...before);
+            _catalogueChanged();
         }
     });
 });

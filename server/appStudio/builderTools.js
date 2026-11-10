@@ -136,6 +136,8 @@ async function applyToolCall(name, args, draftWrap) {
         && ID_LOOKUP_ERROR_RE.test(String(result.error))) {
         result._fixHint = 'Fix the arguments and call the tool again. Ids must come from the draft state / earlier tool results — never invent them.';
     }
+    // A rejected call that used an extension item (since 3) carries that item's full catalogue entry.
+    require('./builderTools/extensionHints.mts').addExtensionEntries(name, callArgs, result, draftWrap?.def);
     // The same call rejected twice → say so; three times → stop and ask.
     noteRepeatedRejection(name, args, result, draftWrap, { mutating: MUTATING_TOOLS });
     return result;
