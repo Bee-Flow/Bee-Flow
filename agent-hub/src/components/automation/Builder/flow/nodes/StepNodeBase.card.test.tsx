@@ -129,6 +129,18 @@ describe('StepNodeBase — status beats type', () => {
         expect(screen.getByText('thinking')).toBeTruthy();
     });
 
+    it('a notification a dry run held back says simulated and not sent, never done', () => {
+        const notify = { typeGroupById: new Map([['s7', 'action']]), stepTypeById: new Map([['s7', 'notification']]) };
+        renderCard({ runStep: { status: 'success', output: { _dryRun: true, wouldNotify: ['bell'] } } }, notify);
+        expect(screen.getByTestId('node-status-badge').textContent).toBe('simulated');
+        expect(screen.getByTestId('node-result-chip').textContent).toBe('not sent');
+        cleanup();
+        // The same step in a live run: its output carries no marker.
+        renderCard({ runStep: { status: 'success', output: { delivered: ['bell'], sent: true } } }, notify);
+        expect(screen.getByTestId('node-status-badge').textContent).toBe('done');
+        expect(screen.getByTestId('node-result-chip').textContent).toBe('done');
+    });
+
     it('a pinned card reads as pinned until a live status outranks it', () => {
         const { container } = renderCard({}, { pinnedById: new Set(['s7']) });
         expect((cardEl(container)! as HTMLElement).style.border).toBe('1.5px solid var(--pinned)');

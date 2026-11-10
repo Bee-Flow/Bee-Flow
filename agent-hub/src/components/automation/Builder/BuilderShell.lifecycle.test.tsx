@@ -26,11 +26,15 @@ vi.mock('../../shared/useConfirm', () => ({
 let header: any = null;
 let diagnose: any = null;
 let aiAct: any = null;
+let goLive: any = null;
 vi.mock('./BuilderHeader', () => ({ default: (p: any) => { header = p; return null; } }));
 vi.mock('./BuildTab', () => ({ default: (p: any) => { header = p.headerProps; return null; } }));
 vi.mock('./SettingsTab', () => ({ default: () => null }));
 vi.mock('./TriggerDiagnosePanel', () => ({ default: (p: any) => { diagnose = p; return null; } }));
 vi.mock('./settings/AiActQuestionsDialog', () => ({ default: (p: any) => { aiAct = p; return null; } }));
+// The confirmation in front of going live: the stub records what the shell
+// asked; the layout unmounts it once it is answered.
+vi.mock('./header/GoLiveDialog', () => ({ default: (p: any) => { goLive = p; return null; } }));
 
 import BuilderShellJsx from './BuilderShell';
 import { queryWrapper } from '@/test/queryWrapper';
@@ -64,6 +68,10 @@ function server(url: string, opts: RequestInit = {}) {
         row = { ...row, isActive: true, isDraft: false };
         return Promise.resolve(json({ automation: { ...row } }));
     }
+    if (url === '/api/automation/a1/publish') {
+        row = { ...row, liveVersion: row.version, pendingChanges: 0 };
+        return Promise.resolve(json({ automation: { ...row } }));
+    }
     if (url === '/api/automation/a1/deactivate') {
         row = { ...row, isActive: false };
         return Promise.resolve(json({ automation: { ...row } }));
@@ -81,7 +89,7 @@ function server(url: string, opts: RequestInit = {}) {
 const posts = () => calls.filter(c => c.method === 'POST').map(c => c.url);
 
 beforeEach(() => {
-    header = null; diagnose = null; aiAct = null;
+    header = null; diagnose = null; aiAct = null; goLive = null;
     calls = [];
     activateAnswers = [];
     row = { id: 'a1', title: 'Intake', definition: DEF, isActive: false, isDraft: false };
@@ -89,6 +97,21 @@ beforeEach(() => {
     fetchMock.mockImplementation(server as any);
 });
 afterEach(() => { cleanup(); });
+
+const goLivePosts = () => posts().filter(u => u.endsWith('/activate') || u.endsWith('/publish'));
+
+/** Press Activate or Make live: the shell asks first, and nothing is posted until the answer. */
+async function press(action: 'activate' | 'publish') {
+    goLive = null;
+    const before = goLivePosts().length;
+    await act(async () => { await (action === 'publish' ? header.onPublish() : header.onActivate()); });
+    await waitFor(() => expect(goLive?.action).toBe(action));
+    expect(goLivePosts()).toHaveLength(before);
+}
+async function activateAndConfirm() {
+    await press('activate');
+    await act(async () => { await goLive.onConfirm(); });
+}
 
 async function mountAutomation() {
     render(<BuilderShell automationId="a1" onBack={() => {}} user={{ id: 'u1' }} />);
@@ -103,7 +126,7 @@ describe('BuilderShell lifecycle (characterisation)', () => {
         expect(header.canActivate).toBe(true);
         expect(header.canDiagnose).toBe(true);
 
-        await act(async () => { await header.onActivate(); });
+        await activateAndConfirm();
         await waitFor(() => expect(header.isActive).toBe(true));
         expect(header.statusLabel).toBe('Live');
         expect(header.busy).toBe(false);
@@ -119,15 +142,40 @@ describe('BuilderShell lifecycle (characterisation)', () => {
         activateAnswers = [{ status: 409, body: { error: 'Answer the AI Act questions first.', code: 'ai_act_check_required' } }];
         await mountAutomation();
 
-        await act(async () => { await header.onActivate(); });
+        await activateAndConfirm();
         await waitFor(() => expect(aiAct).not.toBeNull());
         expect(aiAct.automationId).toBe('a1');
         expect(aiAct.action).toBe('activate');
         expect(header.isActive).toBe(false);
 
+        // The retry goes straight to the call: the person already confirmed.
+        goLive = null;
         await act(async () => { aiAct.onAnswered(); });
         await waitFor(() => expect(header.isActive).toBe(true));
+        expect(goLive).toBeNull();
         expect(posts().filter(u => u.endsWith('/activate'))).toEqual(['/api/automation/a1/activate', '/api/automation/a1/activate']);
+    });
+
+    it('cancelling the confirmation posts nothing and leaves the automation as it was', async () => {
+        await mountAutomation();
+        await press('activate');
+        expect(goLive.automation.id).toBe('a1');
+
+        goLive.onCancel();
+        await waitFor(() => expect(header.busy).toBe(false));
+        expect(goLivePosts()).toEqual([]);
+        expect(header.isActive).toBe(false);
+        expect(header.statusLabel).toBe('Paused');
+    });
+
+    it('Make vN live asks first, then posts /publish', async () => {
+        row = { ...row, isActive: true, version: 5, liveVersion: 3, neverLive: false, pendingChanges: 2 };
+        await mountAutomation();
+        await press('publish');
+
+        await act(async () => { await goLive.onConfirm(); });
+        await waitFor(() => expect(goLivePosts()).toEqual(['/api/automation/a1/publish']));
+        expect(header.busy).toBe(false);
     });
 
     it('Diagnose posts /diagnose-trigger and hands the answer to the panel', async () => {

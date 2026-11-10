@@ -34,7 +34,7 @@ export default function DeleteToTrashDialog({
         >
             <div className="flex items-start justify-between px-5 py-4 border-b border-[var(--border-default)]">
                 <div id={titleId} className="text-sm font-semibold text-[var(--text-primary)]">
-                    {t('automations.library.deleteTitle', 'Delete "{title}"?', { title })}
+                    {t('automations.library.deleteTitle', 'Move "{title}" to trash?', { title })}
                 </div>
                 <button
                     type="button"

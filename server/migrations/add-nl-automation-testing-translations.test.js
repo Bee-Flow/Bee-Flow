@@ -22,8 +22,9 @@ const OWNED_PREFIXES = ['header.', 'run_live.', 'execute_confirm.', 'run_phase.'
 const CANVAS_RUN_BAR = [
     'run_waiting_form_title', 'run_waiting_decision', 'run_waiting_decision_test', 'run_waiting_decision_any',
     'run_visitor_on_page', 'run_review_decide', 'run_stop_test', 'run_discard', 'run_version_behind',
-    'run_keep_version', 'run_restart_current',
-].map((k) => `automations.canvas.${k}`);
+    'run_keep_version', 'run_restart_current', 'run_dry_done', 'run_dry_dismiss',
+    'result.not_sent', 'result.not_written', 'result.not_carried_out',
+].map((k) => `automations.canvas.${k}`).concat('automations.card.badge_simulated');
 
 test('every English key under the owned prefixes has Dutch, and every Dutch key an English one', () => {
     const english = [

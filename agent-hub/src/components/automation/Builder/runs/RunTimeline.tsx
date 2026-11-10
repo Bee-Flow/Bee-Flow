@@ -5,6 +5,7 @@ import type { RunRowData, RunStepRecord } from '@/api/queries/automation/runs';
 import { buildRunStepLabelMap, runStepLabel } from '../flow/displayHelpers';
 import { clockTime, formatSeconds, howStartedText } from './runOutcome';
 import { latestSteps, stepDuration, stepResult } from './runIo';
+import { simulatedResultText, simulatedWriteKind } from '../flow/simulatedStep';
 import { stepBindingWarnings } from './bindingMisses';
 
 interface RunTimelineProps {
@@ -138,7 +139,11 @@ export default function RunTimeline({
                 </li>
                 {rows.map((step, i) => {
                     const selected = step.stepId === selectedStepId;
-                    const result = stepResult(t, step);
+                    // A dry run records a step it held back as a success (flow/simulatedStep.ts).
+                    const held = simulatedWriteKind(step);
+                    const result = held
+                        ? t('runs.timeline.simulated', 'Simulated: {what}', { what: simulatedResultText(held, t) })
+                        : stepResult(t, step);
                     const failed = step.status === 'error' || step.status === 'failed';
                     const last = i === rows.length - 1;
                     // Inputs, not items: one mapping that missed on 40 rows is one.

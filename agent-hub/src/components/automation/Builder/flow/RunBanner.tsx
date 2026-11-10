@@ -44,6 +44,8 @@ export default function RunBanner({
     const end = bannerElapsedEnd(runFocus, now, ticking);
     const elapsed = runFocus.startedAt && end != null ? formatElapsed(runFocus.startedAt, end) : null;
     const failed = runFocus.state === 'error';
+    // A finished dry run: a notice, not a run in flight (no pulse, no counter).
+    const dryDone = runFocus.state === 'dry_done';
     const parked = isParked(runFocus);
     const pause = runIdentity?.pause ?? null;
     // A visitor's form page names its page in the title already.
@@ -67,7 +69,7 @@ export default function RunBanner({
         >
             <div className="flex items-center gap-3">
                 <span className="relative flex h-2 w-2 shrink-0">
-                    {!failed && !parked && <span className="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping" style={{ background: tone }} />}
+                    {!failed && !parked && !dryDone && <span className="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping" style={{ background: tone }} />}
                     <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: tone, boxShadow: `0 0 0 3px color-mix(in srgb, ${tone} 30%, transparent)` }} />
                 </span>
                 <span className="whitespace-nowrap">
@@ -80,7 +82,7 @@ export default function RunBanner({
                                 : t('automations.canvas.run_steps_done_other', '{done} of {total} steps completed', { done, total })}
                         </span>
                     )}
-                    {total > 0 && !failed && <span className="text-[var(--text-tertiary)] tabular-nums"> · {done}/{total}</span>}
+                    {total > 0 && !failed && !dryDone && <span className="text-[var(--text-tertiary)] tabular-nums"> · {done}/{total}</span>}
                     {/* WHICH run: a test run or a run, and when it started in absolute
                         time — the relative age alone is easy to miss. Absent when
                         the host already names the run elsewhere. */}
@@ -100,7 +102,7 @@ export default function RunBanner({
                         </span>
                     )}
                 </span>
-                {total > 0 && <ProgressSlots total={total} done={done} failed={failed} tone={tone} doneTone={doneTone} />}
+                {total > 0 && !dryDone && <ProgressSlots total={total} done={done} failed={failed} tone={tone} doneTone={doneTone} />}
                 {runFocus.stepId && onShowRun && (
                     <button
                         type="button"
@@ -113,6 +115,12 @@ export default function RunBanner({
                 )}
                 <PauseActions runFocus={runFocus} runIdentity={runIdentity} formUrl={formUrl} onOpenFormOverlay={onOpenFormOverlay} />
                 {failed && <FailureActions runIdentity={runIdentity} onDismissRun={onDismissRun} />}
+                {dryDone && (
+                    <FailureActions
+                        runIdentity={runIdentity} onDismissRun={onDismissRun}
+                        dismissLabel={t('automations.canvas.run_dry_dismiss', 'Dismiss the dry-run notice')}
+                    />
+                )}
             </div>
             {parked && pause?.isTest && pause.versionBehind && <VersionBehindNotice runId={runIdentity?.id ?? null} pause={pause} />}
         </div>
@@ -223,9 +231,10 @@ function StopButton({ pause, onStop }: { pause: RunPause; onStop: () => void }) 
     );
 }
 
-/** A failure: open its run, or dismiss the notice. */
-function FailureActions({ runIdentity, onDismissRun }: { runIdentity: RunIdentity | null; onDismissRun: (() => void) | null }) {
+/** A failure, or a finished dry run: open its run, or dismiss the notice. */
+function FailureActions({ runIdentity, onDismissRun, dismissLabel }: { runIdentity: RunIdentity | null; onDismissRun: (() => void) | null; dismissLabel?: string }) {
     const { t } = useTranslation();
+    const dismissText = dismissLabel ?? t('automations.canvas.run_dismiss', 'Dismiss the failed-run notice');
     const openRunId = runIdentity?.id || null;
     const openRun = runIdentity?.onOpen || null;
     return (
@@ -240,8 +249,8 @@ function FailureActions({ runIdentity, onDismissRun }: { runIdentity: RunIdentit
                     type="button"
                     onClick={onDismissRun}
                     data-testid="canvas-run-dismiss"
-                    aria-label={t('automations.canvas.run_dismiss', 'Dismiss the failed-run notice')}
-                    title={t('automations.canvas.run_dismiss', 'Dismiss the failed-run notice')}
+                    aria-label={dismissText}
+                    title={dismissText}
                     className="inline-flex items-center justify-center p-1.5 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition"
                 >
                     <X size={12} />

@@ -91,6 +91,14 @@ describe('WorkModePicker — plain words', () => {
         ]);
         expect(screen.getByRole('menuitemradio', { name: /describe it/i }).textContent).toContain('Tell me what should happen, in your own words. I ask a few questions, write a plan, build it, test it and hand it over.');
         expect(screen.getByRole('checkbox', { name: 'Check with me for big changes' })).toBeTruthy();
+        expect(screen.getByRole('menuitemradio', { name: /change it right away/i }).textContent).toContain('You can undo that. A table it creates stays.');
+        expect(screen.queryByTestId('work-mode-note')).toBeNull();
+    });
+
+    it('shows the note it is given above the modes', async () => {
+        render(<WorkModePicker value="approve" onChange={vi.fn()} note="Changes go to your working copy." />);
+        await userEvent.setup().click(screen.getByRole('button'));
+        expect(screen.getByTestId('work-mode-note').textContent).toBe('Changes go to your working copy.');
     });
 
     it('chooses "Describe it" as the describe mode, and an unknown value still shows the default', async () => {

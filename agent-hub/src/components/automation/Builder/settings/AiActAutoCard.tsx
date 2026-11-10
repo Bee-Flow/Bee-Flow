@@ -109,6 +109,11 @@ function Checked({ result: r }: { result: AiActCheckResult }) {
                 <CircleCheck className="w-3.5 h-3.5 shrink-0 mt-px text-[var(--success)]" aria-hidden />
                 <span>{[head, outcomeText(r.outcome, t), until].filter(Boolean).join(' · ')}</span>
             </p>
+            {r.source === 'auto' && (
+                <p className="text-[var(--text-tertiary)]" data-testid="aiact-auto-note">
+                    {t('automations.aiact.checked_auto_note', 'Checked by AI. This is not legal advice.')}
+                </p>
+            )}
             {r.findings.length > 0 && (
                 <details className="group">
                     <summary className="cursor-pointer text-[var(--text-secondary)] underline underline-offset-2 w-fit">

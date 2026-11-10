@@ -56,4 +56,17 @@ describe('useBannerMark', () => {
         rerender({ f: live, d: def('zzz') });
         expect(result.current.runFocus).toBe(live);
     });
+
+    it('a finished dry run can be dismissed, and the next dry run shows again', () => {
+        const dry = failure({ state: 'dry_done', stepId: null, label: '', startedAt: null });
+        const { result, rerender } = renderHook(({ k }) => useBannerMark(dry, def('a'), k), { initialProps: { k: 'run_1' } });
+        expect(result.current.runFocus).toBe(dry);
+        act(() => result.current.dismiss());
+        expect(result.current.runFocus).toBeNull();
+        // Editing a step does not bring it back: the notice is about the run.
+        rerender({ k: 'run_1' });
+        expect(result.current.runFocus).toBeNull();
+        rerender({ k: 'run_2' });
+        expect(result.current.runFocus).toBe(dry);
+    });
 });

@@ -127,4 +127,28 @@ describe('CanvasSouthBar — the run banner', () => {
         render(<CanvasSouthBar runFocus={null} />);
         expect(screen.queryByTestId('canvas-run-banner')).toBeNull();
     });
+
+    it('a finished dry run says that nothing was sent, without a counter, a clock or a pulse', async () => {
+        const onDismissRun = vi.fn();
+        const onOpen = vi.fn();
+        const runIdentity = { kind: 'test', id: 'run_9', startedAt: null, dryFinished: true, onOpen };
+        render(
+            <CanvasSouthBar
+                runFocus={stub<ComponentProps<typeof CanvasSouthBar>['runFocus']>(focus({ state: 'dry_done', stepId: null, label: '', done: 3, total: 3 }))}
+                runIdentity={stub<ComponentProps<typeof CanvasSouthBar>['runIdentity']>(runIdentity)}
+                onDismissRun={onDismissRun}
+            />,
+        );
+        const banner = screen.getByTestId('canvas-run-banner');
+        expect(screen.getByTestId('canvas-run-title').textContent).toBe('Dry run: nothing was sent or written');
+        expect(banner.textContent).not.toContain('3/3');
+        expect(screen.queryByTestId('canvas-run-progress')).toBeNull();
+        expect(screen.queryByTestId('canvas-run-elapsed')).toBeNull();
+        expect(banner.querySelector('.animate-ping')).toBeNull();
+        const user = userEvent.setup();
+        await user.click(screen.getByTestId('canvas-run-view'));
+        expect(onOpen).toHaveBeenCalledWith('run_9');
+        await user.click(screen.getByRole('button', { name: 'Dismiss the dry-run notice' }));
+        expect(onDismissRun).toHaveBeenCalledTimes(1);
+    });
 });

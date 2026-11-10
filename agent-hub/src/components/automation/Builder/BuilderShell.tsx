@@ -227,7 +227,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         ensureAutomationCreated, noteManagedRefusal, busy, setBusy, setError, confirm, setTab,
     });
     const {
-        aiActGate, setAiActGate, retryAfterAiAct, diagnoseAnchorRef,
+        aiActGate, setAiActGate, retryAfterAiAct, diagnoseAnchorRef, goLive, cancelGoLive, confirmGoLive,
         onActivate, onPublish, onDeactivate,
         diagnoseOpen, setDiagnoseOpen, diagnoseLoading, diagnoseError, diagnoseResult, onDiagnose,
         onPublishStep, onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory,
@@ -298,7 +298,8 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             BuildTab={BuildTab}
             VersionsTab={VersionsTab}
             layout={{
-                confirm, confirmDialog, aiActGate, setAiActGate, retryAfterAiAct, serverAutomation, state, tab, setTab,
+                confirm, confirmDialog, aiActGate, setAiActGate, retryAfterAiAct, goLive, cancelGoLive, confirmGoLive,
+                serverAutomation, state, tab, setTab,
                 headerProps, diagnoseOpen, diagnoseResult, diagnoseLoading, diagnoseError, setDiagnoseOpen, diagnoseAnchorRef,
                 onSaveAutomation, settingsSection, workMode, setWorkMode, isStep, setServerAutomation, onDryRun, t,
             }}

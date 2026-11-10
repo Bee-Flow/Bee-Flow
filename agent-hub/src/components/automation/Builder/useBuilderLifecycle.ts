@@ -10,6 +10,7 @@ import type { AutomationRow } from './useBuilderHydration';
 import type { RowAnswer } from './unwrapRow';
 import type { FlowDefinition } from './flow/types';
 import type { GoLiveAction } from './settings/AiActQuestionsDialog';
+import type { GoLiveKind } from './header/GoLiveDialog';
 
 
 export interface UseBuilderLifecycleOptions {
@@ -30,7 +31,7 @@ export interface UseBuilderLifecycleOptions {
 
 /**
  * The automation's life outside the canvas: Activate / Make live / Pause with
- * the AI Act gate in front of going live, the trigger health check, and a
+ * a confirmation (GoLiveDialog) and the AI Act gate in front of going live, the trigger health check, and a
  * Step's publish, sharing, chat exposure, icon and category. Split out of
  * BuilderShell without a change in behaviour.
  */
@@ -60,7 +61,7 @@ export default function useBuilderLifecycle({
     // this element instead of floating in a fixed top-right corner.
     const diagnoseAnchorRef = useRef<HTMLButtonElement | null>(null);
 
-    const onActivate = async () => {
+    const doActivate = async () => {
         setBusy(true);
         try {
             const aid = await ensureAutomationCreated();
@@ -75,7 +76,7 @@ export default function useBuilderLifecycle({
     };
     // "Make vN live": the working copy becomes the live version. The version
     // the person saw travels along; the server refuses (409) if it moved on.
-    const onPublish = async () => {
+    const doPublish = async () => {
         const aid = serverAutomation?.id;
         // A stage's deploy is the only way a managed automation gets a new live version.
         if (!aid || readOnlyRef.current) return;
@@ -94,7 +95,23 @@ export default function useBuilderLifecycle({
         const action = aiActGate?.action;
         setAiActGate(null);
         aiActRetryRef.current = true;
-        if (action === 'publish') onPublish(); else onActivate();
+        if (action === 'publish') doPublish(); else doActivate();
+    };
+    // Activate and Make live ask first (GoLiveDialog): what goes live, what
+    // changes, and how ready it is. Confirming runs the call; the AI Act retry
+    // above goes straight to the call, so nobody is asked twice.
+    const [goLive, setGoLive] = useState<{ action: GoLiveKind } | null>(null);
+    const onActivate = () => setGoLive({ action: 'activate' });
+    const onPublish = () => {
+        // A stage's deploy is the only way a managed automation gets a new live version.
+        if (serverAutomation?.id && !readOnlyRef.current) setGoLive({ action: 'publish' });
+    };
+    const cancelGoLive = () => setGoLive(null);
+    const confirmGoLive = () => {
+        const action = goLive?.action;
+        setGoLive(null);
+        if (action === 'publish') return doPublish();
+        return action === 'activate' ? doActivate() : undefined;
     };
     const onDeactivate = async () => {
         setBusy(true);
@@ -170,6 +187,7 @@ export default function useBuilderLifecycle({
 
     return {
         aiActGate, setAiActGate, retryAfterAiAct, diagnoseAnchorRef,
+        goLive, cancelGoLive, confirmGoLive,
         onActivate, onPublish, onDeactivate,
         diagnoseOpen, setDiagnoseOpen, diagnoseLoading, diagnoseError, diagnoseResult, onDiagnose,
         onPublishStep, onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory,

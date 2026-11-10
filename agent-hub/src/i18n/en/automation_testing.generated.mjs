@@ -73,7 +73,7 @@ export default {
     "automation_testing.header.dry_run_hint": "Writes are simulated; forms and approvals wait for you",
     "automation_testing.header.dry_run_title": "Dry run of the working copy: nothing is sent",
     "automation_testing.header.run_blocked": "A run is going. Wait for it, or stop it first.",
-    "automation_testing.header.run_live": "Run live (test, real actions)",
+    "automation_testing.header.run_live": "Run for real (sends and writes)",
     "automation_testing.header.run_live_hint": "Every step acts for real; approvals go to you",
     "automation_testing.input.label": "Input",
     "automation_testing.input.lost": "The run this input came from was deleted. Pick another run, or type values.",

@@ -170,7 +170,8 @@
     "automations.canvas.empty_ask_sub": "De assistent bouwt het samen met je en vraagt het als iets onduidelijk is.",
     "automations.canvas.empty_open_assistant": "Beschrijf het aan de assistent",
     "automations.canvas.empty_or_start": "of begin bij hoe het start",
-    "automations.canvas.empty_sub_plain": "Elke automatisering begint op precies één manier. Kies er een."
+    "automations.canvas.empty_sub_plain": "Elke automatisering begint op precies één manier. Kies er een.",
+    "automations.assistant.working_copy_note": "Wijzigingen komen in je werkkopie. Runs blijven de live versie gebruiken tot je deze live zet."
   },
   "sameAsEnglish": [
     "http_query.json",

@@ -36,7 +36,8 @@ export function runIdentityOf(run: IdentifiableRun | null | undefined, onOpen: (
     const known = run?.profile?.kind != null || run?.mode != null || run?.isTest != null;
     const isTest = !known || runPhase(run).isTest;
     const startedAt = run?.startedAt == null ? null : new Date(run.startedAt).toISOString();
-    return { kind: isTest ? 'test' : 'run', id: run?.id || null, startedAt, onOpen, pause: pauseOf(run, isTest, actions) };
+    const phase = runPhase(run);
+    return { kind: isTest ? 'test' : 'run', id: run?.id || null, startedAt, dryFinished: phase.isDry && phase.phase === 'done', onOpen, pause: pauseOf(run, isTest, actions) };
 }
 
 /** The run's own facts about a wait (GET /runs/:id), with the canvas's actions. */

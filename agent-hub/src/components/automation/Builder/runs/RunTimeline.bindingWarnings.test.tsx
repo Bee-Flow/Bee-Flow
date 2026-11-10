@@ -36,3 +36,18 @@ describe('What happened: a step whose mappings found nothing says so on its card
         expect(screen.getByRole('button', { name: /Send the reply/ }).textContent).toContain('1 mapping found nothing');
     });
 });
+
+describe('What happened: a step a dry run held back', () => {
+    it('says simulated and what did not happen, and leaves a real step as it was', () => {
+        const dry = [
+            { stepId: 'read', stepType: 'integration_action', status: 'success', output: { items: [{ id: 1 }] } },
+            { stepId: 'mail', stepType: 'notification', status: 'success', output: { _dryRun: true, wouldNotify: ['email'] } },
+        ] as RunStepRecord[];
+        render(
+            <RunTimeline run={{ id: 'r1', status: 'success', mode: 'dry_run' }} steps={dry} definition={definition}
+                selectedStepId={null} onSelectStep={vi.fn()} onViewCanvas={vi.fn()} />,
+        );
+        expect(screen.getByRole('button', { name: /Send the reply/ }).textContent).toContain('Simulated: not sent');
+        expect(screen.getByRole('button', { name: /Read the purchasing inbox/ }).textContent).not.toContain('Simulated');
+    });
+});

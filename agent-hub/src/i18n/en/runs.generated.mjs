@@ -159,6 +159,7 @@ export default {
     "runs.tab.waited": "already {time}",
     "runs.tab.what_happened": "What happened",
     "runs.timeline.started": "Started {how}",
+    "runs.timeline.simulated": "Simulated: {what}",
     "runs.waited.d_h": "{d} d {h} h",
     "runs.waited.h_m": "{h} h {m} m",
     "runs.waited.m": "{m} m",

@@ -18,7 +18,7 @@ function summaryParts(summary: ScanSummary | null, labelFor: (id: string) => str
     if (looked.length) {
         const pii = summary.piiCategories ?? [];
         parts.push(pii.length
-            ? t('automations.repeating.personalData', 'personal data found: {categories}', { categories: pii.join(', ') })
+            ? t('automations.repeating.personalData', 'personal data found ({categories}); masked before the AI saw it', { categories: pii.join(', ') })
             : t('automations.repeating.noPersonalData', 'no personal data found'));
     }
     return parts;
