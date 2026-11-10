@@ -18,6 +18,7 @@
 const auth = require('./auth');
 const l10n = require('./l10n');
 const { isSpaShellPath } = require('./proxy');
+const { isConnectorSetupPath } = require('./requestText');
 
 const NO_EMAIL_CODE = 'no_email';
 
@@ -27,8 +28,6 @@ const NO_EMAIL_TEXTS = {
     body: 'Bee Flow needs an e-mail address to sign you in. Add one in Nextcloud under Personal settings, '
         + 'or ask your administrator to add it, then reload this page.',
 };
-
-const CONNECTOR_SETUP = /^\/setup(\/|$)/;
 
 /** @param {string} value */
 function escapeHtml(value) {
@@ -79,7 +78,7 @@ function noEmailGate(req, res, next) {
     // No user (an anonymous asset request), a user with an address, or no
     // tenant key yet: not this gate's business.
     if (!context || !context.user || context.user.email || !context.jwt) return next();
-    if (CONNECTOR_SETUP.test(req.path)) return next();
+    if (isConnectorSetupPath(req.path)) return next();
 
     const lang = l10n.normaliseLanguage(context.user.language);
     const isGet = req.method === 'GET' || req.method === 'HEAD';

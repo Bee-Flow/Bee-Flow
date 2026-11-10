@@ -61,6 +61,10 @@ test('only a path with the extension html gets room for a nonce', () => {
     assert.equal(isNoncePath('/index.html'), true);
     assert.equal(isNoncePath('/index.html?ncPath=%2Fapp%2Fprojects'), true);
     for (const p of ['/', '/setup', '/assets/index-abc.js', '/index.htm', '/x.html/y']) assert.equal(isNoncePath(p), false, p);
+    for (const p of ['/.html', '/a/b.html', '/x.html?y=/z.js', '.html']) assert.equal(isNoncePath(p), true, p);
+    for (const p of ['/index.HTML', '/index.html/', '/index.htmlx', '/indexhtml', '/index.html\n', '/x.js?y=.html', '', undefined]) {
+        assert.equal(isNoncePath(p), false, String(p));
+    }
     assert.equal(nonceRoom('<p>no script here</p>'), '');
     assert.match(withNonceRoom('<html><script>1</script></html>'), /<\/html>\n +$/);
 });

@@ -22,6 +22,7 @@ const serverProxy = require('./serverProxy');
 const { ncOrigins } = require('./ncTls');
 const { isCertificateError } = require('./serverProbe');
 const { isNoncePath, nonceRoom, MAX_PADDED_BYTES } = require('./htmlPadding');
+const { isHtmlContentType, isJavascriptContentType } = require('./requestText');
 
 // How long the SaaS may take to send RESPONSE HEADERS before we give up.
 // Deliberately not a whole-request timeout: an SSE chat turn legitimately
@@ -615,7 +616,7 @@ function buildEmbedProxy() {
 function needsNonceRoom(proxyRes, req) {
     if (req.method !== 'GET' || proxyRes.statusCode !== 200) return false;
     if (!isNoncePath(req.__shellUrl ?? req.url)) return false;
-    if (!/^text\/html\b/i.test(String(proxyRes.headers['content-type'] || ''))) return false;
+    if (!isHtmlContentType(String(proxyRes.headers['content-type'] || ''))) return false;
     const encoding = String(proxyRes.headers['content-encoding'] || 'identity').toLowerCase();
     if (encoding !== 'identity') return false;
     const announced = proxyRes.headers['content-length'];
@@ -677,7 +678,7 @@ function buildEmbedProxyFor(target) {
                 const status = proxyRes.statusCode || 502;
                 if (res.headersSent) { proxyRes.resume(); return; }
                 if (isRuntimeSettings(req.__shellUrl ?? req.url ?? '')
-                    && (status !== 200 || !/javascript/i.test(String(proxyRes.headers['content-type'] || '')))) {
+                    && (status !== 200 || !isJavascriptContentType(String(proxyRes.headers['content-type'] || '')))) {
                     // This web app host has no runtime settings script: the
                     // connector's own answers (server.js).
                     proxyRes.resume();

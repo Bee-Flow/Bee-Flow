@@ -30,7 +30,7 @@ const MAX_PADDED_BYTES = 2 * 1024 * 1024;
  * @param {unknown} urlPath
  */
 function isNoncePath(urlPath) {
-    return /\.html$/.test(String(urlPath || '').split('?')[0]);
+    return String(urlPath || '').split('?')[0].endsWith('.html');
 }
 
 /**
