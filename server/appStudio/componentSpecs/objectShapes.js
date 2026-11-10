@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio catalog: props and list-item keys whose value is a small fixed object.
  *

@@ -32,7 +32,7 @@ export const LEGACY_CELL: CellFormatters = Object.freeze({
 });
 
 /** The formatters for one column: LEGACY_CELL itself when neither shape has a key. */
-export function cellFormatters(app: AppFormat | null, options: unknown): CellFormatters {
+function cellFormatters(app: AppFormat | null, options: unknown): CellFormatters {
     const ctx = formatContext(app, options);
     if (!ctx) return LEGACY_CELL;
     return {

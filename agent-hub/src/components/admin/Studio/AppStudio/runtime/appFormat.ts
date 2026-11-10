@@ -16,10 +16,10 @@
 
 import { useRuntime } from './RuntimeContext';
 import { formatContext } from '@shared/format/valueFormat.mjs';
-import type { AppFormat, FormatOptions, FormatContext } from '@shared/format/valueFormat.mjs';
+import type { AppFormat, FormatContext } from '@shared/format/valueFormat.mjs';
 
-export type { AppFormat, FormatOptions, FormatContext };
-export { formatContext, formatNumber, formatDate, localeDateArgs, makeValueFormatter, LEGACY } from '@shared/format/valueFormat.mjs';
+export type { AppFormat, FormatContext };
+export { formatContext, formatNumber, formatDate, localeDateArgs, LEGACY } from '@shared/format/valueFormat.mjs';
 
 /** The app's format from the runtime context, or null (no format, or outside a renderer). */
 export function useAppFormat(): AppFormat | null {

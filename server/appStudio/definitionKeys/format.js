@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Top-level key `format` (schema 3): how the whole app writes numbers, amounts and dates.
  *
@@ -27,7 +27,8 @@ module.exports = {
         + 'dateFormat is a style word or a pattern built from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a (literal letters in single quotes, e.g. "d MMM yyyy"); a datetime adds HH:mm after a pattern. '
         + 'timeZone (IANA, e.g. "Europe/Amsterdam") is the clock every moment is shown on; a plain calendar date (YYYY-MM-DD) never moves. '
         + 'One column, chart or stat overrides it with its own formatOptions. '
-        + 'Translating the app\'s own texts is not part of this key.',
+        + 'Translating the app\'s own texts is not part of this key. '
+        + 'No builder tool writes this key yet (the editor\'s Value format section in app settings does); formatOptions are written with app_add_components and app_update_component.',
     /**
      * @param {unknown} value
      * @param {(code: string, path: string, message: string) => void} push
