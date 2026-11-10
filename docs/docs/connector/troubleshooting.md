@@ -43,11 +43,11 @@ docker logs nc_app_bee_flow --tail 500 2>&1 | grep -E "\[Proxy\]|User lookup fai
 docker exec <nextcloud-container> sh -c 'ps -C php-fpm --no-headers | wc -l'   # sampled repeatedly during load
 ```
 
-Fix: **[migrate to HaRP](#migrate-to-harp)** (Nextcloud 32+). HaRP routes browser→connector traffic directly, bypassing PHP, so concurrent requests and streams no longer compete for PHP workers.
+Fix: **[migrate to HaRP](#migrate-to-harp)**. HaRP routes browser→connector traffic directly, bypassing PHP, so concurrent requests and streams no longer compete for PHP workers. On the same daemons a streaming answer also arrives in one piece at the end; see [Why HaRP](deploy-daemon.md#why-harp).
 
 ## Migrate to HaRP
 
-Moving the connector from a `docker-install` / Docker-Socket-Proxy daemon to [HaRP](../getting-started/nextcloud.md#2d-harp-recommended-for-nextcloud-32) (Nextcloud 32+) fixes the intermittent-dropped-calls problem above and improves streaming. The connector image is already HaRP-aware — it switches transport automatically when HaRP is in use; this is a **daemon change**, not an app change.
+Moving the connector from a `docker-install` / Docker-Socket-Proxy daemon to [HaRP](../getting-started/nextcloud.md#2d-harp) fixes the intermittent-dropped-calls problem above and improves streaming. The connector image is already HaRP-aware — it switches transport automatically when HaRP is in use; this is a **daemon change**, not an app change.
 
 :::warning[Capture your tenant key first]
 The tenant key lives in the connector's container-local `/data/tenant-key.json`. Re-deploying onto a new daemon starts a **fresh container with empty `/data`**, which would try to re-provision and hit `409 instance already provisioned`. Capture the key and re-inject it explicitly so your organisation and all its data are preserved.
@@ -55,13 +55,13 @@ The tenant key lives in the connector's container-local `/data/tenant-key.json`.
 
 ```bash
 # 0. Preconditions + capture state
-sudo -u www-data php occ status | grep versionstring          # must be 32+
+sudo -u www-data php occ status | grep versionstring          # 33, 34 or 35
 docker exec nc_app_bee_flow cat /data/tenant-key.json         # save the "tenantKey" value
 sudo -u www-data php occ app_api:daemon:list                  # note the CURRENT daemon (for rollback)
 
 # 1. Register the HaRP daemon (see Install guide §2d for the full command + UI path)
-#    occ app_api:daemon:register harp1 "HaRP" docker-install https <harp-host>:8780 ... --harp ...
-sudo -u www-data php occ app_api:daemon:test harp1
+#    occ app_api:daemon:register harp1 "HaRP" docker-install http <harp-host>:8780 ... --harp ...
+#    then run "Test deploy" from the daemon's menu under Administration → AppAPI
 
 # 2. Move bee_flow onto HaRP, re-injecting the captured key so bootstrap is a no-op
 sudo -u www-data php occ app_api:app:disable bee_flow
@@ -78,7 +78,7 @@ sudo -u www-data php occ app_api:app:register bee_flow harp1 \
 sudo -u www-data php occ app_api:app:enable bee_flow
 
 # 3. Verify
-sudo -u www-data php occ app_api:app:heartbeat bee_flow                       # → {"status":"ok"}
+sudo -u www-data php occ app_api:app:list                                    # → bee_flow (Bee Flow): <version> [enabled]
 docker inspect --format '{{.State.Health.Status}}' nc_app_bee_flow           # → healthy
 docker logs nc_app_bee_flow 2>&1 | grep -i "HaRP mode"                       # confirms socket transport
 ```
@@ -100,11 +100,13 @@ You need a deploy daemon. Bee Flow can't be installed without one — AppAPI has
 
 | Your Nextcloud | Action |
 |---|---|
-| Vanilla self-hosted | [Register a `docker-install` daemon](../getting-started/nextcloud#2a-vanilla-nextcloud) — one `occ app_api:daemon:register` command. |
-| Nextcloud All-in-One | The AIO master container usually pre-registers it. If `daemon:list` is empty, [register the AIO socket proxy](../getting-started/nextcloud#2b-nextcloud-all-in-one). |
-| Shared / multi-tenant | Use [HaRP](https://docs.nextcloud.com/server/latest/admin_manual/app_api/harp.html). |
+| Your own host with Docker (bare metal, VM, community Docker image) | [Run HaRP and register it](../getting-started/nextcloud.md#2d-harp), and add the [`/exapps/` rule](deploy-daemon.md#exapps-rule) to your reverse proxy. |
+| Nextcloud All-in-One | Tick **HaRP** in the All-in-One interface; see [§2b](../getting-started/nextcloud.md#2b-nextcloud-all-in-one). |
+| Managed or shared hosting where you cannot run Docker | Not possible here: the connector needs a Docker (or Kubernetes) deploy daemon. Bee Flow works with such a Nextcloud without the connector, see [No Docker on your Nextcloud host?](../integrations/nextcloud.md#no-docker) |
 
-After registering, click **Install** in the App Store again — it'll succeed this time.
+The full table per install method is in [Deploy daemon and reverse proxy](deploy-daemon.md#per-install-method); Nextcloud's own description of every daemon setup is in its [deployment configurations](https://docs.nextcloud.com/server/latest/admin_manual/exapps_management/DeployConfigurations.html).
+
+After registering, click **Install** in the App Store again.
 
 ## Bee Flow installs but user-sync is degraded
 
@@ -125,12 +127,18 @@ curl "https://cloud.example.com/status.php"
 
 ## Bootstrap "failed" state in heartbeat
 
-Starting v0.2, `/heartbeat` returns a `failed` state with a category and remediation when the SaaS handshake fails. View it:
+`/heartbeat` returns a `failed` state with a category and remediation when connecting to the Bee Flow server fails. The setup page shows the same. To read it from inside the container (this works under every deploy daemon):
 
 ```bash
-docker exec nc_app_bee_flow curl -s http://127.0.0.1:23000/heartbeat
+docker exec nc_app_bee_flow sh -c 'if [ -n "$HP_SHARED_KEY" ]; then
+    curl -s --unix-socket /tmp/exapp.sock http://localhost/heartbeat
+  else
+    curl -s "http://127.0.0.1:$APP_PORT/heartbeat"
+  fi'
 # → {"status":"failed","category":"saas_unreachable","error":"...","nextRetryAt":"..."}
 ```
+
+With HaRP's tunnel the connector listens on a Unix socket and has no TCP port, so a check against a port number cannot work there.
 
 | Category | Meaning | Fix |
 |---|---|---|
@@ -150,23 +158,25 @@ The next retry is scheduled automatically; you don't need to redeploy unless you
 |---------|-------|-----|
 | AppAPI deploy log shows `Image pull failed` | Daemon can't reach `ghcr.io` | `docker pull ghcr.io/bee-flow/connector:latest` from the host running the daemon. Whitelist `ghcr.io` + `pkg-containers.githubusercontent.com` in your egress firewall. |
 | HaRP deploy returns `500 Internal Server Error` on `images/create` from a local registry | HaRP's Docker daemon doesn't trust HTTP registries | Add `{"insecure-registries":["registry:5000"]}` to the HaRP daemon's `/etc/docker/daemon.json` and restart, **or** switch to the `manual-install` daemon for local dev. |
-| Deploy succeeds but heartbeat times out | Port 23000 already in use on the host | Stop the conflicting container, or change the AppAPI port mapping for the daemon. |
+| Deploy succeeds but the heartbeat check fails, HaRP daemon | `/exapps/` of your Nextcloud address is not forwarded to HaRP, or HaRP is in its temporary block after earlier failures | Add the [`/exapps/` rule](deploy-daemon.md#exapps-rule); then wait five minutes or restart HaRP before you test again ([why](deploy-daemon.md#harp-block)). |
+| Deploy succeeds but the heartbeat check fails, other daemon | Nextcloud cannot reach the connector container | See ["Heartbeat failed"](#heartbeat-failed) below. |
 | Init reports `progress=0` and an error | Bootstrap failure (e.g. SaaS unreachable) | Check `docker logs nc_app_bee_flow` — see "Tenant key bootstrap" below. |
 
-## "Heartbeat failed" in Nextcloud admin
+## "Heartbeat failed" in Nextcloud admin {#heartbeat-failed}
 
-The connector container is up but Nextcloud can't reach it. Run:
+Nextcloud asks the connector for `/heartbeat` and gets no good answer. First see whether the connector itself is healthy; the container's health check asks the same endpoint from inside:
 
 ```bash
-sudo -u www-data php occ app_api:app:heartbeat bee_flow
+docker inspect --format '{{.State.Health.Status}}' nc_app_bee_flow     # → healthy
+docker logs nc_app_bee_flow --tail 50
 ```
 
-| Returns | Likely cause |
+| What you see | Likely cause |
 |---------|--------------|
-| `{"status":"ok"}` from CLI but UI still red | Stale UI cache — refresh **Administration → AppAPI**. |
-| `Connection refused` | Container not running. `docker ps \| grep bee_flow`, then `docker logs nc_app_bee_flow`. |
-| `404 Not Found` | Wrong port mapping. Inspect `docker inspect nc_app_bee_flow` and confirm `23000` is published. |
-| `Network unreachable` | NC and connector aren't on the same Docker network. Verify with `docker network inspect`. |
+| No container, or it keeps restarting | `docker ps -a \| grep bee_flow`, then `docker logs nc_app_bee_flow`. |
+| Container `healthy`, Nextcloud still reports a failed heartbeat, **HaRP** daemon | The connector is fine; the path between Nextcloud and the connector is not. Check that `/exapps/` of your Nextcloud address is forwarded to HaRP ([Deploy daemon and reverse proxy](deploy-daemon.md#the-exapps-rule)), and mind [HaRP's temporary block](deploy-daemon.md#harps-temporary-block) while you retry. |
+| Container `healthy`, Nextcloud still reports a failed heartbeat, **other daemon** | Nextcloud and the connector are not on the same Docker network, or the daemon's host is wrong. Verify with `docker network inspect` and `occ app_api:daemon:list`. |
+| Container `healthy` and the heartbeat is fine again, the page still shows the failure | Reload **Administration → AppAPI**. |
 
 ## Tenant key bootstrap fails
 
@@ -271,8 +281,8 @@ The connector mints short-lived JWTs (default 300 s) for browser-side calls. If 
 | Nextcloud (AppAPI) | `tail -f data/nextcloud.log \| grep '"app":"app_api"'` |
 | Nextcloud (Bee Flow specific) | `tail -f data/nextcloud.log \| grep bee_flow` |
 | Bee Flow server (self-hosted) | `docker logs beeflow-server --tail 200 -f` |
-| AppAPI deploy state | `occ app_api:app:list` and `occ app_api:app:status bee_flow` |
-| Heartbeat | `occ app_api:app:heartbeat bee_flow` |
+| AppAPI deploy state | `occ app_api:app:list`, and **Administration → AppAPI** |
+| Heartbeat | `docker inspect --format '{{.State.Health.Status}}' nc_app_bee_flow` (the container's health check asks the connector for `/heartbeat`) |
 
 ## Recovery commands cheat sheet
 
@@ -287,9 +297,6 @@ sudo -u www-data php occ app_api:app:register bee_flow \
 # server and an administrator chooses one again.
 docker exec nc_app_bee_flow rm /data/tenant-key.json
 docker restart nc_app_bee_flow
-
-# Pin to a specific connector version
-sudo -u www-data php occ app_api:app:update bee_flow --image-tag 0.2.0
 ```
 
 ## Where to ask

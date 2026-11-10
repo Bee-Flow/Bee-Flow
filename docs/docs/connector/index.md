@@ -6,7 +6,7 @@ title: Nextcloud connector
 
 The connector is the Nextcloud ExApp that bridges your Nextcloud to a Bee Flow server. It runs as a Docker container next to your Nextcloud, deployed and managed by [AppAPI](https://apps.nextcloud.com/apps/app_api).
 
-It requires AppAPI with a Docker deploy daemon; [HaRP](../getting-started/nextcloud.md#2d-harp-recommended-for-nextcloud-32) is recommended. It cannot be installed on managed or shared hosting without Docker.
+It requires AppAPI with a Docker deploy daemon; [HaRP](../getting-started/nextcloud.md#2d-harp) is recommended, and with HaRP your reverse proxy needs [one extra rule](deploy-daemon.md#exapps-rule). It cannot be installed on managed or shared hosting without Docker.
 
 **The connector has no Bee Flow server until an administrator chooses one.** After installing, a Nextcloud administrator opens Bee Flow and [chooses where it runs](setup-picker.md): Bee Flow Cloud or your own server. Until then nothing is sent to any Bee Flow server.
 
@@ -14,7 +14,7 @@ It requires AppAPI with a Docker deploy daemon; [HaRP](../getting-started/nextcl
 - **License**: AGPL-3.0-or-later
 - **Image**: `ghcr.io/bee-flow/connector:latest` (multi-arch: amd64, arm64)
 - **App ID**: `bee_flow`
-- **Port**: 23000 (configurable via AppAPI)
+- **Port**: a TCP port AppAPI assigns (from 23000 up); with HaRP's tunnel a Unix socket and no published port
 
 ## What it does
 
@@ -44,7 +44,7 @@ It requires AppAPI with a Docker deploy daemon; [HaRP](../getting-started/nextcl
                                ▼
                 ┌──────────────────────────────┐
                 │  Bee Flow connector (ExApp)  │
-                │  ─ Express on :23000         │
+                │  ─ Express                   │
                 │  ─ Static SPA + reverse proxy│
                 └───┬─────────────────┬────────┘
                     │                 │

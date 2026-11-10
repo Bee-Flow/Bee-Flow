@@ -174,6 +174,6 @@ OAuth flows initiated by the connector (e.g. linking Google or Microsoft from in
 <NC public URL>/index.php/apps/app_api/proxy/bee_flow/auth/<provider>/callback
 ```
 
-— routed through NC's AppAPI proxy path, not the Docker-internal `nc_app_bee_flow:23000` hostname.
+— routed through NC's AppAPI proxy path, not the Docker-internal address of the connector container.
 
 If OAuth round-trips break with `redirect_uri_mismatch` or land on a blank page, check the public Nextcloud URL on the setup page (or the install-time value `BEEFLOW_NC_PUBLIC_URL`, or NC's `overwrite.cli.url` / `trusted_domains`). It needs to match the URL users actually browse to. The connector logs the resolved callback URL on every OAuth start — grep for `[OAuth] callback resolved to` in `docker logs nc_app_bee_flow`.

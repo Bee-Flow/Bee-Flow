@@ -39,6 +39,7 @@ const sidebars: SidebarsConfig = {
           type: 'category',
           label: 'Operations',
           items: [
+            'connector/deploy-daemon',
             'connector/setup-picker',
             'connector/troubleshooting',
           ],

@@ -35,18 +35,26 @@ Or install **App API** from the **Apps** page in the Nextcloud admin UI.
 
 AppAPI deploys ExApps as Docker containers. Pick the daemon that matches your Nextcloud setup:
 
-| Your setup | Daemon | One-time command |
+| Your setup | Daemon | Where |
 |---|---|---|
-| **Vanilla Nextcloud** (self-managed bare-metal or VM with Docker) | `docker-install` | See [§2a](#2a-vanilla-nextcloud) below |
-| **Nextcloud All-in-One** (AIO master container) | `docker-install` (auto-configured) | Usually nothing — see [§2b](#2b-nextcloud-all-in-one) |
-| **Behind reverse proxy / NAT** (NC not directly reachable from the public internet) | `docker-install` + `BEEFLOW_NC_PUBLIC_URL` | See [§2c](#2c-behind-reverse-proxy-or-nat) |
-| **Nextcloud 32+, multi-tenant, or heavy chat/streaming use** | **HaRP** (recommended) | See [§2d](#2d-harp-recommended-for-nextcloud-32) |
+| **A new install on your own host** (bare metal, VM or the community Docker image) | **HaRP** (recommended) | [§2d](#2d-harp) |
+| **Nextcloud All-in-One** | The HaRP container of All-in-One | [§2b](#2b-nextcloud-all-in-one) |
+| **An existing Docker Socket Proxy daemon** | `docker-install` (deprecated upstream) | [§2a](#2a-vanilla-nextcloud), and [Migrate to HaRP](../connector/troubleshooting.md#migrate-to-harp) |
+| **Behind reverse proxy / NAT** (Nextcloud has a public address that differs from its internal one) | Any, plus the public Nextcloud URL | [§2c](#2c-behind-reverse-proxy-or-nat) |
+
+[Deploy daemon and reverse proxy](../connector/deploy-daemon.md) has the full table per install method (All-in-One, community image, bare metal, snap, NAS, managed hosting) and the reverse-proxy rule HaRP needs.
 
 :::tip[Which daemon should I pick?]
-On **Nextcloud 32+, HaRP is the recommended daemon.** With the `docker-install` / Docker-Socket-Proxy daemons, every browser request to Bee Flow is proxied **through the Nextcloud PHP process** — so a busy chat (long-lived streaming responses) plus the burst of requests the app makes on load can saturate Nextcloud's PHP worker pool and cause **some API calls to stall or drop intermittently**. HaRP routes those requests straight to the connector, bypassing PHP, and natively supports streaming. If you see flaky/dropped calls under load, [migrate to HaRP](../connector/troubleshooting.md#migrate-to-harp).
+**HaRP.** With a Docker-Socket-Proxy daemon every browser request to Bee Flow passes **through the Nextcloud PHP process**: a streaming answer arrives in one piece at the end, and each open request holds a PHP worker for as long as it lasts, so a busy chat plus the burst of requests the app makes on load can fill Nextcloud's PHP worker pool. HaRP sends those requests straight to the connector. AppAPI calls the Docker Socket Proxy deprecated and scheduled for removal in Nextcloud 35. If you see stalled or failed calls under load, [migrate to HaRP](../connector/troubleshooting.md#migrate-to-harp).
+:::
+
+:::note How to run `occ`
+The commands below are written for a Nextcloud installed on the host (`sudo -u www-data php occ …`). On Nextcloud All-in-One use `sudo docker exec --user www-data -it nextcloud-aio-nextcloud php occ …`, with the community Docker image `docker exec --user www-data <nextcloud-container> php occ …`, and on a snap `sudo nextcloud.occ …`.
 :::
 
 ### 2a. Vanilla Nextcloud
+
+This registers a Docker-Socket-Proxy style daemon, which AppAPI calls deprecated. For a new install use [HaRP (§2d)](#2d-harp).
 
 Register a daemon that talks to the host's Docker socket. Run this once on the server hosting Nextcloud:
 
@@ -56,9 +64,11 @@ sudo -u www-data php occ app_api:daemon:register \
   "Local Docker" \
   docker-install \
   http \
-  localhost \
-  http://nextcloud
+  /var/run/docker.sock \
+  https://cloud.example.com
 ```
+
+The last two values are the path of the Docker socket and the URL of your Nextcloud.
 
 Verify it works: `occ app_api:daemon:list` shows the daemon, and **Administration → AppAPI** has **Check connection** and **Test deploy** in the daemon's menu.
 
@@ -77,14 +87,16 @@ docker exec <nextcloud-container> bash -c "
 
 ### 2b. Nextcloud All-in-One
 
-Nextcloud AIO ships AppAPI pre-installed and exposes a docker-socket-proxy on `nextcloud-aio-docker-socket-proxy:2375`. The daemon is **already registered** in most AIO releases — verify with:
+Nextcloud All-in-One ships AppAPI and offers two optional containers for it in the All-in-One interface: **HaRP** and the **Docker Socket Proxy**. Tick **HaRP** for a new install. All-in-One's own web server sends `/exapps/` to the HaRP container, so there is no reverse-proxy rule to add, and AppAPI has the matching daemon `harp_aio`. See [Deploy daemon and reverse proxy → Nextcloud All-in-One](../connector/deploy-daemon.md#aio) for what that page verified and what it did not.
+
+Verify which daemons are registered:
 
 ```bash
 sudo docker exec --user www-data nextcloud-aio-nextcloud \
   php occ app_api:daemon:list
 ```
 
-If the list is empty (older AIO image), register manually:
+With the Docker Socket Proxy container ticked instead, the daemon is `docker_aio`. AppAPI calls that daemon deprecated. If it is missing from the list, register it manually:
 
 ```bash
 sudo docker exec --user www-data nextcloud-aio-nextcloud \
@@ -111,15 +123,17 @@ If your Nextcloud is reached via a public URL (e.g. `https://cloud.example.com`)
 
 Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly or through a tunnel. A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it.
 
-### 2d. HaRP (recommended for Nextcloud 32+)
+### 2d. HaRP (recommended) {#2d-harp}
 
-[HaRP](https://github.com/nextcloud/HaRP) (the High-availability Reverse Proxy for AppAPI) is a single container that bundles HAProxy + a Docker-socket proxy + an FRP server. Unlike the `docker-install` daemons, HaRP proxies browser/API traffic **directly to the ExApp container, bypassing the Nextcloud PHP process** — saving Nextcloud resources, supporting streaming/WebSockets, and removing the PHP-worker-pool bottleneck that causes intermittent dropped calls under load. The connector container needs no inbound ports: it dials out to HaRP over an FRP tunnel.
+[HaRP](https://github.com/nextcloud/HaRP) is AppAPI's reverse proxy and deploy daemon: a single container that bundles HAProxy, a Docker-socket proxy and an FRP server. Unlike the Docker-Socket-Proxy daemons, HaRP passes browser and API traffic **directly to the ExApp container, without the Nextcloud PHP process**, so streaming answers arrive as they are produced and no PHP worker is held. The connector container needs no inbound ports: it dials out to HaRP over an FRP tunnel.
 
-**Requirements:** Nextcloud **32+** and the ability to run the HaRP container alongside Nextcloud.
+**Requirements:** Nextcloud 33, 34 or 35 (the connector's range), the ability to run the HaRP container alongside Nextcloud, and access to the reverse proxy in front of Nextcloud.
 
-1. **Run the HaRP container** following the [official HaRP setup](https://github.com/nextcloud/HaRP). You choose an `HP_SHARED_KEY` (a secret the daemon and Nextcloud share) and expose HaRP's HAProxy port (default `8780`) and FRP port (default `8782`).
+1. **Run the HaRP container** following the [HaRP README](https://github.com/nextcloud/HaRP#how-to-install-it). You choose an `HP_SHARED_KEY` (a secret HaRP and Nextcloud share) and publish HaRP's ExApps port (default `8780`) and FRP port (default `8782`).
 
-2. **Register the HaRP daemon** in Nextcloud. In the admin UI: **Administration → AppAPI → Deploy Daemons → Register Daemon**, choose the **HaRP** template (the *"High-availability Reverse Proxy for Nextcloud ExApps"* option), and fill in the HaRP host, the shared key, and the FRP server address. The equivalent CLI form is:
+2. **Send `/exapps/` to HaRP** in the reverse proxy in front of Nextcloud. Without this rule the app does not load. The nginx block, an Apache example and a check are in [Deploy daemon and reverse proxy](../connector/deploy-daemon.md#exapps-rule).
+
+3. **Register the HaRP daemon** in Nextcloud. In the admin UI: **Administration → AppAPI**, register a daemon with the **HaRP Proxy (Host)** or **HaRP Proxy (Docker)** template and fill in the HaRP host and the shared key. The equivalent CLI form is:
 
    ```bash
    sudo -u www-data php occ app_api:daemon:register \
@@ -137,9 +151,11 @@ Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly o
    sudo -u www-data php occ app_api:daemon:list
    ```
 
-3. **Install Bee Flow onto the HaRP daemon** (step 3 below). If Bee Flow is already installed on another daemon, follow [Migrate to HaRP](../connector/troubleshooting.md#migrate-to-harp) instead — it preserves your tenant key so no re-provisioning happens.
+4. **Install Bee Flow onto the HaRP daemon** (step 3 below). If Bee Flow is already installed on another daemon, follow [Migrate to HaRP](../connector/troubleshooting.md#migrate-to-harp) instead: it keeps the connector's data, so the same organisation stays connected.
 
-The same connector image runs under HaRP and the legacy daemons; it detects HaRP automatically (via the `HP_SHARED_KEY` HaRP injects) and switches to the FRP tunnel + Unix-socket transport with no extra configuration.
+The same connector image runs under HaRP and the other daemons; it detects HaRP by the `HP_SHARED_KEY` AppAPI passes to it and switches to the FRP tunnel and a Unix socket with no extra configuration.
+
+HaRP stops answering an address for a few minutes after repeated failures, which can make a test fail after you already fixed the cause: see [HaRP's temporary block](../connector/deploy-daemon.md#harp-block).
 
 ## 3. Install Bee Flow from the App Store
 
@@ -377,7 +393,7 @@ This stops the container, removes it, and cleans up the AppAPI registration. Wit
 If the install hangs, fails, or the heartbeat doesn't return: see [Connector → Troubleshooting](../connector/troubleshooting.md). The most common causes are:
 
 - AppAPI's deployment daemon can't pull from `ghcr.io` (firewall / DNS)
-- Port 23000 already taken on the host
+- With HaRP: `/exapps/` of your Nextcloud address is not forwarded to HaRP — see [Deploy daemon and reverse proxy](../connector/deploy-daemon.md#exapps-rule)
 - **Automations never fire.** Almost always one of: the `webhook_listeners` app
   is not enabled, or no background-job workers are running so events sit in the
   queue for up to 5 minutes. See [Enable real-time triggers](#4a-enable-real-time-triggers).
