@@ -197,3 +197,73 @@ test('app_list_assets lists the owner\'s uploaded files by ref, and nothing for 
     assert.ok((await applyListAssets({ appId, userId: STRANGER.id })).error);
     assert.deepEqual((await applyListAssets({ appId: null, userId: OWNER.id })).assets, []);
 });
+
+test('an asset is addressed by its own app only, a stored record file is no asset, and a reader of the published app reads but never edits', async () => {
+    const studioAppStore = require('../stores/studioAppStore');
+    const db = require('../db');
+    const MEMBER = { id: 'u-assets-member', username: 'member', email: 'member@assets.test', organizationId: ORG, role: 'user', orgRole: 'member', groups: [] };
+    await require('../stores/userStore').createUser({ ...MEMBER, passwordHash: 'x' });
+    const other = await studioAppStore.createStudioApp({ userId: OWNER.id, organizationId: ORG, name: 'Second app' });
+
+    const up = await call('POST', `/api/studio-apps/${appId}/assets`, { file: Buffer.concat([PNG, Buffer.from([7])]), type: 'image/png' });
+    assert.equal(up.status, 201, up.buf.toString());
+    const id = up.json.asset.id;
+
+    // The same owner's other app: the id names nothing there, to read or to delete.
+    assert.equal((await call('GET', `/api/studio-apps/${other.id}/assets/${id}`)).status, 404);
+    assert.equal((await call('DELETE', `/api/studio-apps/${other.id}/assets/${id}`)).status, 404);
+
+    // A record's file in the same ledger is not an asset: not served, not deleted, not listed here.
+    const file = await require('../stores/studioAppDataStore').addAttachment(appId, OWNER.id, { fieldKey: 'photo', mimeType: 'text/html', sha256: 'a'.repeat(64), size: 3 });
+    assert.equal((await call('GET', `/api/studio-apps/${appId}/assets/${file.id}`)).status, 404);
+    assert.equal((await call('DELETE', `/api/studio-apps/${appId}/assets/${file.id}`)).status, 404);
+    assert.ok(!(await call('GET', `/api/studio-apps/${appId}/assets`)).json.assets.some((a) => a.id === file.id));
+
+    // A member of the organisation: nothing while the app is unpublished, the bytes once it is published, never the editing routes.
+    await db.run('UPDATE studio_apps SET is_published = false WHERE id = $1', [appId]);
+    assert.equal((await call('GET', `/api/studio-apps/${appId}/assets/${id}`, { user: MEMBER })).status, 404);
+    await db.run('UPDATE studio_apps SET is_published = true WHERE id = $1', [appId]);
+    assert.equal((await call('GET', `/api/studio-apps/${appId}/assets/${id}`, { user: MEMBER })).status, 200);
+    assert.equal((await call('GET', `/api/studio-apps/${appId}/assets/${id}`, { user: STRANGER })).status, 404);
+    assert.equal((await call('GET', `/api/studio-apps/${appId}/assets`, { user: MEMBER })).status, 404);
+    // The two writes stop at the manage_apps gate (403) or at the owner check (404).
+    assert.ok([403, 404].includes((await call('DELETE', `/api/studio-apps/${appId}/assets/${id}`, { user: MEMBER })).status));
+    assert.ok([403, 404].includes((await call('POST', `/api/studio-apps/${appId}/assets`, { user: MEMBER, file: PNG, type: 'image/png' })).status));
+    assert.equal((await call('GET', `/api/studio-apps/${appId}/assets/${id}`)).status, 200, 'still there');
+});
+
+test('a file over the size cap is refused by the server, whatever the client claims', async () => {
+    const { ASSET_LIMITS } = require('../appStudio/appAssets.mts');
+    const big = Buffer.concat([PNG, Buffer.alloc(ASSET_LIMITS.MAX_ASSET_BYTES)]);
+    assert.equal((await call('POST', `/api/studio-apps/${appId}/assets`, { file: big, type: 'image/png' })).status, 413);
+});
+
+test('bytes that pass as an image but carry markup are served as that image only, never as a document', async () => {
+    const gif = Buffer.concat([Buffer.from('GIF89a', 'latin1'), Buffer.from([1, 0, 1, 0, 0, 0, 0]), Buffer.from('<html><script>alert(1)</script></html>')]);
+    const up = await call('POST', `/api/studio-apps/${appId}/assets`, { file: gif, type: 'image/gif', name: 'x.gif' });
+    if (up.status !== 201) { assert.equal(up.status, 415); return; }
+    const got = await call('GET', `/api/studio-apps/${appId}/assets/${up.json.asset.id}`);
+    assert.equal(got.headers.get('content-type'), 'image/gif');
+    assert.equal(got.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(got.headers.get('content-security-policy'), "default-src 'none'; sandbox");
+});
+
+test('a file uploaded to a record can never be filed as an asset', async () => {
+    const before = (await call('GET', `/api/studio-apps/${appId}/assets`)).json.assets.length;
+    const headers = { 'x-test-user': JSON.stringify(OWNER) };
+    const body = new FormData();
+    body.append('file', new Blob([Buffer.concat([PNG, Buffer.from([9])])], { type: 'image/png' }), 'x.png');
+    body.append('fieldKey', 'app:asset');
+    const res = await fetch(`${base}/api/studio-apps/${appId}/data/attachments`, { method: 'POST', headers, body });
+    assert.equal(res.status, 400, await res.text());
+    assert.equal((await call('GET', `/api/studio-apps/${appId}/assets`)).json.assets.length, before);
+});
+
+test('a ledger row that hangs off a record is no asset, whatever its field key says', async () => {
+    const { isAppAssetRow, isRecordFieldKey } = require('../appStudio/appAssets.mts');
+    assert.equal(isAppAssetRow({ fieldKey: 'app:asset', recordId: null }), true);
+    assert.equal(isAppAssetRow({ fieldKey: 'app:asset', recordId: 'rec_1' }), false);
+    assert.equal(isRecordFieldKey('app:asset'), false);
+    assert.equal(isRecordFieldKey('photo'), true);
+    assert.equal(isRecordFieldKey(undefined), true);
+});

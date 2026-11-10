@@ -57,11 +57,19 @@ export function assetTotalBytesBudget(env: Record<string, string | undefined> = 
     return n === 0 ? Infinity : n;
 }
 
-type LedgerRow = { id?: string; fieldKey?: string | null; quarantined?: boolean; scanned?: boolean } | null | undefined;
+type LedgerRow = { id?: string; fieldKey?: string | null; recordId?: string | null; quarantined?: boolean; scanned?: boolean } | null | undefined;
 
-/** True for a ledger row that is an app asset (and not a record attachment). */
+/** True for a ledger row that is an app asset (and not a record attachment): the asset key, on no record. */
 export function isAppAssetRow(row: LedgerRow): boolean {
-    return !!row && row.fieldKey === ASSET_FIELD_KEY;
+    return !!row && row.fieldKey === ASSET_FIELD_KEY && !row.recordId;
+}
+
+/**
+ * True for a field key a RECORD upload may carry. The ledger's field key of a record file comes
+ * from the request, so the asset key is refused there: a form upload is never filed as an asset.
+ */
+export function isRecordFieldKey(value: unknown): boolean {
+    return value !== ASSET_FIELD_KEY;
 }
 
 export function assetRef(id: string): string {

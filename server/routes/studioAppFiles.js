@@ -111,7 +111,7 @@ const FIELD_TEXT = 'fieldKey is the key of the file field: text of at most 100 c
 // The text fields beside the file; the one client (AppInputFile) sends neither, both are optional.
 const UploadFields = partOf({
     recordId: worded(RECORD_TEXT).max(200, RECORD_TEXT).optional(),
-    fieldKey: worded(FIELD_TEXT).max(100, FIELD_TEXT).optional(),
+    fieldKey: worded(FIELD_TEXT).max(100, FIELD_TEXT).refine(require('../appStudio/appAssets.mts').isRecordFieldKey, FIELD_TEXT).optional(),
 });
 
 const ATTACHMENT_TEXT = 'attachmentId is the id of the mail attachment to open.';

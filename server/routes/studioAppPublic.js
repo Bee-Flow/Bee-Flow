@@ -69,7 +69,7 @@ const BatchBody = bodyOf({
     reads: z.unknown().optional(),
 }, 'A batch of reads');
 const UploadFields = bodyOf({
-    fieldKey: worded('fieldKey is the key of the form field.').max(100, 'fieldKey is at most 100 characters.').optional(),
+    fieldKey: worded('fieldKey is the key of the form field.').max(100, 'fieldKey is at most 100 characters.').refine(require('../appStudio/appAssets.mts').isRecordFieldKey, 'fieldKey is the key of the form field.').optional(),
 }, 'An upload');
 
 const studioAppStore = require('../stores/studioAppStore');
