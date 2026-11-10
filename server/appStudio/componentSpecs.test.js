@@ -354,9 +354,13 @@ test('v2.1 limits and event additions are present', () => {
     for (const t of ['input_select', 'input_checkbox', 'input_date', 'input_multiselect']) {
         assert.deepEqual(COMPONENT_SPECS[t].events, ['onChange'], `${t} applies on change`);
     }
-    for (const t of ['input_text', 'input_textarea', 'input_richtext', 'input_number']) {
+    for (const t of ['input_text', 'input_textarea', 'input_number']) {
         assert.ok(!COMPONENT_SPECS[t].events, `${t} must not fire per keystroke`);
     }
+    // Schema 3: the rich-text editor takes onChange, fired once when the field loses focus
+    // (runtime/useInputChange), never per keystroke; a schema 2 app has no event on it.
+    assert.deepEqual(COMPONENT_SPECS.input_richtext.events, ['onChange']);
+    assert.deepEqual(COMPONENT_SPECS.input_richtext.eventsSince, { onChange: 3 });
 });
 
 test('v2.1 types are classified and evented correctly', () => {
