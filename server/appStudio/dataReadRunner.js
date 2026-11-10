@@ -47,6 +47,7 @@ const studioAppDbStore = require('../stores/studioAppDbStore');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const datatableSource = require('./datatableSource');
 const { readError } = require('./readError');
+const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -140,11 +141,15 @@ function readPlan(ctx, table) {
  * The compiler asks for limit+1 rows so "is there a next page" needs no second
  * query; trimming that extra row and minting the cursor is this function's job
  * and must not be copied into each router.
+ *
+ * `opts` is a read descriptor; recordListDescriptor picks the query fields the
+ * compiler takes, so a caller may hand over a whole batch read.
  */
-async function runRecordList(ctx, table, { filters, sort, cursor, limit } = {}) {
+async function runRecordList(ctx, table, opts = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
-    const compiled = queryCompiler.compileRecordList(plan.tableMeta, { filters, sort, cursor, limit, dialect: plan.dialect }, accessFilter);
+    const compiled = queryCompiler.compileRecordList(plan.tableMeta,
+        recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect }), accessFilter);
     const { rows } = await plan.query(compiled.sql, compiled.params);
 
     /** @type {string | null} */
@@ -161,14 +166,8 @@ async function runRecordList(ctx, table, { filters, sort, cursor, limit } = {}) 
 async function runInlineAggregate(ctx, table, descriptor = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
-    const { sql, params } = queryCompiler.compileAggregate(plan.tableMeta, {
-        filters: descriptor.filters,
-        groupBy: descriptor.groupBy,
-        aggregates: descriptor.aggregates,
-        sort: descriptor.sort,
-        limit: descriptor.limit,
-        dialect: plan.dialect,
-    }, accessFilter);
+    const { sql, params } = queryCompiler.compileAggregate(plan.tableMeta,
+        aggregateDescriptor(descriptor, { limit: descriptor.limit, dialect: plan.dialect }), accessFilter);
     const { rows } = await plan.query(sql, params);
     return { rows };
 }
@@ -241,15 +240,7 @@ async function runBatchRead(ctx, read) {
     if (kind === 'aggregate') {
         return { payload: await runInlineAggregate(ctx, table, read), table };
     }
-    return {
-        payload: await runRecordList(ctx, table, {
-            filters: read.filters,
-            sort: read.sort,
-            cursor: read.cursor,
-            limit: read.limit,
-        }),
-        table,
-    };
+    return { payload: await runRecordList(ctx, table, read), table };
 }
 
 /**

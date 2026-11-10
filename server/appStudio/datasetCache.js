@@ -44,6 +44,7 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
+const { aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_TTL_SECONDS = 60;
@@ -178,13 +179,8 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
     }
 
     // Miss / forced refresh / inline → compile (scoped) and run live.
-    const { sql, params } = queryCompiler.compileAggregate(table, {
-        filters: descriptor.filters,
-        groupBy: descriptor.groupBy,
-        aggregates: descriptor.aggregates,
-        sort: descriptor.sort,
-        limit: descriptor.limit,
-    }, accessFilter);
+    const { sql, params } = queryCompiler.compileAggregate(table,
+        aggregateDescriptor(descriptor, { limit: descriptor.limit }), accessFilter);
 
     const out = await studioAppDbStore.query(app.userId, app.id, sql, params);
     const result = {
