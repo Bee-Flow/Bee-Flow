@@ -203,10 +203,12 @@ export function checkRegexCall(tk, args, ErrorType) {
     }
     if (list.length > flagsAt + 1) throw new ErrorType(`${tk.v}() takes at most ${flagsAt + 1} arguments`, tk.i);
     // The pattern is read from the source text of the literal, not from its
-    // unescaped value: `\d`, `\s` and `\b` mean what they mean in a regex. Only an
-    // escaped quote is unescaped (`\"` is not a valid escape under the u flag).
+    // unescaped value: `\d`, `\s` and `\b` mean what they mean in a regex. A
+    // doubled backslash is one backslash, so `"\\d+"` (the JSON way of writing
+    // it) and `"\d+"` are the same pattern, and an escaped quote is a quote
+    // (`\"` is not a valid escape under the u flag).
     const raw = typeof (/** @type {any} */ (pattern)).raw === 'string' ? /** @type {any} */ (pattern).raw : String(pattern.v);
-    const source = raw.replace(/\\(["'])/g, '$1');
+    const source = raw.replace(/\\([\s\S])/g, (/** @type {string} */ m, /** @type {string} */ c) => (c === '\\' || c === '"' || c === "'" ? c : m));
     const problem = regexProblem(source, flags ? flags.v : undefined);
     if (problem) throw new ErrorType(`${tk.v}(): ${problem}`, tk.i);
     list[1] = /** @type {any} */ ({ ...pattern, v: source });

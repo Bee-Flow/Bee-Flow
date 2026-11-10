@@ -122,3 +122,15 @@ test('a backslash in a regex pattern literal is a regex escape (\\d, \\s, \\b); 
     assert.equal(ev('regexMatch("say \\"hi\\"", "\\"hi\\"")'), true, 'an escaped quote stays a quote');
     assert.equal(ev('"a\\tb"'), 'a\tb', 'a normal string still unescapes');
 });
+
+test('a doubled backslash in a pattern is one backslash: the JSON way of writing it keeps its meaning', () => {
+    // The formula text is  regexMatch("a1", "^a\\d$")  with TWO backslashes.
+    assert.equal(ev(String.raw`regexMatch("a1", "^a\\d$")`), true);
+    assert.equal(ev(String.raw`regexMatch("ad", "^a\\d$")`), false);
+    assert.equal(ev(String.raw`regexReplace("a  b", "\\s+", "-")`), 'a-b');
+    assert.equal(ev(String.raw`regexMatch("a.b", "a\\.b")`), true);
+    assert.equal(ev(String.raw`regexMatch("axb", "a\\.b")`), false, 'an escaped dot is a dot in both spellings');
+    // Four backslashes stay the pattern for one literal backslash.
+    assert.equal(ev(String.raw`regexMatch(t, "a\\\\b")`, { t: 'a\\b' }), true);
+    assert.throws(() => ev(String.raw`regexMatch(x, "(a)\\1")`), /back-references/, 'and the checks read the same pattern');
+});
