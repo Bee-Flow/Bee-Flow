@@ -97,9 +97,9 @@ npm start
 The connector image supports **both** AppAPI deployment modes from one build;
 `HP_SHARED_KEY` (injected by AppAPI) is what selects between them at runtime.
 
-**HaRP** (HaProxy Reversed Proxy) is the mode to prefer, and soon the only one:
-AppAPI deprecated the Docker Socket Proxy daemon and **scheduled its removal for
-Nextcloud 35**. Under HaRP the container dials out over an FRP tunnel (no
+**HaRP** (HaProxy Reversed Proxy) is the mode to prefer: AppAPI deprecated the
+Docker Socket Proxy daemon and **scheduled its removal for Nextcloud 35** (the
+AppAPI of Nextcloud 35 still accepts it). Under HaRP the container dials out over an FRP tunnel (no
 inbound port), binds a unix socket instead of TCP, and — the part that matters
 operationally — clients reach it on `/exapps/<app_id>/`, **bypassing Nextcloud's
 PHP entirely**.
@@ -114,7 +114,17 @@ chats can exhaust the pool and take the entire Nextcloud instance down with
 them — not just Bee Flow. WebSockets are not supported through the PHP proxy at
 all. This is the reason to move such an install to HaRP.
 
+A HaRP daemon that connects to ExApps directly, without the tunnel
+(`harp_exapp_direct`, which Nextcloud All-in-One's `harp_aio` daemon uses),
+passes no `HP_SHARED_KEY`. The connector then listens on TCP and is reached
+through the PHP proxy, as on a Docker Socket Proxy daemon.
+
 ### Reverse-proxy settings HaRP needs
+
+The reverse proxy in front of Nextcloud must send `/exapps/` to HaRP's ExApps
+port (8780 by default); Nextcloud All-in-One does this by itself. The nginx
+block the sandbox runs, an Apache example and a check are in
+[Deploy daemon and reverse proxy](https://docs.beeflow.ai/connector/deploy-daemon).
 
 HaRP holds long-lived streams open (`HP_TIMEOUT_SERVER`, default 1800s). Whatever
 sits in front of Nextcloud must not cut them shorter:
@@ -125,18 +135,22 @@ sits in front of Nextcloud must not cut them shorter:
 | Caddy | `read_timeout 1800s` |
 | Traefik | `responseHeaderTimeout: 1800s` |
 | Apache | `ProxyTimeout 1800` |
+| Cloudflare (proxy or Tunnel) | Route order, challenges, upload size: see [Nextcloud behind Cloudflare](https://docs.beeflow.ai/connector/troubleshooting#cloudflare) |
 
 ### Two HaRP behaviours worth knowing
 
-- **IP banning.** HaRP blocks a source IP after `HP_BLACKLIST_COUNT` (default 10)
-  4xx/5xx responses within `HP_BLACKLIST_WINDOW` (default 300s). Every `/nc/*`
-  callback arrives from the Bee Flow server's single egress address, so a run of
-  rejected signatures — a drifted clock, a tenant key rotated on one side only —
-  can get that address banned, taking out file access *and* user/group sync
-  tenant-wide. The connector counts signature rejections and surfaces them in
-  `GET /setup/diagnostics` (`callbackSignatures`), with a warning once a ban
-  becomes plausible; allow-list the Bee Flow egress IP if you run a strict
-  deployment.
+- **Temporary block.** HaRP drops every request from a client address while 10
+  or more failures (`HP_BLACKLIST_COUNT`) of that address lie within 300 seconds
+  (`HP_BLACKLIST_WINDOW`). Failures are the requests HaRP refuses itself (wrong
+  shared key, unknown app, no matching route, access denied) and, only on
+  routes that declare it in `info.xml`, the answers of the app with a listed
+  status: for this connector `/hooks/` with 401 and 403. The `/nc/*` route
+  declares none, so a rejected signature there does not count. The connector
+  counts signature rejections itself and shows them in
+  `GET /setup/diagnostics` (`callbackSignatures`). Behind a reverse proxy HaRP
+  counts all visitors as one address unless `HP_TRUSTED_PROXY_IPS` names the
+  proxy. Details:
+  [HaRP's temporary block](https://docs.beeflow.ai/connector/deploy-daemon#harp-block).
 - **Session caching.** `HP_SESSION_LIFETIME` (default 3s) caches the resolved
   Nextcloud session, so a just-changed permission can take a few seconds to be
   reflected.
