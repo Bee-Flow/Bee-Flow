@@ -25,8 +25,8 @@ const LEADING: Record<string, number> = { tight: 1.25, normal: 1.5, relaxed: 1.6
 const TRACKING: Record<string, string> = { tight: '-0.025em', normal: '0em', wide: '0.05em' };
 
 const FONT_STACK: Record<string, string> = {
-    heading: 'var(--app-font-heading, inherit)',
-    mono: 'var(--app-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)',
+    heading: 'inherit',
+    mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 };
 
 type TextKnobs = StyleKnobs & { font?: string; textSize?: string; lineHeight?: string; tracking?: string; transform?: string };

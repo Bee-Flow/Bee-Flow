@@ -33,13 +33,13 @@ describe('text knobs', () => {
     it('lineHeight alone, tracking, transform and font', () => {
         const { className, style } = node({ lineHeight: 'tight', tracking: 'wide', transform: 'uppercase', font: 'mono' });
         expect(style).toMatchObject({ lineHeight: 1.25, letterSpacing: '0.05em', textTransform: 'uppercase' });
-        expect(String(style.fontFamily)).toContain('--app-font-mono');
+        expect(String(style.fontFamily)).toContain('ui-monospace');
         expect(className).toContain('app-tk-lh');
         expect(className).toContain('app-tk-tracking');
     });
 
-    it('heading follows the heading font variable and falls back to the inherited font', () => {
-        expect(node({ font: 'heading' }).style.fontFamily).toBe('var(--app-font-heading, inherit)');
+    it('heading keeps the inherited font', () => {
+        expect(node({ font: 'heading' }).style.fontFamily).toBe('inherit');
     });
 
     it('ignores an unknown value', () => {
