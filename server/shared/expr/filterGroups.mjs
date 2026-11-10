@@ -229,6 +229,33 @@ function resolveClause(entry, resolveValue, o) {
  */
 
 /**
+ * What a dropped member means for its group: the result that ends the whole
+ * list, or null when the group goes on without it.
+ * @param {{ required: boolean, field: string | null }} dropped
+ * @param {Required<ResolveFilterOptions>} o
+ * @param {boolean} dropBlocks
+ * @returns {FilterListResult | null}
+ */
+function droppedMember(dropped, o, dropBlocks) {
+    if (dropped.required && !o.strict) return { status: 'required' };
+    if (dropBlocks) return { status: 'blocked', field: dropped.field };
+    return null;
+}
+
+/**
+ * A group left without members: blocked (strict), no query (required), or dropped.
+ * @param {Obj} group
+ * @param {Required<ResolveFilterOptions>} o
+ * @param {string | null} firstField
+ * @returns {NodeResult}
+ */
+function emptiedGroup(group, o, firstField) {
+    if (o.strict) return { status: 'blocked', field: firstField };
+    if (group.required && !o.ignoreRequired) return { status: 'required' };
+    return { drop: true, required: false, field: null };
+}
+
+/**
  * An `any` or `all` group resolved: members dropped when unresolved (a
  * required member still means no query), the group dropped when left empty
  * unless it is required (read) or always (strict: blocked). In strict
@@ -251,19 +278,15 @@ function resolveGroup(group, key, resolveValue, o, at) {
         if ('status' in r || 'skip' in r) return r;
         if ('drop' in r) {
             if (firstField === null) firstField = r.field;
-            if (r.required && !o.strict) return { status: 'required' };
-            if (dropBlocks) return { status: 'blocked', field: r.field };
+            const end = droppedMember(r, o, dropBlocks);
+            if (end) return end;
             changed = true;
             continue;
         }
         if (r.changed) changed = true;
         members.push(r.keep);
     }
-    if (members.length === 0) {
-        if (o.strict) return { status: 'blocked', field: firstField };
-        if (group.required && !o.ignoreRequired) return { status: 'required' };
-        return { drop: true, required: false, field: null };
-    }
+    if (members.length === 0) return emptiedGroup(group, o, firstField);
     if (!changed) return { keep: group, changed: false };
     const { required: _required, ...rest } = group;
     return { keep: { ...rest, [key]: members }, changed: true };
