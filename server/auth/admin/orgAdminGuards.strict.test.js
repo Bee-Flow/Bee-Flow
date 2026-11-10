@@ -34,22 +34,13 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const h = require('../../testUtils/routeHarness');
-const { makeSwaps } = require('../../testUtils/swaps');
 
-const db = h.recordDb();
-const permissions = require('../permissions');
+const { db, swaps, permissions } = h.sessionGated(['requireAuth', 'requireAdmin']);
 const limits = require('../../core/entitlements/limits');
-const swaps = makeSwaps();
 
 /** @type {{ users: Record<string, any>[], groups: Record<string, any>[], orgs: Record<string, any>[], perms: Record<string, string[]>, writes: unknown[][] }} */
 const state = { users: [], groups: [], orgs: [], perms: {}, writes: [] };
 
-/** @type {import('express').RequestHandler} */
-const needsSession = (req, res, next) => (req.session && req.session.isAuthenticated && req.session.user
-    ? next()
-    : res.status(401).json({ error: 'Not authenticated' }));
-swaps.swap(permissions, 'requireAuth', needsSession);
-swaps.swap(permissions, 'requireAdmin', needsSession);
 swaps.swap(permissions, 'getUserPermissions', async (/** @type {string} */ id) => state.perms[id] || []);
 swaps.swap(limits, 'checkResourceLimits', async () => null);
 

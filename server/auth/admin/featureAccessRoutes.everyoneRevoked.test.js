@@ -21,16 +21,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const h = require('../../testUtils/routeHarness');
-const { makeSwaps } = require('../../testUtils/swaps');
 
-const db = h.recordDb();
-const permissions = require('../permissions');
-const swaps = makeSwaps();
-const needsSession = (req, res, next) => (req.session && req.session.isAuthenticated && req.session.user
-    ? next()
-    : res.status(401).json({ error: 'Not authenticated' }));
-swaps.swap(permissions, 'requireAuth', needsSession);
-swaps.swap(permissions, 'requireAdmin', needsSession);
+const { db, swaps } = h.sessionGated(['requireAuth', 'requireAdmin']);
 
 const router = require('./featureAccessRoutes');
 const userStore = require('../../stores/userStore');

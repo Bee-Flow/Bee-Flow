@@ -14,6 +14,9 @@
 
 'use strict';
 
+const h = require('../../testUtils/routeHarness');
+const { makeSwaps } = require('../../testUtils/swaps');
+
 const ORGS = [
     { id: 'orgA', name: 'Organisation A' },
     { id: 'orgB', name: 'Organisation B' },
@@ -78,4 +81,20 @@ function swapUserStore(swaps, userStore) {
     });
 }
 
-module.exports = { USERS, counters, resetCounters, failOrganizations, resolveUserOrgIds, swapUserStore };
+/**
+ * The common start of both files: the recording database, the gates opened
+ * with `resolveUserOrgIds` above, and `load()` (the router) served at /agents.
+ * The gates are opened BEFORE `load` runs, because the routers destructure
+ * them at load.
+ * @param {() => import('express').Router} load
+ */
+function boot(load) {
+    const db = h.recordDb();
+    h.openGates({ resolveUserOrgIds });
+    const agentStore = require('../../stores/agentStore');
+    const userStore = require('../../stores/userStore');
+    const api = h.serve('/agents', load());
+    return { db, api, agentStore, userStore, swaps: makeSwaps() };
+}
+
+module.exports = { USERS, counters, resetCounters, failOrganizations, resolveUserOrgIds, swapUserStore, boot };

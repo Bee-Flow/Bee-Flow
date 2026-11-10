@@ -22,22 +22,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 
-const h = require('../../testUtils/routeHarness');
-const { makeSwaps } = require('../../testUtils/swaps');
-
-const db = h.recordDb();
-const permissions = require('../permissions');
-const swaps = makeSwaps();
-
-/** @type {import('express').RequestHandler} */
-const needsSession = (req, res, next) => (req.session && req.session.isAuthenticated && req.session.user
-    ? next()
-    : res.status(401).json({ error: 'Not authenticated' }));
-swaps.swap(permissions, 'requireAuth', needsSession);
-swaps.swap(permissions, 'getUserPermissions', async () => []);
-
-const userStore = require('../../stores/userStore');
-const entitlements = require('../../core/entitlements/entitlements');
+const { myPermissionsAs } = require('./myPermissionsRoutes.testkit');
 
 /** @type {Record<string, Record<string, unknown>>} */
 const USERS = {
@@ -47,29 +32,13 @@ const USERS = {
     eve: { id: 'eve', organizationId: null, orgRole: '', groups: [] },
 };
 
-const api = h.serve('/auth', require('./myPermissionsRoutes'));
-
-test.before(async () => {
-    await db.settle();
-    swaps.swap(userStore, 'getUser', async (/** @type {string} */ id) => (USERS[id] ? { ...USERS[id] } : null));
-    swaps.swap(userStore, 'getAllGroups', async () => []);
-    swaps.swap(userStore, 'getOrganization', async (/** @type {string} */ id) => {
+const answerOf = myPermissionsAs(test, {
+    users: USERS,
+    getOrganization: async (id) => {
         if (id === 'orgBroken') throw new Error('organisation read failed');
         return id === 'orgA' ? { id: 'orgA', name: 'Organisation A' } : null;
-    });
-    swaps.swap(entitlements, 'resolveEntitlements', async () => ({ degraded: true }));
+    },
 });
-test.after(async () => {
-    swaps.restore();
-    await api.close();
-});
-
-/** @param {string} id */
-async function answerOf(id) {
-    const res = await api.call('GET', '/auth/my-permissions', { user: { id, role: 'user' } });
-    assert.strictEqual(res.status, 200, res.text);
-    return res.body;
-}
 
 test('a home organisation comes with its name', async () => {
     const body = await answerOf('ann');

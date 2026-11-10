@@ -36,7 +36,7 @@ const Module = require('module');
 // directory, and this file shares its directory with the router, whose
 // '../../../auth/permissions' must stay the double. The barrel loads
 // userStore, so a recording pool keeps it off Postgres.
-const { recordDb } = require('../../../testUtils/routeHarness');
+const { recordDb, dispatcher } = require('../../../testUtils/routeHarness');
 const db = recordDb();
 const REAL_PERMISSIONS = require('path').resolve(__dirname, '../../../auth/permissions.js');
 const realPermissions = () => require(REAL_PERMISSIONS);
@@ -89,19 +89,7 @@ const router = require('./modelTiers');
 test.before(async () => { realPermissions(); await db.settle(); });
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-function dispatch({ method, url, body = {}, query = {}, session = { user: { id: 'member-1' } } }) {
-    return new Promise((resolve, reject) => {
-        const req = { method, url, body, headers: {}, session, query, get() { return undefined; } };
-        const res = {
-            statusCode: 200,
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; resolve(this); return this; },
-            send(b) { this.body = b; resolve(this); return this; },
-            end() { resolve(this); return this; },
-        };
-        router(req, res, (err) => reject(err || new Error(`fell through: ${method} ${url}`)));
-    });
-}
+const dispatch = dispatcher(router, { session: () => ({ user: { id: 'member-1' } }) });
 
 const TIERS = { fast: { modelId: 'attacker-model', label: 'Fast' } };
 
@@ -162,7 +150,7 @@ function orgFixture() {
 test('org tiers: an admin of org A is refused for org B (by query or body), and nothing is written', async () => {
     orgFixture();
     await inEachMode(async (mode) => {
-        const read = await dispatch({ method: 'GET', url: ORG_TIERS, query: { orgId: 'org-b' }, session: sessionOf(ADMIN_A) });
+        const read = await dispatch({ method: 'GET', url: `${ORG_TIERS}?orgId=org-b`, session: sessionOf(ADMIN_A) });
         assert.strictEqual(read.statusCode, 403, mode);
         assert.deepStrictEqual(read.body, { error: 'Org admin access required' });
         const write = await dispatch({ method: 'POST', url: ORG_TIERS, body: { orgId: 'org-b', tiers: [TIER] }, session: sessionOf(ADMIN_A) });
@@ -177,7 +165,7 @@ test('org tiers: an admin of org A reads and writes org A, named or implied', as
         const read = await dispatch({ method: 'GET', url: ORG_TIERS, session: sessionOf(ADMIN_A) });
         assert.strictEqual(read.statusCode, 200, `${mode}: ${JSON.stringify(read.body)}`);
         assert.strictEqual(read.body.orgId, 'org-a');
-        const named = await dispatch({ method: 'GET', url: ORG_TIERS, query: { orgId: 'org-a' }, session: sessionOf(ADMIN_A) });
+        const named = await dispatch({ method: 'GET', url: `${ORG_TIERS}?orgId=org-a`, session: sessionOf(ADMIN_A) });
         assert.strictEqual(named.statusCode, 200, mode);
         assert.strictEqual(named.body.orgId, 'org-a');
         const write = await dispatch({ method: 'POST', url: ORG_TIERS, body: { orgId: 'org-a', tiers: [TIER] }, session: sessionOf(ADMIN_A) });

@@ -23,16 +23,9 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 
-const h = require('../../testUtils/routeHarness');
-const { makeSwaps } = require('../../testUtils/swaps');
 const fx = require('./orgScope.testkit');
 
-const db = h.recordDb();
-h.openGates({ resolveUserOrgIds: fx.resolveUserOrgIds });
-const agentStore = require('../../stores/agentStore');
-const userStore = require('../../stores/userStore');
-const api = h.serve('/agents', require('./crud'));
-const swaps = makeSwaps();
+const { db, api, agentStore, userStore, swaps } = fx.boot(() => require('./crud'));
 
 const CATEGORIES = [
     { id: 'catA', organization_id: 'orgA', name: 'Sales' },

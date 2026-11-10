@@ -24,22 +24,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 
-const h = require('../../testUtils/routeHarness');
-const { makeSwaps } = require('../../testUtils/swaps');
-
-const db = h.recordDb();
-const permissions = require('../permissions');
-const swaps = makeSwaps();
-
-/** @type {import('express').RequestHandler} */
-const needsSession = (req, res, next) => (req.session && req.session.isAuthenticated && req.session.user
-    ? next()
-    : res.status(401).json({ error: 'Not authenticated' }));
-swaps.swap(permissions, 'requireAuth', needsSession);
-swaps.swap(permissions, 'getUserPermissions', async () => []);
-
-const userStore = require('../../stores/userStore');
-const entitlements = require('../../core/entitlements/entitlements');
+const { myPermissionsAs } = require('./myPermissionsRoutes.testkit');
 
 const GROUPS = [
     { id: 'g_a_plain', organizationId: 'orgA', permissions: [], roles: [] },
@@ -55,25 +40,10 @@ const USERS = {
     eve: { id: 'eve', organizationId: null, orgRole: 'org_admin', groups: ['g_a_admin'] },
 };
 
-const api = h.serve('/auth', require('./myPermissionsRoutes'));
-
-test.before(async () => {
-    await db.settle();
-    swaps.swap(userStore, 'getUser', async (/** @type {string} */ id) => (USERS[id] ? { ...USERS[id] } : null));
-    swaps.swap(userStore, 'getAllGroups', async () => GROUPS.map((g) => ({ ...g })));
-    swaps.swap(entitlements, 'resolveEntitlements', async () => ({ degraded: true }));
-});
-test.after(async () => {
-    swaps.restore();
-    await api.close();
-});
+const answerOf = myPermissionsAs(test, { users: USERS, groups: GROUPS });
 
 /** @param {string} id */
-async function flagOf(id) {
-    const res = await api.call('GET', '/auth/my-permissions', { user: { id, role: 'user' } });
-    assert.strictEqual(res.status, 200, res.text);
-    return res.body.isHomeOrgAdmin;
-}
+const flagOf = async (id) => (await answerOf(id)).isHomeOrgAdmin;
 
 test('an admin orgRole in the home organisation counts', async () => {
     assert.strictEqual(await flagOf('ann'), true);

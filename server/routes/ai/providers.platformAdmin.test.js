@@ -22,29 +22,9 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const h = require('../../testUtils/routeHarness');
-const { createPlatformAdminGate } = require('../../auth/requirePlatformAdmin');
+const kit = require('./platformAdmin.testkit');
 
-const gate = createPlatformAdminGate({
-    isSuperAdmin: (req) => !!(req.session?.isAdmin || req.session?.user?.role === 'admin'),
-});
-
-/**
- * Runs `fn` once per deployment mode (license.deploymentMode reads the env).
- * @param {(mode: string) => Promise<void>} fn
- */
-async function inEachMode(fn) {
-    const before = process.env.DEPLOYMENT_MODE;
-    try {
-        for (const mode of ['cloud', 'self-hosted']) {
-            process.env.DEPLOYMENT_MODE = mode;
-            await fn(mode);
-        }
-    } finally {
-        if (before === undefined) delete process.env.DEPLOYMENT_MODE;
-        else process.env.DEPLOYMENT_MODE = before;
-    }
-}
+const { PLATFORM_ADMIN, ORG_ADMIN, MEMBER, inEachMode } = kit;
 
 const P1 = {
     id: 'p1', name: 'EU endpoint', type: 'openai-compatible',
@@ -52,20 +32,13 @@ const P1 = {
     serviceAccountKey: '{"private_key":"geheim"}', project: 'proj', location: 'eu',
 };
 
-const { db, api } = h.routeUnderTest(test, '/ai', () => require('./providers'), {
-    gates: { hasPlatformAdminAccess: gate.hasPlatformAdminAccess, requirePlatformAdmin: gate.requirePlatformAdmin },
-    answer: (sql, params) => {
-        if (/SELECT value FROM config WHERE key = \$1/i.test(sql) && params?.[0] === 'ai') {
-            return { rows: [{ value: JSON.stringify({ providers: [P1], defaultProviderId: 'p1' }) }] };
-        }
-        return undefined;
-    },
+const route = kit.platformGatedRoute(test, () => require('./providers'), (sql, params) => {
+    if (/SELECT value FROM config WHERE key = \$1/i.test(sql) && params?.[0] === 'ai') {
+        return { rows: [{ value: JSON.stringify({ providers: [P1], defaultProviderId: 'p1' }) }] };
+    }
+    return undefined;
 });
-
-const PLATFORM_ADMIN = { ...h.USER, role: 'admin' };
-const ORG_ADMIN = { ...h.USER, role: 'user', orgRole: 'org_admin' };
-const MEMBER = h.USER;
-const writes = () => db.queries.filter((q) => /INSERT|UPDATE|DELETE/i.test(q));
+const { db, api, writes } = route;
 /** @param {{ providers: Array<{ id: string }> }} body */
 const p1Of = (body) => body.providers.find((p) => p.id === 'p1');
 
@@ -77,15 +50,7 @@ const MUTATIONS = [
 ];
 
 test('an org_admin with admin_ai_config is refused on every mutation, in cloud and self-hosted alike, and nothing is written', async () => {
-    await inEachMode(async (mode) => {
-        db.reset();
-        for (const [method, url, body] of MUTATIONS) {
-            const res = await api.call(method, `/ai${url}`, { body, user: ORG_ADMIN });
-            assert.strictEqual(res.status, 403, `${mode} ${method} ${url}: ${res.text}`);
-            assert.deepStrictEqual(res.body, { error: 'Admin access required' });
-        }
-        assert.deepStrictEqual(writes(), [], mode);
-    });
+    await kit.assertOrgAdminRefused(route, MUTATIONS);
 });
 
 test('a platform admin mutates, in cloud and self-hosted alike', async () => {
