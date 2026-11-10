@@ -1,0 +1,6 @@
+{
+  "translations": {
+    "studio_apps_computed.read_time_hint": "Wordt telkens berekend als een record wordt gelezen, uit de kolommen van deze tabel. Je kunt het tonen, maar er niet op filteren of sorteren."
+  },
+  "sameAsEnglish": []
+}

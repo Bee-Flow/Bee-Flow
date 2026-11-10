@@ -20,6 +20,7 @@ const {
 } = require('./vocabulary');
 const { validateConnectors } = require('./connectorValidate');
 const { computedExprShapeError } = require('./computedExprGuard');
+const { readTimeComputedError } = require('../../core/dataEngine/queryCompilerComputed.mts');
 
 /**
  * The SHAPE of `table.source` — where the rows of this table live.
@@ -72,6 +73,29 @@ function computedExprError(expr) {
     if (expr.length > DATA_LIMITS.MAX_COMPUTED_EXPR) return `computed.expr exceeds ${DATA_LIMITS.MAX_COMPUTED_EXPR} chars`;
     const shape = computedExprShapeError(expr);
     return shape ? `computed.expr is not an expression: ${shape}` : null;
+}
+
+/**
+ * The findings for one computed field. A read-time field (no `stored`) is
+ * evaluated in the select list under a stricter guard (queryCompilerComputed.mts);
+ * one that guard refuses still saves, as it always did, and reads empty, so
+ * that is a warning, not an error.
+ * @param {string} fw
+ * @param {string[]} errors
+ * @param {string[]} warnings
+ */
+function computedFieldFindings(field, table, fw, errors, warnings) {
+    if (!isPlainObject(field.computed)) {
+        errors.push(`${fw} (computed) requires a computed descriptor`);
+        return;
+    }
+    const ce = computedExprError(field.computed.expr);
+    if (ce) errors.push(`${fw}.${ce}`);
+    const re = !ce && field.computed.stored !== true ? readTimeComputedError(field, table) : null;
+    if (re) warnings.push(`${fw} (read-time computed) reads empty: ${re}`);
+    if (field.computed.stored === true && (field.required || field.unique)) {
+        warnings.push(`${fw}: stored computed columns ignore required/unique`);
+    }
 }
 
 /**
@@ -191,17 +215,7 @@ function validateDataModel(model) {
                 }
             }
 
-            if (field.type === 'computed') {
-                if (!isPlainObject(field.computed)) {
-                    errors.push(`${fw} (computed) requires a computed descriptor`);
-                } else {
-                    const ce = computedExprError(field.computed.expr);
-                    if (ce) errors.push(`${fw}.${ce}`);
-                    if (field.computed.stored === true && (field.required || field.unique)) {
-                        warnings.push(`${fw}: stored computed columns ignore required/unique`);
-                    }
-                }
-            }
+            if (field.type === 'computed') computedFieldFindings(field, table, fw, errors, warnings);
         }
     }
 

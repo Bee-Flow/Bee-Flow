@@ -16,6 +16,7 @@ const { seedVariableDefaults } = require('./componentSpecs');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 const log = require('../telemetry/log');
 
 // Read-only probe page — a couple of rows is enough to prove a binding returns
@@ -136,10 +137,12 @@ async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, o
             return readSummary(rows, resolved.filters, !!(out && out.nextCursor));
         }
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const { sql, params } = queryCompiler.compileRecordList(table, descriptor, accessFilter);
-        const out = await deps.dbQuery(ownerScope, app.id, sql, params);
+        const compiled = queryCompiler.compileRecordList(table, { ...descriptor, readTimeComputed: true }, accessFilter);
+        const { result: out, notes } = await queryWithComputed(
+            (/** @type {string} */ sql, /** @type {unknown[]} */ params) => deps.dbQuery(ownerScope, app.id, sql, params), compiled);
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
-        return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
+        // A read-time computed field that reads empty is named, so the author sees it here.
+        return { ...readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT), ...(notes.length ? { notes } : {}) };
     } catch (e) {
         return bindingFailure(e, binding);
     }

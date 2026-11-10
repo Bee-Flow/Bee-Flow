@@ -17,7 +17,7 @@ function computedBits(f, withId) {
     if (f.type !== 'computed') return [];
     const c = f.computed;
     if (!withId || !c || typeof c !== 'object') return ['(read-only)'];
-    const out = ['(read-only)', c.stored === true ? 'stored' : 'read-time (not evaluated)'];
+    const out = ['(read-only)', c.stored === true ? 'stored' : 'read-time (evaluated on read, not filterable or sortable)'];
     if (typeof c.type === 'string' && c.type) out.push(`returns=${c.type}`);
     if (typeof c.expr === 'string') out.push(`expr=${JSON.stringify(c.expr)}`);
     return out;

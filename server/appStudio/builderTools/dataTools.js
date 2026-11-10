@@ -256,6 +256,7 @@ async function applyQueryData(draftWrap, args) {
             rowCount: rows.length,
             ...pageMeta({ more: !!out.nextCursor, nextCursor: out.nextCursor }, parsed),
             ...(linked ? { linked: true } : {}),
+            ...(out.notes ? { notes: out.notes } : {}),
         };
     } catch (e) {
         return queryFailure(e, { appId: draftWrap.appId, linked });

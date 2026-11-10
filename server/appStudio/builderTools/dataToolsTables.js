@@ -6,6 +6,7 @@ const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
 const { pickClosestId, linkedTableRefusal, currentDataModel, findModelTable, tableIdHint, persistDataModel, dataModelPersistError } = require('./dataToolsShared');
 const { findTableRefs, applyRemoveTable, applySetRoles } = require('./dataToolsRoles');
 const { normaliseFieldSpec, checkFieldSpec, priorField, buildField } = require('./dataToolsFields');
+const { readTimeComputedError, READ_TIME_FUNCTIONS } = require('../../core/dataEngine/queryCompilerComputed.mts');
 
 
 /**
@@ -89,6 +90,8 @@ function mergeTableOp(model, args, rowCounts = {}) {
     const fields = [];
     /** @type {string[]} */
     const derivedFieldKeys = [];
+    const added = []; // fields new in this call
+
     for (const [i, given] of rawFields.entries()) {
         const at = `fields[${i}]`;
         if (!given || typeof given !== 'object' || Array.isArray(given)) {
@@ -108,8 +111,7 @@ function mergeTableOp(model, args, rowCounts = {}) {
         const conversion = conversionCheck(old, field, rowCount);
         if (conversion.error) return conversion;
         if (conversion.hint) hints.push(conversion.hint);
-        const readTime = readTimeHint(old, field);
-        if (readTime) hints.push(readTime);
+        if (!old) added.push(field);
 
         // DDL v1: a NOT NULL column can't be ADDed to a populated table without
         // a default — the column lands nullable; teach instead of surprising.
@@ -120,6 +122,11 @@ function mergeTableOp(model, args, rowCounts = {}) {
         fields.push(field);
     }
 
+    // After the loop: a read-time expression may name a field listed after it.
+    for (const f of added) {
+        const readTime = readTimeHint(f, fields);
+        if (readTime) hints.push(readTime);
+    }
     if (derivedFieldKeys.length) hints.push(`field keys derived from names: ${derivedFieldKeys.join(', ')}.`);
 
     // Relation targets must resolve within the NEXT model (self-relations ok).
@@ -180,10 +187,17 @@ function conversionCheck(old, field, rowCount) {
     };
 }
 
-/** A NEW read-time computed field reads empty (it is not evaluated): say so once, when it is added. */
-function readTimeHint(old, field) {
-    if (old || field.type !== 'computed' || !field.computed || field.computed.stored === true) return null;
-    return `Field "${field.key}" is a read-time computed field: it is not evaluated yet and reads empty. Pass computed.stored:true to compute it into a column you can show, filter and sort.`;
+/**
+ * A NEW read-time computed field: what it can do, or why it reads empty. Said
+ * once, when it is added.
+ */
+function readTimeHint(field, fields) {
+    if (field.type !== 'computed' || !field.computed || field.computed.stored === true) return null;
+    const refused = readTimeComputedError(field, { fields });
+    if (refused) {
+        return `Field "${field.key}" is a read-time computed field and reads empty: ${refused}. Name only this table's own columns (not another read-time computed field) and functions both database engines have (${[...READ_TIME_FUNCTIONS].join(', ')}), or pass computed.stored:true.`;
+    }
+    return `Field "${field.key}" is a read-time computed field: it is worked out on every read and can be shown, but not filtered, sorted or aggregated. Pass computed.stored:true for a column you can filter and sort on.`;
 }
 
 async function applyUpsertTable(draftWrap, args) {

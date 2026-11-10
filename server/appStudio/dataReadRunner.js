@@ -48,6 +48,7 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const datatableSource = require('./datatableSource');
 const { readError } = require('./readError');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -144,13 +145,17 @@ function readPlan(ctx, table) {
  *
  * `opts` is a read descriptor; recordListDescriptor picks the query fields the
  * compiler takes, so a caller may hand over a whole batch read.
+ *
+ * Read-time computed fields are evaluated (queryWithComputed); one that reads
+ * empty is named in `notes`, which is present only then.
  */
 async function runRecordList(ctx, table, opts = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
     const compiled = queryCompiler.compileRecordList(plan.tableMeta,
-        recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect }), accessFilter);
-    const { rows } = await plan.query(compiled.sql, compiled.params);
+        recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect, readTimeComputed: true }), accessFilter);
+    const { result, notes } = await queryWithComputed(plan.query, compiled);
+    const { rows } = /** @type {{ rows: Record<string, unknown>[] }} */ (result);
 
     /** @type {string | null} */
     let nextCursor = null;
@@ -159,7 +164,7 @@ async function runRecordList(ctx, table, opts = {}) {
         rows.length = compiled.limit;
         nextCursor = queryCompiler.encodeCursor(last[compiled.primaryField], last.id);
     }
-    return { records: rows, nextCursor };
+    return { records: rows, nextCursor, ...(notes.length ? { notes } : {}) };
 }
 
 /** An inline aggregate descriptor — a count/sum/group-by with no saved dataset. */

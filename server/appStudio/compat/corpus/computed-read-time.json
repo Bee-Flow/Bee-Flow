@@ -1,0 +1,239 @@
+{
+  "about": {
+    "source": "hand-written for issue 587 (read-time computed fields in the select list): a records table and a record stat reading two evaluated computed fields and one the read guard refuses (iif, SQLite only)",
+    "stored": "definition = canonicalizeAppDefinition(definition).def; dataModel = canonicalizeDataModel(model).model",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Order lines",
+      "description": "A read-time computed field shown in a table.",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_lines01",
+        "name": "Lines",
+        "icon": "List",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_lines01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_lnhead",
+                "type": "heading",
+                "props": {
+                  "text": "Order lines",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_lntable",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_lines01",
+                    "sort": {
+                      "field": "item",
+                      "dir": "asc"
+                    },
+                    "limit": 25
+                  },
+                  "columns": [
+                    {
+                      "key": "item",
+                      "label": "Item",
+                      "format": "text"
+                    },
+                    {
+                      "key": "price",
+                      "label": "Price",
+                      "format": "number"
+                    },
+                    {
+                      "key": "qty",
+                      "label": "Quantity",
+                      "format": "number"
+                    },
+                    {
+                      "key": "total",
+                      "label": "Total",
+                      "format": "number"
+                    },
+                    {
+                      "key": "size_band",
+                      "label": "Size",
+                      "format": "badge"
+                    }
+                  ],
+                  "emptyText": "No lines yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_lndetail",
+                "type": "stat",
+                "props": {
+                  "label": "First line total",
+                  "value": {
+                    "kind": "record",
+                    "tableId": "tbl_lines01",
+                    "path": "total",
+                    "filter": [
+                      {
+                        "field": "item",
+                        "op": "eq",
+                        "value": "pen"
+                      }
+                    ]
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_lines01"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_lines01",
+        "key": "lines",
+        "name": "Lines",
+        "fields": [
+          {
+            "id": "fld_lnitem1",
+            "key": "item",
+            "name": "Item",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_lnprice",
+            "key": "price",
+            "name": "Price",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_lnqty01",
+            "key": "qty",
+            "name": "Quantity",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_lntotal",
+            "key": "total",
+            "name": "Total",
+            "type": "computed",
+            "computed": {
+              "expr": "price * qty",
+              "type": "number"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_lnband1",
+            "key": "size_band",
+            "name": "Size",
+            "type": "computed",
+            "computed": {
+              "expr": "CASE WHEN price * qty >= 100 THEN 'large' ELSE 'small' END"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_lnlegcy",
+            "key": "legacy_flag",
+            "name": "Legacy flag",
+            "type": "computed",
+            "computed": {
+              "expr": "iif(qty > 1, 1, 0)"
+            },
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "none",
+          "roles": {
+            "clerk": {
+              "read": "own",
+              "create": true,
+              "update": "own",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {}
+        },
+        "icon": null
+      }
+    ],
+    "roles": [
+      {
+        "key": "clerk",
+        "label": "Clerk"
+      }
+    ],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

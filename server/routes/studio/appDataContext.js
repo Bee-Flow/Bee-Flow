@@ -15,6 +15,7 @@ const { HttpError } = require('../../core/http/errors');
 const studioAppStore = require('../../stores/studioAppStore');
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const queryCompiler = require('../../appStudio/queryCompiler');
+const { queryWithComputed } = require('../../core/dataEngine/computedRead.mts');
 const rlsGateway = require('../../appStudio/rlsGateway');
 const dataReadRunner = require('../../appStudio/dataReadRunner');
 const datatableSource = require('../../appStudio/datatableSource');
@@ -375,9 +376,11 @@ async function readOne(ctx, recordId) {
     const plan = await dataReadRunner.readPlan(ctx, ctx.table);
     const accessFilter = rlsGateway.compileAccessFilter(
         plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
-    const { sql, params } = queryCompiler.compileGetById(
-        plan.tableMeta, recordId, accessFilter, { dialect: plan.dialect });
-    const { rows } = await plan.query(sql, params);
+    const compiled = queryCompiler.compileGetById(
+        plan.tableMeta, recordId, accessFilter, { dialect: plan.dialect, readTimeComputed: true });
+    // Read-time computed fields are evaluated; one that fails reads empty.
+    const { result } = await queryWithComputed(plan.query, compiled);
+    const { rows } = /** @type {{ rows: Record<string, unknown>[] }} */ (result);
     return rows && rows.length ? rows[0] : null;
 }
 module.exports = { readLimiter, writeLimiter, readDescriptorLimiter, MAX_BATCH_READS, jsonBody, requireJson, bodySizeGuard, audienceFor, loadVisibleApp, loadOwnedApp, handleErr, resolveDataContext, buildViewer, publicTable, parseListQuery, kickStaleSync, LINK_REFUSED, linkedTableFlags, readOne };

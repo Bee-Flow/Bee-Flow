@@ -52,13 +52,13 @@ async function listRecords(req, res) {
         if (!rlsGateway.canRead(ctx.table, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
         const { filters, sort } = parseListQuery(req);
-        const { records, nextCursor } = await dataReadRunner.runRecordList(ctx, ctx.table, {
+        const { records, nextCursor, notes } = await dataReadRunner.runRecordList(ctx, ctx.table, {
             filters, sort, cursor: req.query.cursor, limit: req.query.limit,
         });
         // appVersion rides along on the read every screen already makes: a
         // viewer whose session predates a republish learns about it without a
         // single extra request.
-        res.json({ records, nextCursor, appVersion: ctx.app.publishedVersion ?? null });
+        res.json({ records, nextCursor, appVersion: ctx.app.publishedVersion ?? null, ...(notes ? { notes } : {}) });
         // AFTER the response: a connector-filled table refreshes itself when
         // someone looks at stale data, so an app nobody opens costs no API quota.
         kickStaleSync(ctx);

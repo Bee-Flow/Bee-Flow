@@ -67,9 +67,9 @@ function snapshot() {
         out.aggregate[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
             () => qc.compileAggregate(C.TABLE, withDialect(opts, d), accessOf(access)))]));
     }
-    for (const [name, id, access] of C.GET_BY_ID_CASES) {
+    for (const [name, id, access, opts] of C.GET_BY_ID_CASES) {
         out.getById[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
-            () => qc.compileGetById(C.TABLE, id, accessOf(access), { dialect: d }))]));
+            () => qc.compileGetById(C.TABLE, id, accessOf(access), { ...opts, dialect: d }))]));
     }
     for (const [name, keyField, keys] of C.KEY_INDEX_CASES) {
         out.keyIndex[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(

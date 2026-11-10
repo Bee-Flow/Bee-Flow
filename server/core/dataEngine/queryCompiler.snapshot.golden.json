@@ -2483,6 +2483,138 @@
         "primaryField": "created_at",
         "limit": 50
       }
+    },
+    "read-time-computed": {
+      "sqlite": {
+        "sql": "SELECT *, (\"amount\" * 2) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50,
+        "readTimeComputed": {
+          "keys": [
+            "total"
+          ],
+          "refused": [],
+          "columns": {
+            "total": [
+              "amount"
+            ]
+          },
+          "fallbackSql": "SELECT *, NULL AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?"
+        }
+      },
+      "pg": {
+        "sql": "SELECT *, (\"amount\" * 2) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50,
+        "readTimeComputed": {
+          "keys": [
+            "total"
+          ],
+          "refused": [],
+          "columns": {
+            "total": [
+              "amount"
+            ]
+          },
+          "fallbackSql": "SELECT *, NULL AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?"
+        }
+      }
+    },
+    "read-time-computed-page": {
+      "sqlite": {
+        "sql": "SELECT *, (\"amount\" * 2) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" LIKE ? ESCAPE '\\' AND \"done\" = ? AND (\"amount\", \"id\") > (?, ?) ORDER BY \"amount\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "%a%",
+          1,
+          12,
+          "rec_3",
+          11
+        ],
+        "primaryField": "amount",
+        "limit": 10,
+        "readTimeComputed": {
+          "keys": [
+            "total"
+          ],
+          "refused": [],
+          "columns": {
+            "total": [
+              "amount"
+            ]
+          },
+          "fallbackSql": "SELECT *, NULL AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" LIKE ? ESCAPE '\\' AND \"done\" = ? AND (\"amount\", \"id\") > (?, ?) ORDER BY \"amount\" ASC, \"id\" ASC LIMIT ?"
+        }
+      },
+      "pg": {
+        "sql": "SELECT *, (\"amount\" * 2) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" ILIKE ? ESCAPE '\\' AND \"done\" = ? AND (\"amount\", \"id\") > (?, ?) ORDER BY \"amount\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "%a%",
+          true,
+          12,
+          "rec_3",
+          11
+        ],
+        "primaryField": "amount",
+        "limit": 10,
+        "readTimeComputed": {
+          "keys": [
+            "total"
+          ],
+          "refused": [],
+          "columns": {
+            "total": [
+              "amount"
+            ]
+          },
+          "fallbackSql": "SELECT *, NULL AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" ILIKE ? ESCAPE '\\' AND \"done\" = ? AND (\"amount\", \"id\") > (?, ?) ORDER BY \"amount\" ASC, \"id\" ASC LIMIT ?"
+        }
+      }
+    },
+    "read-time-computed-not-true": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "err-read-time-computed-filter": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"total\" is a read-time computed field and cannot be queried"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"total\" is a read-time computed field and cannot be queried"
+        }
+      }
     }
   },
   "aggregate": {
@@ -3567,6 +3699,46 @@
           "name": "CompileError",
           "status": 422,
           "message": "accessFilter {where, params} is required — the query compiler cannot run unscoped"
+        }
+      }
+    },
+    "read-time-computed": {
+      "sqlite": {
+        "sql": "SELECT *, (\"amount\" * 2) AS \"total\" FROM \"tasks\" WHERE \"id\" = ? AND (\"created_by\" = ?) LIMIT 1",
+        "params": [
+          "rec_1",
+          "viewer-1"
+        ],
+        "readTimeComputed": {
+          "keys": [
+            "total"
+          ],
+          "refused": [],
+          "columns": {
+            "total": [
+              "amount"
+            ]
+          },
+          "fallbackSql": "SELECT *, NULL AS \"total\" FROM \"tasks\" WHERE \"id\" = ? AND (\"created_by\" = ?) LIMIT 1"
+        }
+      },
+      "pg": {
+        "sql": "SELECT *, (\"amount\" * 2) AS \"total\" FROM \"tasks\" WHERE \"id\" = ? AND (\"created_by\" = ?) LIMIT 1",
+        "params": [
+          "rec_1",
+          "viewer-1"
+        ],
+        "readTimeComputed": {
+          "keys": [
+            "total"
+          ],
+          "refused": [],
+          "columns": {
+            "total": [
+              "amount"
+            ]
+          },
+          "fallbackSql": "SELECT *, NULL AS \"total\" FROM \"tasks\" WHERE \"id\" = ? AND (\"created_by\" = ?) LIMIT 1"
         }
       }
     }
