@@ -11,16 +11,30 @@ import {
     type TeamsNotesSettings,
 } from '../../api/queries/teamsMeetingNotes';
 import { errorMessage, messageOf } from '../../utils/caughtError';
+import TeamsConnectionTest from '@/components/meetings/teamsSetup/TeamsConnectionTest';
 
 const DEFAULT_CFG: TeamsNotesSettings = { autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 };
+
+/** The organisation imports this person's Teams meetings itself (organisation-wide import). */
+function OrgImportNotice() {
+    const { t } = useTranslation();
+    return (
+        <p role="status" className="mb-3 px-4 py-3 rounded-xl border text-[12px] border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+            {t('teams_setup.app_import.user_notice')}
+        </p>
+    );
+}
 
 /**
  * Personal Microsoft Teams → Meeting Notes settings. Self-hides while loading,
  * when Meeting Notes is not licensed for this account (the settings request
- * fails) and when Microsoft 365 is not connected. Connected without the Teams
+ * fails) and when Microsoft 365 is not connected, unless the organisation imports
+ * the person's meetings itself (organisation-wide import: a notice, then the rows).
+ * Connected without the Teams
  * permissions, or a stored connection that expired (needs reauth) → a reconnect
  * prompt instead of the rows. The organisation's settings, where set, win per
- * field.
+ * field. "Test my connection" runs the Teams checklist for the person's own
+ * account in both cases.
  */
 export default function TeamsMeetingNotesSection() {
     const { t } = useTranslation();
@@ -29,7 +43,8 @@ export default function TeamsMeetingNotesSection() {
     const invalidate = useInvalidateTeamsMeetingNotes();
     // The loaded values with the person's edits on top; the edits are dropped whenever the server's answer is re-read.
     const [edits, setEdits] = useState<Partial<TeamsNotesSettings>>({});
-    const { connection: _connection, ...loaded } = query.data ?? ({} as Partial<NonNullable<typeof query.data>>);
+    // `connection` and `orgImport` are read-only facts, not settings: they never go back in the PUT (its body is strict).
+    const { connection: _connection, orgImport: _orgImport, ...loaded } = query.data ?? ({} as Partial<NonNullable<typeof query.data>>);
     const cfg: TeamsNotesSettings = { ...DEFAULT_CFG, ...loaded, ...edits };
     const setCfg = (fn: (c: TeamsNotesSettings) => TeamsNotesSettings) => setEdits(fn(cfg));
     const [reauthing, setReauthing] = useState(false);
@@ -40,7 +55,13 @@ export default function TeamsMeetingNotesSection() {
     // arrives as connected=false plus needsReauth: offer the reconnect then
     // instead of hiding the section, so the person sees why imports stopped.
     const expired = !!connection && !connection.microsoftConnected && !!connection.needsReauth;
-    if (query.isLoading || query.error || !connection || (!connection.microsoftConnected && !expired)) return null;
+    // Covered by organisation-wide import: the organisation imports with the app's own
+    // permissions, so the section shows (with a notice) also without an own connection,
+    // and a missing or expired own connection does not stop imports.
+    const orgImportActive = query.data?.orgImport?.active === true;
+    const ownConnection = !!connection && (connection.microsoftConnected || expired);
+    if (query.isLoading || query.error || !connection || (!ownConnection && !orgImportActive)) return null;
+    const needsReconnect = !orgImportActive && (expired || !connection.teamsScopesGranted);
 
     const onSave = async () => {
         setMessage(null);
@@ -78,8 +99,9 @@ export default function TeamsMeetingNotesSection() {
             <p className="text-[12px] mb-3 text-[var(--text-muted)]">
                 {t('settings.teams_notes_intro', 'Turn the Teams meetings you organise into Meeting Notes — Bee Flow transcribes the Teams recording itself. Per-meeting toggles live in the Upcoming tab of Meeting Notes. Your organisation’s settings, where set, take precedence.')}
             </p>
+            {orgImportActive && <OrgImportNotice />}
 
-            {expired || !connection.teamsScopesGranted ? (
+            {needsReconnect ? (
                 <div className="rounded-xl px-5 py-4 border bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] border-[color-mix(in_srgb,var(--warning)_35%,transparent)]">
                     <p className="text-[12px] text-[var(--warning-ink)]">
                         {expired
@@ -151,6 +173,14 @@ export default function TeamsMeetingNotesSection() {
                         )}
                     </div>
                 </>
+            )}
+
+            {/* Says which permission, setting or Teams policy is missing when imports do not arrive.
+                It tests the person's own connection, so it is left out when they have none. */}
+            {ownConnection && (
+                <div className="mt-4">
+                    <TeamsConnectionTest />
+                </div>
             )}
         </div>
     );

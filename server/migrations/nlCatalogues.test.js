@@ -146,6 +146,7 @@ const SOLE_OWNER = [
     'add-nl-learn-content-2026-10-translations',
     'add-nl-mcp-access-2026-10-translations',
     'add-nl-repeating-work-translations',
+    'add-nl-teams-setup-2026-11-translations',
     'add-nl-ui-complete-2026-10-translations',
 ];
 
