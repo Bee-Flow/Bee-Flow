@@ -101,7 +101,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
             // Track cost only when we actually used a paid provider/Azure path.
             if (embedSource === 'provider' || embedSource === 'azure') {
                 const totalTokens = chunkTexts.reduce((sum, t) => sum + estimateTokens(t), 0);
-                trackEmbeddingTokens(totalTokens);
+                trackEmbeddingTokens(totalTokens, result);
             }
         } else {
             log.warn('[LocalKBIngest] No embeddings produced — falling back to keyword search only for this doc.');

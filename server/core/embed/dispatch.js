@@ -239,7 +239,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
             }
             log.info(`[Embed] Embeddings via ${target.providerName || target.providerType} / ${target.modelId} (dim=${out[0]?.length})`);
             recordEmbedCall({ source: 'provider', status: 'ok' });
-            return { vectors: out, source: 'provider', model: target.modelId };
+            return { vectors: out, source: 'provider', model: target.modelId, providerType: target.providerType };
         }
     } catch (err) {
         if (strict) throw err;

@@ -11,12 +11,41 @@ const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 const { estimateTokens } = require('./chunking');
 
-/** @param {number} totalTokensEstimate */
-function trackEmbeddingTokens(totalTokensEstimate) {
+/**
+ * Who made the embeddings: the `source` and `model` dispatchEmbedTexts returns,
+ * and the provider type of the configured target.
+ * @typedef {{ source?: string | null, model?: string | null, providerType?: string | null }} EmbedOrigin
+ */
+
+/**
+ * The cost of `tokens` embedding tokens at the rate of the provider that made
+ * them (core/llm/modelCosts: exact scaleway/ and ionos/ keys, zero for a
+ * self-hosted runtime). The Azure embedding rate stays for the legacy
+ * azure_openai_embedding_* path, and for a caller that does not say who embedded.
+ * @param {number} tokens
+ * @param {EmbedOrigin} [origin]
+ */
+function embeddingCostFor(tokens, origin = {}) {
+    const { source, model, providerType } = origin;
+    if (source === 'azure' || !model || !providerType) {
+        return require('../llm/azureServiceCosts').computeEmbeddingCost(tokens);
+    }
+    if (require('../providers/localModels').isLocalProviderType(providerType)) return 0;
+    // What the adapters do on a chat call: pin the model to its host's own tariff.
+    if (providerType === 'scaleway') require('../providers/scalewayModels').registerScalewayModel(model);
+    if (providerType === 'ionos') require('../providers/ionosModels').registerIonosModel(model);
+    const { computeCost, resolveBilledModel } = require('../llm/modelCosts');
+    return computeCost(resolveBilledModel(model, providerType), tokens, 0, 0, 0, null, { provider_type: providerType });
+}
+
+/**
+ * @param {number} totalTokensEstimate
+ * @param {EmbedOrigin} [origin]
+ */
+function trackEmbeddingTokens(totalTokensEstimate, origin) {
     try {
-        const { computeEmbeddingCost } = require('../llm/azureServiceCosts');
         const azureServiceUsageStore = require('../../stores/azureServiceUsageStore');
-        const cost = computeEmbeddingCost(totalTokensEstimate);
+        const cost = embeddingCostFor(totalTokensEstimate, origin);
         azureServiceUsageStore.logAzureServiceUsage({
             service_type: 'embedding',
             tokens: totalTokensEstimate,
@@ -30,9 +59,10 @@ function trackEmbeddingTokens(totalTokensEstimate) {
 /**
  * Cost logging for embedding these texts, as an ingest would log it.
  * @param {string[]} texts
+ * @param {EmbedOrigin} [origin]
  */
-function trackEmbeddingCost(texts) {
-    trackEmbeddingTokens((texts || []).reduce((sum, t) => sum + estimateTokens(t), 0));
+function trackEmbeddingCost(texts, origin) {
+    trackEmbeddingTokens((texts || []).reduce((sum, t) => sum + estimateTokens(t), 0), origin);
 }
 
-module.exports = { trackEmbeddingTokens, trackEmbeddingCost };
+module.exports = { embeddingCostFor, trackEmbeddingTokens, trackEmbeddingCost };

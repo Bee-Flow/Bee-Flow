@@ -69,7 +69,7 @@ function defaultDeps() {
         resolveTarget: () => require('../embed/resolveTarget').resolveEmbedTarget(),
         embed: (/** @type {string[]} */ texts) => require('../embed/dispatch').dispatchEmbedTexts(texts, { kind: 'passage', strict: true }),
         usesLocalIngest: () => require('./ingestMode').usesLocalIngest(),
-        trackCost: (/** @type {string[]} */ texts) => require('./embeddingCost').trackEmbeddingCost(texts),
+        trackCost: (/** @type {string[]} */ texts, /** @type {import('./embeddingCost').EmbedOrigin} */ origin) => require('./embeddingCost').trackEmbeddingCost(texts, origin),
         retryFailed: retryDimensionFailures,
     };
 }
@@ -99,7 +99,8 @@ async function columnDim(deps, column) {
  * @param {number} dim
  */
 async function embedExactly(deps, texts, dim) {
-    const { vectors } = await deps.embed(texts);
+    const result = await deps.embed(texts);
+    const { vectors } = result;
     if (!Array.isArray(vectors) || vectors.length !== texts.length) {
         throw new Error(`the embedding provider returned ${vectors?.length || 0} vectors for ${texts.length} texts`);
     }
@@ -108,7 +109,7 @@ async function embedExactly(deps, texts, dim) {
             throw new Error(`the embedding provider returned a vector of ${v?.length} dimensions, expected ${dim}`);
         }
     }
-    return vectors;
+    return result;
 }
 
 /**
@@ -126,8 +127,8 @@ async function fillNextColumn(deps, dim) {
         );
         if (!rows || rows.length === 0) return done;
         const texts = rows.map((r) => r.content || '');
-        const vectors = await embedExactly(deps, texts, dim);
-        try { deps.trackCost(texts); } catch (err) { bestEffort('core/kb/embeddingMigration:fillNextColumn', err); /* cost logging never blocks the migration */ }
+        const { vectors, ...origin } = await embedExactly(deps, texts, dim);
+        try { deps.trackCost(texts, origin); } catch (err) { bestEffort('core/kb/embeddingMigration:fillNextColumn', err); /* cost logging never blocks the migration */ }
         await deps.run(
             `UPDATE kb_chunks SET embedding_next = v.e::vector
              FROM unnest($1::bigint[], $2::text[]) AS v(id, e)
