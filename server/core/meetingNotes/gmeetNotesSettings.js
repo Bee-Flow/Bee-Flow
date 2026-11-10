@@ -74,13 +74,21 @@ function hasSettingsScope(scopeString) { return scopeSet(scopeString).has(SCOPE_
  * OR an 'active' vault credential; scopes come from the stored credential's
  * scope string — live-session-only users without a vault row have an unknown
  * scope, reported as false so the UI hints a (re)connect.
+ *
+ * `googleConfigured` is whether the installation has a Google OAuth client at
+ * all (auth/googleOAuthConfig.isGoogleConfigured, resolved by the
+ * caller): without one, "connect Google" is advice nobody can follow, so the
+ * UI stays silent. Not passed reads as false. Only the boolean is returned,
+ * never the client id or secret.
  * @param {{ session?: Express.Session | null,
- *   credential?: { status?: string, scope?: string | null } | null }} [opts]
+ *   credential?: { status?: string, scope?: string | null } | null,
+ *   googleConfigured?: boolean }} [opts]
  */
-function deriveConnectionStatus({ session = null, credential = null } = {}) {
+function deriveConnectionStatus({ session = null, credential = null, googleConfigured = false } = {}) {
     const liveGoogle = !!(session && session.oauthProvider === 'google' && session.accessToken);
     const activeCred = !!(credential && credential.status === 'active');
     return {
+        googleConfigured: googleConfigured === true,
         googleConnected: liveGoogle || activeCred,
         meetScopesGranted: hasMeetScopes(credential ? credential.scope : null),
         hasSettingsScope: hasSettingsScope(credential ? credential.scope : null),

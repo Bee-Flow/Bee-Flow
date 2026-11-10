@@ -16,6 +16,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const path = require('path');
 
 // ── Mutable fixtures ─────────────────────────────────────────────────
 const fx = {
@@ -30,6 +31,14 @@ const fx = {
     tokenResponse: { access_token: 'at_1', refresh_token: 'rt_1', expires_in: 3600, scope: 's' },
     userinfo: { email: 'tom@gmail.example' },
 };
+
+// The installation's Google OAuth client as the fixture has it. The real helper
+// loads auth/permissions only through its default loader, which is never used here.
+// Required by absolute path: Node caches a relative request per directory, and
+// this file sits next to the route, so the route's own '../../auth/googleOAuthConfig'
+// would then skip the resolve hook below and get the real module.
+const googleOAuthConfig = require(path.resolve(__dirname, '../../auth/googleOAuthConfig.js'));
+const fixtureAuthConfig = async () => ({ providers: { google: { clientId: fx.clientId, clientSecret: fx.clientSecret } } });
 
 const MOCKS = {
     '../../stores/configStore': {
@@ -74,6 +83,11 @@ const MOCKS = {
     '../../core/meetingNotes/gmeetNotesSettings': {
         hasMeetScopes: (scope) => String(scope || '').split(/\s+/).includes('https://www.googleapis.com/auth/meetings.space.readonly'),
     },
+    // The REAL client-config helper, fed the fixture's auth config through its loader seam.
+    '../../auth/googleOAuthConfig': {
+        getGoogleClientConfig: () => googleOAuthConfig.getGoogleClientConfig(fixtureAuthConfig),
+        isGoogleConfigured: () => googleOAuthConfig.isGoogleConfigured(fixtureAuthConfig),
+    },
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -111,6 +125,7 @@ test.after(() => {
 
 function resetFx() {
     fx.clientId = 'gid';
+    fx.clientSecret = 'gsecret';
     fx.user = { id: 'u1', organizationId: 'orgA', email: 'tom@example.com' };
     fx.upserts.length = 0;
     fx.cred = null;
@@ -234,6 +249,20 @@ test('status: active vault credential → connected with stored email', async ()
         { configured: res.body.configured, connected: res.body.connected, needsReauth: res.body.needsReauth, email: res.body.email },
         { configured: true, connected: true, needsReauth: false, email: 'stored@example.com' }
     );
+});
+
+test('status: configured needs both client id and secret, and never returns either', async () => {
+    resetFx();
+    fx.clientSecret = '';
+    let res = await dispatch({ url: '/status', session: makeSession() });
+    assert.strictEqual(res.body.configured, false, 'an id without a secret is not configured');
+
+    resetFx();
+    res = await dispatch({ url: '/status', session: makeSession() });
+    assert.strictEqual(res.body.configured, true);
+    const body = JSON.stringify(res.body);
+    assert.ok(!body.includes(fx.clientId), 'client id not exposed');
+    assert.ok(!body.includes(fx.clientSecret), 'client secret not exposed');
 });
 
 test('status: needs_reauth credential → reconnect state; no credential + SSO session → connected', async () => {

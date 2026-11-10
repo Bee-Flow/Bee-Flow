@@ -51,7 +51,7 @@ const TALK = {
 };
 
 const MEET = {
-    connection: { googleConnected: false, meetScopesGranted: false },
+    connection: { googleConfigured: true, googleConnected: false, meetScopesGranted: false },
     autoImport: false,
     meetings: [],
 };
@@ -99,7 +99,7 @@ describe('UpcomingMeetingsScreen', () => {
     });
 
     it('says the Google access expired rather than asking to connect Google', async () => {
-        const expired = { ...MEET, connection: { googleConnected: false, meetScopesGranted: true, needsReauth: true } };
+        const expired = { ...MEET, connection: { googleConfigured: true, googleConnected: false, meetScopesGranted: true, needsReauth: true } };
         (api.get as jest.Mock).mockImplementation((path: string) =>
             Promise.resolve(path.endsWith('/talk-meetings') ? TALK : expired),
         );
@@ -108,6 +108,46 @@ describe('UpcomingMeetingsScreen', () => {
         expect(screen.queryByText(/Connect Google Workspace/)).toBeNull();
         await fireEvent.press(screen.getByText('Reconnect'));
         expect(mockPush).toHaveBeenCalledWith('/integrations');
+    });
+
+    it('does not ask to connect Google when the installation has no Google set up', async () => {
+        const unconfigured = { ...MEET, connection: { googleConfigured: false, googleConnected: false, meetScopesGranted: false } };
+        (api.get as jest.Mock).mockImplementation((path: string) =>
+            Promise.resolve(path.endsWith('/talk-meetings') ? TALK : unconfigured),
+        );
+        await renderWithProviders(<UpcomingMeetingsScreen />);
+        expect(await screen.findByText('Board meeting')).toBeTruthy();
+        expect(screen.queryByText(/Connect Google Workspace/)).toBeNull();
+    });
+});
+
+describe('UpcomingMeetingsScreen: the Talk recording-backend banner', () => {
+    const NO_BACKEND = { ...TALK, recordingEnabled: false };
+    const answer = (nextcloud: unknown) => (path: string) => {
+        if (path.endsWith('/talk-meetings')) return Promise.resolve(NO_BACKEND);
+        if (path === '/api/talk-notes-settings/user/me') return nextcloud instanceof Error ? Promise.reject(nextcloud) : Promise.resolve(nextcloud);
+        return Promise.resolve(MEET);
+    };
+
+    it('warns an account with Nextcloud connected and a Talk meeting listed', async () => {
+        (api.get as jest.Mock).mockImplementation(answer({ nextcloudConnected: true, recordingEnabled: false }));
+        await renderWithProviders(<UpcomingMeetingsScreen />);
+        expect(await screen.findByText(/Nextcloud Talk recording backend isn't configured/)).toBeTruthy();
+    });
+
+    it('stays quiet for an account without Nextcloud', async () => {
+        (api.get as jest.Mock).mockImplementation(answer({ nextcloudConnected: false, recordingEnabled: false }));
+        await renderWithProviders(<UpcomingMeetingsScreen />);
+        expect(await screen.findByText('Board meeting')).toBeTruthy();
+        await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/talk-notes-settings/user/me', expect.anything()));
+        expect(screen.queryByText(/Nextcloud Talk recording backend isn't configured/)).toBeNull();
+    });
+
+    it('stays quiet while it is unknown whether Nextcloud is connected', async () => {
+        (api.get as jest.Mock).mockImplementation(answer(new Error('settings unavailable')));
+        await renderWithProviders(<UpcomingMeetingsScreen />);
+        expect(await screen.findByText('Board meeting')).toBeTruthy();
+        expect(screen.queryByText(/Nextcloud Talk recording backend isn't configured/)).toBeNull();
     });
 });
 

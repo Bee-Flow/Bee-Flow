@@ -1,7 +1,8 @@
 /**
  * teamsArtifacts + teamsCalendar tests — Graph lookups, occurrence matching,
- * the streamed download cap, VTT parsing and the 403 classification that
- * tells "admin switched transcript API access off" apart from "not organizer".
+ * the streamed download cap, VTT parsing, the failure classification that
+ * tells "admin switched transcript API access off" apart from a plain refusal
+ * (nested innerError codes included), and the `/me` or `/users/<id>` seam.
  *
  * Graph is injected through each module's init() as `graphRequest`/`graphFetch`
  * stubs that answer with real fetch Responses.
@@ -97,19 +98,91 @@ test('getOnlineMeetingByJoinUrl → null when Graph lists nothing (not the organ
     assert.strictEqual(await artifacts.getOnlineMeetingByJoinUrl(session, 'https://teams.microsoft.com/l/x'), null);
 });
 
-test('a 403 is classified: transcript switch, attribution switch, scope, organizer', async () => {
+test('a failed Graph answer is classified: switches, access policy, scope, forbidden, throttled', async () => {
     const cases = [
-        [graphError(403, 'Forbidden', 'GraphAccessToTranscriptsDisabled'), 'transcript_access_disabled'],
-        [graphError(403, 'SpeakerAttributionNotAllowed'), 'speaker_attribution_disabled'],
-        [graphError(403, 'Forbidden', 'Missing scope permissions on the request'), 'needs_teams_scopes'],
-        [graphError(403, 'Forbidden', 'Access denied'), 'not_organizer'],
-        [graphError(404, 'NotFound'), 'not_found'],
-        [graphError(500, 'Boom'), 'failed'],
+        [graphError(403, 'Forbidden', 'GraphAccessToTranscriptsDisabled'), 'transcript_access_disabled', 403],
+        [graphError(403, 'SpeakerAttributionNotAllowed'), 'speaker_attribution_disabled', 403],
+        [graphError(403, 'Forbidden', 'No application access policy found for this app.'), 'application_access_policy_missing', 403],
+        [graphError(403, 'Forbidden', 'Missing scope permissions on the request'), 'needs_teams_scopes', 403],
+        [graphError(403, 'Forbidden', 'Access denied'), 'graph_forbidden', 403],
+        [graphError(404, 'NotFound'), 'not_found', 404],
+        [graphError(429, 'TooManyRequests'), 'graph_throttled', 503],
+        [graphError(503, 'ServiceUnavailable'), 'graph_throttled', 503],
+        [graphError(504, 'GatewayTimeout'), 'graph_throttled', 503],
+        [graphError(500, 'Boom'), 'failed', 502],
+        [new Response('<html>bad gateway</html>', { status: 502 }), 'failed', 502],
     ];
-    for (const [response, code] of cases) {
+    for (const [response, code, status] of cases) {
         fx.handler = () => response;
-        await assert.rejects(artifacts.listTranscripts(session, 'MSo1'), (err) => err.code === code);
+        await assert.rejects(artifacts.listTranscripts(session, 'MSo1'), (err) => err.code === code && err.status === status, code);
     }
+});
+
+test('a plain 403 is graph_forbidden, no longer "not the organizer", and says what may block it', async () => {
+    fx.handler = () => graphError(403, 'Forbidden', 'Access denied');
+    await assert.rejects(artifacts.listRecordings(session, 'MSo1'), (err) => {
+        assert.strictEqual(err.code, 'graph_forbidden');
+        assert.notStrictEqual(err.code, 'not_organizer');
+        assert.match(err.message, /^Listing Teams recordings: Microsoft refused access \(a permission, licence or Teams policy blocks it\)$/);
+        return true;
+    });
+    fx.handler = () => graphError(403, 'Forbidden', 'No application access policy found for this app.');
+    await assert.rejects(artifacts.listRecordings(session, 'MSo1'),
+        (err) => err.message === 'Listing Teams recordings: no Teams application access policy allows this app for this user');
+});
+
+test('the transcript switch is found in innerError.code when the message does not name it', async () => {
+    const nested = (inner) => json({ error: { code: 'Forbidden', message: 'Access denied', ...inner } }, 403);
+    fx.handler = () => nested({ innerError: { code: 'GraphAccessToTranscriptsDisabled', date: '2026-11-10T00:00:00' } });
+    await assert.rejects(artifacts.listTranscripts(session, 'MSo1'), (err) => err.code === 'transcript_access_disabled');
+    // Lower-case innererror, two levels deep.
+    fx.handler = () => nested({ innererror: { code: 'AccessDenied', innererror: { code: 'SpeakerAttributionNotAllowed' } } });
+    await assert.rejects(artifacts.listTranscripts(session, 'MSo1'), (err) => err.code === 'speaker_attribution_disabled');
+    // Nested deeper than the walk goes: not found, so the plain 403 stays graph_forbidden.
+    let deep = { code: 'GraphAccessToTranscriptsDisabled' };
+    for (let i = 0; i < 6; i++) deep = { code: `Level${i}`, innerError: deep };
+    fx.handler = () => nested({ innerError: deep });
+    await assert.rejects(artifacts.listTranscripts(session, 'MSo1'), (err) => err.code === 'graph_forbidden');
+});
+
+test('graphUserBase: /me without a user path, a /users/<guid> path everywhere, anything else refused', async () => {
+    assert.strictEqual(artifacts.graphUserBase({ accessToken: 'at' }), '/me');
+    assert.strictEqual(artifacts.graphUserBase(null), '/me');
+    assert.strictEqual(artifacts.graphUserBase({ graphUserPath: null }), '/me');
+    const oid = '0F0E0D0C-0B0A-4908-8706-050403020100';
+    assert.strictEqual(artifacts.graphUserBase({ graphUserPath: `/users/${oid}` }), `/users/${oid}`);
+    for (const bad of ['', '/me', '/users/', `/users/${oid}/`, `/users/${oid}/drive`, '/users/member@fixture.test',
+        `/groups/${oid}`, `https://graph.microsoft.com/v1.0/users/${oid}`, 42]) {
+        assert.throws(() => artifacts.graphUserBase({ graphUserPath: bad }), (err) => err.code === 'failed', String(bad));
+    }
+
+    const app = { accessToken: 'at', graphUserPath: `/users/${oid}` };
+    fx.handler = (p, options) => {
+        if (options.method === 'PATCH') return new Response(null, { status: 204 });
+        if (p.includes('/content')) return new Response(p.includes('/transcripts/') ? 'WEBVTT\n\n' : new Uint8Array(10), { status: 200 });
+        return json({ value: [{ id: 'MSo1' }] });
+    };
+    await artifacts.getOnlineMeetingByJoinUrl(app, 'https://teams.microsoft.com/l/x');
+    await artifacts.listRecordings(app, 'MSo1');
+    await artifacts.listTranscripts(app, 'MSo1');
+    await artifacts.fetchTranscriptVtt(app, { meetingId: 'MSo1', transcriptId: 'T1' });
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'teams-dl-'));
+    await artifacts.downloadRecordingToFile(app, { meetingId: 'MSo1', recordingId: 'R1', destPath: path.join(dir, 'r.mp4') });
+    fs.rmSync(dir, { recursive: true, force: true });
+    await artifacts.setRecordAutomatically(app, { joinUrl: 'https://teams.microsoft.com/l/x', enabled: true });
+    assert.strictEqual(fx.calls.length, 7);
+    for (const call of fx.calls) assert.ok(call.path.startsWith(`/users/${oid}/onlineMeetings`), call.path);
+
+    fx.calls = [];
+    await assert.rejects(artifacts.listRecordings({ accessToken: 'at', graphUserPath: '/users/x' }, 'MSo1'), (err) => err.code === 'failed');
+    assert.strictEqual(fx.calls.length, 0, 'an invalid path never reaches Graph');
+});
+
+test('without a user path every artifact call reads /me, exactly as before', async () => {
+    fx.handler = () => json({ value: [] });
+    await artifacts.listTranscripts(session, 'MSo1');
+    await artifacts.getOnlineMeetingByJoinUrl(session, 'https://teams.microsoft.com/l/x');
+    assert.deepStrictEqual(fx.calls.map((c) => c.path.split('?')[0]), ['/me/onlineMeetings/MSo1/transcripts', '/me/onlineMeetings']);
 });
 
 test('ids with a slash are encoded, never turned into a path', async () => {
@@ -211,6 +284,10 @@ test('setRecordAutomatically PATCHes the organizer\'s meeting and never throws',
 
     fx.handler = () => { throw new Error('network'); };
     assert.deepStrictEqual(await artifacts.setRecordAutomatically(session, { joinUrl: 'x', enabled: true }), { error: 'error' });
+
+    // A plain 403 on the PATCH (graph_forbidden) keeps the outcome vocabulary its callers map.
+    fx.handler = (p, options) => (options.method === 'PATCH' ? graphError(403, 'Forbidden', 'Access denied') : json({ value: [{ id: 'MSo1' }] }));
+    assert.deepStrictEqual(await artifacts.setRecordAutomatically(session, { joinUrl: 'x', enabled: true }), { error: 'error' });
 });
 
 // ── a busy calendar, several recordings, a 403 that is not about scopes ──
@@ -235,7 +312,7 @@ test('the recently-ended scan reads newest first and follows more than three pag
 
 test('a 403 that mentions "permission" but no scope or consent is not labelled "reconnect"', async () => {
     fx.handler = () => graphError(403, 'Forbidden', 'You do not have permission to access this file');
-    await assert.rejects(() => artifacts.listRecordings(session, 'MSo1'), (err) => err.code === 'not_organizer');
+    await assert.rejects(() => artifacts.listRecordings(session, 'MSo1'), (err) => err.code === 'graph_forbidden');
 });
 
 test('artifactsForSlot lists every part of a recording that was stopped and restarted', () => {

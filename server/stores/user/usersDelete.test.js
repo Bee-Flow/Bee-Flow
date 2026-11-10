@@ -40,6 +40,11 @@ before(async () => {
     await db.run('CREATE TABLE IF NOT EXISTS user_sessions (sid varchar PRIMARY KEY, sess json NOT NULL, expire timestamp NOT NULL)');
     // The issue record of the leaver's legacy MCP token.
     await require('../configStore').setConfig('mcp_server_token_user_leaver_issued', { fp: 'x', at: 1 });
+    // An organisation-wide Teams import setting that names the leaver and a colleague.
+    await require('../configStore').setConfig('org_org-x_teams_app_import', {
+        enabled: true, coverage: 'selected', selectedUserIds: ['leaver', 'stayer'], tenantId: '11111111-2222-3333-4444-555555555555',
+        enabledBy: 'leaver', updatedBy: 'stayer',
+    });
     await db.run(`INSERT INTO user_sessions (sid, sess, expire) VALUES ('s-leaver', '{"user":{"id":"leaver"}}', NOW() + interval '1 day'), ('s-other', '{"user":{"id":"other"}}', NOW() + interval '1 day') ON CONFLICT (sid) DO NOTHING`);
     resetErasurePortsForTests();
     registerErasurePorts({
@@ -54,6 +59,8 @@ before(async () => {
             eraseTranscriptions: async () => 0, eraseOrgTranscriptions: async () => 0, eraseWebpages: async () => 0,
             eraseStudioApps: async () => 0, eraseSkills: async () => 0, eraseStoragePrefix: async () => 0,
             erasePersonalKnowledgeBases: async () => 0, eraseOrgKnowledgeBases: async () => 0,
+            // The real one: the assertion below reads the setting it rewrites.
+            forgetTeamsAppImportMember: (id) => require('../../projects/accountContentErasure').forgetTeamsAppImportMember(id),
         },
     });
 });
@@ -86,6 +93,9 @@ test('the retry erases the rest and removes the account; missing optional tables
     assert.deepStrictEqual(sids, ['s-other']);
     assert.strictEqual(await require('../configStore').getConfigFresh('mcp_server_token_user_leaver_issued'), null,
         'the issue record of the legacy MCP token goes with the account');
+    const teams = /** @type {any} */ (await require('../configStore').getConfigFresh('org_org-x_teams_app_import'));
+    assert.deepStrictEqual([teams.selectedUserIds, teams.enabledBy, teams.updatedBy, teams.enabled], [['stayer'], null, 'stayer', true],
+        'the organisation-wide Teams import setting no longer names the leaver');
 });
 
 test('an unknown account is false, nothing is erased', async () => {

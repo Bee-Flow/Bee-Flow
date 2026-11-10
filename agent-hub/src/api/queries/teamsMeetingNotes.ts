@@ -28,6 +28,12 @@ export interface TeamsNotesSettings {
 
 export interface TeamsNotesUserSettings extends TeamsNotesSettings {
     connection: TeamsConnection;
+    /**
+     * The organisation imports this person's Teams meetings with the app's own permissions
+     * (option B, organisation-wide import), so no own connection is needed for that.
+     * Missing on a server without organisation-wide import.
+     */
+    orgImport?: { active: boolean };
 }
 
 type TeamsRecordingState = 'available' | 'transcript_only' | 'processing' | 'none';

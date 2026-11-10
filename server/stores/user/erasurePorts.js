@@ -7,7 +7,8 @@
  *   notebooks.deleteAllForUser(userId) -> { notebooks }   (core/kb/notebookCascade)
  *   projects.makeTeardown()            -> project teardown (projects/projectTeardown)
  *   content.erase*(userId)             -> meeting notes, web pages, apps, skills,
- *                                         the object-storage prefix (projects/accountContentErasure)
+ *                                         the object-storage prefix, the person's id in every
+ *                                         organisation-wide Teams import setting (projects/accountContentErasure)
  *
  * Registered at boot by projects/erasurePorts.js (loaded from
  * boot/featureRegistrations.js). FAIL CLOSED: erasurePort() throws when a
@@ -32,6 +33,7 @@
  *     eraseStoragePrefix: (userId: string) => Promise<number>,
  *     erasePersonalKnowledgeBases: (userId: string) => Promise<number>,
  *     eraseOrgKnowledgeBases: (orgId: string) => Promise<number>,
+ *     forgetTeamsAppImportMember: (userId: string) => Promise<number>,
  *   },
  * }} ErasurePorts
  */

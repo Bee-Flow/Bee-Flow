@@ -217,8 +217,25 @@ Community feature — building automations is in the free core. Sharing them acr
 | PATCH | `/api/transcriptions/teams-meetings/:eventId` | U | Record or skip one Teams meeting |
 | GET | `/api/transcriptions/teams-recordings` | U | Recently ended Teams meetings you organised |
 | POST | `/api/transcriptions/from-teams` | U | Import a finished Teams meeting |
+| GET | `/api/transcriptions/teams-imports` | U | Your Teams import jobs of the last 7 days, with status and error code |
 | GET/PUT | `/api/teams-notes-settings/user/me` | U | Your Teams → Meeting Notes settings |
 | GET/PUT | `/api/teams-notes-settings/:orgId` | U | Organisation Teams settings (PUT needs an org admin) |
+
+Teams setup and tests (`/api/teams-setup`). The organisation is always the caller's own; no route
+takes an organisation id. See [Teams meeting notes setup](../integrations/teams-meeting-notes.md).
+
+| Method | Path | Auth | Purpose |
+|--------|------|:----:|---------|
+| GET | `/api/teams-setup/requirements` | U | The permissions Bee Flow needs (delegated and application), the redirect URIs and the tenant mode |
+| POST | `/api/teams-setup/me/diagnostics` | U | Test your own Teams connection, read-only; rate limited per user |
+| GET | `/api/teams-setup/org/overview` | A | Organisation checks and the member overview, from stored state only (`?days=1..30`) |
+| POST | `/api/teams-setup/org/consent-link` | A | Make the admin consent link for the organisation's Microsoft tenant |
+| GET/PUT | `/api/teams-setup/org/app-import` | A | Organisation-wide import: settings, availability and counts |
+| POST | `/api/teams-setup/org/app-import/diagnostics` | A | Test organisation-wide import with a covered member; rate limited per user |
+
+`POST /auth/providers/microsoft/test` (platform admin) tests the Microsoft app registration with a
+real token request and answers with the same kind of report; it is rate limited per user like the
+tests.
 
 ## Skills
 

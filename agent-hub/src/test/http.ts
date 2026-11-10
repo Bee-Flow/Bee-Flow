@@ -27,3 +27,15 @@ export function fail<T>(
 export function asResponse(partial: Partial<Response>): Response {
     return partial as Response;
 }
+
+/**
+ * A JSON answer for a mocked global `fetch`, with the members the api client reads
+ * (`ok`, `status`, `json`, `text`, the content type header).
+ */
+export function jsonAnswer(body: unknown, status = 200) {
+    return {
+        ok: status >= 200 && status < 300, status,
+        json: async () => body, text: async () => JSON.stringify(body),
+        headers: new Headers({ 'content-type': 'application/json' }),
+    };
+}

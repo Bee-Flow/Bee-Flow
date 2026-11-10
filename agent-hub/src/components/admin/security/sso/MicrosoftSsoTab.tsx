@@ -9,6 +9,8 @@ import {
 import { newConnectionId } from './useSsoProviders';
 import type { MicrosoftConnection, SsoProvidersState } from './useSsoProviders';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useTeamsRequirements } from '@/api/queries/teamsSetup';
+import MicrosoftAppTestResult from './MicrosoftAppTestResult';
 
 const TENANT_ALIASES = ['common', 'organizations', 'consumers'];
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -249,7 +251,44 @@ function ConnectionsCard({ sso }: { sso: SsoProvidersState }) {
     );
 }
 
-const GRAPH_SCOPES = ['Mail.Read', 'Mail.Send', 'Calendars.ReadWrite', 'Files.ReadWrite', 'Contacts.ReadWrite', 'offline_access'];
+interface GraphScope { name: string; adminConsent: boolean }
+
+/**
+ * Every delegated scope the Microsoft 365 connect flow asks for, in its order
+ * (server/routes/integrations/microsoft365.js MS_CONNECT_SCOPES), marked where Microsoft's
+ * permissions reference says it needs admin consent. Used only when GET
+ * /api/teams-setup/requirements is refused (Meeting Notes not licensed): the connect flow
+ * asks for all of them either way, and the admin consent link (/.default) only approves
+ * what is listed on the registration.
+ */
+export const CONNECT_SCOPES_FALLBACK: readonly GraphScope[] = Object.freeze([
+    'openid', 'email', 'profile', 'User.Read', 'Mail.Read', 'Mail.Send',
+    'Calendars.ReadWrite', 'Files.ReadWrite', 'Contacts.ReadWrite',
+    'OnlineMeetings.ReadWrite', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetingArtifact.Read.All',
+    'OnlineMeetingRecording.Read.All', 'offline_access',
+    'Mail.Read.Shared', 'Mail.Send.Shared', 'Mail.ReadWrite', 'Mail.ReadWrite.Shared',
+].map((name) => ({ name, adminConsent: name === 'OnlineMeetingRecording.Read.All' || name === 'OnlineMeetingTranscript.Read.All' })));
+
+/**
+ * The delegated permissions to put on the app registration: every row of GET
+ * /api/teams-setup/requirements (the server's own list of what it asks for), or the fallback
+ * above when that is refused, marked where they need admin consent.
+ */
+function GraphPermissionsStep() {
+    const { t } = useTranslation();
+    const requirements = useTeamsRequirements();
+    const delegated = requirements.data?.delegated;
+    const scopes: readonly GraphScope[] = delegated && delegated.length > 0 ? delegated : CONNECT_SCOPES_FALLBACK;
+    return (
+        <li data-testid="ms-graph-permissions">
+            {t('admin_security.sso_ms_step7_a', 'Under "API permissions", add the following')} <strong>{t('admin_security.sso_ms_graph', 'Microsoft Graph')}</strong> {t('admin_security.sso_ms_step7_b', 'delegated permissions and grant admin consent:')} {scopes.map((scope, i) => (
+                <Fragment key={scope.name}>{i > 0 && ', '}<code className={CODE}>{scope.name}</code>{scope.adminConsent && (
+                    <span className="ml-1 text-[var(--warning-ink)]">({t('teams_setup.ui.needs_admin_consent')})</span>
+                )}</Fragment>
+            ))}
+        </li>
+    );
+}
 
 function MicrosoftSetupSteps({ redirectBase }: { redirectBase: string }) {
     const { t } = useTranslation();
@@ -258,12 +297,11 @@ function MicrosoftSetupSteps({ redirectBase }: { redirectBase: string }) {
             <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="text-[var(--info-ink)] hover:underline">{t('admin_security.sso_ms_portal', 'Azure Portal → App registrations')}</a></li>
             <li>{t('admin_security.sso_ms_step2', 'Register a new application or select an existing one')}</li>
             <li>{t('admin_security.sso_ms_step3', 'Add a redirect URI (Web):')} <code className={CODE}>{redirectBase}/auth/callback/microsoft</code></li>
+            <li>{t('teams_setup.ui.sso_step_connect_redirect')} <code className={CODE}>{redirectBase}/api/integrations/microsoft/callback</code></li>
             <li>{t('admin_security.sso_ms_step4', 'Create a client secret under "Certificates & secrets"')}</li>
             <li>{t('admin_security.sso_ms_step5', 'Copy the Application (Client) ID and Secret Value here')}</li>
             <li>{t('admin_security.sso_ms_step6_for', 'For')} <strong>{t('admin_security.sso_ms_step6_apps', 'single-tenant apps')}</strong>{t('admin_security.sso_ms_step6_rest', ': copy the Directory (tenant) ID from the app Overview page and paste it in the Tenant ID field above')}</li>
-            <li>{t('admin_security.sso_ms_step7_a', 'Under "API permissions", add the following')} <strong>{t('admin_security.sso_ms_graph', 'Microsoft Graph')}</strong> {t('admin_security.sso_ms_step7_b', 'delegated permissions and grant admin consent:')} {GRAPH_SCOPES.map((scope, i) => (
-                <Fragment key={scope}>{i > 0 && ', '}<code className={CODE}>{scope}</code></Fragment>
-            ))}</li>
+            <GraphPermissionsStep />
         </SetupInstructions>
     );
 }
@@ -307,6 +345,7 @@ export default function MicrosoftSsoTab({ sso }: { sso: SsoProvidersState }) {
             <MicrosoftSetupSteps redirectBase={redirectBase} />
 
             <ProviderActions provider="microsoft" sso={sso} canTest={!!ms.clientId} testLabel={t('admin.sso_validate')} />
+            <MicrosoftAppTestResult report={sso.testReports.microsoft} />
         </div>
     );
 }

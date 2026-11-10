@@ -28,6 +28,26 @@ test('hasTeamsScopes needs recordings AND calendar, in either scope spelling', (
     assert.ok(s.hasTranscriptScope('https://graph.microsoft.com/OnlineMeetingTranscript.Read.All'));
 });
 
+test('missingTeamsPermissions: required only by default, optional on request, bare and URI scopes', () => {
+    assert.deepStrictEqual(s.TEAMS_DELEGATED_PERMISSIONS.map(p => p.name), [
+        'Calendars.ReadWrite', 'OnlineMeetingRecording.Read.All', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetings.ReadWrite',
+    ]);
+    assert.ok(Object.isFrozen(s.TEAMS_DELEGATED_PERMISSIONS) && Object.isFrozen(s.TEAMS_DELEGATED_PERMISSIONS[0]));
+    assert.deepStrictEqual(s.missingTeamsPermissions(null), ['Calendars.ReadWrite', 'OnlineMeetingRecording.Read.All']);
+    assert.deepStrictEqual(s.missingTeamsPermissions('', { includeOptional: true }), [
+        'Calendars.ReadWrite', 'OnlineMeetingRecording.Read.All', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetings.ReadWrite',
+    ]);
+    assert.deepStrictEqual(s.missingTeamsPermissions('openid Calendars.ReadWrite OnlineMeetingRecording.Read.All'), []);
+    assert.deepStrictEqual(
+        s.missingTeamsPermissions('https://graph.microsoft.com/calendars.readwrite https://graph.microsoft.com/OnlineMeetingTranscript.Read.All', { includeOptional: true }),
+        ['OnlineMeetingRecording.Read.All', 'OnlineMeetings.ReadWrite'],
+    );
+    // Agrees with hasTeamsScopes on the required set.
+    for (const scope of ['Calendars.ReadWrite', 'OnlineMeetingRecording.Read.All Calendars.ReadWrite', null]) {
+        assert.strictEqual(s.missingTeamsPermissions(scope).length === 0, s.hasTeamsScopes(scope));
+    }
+});
+
 test('deriveConnectionStatus: vault credential, live SSO session, needs_reauth', () => {
     const full = 'Calendars.ReadWrite OnlineMeetingRecording.Read.All OnlineMeetings.ReadWrite';
     assert.deepStrictEqual(s.deriveConnectionStatus({ credential: { status: 'active', scope: full } }), {

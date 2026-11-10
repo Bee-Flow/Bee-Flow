@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # Other endpoints
 
-220 routes, 109 with a request schema. Back to the [endpoint reference](../reference.md).
+227 routes, 116 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -1538,6 +1538,68 @@ No request schema.
 | `lookbackHours` | number or null |  |  |
 | `updatedAt` | string or null |  |  |
 | `updatedBy` | string or null |  |  |
+
+## `api/teams-setup`
+
+### `POST /api/teams-setup/me/diagnostics`
+
+**Access:** Signed-in user · Licence feature `meeting_notes` · Capability `meeting_notes` · middleware `requireDiagnosticsSlot` · the handler also checks who the caller is
+
+**Query:** object (no other keys)
+
+### `GET /api/teams-setup/org/app-import`
+
+**Access:** Signed-in user · Scope `orgAdminOfSessionOrg` · Licence feature `meeting_notes` · Capability `meeting_notes`
+
+**Query:** object (no other keys)
+
+### `PUT /api/teams-setup/org/app-import`
+
+**Access:** Signed-in user · Scope `orgAdminOfSessionOrg` · Licence feature `meeting_notes` · Capability `meeting_notes`
+
+**Query:** object (no other keys)
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | boolean | yes |  |
+| `coverage` | one of `"all"`, `"selected"` | yes |  |
+| `selectedUserIds` | array of string | yes | max items 10000 |
+
+### `POST /api/teams-setup/org/app-import/diagnostics`
+
+**Access:** Signed-in user · Scope `orgAdminOfSessionOrg` · Licence feature `meeting_notes` · Capability `meeting_notes` · middleware `requireAppImportDiagnosticsSlot`
+
+**Query:** object (no other keys)
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `probeUserId` | string |  | min length 1; max length 128 |
+
+### `POST /api/teams-setup/org/consent-link`
+
+**Access:** Signed-in user · Scope `orgAdminOfSessionOrg` · Licence feature `meeting_notes` · Capability `meeting_notes`
+
+**Query:** object (no other keys)
+
+### `GET /api/teams-setup/org/overview`
+
+**Access:** Signed-in user · Scope `orgAdminOfSessionOrg` · Licence feature `meeting_notes` · Capability `meeting_notes`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `days` | integer |  | min 1; max 30 |
+
+### `GET /api/teams-setup/requirements`
+
+**Access:** Signed-in user · Licence feature `meeting_notes` · Capability `meeting_notes`
+
+**Query:** object (no other keys)
 
 ## `api/templates`
 

@@ -7,6 +7,7 @@
 import { api } from '@/core/api/client';
 
 import {
+    getNextcloudConnected,
     importFromMeet,
     importFromNextcloud,
     listMeetImports,
@@ -51,12 +52,30 @@ describe('upcoming meetings', () => {
         });
         const out = await listMeetMeetings();
         expect(out.connection).toEqual({
+            googleConfigured: false,
             googleConnected: true,
             meetScopesGranted: false,
             hasSettingsScope: false,
             needsReauth: false,
         });
         expect(out.meetings[0]).toMatchObject({ eventId: 'e1', excluded: true, importedNoteId: 'n1' });
+    });
+
+    it('reads whether the installation has Google set up; a missing field reads as not configured', async () => {
+        get.mockResolvedValue({ connection: { googleConfigured: true, googleConnected: false }, meetings: [] });
+        expect((await listMeetMeetings()).connection.googleConfigured).toBe(true);
+        get.mockResolvedValue({ connection: { googleConfigured: 'yes', googleConnected: false }, meetings: [] });
+        expect((await listMeetMeetings()).connection.googleConfigured).toBe(false);
+    });
+
+    it('reads whether the account has Nextcloud connected from the Talk settings; only true counts', async () => {
+        get.mockResolvedValue({ nextcloudConnected: true, recordingEnabled: false });
+        expect(await getNextcloudConnected()).toBe(true);
+        expect(get.mock.calls[0][0]).toBe('/api/talk-notes-settings/user/me');
+        for (const raw of [{ nextcloudConnected: false }, { nextcloudConnected: 'true' }, {}, null]) {
+            get.mockResolvedValue(raw);
+            expect(await getNextcloudConnected()).toBe(false);
+        }
     });
 
     it('switches a Talk meeting and reads the effective answer', async () => {

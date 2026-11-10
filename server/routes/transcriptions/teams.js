@@ -20,7 +20,7 @@ const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
 const {
-    deps: d, init, resolveTeamsSession, isGrantGone, asNeedsReauth, detachedSession, noteStillExists, configureTeamsAutoRecord, teamsRecordingState,
+    deps: d, init, resolveTeamsSession, isGrantGone, asTeamsCalendarError, detachedSession, noteStillExists, configureTeamsAutoRecord, teamsRecordingState,
 } = require('./teamsHelpers');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
@@ -49,6 +49,18 @@ const TEAMS_ERROR_STATUS = {
     speaker_attribution_disabled: 403,
     already_imported: 409,
     empty_transcription: 502,
+    // Microsoft refused, for a reason other than scopes (permission, licence,
+    // Teams policy); the meeting has no online meeting; option B's access
+    // policy; the calendar itself refused; Graph throttled or failed.
+    graph_forbidden: 403,
+    meeting_not_available: 404,
+    application_access_policy_missing: 403,
+    calendar_forbidden: 403,
+    graph_throttled: 503,
+    graph_unavailable: 502,
+    download_failed: 502,
+    provider_not_allowed: 403,
+    too_many_imports: 429,
 };
 
 const RECORD_TEXT = 'record is true or false.';
@@ -80,7 +92,7 @@ router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async 
     try {
         meetings = await d.calendar.listUpcomingTeamsMeetings({ session, windowHours: 48 });
     } catch (err) {
-        if (!isGrantGone(err)) throw err;
+        if (!isGrantGone(err)) throw asTeamsCalendarError(err);
         return res.json({ connection: { ...connection, needsReauth: true }, autoImport: settings.autoImport, autoRecordConfig: settings.autoRecordConfig, count: 0, meetings: [] });
     }
     const meetingPrefs = d.meetingPrefs;
@@ -173,7 +185,7 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
     try {
         ended = await d.calendar.listRecentlyEndedTeamsMeetings({ session, lookbackHours: 24 * 7 });
     } catch (err) {
-        if (!isGrantGone(err)) throw err;
+        if (!isGrantGone(err)) throw asTeamsCalendarError(err);
         return res.json({ connection: { ...connection, needsReauth: true }, items: [] });
     }
     const meetings = ended
@@ -271,7 +283,7 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
     const { session } = await requireTeamsAccess(req);
 
     const meeting = (await d.calendar.listRecentlyEndedTeamsMeetings({ session, lookbackHours: 24 * 7, graceMinutes: 0 })
-        .catch((err) => { throw asNeedsReauth(err); }))
+        .catch((err) => { throw asTeamsCalendarError(err); }))
         .find(m => m.eventId === event_id);
     if (!meeting) throw new HttpError(404, 'not_found', 'No Teams meeting with this id ended in the last 7 days');
     if (!meeting.organizerSelf) throw new HttpError(403, 'not_organizer', 'Only the organizer of a Teams meeting can import it');

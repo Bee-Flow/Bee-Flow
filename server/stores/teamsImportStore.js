@@ -13,7 +13,13 @@
  * Status machine:
  *   pending → awaiting_artifacts → ingested
  *   terminal: no_recording | not_organizer | recording_too_large |
- *             transcript_access_disabled | failed | skipped
+ *             transcript_access_disabled | speaker_attribution_disabled |
+ *             needs_teams_scopes | graph_forbidden | meeting_not_available |
+ *             application_access_policy_missing | calendar_forbidden |
+ *             empty_transcription | already_imported | provider_not_allowed |
+ *             failed | skipped
+ *   (the status of a terminal job is its error code; graph_throttled and
+ *   graph_unavailable are retried, never terminal: see teamsAutoImport.js)
  *   parked:   needs_reauth (excluded from claims until unparked)
  */
 

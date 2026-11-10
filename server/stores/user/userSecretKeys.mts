@@ -45,6 +45,8 @@ const OTHER_PER_USER_STEMS: readonly string[] = Object.freeze([
     'github_token', 'github_username', 'linkedin_access_token', 'linkedin_person_id', 'linkedin_name',
     'google_workspace_email', 'microsoft365_email', 'withings_userid',
     'simple_mode', 'learning_path', 'memory_enabled', 'memory_sensitive_opt_in',
+    // Why the Teams auto-import last skipped the user (core/meetingNotes/teamsImportSkipState.mts).
+    'teams_autoimport_skip',
 ]);
 
 /** Every per-user config stem account erasure deletes, without duplicates. */

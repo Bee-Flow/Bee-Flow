@@ -174,6 +174,7 @@ const sidebars: SidebarsConfig = {
           items: [
             'integrations/google',
             'integrations/microsoft',
+            'integrations/teams-meeting-notes',
           ],
         },
         {
@@ -315,6 +316,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/per-person-adoption-view',
             'contributing/decisions/kb-query-log',
             'contributing/decisions/connector-no-default-server',
+            'contributing/decisions/teams-meeting-import-permissions',
           ],
         },
       ],

@@ -65,7 +65,16 @@ export const readTalkMeetings: (raw: unknown) => TalkMeetings = shapeOf({
     meetings: field.list(readTalkMeeting),
 });
 
+/**
+ * GET /api/talk-notes-settings/user/me (routes/talkNotesSettings.js): whether
+ * this account has Nextcloud connected at all. Only an explicit `true` counts.
+ */
+export function readNextcloudConnected(raw: unknown): boolean {
+    return pick(raw, 'nextcloudConnected') === true;
+}
+
 const readConnection: (raw: unknown) => MeetConnection = shapeOf({
+    googleConfigured: field.bool(false),
     googleConnected: field.bool(false),
     meetScopesGranted: field.bool(false),
     hasSettingsScope: field.bool(false),

@@ -22,9 +22,23 @@ const fx = {
     cred: null,             // automationCredentialStore.getCredential fixture
     orgIds: new Set(['orgA']), // resolveUserOrgIds fixture (null = all orgs)
     isOrgAdmin: false,
+    google: null,           // providers.google of the auth config (null = not configured)
+    authConfigFails: false, // loadConfig rejects
+};
+
+// The REAL client-config helper, fed the fixture's auth config through its loader seam.
+const googleOAuthConfig = require('../../auth/googleOAuthConfig');
+const fixtureAuthConfig = async () => {
+    if (fx.authConfigFails) throw new Error('auth config unreadable');
+    return { providers: fx.google ? { google: fx.google } : {} };
 };
 
 const MOCKS = [
+    {
+        parentRe: /routes[\\/]gmeetNotesSettings\.js$/,
+        request: '../auth/googleOAuthConfig',
+        exports: { isGoogleConfigured: () => googleOAuthConfig.isGoogleConfigured(fixtureAuthConfig) },
+    },
     {
         parentRe: /core[\\/]meetingNotes[\\/]gmeetNotesSettings\.js$/,
         request: '../../stores/configStore',
@@ -78,6 +92,8 @@ function resetFx() {
     fx.cred = null;
     fx.orgIds = new Set(['orgA']);
     fx.isOrgAdmin = false;
+    fx.google = null;
+    fx.authConfigFails = false;
 }
 
 function makeSession(extra = {}) {
@@ -227,7 +243,7 @@ test('user GET: active credential with Meet scopes → fully connected block', a
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.autoImport, false, 'settings doc fields present');
     assert.deepStrictEqual(res.body.connection, {
-        googleConnected: true, meetScopesGranted: true, hasSettingsScope: true, needsReauth: false,
+        googleConfigured: false, googleConnected: true, meetScopesGranted: true, hasSettingsScope: true, needsReauth: false,
     });
 });
 
@@ -236,7 +252,7 @@ test('user GET: active credential WITHOUT Meet scopes → reconnect hint', async
     fx.cred = { status: 'active', scope: 'openid email https://www.googleapis.com/auth/calendar' };
     const res = await dispatch({ url: '/user/me', session: makeSession() });
     assert.deepStrictEqual(res.body.connection, {
-        googleConnected: true, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false,
+        googleConfigured: false, googleConnected: true, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false,
     });
 });
 
@@ -245,7 +261,7 @@ test('user GET: needs_reauth credential → not connected, needsReauth flagged',
     fx.cred = { status: 'needs_reauth', scope: gmeetNotes.SCOPE_MEET_READONLY };
     const res = await dispatch({ url: '/user/me', session: makeSession() });
     assert.deepStrictEqual(res.body.connection, {
-        googleConnected: false, meetScopesGranted: true, hasSettingsScope: false, needsReauth: true,
+        googleConfigured: false, googleConnected: false, meetScopesGranted: true, hasSettingsScope: false, needsReauth: true,
     });
 });
 
@@ -254,7 +270,7 @@ test('user GET: no credential + live Google session → connected, scopes unknow
     fx.cred = null;
     const res = await dispatch({ url: '/user/me', session: makeSession({ oauthProvider: 'google', accessToken: 'at' }) });
     assert.deepStrictEqual(res.body.connection, {
-        googleConnected: true, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false,
+        googleConfigured: false, googleConnected: true, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false,
     });
 });
 
@@ -262,8 +278,44 @@ test('user GET: no credential, no Google session → disconnected block', async 
     resetFx();
     const res = await dispatch({ url: '/user/me', session: makeSession({ oauthProvider: 'microsoft', accessToken: 'ms' }) });
     assert.deepStrictEqual(res.body.connection, {
-        googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false,
+        googleConfigured: false, googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false,
     });
+});
+
+// ── googleConfigured: does the installation have a Google OAuth client? ──
+// Without one, "connect Google Workspace" is advice nobody can follow, so the UI
+// hides it. The block carries the boolean only, never the client id or secret.
+
+test('user GET: Google OAuth client configured → googleConfigured true, no client values in the response', async () => {
+    resetFx();
+    fx.google = { clientId: 'gmeet-test-client-id', clientSecret: 'gmeet-test-client-secret' };
+    const res = await dispatch({ url: '/user/me', session: makeSession() });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.connection.googleConfigured, true);
+    assert.strictEqual(res.body.connection.googleConnected, false, 'configured is not connected');
+    const body = JSON.stringify(res.body);
+    assert.ok(!body.includes('gmeet-test-client-id'), 'client id not exposed');
+    assert.ok(!body.includes('gmeet-test-client-secret'), 'client secret not exposed');
+});
+
+test('user GET: id without a secret is not configured', async () => {
+    resetFx();
+    fx.google = { clientId: 'gmeet-test-client-id' };
+    const res = await dispatch({ url: '/user/me', session: makeSession() });
+    assert.strictEqual(res.body.connection.googleConfigured, false);
+});
+
+test('user GET: an unreadable auth config reads as not configured and still answers', async () => {
+    resetFx();
+    fx.authConfigFails = true;
+    const res = await dispatch({ url: '/user/me', session: makeSession() });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.connection.googleConfigured, false);
+});
+
+test('deriveConnectionStatus: googleConfigured only true when passed true', () => {
+    assert.strictEqual(gmeetNotes.deriveConnectionStatus().googleConfigured, false);
+    assert.strictEqual(gmeetNotes.deriveConnectionStatus({ googleConfigured: true }).googleConfigured, true);
 });
 
 // ── org "no opinion" (tri-state) ────────────────────────────────────

@@ -2,7 +2,7 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { renderWithClient } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { isMultiTenantId, isTenantIdValid, logoFileProblem, MAX_LOGO_BYTES } from './sso/MicrosoftSsoTab';
+import { CONNECT_SCOPES_FALLBACK, isMultiTenantId, isTenantIdValid, logoFileProblem, MAX_LOGO_BYTES } from './sso/MicrosoftSsoTab';
 import SSOConfigPanel from './SSOConfigPanel';
 import { authFetch } from '@/utils/helpers';
 
@@ -122,6 +122,50 @@ describe('SSOConfigPanel', () => {
         await user.click(screen.getByRole('button', { name: 'admin.sso_save' }));
         await waitFor(() => expect(screen.getByText('Saved!')).toBeTruthy());
         expect(putBody().connections).toEqual([]);
+    });
+});
+
+describe('Microsoft setup steps: the delegated permissions', () => {
+    const listed = () => {
+        const step = screen.getByTestId('ms-graph-permissions');
+        return [...step.querySelectorAll('code')].map((c) => ({
+            name: c.textContent,
+            adminConsent: (c.nextElementSibling?.textContent ?? '').includes('teams_setup.ui.needs_admin_consent'),
+        }));
+    };
+
+    it('without the requirements answer lists every scope the connect flow asks for, the shared-mailbox ones included', async () => {
+        const user = userEvent.setup();
+        renderWithClient(<SSOConfigPanel />);
+        await user.click(await screen.findByRole('button', { name: /Microsoft/ }));
+        const names = listed().map((s) => s.name);
+        // The /.default admin consent link only approves what the registration lists.
+        for (const scope of ['Mail.ReadWrite', 'Mail.Read.Shared', 'Mail.Send.Shared', 'Mail.ReadWrite.Shared', 'OnlineMeetingArtifact.Read.All', 'OnlineMeetingRecording.Read.All', 'User.Read', 'offline_access']) {
+            expect(names).toContain(scope);
+        }
+        expect(names).toEqual(CONNECT_SCOPES_FALLBACK.map((s) => s.name));
+        expect(listed().filter((s) => s.adminConsent).map((s) => s.name)).toEqual(['OnlineMeetingTranscript.Read.All', 'OnlineMeetingRecording.Read.All']);
+    });
+
+    it('with the requirements answer lists every delegated row from it, requested ones included', async () => {
+        const delegated = [
+            { name: 'User.Read', kind: 'delegated', option: 'A', role: 'requested', adminConsent: false, purpose: 'sign_in' },
+            { name: 'Mail.ReadWrite.Shared', kind: 'delegated', option: 'A', role: 'requested', adminConsent: false, purpose: 'shared_mailbox' },
+            { name: 'OnlineMeetingRecording.Read.All', kind: 'delegated', option: 'A', role: 'required', adminConsent: true, purpose: 'recordings' },
+        ];
+        fetchMock.mockImplementation(async (url: string) => {
+            if (url === '/auth/providers') return json(PROVIDERS);
+            if (url === '/auth/setup-status') return json({ serverUrl: 'https://flow.example' });
+            if (url === '/api/teams-setup/requirements') {
+                return { ok: true, status: 200, headers: new Headers({ 'content-type': 'application/json' }), json: async () => ({ tenantMode: 'common', redirectUris: { signIn: '', connect: '' }, delegated, application: [] }) } as unknown as Response;
+            }
+            return json({}, false);
+        });
+        const user = userEvent.setup();
+        renderWithClient(<SSOConfigPanel />);
+        await user.click(await screen.findByRole('button', { name: /Microsoft/ }));
+        await waitFor(() => expect(listed().map((s) => s.name)).toEqual(['User.Read', 'Mail.ReadWrite.Shared', 'OnlineMeetingRecording.Read.All']));
+        expect(listed().filter((s) => s.adminConsent).map((s) => s.name)).toEqual(['OnlineMeetingRecording.Read.All']);
     });
 });
 

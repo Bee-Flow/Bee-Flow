@@ -28,5 +28,6 @@ registerErasurePorts({
         eraseStoragePrefix: (userId) => require('./accountContentErasure').eraseStoragePrefix(userId),
         erasePersonalKnowledgeBases: (userId) => require('./accountContentErasure').erasePersonalKnowledgeBases(userId),
         eraseOrgKnowledgeBases: (orgId) => require('./accountContentErasure').eraseOrgKnowledgeBases(orgId),
+        forgetTeamsAppImportMember: (userId) => require('./accountContentErasure').forgetTeamsAppImportMember(userId),
     },
 });

@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import {
+    getNextcloudConnected,
     listMeetImports,
     listMeetMeetings,
     listMeetRecordings,
@@ -27,6 +28,11 @@ export function useTalkMeetings() {
 
 export function useMeetMeetings() {
     return useQuery({ queryKey: sourceKeys.meetMeetings, queryFn: ({ signal }) => listMeetMeetings(signal), ...ON_DEMAND });
+}
+
+/** Whether the account has Nextcloud connected; `data` stays undefined while unknown or after a failure. */
+export function useNextcloudConnected() {
+    return useQuery({ queryKey: sourceKeys.nextcloudConnected, queryFn: ({ signal }) => getNextcloudConnected(signal), ...ON_DEMAND });
 }
 
 export function useTalkRecordings(enabled: boolean) {
