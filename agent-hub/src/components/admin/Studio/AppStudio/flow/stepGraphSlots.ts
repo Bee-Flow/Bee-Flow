@@ -30,6 +30,7 @@ const SLOT_LABELS: Record<string, [string, string]> = {
     'try.steps': ['studio_apps_flow_control.scope.try_steps', 'Try'],
     'try.catch': ['studio_apps_flow_control.scope.try_catch', 'If a step fails'],
     'try.finally': ['studio_apps_flow_control.scope.try_finally', 'Always, at the end'],
+    'parallel.branches': ['studio_apps_flow_parallel.scope.branch', 'Branch'],
 };
 
 function slotLabel(kind: string, field: string, label: Label): string {

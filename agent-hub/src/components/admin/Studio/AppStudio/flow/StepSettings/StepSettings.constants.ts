@@ -48,6 +48,7 @@ export const FIELD_LABELS: Record<string, string[]> = {
     documentMode: ['studio_apps_edit.step_settings.field_document_mode', 'Read documents as'],
     retry: ['studio_apps_edit.step_settings.field_retry', 'If it fails, try again'],
     onError: ['studio_apps_edit.step_settings.field_on_error', 'If it still fails'],
+    failFast: ['studio_apps_flow_parallel.settings.fail_fast', 'Stop the other branches when one fails'],
 };
 
 export const HINTS: Record<string, string[]> = {
@@ -68,4 +69,5 @@ export const HINTS: Record<string, string[]> = {
     poPattern: ['studio_apps_edit.step_settings.hint_po_pattern', 'Filenames matching this (regex) count as the purchase order.'],
     documentMode: ['studio_apps_edit.step_settings.hint_document_mode', '“Images” forces page pictures — use it for technical drawings, whose text layer alone misleads.'],
     promptContext: ['studio_apps_edit.step_settings.hint_prompt_context', 'Live rows added to the prompt — the purchase-order lines, the open record, the vocabulary table.'],
+    failFast: ['studio_apps_flow_parallel.settings.fail_fast_hint', 'Off: every branch runs to its end before the failure is reported. On: the other branches stop before their next step.'],
 };

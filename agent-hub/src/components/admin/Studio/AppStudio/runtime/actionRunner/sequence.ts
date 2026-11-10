@@ -13,7 +13,7 @@
  * failure aborts the sequence as before.
  *
  * The control kinds of the step registry (return, break, continue, while,
- * raise_error, try) live in ./controlFlow; a return, break or continue travels
+ * raise_error, try, parallel) live in ./controlFlow and ./parallelStep; a return, break or continue travels
  * through execSteps as a signal, never as a failure.
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
@@ -31,6 +31,7 @@ import { StepFailure, dispatchBrowseStep, dispatchServerStep } from './serverSte
 import type { ErrorScope, SeqState } from './serverSteps';
 import { runCallStep } from './callStep';
 import { isFlowSignal, noteFailure, runActionSteps, runFlowStep, runLoop } from './controlFlow';
+import { refuseInBranch } from './parallelStep';
 import { usesRegistryKind } from './stepWalk';
 import { newRunTrack, reportRunEnd } from './runEnd';
 
@@ -44,6 +45,8 @@ interface SeqEnv extends ClientStepEnv {
     echoKind?: boolean;
     /** Inside the steps of a loop or while of the same action (./controlFlow). */
     breakable?: boolean;
+    /** Under a branch of a parallel step (./parallelStep). */
+    parallel?: 'branch' | 'called';
 }
 
 /** The `kind` a server step is posted with: only where the server asks for it (stepWalk.usesRegistryKind). */
@@ -171,6 +174,7 @@ async function runControlStep(env: SeqEnv, step: RunStep, st: SeqState): Promise
 
 async function execStep(env: SeqEnv, step: RunStep | null | undefined, st: SeqState): Promise<void> {
     if (!step || typeof step.kind !== 'string') return;
+    refuseInBranch(env, step);
     // ai_browse is a SERVER kind but streams — it takes the dedicated
     // SSE path, not the plain JSON /step dispatch below.
     if (step.kind === 'ai_browse') {

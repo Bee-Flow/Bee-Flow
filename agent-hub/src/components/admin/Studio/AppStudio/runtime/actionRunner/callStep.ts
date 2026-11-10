@@ -31,6 +31,8 @@ export interface CallEnv extends ClientStepEnv {
     echoKind?: boolean;
     /** Inside the steps of a loop or while of the same action (./controlFlow). */
     breakable?: boolean;
+    /** Under a branch of a parallel step (./parallelStep): a called action stays under it. */
+    parallel?: 'branch' | 'called';
 }
 
 type ExecSteps<E extends CallEnv> = (env: E, list: unknown, st: SeqState) => Promise<void>;
@@ -77,7 +79,7 @@ export async function runCallStep<E extends CallEnv>(env: E, step: RunStep, st: 
         error: null,
         callPath: [...(st.callPath || []), typeof ordinal === 'number' ? ordinal : -1],
     };
-    const childEnv: E = { ...env, indexMap: buildStepIndexMap(steps), callChain: [...env.callChain, id], breakable: false, echoKind: !!env.echoKind || usesRegistryKind(steps) };
+    const childEnv: E = { ...env, indexMap: buildStepIndexMap(steps), callChain: [...env.callChain, id], breakable: false, parallel: env.parallel ? 'called' : undefined, echoKind: !!env.echoKind || usesRegistryKind(steps) };
     try {
         await exec(childEnv, steps, child);
     } finally {

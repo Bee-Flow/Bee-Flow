@@ -25,11 +25,15 @@ export function mapStepBranches(step: Step, map: (list: Step[] | undefined) => S
         });
         if (casesDirty) copy = { ...copy, cases };
     }
-    // The plain child lists a registry container adds (a try's catch and finally).
+    // The child lists a registry container adds: plain ones (a try's catch and finally) and
+    // the entries of a list (the branches of a parallel).
     for (const slot of extraChildSlots(step)) {
-        if (slot.each !== undefined) continue;
         const branch = map(slot.steps as Step[]);
-        if (branch !== slot.steps) copy = { ...copy, [slot.field]: branch };
+        if (branch === slot.steps) continue;
+        if (slot.each === undefined || slot.index === undefined) { copy = { ...copy, [slot.field]: branch }; continue; }
+        const entries = [...(copy[slot.field] as Array<Record<string, unknown>>)];
+        entries[slot.index] = { ...entries[slot.index], [slot.each]: branch };
+        copy = { ...copy, [slot.field]: entries };
     }
     const h = (step as { onError?: unknown }).onError;
     if (h && typeof h === 'object' && !Array.isArray(h) && Array.isArray((h as { steps?: unknown }).steps)) {

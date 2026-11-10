@@ -19,6 +19,8 @@
  *                then runs whatever happened (a failure, a signal, a declined
  *                confirm), and what was pending goes on unless `finally` ended
  *                in something of its own. Nothing runs once the page is gone.
+ *   parallel     runs its branches side by side on copies of the state and
+ *                joins them (./parallelStep).
  *
  * A step inside `try.steps` keeps its own retry and onError: the coordinator
  * does both before the failure reaches the try.
@@ -29,11 +31,13 @@ import { resolveBinding } from '../resolveBinding';
 import type { ClientStepEnv } from './clientSteps';
 import { CANCELLED, MAX_LOOP_ITERATIONS, SEQ_ABORT, failureMessage, mergeAppEffects } from './core';
 import type { RunStep } from './core';
+import { runParallel } from './parallelStep';
+import type { ParallelEnv } from './parallelStep';
 import { StepFailure } from './serverSteps';
 import type { ErrorScope, SeqState } from './serverSteps';
 
 /** The part of the sequence env the control kinds read. */
-export interface FlowEnv extends ClientStepEnv {
+export interface FlowEnv extends ClientStepEnv, ParallelEnv {
     indexMap: Map<RunStep, number>;
     /** Inside the steps of a loop or while of the same action: where break and continue work. */
     breakable?: boolean;
@@ -261,6 +265,7 @@ export async function runFlowStep<E extends FlowEnv>(env: E, step: RunStep, st: 
         case 'raise_error': return runRaise(env, step, st);
         case 'while': await runWhile(env, step, st, exec); return true;
         case 'try': await runTry(env, step, st, exec); return true;
+        case 'parallel': await runParallel(env, step, st, exec); return true;
         default: return false;
     }
 }
