@@ -15,6 +15,7 @@ const vm = require('node:vm');
 
 process.env.APP_SECRET = 'test-secret';
 process.env.NEXTCLOUD_URL = 'http://nc.test';
+process.env.BEEFLOW_API_BASE_URL = 'http://beeflow.test';
 process.env.BEEFLOW_TENANT_KEY = 'tenant-key';
 process.env.APP_PERSISTENT_STORAGE = fs.mkdtempSync(path.join(os.tmpdir(), 'bf-connector-l10n-'));
 

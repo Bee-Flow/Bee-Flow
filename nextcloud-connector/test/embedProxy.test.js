@@ -10,6 +10,7 @@ const http = require('node:http');
 
 process.env.APP_SECRET = 'test-secret';
 process.env.NEXTCLOUD_URL = 'http://nc.test';
+process.env.BEEFLOW_API_BASE_URL = 'http://beeflow.test';
 process.env.BEEFLOW_TENANT_KEY = 'tenant-key';
 // Leave BEEFLOW_EMBED_BASE_URL unset so the default is exercised below.
 

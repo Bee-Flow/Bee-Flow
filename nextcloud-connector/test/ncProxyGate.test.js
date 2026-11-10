@@ -13,6 +13,7 @@ process.env.APP_SECRET = 'test-secret';
 // 502 (connection refused). That 502 — as opposed to 429 — is the proof it got
 // past the rate limiter.
 process.env.NEXTCLOUD_URL = 'http://127.0.0.1:1';
+process.env.BEEFLOW_API_BASE_URL = 'http://beeflow.test';
 process.env.BEEFLOW_TENANT_KEY = 'tenant-key';
 
 const ncProxy = require('../src/ncProxy');
