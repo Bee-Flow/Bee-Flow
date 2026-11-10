@@ -33,10 +33,13 @@ function stub(path, exports) {
     require.cache[filename] = { id: filename, filename, loaded: true, exports };
 }
 
+// The read-time computed tests at the end of this file answer from a real SQLite.
+/** @type {null | ((sql: string, params: unknown[]) => { rows: unknown[] })} */
+let appDbHandler = null;
 stub('../stores/studioAppDbStore', {
     query: async (ownerId, entityId, sql, params) => {
         appDbCalls.push({ ownerId, entityId, sql, params });
-        return { rows: [] };
+        return appDbHandler ? appDbHandler(sql, params) : { rows: [] };
     },
 });
 stub('../stores/studioAppDataStore', {
@@ -283,3 +286,92 @@ test('readPlan is de enige splitsing: hij geeft per soort een compleet plan', as
     assert.equal(linked.viewer.id, VIEWER);
     assert.equal(linked.dialect, 'pg');
 });
+
+// ── Read-time computed fields (issue 587) ───────────────────────────
+// The records list and the batch (this runner), the single-record read
+// (routes/studio/appDataContext readOne) and a server step's data binding
+// (stepDataSource) all evaluate them. The app's store answers from a real
+// in-memory SQLite; `failComputed` stands in for an engine on which the
+// expression fails.
+
+const Database = require('better-sqlite3');
+const { ddlForTable } = require('../core/dataEngine/dataModel/ddl');
+const queryCompiler = require('./queryCompiler');
+const { readOne } = require('../routes/studio/appDataContext');
+const { resolveDataBinding } = require('./stepDataSource');
+const { computedNote } = require('../core/dataEngine/computedRead.mts');
+
+const LINES = {
+    id: 'tbl_lines01',
+    key: 'lines',
+    name: 'Lines',
+    fields: [
+        { id: 'fld_l1', key: 'item', type: 'text' },
+        { id: 'fld_l2', key: 'price', type: 'number' },
+        { id: 'fld_l3', key: 'qty', type: 'number', subtype: 'integer' },
+        { id: 'fld_l4', key: 'total', type: 'computed', computed: { expr: 'price * qty', type: 'number' } },
+        { id: 'fld_l5', key: 'legacy', type: 'computed', computed: { expr: 'iif(qty > 1, 1, 0)' } },
+    ],
+    access: { default: 'none', roles: { member: { read: 'own', create: true, update: 'own', delete: 'none' } } },
+};
+const LINES_MODEL = { modelVersion: 1, tables: [LINES], roles: [{ key: 'member' }] };
+const LINES_APP = { id: 'app_lines', userId: OWNER, organizationId: ORG };
+const linesCtx = (role, viewerId) => ({
+    app: LINES_APP, ownerScope: OWNER, viewerId, role, viewer: { id: viewerId, role }, model: LINES_MODEL, table: LINES,
+});
+
+const memdb = new Database(':memory:');
+memdb.exec(ddlForTable(LINES, { dialect: 'sqlite' }));
+const lineIds = {};
+for (const [item, price, qty, by] of [['pen', 2.5, 4, 'u-member'], ['desk', 120, 1, OWNER]]) {
+    const ins = queryCompiler.compileInsert(LINES, { item, price, qty, total: 999 }, { createdBy: by, dialect: 'sqlite' });
+    memdb.prepare(ins.sql).run(...ins.params);
+    lineIds[item] = ins.id;
+}
+let failComputed = false;
+function withLines(fn) {
+    return async () => {
+        reset();
+        failComputed = false;
+        appDbHandler = (sql, params) => {
+            if (failComputed && sql.includes(') AS "')) throw Object.assign(new Error('engine refused'), { code: 'XX000' });
+            return { rows: memdb.prepare(sql).all(...params) };
+        };
+        try { await fn(); } finally { appDbHandler = null; }
+    };
+}
+const recordBinding = (item) => ({ kind: 'record', tableId: LINES.id, filter: [{ field: 'item', op: 'eq', value: item }] });
+
+test('read-time computed: the records list evaluates the field and names the one that reads empty', withLines(async () => {
+    const out = await dataReadRunner.runRecordList(linesCtx('owner', OWNER), LINES, { sort: { field: 'item', dir: 'asc' } });
+    assert.deepEqual(out.records.map((r) => [r.item, r.total, r.legacy]), [['desk', 120, null], ['pen', 10, null]]);
+    assert.deepEqual(out.notes, [computedNote('legacy')]);
+}));
+
+test('read-time computed: a member reads only own rows, computed included', withLines(async () => {
+    const out = await dataReadRunner.runRecordList(linesCtx('member', 'u-member'), LINES, {});
+    assert.deepEqual(out.records.map((r) => [r.item, r.total]), [['pen', 10]]);
+    assert.ok(appDbCalls[0].sql.includes('"created_by" = ?'), 'the row rule is in the read');
+}));
+
+test('read-time computed: the batch, the single record and a step binding see the value; a hidden row stays hidden', withLines(async () => {
+    const [res] = await dataReadRunner.runBatch(linesCtx('owner', OWNER), [{ id: 'b1', kind: 'records', tableId: LINES.id, filters: [{ field: 'item', op: 'eq', value: 'pen' }] }]);
+    assert.equal(res.ok, true);
+    assert.equal(res.data.records[0].total, 10);
+    assert.equal((await readOne(linesCtx('owner', OWNER), lineIds.desk)).total, 120);
+    assert.equal(await readOne(linesCtx('member', 'u-member'), lineIds.desk), null);
+    const row = await resolveDataBinding(LINES_APP, LINES_MODEL, recordBinding('desk'), { viewer: { id: OWNER }, role: 'owner' });
+    assert.equal(row.total, 120);
+}));
+
+test('read-time computed: when the engine fails the expression, every read path still answers with the fields empty', withLines(async () => {
+    failComputed = true;
+    const list = await dataReadRunner.runRecordList(linesCtx('owner', OWNER), LINES, {});
+    assert.equal(list.records.length, 2);
+    assert.ok(list.records.every((r) => r.total === null && r.legacy === null));
+    assert.deepEqual(list.notes, [computedNote('total'), computedNote('legacy')]);
+    assert.equal((await readOne(linesCtx('owner', OWNER), lineIds.pen)).total, null);
+    const row = await resolveDataBinding(LINES_APP, LINES_MODEL, recordBinding('pen'), { viewer: { id: OWNER }, role: 'owner' });
+    assert.equal(row.item, 'pen');
+    assert.equal(row.total, null);
+}));

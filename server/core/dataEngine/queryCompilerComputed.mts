@@ -249,7 +249,7 @@ export function readTimeComputedError(field: Field, tableMeta: TableMeta): strin
 }
 
 /** The read-time computed fields of a table, in field order. */
-export function readTimeComputedFields(tableMeta: TableMeta): Field[] {
+function readTimeComputedFields(tableMeta: TableMeta): Field[] {
     const fields = Array.isArray(tableMeta.fields) ? tableMeta.fields : [];
     return fields.filter((f) => f && f.type === 'computed' && !(f.computed && f.computed.stored === true)
         && typeof f.key === 'string' && f.key !== '' && !SYSTEM_COLUMNS.includes(f.key));
