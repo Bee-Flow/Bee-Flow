@@ -40,4 +40,4 @@ export default function ModalInspector({ node, definition, onCommit, disabled = 
     );
 }
 
-registerInspector('modal', ModalInspector);
+registerInspector('modal', ModalInspector, { props: ['title', 'size', 'triggerLabel'] });

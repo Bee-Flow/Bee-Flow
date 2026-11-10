@@ -43,4 +43,4 @@ export default function ContainerInspector({ node, definition, onCommit, disable
     );
 }
 
-registerInspector('container', ContainerInspector);
+registerInspector('container', ContainerInspector, { props: ['look'] });

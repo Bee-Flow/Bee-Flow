@@ -28,4 +28,4 @@ function SpacerInspector({ node, definition, onCommit, disabled = false }: Panel
     );
 }
 
-registerInspector('spacer', SpacerInspector);
+registerInspector('spacer', SpacerInspector, { props: ['steps'] });

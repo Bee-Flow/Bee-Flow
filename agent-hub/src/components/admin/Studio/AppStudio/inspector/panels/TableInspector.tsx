@@ -149,4 +149,4 @@ export default function TableInspector({ node, definition, onCommit, disabled = 
     );
 }
 
-registerInspector('table', TableInspector);
+registerInspector('table', TableInspector, { props: ['source', 'columns', 'look', 'emptyText', 'rowLimit'], items: { columns: ['key', 'label', 'format'] } });

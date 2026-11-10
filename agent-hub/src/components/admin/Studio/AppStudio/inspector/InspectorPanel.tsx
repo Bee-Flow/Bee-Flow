@@ -6,7 +6,8 @@ import LogicSection from './logic/LogicSection';
 import StudioScopeProvider from './logic/StudioScopeProvider';
 import MultiInspector from './MultiInspector';
 import { nodeLabel, nodeTypeLabel } from './nodeLabel';
-import { getInspectorForType } from './registry';
+import { getInspectorForType, getPanelCoverage } from './registry';
+import MoreOptions from './panels/MoreOptions';
 import { TYPE_EVENT_LISTS } from './styleKnobMeta';
 import StyleSection, { findSectionById } from './StyleSection';
 import CssClassField from './CssClassField';
@@ -182,6 +183,7 @@ export default function InspectorPanel({ onCommit, onTestActionResult }: EditorI
     const { node } = found;
     const entry = getComponentEntry(node.type);
     const ContentPanel = getInspectorForType(node.type);
+    const coverage = getPanelCoverage(node.type);
     const hasChildren = Array.isArray(node.children) && node.children.length > 0;
 
     const onDuplicate = () => {
@@ -217,6 +219,7 @@ export default function InspectorPanel({ onCommit, onTestActionResult }: EditorI
                                 Studio variable scope, or their picker has nothing in it. */}
                             <StudioScopeProvider definition={definition} node={node}>
                                 <ContentPanel node={node} definition={definition} onCommit={onCommit} disabled={disabled} />
+                                {coverage ? <MoreOptions key={node.id} node={node} definition={definition} onCommit={onCommit} coverage={coverage} disabled={disabled} /> : null}
                             </StudioScopeProvider>
                         </AccordionSection>
                     ) : null}

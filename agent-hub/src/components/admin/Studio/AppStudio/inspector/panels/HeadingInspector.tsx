@@ -56,4 +56,4 @@ export default function HeadingInspector({ node, definition, onCommit, disabled 
     );
 }
 
-registerInspector('heading', HeadingInspector);
+registerInspector('heading', HeadingInspector, { props: ['text', 'level', 'accent'] });
