@@ -97,6 +97,16 @@ export function extensionServerKinds() {
 }
 
 /**
+ * Is `kind` a step kind of the registry (the generated table)?
+ *
+ * @param {unknown} kind
+ * @returns {boolean}
+ */
+export function isExtensionStepKind(kind) {
+    return extensionKind(kind) !== null;
+}
+
+/**
  * Is a failed step of this kind never tried again (its effect leaves Bee Flow, or waits on a person)?
  *
  * @param {string} kind

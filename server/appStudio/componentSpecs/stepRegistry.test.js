@@ -312,9 +312,11 @@ test('the public redaction walks the table: declared slots are redacted in place
 });
 
 test('a kind the table does not know is never a way around the redaction', () => {
-    // No registry entry: every field of the unknown kind that carries steps stays on the server.
+    // No registry entry: an unknown kind is reduced like a server step, whatever its fields hold.
     const out = redactStep(guardedSequence()[1]);
-    assert.deepEqual(out, { kind: 'zz_guarded', expr: 'true', note: 'n' });
+    assert.deepEqual(out, { kind: 'zz_guarded' });
+    assert.deepEqual(redactStep({ kind: 'not_a_kind', prompt: 'private', resultVar: 'r', onError: [{ kind: 'create_record', tableId: 't' }] }), { kind: 'not_a_kind', resultVar: 'r', onError: [{ kind: 'create_record' }] });
+    assert.deepEqual(JSON.parse(JSON.stringify(redactStep({ prompt: 'private' }))), {});
     // The same for a stray step list on a base kind, and for a slot that is not a list.
     assert.deepEqual(redactStep({ kind: 'toast', message: 'm', then: [{ kind: 'send_email', to: 'x' }], extra: [1, 2] }), { kind: 'toast', message: 'm', extra: [1, 2] });
     assert.deepEqual(redactStep({ kind: 'condition', expr: 'a', then: { kind: 'send_email', to: 'x' }, else: 'nope' }), { kind: 'condition', expr: 'a', else: 'nope' });

@@ -9,16 +9,17 @@
  * step that has an ordinal is still there, in the same place, so the index a visitor posts
  * names the same step on the server.
  *
+ * A step whose kind this install's catalogue does not know is reduced like a server step.
  * A field that carries steps without being a slot of the step's kind does not travel at all.
  * Nothing numbers those steps and the browser never walks them, so leaving the field out changes
  * no ordinal; passing it through would hand a visitor the configuration of server steps.
  */
 
 import { createRequire } from 'node:module';
-import { childSlotSpecs, extensionServerKinds } from '../shared/appDefinition/stepFlow.mjs';
+import { childSlotSpecs, extensionServerKinds, isExtensionStepKind } from '../shared/appDefinition/stepFlow.mjs';
 
 const nodeRequire = createRequire(import.meta.url);
-const { DATA_MUTATING_STEP_KINDS } = nodeRequire('./componentSpecs/actionSpecsActionKinds.js') as { DATA_MUTATING_STEP_KINDS: string[] };
+const { STEP_KINDS, DATA_MUTATING_STEP_KINDS } = nodeRequire('./componentSpecs/actionSpecsActionKinds.js') as { STEP_KINDS: string[]; DATA_MUTATING_STEP_KINDS: string[] };
 const { BINDING_KINDS, INPUT_MAPPING_KINDS } = nodeRequire('./componentSpecs/bindings.js') as { BINDING_KINDS: string[]; INPUT_MAPPING_KINDS: string[] };
 
 /** The `kind`s of a value (a binding, an input mapping): data a step reads, never a step. */
@@ -43,6 +44,8 @@ export function holdsSteps(value: unknown, depth = 0): boolean {
 }
 
 const isServerKind = (kind: unknown): boolean => typeof kind === 'string' && (DATA_MUTATING_STEP_KINDS.includes(kind) || extensionServerKinds().includes(kind));
+/** A kind this install's catalogue names. A step of any other kind is reduced like a server step: nobody said its fields may travel. */
+const isKnownKind = (kind: unknown): boolean => typeof kind === 'string' && (STEP_KINDS.includes(kind) || isExtensionStepKind(kind));
 
 /** A step's onError handler with its steps redacted, or null when it has none. */
 function redactedHandler(step: Obj): unknown[] | Obj | null {
@@ -67,10 +70,12 @@ function redactEntry(entry: unknown, each: string): unknown {
 export function redactStep(step: unknown): unknown {
     if (!isObject(step)) return step;
     const handler = redactedHandler(step);
-    if (isServerKind(step.kind)) {
+    if (isServerKind(step.kind) || !isKnownKind(step.kind)) {
         // The browser retries and handles a failure itself, so `retry` and the handler travel
         // (the handler's steps redacted, so their ordinals stay). The children of a server step
-        // (a transaction's writes) have no ordinal and stay on the server.
+        // (a transaction's writes) have no ordinal and stay on the server. A kind the catalogue
+        // does not know gets the same reduction: the browser cannot run it and nothing numbers
+        // what it holds.
         return {
             kind: step.kind,
             ...(step.resultVar ? { resultVar: step.resultVar } : {}),
