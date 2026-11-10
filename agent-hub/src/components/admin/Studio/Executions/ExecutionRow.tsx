@@ -9,6 +9,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { howStartedText, stepBars, stepsText } from '@/components/automation/Builder/runs/runOutcome';
 import { StepBars } from '@/components/automation/Builder/runs/RunStatusIcon';
+import { runPhase } from '@/components/automation/Builder/runs/runPhase';
 import { enteredTriggerLabel, runTitle } from './runLanguage';
 import { runLogSentence, sentenceTooltip } from './runLogSentence';
 import type { RunLogRow } from './runLogSentence';
@@ -157,7 +158,8 @@ function OutcomeCell({ run, running }: { run: RunLogRow; running: boolean }) {
  */
 function WhatRanCell({ run, isGlobal, children }: { run: RunLogRow; isGlobal: boolean; children: React.ReactNode }) {
     const { t } = useTranslation();
-    const isDry = run.mode === 'dry_run' || !!run.isTest;
+    // "dry-run" is a claim that nothing was sent: a live test did send, and is a test.
+    const { isDry, isTest } = runPhase(run);
     return (
         <span className="min-w-0 flex flex-col gap-0.5">
             <span className="min-w-0 flex items-center gap-2">
@@ -165,6 +167,11 @@ function WhatRanCell({ run, isGlobal, children }: { run: RunLogRow; isGlobal: bo
                     {isGlobal ? (run.automationTitle || t('studio_misc.runrow.untitled', 'Untitled')) : runTitle(run, undefined, t)}
                 </span>
                 {isDry && <DryRunBadge />}
+                {isTest && !isDry && (
+                    <span className="px-1.5 rounded-full bg-[var(--bg-tertiary)] text-[10px] font-semibold flex-shrink-0" data-testid="run-test-chip">
+                        {t('runs.tab.test_chip', 'test')}
+                    </span>
+                )}
                 {run.automationKind === 'block' && <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] flex-shrink-0">{t('studio_misc.runrow.step_badge', 'Step')}</span>}
             </span>
             {children}
