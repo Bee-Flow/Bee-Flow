@@ -64,11 +64,35 @@ test('nothing but text of at most the limit is a stylesheet', () => {
 
 test('wrapAppCss scopes the text to the app root and leaves empty text empty', () => {
     assert.equal(APP_CSS_ROOT_ATTR, 'data-app-css-root');
-    assert.equal(wrapAppCss('.a{color:red}'), '@scope ([data-app-css-root]) {\n.a{color:red}\n}');
+    assert.equal(wrapAppCss('.a{color:red}'), '.app-shell:has([data-app-css-root]) { position: relative; overflow: clip; }\n@scope ([data-app-css-root]) {\n.a{color:red}\n}');
     assert.equal(wrapAppCss('  '), '');
     // The author cannot open a scope of their own or close this one.
     const hostile = sanitizeAppCss('} @scope (body) { nav { color: red } } .a { color: blue }').css;
     assert.ok(!hostile.includes('@scope') && !hostile.trimStart().startsWith('}'), hostile);
+});
+
+test('text that only looks like url( or a finished string cannot hide a closing brace', () => {
+    // Each of these ends in a brace too many. It must be seen as one (and taken out), not read as part of a token.
+    for (const text of [
+        'a{color:#url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+        'a{color:@url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+        'a{b:\u00e9url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+        'a{b:\u0000url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+        'a{b:"\\\r\n" } } nav{color:red} c{d:"}',
+    ]) {
+        for (const sanitize of [sanitizeAppCss, sanitizeFormCss]) {
+            const { css, removed } = sanitize(text);
+            assert.ok(removed.includes('unbalanced }'), `${JSON.stringify(text)} → ${JSON.stringify(css)}`);
+            assert.ok(!css.includes('\r') && !css.includes('\0'), JSON.stringify(css));
+        }
+    }
+});
+
+test('a long name in front of many brackets is read in time', () => {
+    // Was read from its start for every bracket: 1,200 characters took seconds.
+    const started = Date.now();
+    for (const sanitize of [sanitizeAppCss, sanitizeFormCss]) sanitize(`${'a'.repeat(9000)}${'('.repeat(1000)}`);
+    assert.ok(Date.now() - started < 2000, `took ${Date.now() - started} ms`);
 });
 
 test('cssAssetIds reads every asset the text names', () => {
@@ -196,6 +220,7 @@ test('app_set_theme writes the stylesheet and reports what was removed', async (
 const chrome = process.env.APP_CSS_TEST_CHROME;
 // Run in the page, so they are handed over as text.
 const OUTSIDE_COLOURS = "['before', 'after'].map((id) => getComputedStyle(document.getElementById(id)).color).concat(getComputedStyle(document.body).color, getComputedStyle(document.documentElement).color)";
+const RULE_KINDS = "(text) => { const sheet = new CSSStyleSheet(); sheet.replaceSync(text); return [...sheet.cssRules].map((rule) => rule.constructor.name); }";
 const INSIDE_OUTSIDE_COLOURS = "['inside', 'outside'].map((id) => getComputedStyle(document.getElementById(id)).color)";
 test('in a browser, no selector reaches outside the scope root', { skip: chrome ? false : 'set APP_CSS_TEST_CHROME to run' }, async () => {
     const { chromium } = require('playwright-core');
@@ -213,6 +238,28 @@ test('in a browser, no selector reaches outside the scope root', { skip: chrome 
             const colours = await page.evaluate(OUTSIDE_COLOURS);
             assert.ok(!colours.includes(red), `${selector} coloured something outside the root`);
         }
+        // Text built to end the scope early stays one scope rule (behind the frame rule) to the browser's own parser.
+        const closing = [
+            'a{color:#url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+            'a{color:@url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+            'a{b:\u00e9url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+            'a{b:\u0000url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+            'a{b:"\\\r\n" } } nav{color:red} c{d:"}',
+            'a{b:( ] x{ ) } } nav{color:red}',
+            'a{} } nav{color:red}',
+        ];
+        for (const text of closing) {
+            const kinds = await page.evaluate(`(${RULE_KINDS})(${JSON.stringify(wrapAppCss(sanitizeAppCss(text).css))})`);
+            assert.deepEqual(kinds, ['CSSStyleRule', 'CSSScopeRule'], JSON.stringify(text));
+        }
+        // The root is in scope and may be positioned, but nothing leaves the shell around it.
+        const overlay = wrapAppCss(sanitizeAppCss(':scope { position: absolute; inset: -500px; z-index: 9 } #inside { position: absolute; inset: -500px }').css);
+        await page.setContent(`<html><head><style>body{margin:0}</style></head><body><div id="host" style="height:60px">x</div><div class="app-shell" style="height:200px"><main ${APP_CSS_ROOT_ATTR} style="overflow:auto;height:100%"><style>${overlay}</style><p id="inside">x</p></main></div></body></html>`);
+        assert.equal(await page.evaluate("document.elementFromPoint(10, 10).id"), 'host');
+        // The root's own marks are named through :scope; a selector without it starts inside the root.
+        const dark = wrapAppCss(`:scope[data-app-dark="true"] p { color: ${red}; }`);
+        await page.setContent(`<html><head><style>${dark}</style></head><body><div ${APP_CSS_ROOT_ATTR} data-app-dark="true"><p id="inside">x</p></div><p id="outside">x</p></body></html>`);
+        assert.deepEqual(await page.evaluate(INSIDE_OUTSIDE_COLOURS), [red, 'rgb(0, 0, 0)']);
         // And a rule for something inside does apply.
         await page.setContent(`<html><head><style>${wrapAppCss('p { color: rgb(255, 0, 0); }')}</style></head><body><div ${APP_CSS_ROOT_ATTR}><p id="inside">x</p></div><p id="outside">x</p></body></html>`);
         assert.deepEqual(await page.evaluate(INSIDE_OUTSIDE_COLOURS), [red, 'rgb(0, 0, 0)']);

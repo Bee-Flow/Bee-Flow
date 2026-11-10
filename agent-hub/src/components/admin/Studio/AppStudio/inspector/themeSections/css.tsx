@@ -45,7 +45,7 @@ function Contract({ screenId }: { screenId: string | null }) {
         ['[data-node-id="cmp_…"]', t('studio_apps_css.sel_node', 'one component')],
         ['[data-app-type="button"]', t('studio_apps_css.sel_type', 'every component of a type')],
         ['.u-name', t('studio_apps_css.sel_class', 'components with the CSS class "name" (set under Style)')],
-        ['[data-app-dark="true"]', t('studio_apps_css.sel_dark', 'while the app shows dark')],
+        [':scope[data-app-dark="true"] .u-name', t('studio_apps_css.sel_dark', 'while the app shows dark')],
     ];
     return (
         <dl className="grid grid-cols-1 gap-y-1 text-[10px] leading-snug" data-testid="app-css-contract">

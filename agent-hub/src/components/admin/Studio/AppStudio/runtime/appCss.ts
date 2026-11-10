@@ -21,7 +21,8 @@ import type { AssetTransport } from './assets/assetUrl';
  *
  * wrapAppCss puts the result in `@scope ([data-app-css-root]) { … }`: the element a rule
  * matches then sits inside the app's root whatever the selector says. A browser without
- * @scope applies none of it.
+ * @scope applies none of it. Inside @scope a selector is read from the root down (as if it
+ * began with `:scope `), so the root's own attributes are named as `:scope[data-app-dark="true"]`.
  */
 
 export const APP_CSS_MAX = 20_000;
@@ -61,10 +62,29 @@ function imageFunctionProblem(decoded: string): string | null {
     return stringsOf(decoded).every(isInlineImage) ? null : 'outside address';
 }
 
+const POSITION_ALLOWED = ['static', 'relative', 'absolute', 'sticky', '-webkit-sticky', 'inherit', 'initial', 'unset', 'revert', 'revert-layer'];
+const SNIPPET_MAX = 80;
+
+/**
+ * A `position` that is not one of the listed keywords (the server's list): `fixed`, and a
+ * value from var(), which could become it.
+ */
+function positionProblem(decoded: string): string | null {
+    const text = decoded.trim().toLowerCase();
+    if (!text.startsWith('position')) return null;
+    const rest = text.slice('position'.length).trimStart();
+    if (!rest.startsWith(':')) return null;
+    let value = rest.slice(1).trim();
+    const bang = value.lastIndexOf('!');
+    if (bang !== -1 && value.slice(bang + 1).trim() === 'important') value = value.slice(0, bang).trim();
+    if (POSITION_ALLOWED.includes(value)) return null;
+    return `position: ${value.length > SNIPPET_MAX ? `${value.slice(0, SNIPPET_MAX)}…` : value}`;
+}
+
 const APP_CSS_POLICY: CssAddressPolicy = Object.freeze({
     allowUrl: (argument: string): boolean => isInlineImage(argument) || isAssetRef(argument.trim()),
     refuseString: FORM_CSS_POLICY.refuseString,
-    refuseSegment: imageFunctionProblem,
+    refuseSegment: (decoded: string): string | null => imageFunctionProblem(decoded) ?? positionProblem(decoded),
 });
 
 /** The stylesheet as the page may mount it: `{ css, removed }`, never throws. */
@@ -74,9 +94,16 @@ export function sanitizeAppCssClient(input: unknown): SanitizedCss {
     return sanitizeCssClientWith(input, APP_CSS_POLICY);
 }
 
-/** The sanitised text inside its scope. Empty text gives an empty string. */
+/**
+ * The rule in front of the scope. The root itself is in scope, and `position: absolute` is
+ * allowed, so the shell around the root is made the box all of it is laid out in and cut
+ * off at: whatever a rule does stays inside the app. The author's text cannot reach the shell.
+ */
+const APP_CSS_FRAME = `.app-shell:has([${APP_CSS_ROOT_ATTR}]) { position: relative; overflow: clip; }`;
+
+/** The sanitised text inside its scope, behind the frame rule. Empty text gives an empty string. */
 export function wrapAppCss(css: string): string {
-    return css.trim() ? `@scope ([${APP_CSS_ROOT_ATTR}]) {\n${css}\n}` : '';
+    return css.trim() ? `${APP_CSS_FRAME}\n@scope ([${APP_CSS_ROOT_ATTR}]) {\n${css}\n}` : '';
 }
 
 const IDENT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-\\';

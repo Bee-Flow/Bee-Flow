@@ -55,7 +55,27 @@ const MAX_PASSES = 8;
 const isNewline = (c: string): boolean => c === '\n' || c === '\r' || c === '\f';
 const isHex = (c: string): boolean => /^[0-9a-fA-F]$/.test(c);
 
+const URL_IDENT_WINDOW = 40;
 const URL_IDENT_AT_END = /((?:[a-zA-Z0-9_-]|\\[0-9a-fA-F]{1,6}[ \t\n\r\f]?|\\[^\n\r\f0-9a-fA-F])+)$/;
+
+/**
+ * Is the identifier that starts at `at` only the tail of a longer token? After `#` it is a
+ * hash, after `@` an at-keyword, and a character outside ASCII is part of the name itself:
+ * the browser then reads `(` as an ordinary bracket, with strings inside, not as url(.
+ */
+function continuesAName(before: string, at: number): boolean {
+    if (at === 0) return false;
+    const prev = before[at - 1];
+    return prev === '#' || prev === '@' || prev.charCodeAt(0) >= 0x80;
+}
+
+/**
+ * The text as the browser's tokenizer sees it: one kind of newline (so a backslash before
+ * CR LF continues a string, as it does there) and no NUL.
+ */
+function preprocess(css: string): string {
+    return css.split('\r\n').join('\n').split('\r').join('\n').split('\f').join('\n').split('\0').join('\ufffd');
+}
 
 /**
  * Where an UNQUOTED `url(` whose '(' is at `paren` ends (exclusive), or null
@@ -66,8 +86,12 @@ const URL_IDENT_AT_END = /((?:[a-zA-Z0-9_-]|\\[0-9a-fA-F]{1,6}[ \t\n\r\f]?|\\[^\
  * end is left out: it would escape the `)` that closes the token).
  */
 function unquotedUrl(css: string, paren: number, before: string): { end: number; closed: boolean } | null {
-    const ident = URL_IDENT_AT_END.exec(before);
+    // Only the end of `before` is read: `url` spelled with escapes is at most 24 characters, and a
+    // longer name is not `url`. Reading all of it for every bracket would cost its length squared.
+    const tail = before.length > URL_IDENT_WINDOW ? before.slice(-URL_IDENT_WINDOW) : before;
+    const ident = URL_IDENT_AT_END.exec(tail);
     if (!ident || decodeForCheck(ident[1]).decoded.toLowerCase() !== 'url') return null;
+    if (continuesAName(tail, ident.index)) return null;
     let i = paren + 1;
     while (i < css.length && /[ \t\n\r\f]/.test(css[i])) i += 1;
     if (css[i] === '"' || css[i] === "'") return null;
@@ -345,7 +369,7 @@ export function sanitizeCssWith(input: unknown, policy: CssAddressPolicy): Sanit
     if (typeof input !== 'string' || !input) return { css: '', removed: [] };
     if (input.length > FORM_CSS_MAX_CHARS) return { css: '', removed: [`over ${FORM_CSS_MAX_CHARS} characters`] };
     const removed = new Set<string>();
-    let css = input;
+    let css = preprocess(input);
     for (let pass = 0; pass < MAX_PASSES; pass++) {
         const next = sanitizePass(css, removed, policy);
         if (next === css) return { css, removed: [...removed] };

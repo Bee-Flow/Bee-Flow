@@ -64,7 +64,7 @@ describe('the Custom CSS section of the theme panel', () => {
         render(<Harness initial={{}} />);
         await userEvent.click(screen.getByRole('button', { name: 'What you can target' }));
         const contract = screen.getByTestId('app-css-contract').textContent || '';
-        for (const selector of ['[data-app-screen="scr_home"]', '[data-section-id="sec_…"]', '[data-node-id="cmp_…"]', '[data-app-type="button"]', '.u-name', '[data-app-dark="true"]']) {
+        for (const selector of ['[data-app-screen="scr_home"]', '[data-section-id="sec_…"]', '[data-node-id="cmp_…"]', '[data-app-type="button"]', ':scope[data-app-dark="true"] .u-name']) {
             expect(contract).toContain(selector);
         }
     });

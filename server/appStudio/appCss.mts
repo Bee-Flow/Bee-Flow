@@ -19,7 +19,8 @@
  * parent inside :has() or :is() can match an element outside it. The text is wrapped in
  * `@scope ([data-app-css-root]) { … }` (wrapAppCss), where the matched element of every rule
  * sits inside the app's root whatever the selector says. A browser without @scope applies
- * none of it.
+ * none of it. Inside @scope a selector is read from the root down (as if it began with
+ * `:scope `), so the root's own attributes are named as `:scope[data-app-dark="true"]`.
  *
  * `asset:<id>` stays in the stored text; the page turns it into the asset's address when it
  * mounts the stylesheet (agent-hub …/runtime/appCss.ts, the client half of this file: keep
@@ -91,9 +92,16 @@ export function isCssClassName(value: unknown): value is string {
     return true;
 }
 
-/** The sanitised text inside its scope, as the page mounts it. Empty text gives an empty string. */
+/**
+ * The rule in front of the scope. The root itself is in scope, and `position: absolute` is
+ * allowed, so the shell around the root is made the box all of it is laid out in and cut
+ * off at: whatever a rule does stays inside the app. The author's text cannot reach the shell.
+ */
+const APP_CSS_FRAME = `.app-shell:has([${APP_CSS_ROOT_ATTR}]) { position: relative; overflow: clip; }`;
+
+/** The sanitised text inside its scope, behind the frame rule, as the page mounts it. Empty text gives an empty string. */
 export function wrapAppCss(css: string): string {
-    return css.trim() ? `@scope ([${APP_CSS_ROOT_ATTR}]) {\n${css}\n}` : '';
+    return css.trim() ? `${APP_CSS_FRAME}\n@scope ([${APP_CSS_ROOT_ATTR}]) {\n${css}\n}` : '';
 }
 
 /**

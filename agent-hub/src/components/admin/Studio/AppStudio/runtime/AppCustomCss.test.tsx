@@ -37,7 +37,7 @@ describe('AppCustomCss', () => {
 
     it('mounts the sanitised text in a scope and marks its parent as the root', () => {
         const { root, sheet } = mount(<AppCustomCss definition={styled()} />);
-        expect(sheet()?.textContent).toBe(`@scope ([data-app-css-root]) {\n${CSS}\n}`);
+        expect(sheet()?.textContent).toBe(`.app-shell:has([data-app-css-root]) { position: relative; overflow: clip; }\n@scope ([data-app-css-root]) {\n${CSS}\n}`);
         expect(root.getAttribute('data-app-css-root')).toBe('');
         expect(root.getAttribute('data-app-dark')).toBe('false');
     });

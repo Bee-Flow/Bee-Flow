@@ -55,9 +55,33 @@ describe('sanitizeAppCssClient', () => {
     });
 });
 
+describe('what only looks like a token hides no closing brace', () => {
+    it('reads url( after a hash, an at-sign or a longer name, and a string over CR LF, as the browser does', () => {
+        for (const text of [
+            'a{color:#url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+            'a{color:@url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+            'a{b:\u00e9url(data:image/x " ) " ) } } nav{color:red} b{c:" }',
+            'a{b:"\\\r\n" } } nav{color:red} c{d:"}',
+            'a{b:url(\u00a0"data:image/x\n x{ ) } } nav{color:red}',
+        ]) {
+            for (const sanitize of [sanitizeAppCssClient, sanitizeFormCssClient]) {
+                const { css, removed } = sanitize(text);
+                expect(removed, `${JSON.stringify(text)} → ${JSON.stringify(css)}`).toContain('unbalanced }');
+                expect(css).not.toContain('\r');
+            }
+        }
+    });
+
+    it('refuses a position that is not a plain keyword', () => {
+        expect(sanitizeAppCssClient('.a{--p:fixed;position:var(--p);top:0}')).toEqual({ css: '.a{--p:fixed;top:0}', removed: ['position: var(--p)'] });
+        expect(sanitizeAppCssClient('.a{position:absolute !important}').removed).toEqual([]);
+        expect(sanitizeAppCssClient('.a{position:sticky}').removed).toEqual([]);
+    });
+});
+
 describe('wrapAppCss', () => {
     it('scopes the text to the app root and leaves empty text empty', () => {
-        expect(wrapAppCss('.a{color:red}')).toBe('@scope ([data-app-css-root]) {\n.a{color:red}\n}');
+        expect(wrapAppCss('.a{color:red}')).toBe('.app-shell:has([data-app-css-root]) { position: relative; overflow: clip; }\n@scope ([data-app-css-root]) {\n.a{color:red}\n}');
         expect(wrapAppCss(' \n')).toBe('');
     });
 });

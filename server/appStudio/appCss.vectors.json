@@ -26,6 +26,11 @@
     { "name": "position sticky stays", "css": ".a { position: sticky; top: 0; }", "removed": [], "keeps": ["position: sticky"], "drops": [] },
     { "name": "closing the style element", "css": ".a { color: red; } </style><script>x</script>", "removed": ["</"], "keeps": ["color: red"], "drops": ["</"] },
     { "name": "a brace too many", "css": ".a { color: red; } } nav { color: blue; }", "removed": ["unbalanced }"], "keeps": ["color: red"], "drops": [] },
-    { "name": "expression", "css": ".a { width: expression(alert(1)); color: red; }", "removed": ["expression("], "keeps": ["color: red"], "drops": ["alert"] }
+    { "name": "expression", "css": ".a { width: expression(alert(1)); color: red; }", "removed": ["expression("], "keeps": ["color: red"], "drops": ["alert"] },
+    { "name": "position from a variable", "css": ".a { --p: fixed; position: var(--p); top: 0; }", "removed": ["position: var(--p)"], "keeps": ["top: 0"], "drops": ["position:"] },
+    { "name": "a hash that ends in url is not url()", "css": ".a { color: #url(data:image/x \" ) \" ); } } nav { color: red; } .b { content: \" \"; }", "removed": ["unbalanced }"], "keeps": ["nav { color: red; }"], "drops": [] },
+    { "name": "an at-keyword that ends in url is not url()", "css": ".a { color: @url(data:image/x \" ) \" ); } } nav { color: red; } .b { content: \" \"; }", "removed": ["unbalanced }"], "keeps": ["nav { color: red; }"], "drops": [] },
+    { "name": "a longer name that ends in url is not url()", "css": ".a { color: éurl(data:image/x \" ) \" ); } } nav { color: red; } .b { content: \" \"; }", "removed": ["unbalanced }"], "keeps": ["nav { color: red; }"], "drops": [] },
+    { "name": "a backslash before CR LF continues a string", "css": ".a { content: \"\\\r\n\" } } nav { color: red; } .b { content: \" \"; }", "removed": ["unbalanced }"], "keeps": ["nav { color: red; }"], "drops": ["\r"] }
   ]
 }

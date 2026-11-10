@@ -1,8 +1,8 @@
 {
   "corpus": "custom-css",
   "canonical": {
-    "sha256": "37c92b0da7276063243d9a61868d5a7fd5c4d85a717960070eda73665524c2ff",
-    "bytes": 2713,
+    "sha256": "4ead1cb2dc35dc961203090f283aa85c2d3c298c6cc127aeea7b60c78acb63fd",
+    "bytes": 2719,
     "inputIsCanonical": true,
     "idempotent": true,
     "keys": [
@@ -23,7 +23,7 @@
       "roles": "4f53cda18c2baa0c",
       "screens[0] scr_css00001": "07584680c4345039",
       "screens[1] scr_css00002": "a1f6eda291fec26e",
-      "design": "fd8650af68db01e1",
+      "design": "d7553699c067971d",
       "homeScreenId": "38fefd5049e3b474",
       "publicAccess": "906ef5f68a803e9d"
     }

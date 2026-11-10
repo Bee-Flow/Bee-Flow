@@ -120,9 +120,15 @@ function preludeProblem(prelude: string, policy: CssAddressPolicy): string | nul
     return segmentProblem(prelude, policy);
 }
 
-/** Comments, `</` and `<!--`, and NULs out, until nothing new forms from what was left. */
+const CSS_SPACE = ' \t\n';
+const URL_IDENT_WINDOW = 40;
+
+/**
+ * Comments, `</` and `<!--`, and NULs out, until nothing new forms from what was left. Newlines
+ * become one kind first, as in the browser: there a backslash before CR LF continues a string.
+ */
 function stripUnsafeSequences(css: string, removed: Set<string>): string {
-    let s = css.split('\0').join('');
+    let s = css.split('\0').join('').split('\r\n').join('\n').split('\r').join('\n').split('\f').join('\n');
     for (;;) {
         const next = s.replace(/\/\*[\s\S]*?(?:\*\/|$)/g, '').replace(/<\//g, '').replace(/<!--/g, '');
         if (next === s) return s;
@@ -160,12 +166,19 @@ function decodeAllEscapes(ident: string): string {
  * (exclusive), or -1 when `before` does not end in the identifier `url` or the
  * argument is quoted (then it is an ordinary function with a string inside).
  */
-function unquotedUrlEnd(src: string, paren: number, before: string): number {
+function unquotedUrlEnd(src: string, paren: number, all: string): number {
+    // Only the end is read: `url` spelled with escapes is at most 24 characters, and a longer
+    // name is not `url`. Reading everything before each bracket would cost its length squared.
+    const before = all.length > URL_IDENT_WINDOW ? all.slice(-URL_IDENT_WINDOW) : all;
     const ident = /(?:^|[^\w\\-])((?:[\w-]|\\[0-9a-fA-F]{1,6}\s?|\\[^\r\n\f])+)$/.exec(before);
     if (!ident || decodeAllEscapes(ident[1]).toLowerCase() !== 'url') return -1;
+    // After `#` (a hash), `@` (an at-keyword) or a character outside ASCII (part of the name)
+    // the browser reads `(` as an ordinary bracket, with strings inside, not as url(.
+    const prev = before[before.length - ident[1].length - 1] ?? '';
+    if (prev === '#' || prev === '@' || prev.charCodeAt(0) >= 0x80) return -1;
     let i = paren + 1;
-    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- tests ONE character, no backtracking
-    while (i < src.length && /\s/.test(src[i])) i += 1;
+    // Only what CSS calls whitespace: after any other blank the browser still reads url( as one token.
+    while (i < src.length && CSS_SPACE.includes(src[i])) i += 1;
     if (src[i] === '"' || src[i] === "'") return -1;
     while (i < src.length) {
         if (src[i] === '\\') { i += 2; continue; }
