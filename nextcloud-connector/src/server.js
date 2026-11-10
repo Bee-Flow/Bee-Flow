@@ -32,6 +32,7 @@ const { registerLifecycle } = require('./heartbeat');
 const { buildApiProxy, buildEmbedProxy, isSpaShellPath } = require('./proxy');
 const log = require('./log');
 const { errMessage } = require('./errors');
+const { withNonceRoom } = require('./htmlPadding');
 
 // Apply the Nextcloud TLS posture decided at boot (scripts/ncTlsTrust.js) BEFORE
 // any NC-bound fetch runs. No-op when the NC cert is publicly trusted; otherwise
@@ -344,9 +345,19 @@ app.use((req, res, next) => {
     req.__shellNext = next;
     return embedProxy(req, res, next);
 });
+const indexHtmlPath = path.join(publicDir, 'index.html');
+// The shell baked into this image, asked for as `/index.html` (the path the
+// Nextcloud top bar frames on a manual-install daemon): sent with room for the
+// nonce Nextcloud adds to its script tags, see htmlPadding.js.
+app.get('/index.html', (_req, res, next) => {
+    fs.readFile(indexHtmlPath, 'utf8', (err, html) => {
+        if (err) return next();
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        res.type('html').send(withNonceRoom(html));
+    });
+});
 app.use(express.static(publicDir, { index: false, fallthrough: true }));
 
-const indexHtmlPath = path.join(publicDir, 'index.html');
 // SPA is built with --base and VITE_API_URL pointing at the NC proxy path,
 // so all asset URLs (in index.html) and runtime API calls
 // (`${API_BASE}/auth/...`) already include the proxy prefix. No HTML
@@ -362,14 +373,18 @@ app.get('/{*splat}', (_req, res) => {
     res.sendFile(indexHtmlPath);
 });
 
+// A handler that threw: a plain 500, the detail in the log only.
+app.use(require('./httpGuards').terminalErrorHandler);
+
 // One-shot auto-bootstrap on the chosen Bee Flow server: load the cached
 // binding, or provision an org + tenant key. Runs in the background so the
 // connector keeps serving heartbeats even if the server is briefly
-// unreachable. Failures are logged and retried on the next /init lifecycle
-// hit. A no-op while no server is chosen.
+// unreachable. A failure is logged and recorded for the setup page; one that
+// can pass by itself is tried again (bootstrap.js). A no-op while no server is
+// chosen.
 const { bootstrapIfNeeded } = require('./bootstrap');
 bootstrapIfNeeded().catch(err => {
-    log.error(`[Bootstrap] Failed: ${errMessage(err)}. Will retry on /init.`);
+    log.error(`[Bootstrap] Failed: ${errMessage(err)}. The Bee Flow setup page has the cause and what to do.`);
 });
 
 // NC admin settings panel (Cloud vs self-hosted) — poll for changes every

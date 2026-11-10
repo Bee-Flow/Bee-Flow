@@ -624,6 +624,13 @@
                 showOutcome('info', `A code was e-mailed${to ? ` to ${to}` : ''}. Open Bee Flow to enter it.`, true);
                 return;
             }
+            const rejected = d.rejectedSwitch && Date.parse(d.rejectedSwitch.at) >= since ? d.rejectedSwitch : null;
+            if (rejected && !here) {
+                // The switch went back; the failure is the other server's.
+                if (d.apiBaseUrl) metaActive.textContent = d.apiBaseUrl;
+                showStatusText('err', `Connecting failed (${rejected.category}): ${rejected.error}. The previous server is still in use.`);
+                return;
+            }
             if (fresh) {
                 if (here) { active = savedUrl; metaActive.textContent = savedUrl; }
                 const kept = here ? '' : ' The previous server is still in use.';

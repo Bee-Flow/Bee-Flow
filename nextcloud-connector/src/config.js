@@ -17,6 +17,7 @@
  */
 
 const { envLock } = require('./serverChoice');
+const { parseAllowedUrl } = require('./remoteHost');
 const { intFromEnv } = require('./envValues');
 const log = require('./log');
 
@@ -25,6 +26,24 @@ function required(name) {
     const v = process.env[name];
     if (!v) throw new Error(`Missing required env var: ${name}`);
     return v;
+}
+
+/**
+ * BEEFLOW_EMBED_BASE_URL as a shell host: the URL without a trailing slash, or
+ * '' when it is blank or not a URL this connector fetches from.
+ * @param {unknown} raw
+ * @returns {string}
+ */
+function usableEmbedBaseUrl(raw) {
+    const value = String(raw || '').trim().replace(/\/+$/, '');
+    if (!value) return '';
+    try {
+        parseAllowedUrl(value, { label: 'BEEFLOW_EMBED_BASE_URL' });
+    } catch (err) {
+        log.warn(`[Config] ignoring BEEFLOW_EMBED_BASE_URL: ${err instanceof Error ? err.message : String(err)}`);
+        return '';
+    }
+    return value;
 }
 
 // Auto-bootstrap mode: when BEEFLOW_TENANT_KEY is unset or set to literal
@@ -46,7 +65,10 @@ if (serverLock.invalid) {
 // connector talks to Cloud. Same value as setupConfig.CLOUD_EMBED_URL. That
 // same value in BEEFLOW_EMBED_BASE_URL is no lock.
 const CLOUD_EMBED_BASE_URL = 'https://beeflow.nl';
-const envEmbedBaseUrl = (process.env.BEEFLOW_EMBED_BASE_URL || '').trim().replace(/\/+$/, '');
+// A value that is not the URL of a host (a stray word, a value AppAPI filled in
+// by itself) fixes nothing: it is ignored, exactly like an unusable
+// BEEFLOW_API_BASE_URL, and the shell host follows the server choice.
+const envEmbedBaseUrl = usableEmbedBaseUrl(process.env.BEEFLOW_EMBED_BASE_URL);
 const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
 
 /**

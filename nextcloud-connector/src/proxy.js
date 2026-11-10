@@ -21,6 +21,7 @@ const serverTls = require('./serverTls');
 const serverProxy = require('./serverProxy');
 const { ncOrigins } = require('./ncTls');
 const { isCertificateError } = require('./serverProbe');
+const { isNoncePath, nonceRoom, MAX_PADDED_BYTES } = require('./htmlPadding');
 
 // How long the SaaS may take to send RESPONSE HEADERS before we give up.
 // Deliberately not a whole-request timeout: an SSE chat turn legitimately
@@ -594,6 +595,48 @@ function buildEmbedProxy() {
     };
 }
 
+/**
+ * Is this the shell document on a path where Nextcloud adds its nonce to the
+ * script tags (htmlPadding.js)? Only a complete, uncompressed HTML answer of
+ * modest length is padded; anything else is passed on as it is.
+ * @param {import('http').IncomingMessage} proxyRes
+ * @param {import('http').IncomingMessage} req
+ */
+function needsNonceRoom(proxyRes, req) {
+    if (req.method !== 'GET' || proxyRes.statusCode !== 200) return false;
+    if (!isNoncePath(req.__shellUrl ?? req.url)) return false;
+    if (!/^text\/html\b/i.test(String(proxyRes.headers['content-type'] || ''))) return false;
+    const encoding = String(proxyRes.headers['content-encoding'] || 'identity').toLowerCase();
+    if (encoding !== 'identity') return false;
+    const announced = proxyRes.headers['content-length'];
+    return announced === undefined || Number(announced) <= MAX_PADDED_BYTES;
+}
+
+/**
+ * Send the shell document followed by the room for its nonces, with the
+ * Content-Length of both.
+ * @param {import('http').IncomingMessage} proxyRes
+ * @param {import('http').ServerResponse} res
+ */
+function sendWithNonceRoom(proxyRes, res) {
+    /** @type {Buffer[]} */
+    const chunks = [];
+    let size = 0;
+    proxyRes.on('data', (/** @type {Buffer} */ chunk) => {
+        size += chunk.length;
+        // Far larger than a shell document: not something to hold in memory.
+        if (size > MAX_PADDED_BYTES) { proxyRes.destroy(); res.destroy(); return; }
+        chunks.push(chunk);
+    });
+    proxyRes.on('error', () => res.destroy());
+    proxyRes.on('end', () => {
+        const body = Buffer.concat(chunks);
+        const room = Buffer.from(nonceRoom(body));
+        res.setHeader('content-length', body.length + room.length);
+        res.end(Buffer.concat([body, room]));
+    });
+}
+
 /** @param {string} target */
 function buildEmbedProxyFor(target) {
     const agent = agentFor(target);
@@ -632,6 +675,10 @@ function buildEmbedProxyFor(target) {
                 for (const [name, value] of Object.entries(proxyRes.headers)) {
                     if (value === undefined || SHELL_RESPONSE_DROP.has(name)) continue;
                     res.setHeader(name, value);
+                }
+                if (needsNonceRoom(proxyRes, req)) {
+                    sendWithNonceRoom(proxyRes, res);
+                    return;
                 }
                 proxyRes.pipe(res);
             },

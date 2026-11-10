@@ -242,6 +242,6 @@ test('info.xml declares the value without a default, and the failure texts name 
     const refused = new TypeError('fetch failed', { cause: Object.assign(new Error('self-signed certificate in certificate chain'), { code: 'SELF_SIGNED_CERT_IN_CHAIN' }) });
     assert.equal(categoriseError(refused, 'saas_post'), 'saas_cert_untrusted');
     assert.equal(categoriseError(new TypeError('fetch failed', { cause: Object.assign(new Error('refused'), { code: 'ECONNREFUSED' }) }), 'saas_post'), 'saas_unreachable');
-    // A certificate failure while asking Nextcloud keeps its Nextcloud category.
-    assert.equal(categoriseError(refused, 'capabilities'), 'nc_not_publicly_reachable');
+    // A certificate failure while asking Nextcloud is about Nextcloud's certificate, not the server's.
+    assert.equal(categoriseError(refused, 'capabilities'), 'nc_cert_untrusted');
 });

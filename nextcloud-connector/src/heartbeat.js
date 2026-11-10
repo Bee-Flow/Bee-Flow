@@ -217,7 +217,9 @@ async function runInitOnce() {
             const { bootstrapIfNeeded } = require('./bootstrap');
             await bootstrapIfNeeded();
         } catch (err) {
-            log.warn(`[Init] Bootstrap retry failed (non-fatal): ${errMessage(err)}`);
+            // The attempt itself is logged by bootstrap.js; at a start this
+            // is the same attempt server.js made, not a second one.
+            log.info(`[Init] continuing without a connection to the Bee Flow server (${errMessage(err)})`);
         }
     }
     await reportInitProgress(25).catch(() => {});

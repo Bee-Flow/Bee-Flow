@@ -366,7 +366,8 @@ router.get('/diagnostics', requireNcAdmin, (req, res) => {
         // deliveries Nextcloud made since this connector process started
         // (`since`). Kept in memory, so a restart begins again; `registered`
         // with no delivery after an event in Nextcloud points at Nextcloud's
-        // background jobs or its log (`Webhook(<id>) call failed`).
+        // background jobs or its log (`Webhook(<id>) call failed`). A delivery
+        // counts when it arrives, whatever the connector then answers.
         webhooks: { registered: webhookListeners.isRegistered(), ...automationEventsWebhook.deliveryStats() },
         // Callback-signature health. Repeated rejections mean the Bee Flow
         // server and this host disagree about the tenant key or the clock —
@@ -405,6 +406,9 @@ router.get('/diagnostics', requireNcAdmin, (req, res) => {
             lastAttemptAt: lastError.lastAttemptAt,
             nextRetryAt: lastError.nextRetryAt,
         } : null,
+        // A switch to another server that did not happen: that server and why.
+        // lastError above is always about apiBaseUrl, the server in use.
+        rejectedSwitch: bootstrap.getRejectedSwitch(),
     });
 });
 

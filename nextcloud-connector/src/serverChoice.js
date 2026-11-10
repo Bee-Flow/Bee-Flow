@@ -208,6 +208,7 @@ function unconfiguredGate({ pageHtml }) {
     // Lazy: config requires this file, and auth requires config.
     const config = require('./config');
     const { isDocumentNavigation } = require('./auth');
+    const { isNoncePath, withNonceRoom } = require('./htmlPadding');
     return (req, res, next) => {
         if (config.apiBaseUrl) return next();
         if (LOCAL_PATHS.has(req.path)) return next();
@@ -218,7 +219,10 @@ function unconfiguredGate({ pageHtml }) {
                 return res.status(500).type('text/plain').send('setup.html missing — connector packaging error');
             }
             res.set('Cache-Control', 'no-store');
-            return res.type('html').send(firstRunPage(html, !!req.beeflow?.user?.isNcAdmin));
+            const page = firstRunPage(html, !!req.beeflow?.user?.isNcAdmin);
+            // `/index.html` is what the Nextcloud top bar frames on a
+            // manual-install daemon; see htmlPadding.js.
+            return res.type('html').send(isNoncePath(req.path) ? withNonceRoom(page) : page);
         }
         return res.status(503).json({ error: NOT_CHOSEN_MESSAGE, code: NOT_CHOSEN_CODE });
     };
