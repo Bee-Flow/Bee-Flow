@@ -9,8 +9,8 @@
  */
 
 /**
- * A whole number from the environment. Unset, blank or not a number: the
- * fallback. Otherwise the value, kept between min and max.
+ * A whole number from the environment. Unset, blank, negative or not a
+ * number: the fallback. Otherwise the value, kept between min and max.
  * @param {string} name
  * @param {{ fallback: number, min: number, max: number }} range
  * @param {NodeJS.ProcessEnv} [env]
@@ -20,7 +20,7 @@ function intFromEnv(name, { fallback, min, max }, env = process.env) {
     const raw = String(env[name] ?? '').trim();
     if (raw === '') return fallback;
     const n = Number(raw);
-    if (!Number.isFinite(n)) return fallback;
+    if (!Number.isFinite(n) || n < 0) return fallback;
     return Math.min(max, Math.max(min, Math.trunc(n)));
 }
 

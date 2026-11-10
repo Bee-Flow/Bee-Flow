@@ -91,9 +91,15 @@ test('a number from the environment falls back when unusable and stays inside it
     assert.equal(read(' 120 '), 120);
     assert.equal(read('120.9'), 120);
     assert.equal(read('1'), 30);
-    assert.equal(read('-5'), 30);
+    assert.equal(read('-5'), 300, 'a negative number is not a value: the default applies');
     assert.equal(read('0'), 30);
     assert.equal(read('999999'), 900);
+
+    // Where 0 means "off", a negative number does not switch anything off.
+    const timeout = { fallback: 60_000, min: 0, max: 86_400_000 };
+    assert.equal(intFromEnv('X', timeout, { X: '-1' }), 60_000);
+    assert.equal(intFromEnv('X', timeout, { X: '-0.5' }), 60_000);
+    assert.equal(intFromEnv('X', timeout, { X: '0' }), 0);
 });
 
 test('a word from the environment is one of the allowed words, else the fallback', () => {
