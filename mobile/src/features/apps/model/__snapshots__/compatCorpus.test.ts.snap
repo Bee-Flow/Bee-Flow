@@ -46,6 +46,43 @@ exports[`compat corpus: what the phone plans for every stored app asset-refs 1`]
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app computed-read-time 1`] = `
+{
+  "defaultScreen": "scr_lines01",
+  "navigable": [
+    "scr_lines01",
+  ],
+  "screens": [
+    {
+      "id": "scr_lines01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_lnhead",
+                "kind": "heading",
+                "level": 1,
+                "text": "Order lines",
+              },
+            ],
+            "screen": "scr_lines01",
+            "unsupported": [
+              "table",
+              "stat",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "clerk",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app empty-definition 1`] = `
 {
   "defaultScreen": "scr_6x27gi",
@@ -664,6 +701,43 @@ exports[`compat corpus: what the phone plans for every stored app lockstep-sampl
           "roles": [
             "(no role)",
             "manager",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app paged-record-lists 1`] = `
+{
+  "defaultScreen": "scr_queue01",
+  "navigable": [
+    "scr_queue01",
+  ],
+  "screens": [
+    {
+      "id": "scr_queue01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_qhead",
+                "kind": "heading",
+                "level": 1,
+                "text": "Ticket queue",
+              },
+            ],
+            "screen": "scr_queue01",
+            "unsupported": [
+              "table",
+              "list",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
           ],
         },
       ],
