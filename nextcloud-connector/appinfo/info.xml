@@ -277,7 +277,7 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
                  repoint the server, redeem a pairing code). The email-verification
                  endpoints stay USER (they run before a tenant key exists and are
                  gated by the one-time emailed code). -->
-            <route><url>^/?setup\/(status|test|rotate-tenant-key|apply-pairing-code|public-nc-url|diagnose|clear-cache|nc-certificate|accept-nc-certificate)$</url><verb>GET,POST</verb><access_level>ADMIN</access_level></route>
+            <route><url>^/?setup\/(status|test|discover|rotate-tenant-key|apply-pairing-code|public-nc-url|diagnose|clear-cache|nc-certificate|accept-nc-certificate)$</url><verb>GET,POST</verb><access_level>ADMIN</access_level></route>
 
             <!-- Nextcloud `webhook_listeners` deliveries -> connector.
                  PUBLIC because the delivery is made by a Nextcloud background

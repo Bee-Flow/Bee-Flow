@@ -43,6 +43,12 @@ Open **Bee Flow** from the Nextcloud top bar as an administrator and pick a card
   in [Bee Flow on your own server next to Nextcloud](own-server.md). No server yet? The form opens an install help with the
   commands for the installer, as fixed text: [the installer](own-server.md#install-script).
 
+When a Bee Flow server already runs on the same machine, the page says so: "A Bee Flow server answers
+at …" with **Use this address**. The connector looks only at the Docker host it runs on and at the
+server's container name, on the default port 3001, and asks nothing but `/api/health`; nothing about
+this Nextcloud is sent. It is an offer: nothing is chosen until you connect. A server on another
+port or another machine is not found this way; enter its address yourself.
+
 Before you press **Connect**, the page shows what connecting sends and to which host:
 
 > When you connect, the names and e-mail addresses of this Nextcloud's administrators, its address,

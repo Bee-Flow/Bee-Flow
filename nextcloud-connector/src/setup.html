@@ -191,6 +191,11 @@
     .status .detail { display: block; margin-top: 6px; opacity: 0.85; }
     .status button { margin-top: 10px; }
 
+    /* A Bee Flow server found next to this Nextcloud: an offer, not a choice. */
+    .found { display: none; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; background: var(--panel); }
+    .found.show { display: flex; }
+    .found p { margin: 0; flex: 1 1 260px; }
+
     /* The install help inside the self-hosted form. */
     .install { margin: 0 0 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
     .install > summary { cursor: pointer; padding: 10px 12px; font-weight: 600; }
@@ -277,6 +282,11 @@
            did not succeed. The cause is shown below; fix it and connect again.</p>
         <p class="note" id="note-literal-cloud-env"></p>
     </header>
+
+    <div class="found" id="found-server" role="status">
+        <p>A Bee Flow server answers at <code id="found-url"></code>. It is not chosen yet.</p>
+        <button type="button" class="btn-secondary" id="btn-use-found">Use this address</button>
+    </div>
 
     <div class="cards">
         <div class="card" id="card-cloud" data-mode="cloud">
@@ -904,6 +914,27 @@ PROFILES="core guard classify" ./selfhost.sh</pre>
         btnSave.textContent = active ? 'Save and connect' : 'Connect';
     }
 
+    // While no server is chosen: does one answer next to this Nextcloud? The
+    // connector asks a fixed list of nearby addresses; the answer is an offer
+    // the administrator may take, and the code and Connect still follow.
+    async function lookNearby() {
+        try {
+            const r = await fetch(BASE + 'setup/discover');
+            const d = await r.json();
+            const first = r.ok && Array.isArray(d.found) ? d.found[0] : null;
+            if (!first || active) return;
+            $('found-url').textContent = first.apiBaseUrl;
+            $('found-server').classList.add('show');
+            $('btn-use-found').addEventListener('click', () => {
+                $('card-self').click();
+                inputUrl.value = first.apiBaseUrl;
+                inputUrl.dispatchEvent(new Event('input', { bubbles: true }));
+                $('found-server').classList.remove('show');
+                inputWebUrl.focus();
+            });
+        } catch (_) { /* no offer; the page works without it */ }
+    }
+
     // Initial state
     fetch(BASE + 'setup/status').then(async r => {
         const s = await r.json();
@@ -920,6 +951,7 @@ PROFILES="core guard classify" ./selfhost.sh</pre>
         active = s.active || null;
         metaActive.textContent = active || 'none (no server chosen yet)';
         envLocked = !!s.envOverridden;
+        if (!active && !envLocked) lookNearby();
         if (s.selfHostingDocsUrl) {
             linkSelfHosting.href = s.selfHostingDocsUrl;
             if (texts.selfHostingLink) linkSelfHosting.textContent = texts.selfHostingLink;
