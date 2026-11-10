@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio — the binding planner: for ONE data binding in ONE scope, the
  * decision whether to fetch it, and with which resolved filters, aggregate
