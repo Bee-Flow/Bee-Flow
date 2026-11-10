@@ -3,6 +3,7 @@ import { API_BASE } from '../utils/helpers';
 import { fetchAuthUser, fetchMyPermissions, fetchSetupDiagnostics, fetchSetupStatus } from '../api/queries/coreAuthSession';
 import { logger } from '../utils/logger';
 import type { BootstrapDiagnostics } from './shellScreens';
+import { NC_ONBOARDING_PENDING_CODE, readSignInRefusal, type SignInRefusal } from './signedOutScreen';
 import type { PendingNcBinding } from '../components/integrations/nextcloud/NcBindingApprovalModal';
 
 /** The parts of /auth/user the session applier reads. */
@@ -50,6 +51,7 @@ interface UseAuthSessionArgs {
     setUser: (user: Record<string, unknown>) => void;
     setIsAuthenticated: (value: boolean) => void;
     setBootstrapDiagnostics: (diagnostics: BootstrapDiagnostics) => void;
+    setSignInRefusal: (refusal: SignInRefusal | null) => void;
     setServerAvailable: (value: boolean) => void;
     setIsLoading: (value: boolean) => void;
 }
@@ -73,6 +75,7 @@ export function useAuthSession({
     setUser,
     setIsAuthenticated,
     setBootstrapDiagnostics,
+    setSignInRefusal,
     setServerAvailable,
     setIsLoading,
 }: UseAuthSessionArgs) {
@@ -124,9 +127,8 @@ export function useAuthSession({
         const checkAuth = async () => {
             // Ask the connector why we have no session. Drives the in-app
             // email-verification screen; connector-owned route, so it 404s
-            // harmlessly in standalone (non-embedded) mode. Admin-only — non-
-            // admins get 401/403 and fall back to the bare login form, which
-            // is fine (they couldn't complete the pairing anyway).
+            // harmlessly in standalone (non-embedded) mode. Without an answer
+            // the signed-out screen stands (./SignedOutGate).
             const probeBootstrapDiagnostics = async () => {
                 try {
                     const diagRes = await fetchSetupDiagnostics();
@@ -208,14 +210,23 @@ export function useAuthSession({
                         await probeBootstrapDiagnostics();
                     }
                 } else {
-                    // Non-OK, non-throwing: until bootstrap completes, the
-                    // embedded connector answers every SaaS-bound call with
-                    // 502 "Tenant key not configured". fetch() doesn't throw on
-                    // that, so the catch above never fired, and it isn't a 200
-                    // either, so the branch above never ran — the pairing
-                    // screen was unreachable and the admin got a dead login
-                    // form on the one screen that could have fixed it.
-                    await probeBootstrapDiagnostics();
+                    // Non-OK, non-throwing. Inside Nextcloud this is the
+                    // connector sign-in answering for this person. While the
+                    // organisation's administrator is still in the setup
+                    // wizard that answer is 403 NC_ONBOARDING_PENDING, which
+                    // is the "setup in progress" screen and needs no further
+                    // question.
+                    const refusal = await readSignInRefusal(res);
+                    if (refusal.code === NC_ONBOARDING_PENDING_CODE) {
+                        setNcOnboardingState('pending');
+                    } else {
+                        setSignInRefusal(refusal);
+                        // Until bootstrap completes, the embedded connector
+                        // answers every SaaS-bound call with 502 "Tenant key
+                        // not configured"; its diagnostics say what it is
+                        // waiting for (the e-mail verification screen).
+                        await probeBootstrapDiagnostics();
+                    }
                 }
             } catch (err) {
                 console.error('Auth check failed:', err);
@@ -224,7 +235,7 @@ export function useAuthSession({
             }
         };
         checkAuth();
-    }, [applyAuthSession, setBootstrapDiagnostics, setDeploymentMode, setIsLoading, setOrgLogo, setServerAvailable]);
+    }, [applyAuthSession, setBootstrapDiagnostics, setDeploymentMode, setIsLoading, setNcOnboardingState, setOrgLogo, setServerAvailable, setSignInRefusal]);
 
     return applyAuthSession;
 }

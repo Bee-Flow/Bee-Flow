@@ -121,6 +121,35 @@ export function ServerUnavailableScreen({ useOrgBrand, orgLogo, bootstrapDiagnos
     );
 }
 
+// Inside Nextcloud, without a session: the connector signs the person in with
+// their Nextcloud account, so there is no form to offer. `message` is the
+// server's own sentence when it answered one for this person (not invited yet,
+// awaiting approval, no seat left).
+export function NcSignInFailedScreen({ message, onRetry }: { message?: string | null; onRetry: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <div className="h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
+            <div className="w-full max-w-md">
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border text-center [background:var(--bg-secondary)] [border-color:var(--border-subtle)]">
+                    <div className="w-20 h-20 mx-auto mb-5 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)]">
+                        <img src={beeFlowLogo} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-full h-full object-cover" />
+                    </div>
+                    <h2 className="text-lg font-bold mb-2 text-[var(--text-primary)]">{t('app.nc_sign_in_failed_title', 'Not signed in to Bee Flow')}</h2>
+                    <p className="text-sm mb-6 [color:var(--text-secondary)]! [line-height:1.6]">
+                        {message || t('app.nc_sign_in_failed_body', 'Inside Nextcloud, Bee Flow signs you in with your Nextcloud account. That did not happen for this page. Try again; if this message stays, ask your administrator.')}
+                    </p>
+                    <button
+                        onClick={onRetry}
+                        className="w-full py-2.5 rounded-xl font-semibold text-sm text-white [background:var(--accent-primary)]"
+                    >
+                        {t('app.nc_sign_in_failed_retry', 'Try again')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // No-organisation gate for SSO users without org membership.
 export function NoOrganizationScreen({ handleLogout }: { handleLogout: () => void }) {
     const { t } = useTranslation();
