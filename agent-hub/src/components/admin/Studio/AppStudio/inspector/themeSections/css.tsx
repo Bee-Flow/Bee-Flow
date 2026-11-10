@@ -89,7 +89,7 @@ function CssSection({ definition, onCommit, disabled, screenId }: ThemeSectionPr
             <SectionTitle>{t('studio_apps_css.title', 'Custom CSS')}</SectionTitle>
             <div className="flex flex-col gap-3">
                 <CustomCssEditor value={value} onChange={commit} variant={variant} />
-                <p className="text-[10px] text-[var(--text-tertiary)]">{t('studio_apps_css.high_contrast', 'Not applied under the high-contrast theme.')}</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">{t('studio_apps_css.high_contrast', 'Not applied under the high-contrast theme.')}</p>
                 <Toggle
                     checked={off}
                     onChange={(next) => setAppCssOff(appId, next)}

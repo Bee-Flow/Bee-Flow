@@ -26,8 +26,9 @@ describe('extension knob groups in the inspector', () => {
             ['backdrop', ['backgroundImage', 'backgroundFit', 'backgroundOverlay']],
             ['box', BOX],
             ['hover', ['hover']],
+            ['placement', ['spanMd', 'spanSm', 'rowSpan', 'alignSelf', 'sticky', 'stickyOffset']],
         ]);
-        expect(earnedKnobGroups(['span', 'size', 'align'], 'button').map((g) => g.name)).toEqual(['hover']);
+        expect(earnedKnobGroups(['span', 'size', 'align'], 'button').map((g) => g.name)).toEqual(['hover', 'placement']);
     });
 
     it('a heading gets a closed Box disclosure, a button none', () => {
