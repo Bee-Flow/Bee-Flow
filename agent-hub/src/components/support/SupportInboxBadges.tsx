@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CHIP, CHIP_ERROR, CHIP_SUCCESS, CHIP_WARNING } from '../mcpLibrary/ui';
 import type { CsatStarsProps, SlaBadgeProps, TagChipsProps } from './SupportInboxPanel.types';
 
 // Live-counting SLA badge. Green when comfortably ahead, amber within 30min of
@@ -17,21 +18,21 @@ export function SlaBadge({ thread }: SlaBadgeProps) {
     if (!dueAt && !breached) return null;
     if (['resolved', 'closed'].includes(thread.status)) return null;
 
-    let bg = 'rgba(16,185,129,0.12)', fg = '#059669', label: string;
+    let cls = CHIP_SUCCESS, label: string;
     if (breached) {
-        bg = 'rgba(239,68,68,0.15)'; fg = '#dc2626'; label = 'SLA breached';
+        cls = CHIP_ERROR; label = 'SLA breached';
     } else if (thread.sla_paused) {
-        bg = 'var(--bg-tertiary)'; fg = 'var(--text-muted)'; label = 'SLA paused';
+        cls = CHIP; label = 'SLA paused';
     } else {
         const ms = new Date(dueAt as string).getTime() - now;
         const mins = Math.round(ms / 60000);
-        if (mins <= 30) { bg = 'rgba(245,158,11,0.15)'; fg = '#b45309'; }
-        if (mins < 0) { label = 'SLA breached'; bg = 'rgba(239,68,68,0.15)'; fg = '#dc2626'; }
+        if (mins <= 30) cls = CHIP_WARNING;
+        if (mins < 0) { label = 'SLA breached'; cls = CHIP_ERROR; }
         else if (mins < 60) label = `SLA ${mins}m`;
         else if (mins < 1440) label = `SLA ${Math.round(mins / 60)}h`;
         else label = `SLA ${Math.round(mins / 1440)}d`;
     }
-    return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: bg, color: fg }}>{label}</span>;
+    return <span className={cls}>{label}</span>;
 }
 
 export function TagChips({ tags, onRemove }: TagChipsProps) {
@@ -39,10 +40,10 @@ export function TagChips({ tags, onRemove }: TagChipsProps) {
     return (
         <div className="flex items-center gap-1 flex-wrap">
             {tags.map(t => (
-                <span key={t} className="text-xs px-1.5 py-0.5 rounded inline-flex items-center gap-1 [background:rgba(99,102,241,0.0)] [border:1px_solid_var(--border-default)] [color:var(--text-secondary)]!">
+                <span key={t} className={CHIP}>
                     #{t}
                     {onRemove && (
-                        <button onClick={() => onRemove(t)} className="opacity-60 hover:opacity-100 text-[var(--text-muted)]">×</button>
+                        <button onClick={() => onRemove(t)} className="text-[var(--text-tertiary)] opacity-60 hover:opacity-100">×</button>
                     )}
                 </span>
             ))}
@@ -53,8 +54,8 @@ export function TagChips({ tags, onRemove }: TagChipsProps) {
 export function CsatStars({ score }: CsatStarsProps) {
     if (!score) return null;
     return (
-        <span className="text-xs inline-flex items-center [color:#f59e0b]!" title={`Customer rated ${score}/5`}>
-            {'★'.repeat(score)}<span className="text-[var(--text-muted)]">{'★'.repeat(5 - score)}</span>
+        <span className="inline-flex items-center text-xs text-[var(--warning)]" title={`Customer rated ${score}/5`}>
+            {'★'.repeat(score)}<span className="text-[var(--text-tertiary)]">{'★'.repeat(5 - score)}</span>
         </span>
     );
 }

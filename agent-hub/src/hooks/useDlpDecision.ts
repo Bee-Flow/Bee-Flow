@@ -141,7 +141,11 @@ export default function useDlpDecision(): UseDlpDecisionReturn {
                 const data = errorBody(err) ?? {};
                 throw new Error(data.error || `Request failed (${err.status})`);
             }
-            setPending(null);
+            // Only close the review this decision answered: the turn goes on
+            // as soon as the server has it, and the next review (an attachment
+            // after the text) can be on screen before this request returns.
+            const answered = pending.decisionId;
+            setPending(prev => (prev && prev.decisionId !== answered ? prev : null));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to send decision.');
         } finally {

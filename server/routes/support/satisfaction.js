@@ -58,7 +58,10 @@ function register(router) {
             if (!thread) return res.status(404).send(_csatHtml({ error: 'Thread not found.' }));
 
             const numScore = dispute ? 0 : parseInt(score, 10);
-            if (!Number.isInteger(numScore) || numScore < 0 || numScore > 5) {
+            // A vote is 1 to 5. Zero is the dispute link's own score: without
+            // `dispute`, that link's token would otherwise record a rating of 0
+            // and CONFIRM the resolution the customer was disputing.
+            if (!Number.isInteger(numScore) || numScore < (dispute ? 0 : 1) || numScore > 5) {
                 return res.status(400).send(_csatHtml({ error: 'Invalid request.' }));
             }
             if (!supportStore.verifyCsatToken(thread.id, thread.requester_email, numScore, token, { threadCreatedAt: thread.created_at })) {

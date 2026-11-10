@@ -1,11 +1,16 @@
-import { Loader2, Check, AlertTriangle, Lock, Layers, Sparkles, Settings, ListChecks } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Lock } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getIntegrationIcon } from '@/config/integrationIcons';
 import { useTranslation } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import { messageOf } from '@/utils/caughtError';
-import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './accessTypes';
+import { ACCESS_KIND_SECTIONS } from './accessTypes';
+import type { AccessCapability, AccessData, AccessMessage } from './accessTypes';
+import { AccessStatus, CapabilityGroup, CapabilityRow } from './AccessParts';
 import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
+import { SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import Spinner from '@/components/shared/Spinner';
+import Toggle from '@/components/shared/Toggle';
 
 /**
  * OrgAccessEditor — the super-admin "Organisation access" menu: which
@@ -14,17 +19,9 @@ import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
  * Anything not allowed here shows locked in the org-admin's Grants matrix.
  *
  * `unrestricted` = the org may use everything its ceiling allows (the default).
- * Switch it off to pick a subset. Super-admin only. Emerald + blue only.
+ * Switch it off to pick a subset. Super-admin only.
  */
 
-// MCP servers are integrations now — they appear under Integrations.
-const KIND_SECTIONS: AccessKindSection[] = [
-    { kind: 'core', labelKey: 'admin_org.access_matrix_features', label: 'Features', icon: Layers },
-    { kind: 'beta', labelKey: 'admin_org.access_matrix_beta_features', label: 'Beta features', icon: Sparkles },
-    { kind: 'integration', labelKey: 'admin_org.access_matrix_integrations', label: 'Integrations', icon: Settings },
-];
-const EMERALD = '#10b981';
-const BLUE = '#3b82f6';
 const SAVE_DEBOUNCE_MS = 450;
 
 interface OrgAccessEditorProps {
@@ -118,78 +115,48 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
         });
     };
 
-    if (loading) return <div className="p-4"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
+    if (loading) return <div className="p-4"><Spinner size="sm" /></div>;
     if (!data) return null;
 
+    const cloud = data.mode === 'cloud';
+    const allowAllLabel = t('admin_org.ceiling_allow_all', 'Allow everything the {ceiling} permits', { ceiling: cloud ? t('admin_org.ceiling_word_plan', 'plan') : t('admin_org.ceiling_word_licence', 'licence') });
     return (
-        <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
-            <header className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                    <ListChecks className="w-5 h-5" style={{ color: EMERALD }} />
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.ceiling_org_access_title', 'Organisation access')}</h2>
-                </div>
-                {message ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
-                        {message.type === 'ok' ? <Check className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}{message.text}
-                    </span>
-                ) : null}
-            </header>
-            <p className="text-sm mb-4 [color:var(--text-muted)]! max-w-[760px]">
-                {t('admin_org.ceiling_org_access_intro', "Which capabilities this organisation may use, within your {ceiling}. Org-admins can only distribute what's allowed here: everything else is locked for them.", { ceiling: data.mode === 'cloud' ? t('admin_org.ceiling_word_plan_long', 'subscription plan') : t('admin_org.ceiling_word_licence', 'licence') })}
-            </p>
+        <SettingsGroup
+            title={t('admin_org.ceiling_org_access_title', 'Organisation access')}
+            description={t('admin_org.ceiling_org_access_intro', "Which capabilities this organisation may use, within your {ceiling}. Org-admins can only distribute what's allowed here: everything else is locked for them.", { ceiling: cloud ? t('admin_org.ceiling_word_plan_long', 'subscription plan') : t('admin_org.ceiling_word_licence', 'licence') })}
+            actions={<AccessStatus message={message} />}
+        >
+            <SettingsList>
+                <SettingRow
+                    label={allowAllLabel}
+                    hint={t('admin_org.ceiling_allow_all_hint', 'Turn off to restrict this organisation to a subset.')}
+                >
+                    <div className="flex md:justify-end">
+                        <Toggle size="sm" checked={unrestricted} onChange={setUnrestrictedMode} ariaLabel={allowAllLabel} />
+                    </div>
+                </SettingRow>
+            </SettingsList>
 
-            {/* Unrestricted master toggle */}
-            <label className="flex items-center gap-3 p-3 rounded-xl mb-4 cursor-pointer" style={{ border: `1px solid ${unrestricted ? BLUE : 'var(--border-subtle)'}`, background: unrestricted ? `${BLUE}0a` : 'var(--bg-primary)' }}>
-                <input type="checkbox" checked={unrestricted} onChange={e => setUnrestrictedMode(e.target.checked)} className="sr-only peer" />
-                <span className="relative inline-flex items-center flex-shrink-0">
-                    <span className="w-9 h-5 rounded-full transition-colors block" style={{ background: unrestricted ? BLUE : 'var(--border-default, #d1d5db)' }} />
-                    <span className="absolute top-[2px] left-[2px] bg-white rounded-full h-4 w-4 shadow-sm transition-transform" style={{ transform: unrestricted ? 'translateX(16px)' : 'none' }} />
-                </span>
-                <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('admin_org.ceiling_allow_all', 'Allow everything the {ceiling} permits', { ceiling: data.mode === 'cloud' ? t('admin_org.ceiling_word_plan', 'plan') : t('admin_org.ceiling_word_licence', 'licence') })}</p>
-                    <p className="text-[11px] text-[var(--text-muted)]">{t('admin_org.ceiling_allow_all_hint', 'Turn off to restrict this organisation to a subset.')}</p>
-                </div>
-            </label>
-
-            {KIND_SECTIONS.map(section => {
+            {ACCESS_KIND_SECTIONS.map(section => {
                 const caps = capsByKind[section.kind] || [];
                 if (caps.length === 0) return null;
                 const SectionIcon = section.icon;
                 return (
-                    <div key={section.kind} className={`mb-5 ${unrestricted ? '[opacity:0.6]' : '[opacity:1]'}`}>
-                        <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                            <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)}
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                            {caps.map(cap => {
-                                const checked = available.has(cap.id);
-                                const icon = cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="w-4 h-4" style={{ color: EMERALD }} />;
-                                return (
-                                    <div key={cap.id}
-                                        className="flex items-center gap-3 p-3 rounded-xl transition-all"
-                                        style={{ border: `1px solid ${checked ? EMERALD : 'var(--border-subtle)'}`, background: checked ? `${EMERALD}0a` : 'var(--bg-primary)', cursor: unrestricted ? 'default' : 'pointer' }}
-                                        onClick={() => toggle(cap.id)}>
-                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--bg-secondary)]">{icon}</div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-medium truncate text-[var(--text-primary)]" title={cap.name}>{cap.name}</p>
-                                            {cap.description ? <p className="text-[11px] truncate text-[var(--text-muted)]" title={cap.description}>{cap.description}</p> : null}
-                                        </div>
-                                        {unrestricted
-                                            ? <Lock className="w-4 h-4 flex-shrink-0 [color:var(--text-muted)] [opacity:0.4]" />
-                                            : (
-                                                <span className="relative inline-flex items-center flex-shrink-0" onClick={e => e.stopPropagation()}>
-                                                    <input type="checkbox" checked={checked} onChange={() => toggle(cap.id)} className="sr-only peer" />
-                                                    <span className="w-9 h-5 rounded-full transition-colors block" style={{ background: checked ? EMERALD : 'var(--border-default, #d1d5db)' }} />
-                                                    <span className="absolute top-[2px] left-[2px] bg-white rounded-full h-4 w-4 shadow-sm transition-transform" style={{ transform: checked ? 'translateX(16px)' : 'none' }} />
-                                                </span>
-                                            )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    <CapabilityGroup key={section.kind} section={section} dimmed={unrestricted}>
+                        {caps.map(cap => (
+                            <CapabilityRow
+                                key={cap.id}
+                                cap={cap}
+                                icon={cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="h-4 w-4" />}
+                                onActivate={unrestricted ? undefined : () => toggle(cap.id)}
+                                trailing={unrestricted
+                                    ? <Lock className="h-4 w-4 text-[var(--text-tertiary)]" aria-hidden="true" />
+                                    : <Toggle size="sm" checked={available.has(cap.id)} ariaLabel={cap.name} onChange={() => toggle(cap.id)} />}
+                            />
+                        ))}
+                    </CapabilityGroup>
                 );
             })}
-        </section>
+        </SettingsGroup>
     );
 }

@@ -27,7 +27,6 @@ const { requireAuth } = require('../../../auth/permissions');
 const { layerAgentRateLimit } = require('./rateLimits');
 const { loadOrCreateDraft, persistDraftWrap } = require('./builderDraft');
 const { sessionUser } = require('../../../core/http/sessionUser');
-const { onClientGone } = require('./clientGone');
 
 const SAVE_FIRST = 'Save the automation first, then build a flowlet.';
 const INSTRUCTION_TEXT = 'An instruction is required.';
@@ -146,9 +145,10 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
         send('layer_agent_start', { layerKey, mode });
         let layerClientGone = false;
         const layerAbort = new AbortController();
-        // From the RESPONSE: this request's own 'close' fired when its body
-        // was read, before this handler ran (./clientGone.js).
-        onClientGone(req, res, () => {
+        // The RESPONSE's close: a POST's request stream closes once its body
+        // is read, ahead of this handler, so req 'close' says nothing here.
+        res.on('close', () => {
+            if (res.writableEnded) return;
             layerClientGone = true;
             try { layerAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });

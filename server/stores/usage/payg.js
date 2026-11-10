@@ -108,8 +108,10 @@ async function _resolvePlanCurrency(organizationId, userId) {
  * @param {string | null | undefined} userId
  */
 function invalidatePaygCache(organizationId, userId) {
-    if (organizationId) _paygCache.delete(`org:${organizationId}`);
-    if (userId) _paygCache.delete(`user:${userId}`);
+    // The plan currency lives in the same map under a `cur:` key; a plan
+    // change moves both, so both go.
+    if (organizationId) { _paygCache.delete(`org:${organizationId}`); _paygCache.delete(`cur:org:${organizationId}`); }
+    if (userId) { _paygCache.delete(`user:${userId}`); _paygCache.delete(`cur:user:${userId}`); }
     // Both args null → clear the whole cache. Used by global config changes
     // (FX rate updates) that affect every cached entry.
     if (!organizationId && !userId) _paygCache.clear();

@@ -1,13 +1,13 @@
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 /**
- * LookSectionNav — left-rail table of contents for the Look editor. Highlights
- * the section currently in view (set by parent via IntersectionObserver) and
- * smooth-scrolls to a section when clicked.
+ * LookSectionNav — the table of contents of the Look editor. Highlights the
+ * section currently in view (set by the parent via IntersectionObserver) and
+ * scrolls to a section when clicked.
  *
- * Below 1100px the parent renders this horizontally; CSS handles the orientation
- * via the `orientation` prop.
+ * Vertical, it is a run of sub-rows under "Look" in the Appearance sidebar (the
+ * rows of SectionNav, indented); below 1100px the editor renders it
+ * horizontally above its content.
  */
 interface Props {
     sections: { id: string; label: string }[];
@@ -16,36 +16,19 @@ interface Props {
     orientation?: 'vertical' | 'horizontal';
 }
 
-export default function LookSectionNav({
-    sections,
-    activeId,
-    onJump,
-    orientation = 'vertical',
-}: Props) {
+const ROW_ACTIVE = 'bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)]';
+const ROW_IDLE = 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]';
+
+export default function LookSectionNav({ sections, activeId, onJump, orientation = 'vertical' }: Props) {
     const { t } = useTranslation();
     const isVertical = orientation === 'vertical';
     return (
         <nav
             aria-label={t('appearance.look_section_nav_look_editor_sections', 'Look editor sections')}
-            className={
-                'shrink-0 ' +
-                (isVertical
-                    ? 'w-44 sticky top-0 self-start max-h-screen overflow-y-auto p-4 border-r'
-                    : 'w-full overflow-x-auto p-2 border-b flex')
-            }
-            style={{
-                borderColor: 'var(--border-subtle)',
-                background: 'var(--bg-primary)',
-            }}
+            className={isVertical ? 'shrink-0' : 'w-full shrink-0 overflow-x-auto border-b border-[var(--border-default)] px-4 py-2'}
         >
-            <ul
-                className={
-                    isVertical
-                        ? 'space-y-0.5'
-                        : 'flex items-center gap-1 whitespace-nowrap'
-                }
-            >
-                {sections.map((s: { id: string; label: string }) => {
+            <ul className={`m-0 list-none p-0 ${isVertical ? 'flex flex-col gap-0.5' : 'flex items-center gap-1 whitespace-nowrap'}`}>
+                {sections.map((s) => {
                     const active = activeId === s.id;
                     return (
                         <li key={s.id}>
@@ -53,20 +36,7 @@ export default function LookSectionNav({
                                 type="button"
                                 onClick={() => onJump(s.id)}
                                 aria-current={active ? 'true' : undefined}
-                                className={
-                                    'block w-full text-left rounded-md transition-colors ' +
-                                    (isVertical
-                                        ? 'px-2.5 py-1.5 text-[13px]'
-                                        : 'px-2.5 py-1 text-[12px] font-medium')
-                                }
-                                style={{
-                                    background: active ? 'var(--bg-card-hover)' : 'transparent',
-                                    color: active ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                                    fontWeight: active ? 600 : 400,
-                                    borderLeft: isVertical
-                                        ? `2px solid ${active ? 'var(--accent-primary)' : 'transparent'}`
-                                        : 'none',
-                                }}
+                                className={`block w-full rounded-md text-left transition-colors ${isVertical ? 'py-1.5 pl-9 pr-3 text-[13px]' : 'px-2.5 py-1 text-xs'} ${active ? ROW_ACTIVE : ROW_IDLE}`}
                             >
                                 {s.label}
                             </button>

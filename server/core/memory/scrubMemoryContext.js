@@ -45,7 +45,7 @@ const CATEGORY_LABELS = {
 };
 
 /**
- * @typedef {{ category: string, label?: string, text?: string, offset?: number, length?: number, confidenceScore?: number }} PiiSpan
+ * @typedef {{ category: string, label?: string, text?: string, offset?: number, length?: number, confidenceScore?: number, known?: boolean }} PiiSpan
  * @typedef {{ text: string, category: string, role?: string }} KnownEntity
  * @typedef {{piiDetectionCategories?: string[], piiDetectionConfidenceThreshold?: number, piiAllowTerms?: string[], piiAllowPublicOrgs?: boolean}} MemoryOrgShield
  */
@@ -117,7 +117,7 @@ function withKnownEntities(text, detected, known, enabledCategories = null) {
         if (!k?.text || (enabledCategories && !enabledCategories.includes(k.category))) continue;
         const offset = text.indexOf(k.text);
         if (offset < 0) continue;
-        spans.push({ category: k.category, label: k.category, text: k.text, offset, length: k.text.length, confidenceScore: 1 });
+        spans.push({ category: k.category, label: k.category, text: k.text, offset, length: k.text.length, confidenceScore: 1, known: true });
     }
     if (!spans.length) return detected || [];
     const overlaps = (/** @type {PiiSpan} */ e) => spans.some((s) => typeof e.offset === 'number'
@@ -143,6 +143,12 @@ function labelEntities(text, entities) {
             scrubbed = scrubbed.split(entity.text).join(replacement);
         }
         seen.add(label);
+    }
+    // A known value (the user's own name, e-mail, organisation) is placed at
+    // its FIRST occurrence only: the tokenizer sweeps the later mentions, but
+    // nothing does here, so they would stay in clear behind a label.
+    for (const entity of sorted) {
+        if (entity.known && entity.text) scrubbed = scrubbed.split(entity.text).join(`[${humaniseLabel(entity.category)}]`);
     }
     return { scrubbed, replacedCategories: [...seen] };
 }

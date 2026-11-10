@@ -273,6 +273,8 @@ const NL_TRANSLATIONS = [
     'add-nl-handover-translations',            // Automations: the assistant column in plain words (the card after a save, the preview of a change, the vocabulary)
     'update-nl-memory-2026-10',                // Memory: Dutch for the memory manager, chat controls, org Memory admin page and Settings lines; "Conversation memory" becomes "Context in lange gesprekken" (old shipped text only)
     'add-nl-kb-query-log-translations-2026-11', // Knowledge base search log: Studio tab and enable form, Compliance Center pages, App Studio and automation steps
+    'add-nl-admin-studio-2026-11-translations', // Admin dashboard in the Studio layout: rail groups, phone drawer, access sections, server licence / modules / languages / release notes copy
+    'add-nl-admin-studio-2-2026-11-translations', // Admin dashboard in the Studio layout, second round: the Appearance sections and the Look editor's section list
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',
     // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen",

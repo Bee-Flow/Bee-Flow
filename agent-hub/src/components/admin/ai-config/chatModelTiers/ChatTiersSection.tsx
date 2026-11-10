@@ -10,7 +10,7 @@ import type { TierConfigsState } from './useTierConfigs';
 import { TIERS, TIER_DEFAULTS } from './constants';
 import CustomTierCard from './CustomTierCard';
 import TierCard from './TierCard';
-import { QUIET_BUTTON, SAVE_BUTTON, SettingsGroup, SettingsList } from '../ui/SettingsList';
+import { QUIET_BUTTON, SAVE_BUTTON, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from '../ui/useToastOnMessage';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -81,9 +81,11 @@ export default function ChatTiersSection({
                     </p>
                 ) : (
                     <SettingsList>
-                        {customTiers.map(tier => (
+                        {customTiers.map((tier, position) => (
                             <CustomTierCard
-                                key={tier.id}
+                                // Keyed by position: the id follows the name, and a key that changed on
+                                // every keystroke remounted the card and took the focus out of the name field.
+                                key={position}
                                 tier={tier}
                                 expandedCustomId={expandedCustomId}
                                 setExpandedCustomId={setExpandedCustomId}

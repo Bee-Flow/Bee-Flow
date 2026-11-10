@@ -63,6 +63,13 @@ describe('formatDuration', () => {
     it('days scale', () => {
         expect(formatDuration(90_000_000)).toBe('1d 1h');
     });
+    it('carries a rounded-up remainder into the next unit', () => {
+        expect(formatDuration(59_600)).toBe('1m');
+        expect(formatDuration(119_700)).toBe('2m');
+        expect(formatDuration(3_599_600)).toBe('1h');
+        expect(formatDuration(2 * 3_600_000 - 20_000)).toBe('2h');
+        expect(formatDuration(2 * 86_400_000 - 60_000)).toBe('2d');
+    });
 });
 
 describe('formatBytes', () => {
@@ -151,6 +158,16 @@ describe('formatRelativeDate', () => {
     });
     it('returns Xd ago for two-to-six days', () => {
         expect(formatRelativeDate('2026-05-12T09:00:00Z')).toBe('3d ago');
+    });
+    it('counts calendar days, not 24-hour spans', () => {
+        vi.setSystemTime(new Date(2026, 4, 15, 8, 0, 0));
+        // Last night, nine hours ago: yesterday, not today.
+        expect(formatRelativeDate(new Date(2026, 4, 14, 23, 0, 0))).toBe('Yesterday');
+        expect(formatRelativeDate(new Date(2026, 4, 14, 23, 0, 0), { todayShowsTime: true })).toBe('Yesterday');
+        // Monday morning seen on Wednesday morning, 47 hours on: two days ago.
+        expect(formatRelativeDate(new Date(2026, 4, 13, 9, 0, 0))).toBe('2d ago');
+        // Earlier this same day stays today.
+        expect(formatRelativeDate(new Date(2026, 4, 15, 0, 30, 0))).toBe('Today');
     });
     it('honors todayShowsTime: same-day returns the time of day (hh:mm)', () => {
         const out = formatRelativeDate('2026-05-15T09:00:00Z', { todayShowsTime: true });

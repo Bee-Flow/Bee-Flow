@@ -279,3 +279,36 @@ test('resolveEffectiveSource leaves a spec without contentWatch alone', () => {
     assert.strictEqual(_internals.resolveEffectiveSource(src, { widgetId: 'W-1' }), src);
     assert.strictEqual(_internals.resolveEffectiveSource(src, null), src);
 });
+
+test('more new items than the per-tick cap: the rest appear on the next tick, the poll does not crash', async () => {
+    const def = acmeEvent({ emitOnAppear: true, maxItemsPerTick: 2 });
+    const h = harness({ result: widgets([{ sku: 'W-0', state: 'idle' }]) });
+    await run(h, def);
+    const all = widgets([0, 1, 2, 3].map((i) => ({ sku: `W-${i}`, state: 'idle' })));
+    // Three widgets appear at once, one more than the cap. This threw
+    // "Cannot read properties of undefined (reading 'chg12')" on every tick.
+    const h2 = harness({ result: all, sub: { lastCursor: aged(h.saved[0].lastCursor) } });
+    const second = await run(h2, def);
+    assert.deepStrictEqual(second.events.map((e) => e.sku), ['W-1', 'W-2']);
+    const h3 = harness({ result: all, sub: { lastCursor: aged(h2.saved[0].lastCursor) } });
+    const third = await run(h3, def);
+    assert.deepStrictEqual(third.events.map((e) => e.sku), ['W-3'], 'the deferred item appears next tick');
+    assert.strictEqual(third.events[0]._reason, 'appeared');
+});
+
+test('more disappeared items than the per-tick cap: the rest are reported on the next tick', async () => {
+    const def = acmeEvent({ emitOnDisappear: true, maxItemsPerTick: 1 });
+    const h = harness({ result: widgets([{ sku: 'W-1', state: 'a' }, { sku: 'W-2', state: 'b' }, { sku: 'W-3', state: 'c' }]) });
+    await run(h, def);
+    const left = widgets([{ sku: 'W-1', state: 'a' }]);
+    const h2 = harness({ result: left, sub: { lastCursor: aged(h.saved[0].lastCursor) } });
+    const second = await run(h2, def);
+    assert.strictEqual(second.events.length, 1);
+    const h3 = harness({ result: left, sub: { lastCursor: aged(h2.saved[0].lastCursor) } });
+    const third = await run(h3, def);
+    assert.strictEqual(third.events.length, 1, 'the second removal used to be dropped with the cursor entry');
+    assert.strictEqual(third.events[0]._reason, 'disappeared');
+    assert.notDeepStrictEqual(third.events[0].state, second.events[0].state);
+    const h4 = harness({ result: left, sub: { lastCursor: aged(h3.saved[0].lastCursor) } });
+    assert.deepStrictEqual((await run(h4, def)).events, [], 'and it is reported once');
+});

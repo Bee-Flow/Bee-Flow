@@ -3059,12 +3059,9 @@
   },
   "src/components/admin/org/GroupAccessMatrix.tsx": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     },
-    "max-statements": {
+    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -3126,9 +3123,6 @@
     }
   },
   "src/components/admin/org/access/CloudCeilingEditor.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -3273,7 +3267,7 @@
   },
   "src/components/admin/product-website/ReleaseNotesPanel.tsx": {
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/product-website/SiteSwitcher.tsx": {
@@ -8042,13 +8036,7 @@
     }
   },
   "src/pages/AdminDashboard.tsx": {
-    "complexity": {
-      "count": 2
-    },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
       "count": 1
     }
   },

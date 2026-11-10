@@ -8,6 +8,7 @@ import BuilderSplit from './BuilderSplit';
 import type { EditorAgent } from './builderSplit/editorTypes';
 import type { ModelTierMap } from '@/hooks/useModelTierSelection';
 import { useConfigTiersForUser } from '@/api/queries/configModels';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 
 // Landing-only wizard. The legacy "review/plan card" stage has been removed:
 // the landing flow now creates a placeholder agent and hands the first prompt
@@ -157,7 +158,7 @@ function PromptInput({ value, onChange, onSubmit, busy, placeholder, tiers, tier
                 data-tour="agent-wizard-prompt"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSubmit(); } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) { e.preventDefault(); onSubmit(); } }}
                 rows={2}
                 placeholder={placeholder}
                 className="w-full bg-transparent outline-none text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] resize-none"

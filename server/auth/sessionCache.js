@@ -64,6 +64,11 @@ function wrapWithRedisCache(pgStore, redis) {
     }
 
     async function cacheSet(sid, session, ttl) {
+        // Less than a second of life left (or none): nothing to cache. A TTL of 0
+        // must not read as "no TTL given" and keep the session for 15 minutes
+        // past its expiry — the cache is answered before Postgres, which is the
+        // one that refuses an expired row.
+        if (typeof ttl === 'number' && ttl <= 0) return cacheDel(sid);
         try {
             const t = ttl || CACHE_TTL_SECONDS;
             // ioredis form: positional 'EX', seconds. (An options object, the
@@ -85,7 +90,7 @@ function wrapWithRedisCache(pgStore, redis) {
     function ttlFromSession(session) {
         if (session?.cookie?.expires) {
             const ms = new Date(session.cookie.expires).getTime() - Date.now();
-            if (ms > 0) return Math.min(Math.floor(ms / 1000), CACHE_TTL_SECONDS);
+            if (Number.isFinite(ms)) return Math.min(Math.floor(ms / 1000), CACHE_TTL_SECONDS);
         }
         return CACHE_TTL_SECONDS;
     }

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import LookSectionNav from './LookSectionNav';
 import LookPreview from './preview/LookPreview';
 import SaveBar from './SaveBar';
@@ -13,23 +13,26 @@ import TypographySection from './sections/TypographySection';
 import WallpaperSection from './sections/WallpaperSection';
 import { useLookForm, SECTION_IDS } from './useLookForm';
 import { useTranslation } from '@/hooks/useTranslation';
+import Spinner from '@/components/shared/Spinner';
+import SectionHeader from '@/components/shared/SectionHeader';
 
 const SPLIT_VIEWPORT_PX = 1100;
 
 interface NavSection {
     id: string;
+    labelKey: string;
     label: string;
 }
 
 const NAV_SECTIONS: NavSection[] = [
-    { id: SECTION_IDS.preset,     label: 'Preset' },
-    { id: SECTION_IDS.accent,     label: 'Accent' },
-    { id: SECTION_IDS.wallpaper,  label: 'Wallpaper' },
-    { id: SECTION_IDS.glass,      label: 'Glass' },
-    { id: SECTION_IDS.typography, label: 'Typography' },
-    { id: SECTION_IDS.radius,     label: 'Radius' },
-    { id: SECTION_IDS.access,     label: 'Access' },
-    { id: SECTION_IDS.advanced,   label: 'Advanced' },
+    { id: SECTION_IDS.preset,     labelKey: 'appearance.preset_preset', label: 'Preset' },
+    { id: SECTION_IDS.accent,     labelKey: 'appearance.look_nav_accent', label: 'Accent' },
+    { id: SECTION_IDS.wallpaper,  labelKey: 'appearance.wallpaper_wallpaper', label: 'Wallpaper' },
+    { id: SECTION_IDS.glass,      labelKey: 'appearance.glass_glass', label: 'Glass' },
+    { id: SECTION_IDS.typography, labelKey: 'appearance.typography_typography', label: 'Typography' },
+    { id: SECTION_IDS.radius,     labelKey: 'appearance.look_nav_radius', label: 'Radius' },
+    { id: SECTION_IDS.access,     labelKey: 'appearance.look_nav_access', label: 'Access' },
+    { id: SECTION_IDS.advanced,   labelKey: 'appearance.look_nav_advanced', label: 'Advanced' },
 ];
 
 /**
@@ -38,13 +41,15 @@ const NAV_SECTIONS: NavSection[] = [
  * components are stateless renderers driven by `form` / `setForm`.
  *
  * Layout:
- *   ≥1100px: [ left nav | scrollable sections | sticky preview rail ]
+ *   ≥1100px: [ scrollable sections | sticky preview rail ], the section nav
+ *            rendered into `navSlot` (the Appearance sidebar, under "Look"),
+ *            or as a left column when there is no slot;
  *   <1100px: [ horizontal pill nav above scrollable sections, no preview rail ]
  *
  * Active section highlight uses an IntersectionObserver — the section whose
  * top is closest to the scroll container's top wins.
  */
-export default function LookEditor() {
+export default function LookEditor({ navSlot = null }: { navSlot?: HTMLElement | null }) {
     const { t } = useTranslation();
     const { form, setForm, dirty, saving, loading, error, save, discard, reload, draftPayload } = useLookForm();
 
@@ -95,24 +100,22 @@ export default function LookEditor() {
 
     if (loading || !form) {
         return (
-            <div
-                className="h-full flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-muted)]"
-            >
-                <Loader2 className="w-5 h-5 animate-spin" />
+            <div className="flex h-full items-center justify-center bg-[var(--bg-primary)]">
+                <Spinner size="sm" />
             </div>
         );
     }
 
+    const navSections = NAV_SECTIONS
+        .filter((s: NavSection) => isGlassPreset || (s.id !== SECTION_IDS.glass && s.id !== SECTION_IDS.advanced))
+        .map((s: NavSection) => ({ id: s.id, label: t(s.labelKey, s.label) }));
+
     const sectionPanel = (
-        <div className="max-w-3xl mx-auto px-6 py-6 space-y-10">
-            <header>
-                <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-                    {t('appearance.look_editor_look', 'Look')}
-                </h2>
-                <p className="text-sm mt-1 text-[var(--text-muted)]">
-                    {t('appearance.look_editor_set_the_look_that_everyone_in_your', 'Set the look that everyone in your organisation sees by default. Changes preview live in the pane on the right.')}
-                </p>
-            </header>
+        <div className="max-w-3xl space-y-10 p-6 md:p-8">
+            <SectionHeader
+                title={t('appearance.look_editor_look', 'Look')}
+                description={t('appearance.look_editor_set_the_look_that_everyone_in_your', 'Set the look that everyone in your organisation sees by default. Changes preview live in the pane on the right.')}
+            />
 
             <PresetSection form={form} setForm={setForm} saving={saving} />
             <AccentSection form={form} setForm={setForm} saving={saving} />
@@ -127,27 +130,16 @@ export default function LookEditor() {
 
     return (
         <div className="h-full flex bg-[var(--bg-primary)]">
-            {wide && (
-                <LookSectionNav
-                    sections={NAV_SECTIONS.filter(
-                        (s: NavSection) => isGlassPreset || (s.id !== SECTION_IDS.glass && s.id !== SECTION_IDS.advanced),
-                    )}
-                    activeId={activeSectionId}
-                    onJump={jumpTo}
-                    orientation="vertical"
-                />
+            {wide && navSlot && createPortal(<LookSectionNav sections={navSections} activeId={activeSectionId} onJump={jumpTo} orientation="vertical" />, navSlot)}
+            {wide && !navSlot && (
+                <div className="w-44 shrink-0 overflow-y-auto border-r border-[var(--border-default)] py-2">
+                    <LookSectionNav sections={navSections} activeId={activeSectionId} onJump={jumpTo} orientation="vertical" />
+                </div>
             )}
 
-            <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--border-subtle)]">
+            <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--border-default)]">
                 {!wide && (
-                    <LookSectionNav
-                        sections={NAV_SECTIONS.filter(
-                            (s: NavSection) => isGlassPreset || (s.id !== SECTION_IDS.glass && s.id !== SECTION_IDS.advanced),
-                        )}
-                        activeId={activeSectionId}
-                        onJump={jumpTo}
-                        orientation="horizontal"
-                    />
+                    <LookSectionNav sections={navSections} activeId={activeSectionId} onJump={jumpTo} orientation="horizontal" />
                 )}
                 <div
                     ref={scrollRef}

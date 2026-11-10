@@ -129,7 +129,16 @@ function advanceRemindAt(remindAt, interval) {
     switch (interval) {
         case 'daily': d.setDate(d.getDate() + 1); break;
         case 'weekly': d.setDate(d.getDate() + 7); break;
-        case 'monthly': d.setMonth(d.getMonth() + 1); break;
+        case 'monthly': {
+            // Clamped to the last day of the next month. A bare setMonth
+            // overflows: 31 Jan + 1 month is "31 Feb", read as 3 March, so the
+            // reminder skipped February and came on the 3rd from then on.
+            const day = d.getDate();
+            d.setDate(1);
+            d.setMonth(d.getMonth() + 1);
+            d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+            break;
+        }
         default: return null;
     }
     return d.toISOString();

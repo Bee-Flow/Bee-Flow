@@ -100,10 +100,15 @@ compute_hash() {
   # Drop paths that no longer exist before hashing, otherwise sha256sum errors
   # (xargs exit 123) and pipefail+set -e would kill the whole script. A deleted
   # file simply stops contributing to the hash, which correctly reads as a change.
-  (cd "$REPO_ROOT" && git ls-files -co --exclude-standard -- "$dir" \
-    | LC_ALL=C sort \
-    | { while IFS= read -r f; do [ -e "$f" ] && printf '%s\n' "$f"; done; } \
-    | xargs -r sha256sum 2>/dev/null) | sha256sum | awk '{print $1}'
+  # NUL-separated throughout: a path may contain spaces, which a plain xargs
+  # splits into names that do not exist (exit 123, the same death). And the
+  # filter is an `if`, not `[ -e ] && printf`: a deleted file listed LAST made
+  # the loop itself return 1, which pipefail turned into the exit this guards
+  # against.
+  (cd "$REPO_ROOT" && git ls-files -z -co --exclude-standard -- "$dir" \
+    | LC_ALL=C sort -z \
+    | { while IFS= read -r -d '' f; do if [ -e "$f" ]; then printf '%s\0' "$f"; fi; done; } \
+    | xargs -0 -r sha256sum 2>/dev/null) | sha256sum | awk '{print $1}'
 }
 
 echo "==> Checking which images changed..."

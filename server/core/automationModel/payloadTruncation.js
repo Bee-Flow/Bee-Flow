@@ -77,6 +77,20 @@ const PREVIEW_MAX_DEPTH = 64;
  * (shared/expr/path.mjs appendKey), relative to the value; `$` is the value
  * itself. Pure; never throws.
  */
+/**
+ * The first `max` UTF-16 units of a text, never ending on half a character:
+ * a cut between the two halves of a surrogate pair (an emoji) leaves a lone
+ * surrogate, which shows as U+FFFD and which Postgres refuses to read back
+ * out of a JSON column (`->>`, a jsonb cast).
+ * @param {string} text
+ * @param {number} max
+ */
+function headOf(text, max) {
+    if (text.length <= max) return text;
+    const last = text.charCodeAt(max - 1);
+    return text.slice(0, last >= 0xD800 && last <= 0xDBFF ? max - 1 : max);
+}
+
 function shapePreview(value, opts = {}) {
     const maxBytes = opts.maxBytes || PREVIEW_MAX_BYTES;
     const { appendKey, parseJsonText } = require('../../shared/expr/index.mjs');
@@ -89,7 +103,7 @@ function shapePreview(value, opts = {}) {
                 if (parsed !== undefined) {
                     try { return JSON.stringify(walk(parsed, path, depth)); } catch (err) { bestEffort('core/automationModel/payloadTruncation:walk', err); /* fall through */ }
                 }
-                return `${v.slice(0, level.chars)}…`;
+                return `${headOf(v, level.chars)}…`;
             }
             if (depth >= PREVIEW_MAX_DEPTH) return Array.isArray(v) ? [] : {};
             if (Array.isArray(v)) {
@@ -130,7 +144,7 @@ function truncatePayload(value, opts = {}) {
     // still see the shape. This function drops the rest; for a step OUTPUT
     // the store keeps a full copy beside the row and adds `fullOutputRef`
     // (stores/automationStore/runFullOutputs.persistableOutput, BFSF-435).
-    const headSample = serialized.slice(0, Math.min(serialized.length, 1024));
+    const headSample = headOf(serialized, 1024);
     const shape = shapePreview(value);
     return {
         value: {

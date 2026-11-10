@@ -110,6 +110,8 @@ async function refreshOne(lic) {
 
     try {
         body = JSON.parse(rawBody);
+        // `null`, a number or a string is valid JSON and not an answer.
+        if (!body || typeof body !== 'object') throw new Error('not an object');
     } catch (e) {
         await store.markRefreshFailure(lic.id, { graceWindowSeconds: GRACE_WINDOW_SEC });
         log.warn(`[License Refresh] license.refresh.malformed_response license_id=${lic.id} bytes=${rawBody.length} status=${resp.status}`);

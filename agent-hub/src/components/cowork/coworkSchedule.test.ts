@@ -116,6 +116,24 @@ describe('buildCoworkPayload', () => {
         expect(new Date(p!.nextRunAt).getTime()).toBe(NOW.getTime() + 7 * 24 * 3600_000);
     });
 
+    it('points a days-only run-now at the next permitted weekday, not at "now"', () => {
+        // "Every Monday": no interval, but the server keeps it on the
+        // scheduler, so a nextRunAt of "now" would run it twice.
+        const p = buildCoworkPayload({ ...base, presetId: 'now', daysOfWeek: ['mon'] }, { now: NOW });
+        expect(p!.startNow).toBe(true);
+        const next = new Date(p!.nextRunAt);
+        expect(next.getDay()).toBe(1);
+        expect(next.getDate()).toBe(17); // Monday after Wednesday 12 Aug
+        expect(next.getHours()).toBe(14);
+    });
+
+    it('lets the weekdays decide the next run of a repeating run-now, as the server does', () => {
+        const p = buildCoworkPayload({ ...base, presetId: 'now', repeatInterval: 'weekly', daysOfWeek: ['fri', 'mon'] }, { now: NOW });
+        const next = new Date(p!.nextRunAt);
+        expect(next.getDay()).toBe(5);
+        expect(next.getDate()).toBe(14); // Friday of the same week, not 7 days on
+    });
+
     it('omits startNow for a scheduled item', () => {
         const p = buildCoworkPayload({ ...base, presetId: 'tomorrow' }, { now: NOW });
         expect(p!.startNow).toBeUndefined();

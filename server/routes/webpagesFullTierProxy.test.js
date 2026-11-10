@@ -83,6 +83,16 @@ test('WS upgrade with a token issued for a DIFFERENT webpage is destroyed', asyn
     }
 });
 
+test('WS upgrade with a malformed percent-escape in the id is destroyed, not thrown', () => {
+    const server = fakeServer();
+    mountFullTierProxy(fakeApp(), server);
+    let destroyed = false;
+    const socket = { destroy: () => { destroyed = true; } };
+    // A throw here would be an uncaught exception in the real server.
+    assert.doesNotThrow(() => server.emit('upgrade', { url: '/api/webpages-preview/%E0%A4%A/full/?token=x' }, socket, Buffer.alloc(0)));
+    assert.strictEqual(destroyed, true);
+});
+
 test('WS upgrade for an unrelated path is left untouched (no socket mutation)', async () => {
     const server = fakeServer();
     mountFullTierProxy(fakeApp(), server);

@@ -106,13 +106,13 @@ export function FeaturesSection({ form, update }: PlanSectionProps) {
         <div className="space-y-8">
             <div>
                 <h3 className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{t('admin_subscriptions.features_title', 'Features & integrations')}</h3>
-                <p className="text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.features_desc', "Controls what's enabled for organizations on this plan.")}</p>
+                <p className="text-[12px] text-[var(--text-tertiary)]">{t('admin_subscriptions.features_desc', "Controls what's enabled for organizations on this plan.")}</p>
             </div>
 
             <div>
                 <h4 className="text-[13px] font-semibold text-[var(--text-primary)] mb-2.5">
                     {t('admin_subscriptions.features_core', 'Core features')}
-                    <span className="ml-2 font-normal text-[11px] text-[var(--text-muted)]">{t('admin_subscriptions.features_core_hint', 'base licensed capabilities; beta features below carry their own license grant. All selected = unrestricted')}</span>
+                    <span className="ml-2 font-normal text-[11px] text-[var(--text-tertiary)]">{t('admin_subscriptions.features_core_hint', 'base licensed capabilities; beta features below carry their own license grant. All selected = unrestricted')}</span>
                 </h4>
                 <FeatureChipGrid
                     selected={form.allowed_features}
@@ -122,7 +122,7 @@ export function FeaturesSection({ form, update }: PlanSectionProps) {
 
             <div>
                 <h4 className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)] mb-2.5">
-                    <Puzzle className="w-4 h-4 text-blue-400" />
+                    <Puzzle className="w-4 h-4 text-[var(--info-ink)]" />
                     {t('admin_subscriptions.features_integrations', 'Included integrations')}
                 </h4>
                 <Banner tone="info" className="mb-3">
@@ -141,7 +141,7 @@ export function FeaturesSection({ form, update }: PlanSectionProps) {
 
             <div>
                 <h4 className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)] mb-2.5">
-                    <FlaskConical className="w-4 h-4 text-emerald-400" />
+                    <FlaskConical className="w-4 h-4 text-[var(--success-ink)]" />
                     {t('admin_subscriptions.features_beta', 'Included beta features')}
                 </h4>
                 <Banner tone="info" className="mb-3">

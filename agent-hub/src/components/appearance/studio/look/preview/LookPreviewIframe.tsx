@@ -6,6 +6,7 @@ import type { PreviewSurface } from './previewSurfaces';
 import type { DraftPayload } from '../useLookForm';
 import { logger } from '@/utils/logger';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { ALERT_ERROR } from '@/components/mcpLibrary/ui';
 
 type PreviewStatus = 'loading' | 'ready' | 'timeout' | 'session-expired';
 
@@ -118,8 +119,8 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
 
             {status === 'loading' && (
                 <Overlay>
-                    <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
-                    <p className="text-sm mt-3 text-[var(--text-muted)]">
+                    <Loader2 className="w-6 h-6 animate-spin text-[var(--text-tertiary)]" />
+                    <p className="text-sm mt-3 text-[var(--text-tertiary)]">
                         {t('appearance.look_preview_iframe_loading_value_preview', 'Loading {value} preview…', { value: surface.label.toLowerCase() })}
                     </p>
                 </Overlay>
@@ -127,7 +128,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
 
             {status === 'timeout' && (
                 <Overlay>
-                    <AlertTriangle className="w-7 h-7 [color:var(--warning,#f59e0b)]" />
+                    <AlertTriangle className="w-7 h-7 text-[var(--warning)]" />
                     <p className="text-sm mt-3 max-w-xs text-center text-[var(--text-primary)]">
                         {t('appearance.look_preview_iframe_preview_took_longer_than_8_seconds_to', 'Preview took longer than 8 seconds to load.')}
                     </p>
@@ -137,7 +138,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
 
             {status === 'session-expired' && (
                 <Overlay>
-                    <LogIn className="w-7 h-7 text-[var(--text-muted)]" />
+                    <LogIn className="w-7 h-7 text-[var(--text-tertiary)]" />
                     <p className="text-sm mt-3 max-w-xs text-center text-[var(--text-primary)]">
                         {t('appearance.look_preview_iframe_sign_in_expired_inside_the_preview', 'Sign-in expired inside the preview. Sign back in and reload.')}
                     </p>
@@ -147,7 +148,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
 
             {errorMsg && status === 'ready' && (
                 <div
-                    className="absolute top-2 left-2 right-2 px-3 py-2 rounded-lg text-xs flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:var(--danger,#ef4444)]!"
+                    className={`absolute left-2 right-2 top-2 ${ALERT_ERROR}`}
                 >
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     <span>{errorMsg}</span>

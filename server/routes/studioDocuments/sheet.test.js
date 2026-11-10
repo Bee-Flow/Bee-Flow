@@ -135,6 +135,16 @@ test('the CSV holds what the sheet shows, formulas computed', async () => {
     assert.strictEqual(res.text.replace(/^﻿/, ''), '2\r\n3\r\n6\r\n');
 });
 
+test('the CSV of a sheet named in another script downloads (the name is not a raw header value)', async () => {
+    const was = DOCS.s1.name;
+    DOCS.s1.name = '预算 Łódź';
+    try {
+        const res = await as('owner', 'GET', '/s1/sheet.csv');
+        assert.strictEqual(res.status, 200);
+        assert.match(String(res.headers.get('content-disposition')), /filename\*=UTF-8''%E9%A2%84%E7%AE%97%20%C5%81%C3%B3d%C5%BA\.csv/);
+    } finally { DOCS.s1.name = was; }
+});
+
 test('the Excel download is an attachment of the whole workbook, for a viewer too', async () => {
     for (const user of ['owner', 'viewer']) {
         const res = await as(user, 'GET', '/s1/sheet.xlsx');

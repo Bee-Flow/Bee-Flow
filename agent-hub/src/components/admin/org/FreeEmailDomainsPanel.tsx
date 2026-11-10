@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { freeEmailDomainsKey, useFreeEmailDomains, type FreeEmailDomains } from '@/api/queries/orgAdminReads';
 import type { KeyboardEvent } from 'react';
@@ -36,10 +36,14 @@ export default function FreeEmailDomainsPanel() {
     const message = actionMessage ?? loadFailedNote(loadFailed, t('admin.fed_load_failed', 'Failed to load email domains'));
     const [showBuiltin, setShowBuiltin] = useState(false);
 
+    // One pending clear at a time: the timer of an earlier note must not wipe a later one.
+    const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const notify = (type: DomainMessage['type'], text: string) => {
         setMessage({ type, text });
-        setTimeout(() => setMessage(null), 3000);
+        if (noteTimer.current) clearTimeout(noteTimer.current);
+        noteTimer.current = setTimeout(() => { noteTimer.current = null; setMessage(null); }, 3000);
     };
+    useEffect(() => () => { if (noteTimer.current) clearTimeout(noteTimer.current); }, []);
 
 
     // Persist a new extra list. Sends {extra} and adopts the server-normalised

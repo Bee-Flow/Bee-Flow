@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { COMMON_ROUTES, DEMO_CAPABILITIES } from './common';
 import { createState, ROUTES } from './compliance';
 import { CHECK_DEFS, ISO_CONTROLS, FRAMEWORKS, MILESTONES } from './complianceCatalog';
@@ -334,9 +334,21 @@ describe('compliance fixture — frameworks as a growing set', () => {
             expect(f.enabled).toBe(true);
             expect(f.score).toBeGreaterThan(50);
         }
-        // Two frameworks came into force inside the last 60 days — the whole
-        // reason the page exists.
-        expect(frameworks.filter(f => f.recently_in_force).length).toBeGreaterThan(0);
+        // A framework that came into force inside the last 60 days is flagged: the whole
+        // reason the page exists. The demo runs on the real clock and the catalogue carries
+        // real dates, so the clock is set to the day after the newest one.
+        const newest = Math.max(...FRAMEWORKS.map(f => Date.parse(f.in_force_since || '')).filter(Number.isFinite));
+        vi.useFakeTimers({ toFake: ['Date'] });
+        try {
+            vi.setSystemTime(newest + 86_400_000);
+            const fresh = call('GET /api/compliance/frameworks').frameworks;
+            expect(fresh.filter(f => f.recently_in_force).length).toBeGreaterThan(0);
+            vi.setSystemTime(newest + 61 * 86_400_000);
+            const later = call('GET /api/compliance/frameworks').frameworks;
+            expect(later.filter(f => f.recently_in_force).length).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('enabling a framework runs its checks; disabling a core one is refused', () => {

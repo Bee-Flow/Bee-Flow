@@ -163,6 +163,25 @@ describe('streamRegistry', () => {
         expect(activeStreamKeys()).toEqual([]);
     });
 
+    it('a superseded stream releasing itself does not forget the newer stream', () => {
+        // The detached stream of conv1 is superseded by a second send; its
+        // teardown (the `finally` of the aborted fetch) runs after the new
+        // stream registered under the same key.
+        const older = partial<Parameters<typeof registerStream>[1]>(fakeController());
+        const newer = partial<Parameters<typeof registerStream>[1]>(fakeController());
+        registerStream('conv1', older);
+        registerStream('conv1', newer);
+
+        releaseStream('conv1', older);
+
+        expect(isStreaming('conv1')).toBe(true);
+        // The newer stream can still be detached on unmount instead of killed.
+        expect(detachStream('conv1')).toBe(true);
+
+        releaseStream('conv1', newer);
+        expect(isStreaming('conv1')).toBe(false);
+    });
+
     it('an aborting controller does not break the registry', () => {
         const bad = { abort: vi.fn(() => { throw new Error('already gone'); }) };
         registerStream('conv1', partial<Parameters<typeof registerStream>[1]>(bad));

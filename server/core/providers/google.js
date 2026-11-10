@@ -170,6 +170,8 @@ class GoogleProvider extends BaseProvider {
                 } catch (e) {
                     responseData = { result: msg.content };
                 }
+                // `response` is a protobuf Struct: an array, number, boolean or null ("[]", "42") is a 400 for the whole request.
+                if (responseData === null || typeof responseData !== 'object' || Array.isArray(responseData)) responseData = { result: responseData };
 
                 // Google expects functionResponse parts with role: 'user'
                 contents.push({
@@ -340,11 +342,12 @@ class GoogleProvider extends BaseProvider {
     /**
      * @param {string} model
      */
-    async _getOrCreateCache(ai, model, systemInstruction, tools) {
+    async _getOrCreateCache(ai, model, systemInstruction, tools, toolConfig = null) {
         if (!systemInstruction) return null;
 
-        // Build cache key from model + system + tools
-        const cacheContent = JSON.stringify({ model, systemInstruction, tools: tools || [] });
+        // Build cache key from model + system + tools (+ toolConfig: a request served from a cache
+        // may not carry its own, so a forced or closed tool choice has to live IN the cache).
+        const cacheContent = JSON.stringify({ model, systemInstruction, tools: tools || [], ...(toolConfig ? { toolConfig } : {}) });
         const hash = crypto.createHash('md5').update(cacheContent).digest('hex');
 
         // Check if we have a valid cached entry
@@ -376,6 +379,7 @@ class GoogleProvider extends BaseProvider {
             if (tools) {
                 cacheConfig.config.tools = tools;
             }
+            if (toolConfig) cacheConfig.config.toolConfig = toolConfig;
 
             const cache = await ai.caches.create(cacheConfig);
             const cacheName = cache.name;
@@ -564,7 +568,7 @@ class GoogleProvider extends BaseProvider {
 
         // Try explicit context caching for large system prompts (not on Vertex).
         const cacheName = this._supportsExplicitCache()
-            ? await this._getOrCreateCache(ai, model, systemInstruction, config.tools)
+            ? await this._getOrCreateCache(ai, model, systemInstruction, config.tools, config.toolConfig)
             : null;
         if (cacheName) {
             params.config.cachedContent = cacheName;
@@ -626,7 +630,7 @@ class GoogleProvider extends BaseProvider {
 
         // Try explicit context caching for large system prompts (not on Vertex).
         const cacheName = this._supportsExplicitCache()
-            ? await this._getOrCreateCache(ai, model, systemInstruction, config.tools)
+            ? await this._getOrCreateCache(ai, model, systemInstruction, config.tools, config.toolConfig)
             : null;
         if (cacheName) {
             params.config.cachedContent = cacheName;
@@ -784,6 +788,8 @@ class GoogleProvider extends BaseProvider {
         return { text, imageBase64, mimeType };
     }
 
+    _createMusicClient(GoogleGenAI, clientConfig) { return new GoogleGenAI(clientConfig); } // seam for tests
+
     /**
      * Generate music using Lyria RealTime (lyria-realtime-exp).
      * Uses callbacks-based WebSocket session, collects PCM audio chunks,
@@ -798,7 +804,7 @@ class GoogleProvider extends BaseProvider {
         const { GoogleGenAI } = require('@google/genai');
 
         // Lyria RealTime requires v1alpha API version
-        const ai = new GoogleGenAI({
+        const ai = this._createMusicClient(GoogleGenAI, {
             apiKey,
             httpOptions: { apiVersion: 'v1alpha' },
         });
@@ -820,12 +826,30 @@ class GoogleProvider extends BaseProvider {
 
         return new Promise(async (resolve, reject) => {
             let sessionClosed = false;
-            /** @type {NodeJS.Timeout} */
+            /** @type {NodeJS.Timeout | undefined} */
             let timeoutHandle;
+            let session = /** @type {import('@google/genai').LiveMusicSession | null} */ (null);
+            // Declared BEFORE the session opens: onerror/onclose can fire while the setup still awaits.
+            const finalize = () => {
+                if (audioChunks.length === 0) {
+                    resolve({ audioBase64: null, mimeType: 'audio/wav' });
+                    return;
+                }
+
+                const pcmData = Buffer.concat(audioChunks);
+                const wavBuffer = this._writeWavHeader(pcmData);
+
+                log.info(`[Google] Music generated: ${audioChunks.length} chunks, ${(wavBuffer.length / 1024).toFixed(0)} KB`);
+
+                resolve({
+                    audioBase64: wavBuffer.toString('base64'),
+                    mimeType: 'audio/wav',
+                });
+            };
 
             try {
                 // Connect to Lyria RealTime with callbacks (official JS SDK pattern)
-                const session = await ai.live.music.connect({
+                session = await ai.live.music.connect({
                     model: 'models/lyria-realtime-exp',
                     callbacks: {
                         onmessage: (message) => {
@@ -885,32 +909,17 @@ class GoogleProvider extends BaseProvider {
                 timeoutHandle = setTimeout(() => {
                     if (!sessionClosed) {
                         sessionClosed = true;
-                        try { session.close(); } catch (e) { bestEffort('core/providers/google:GoogleProvider.generateMusic', e); /* ignore */ }
+                        try { session?.close(); } catch (e) { bestEffort('core/providers/google:GoogleProvider.generateMusic', e); /* ignore */ }
                         finalize();
                     }
                 }, durationMs);
 
             } catch (err) {
                 log.error('[Google] Lyria RealTime connection error:', /** @type {Error} */ (err).message);
+                sessionClosed = true; // a session that failed during setup is still open: close it
+                try { session?.close(); } catch (e) { bestEffort('core/providers/google:GoogleProvider.generateMusic#2', e); }
                 reject(new Error(`Music generation failed: ${/** @type {Error} */ (err).message}`));
             }
-
-            const finalize = () => {
-                if (audioChunks.length === 0) {
-                    resolve({ audioBase64: null, mimeType: 'audio/wav' });
-                    return;
-                }
-
-                const pcmData = Buffer.concat(audioChunks);
-                const wavBuffer = this._writeWavHeader(pcmData);
-
-                log.info(`[Google] Music generated: ${audioChunks.length} chunks, ${(wavBuffer.length / 1024).toFixed(0)} KB`);
-
-                resolve({
-                    audioBase64: wavBuffer.toString('base64'),
-                    mimeType: 'audio/wav',
-                });
-            };
         });
     }
 
@@ -956,8 +965,7 @@ class GoogleProvider extends BaseProvider {
      * @returns {Promise<{ videoBase64: string|null, mimeType: string }>}
      */
     async generateVideo(apiKey, prompt, options = {}) {
-        const { GoogleGenAI } = require('@google/genai');
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = this.createClient(apiKey);
         const model = options.model || 'veo-3.1-generate-preview';
 
         log.info(`[Google] Video generation: "${log.textForLog(prompt)}" (model: ${model})`);
@@ -1004,28 +1012,20 @@ class GoogleProvider extends BaseProvider {
             return { videoBase64: null, mimeType: 'video/mp4' };
         }
 
-        // Download video file using the SDK
+        // files.download writes to a path. The caller stores the bytes itself, so the file goes
+        // to a temp dir that is removed again, not into the served uploads folder.
         const fs = require('fs');
+        const os = require('os');
         const path = require('path');
-        const crypto = require('crypto');
-        const genDir = path.join(__dirname, '..', '..', 'data', 'uploads', 'generated');
-        await fs.promises.mkdir(genDir, { recursive: true });
-        const filename = `video_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.mp4`;
-        const filePath = path.join(genDir, filename);
-
-        await ai.files.download({
-            file: generatedVideo.video,
-            downloadPath: filePath,
-        });
-
-        // Read the downloaded file as base64
-        const videoBuffer = await fs.promises.readFile(filePath);
-        log.info(`[Google] Video generated: ${(videoBuffer.length / 1024 / 1024).toFixed(1)} MB, saved to ${filePath}`);
-
-        return {
-            videoBase64: videoBuffer.toString('base64'),
-            mimeType: 'video/mp4',
-        };
+        const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'google-video-'));
+        try {
+            await ai.files.download({ file: generatedVideo.video, downloadPath: path.join(dir, 'video.mp4') });
+            const videoBuffer = await fs.promises.readFile(path.join(dir, 'video.mp4'));
+            log.info(`[Google] Video generated: ${(videoBuffer.length / 1024 / 1024).toFixed(1)} MB`);
+            return { videoBase64: videoBuffer.toString('base64'), mimeType: 'video/mp4' };
+        } finally {
+            await fs.promises.rm(dir, { recursive: true, force: true });
+        }
     }
 
     /**

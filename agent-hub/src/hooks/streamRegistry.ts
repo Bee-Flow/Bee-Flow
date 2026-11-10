@@ -64,10 +64,18 @@ export function registerStream(key: string, controller: AbortController): void {
     streams.set(key, { controller, detachedAt: null, timer: null });
 }
 
-/** The stream finished, failed, or was stopped. Forget it. */
-export function releaseStream(key: string): void {
+/**
+ * The stream finished, failed, or was stopped. Forget it.
+ *
+ * Pass the stream's own `controller` when releasing from the stream's teardown:
+ * a newer stream on the same conversation supersedes (and aborts) the old one,
+ * and the old one's teardown then runs AFTER the new entry is in place. Without
+ * the check it would delete the newer stream's entry.
+ */
+export function releaseStream(key: string, controller?: AbortController): void {
     const entry = streams.get(key);
     if (!entry) return;
+    if (controller && entry.controller !== controller) return;
     if (entry.timer) clearTimeout(entry.timer);
     streams.delete(key);
 }

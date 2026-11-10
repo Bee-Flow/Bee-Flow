@@ -140,7 +140,11 @@ async function listAuditEvents({ organizationId, organizationIdIn, inboxId, inbo
     const cur = _decodeAuditCursor(cursor);
     if (cur) {
         vals.push(cur.t); vals.push(cur.id);
-        where.push(`(created_at, id) < ($${vals.length - 1}::timestamptz, $${vals.length}::uuid)`);
+        // The cursor row's own created_at is read back: the cursor carries a JS
+        // Date (milliseconds) and the column microseconds, and comparing with
+        // the rounded value skips the rows that share its millisecond. The
+        // carried value only stands in when that row is gone.
+        where.push(`(created_at, id) < (COALESCE((SELECT c.created_at FROM support_audit_log c WHERE c.id = $${vals.length}::uuid), $${vals.length - 1}::timestamptz), $${vals.length}::uuid)`);
     }
     const lim = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
     vals.push(lim + 1);

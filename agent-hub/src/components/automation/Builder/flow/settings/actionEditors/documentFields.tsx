@@ -5,6 +5,7 @@ import { listTemplates, documentRequest } from '@/pages/documents/documentsApi';
 import TemplateField from '@/components/automation/Builder/mapping/TemplateField';
 import useForEachRequest from '@/components/automation/Builder/mapping/useForEachRequest';
 import AccordionSection from '../../AccordionSection';
+import KeepDaysInput from './KeepDaysInput';
 import { AMBER_NOTE, cardClass, FormRow, hintTextClass, inputClass } from '../formPrimitives';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { StepEditorProps } from '../collectionEditors';
@@ -85,17 +86,7 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
             <AccordionSection stepType="generate_document" sectionKey="options" title={t('automations.document_fields.options', 'Options')} forceOpen={errorSections.has('options')}>
                 <FormRow label={t('automations.document_fields.keep_for', 'Keep for')} required hint={t('automations.document_fields.how_long_the_download_keeps_working', 'How long the download keeps working. The file is deleted afterwards — write it to Drive or Nextcloud as well if it has to be kept.')}>
                     <div className="flex items-center gap-2">
-                        <input
-                            type="number"
-                            min={1}
-                            max={90}
-                            value={days}
-                            onChange={(e) => {
-                                const n = Number(e.target.value);
-                                if (Number.isFinite(n)) set('expiresInDays', Math.min(90, Math.max(1, Math.round(n))));
-                            }}
-                            className={inputClass()}
-                        />
+                        <KeepDaysInput days={days} onDays={(n) => set('expiresInDays', n)} className={inputClass()} />
                         <span className="text-xs text-[var(--text-secondary)] whitespace-nowrap">{t('automations.document_fields.days', 'days')}</span>
                     </div>
                 </FormRow>
@@ -306,17 +297,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
             <AccordionSection stepType="fill_document" sectionKey="options" title={t('automations.document_fields.options', 'Options')} forceOpen={errorSections.has('options')}>
                 <FormRow label={t('automations.document_fields.keep_for', 'Keep for')} required hint={t('automations.document_fields.how_long_the_download_keeps_working', 'How long the download keeps working. The file is deleted afterwards — write it to Drive or Nextcloud as well if it has to be kept.')}>
                     <div className="flex items-center gap-2">
-                        <input
-                            type="number"
-                            min={1}
-                            max={90}
-                            value={days}
-                            onChange={(e) => {
-                                const n = Number(e.target.value);
-                                if (Number.isFinite(n)) set('expiresInDays', Math.min(90, Math.max(1, Math.round(n))));
-                            }}
-                            className={inputClass()}
-                        />
+                        <KeepDaysInput days={days} onDays={(n) => set('expiresInDays', n)} className={inputClass()} />
                         <span className="text-xs text-[var(--text-secondary)] whitespace-nowrap">{t('automations.document_fields.days', 'days')}</span>
                     </div>
                 </FormRow>

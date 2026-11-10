@@ -61,7 +61,7 @@ const { validateSiteDraft } = require('../../cmsBuilder/validate');
 const { getProfileForModel, effortForIteration } = require('../../cmsBuilder/builderModelProfiles');
 const { isTransientChatError, applyBuilderTierFloor, streamWithRetry: sharedStreamWithRetry } = require('./builderShared');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { openSse } = require('../../core/http/sseHelpers');
+const { openSse, onClientGone } = require('../../core/http/sseHelpers');
 const {
     VALIDATION_NOTE_PREFIX, DRAFT_STATE_PREFIX, EDITOR_CONTEXT_PREFIX, BLOCK_FEEDBACK_PREFIX,
     renderValidationNote, renderBlockFeedbackNote, renderDraftStateNote, sanitizeEditorContext,
@@ -350,7 +350,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
         // answer nobody will read.
         let clientGone = false;
         const clientAbort = new AbortController();
-        req.on('close', () => {
+        onClientGone(res, () => {
             clientGone = true;
             try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });

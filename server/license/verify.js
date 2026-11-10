@@ -247,6 +247,8 @@ async function verifyToken(token, { now = Math.floor(Date.now() / 1000), publicK
     }
 
     const { header, payload, parts } = decoded;
+    // Both segments are JSON of the caller's making; `null` or a bare number parses and has no claims to read.
+    if (!header || typeof header !== 'object' || !payload || typeof payload !== 'object') return { valid: false, error: 'decode_failed: Malformed JWT' };
 
     if (header.alg !== ALG) {
         return { valid: false, error: `unexpected_alg: ${header.alg}` };

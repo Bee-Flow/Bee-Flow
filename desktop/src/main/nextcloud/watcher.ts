@@ -109,6 +109,8 @@ export const WRITE_STABILITY_MS = 2_000;
 export class FolderWatcher {
     private readonly options: FolderWatcherOptions;
     private readonly watchers = new Map<string, WatcherLike>();
+    /** What each running watcher was started with, to notice a folder that was edited. */
+    private readonly started = new Map<string, string>();
     private readonly pending = new Map<string, ReturnType<typeof setTimeout>>();
 
     constructor(options: FolderWatcherOptions) {
@@ -131,7 +133,11 @@ export class FolderWatcher {
         const wanted = new Map(folders.filter((folder) => folder.enabled).map((folder) => [folder.id, folder]));
 
         for (const id of [...this.watchers.keys()]) {
-            if (!wanted.has(id)) await this.stop(id);
+            // An edited folder (another path, knowledge base or depth) is
+            // stopped too and started again below: its watcher was created for
+            // the old values and would keep reporting under them.
+            const folder = wanted.get(id);
+            if (!folder || this.started.get(id) !== signatureOf(folder)) await this.stop(id);
         }
 
         for (const [id, folder] of wanted) {
@@ -170,11 +176,21 @@ export class FolderWatcher {
         });
 
         this.watchers.set(id, watcher);
+        this.started.set(id, signatureOf(folder));
     }
 
     private async stop(id: string): Promise<void> {
         const watcher = this.watchers.get(id);
         this.watchers.delete(id);
+        this.started.delete(id);
+        // Events still waiting out the debounce belong to the watcher that is
+        // going away; left alone they were reported after the folder was
+        // switched off or removed.
+        for (const [key, timer] of this.pending) {
+            if (!key.startsWith(`${id}:`)) continue;
+            clearTimeout(timer);
+            this.pending.delete(key);
+        }
         try {
             await watcher?.close();
         } catch (error) {
@@ -229,6 +245,11 @@ export class FolderWatcher {
             this.options.onWarning?.(`a watched-file listener threw: ${describe(error)}`);
         }
     }
+}
+
+/** The fields a watcher is created from; a change in any of them needs a new watcher. */
+function signatureOf(folder: WatchedFolder): string {
+    return JSON.stringify([folder.path, folder.knowledgeBaseId, folder.recursive]);
 }
 
 function describe(error: unknown): string {

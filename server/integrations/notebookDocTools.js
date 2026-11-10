@@ -129,7 +129,9 @@ function executeNotebookDocTool(toolName, args, documentContent, documentMd) {
 
     let newMd = null;
     if (docMd.includes(findText)) {
-      newMd = docMd.replace(findText, replaceText);
+      // A function replacer: in a replacement STRING `$$`, `$&` and `$'` are patterns,
+      // so "$$x^2$$" would be written as "$x^2$".
+      newMd = docMd.replace(findText, () => replaceText);
     } else {
       /**
        * @param {string} t
@@ -139,7 +141,7 @@ function executeNotebookDocTool(toolName, args, documentContent, documentMd) {
         // Whitespace-flexible regex (markdown rarely has interleaving tags).
         const re = new RegExp(findText.trim().split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+'), 's');
         const m = docMd.match(re);
-        if (m) newMd = docMd.replace(m[0], replaceText);
+        if (m) newMd = docMd.replace(m[0], () => replaceText);
       }
     }
 

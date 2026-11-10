@@ -49,12 +49,13 @@ function composeDoc(html, css, js) {
         // Inject before </head> or </body>; otherwise append.
         let doc = safeHtml;
         if (/<\/head>/i.test(doc)) {
-            doc = doc.replace(/<\/head>/i, `${styleTag}\n</head>`);
+            // Function replacers: the author's CSS/JS is not a replacement pattern (`$&`, `$$`, `$'`).
+            doc = doc.replace(/<\/head>/i, () => `${styleTag}\n</head>`);
         } else {
             doc = `${styleTag}\n${doc}`;
         }
         if (/<\/body>/i.test(doc)) {
-            doc = doc.replace(/<\/body>/i, `${scriptTag}\n</body>`);
+            doc = doc.replace(/<\/body>/i, () => `${scriptTag}\n</body>`);
         } else {
             doc = `${doc}\n${scriptTag}`;
         }

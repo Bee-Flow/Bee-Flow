@@ -2,7 +2,7 @@
 // Only Sonnet 4.6 / Opus 4.6 honour budget_tokens: the adaptive-only family
 // (Opus 4.7/4.8, Sonnet 5, Fable 5) rejects a manual budget and Haiku has no
 // thinking at all, so the callers show this for the others only.
-import { FIELD_INPUT, Field } from '../ui/SettingsList';
+import { FIELD_INPUT, Field } from '@/components/shared/SettingsList';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface TierThinkingFieldsProps {

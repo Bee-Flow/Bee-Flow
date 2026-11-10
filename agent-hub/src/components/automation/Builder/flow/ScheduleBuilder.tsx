@@ -74,6 +74,12 @@ export default function ScheduleBuilder({ cron, tz, onChange }: ScheduleBuilderP
     // a setState loop when the parent echoes the same cron back.
     const emitChange = useEffectEvent(() => {
         if (generatedCron !== cron || tzValue !== tz) {
+            // What the parent hands back next is this very edit, not a change
+            // from outside: re-seeding from it would re-read a pattern typed in
+            // Advanced as a preset the moment it happens to look like one
+            // (`0 9 * * 1` on the way to `0 9 * * 1-5`) and take the field away.
+            lastSeenCron.current = generatedCron;
+            lastSeenTz.current = tzValue;
             onChange?.({ cron: generatedCron, tz: tzValue });
         }
     });

@@ -284,6 +284,22 @@ test('a token revoked on its own leaves the index, so a later user-wide revoke d
     assert.strictEqual(await revokeSessionTokensForUser('carol'), 1);
 });
 
+test('an expired token leaves the per-user index, so a later revoke does not count sessions that no longer exist', async () => {
+    const { revokeSessionTokensForUser } = require('./sessionToken');
+    const expired = generateToken(); const live = generateToken();
+    await setSessionToken(expired, { user: { id: 'dave' } }, 0.01);
+    await setSessionToken(live, { user: { id: 'dave' } });
+    await new Promise((r) => setTimeout(r, 40));
+    assert.strictEqual(await getSessionToken(expired), null);
+    assert.strictEqual(await revokeSessionTokensForUser('dave'), 1, 'only the live token is revoked');
+
+    // Also when nothing reads the expired token: its own eviction timer clears the index.
+    const unread = generateToken();
+    await setSessionToken(unread, { user: { id: 'erin' } }, 0.01);
+    await new Promise((r) => setTimeout(r, 40));
+    assert.strictEqual(await revokeSessionTokensForUser('erin'), 0);
+});
+
 // ── What the token store holds is sealed ─────────────────────────────────
 
 test('a bridge payload rests sealed under its token, and reads back plain', async () => {

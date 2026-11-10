@@ -198,7 +198,8 @@ async function getRecentCalls(limit = 50, filters = {}) {
     let idx = base.nextIdx;
 
     if (filters?.search) {
-        const term = `%${filters.search}%`;
+        // The search text is literal: % and _ in it are not wildcards.
+        const term = `%${String(filters.search).replace(/[\\%_]/g, '\\$&')}%`;
         conditions.push(`(agent_name ILIKE $${idx} OR user_id ILIKE $${idx + 1} OR model ILIKE $${idx + 2})`);
         params.push(term, term, term);
         idx += 3;

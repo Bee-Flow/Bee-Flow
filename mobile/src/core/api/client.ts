@@ -294,6 +294,10 @@ async function attempt<T>(method: string, path: string, opts: AttemptOptions): P
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     const abortFromCaller = () => controller.abort();
+    // A signal that is ALREADY aborted never fires the event again: without
+    // this the request of a cancelled caller (a retry after its backoff, a
+    // query cancelled before it started) was sent and ran to the end.
+    if (signal?.aborted) controller.abort();
     signal?.addEventListener('abort', abortFromCaller);
 
     try {

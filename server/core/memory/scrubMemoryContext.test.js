@@ -157,3 +157,28 @@ test('detector down: the account values are still tokenised', async () => {
     assert.strictEqual(r.mode, 'tokens');
     assert.ok(!r.text.includes('Ada Visser'));
 });
+
+test('label mode: a known value is labelled at EVERY mention, not only the first', async (t) => {
+    const { scrubMemoryContext } = require('./scrubMemoryContext');
+    // The detector is down (fail-open): the known values are the whole net.
+    t.mock.method(require('../privacy/piiDetection'), 'detectPii', async () => { throw new Error('guard down'); });
+    const known = [{ text: 'Jan Jansen', category: 'Person', role: 'name' }, { text: 'jan@example.nl', category: 'Email', role: 'e-mail address' }];
+    const text = 'Name: Jan Jansen\nE-mail: jan@example.nl\n- Jan Jansen likes tea; write to jan@example.nl';
+
+    const direct = await scrubMemoryContext(text, { piiDetectionCategories: ['Person', 'Email'] }, { knownEntities: known });
+    assert.ok(!direct.scrubbed.includes('Jan Jansen') && !direct.scrubbed.includes('jan@example.nl'), direct.scrubbed);
+    assert.strictEqual(direct.scrubbed, "Name: [name]\nE-mail: [User's email address]\n- [name] likes tea; write to [User's email address]");
+
+    // No conversation id: tokenizeMemoryContext answers with the same labels.
+    const r = await tokenizeMemoryContext(text, { piiDetectionCategories: ['Person', 'Email'] }, { knownEntities: known });
+    assert.strictEqual(r.mode, 'labels');
+    assert.strictEqual(r.text, direct.scrubbed);
+});
+
+test('tokenise failure falls back to labels that cover every mention of a known value', async () => {
+    const deps = fakeDeps({ failTokenize: true, failDetect: true });
+    const known = [{ text: 'Jan Jansen', category: 'Person', role: 'name' }];
+    const r = await tokenizeMemoryContext('Name: Jan Jansen\n- Jan Jansen likes tea', { enabled: true }, { conversationId: 'c9', userId: 'u1', deps, knownEntities: known });
+    assert.strictEqual(r.mode, 'labels');
+    assert.ok(!r.text.includes('Jan Jansen'), r.text);
+});

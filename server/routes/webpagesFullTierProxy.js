@@ -110,7 +110,11 @@ function mountFullTierProxy(app, server) {
     server.on('upgrade', (/** @type {import('express').Request} */ req, socket, head) => {
         const match = typeof req.url === 'string' && req.url.match(UPGRADE_URL_RE);
         if (!match) return; // not a full-tier proxy path — leave it for any other upgrade listener
-        const webpageId = decodeURIComponent(match[1]);
+        // A malformed escape (`%zz`) makes decodeURIComponent throw, and a
+        // throw in this listener is an uncaught exception: the process exits.
+        /** @type {string} */
+        let webpageId;
+        try { webpageId = decodeURIComponent(match[1]); } catch (_) { socket.destroy(); return; }
 
         /** @type {string | null} */
         let token = null;

@@ -92,3 +92,15 @@ test('truncatePayload itself is unchanged: the sentinel carries no ref of its ow
     assert.deepStrictEqual(Object.keys(r.value).sort(), ['__truncated__', 'headSample', 'originalBytes', 'preview', 'previewCut']);
     assert.strictEqual(r.value[FULL_OUTPUT_REF], undefined);
 });
+
+test('a truncated payload never ends a text on half an emoji (lone surrogate)', () => {
+    // Serialised, the emoji run starts at an odd offset, so both the 1024-unit
+    // head sample and the preview's cut landed between the two halves of a pair.
+    const r = truncatePayload({ text: 'a'.repeat(1012) + '😀'.repeat(DEFAULT_MAX_BYTES) , odd: 'b' + '😀'.repeat(400) });
+    assert.strictEqual(r.truncated, true);
+    const lone = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+    assert.strictEqual(lone.test(r.value.headSample), false, 'headSample ends on a lone high surrogate');
+    assert.strictEqual(lone.test(JSON.stringify(r.value.preview, (k, v) => v)), false);
+    assert.strictEqual(lone.test(r.value.preview.odd), false, 'the preview cut a pair in half');
+    assert.ok(r.value.headSample.length >= 1023);
+});

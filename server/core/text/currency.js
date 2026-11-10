@@ -99,6 +99,10 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
         if (strict) {
             throw new Error(`fx_rate_unavailable: USD→${c}`);
         }
+        // A FAILED lookup is not "no rate configured": the 1.0 guess is returned
+        // but NOT cached, or strict (billing) callers would be handed it for the
+        // next five minutes and a recovered store would stay unread that long.
+        return 1;
     }
 
     if (!_missingRateWarned.has(c)) {

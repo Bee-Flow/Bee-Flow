@@ -18,6 +18,16 @@ function firstLoc(entry) {
 }
 
 /**
+ * A <loc> resolved against the sitemap's URL, or null when it is not a URL: one
+ * unusable entry is skipped, it does not cost the site its other pages.
+ * @param {string} loc
+ * @param {string | URL} base
+ */
+function resolveLoc(loc, base) {
+    try { return new URL(loc, base).href; } catch (_) { return null; }
+}
+
+/**
  * Pulls the page URLs (<urlset>) and nested sitemap URLs (<sitemapindex>) out
  * of a sitemap document, resolved against the sitemap's own URL. Malformed XML
  * throws.
@@ -33,13 +43,15 @@ function parseSitemap(xml, sitemapBaseUrl) {
     if (result.urlset && Array.isArray(result.urlset.url)) {
         for (const u of result.urlset.url) {
             const loc = firstLoc(u);
-            if (loc) urls.push(new URL(loc, sitemapBaseUrl).href);
+            const href = loc && resolveLoc(loc, sitemapBaseUrl);
+            if (href) urls.push(href);
         }
     }
     if (result.sitemapindex && Array.isArray(result.sitemapindex.sitemap)) {
         for (const sm of result.sitemapindex.sitemap) {
             const loc = firstLoc(sm);
-            if (loc) sitemaps.push(new URL(loc, sitemapBaseUrl).href);
+            const href = loc && resolveLoc(loc, sitemapBaseUrl);
+            if (href) sitemaps.push(href);
         }
     }
     return { urls, sitemaps };

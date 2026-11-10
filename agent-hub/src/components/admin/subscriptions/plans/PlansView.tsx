@@ -14,9 +14,9 @@ import { toast } from '@/components/shared/Toast';
 import { useResource, apiJson } from '../hooks/useApi';
 import { ConfirmModal } from '../ui/Modal';
 import { SearchInput } from '../ui/SearchInput';
-import { SectionHeader } from '../ui/SectionHeader';
-import { Spinner } from '../ui/Spinner';
-import { Tabs } from '../ui/Tabs';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 
 export function PlansView() {
     const { t } = useTranslation();
@@ -118,28 +118,44 @@ export function PlansView() {
         }
     };
 
+    // Drawn in both views: the editor's own "Delete plan" asks through it too.
+    const deleteConfirm = (
+        <ConfirmModal
+            open={!!confirmDel}
+            onClose={() => setConfirmDel(null)}
+            onConfirm={handleDelete}
+            busy={saving}
+            title={t('admin_subscriptions.plans_delete_title', 'Delete {name}?', { name: confirmDel?.name || t('admin_subscriptions.plans_plan', 'plan') })}
+            message={t('admin_subscriptions.plans_delete_message', 'Organizations currently on this plan will lose their plan assignment and fall back to defaults. This cannot be undone.')}
+            confirmLabel={t('admin_subscriptions.plans_delete_confirm', 'Delete plan')}
+        />
+    );
+
     // ── Full-page editor swap ──
     if (editing) {
         const isTemplateLaunch = editing === 'new' && !!seedPlan;
         return (
-            <PlanEditor
-                plan={editing === 'new' ? seedPlan : editing}
-                isNew={editing === 'new'}
-                onBack={() => { setEditing(null); setSeedPlan(null); }}
-                onSave={handleSave}
-                onDelete={editing !== 'new' ? () => setConfirmDel(editing) : undefined}
-                saving={saving}
-                key={isTemplateLaunch ? `tpl-${seedPlan?.name}` : (editing === 'new' ? 'new' : editing.id)}
-            />
+            <>
+                <PlanEditor
+                    plan={editing === 'new' ? seedPlan : editing}
+                    isNew={editing === 'new'}
+                    onBack={() => { setEditing(null); setSeedPlan(null); }}
+                    onSave={handleSave}
+                    onDelete={editing !== 'new' ? () => setConfirmDel(editing) : undefined}
+                    saving={saving}
+                    key={isTemplateLaunch ? `tpl-${seedPlan?.name}` : (editing === 'new' ? 'new' : editing.id)}
+                />
+                {deleteConfirm}
+            </>
         );
     }
 
     return (
-        <div className="px-6 py-6 max-w-[1280px] mx-auto">
-            <SectionHeader
+        <div className="p-6 md:p-8">
+            <SectionHeader className="mb-5"
                 title={t('admin.sub_title', 'Subscription Plans')}
                 description={t('admin.sub_desc', 'Create reusable plan templates with limits and feature access.')}
-                action={
+                status={
                     <div className="flex items-center gap-2">
                         <Button variant="secondary" icon={LayoutTemplate} onClick={() => setGalleryOpen(true)}>
                             {t('admin.sub_from_template', 'From template')}
@@ -154,7 +170,7 @@ export function PlansView() {
             <TrialOffersPanel plans={plans} />
 
             {loading ? (
-                <Spinner label={t('admin_subscriptions.plans_loading', 'Loading plans…')} />
+                <div className="flex justify-center py-12"><Spinner label={t('admin_subscriptions.plans_loading', 'Loading plans…')} /></div>
             ) : plans.length === 0 ? (
                 <EmptyState
                     icon={<Package className="w-6 h-6" />}
@@ -170,13 +186,13 @@ export function PlansView() {
             ) : (
                 <>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-                        <Tabs
+                        <SegmentedControl
                             value={filter}
                             onChange={setFilter}
                             options={[
-                                { value: 'all',          label: t('admin_subscriptions.plans_filter_all', 'All'), count: counts.all },
-                                { value: 'organization', label: t('admin_subscriptions.plans_filter_org', 'Org'), icon: Building2, count: counts.organization },
-                                { value: 'consumer',     label: t('admin_subscriptions.plans_filter_consumer', 'Consumer'), icon: Users,     count: counts.consumer },
+                                { value: 'all',          label: t('admin_subscriptions.plans_filter_all', 'All'), badge: counts.all },
+                                { value: 'organization', label: t('admin_subscriptions.plans_filter_org', 'Org'), icon: <Building2 className="h-3.5 w-3.5" aria-hidden="true" />, badge: counts.organization },
+                                { value: 'consumer',     label: t('admin_subscriptions.plans_filter_consumer', 'Consumer'), icon: <Users className="h-3.5 w-3.5" aria-hidden="true" />, badge: counts.consumer },
                             ]}
                         />
                         <div className="flex items-center gap-2">
@@ -212,15 +228,7 @@ export function PlansView() {
                 </>
             )}
 
-            <ConfirmModal
-                open={!!confirmDel}
-                onClose={() => setConfirmDel(null)}
-                onConfirm={handleDelete}
-                busy={saving}
-                title={t('admin_subscriptions.plans_delete_title', 'Delete {name}?', { name: confirmDel?.name || t('admin_subscriptions.plans_plan', 'plan') })}
-                message={t('admin_subscriptions.plans_delete_message', 'Organizations currently on this plan will lose their plan assignment and fall back to defaults. This cannot be undone.')}
-                confirmLabel={t('admin_subscriptions.plans_delete_confirm', 'Delete plan')}
-            />
+            {deleteConfirm}
 
             <PlanTemplateGallery
                 open={galleryOpen}

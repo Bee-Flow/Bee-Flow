@@ -250,6 +250,20 @@ function _riskStore() { return require('../../stores/riskStore'); }
 function _auditStore() { return require('../../stores/isoAuditStore'); }
 function _obligationStore() { return require('../../stores/isoObligationStore'); }
 
+/**
+ * The latest of some stamps, or null. By instant: the stamps are Dates, and a
+ * plain sort() orders their text, which starts with the name of the weekday.
+ * @param {Array<Date | string | null | undefined>} stamps
+ */
+function latestOf(stamps) {
+    /** @type {Date | string | null} */
+    let latest = null;
+    for (const s of stamps) {
+        if (s && (latest === null || new Date(s).getTime() > new Date(latest).getTime())) latest = s;
+    }
+    return latest;
+}
+
 module.exports = {
     resolveOrgId,
     resolveOrgIdStrict,
@@ -264,4 +278,5 @@ module.exports = {
     _riskStore,
     _auditStore,
     _obligationStore,
+    latestOf,
 };

@@ -1,7 +1,10 @@
-import React from 'react';
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 
-const baseClass = 'w-full px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[13px] placeholder:text-[var(--text-muted)] outline-none transition-colors focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50';
+import { INPUT } from '@/components/mcpLibrary/ui';
+
+// The console's form controls on the shared INPUT recipe; Field adds the
+// label-with-inline-hint and the error line its forms use.
+const baseClass = INPUT;
 
 interface FieldProps {
     label?: ReactNode;
@@ -15,13 +18,13 @@ export function Field({ label, hint, error, children, className = '' }: FieldPro
     return (
         <div className={className}>
             {label && (
-                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+                <label className="mb-1 block text-[12px] font-medium text-[var(--text-secondary)]">
                     {label}
-                    {hint && <span className="ml-1 text-[10px] font-normal text-[var(--text-muted)]">— {hint}</span>}
+                    {hint && <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">— {hint}</span>}
                 </label>
             )}
             {children}
-            {error && <p className="mt-1 text-[11px] text-rose-400">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-[var(--error-ink)]">{error}</p>}
         </div>
     );
 }

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
-import SectionHeader from './SectionHeader';
-import { FIELD_INPUT, Field, OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, SettingsGroup, SettingsList } from './ui/SettingsList';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { FIELD_INPUT, Field, OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from './ui/useToastOnMessage';
 import Toggle from '@/components/shared/Toggle';
 import useDraftOverServer from '@/hooks/useDraftOverServer';

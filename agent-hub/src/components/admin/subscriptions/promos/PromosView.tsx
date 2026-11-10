@@ -9,8 +9,8 @@ import { toast } from '@/components/shared/Toast';
 import { useResource, apiJson } from '../hooks/useApi';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
-import { SectionHeader } from '../ui/SectionHeader';
-import { Spinner } from '../ui/Spinner';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
 
 /** One promotion code in `GET /api/stripe/promo-codes`. */
 interface PromoCode {
@@ -52,15 +52,15 @@ export function PromosView() {
     }
 
     return (
-        <div className="px-6 py-6 max-w-[1100px] mx-auto">
-            <SectionHeader
+        <div className="p-6 md:p-8">
+            <SectionHeader className="mb-5"
                 title={t('admin_subscriptions.promos_title', 'Promotion Codes')}
                 description={t('admin_subscriptions.promos_desc', 'Create and manage discount codes that customers can apply at Stripe checkout.')}
-                action={<Button icon={Plus} onClick={() => setCreating(true)}>{t('admin_subscriptions.promos_new_code', 'New code')}</Button>}
+                status={<Button icon={Plus} onClick={() => setCreating(true)}>{t('admin_subscriptions.promos_new_code', 'New code')}</Button>}
             />
 
             {loading ? (
-                <Spinner label={t('admin_subscriptions.promos_loading', 'Loading promo codes…')} />
+                <div className="flex justify-center py-12"><Spinner label={t('admin_subscriptions.promos_loading', 'Loading promo codes…')} /></div>
             ) : codes.length === 0 ? (
                 <EmptyState
                     icon={<Tag className="w-6 h-6" />}
@@ -74,23 +74,23 @@ export function PromosView() {
                         <Card key={c.id} className={`!p-4 flex items-center justify-between gap-4 ${c.active ? '' : 'opacity-60'}`} hover>
                             <div className="flex items-center gap-4 min-w-0 flex-1">
                                 <div className={`px-3 py-2 rounded-lg font-mono font-bold text-[14px] tracking-wider whitespace-nowrap ${
-                                    c.active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
+                                    c.active ? 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
                                 }`}>
                                     {c.code}
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[var(--text-primary)]">
                                         {c.discountType === 'percent' ? (
-                                            <><Percent className="w-3.5 h-3.5 text-blue-400" /> {t('admin_subscriptions.promos_percent_off', '{value}% off', { value: c.discountValue })}</>
+                                            <><Percent className="w-3.5 h-3.5 text-[var(--info-ink)]" /> {t('admin_subscriptions.promos_percent_off', '{value}% off', { value: c.discountValue })}</>
                                         ) : (
-                                            <><Euro className="w-3.5 h-3.5 text-blue-400" /> {t('admin_subscriptions.promos_amount_off', '{amount} {currency} off', { amount: (c.discountValue / 100).toFixed(2), currency: c.currency?.toUpperCase() })}</>
+                                            <><Euro className="w-3.5 h-3.5 text-[var(--info-ink)]" /> {t('admin_subscriptions.promos_amount_off', '{amount} {currency} off', { amount: (c.discountValue / 100).toFixed(2), currency: c.currency?.toUpperCase() })}</>
                                         )}
-                                        <span className="font-normal text-[11px] text-[var(--text-muted)]">
+                                        <span className="font-normal text-[11px] text-[var(--text-tertiary)]">
                                             · {c.duration === 'once' ? t('admin_subscriptions.promos_one_time', 'one-time') : c.duration === 'forever' ? t('admin_subscriptions.promos_forever_lc', 'forever') : t('admin_subscriptions.promos_months_short', '{n}mo', { n: c.durationMonths })}
                                         </span>
                                     </div>
-                                    {c.name && <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{c.name}</div>}
-                                    <div className="flex items-center flex-wrap gap-3 mt-1 text-[11px] text-[var(--text-muted)]">
+                                    {c.name && <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{c.name}</div>}
+                                    <div className="flex items-center flex-wrap gap-3 mt-1 text-[11px] text-[var(--text-tertiary)]">
                                         <span className="inline-flex items-center gap-1">
                                             <Hash className="w-3 h-3" /> {c.maxRedemptions
                                                 ? t('admin_subscriptions.promos_used_of', '{count}/{max} used', { count: c.timesRedeemed || 0, max: c.maxRedemptions })
@@ -101,7 +101,7 @@ export function PromosView() {
                                                 <Clock className="w-3 h-3" /> {t('admin_subscriptions.promos_expires', 'expires {date}', { date: new Date(c.expiresAt).toLocaleDateString() })}
                                             </span>
                                         )}
-                                        {c.firstTimeOnly && <span className="text-amber-400">{t('admin_subscriptions.promos_new_only', 'new customers only')}</span>}
+                                        {c.firstTimeOnly && <span className="text-[var(--warning-ink)]">{t('admin_subscriptions.promos_new_only', 'new customers only')}</span>}
                                     </div>
                                 </div>
                             </div>

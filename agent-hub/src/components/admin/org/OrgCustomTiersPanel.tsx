@@ -137,12 +137,15 @@ const OrgCustomTiersPanel = () => {
     };
 
     const rename = (currentId: string, newLabel: string) => {
-        const newId = slugifyTierLabel(newLabel);
+        const slug = slugifyTierLabel(newLabel);
+        // The id follows the name, but never onto another tier's id: every edit
+        // finds its tier by id, so two tiers sharing one would be edited as one.
+        const newId = slug && !orgTiers.some(t => t.id === slug && t.id !== currentId) ? slug : currentId;
         setOrgTiers(prev => prev.map(t => {
             if (t.id !== currentId) return t;
-            return { ...t, label: newLabel, id: newId || currentId };
+            return { ...t, label: newLabel, id: newId };
         }));
-        if (newId && newId !== currentId) setExpandedId(newId);
+        if (newId !== currentId) setExpandedId(newId);
     };
 
     const remove = async (id: string) => {
@@ -235,13 +238,15 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                 {t('admin_org.custom_tiers_none_a', 'No organisation-scoped tiers yet. Click')} <strong>{t('admin_org.custom_tiers_none_b', 'Add Tier')}</strong> {t('admin_org.custom_tiers_none_c', 'to create one.')}
             </div>
         ) : (
-            orgTiers.map(tier => {
+            orgTiers.map((tier, position) => {
                 const isExpanded = expandedId === tier.id;
                 const taskTypes = new Set(tier.allowedTaskTypes || []);
                 const modelOption = availableModels.find(m => m.id === tier.modelId);
                 const euOption = availableModels.find(m => m.id === tier.euModelId);
                 return (
-                    <div key={tier.id} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] overflow-hidden">
+                    // Keyed by position: the id follows the name, and a key that changed on
+                    // every keystroke remounted the card and took the focus out of the name field.
+                    <div key={position} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] overflow-hidden">
                         <div className="p-4">
                             <div className="flex items-center gap-3 mb-3">
                                 <input

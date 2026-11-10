@@ -55,7 +55,9 @@ function injectIntoShell(shell, { head = '', body = '', lang = 'en' } = {}) {
 
     if (head) {
         html = html.includes('</head>')
-            ? html.replace('</head>', `    ${head}\n  </head>`)
+            // Function replacers here too: `head` and `body` carry page content, and a
+            // `$&` or `$$` in it (a code sample, a price) is not a replacement pattern.
+            ? html.replace('</head>', () => `    ${head}\n  </head>`)
             : html;
     }
 
@@ -63,7 +65,7 @@ function injectIntoShell(shell, { head = '', body = '', lang = 'en' } = {}) {
         // React's createRoot().render() replaces the children of #root, so
         // this markup is transient by design — it exists for the crawler and
         // for first paint. It is the same content, not a bot-only variant.
-        html = html.replace('<div id="root"></div>', `<div id="root">${body}</div>`);
+        html = html.replace('<div id="root"></div>', () => `<div id="root">${body}</div>`);
     }
 
     return html;

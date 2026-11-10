@@ -186,14 +186,17 @@ function assertSameHost(expected: string, actual: string, what: string): void {
 
 function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
     return new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, ms);
-        signal?.addEventListener(
-            'abort',
-            () => {
-                clearTimeout(timer);
-                reject(new Error('The Nextcloud sign-in was cancelled.'));
-            },
-            { once: true },
-        );
+        const onAbort = () => {
+            clearTimeout(timer);
+            reject(new Error('The Nextcloud sign-in was cancelled.'));
+        };
+        // The listener goes when the wait ends. Polling once a second for up
+        // to twenty minutes otherwise left one more on the same signal each
+        // time, every one of them holding its closure until the flow ended.
+        const timer = setTimeout(() => {
+            signal?.removeEventListener('abort', onAbort);
+            resolve();
+        }, ms);
+        signal?.addEventListener('abort', onAbort, { once: true });
     });
 }

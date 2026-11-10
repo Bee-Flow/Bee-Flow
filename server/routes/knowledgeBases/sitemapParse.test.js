@@ -49,3 +49,15 @@ test('other documents yield nothing and malformed XML throws', () => {
     assert.throws(() => parseSitemap('<urlset><url><loc>x</url></urlset>', BASE));
     assert.throws(() => parseSitemap('not xml', BASE));
 });
+
+test('one <loc> that is not a URL is skipped, the other pages stay', () => {
+    const xml = `<?xml version="1.0"?><urlset>
+        <url><loc>https://example.com/a</loc></url>
+        <url><loc>http://[broken</loc></url>
+        <url><loc>https://example.com/b</loc></url>
+    </urlset>`;
+    assert.deepStrictEqual(parseSitemap(xml, 'https://example.com/sitemap.xml').urls,
+        ['https://example.com/a', 'https://example.com/b']);
+    const index = '<sitemapindex><sitemap><loc>http://[broken</loc></sitemap><sitemap><loc>/s2.xml</loc></sitemap></sitemapindex>';
+    assert.deepStrictEqual(parseSitemap(index, 'https://example.com/sitemap.xml').sitemaps, ['https://example.com/s2.xml']);
+});

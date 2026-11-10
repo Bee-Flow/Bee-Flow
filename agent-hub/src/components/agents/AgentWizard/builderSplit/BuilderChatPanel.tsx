@@ -10,6 +10,7 @@ import type { ChatMessage } from '../agentEditor.types';
 import type { createHandleRefine } from './refineActions';
 import type { ModelTierMap } from '@/hooks/useModelTierSelection';
 import type { AgentPlan } from '../PlanCard';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 
 // The refine rail ("refine this agent") of the builder split. Since A2 step 1
 // it sits on the RIGHT instead of the left: hence the left edge and the minimum
@@ -123,7 +124,7 @@ export default function BuilderChatPanel({ chatWidth, t, chatScrollRef, chat, ch
                         <textarea
                             value={chatInput}
                             onChange={(e) => setChatInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRefine(); } }}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isImeEnter(e)) { e.preventDefault(); handleRefine(); } }}
                             placeholder={t('agent_wizard.builder.chat_placeholder')}
                             className="w-full bg-transparent outline-none text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] resize-none"
                             rows={1}

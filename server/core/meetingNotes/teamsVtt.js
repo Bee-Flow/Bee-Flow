@@ -16,8 +16,9 @@ function vttSeconds(stamp) {
  * @param {string} s
  */
 function decodeEntities(s) {
-    return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+    // &amp; last: decoded first, "&amp;lt;" (the text "&lt;") would come out as "<".
+    return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
 }
 
 /**

@@ -3,8 +3,8 @@ import { useMemo, useRef, useState } from 'react';
 import AccordionSection from '../AccordionSection';
 import { inputClass, textareaClass, FormRow } from './formPrimitives';
 import useAutomationApi from '@/hooks/useAutomationApi';
-import { walkPath, previewValue, suggestKeyFromPath } from '@/utils/bindingHelpers';
-import { walkRelativePath } from '@/utils/bindingHelpers.helpers';
+import { walkPath, previewValue, suggestKeyFromPath, walkRelativePath } from '@/utils/bindingHelpers';
+import { appendFields } from './ParseJsonFields.helpers';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
@@ -157,7 +157,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 set('itemsRef', res.itemsRef);
             }
             const taken = new Set(fields.map(f => f?.name).filter(Boolean));
-            const added = [];
+            const added: ParseField[] = [];
             const amber = new Set(unverified);
             for (const f of (res?.fields || [])) {
                 if (!f?.name || taken.has(f.name)) continue;
@@ -167,7 +167,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 added.push(row);
                 if (f.verified === false) amber.add(f.name);
             }
-            if (added.length) set('fields', [...fields, ...added]);
+            if (added.length) set('fields', appendFields(added));
             setUnverified(amber);
         } catch (e) {
             setMapError((e as Error)?.message || 'Mapping failed');

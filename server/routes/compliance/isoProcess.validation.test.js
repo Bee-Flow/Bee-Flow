@@ -270,3 +270,16 @@ test('a key the seed route does not read is refused rather than silently ignored
 test('a training note is capped rather than truncated in silence', async () => {
     await refuses({ method: 'POST', url: '/iso/training/u2/attest', body: { note: 'x'.repeat(301) } }, 'body.note');
 });
+
+test('accepting a risk that does not exist here writes nothing to the evidence chain', async () => {
+    const real = riskStore.updateRisk;
+    riskStore.updateRisk = async () => null;   // unknown id, or another organisation's
+    try {
+        const res = await dispatch({ method: 'PUT', url: '/iso/risks/999', body: { status: 'accepted' } });
+        assert.strictEqual(res.statusCode, 200);
+        assert.deepStrictEqual(touched.filter((t) => t.what === 'addEvidence'), []);
+    } finally { riskStore.updateRisk = real; }
+    // An existing risk still chains its acceptance.
+    await dispatch({ method: 'PUT', url: '/iso/risks/7', body: { status: 'accepted' } });
+    assert.strictEqual(touched.filter((t) => t.what === 'addEvidence').length, 1);
+});

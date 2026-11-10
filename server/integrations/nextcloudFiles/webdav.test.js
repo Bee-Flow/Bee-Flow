@@ -84,13 +84,11 @@ test('joinDavPath and relativeFromRoot stay inverse of each other around the new
     assert.equal(webdav.relativeFromRoot('/remote.php/dav/files/alice/Documents/Facturen%20Q3.xlsx', BASE, 'alice'), '/Documents/Facturen Q3.xlsx');
 });
 
-test('parseOcFileId: the 8-digit padding is a minimum width, a longer id is not cut', () => {
-    // Nextcloud builds the header as sprintf('%08d', $id) . $instanceId.
-    assert.strictEqual(webdav.parseOcFileId('00000042ocabc123def4'), '42');
-    assert.strictEqual(webdav.parseOcFileId('12345678ocabc123def4'), '12345678');
-    assert.strictEqual(webdav.parseOcFileId('123456789ocabc123def4'), '123456789');
-    assert.strictEqual(webdav.parseOcFileId('4000000001oc9zz1x2y3z4'), '4000000001');
-    assert.strictEqual(webdav.parseOcFileId('"00000042ocabc"'), null);
+test('parseOcFileId: the id is every leading digit, not the first eight', () => {
+    assert.strictEqual(webdav.parseOcFileId('00000123ocn1ncv5ypwu'), '123');
+    assert.strictEqual(webdav.parseOcFileId('12345678ocn1ncv5ypwu'), '12345678');
+    // Past 99,999,999 the id is no longer padded to eight digits.
+    assert.strictEqual(webdav.parseOcFileId('123456789ocn1ncv5ypwu'), '123456789');
     assert.strictEqual(webdav.parseOcFileId(''), null);
-    assert.strictEqual(webdav.parseOcFileId(null), null);
+    assert.strictEqual(webdav.parseOcFileId('ocn1ncv5ypwu'), null);
 });

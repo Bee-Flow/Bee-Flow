@@ -8,11 +8,13 @@ import ConnectorHealthPanel from '../../integrations/health/ConnectorHealthPanel
 import UserManagement from '../org/UserManagement';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 import type { AdminCurrentUser } from '../org/userManagement/types';
-import HubScaffold from '../shared/HubScaffold';
+import SectionNav from '@/components/shared/SectionNav';
+import StudioShell from '@/components/shared/StudioShell';
 
 /**
  * SecurityHub — Unified security configuration page
- * Groups Guardrails and SSO behind a compact left sidebar.
+ * Groups Users, Guardrails, SSO and the operator sections in a StudioShell
+ * with a SectionNav sidebar; the section is the URL (admin/security/<id>).
  *
  * `enterpriseOnly` sections are hidden on Community installs (the resolved
  * tier is the REAL tier — LicenseContext.hasTier has no super-admin
@@ -22,11 +24,11 @@ import HubScaffold from '../shared/HubScaffold';
  * Access & Permissions hub (Admin → Access → Ceiling / Grants).
  */
 const SECTIONS = [
-    { id: 'users', labelKey: 'admin.sec_users', icon: Users, color: '#3b82f6' },
-    { id: 'guardrails', labelKey: 'admin.sec_guardrails', icon: Shield, color: '#ef4444', enterpriseOnly: true },
-    { id: 'sso', labelKey: 'admin.sec_sso', icon: KeyRound, color: '#f59e0b' },
-    { id: 'email-domains', labelKey: 'admin.sec_email_domains', icon: AtSign, color: '#8b5cf6', superAdminOnly: true },
-    { id: 'connector-health', labelKey: 'admin.sec_connector_health', icon: Activity, color: '#14b8a6', superAdminOnly: true },
+    { id: 'users', labelKey: 'admin.sec_users', icon: Users },
+    { id: 'guardrails', labelKey: 'admin.sec_guardrails', icon: Shield, enterpriseOnly: true },
+    { id: 'sso', labelKey: 'admin.sec_sso', icon: KeyRound },
+    { id: 'email-domains', labelKey: 'admin.sec_email_domains', icon: AtSign, superAdminOnly: true },
+    { id: 'connector-health', labelKey: 'admin.sec_connector_health', icon: Activity, superAdminOnly: true },
 ];
 
 interface SecurityHubProps {
@@ -51,19 +53,27 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
     const active = VALID_IDS.includes(activeProp) ? activeProp : 'users';
 
     return (
-        <HubScaffold
-            sections={visibleSections}
-            activeId={active}
-            onSelect={(id) => { if (onNavigate) onNavigate(`admin/security/${id}`); }}
-            labelFor={(sec) => t(sec.labelKey)}
+        <StudioShell
+            responsive
+            sidebarTitle={t('admin.tab_security')}
+            sidebar={(
+                <SectionNav
+                    label={t('admin.tab_security')}
+                    items={visibleSections.map(sec => ({ id: sec.id, icon: sec.icon, label: t(sec.labelKey) }))}
+                    activeId={active}
+                    onSelect={(id) => { if (onNavigate) onNavigate(`admin/security/${id}`); }}
+                />
+            )}
         >
             {active === 'users' && (
-                <div className="[position:absolute] [inset:0]">
-                    <UserManagement activeSection={userSection} onNavigate={onNavigate} user={user} />
+                <div className="relative h-full">
+                    <div className="absolute inset-0">
+                        <UserManagement activeSection={userSection} onNavigate={onNavigate} user={user} />
+                    </div>
                 </div>
             )}
             {active === 'guardrails' && (
-                <div className="[position:absolute] [inset:0] [overflow:auto] [padding:1.5rem]">
+                <div className="p-6">
                     {/* `userSection` is the third admin path segment — the same one
                         ConnectorHealthPanel receives. Threading it here is what makes
                         /app/admin/security/guardrails/<section> a real, bookmarkable
@@ -72,21 +82,21 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
                 </div>
             )}
             {active === 'sso' && (
-                <div className="[position:absolute] [inset:0] [overflow:auto] [padding:1.5rem]">
+                <div className="p-6">
                     <SSOConfigPanel />
                 </div>
             )}
             {active === 'email-domains' && (
-                <div className="[position:absolute] [inset:0] [overflow:auto] [padding:1.5rem]">
+                <div className="p-6">
                     <FreeEmailDomainsPanel />
                 </div>
             )}
             {active === 'connector-health' && (
-                <div className="[position:absolute] [inset:0] [overflow:auto] [padding:1.5rem]">
+                <div className="p-6">
                     <ConnectorHealthPanel initialOrgId={userSection} onNavigate={onNavigate} />
                 </div>
             )}
-        </HubScaffold>
+        </StudioShell>
     );
 };
 

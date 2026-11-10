@@ -88,9 +88,14 @@ export const toolHandlers: SseHandlerMap = {
         setMessages(prev => prev.map(m => {
             if (m.id === assistantMsgId) {
                 const trs = m.toolResults || [];
-                // Mark the matching running tool in toolHistory as done
-                const updatedHistory = (m.toolHistory || []).map(t =>
-                    t.name === data.name && t.status === 'running'
+                // Mark the matching running tool in toolHistory as done. ONE
+                // row per event: the server runs a round's calls in parallel,
+                // so two calls of the same tool are both 'running' here and
+                // each gets its own tool_end.
+                const history = m.toolHistory || [];
+                const endedAt = history.findIndex(t => t.name === data.name && t.status === 'running');
+                const updatedHistory = history.map((t, i) =>
+                    i === endedAt
                         ? {
                             ...t,
                             status: 'done',

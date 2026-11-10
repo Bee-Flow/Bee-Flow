@@ -68,7 +68,7 @@ async function getAvailableLocales() {
     let locales = await configStore.getConfig('i18n_locales');
     if (!locales || !Array.isArray(locales) || locales.length === 0) {
         await configStore.setConfig('i18n_locales', DEFAULT_LOCALES);
-        return DEFAULT_LOCALES;
+        return DEFAULT_LOCALES.map((l) => ({ ...l }));  // a copy: addLocale and importLocale push onto it, and the merge below reads the baseline on every call
     }
     // Non-destructive merge for existing deployments seeded with English-only:
     // ensure the baseline locales (en/nl/de/fr) are always present so the

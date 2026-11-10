@@ -139,13 +139,29 @@ export function resolveWhen(presetId: string, { now = new Date(), date = '', tim
     }
 }
 
+const DOW_TOKENS: string[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+/** `from` moved one day at a time until it lands on a permitted weekday. */
+function nextPermittedDay(from: Date, daysOfWeek: unknown[]): Date | null {
+    const d = new Date(from);
+    const allowed = new Set(daysOfWeek.map(day => String(day).toLowerCase().slice(0, 3)));
+    for (let i = 0; i < 7; i += 1) {
+        d.setDate(d.getDate() + 1);
+        if (allowed.has(DOW_TOKENS[d.getDay()])) return d;
+    }
+    return null;
+}
+
 /**
  * Next occurrence after `from` for a repeat interval. Mirrors the server's
  * aiTaskStore.advanceNextRun. Returns null for a non-repeating interval.
  */
-export function advanceByRepeat(from: Date | string | number, interval: string | null | undefined): Date | null {
+export function advanceByRepeat(from: Date | string | number, interval: string | null | undefined, daysOfWeek: unknown[] | null = null): Date | null {
     const d = new Date(from);
     if (Number.isNaN(d.getTime())) return null;
+    // Day-of-week mode, as on the server: it wins over the interval, and it
+    // repeats without one.
+    if (Array.isArray(daysOfWeek) && daysOfWeek.length > 0) return nextPermittedDay(d, daysOfWeek);
     switch (interval) {
         case 'hourly': d.setHours(d.getHours() + 1); break;
         case 'daily': d.setDate(d.getDate() + 1); break;
@@ -162,8 +178,6 @@ export function advanceByRepeat(from: Date | string | number, interval: string |
     }
     return d;
 }
-
-const DOW_TOKENS: string[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 /**
  * First moment matching an AI-composed schedule: a wall-clock time, optionally
@@ -240,11 +254,14 @@ export function buildCoworkPayload({
     const resolved = resolveWhen(presetId, { now, date, time });
     if (!resolved) return null;
     const startNow = presetId === 'now';
-    const nextRun = startNow && repeatInterval
-        ? advanceByRepeat(resolved, repeatInterval)
+    const days = Array.isArray(daysOfWeek) && daysOfWeek.length > 0 ? daysOfWeek : null;
+    // "Repeating" includes a days-only spec ("every Monday"), which carries no
+    // interval: the server keeps it on the scheduler after the immediate run,
+    // so a nextRunAt of "now" would fire it a second time on the next tick.
+    const nextRun = startNow && (repeatInterval || days)
+        ? advanceByRepeat(resolved, repeatInterval, days)
         : resolved;
     if (!nextRun) return null;
-    const days = Array.isArray(daysOfWeek) && daysOfWeek.length > 0 ? daysOfWeek : null;
     return {
         title: String(title || '').trim(),
         prompt: String(prompt || '').trim(),

@@ -29,8 +29,8 @@ export function LimitField({ field, value, onChange, planDefault, showOverride =
                             onClick={e => { e.preventDefault(); onChange(isOverridden ? null : (planDefault ?? '')); }}
                             className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded ${
                                 isOverridden
-                                    ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
-                                    : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                    ? 'bg-[color-mix(in_srgb,var(--info)_14%,transparent)] text-[var(--info-ink)]'
+                                    : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                             }`}
                         >
                             {isOverridden ? 'Override ✓' : 'Override'}

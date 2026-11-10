@@ -38,6 +38,22 @@ describe('N8nSection', () => {
         expect(await openPermissions()).toHaveAttribute('href', '/app/settings/organisation/users');
     });
 
+    it('does not claim a stored API key after saving the URL alone', async () => {
+        const user = userEvent.setup();
+        authFetch.mockImplementation(async (url: string, init?: { method?: string }) => {
+            if (url === '/ai/n8n/config' && init?.method === 'PUT') return ok({ success: true });
+            if (url === '/ai/n8n/config') return ok({ n8nUrl: '', hasApiKey: false, configured: false, workflows: [] });
+            return { ok: false, status: 404, json: async () => ({}) };
+        });
+        render(<N8nSection />);
+        await user.type(await screen.findByPlaceholderText('https://n8n.yourdomain.com'), 'https://n8n.example.test');
+        await user.click(screen.getByRole('button', { name: 'Save Connection' }));
+        expect(await screen.findByText('Connection saved')).toBeTruthy();
+        // No key was ever sent, so the field still asks for one and there is nothing to test.
+        expect(screen.getByPlaceholderText('Enter your n8n API key')).toBeTruthy();
+        expect((screen.getByRole('button', { name: 'Test Connection' }) as HTMLButtonElement).disabled).toBe(true);
+    });
+
     it('follows an app address from the server', async () => {
         serve({ modify_n8n_workflows: [], availableGroups: [], orgAdminAlways: true, editUrl: '/app/settings/organisation/users' });
         expect(await openPermissions()).toHaveAttribute('href', '/app/settings/organisation/users');

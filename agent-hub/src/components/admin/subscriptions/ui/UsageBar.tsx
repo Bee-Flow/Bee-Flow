@@ -11,8 +11,8 @@ interface UsageBarProps {
 export function UsageBar({ label, current = 0, limit, unit = '' }: UsageBarProps) {
     const isUnlimited = limit == null;
     const pct = !isUnlimited && limit > 0 ? Math.min(100, Math.round((current || 0) / limit * 100)) : 0;
-    const barColor = pct >= 90 ? 'bg-rose-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
-    const txtColor = pct >= 90 ? 'text-rose-400' : 'text-[var(--text-muted)]';
+    const barColor = pct >= 90 ? 'bg-[var(--error)]' : pct >= 70 ? 'bg-[var(--warning)]' : 'bg-[var(--success)]';
+    const txtColor = pct >= 90 ? 'text-[var(--error-ink)]' : 'text-[var(--text-tertiary)]';
 
     const fmtNum = (n: unknown) => (typeof n === 'number' ? n.toLocaleString() : '0');
 

@@ -188,3 +188,26 @@ test('the one-release aliases are the same functions', () => {
     assert.strictEqual(store.markNcStale, store.markSourceStale);
     assert.strictEqual(store.listDueNcSyncs, store.listDueSourceSyncs);
 });
+
+// The ticker claims only what listDueSourceSyncs hands it. That list left out
+// EVERY row at status 'running', also the ones claimSourceSync would hand out
+// again (a pass older than the stale window: its replica died), so a mirror
+// whose pass died mid-flight never had a scheduled refresh again.
+test('a pass that died mid-flight is due again once it is stale; a live one is not', async () => {
+    const setState = (id, state) => pg.query(`UPDATE datatables SET sync_state = $2::jsonb WHERE id = $1`, [id, JSON.stringify(state)]);
+    const past = '2020-01-01T00:00:00.000Z';
+    const longAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    await setState('tbl_nc', { status: 'running', startedAt: longAgo, nextRunAt: past });               // died an hour ago
+    await setState('tbl_ss', { status: 'running', startedAt: new Date().toISOString(), nextRunAt: past }); // running right now
+    await setState('tbl_ss_b', { status: 'running', startedAt: longAgo });                               // its first pass died
+    await setState('tbl_ss_gd', { status: 'running', startedAt: longAgo, nextRunAt: '2099-01-01T00:00:00.000Z' }); // moved out meanwhile
+
+    const due = (await store.listDueSourceSyncs(10)).map(t => t.id).sort();
+    assert.deepStrictEqual(due, ['tbl_nc', 'tbl_ss_b']);
+
+    // What the ticker does next: the claim lands, and the row is not offered twice.
+    assert.ok(await store.claimSourceSync('tbl_nc'));
+    assert.deepStrictEqual((await store.listDueSourceSyncs(10)).map(t => t.id), ['tbl_ss_b']);
+    // A wider window keeps a slower pass out of the list.
+    assert.deepStrictEqual((await store.listDueSourceSyncs(10, { staleMs: 2 * 60 * 60 * 1000 })).map(t => t.id), []);
+});

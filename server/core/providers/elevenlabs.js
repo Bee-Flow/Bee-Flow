@@ -135,7 +135,8 @@ class ElevenLabsProvider {
         const client = this.createClient(apiKey);
 
         const durationSec = options.duration_seconds || 5;
-        const promptInfluence = options.prompt_influence || 0.5;
+        // Not `||`: 0 is a real setting ("ignore the prompt's wording, be creative").
+        const promptInfluence = typeof options.prompt_influence === 'number' && Number.isFinite(options.prompt_influence) ? options.prompt_influence : 0.5;
 
         log.info(`[ElevenLabs] SFX: "${log.textForLog(prompt)}" (${durationSec}s)`);
 

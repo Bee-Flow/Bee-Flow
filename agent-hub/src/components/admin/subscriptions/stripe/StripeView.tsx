@@ -10,8 +10,8 @@ import { Badge, Dot } from '../ui/Badge';
 import { Banner } from '../ui/Banner';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Select, Input } from '../ui/Input';
-import { SectionHeader } from '../ui/SectionHeader';
-import { Spinner } from '../ui/Spinner';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
 import { Toggle } from '../ui/Toggle';
 import { logger } from '@/utils/logger';
 
@@ -100,26 +100,25 @@ export function StripeView() {
         finally { setSaving(false); }
     };
 
-    if (loading) return <Spinner label={t('admin_subscriptions.stripe_loading', 'Loading Stripe settings…')} />;
+    if (loading) return <div className="flex justify-center py-12"><Spinner label={t('admin_subscriptions.stripe_loading', 'Loading Stripe settings…')} /></div>;
 
     const webhookURL = `${window.location.origin}/api/stripe/webhook`;
 
     return (
-        <div className="px-6 py-6 max-w-2xl mx-auto">
-            <SectionHeader
+        <div className="max-w-2xl p-6 md:p-8">
+            <SectionHeader className="mb-5"
                 title={t('admin_subscriptions.stripe_title', 'Stripe Payment Integration')}
                 description={t('admin_subscriptions.stripe_desc', 'Connect Stripe to enable subscription billing for your plans.')}
             />
 
             {/* Connection status */}
-            <Card className="mb-4" accent={config.stripeEnabled ? 'emerald' : undefined}>
+            <Card className="mb-4">
                 <CardHeader
                     icon={Settings}
-                    iconClass="text-blue-400"
                     title={t('admin_subscriptions.stripe_status', 'Connection status')}
                     action={
                         <div className="flex items-center gap-2">
-                            <span className={`text-[11px] font-bold uppercase tracking-wider ${config.stripeEnabled ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
+                            <span className={`text-[11px] font-bold uppercase tracking-wider ${config.stripeEnabled ? 'text-[var(--success-ink)]' : 'text-[var(--text-tertiary)]'}`}>
                                 {config.stripeEnabled ? t('admin_subscriptions.stripe_enabled', 'Enabled') : t('admin_subscriptions.stripe_disabled', 'Disabled')}
                             </span>
                             <Toggle
@@ -141,7 +140,7 @@ export function StripeView() {
                         <div key={row.label} className="flex items-center gap-2">
                             <Dot tone={row.ok ? 'success' : 'danger'} />
                             <span className="text-[var(--text-secondary)]">{row.label}</span>
-                            <span className={`ml-auto font-semibold ${row.ok ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            <span className={`ml-auto font-semibold ${row.ok ? 'text-[var(--success-ink)]' : 'text-[var(--error-ink)]'}`}>
                                 {row.ok ? t('admin_subscriptions.stripe_configured', 'Configured') : t('admin_subscriptions.stripe_not_configured', 'Not configured')}
                             </span>
                         </div>
@@ -159,7 +158,6 @@ export function StripeView() {
             <Card className="mb-4">
                 <CardHeader
                     icon={CreditCard}
-                    iconClass="text-amber-400"
                     title={t('admin_subscriptions.stripe_notify_title', 'Subscription notifications')}
                     subtitle={t('admin_subscriptions.stripe_notify_subtitle', 'Get an email whenever a customer starts a new subscription.')}
                 />
@@ -194,7 +192,7 @@ export function StripeView() {
                         { done: config.hasStripeWebhookSecret, label: (
                             <>
                                 {t('admin_subscriptions.stripe_step_webhook', 'Create a Webhook endpoint in Stripe Dashboard pointing to:')}{' '}
-                                <code className="ml-1 px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[11px] text-blue-400">{webhookURL}</code>
+                                <code className="ml-1 px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[11px] text-[var(--info-ink)]">{webhookURL}</code>
                             </>
                         )},
                         { done: config.hasStripeWebhookSecret, label: (
@@ -212,9 +210,9 @@ export function StripeView() {
                     ].map((item, i) => (
                         <li key={i} className="flex items-start gap-2.5">
                             {item.done
-                                ? <CheckCircle className="shrink-0 w-4 h-4 mt-0.5 text-emerald-400" />
+                                ? <CheckCircle className="shrink-0 w-4 h-4 mt-0.5 text-[var(--success-ink)]" />
                                 : <span className="shrink-0 w-4 h-4 mt-0.5 rounded border border-[var(--border-default)]" />}
-                            <span className={item.done ? 'text-emerald-300' : ''}>{item.label}</span>
+                            <span className={item.done ? 'text-[var(--success-ink)]' : ''}>{item.label}</span>
                         </li>
                     ))}
                 </ol>
@@ -227,10 +225,9 @@ function StripeViewCard2({ t, config, saveField, TAX_COUNTRIES }: { t: (key: str
     return <Card className="mb-4">
         <CardHeader
             icon={Euro}
-            iconClass="text-emerald-400"
             title={t('admin_subscriptions.stripe_tax_title', 'Tax & region (EU compliance)')}
             subtitle={<>{t('admin_subscriptions.stripe_tax_subtitle', 'Configure Stripe Tax for automatic VAT calculation.')}{' '}
-                <a href="https://stripe.com/tax" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5">
+                <a href="https://stripe.com/tax" target="_blank" rel="noopener noreferrer" className="text-[var(--info-ink)] hover:underline font-semibold inline-flex items-center gap-0.5">
                     {t('admin_subscriptions.stripe_learn_more', 'Learn more')} <ExternalLink className="w-3 h-3" />
                 </a>
             </>} />
@@ -244,7 +241,7 @@ function StripeViewCard2({ t, config, saveField, TAX_COUNTRIES }: { t: (key: str
             against them) and Stripe Tax needs Dashboard registration.
             Existing subscriptions are backfilled automatically on
             enable; note the real-billing impact. */}
-        <p className="mt-2 text-[11px] text-amber-500/90">
+        <p className="mt-2 text-[11px] text-[var(--warning-ink)]">
             {t('admin_subscriptions.stripe_tax_warning', 'Enabling requires: (1) Stripe Tax activated in the Stripe Dashboard (origin address + NL VAT registration), and (2) re-syncing every plan so new Prices carry tax_behavior. Existing active subscriptions are backfilled automatically: their next invoice will include 21% BTW, so announce this to customers first.')}
         </p>
         <div className="mt-3">
@@ -265,11 +262,10 @@ function StripeViewCard({ t, config, secretKey, setSecretKey, saveField, deleteK
     return <Card className="mb-4">
         <CardHeader
             icon={Shield}
-            iconClass="text-blue-400"
             /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
             title={t('admin_subscriptions.stripe_api_keys', 'API keys')}
             subtitle={<>{t('admin_subscriptions.stripe_get_keys', 'Get your keys from the')}{' '}
-                <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5">
+                <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-[var(--info-ink)] hover:underline font-semibold inline-flex items-center gap-0.5">
                     {t('admin_subscriptions.stripe_dashboard', 'Stripe Dashboard')} <ExternalLink className="w-3 h-3" />
                 </a>
             </>} />

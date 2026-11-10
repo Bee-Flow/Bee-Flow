@@ -79,6 +79,16 @@ function targetForMonth(year, month, requestedDay, hh, mm, tz) {
     return wallClockToUtc(year, month, Math.min(requestedDay, 28), hh, mm, tz);
 }
 
+// The minute the clock of `tz` shows. An unknown zone name never stopped an
+// hourly schedule, so it reads the process clock, as hourly always did.
+function minuteInZone(date, tz) {
+    try {
+        return getTzParts(date, tz).minute;
+    } catch {
+        return date.getMinutes();
+    }
+}
+
 export function computeScheduleNextRun(schedule, tz) {
     const now = new Date();
     const TZ = tz || schedule?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -88,10 +98,14 @@ export function computeScheduleNextRun(schedule, tz) {
         // hour), but ignores HOURS — the next fire is always the next time
         // the clock hits :MM. timeOfDay='09:30' fires at HH:30 every hour.
         const [, minute] = parseTimeOfDay(schedule?.timeOfDay, 0, 0);
+        // ":MM" is read on the clock of the target zone, not the server's: in
+        // a zone on a half-hour offset (Asia/Kolkata, +05:30) the two differ,
+        // and :00 on a UTC server fired at :30 for the person who set it.
         const next = new Date(now);
         next.setSeconds(0, 0);
-        next.setMinutes(minute);
-        if (next <= now) next.setHours(next.getHours() + 1);
+        const ahead = (minute - minuteInZone(next, TZ) + 60) % 60;
+        next.setTime(next.getTime() + ahead * 60 * 1000);
+        if (next <= now) next.setTime(next.getTime() + 60 * 60 * 1000);
         return next.toISOString();
     }
 
@@ -122,19 +136,22 @@ export function computeScheduleNextRun(schedule, tz) {
 
     // Start with today at HH:MM in the target TZ.
     const todayParts = getTzParts(now, TZ);
-    let target = wallClockToUtc(todayParts.year, todayParts.month, todayParts.day, hh, mm, TZ);
-    if (target <= now) {
-        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        const tParts = getTzParts(tomorrow, TZ);
-        target = wallClockToUtc(tParts.year, tParts.month, tParts.day, hh, mm, TZ);
-    }
+    // Later days are CALENDAR days in the target TZ (day + n; Date.UTC rolls a
+    // day past the month's end over), never "24 hours later": across a DST
+    // change that lands an hour off the requested HH:MM, and on the 25-hour
+    // day "now + 24h" can still be today.
+    const onDay = (n) => wallClockToUtc(todayParts.year, todayParts.month, todayParts.day + n, hh, mm, TZ);
+    let offset = 0;
+    let target = onDay(offset);
+    if (target <= now) { offset += 1; target = onDay(offset); }
     if (allowedDays && allowedDays.size > 0) {
         // A corrupt daysOfWeek (e.g. ['xyz']) matches nothing: the loop then
         // ends a week after the first candidate.
         for (let i = 0; i < 7; i += 1) {
             const tParts = getTzParts(target, TZ);
             if (allowedDays.has(tParts.weekday)) break;
-            target = new Date(target.getTime() + 24 * 60 * 60 * 1000);
+            offset += 1;
+            target = onDay(offset);
         }
     }
     return target.toISOString();

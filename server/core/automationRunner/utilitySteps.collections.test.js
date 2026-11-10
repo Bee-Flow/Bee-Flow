@@ -210,3 +210,17 @@ test('summarize avg of an empty list is null, not 0 (and sum stays 0)', async ()
     const sum = await execSummarize({ arrayRef: REF, op: 'sum', field: 'amount' }, {}, state([]));
     assert.strictEqual(sum.output.result, 0);
 });
+
+test('summarize does not read an empty value (null, "") as 0', async () => {
+    const items = [{ amount: 10 }, { amount: null }, { amount: '' }, { amount: ' ' }, { amount: 20 }];
+    const run = (op) => execSummarize({ arrayRef: REF, op, field: 'amount' }, {}, state(items));
+    const avg = await run('avg');
+    assert.strictEqual(avg.output.result, 15, 'was 6: three empty cells averaged in as zeros');
+    assert.strictEqual(avg.output.usedCount, 2);
+    assert.strictEqual((await run('min')).output.result, 10, 'was 0');
+    assert.strictEqual((await run('sum')).output.result, 30);
+    // A real zero still counts.
+    const zero = await execSummarize({ arrayRef: REF, op: 'min', field: 'amount' }, {}, state([{ amount: 0 }, { amount: '0' }, { amount: 5 }]));
+    assert.strictEqual(zero.output.result, 0);
+    assert.strictEqual(zero.output.usedCount, 3);
+});

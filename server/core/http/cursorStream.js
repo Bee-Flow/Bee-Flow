@@ -64,6 +64,22 @@ const DEFAULTS = Object.freeze({
  */
 
 /**
+ * Wait until the socket takes more, or is gone. Whichever event comes first,
+ * the listeners of the other wait are removed: left in place, every pause of a
+ * slow reader would leave a 'close' and two 'error' listeners on the response
+ * for as long as the stream lives.
+ * @param {import('http').ServerResponse} res
+ */
+async function drainOrClose(res) {
+    const settled = new AbortController();
+    try {
+        await Promise.race([once(res, 'drain', { signal: settled.signal }), once(res, 'close', { signal: settled.signal })]);
+    } finally {
+        settled.abort();
+    }
+}
+
+/**
  * @param {{ on: (arg0: string, arg1: () => void) => void; }} req
  * @param {import('http').ServerResponse} res
  * @param {{
@@ -201,7 +217,7 @@ async function openCursorStream(req, res, opts) {
                     const ok = write(`id: ${ev.seq}\nevent: ${ev.kind}\ndata: ${JSON.stringify(ev)}\n\n`);
                     cursor = ev.seq;
                     if (!ok && writable()) {
-                        await Promise.race([once(res, 'drain'), once(res, 'close')]);
+                        await drainOrClose(res);
                     }
                 }
                 if (truncated) {

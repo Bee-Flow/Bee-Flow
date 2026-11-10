@@ -587,7 +587,7 @@ async function activateLicense(/** @type {{ token: string, organizationId?: stri
     if (typeof token === 'string' && token.startsWith(adminIssuance.BLOB_PREFIX)) {
         let decoded;
         try {
-            decoded = adminIssuance.decodeAdminLicenseBlob(token);
+            decoded = adminIssuance.decodeAdminLicenseEnvelope(token);
         } catch (e) {
             const err = new Error(`License verification failed: malformed_admin_blob`);
             err.code = 'malformed_admin_blob';

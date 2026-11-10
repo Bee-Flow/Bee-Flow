@@ -10,7 +10,7 @@ import { TierGlyph } from './tierIcons';
 import type { TierSettings, CatalogModel } from './tierTypes';
 import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { SettingRow } from '../ui/SettingsList';
+import { SettingRow } from '@/components/shared/SettingsList';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface TierCardProps {

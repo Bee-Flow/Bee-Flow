@@ -6,7 +6,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { Badge } from '../ui/Badge';
 import { Banner } from '../ui/Banner';
 import { Modal } from '../ui/Modal';
-import { Tabs } from '../ui/Tabs';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 
 const AUDIENCE_FILTERS = [
     { value: 'all',          label: 'All' },
@@ -45,16 +45,16 @@ export function PlanTemplateGallery({ open, onClose, onPick }: PlanTemplateGalle
             width="max-w-5xl"
         >
             <div className="mb-4 flex items-center justify-between gap-3">
-                <Tabs
+                <SegmentedControl
                     value={filter}
                     onChange={setFilter}
                     options={[
-                        { value: 'all',          label: t('admin_subscriptions.plans_gallery_all', 'All'), count: counts.all },
-                        { value: 'organization', label: t('admin_subscriptions.plans_gallery_org', 'Org'), icon: Building2, count: counts.organization },
-                        { value: 'consumer',     label: t('admin_subscriptions.plans_gallery_consumer', 'Consumer'), icon: Users, count: counts.consumer },
+                        { value: 'all',          label: t('admin_subscriptions.plans_gallery_all', 'All'), badge: counts.all },
+                        { value: 'organization', label: t('admin_subscriptions.plans_gallery_org', 'Org'), icon: <Building2 className="h-3.5 w-3.5" aria-hidden="true" />, badge: counts.organization },
+                        { value: 'consumer',     label: t('admin_subscriptions.plans_gallery_consumer', 'Consumer'), icon: <Users className="h-3.5 w-3.5" aria-hidden="true" />, badge: counts.consumer },
                     ]}
                 />
-                <span className="text-[11px] text-[var(--text-muted)]">
+                <span className="text-[11px] text-[var(--text-tertiary)]">
                     {t('admin_subscriptions.plans_gallery_sync_note', 'Saving syncs to Stripe automatically for paid plans.')}
                 </span>
             </div>
@@ -87,7 +87,7 @@ function TemplateCard({ template, onPick }: TemplateCardProps) {
         <button
             type="button"
             onClick={onPick}
-            className="text-left rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)]/40 hover:border-[var(--accent-primary)] hover:bg-[var(--bg-tertiary)]/70 transition-colors p-4 flex flex-col"
+            className="text-left rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] hover:border-[var(--text-tertiary)] hover:shadow-md transition-colors p-4 flex flex-col"
         >
             <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex flex-wrap gap-1.5">
@@ -103,10 +103,10 @@ function TemplateCard({ template, onPick }: TemplateCardProps) {
             </div>
 
             <h4 className="text-[14px] font-bold text-[var(--text-primary)] leading-tight">{display.title}</h4>
-            <p className="mt-1 text-[11.5px] text-[var(--text-muted)] line-clamp-2 leading-relaxed">{display.subtitle}</p>
+            <p className="mt-1 text-[11.5px] text-[var(--text-tertiary)] line-clamp-2 leading-relaxed">{display.subtitle}</p>
 
             <div className="mt-3 mb-3">
-                <span className={`text-[18px] font-extrabold ${isMetered ? 'text-emerald-400' : 'text-[var(--text-primary)]'}`}>
+                <span className={`text-[18px] font-extrabold ${isMetered ? 'text-[var(--success-ink)]' : 'text-[var(--text-primary)]'}`}>
                     {display.priceLabel}
                 </span>
             </div>
@@ -114,13 +114,13 @@ function TemplateCard({ template, onPick }: TemplateCardProps) {
             <ul className="space-y-1 mb-4">
                 {display.highlights?.map(h => (
                     <li key={h} className="flex items-start gap-1.5 text-[11.5px] text-[var(--text-secondary)]">
-                        <Check className="w-3 h-3 mt-0.5 shrink-0 text-emerald-500" />
+                        <Check className="w-3 h-3 mt-0.5 shrink-0 text-[var(--success-ink)]" />
                         <span>{h}</span>
                     </li>
                 ))}
             </ul>
 
-            <span className="mt-auto inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors">
+            <span className="mt-auto inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90 transition-colors">
                 {t('admin_subscriptions.plans_gallery_use', 'Use this template')}
             </span>
         </button>

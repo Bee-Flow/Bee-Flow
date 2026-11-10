@@ -73,7 +73,8 @@ async function searchUserMemories(userId, { limit = 50, offset = 0, search = nul
     }
 
     if (needle) {
-        params.push(`%${needle}%`);
+        // Literal text, like the in-process search above: % and _ are not wildcards.
+        params.push(`%${needle.replace(/[\\%_]/g, '\\$&')}%`);
         const idx = params.length;
         where.push(`(content ILIKE $${idx} OR subject ILIKE $${idx} OR attribute ILIKE $${idx} OR value ILIKE $${idx})`);
     }

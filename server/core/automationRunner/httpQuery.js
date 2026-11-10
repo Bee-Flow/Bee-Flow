@@ -235,6 +235,13 @@ function splitQueryFromUrl(url) {
  * @param {string[]} path
  * @param {string} value
  */
+// Own properties only, for reading and for writing: `?__proto__[x]=1` would
+// otherwise walk into Object.prototype and write `x` onto every object in the
+// process, and a plain assignment to `__proto__` sets the prototype, not a key.
+const ownOf = (node, key) => (Object.prototype.hasOwnProperty.call(node, key) ? node[key] : undefined);
+const isContainer = (v) => v !== undefined && v !== null && typeof v === 'object';
+const setOwn = (node, key, value) => { Object.defineProperty(node, key, { value, enumerable: true, writable: true, configurable: true }); };
+
 function assign(root, path, value) {
     let node = root;
     for (let i = 0; i < path.length; i++) {
@@ -246,14 +253,12 @@ function assign(root, path, value) {
         if (last) {
             if (Array.isArray(node)) {
                 if (seg === '') node.push(value); else node[Number(seg)] = value;
-            } else if (Object.prototype.hasOwnProperty.call(node, key)) {
-                node[key] = [].concat(node[key], value);
             } else {
-                node[key] = value;
+                setOwn(node, key, Object.prototype.hasOwnProperty.call(node, key) ? [].concat(node[key], value) : value);
             }
             return;
         }
-        if (node[key] === undefined || typeof node[key] !== 'object') node[key] = (nextIsIndex || nextIsPush) ? [] : {};
+        if (!isContainer(ownOf(node, key))) setOwn(node, key, (nextIsIndex || nextIsPush) ? [] : {});
         node = node[key];
     }
 }

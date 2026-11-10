@@ -90,6 +90,8 @@ function dispatch(body) {
             writeHead(c) { this.statusCode = c; this.headersSent = true; this.streamed = true; return this; },
             write(chunk) { const m = /^event: (\S+)/.exec(chunk); if (m) this.events.push(m[1]); return true; },
             end() { if (!this.writableEnded) { this.writableEnded = true; resolve(this); } return this; },
+            // The route listens for the client going away on the RESPONSE's 'close'.
+            on() { return this; },
         };
         router(req, res, (err) => {
             if (!err) return reject(new Error('fell through'));

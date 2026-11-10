@@ -252,4 +252,31 @@ describe('FolderWatcher.sync', () => {
         assert.deepEqual(watcher.active, []);
         assert.ok([...watchers.values()].every((w) => w.closed));
     });
+    it('restarts the watcher of a folder whose path or knowledge base was edited', async () => {
+        const { watcher, watchers, events } = harness();
+        await watcher.sync([folder()]);
+        const old = watchers.get('/home/tom/Nextcloud/Contracten');
+
+        await watcher.sync([folder({ path: '/home/tom/Nextcloud/Facturen', knowledgeBaseId: 'kb-7' })]);
+        assert.equal(old?.closed, true, 'the watcher on the old path is closed');
+        const fresh = watchers.get('/home/tom/Nextcloud/Facturen');
+        assert.ok(fresh, 'and one is started on the new path');
+
+        fresh?.fire('add', '/home/tom/Nextcloud/Facturen/f1.pdf');
+        await settle();
+        assert.equal(events[0]?.knowledgeBaseId, 'kb-7');
+
+        // An unchanged folder keeps its watcher.
+        await watcher.sync([folder({ path: '/home/tom/Nextcloud/Facturen', knowledgeBaseId: 'kb-7' })]);
+        assert.equal(fresh?.closed, false);
+    });
+
+    it('drops the events a stopped folder still had waiting', async () => {
+        const { watcher, watchers, events } = harness();
+        await watcher.sync([folder()]);
+        watchers.get('/home/tom/Nextcloud/Contracten')?.fire('add', '/home/tom/Nextcloud/Contracten/a.pdf');
+        await watcher.sync([folder({ enabled: false })]);
+        await settle();
+        assert.deepEqual(events, []);
+    });
 });

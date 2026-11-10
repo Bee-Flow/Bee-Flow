@@ -206,11 +206,19 @@ async function queryRegion(dataset, params = {}) {
                 region: null, gene: null, rsid: resolvedRsid, build: dataset.build || null, scannedBlocks: 0,
             };
         }
-        spans = hits.map((h) => {
+        // One span per distinct position: an rsID carried by several lines at
+        // the SAME position (a multi-allelic split) has one index record per
+        // line, and scanning that position once per record repeats every row.
+        const seenHits = new Set();
+        spans = [];
+        for (const h of hits) {
             const contig = index.contigs[h.contigIdx];
             if (!contig) throw new DatasetQueryError('rsID index references a contig the block index does not know', 'dataset_index_corrupt');
-            return { chrom: contig.name, start: h.pos, end: h.pos };
-        });
+            const key = `${h.contigIdx}:${h.pos}`;
+            if (seenHits.has(key)) continue;
+            seenHits.add(key);
+            spans.push({ chrom: contig.name, start: h.pos, end: h.pos });
+        }
     } else {
         const r = params.region != null
             ? parseRegionString(params.region)

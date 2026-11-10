@@ -34,7 +34,7 @@ function ConsumerLoginMethods({ settings, update }: Omit<SignupTogglesProps, 'en
                     ))}
                 </div>
                 {methods.length === 0 && (
-                    <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-rose-400">
+                    <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--error-ink)]">
                         <AlertTriangle className="w-3 h-3" /> {t('admin_subscriptions.access_login_methods_min', 'At least one login method must be enabled.')}
                     </p>
                 )}
@@ -52,7 +52,6 @@ export default function SignupToggles({ settings, update, env }: SignupTogglesPr
                 checked={settings.allowOrgSignups}
                 onChange={v => update('allowOrgSignups', v)}
                 icon={Building2}
-                iconClass="text-sky-400"
                 label={t('admin_subscriptions.access_org_signups', 'Organization signups')}
                 description={t('admin_subscriptions.access_org_signups_desc', 'Allow users to register and create new organizations.')}
             />
@@ -62,7 +61,6 @@ export default function SignupToggles({ settings, update, env }: SignupTogglesPr
                     checked={settings.allowConsumerSignups}
                     onChange={v => update('allowConsumerSignups', v)}
                     icon={Users}
-                    iconClass="text-emerald-400"
                     label={t('admin_subscriptions.access_consumer_signups', 'Consumer signups')}
                     description={t('admin_subscriptions.access_consumer_signups_desc', 'Allow users to register personal (non-organization) accounts.')}
                 />
@@ -73,7 +71,6 @@ export default function SignupToggles({ settings, update, env }: SignupTogglesPr
                 checked={settings.waitlistEnabled}
                 onChange={v => update('waitlistEnabled', v)}
                 icon={Clock}
-                iconClass="text-amber-400"
                 label={t('admin_subscriptions.access_waitlist_mode', 'Waitlist mode')}
                 description={t('admin_subscriptions.access_waitlist_mode_desc', 'Require admin approval for new account registrations. Invited users bypass the waitlist.')}
             />
@@ -83,7 +80,6 @@ export default function SignupToggles({ settings, update, env }: SignupTogglesPr
                     checked={settings.emailVerificationEnabled}
                     onChange={v => update('emailVerificationEnabled', v)}
                     icon={MailCheck}
-                    iconClass="text-blue-400"
                     label={t('admin_subscriptions.access_email_verify', 'Require email verification')}
                     description={t('admin_subscriptions.access_email_verify_desc', 'New password signups must confirm their email address via a link before they can log in. Invited and SSO users (already trusted) are exempt. The verification & welcome email text is configured under Languages → Email Templates.')}
                 />
@@ -100,7 +96,6 @@ export default function SignupToggles({ settings, update, env }: SignupTogglesPr
                 checked={settings.requireMfaForPasswordAccounts}
                 onChange={v => update('requireMfaForPasswordAccounts', v)}
                 icon={ShieldCheck}
-                iconClass="text-teal-400"
                 label={t('admin_subscriptions.access_mfa', 'Require MFA for password accounts')}
                 description={t('admin_subscriptions.access_mfa_desc', 'Force username/password accounts to set up two-factor authentication before they can use the platform. Google/Microsoft SSO accounts are exempt (their provider handles MFA).')}
             />
@@ -109,7 +104,6 @@ export default function SignupToggles({ settings, update, env }: SignupTogglesPr
                 checked={settings.connectorOnly}
                 onChange={v => update('connectorOnly', v)}
                 icon={Network}
-                iconClass="text-sky-400"
                 label={t('admin_subscriptions.access_connector_only', 'Only allow signups via the Nextcloud connector')}
                 description={t('admin_subscriptions.access_connector_only_desc', 'Block all public web signups (organization, consumer & SSO). New accounts can only be created through the Nextcloud app. Email invitations still work.')}
             />

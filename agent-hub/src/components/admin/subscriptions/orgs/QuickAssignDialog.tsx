@@ -130,7 +130,7 @@ export function QuickAssignDialog({ org, plans, onClose, onSave, onStartTrial }:
                     </Banner>
                 )}
                 {org.trial_used_at && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
                         <Clock className="w-3.5 h-3.5" /> {t('admin_subscriptions.quick_assign_trial_used', 'Trial used on {date}', { date: new Date(org.trial_used_at).toLocaleDateString() })}
                     </div>
                 )}

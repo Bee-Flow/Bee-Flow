@@ -327,7 +327,7 @@ export const parseSaveError = async (res: Pick<Response, 'status' | 'text'>): Pr
 export const getAgentInitials = (name?: string | null): string => {
     if (!name) return '?';
     return name
-        .split(' ')
+        .split(/\s+/).filter(Boolean) // a double space must not yield an empty word
         .map((n: string) => n[0])
         .slice(0, 2)
         .join('')

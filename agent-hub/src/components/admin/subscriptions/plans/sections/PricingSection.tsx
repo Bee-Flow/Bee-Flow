@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { CURRENCY_SYMBOL } from '../../constants';
 import { Banner } from '../../ui/Banner';
-import { ChoiceCards } from '../../ui/Choice';
+import ChoiceCards from '@/components/shared/ChoiceCards';
 import { Field, Input, Select, NumberInput } from '../../ui/Input';
 import { LimitField } from '../../ui/LimitField';
 import { Toggle } from '../../ui/Toggle';
@@ -20,7 +20,7 @@ export function PricingSection({ form, update }: PlanSectionProps) {
         <div className="space-y-5">
             <div>
                 <h3 className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{t('admin_subscriptions.pricing_title', 'Pricing & billing')}</h3>
-                <p className="text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.pricing_desc', "Configuration that's pushed to Stripe when you sync.")}</p>
+                <p className="text-[12px] text-[var(--text-tertiary)]">{t('admin_subscriptions.pricing_desc', "Configuration that's pushed to Stripe when you sync.")}</p>
             </div>
 
             <Field label={t('admin_subscriptions.pricing_model', 'Billing model')}>
@@ -31,8 +31,8 @@ export function PricingSection({ form, update }: PlanSectionProps) {
                         if (v === 'metered') update('per_seat', false);
                     }}
                     options={[
-                        { value: 'fixed',   label: t('admin_subscriptions.pricing_fixed', 'Fixed monthly'), description: t('admin_subscriptions.pricing_fixed_desc', 'Flat recurring price'), icon: Euro,        accent: 'blue' },
-                        { value: 'metered', label: t('admin_subscriptions.pricing_metered', 'Pay-as-you-go'), description: t('admin_subscriptions.pricing_metered_desc', 'Per-call usage + markup %'), icon: TrendingUp,  accent: 'emerald' },
+                        { value: 'fixed',   label: t('admin_subscriptions.pricing_fixed', 'Fixed monthly'), description: t('admin_subscriptions.pricing_fixed_desc', 'Flat recurring price'), Icon: Euro },
+                        { value: 'metered', label: t('admin_subscriptions.pricing_metered', 'Pay-as-you-go'), description: t('admin_subscriptions.pricing_metered_desc', 'Per-call usage + markup %'), Icon: TrendingUp },
                     ]}
                 />
             </Field>
@@ -106,7 +106,7 @@ export function PricingSection({ form, update }: PlanSectionProps) {
 
             <div className="pt-5 border-t border-[var(--border-default)]">
                 <h4 className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{t('admin_subscriptions.pricing_limits', 'Limits')}</h4>
-                <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('admin_subscriptions.pricing_limits_desc', 'Caps that apply to subscribers on this plan. Leave any field empty for unlimited.')}</p>
+                <p className="text-[12px] text-[var(--text-tertiary)] mb-3">{t('admin_subscriptions.pricing_limits_desc', 'Caps that apply to subscribers on this plan. Leave any field empty for unlimited.')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                     <LimitField
                         field={{ key: 'max_cost_per_month', label: t('admin_subscriptions.pricing_limit_cost', 'Cost cap / month ({sym})', { sym }), type: 'currency' }}

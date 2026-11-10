@@ -339,7 +339,16 @@ def _chunk_text_tokens(
         if j >= n:
             break
         next_i = _token_index_at_char(offsets, char_end)
-        i = max(next_i - overlap_tokens, i + min_advance)
+        advanced = max(next_i - overlap_tokens, i + min_advance)
+        # The minimum advance is counted in TOKENS while the snap retreats in
+        # CHARACTERS. When most of a window's characters are whitespace (a run
+        # of blank lines between two blocks), a snap of under 15% of the chars
+        # can retreat over more than half the tokens; advancing past next_i
+        # then skipped the tokens between the cut and the next chunk, and the
+        # model never saw them. Never start beyond the first uncovered token.
+        if advanced > next_i:
+            advanced = max(next_i, i + 1)
+        i = advanced
     return chunks
 
 

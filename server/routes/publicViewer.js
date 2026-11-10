@@ -180,7 +180,9 @@ function getUnlockClaim(/** @type {import('express').Request} */ req, shareId) {
     const cookieHeader = req.headers.cookie || '';
     const m = cookieHeader.match(new RegExp(`(?:^|;\\s*)${UNLOCK_COOKIE_NAME}=([^;]+)`));
     if (!m) return null;
-    return publicShareToken.verifyUnlockCookie(decodeURIComponent(m[1]), shareId);
+    let value;
+    try { value = decodeURIComponent(m[1]); } catch (_) { return null; } // a broken escape is no claim, not a 500 on a public page
+    return publicShareToken.verifyUnlockCookie(value, shareId);
 }
 
 // Gate check for the opaque-origin sub-resource routes (/content, /extras).

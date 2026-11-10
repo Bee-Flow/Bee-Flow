@@ -207,3 +207,35 @@ describe('when there is no model behind the box', () => {
         expect(await screen.findByText(/Could not reach the AI just now/i)).toBeTruthy();
     });
 });
+
+describe('an answer that arrives after the sentence changed', () => {
+    it('is not shown under the new sentence', async () => {
+        const user = userEvent.setup();
+        let answer: (value: unknown) => void = () => {};
+        api.suggestRouteRules.mockReturnValue(new Promise((resolve) => { answer = resolve; }));
+        setup();
+        type('route anything that smells like an escalation');
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        expect(await screen.findByText(/Asking the AI/i)).toBeTruthy();
+
+        // The box stays editable while the model thinks: the author asks for
+        // something else entirely.
+        type('everything my manager would want to see first');
+        answer({ rules: [{ name: 'Escalations', expr: 'contains(item.name, "urgent")' }] });
+
+        // The ask is over, and the rule written for the FIRST sentence is not
+        // offered as the answer to the second.
+        expect(await screen.findByRole('button', { name: /Ask the AI/i })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Use this output|Use these/i })).toBeNull();
+        expect(screen.queryByText('Escalations')).toBeNull();
+    });
+
+    it('is still shown when the sentence is the one that was asked', async () => {
+        const user = userEvent.setup();
+        api.suggestRouteRules.mockResolvedValue({ rules: [{ name: 'Escalations', expr: 'contains(item.name, "urgent")' }] });
+        setup();
+        type('route anything that smells like an escalation');
+        await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
+        expect(await screen.findByRole('button', { name: /Use this output|Use these/i })).toBeTruthy();
+    });
+});

@@ -29,4 +29,17 @@ describe('StudioShell', () => {
         // The sidebar header is the only <header> the shell renders.
         expect(container.querySelector('aside > header')).toBeNull();
     });
+
+    it('stacks the sidebar above the content below md when responsive, and hides its title bar there', () => {
+        const { container } = render(
+            <StudioShell responsive sidebarTitle="Security" sidebar={<div>items</div>}>
+                <div>detail</div>
+            </StudioShell>,
+        );
+        const root = container.firstElementChild as HTMLElement;
+        expect(root.className).toContain('flex-col');
+        expect(root.className).toContain('md:flex-row');
+        expect(container.querySelector('aside')?.className).toContain('md:w-64');
+        expect(container.querySelector('aside > header')?.className).toContain('hidden md:flex');
+    });
 });

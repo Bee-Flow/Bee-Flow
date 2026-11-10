@@ -4,7 +4,7 @@
 // exception: "All members" is a real toggle for it, and a group can hold it
 // while All members does not.
 
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -46,10 +46,7 @@ beforeEach(() => {
     });
 });
 
-const toggleOf = (name: string) => {
-    const card = screen.getByTitle(name).closest('.rounded-xl') as HTMLElement;
-    return within(card).getByRole('checkbox');
-};
+const toggleOf = (name: string) => screen.getByRole('checkbox', { name });
 
 it('on a group, a group-scoped beta can be granted while an ordinary beta stays inherited', async () => {
     const user = userEvent.setup();
@@ -112,4 +109,16 @@ it('with hideHeading, drops the heading but keeps the intro line and the save st
 
     await user.click(toggleOf('Meeting Notes'));
     expect(await screen.findByText('Saved', {}, { timeout: 2000 })).toBeInTheDocument();
+});
+
+it('marks the chosen scope as current and titles the list with it', async () => {
+    const user = userEvent.setup();
+    render(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
+    const all = await screen.findByRole('button', { name: /All members/ });
+    expect(all).toHaveAttribute('aria-current', 'true');
+
+    await user.click(screen.getByRole('button', { name: /Finance/ }));
+    expect(screen.getByRole('button', { name: /Finance/ })).toHaveAttribute('aria-current', 'true');
+    expect(all).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('heading', { level: 3, name: 'Finance' })).toBeInTheDocument();
 });

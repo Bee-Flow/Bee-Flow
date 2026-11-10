@@ -171,6 +171,16 @@ test('een wachtwoord-share vraagt op /w net zo goed om het wachtwoord', async ()
     }));
 });
 
+test('a password share with a broken unlock cookie asks for the password again (no 500)', async () => {
+    await withPatches(base({
+        findLiveShareById: async () => ({ ...LIVE_SHARE, accessMode: 'password', _passwordHash: 'x' }),
+    }), () => withServer(test, async (b) => {
+        const res = await fetch(`${b}/w/${SLUG}`, { headers: { cookie: 'bf_unlock=%E0%A4%A' } });
+        assert.strictEqual(res.status, 200);
+        assert.match(await res.text(), /Enter password/);
+    }));
+});
+
 test('de unlock-cookie krijgt het pad van de mount waarop hij gezet wordt', async () => {
     await withPatches([
         ...base({ findLiveShareById: async () => ({ ...LIVE_SHARE, accessMode: 'password', _passwordHash: 'x' }) }),

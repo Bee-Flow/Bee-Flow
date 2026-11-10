@@ -115,7 +115,8 @@ async function stampPptxCoreProperties(buffer, { keywords = [], description = ''
     xml = xml.replace(/<cp:keywords>[\s\S]*?<\/cp:keywords>/g, '').replace(/<dc:description>[\s\S]*?<\/dc:description>/g, '');
     const extra = (keywords.length ? `<cp:keywords>${xmlEscape(keywords.join('; '))}</cp:keywords>` : '')
         + (description ? `<dc:description>${xmlEscape(description)}</dc:description>` : '');
-    xml = xml.replace('</cp:coreProperties>', `${extra}</cp:coreProperties>`);
+    // A function replacer: the keywords and description are text, not a replacement pattern.
+    xml = xml.replace('</cp:coreProperties>', () => `${extra}</cp:coreProperties>`);
     zip.file('docProps/core.xml', xml);
     return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 }

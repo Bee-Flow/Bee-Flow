@@ -6,6 +6,7 @@
 
 import { EVENT } from '../shared/ipc.ts';
 import { confirmationPrompt, parseDeepLink } from './deepLink.ts';
+import { serverUrl } from './server/url.ts';
 
 export interface DeepLinkHost {
     info(tag: string, message: string): void;
@@ -38,7 +39,10 @@ export function routeDeepLink(raw: string, host: DeepLinkHost): void {
         case 'navigate': {
             host.showMain();
             const base = host.serverUrl();
-            if (base) host.loadMain(new URL(action.path, base).toString());
+            // Joined, not resolved: `new URL('/app/chat/1', base)` drops the
+            // path of a server installed under one (https://x/beeflow), and
+            // the link opened another application on that host.
+            if (base) host.loadMain(serverUrl(base, action.path));
             break;
         }
         case 'quick-ask':

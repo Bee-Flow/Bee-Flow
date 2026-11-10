@@ -94,7 +94,7 @@ function buildDocumentFilters(kbId, filters = {}) {
     const clauses = [`knowledge_base_id = $1`];
     const vals = [kbId];
     const add = (sql, val) => { vals.push(val); clauses.push(sql.replace('?', `$${vals.length}`)); };
-    if (filters.sender) add(`metadata->>'from' ILIKE ?`, `%${filters.sender}%`);
+    if (filters.sender) add(`metadata->>'from' ILIKE ?`, `%${String(filters.sender).replace(/[%_\\]/g, '\\$&')}%`);
     if (filters.threadId) add(`metadata->>'threadId' = ?`, filters.threadId);
     if (filters.hasAttachment) clauses.push(`(metadata->>'hasAttachments')::boolean = true`);
     if (filters.dateFrom) add(`(metadata->>'date')::timestamptz >= ?`, filters.dateFrom);

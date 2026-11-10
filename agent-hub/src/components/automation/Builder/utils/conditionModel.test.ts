@@ -312,3 +312,29 @@ describe('is about / is not about', () => {
         expect(parsed!.rows.map((r) => r.op)).toEqual(['isAbout', 'contains']);
     });
 });
+
+describe('a quoted value holding both an apostrophe and an escape', () => {
+    // What the builder itself writes for the typed text  He said "it's fine"
+    const expr = 'item.note == "He said \\"it\'s fine\\""';
+
+    it('reads back the text that was typed, not its escaped spelling', () => {
+        const parsed = parseExprToRows(expr);
+        expect(parsed?.rows[0].value).toEqual({ kind: 'literal', value: 'He said "it\'s fine"' });
+    });
+
+    it('round-trips unchanged, so reopening and saving the rule keeps what it matches', () => {
+        const parsed = parseExprToRows(expr);
+        expect(serializeRows(parsed?.rows, parsed?.join)).toBe(expr);
+    });
+
+    it('covers the other escapes too: a backslash and a line break next to an apostrophe', () => {
+        const typed = "C:\\temp isn't\nhere";
+        const saved = serializeRows([{ field: { kind: 'ref', path: 'item.path' }, op: 'eq', value: { kind: 'literal', value: typed } }]);
+        expect(parseExprToRows(saved)?.rows[0].value).toEqual({ kind: 'literal', value: typed });
+    });
+
+    it('still reads a plain apostrophe, and a single-quoted value, as before', () => {
+        expect(parseExprToRows('item.a == "it\'s"')?.rows[0].value).toEqual({ kind: 'literal', value: "it's" });
+        expect(parseExprToRows("item.a == 'open'")?.rows[0].value).toEqual({ kind: 'literal', value: 'open' });
+    });
+});
