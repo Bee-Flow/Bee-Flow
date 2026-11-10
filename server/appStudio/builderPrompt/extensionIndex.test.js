@@ -253,7 +253,10 @@ test('app_inspect_catalog serves the keys outside the component and kind tables,
         const answered = (/** @type {string} */ family) => {
             const out = applyInspectCatalog({ family });
             assert.equal(out.unknown, undefined, family);
-            return Object.fromEntries(Object.entries(out.extensions).filter(([name]) => isFixtureName(name)));
+            // A family past INSPECT_MAX_FAMILY_ENTRIES names the rest in its note; those are asked by name.
+            const rest = /ask for the others by name \(([^)]*)\)/.exec(out.note || '');
+            const more = rest ? applyInspectCatalog({ extensions: rest[1].split(', ') }).extensions : {};
+            return Object.fromEntries(Object.entries({ ...out.extensions, ...more }).filter(([name]) => isFixtureName(name)));
         };
         assert.deepEqual(answered('itemKeys'), {
             'table.columns[].toneMap[].zz_icon': 'table.columns[].toneMap[].zz_icon: icon — An icon shown before the label.',
