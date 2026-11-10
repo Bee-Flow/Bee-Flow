@@ -15,6 +15,7 @@ import { useMonitoringData, type MonitoringData } from './useMonitoringData';
 import type { DrawerDetail } from './drawer/drawerTypes';
 import type { MonitoringPanelProps } from './index.types';
 import { PAGES, monitoringPageOf } from './monitoring.constants';
+import type { CoveredScope } from './shared.types';
 import { toLocalInput } from './monitoring.helpers';
 
 /** Change against the previous period, in percent (null where the previous period had none). */
@@ -27,6 +28,14 @@ function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | n
         cost: calc(summary.total_estimated_cost || 0, prevSummary.total_estimated_cost || 0),
         latency: calc(summary.avg_duration_ms || 0, prevSummary.avg_duration_ms || 0),
     };
+}
+
+/** The line under the heading that says what the figures cover; null when the answer does not say (or covers the caller's own rows). */
+function useScopeLine(scope: CoveredScope | undefined): string | null {
+    const { t } = useTranslation();
+    if (scope?.allOrganizations) return t('admin_monitoring.scope_all', 'Usage of all organisations');
+    if (scope?.organizationId) return t('admin_monitoring.scope_org', 'Usage of {name}', { name: scope.organizationName || scope.organizationId });
+    return null;
 }
 
 const DELTA_LABELS: Record<string, string> = { today: 'vs yesterday', '7d': 'vs prev 7d', '30d': 'vs prev 30d', custom: 'vs prev period' };
@@ -81,6 +90,8 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
         case 'activity':
             return <ActivityPage recent={data.recent} />;
         case 'terminations':
+            // The generic route: it needs admin_monitoring (the tab's own permission) and scopes a
+            // caller who is not a platform admin to their own organisation on the server.
             return <TerminationsPage range={range} customStart={customStart} customEnd={customEnd} refreshKey={refreshKey} />;
         default:
             return (
@@ -111,6 +122,8 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
     const { data, loading, reload, refreshKey } = useMonitoringData(range, customStart, customEnd);
     const title = t('admin_monitoring.title', 'AI Monitor');
     const { costPerModel } = useModelCosts(data);
+    const scopeLine = useScopeLine(data.summary?.scope);
+    const pageDescription = t(meta.descriptionKey, meta.description);
 
     const sidebar = (
         <SectionNav
@@ -128,7 +141,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                     <div className="mx-auto flex max-w-[1400px] flex-col gap-5 p-4 md:p-6">
                         <SectionHeader
                             title={t(meta.labelKey)}
-                            description={t(meta.descriptionKey, meta.description)}
+                            description={scopeLine ? <>{pageDescription}<span className="block">{scopeLine}</span></> : pageDescription}
                             status={(
                                 <RangeControls
                                     range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}

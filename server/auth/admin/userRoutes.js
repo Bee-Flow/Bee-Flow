@@ -17,7 +17,7 @@ const { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBo
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
-const { loadConfig, requireAuth, getUserPermissions, invalidatePermissionCache, resolveUserOrgIds, isOrgAdminRole } = require('../permissions');
+const { loadConfig, requireAuth, getUserPermissions, invalidatePermissionCache, resolveUserOrgIds, isOrgAdminRole, resolveAdminOrgId } = require('../permissions');
 const { rewrapUserDEKCompat, adminResetUser } = require('../encryption');
 // One password policy for every write path. Without it /change-password would
 // accept 4 characters and the admin create / update paths would hash whatever
@@ -48,20 +48,30 @@ const {
  * a body field accepted, answered with 200 {"success":true}, and then dropped.
  */
 
+// Who may list users, and the admin dashboard's `?scope=admin` list (auth/admin/userListScope.mts).
+/** @type {ReturnType<typeof import('./userListScope.mts').createUserListScope<import('express').Request, Record<string, any>>>} */
+const { mayViewUsers, adminScopedUsers } = require('./userListScope.mts').createUserListScope({
+    getUserPermissions: (userId, session) => getUserPermissions(userId, session),
+    resolveAdminOrgId: (req) => resolveAdminOrgId(req),
+    getAllUsers: () => userStore.getAllUsers(),
+    getAllGroups: () => userStore.getAllGroups(),
+    isPlatformOperator: (u) => isPlatformOperator(u),
+    stripKeyMaterial: (u) => stripKeyMaterial(u),
+});
+
 // === User Management API (Admin Only) ===
 
-// Get all users — requires manage_users, admin_security, or org_admin
+// Get all users — requires manage_users, admin_security, or org_admin.
+// `?scope=admin`: see adminScopedUsers.
 router.get('/users', requireAuth, async (req, res) => {
     // Non-super-admins must have user management permissions
     const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
-    if (!isSuperAdmin) {
-        const userId = req.session.user?.id;
-        const perms = await getUserPermissions(userId, req.session);
-        const canView = perms.includes('all') || perms.includes('manage_users') || perms.includes('admin_security') || perms.includes('org_admin');
-        if (!canView) {
-            return res.status(403).json({ error: 'Permission required to view users' });
-        }
+    if (!(await mayViewUsers(req))) {
+        return res.status(403).json({ error: 'Permission required to view users' });
     }
+
+    const scoped = await adminScopedUsers(req);
+    if (scoped) return res.json(scoped);
 
     const users = await userStore.getAllUsers();
     const config = await loadConfig();

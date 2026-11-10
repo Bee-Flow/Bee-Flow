@@ -70,6 +70,16 @@ const platformAdmin = require('./requirePlatformAdmin').createPlatformAdminGate(
     hasPermission: resolve.hasPermission,
     isSuperAdmin: orgGates.isSuperAdmin,
 });
+// The organisation the admin dashboard acts on (auth/adminOrg.mts). The store
+// is read at call time, so a test that replaces its methods is seen.
+const adminOrg = require('./adminOrg.mts').createAdminOrgGate({
+    // adminOrg.mts types the request structurally; Express hands it the real one.
+    isSuperAdmin: (req) => orgGates.isSuperAdmin(/** @type {import('express').Request} */ (/** @type {unknown} */ (req))),
+    evalOrgAdmin: (user, allGroups, orgId) => orgGates._evalOrgAdmin(user, allGroups, orgId),
+    getUser: (userId) => userStore.getUser(userId),
+    getAllGroups: () => userStore.getAllGroups(),
+    getOrganization: (orgId) => userStore.getOrganization(orgId),
+});
 
 module.exports = {
     SYSTEM_PERMISSIONS: catalog.SYSTEM_PERMISSIONS,
@@ -115,4 +125,7 @@ module.exports = {
     // here with the real collaborators.
     hasPlatformAdminAccess: platformAdmin.hasPlatformAdminAccess,
     requirePlatformAdmin: platformAdmin.requirePlatformAdmin,
+    // The admin dashboard's organisation (auth/adminOrg.mts): sets req.adminOrgId.
+    resolveAdminOrgId: adminOrg.resolveAdminOrgId,
+    requireAdminOrg: adminOrg.requireAdminOrg,
 };

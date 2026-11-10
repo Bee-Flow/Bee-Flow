@@ -1,6 +1,8 @@
 {
   "translations": {
     "admin_monitoring.range_label": "Periode",
+    "admin_monitoring.scope_all": "Gebruik van alle organisaties",
+    "admin_monitoring.scope_org": "Gebruik van {name}",
     "cms_site.analytics.panel.site": "Website"
   },
   "sameAsEnglish": []

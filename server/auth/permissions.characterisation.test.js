@@ -152,6 +152,8 @@ test('export keys are exactly the monolith\'s, in order', () => {
         'requireActiveOrg', 'requireActiveOrgForMutations', 'isPermissionLookupDegraded',
         // The gate of instance-wide settings (auth/requirePlatformAdmin.js).
         'hasPlatformAdminAccess', 'requirePlatformAdmin',
+        // The admin dashboard's organisation (auth/adminOrg.mts).
+        'resolveAdminOrgId', 'requireAdminOrg',
     ]);
 });
 

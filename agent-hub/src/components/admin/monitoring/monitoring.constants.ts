@@ -1,10 +1,22 @@
 import { Activity, BarChart3, ThumbsUp, Clock, AlertTriangle } from 'lucide-react';
+import type { CoveredScope } from './shared.types';
 
 export const API = (import.meta.env.VITE_API_URL || '') + '/api/usage';
 
 export const AI_API = (import.meta.env.VITE_API_URL || '') + '/ai';
 
 export const FEEDBACK_API = (import.meta.env.VITE_API_URL || '') + '/api/feedback';
+
+/**
+ * The Feedback endpoint for what the page covers: the `/org` variant when the
+ * usage answer covers one organisation (anyone but a platform admin, or a
+ * platform admin who named one with `?orgId`), the instance-wide route when
+ * it covers every organisation or does not say. Terminations keeps its
+ * generic route, which already scopes a caller to their own organisation.
+ */
+export function scopedApi(base: string, scope: CoveredScope | null | undefined): string {
+    return scope?.organizationId ? `${base}/org` : base;
+}
 
 export const RANGES = [
     { id: 'today', labelKey: 'admin.mon_today' },

@@ -32,6 +32,8 @@ const UsageQuery = queryOf({
     source: filterText('source').optional(),
     integration: filterText('integration').optional(),
     pii: filterText('pii').optional(),
+    // A platform admin's choice of organisation (routes/usageScope.js getOrgFilter); anyone else may only name their own.
+    orgId: filterText('orgId').optional(),
     type: filterText('type').optional(),
     interval: choice(['hour', 'day'], 'interval is hour or day.').optional(),
     // Each route clamps its own page size (see the handlers).
@@ -46,7 +48,7 @@ const UsageQuery = queryOf({
 
 // The customer view of the figures (markup, no tokens on cloud): routes/usageRedact.js.
 const { isAdminCaller, maybeRedact } = require('./usageRedact');
-const { attachOrgFilter } = require('./usageScope');
+const { attachOrgFilter, usageScopeOf } = require('./usageScope');
 
 // The session first, so an anonymous caller hears 401 rather than 400.
 router.use((req, res, next) => (req.session?.isAuthenticated ? next() : res.status(401).json({ error: 'Not authenticated' })));
@@ -202,7 +204,9 @@ router.get('/summary', async (req, res) => {
         azure_services_total_cost,
         combined_total_cost: (summary?.total_estimated_cost || 0) + azure_services_total_cost,
     };
-    res.json(await maybeRedact(req, fullPayload, 'summary'));
+    // `scope` after the redaction: the customer view is an allow-list of figures.
+    const redacted = /** @type {Record<string, unknown>} */ (await maybeRedact(req, fullPayload, 'summary'));
+    res.json({ ...redacted, scope: await usageScopeOf(req) });
 });
 
 // 2. Timeline (supports ?interval=hour|day from frontend)

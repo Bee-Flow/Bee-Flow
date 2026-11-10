@@ -9,8 +9,13 @@
  *
  *   org admin            → 200, org forced from the SESSION
  *   plain org member     → 403
- *   super admin + org    → 200
+ *   super admin + org    → 200 (?orgId, else the organisation on their record)
  *   super admin, org-less→ 403 (per-org dashboards, not a global console)
+ *   org admin of A in an admin group of B → A only; ?orgId=B is a 403
+ *
+ * And the consumption endpoints' organisation: the caller's own (home first),
+ * or for a platform admin every organisation or the one ?orgId names; the
+ * summary says which in `scope`.
  *   consumer (no org)    → 200 scoped to their OWN rows, ?user= can't widen it
  *
  * Plus: dashboards exclude dry runs, limits clamp, keyset cursor reaches the
@@ -38,6 +43,11 @@ let planLookupFails = false;             // getOrgSubscription throws
 let planMarkup = null;                   // markup_percent of the org's plan
 let orgLookupFails = false;              // resolveUserOrgIds throws (strict: the store stumbled)
 let memberPerms = [];                    // what hasPermission grants
+let userGroupIds = [];                   // groups on the user RECORD
+
+// The organisations that exist, and one group of org_b that carries admin rights.
+const ORGS = { org_a: { id: 'org_a', name: 'Org A' }, org_b: { id: 'org_b', name: 'Org B' }, org_admins_own: { id: 'org_admins_own', name: 'Operator' } };
+const GROUPS = [{ id: 'g_b_admins', organizationId: 'org_b', roles: ['org_admin'], permissions: [] }];
 
 // ── Stubs ──────────────────────────────────────────────────────────────
 const authStub = {
@@ -49,7 +59,9 @@ const authStub = {
     async hasPermission(_id, perm) { return memberPerms.includes(perm); },
 };
 const userStoreStub = {
-    async getUser(id) { return { id, orgRole: userOrgRole, organizationId: userRecordOrgId }; },
+    async getUser(id) { return { id, orgRole: userOrgRole, organizationId: userRecordOrgId, groups: userGroupIds }; },
+    async getAllGroups() { return GROUPS; },
+    async getOrganization(id) { return ORGS[id] || null; },
     async getUserAvatarsByIds(ids) { captured.avatarIds = ids; return avatarRows; },
     async getAllUserAvatars() { throw new Error('full-table avatar scan must not run on monitoring endpoints'); },
     async getConsumerSubscription() { return null; },
@@ -123,6 +135,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
             '../core/llm/modelCosts': '__stub_costs_monauthz__.js',
             '../stores/serverGeoResolver': '__stub_geo_monauthz__.js',
             '../license': '__stub_lic_monauthz__.js',
+            '../auth/permissions': '__stub_perms_monauthz__.js',
         };
         if (map[request]) return path.join(__dirname, map[request]);
     }
@@ -138,6 +151,15 @@ for (const [fname, exp] of Object.entries({
     '__stub_costs_monauthz__.js': { computeCostSplit: () => ({ input_cost: 0, output_cost: 0 }) },
     '__stub_geo_monauthz__.js': { countryFlag: () => '🌐' },
     '__stub_lic_monauthz__.js': { serverLicenseGovernsOrgs: () => governsOrgs },
+    // The real organisation decision (auth/adminOrg.mts) over the doubles above.
+    '__stub_perms_monauthz__.js': require('../auth/adminOrg.mts').createAdminOrgGate({
+        isSuperAdmin: (req) => !!(req.session?.isAdmin || req.session?.user?.role === 'admin'),
+        evalOrgAdmin: (user, groups, orgId) => (user.organizationId === orgId && authStub.isOrgAdminRole(user.orgRole))
+            || groups.some((g) => (user.groups || []).includes(g.id) && g.organizationId === orgId && g.roles.includes('org_admin')),
+        getUser: (id) => userStoreStub.getUser(id),
+        getAllGroups: () => userStoreStub.getAllGroups(),
+        getOrganization: (id) => userStoreStub.getOrganization(id),
+    }),
 })) {
     const full = path.join(__dirname, fname);
     require.cache[full] = { id: full, filename: full, loaded: true, exports: exp };
@@ -149,6 +171,7 @@ const app = express();
 let currentSession = null;
 app.use((req, _res, next) => { req.session = currentSession; next(); });
 app.use('/api/usage', router);
+app.use(require('../core/http/terminalErrorHandler').terminalErrorHandler);
 const server = app.listen(0);
 
 function get(pathname) {
@@ -170,7 +193,25 @@ const asOrgUser = (role) => {
     orgIdsResult = new Set(['org_a']);
     userOrgRole = role;
     userRecordOrgId = 'org_a';
+    userGroupIds = [];
     currentSession = { isAuthenticated: true, user: { id: 'u1', organizationId: 'org_a' } };
+};
+
+/** Admin of org_a by orgRole, and in a group of org_b that carries admin rights there. */
+const asAdminOfAInGroupOfB = () => {
+    orgIdsResult = new Set(['org_a', 'org_b']);
+    userOrgRole = 'org_admin';
+    userRecordOrgId = 'org_a';
+    userGroupIds = ['g_b_admins'];
+    currentSession = { isAuthenticated: true, user: { id: 'u1', organizationId: 'org_a' } };
+};
+
+const asPlatformAdmin = (extra = {}) => {
+    orgIdsResult = null;
+    userOrgRole = 'member';
+    userRecordOrgId = null;
+    userGroupIds = [];
+    currentSession = { isAuthenticated: true, isAdmin: true, user: { id: 'admin', role: 'admin' }, ...extra };
 };
 
 test('plain org member gets 403 on every monitoring prefix', async () => {
@@ -351,6 +392,86 @@ test('unauthenticated gets 401 before any scope logic', async () => {
     currentSession = null;
     const r = await get('/api/usage/guardrails/summary');
     assert.strictEqual(r.status, 401);
+});
+
+// ── The organisation the dashboard covers ───────────────────────────────
+
+test('an organisation admin of A who sits in an admin group of B reads A only', async () => {
+    asAdminOfAInGroupOfB();
+    const s = await get('/api/usage/summary?days=7');
+    assert.strictEqual(s.status, 200);
+    assert.strictEqual(captured.usageSummary.organizationId, 'org_a');
+    assert.deepStrictEqual(s.body.scope, { organizationId: 'org_a', organizationName: 'Org A', allOrganizations: false });
+
+    const g = await get('/api/usage/guardrails/summary');
+    assert.strictEqual(g.status, 200);
+    assert.strictEqual(captured.guardSummary.organizationId, 'org_a');
+
+    for (const p of ['/api/usage/summary?orgId=org_b', '/api/usage/guardrails/summary?orgId=org_b']) {
+        delete captured.usageSummary;
+        delete captured.guardSummary;
+        const r = await get(p);
+        assert.strictEqual(r.status, 403, `${p} must not open organisation B`);
+        assert.strictEqual(captured.usageSummary, undefined, 'no store read on a refused request');
+        assert.strictEqual(captured.guardSummary, undefined, 'no store read on a refused request');
+    }
+});
+
+test('a member naming another organisation is refused; naming their own changes nothing', async () => {
+    asOrgUser('member');
+    assert.strictEqual((await get('/api/usage/summary?orgId=org_b')).status, 403);
+    const own = await get('/api/usage/summary?orgId=org_a');
+    assert.strictEqual(own.status, 200);
+    assert.strictEqual(captured.usageSummary.organizationId, 'org_a');
+});
+
+test('a platform admin reads every organisation, or the one named by ?orgId', async () => {
+    asPlatformAdmin();
+    const all = await get('/api/usage/summary');
+    assert.strictEqual(all.status, 200);
+    assert.strictEqual(captured.usageSummary.organizationId, undefined, 'no organisation filter');
+    assert.deepStrictEqual(all.body.scope, { organizationId: null, organizationName: null, allOrganizations: true });
+
+    const one = await get('/api/usage/summary?orgId=org_b');
+    assert.strictEqual(one.status, 200);
+    assert.strictEqual(captured.usageSummary.organizationId, 'org_b');
+    assert.deepStrictEqual(one.body.scope, { organizationId: 'org_b', organizationName: 'Org B', allOrganizations: false });
+
+    const missing = await get('/api/usage/summary?orgId=org_gone');
+    assert.strictEqual(missing.status, 404);
+    assert.strictEqual(missing.body.code, 'organization_not_found');
+});
+
+test('the Access panel\'s session key does not narrow a platform admin\'s usage, even when it names a deleted organisation', async () => {
+    for (const stored of ['org_b', 'org_gone']) {
+        asPlatformAdmin({ adminSelectedOrgId: stored });
+        userRecordOrgId = 'org_admins_own';
+        const all = await get('/api/usage/summary');
+        assert.strictEqual(all.status, 200, `${stored}: no 404 for a stored key`);
+        assert.strictEqual(captured.usageSummary.organizationId, undefined, `${stored}: every organisation`);
+        assert.deepStrictEqual(all.body.scope, { organizationId: null, organizationName: null, allOrganizations: true });
+        const g = await get('/api/usage/guardrails/summary');
+        assert.strictEqual(g.status, 200);
+        assert.strictEqual(captured.guardSummary.organizationId, 'org_admins_own', `${stored}: their own organisation`);
+    }
+});
+
+test('a platform admin on the guardrail dashboards: ?orgId wins over their own organisation', async () => {
+    asPlatformAdmin();
+    userRecordOrgId = 'org_admins_own';
+    await get('/api/usage/guardrails/summary?orgId=org_b');
+    assert.strictEqual(captured.guardSummary.organizationId, 'org_b');
+    await get('/api/usage/guardrails/summary');
+    assert.strictEqual(captured.guardSummary.organizationId, 'org_admins_own', 'nothing chosen: their own organisation');
+});
+
+test('a consumer account\'s summary says it covers no organisation', async () => {
+    orgIdsResult = new Set();
+    currentSession = { isAuthenticated: true, user: { id: 'consumer-1' } };
+    const r = await get('/api/usage/summary');
+    assert.strictEqual(r.status, 200);
+    assert.deepStrictEqual(r.body.scope, { organizationId: null, organizationName: null, allOrganizations: false });
+    assert.strictEqual((await get('/api/usage/summary?orgId=org_a')).status, 403);
 });
 
 test.after(() => {

@@ -32,9 +32,14 @@ interface UserManagementProps {
     user?: AdminCurrentUser | null;
 }
 
-/** The section tabs this person may open: everything for a full admin, users/groups (and their own organisation) otherwise. */
-function sectionsFor(isFullAdmin: boolean | undefined, hasOrg: boolean) {
-    return isFullAdmin ? [
+/**
+ * The section tabs this person may open: everything for a platform admin,
+ * users/groups (and their own organisation) otherwise. The 'all' permission
+ * is not enough: its holder's lists cover their own organisation only, and
+ * the server-wide role table is not read for them.
+ */
+function sectionsFor(isPlatformAdmin: boolean | undefined, hasOrg: boolean) {
+    return isPlatformAdmin ? [
         { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
         { key: 'organizations', labelKey: 'admin.users_tab_organizations', icon: OrgIcon },
         { key: 'nextcloud', labelKey: 'admin.users_tab_nextcloud', icon: Cloud },
@@ -64,7 +69,8 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const isPlatformAdmin = currentUser?.isAdmin || currentUser?.role === 'admin';
     const userOrgIds = currentUser?.organizations || [];
 
-    const { users, groups, organizations, roles, permissions, loading, message, setMessage, loadData } = useUserManagementData();
+    // The admin dashboard's lists (`?scope=admin`): an organisation admin's home organisation only.
+    const { users, groups, organizations, roles, permissions, loading, message, setMessage, loadData } = useUserManagementData({ currentUser });
 
     // Destructive actions route through <ConfirmDialog/> rather than
     // window.confirm: the native dialog is unstyled, unthemeable, blocks the
@@ -82,7 +88,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const roleActions = useRoleActions({ loadData, setMessage, askConfirm, t });
     const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg });
 
-    const sections = sectionsFor(isFullAdmin, userOrgIds.length > 0);
+    const sections = sectionsFor(isPlatformAdmin, userOrgIds.length > 0);
 
     return (
         <div className="h-full flex flex-col">

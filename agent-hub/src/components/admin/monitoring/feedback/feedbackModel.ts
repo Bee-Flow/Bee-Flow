@@ -4,6 +4,8 @@ export interface FeedbackItem {
     rating: 'up' | 'down' | string;
     comment?: string | null;
     user_id?: string | null;
+    /** The `/org` routes send the person instead of user_id: a pseudonym unless revealed. */
+    person?: { id: string; name: string } | null;
     agent_id?: string | null;
     agent_name?: string | null;
     source?: string | null;
@@ -56,6 +58,7 @@ export function filterFeedback(feedback: FeedbackItem[], filter: FeedbackFilter,
             f.comment?.toLowerCase().includes(q) ||
             f.agent_id?.toLowerCase().includes(q) ||
             f.user_id?.toLowerCase().includes(q) ||
+            f.person?.name.toLowerCase().includes(q) ||
             f.source?.toLowerCase().includes(q) ||
             f.conversation_id?.toLowerCase().includes(q)
         );

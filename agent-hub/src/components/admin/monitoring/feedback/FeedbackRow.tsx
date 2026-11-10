@@ -104,7 +104,7 @@ export default function FeedbackRow({ item, expanded, onToggle }: FeedbackRowPro
 
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="mr-0.5 text-xs font-semibold text-[var(--text-primary)]">{item.user_id || 'Anonymous'}</span>
+                        <span className="mr-0.5 text-xs font-semibold text-[var(--text-primary)]">{item.person?.name || item.user_id || 'Anonymous'}</span>
                         <FeedbackChips item={item} snapshot={snapshot} />
                     </div>
                     {item.comment && (
