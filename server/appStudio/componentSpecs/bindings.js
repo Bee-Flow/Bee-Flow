@@ -28,6 +28,20 @@
 const BINDING_KINDS = ['static', 'actionResult', 'formula', 'record', 'records', 'dataset', 'connector', 'aggregate'];
 const INPUT_MAPPING_KINDS = ['static', 'field'];
 
+/**
+ * Query fields a data binding carries only when the author sets them (never written out as a
+ * default). Schema version 3: a definition that uses one is a version 3 definition.
+ *   match  — how the top-level filters join: 'all' (every one, the default) or 'any' (one is enough).
+ *   search — { value, fields }: the text (or a formula, a search box) looked for in any of the
+ *            fields, ANDed with the filters; records and record bindings only.
+ * And on a filter clause: `ci: true` makes an `eq` on text ignore upper/lower case.
+ */
+const BINDING_READ_EXTRAS = Object.freeze({
+    match: Object.freeze({ since: 3, kinds: Object.freeze(['record', 'records', 'aggregate']), values: Object.freeze(['all', 'any']) }),
+    search: Object.freeze({ since: 3, kinds: Object.freeze(['record', 'records']) }),
+    'filter.ci': Object.freeze({ since: 3, ops: Object.freeze(['eq']) }),
+});
+
 // The ONLY root identifiers a formula/filter expression may reference. A root
 // outside this set is a WARNING (unknown_formula_root) — the expr still
 // compiles, but it will resolve to undefined at runtime. Keep in lockstep with
@@ -67,6 +81,7 @@ const CURRENT_USER_KEYS = ['id', 'name', 'email', 'roleKey', 'isOwner', 'roles']
 module.exports = {
     BINDING_KINDS,
     INPUT_MAPPING_KINDS,
+    BINDING_READ_EXTRAS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
 };

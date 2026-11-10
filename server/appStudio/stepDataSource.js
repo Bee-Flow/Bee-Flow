@@ -50,7 +50,7 @@ const MAX_CONTEXT_ROWS = 50;
 
 const DATA_KINDS = new Set(['record', 'records', 'aggregate']);
 const { resolveFilterList } = require('../shared/expr/index.mjs');
-const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { recordListDescriptor, aggregateDescriptor, resolveSearch } = require('../core/dataEngine/readDescriptor.mts');
 
 function isDataBinding(binding) {
     return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);
@@ -133,6 +133,8 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
         } else {
             compiled = queryCompiler.compileRecordList(plan.tableMeta, recordListDescriptor(binding, {
                 filters,
+                // A search box is a bound value too: resolved to text here, left out when it holds none.
+                ...(binding.search !== undefined ? { search: resolveSearch(binding.search, resolveValue) } : {}),
                 limit: binding.kind === 'record'
                     ? 1
                     : Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { INPUT_CLS } from '../kit';
 import useTranslation from '@/hooks/useTranslation';
+import { MatchMode } from './ReadOptions';
 import FilterRowsEditor from '@/components/admin/Studio/AppStudio/bi/FilterRowsEditor';
 import { AGGS, DATE_BUCKETS } from '@/components/admin/Studio/AppStudio/bi/QueryBuilder';
 import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudio/bi/useAppTables';
@@ -126,10 +127,14 @@ export function AggregateBinding({ binding, onChange, appId, disabled, definitio
                         onChange={(filter) => patch({ filter: filter.length ? filter : undefined })}
                         allowFormula
                         allowGroups
+                        allowIgnoreCase
                         disabled={disabled}
                         definition={definition}
                         node={node}
                     />
+                    {Array.isArray(binding.filter) && binding.filter.length > 1 ? (
+                        <MatchMode match={binding.match} onChange={(match) => patch({ match })} disabled={disabled} />
+                    ) : null}
 
                     {singleValue && groupBy.length ? (
                         <PickValueField

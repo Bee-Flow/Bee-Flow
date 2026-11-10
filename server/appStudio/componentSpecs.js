@@ -87,6 +87,7 @@ const {
 const {
     BINDING_KINDS,
     INPUT_MAPPING_KINDS,
+    BINDING_READ_EXTRAS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
 } = require('./componentSpecs/bindings');
@@ -302,6 +303,7 @@ module.exports = {
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
     INPUT_MAPPING_KINDS,
+    BINDING_READ_EXTRAS,
     VARIABLE_TYPES,
     VARIABLE_TYPE_DEFAULTS,
     VARIABLE_NAME_RE,

@@ -298,6 +298,12 @@ const TOOL_SCHEMAS_PART_2 = [
                         description: `Optional literal filters: [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}; an entry {any:[clauses]} matches when one of its clauses does.`,
                         items: { type: 'object' },
                     },
+                    match: { type: 'string', enum: ['all', 'any'], description: 'Optional (tableId only): how the filters join. "all" (default) needs every filter; "any" returns a row when ONE matches. An eq clause may carry ci:true to ignore upper/lower case.' },
+                    search: {
+                        type: 'object',
+                        description: 'Optional (tableId only): { value: <text>, fields: [<field keys>] } finds rows where ANY of the fields contains the text; it ANDs with filter.',
+                        properties: { value: { type: 'string' }, fields: { type: 'array', items: { type: 'string' } } },
+                    },
                     sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },
                     limit: { type: 'number', description: `Max rows per call (default 5, max ${MAX_QUERY_LIMIT}; a larger value is clamped and the answer says limitClamped and requestedLimit). Page on with cursor.` },
                     cursor: { type: 'string', description: 'The nextCursor of the previous answer, to read the next page.' },

@@ -28,7 +28,7 @@ const stableJson = require('../utils/stableJson');
 
 const { collectDataBindings } = require('../appStudio/collectDataBindings');
 const queryCompiler = require('../core/dataEngine/queryCompiler');
-const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { recordListDescriptor, aggregateDescriptor, resolveSearch } = require('../core/dataEngine/readDescriptor.mts');
 const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
@@ -156,6 +156,20 @@ function resolveFilters(binding, scope) {
     return { binding: { ...binding, filter: res.filters } };
 }
 
+/**
+ * The client's search resolution: a records binding's `search.value` made literal, the search
+ * left out when it holds no text. Same cache key as the mounted runtime lands on.
+ */
+function resolveSearchValue(binding, scope) {
+    if (binding.search === undefined || binding.kind === 'aggregate') return { binding };
+    const raw = binding.search && typeof binding.search === 'object' ? binding.search.value : undefined;
+    const isFormula = !!raw && typeof raw === 'object' && raw.kind === 'formula';
+    if (isFormula && !formulaRefsResolvable(raw.expr)) return { skipped: true };
+    const search = resolveSearch(binding.search, (v) => evalFormula(v, scope));
+    const { search: _old, ...rest } = binding;
+    return { binding: search ? { ...rest, search } : rest };
+}
+
 // ── Data pass — real rows through the sanctioned read paths ─────────
 
 /** Same fallback chain as the client renderer resolves its screen with. */
@@ -264,6 +278,7 @@ async function buildDataState({ definition, model, app, screen, roleArg, viewer,
         if (binding.kind !== 'dataset') {
             resolved = resolveShape(binding, scope);
             if (!resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
+            if (!resolved.skipped) resolved = resolveSearchValue(resolved.binding, scope);
             if (resolved.skipped) continue;
         }
         const key = dataCacheKey(resolved.binding);

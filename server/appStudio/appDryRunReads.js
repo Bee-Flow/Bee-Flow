@@ -15,7 +15,7 @@ const rlsGateway = require('./rlsGateway');
 const { seedVariableDefaults } = require('./componentSpecs');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { isDatatableBacked } = require('./datatableSource');
-const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { recordListDescriptor, aggregateDescriptor, resolveSearch } = require('../core/dataEngine/readDescriptor.mts');
 const log = require('../telemetry/log');
 
 // Read-only probe page — a couple of rows is enough to prove a binding returns
@@ -84,6 +84,22 @@ function resolveDryRunFilters(binding, scope) {
 }
 
 
+/**
+ * The search of a records binding for the dry run: its value made literal against the synthetic
+ * scope. `{ skipped: true }` when the value is a formula over live scope (it cannot be simulated);
+ * `{}` when the binding has no search, so the descriptor stays what it was.
+ */
+function resolveDryRunSearch(binding, scope) {
+    if (binding.search === undefined) return {};
+    const raw = isPlainObject(binding.search) ? binding.search.value : undefined;
+    if (isPlainObject(raw) && raw.kind === 'formula') {
+        let refs;
+        try { refs = compile(String(raw.expr || '')).refs; } catch { return { skipped: true }; }
+        if (refs.some((r) => !SYNTHETIC_SCOPE_ROOTS.has(r))) return { skipped: true };
+    }
+    return { search: resolveSearch(binding.search, (v) => tryEvaluate(String(v.expr || ''), scope).value) };
+}
+
 const GENERIC_READ_FAILURE = 'The data read failed on the server (details are in the server log).';
 
 /**
@@ -123,7 +139,9 @@ function linkedReadCtx(app, ownerScope, dataModel, roleArg, viewer) {
 async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, ownerScope, deps, dataModel }) {
     const resolved = resolveDryRunFilters(binding, scope);
     if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
-    const descriptor = recordListDescriptor(binding, { filters: resolved.filters, limit: DRY_RUN_LIMIT });
+    const searched = resolveDryRunSearch(binding, scope);
+    if (searched.skipped) return { ok: true, skipped: 'dynamic' };
+    const descriptor = recordListDescriptor(binding, { filters: resolved.filters, limit: DRY_RUN_LIMIT, ...searched });
     try {
         if (isDatatableBacked(table)) {
             // The rows are in a Studio table, not the per-app database: read them

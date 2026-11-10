@@ -59,6 +59,26 @@ function canonicalFilterList(filter, path, push) {
     });
 }
 
+/**
+ * `match` (how the filters join) and `search` (a free search over some columns), copied only when
+ * the binding carries them. A search is the compiler's records-only group, so an aggregate hears
+ * that it is ignored instead of keeping a field nothing reads. A search `value` may be a formula
+ * (a search box): rebuilt to its exact shape, the rest is left for the validator.
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function copyReadExtras(raw, out, path, push) {
+    if (raw.match !== undefined && raw.match !== null) out.match = deepCopy(raw.match);
+    if (raw.search === undefined || raw.search === null) return;
+    if (out.kind === 'aggregate') {
+        push('binding.search_ignored', `${path}.search`, 'An aggregate has no search: dropped it (filter the rows with `filter` instead).');
+        return;
+    }
+    const search = deepCopy(raw.search);
+    if (isObject(search) && isFormulaObj(search.value)) search.value = cleanFormula(search.value, `${path}.search.value.expr`, push);
+    out.search = search;
+}
+
 // Shared filter/sort/limit copy for record + records bindings.
 /**
  * @param {string} path
@@ -69,6 +89,7 @@ function copyRecordsQuery(raw, out, path, push) {
         out.filter = typeof raw.filter === 'string' ? truncate(raw.filter, LIMITS.MAX_FORMULA_LEN, `${path}.filter`, push) : canonicalFilterList(raw.filter, `${path}.filter`, push);
     }
     if (raw.sort !== undefined && raw.sort !== null) out.sort = deepCopy(raw.sort);
+    copyReadExtras(raw, out, path, push);
     if (raw.limit !== undefined && raw.limit !== null) {
         out.limit = (typeof raw.limit === 'string' && raw.limit.trim() !== '' && Number.isFinite(Number(raw.limit))) ? Number(raw.limit) : deepCopy(raw.limit);
     }

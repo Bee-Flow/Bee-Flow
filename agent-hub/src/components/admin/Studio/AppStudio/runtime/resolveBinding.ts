@@ -72,6 +72,14 @@ export function walkPath(value: unknown, path?: unknown): unknown {
         : undefined;
 }
 
+/** `match` and `search` belong to the cache key only when the binding sets them, so every other key is what it was. */
+function readExtras(binding: DataBinding): { match?: string; search?: unknown } {
+    return {
+        ...(binding.match ? { match: binding.match } : {}),
+        ...(binding.search && binding.kind !== 'aggregate' ? { search: binding.search } : {}),
+    };
+}
+
 /**
  * Stable cache key for a record/records/dataset binding — the SAME key the
  * DataContext fetch hook stores results under. record/records key on the
@@ -88,6 +96,7 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             filter: binding.filter ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...readExtras(binding),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -98,6 +107,7 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             aggregates: binding.aggregates ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...readExtras(binding),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }
@@ -132,6 +142,26 @@ export function resolveBindingShape(binding: Binding | null | undefined, scope: 
 }
 
 export function resolveBindingFilters(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
+    return resolveBindingSearch(resolveFilterClauses(binding, scope), scope);
+}
+
+/**
+ * A records binding's `search.value` made literal (it may be a formula: a search box). A value that
+ * resolves to no text leaves the search out, as an unset filter value is left out, so an empty box
+ * shows every row. A binding without a search comes back as it is.
+ */
+function resolveBindingSearch(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
+    if (!binding || typeof binding !== 'object' || (binding.kind !== 'record' && binding.kind !== 'records')) return binding;
+    const search = binding.search;
+    if (!search) return binding;
+    const value = resolveFilterValue(search.value as FilterValue, scope);
+    const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+    if (text === search.value) return binding;
+    const { search: _old, ...rest } = binding;
+    return typeof text === 'string' && text.trim() !== '' ? { ...rest, search: { ...search, value: text } } : rest;
+}
+
+function resolveFilterClauses(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
     if (!binding || typeof binding !== 'object') return binding;
     if (binding.kind !== 'record' && binding.kind !== 'records' && binding.kind !== 'aggregate') return binding;
     if (!Array.isArray(binding.filter) || binding.filter.length === 0) return binding;

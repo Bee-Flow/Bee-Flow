@@ -90,6 +90,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
 const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
 const { bestEffort, fallback } = require('../utils/bestEffort');
+const { optionalListQuery } = require('./studio/appDataContext');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
 
@@ -418,7 +419,7 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
         if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
 
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            filters, sort, cursor: req.query.cursor, limit: req.query.limit,
+            filters, sort, ...optionalListQuery(req.query), cursor: req.query.cursor, limit: req.query.limit,
         });
         return res.json(out);
     } catch (err) { return handleErr(res, err, 'records.list'); }
