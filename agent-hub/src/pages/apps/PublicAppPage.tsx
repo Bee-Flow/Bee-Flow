@@ -192,7 +192,7 @@ export default function PublicAppPage({ token }: { token: string }) {
             style={{ ...themeVars(definition?.theme), ...design.style, background: CANVAS_GROUND }}
         >
             <AppFontLoader definition={definition} />
-            <AppCustomCss definition={definition} />
+            <AppCustomCss definition={definition} publicToken={token} />
             {/* An uploaded image or logo (`asset:<id>`) resolves under the page token here. */}
             <AssetTransportProvider publicToken={token}>
                 <RunSurface

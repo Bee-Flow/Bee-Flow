@@ -10,7 +10,18 @@
 const { DESIGN_SPEC, NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL } = require('../componentSpecs');
 const { validateTheme } = require('../../core/cms/themeSpec');
 const { isObject } = require('./shared');
-const { isAssetRef } = require('../componentSpecs/valueTypes');
+const { isAssetRef, valueTypeOf, isCleanValue } = require('../componentSpecs/valueTypes');
+
+/**
+ * A design key of a later value type (componentSpecs/valueTypes.js): is `value` what its own
+ * clean() would store? A base kind (enum, url) is checked where it is used and answers true.
+ * @param {{ type: string }} spec
+ * @param {unknown} value
+ */
+function typedValueOk(spec, value) {
+    const valueType = valueTypeOf(spec);
+    return !valueType || isCleanValue(valueType, value, /** @type {any} */ (spec));
+}
 
 /**
  * design / nav (App Design v2 — OPTIONAL top-level keys).
@@ -34,6 +45,8 @@ function checkDesignAndNav(def, screens, pushE, pushW) {
                 } else if (spec.type === 'url' && value !== null && !isAssetRef(value)
                     && (typeof value !== 'string' || !/^https:\/\//.test(value) || value.length > spec.maxLen)) {
                     pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} must be null or an https:// URL of at most ${spec.maxLen} characters.`, hint: 'Upload the logo somewhere reachable and paste its https URL.' });
+                } else if (!typedValueOk(spec, value)) {
+                    pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} is not in the form it is stored in.`, hint: /** @type {any} */ (valueTypeOf(spec)).hint(spec) });
                 }
             }
         }
@@ -111,6 +124,8 @@ function checkPublicAccess(def, pushE, pushW) {
                     pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} must be one of ${spec.values.join(', ')}.`, hint: `Got ${JSON.stringify(value)}.` });
                 } else if (spec.type === 'url' && !isAssetRef(value) && !(typeof value === 'string' && /^https:\/\//.test(value) && value.length <= spec.maxLen)) {
                     pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} must be an https:// URL of at most ${spec.maxLen} characters.`, hint: 'Upload the logo somewhere reachable and paste its https URL.' });
+                } else if (!typedValueOk(spec, value)) {
+                    pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} is not in the form it is stored in.`, hint: /** @type {any} */ (valueTypeOf(spec)).hint(spec) });
                 }
             }
         }

@@ -36,6 +36,19 @@ export interface SanitizedCss {
     removed: string[];
 }
 
+/**
+ * Which addresses a stylesheet may name. A form uses FORM_CSS_POLICY; another surface that
+ * reuses this sanitiser (sanitizeCssClientWith) passes its own.
+ *   allowUrl(argument)       may url() load this address? (the argument as written, unquoted)
+ *   refuseString(content)    must a declaration holding this string literal go?
+ *   refuseSegment(decoded)   an extra reason a declaration or prelude must go, or null
+ */
+export interface CssAddressPolicy {
+    allowUrl: (argument: string) => boolean;
+    refuseString: (content: string) => boolean;
+    refuseSegment?: (decoded: string) => string | null;
+}
+
 /** Nested at-rules that may carry a block inside the scope. */
 const ALLOWED_BLOCK_AT_RULES = new Set(['media', 'supports', 'container']);
 
@@ -83,28 +96,28 @@ function isOutsideAddressString(raw: string): boolean {
 }
 
 /** Why a segment (declaration or prelude, escapes decoded) must go, or null when it may stay. */
-function segmentProblem(segment: string): string | null {
+function segmentProblem(segment: string, policy: CssAddressPolicy): string | null {
     const decoded = decodeKeywordEscapes(segment);
     const at = STATEMENT_AT_RULE.exec(decoded);
     if (at) return `@${at[1].toLowerCase()}`;
     for (const [re, label] of DECLARATION_RULES) if (re.test(decoded)) return label;
     const urls = decoded.matchAll(/url\s*\(\s*(?:"([^"]*)"?|'([^']*)'?|([^)]*))/gi);
     for (const m of urls) {
-        if (!isAllowedAddress(m[1] ?? m[2] ?? m[3] ?? '')) return 'outside address';
+        if (!policy.allowUrl(m[1] ?? m[2] ?? m[3] ?? '')) return 'outside address';
     }
     for (const m of decoded.matchAll(/"((?:[^"\\\n]|\\.)*)"?|'((?:[^'\\\n]|\\.)*)'?/g)) {
-        if (isOutsideAddressString(m[1] ?? m[2] ?? '')) return 'outside address';
+        if (policy.refuseString(m[1] ?? m[2] ?? '')) return 'outside address';
     }
-    return null;
+    return policy.refuseSegment ? policy.refuseSegment(decoded) : null;
 }
 
 /** Why a block's prelude must go (the whole block goes with it), or null. */
-function preludeProblem(prelude: string): string | null {
+function preludeProblem(prelude: string, policy: CssAddressPolicy): string | null {
     const decoded = decodeKeywordEscapes(prelude).trim();
     const at = /^@([\w-]+)/.exec(decoded);
     if (at && !ALLOWED_BLOCK_AT_RULES.has(at[1].toLowerCase())) return `@${at[1].toLowerCase()}`;
     if (/^[~+]/.test(decoded) || /&\s*[~+]/.test(decoded)) return 'sibling selector';
-    return segmentProblem(prelude);
+    return segmentProblem(prelude, policy);
 }
 
 /** Comments, `</` and `<!--`, and NULs out, until nothing new forms from what was left. */
@@ -170,13 +183,14 @@ class Scanner {
     /** The depth a refused block opened at; -1 when nothing is being skipped. */
     skipFrom = -1;
     readonly removed: Set<string>;
-    constructor(removed: Set<string>) { this.removed = removed; }
+    readonly policy: CssAddressPolicy;
+    constructor(removed: Set<string>, policy: CssAddressPolicy) { this.removed = removed; this.policy = policy; }
 
     private keepDeclaration(): string {
         const seg = this.seg;
         this.seg = '';
         if (!seg.trim()) return seg;
-        const problem = segmentProblem(seg);
+        const problem = segmentProblem(seg, this.policy);
         if (!problem) return seg;
         this.removed.add(problem);
         return '';
@@ -186,7 +200,7 @@ class Scanner {
         const prelude = this.seg;
         this.seg = '';
         if (this.skipFrom < 0) {
-            const problem = preludeProblem(prelude);
+            const problem = preludeProblem(prelude, this.policy);
             if (problem) { this.removed.add(problem); this.skipFrom = this.depth; } else this.out += `${prelude}{`;
         }
         this.depth += 1;
@@ -240,13 +254,21 @@ function opaqueLength(src: string, i: number, seg: string): number {
     return 0;
 }
 
+/** What a form may name: an inline image, or a path on this server. */
+export const FORM_CSS_POLICY: CssAddressPolicy = Object.freeze({ allowUrl: isAllowedAddress, refuseString: isOutsideAddressString });
+
 /** The client mirror of sanitizeFormCss: `{ css, removed }`, never throws. */
 export function sanitizeFormCssClient(input: unknown): SanitizedCss {
+    return sanitizeCssClientWith(input, FORM_CSS_POLICY);
+}
+
+/** sanitizeFormCssClient with the address rules of `policy`; everything else is the same. */
+export function sanitizeCssClientWith(input: unknown, policy: CssAddressPolicy): SanitizedCss {
     if (typeof input !== 'string' || !input.trim()) return { css: '', removed: [] };
     if (input.length > FORM_CSS_MAX) return { css: '', removed: [`over ${FORM_CSS_MAX} characters`] };
     const removed = new Set<string>();
     const src = stripUnsafeSequences(input, removed);
-    const scan = new Scanner(removed);
+    const scan = new Scanner(removed, policy);
     let i = 0;
     while (i < src.length) {
         const opaque = opaqueLength(src, i, scan.seg);

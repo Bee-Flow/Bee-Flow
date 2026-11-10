@@ -14,6 +14,7 @@ import { evalBoolFlag, evalVisibility } from './nodeVisibility';
 import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
 import { resolveNodeStyle } from './styleResolver';
+import { withAuthorClass } from './appCss';
 import { themeVars } from './themeVars';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
@@ -298,7 +299,7 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
     const cellStyle = hidden ? { ...style, opacity: 0.4 } : style;
 
     const cell = (
-        <NodeWrapper node={node} className={className} style={cellStyle}>
+        <NodeWrapper node={node} className={withAuthorClass(className, node)} style={cellStyle}>
             <NodeErrorBoundary type={node.type} signature={nodeSignature(node)} scope={nodeScope} mode={mode}>
                 {hidden ? <HiddenBadge /> : null}
                 {mode === 'edit' && formulaError ? <FormulaErrorBadge message={formulaError} /> : null}

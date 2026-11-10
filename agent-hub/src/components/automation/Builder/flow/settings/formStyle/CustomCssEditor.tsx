@@ -5,8 +5,10 @@ import { FORM_CSS_MAX, sanitizeFormCssClient } from '@/components/forms/formStyl
 import { FORM_CLASS_LIST } from './formClassList';
 import { removedLabel } from './removedLabels';
 
-/** A warning line naming what the sanitiser takes out. */
-export function RemovedWarning({ removed, title, testId = 'form-style-css-removed' }: { removed: string[]; title: string; testId?: string }) {
+type Tr = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
+
+/** A warning line naming what the sanitiser takes out. `labelOf` words a label; the form's own wording by default. */
+export function RemovedWarning({ removed, title, testId = 'form-style-css-removed', labelOf = removedLabel }: { removed: string[]; title: string; testId?: string; labelOf?: (label: string, t: Tr) => string }) {
     const { t } = useTranslation();
     if (!removed.length) return null;
     return (
@@ -15,7 +17,7 @@ export function RemovedWarning({ removed, title, testId = 'form-style-css-remove
             <span>
                 {title}{' '}
                 {removed.map((r, i) => (
-                    <React.Fragment key={r}>{i ? ', ' : ''}<code className="font-mono">{removedLabel(r, t)}</code></React.Fragment>
+                    <React.Fragment key={r}>{i ? ', ' : ''}<code className="font-mono">{labelOf(r, t)}</code></React.Fragment>
                 ))}
             </span>
         </div>
@@ -38,36 +40,58 @@ function CheatSheet({ id }: { id: string }) {
 }
 
 /**
+ * What another surface that reuses the field (an app's stylesheet) says and checks instead of
+ * the form's own: its sanitiser and limit, its texts, and its own list of what can be styled.
+ * Everything left out is the form's.
+ */
+export interface CustomCssEditorVariant {
+    sanitize?: (css: string) => { removed: string[] };
+    max?: number;
+    placeholder?: string;
+    label?: string;
+    hint?: string;
+    removedTitle?: string;
+    labelOf?: (label: string, t: Tr) => string;
+    sheetTitle?: string;
+    /** Shown in place of the form's class names when the list is opened. */
+    sheet?: React.ReactNode;
+    disabled?: boolean;
+}
+
+/**
  * The custom CSS field: monospace, with a character count against the limit,
  * the class names as a cheat sheet, and a warning for whatever the sanitiser
  * would take out (the same rules the form runs before it applies anything).
  */
-export default function CustomCssEditor({ value, onChange }: { value: string; onChange: (css: string) => void }) {
+export default function CustomCssEditor({ value, onChange, variant }: { value: string; onChange: (css: string) => void; variant?: CustomCssEditorVariant }) {
     const { t } = useTranslation();
     const id = useId();
     const [sheetOpen, setSheetOpen] = useState(false);
-    const removed = useMemo(() => sanitizeFormCssClient(value).removed, [value]);
+    const sanitize = variant?.sanitize ?? sanitizeFormCssClient;
+    const max = variant?.max ?? FORM_CSS_MAX;
+    const removed = useMemo(() => sanitize(value).removed, [sanitize, value]);
     return (
         <div className="space-y-1">
-            <label htmlFor={`${id}-css`} className="block text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('forms.style.custom_css', 'Custom CSS')}</label>
+            <label htmlFor={`${id}-css`} className="block text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{variant?.label ?? t('forms.style.custom_css', 'Custom CSS')}</label>
             <textarea
                 id={`${id}-css`}
                 rows={8}
                 spellCheck={false}
                 value={value}
-                maxLength={FORM_CSS_MAX}
-                placeholder=".bf-form__title { letter-spacing: 0.02em; }"
+                maxLength={max}
+                disabled={variant?.disabled}
+                placeholder={variant?.placeholder ?? '.bf-form__title { letter-spacing: 0.02em; }'}
                 aria-describedby={`${id}-css-hint`}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
                 className="w-full px-2 py-1.5 rounded-md text-[11px] leading-snug font-mono border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)]"
             />
             <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--text-tertiary)]">
-                <span id={`${id}-css-hint`}>{t('forms.style.custom_css_hint', 'Applies to this form only. Target the class names below.')}</span>
+                <span id={`${id}-css-hint`}>{variant?.hint ?? t('forms.style.custom_css_hint', 'Applies to this form only. Target the class names below.')}</span>
                 <span className="shrink-0 tabular-nums" data-testid="form-style-css-count">
-                    {t('forms.style.css_count', '{count} / {max}', { count: value.length.toLocaleString(), max: FORM_CSS_MAX.toLocaleString() })}
+                    {t('forms.style.css_count', '{count} / {max}', { count: value.length.toLocaleString(), max: max.toLocaleString() })}
                 </span>
             </div>
-            <RemovedWarning removed={removed} title={t('forms.style.removed_title', 'Left out when the form is shown:')} />
+            <RemovedWarning removed={removed} title={variant?.removedTitle ?? t('forms.style.removed_title', 'Left out when the form is shown:')} labelOf={variant?.labelOf} />
             <button
                 type="button"
                 onClick={() => setSheetOpen(o => !o)}
@@ -76,9 +100,9 @@ export default function CustomCssEditor({ value, onChange }: { value: string; on
                 className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
                 {sheetOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                {t('forms.style.cheat_sheet', 'Class names you can style')}
+                {variant?.sheetTitle ?? t('forms.style.cheat_sheet', 'Class names you can style')}
             </button>
-            {sheetOpen ? <CheatSheet id={`${id}-sheet`} /> : null}
+            {sheetOpen ? (variant?.sheet ? <div id={`${id}-sheet`}>{variant.sheet}</div> : <CheatSheet id={`${id}-sheet`} />) : null}
         </div>
     );
 }

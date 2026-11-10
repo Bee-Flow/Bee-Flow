@@ -1,0 +1,120 @@
+{
+  "corpus": "custom-css",
+  "canonical": {
+    "sha256": "37c92b0da7276063243d9a61868d5a7fd5c4d85a717960070eda73665524c2ff",
+    "bytes": 2713,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId",
+      "publicAccess"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "7344f072f73c00df",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_css00001": "07584680c4345039",
+      "screens[1] scr_css00002": "a1f6eda291fec26e",
+      "design": "fd8650af68db01e1",
+      "homeScreenId": "38fefd5049e3b474",
+      "publicAccess": "906ef5f68a803e9d"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[2]"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[2]"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "publicDefinition": {
+    "actionIds": [],
+    "sha256": "dccab2887fae4b56154c247f21bcdd9ff710d68be240502b86054ec4ef8d14ca",
+    "definition": {
+      "schemaVersion": 3,
+      "meta": {
+        "name": "Custom CSS",
+        "description": "",
+        "icon": "Paintbrush"
+      },
+      "theme": {
+        "primary": "#0F766E",
+        "radius": "md",
+        "density": "comfortable",
+        "fontScale": "md",
+        "appearance": "auto"
+      },
+      "homeScreenId": "scr_css00002",
+      "roles": [],
+      "screens": [
+        {
+          "id": "scr_css00002",
+          "name": "Public",
+          "icon": null,
+          "showInNav": false,
+          "maxWidth": "medium",
+          "sections": [
+            {
+              "id": "sec_css00002",
+              "style": {
+                "padding": 4,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_css00006",
+                  "type": "heading",
+                  "props": {
+                    "text": "Public page",
+                    "level": 2,
+                    "accent": "none"
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true,
+                  "cssClass": "hero"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "actions": {},
+      "design": {
+        "preset": "custom",
+        "font": "inter",
+        "surface": "hairline",
+        "motion": "subtle",
+        "chartPalette": "classic",
+        "accentEdge": "bar",
+        "logoUrl": null,
+        "customCss": ".u-hero { text-align: center; background-image: url(asset:9a1b2c3d-0000-4000-8000-00000000c555); }"
+      }
+    }
+  }
+}

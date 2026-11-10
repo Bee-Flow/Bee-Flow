@@ -29,6 +29,8 @@
 
 const crypto = require('crypto');
 const { valueTypeOf, isAssetRef } = require('./componentSpecs/valueTypes');
+const { LIMITS } = require('./componentSpecs/limits');
+const { cleanAppCss, appCssRepairNote } = require('./appCss.mts');
 
 // Font PAIRING ids, not raw family names: the closed vocabulary keeps the
 // builder/editor honest and every family on the CMS DESIGN_FONTS allowlist.
@@ -79,6 +81,18 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
     // should not have to keep them.
     accentEdge: { type: 'enum', values: ['bar', 'none'], default: 'bar' },
     logoUrl: { type: 'url', default: null, maxLen: 500 },
+    // The app's own stylesheet (appCss.mts says what is kept). Stored sanitised; the page
+    // sanitises it again and mounts it inside @scope ([data-app-css-root]).
+    customCss: {
+        type: 'css', optional: true, since: 3, maxLen: LIMITS.MAX_CUSTOM_CSS_LEN,
+        sanitize: cleanAppCss,
+        repairNote: appCssRepairNote,
+        description: 'A stylesheet of the app, for what theme and style knobs cannot do. '
+            + 'Plain CSS text, applied to the content of every screen of this app (not to its navigation bar) and to nothing outside it. Reach for the theme, the design keys and the style knobs first: they follow dark mode and high contrast by themselves, a stylesheet does not. '
+            + 'Selectors that are a contract: [data-app-screen="<screen id>"] (one screen), [data-section-id="<section id>"] (one section), [data-node-id="<node id>"] (the cell of one component), [data-app-type="<type>"] (every component of a type, e.g. [data-app-type="button"]), .u-<name> (every component whose cssClass is <name>), and inside a component the part classes .bfa-<type>__<part> where the type lists parts. Any other class name of the product can change without notice. '
+            + 'Colours: prefer the variables var(--app-primary), var(--app-accent), var(--app-canvas), var(--text-primary), var(--bg-card) and var(--border-default) over fixed values. Dark mode: the app root carries data-app-dark="true" or "false", so write [data-app-dark="true"] .u-hero { … } for the dark variant. Under the high-contrast theme the stylesheet is not applied at all, so nothing may depend on it to be readable. '
+            + 'Allowed at-rules: @media, @supports, @container. Comments are not kept. Removed when saved, and named in the repair hints: every other at-rule (@import, @font-face, @keyframes, …), position: fixed, and a url() that is not data:image/… or asset:<id> (an uploaded file of this app). Write it with app_set_theme { customCss: "<the whole stylesheet>" } (the text replaces what was there), and pass null to remove it.',
+    },
 }));
 
 // Four ways to move around an app, so the shape can follow the work:
@@ -146,8 +160,13 @@ function canonDesignUrl(key, spec, v, push) {
 function canonDesignTyped(key, spec, v, push) {
     const valueType = valueTypeOf(spec);
     if (!valueType || !spec.optional) return undefined;
+    // Empty text is "not set", like null: the key leaves no trace and nothing is reported.
+    if (typeof v === 'string' && !v.trim()) return undefined;
     const cleaned = valueType.clean(v, spec);
-    if (cleaned === undefined) push('design.value_invalid', `design.${key}`, `design.${key} is not an acceptable value — dropped. ${valueType.hint(spec)}`);
+    // A key whose value is cleaned rather than refused says what it took out.
+    const note = cleaned !== v && typeof spec.repairNote === 'function' ? spec.repairNote(v) : null;
+    if (cleaned === undefined) push('design.value_invalid', `design.${key}`, `design.${key} is not an acceptable value — dropped. ${note || valueType.hint(spec)}`);
+    else if (note) push('design.value_cleaned', `design.${key}`, note);
     return cleaned;
 }
 

@@ -48,7 +48,9 @@
         "MAX_FILTER_BAR_FIELDS": 8,
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
-        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048,
+        "MAX_CUSTOM_CSS_LEN": 20000,
+        "MAX_CSS_CLASS_LEN": 40
     },
     "colorRoles": [
         "primary",

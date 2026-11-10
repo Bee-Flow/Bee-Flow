@@ -2232,7 +2232,9 @@ test('schema enums are derived from the componentSpecs/appDesignPresets/dataMode
     // Completeness: every knob applySetTheme accepts is settable via the schema
     // (THEME_SPEC keys + DESIGN_SPEC keys minus the provenance-only `preset`).
     for (const k of Object.keys(THEME_SPEC)) assert.ok(theme[k], `theme knob ${k} declared`);
-    for (const k of Object.keys(DESIGN_SPEC).filter((x) => x !== 'preset')) assert.ok(theme[k], `design knob ${k} declared`);
+    // A design key added after the base (`since`) is not in this pinned schema: applySetTheme
+    // takes it from DESIGN_SPEC all the same, and the AI reads about it through app_inspect_catalog.
+    for (const k of Object.keys(DESIGN_SPEC).filter((x) => x !== 'preset' && DESIGN_SPEC[x].since === undefined)) assert.ok(theme[k], `design knob ${k} declared`);
 
     // app_add_screen / app_update_screen — SCREEN_SPEC enums.
     for (const name of ['app_add_screen', 'app_update_screen']) {
