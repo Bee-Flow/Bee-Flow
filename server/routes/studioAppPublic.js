@@ -169,10 +169,10 @@ const TOKEN_RE = /^[a-f0-9]{24,64}$/;
 // Model-calling kinds get their own budget; every other step kind shares
 // stepLimiter. Heavy kinds touch no table, so RLS never sees them — but they
 // spend the owner's quota, which an anonymous caller must not be able to drain.
-const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
+const { aiStepKinds: AI_STEP_KINDS, publicDeniedKinds: PUBLIC_DENIED_STEP_KINDS } = require('../appStudio/componentSpecs/stepRegistry').STEP_POLICY_LISTS;
+// PUBLIC_DENIED_STEP_KINDS: server step kinds an anonymous visitor may never run, whatever the
+// definition says (policy row `public: 'refuse'` in the step catalogue).
 
-// Server step kinds an anonymous visitor may never run, whatever the definition says.
-const PUBLIC_DENIED_STEP_KINDS = ['kb_log_query', 'kb_log_review'];
 
 /**
  * Resolve `:token` to { page, app, definition, surface } or answer 404 and

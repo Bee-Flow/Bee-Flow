@@ -14,6 +14,7 @@ import type { AppDefinition, AppScreen } from './appDefinition';
 import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, ScreenSettingsProps, ThemePanelProps } from './ThemePanel.types';
 import { designFields, fontLabels, widthLabels, refreshLabels, navStyleLabels, options, themeFields } from './ThemePanel.helpers';
 import { SectionTitle, AiBrowsingSettings } from './AiBrowsingSettings';
+import { THEME_SECTIONS } from './themeSections';
 
 /**
  * ThemePanel — shown when nothing is selected: the whole-app knobs.
@@ -242,6 +243,10 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                     </FormField>
                 </div>
             </div>
+
+            {THEME_SECTIONS.map(({ name, Section }) => (
+                <Section key={name} definition={definition} onCommit={onCommit} disabled={disabled} screenId={screenId} />
+            ))}
 
             <div>
                 <SectionTitle>{t('studio_apps_insp.theme.app', 'App')}</SectionTitle>

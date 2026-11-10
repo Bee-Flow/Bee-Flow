@@ -7,13 +7,16 @@
 'use strict';
 
 const {
-    SCHEMA_VERSION_CURRENT,
+    SCHEMA_VERSION_BASE,
+    SCHEMA_VERSIONS_ACCEPTED,
     LIMITS,
     HEX_RE,
     THEME_SPEC,
 } = require('../componentSpecs');
 const { canonDesign, canonNavShape, resolveNavScreens } = require('../appDesignSpec');
-const { migrateV1toV2 } = require('../migrate');
+const { migrateDefinition } = require('../migrate');
+const { requiredSchemaVersion, isSchemaNewer, SCHEMA_NEWER } = require('../schemaSince.mts');
+const { definitionKeys } = require('../definitionKeyRegistry.mts');
 const { canonPublicAccess, resolvePublicScreens } = require('../publicAccess');
 const { isObject, truncate } = require('./shared');
 const { makeIdAllocator } = require('./ids');
@@ -68,6 +71,60 @@ function cleanRoles(raw, push) {
     return out;
 }
 
+/**
+ * def.meta: name, description, icon, each defaulted with a repair when wrong.
+ * @param {Record<string, any>} input
+ * @param {(code: string, path: string, message: string) => void} push
+ */
+function canonMeta(input, push) {
+    if (!isObject(input.meta)) {
+        if (input.meta !== undefined) push('meta.invalid', 'meta', 'meta must be an object — rebuilt from defaults.');
+        else push('meta.invalid', 'meta', 'meta missing — filled with defaults.');
+        return { name: 'Untitled app', description: '', icon: 'LayoutGrid' };
+    }
+    /** @type {{ name?: string; description?: string; icon?: string }} */
+    const meta = {};
+    if (typeof input.meta.name === 'string' && input.meta.name.trim()) {
+        meta.name = truncate(input.meta.name, LIMITS.MAX_NAME_LEN, 'meta.name', push);
+    } else {
+        meta.name = 'Untitled app';
+        push('meta.field_invalid', 'meta.name', 'meta.name must be a non-empty string — defaulted to "Untitled app".');
+    }
+    if (typeof input.meta.description === 'string') {
+        meta.description = truncate(input.meta.description, LIMITS.MAX_STRING, 'meta.description', push);
+    } else {
+        meta.description = '';
+        if (input.meta.description !== undefined && input.meta.description !== null) push('meta.field_invalid', 'meta.description', 'meta.description must be a string — reset to "".');
+    }
+    if (typeof input.meta.icon === 'string' && input.meta.icon) meta.icon = input.meta.icon;
+    else {
+        meta.icon = 'LayoutGrid';
+        if (input.meta.icon !== undefined && input.meta.icon !== null) push('meta.field_invalid', 'meta.icon', 'meta.icon must be an icon name string — defaulted.');
+    }
+    return meta;
+}
+
+/**
+ * Registered top-level keys (definitionKeyRegistry.mts), after every base key.
+ * EMIT-WHEN-PRESENT: an absent key is never passed to `canon`, so a definition
+ * that does not carry it keeps the bytes it had.
+ * @param {Record<string, any>} input
+ * @param {Record<string, any>} out
+ * @param {unknown} renameMap
+ * @param {(code: string, path: string, message: string) => void} push
+ */
+function canonRegisteredKeys(input, out, renameMap, push) {
+    const registered = definitionKeys();
+    if (!registered.length) return;
+    const screenIds = new Set(out.screens.map((/** @type {{ id: string }} */ s) => s.id));
+    for (const entry of registered) {
+        const name = entry.key;
+        if (input[name] === undefined) continue;
+        const value = entry.canon(input[name], push, { renameMap, screenIds });
+        if (value !== undefined) out[name] = value;
+    }
+}
+
 function canonicalizeAppDefinition(input) {
     const repairs = [];
     const push = (code, path, message) => repairs.push({ code, path, message });
@@ -76,7 +133,7 @@ function canonicalizeAppDefinition(input) {
         push('shape.not_object', '', 'Definition must be an object — rebuilt as an empty shell; add screens before saving.');
         return {
             def: {
-                schemaVersion: SCHEMA_VERSION_CURRENT,
+                schemaVersion: SCHEMA_VERSION_BASE,
                 meta: { name: 'Untitled app', description: '', icon: 'LayoutGrid' },
                 theme: defaultTheme(),
                 homeScreenId: null,
@@ -88,44 +145,29 @@ function canonicalizeAppDefinition(input) {
         };
     }
 
-    // Inline normalize step: upgrade v1 → v2 (lossless: schemaVersion=2, seed
-    // roles). Migration itself is silent — only a genuinely invalid version tag
-    // (present but neither 1 nor 2) is a repair worth surfacing.
+    // A definition written by a newer install is REFUSED, not normalised:
+    // rebuilding it key by key would drop everything this install does not
+    // know. The input comes back untouched; the caller must not store it as a
+    // result of this call (a save, publish or import answers 422 schema_newer).
+    if (isSchemaNewer(input)) {
+        return { def: input, repairs, refused: SCHEMA_NEWER };
+    }
+
+    // Inline normalize step: walk the migration chain (v1 → v2 is lossless:
+    // seed roles; v2 → v3 is an identity). Migration itself is silent — only a
+    // genuinely invalid version tag (present but not an accepted version) is a
+    // repair worth surfacing.
     const rawSchemaVersion = input.schemaVersion;
-    input = migrateV1toV2(input);
+    input = migrateDefinition(input);
 
-    const out = { schemaVersion: SCHEMA_VERSION_CURRENT };
-    if (rawSchemaVersion !== undefined && rawSchemaVersion !== 1 && rawSchemaVersion !== SCHEMA_VERSION_CURRENT) {
-        push('shape.schema_version', 'schemaVersion', `schemaVersion ${JSON.stringify(rawSchemaVersion)} normalized to ${SCHEMA_VERSION_CURRENT}.`);
+    // The version is settled at the very end (the lowest one the canonical
+    // content needs); the key is created here so it stays first.
+    const out = { schemaVersion: SCHEMA_VERSION_BASE };
+    if (rawSchemaVersion !== undefined && !SCHEMA_VERSIONS_ACCEPTED.includes(rawSchemaVersion)) {
+        push('shape.schema_version', 'schemaVersion', `schemaVersion ${JSON.stringify(rawSchemaVersion)} normalized to ${SCHEMA_VERSION_BASE}.`);
     }
 
-    // meta
-    if (!isObject(input.meta)) {
-        if (input.meta !== undefined) push('meta.invalid', 'meta', 'meta must be an object — rebuilt from defaults.');
-        else push('meta.invalid', 'meta', 'meta missing — filled with defaults.');
-        out.meta = { name: 'Untitled app', description: '', icon: 'LayoutGrid' };
-    } else {
-        /** @type {{ name?: string; description?: string; icon?: string }} */
-        const meta = {};
-        if (typeof input.meta.name === 'string' && input.meta.name.trim()) {
-            meta.name = truncate(input.meta.name, LIMITS.MAX_NAME_LEN, 'meta.name', push);
-        } else {
-            meta.name = 'Untitled app';
-            push('meta.field_invalid', 'meta.name', 'meta.name must be a non-empty string — defaulted to "Untitled app".');
-        }
-        if (typeof input.meta.description === 'string') {
-            meta.description = truncate(input.meta.description, LIMITS.MAX_STRING, 'meta.description', push);
-        } else {
-            meta.description = '';
-            if (input.meta.description !== undefined && input.meta.description !== null) push('meta.field_invalid', 'meta.description', 'meta.description must be a string — reset to "".');
-        }
-        if (typeof input.meta.icon === 'string' && input.meta.icon) meta.icon = input.meta.icon;
-        else {
-            meta.icon = 'LayoutGrid';
-            if (input.meta.icon !== undefined && input.meta.icon !== null) push('meta.field_invalid', 'meta.icon', 'meta.icon must be an icon name string — defaulted.');
-        }
-        out.meta = meta;
-    }
+    out.meta = canonMeta(input, push);
 
     // theme
     if (!isObject(input.theme)) {
@@ -259,6 +301,12 @@ function canonicalizeAppDefinition(input) {
         const resolved = resolvePublicScreens(publicAccess, ids.renameMap, validScreenIds, push);
         if (resolved) out.publicAccess = resolved;
     }
+
+    canonRegisteredKeys(input, out, ids.renameMap, push);
+
+    // Lowest sufficient version: the base unless the canonical content uses
+    // something the catalogue marks `since: 3` or higher.
+    out.schemaVersion = Math.max(SCHEMA_VERSION_BASE, requiredSchemaVersion(out));
 
     return { def: out, repairs };
 }

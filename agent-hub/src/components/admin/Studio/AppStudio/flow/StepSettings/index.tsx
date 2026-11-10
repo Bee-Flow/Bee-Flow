@@ -1,4 +1,4 @@
-import { stepMeta } from '../stepCatalog';
+import { stepMeta } from '../stepKinds';
 import { type RefOption, type ReferenceKind } from '../stepReferences';
 import useStepReferences from '../useStepReferences';
 import DocumentFillFields from '../DocumentFillFields';

@@ -5,11 +5,17 @@
  * runner (mailboxNewRecordHook.mts) all read this one module, so "what may run
  * automatically" is written down once.
  *
- * A leaf on purpose: it requires nothing but the pure step-tree helpers, so the
- * validators can load it without pulling the action executor in.
+ * A leaf on purpose: it requires nothing but the pure step-tree helpers and the step
+ * catalogue's policy table, so the validators can load it without pulling the action
+ * executor in.
  */
 
+import { createRequire } from 'node:module';
 import { childStepLists } from '../shared/appDefinition/stepFlow.mjs';
+
+const { STEP_POLICY_LISTS } = createRequire(import.meta.url)('./componentSpecs/stepRegistry.js') as {
+    STEP_POLICY_LISTS: { hookStepKinds: readonly string[]; hookControlKinds: readonly string[] };
+};
 
 /** What a new row means: a new conversation, or a new message that came IN. */
 export const HOOK_TARGETS = ['thread', 'inbound_message'] as const;
@@ -18,8 +24,9 @@ export type HookTarget = typeof HOOK_TARGETS[number];
 export type OnNewRecord = { actionId: string; target: HookTarget };
 
 /**
- * The server steps an unattended action may carry. A subset of DATA_MUTATING_STEP_KINDS
- * (the test next to this file keeps it that way), left out on purpose:
+ * The server steps an unattended action may carry: the server kinds whose policy row says
+ * `mailboxHook: 'run'` (componentSpecs/stepMeta.js, or the kind's own registry file). A kind
+ * without that answer is refused. Left out on purpose:
  *   send_email, run_automation, request_approval  they reach people, so nothing may
  *                                                 start them from an arriving mail
  *   delete_record                                 nothing erases data unattended
@@ -28,16 +35,16 @@ export type OnNewRecord = { actionId: string; target: HookTarget };
  * A `transaction` may run: its children are checked like any step (so a delete_record
  * inside one is refused too), and so are the steps of every onError handler.
  */
+// The refusal sentence names the first kinds in this order; every other allowed kind follows in catalogue order.
+const SENTENCE_ORDER = ['create_record', 'update_record', 'ai_extract', 'ai_generate', 'kb_query', 'dataset_query', 'file_intake'];
+const allowedHere = STEP_POLICY_LISTS.hookStepKinds;
 export const HOOK_STEP_KINDS: readonly string[] = Object.freeze([
-    'create_record', 'update_record',
-    'ai_extract', 'ai_generate', 'kb_query',
-    'dataset_query', 'file_intake',
-    'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf',
-    'transaction',
+    ...SENTENCE_ORDER.filter((k) => allowedHere.includes(k)),
+    ...allowedHere.filter((k) => !SENTENCE_ORDER.includes(k)),
 ]);
 
 /** Control flow the runner evaluates itself; the rest of the client steps do not exist here. */
-export const HOOK_CONTROL_KINDS: readonly string[] = Object.freeze(['condition', 'switch']);
+export const HOOK_CONTROL_KINDS: readonly string[] = STEP_POLICY_LISTS.hookControlKinds;
 
 /** Steps in one hook action, counted over all branches. */
 export const HOOK_MAX_STEPS = 40;

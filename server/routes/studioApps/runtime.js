@@ -11,6 +11,8 @@ const studioAppDataStore = require('../../stores/studioAppDataStore');
 const userStore = require('../../stores/userStore');
 const rlsGateway = require('../../appStudio/rlsGateway');
 const { canonicalizeAppDefinition } = require('../../appStudio/canonicalize');
+const { isSchemaNewer, schemaNewerBody } = require('../../appStudio/schemaSince.mts');
+const { gateDefinition, gateFindings } = require('../../appStudio/definitionGate.mts');
 const { validateAppDefinition } = require('../../appStudio/validate');
 const { resolveTemplate } = require('../../appStudio/templateRegistry');
 const { installTemplate } = require('../../appStudio/templateInstall');
@@ -58,7 +60,8 @@ router.post('/:id/check', requireAuth, validate({ body: CheckBody }), /** @param
     // Canonicalize first, exactly as publish does, so the check reports on
     // the bytes that would actually be frozen rather than on a draft shape
     // canonicalize would have altered.
-    const { def: canonical } = canonicalizeAppDefinition(app.definition);
+    const { def: canonical, refused } = canonicalizeAppDefinition(app.definition);
+    if (refused) return res.status(422).json(schemaNewerBody(app.definition));
     const { dataModel, datasets, datatables } = await loadDataRefs(req.params.id, app.userId);
     const ownedAutomations = await loadOwnedAutomations(app.userId);
 
@@ -148,7 +151,10 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     if (typeof currentName === 'string' && currentName) {
         copy.meta = { ...(copy.meta || {}), name: currentName };
     }
-    const { def: canonical } = canonicalizeAppDefinition(copy);
+    const { def: canonical, refused } = canonicalizeAppDefinition(copy);
+    if (refused) return res.status(422).json(schemaNewerBody(copy));
+    // Report mode, as on create from a template: the upgrade is not refused over validator findings.
+    const findings = gateFindings(gateDefinition(canonical));
 
     // Unconditional save (no expectedVersion): pristine was just verified,
     // and the version bump makes any open editor's CAS save conflict
@@ -191,6 +197,7 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
         toVersion: cand.toVersion,
         version: saved.version,
         ...(dataInstall ? { dataInstall } : {}),
+        ...(findings ? { findings } : {}),
     });
 });
 
@@ -245,6 +252,7 @@ router.get('/:id/runtime', requireAuth, validate({ query: DraftQuery }), /** @pa
             viewer: await buildRuntimeViewer(app, userId, []),
             draft: true,
             appVersion: app.definitionVersion ?? null,
+            ...(isSchemaNewer(app.definition) ? { schemaNewer: true } : {}),
         });
     }
 
@@ -270,6 +278,8 @@ router.get('/:id/runtime', requireAuth, validate({ query: DraftQuery }), /** @pa
         // rendering an old definition against the new schema and RLS, with
         // nothing on screen saying so.
         appVersion: app.publishedVersion ?? null,
+        // Stored bytes are served as they are, also when a newer install wrote them.
+        ...(isSchemaNewer(app.publishedDefinition) ? { schemaNewer: true } : {}),
     });
 });
 

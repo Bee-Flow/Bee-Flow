@@ -51,6 +51,7 @@ const {
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
 } = require('../componentSpecs');
+const { valueTypeOf } = require('../componentSpecs/valueTypes');
 const { ownFields, errorHandlingLines } = require('./stepErrorText.mts');
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
 const {
@@ -138,6 +139,8 @@ function renderStyleKnob(key) {
         const ranges = Object.entries(knob.units).map(([unit, r]) => `${unit} ${r.min}..${r.max}`).join(', ');
         return `${key}(int, by ${knob.modeKnob}: ${ranges})`;
     }
+    const valueType = valueTypeOf(knob);
+    if (valueType) return valueType.render(key, knob);
     return key;
 }
 

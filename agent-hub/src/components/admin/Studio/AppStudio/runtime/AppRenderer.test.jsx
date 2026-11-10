@@ -53,9 +53,12 @@ function renderBothScreens(mode, props = {}) {
 }
 
 describe('componentRegistry', () => {
-    it('covers exactly the 52 spec types, each with full palette metadata', () => {
+    it('covers exactly the spec types, each with full palette metadata', () => {
         const types = Object.keys(APP_COMPONENT_TYPES);
-        expect(types).toHaveLength(57); // +document_viewer, +document_compare, +input_document, +pdf_compare, +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor)
+        // The 57 base types first; every type after them is an extension
+        // (components/registry/<type>.ts), tested in componentExtensions.test.tsx.
+        expect(types.filter((type) => !APP_COMPONENT_TYPES[type].sample)).toHaveLength(57);
+        expect(types.slice(57).every((type) => APP_COMPONENT_TYPES[type].sample)).toBe(true);
         for (const type of types) {
             const entry = APP_COMPONENT_TYPES[type];
             expect(entry.Component, `${type}.Component`).toBeTypeOf('function');
@@ -71,7 +74,8 @@ describe('componentRegistry', () => {
 
     it('the fixtures exercise every registry type', () => {
         const fixtureTypes = new Set([...collectTypes(KITCHEN_SINK), ...collectTypes(V2_RICH), ...collectTypes(V21_BATCH), ...collectTypes(DOCUMENTS_SAMPLE)]);
-        for (const type of Object.keys(APP_COMPONENT_TYPES)) {
+        // An extension type brings its own sample instead (componentExtensions.test.tsx renders it).
+        for (const type of Object.keys(APP_COMPONENT_TYPES).filter((t) => !APP_COMPONENT_TYPES[t].sample)) {
             expect(fixtureTypes.has(type), `fixture missing type '${type}'`).toBe(true);
         }
     });
