@@ -10414,3 +10414,62 @@ exports[`compat corpus: what the phone plans for every stored app trace-invoice-
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app typography-text-knobs 1`] = `
+{
+  "defaultScreen": "scr_textkn01",
+  "navigable": [
+    "scr_textkn01",
+  ],
+  "screens": [
+    {
+      "id": "scr_textkn01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_textkn01",
+                "kind": "heading",
+                "level": 1,
+                "text": "Quarterly review",
+              },
+              {
+                "id": "cmp_textkn02",
+                "kind": "heading",
+                "level": 3,
+                "text": "Overview",
+              },
+              {
+                "id": "cmp_textkn03",
+                "kind": "text",
+                "muted": false,
+                "text": "Plain paragraph in the default look.",
+              },
+              {
+                "id": "cmp_textkn04",
+                "kind": "text",
+                "muted": false,
+                "text": "A bold paragraph with relaxed lines.",
+              },
+              {
+                "id": "cmp_textkn05",
+                "kind": "text",
+                "muted": false,
+                "text": "INV-2026-0042",
+              },
+            ],
+            "screen": "scr_textkn01",
+            "unsupported": [
+              "markdown",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

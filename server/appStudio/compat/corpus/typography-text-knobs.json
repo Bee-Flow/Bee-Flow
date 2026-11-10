@@ -1,0 +1,134 @@
+{
+  "about": {
+    "source": "hand-made for package LK3 (text style knobs): font, textSize, lineHeight, tracking, transform and weight bold on heading, text and markdown",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Text styling",
+      "description": "Text knobs: typeface, size, line and letter spacing, case, and bold weight.",
+      "icon": "Type"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_textkn01",
+        "name": "Typography",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_textkn01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_textkn01",
+                "type": "heading",
+                "props": {
+                  "text": "Quarterly review",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12,
+                  "textSize": "4xl",
+                  "tracking": "tight",
+                  "lineHeight": "tight"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_textkn02",
+                "type": "heading",
+                "props": {
+                  "text": "Overview",
+                  "level": 3,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12,
+                  "transform": "uppercase",
+                  "tracking": "wide",
+                  "textSize": "sm",
+                  "font": "heading"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_textkn03",
+                "type": "text",
+                "props": {
+                  "text": "Plain paragraph in the default look.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_textkn04",
+                "type": "text",
+                "props": {
+                  "text": "A bold paragraph with relaxed lines.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 6,
+                  "weight": "bold",
+                  "lineHeight": "relaxed"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_textkn05",
+                "type": "text",
+                "props": {
+                  "text": "INV-2026-0042",
+                  "muted": false
+                },
+                "style": {
+                  "span": 6,
+                  "font": "mono",
+                  "textSize": "lg"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_textkn06",
+                "type": "markdown",
+                "props": {
+                  "content": "## Heading\n\nWrite **markdown** here.",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  }
+                },
+                "style": {
+                  "span": 12,
+                  "textSize": "xl"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_textkn01"
+  }
+}
