@@ -11035,6 +11035,139 @@ exports[`compat corpus: what the phone plans for every stored app trace-invoice-
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app v3-code-step-quote 1`] = `
+{
+  "defaultScreen": "scr_cqform",
+  "navigable": [
+    "scr_cqback",
+  ],
+  "screens": [
+    {
+      "id": "scr_cqform",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_cqhead",
+                "kind": "heading",
+                "level": 1,
+                "text": "Get a quote",
+              },
+              {
+                "action": {
+                  "actionId": "act_cqquote",
+                  "kind": "sequence",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_cqform",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Your company",
+                    "max": null,
+                    "min": null,
+                    "name": "customer",
+                    "nodeId": "cmp_cqcust",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Product",
+                    "max": null,
+                    "min": null,
+                    "name": "product",
+                    "nodeId": "cmp_cqprod",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Quantity",
+                    "max": null,
+                    "min": null,
+                    "name": "qty",
+                    "nodeId": "cmp_cqqty",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_number",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Work it out",
+                "title": "quote",
+              },
+            ],
+            "screen": "scr_cqform",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+            "sales",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_cqdone",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "body": "Thank you, we saved your quote.",
+                "id": "cmp_cqres",
+                "kind": "callout",
+                "title": "Your quote",
+                "tone": "success",
+              },
+            ],
+            "screen": "scr_cqdone",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+            "sales",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_cqback",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_cqback",
+            "unsupported": [
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "sales",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app viewer-row-rules 1`] = `
 {
   "defaultScreen": "scr_tasks01",

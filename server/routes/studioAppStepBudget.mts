@@ -9,6 +9,7 @@
 import { createRequire } from 'node:module';
 
 import { isBulkWriteStep } from '../appStudio/bulkWritePolicy.mts';
+import { CODE_RPM_ENV, codeStepLimiter } from './studioAppCodeStepLimit.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -42,6 +43,8 @@ export type StepBudget = { limiter: Limiter; name: string; daily: boolean };
 export function limitersForStep(kind: string, limiters: Record<string, Limiter> = nodeRequire('./studioAppRateLimits'), bulk = false): StepBudget[] {
     const out: StepBudget[] = [];
     if (AI_STEP_KINDS.includes(kind)) out.push({ limiter: limiters.aiStepLimiter, name: 'STUDIO_APP_AI_STEP_RPM', daily: false });
+    // A sandbox run: its own bucket (studioAppCodeStepLimit.mts), not the /run one.
+    else if (kind === 'code') out.push({ limiter: limiters.codeStepLimiter ?? codeStepLimiter(), name: CODE_RPM_ENV, daily: false });
     else if (HEAVY_STEP_KINDS.includes(kind) || bulk) out.push({ limiter: limiters.actionRunLimiter, name: 'STUDIO_APP_ACTION_RUN_RPM', daily: false });
     if (kind === 'send_email') {
         out.push({ limiter: limiters.sendEmailLimiter, name: 'STUDIO_APP_SEND_EMAIL_RPM', daily: false });

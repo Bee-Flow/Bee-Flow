@@ -54,7 +54,9 @@
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
         "MAX_VARIABLE_DEFAULT_BYTES": 2048,
-        "MAX_PARALLEL_BRANCHES": 8
+        "MAX_PARALLEL_BRANCHES": 8,
+        "MAX_CODE_STEP_CHARS": 20000,
+        "MAX_CODE_STEP_INPUTS": 20
     },
     "theme": {
         "primary": {
@@ -2742,6 +2744,7 @@
             "call_action",
             "transaction",
             "break",
+            "code",
             "continue",
             "parallel",
             "raise_error",
@@ -3971,6 +3974,38 @@
                 "since": 3,
                 "retrySafe": true
             },
+            "code": {
+                "mutatesData": true,
+                "fields": {
+                    "code": {
+                        "type": "code",
+                        "required": true,
+                        "maxLen": 20000
+                    },
+                    "inputs": {
+                        "type": "recordValues"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "timeoutMs": {
+                        "type": "int",
+                        "min": 100,
+                        "max": 30000
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
             "continue": {
                 "mutatesData": false,
                 "fields": {},
@@ -4109,7 +4144,8 @@
             "copy_document",
             "kb_log_query",
             "kb_log_review",
-            "transaction"
+            "transaction",
+            "code"
         ]
     },
     "bindings": {

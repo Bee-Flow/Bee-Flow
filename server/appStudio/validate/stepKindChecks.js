@@ -376,6 +376,8 @@ const KIND_CHECKS = {
     while: (step, path, ctx) => { checkWhile(step, path, ctx); checkLoopCosts(step, path, ctx); },
     try: checkTry,
     parallel: checkParallel,
+    // Registry kinds (componentSpecs/steps/<kind>.js) whose fields need more than their types.
+    code: require('./codeStepChecks.mts').checkCodeStep,
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS, validateStepBranches };
