@@ -145,7 +145,7 @@ export const STATUS_BADGE: Readonly<Record<string, { key: string; en: string }>>
  * word, so it is not in STATUS_BADGE: the card keeps its neutral border and
  * the chip is drawn in text colours rather than a status colour.
  */
-export const SIMULATED_BADGE: Readonly<ChromeBadge> = Object.freeze({
+const SIMULATED_BADGE: Readonly<ChromeBadge> = Object.freeze({
     key: 'automations.card.badge_simulated', en: 'simulated', bg: 'var(--text-secondary)', fg: 'var(--bg-card)',
 });
 

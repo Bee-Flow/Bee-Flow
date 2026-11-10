@@ -57,7 +57,7 @@ export function putsNewVersionLive(live: LiveState, action: GoLiveKind): boolean
  * Checks that could not be read count as "not tested": the dialog cannot
  * vouch for a test it did not see.
  */
-export function untestedReason(readiness: Readiness | undefined, failed: boolean, t: T, saved = true): string | null {
+function untestedReason(readiness: Readiness | undefined, failed: boolean, t: T, saved = true): string | null {
     if (!saved) return t('automations.golive.anyway_none', 'This automation has not been tested yet.');
     if (failed || !readiness) return t('automations.golive.anyway_unknown', 'The checks could not be loaded, so this version counts as not tested.');
     if (!readiness.lastTest) return t('automations.golive.anyway_none', 'This automation has not been tested yet.');
