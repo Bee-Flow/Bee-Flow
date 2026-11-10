@@ -2,8 +2,9 @@
 'use strict';
 // Part 3 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
-const { FIELD_TYPES } = require('../dataModel');
+const { BASE_FIELD_TYPES: FIELD_TYPES } = require('../../core/dataEngine/dataModel/vocabularySince'); // descriptions name the base words
 const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, MAX_GET_ACTIONS } = require('./schemaFragments');
+const { inspectExtensionProps } = require('./schemaTiers.mts');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_3 = [
@@ -256,6 +257,7 @@ const TOOL_SCHEMAS_PART_3 = [
                 properties: {
                     components: { type: 'array', items: { type: 'string' }, description: `Component types to expand (max ${INSPECT_CATALOG_MAX_COMPONENTS}), e.g. ["data_grid", "kanban"].` },
                     steps: { type: 'array', items: { type: 'string' }, description: `Step kinds to expand (max ${INSPECT_CATALOG_MAX_STEPS}), e.g. ["request_approval", "send_email"].` },
+                    ...inspectExtensionProps(), // extension items by name or family: only while the catalogue has any
                 },
             },
         },

@@ -1,19 +1,23 @@
 import AppIcon from '@/components/icons/AppIcon';
+import AssetImage from '../assets/AssetImage';
+import { isImageValue } from '../assets/assetUrl';
 import type { AppDefinition } from '../../inspector/appDefinition';
 
 /**
  * Brand — the app's identity lockup, shared by both shell layouts (tabs top
  * bar, sidebar head, mobile bar). Icon tile + name by default; when the
  * design layer carries a logoUrl the image replaces the icon tile (the name
- * stays, truncated, so an icon-only logo still reads).
+ * stays, truncated, so an icon-only logo still reads). The logo is an https URL
+ * or an uploaded file of the app (`asset:<id>`).
  */
 export default function Brand({ definition }: { definition?: Pick<AppDefinition, 'meta' | 'design'> | null }) {
     const meta = definition?.meta || {};
-    const logoUrl = definition?.design?.logoUrl || null;
+    const raw = definition?.design?.logoUrl;
+    const logoUrl = isImageValue(raw) ? raw : null;
     return (
         <div className="flex items-center gap-2 py-2.5 min-w-0" data-app-brand="true">
             {logoUrl ? (
-                <img src={logoUrl} alt={meta.name || 'App'} className="h-6 max-w-[120px] object-contain" />
+                <AssetImage value={logoUrl} alt={meta.name || 'App'} className="h-6 max-w-[120px] object-contain" />
             ) : (
                 <span
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]"

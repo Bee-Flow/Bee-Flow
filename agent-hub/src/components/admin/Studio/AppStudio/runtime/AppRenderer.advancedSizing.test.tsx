@@ -21,7 +21,7 @@ import { stub } from '@/test/mocks';
  *       cap at the viewport, never push a horizontal scrollbar across the whole
  *       app. Two mechanisms, and the test asserts both because either alone is
  *       a single point of failure: the resolver pairs every width it emits with
- *       max-width:100% (inline, visible in the DOM below), and runtime.css
+ *       max-width:100% (inline, visible in the DOM below), and css/layout.css
  *       re-asserts it with !important under 640px — the only authority that
  *       beats an inline declaration.
  *
@@ -111,14 +111,14 @@ describe('advanced sizing at a 390px viewport', () => {
             node('cmp_narrow', { span: 4, widthMode: 'px', widthValue: 900 }),
         ]));
         const cell = container.querySelector('.app-node');
-        // Placement is untouched by the width. Below 640px runtime.css
+        // Placement is untouched by the width. Below 640px css/layout.css
         // overrides this to 1 / -1 with !important — the stacking rule the
         // stylesheet has always owned, which the width does not interfere with.
         expect((cell! as HTMLElement).style.gridColumn).toBe('span 4 / span 4');
     });
 
     it('the stylesheet keeps the last word below 640px', () => {
-        const css = readFileSync(resolve(RUNTIME_DIR, 'runtime.css'), 'utf8');
+        const css = readFileSync(resolve(RUNTIME_DIR, 'css/layout.css'), 'utf8');
         const mobile = css.slice(css.indexOf('@media (max-width: 639.98px)'));
         const rule = mobile.slice(mobile.indexOf('.app-grid > .app-node'));
         const body = rule.slice(0, rule.indexOf('}'));
@@ -144,7 +144,7 @@ describe('a horizontal pane on a phone', () => {
     // plus remainder" was also the one that survived onto a 390px screen with
     // the rail still 280px wide, squeezing the thing it exists to navigate.
     const mobileBlock = () => {
-        const css = readFileSync(resolve(RUNTIME_DIR, 'runtime.css'), 'utf8');
+        const css = readFileSync(resolve(RUNTIME_DIR, 'css/layout.css'), 'utf8');
         return css.slice(css.indexOf('@media (max-width: 639.98px)'));
     };
 
@@ -180,7 +180,7 @@ describe('a horizontal pane on a phone', () => {
  */
 describe('the tablet tier', () => {
     const tabletBlock = () => {
-        const css = readFileSync(resolve(RUNTIME_DIR, 'runtime.css'), 'utf8');
+        const css = readFileSync(resolve(RUNTIME_DIR, 'css/layout.css'), 'utf8');
         const start = css.indexOf('@media (min-width: 640px) and (max-width: 1023.98px)');
         expect(start).toBeGreaterThan(-1);
         return css.slice(start, css.indexOf('@media (max-width: 639.98px)'));

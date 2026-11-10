@@ -1,4 +1,4 @@
-import { stepMeta } from '../stepCatalog';
+import { stepMeta } from '../stepKinds';
 import { type RefOption, type ReferenceKind } from '../stepReferences';
 import useStepReferences from '../useStepReferences';
 import DocumentFillFields from '../DocumentFillFields';
@@ -90,6 +90,7 @@ export default function StepSettings({ step, onChange, definition, node = null, 
                     value={step[key]}
                     step={step}
                     onChange={(v) => set({ [key]: v })}
+                    onStepChange={onChange}
                     definition={definition}
                     node={node}
                     options={options}

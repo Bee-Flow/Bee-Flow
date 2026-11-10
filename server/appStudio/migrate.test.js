@@ -16,12 +16,12 @@ const { migrateV1toV2 } = require('./migrate');
 const { canonicalizeAppDefinition } = require('./canonicalize');
 const { validateAppDefinition } = require('./validate');
 const { TEMPLATES } = require('./templates');
-const { SCHEMA_VERSION_CURRENT } = require('./componentSpecs');
+const { SCHEMA_VERSION_BASE } = require('./componentSpecs');
 
 test('migrateV1toV2 bumps the version and seeds roles when absent', () => {
     const v1 = { schemaVersion: 1, meta: { name: 'x' }, screens: [], actions: {} };
     const out = migrateV1toV2(v1);
-    assert.equal(out.schemaVersion, SCHEMA_VERSION_CURRENT);
+    assert.equal(out.schemaVersion, SCHEMA_VERSION_BASE);
     assert.deepEqual(out.roles, []);
     // lossless: every original field is preserved by reference
     assert.equal(out.meta, v1.meta);
@@ -42,7 +42,7 @@ test('migrateV1toV2 preserves an existing roles list (idempotent on v2)', () => 
     const roles = [{ id: 'admin', name: 'Admin' }];
     const v2 = { schemaVersion: 2, meta: { name: 'x' }, roles, screens: [], actions: {} };
     const out = migrateV1toV2(v2);
-    assert.equal(out.schemaVersion, SCHEMA_VERSION_CURRENT);
+    assert.equal(out.schemaVersion, SCHEMA_VERSION_BASE);
     assert.equal(out.roles, roles, 'existing roles kept by reference');
     // re-migrating is a no-op except a shallow copy
     const again = migrateV1toV2(out);
@@ -67,7 +67,7 @@ for (const t of V1_TEMPLATES) {
 
         // migrate → validate directly (templates are already complete v1 defs)
         const migrated = migrateV1toV2(t.definition);
-        assert.equal(migrated.schemaVersion, SCHEMA_VERSION_CURRENT);
+        assert.equal(migrated.schemaVersion, SCHEMA_VERSION_BASE);
         const direct = validateAppDefinition(migrated);
         assert.deepEqual(direct.errors.map((e) => `${e.code} @ ${e.path}`), [], `${t.id} errors after migrate`);
         const unexpected = direct.warnings.filter((w) => w.code !== 'action.automation_unset');
@@ -75,14 +75,14 @@ for (const t of V1_TEMPLATES) {
 
         // and through the full canonicalize pipeline too
         const { def } = canonicalizeAppDefinition(migrated);
-        assert.equal(def.schemaVersion, SCHEMA_VERSION_CURRENT);
+        assert.equal(def.schemaVersion, SCHEMA_VERSION_BASE);
         assert.equal(validateAppDefinition(def).ok, true, `${t.id} not ok after canonicalize`);
     });
 }
 
 test('canonicalize applies the same migration inline (a v1 def in → v2 out, no schema repair)', () => {
     const { def, repairs } = canonicalizeAppDefinition(TEMPLATES[0].definition);
-    assert.equal(def.schemaVersion, SCHEMA_VERSION_CURRENT);
+    assert.equal(def.schemaVersion, SCHEMA_VERSION_BASE);
     assert.deepEqual(def.roles, []);
     assert.ok(!repairs.some((r) => r.code === 'shape.schema_version'), 'v1 → v2 migration is silent, not a repair');
 });

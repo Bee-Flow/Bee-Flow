@@ -3,7 +3,9 @@
 // app_update_records, kept out of schemasPart2.js (file-size ceiling). Spliced in right after part 2
 // by schemas.js.
 
-const { FILTER_OPS } = require('../dataModel');
+// The wording names the base operators only (vocabularySince.js): an operator added later joins the
+// extension index, and this text, part of the pinned schema bytes, does not move.
+const { BASE_FILTER_OPS: FILTER_OPS } = require('../../core/dataEngine/dataModel/vocabularySince');
 const { MAX_UPDATE_RECORDS, MAX_FILTER_UPDATE_ROWS, DEFAULT_FILTER_UPDATE_ROWS } = require('./schemaFragments');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */

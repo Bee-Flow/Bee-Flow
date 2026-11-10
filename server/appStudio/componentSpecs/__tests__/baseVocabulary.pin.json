@@ -1,0 +1,2376 @@
+{
+ "componentTypes": {
+  "heading": {
+   "props": {
+    "text": true,
+    "level": true,
+    "accent": [
+     "\"none\"",
+     "\"bar\"",
+     "\"tinted\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "align",
+    "color"
+   ],
+   "events": []
+  },
+  "text": {
+   "props": {
+    "text": true,
+    "muted": true
+   },
+   "styleKnobs": [
+    "span",
+    "align",
+    "color",
+    "weight",
+    "size"
+   ],
+   "events": []
+  },
+  "button": {
+   "props": {
+    "label": true,
+    "variant": [
+     "\"primary\"",
+     "\"secondary\"",
+     "\"ghost\"",
+     "\"danger\"",
+     "\"outline\"",
+     "\"soft\""
+    ],
+    "iconLeft": true,
+    "role": [
+     "\"button\"",
+     "\"submit\""
+    ],
+    "disabledWhen": true
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "align"
+   ],
+   "events": [
+    "onClick"
+   ]
+  },
+  "image": {
+   "props": {
+    "src": true,
+    "alt": true,
+    "fit": [
+     "\"cover\"",
+     "\"contain\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "height",
+    "radius",
+    "align"
+   ],
+   "events": []
+  },
+  "file_preview": {
+   "props": {
+    "source": true,
+    "emptyText": true,
+    "allowDownload": true,
+    "viewer": [
+     "\"browser\"",
+     "\"app\""
+    ],
+    "textLayer": true
+   },
+   "styleKnobs": [
+    "span",
+    "height",
+    "radius"
+   ],
+   "events": []
+  },
+  "pdf_compare": {
+   "props": {
+    "left": true,
+    "right": true,
+    "leftLabel": true,
+    "rightLabel": true,
+    "emptyText": true,
+    "mode": [
+     "\"side\"",
+     "\"swipe\"",
+     "\"diff\""
+    ],
+    "allowDownload": true
+   },
+   "styleKnobs": [
+    "span",
+    "height",
+    "radius"
+   ],
+   "events": []
+  },
+  "browser_view": {
+   "props": {
+    "actionId": true,
+    "emptyText": true,
+    "aspect": [
+     "\"16:10\"",
+     "\"16:9\"",
+     "\"4:3\""
+    ]
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": []
+  },
+  "divider": {
+   "props": {
+    "orientation": [
+     "\"horizontal\"",
+     "\"vertical\""
+    ]
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": []
+  },
+  "spacer": {
+   "props": {
+    "steps": true
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": []
+  },
+  "callout": {
+   "props": {
+    "title": true,
+    "text": true,
+    "textFrom": true,
+    "tone": [
+     "\"info\"",
+     "\"success\"",
+     "\"warning\"",
+     "\"danger\""
+    ],
+    "toneFrom": true,
+    "meta": true,
+    "metaFrom": true,
+    "collapsible": true
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": []
+  },
+  "stat": {
+   "props": {
+    "label": true,
+    "value": true,
+    "caption": true,
+    "captionSegments": {
+     "text": true,
+     "tone": [
+      "\"muted\"",
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "icon": true,
+    "delta": true,
+    "deltaFormat": [
+     "\"number\"",
+     "\"percent\""
+    ],
+    "trend": true,
+    "positiveIsGood": true,
+    "look": [
+     "\"plain\"",
+     "\"tile\"",
+     "\"tinted\"",
+     "\"accent\"",
+     "\"gradient\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "align",
+    "color"
+   ],
+   "events": []
+  },
+  "keyValue": {
+   "props": {
+    "source": true,
+    "fields": {
+     "key": true,
+     "label": true
+    },
+    "layout": [
+     "\"rows\"",
+     "\"grid\""
+    ],
+    "columns": true,
+    "emptyText": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "table": {
+   "props": {
+    "source": true,
+    "columns": {
+     "key": true,
+     "label": true,
+     "format": [
+      "\"text\"",
+      "\"number\"",
+      "\"date\"",
+      "\"badge\"",
+      "\"link\"",
+      "\"boolean\"",
+      "\"relation\"",
+      "\"currency\"",
+      "\"percent\"",
+      "\"datetime\"",
+      "\"relative\"",
+      "\"check\"",
+      "\"tags\"",
+      "\"progress\"",
+      "\"user\"",
+      "\"breakdown\"",
+      "\"cad\"",
+      "\"document\""
+     ],
+     "align": [
+      "\"auto\"",
+      "\"left\"",
+      "\"right\"",
+      "\"center\""
+     ],
+     "truncate": true,
+     "hidden": true,
+     "toneFrom": true,
+     "labelFrom": true,
+     "toneMap": {
+      "value": true,
+      "label": true,
+      "tone": [
+       "\"primary\"",
+       "\"neutral\"",
+       "\"success\"",
+       "\"warning\"",
+       "\"danger\"",
+       "\"info\""
+      ]
+     },
+     "help": true,
+     "actionId": true
+    },
+    "emptyText": true,
+    "rowLimit": true,
+    "look": [
+     "\"default\"",
+     "\"striped\"",
+     "\"minimal\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "list": {
+   "props": {
+    "source": true,
+    "titleKey": true,
+    "subtitleKey": true,
+    "metaKey": true,
+    "timestampKey": true,
+    "badgeKey": true,
+    "tagsKey": true,
+    "badgeToneMap": {
+     "value": true,
+     "label": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "unreadKey": true,
+    "badgePlacement": [
+     "\"meta\"",
+     "\"subtitle\""
+    ],
+    "selectedWhen": true,
+    "selectedDetailKey": true,
+    "groupKey": true,
+    "groupOrder": true,
+    "groupLabelMap": {
+     "value": true,
+     "label": true
+    },
+    "icon": true,
+    "emptyText": true,
+    "look": [
+     "\"rows\"",
+     "\"cards\"",
+     "\"tiles\""
+    ],
+    "peekSource": true,
+    "peekMatchKey": true,
+    "peekRowKey": true,
+    "peekTitleKey": true,
+    "peekTextKey": true,
+    "peekGroupKey": true,
+    "peekGroupLabelMap": {
+     "value": true,
+     "label": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "peekCountKey": true,
+    "peekLimit": true,
+    "peekTitle": true,
+    "peekMoreText": true,
+    "peekBadge": true
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "height"
+   ],
+   "events": [
+    "onRowClick"
+   ]
+  },
+  "approval_list": {
+   "props": {
+    "scope": [
+     "\"mine\"",
+     "\"app\""
+    ],
+    "show": [
+     "\"waiting\"",
+     "\"decided\"",
+     "\"all\""
+    ],
+    "limit": true,
+    "emptyText": true,
+    "showDetails": true
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "height"
+   ],
+   "events": [
+    "onDecided"
+   ]
+  },
+  "card": {
+   "props": {
+    "title": true,
+    "description": true,
+    "look": [
+     "\"default\"",
+     "\"flat\"",
+     "\"raised\"",
+     "\"tinted\"",
+     "\"accent\"",
+     "\"gradient\"",
+     "\"solid\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "padding",
+    "gap",
+    "radius",
+    "background",
+    "height",
+    "border"
+   ],
+   "events": []
+  },
+  "form": {
+   "props": {
+    "name": true,
+    "submitLabel": true,
+    "showReset": true,
+    "showSubmit": true,
+    "resetKey": true
+   },
+   "styleKnobs": [
+    "span",
+    "gap",
+    "padding",
+    "background",
+    "radius",
+    "border"
+   ],
+   "events": [
+    "onSubmit"
+   ]
+  },
+  "input_text": {
+   "props": {
+    "name": true,
+    "label": true,
+    "placeholder": true,
+    "required": true,
+    "defaultValue": true,
+    "inputType": [
+     "\"text\"",
+     "\"email\"",
+     "\"url\""
+    ],
+    "valueFrom": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "input_textarea": {
+   "props": {
+    "name": true,
+    "label": true,
+    "placeholder": true,
+    "required": true,
+    "rows": true,
+    "valueFrom": true,
+    "snippets": true,
+    "snippetKey": true,
+    "snippetBody": true,
+    "snippetLabel": true
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": []
+  },
+  "input_number": {
+   "props": {
+    "name": true,
+    "label": true,
+    "min": true,
+    "max": true,
+    "step": true,
+    "required": true,
+    "defaultValue": true,
+    "valueFrom": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "input_select": {
+   "props": {
+    "name": true,
+    "label": true,
+    "options": {
+     "value": true,
+     "label": true
+    },
+    "required": true,
+    "defaultValue": true,
+    "placeholder": true,
+    "valueFrom": true,
+    "optionsFrom": true,
+    "optionValueKey": true,
+    "optionLabelKey": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": [
+    "onChange"
+   ]
+  },
+  "input_checkbox": {
+   "props": {
+    "name": true,
+    "label": true,
+    "defaultChecked": true
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": [
+    "onChange"
+   ]
+  },
+  "input_date": {
+   "props": {
+    "name": true,
+    "label": true,
+    "required": true,
+    "defaultValue": [
+     "null",
+     "\"today\""
+    ],
+    "valueFrom": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": [
+    "onChange"
+   ]
+  },
+  "data_grid": {
+   "props": {
+    "source": true,
+    "columns": {
+     "key": true,
+     "label": true,
+     "format": [
+      "\"text\"",
+      "\"number\"",
+      "\"date\"",
+      "\"badge\"",
+      "\"link\"",
+      "\"boolean\"",
+      "\"relation\"",
+      "\"currency\"",
+      "\"percent\"",
+      "\"datetime\"",
+      "\"relative\"",
+      "\"check\"",
+      "\"tags\"",
+      "\"progress\"",
+      "\"user\"",
+      "\"breakdown\"",
+      "\"cad\"",
+      "\"document\""
+     ],
+     "width": true,
+     "sortable": true,
+     "filterable": true,
+     "editable": true,
+     "align": [
+      "\"auto\"",
+      "\"left\"",
+      "\"right\"",
+      "\"center\""
+     ],
+     "truncate": true,
+     "hidden": true,
+     "toneFrom": true,
+     "labelFrom": true,
+     "subtextFrom": true,
+     "subtextToneFrom": true,
+     "badgeStyle": [
+      "\"pill\"",
+      "\"dot\""
+     ],
+     "flagFrom": true,
+     "flagTone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ],
+     "emptyTone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ],
+     "toneMap": {
+      "value": true,
+      "label": true,
+      "tone": [
+       "\"primary\"",
+       "\"neutral\"",
+       "\"success\"",
+       "\"warning\"",
+       "\"danger\"",
+       "\"info\""
+      ]
+     },
+     "help": true,
+     "actionId": true
+    },
+    "pageSize": true,
+    "selectable": [
+     "\"none\"",
+     "\"single\"",
+     "\"multi\""
+    ],
+    "searchable": true,
+    "rowActions": {
+     "label": true,
+     "actionId": true
+    },
+    "toolbarActions": {
+     "label": true,
+     "actionId": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "addRowLabel": true,
+    "addRowActionId": true,
+    "bulkActions": {
+     "label": true,
+     "actionId": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "density": [
+     "\"compact\"",
+     "\"comfortable\"",
+     "\"spacious\""
+    ],
+    "clamp": [
+     "\"1\"",
+     "\"2\"",
+     "\"3\"",
+     "\"off\""
+    ],
+    "rowTone": {
+     "field": true,
+     "value": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "groupBy": true,
+    "groupOrder": {
+     "value": true,
+     "label": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ],
+     "collapsed": true
+    },
+    "activeWhen": true,
+    "zebra": true,
+    "emptyText": true,
+    "look": [
+     "\"default\"",
+     "\"striped\"",
+     "\"minimal\"",
+     "\"cards\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "height"
+   ],
+   "events": [
+    "onRowClick",
+    "onRowSelect"
+   ]
+  },
+  "chart": {
+   "props": {
+    "chartType": [
+     "\"bar\"",
+     "\"line\"",
+     "\"area\"",
+     "\"pie\"",
+     "\"donut\""
+    ],
+    "orientation": [
+     "\"vertical\"",
+     "\"horizontal\""
+    ],
+    "source": true,
+    "title": true,
+    "xKey": true,
+    "xType": [
+     "\"category\"",
+     "\"time\""
+    ],
+    "series": {
+     "key": true,
+     "label": true,
+     "color": true
+    },
+    "stacked": true,
+    "showLegend": true,
+    "showGrid": true,
+    "valueFormat": [
+     "\"number\"",
+     "\"percent\"",
+     "\"currency\""
+    ],
+    "yMin": true,
+    "yMax": true,
+    "referenceLines": {
+     "value": true,
+     "label": true,
+     "color": true
+    },
+    "referenceBands": {
+     "from": true,
+     "to": true,
+     "label": true,
+     "color": true
+    },
+    "unitLabel": true
+   },
+   "styleKnobs": [
+    "span",
+    "height"
+   ],
+   "events": [
+    "onRowClick"
+   ]
+  },
+  "pivot": {
+   "props": {
+    "source": true,
+    "rows": {
+     "key": true,
+     "label": true
+    },
+    "columns": {
+     "key": true,
+     "label": true
+    },
+    "values": {
+     "key": true,
+     "agg": [
+      "\"sum\"",
+      "\"avg\"",
+      "\"count\"",
+      "\"min\"",
+      "\"max\""
+     ],
+     "label": true,
+     "format": [
+      "\"number\"",
+      "\"percent\"",
+      "\"currency\"",
+      "\"date\""
+     ]
+    },
+    "showTotals": true,
+    "emptyText": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "input_file": {
+   "props": {
+    "name": true,
+    "label": true,
+    "accept": true,
+    "multiple": true,
+    "required": true,
+    "buttonLabel": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": [
+    "onChange"
+   ]
+  },
+  "input_dataset": {
+   "props": {
+    "name": true,
+    "label": true,
+    "required": true,
+    "buttonLabel": true,
+    "allowExisting": true
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": [
+    "onChange"
+   ]
+  },
+  "input_richtext": {
+   "props": {
+    "name": true,
+    "label": true,
+    "required": true,
+    "defaultValue": true,
+    "valueFrom": true
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": []
+  },
+  "input_html": {
+   "props": {
+    "name": true,
+    "label": true,
+    "required": true,
+    "placeholder": true,
+    "defaultValue": true,
+    "valueFrom": true,
+    "minRows": true,
+    "allowImages": true
+   },
+   "styleKnobs": [
+    "span"
+   ],
+   "events": []
+  },
+  "input_datetime": {
+   "props": {
+    "name": true,
+    "label": true,
+    "required": true,
+    "withTime": true,
+    "defaultValue": [
+     "null",
+     "\"now\"",
+     "\"today\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "input_relation": {
+   "props": {
+    "name": true,
+    "label": true,
+    "tableId": true,
+    "displayField": true,
+    "multiple": true,
+    "required": true,
+    "filter": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "input_person": {
+   "props": {
+    "name": true,
+    "label": true,
+    "multiple": true,
+    "required": true,
+    "allowMe": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "input_multiselect": {
+   "props": {
+    "name": true,
+    "label": true,
+    "options": {
+     "value": true,
+     "label": true
+    },
+    "required": true,
+    "defaultValue": true,
+    "valueFrom": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": [
+    "onChange"
+   ]
+  },
+  "tabs": {
+   "props": {
+    "look": [
+     "\"underline\"",
+     "\"pills\"",
+     "\"boxed\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "gap",
+    "padding",
+    "height"
+   ],
+   "events": []
+  },
+  "tab": {
+   "props": {
+    "label": true,
+    "icon": true,
+    "badge": true,
+    "badgeTone": [
+     "\"neutral\"",
+     "\"primary\"",
+     "\"success\"",
+     "\"warning\"",
+     "\"danger\"",
+     "\"info\""
+    ]
+   },
+   "styleKnobs": [
+    "gap",
+    "padding",
+    "height"
+   ],
+   "events": []
+  },
+  "modal": {
+   "props": {
+    "title": true,
+    "size": [
+     "\"sm\"",
+     "\"md\"",
+     "\"lg\""
+    ],
+    "placement": [
+     "\"center\"",
+     "\"left\"",
+     "\"right\"",
+     "\"bottom\""
+    ],
+    "triggerLabel": true
+   },
+   "styleKnobs": [
+    "gap",
+    "padding"
+   ],
+   "events": []
+  },
+  "repeater": {
+   "props": {
+    "source": true,
+    "itemActions": {
+     "label": true,
+     "actionId": true
+    },
+    "emptyText": true
+   },
+   "styleKnobs": [
+    "span",
+    "gap",
+    "padding"
+   ],
+   "events": []
+  },
+  "container": {
+   "props": {
+    "look": [
+     "\"plain\"",
+     "\"panel\"",
+     "\"tinted\"",
+     "\"outlined\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "padding",
+    "gap",
+    "background",
+    "radius",
+    "height",
+    "border"
+   ],
+   "events": []
+  },
+  "pane": {
+   "props": {
+    "direction": [
+     "\"vertical\"",
+     "\"horizontal\""
+    ],
+    "scroll": [
+     "\"none\"",
+     "\"auto\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "padding",
+    "gap",
+    "background",
+    "radius",
+    "height",
+    "border"
+   ],
+   "events": []
+  },
+  "page_header": {
+   "props": {
+    "title": true,
+    "subtitle": true,
+    "titleFrom": true,
+    "subtitleFrom": true,
+    "tagsFrom": true,
+    "icon": true,
+    "showDivider": true,
+    "look": [
+     "\"plain\"",
+     "\"banner\"",
+     "\"hero\"",
+     "\"split\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "padding",
+    "gap"
+   ],
+   "events": []
+  },
+  "markdown": {
+   "props": {
+    "content": true,
+    "contentFrom": true
+   },
+   "styleKnobs": [
+    "span",
+    "color"
+   ],
+   "events": []
+  },
+  "badge_list": {
+   "props": {
+    "source": true,
+    "labelKey": true,
+    "colorKey": true,
+    "countKey": true,
+    "colorMap": {
+     "value": true,
+     "label": true,
+     "color": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "emptyText": true,
+    "activeWhen": true,
+    "look": [
+     "\"soft\"",
+     "\"outline\"",
+     "\"solid\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "align"
+   ],
+   "events": [
+    "onRowClick"
+   ]
+  },
+  "progress": {
+   "props": {
+    "value": true,
+    "max": true,
+    "format": [
+     "\"percent\"",
+     "\"fraction\"",
+     "\"none\""
+    ],
+    "label": true,
+    "tone": [
+     "\"primary\"",
+     "\"neutral\"",
+     "\"success\"",
+     "\"warning\"",
+     "\"danger\"",
+     "\"info\""
+    ],
+    "segments": {
+     "value": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ],
+     "label": true
+    },
+    "liveSeconds": [
+     "0",
+     "2",
+     "5",
+     "10",
+     "30"
+    ],
+    "liveWhile": true,
+    "look": [
+     "\"bar\"",
+     "\"slim\"",
+     "\"ring\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": []
+  },
+  "stepper": {
+   "props": {
+    "value": true,
+    "steps": {
+     "value": true,
+     "label": true,
+     "icon": true,
+     "hint": true
+    },
+    "orientation": [
+     "\"horizontal\"",
+     "\"vertical\""
+    ],
+    "tone": [
+     "\"primary\"",
+     "\"neutral\"",
+     "\"success\"",
+     "\"warning\"",
+     "\"danger\"",
+     "\"info\""
+    ],
+    "showLabels": true
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "align"
+   ],
+   "events": [
+    "onRowClick"
+   ]
+  },
+  "file_gallery": {
+   "props": {
+    "source": true,
+    "fileKey": true,
+    "titleKey": true,
+    "subtitleKey": true,
+    "sizeKey": true,
+    "groupKey": true,
+    "columns": true,
+    "rowLimit": true,
+    "emptyText": true,
+    "liveSeconds": [
+     "0",
+     "2",
+     "5",
+     "10",
+     "30"
+    ],
+    "liveWhile": true
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "height"
+   ],
+   "events": [
+    "onRowClick"
+   ]
+  },
+  "connector_status": {
+   "props": {
+    "connectorId": true,
+    "title": true,
+    "showSync": true
+   },
+   "styleKnobs": [
+    "span",
+    "padding",
+    "background",
+    "radius",
+    "border"
+   ],
+   "events": []
+  },
+  "timeline": {
+   "props": {
+    "source": true,
+    "titleKey": true,
+    "dateKey": true,
+    "descriptionKey": true,
+    "metaKey": true,
+    "icon": true,
+    "rowLimit": true,
+    "emptyText": true
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "height"
+   ],
+   "events": [
+    "onRowClick"
+   ]
+  },
+  "message_thread": {
+   "props": {
+    "source": true,
+    "bodyField": true,
+    "htmlField": true,
+    "authorField": true,
+    "timestampField": true,
+    "sideField": true,
+    "sideMap": {
+     "value": true,
+     "side": [
+      "\"left\"",
+      "\"right\"",
+      "\"center\""
+     ],
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "attachmentsField": true,
+    "attachmentLabelKey": true,
+    "attachmentsSource": true,
+    "attachmentMatchKey": true,
+    "attachmentFileKey": true,
+    "inlineContentIdKey": true,
+    "citationsField": true,
+    "citationLabelKey": true,
+    "emailField": true,
+    "toField": true,
+    "subjectField": true,
+    "showAvatar": true,
+    "centerMeta": [
+     "\"hidden\"",
+     "\"inline\""
+    ],
+    "eventsSource": true,
+    "eventsBodyField": true,
+    "eventsTimestampField": true,
+    "rowLimit": true,
+    "emptyText": true
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "height"
+   ],
+   "events": [
+    "onRowClick",
+    "onAttachmentClick"
+   ]
+  },
+  "record_detail": {
+   "props": {
+    "source": true,
+    "fields": {
+     "key": true,
+     "label": true,
+     "format": [
+      "\"text\"",
+      "\"number\"",
+      "\"date\"",
+      "\"datetime\"",
+      "\"badge\"",
+      "\"link\"",
+      "\"markdown\"",
+      "\"document\"",
+      "\"cad\""
+     ],
+     "group": true
+    },
+    "columns": true,
+    "emptyText": true,
+    "layout": [
+     "\"stacked\"",
+     "\"rows\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "padding",
+    "background",
+    "radius",
+    "border",
+    "height"
+   ],
+   "events": []
+  },
+  "filter_bar": {
+   "props": {
+    "fields": {
+     "name": true,
+     "label": true,
+     "type": [
+      "\"search\"",
+      "\"select\"",
+      "\"toggle\"",
+      "\"date\""
+     ],
+     "options": {
+      "value": true,
+      "label": true
+     }
+    }
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "gap"
+   ],
+   "events": []
+  },
+  "kanban": {
+   "props": {
+    "source": true,
+    "groupByField": true,
+    "columns": {
+     "value": true,
+     "label": true,
+     "color": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ],
+     "wipLimit": true
+    },
+    "columnsSource": true,
+    "swimlaneField": true,
+    "swimlanes": {
+     "value": true,
+     "label": true,
+     "color": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "swimlanesSource": true,
+    "titleKey": true,
+    "subtitleKey": true,
+    "badgeKey": true,
+    "cardFields": {
+     "key": true,
+     "label": true,
+     "slot": [
+      "\"meta\"",
+      "\"chip\""
+     ],
+     "format": [
+      "\"text\"",
+      "\"number\"",
+      "\"date\""
+     ]
+    },
+    "rankKey": true,
+    "colorKey": true,
+    "cardColorMap": {
+     "value": true,
+     "label": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "collapsible": true,
+    "emptyText": true,
+    "badgeToneMap": {
+     "value": true,
+     "label": true,
+     "tone": [
+      "\"primary\"",
+      "\"neutral\"",
+      "\"success\"",
+      "\"warning\"",
+      "\"danger\"",
+      "\"info\""
+     ]
+    },
+    "allowDrag": true,
+    "cardLook": [
+     "\"default\"",
+     "\"tinted\"",
+     "\"raised\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "size",
+    "height"
+   ],
+   "events": [
+    "onRowClick",
+    "onCardMove"
+   ]
+  },
+  "calendar": {
+   "props": {
+    "source": true,
+    "dateKey": true,
+    "endDateKey": true,
+    "titleKey": true,
+    "colorKey": true,
+    "view": [
+     "\"month\"",
+     "\"week\"",
+     "\"list\""
+    ],
+    "emptyText": true
+   },
+   "styleKnobs": [
+    "span",
+    "height"
+   ],
+   "events": [
+    "onRowClick"
+   ]
+  },
+  "ai_chat": {
+   "props": {
+    "systemPrompt": true,
+    "modelTier": true,
+    "knowledgeBaseIds": true,
+    "greeting": true,
+    "placeholder": true,
+    "starters": true,
+    "mode": [
+     "\"chat\"",
+     "\"assistant\""
+    ]
+   },
+   "styleKnobs": [
+    "span",
+    "height"
+   ],
+   "events": []
+  },
+  "document_viewer": {
+   "props": {
+    "source": true,
+    "emptyText": true,
+    "showHeader": true
+   },
+   "styleKnobs": [
+    "span",
+    "height",
+    "radius"
+   ],
+   "events": []
+  },
+  "document_compare": {
+   "props": {
+    "left": true,
+    "right": true,
+    "leftLabel": true,
+    "rightLabel": true,
+    "mode": [
+     "\"side\"",
+     "\"inline\""
+    ],
+    "onlyChanges": true,
+    "emptyText": true
+   },
+   "styleKnobs": [
+    "span",
+    "height",
+    "radius"
+   ],
+   "events": []
+  },
+  "input_document": {
+   "props": {
+    "name": true,
+    "label": true,
+    "kind": [
+     "\"any\"",
+     "\"text\"",
+     "\"presentation\"",
+     "\"spreadsheet\""
+    ],
+    "documentIds": true,
+    "folderId": true,
+    "required": true
+   },
+   "styleKnobs": [
+    "span",
+    "size"
+   ],
+   "events": [
+    "onChange"
+   ]
+  }
+ },
+ "styleKnobs": {
+  "span": true,
+  "size": [
+   "\"sm\"",
+   "\"md\"",
+   "\"lg\""
+  ],
+  "align": [
+   "\"start\"",
+   "\"center\"",
+   "\"end\""
+  ],
+  "color": true,
+  "radius": [
+   "null",
+   "\"none\"",
+   "\"sm\"",
+   "\"md\"",
+   "\"lg\"",
+   "\"full\""
+  ],
+  "padding": true,
+  "gap": true,
+  "weight": [
+   "\"regular\"",
+   "\"medium\"",
+   "\"semibold\""
+  ],
+  "height": [
+   "\"auto\"",
+   "\"sm\"",
+   "\"md\"",
+   "\"lg\"",
+   "\"xl\"",
+   "\"fill\""
+  ],
+  "background": [
+   "\"none\"",
+   "\"surface\"",
+   "\"tint\"",
+   "\"panel\"",
+   "\"gradient\""
+  ],
+  "border": [
+   "\"none\"",
+   "\"subtle\"",
+   "\"default\""
+  ],
+  "hideBelow": [
+   "\"none\"",
+   "\"sm\"",
+   "\"md\"",
+   "\"lg\""
+  ],
+  "hideAbove": [
+   "\"none\"",
+   "\"sm\"",
+   "\"md\"",
+   "\"lg\""
+  ],
+  "widthMode": [
+   "\"span\"",
+   "\"px\"",
+   "\"pct\""
+  ],
+  "widthValue": true,
+  "heightMode": [
+   "\"preset\"",
+   "\"px\"",
+   "\"pct\"",
+   "\"vh\""
+  ],
+  "heightValue": true
+ },
+ "stepKinds": {
+  "navigate": {
+   "screenId": true,
+   "params": true
+  },
+  "toast": {
+   "message": true,
+   "tone": [
+    "\"info\"",
+    "\"success\"",
+    "\"warning\"",
+    "\"danger\""
+   ]
+  },
+  "open_url": {
+   "url": true,
+   "newTab": true
+  },
+  "open_modal": {
+   "modalId": true
+  },
+  "close_modal": {
+   "modalId": true
+  },
+  "reset_form": {
+   "form": true
+  },
+  "download_file": {
+   "file": true,
+   "fileName": true
+  },
+  "confirm": {
+   "message": true,
+   "title": true,
+   "confirmLabel": true,
+   "cancelLabel": true
+  },
+  "set_variable": {
+   "name": true,
+   "value": true
+  },
+  "refresh": {
+   "tableId": true,
+   "datasetId": true,
+   "actionId": true
+  },
+  "run_automation": {
+   "automationId": true,
+   "inputMapping": true,
+   "resultVar": true,
+   "onError": true
+  },
+  "create_record": {
+   "tableId": true,
+   "values": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "update_record": {
+   "tableId": true,
+   "recordId": true,
+   "filter": true,
+   "limit": true,
+   "values": true,
+   "resultVar": true,
+   "expectedUpdatedAt": true,
+   "retry": true,
+   "onError": true
+  },
+  "delete_record": {
+   "tableId": true,
+   "recordId": true,
+   "filter": true,
+   "limit": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "request_approval": {
+   "prompt": true,
+   "details": true,
+   "fields": true,
+   "assigneeUserId": true,
+   "assigneeGroupId": true,
+   "approverUserIds": true,
+   "approverGroupIds": true,
+   "rule": [
+    "\"all\"",
+    "\"first\"",
+    "\"quorum\""
+   ],
+   "quorumCount": true,
+   "finalApproverUserId": true,
+   "finalApproverGroupId": true,
+   "stages": true,
+   "expiresInHours": true,
+   "remindAfterHours": true,
+   "escalateToUserId": true,
+   "escalateToGroupId": true,
+   "escalateAfterHours": true,
+   "attachments": true,
+   "context": true,
+   "onDecided": true,
+   "resultVar": true,
+   "onError": true
+  },
+  "ai_extract": {
+   "source": true,
+   "schema": true,
+   "promptContext": true,
+   "contextSources": true,
+   "documentMode": [
+    "\"auto\"",
+    "\"text\"",
+    "\"images\""
+   ],
+   "modelTier": true,
+   "knowledgeBaseIds": true,
+   "datasets": true,
+   "writeTo": true,
+   "resultDetail": [
+    "\"full\"",
+    "\"summary\""
+   ],
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "ai_generate": {
+   "prompt": true,
+   "promptContext": true,
+   "contextSources": true,
+   "attachments": true,
+   "documentMode": [
+    "\"auto\"",
+    "\"text\"",
+    "\"images\""
+   ],
+   "output": [
+    "\"text\"",
+    "\"structured\""
+   ],
+   "markdownToHtml": true,
+   "schema": true,
+   "modelTier": true,
+   "knowledgeBaseIds": true,
+   "datasets": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "kb_query": {
+   "query": true,
+   "knowledgeBaseIds": true,
+   "topK": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "send_email": {
+   "connectorId": true,
+   "to": true,
+   "cc": true,
+   "subject": true,
+   "body": true,
+   "bodyFormat": [
+    "\"markdown\"",
+    "\"text\"",
+    "\"html\""
+   ],
+   "replyToRecordId": true,
+   "replyToThreadKey": true,
+   "attachments": true,
+   "mode": [
+    "\"send\"",
+    "\"draft\""
+   ],
+   "recordOutbound": true,
+   "resultVar": true,
+   "onError": true
+  },
+  "generate_file": {
+   "rows": true,
+   "columns": true,
+   "format": [
+    "\"csv\"",
+    "\"xlsx\"",
+    "\"ods\""
+   ],
+   "fileName": true,
+   "delimiter": [
+    "\";\"",
+    "\",\"",
+    "\"\\t\""
+   ],
+   "includeHeader": true,
+   "bom": true,
+   "sheetName": true,
+   "attachToRecordId": true,
+   "attachToFieldKey": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "fill_document": {
+   "documentVersionId": true,
+   "sectionOverrides": true,
+   "documentId": true,
+   "values": true,
+   "fileName": true,
+   "format": [
+    "\"\"",
+    "\"pptx\"",
+    "\"pdf\""
+   ],
+   "attachToRecordId": true,
+   "attachToFieldKey": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "generate_presentation": {
+   "slides": true,
+   "title": true,
+   "subtitle": true,
+   "format": [
+    "\"pptx\"",
+    "\"pdf\""
+   ],
+   "fileName": true,
+   "houseStyle": true,
+   "preset": [
+    "\"\"",
+    "\"band\"",
+    "\"clean\"",
+    "\"bold\"",
+    "\"dark\""
+   ],
+   "accent": true,
+   "font": [
+    "\"\"",
+    "\"Calibri\"",
+    "\"Arial\"",
+    "\"Helvetica\"",
+    "\"Verdana\"",
+    "\"Segoe UI\"",
+    "\"Trebuchet MS\"",
+    "\"Century Gothic\"",
+    "\"Georgia\"",
+    "\"Cambria\"",
+    "\"Times New Roman\"",
+    "\"Garamond\"",
+    "\"Consolas\""
+   ],
+   "coverStyle": [
+    "\"\"",
+    "\"accent\"",
+    "\"light\"",
+    "\"split\""
+   ],
+   "tableStyle": [
+    "\"\"",
+    "\"banded\"",
+    "\"lines\"",
+    "\"minimal\""
+   ],
+   "logoPlacement": [
+    "\"\"",
+    "\"footer\"",
+    "\"corner\"",
+    "\"cover\"",
+    "\"none\""
+   ],
+   "background": true,
+   "footerText": true,
+   "attachToRecordId": true,
+   "attachToFieldKey": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "redact_pdf": {
+   "source": true,
+   "terms": true,
+   "useAi": true,
+   "fileName": true,
+   "attachToRecordId": true,
+   "attachToFieldKey": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "file_intake": {
+   "connectorId": true,
+   "threadKey": true,
+   "poPattern": true,
+   "cadPreferred": [
+    "\"step\"",
+    "\"dxf\""
+   ],
+   "resultDetail": [
+    "\"full\"",
+    "\"summary\""
+   ],
+   "writeTo": true,
+   "allowEmpty": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "dataset_query": {
+   "dataset": true,
+   "gene": true,
+   "region": true,
+   "rsid": true,
+   "filterPass": true,
+   "minQual": true,
+   "limit": true,
+   "includeGenotypes": true,
+   "writeTo": true,
+   "resultDetail": [
+    "\"full\"",
+    "\"summary\""
+   ],
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "ai_browse": {
+   "task": true,
+   "url": true,
+   "allowedDomains": true,
+   "maxSteps": true,
+   "resultVar": true,
+   "onError": true
+  },
+  "copy_document": {
+   "source": true,
+   "templateDocumentId": true,
+   "name": true,
+   "resultVar": true,
+   "onError": true
+  },
+  "kb_log_query": {
+   "kbId": true,
+   "filters": true,
+   "limit": true,
+   "resultDetail": [
+    "\"full\"",
+    "\"summary\""
+   ],
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  },
+  "kb_log_review": {
+   "kbId": true,
+   "entryId": true,
+   "status": true,
+   "note": true,
+   "retry": true,
+   "onError": true
+  },
+  "condition": {
+   "expr": true,
+   "then": true,
+   "else": true
+  },
+  "loop": {
+   "source": true,
+   "itemVar": true,
+   "indexVar": true,
+   "maxIterations": true,
+   "steps": true
+  },
+  "switch": {
+   "expr": true,
+   "cases": true,
+   "default": true
+  },
+  "call_action": {
+   "actionId": true,
+   "params": true,
+   "resultVar": true,
+   "onError": true
+  },
+  "transaction": {
+   "steps": true,
+   "resultVar": true,
+   "retry": true,
+   "onError": true
+  }
+ },
+ "serverStepKinds": [
+  "run_automation",
+  "create_record",
+  "update_record",
+  "delete_record",
+  "request_approval",
+  "ai_extract",
+  "ai_generate",
+  "kb_query",
+  "send_email",
+  "generate_file",
+  "fill_document",
+  "generate_presentation",
+  "redact_pdf",
+  "file_intake",
+  "dataset_query",
+  "ai_browse",
+  "copy_document",
+  "kb_log_query",
+  "kb_log_review",
+  "transaction"
+ ],
+ "actionKinds": {
+  "run_automation": {
+   "automationId": true,
+   "inputMapping": true,
+   "onSuccess": true,
+   "onError": true
+  },
+  "ai_extract": {
+   "source": true,
+   "schema": true,
+   "promptContext": true,
+   "contextSources": true,
+   "documentMode": [
+    "\"auto\"",
+    "\"text\"",
+    "\"images\""
+   ],
+   "modelTier": true,
+   "knowledgeBaseIds": true,
+   "datasets": true,
+   "writeTo": true,
+   "resultDetail": [
+    "\"full\"",
+    "\"summary\""
+   ],
+   "resultVar": true
+  },
+  "ai_generate": {
+   "prompt": true,
+   "promptContext": true,
+   "contextSources": true,
+   "attachments": true,
+   "documentMode": [
+    "\"auto\"",
+    "\"text\"",
+    "\"images\""
+   ],
+   "output": [
+    "\"text\"",
+    "\"structured\""
+   ],
+   "markdownToHtml": true,
+   "schema": true,
+   "modelTier": true,
+   "knowledgeBaseIds": true,
+   "datasets": true,
+   "resultVar": true
+  },
+  "kb_query": {
+   "query": true,
+   "knowledgeBaseIds": true,
+   "topK": true,
+   "resultVar": true
+  },
+  "send_email": {
+   "connectorId": true,
+   "to": true,
+   "cc": true,
+   "subject": true,
+   "body": true,
+   "bodyFormat": [
+    "\"markdown\"",
+    "\"text\"",
+    "\"html\""
+   ],
+   "replyToRecordId": true,
+   "replyToThreadKey": true,
+   "attachments": true,
+   "mode": [
+    "\"send\"",
+    "\"draft\""
+   ],
+   "recordOutbound": true,
+   "resultVar": true
+  },
+  "create_record": {
+   "tableId": true,
+   "values": true,
+   "resultVar": true
+  },
+  "navigate": {
+   "screenId": true,
+   "params": true
+  },
+  "toast": {
+   "message": true,
+   "tone": [
+    "\"info\"",
+    "\"success\"",
+    "\"warning\"",
+    "\"danger\""
+   ]
+  },
+  "open_url": {
+   "url": true,
+   "newTab": true
+  },
+  "open_modal": {
+   "modalId": true
+  },
+  "close_modal": {
+   "modalId": true
+  },
+  "call_action": {
+   "actionId": true,
+   "params": true,
+   "resultVar": true
+  },
+  "sequence": {
+   "steps": true,
+   "background": true,
+   "lockKey": true,
+   "progressVar": true
+  }
+ },
+ "screenKeys": {
+  "name": true,
+  "icon": true,
+  "showInNav": true,
+  "maxWidth": [
+   "\"narrow\"",
+   "\"medium\"",
+   "\"wide\"",
+   "\"full\""
+  ],
+  "kind": [
+   "null",
+   "\"dashboard\""
+  ],
+  "description": true,
+  "refreshInterval": [
+   "0",
+   "15",
+   "30",
+   "60",
+   "300"
+  ]
+ },
+ "themeKeys": {
+  "primary": true,
+  "accent": true,
+  "canvas": true,
+  "radius": [
+   "\"none\"",
+   "\"sm\"",
+   "\"md\"",
+   "\"lg\"",
+   "\"xl\""
+  ],
+  "density": [
+   "\"compact\"",
+   "\"comfortable\"",
+   "\"spacious\""
+  ],
+  "fontScale": [
+   "\"sm\"",
+   "\"md\"",
+   "\"lg\""
+  ],
+  "appearance": [
+   "\"light\"",
+   "\"dark\"",
+   "\"auto\""
+  ]
+ },
+ "designKeys": {
+  "preset": [
+   "\"custom\"",
+   "\"classic\"",
+   "\"cloud\"",
+   "\"atlas\"",
+   "\"midnight\"",
+   "\"field\"",
+   "\"paper\"",
+   "\"mono\""
+  ],
+  "font": [
+   "\"system\"",
+   "\"inter\"",
+   "\"satoshi\"",
+   "\"general-sans\"",
+   "\"cabinet\"",
+   "\"geist\"",
+   "\"plex\"",
+   "\"poppins\""
+  ],
+  "surface": [
+   "\"hairline\"",
+   "\"flat\"",
+   "\"soft\"",
+   "\"elevated\""
+  ],
+  "motion": [
+   "\"none\"",
+   "\"subtle\"",
+   "\"full\""
+  ],
+  "chartPalette": [
+   "\"classic\"",
+   "\"brand\""
+  ],
+  "accentEdge": [
+   "\"bar\"",
+   "\"none\""
+  ],
+  "logoUrl": true
+ },
+ "navStyles": [
+  "tabs",
+  "sidebar",
+  "mega",
+  "rail"
+ ],
+ "sectionStyleKnobs": [
+  "padding",
+  "gap",
+  "background",
+  "height"
+ ],
+ "events": [
+  "onClick",
+  "onSubmit",
+  "onRowClick",
+  "onRowSelect",
+  "onCardMove",
+  "onChange",
+  "onDecided",
+  "onAttachmentClick"
+ ],
+ "bindingKinds": [
+  "static",
+  "actionResult",
+  "formula",
+  "record",
+  "records",
+  "dataset",
+  "connector",
+  "aggregate"
+ ],
+ "topLevelKeys": [
+  "schemaVersion",
+  "meta",
+  "theme",
+  "homeScreenId",
+  "roles",
+  "variables",
+  "screens",
+  "actions",
+  "design",
+  "nav",
+  "publicAccess",
+  "aiBrowsing"
+ ],
+ "fieldTypes": [
+  "text",
+  "richtext",
+  "number",
+  "date",
+  "datetime",
+  "bool",
+  "select",
+  "multiselect",
+  "relation",
+  "file",
+  "computed"
+ ],
+ "filterOps": [
+  "eq",
+  "neq",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "contains",
+  "notContains",
+  "startsWith",
+  "endsWith",
+  "in",
+  "notIn",
+  "between",
+  "isNull",
+  "isNotNull"
+ ],
+ "aggFns": [
+  "count",
+  "sum",
+  "avg",
+  "min",
+  "max",
+  "p50",
+  "p90"
+ ],
+ "dateBuckets": [
+  "hour",
+  "day",
+  "week",
+  "month",
+  "quarter",
+  "year"
+ ]
+}

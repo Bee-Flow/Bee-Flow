@@ -3,6 +3,7 @@
 import { parseDecimal } from '@/shared/lib/decimal';
 
 import { isSupportedInput, type SupportedInput } from './catalog';
+import { fieldGate } from './gates';
 import { bool, defaultDate, num, optionList, str, type SelectOption } from './props';
 import type { AppFormValues, AppNode } from './types';
 
@@ -22,11 +23,27 @@ export interface AppInput {
     initial: string | number | boolean | null;
 }
 
-export function collectInputs(root: AppNode, noteUnsupported: (type: string) => void): AppInput[] {
+/**
+ * The fields of one form, in order. Only these are drawn and only these are
+ * submitted (FormCard builds the values from this list), so a field the viewer
+ * may not see, or one behind a condition the phone cannot evaluate, is left out
+ * here: see fieldGate().
+ */
+export function collectInputs(
+    root: AppNode,
+    noteUnsupported: (type: string) => void,
+    viewerRole?: string | null,
+): AppInput[] {
     const out: AppInput[] = [];
     const walk = (nodes: AppNode[] | undefined) => {
         for (const node of nodes ?? []) {
             if (!node || node.visible === false) continue;
+            const gate = fieldGate(node, viewerRole);
+            if (gate === 'hidden') continue;
+            if (gate === 'unsupported') {
+                noteUnsupported(node.type);
+                continue;
+            }
             if (isSupportedInput(node.type)) {
                 const input = toInput(node, node.type);
                 if (input) out.push(input);
