@@ -23,7 +23,11 @@ function mock(relPath, exports) {
     require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
 }
 
-const calls = { exec: [], advance: [], release: [], update: [], claimPrimary: 0 };
+const calls = { exec: [], advance: [], release: [], update: [], touch: [], claimPrimary: 0 };
+// The batch keep-alive (claimedBatches.js): ids whose claim the reaper took
+// back while they waited, and a hook at the start of every run.
+let reaped = new Set();
+let onExec = () => {};
 let dueSchedules = [];
 let duePrimary = [];
 let capabilityOk = true;
@@ -32,6 +36,7 @@ const NEXT = new Date('2026-09-04T05:00:00.000Z');
 mock('../../../stores/automationStore', {
     claimDueAutomations: async () => { calls.claimPrimary += 1; const d = duePrimary; duePrimary = []; return d; },
     claimDueSchedules: async () => dueSchedules,
+    touchAutomationRunning: async (id, instanceId) => { calls.touch.push({ id, instanceId, execsSoFar: calls.exec.length }); return !reaped.has(id); },
     advanceSchedule: async (id, patch) => { calls.advance.push({ id, ...patch }); },
     releaseAutomation: async (id) => { calls.release.push(id); },
     updateAutomation: async (id, u) => { calls.update.push({ id, ...u }); },
@@ -39,7 +44,7 @@ mock('../../../stores/automationStore', {
 });
 mock('../../../db', { pool: { connect: async () => ({ query: async () => ({ rows: [{ locked: false }] }), release() {} }) } });
 mock('../engine', { INSTANCE_ID: 'runner-test' });
-mock('../execution', { executeAutomation: async (a, opts) => { calls.exec.push({ id: a.id, ...opts }); return {}; } });
+mock('../execution', { executeAutomation: async (a, opts) => { calls.exec.push({ id: a.id, ...opts }); onExec(a); return {}; } });
 mock('../cancellation', { ACTIVE_RUNS: new Map() });
 // partsInTz stays real: the holiday check (schedule.skipHolidays) reads the
 // slot's local date through it.
@@ -63,6 +68,7 @@ const ticks = require('./ticks');
 
 beforeEach(() => {
     calls.exec.length = 0; calls.advance.length = 0; calls.release.length = 0; calls.update.length = 0; calls.claimPrimary = 0;
+    calls.touch.length = 0; reaped = new Set(); onExec = () => {}; duePrimary = [];
     dueSchedules = [];
     capabilityOk = true;
     ownerRow = { id: 'u1', status: 'active' };
@@ -161,4 +167,65 @@ test('a PRIMARY slot on an ordinary day runs as before', async () => {
     await ticks.processDueAutomations();
     assert.strictEqual(calls.exec.length, 1);
     assert.strictEqual(calls.exec[0].triggerKind, 'schedule');
+});
+
+// ── claimed rows that wait for their batch (claimedBatches.js) ──────────────
+//
+// The tick claims up to 20 due automations at once (last_status='running',
+// running_started_at = the claim moment) and runs them five at a time. Only a
+// row that is actually running has a heartbeat that refreshes its marker; a
+// row in batch three or four just sat there. When the earlier batches took
+// longer than the reaper's stale window (six minutes by default), the reaper
+// reset the waiting rows, another instance claimed and ran them, and this
+// instance — which still held them in memory — ran them as well: one schedule
+// slot, two runs.
+
+const primaryRow = (n) => ({ id: `auto-${n}`, userId: 'u1', organizationId: 'org-1', triggerType: 'schedule', scheduleCron: '0 7 * * *', scheduleTz: 'UTC', nextRunAt: '2026-09-03T07:00:00.000Z', definition: {} });
+
+test('rows waiting for a later batch get their marker refreshed before every batch', async () => {
+    duePrimary = Array.from({ length: 12 }, (_, i) => primaryRow(i + 1));
+    await ticks.processDueAutomations();
+    assert.strictEqual(calls.exec.length, 12, 'every claimed row still runs');
+    assert.ok(calls.exec.every(e => e.markerClaimed === true), 'the tick tells the run it holds the claim');
+    const touchedAfterFirstBatch = calls.touch.filter(t => t.execsSoFar === 5).map(t => t.id);
+    assert.deepStrictEqual(touchedAfterFirstBatch, ['auto-6', 'auto-7', 'auto-8', 'auto-9', 'auto-10', 'auto-11', 'auto-12'],
+        'the rows still waiting after the first batch were not kept alive');
+    assert.ok(calls.touch.every(t => t.instanceId === 'runner-test'), 'the refresh must be scoped to this instance');
+});
+
+test('a row the reaper took back while it waited is not run by this instance', async () => {
+    duePrimary = Array.from({ length: 7 }, (_, i) => primaryRow(i + 1));
+    // The first batch outlasts the stale window: auto-7 is reset (and may be claimed elsewhere).
+    onExec = (a) => { if (a.id === 'auto-1') reaped.add('auto-7'); };
+    await ticks.processDueAutomations();
+    assert.deepStrictEqual(calls.exec.map(e => e.id), ['auto-1', 'auto-2', 'auto-3', 'auto-4', 'auto-5', 'auto-6'],
+        'a row that lost its claim ran anyway — a second instance runs it too');
+});
+
+test('additional schedules waiting for a batch get the same protection', async () => {
+    dueSchedules = Array.from({ length: 7 }, (_, i) => ({
+        automation: { id: `auto-${i + 1}`, userId: 'u1', organizationId: 'org-1', definition: {} },
+        schedule: { id: `sch_${i + 1}`, automationId: `auto-${i + 1}`, triggerStepId: 'trig', cron: '0 7 * * *', tz: 'UTC', nextRunAt: '2026-09-03T07:00:00.000Z' },
+    }));
+    onExec = (a) => { if (a.id === 'auto-1') reaped.add('auto-6'); };
+    await ticks.processDueAutomations();
+    assert.deepStrictEqual(calls.exec.map(e => e.id), ['auto-1', 'auto-2', 'auto-3', 'auto-4', 'auto-5', 'auto-7']);
+});
+
+test('a store without the marker refresh, or a failing refresh, still runs every claimed row', async () => {
+    const store = require('../../../stores/automationStore');
+    const original = store.touchAutomationRunning;
+    try {
+        store.touchAutomationRunning = async () => { throw new Error('db down'); };
+        duePrimary = Array.from({ length: 6 }, (_, i) => primaryRow(i + 1));
+        await ticks.processDueAutomations();
+        assert.strictEqual(calls.exec.length, 6, 'an infra error on the refresh must not drop claimed work');
+        calls.exec.length = 0;
+        delete store.touchAutomationRunning;
+        duePrimary = Array.from({ length: 6 }, (_, i) => primaryRow(i + 1));
+        await ticks.processDueAutomations();
+        assert.strictEqual(calls.exec.length, 6);
+    } finally {
+        store.touchAutomationRunning = original;
+    }
 });

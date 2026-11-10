@@ -5,10 +5,14 @@ import { toast } from '../../shared/Toast';
 import type { SavingState } from './header/LiveActions';
 import { logger } from '@/utils/logger';
 import type { FlowDefinition } from './flow/types';
+import type { unwrapRow as unwrapRowFn, RowAnswer } from './unwrapRow';
 
 
 export interface UseVisualSaveOptions {
-    api: any;
+    /** api.updateAutomation, or api.updateStep for a reusable Step: the same route every other write of this row takes. */
+    updateOne: (id: string, body: unknown) => Promise<unknown>;
+    /** Peels the `{ automation }` / `{ step }` envelope off the answer. */
+    unwrapRow: typeof unwrapRowFn;
     ensureAutomationCreated: (defForCreate?: FlowDefinition | null) => Promise<string | undefined>;
     setServerAutomation: ReturnType<typeof useBuilderHydration>['setServerAutomation'];
     setDraft: (def: FlowDefinition) => void;
@@ -29,7 +33,7 @@ export interface UseVisualSaveOptions {
  * shell reaches it through useAutomationPersistence.
  */
 export default function useVisualSave({
-    api, ensureAutomationCreated, setServerAutomation, setDraft, markServerConfirmed,
+    updateOne, unwrapRow, ensureAutomationCreated, setServerAutomation, setDraft, markServerConfirmed,
     adoptSaveValidation, adoptSaveRejection, noteManagedRefusal, setSavingState, savedTimer,
     readOnlyRef, effectiveDef,
 }: UseVisualSaveOptions) {
@@ -66,10 +70,10 @@ export default function useVisualSave({
         try {
             const aid = await ensureAutomationCreated(nextDef);
             if (!aid) { setSavingState('error'); return; }
-            const r = await api.updateAutomation(aid, { definition: nextDef });
-            const persisted = r.automation || r;
+            const r = await updateOne(aid, { definition: nextDef });
+            const persisted = unwrapRow(r as RowAnswer);
             setServerAutomation(persisted);
-            markServerConfirmed(persisted?.definition || nextDef);
+            markServerConfirmed((persisted?.definition as FlowDefinition | null | undefined) || nextDef);
             adoptSaveValidation(r);
             setSavingState('saved');
             if (savedTimer.current) clearTimeout(savedTimer.current);
@@ -81,7 +85,7 @@ export default function useVisualSave({
             setSavingState('error');
             toast.error(`Save failed — your edits are still on the canvas. ${(e as Error).message || ''}`.trim());
         }
-    }, [ensureAutomationCreated, api, setServerAutomation, markServerConfirmed, adoptSaveValidation, setSavingState, savedTimer, noteManagedRefusal, adoptSaveRejection]);
+    }, [ensureAutomationCreated, updateOne, unwrapRow, setServerAutomation, markServerConfirmed, adoptSaveValidation, setSavingState, savedTimer, noteManagedRefusal, adoptSaveRejection]);
     const performVisualSave = useCallback(async (nextDef: FlowDefinition) => {
         if (saveInFlightRef.current) { queuedSaveRef.current = nextDef; return; }
         saveInFlightRef.current = true;
@@ -116,8 +120,7 @@ export default function useVisualSave({
         if (readOnlyRef.current) return;
         setDraft(nextDef);
         // History-only apply: the committing caller writes this same definition
-        // to the server itself, so don't schedule a second (and, for Steps,
-        // wrongly-routed) PUT for it.
+        // to the server itself, so don't schedule a second PUT for it.
         if (suppressVisualPersistRef.current) return;
         if (visualSaveTimer.current) clearTimeout(visualSaveTimer.current);
         setSavingState('saving');

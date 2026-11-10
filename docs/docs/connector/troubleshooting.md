@@ -184,15 +184,23 @@ If you still see it after upgrading to a connector built from commit `af26662` o
 2. Confirm no upstream reverse proxy (nginx, traefik) is re-introducing chunked encoding on the NC → browser hop — check `proxy_buffering off;` and `proxy_http_version 1.1;` in the NC vhost.
 3. Capture a `curl -N -v https://<nc-host>/index.php/apps/app_api/proxy/bee_flow/api/...` against an SSE endpoint and attach the headers to a bug report — the response should have `Connection: close` and no `Transfer-Encoding`.
 
-## Nextcloud 33.0.0 — broken events listener
+## Nextcloud events do not reach automations
 
-NC 33.0.0 ships AppAPI with a broken `EventsListenerController` that returns 500 to every `POST /ocs/v1.php/apps/app_api/api/v1/events_listener`. The connector probes the first call, detects this, and **skips the rest of the registrations** with a log line:
+File, tag, calendar, Forms, Tables and Deck triggers are delivered by Nextcloud's bundled `webhook_listeners` app. If that app is not enabled the connector logs:
 
 ```
-[Init] AppAPI 33.0.0 detected — events listener disabled
+[Webhooks] The webhook_listeners app is not enabled on this Nextcloud
 ```
 
-Effect: user/group changes in NC won't auto-sync to Bee Flow until you upgrade. The 6-hourly **NC Sync Backstop** job catches up — most teams won't notice. Upgrade to 33.0.1+ to restore real-time sync.
+Fix: `occ app:enable webhook_listeners`. The connector retries the registration every minute, so no restart is needed. A healthy registration logs `[Webhooks] N registered, M skipped (optional apps), 0 failed`; "skipped" rows belong to apps that are not installed (Forms, Tables, Deck).
+
+If events arrive, but minutes late: Nextcloud sends them from background jobs, so the delay is the cron interval. Run a dedicated worker for near-real-time delivery:
+
+```
+occ background-job:worker -t 60 'OCA\WebhookListeners\BackgroundJobs\WebhookCall'
+```
+
+User and group changes are not delivered as events at all (Nextcloud's user and group events are not webhook-compatible). They reach Bee Flow through the periodic sync, or at once through **Sync now**.
 
 ## HMAC clock-skew rejections
 

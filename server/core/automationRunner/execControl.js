@@ -9,6 +9,7 @@ const { evaluate, parsePath, walkTokens, parseJsonText, jsonCacheFor } = require
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
 const { createRuleMissCounter } = require('./ruleMisses');
+const { sleepUntil } = require('./cancellableSleep');
 // Literals only, no requires of its own — the validator's vocabulary module is
 // safe to pull into the runner, and sharing it is the point: the values the
 // validator accepts and the values the runner forwards to the app must be the
@@ -82,14 +83,7 @@ async function execWait(step, ctx, runState, mode) {
     // driven by the same fact — this runner is still alive — instead of by two
     // unrelated numbers.
     ctx.extendRunDeadline?.(seconds * 1000);
-    const until = Date.now() + seconds * 1000;
-    while (Date.now() < until) {
-        if (ctx.cancelSignal?.aborted) throw new Error('Run cancelled');
-        await new Promise(r => {
-            const t = setTimeout(r, Math.min(5_000, Math.max(0, until - Date.now())));
-            if (t.unref) t.unref();
-        });
-    }
+    await sleepUntil(Date.now() + seconds * 1000, ctx);
     // "Once per run" is not a time bound. A run that slept an hour must not
     // answer the next lookup from before the sleep — waiting is usually the
     // author saying "let the other system catch up", which is exactly when a

@@ -57,6 +57,9 @@ interface AutomationsLauncherProps {
     onCreateFolder?: ((name: string) => unknown) | null;
     automationsQuery?: string;
     automationsLoading?: boolean;
+    /** The list read failed; the overview says so instead of "No automations yet". */
+    automationsLoadFailed?: boolean;
+    onRetryAutomations?: (() => unknown) | null;
     activeRunIds?: RunIdSet | null;
     canCreateAutomation?: boolean;
 }
@@ -70,7 +73,7 @@ export default function AutomationsLauncher({
     // The overview tab: the sidebar's (filtered) automations, the filter that
     // produced them, folders for the board's folder lanes, the live-run poll,
     // and the per-row callback builder the sidebar rows use.
-    automations = [], automationsQuery = '', automationsLoading = false, folders = [], activeRunIds = null,
+    automations = [], automationsQuery = '', automationsLoading = false, automationsLoadFailed = false, onRetryAutomations = null, folders = [], activeRunIds = null,
     automationRowProps = null, canCreateAutomation = true,
 }: AutomationsLauncherProps) {
     const { t } = useTranslation();
@@ -95,11 +98,7 @@ export default function AutomationsLauncher({
                 data-tour anchor lets the Learning Center spotlight the ways
                 into the feature (see onboarding/tourAnchors.js). */}
             <div className="flex-shrink-0 border-b border-[var(--border-default)]">
-                <div className="max-w-3xl mx-auto px-6 flex items-center justify-center gap-1" data-tour="automation-start-tabs">
-                    {TABS.map(tab => (
-                        <Tab key={tab.id} id={tab.id} active={activeTab} onClick={selectTab}>{t(tab.key, tab.en)}</Tab>
-                    ))}
-                </div>
+                <TabBar active={activeTab} onSelect={selectTab} />
             </div>
 
             {/* Panels. The two "launcher" tabs stay mounted (so each keeps its
@@ -119,6 +118,8 @@ export default function AutomationsLauncher({
                             automations={automations}
                             query={automationsQuery}
                             loading={automationsLoading}
+                            loadFailed={automationsLoadFailed}
+                            onRetry={onRetryAutomations}
                             folders={folders}
                             activeRunIds={activeRunIds}
                             rowProps={automationRowProps}
@@ -157,6 +158,43 @@ export default function AutomationsLauncher({
     );
 }
 
+/** Which tab an arrow, Home or End key moves to from `at`; -1 for any other key. */
+function tabAfterKey(key: string, at: number): number {
+    if (key === 'ArrowRight') return (at + 1) % TABS.length;
+    if (key === 'ArrowLeft') return (at - 1 + TABS.length) % TABS.length;
+    if (key === 'Home') return 0;
+    if (key === 'End') return TABS.length - 1;
+    return -1;
+}
+
+/**
+ * The launcher's tab bar, as a tablist: Left/Right and Home/End move between
+ * the tabs, and only the selected tab is in the Tab order.
+ */
+function TabBar({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
+    const { t } = useTranslation();
+    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const to = tabAfterKey(e.key, TABS.findIndex(tab => tab.id === active));
+        if (to < 0) return;
+        e.preventDefault();
+        onSelect(TABS[to].id);
+        e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
+    };
+    return (
+        <div
+            role="tablist"
+            aria-label={t('automations.tabs.label', 'Automations views')}
+            onKeyDown={onKeyDown}
+            className="max-w-3xl mx-auto px-6 flex items-center justify-center gap-1"
+            data-tour="automation-start-tabs"
+        >
+            {TABS.map(tab => (
+                <Tab key={tab.id} id={tab.id} active={active} onClick={onSelect}>{t(tab.key, tab.en)}</Tab>
+            ))}
+        </div>
+    );
+}
+
 // Underline tab button — copied from the builder header so the start-screen
 // tabs read as the same control. Uses the theme accent token, not a
 // hardcoded brand hue.
@@ -171,6 +209,10 @@ function Tab({ id, active, onClick, children }: TabProps) {
     const isActive = active === id;
     return (
         <button
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onClick(id)}
             className={`px-3 py-2.5 border-b-2 transition text-sm font-medium ${
                 isActive

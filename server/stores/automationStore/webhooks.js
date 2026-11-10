@@ -124,8 +124,13 @@ async function checkAndStoreNonce(nonce, { retain = false } = {}) {
     try {
         await run(`INSERT INTO automation_webhook_seen_nonces (nonce) VALUES ($1)`, [retain ? RETAINED_PREFIX + nonce : nonce]);
         return true;
-    } catch {
-        return false; // duplicate
+    } catch (e) {
+        // Only the primary-key violation means "seen before". Any other
+        // failure (an outage, a missing table) is not a replay: answering
+        // false would refuse a genuine delivery with a 401 its sender does not
+        // retry, where an error makes it send the delivery again.
+        if (/** @type {{ code?: string }} */ (e)?.code === '23505') return false;
+        throw e;
     }
 }
 

@@ -97,6 +97,22 @@ function createFormQueue(overrides = {}) {
     }
 
     /**
+     * Refuse now (503 form_busy) when this automation's queue has no room. The
+     * routes ask BEFORE a submission records its nonce, claims its uploads or
+     * writes its session: the 503 tells the visitor to try again, and a retry
+     * from the same page carries the same nonce, which would otherwise answer
+     * "already received" and run nothing. accept() keeps its own check for the
+     * burst that passes this one together.
+     * @param {string} automationId
+     */
+    function assertRoom(automationId) {
+        const q = queues.get(automationId);
+        if (q && q.items.length + q.reserved >= QUEUE_DEPTH) {
+            throw new HttpError(503, 'form_busy', 'This form is busy right now — please try again in a moment.');
+        }
+    }
+
+    /**
      * Accept a unit of form work: persist it, ack the visitor, queue it. The
      * visitor never waits on the automation — only on the one write that makes
      * the 202 true.
@@ -235,6 +251,7 @@ function createFormQueue(overrides = {}) {
 
     return {
         accept,
+        assertRoom,
         stop,
         stopServingPage,
         ...recovery,
@@ -247,6 +264,7 @@ const defaultQueue = createFormQueue();
 
 module.exports = {
     accept: defaultQueue.accept,
+    assertRoom: defaultQueue.assertRoom,
     recoverPending: defaultQueue.recoverPending,
     stop: defaultQueue.stop,
     stopServingPage: defaultQueue.stopServingPage,

@@ -328,7 +328,7 @@ router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (/** 
     if (!approvalService.canDecide(approval, viewer)) {
         return res.status(403).json({ error: 'You cannot decide this approval.' });
     }
-    const run = approval.runId ? await automationStore.getRun(approval.runId).catch((e) => fallback('routes/automation/approvals:anon#5', e, null)) : null;
+    const run = approval.runId ? await automationStore.getRun(approval.runId) : null; // NOT caught: decide() cancels the approval on "no run"; a failed lookup is a retryable 500
     const { code, body } = await approvalService.decide({
         approval,
         run,

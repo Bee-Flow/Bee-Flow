@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthFetchMock, FakeResponse } from '../../test/automationDesignerHarness';
 import {
-    INVOICES, entitlements, mountDesigner, res, scenario, useDesignerHarness,
+    INVOICES, REPORT, entitlements, mountDesigner, res, scenario, useDesignerHarness,
 } from '../../test/automationDesignerHarness';
 import { toast } from '../shared/Toast';
 import { parkSeed, takeSeed } from '../admin/Studio/studioAi/handoff';
@@ -69,13 +69,21 @@ describe('AITasksDesigner — the list', () => {
         expect(screen.getByTestId('launcher')).toHaveAttribute('data-count', '0');
     });
 
-    it('a failed list read leaves an empty sidebar, not a crash', async () => {
+    it('a failed list read says so and offers a retry, instead of "No automations yet."', async () => {
+        const user = userEvent.setup();
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         scenario.list = () => res(500);
         mountDesigner();
-        expect(await screen.findByText('No automations yet.')).toBeInTheDocument();
-        expect(screen.getByTestId('launcher')).toBeInTheDocument();
+        expect(await screen.findByText('Could not load your automations.')).toBeInTheDocument();
+        expect(screen.queryByText('No automations yet.')).toBeNull();
+        expect(screen.getByTestId('launcher')).toHaveAttribute('data-load-failed', 'true');
         await waitFor(() => expect(warn).toHaveBeenCalledWith('[AITasksDesigner] fetchAutomations failed:', expect.any(String)));
+
+        scenario.list = () => res(200, { automations: [INVOICES] });
+        await user.click(screen.getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByText('Invoice sync')).toBeInTheDocument();
+        expect(screen.queryByText('Could not load your automations.')).toBeNull();
+        expect(screen.getByTestId('launcher')).toHaveAttribute('data-load-failed', 'false');
     });
 
     it('filters the sidebar, the building blocks and the launcher together; "No matches." when both are empty', async () => {
@@ -96,6 +104,16 @@ describe('AITasksDesigner — the list', () => {
         await user.clear(filter);
         await user.type(filter, 'zzz');
         expect(screen.getByText('No matches.')).toBeInTheDocument();
+    });
+
+    it('does not poll the running marker while the tab is hidden, and reads it again when the tab comes back', async () => {
+        const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+        mountDesigner();
+        expect(await screen.findByText('Weekly report')).toBeInTheDocument();
+        expect(sent('GET', '/api/automation/_runs/active')).toHaveLength(0);
+        visibility.mockReturnValue('visible');
+        document.dispatchEvent(new Event('visibilitychange'));
+        await waitFor(() => expect(sent('GET', '/api/automation/_runs/active')).toHaveLength(1));
     });
 
     it('marks an automation that is running right now', async () => {
@@ -121,6 +139,49 @@ describe('AITasksDesigner — row actions', () => {
         await waitFor(() => expect(sent('GET', '/api/automation/').length).toBeGreaterThanOrEqual(2));
         await openMenu(user, 'Weekly report');
         expect(await screen.findByText('Activate')).toBeInTheDocument();
+    });
+
+    it('a slow, older list read does not overwrite a newer one', async () => {
+        const user = userEvent.setup();
+        let stage: 'first' | 'stale' | 'fresh' = 'first';
+        let staleAsked = false;
+        let releaseStale: () => void = () => {};
+        const staleBody = new Promise<unknown>((resolve) => { releaseStale = () => resolve({ automations: [{ ...INVOICES, title: 'Stale list' }] }); });
+        scenario.list = () => {
+            if (stage === 'first') return res(200, { automations: [INVOICES, REPORT] });
+            if (stage === 'stale') { staleAsked = true; return { ok: true, status: 200, json: () => staleBody, text: async () => '' }; }
+            return res(200, { automations: [{ ...INVOICES, title: 'Fresh list' }, REPORT] });
+        };
+        mountDesigner();
+        await openMenu(user, 'Invoice sync');
+        stage = 'stale';
+        await user.click(await screen.findByText('Pause'));
+        await waitFor(() => expect(staleAsked).toBe(true));
+        stage = 'fresh';
+        await openMenu(user, 'Weekly report');
+        await user.click(await screen.findByText('Activate'));
+        expect(await screen.findByText('Fresh list')).toBeInTheDocument();
+        releaseStale();
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
+        expect(screen.queryByText('Stale list')).toBeNull();
+        expect(screen.getByText('Fresh list')).toBeInTheDocument();
+    });
+
+    it('a second click on "Move to trash" while the delete is still going deletes once', async () => {
+        const user = userEvent.setup();
+        let finishDelete: () => void = () => {};
+        const deleting = new Promise<FakeResponse>((resolve) => { finishDelete = () => resolve(res(200, {})); });
+        const routed = authFetch.getMockImplementation();
+        authFetch.mockImplementation(async (url, init) => (init?.method === 'DELETE' ? deleting : routed!(url, init)));
+        mountDesigner();
+        const row = (await screen.findByText('Invoice sync')).closest('div[title]') as HTMLElement;
+        await user.click(within(row).getByRole('button', { name: 'Move to trash' }));
+        const confirmButton = within(await screen.findByRole('dialog')).getByRole('button', { name: 'Move to trash' });
+        await user.click(confirmButton);
+        await user.click(confirmButton);
+        finishDelete();
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect(sent('DELETE', '/api/automation/a1')).toHaveLength(1);
     });
 
     it('a failed toggle toasts the reason', async () => {
@@ -475,7 +536,7 @@ describe('AITasksDesigner — reaching another automation from inside the editor
         vi.spyOn(console, 'warn').mockImplementation(() => {});
         scenario.list = (): FakeResponse => res(500);
         mountDesigner({ initialTaskId: 'a1' });
-        await screen.findByText('No automations yet.');
+        await screen.findByText('Could not load your automations.');
         expect(screen.queryByTestId('builder')).toBeNull();
     });
 });

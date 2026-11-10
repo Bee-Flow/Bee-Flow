@@ -20,6 +20,7 @@ export interface LauncherStubProps {
     onBuildSuggestion: (s: { id: string; title: string; buildPrompt: string }) => void;
     onAskSuggestion: (s: { id: string; title: string; buildPrompt: string }) => void;
     onCreateStep: (() => void) | null; onCreateFolder: (() => void) | null;
+    automationsLoadFailed?: boolean;
 }
 
 export function BuilderStub(p: BuilderStubProps) {
@@ -39,7 +40,7 @@ export function LauncherStub(p: LauncherStubProps) {
     const s = { id: 's1', title: 'Log invoices', buildPrompt: 'Log every invoice' };
     return (
         <div data-testid="launcher" data-count={p.automations.length} data-query={p.automationsQuery} data-can-create={String(p.canCreateAutomation)}
-            data-has-step={String(!!p.onCreateStep)} data-has-folder={String(!!p.onCreateFolder)}>
+            data-load-failed={String(!!p.automationsLoadFailed)} data-has-step={String(!!p.onCreateStep)} data-has-folder={String(!!p.onCreateFolder)}>
             <button onClick={p.onCreateAutomation}>stub-new</button>
             <button onClick={() => p.onOpenAutomation('a2')}>stub-open-a2</button>
             <button onClick={() => { void p.onPickTemplate('t1'); }}>stub-template</button>

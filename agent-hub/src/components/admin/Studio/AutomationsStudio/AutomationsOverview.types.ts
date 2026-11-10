@@ -11,6 +11,9 @@ export interface AutomationsOverviewProps {
     folders?: ProjectContextPillProject[];
     query?: string;
     loading?: boolean;
+    /** The list read failed: with no rows to show, say so (never "No automations yet"). */
+    loadFailed?: boolean;
+    onRetry?: (() => unknown) | null;
     activeRunIds?: RunIdSet | null;
     /** The same per-row callbacks the sidebar row gets. */
     rowProps?: RowPropsFn | null;

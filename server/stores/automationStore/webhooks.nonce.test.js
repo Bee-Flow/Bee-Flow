@@ -58,3 +58,16 @@ test('WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS bounds how long a retained nonce is k
     await ageAll('31 days');
     assert.strictEqual(await checkAndStoreNonce('hook:n4', { retain: true }), true);
 });
+
+// A store failure is not a replay. "Seen before" is a 401 the sender does not
+// retry; an outage must surface as an error so the delivery is sent again.
+test('a failing insert is an error, not "this nonce was seen before"', async () => {
+    await pg.exec('ALTER TABLE automation_webhook_seen_nonces RENAME TO automation_webhook_seen_nonces_gone');
+    try {
+        await assert.rejects(() => checkAndStoreNonce('hook:n5'), 'a broken store answered "replay"');
+    } finally {
+        await pg.exec('ALTER TABLE automation_webhook_seen_nonces_gone RENAME TO automation_webhook_seen_nonces');
+    }
+    assert.strictEqual(await checkAndStoreNonce('hook:n5'), true, 'the nonce was never stored, so the retried delivery is fresh');
+    assert.strictEqual(await checkAndStoreNonce('hook:n5'), false, 'and a real duplicate is still a replay');
+});

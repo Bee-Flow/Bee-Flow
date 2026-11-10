@@ -103,6 +103,36 @@ test('an aborted cancel signal stops the sleep within one chunk', { timeout: 500
     await rejected;          // NOT after the full 60s
 });
 
+// A cancel issued against ANOTHER instance never aborts this process's signal:
+// it only sets cancel_requested on the run row. dispatchStep reads that flag
+// between steps, but a Wait is one step that may last 24 hours, so the cancel
+// was not seen until the sleep was over and the run sat on "running" all that
+// time. The wait now asks the flag too, every 30 seconds of sleep.
+test('a cancel issued on another instance stops the sleep within 30 seconds', { timeout: 5000 }, async (t) => {
+    t.mock.timers.enable(TIMER_APIS);
+    let flag = false;
+    let asked = 0;
+    const ctx = { extendRunDeadline: () => {}, cancelSignal: new AbortController().signal, cancelRequested: async () => { asked += 1; return flag; } };
+    let outcome = null;
+    const p = execWait({ seconds: 3600 }, ctx, {}, 'live').then(() => { outcome = 'slept'; }, (e) => { outcome = e.message; });
+    await drive(t, 60_000);
+    assert.strictEqual(outcome, null, 'no cancel yet: still sleeping');
+    assert.ok(asked >= 1 && asked <= 3, `the flag is polled about every 30s, not every chunk (asked ${asked} times in a minute)`);
+    flag = true;
+    await drive(t, 35_000);
+    await p;
+    assert.strictEqual(outcome, 'Run cancelled', 'the wait slept on after the run was cancelled on another instance');
+});
+
+test('a failing cancel lookup does not end the wait', { timeout: 5000 }, async (t) => {
+    t.mock.timers.enable(TIMER_APIS);
+    const ctx = { extendRunDeadline: () => {}, cancelRequested: async () => { throw new Error('db down'); } };
+    const p = execWait({ seconds: 40 }, ctx, {}, 'live');
+    await drive(t, 40_000);
+    const r = await p;
+    assert.strictEqual(r.output.waitedSeconds, 40);
+});
+
 test('seconds are clamped to the 1..86400 contract', { timeout: 5000 }, async (t) => {
     t.mock.timers.enable(TIMER_APIS);
     const grants = [];

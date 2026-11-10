@@ -125,6 +125,41 @@ describe('accountsFrom — modern layout', () => {
     });
 });
 
+describe('accountsFrom — the other folder groups', () => {
+    // The client keeps a virtual-files folder under FoldersWithPlaceholders (the
+    // default for a new sync on Windows) and a folder of a newer journal format
+    // under Multifolders; it loads all three groups (folderman.cpp).
+    const GROUPS = `[Accounts]
+0\\Folders\\1\\localPath=/home/tom/Nextcloud/
+0\\Folders\\1\\targetPath=/
+0\\FoldersWithPlaceholders\\1\\localPath=C:/Users/tom/Nextcloud
+0\\FoldersWithPlaceholders\\1\\targetPath=/Werk
+0\\FoldersWithPlaceholders\\1\\virtualFilesMode=wincfapi
+0\\Multifolders\\1\\localPath=/home/tom/Archief/
+0\\Multifolders\\1\\targetPath=/Archief
+0\\url=https://cloud.example.com
+0\\user=tom
+`;
+
+    it('reads folders from Folders, FoldersWithPlaceholders and Multifolders', () => {
+        const [account] = accountsFrom(parseIni(GROUPS));
+        assert.deepEqual(
+            account?.folders.map((f) => [f.localPath, f.targetPath, f.virtualFiles]).sort(),
+            [
+                ['/home/tom/Archief', '/Archief', false],
+                ['/home/tom/Nextcloud', '/', false],
+                ['C:/Users/tom/Nextcloud', '/Werk', true],
+            ],
+        );
+    });
+
+    it('does not take the group name for an account field', () => {
+        const [account] = accountsFrom(parseIni(GROUPS));
+        assert.equal(account?.user, 'tom');
+        assert.equal(account?.url, 'https://cloud.example.com');
+    });
+});
+
 describe('accountsFrom — legacy layout', () => {
     it('reads folders from their own section', () => {
         const accounts = accountsFrom(parseIni(LEGACY));

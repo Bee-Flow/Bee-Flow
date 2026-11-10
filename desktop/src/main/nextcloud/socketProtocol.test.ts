@@ -106,6 +106,8 @@ describe('socketCandidates', () => {
         const paths = socketCandidates({ USERNAME: 'tom' }, 'win32', 'C:/Users/tom');
         assert.ok(paths.every(isNamedPipe), 'every Windows candidate is a pipe');
         assert.ok(paths.includes('\\\\.\\pipe\\Nextcloud-tom'));
+        // The client names its pipe <executable>-<USERNAME> (socketapi.cpp), so that one is tried first.
+        assert.equal(paths[0], '\\\\.\\pipe\\Nextcloud-tom');
     });
 
     it('uses TMPDIR on macOS, where Qt puts the runtime directory', () => {

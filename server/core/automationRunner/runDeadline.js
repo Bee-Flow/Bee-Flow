@@ -63,6 +63,9 @@ async function raceRunDag(deps, {
     // Cancellable-sleep hook for execWait: chunked sleeps poll this signal so
     // a cancel lands within seconds instead of after the full wait.
     ctx.cancelSignal = cancelSignal;
+    // The cross-instance half of the same question (the cancel_requested flag
+    // on the run row), for a step that sleeps long enough to need it.
+    ctx.cancelRequested = () => isCancelRequested(run.id);
     // §WS2.1 — the DAG promise. We keep a handle so that on a timeout/cancel we
     // can abort the controller and AWAIT runDag's unwind before finalizing —
     // otherwise Promise.race only stops *waiting* for runDag; runDag itself keeps

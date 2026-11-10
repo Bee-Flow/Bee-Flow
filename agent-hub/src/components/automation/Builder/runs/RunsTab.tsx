@@ -159,6 +159,7 @@ function RunsTabBody({
                         runs={runs}
                         loading={list.isLoading}
                         failed={list.isError}
+                        onReload={() => { void list.refetch(); }}
                         selectedRunId={shownRunId}
                         onOpenRun={openFromList}
                         onOpenEditor={onOpenEditor}

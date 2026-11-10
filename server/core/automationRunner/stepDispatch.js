@@ -20,6 +20,7 @@ const { resolveDeep, withBindingLog } = require('../automationModel/bind');
 const { noteStepBindingMisses } = require('./bindingMisses');
 const log = require('../../telemetry/log');
 const { stepRetryFor } = require('./runPolicy');
+const { cancellableSleep } = require('./cancellableSleep');
 const { makeLeafRunner } = require('./stepLeaf');
 
 /**
@@ -109,9 +110,13 @@ function recordSlot(step, ctx_) {
  * recorded — not just the last. The audit trail otherwise has no rows for
  * intermediate failures, hiding flaky-tool patterns from users.
  */
-async function retryStep(deps, retry, { step, ctx_, state_, mode_, stepStartedAt, inputForRecord, slot, executeStepWithIteration }) {
+async function retryStep(deps, retry, { step, ctx_, state_, mode_, stepStartedAt, inputForRecord, slot, executeStepWithIteration, cancelSignal, assertNotCancelled }) {
     for (let i = 1; i <= retry.max; i++) {
-        if (retry.backoffMs) await new Promise(r => setTimeout(r, retry.backoffMs));
+        // A retry is a new dispatch of the step, so it honours the cancel the
+        // way dispatchStep does: a cancelled or timed-out run sends nothing
+        // again, and does not sit out the wait first.
+        await cancellableSleep(retry.backoffMs, cancelSignal);
+        await assertNotCancelled();
         const attemptStartedAt = new Date().toISOString();
         try {
             // Route retries through the same wrapper as the initial
@@ -133,6 +138,9 @@ async function retryStep(deps, retry, { step, ctx_, state_, mode_, stepStartedAt
             retryResult.attemptStartedAt = attemptStartedAt;
             return retryResult;
         } catch (retryErr) {
+            // The cancel reached the step itself (a fan-out between items, a
+            // container between its steps): that is the end, not a failed try.
+            if (/** @type {Error} */ (retryErr).message === 'Run cancelled') throw retryErr;
             if (!slot.recSuppressed) {
                 await deps.automationStore.recordRunStep({
                     runId: ctx_.runId, stepId: slot.recStepId, parentStepId: slot.recParentStepId,
@@ -216,7 +224,9 @@ async function handleStepFailure(deps, err, f) {
     // A step's own retry wins; without one the automation's
     // runPolicy.retry.max is the default (handoff 5).
     // A mapping that read nothing reads nothing again: no retry for it.
-    const retry = err.errorClass === 'binding_unresolved' ? null : stepRetryFor(step, runPolicy);
+    // Nor for a step that ended because the run was cancelled.
+    const noRetry = err.errorClass === 'binding_unresolved' || err.message === 'Run cancelled';
+    const retry = noRetry ? null : stepRetryFor(step, runPolicy);
     if (retry && retry.max && retry.max > 0 && !err.foreachHandled) {
         const retried = await retryStep(deps, retry, { ...f, inputForRecord, slot });
         if (retried !== undefined) return retried;
@@ -267,13 +277,17 @@ function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
         return runStepLeaf(step, ctx_, state_, mode_);
     };
 
-    const dispatchStep = async (step, ctx_, state_, mode_) => {
-        // Cancellation is checked between every step. We honour both the
-        // in-process AbortSignal (fast path for local cancels) and the
-        // cross-process DB flag (handles cancels issued against a different
-        // runner pod).
+    // Cancellation is checked between every step — and between every try of
+    // one step (retryStep). We honour both the in-process AbortSignal (fast
+    // path for local cancels) and the cross-process DB flag (handles cancels
+    // issued against a different runner pod).
+    const assertNotCancelled = async () => {
         if (cancelSignal.aborted) throw new Error('Run cancelled');
         if (await isCancelRequested(run.id)) throw new Error('Run cancelled');
+    };
+
+    const dispatchStep = async (step, ctx_, state_, mode_) => {
+        await assertNotCancelled();
 
         const stepStartedAt = new Date().toISOString();
         // Defensive: a step missing `id` would crash recordRunStep
@@ -302,6 +316,7 @@ function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
         } catch (err) {
             return handleStepFailure(deps, err, {
                 step, ctx_, state_, mode_, stepStartedAt, bindingLog, runPolicy, executeStepWithIteration,
+                cancelSignal, assertNotCancelled,
             });
         }
     };

@@ -126,7 +126,7 @@ test('an abandoned popup attempt does not turn the next ordinary sign-in into on
     assert.strictEqual(session.oauthPickupId, undefined, 'no session token may be deposited under the old pickup id');
     assert.strictEqual(session.oauthAppRedirect, undefined);
     assert.strictEqual(res.statusCode, 302, 'a plain redirect, not the intermediate popup page');
-    assert.ok(res.location.startsWith('https://cloud.example/apps/oauth2/authorize?'));
+    assert.ok(res.location.startsWith('https://cloud.example/index.php/apps/oauth2/authorize?'));
 });
 
 test('a popup attempt still records its own mode and pickup', async () => {
@@ -136,7 +136,7 @@ test('a popup attempt still records its own mode and pickup', async () => {
     assert.strictEqual(session.oauthPickupId, 'p-123');
     assert.strictEqual(session.oauthPickupChallenge, 'Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw');
     assert.strictEqual(res.statusCode, 200, 'the popup gets the referrer-cleaning intermediate page');
-    assert.match(res.body, /cloud\.example\/apps\/oauth2\/authorize/);
+    assert.match(res.body, /cloud\.example\/index\.php\/apps\/oauth2\/authorize/);
 });
 
 test('a pickup without a challenge is not set up', async () => {
@@ -208,4 +208,23 @@ test('the legacy callback hands the uid on as subject and legacy raw uid, with a
     assert.strictEqual(user.subject, 'carol');
     assert.strictEqual(user.legacyRawUid, 'carol');
     assert.strictEqual(user.emailVerified, false);
+});
+
+test('a refused token exchange logs the status and the OAuth code, never the raw body', async () => {
+    const logged = [];
+    const realError = quiet.error;
+    quiet.error = (...args) => { logged.push(args.map(String).join(' ')); };
+    const realFetch = global.fetch;
+    global.fetch = async () => ({ ok: false, status: 400, text: async () => JSON.stringify({ error: 'invalid_grant', error_description: 'code c for client_secret s3cr3t expired' }) });
+    try {
+        const session = { ...newSession(), legacyOAuthState: 'st', returnTo: 'https://app.example' };
+        const res = await navigate('/callback?code=c&state=st', session);
+        assert.match(res.location, /error=token_exchange_failed/);
+    } finally {
+        global.fetch = realFetch;
+        quiet.error = realError;
+    }
+    assert.strictEqual(logged.length, 1);
+    assert.match(logged[0], /\(400\): invalid_grant$/);
+    assert.doesNotMatch(logged[0], /s3cr3t|error_description/);
 });

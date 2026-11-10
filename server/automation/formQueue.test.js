@@ -194,14 +194,14 @@ test('a first submission that kept losing the race goes back to the sweep instea
 // ═══ Characterisation: the public surface and the two thunks ═════════════
 
 test('the factory exposes exactly this key set', () => {
-    assert.deepStrictEqual(Object.keys(formQueue).sort(), ['_queues', '_reset', 'accept', 'recoverPending', 'stop', 'stopServingPage']);
+    assert.deepStrictEqual(Object.keys(formQueue).sort(), ['_queues', '_reset', 'accept', 'assertRoom', 'recoverPending', 'stop', 'stopServingPage']);
 });
 
 test('the module exports exactly this key set', () => {
     const mod = require('./formQueue');
     assert.deepStrictEqual(Object.keys(mod).sort(), [
         'LEASE_MS', 'MAX_RECOVERIES', 'QUEUE_DEPTH', 'RETRY_DELAYS_MS', '_queues', '_reset',
-        'accept', 'createFormQueue', 'lostToConcurrency', 'recoverPending', 'stop', 'stopServingPage',
+        'accept', 'assertRoom', 'createFormQueue', 'lostToConcurrency', 'recoverPending', 'stop', 'stopServingPage',
     ]);
     assert.strictEqual(mod.QUEUE_DEPTH, 25);
     assert.strictEqual(mod.LEASE_MS, 120000);

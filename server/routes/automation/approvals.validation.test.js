@@ -35,12 +35,16 @@ const { mockModule: mock } = require('../../testUtils/moduleMock');
 // leave it empty.
 const touched = [];
 const APPROVAL = { id: 'ap1', ownerId: 'u1', organizationId: 'org1', status: 'pending', runId: null };
+// The decide tests at the bottom give the approval a run and choose how its
+// lookup answers.
+let approvalRunId = null;
+let getRun = async () => null;
 
 mock(path.join(SERVER, 'stores/automationStore'), {
     listApprovals: async (p) => { touched.push({ what: 'listApprovals', args: [p] }); return { approvals: [], nextCursor: null }; },
     getApprovalFacets: async (p) => { touched.push({ what: 'getApprovalFacets', args: [p] }); return { status: {} }; },
-    getApproval: async (id) => { touched.push({ what: 'getApproval', args: [id] }); return { ...APPROVAL, id }; },
-    getRun: async () => null,
+    getApproval: async (id) => { touched.push({ what: 'getApproval', args: [id] }); return { ...APPROVAL, id, runId: approvalRunId }; },
+    getRun: (id) => getRun(id),
     listRunsForUser: async () => ({ runs: [] }),
     getApprovalForRunStep: async () => null,
     getAutomation: async () => null,
@@ -89,7 +93,7 @@ function dispatch({ method, url, body }) {
     });
 }
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; approvalRunId = null; getRun = async () => null; });
 
 async function refuses(request, field) {
     const res = await dispatch(request);
@@ -169,4 +173,37 @@ test('a decision a caller may make still reaches the service, still forgiving of
 
 test('a key the withdraw route does not read is refused rather than ignored', async () => {
     await refuses({ method: 'POST', url: '/approvals/ap1/withdraw', body: { decision: 'reject' } }, 'body');
+});
+
+// ═══ POST /approvals/:id/decide and a run that could not be READ ════
+//
+// approvalService.decide treats "no run" as "the run moved on" and closes the
+// approval as cancelled. That is right when the run is really gone. It is wrong
+// when the lookup merely failed (a dropped connection, a timeout): the approval
+// would be cancelled for good while its run still waits for it. So a failed
+// lookup is a 500 the approver can retry, and the decision service is never
+// reached; a run that does not exist is still handed over as null.
+
+const decideRun1 = () => { approvalRunId = 'run1'; return dispatch({ method: 'POST', url: '/approvals/ap1/decide', body: { decision: 'approve' } }); };
+const decisions = () => touched.filter((t) => t.what === 'decide').map((t) => t.args[0]);
+
+test('a run lookup that fails is a 500, and the decision service is not reached', async () => {
+    getRun = async () => { throw new Error('connection terminated'); };
+    const res = await decideRun1();
+    assert.strictEqual(res.statusCode, 500);
+    assert.deepStrictEqual(decisions(), [], 'decide() with run:null would cancel the approval for good');
+});
+
+test('a run that does not exist is still handed over as null', async () => {
+    const res = await decideRun1();
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(decisions().length, 1);
+    assert.strictEqual(decisions()[0].run, null);
+});
+
+test('a run that is found is handed over', async () => {
+    getRun = async (id) => ({ id, status: 'awaiting_approval', awaitingStepId: 's1' });
+    const res = await decideRun1();
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(decisions()[0].run.id, 'run1');
 });

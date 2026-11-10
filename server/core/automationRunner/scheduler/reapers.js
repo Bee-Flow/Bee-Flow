@@ -13,8 +13,13 @@ const notificationStore = require('../../../stores/notificationStore');
 const runEventBus = require('../../runEventBus');
 const { runnerPort } = require('../featurePorts');
 const { REAPER_FLOOR_MS, REAPER_BUFFER_MS, REAPER_MAX_ATTEMPTS } = require('../shared');
+const { CONCURRENT_WAIT_MS } = require('../markerWait');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
+const { makeGiveUp } = require('./giveUp');
+
+// Switch an abandoned automation off and tell its owner (./giveUp.js).
+const giveUpOn = makeGiveUp({ automationStore, notificationStore });
 
 /**
  * Reaper — finds rows stuck in `running` longer than REAPER_STALE_AFTER_MS
@@ -33,16 +38,7 @@ async function reapStuckAutomations() {
         for (const a of reaped) {
             const giveUp = (a.attempts || 0) >= REAPER_MAX_ATTEMPTS;
             log.warn(`[AutomationRunner] Reaper reset stuck row ${a.id} (attempts=${a.attempts}${giveUp ? ', giving up' : ''})`);
-            if (giveUp) {
-                try {
-                    await notificationStore.createNotification({
-                        userId: a.userId,
-                        category: 'urgent',
-                        title: `⚠️ Automation failed: ${a.title}`,
-                        message: `The automation could not complete after ${REAPER_MAX_ATTEMPTS} attempts and was paused. Open it to inspect the last run.`,
-                    });
-                } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations', err); /* non-fatal */ }
-            }
+            if (giveUp) await giveUpOn(a);
         }
     } catch (e) {
         log.error('[AutomationRunner] reapStuckAutomations error:', /** @type {Error} */ (e).message);
@@ -128,7 +124,7 @@ async function reapStuckAutomations() {
     // §WS3.3 — reap orphaned run rows stuck in 'running' (worker died). Uses
     // last_heartbeat_at (a healthy long run heartbeats so it's never stale).
     try {
-        const stuckRuns = await automationStore.reapStuckRuns({ staleAfterMs: REAPER_FLOOR_MS });
+        const stuckRuns = await automationStore.reapStuckRuns({ staleAfterMs: REAPER_FLOOR_MS, queuedStaleAfterMs: REAPER_FLOOR_MS + CONCURRENT_WAIT_MS });
         for (const r of stuckRuns) {
             log.warn(`[AutomationRunner] Reaper failed stuck run ${r.id} (automation ${r.automationId}) — no heartbeat`);
             try {

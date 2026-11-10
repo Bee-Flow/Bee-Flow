@@ -39,6 +39,7 @@ const { loadConfig, OAUTH_PROVIDERS } = require('../permissions');
 const { microsoftCredentialsFor, PRIMARY_CONNECTION_ID } = require('./microsoftConnections.mts');
 const { getReturnUrl, popupRedirect, resolveNativeAppRedirect } = require('./shared');
 const { isPickupTokenShaped } = require('../../utils/sessionToken');
+const { nextcloudOAuthUrl } = require('../../utils/nextcloudTarget');
 const { startLink, LINK_INTENT, LINK_RETURN_PATH } = require('./ssoLinkFlow.mts');
 
 // === Multi-Provider OAuth Routes ===
@@ -243,7 +244,7 @@ router.get('/login/:provider', async (req, res) => {
             return res.redirect(`${returnTo}?error=nextcloud_not_configured`);
         }
 
-        const authUrl = `${nextcloudUrl}/apps/oauth2/authorize?` + new URLSearchParams({
+        const authUrl = `${nextcloudOAuthUrl(nextcloudUrl, 'authorize')}?` + new URLSearchParams({
             response_type: 'code',
             client_id: clientId,
             redirect_uri: REDIRECT_URI,

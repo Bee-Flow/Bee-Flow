@@ -496,7 +496,7 @@ const NEXTCLOUD_TOOLS = [
                 type: 'object',
                 properties: {
                     trashPath: { type: 'string', description: 'Trash item path (from list_trash).' },
-                    originalPath: { type: 'string', description: 'Optional override for the destination — defaults to the original location.' }
+                    originalPath: { type: 'string', description: 'Informational only: Nextcloud always restores an item to the location it was deleted from.' }
                 },
                 required: ['trashPath']
             }

@@ -208,3 +208,50 @@ test('private-host mode: nextcloudFetch hands a dispatcher to fetch', async () =
         else process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = prevEnv;
     }
 });
+
+test('nextcloudOAuthUrl: goes through index.php so it works without pretty URLs', () => {
+    const { nextcloudOAuthUrl } = require('./nextcloudTarget');
+    // Without mod_rewrite /apps/oauth2/... is a 404; /index.php/apps/... is served either way.
+    assert.strictEqual(nextcloudOAuthUrl('https://cloud.example.com', 'authorize'), 'https://cloud.example.com/index.php/apps/oauth2/authorize');
+    assert.strictEqual(nextcloudOAuthUrl('https://cloud.example.com', 'token'), 'https://cloud.example.com/index.php/apps/oauth2/api/v1/token');
+    // Subpath installs and trailing slashes.
+    assert.strictEqual(nextcloudOAuthUrl('https://example.com/nextcloud/', 'token'), 'https://example.com/nextcloud/index.php/apps/oauth2/api/v1/token');
+    // A base that already names the front controller is not doubled.
+    assert.strictEqual(nextcloudOAuthUrl('https://cloud.example.com/index.php', 'authorize'), 'https://cloud.example.com/index.php/apps/oauth2/authorize');
+    assert.throws(() => nextcloudOAuthUrl('https://cloud.example.com', /** @type {any} */ ('other')));
+});
+
+test('private-host mode: credentials are not carried to another origin on a redirect', async () => {
+    const prevEnv = process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
+    const prevFetch = globalThis.fetch;
+    process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = '1';
+    /** @type {{ url: string, headers: Headers }[]} */
+    const seen = [];
+    /** @type {Record<string, string>} */
+    const hops = {
+        'http://lan.test/a': 'http://lan.test/b',           // same origin
+        'http://lan.test/b': 'http://other.test/c',         // another host
+        'http://lan.test/port': 'http://lan.test:8080/d',   // another port is another origin
+    };
+    globalThis.fetch = /** @type {typeof fetch} */ (async (/** @type {any} */ url, /** @type {any} */ init) => {
+        seen.push({ url: String(url), headers: new Headers(init?.headers) });
+        const location = hops[String(url)];
+        return new Response(location ? null : 'ok', { status: location ? 302 : 200, headers: location ? { location } : {} });
+    });
+    const headers = { Authorization: 'Basic c2VjcmV0', Cookie: 'nc_session=1', 'OCS-APIRequest': 'true', Accept: 'application/json' };
+    try {
+        await nextcloudFetch('http://lan.test/a', { headers });
+        await nextcloudFetch('http://lan.test/port', { headers });
+    } finally {
+        globalThis.fetch = prevFetch;
+        if (prevEnv === undefined) delete process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
+        else process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = prevEnv;
+    }
+    const at = (/** @type {string} */ url) => /** @type {{ url: string, headers: Headers }} */ (seen.find((c) => c.url === url)).headers;
+    assert.strictEqual(at('http://lan.test/a').get('authorization'), 'Basic c2VjcmV0');
+    assert.strictEqual(at('http://lan.test/b').get('authorization'), 'Basic c2VjcmV0', 'a same-origin hop keeps them');
+    assert.strictEqual(at('http://other.test/c').get('authorization'), null);
+    assert.strictEqual(at('http://other.test/c').get('cookie'), null);
+    assert.strictEqual(at('http://other.test/c').get('ocs-apirequest'), 'true', 'ordinary headers still travel');
+    assert.strictEqual(at('http://lan.test:8080/d').get('authorization'), null);
+});

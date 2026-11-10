@@ -45,8 +45,9 @@ const { isLoginBlockedAccount, REFUSAL } = require('../accountStatusGate');
 const userStore = require('../../stores/userStore');
 const { resolveSsoUser } = require('./ssoUserProvisioning');
 const { resolveOrgStanding, writeOAuthSession } = require('./ssoSessionSetup');
-const { getReturnUrl, oauthStatesMatch, popupRedirect } = require('./shared');
+const { getReturnUrl, oauthErrorCode, oauthStatesMatch, popupRedirect } = require('./shared');
 const { isPickupTokenShaped } = require('../../utils/sessionToken');
+const { nextcloudOAuthUrl } = require('../../utils/nextcloudTarget');
 
 // Legacy Nextcloud login redirect
 router.get('/login', async (req, res) => {
@@ -90,7 +91,7 @@ router.get('/login', async (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     req.session.legacyOAuthState = state;
 
-    const authUrl = `${nextcloudUrl}/apps/oauth2/authorize?` + new URLSearchParams({
+    const authUrl = `${nextcloudOAuthUrl(nextcloudUrl, 'authorize')}?` + new URLSearchParams({
         response_type: 'code',
         client_id: clientId,
         redirect_uri: REDIRECT_URI,
@@ -139,7 +140,8 @@ router.get('/callback', async (req, res) => {
     }
 
     try {
-        const tokenResponse = await fetch(`${nextcloudUrl}/apps/oauth2/api/v1/token`, {
+        // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
+        const tokenResponse = await fetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -154,8 +156,8 @@ router.get('/callback', async (req, res) => {
         });
 
         if (!tokenResponse.ok) {
-            const errorText = await tokenResponse.text();
-            log.error('Token exchange failed:', errorText);
+            const code = oauthErrorCode(await tokenResponse.text().catch(() => ''));
+            log.error(`[OAuth/legacy] Token exchange failed (${tokenResponse.status})${code ? `: ${code}` : ''}`);
             return res.redirect(`${returnTo}?error=token_exchange_failed`);
         }
 

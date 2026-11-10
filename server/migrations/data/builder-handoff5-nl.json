@@ -1114,7 +1114,10 @@
     "automations.step_error.http_url_invalid.cause_generic": "De instelling \"URL\" van deze stap is geen geldig webadres. Open de stap en controleer haar.",
     "automations.step_error.http_url_invalid.title": "Het adres van deze stap is geen geldig webadres",
     "automations.header.export_json": "JSON exporteren",
-    "automations.header.workflow_actions": "Acties voor deze automatisering"
+    "automations.header.workflow_actions": "Acties voor deze automatisering",
+    "automations.library.loadFailed": "Je automatiseringen konden niet worden geladen.",
+    "automations.library.retry": "Opnieuw proberen",
+    "runs.tab.load_retry": "Opnieuw proberen"
   },
   "sameAsEnglish": [
     "automations.agent_step.group_automations",

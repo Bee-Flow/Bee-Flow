@@ -9,7 +9,8 @@
 
 const { loadConfig } = require('../auth/permissions');
 const configStore = require('../stores/configStore');
-const { assertAllowedNextcloudHost, isMetadataHost, nextcloudFetch } = require('./nextcloudTarget');
+const { assertAllowedNextcloudHost, isMetadataHost, nextcloudFetch, nextcloudOAuthUrl } = require('./nextcloudTarget');
+const { resolveBasicUid } = require('./nextcloudBasicUid');
 const { signedConnectorHeaders, connectorWireUrl } = require('./ncSigning');
 const log = require('../telemetry/log');
 const { DOWNLOAD_TOO_LARGE, refuseDeclaredOversize, writeBodyToFile } = require('./nextcloudDownload');
@@ -147,7 +148,7 @@ async function _doRefreshAccessToken(session) {
         throw new Error('No refresh token available — user must re-authenticate with Nextcloud');
     }
 
-    const response = await nextcloudFetch(`${nextcloudUrl.replace(/\/+$/, '')}/apps/oauth2/api/v1/token`, {
+    const response = await nextcloudFetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -504,6 +505,39 @@ function isConnectorSession(session) {
     return !!(session?.user?.provider === 'nextcloud_connector' || session?.connectorOrgId);
 }
 
+/**
+ * The Basic-auth context of a saved app password.
+ * @param {string} userId
+ * @param {{ username: string, password: string, url?: string | null }} creds
+ * @returns {Promise<import('./nextcloudClient.types').NcAuth>}
+ */
+async function basicAuthContext(userId, creds) {
+    // Prefer the URL the user saved with their app password; org default otherwise.
+    const baseUrl = await getBaseUrl(creds.url);
+    const auth = 'Basic ' + Buffer.from(`${creds.username}:${creds.password}`).toString('base64');
+    // nextcloudFetch, not fetch: this request carries the user's Basic
+    // credentials to a host the user chose, so the target is re-validated on
+    // every call (and resolved through the SSRF-safe dispatcher by default).
+    const basicFetch = async (url, options = {}) => {
+        const doOnce = () => nextcloudFetch(url, {
+            ...options,
+            headers: { 'Authorization': auth, ...(options.headers || {}) },
+            signal: options.signal || AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        const first = await doOnce();
+        return retryOnThrottle(first, doOnce, options);
+    };
+    return {
+        mode: 'basic',
+        baseUrl,
+        uid: await resolveBasicUid(userId, creds, baseUrl, auth),
+        username: creds.username,
+        password: creds.password,
+        fetch: basicFetch,
+        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Connections.',
+    };
+}
+
 /** @returns {Promise<import('./nextcloudClient.types').NcAuth>} */
 async function resolveAuth(session, userId) {
     // Connector path takes priority: if the user came in via the Nextcloud
@@ -542,30 +576,7 @@ async function resolveAuth(session, userId) {
         if (connector) return connector;
         throw new Error('Nextcloud not connected. Log in via Nextcloud OAuth, or add your username and app password in Settings → Connections.');
     }
-    // Prefer the URL the user saved with their app password; org default otherwise.
-    const baseUrl = await getBaseUrl(creds.url);
-    const auth = 'Basic ' + Buffer.from(`${creds.username}:${creds.password}`).toString('base64');
-    // nextcloudFetch, not fetch: this request carries the user's Basic
-    // credentials to a host the user chose, so the target is re-validated on
-    // every call (and resolved through the SSRF-safe dispatcher by default).
-    const basicFetch = async (url, options = {}) => {
-        const doOnce = () => nextcloudFetch(url, {
-            ...options,
-            headers: { 'Authorization': auth, ...(options.headers || {}) },
-            signal: options.signal || AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        });
-        const first = await doOnce();
-        return retryOnThrottle(first, doOnce, options);
-    };
-    return {
-        mode: 'basic',
-        baseUrl,
-        uid: creds.username,
-        username: creds.username,
-        password: creds.password,
-        fetch: basicFetch,
-        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Connections.',
-    };
+    return basicAuthContext(userId, creds);
 }
 
 /**
@@ -581,29 +592,7 @@ async function resolveBasicAuthOrNull(userId) {
     const userStore = require('../stores/userStore');
     const creds = await userStore.getAppPassword(userId);
     if (!creds || !creds.username || !creds.password) return null;
-    const baseUrl = await getBaseUrl(creds.url);
-    const auth = 'Basic ' + Buffer.from(`${creds.username}:${creds.password}`).toString('base64');
-    // nextcloudFetch, not fetch: this request carries the user's Basic
-    // credentials to a host the user chose, so the target is re-validated on
-    // every call (and resolved through the SSRF-safe dispatcher by default).
-    const basicFetch = async (url, options = {}) => {
-        const doOnce = () => nextcloudFetch(url, {
-            ...options,
-            headers: { 'Authorization': auth, ...(options.headers || {}) },
-            signal: options.signal || AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        });
-        const first = await doOnce();
-        return retryOnThrottle(first, doOnce, options);
-    };
-    return {
-        mode: 'basic',
-        baseUrl,
-        uid: creds.username,
-        username: creds.username,
-        password: creds.password,
-        fetch: basicFetch,
-        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Connections.',
-    };
+    return basicAuthContext(userId, creds);
 }
 
 const CORS_AUTH_ERROR = 'Nextcloud\'s Notes/Deck APIs use CORS protection that requires HTTP Basic auth — your OAuth login alone won\'t work for these. Please add a Nextcloud app password in Settings → Connections.';

@@ -292,6 +292,9 @@ test('a failing step records every attempt, then the run fails with a sanitised 
         'recordRunStep:bad:running:1',
         'getRun',
         'recordRunStep:bad:error:1',
+        // The retry asks whether the run was cancelled before it sends the
+        // step again (stepDispatch.retryCancel.test.js).
+        'getRun',
         'recordRunStep:bad:error:2',
         'updateRun:error:durationMs,error,errorClass,finishedAt,status,summary',
         'resolveRunOutcome:error',
@@ -354,16 +357,19 @@ test('an approval pauses the run: token minted, row awaiting, approval created, 
     assert.deepStrictEqual(flushedAt, [terminalWrite()], 'the paused run hands its vault over before the row says awaiting');
 });
 
-test('a primary schedule run advances next_run_at after the notifications', async () => {
+test('a primary schedule run advances next_run_at before the marker is released', async () => {
+    // Before the release, like a secondary schedule: a row that is free while
+    // its slot is still due is claimed again by the next tick
+    // (runFinalize.scheduleOrder.test.js).
     const def = automation([SET], { triggerType: 'schedule', scheduleCron: '0 9 * * *', scheduleTz: 'Europe/Amsterdam' });
-    const row = await executeAutomation(def, { triggerKind: 'schedule' });
+    const row = await executeAutomation(def, { triggerKind: 'schedule', markerClaimed: true });
     assert.strictEqual(row.status, 'success');
     assert.deepStrictEqual(trace.slice(-6), [
+        'updateAutomation:nextRunAt=set',
         'updateAutomation:lastRunAt,lastStatus=success',
         'releaseAutomation',
         'resetAttempts',
         'notify:onSuccess:🤖 Golden',
-        'updateAutomation:nextRunAt=set',
         'getRun',
     ]);
     assert.ok(!trace.includes('markRunning'), 'a schedule run was claimed by the scheduler, not here');
@@ -371,10 +377,14 @@ test('a primary schedule run advances next_run_at after the notifications', asyn
 
 test('a primary cron with no future match disables the schedule and says so', async () => {
     const def = automation([SET], { triggerType: 'schedule', scheduleCron: '0 0 31 2 *', scheduleTz: 'Europe/Amsterdam' });
-    await executeAutomation(def, { triggerKind: 'schedule' });
-    assert.deepStrictEqual(trace.slice(-3), [
+    await executeAutomation(def, { triggerKind: 'schedule', markerClaimed: true });
+    assert.deepStrictEqual(trace.slice(-7), [
         'updateAutomation:isActive=false,nextRunAt=null',
         'notify:onError:automation.notify.schedule_disabled',
+        'updateAutomation:lastRunAt,lastStatus=success',
+        'releaseAutomation',
+        'resetAttempts',
+        'notify:onSuccess:🤖 Golden',
         'getRun',
     ]);
 });

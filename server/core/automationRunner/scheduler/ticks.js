@@ -24,11 +24,11 @@ const { processGmeetAutoImport } = require('./gmeetImportTick');
 const { ACTIVE_RUNS } = require('../cancellation');
 const {
     RUNNER_INTERVAL_MS, POLLING_INTERVAL_MS, REAPER_INTERVAL_MS, RETENTION_INTERVAL_MS,
-    MAX_CONCURRENT,
 } = require('../shared');
 // Stable per-process token identifying which runner instance claimed a row.
 const { INSTANCE_ID } = require('../engine');
 const { executeAutomation } = require('../execution');
+const { runClaimedInBatches } = require('./claimedBatches');
 const {
     reapStuckAutomations,
     reapStuckTranscriptions,
@@ -109,16 +109,17 @@ async function processDueSchedules() {
         try { nextRunAt = holidays.nextScheduledRunAt(s.cron, s.tz, Date.now(), { skipHolidays: skipsHolidays(a, s.triggerStepId) }); } catch (_) { nextRunAt = null; }
         await automationStore.advanceSchedule(s.id, { nextRunAt, lastStatus: 'skipped' }).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDueSchedules#6', e));
     }
-    for (let i = 0; i < allowed.length; i += MAX_CONCURRENT) {
-        const batch = allowed.slice(i, i + MAX_CONCURRENT);
+    await runClaimedInBatches(allowed, ({ a }) => a.id, (batch) => {
         const now = new Date().toISOString();
-        await Promise.allSettled(batch.map(({ a, s }) => executeAutomation(a, {
+        return batch.map(({ a, s }) => executeAutomation(a, {
             triggerKind: 'schedule',
             rootStepId: s.triggerStepId,
             triggerPayload: { now },
             schedule: { id: s.id, cron: s.cron, tz: s.tz, scheduledFor: s.nextRunAt },
-        })));
-    }
+            // claimDueSchedules flipped the automations row to running for us.
+            markerClaimed: true,
+        }));
+    });
 }
 
 async function processDueAutomations() {
@@ -198,14 +199,13 @@ async function processDuePrimarySchedules() {
         }
         if (allowed.length === 0) return;
 
-        for (let i = 0; i < allowed.length; i += MAX_CONCURRENT) {
-            const batch = allowed.slice(i, i + MAX_CONCURRENT);
+        await runClaimedInBatches(allowed, (a) => a.id, (batch) => {
             // `{ now }` is the one field the builder catalog advertises for a
             // schedule trigger (`__schedule.now`); without it the promise of
             // `trigger.output.now` is not kept and it resolves undefined.
             const now = new Date().toISOString();
-            await Promise.allSettled(batch.map(a => executeAutomation(a, { triggerKind: 'schedule', triggerPayload: { now } })));
-        }
+            return batch.map(a => executeAutomation(a, { triggerKind: 'schedule', triggerPayload: { now }, markerClaimed: true }));
+        });
     } catch (e) {
         log.error('[AutomationRunner] processDueAutomations error:', e.message);
     }

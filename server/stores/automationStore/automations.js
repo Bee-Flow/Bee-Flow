@@ -13,6 +13,7 @@ const { planVersionWrite } = require('../../automation/diffSummary');
 // a working-copy write never moves the live copy (see lifecycle.js).
 const { AUTOMATION_SELECT, LIVE_INVARIANT_SQL, stripLiveFollowingFields } = require('./lifecycle');
 const { bestEffort } = require('../../utils/bestEffort');
+const { reapStuckRuns } = require('./runReaper');
 
 /** @typedef {{ definition?: Record<string, unknown>, projectId?: string | null, [key: string]: unknown }} AutomationUpdates */
 /** @typedef {{ name?: string, description?: string, descriptionJson?: unknown, isLayoutOnly?: boolean }} VersionMeta */
@@ -439,35 +440,6 @@ async function reapExpiredFormWaits() {
                 SELECT 1 FROM automation_runs c WHERE c.parent_run_id = automation_runs.id
             )
           RETURNING id, automation_id, user_id`,
-    );
-    return rows.map(r => ({ id: r.id, automationId: r.automation_id, userId: r.user_id }));
-}
-
-/**
- * §WS3.3 — Reap orphaned run rows. A run whose worker pod crashed stays in
- * status='running' forever (the stuck-automations reaper only touches the
- * automations row, not automation_runs), leaking into the active-runs UI /
- * concurrency guard. This finally READS last_heartbeat_at (previously a dead
- * column): a healthy long run heartbeats every 15s so it's never stale; a dead
- * run stops heartbeating and is flipped to error after the window. Falls back to
- * started_at for runs that died before their first heartbeat. Returns reaped runs
- * so the caller can emit run.failed lifecycle events.
- */
-async function reapStuckRuns({ staleAfterMs = 6 * 60_000 } = {}) {
-    await initDB();
-    const { rows } = await pool.query(
-        `UPDATE automation_runs
-            SET status = 'error',
-                error_class = COALESCE(error_class, 'RunnerDied'),
-                error = COALESCE(error, 'Run stopped heartbeating — the worker crashed or was killed.'),
-                summary = COALESCE(summary, 'Run interrupted — the worker stopped responding.'),
-                finished_at = NOW(),
-                duration_ms = COALESCE(duration_ms, GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int)
-          WHERE status = 'running'
-            AND COALESCE(last_heartbeat_at, started_at) IS NOT NULL
-            AND COALESCE(last_heartbeat_at, started_at) < NOW() - ($1::int * INTERVAL '1 millisecond')
-          RETURNING id, automation_id, user_id`,
-        [staleAfterMs],
     );
     return rows.map(r => ({ id: r.id, automationId: r.automation_id, userId: r.user_id }));
 }

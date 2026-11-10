@@ -36,3 +36,12 @@ test('a missing header or nonce is refused before any crypto runs', () => {
     assert.deepEqual(checkWebhookSignature({ secret, sigHeader: 'md5=abc', nonce, body }), { ok: false, reason: 'missing' });
     assert.deepEqual(checkWebhookSignature({ secret, sigHeader: hmacHeader(secret, `\n${compact}`), nonce: '', body }), { ok: false, reason: 'missing' });
 });
+
+test('a signature header with non-ASCII characters of the same length is a bad signature, not a throw', () => {
+    // HTTP header values arrive latin1-decoded, so "é" is one character but
+    // two UTF-8 bytes: the same string length, a different byte length.
+    const good = hmacHeader(secret, `${nonce}\n${compact}`);
+    const forged = good.slice(0, -1) + 'é';
+    assert.equal(forged.length, good.length);
+    assert.deepEqual(checkWebhookSignature({ secret, sigHeader: forged, nonce, rawBody: compact, body }), { ok: false, reason: 'bad_signature' });
+});

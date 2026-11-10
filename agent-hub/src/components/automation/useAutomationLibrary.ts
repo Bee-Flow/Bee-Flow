@@ -45,6 +45,8 @@ export interface AutomationLibrary {
     setAutomations: Dispatch<SetStateAction<AutomationListRow[]>>;
     folders: AutomationFolder[];
     automationsLoading: boolean;
+    /** The last list read failed: the list on screen is not the truth (and may be empty for that reason alone). */
+    automationsLoadFailed: boolean;
     pendingDeleteAutomation: AutomationListRow | null;
     setPendingDeleteAutomation: Dispatch<SetStateAction<AutomationListRow | null>>;
     steps: StepRow[];
@@ -89,6 +91,78 @@ export interface UseAutomationLibraryOptions {
 const failureText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
+ * The automation list and the read behind it: the rows, whether a read is
+ * going, and whether the last one failed (an empty list is then not the truth).
+ */
+function useAutomationList(automationApi: ReturnType<typeof useAutomationApi>) {
+    const [automations, setAutomations] = useState<AutomationListRow[]>([]);
+    const [automationsLoading, setAutomationsLoading] = useState(false);
+    const [automationsLoadFailed, setAutomationsLoadFailed] = useState(false);
+
+    // Every action re-reads the list, so two reads can be in the air at once
+    // (a toggle on one row while another row's re-read is still going). Only
+    // the newest read may write: an older answer arriving late would put a
+    // state on screen the server has already moved past.
+    const listReadSeq = useRef(0);
+    const fetchAutomations = useCallback(async () => {
+        const seq = ++listReadSeq.current;
+        setAutomationsLoading(true);
+        try {
+            const r = await automationApi.listAutomations<{ automations?: AutomationListRow[] }>();
+            if (seq !== listReadSeq.current) return;
+            setAutomations(r.automations || []);
+            setAutomationsLoadFailed(false);
+        } catch (err) {
+            console.warn('[AITasksDesigner] fetchAutomations failed:', failureText(err));
+            if (seq !== listReadSeq.current) return;
+            setAutomationsLoadFailed(true);
+        }
+        setAutomationsLoading(false);
+    }, [automationApi]);
+
+    return { automations, setAutomations, automationsLoading, automationsLoadFailed, fetchAutomations };
+}
+
+/**
+ * Ids of the automations executing right now, read every 5 s so the sidebar
+ * can show a live dot: n8n-style ambient awareness, so the user knows their
+ * scheduled flows ran without opening each one.
+ */
+function useActiveRunIds(automationApi: ReturnType<typeof useAutomationApi>): Set<string> {
+    // Poll active runs every 5s so the sidebar can show a live ● dot on
+    // any automation currently executing. n8n-style ambient awareness so
+    // the user knows their scheduled flows ran without opening each one.
+    const [activeRunIds, setActiveRunIds] = useState<Set<string>>(new Set());
+    useEffect(() => {
+        let alive = true;
+        const tick = async () => {
+            // A tab nobody is looking at needs no live dot; the read happens
+            // again the moment the tab comes back.
+            if (document.visibilityState === 'hidden') return;
+            try {
+                const r = await automationApi.getActiveRuns<{ active?: Array<{ automationId: string }> }>();
+                if (!alive || !r) return;
+                const nextIds = (r.active || []).map(x => x.automationId);
+                // Only replace the Set (and re-render the whole designer —
+                // sidebar + open builder) when the set of active runs actually
+                // CHANGED. Every 5s tick previously minted a fresh Set even
+                // when identical, forcing a full re-render on a timer.
+                setActiveRunIds(prev => {
+                    if (prev.size === nextIds.length && nextIds.every(id => prev.has(id))) return prev;
+                    return new Set(nextIds);
+                });
+            } catch (err) { logger.debug('silent — non-critical', err); }
+        };
+        tick();
+        const handle = setInterval(tick, 5000);
+        const onVisible = () => { if (document.visibilityState !== 'hidden') void tick(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { alive = false; clearInterval(handle); document.removeEventListener('visibilitychange', onVisible); };
+    }, [automationApi]);
+    return activeRunIds;
+}
+
+/**
  * Everything the sidebar lists: automations, their folders, the reusable
  * Steps, and which of them are running right now. Every action here is a
  * call plus the refetch that keeps the list true — the list is the source of
@@ -103,22 +177,10 @@ export default function useAutomationLibrary({
     setBuilderAutomationId, setBuilderInitialTab, setBuilderStepId, setOpeningBuilder,
 }: UseAutomationLibraryOptions): AutomationLibrary {
     const automationApi = useAutomationApi();
-    const [automations, setAutomations] = useState<AutomationListRow[]>([]);
-    const [automationsLoading, setAutomationsLoading] = useState(false);
+    const { automations, setAutomations, automationsLoading, automationsLoadFailed, fetchAutomations } = useAutomationList(automationApi);
     const [pendingDeleteAutomation, setPendingDeleteAutomation] = useState<AutomationListRow | null>(null);
     const [steps, setSteps] = useState<StepRow[]>([]);
     const [stepsLoading, setStepsLoading] = useState(false);
-
-    const fetchAutomations = useCallback(async () => {
-        setAutomationsLoading(true);
-        try {
-            const r = await automationApi.listAutomations<{ automations?: AutomationListRow[] }>();
-            setAutomations(r.automations || []);
-        } catch (err) {
-            console.warn('[AITasksDesigner] fetchAutomations failed:', failureText(err));
-        }
-        setAutomationsLoading(false);
-    }, [automationApi]);
 
     const { folders, fetchFolders, createFolder, renameFolder, moveFolder, deleteFolder, moveToFolder } = useAutomationFolders({
         automationApi, automations, setAutomations, fetchAutomations,
@@ -165,31 +227,7 @@ export default function useAutomationLibrary({
         }
     }, [automationApi, fetchSteps, builderStepId, confirm, setBuilderStepId]);
 
-    // Poll active runs every 5s so the sidebar can show a live ● dot on
-    // any automation currently executing. n8n-style ambient awareness so
-    // the user knows their scheduled flows ran without opening each one.
-    const [activeRunIds, setActiveRunIds] = useState<Set<string>>(new Set());
-    useEffect(() => {
-        let alive = true;
-        const tick = async () => {
-            try {
-                const r = await automationApi.getActiveRuns<{ active?: Array<{ automationId: string }> }>();
-                if (!alive || !r) return;
-                const nextIds = (r.active || []).map(x => x.automationId);
-                // Only replace the Set (and re-render the whole designer —
-                // sidebar + open builder) when the set of active runs actually
-                // CHANGED. Every 5s tick previously minted a fresh Set even
-                // when identical, forcing a full re-render on a timer.
-                setActiveRunIds(prev => {
-                    if (prev.size === nextIds.length && nextIds.every(id => prev.has(id))) return prev;
-                    return new Set(nextIds);
-                });
-            } catch (err) { logger.debug('silent — non-critical', err); }
-        };
-        tick();
-        const handle = setInterval(tick, 5000);
-        return () => { alive = false; clearInterval(handle); };
-    }, [automationApi]);
+    const activeRunIds = useActiveRunIds(automationApi);
 
     // Per-row in-flight dedupe for the active/pause toggle. Without this,
     // a rapid double-click fires two PATCHes against the same automation
@@ -213,8 +251,12 @@ export default function useAutomationLibrary({
     }, [automationApi, fetchAutomations]);
 
     const requestDeleteAutomation = useCallback((a: AutomationListRow) => setPendingDeleteAutomation(a), []);
+    // The dialog stays up until the delete and the re-read are done; a second
+    // click in that window must not send a second DELETE.
+    const deletePendingRef = useRef(false);
     const confirmDeleteAutomation = useCallback(async () => {
-        if (!pendingDeleteAutomation) return;
+        if (!pendingDeleteAutomation || deletePendingRef.current) return;
+        deletePendingRef.current = true;
         try {
             // A delete moves the automation to the trash (runs are kept); the
             // "Recently deleted" section reads it fresh.
@@ -228,6 +270,8 @@ export default function useAutomationLibrary({
         } catch (err) {
             console.warn('[AITasksDesigner] deleteAutomation failed:', failureText(err));
             toast.error(failureText(err) || 'Could not delete that automation.');
+        } finally {
+            deletePendingRef.current = false;
         }
         setPendingDeleteAutomation(null);
     }, [pendingDeleteAutomation, automationApi, fetchAutomations, builderAutomationId, setBuilderAutomationId, setOpeningBuilder]);
@@ -329,6 +373,7 @@ export default function useAutomationLibrary({
         automations, setAutomations,
         folders,
         automationsLoading,
+        automationsLoadFailed,
         pendingDeleteAutomation, setPendingDeleteAutomation,
         steps,
         stepsLoading,

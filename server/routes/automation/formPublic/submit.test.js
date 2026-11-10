@@ -121,6 +121,40 @@ test('a replayed nonce is accepted but does NOT run a second time', async () => 
     assert.strictEqual(state.executions.length, 1);
 });
 
+test('answers that were refused do not use the page\'s nonce up: the corrected submission runs', async () => {
+    // The page keeps ONE nonce while it is on screen (PublicFormPage), so the
+    // corrected answers arrive with the nonce the refused ones carried.
+    const refused = makeRes();
+    await postSubmit(makeReq({ body: submissionBody({ nonce: 'samepage1', email: '' }) }), refused);
+    await flushAsync();
+    assert.strictEqual(refused.statusCode, 400);
+
+    const corrected = makeRes();
+    await postSubmit(makeReq({ body: submissionBody({ nonce: 'samepage1' }) }), corrected);
+    await flushAsync();
+    assert.strictEqual(corrected.statusCode, 202, JSON.stringify(corrected.body));
+    assert.strictEqual(corrected.body.duplicate, undefined);
+    assert.strictEqual(state.executions.length, 1);
+});
+
+test('page two: refused answers do not use the nonce up either', async () => {
+    state.runQueue = [{ id: 'runN' }];
+    const sid = await startSession();
+    awaitingRun('runN', 'fp1', PAGE_2);
+    const csrf = issueCsrf(`${TOKEN}:${sid}`);
+
+    const refused = makeRes();
+    await postSession(makeReq({ sid, body: { csrf, nonce: 'samepage2', address: '' } }), refused);
+    await flushAsync();
+    assert.strictEqual(refused.statusCode, 400);
+
+    const corrected = makeRes();
+    await postSession(makeReq({ sid, body: { csrf, nonce: 'samepage2', address: 'Main street 1' } }), corrected);
+    await flushAsync();
+    assert.strictEqual(corrected.statusCode, 202, JSON.stringify(corrected.body));
+    assert.strictEqual(state.resumes.length, 1);
+});
+
 test('an oversized body is refused before it is looked at', async () => {
     const guard = router.stack
         .find(l => l.route?.path === '/form/:token' && l.route.methods.post)
@@ -177,6 +211,31 @@ test('a full queue answers 503 rather than dropping the submission silently', as
     state.resolveRun = null;
     release();
     await flushAsync();
+});
+
+test('"busy, try again" keeps the nonce and leaves nothing behind: the retry is accepted and runs', async () => {
+    let release;
+    const gate = new Promise(r => { release = r; });
+    state.resolveRun = () => gate;
+    for (let i = 0; i < QUEUE_DEPTH + 1; i += 1) {
+        await postSubmit(makeReq({ body: submissionBody({ nonce: `busy-q${i}` }) }), makeRes());
+    }
+    const sessionsBefore = state.sessions.size;
+    const body = submissionBody({ nonce: 'busy-retry' });
+    await assert.rejects(postSubmit(makeReq({ body }), makeRes()), (e) => e.status === 503 && e.code === 'form_busy');
+    assert.strictEqual(state.sessions.size, sessionsBefore, 'a refused submission makes no session');
+
+    // The queue drains; the visitor presses Send again on the same page.
+    state.resolveRun = null;
+    release();
+    await flushAsync();
+    const before = state.executions.length;
+    const retry = makeRes();
+    await postSubmit(makeReq({ body }), retry);
+    await flushAsync();
+    assert.strictEqual(retry.statusCode, 202, JSON.stringify(retry.body));
+    assert.strictEqual(retry.body.duplicate, undefined);
+    assert.strictEqual(state.executions.length, before + 1);
 });
 
 test('a submission claims its upload exactly once and carries a descriptor, never bytes', async () => {

@@ -1754,7 +1754,7 @@
   },
   "src/components/admin/Studio/Executions/useRunStream.ts": {
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/Studio/Forms/FormPage.tsx": {

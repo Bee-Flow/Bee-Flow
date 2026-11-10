@@ -19,6 +19,7 @@ const { extractReason } = require('./nextcloudHttpError');
 const { CalendarInputError, buildVCalendarEvent, updateVCalendarEvent } = require('./nextcloudCalendarIcs');
 const { fallback } = require('../utils/bestEffort');
 const { PROPFIND_CALENDARS, calendarQueryReport } = require('./nextcloudCalDavQueries');
+const { calendarsRoot, eventHref, fetchEventByUid } = require('./nextcloudCalendarLookup');
 
 const xmlParser = new XMLParser({
     ignoreAttributes: false,
@@ -242,24 +243,6 @@ function parseICal(text) {
 
 // ─── DAV helpers ──────────────────────────────────────────────────
 
-/**
- * @param {string} baseUrl
- * @param {string | undefined} uid
- */
-function calendarsRoot(baseUrl, uid) {
-    return `${baseUrl}/remote.php/dav/calendars/${encodeURIComponent(uid)}`;
-}
-
-/**
- * @param {string} baseUrl
- * @param {string | undefined} uid
- * @param {string | number | boolean} calendar
- * @param {string} eventUid
- */
-function eventHref(baseUrl, uid, calendar, eventUid) {
-    return `${calendarsRoot(baseUrl, uid)}/${encodeURIComponent(calendar)}/${encodeURIComponent(eventUid)}.ics`;
-}
-
 // Normalize a multistatus XML response into [{ href, props }] — only 2xx
 // propstat entries are merged. Reused for both PROPFIND and REPORT replies.
 /**
@@ -450,7 +433,7 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
 
         case 'nextcloud_calendar_get_event': {
             if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
-            const res = await ncFetch(eventHref(baseUrl, uid, args.calendar, args.uid), {});
+            const { res } = await fetchEventByUid(ctx, args.calendar, args.uid, {});
             if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: `Event not found: ${args.uid}` };
             if (!res.ok) return { error: `Nextcloud event fetch failed (${res.status})` };
@@ -500,7 +483,7 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
         case 'nextcloud_calendar_update_event': {
             if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
             // Fetch current to merge fields.
-            const getRes = await ncFetch(eventHref(baseUrl, uid, args.calendar, args.uid), {});
+            const { res: getRes, url: eventUrl } = await fetchEventByUid(ctx, args.calendar, args.uid, {});
             if (getRes.status === 401) return { error: authError };
             if (getRes.status === 404) return { error: `Event not found: ${args.uid}` };
             if (!getRes.ok) return { error: `Could not load event for update (${getRes.status})` };
@@ -521,7 +504,7 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
                 if (err instanceof CalendarInputError) return { error: /** @type {Error} */ (err).message };
                 throw err;
             }
-            const putRes = await ncFetch(eventHref(baseUrl, uid, args.calendar, args.uid), {
+            const putRes = await ncFetch(eventUrl, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'text/calendar; charset=utf-8',
@@ -541,7 +524,7 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
 
         case 'nextcloud_calendar_delete_event': {
             if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
-            const res = await ncFetch(eventHref(baseUrl, uid, args.calendar, args.uid), { method: 'DELETE' });
+            const { res } = await fetchEventByUid(ctx, args.calendar, args.uid, { method: 'DELETE' });
             if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: `Event not found: ${args.uid}` };
             if (!res.ok && res.status !== 204) return { error: `Event delete failed (${res.status})` };

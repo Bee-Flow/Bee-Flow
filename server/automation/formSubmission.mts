@@ -122,6 +122,17 @@ export function profileForFound(found: Pick<FoundForm, 'test'>): SubmissionProfi
 }
 
 /**
+ * What is wrong with page one's answers, read without touching anything: the
+ * same coercion acceptSubmission starts with. The public route asks this BEFORE
+ * it records the submission's nonce, so answers that are sent back for
+ * correction do not use the nonce up (the page keeps one nonce while it is on
+ * screen, and a used one answers "already received" without running anything).
+ */
+export function submissionErrors(found: Pick<FoundForm, 'definition'>, body: Row, deps: Pick<SubmissionDeps, 'formTriggerFields' | 'coerceSubmission'> = defaultDeps()): unknown[] {
+    return deps.coerceSubmission(deps.formTriggerFields(found.definition), body).errors;
+}
+
+/**
  * Page one's answers, accepted (or refused with the fields that need
  * attention). Throws the caller-notice refusal (409) like the route always did.
  */

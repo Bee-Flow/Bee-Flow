@@ -10,6 +10,8 @@
 const log = require('../../telemetry/log');
 const { OAUTH_PROVIDERS } = require('../permissions');
 const microsoftLogin = require('./microsoftLogin');
+const { oauthErrorCode } = require('./shared');
+const { nextcloudOAuthUrl } = require('../../utils/nextcloudTarget');
 const { microsoftCredentialsFor } = require('./microsoftConnections.mts');
 
 /** @typedef {import('./providerCallbackRoutes').OAuthTokenResponse} OAuthTokenResponse */
@@ -173,7 +175,8 @@ async function exchangeNextcloud({ config, code, redirectUri, session }) {
 
     const { nextcloudUrl, clientId, clientSecret } = config.oauth || {};
 
-    const tokenResponse = await fetch(`${nextcloudUrl}/apps/oauth2/api/v1/token`, {
+    // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
+    const tokenResponse = await fetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -186,8 +189,8 @@ async function exchangeNextcloud({ config, code, redirectUri, session }) {
     });
 
     if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        log.error('Nextcloud token exchange failed:', errorText);
+        const code = oauthErrorCode(await tokenResponse.text().catch(() => ''));
+        log.error(`Nextcloud token exchange failed (${tokenResponse.status})${code ? `: ${code}` : ''}`);
         return { error: 'token_exchange_failed' };
     }
 

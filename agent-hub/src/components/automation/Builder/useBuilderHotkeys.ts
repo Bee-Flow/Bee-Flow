@@ -51,6 +51,11 @@ export default function useBuilderHotkeys({
 
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
+                // A menu, popover or dialog inside the builder that already
+                // took this Escape (preventDefault) closed itself; closing the
+                // inspector or the panel behind it as well costs the user
+                // their place.
+                if (e.defaultPrevented) return;
                 if (onEscape) {
                     onEscape();
                 }

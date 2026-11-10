@@ -26,14 +26,16 @@ export function socketCandidates(env: NodeJS.ProcessEnv, platform: NodeJS.Platfo
     };
 
     if (platform === 'win32') {
-        // A named pipe, not a file. The client has spelled this differently
-        // across its history and its ownCloud ancestry, hence the list.
+        // A named pipe, not a file. The client names it
+        // `<executable>-<USERNAME>` (socketapi.cpp; pipe names ignore case),
+        // so that one goes first. The rest are older spellings and the
+        // ownCloud ancestry.
+        const user = env.USERNAME;
+        if (user) push(`\\\\.\\pipe\\Nextcloud-${user}`);
         push('\\\\.\\pipe\\Nextcloud\\socket');
         push('\\\\.\\pipe\\nextcloud\\socket');
         push('\\\\.\\pipe\\Nextcloud');
         push('\\\\.\\pipe\\ocdesktopsocket');
-        const user = env.USERNAME;
-        if (user) push(`\\\\.\\pipe\\Nextcloud-${user}`);
         return candidates;
     }
 

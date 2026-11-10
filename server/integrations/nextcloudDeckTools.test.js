@@ -340,3 +340,31 @@ test('remove_label: a 403 or 404 names its cause instead of a bare status', asyn
     const missing = (await run('nextcloud_deck_remove_label', a, { [key]: res(404, '{"message":"Label not found"}') })).out;
     assert.match(missing.error, /Not found.*Label not found/);
 });
+
+// ── Ids are numbers, never path text ────────────────────────────────────────
+
+test('an id that is not a number is refused before any request: it would become part of the URL', async () => {
+    // The ids go into the path as they are. `..` segments are resolved by the
+    // URL parser, so this "delete a card" would be a DELETE on a file.
+    const evil = '../../../../../../../../remote.php/dav/files/u1/Documents';
+    for (const [tool, args] of [
+        ['nextcloud_deck_delete_card', { boardId: 1, stackId: 2, cardId: evil }],
+        ['nextcloud_deck_get_board', { boardId: '1/../../../../../ocs/v2.php/cloud/users' }],
+        ['nextcloud_deck_list_stacks', { boardId: '7?x=1' }],
+        ['nextcloud_deck_get_card', { boardId: 1, stackId: '2#', cardId: 3 }],
+        ['nextcloud_deck_get_card', { boardId: 1, stackId: 2, cardId: -3 }],
+        ['nextcloud_deck_get_card', { boardId: 1, stackId: 2, cardId: 1.5 }],
+    ]) {
+        const { out, calls } = await run(tool, args);
+        assert.match(out.error, /must be a whole number/, `${tool} ${JSON.stringify(args)}`);
+        assert.deepEqual(calls, [], 'nothing is sent to Nextcloud');
+    }
+});
+
+test('a numeric id passed as text still works', async () => {
+    const { out, calls } = await run('nextcloud_deck_get_board', { boardId: '12' }, {
+        [`GET ${API}/boards/12`]: res(200, { id: 12, title: 'Sprint', stacks: [], labels: [] }),
+    });
+    assert.equal(out.error, undefined);
+    assert.equal(calls.length, 1);
+});

@@ -176,6 +176,7 @@ const NL_TRANSLATIONS = Object.freeze({
     'automations.repeating.undoDismissedIdea': 'Suggestie weggedaan.',
     'automations.repeating.undoSnoozed': '30 dagen verborgen.',
     // The automations launcher's tabs.
+    'automations.tabs.label': 'Weergaven van automatiseringen',
     'automations.tabs.overview': 'Alle automatiseringen',
     'automations.tabs.repeating': 'Herhalend werk vinden',
     'automations.tabs.templates': 'Sjablonen',

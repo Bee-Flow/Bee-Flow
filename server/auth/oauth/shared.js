@@ -168,4 +168,19 @@ function popupRedirect(res, url) {
 </body></html>`);
 }
 
-module.exports = { _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect, resolveNativeAppRedirect, knownNativeAppRedirect };
+/**
+ * The OAuth `error` code out of a failed token-endpoint answer, or ''. Only a
+ * code-shaped value is returned: the raw body is unbounded, comes from the
+ * provider's host and sits on a credential path, so it never goes to the log.
+ * @param {string} bodyText
+ */
+function oauthErrorCode(bodyText) {
+    try {
+        const parsed = JSON.parse(String(bodyText || ''));
+        return typeof parsed?.error === 'string' && /^[a-z_]{1,40}$/.test(parsed.error) ? parsed.error : '';
+    } catch (_) {
+        return '';
+    }
+}
+
+module.exports = { oauthErrorCode, _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect, resolveNativeAppRedirect, knownNativeAppRedirect };

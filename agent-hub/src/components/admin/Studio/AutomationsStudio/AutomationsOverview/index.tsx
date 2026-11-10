@@ -57,6 +57,8 @@ export default function AutomationsOverview({
     folders = [],
     query = '',
     loading = false,
+    loadFailed = false,
+    onRetry = null,
     activeRunIds = null,
     rowProps,
     onCreate = null,
@@ -134,6 +136,17 @@ export default function AutomationsOverview({
     let body: React.JSX.Element;
     if (loading && automations.length === 0) {
         body = <p className="text-xs text-[var(--text-tertiary)] px-4 py-6 m-0">{t('studio_misc.overview.loading', 'Loading…')}</p>;
+    } else if (loadFailed && automations.length === 0) {
+        body = (
+            <div role="alert" className="h-full">
+                <EmptyState
+                    icon={<Workflow className="w-12 h-12" />}
+                    title={t('studio_misc.overview.load_failed_title', 'Could not load your automations')}
+                    description={t('studio_misc.overview.load_failed_description', 'Your automations are still there. Check the connection and try again.')}
+                    action={onRetry ? { label: t('studio_misc.overview.retry', 'Try again'), onClick: () => { void onRetry(); } } : undefined}
+                />
+            </div>
+        );
     } else if (automations.length === 0 && !filtering) {
         body = (
             <EmptyState

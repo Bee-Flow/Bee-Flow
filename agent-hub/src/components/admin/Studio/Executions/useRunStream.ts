@@ -24,6 +24,20 @@ interface UseRunStreamOptions {
     onEvent?: (type: string, data: unknown) => void;
 }
 
+/** The run.* event a polled run whose status moved stands for. */
+function polledEvent(r: PolledRun): [type: string, data: unknown] {
+    if (r.status === 'running' || r.status === 'queued') {
+        return ['run.started', { runId: r.id, automationId: r.automationId, status: r.status, triggerKind: r.triggerKind, title: r.automationTitle, kind: r.automationKind, at: r.startedAt }];
+    }
+    if (r.status === 'error') {
+        return ['run.failed', { runId: r.id, automationId: r.automationId, status: 'error', durationMs: r.durationMs }];
+    }
+    return ['run.finished', { runId: r.id, automationId: r.automationId, status: r.status, durationMs: r.durationMs }];
+}
+
+/** Nothing connects while the tab is hidden, so a stream that starts there starts 'paused'. */
+const startState = (enabled: boolean): RunStreamState => (enabled && !document.hidden ? 'live' : 'paused');
+
 /**
  * Live run-lifecycle subscription for the executions UI.
  *
@@ -51,11 +65,11 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
     // How the updates are actually arriving right now — the filter bar's
     // indicator reads this instead of showing a hard-coded green dot.
     // 'live' = SSE, 'polling' = 5s fallback, 'paused' = hidden tab / disabled.
-    const [state, setState] = useState<RunStreamState>(enabled ? 'live' : 'paused');
+    const [state, setState] = useState<RunStreamState>(() => startState(enabled));
     // A new stream (another automation, switched on or off) starts from 'live'
     // or 'paused': reset during render, before the effect below reconnects.
     // (The api object is memoised for the session, so it is not part of the key.)
-    useAdjustOnChange([enabled, automationId], () => setState(enabled ? 'live' : 'paused'));
+    useAdjustOnChange([enabled, automationId], () => setState(startState(enabled)));
 
     useEffect(() => {
         if (!enabled) return undefined;
@@ -65,6 +79,10 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
         let failures = 0;
         let backoff = 1000;
         let polling = false;
+        // One poll loop at a time: a tick that is still in the air when the
+        // loop it belongs to is retired (hidden tab, back to SSE) must not
+        // reschedule itself next to whatever replaced it.
+        let pollLoop = 0;
         const lastSeen = new Map<string, string>(); // runId -> last status (poll diffing)
         let firstPoll = true;
 
@@ -73,25 +91,20 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
         const clearTimer = () => { if (timer) { clearTimeout(timer); timer = null; } };
 
         // ── Polling fallback ────────────────────────────────────────────
-        const pollTick = async () => {
-            if (stopped) return;
+        const pollTick = async (loop: number) => {
+            if (stopped || loop !== pollLoop) return;
             try {
                 const res = await api.listRecentRuns({ limit: 25, automationId: automationId || undefined }) as { runs?: PolledRun[] };
+                if (stopped || loop !== pollLoop) return;
                 for (const r of (res.runs || [])) {
                     const prev = lastSeen.get(r.id);
                     lastSeen.set(r.id, r.status);
                     if (firstPoll || prev === r.status) continue; // seed silently / no change
-                    if (r.status === 'running' || r.status === 'queued') {
-                        emit('run.started', { runId: r.id, automationId: r.automationId, status: r.status, triggerKind: r.triggerKind, title: r.automationTitle, kind: r.automationKind, at: r.startedAt });
-                    } else if (r.status === 'error') {
-                        emit('run.failed', { runId: r.id, automationId: r.automationId, status: 'error', durationMs: r.durationMs });
-                    } else {
-                        emit('run.finished', { runId: r.id, automationId: r.automationId, status: r.status, durationMs: r.durationMs });
-                    }
+                    emit(...polledEvent(r));
                 }
                 firstPoll = false;
             } catch (err) { logger.debug('keep polling', err); }
-            if (!stopped) timer = setTimeout(pollTick, 5000);
+            if (!stopped && loop === pollLoop) timer = setTimeout(() => { void pollTick(loop); }, 5000);
         };
 
         const startPolling = () => {
@@ -99,7 +112,8 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
             polling = true;
             firstPoll = true;
             setState('polling');
-            pollTick();
+            pollLoop += 1;
+            void pollTick(pollLoop);
         };
 
         // ── SSE stream ──────────────────────────────────────────────────
@@ -134,10 +148,11 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
         const onVisibility = () => {
             if (document.hidden) {
                 controller?.abort();
+                pollLoop += 1;
                 clearTimer();
                 setState('paused');
             } else if (!stopped) {
-                failures = 0; backoff = 1000; polling = false; clearTimer();
+                failures = 0; backoff = 1000; polling = false; pollLoop += 1; clearTimer();
                 setState('live');
                 startStream();
             }
