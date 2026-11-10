@@ -105,6 +105,7 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
             ...orderByPart(binding),
+            ...(binding.groupFilter === undefined || binding.groupFilter === null ? {} : { groupFilter: binding.groupFilter }),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }

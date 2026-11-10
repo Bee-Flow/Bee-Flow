@@ -50,6 +50,8 @@ const BINDINGS: unknown[] = [
     { kind: 'records', tableId: 't2', pick: { column: 'x' } },
     { kind: 'aggregate', tableId: 't1', groupBy: f('vars.dim'), aggregates: f('vars.none'), limit: 3 },
     { kind: 'aggregate', tableId: 't1', groupBy: ['status'] },
+    { kind: 'aggregate', tableId: 't1', groupBy: [{ field: 'customer', relatedField: 'region' }], aggregates: [{ fn: 'countDistinct', field: 'customer', as: 'n' }], groupFilter: [{ field: 'n', op: 'gt', value: 1 }] },
+    { kind: 'aggregate', tableId: 't1', aggregates: [{ fn: 'count', as: 'n' }], groupFilter: null, orderBy: [{ field: 'n' }] },
     { kind: 'dataset', datasetId: 'd1', pick: { column: 'v' } },
     { kind: 'dataset' },
     { kind: 'connector', connectorId: 'c1', params: { q: f('vars.q'), gone: f('vars.missing'), n: f('vars.n'), lit: 'x' } },

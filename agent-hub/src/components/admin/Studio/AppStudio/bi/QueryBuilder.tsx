@@ -1,7 +1,7 @@
 import { filterClauseFields } from '@shared/expr/filterGroups.mjs';
 import { useQuery } from '@tanstack/react-query';
 import { Database, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ChartDataPanel, { deriveChartMapping } from './ChartDataPanel';
 import FilterRowsEditor, { NO_VALUE_OPS, type FilterEntry, type FilterRow } from './FilterRowsEditor';
 import { descriptorFilters } from './filterDescriptor';
@@ -12,7 +12,10 @@ import { runPreview } from './runPreview';
 import Modal from '@/components/shared/Modal';
 import toast from '@/components/shared/Toast';
 import { inputCls } from '@/components/admin/product-website/fields';
-import { BreakdownField, DATE_TYPES, MeasuresField, NoTables, PreviewResult, QueryFooter } from './QueryBuilderParts';
+import { BreakdownField, DATE_TYPES, groupFilterMeasures, MeasuresField, NoTables, PreviewResult, previewChartNodeFor, QueryFooter } from './QueryBuilderParts';
+import GroupFilterField from './GroupFilterField';
+import { breakdownEntry, groupFilterEntries, type GroupFilterRow } from './aggregateExtras';
+import type { AppTable } from './useAppTables';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import AppChart from '../runtime/components/AppChart';
 import { DEFAULT_RUNTIME, RuntimeProvider, type RuntimeValue } from '../runtime/RuntimeContext';
@@ -86,21 +89,42 @@ function sanitizeAlias(label: string | undefined, fallback: string) {
 
 /** Build the structured aggregate descriptor compileAggregate consumes. */
 export function buildDescriptor(tableId: string, fields: TableColumn[], groupBy: DatasetGroup[], aggregates: { agg: string; field?: string; label?: string }[], filters: FilterEntry[]) {
+    return buildQueryDescriptor({ tableId, fields, groupBy, aggregates, filters });
+}
+
+interface QueryParts {
+    tableId: string;
+    fields: TableColumn[];
+    groupBy: DatasetGroup[];
+    aggregates: { agg: string; field?: string; label?: string }[];
+    filters: FilterEntry[];
+    /** Resolves breakdowns through a relation. */
+    tables?: AppTable[];
+    /** Rows that name a measure by its position in `aggregates`. */
+    groupFilter?: GroupFilterRow[];
+}
+
+/** buildDescriptor, with the breakdowns through a relation and the group filter. */
+function buildQueryDescriptor({ tableId, fields, groupBy, aggregates, filters, ...extra }: QueryParts) {
     const fieldType = (key: string | undefined) => (fields.find((f) => f.key === key) || {}).type;
     const gb = (groupBy || [])
         .filter((g) => g.field)
-        .map((g) => (g.bucket && DATE_TYPES.has(fieldType(g.field)) ? { field: g.field, bucket: g.bucket } : { field: g.field }));
+        .map((g) => breakdownEntry(g, extra.tables || [], fields, (type) => DATE_TYPES.has(type)));
     const usedAliases = new Set();
+    const aliasAt: (string | undefined)[] = [];
     const aggs = (aggregates || [])
-        .filter((a) => a.agg && (a.agg === 'count' || a.field))
-        .map((a) => {
+        .map((a, i) => ({ a, i }))
+        .filter(({ a }) => a.agg && (a.agg === 'count' || a.field))
+        .map(({ a, i }) => {
             const isCount = a.agg === 'count';
             let alias = sanitizeAlias(a.label, isCount ? 'count' : `${a.agg}_${a.field || 'x'}`);
             let n = 2;
             while (usedAliases.has(alias)) alias = `${alias.slice(0, 58)}_${n++}`;
             usedAliases.add(alias);
+            aliasAt[i] = alias;
             return { fn: a.agg, ...(isCount && !a.field ? {} : { field: a.field }), as: alias };
         });
+    const gf = groupFilterEntries(extra.groupFilter || [], aliasAt);
     const leaf = (f: FilterRow) => {
         const base = { field: f.field, op: f.op };
         if (NO_VALUE_OPS.has(f.op)) return base;
@@ -120,27 +144,9 @@ export function buildDescriptor(tableId: string, fields: TableColumn[], groupBy:
     const referenced = [...[...gb, ...aggs].map((x) => x.field), ...filterClauseFields(flt)].filter(Boolean);
     const unknownFields = [...new Set(referenced.filter((k) => !known.has(k)))];
     return {
-        descriptor: { groupBy: gb, aggregates: aggs, filters: flt },
+        descriptor: { groupBy: gb, aggregates: aggs, filters: flt, ...(gf.length ? { groupFilter: gf } : {}) },
         unknownFields,
         valid: !!tableId && (gb.length > 0 || aggs.length > 0) && unknownFields.length === 0,
-    };
-}
-
-/** The live preview chart, as a static-source chart node over the preview rows. */
-function previewChartNodeFor(effectiveMapping: ChartMapping, previewRows: unknown[]): ComponentProps<typeof AppChart>['node'] {
-    return {
-    id: 'qb_preview_chart',
-    type: 'chart',
-    props: {
-        chartType: effectiveMapping.chartType,
-        source: { kind: 'static', value: previewRows },
-        xKey: effectiveMapping.xKey,
-        series: effectiveMapping.series,
-        showLegend: true,
-        showGrid: true,
-        valueFormat: 'number',
-    },
-    style: { height: 'md' },
     };
 }
 
@@ -153,6 +159,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
     const [groupBy, setGroupBy] = useState<DatasetGroup[]>([]);
     const [aggregates, setAggregates] = useState<{ agg: string; field: string; label: string; }[]>([]);
     const [filters, setFilters] = useState<FilterEntry[]>([]);
+    const [groupFilter, setGroupFilter] = useState<GroupFilterRow[]>([]);
     const [name, setName] = useState('');
     const [chartMapping, setChartMapping] = useState<ChartMapping | null>(null);
 
@@ -184,13 +191,14 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
         setTableId(nextId);
         setGroupBy([]);
         setFilters([]);
+        setGroupFilter([]);
         setAggregates([{ agg: 'count', field: '', label: 'Count' }]);
         setChartMapping(null);
     };
 
     const { descriptor, valid, unknownFields } = useMemo(
-        () => buildDescriptor(tableId, fields, groupBy, aggregates, filters),
-        [tableId, fields, groupBy, aggregates, filters],
+        () => buildQueryDescriptor({ tableId, fields, groupBy, aggregates, filters, tables, groupFilter }),
+        [tableId, fields, groupBy, aggregates, filters, tables, groupFilter],
     );
 
     // Debounced live preview: the key carries the exact payload, so the fetch
@@ -285,9 +293,11 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                             </select>
                         </label>
 
-                        <BreakdownField t={t} groupBy={groupBy} setGroupBy={setGroupBy} fields={fields} fieldName={fieldName} fieldType={fieldType} />
+                        <BreakdownField t={t} groupBy={groupBy} setGroupBy={setGroupBy} fields={fields} fieldName={fieldName} fieldType={fieldType} tables={tables} />
 
                         <MeasuresField t={t} aggregates={aggregates} setAggregates={setAggregates} fields={fields} fieldName={fieldName} />
+
+                        {groupBy.length ? <GroupFilterField t={t} rows={groupFilter} setRows={setGroupFilter} measures={groupFilterMeasures(aggregates, fieldName, fieldType, t)} inputClass={inputCls} /> : null}
 
                         <FilterRowsEditor fields={fields} filters={filters} onChange={setFilters} allowGroups label={t('studio_apps_bi.query.only_count_where', 'Only count rows where')} />
 

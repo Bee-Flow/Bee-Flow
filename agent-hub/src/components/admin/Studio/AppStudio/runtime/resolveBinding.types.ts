@@ -41,6 +41,8 @@ export interface DataBinding {
     limit?: FilterValue;
     groupBy?: FilterValue;
     aggregates?: FilterValue;
+    /** Aggregate only: `[{ field: <aggregate alias>, op, value }]`, the groups to keep. */
+    groupFilter?: unknown;
     pick?: PickSpec | null;
     path?: unknown;
 }

@@ -5,6 +5,7 @@ import useTranslation from '@/hooks/useTranslation';
 import QueryBuilder from '@/components/admin/Studio/AppStudio/bi/QueryBuilder';
 import useDatasets from '@/components/admin/Studio/AppStudio/bi/useDatasets';
 import type { Dataset } from '@/components/admin/Studio/AppStudio/bi/useDatasets';
+import { groupByColumnName } from '@/components/admin/Studio/AppStudio/bi/aggregateExtras';
 import type { BindingDraft, DatasetBindingProps } from '../BindingField.types';
 import { PickValueField } from './AggregateBinding';
 
@@ -23,7 +24,7 @@ export function datasetColumns(dataset: Dataset | null) {
         if (a && typeof a === 'object') add(a.as || (a.fn ? `${a.fn}_${a.field || 'all'}` : null));
     }
     for (const g of Array.isArray(d.groupBy) ? d.groupBy : []) {
-        if (g && typeof g === 'object') add(g.as || (g.bucket ? `${g.field}_${g.bucket}` : g.field));
+        if (g && typeof g === 'object') add(groupByColumnName(g));
     }
     return out;
 }

@@ -15,11 +15,12 @@ import { stableStringify } from './paths';
 type Binding = Record<string, unknown> & { kind?: unknown };
 type Scope = Record<string, unknown> | null | undefined;
 
-// `orderBy` joins the key only when the binding has one: a binding without it keeps its key.
-const shapeOf = (b: Binding, keys: readonly string[]) =>
+// `orderBy` (and an aggregate's `groupFilter`) join the key only when the binding has one:
+// a binding without them keeps its key.
+const shapeOf = (b: Binding, keys: readonly string[], optional: readonly string[] = ['orderBy']) =>
     stableStringify(Object.fromEntries([
         ...keys.map((k) => [k, b[k] ?? null]),
-        ...(b.orderBy === undefined || b.orderBy === null ? [] : [['orderBy', b.orderBy]]),
+        ...optional.filter((k) => b[k] !== undefined && b[k] !== null).map((k) => [k, b[k]]),
     ]));
 
 /**
@@ -36,7 +37,7 @@ export function dataCacheKey(binding: unknown): string | null {
         case 'records':
             return `${b.kind}:${b.tableId ?? ''}:${shapeOf(b, ['filter', 'sort', 'limit'])}`;
         case 'aggregate':
-            return `aggregate:${b.tableId ?? ''}:${shapeOf(b, ['filter', 'groupBy', 'aggregates', 'sort', 'limit'])}`;
+            return `aggregate:${b.tableId ?? ''}:${shapeOf(b, ['filter', 'groupBy', 'aggregates', 'sort', 'limit'], ['orderBy', 'groupFilter'])}`;
         case 'connector':
             return `connector:${b.connectorId ?? ''}:${stableStringify(b.params ?? null)}`;
         default:

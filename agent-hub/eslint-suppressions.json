@@ -600,11 +600,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/DatasetBinding.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/SourceSummary.tsx": {
     "complexity": {
       "count": 1

@@ -106,6 +106,7 @@ function batchDescriptor(id: string, binding: FetchBinding, limit: unknown) {
             aggregates: binding.aggregates ?? undefined,
             sort: binding.sort ?? undefined,
             orderBy: binding.orderBy ?? undefined,
+            groupFilter: binding.groupFilter ?? undefined,
             limit: binding.limit ?? undefined,
         };
     }
@@ -216,6 +217,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
                 aggregates: binding.aggregates ?? undefined,
                 sort: binding.sort ?? undefined,
             orderBy: binding.orderBy ?? undefined,
+                groupFilter: binding.groupFilter ?? undefined,
                 limit: binding.limit ?? undefined,
             }),
         });
