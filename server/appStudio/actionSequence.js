@@ -19,7 +19,7 @@
 
 const { MAX_FIELD_KEY_LEN, MAX_INPUT_FIELDS } = require('./actionExecutor');
 const { LIMITS } = require('./componentSpecs/limits');
-const { clampErrorScope, numberedChildLists, handlerStepsOf } = require('../shared/appDefinition/stepFlow.mjs');
+const { clampErrorScope, numberedChildLists, handlerStepsOf, isExtensionStepKind } = require('../shared/appDefinition/stepFlow.mjs');
 
 /**
  * @param {import('./actionExecutor/shared').StepDef | null | undefined} action
@@ -113,13 +113,22 @@ function ownActionOf(actions, id) {
  * The URL keeps the ROOT action id, so the role gate and the public surface stay on the
  * action that was clicked.
  *
+ * `sentKind` is the kind the client believes the step has (the body's `kind`). A client
+ * that does not know a container kind of the step registry numbers the steps after it
+ * differently, and one that does not know `return` or `break` walks past them, so:
+ *   - a sent kind that differs from the resolved step's is `mismatch`;
+ *   - when the clicked action, or an action on the callPath, holds a step kind of the
+ *     registry, the kind MUST be sent (absent is `mismatch`).
+ * An action of base kinds without a sent kind resolves exactly as it always did.
+ *
  * @param {unknown} def
  * @param {string} actionId
  * @param {unknown} stepIndex
  * @param {unknown} [callPath]
- * @returns {{ step: import('./actionExecutor/shared').StepDef, ownerActionId: string } | { error: 'action' | 'step' | 'call' }}
+ * @param {unknown} [sentKind]
+ * @returns {{ step: import('./actionExecutor/shared').StepDef, ownerActionId: string } | { error: 'action' | 'step' | 'call' | 'mismatch' }}
  */
-function resolveRequestedStep(def, actionId, stepIndex, callPath) {
+function resolveRequestedStep(def, actionId, stepIndex, callPath, sentKind) {
     const actions = def && typeof def === 'object' ? /** @type {Record<string, unknown>} */ (def).actions : null;
     const root = ownActionOf(actions, actionId);
     if (!root) return { error: 'action' };
@@ -128,7 +137,20 @@ function resolveRequestedStep(def, actionId, stepIndex, callPath) {
     const index = Number.isInteger(stepIndex) ? /** @type {number} */ (stepIndex) : parseInt(String(stepIndex), 10);
     const step = stepAtOrdinal(owner.action, index);
     if (!step || typeof step.kind !== 'string') return { error: 'step' };
+    const sent = typeof sentKind === 'string' && sentKind ? sentKind : null;
+    if (sent ? sent !== step.kind : owner.needsKind) return { error: 'mismatch' };
     return { step, ownerActionId: owner.id };
+}
+
+/** The answer to a `mismatch` (409): the page and the app no longer agree on which step this is. */
+const STEP_MISMATCH = Object.freeze({ error: 'This step does not match the current version of the app. Reload the page and try again.', code: 'step_mismatch' });
+
+/**
+ * Does the action hold a step kind of the step registry (numbered steps and handlers)?
+ * @param {import('./actionExecutor/shared').StepDef} action
+ */
+function usesRegistryKind(action) {
+    return flattenSteps(normalizeSequence(action)).some((s) => isExtensionStepKind(s && s.kind));
 }
 
 /**
@@ -144,16 +166,17 @@ function stepAtOrdinal(action, ordinal) {
 
 /**
  * The action a callPath ends in (the root itself for none), or null for a bad hop.
+ * `needsKind`: an action on the way holds a step kind of the registry.
  * @param {unknown} actions
  * @param {import('./actionExecutor/shared').StepDef} root
  * @param {string} rootId
  * @param {unknown} callPath
- * @returns {{ action: import('./actionExecutor/shared').StepDef, id: string } | null}
+ * @returns {{ action: import('./actionExecutor/shared').StepDef, id: string, needsKind: boolean } | null}
  */
 function followCallPath(actions, root, rootId, callPath) {
     const hops = Array.isArray(callPath) ? callPath : [];
     if (hops.length > LIMITS.MAX_CALL_DEPTH) return null;
-    let at = { action: root, id: rootId };
+    let at = { action: root, id: rootId, needsKind: usesRegistryKind(root) };
     const seen = new Set([rootId]);
     for (const hop of hops) {
         const call = /** @type {Record<string, unknown> | null} */ (stepAtOrdinal(at.action, hop));
@@ -161,7 +184,7 @@ function followCallPath(actions, root, rootId, callPath) {
         const next = target && !seen.has(target) ? ownActionOf(actions, target) : null;
         if (!next || !target) return null;
         seen.add(target);
-        at = { action: next, id: target };
+        at = { action: next, id: target, needsKind: at.needsKind || usesRegistryKind(next) };
     }
     return at;
 }
@@ -203,4 +226,4 @@ function sanitizeErrorScope(raw) {
     return clampErrorScope(raw) ?? undefined;
 }
 
-module.exports = { normalizeSequence, flattenSteps, sanitizeBag, resolveRequestedStep, stepNotes, stepFailureExtras, sanitizeErrorScope };
+module.exports = { normalizeSequence, flattenSteps, sanitizeBag, resolveRequestedStep, STEP_MISMATCH, stepNotes, stepFailureExtras, sanitizeErrorScope };

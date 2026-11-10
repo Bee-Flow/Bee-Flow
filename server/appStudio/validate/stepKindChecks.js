@@ -8,6 +8,7 @@
 
 const { isObject, pushDataRef } = require('./shared');
 const { checkCallAction } = require('./callChecks.mts');
+const { checkLoopExit, checkWhile, checkTry } = require('./controlFlowChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS, extraChildLists } = require('../../shared/appDefinition/stepFlow.mjs');
 const { STEP_META, EXTENSION_STEP_ENTRIES } = require('../componentSpecs/stepRegistry');
@@ -272,7 +273,7 @@ function checkGeneratePresentation(step, path, ctx) {
 
 function checkLoopCosts(step, path, ctx) {
     const { pushW } = ctx;
-    if (step.kind !== 'loop') return;
+    if (step.kind !== 'loop' && step.kind !== 'while') return;
     // What a loop holding a kind is told is on the kind's catalogue entry (`inLoop`, `noLoop`).
     for (const kind of LOOP_FINDING_KINDS) {
         const finding = STEP_META[kind].inLoop;
@@ -368,6 +369,11 @@ const KIND_CHECKS = {
     ai_browse: checkAiBrowse,
     copy_document: checkCopyDocument,
     call_action: checkCallAction,
+    // The control kinds of the step registry (controlFlowChecks.mts); a while is told what a loop is told.
+    break: checkLoopExit,
+    continue: checkLoopExit,
+    while: (step, path, ctx) => { checkWhile(step, path, ctx); checkLoopCosts(step, path, ctx); },
+    try: checkTry,
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS };

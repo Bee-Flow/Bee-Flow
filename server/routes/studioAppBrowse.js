@@ -48,7 +48,7 @@ const { z, typeError } = require('../utils/zod');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
-const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope } = require('../appStudio/actionSequence');
 const { LIMITS } = require('../appStudio/componentSpecs/limits');
 const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate');
 const { resolveAudienceContext } = require('../auth/audience');
@@ -104,6 +104,8 @@ const BrowseBody = partOf({
         z.number().int(STEP_TEXT).min(0, STEP_TEXT),
         z.string().regex(/^\d+$/, STEP_TEXT).transform(Number),
     ], { error: () => STEP_TEXT }),
+    // The kind the client believes that step has (actionSequence.resolveRequestedStep checks it).
+    kind: z.string({ error: 'kind is the kind of the step at stepIndex.' }).min(1, 'kind is the kind of the step at stepIndex.').max(40, 'kind is the kind of the step at stepIndex.').optional(),
     // Their contents are sanitizeBag's to bound; the schema only asks for a map.
     formValues: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('formValues') }) }).nullish(),
     vars: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('vars') }) }).nullish(),
@@ -148,7 +150,8 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         const def = (isOwner && wantDraft) ? app.definition : app.publishedDefinition;
 
         // Inside a called action when the body carries a callPath; the role gate stays on the root.
-        const resolved = resolveRequestedStep(def, actionId, req.body.stepIndex, req.body.callPath);
+        const resolved = resolveRequestedStep(def, actionId, req.body.stepIndex, req.body.callPath, req.body.kind);
+        if ('error' in resolved && resolved.error === 'mismatch') return res.status(409).json(STEP_MISMATCH);
         if ('error' in resolved) return res.status(404).json({ error: resolved.error === 'action' ? 'Action not found' : 'Step not found' });
         const { step, ownerActionId } = resolved;
         // This endpoint runs ONLY ai_browse. Anything else belongs on /step.
