@@ -10,4 +10,10 @@
  */
 
 /** @type {Readonly<Record<string, { childSlots: readonly { field: string, each?: string, walked?: boolean }[], retrySafe: boolean, server: boolean }>>} */
-export const EXTENSION_STEP_KINDS = Object.freeze({});
+export const EXTENSION_STEP_KINDS = Object.freeze({
+    "http_request": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": true
+    }
+});

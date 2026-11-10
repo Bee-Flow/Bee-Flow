@@ -364,6 +364,7 @@ const KIND_CHECKS = {
     ai_browse: checkAiBrowse,
     copy_document: checkCopyDocument,
     call_action: checkCallAction,
+    http_request: require('./httpRequestChecks.mts').checkHttpRequest,
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS };

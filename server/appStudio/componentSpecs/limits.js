@@ -99,6 +99,7 @@ const LIMITS = {
     MAX_VARIABLE_DEFAULT_BYTES: 2048,  // one seeded record/list. Exists so the
                                        // error can name the variable instead of
                                        // "your app is too big" at 512KB.
+    MAX_HTTP_STEP_ENTRIES: 30,         // http_request: entries in `query`, and in `headers`
 };
 
 module.exports = {

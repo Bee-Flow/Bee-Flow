@@ -48,7 +48,8 @@
         "MAX_FILTER_BAR_FIELDS": 8,
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
-        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048,
+        "MAX_HTTP_STEP_ENTRIES": 30
     },
     "colorRoles": [
         "primary",
@@ -499,6 +500,11 @@
         "transaction": {
             "client": false,
             "mutatesData": true
+        },
+        "http_request": {
+            "client": false,
+            "mutatesData": true,
+            "since": 3
         }
     },
     "types": {
