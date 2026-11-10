@@ -78,6 +78,17 @@ function tieredLists(): [unknown[], unknown[]][] {
 
 const sameList = (a: unknown[], b: unknown[]): boolean => a.length === b.length && a.every((v, i) => v === b[i]);
 
+/**
+ * True when `values` is the whole list, or the base list followed only by extension words of
+ * that list (an enum built from a list the catalogue tier sees with more extension words, as a
+ * test overlay does).
+ */
+export function isTieredEnum(values: unknown[], whole: unknown[], base: unknown[]): boolean {
+    if (sameList(whole, values)) return true;
+    if (values.length <= base.length || !sameList(values.slice(0, base.length), base)) return false;
+    return values.slice(base.length).every((v) => whole.includes(v) && !base.includes(v));
+}
+
 function stripEnums(node: unknown, pairs: [unknown[], unknown[]][]): void {
     if (Array.isArray(node)) {
         for (const child of node) stripEnums(child, pairs);
@@ -86,7 +97,7 @@ function stripEnums(node: unknown, pairs: [unknown[], unknown[]][]): void {
     if (!isObject(node)) return;
     if (Array.isArray(node.enum)) {
         const values = node.enum;
-        const hit = pairs.find(([whole]) => sameList(whole, values));
+        const hit = pairs.find(([whole, base]) => isTieredEnum(values, whole, base));
         if (hit) node.enum = [...hit[1]];
     }
     for (const child of Object.values(node)) stripEnums(child, pairs);

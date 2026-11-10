@@ -99,6 +99,20 @@ const DATA_MARK_FIXTURES = Object.freeze({
     dateBuckets: { zz_fortnight: { since: 3, description: 'Two-week periods, starting on a Monday.' } },
 });
 
+/**
+ * The shipped data-vocabulary marks with the fixtures' added to them, per family: the overlay
+ * replaces the mark table, so a word a feature marked must stay marked while the fixtures are in.
+ */
+function fixtureDataMarks() {
+    const { DATA_VOCABULARY_MARKS } = require('../core/dataEngine/dataModel/vocabularySince');
+    /** @type {Record<string, Record<string, any>>} */
+    const out = {};
+    for (const family of new Set([...Object.keys(DATA_VOCABULARY_MARKS), ...Object.keys(DATA_MARK_FIXTURES)])) {
+        out[family] = { .../** @type {Record<string, any>} */ (DATA_VOCABULARY_MARKS)[family], .../** @type {Record<string, any>} */ (DATA_MARK_FIXTURES)[family] };
+    }
+    return out;
+}
+
 /** @param {Record<string, any>} spec @param {string} value @returns {() => void} the undo */
 function addEnumValue(spec, value) {
     const before = spec.valuesSince;
@@ -174,7 +188,7 @@ function installKeyFixtures() {
         FILTER_OPS: [...vocabulary.FILTER_OPS, 'zz_near'],
         AGG_FNS: [...vocabulary.AGG_FNS, 'zz_median'],
         DATE_BUCKETS: [...vocabulary.DATE_BUCKETS, 'zz_fortnight'],
-        dataMarks: DATA_MARK_FIXTURES,
+        dataMarks: fixtureDataMarks(),
     });
     return () => {
         for (const fn of undo.reverse()) fn();
@@ -188,7 +202,7 @@ function fixtureSinceCatalogue() {
     const { fullCatalogue } = require('../appStudio/catalogTiers.mts');
     const { queryValuesSince } = require('../core/dataEngine/dataModel/vocabularySince');
     const live = since.liveCatalogue();
-    return { ...live, keyTables: { ...live.keyTables, design: fullCatalogue().DESIGN_SPEC }, queryValuesSince: queryValuesSince(DATA_MARK_FIXTURES) };
+    return { ...live, keyTables: { ...live.keyTables, design: fullCatalogue().DESIGN_SPEC }, queryValuesSince: queryValuesSince(fixtureDataMarks()) };
 }
 
 const FIXTURE_KEY_ENTRY = {

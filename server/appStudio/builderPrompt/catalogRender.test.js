@@ -46,7 +46,9 @@ const { baseCatalogue, isExtensionSince } = require('../catalogTiers.mts');
 const { ACTION_KINDS, ACTION_SPECS, STEP_KINDS, STEP_SPECS, COMPONENT_SPECS, DATA_MUTATING_STEP_KINDS, STYLE_KNOBS } = baseCatalogue();
 const COMPONENT_TYPES = Object.keys(COMPONENT_SPECS);
 const BINDING_KINDS = require('../componentSpecs').BINDING_KINDS.filter((/** @type {string} */ kind) => !isExtensionSince(BINDING_KIND_SINCE[kind]));
-const { FIELD_TYPES, FILTER_OPS, ACCESS_MODES, SYSTEM_COLUMNS } = require('../dataModel');
+const { ACCESS_MODES, SYSTEM_COLUMNS } = require('../dataModel');
+// The data vocabulary the text names is its base tier too (core/dataEngine/dataModel/vocabularySince.js).
+const { FIELD_TYPES, FILTER_OPS } = baseCatalogue();
 const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr');
 
 /**

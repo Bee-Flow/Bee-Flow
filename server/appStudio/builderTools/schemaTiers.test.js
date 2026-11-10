@@ -100,6 +100,18 @@ test('the core projection drops the extension words of the data vocabulary and t
     }
 });
 
+test('an enum is stripped when it is the whole list, or the base list followed by extension words of it only', () => {
+    const { isTieredEnum } = require('./schemaTiers.mts');
+    const base = ['a', 'b'];
+    const whole = ['a', 'b', 'x', 'y'];
+    assert.equal(isTieredEnum(['a', 'b', 'x', 'y'], whole, base), true, 'the whole list');
+    assert.equal(isTieredEnum(['a', 'b', 'x'], whole, base), true, 'the base plus some of the extension words');
+    assert.equal(isTieredEnum(['a', 'b'], whole, base), false, 'the base itself: nothing to strip');
+    assert.equal(isTieredEnum(['a', 'b', 'z'], whole, base), false, 'a word the list does not hold');
+    assert.equal(isTieredEnum(['b', 'a', 'x'], whole, base), false, 'not the base order');
+    assert.equal(isTieredEnum(['a', 'b', 'a'], whole, base), false, 'a base word again is not an extension word');
+});
+
 test('the wording of the data tools names the base words only', () => {
     // The enums take the whole list; a description that listed it would move with every word added.
     const vocabulary = require('../../core/dataEngine/dataModel/vocabularySince');

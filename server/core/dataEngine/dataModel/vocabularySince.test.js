@@ -71,10 +71,12 @@ test('the base lists and the query marks follow a mark table', () => {
         aggFns: { p90: { since: 4, description: 'x' } },
         dateBuckets: {},
     };
+    // Against the live lists: a word a feature appended (and marked in the shipped table, not in
+    // this fixture) stays in, so this holds whatever ships.
     const base = marks.baseVocabulary(fixture);
-    assert.deepEqual([...base.FIELD_TYPES], FROZEN_BASE.fieldTypes.filter((t) => t !== 'computed'));
-    assert.deepEqual([...base.FILTER_OPS], FROZEN_BASE.filterOps.filter((t) => t !== 'isNull'));
-    assert.deepEqual([...base.AGG_FNS], FROZEN_BASE.aggFns.filter((t) => t !== 'p90'));
+    assert.deepEqual([...base.FIELD_TYPES], vocabulary.FIELD_TYPES.filter((t) => t !== 'computed'));
+    assert.deepEqual([...base.FILTER_OPS], vocabulary.FILTER_OPS.filter((t) => t !== 'isNull'));
+    assert.deepEqual([...base.AGG_FNS], vocabulary.AGG_FNS.filter((t) => t !== 'p90'));
     assert.equal(base.DATE_BUCKETS, vocabulary.DATE_BUCKETS, 'nothing marked: the very same list');
     assert.deepEqual(marks.queryValuesSince(fixture), { op: { isNull: 3 }, fn: { p90: 4 }, bucket: {} });
     for (const since of [undefined, null, 2, '3', 3.5]) assert.equal(marks.isAboveBase(since), false, String(since));
