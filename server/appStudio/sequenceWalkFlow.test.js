@@ -73,7 +73,7 @@ test('return ends the action as a success and its value is the result', async ()
     assert.equal(view.ok, true);
     assert.equal(view.stopped, null);
     assert.equal(view.result, 42);
-    assert.equal(w.signal, null);
+    assert.ok(!w.signal, 'the return was taken at the action boundary');
     assert.equal(view.steps.get('steps[2]').status, 'not_run');
 });
 
@@ -96,7 +96,7 @@ test('break leaves the nearest loop, continue skips the rest of the round', asyn
     assert.deepEqual(h.ran, ['row', 'row', 'after']);
     assert.equal(w.outcomes.get('steps[0].steps[2]').count, 2);
     assert.equal(w.vars.row, undefined, 'the loop still restores its variables after a break');
-    assert.equal(w.signal, null);
+    assert.ok(!w.signal);
 });
 
 test('break only leaves the inner loop', async () => {

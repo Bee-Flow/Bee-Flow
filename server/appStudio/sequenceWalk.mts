@@ -339,7 +339,7 @@ async function walkCall(fr: Frame, step: Step, ev: StepEvent, startedAt: number)
         await walkList({ ...fr, ordinals: ordinalMap(callee), ownerActionId: id, depth: 1, breakable: false }, list, base);
     } finally {
         // A return ends the called action only: the caller goes on.
-        w.signal = null;
+        if (w.signal) w.signal = null;
         const produced = w.lastResult !== NO_RESULT;
         const result = produced ? w.lastResult : null;
         Object.assign(w, { params: saved.params, item: saved.item, index: saved.index, value: saved.value, callChain: saved.callChain, lastResult: produced ? result : saved.lastResult });
@@ -365,7 +365,7 @@ export async function walkAction(w: WalkState, action: Obj, host: WalkHost, opts
     const { list, base } = topOf(action);
     await walkList(fr, list, base);
     // A return ended the action: that is how it ends, not a stop.
-    w.signal = null;
+    if (w.signal) w.signal = null;
 }
 
 /** The walk as data: ok/stopped, the vars, the last server result, and an outcome for EVERY known path. */

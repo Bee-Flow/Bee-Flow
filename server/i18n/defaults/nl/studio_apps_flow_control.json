@@ -18,5 +18,6 @@
     "studio_apps_flow_control.scope.try_finally": "Altijd, aan het einde",
     "studio_apps_flow_control.scope.try_steps": "Proberen",
     "studio_apps_flow_control.scope.while_steps": "Zolang het geldt"
-  }
+  },
+  "sameAsEnglish": []
 }
