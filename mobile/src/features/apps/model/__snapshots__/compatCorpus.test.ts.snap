@@ -10356,3 +10356,93 @@ exports[`compat corpus: what the phone plans for every stored app trace-invoice-
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app web-service-step 1`] = `
+{
+  "defaultScreen": "scr_htp001",
+  "navigable": [
+    "scr_htp001",
+  ],
+  "screens": [
+    {
+      "id": "scr_htp001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "action": {
+                  "actionId": "act_htpnot",
+                  "kind": "sequence",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_htpfrm",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Order number",
+                    "max": null,
+                    "min": null,
+                    "name": "orderId",
+                    "nodeId": "cmp_htpord",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Note",
+                    "max": null,
+                    "min": null,
+                    "name": "note",
+                    "nodeId": "cmp_htptxt",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Add note",
+                "title": "note",
+              },
+              {
+                "action": {
+                  "actionId": "act_htplok",
+                  "kind": "sequence",
+                  "label": "Look up",
+                  "runnable": false,
+                },
+                "id": "cmp_htplok",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_htpcan",
+                  "kind": "sequence",
+                  "label": "Cancel order",
+                  "runnable": false,
+                },
+                "id": "cmp_htpcan",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_htp001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

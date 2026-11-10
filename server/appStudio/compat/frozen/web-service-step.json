@@ -1,5 +1,5 @@
 {
-  "corpus": "step-http-request",
+  "corpus": "web-service-step",
   "canonical": {
     "sha256": "dd6cedac123010280ce2933802635f7748b1b2cfbfbc0833f64d157f3001ecdf",
     "bytes": 3202,

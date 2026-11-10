@@ -227,6 +227,14 @@ test('the body: json, form and text; a body that does not fit its format is refu
     assert.equal(text.init.body, 'Order A 1/2');
     const jsonText = await sent({ body: { kind: 'static', value: '{"note": "{{form.note}}"}' } });
     assert.equal(jsonText.init.body, '{"note":"Deliver on Friday"}');
+    // A JSON text is parsed before it is filled: a value stays inside the leaf that names it.
+    const h2 = harness();
+    await runHttpRequest(APP, MODEL, { kind: 'http_request', connectorId: 'conn_ab12cd', method: 'POST', path: '/x', body: { kind: 'static', value: '{"note": "{{form.note}}", "qty": "{{form.qty}}"}' } }, { ...CTX, formValues: { ...CTX.formValues, note: 'a", "admin": true, "b": "c' } }, h2.deps);
+    assert.deepEqual(JSON.parse(h2.calls[0].init.body), { note: 'a", "admin": true, "b": "c', qty: 3 });
+    const bare = await sent({ body: { kind: 'static', value: '{"qty": {{form.qty}}}' } });
+    assert.equal(bare.res.code, 'http_bad_input', 'a placeholder outside a text value is not JSON');
+    const leaf = await sent({ body: { kind: 'static', value: '"Order {{form.orderId}}"' } });
+    assert.equal(leaf.init.body, '"Order A 1/2"');
     const fromVar = await sent({ body: { kind: 'formula', expr: 'vars.payload' } });
     assert.equal(fromVar.init.body, undefined, 'a body that resolves to nothing sends none');
     const own = await sent({ headers: { 'Content-Type': { kind: 'static', value: 'application/vnd.api+json' } }, body: { kind: 'static', value: { a: 1 } } });

@@ -34,7 +34,7 @@ export interface StepKindModule {
 type TextPair = [string, string];
 
 /** One field of a registry kind in the settings panel (StepSettings). */
-export interface StepFieldDress {
+interface StepFieldDress {
     label?: TextPair;
     hint?: TextPair;
     /** The reference list a picker field offers instead of its default one (a key of useStepReferences' options). */

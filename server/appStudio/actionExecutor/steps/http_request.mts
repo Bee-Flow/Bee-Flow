@@ -22,7 +22,7 @@
 
 import { createRequire } from 'node:module';
 
-import { authoredHeaders, buildUrl, connectorOrigin, encodeBody, isWrite, queryPairs, HTTP_METHODS } from '../httpRequest/request.mts';
+import { BODY_FORMATS, authoredHeaders, buildUrl, connectorOrigin, encodeBody, isWrite, queryPairs, HTTP_METHODS } from '../httpRequest/request.mts';
 import type { Obj, Refusal, RestConnector } from '../httpRequest/request.mts';
 import { fillPath, fillStatic, templateRoots } from '../httpRequest/template.mts';
 import { checkOutbound, logCall, openShield } from '../httpRequest/shield.mts';
@@ -98,9 +98,25 @@ function resolveMap(map: unknown, ctx: Obj, scope: unknown, s: Shared): Obj {
     return out;
 }
 
+/**
+ * A static JSON text with its placeholders filled. The text is parsed BEFORE anything is filled
+ * in, so a value can only ever land inside the text leaf that names it and never adds a key or
+ * closes a quote. A text that is not JSON is handed on as it is and refused by the encoder.
+ */
+function fillJsonText(text: string, ctx: Obj): unknown {
+    let parsed: unknown;
+    try { parsed = JSON.parse(text); } catch { return text; }
+    const filled = fillStatic(parsed, templateRoots(ctx));
+    // The encoder reads a text as JSON an author wrote: a filled text leaf goes back in as JSON.
+    return typeof filled === 'string' ? JSON.stringify(filled) : filled;
+}
+
 /** The body's value: a static body has its placeholders filled, any other binding is data as it is. */
-function bodyValue(binding: unknown, ctx: Obj, scope: unknown, s: Shared): unknown {
-    if (isObject(binding) && binding.kind === 'static') return fillStatic(binding.value, templateRoots(ctx));
+function bodyValue(binding: unknown, format: string, ctx: Obj, scope: unknown, s: Shared): unknown {
+    if (isObject(binding) && binding.kind === 'static') {
+        if (format === 'json' && typeof binding.value === 'string') return fillJsonText(binding.value, ctx);
+        return fillStatic(binding.value, templateRoots(ctx));
+    }
     return s.resolveBinding(binding, ctx, scope);
 }
 
@@ -135,7 +151,8 @@ function prepare(model: unknown, step: Obj, ctx: Obj, deps: HttpStepDeps): { ok:
     if (!url.ok) return refused(url);
     const headers = authoredHeaders(resolveMap(step.headers, ctx, scope, s), connector);
     if (!headers.ok) return refused(headers);
-    const body = encodeBody(step.body === undefined ? null : bodyValue(step.body, ctx, scope, s), typeof step.bodyFormat === 'string' ? step.bodyFormat : 'json', method);
+    const format = typeof step.bodyFormat === 'string' && BODY_FORMATS.includes(step.bodyFormat) ? step.bodyFormat : 'json';
+    const body = encodeBody(step.body === undefined ? null : bodyValue(step.body, format, ctx, scope, s), format, method);
     if (!body.ok) return refused(body);
     const maxBody = limitFromEnv(deps.env, 'STUDIO_APP_HTTP_MAX_BODY_BYTES', DEFAULT_MAX_BODY_BYTES);
     if (maxBody && body.text !== undefined && Buffer.byteLength(body.text, 'utf8') > maxBody) {
