@@ -1,4 +1,4 @@
-import { ShieldCheck, Crown, Building2, Loader2 } from 'lucide-react';
+import { ShieldCheck, Crown, Building2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import CeilingSection from './access/CeilingSection';
 import GroupAccessMatrix from './GroupAccessMatrix';
@@ -8,6 +8,9 @@ import { mutate, request, RefusedError } from '@/api/mutate';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
+import Spinner from '@/components/shared/Spinner';
+import { FIELD_INPUT } from '@/components/shared/SettingsList';
+import { ALERT_INFO } from '@/components/mcpLibrary/ui';
 import type { Organization } from './useOrgDirectory';
 import type { AdminCurrentUser } from './userManagement/types';
 import { logger } from '@/utils/logger';
@@ -96,7 +99,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     const orgName = useMemo(() => (orgs || []).find(o => o.id === orgId)?.name || orgId, [orgs, orgId]);
 
     if (isSuperAdmin && orgs === null) {
-        return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
+        return <div className="p-6"><Spinner size="sm" /></div>;
     }
 
     const noOrg = isSuperAdmin && (!orgs || orgs.length === 0);
@@ -104,9 +107,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     const renderBody = () => {
         if (noOrg) {
             return (
-                <div className="rounded-2xl p-5 text-sm [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-muted)]!">
-                    {t('admin_org.access_panel_no_orgs', 'No organisations found.')}
-                </div>
+                <p className={ALERT_INFO}>{t('admin_org.access_panel_no_orgs', 'No organisations found.')}</p>
             );
         }
         if (active === 'grants') {
@@ -147,7 +148,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
                         id="access-org-picker"
                         value={orgId || ''}
                         onChange={e => selectOrg(e.target.value)}
-                        className="max-w-sm flex-1 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
+                        className={`${FIELD_INPUT} max-w-sm flex-1`}
                     >
                         {orgs.map(o => <option key={o.id} value={o.id}>{o.name || o.id}</option>)}
                     </select>
@@ -160,7 +161,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
                     sidebarTitle={t('admin.tab_access', 'Access')}
                     sidebar={<SectionNav label={t('admin.tab_access', 'Access')} items={sections} activeId={active} onSelect={handleSectionClick} />}
                 >
-                    <div className="mx-auto max-w-5xl p-6">
+                    <div className="p-6 md:p-8">
                         {renderBody()}
                     </div>
                 </StudioShell>

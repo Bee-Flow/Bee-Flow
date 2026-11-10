@@ -67,10 +67,9 @@ export function TrialOffersPanel({ plans }: TrialOffersPanelProps) {
     if (!loaded) return null;
 
     return (
-        <Card className="!p-5 mb-6" accent="emerald">
+        <Card className="mb-6">
             <CardHeader
                 icon={CalendarPlus}
-                iconClass="text-emerald-400"
                 title={t('admin_subscriptions.trial_title', 'Trial offers')}
                 subtitle={t('admin_subscriptions.trial_subtitle', 'Pick the plans that new organizations and personal accounts get as a free trial on signup. Trial length comes from the plan itself. Each org / user can only use a trial once.')}
             />
@@ -79,7 +78,7 @@ export function TrialOffersPanel({ plans }: TrialOffersPanelProps) {
                 <Field
                     label={
                         <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-secondary)]">
-                            <Building2 className="w-3.5 h-3.5 text-sky-400" /> {t('admin_subscriptions.trial_org_label', 'Organization trial plan')}
+                            <Building2 className="w-3.5 h-3.5 text-[var(--text-secondary)]" /> {t('admin_subscriptions.trial_org_label', 'Organization trial plan')}
                         </span>
                     }
                 >
@@ -93,12 +92,12 @@ export function TrialOffersPanel({ plans }: TrialOffersPanelProps) {
                         ))}
                     </Select>
                     {orgPlan && (
-                        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                        <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                             {t('admin_subscriptions.trial_org_receive', 'New orgs receive a {days}-day trial of {name}.', { days: orgPlan.trial_days, name: orgPlan.name })}
                         </p>
                     )}
                     {orgOptions.length === 0 && (
-                        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                        <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                             {t('admin_subscriptions.trial_org_none_eligible', 'No org plans with trial_days > 0 and a Stripe price yet. Edit a plan to enable.')}
                         </p>
                     )}
@@ -107,7 +106,7 @@ export function TrialOffersPanel({ plans }: TrialOffersPanelProps) {
                 <Field
                     label={
                         <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-secondary)]">
-                            <Users className="w-3.5 h-3.5 text-emerald-400" /> {t('admin_subscriptions.trial_consumer_label', 'Personal-account trial plan')}
+                            <Users className="w-3.5 h-3.5 text-[var(--success-ink)]" /> {t('admin_subscriptions.trial_consumer_label', 'Personal-account trial plan')}
                         </span>
                     }
                 >
@@ -121,12 +120,12 @@ export function TrialOffersPanel({ plans }: TrialOffersPanelProps) {
                         ))}
                     </Select>
                     {consumerPlan && (
-                        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                        <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                             {t('admin_subscriptions.trial_consumer_receive', 'New personal accounts receive a {days}-day trial of {name}.', { days: consumerPlan.trial_days, name: consumerPlan.name })}
                         </p>
                     )}
                     {consumerOptions.length === 0 && (
-                        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                        <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                             {t('admin_subscriptions.trial_consumer_none_eligible', 'No consumer plans with trial_days > 0 and a Stripe price yet.')}
                         </p>
                     )}

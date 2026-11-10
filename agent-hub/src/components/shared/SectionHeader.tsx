@@ -3,19 +3,20 @@ import type { ReactNode } from 'react';
 interface SectionHeaderProps {
     title: ReactNode;
     description?: ReactNode;
-    /** What to say about the last save, on the right. */
+    /** What to say about the last save, or the section's actions, on the right. */
     status?: ReactNode;
+    className?: string;
 }
 
 /** Title and one-line description at the top of a settings section (AI configuration, server licence, ...). */
-export default function SectionHeader({ title, description, status }: SectionHeaderProps) {
+export default function SectionHeader({ title, description, status, className = '' }: SectionHeaderProps) {
     return (
-        <header className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+        <header className={`flex flex-wrap items-start justify-between gap-3 ${className}`}>
+            <div className="min-w-[12rem] flex-1">
                 <h2 className="m-0 text-base font-semibold text-[var(--text-primary)]">{title}</h2>
                 {description ? <p className="m-0 mt-1 text-xs text-[var(--text-secondary)]">{description}</p> : null}
             </div>
-            {status}
+            {status ? <div className="max-w-full">{status}</div> : null}
         </header>
     );
 }

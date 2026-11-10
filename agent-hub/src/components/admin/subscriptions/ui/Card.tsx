@@ -1,18 +1,20 @@
-import React from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
+// The console's bordered surface and its header row (icon, title, subtitle,
+// an action on the right). Kept as a small local pair: the shared recipes
+// (CARD in mcpLibrary/ui) give the surface but no header slot, and a dozen
+// screens here are built from the two together.
+
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-    accent?: string;
     padded?: boolean;
     hover?: boolean;
 }
 
-export function Card({ children, className = '', accent, padded = true, hover = false, ...rest }: CardProps) {
-    const ring = accent ? `ring-1 ring-${accent}-500/30` : '';
+export function Card({ children, className = '', padded = true, hover = false, ...rest }: CardProps) {
     return (
         <div
-            className={`bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl ${padded ? 'p-5' : ''} ${hover ? 'transition-colors hover:border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)]' : ''} ${ring} ${className}`}
+            className={`rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] ${padded ? 'p-4' : ''} ${hover ? 'transition hover:border-[var(--text-tertiary)] hover:shadow-md' : ''} ${className}`}
             {...rest}
         >
             {children}
@@ -22,25 +24,20 @@ export function Card({ children, className = '', accent, padded = true, hover = 
 
 interface CardHeaderProps {
     icon?: LucideIcon;
-    iconClass?: string;
     title?: ReactNode;
     subtitle?: ReactNode;
     action?: ReactNode;
     className?: string;
 }
 
-export function CardHeader({ icon: Icon, iconClass = 'text-blue-400', title, subtitle, action, className = '' }: CardHeaderProps) {
+export function CardHeader({ icon: Icon, title, subtitle, action, className = '' }: CardHeaderProps) {
     return (
-        <div className={`flex items-start justify-between gap-4 mb-3 ${className}`}>
-            <div className="flex items-center gap-2.5 min-w-0">
-                {Icon && (
-                    <div className={`shrink-0 ${iconClass}`}>
-                        <Icon className="w-5 h-5" />
-                    </div>
-                )}
+        <div className={`mb-3 flex items-start justify-between gap-4 ${className}`}>
+            <div className="flex min-w-0 items-center gap-2.5">
+                {Icon && <Icon className="h-4 w-4 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />}
                 <div className="min-w-0">
-                    {title && <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">{title}</h3>}
-                    {subtitle && <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{subtitle}</p>}
+                    {title && <h3 className="m-0 truncate text-sm font-semibold text-[var(--text-primary)]">{title}</h3>}
+                    {subtitle && <p className="m-0 mt-0.5 text-xs text-[var(--text-tertiary)]">{subtitle}</p>}
                 </div>
             </div>
             {action && <div className="shrink-0">{action}</div>}

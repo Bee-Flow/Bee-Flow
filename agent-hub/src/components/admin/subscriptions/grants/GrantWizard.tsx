@@ -6,7 +6,7 @@ import { Button } from '@/components/shared/Button';
 import { toast } from '@/components/shared/Toast';
 import { apiJson } from '../hooks/useApi';
 import { Banner } from '../ui/Banner';
-import { IconButton } from '../ui/IconButton';
+import IconButton from '@/components/shared/IconButton';
 import { DetailsStep, GrantResult, GrantReview, ScopeStep } from './GrantWizardSteps';
 
 /** One organization in `GET /auth/organizations`, as the wizard lists it. */
@@ -198,9 +198,9 @@ function GrantWizardFooter({ onBack, t, step, result, setStep, canNext, submit, 
 
 function GrantWizardHeader({ onBack, t, isServerScope, selectedOrg, STEPS, step }: { onBack: () => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; isServerScope: boolean; selectedOrg: GrantOrg | undefined; STEPS: { id: string; label: string; }[]; step: number; }) {
     return <header className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-        <IconButton icon={ArrowLeft} size="sm" onClick={onBack} title={t('admin_subscriptions.grants_back', 'Back to grants')} />
+        <IconButton size="sm" onClick={onBack} ariaLabel={t('admin_subscriptions.grants_back', 'Back to grants')}><ArrowLeft /></IconButton>
         <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">{t('admin_subscriptions.grants_wizard_title', 'Issue admin license')}</div>
+            <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">{t('admin_subscriptions.grants_wizard_title', 'Issue admin license')}</div>
             <h1 className="text-[16px] font-bold text-[var(--text-primary)] truncate">
                 {isServerScope ? t('admin_subscriptions.grants_server_no_org', 'Server license (no org)') : (selectedOrg?.name || t('admin_subscriptions.grants_pick_org', 'Pick organization'))}
             </h1>
@@ -208,13 +208,13 @@ function GrantWizardHeader({ onBack, t, isServerScope, selectedOrg, STEPS, step 
         <div className="ml-auto hidden sm:flex items-center gap-2">
             {STEPS.map((s, idx) => (
                 <div key={s.id} className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${idx < step ? 'bg-emerald-500 text-white' :
-                            idx === step ? 'bg-blue-500 text-white' :
-                                'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'}`}>
+                    <div className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${idx < step ? 'bg-[var(--success)] text-white' :
+                            idx === step ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]' :
+                                'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
                         {idx < step ? <CheckCircle className="w-3.5 h-3.5" /> : idx + 1}
                     </div>
-                    <span className={`text-[12px] ${idx === step ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>{s.label}</span>
-                    {idx < STEPS.length - 1 && <span className="text-[var(--text-muted)]">→</span>}
+                    <span className={`text-[12px] ${idx === step ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>{s.label}</span>
+                    {idx < STEPS.length - 1 && <span className="text-[var(--text-tertiary)]">→</span>}
                 </div>
             ))}
         </div>

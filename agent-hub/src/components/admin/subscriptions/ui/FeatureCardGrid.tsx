@@ -93,7 +93,7 @@ export function FeatureCardGrid({
 
     if (options.length === 0 && emptyHint) {
         return (
-            <div className="px-3 py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[12px] text-[var(--text-muted)]">
+            <div className="px-3 py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[12px] text-[var(--text-tertiary)]">
                 {emptyHint}
             </div>
         );
@@ -109,21 +109,21 @@ export function FeatureCardGrid({
                     description={restrictDescriptionText}
                 />
                 {restricted && (
-                    <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-tertiary)]">
                         <span>{t('admin_subscriptions.ui_of_included', '{count} of {total} included in this plan.', { count: arrValue.length, total: options.length })}</span>
                         <div className="flex gap-2">
                             <button
                                 type="button"
                                 onClick={() => onChange(options.map(o => o.id))}
-                                className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+                                className="font-semibold text-[var(--info-ink)] hover:underline"
                             >
                                 {t('admin_subscriptions.ui_select_all', 'Select all')}
                             </button>
-                            <span className="text-[var(--text-muted)]">·</span>
+                            <span className="text-[var(--text-tertiary)]">·</span>
                             <button
                                 type="button"
                                 onClick={() => onChange([])}
-                                className="font-semibold text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                                className="font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                             >
                                 {t('admin_subscriptions.ui_clear', 'Clear')}
                             </button>
@@ -136,7 +136,7 @@ export function FeatureCardGrid({
                 {grouping.map(([cat, opts]) => (
                     <div key={cat || '_'}>
                         {grouped && cat && (
-                            <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                            <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
                                 {cat}
                             </div>
                         )}
@@ -183,13 +183,13 @@ function FeatureCard({ item, selected, disabled, icon, onToggle, lockedHint }: F
             }}
             className={`flex items-center gap-3 p-3 rounded-xl transition-all border ${
                 selected
-                    ? 'border-emerald-500 bg-emerald-500/[0.04]'
+                    ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_5%,transparent)]'
                     : 'border-[var(--border-subtle)] bg-[var(--bg-primary)] opacity-90'
-            } ${interactive ? 'cursor-pointer hover:border-emerald-500/60' : 'cursor-not-allowed'}`}
+            } ${interactive ? 'cursor-pointer hover:border-[var(--text-tertiary)]' : 'cursor-not-allowed'}`}
         >
             <div
                 className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                    selected ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                    selected ? 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
                 }`}
             >
                 {icon || <span className="text-[10px] uppercase font-bold">{(item.label || item.id || '?').slice(0, 2)}</span>}
@@ -197,11 +197,11 @@ function FeatureCard({ item, selected, disabled, icon, onToggle, lockedHint }: F
             <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{item.label}</p>
                 {item.description && (
-                    <p className="text-[11px] text-[var(--text-muted)] line-clamp-2 leading-snug">{item.description}</p>
+                    <p className="text-[11px] text-[var(--text-tertiary)] line-clamp-2 leading-snug">{item.description}</p>
                 )}
             </div>
             {lockedHint ? (
-                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] whitespace-nowrap">{lockedHint}</span>
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] whitespace-nowrap">{lockedHint}</span>
             ) : (
                 <label
                     className={`relative inline-flex items-center shrink-0 ${interactive ? 'cursor-pointer' : 'cursor-not-allowed'}`}
@@ -214,7 +214,7 @@ function FeatureCard({ item, selected, disabled, icon, onToggle, lockedHint }: F
                         disabled={disabled}
                         onChange={() => interactive && onToggle()}
                     />
-                    <div className="w-9 h-5 bg-gray-500/40 rounded-full peer peer-checked:bg-emerald-500 peer-focus:outline-none after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white peer-disabled:opacity-60" />
+                    <div className="w-9 h-5 bg-[var(--bg-tertiary)] rounded-full peer peer-checked:bg-[var(--success)] peer-focus:outline-none after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-default)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white peer-disabled:opacity-60" />
                 </label>
             )}
         </div>

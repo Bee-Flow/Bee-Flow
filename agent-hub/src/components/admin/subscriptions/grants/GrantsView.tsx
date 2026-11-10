@@ -9,10 +9,10 @@ import { TIER_PRESETS } from '../constants';
 import { useResource, apiJson } from '../hooks/useApi';
 import { Badge, type BadgeTone } from '../ui/Badge';
 import { Card } from '../ui/Card';
-import { IconButton } from '../ui/IconButton';
+import IconButton from '@/components/shared/IconButton';
 import { ConfirmModal } from '../ui/Modal';
-import { SectionHeader } from '../ui/SectionHeader';
-import { Spinner } from '../ui/Spinner';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
 
 /** One issued license, as the admin list endpoint sends it. */
 interface Grant {
@@ -127,11 +127,11 @@ export function GrantsView() {
     const loading = orgsRes.loading || capsRes.loading || listRes.loading;
 
     return (
-        <div className="px-6 py-6 max-w-[1280px] mx-auto">
-            <SectionHeader
+        <div className="p-6 md:p-8">
+            <SectionHeader className="mb-5"
                 title={t('admin_subscriptions.grants_title', 'Admin License Grants')}
                 description={t('admin_subscriptions.grants_desc', 'Mint licenses directly without Stripe. Org members pick up the new tier on next request.')}
-                action={
+                status={
                     <div className="flex items-center gap-2">
                         <Button variant="secondary" icon={Upload} onClick={handleImport}>{t('admin_subscriptions.grants_import', 'Import blob')}</Button>
                         <Button icon={Plus} onClick={() => setIssuing(true)}>{t('admin_subscriptions.grants_issue', 'Issue license')}</Button>
@@ -140,7 +140,7 @@ export function GrantsView() {
             />
 
             {loading ? (
-                <Spinner label={t('admin_subscriptions.grants_loading', 'Loading grants…')} />
+                <div className="flex justify-center py-12"><Spinner label={t('admin_subscriptions.grants_loading', 'Loading grants…')} /></div>
             ) : grants.length === 0 ? (
                 <EmptyState
                     icon={<KeyRound className="w-6 h-6" />}
@@ -168,25 +168,25 @@ export function GrantsView() {
                                     <tr key={g.id} className="border-t border-[var(--border-default)]">
                                         <td className="px-4 py-2.5 text-[var(--text-primary)]">
                                             {g.scope === 'server' || (!g.organizationId && !g.organizationName)
-                                                ? <span className="italic text-[var(--text-muted)]">{t('admin_subscriptions.grants_server_license', 'Server license')}</span>
+                                                ? <span className="italic text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_server_license', 'Server license')}</span>
                                                 : (g.organizationName || g.organizationId)}
                                         </td>
                                         <td className="px-4 py-2.5 capitalize text-[var(--text-secondary)]">{g.tier}</td>
                                         <td className="px-4 py-2.5">
                                             <Badge tone={STATUS_TONE[g.refreshStatus] || 'neutral'} size="sm">{g.refreshStatus}</Badge>
                                         </td>
-                                        <td className="px-4 py-2.5 text-[var(--text-muted)]">{fmtDate(g.issuedAt)}</td>
-                                        <td className="px-4 py-2.5 text-[var(--text-muted)]">{fmtDate(g.expiresAt)}</td>
+                                        <td className="px-4 py-2.5 text-[var(--text-tertiary)]">{fmtDate(g.issuedAt)}</td>
+                                        <td className="px-4 py-2.5 text-[var(--text-tertiary)]">{fmtDate(g.expiresAt)}</td>
                                         <td className="px-4 py-2.5 max-w-[200px] truncate text-[var(--text-secondary)]" title={g.metadata?.admin_notes || ''}>
                                             {g.metadata?.admin_notes || '—'}
                                         </td>
                                         <td className="px-4 py-2.5 text-right whitespace-nowrap">
                                             <div className="inline-flex items-center gap-1">
-                                                {g.blob && <IconButton icon={Copy} size="sm" title={t('admin_subscriptions.grants_copy_blob', 'Copy blob')} onClick={() => copyBlob(g.blob)} />}
+                                                {g.blob && <IconButton size="sm" ariaLabel={t('admin_subscriptions.grants_copy_blob', 'Copy blob')} onClick={() => copyBlob(g.blob)}><Copy /></IconButton>}
                                                 {g.refreshStatus !== 'revoked' && (
                                                     <>
-                                                        <IconButton icon={CalendarPlus} size="sm" title={t('admin_subscriptions.grants_extend', 'Extend expiry')} onClick={() => handleExtend(g.id, g.expiresAt)} />
-                                                        <IconButton icon={Trash2} size="sm" variant="danger" title={t('admin_subscriptions.grants_revoke', 'Revoke')} onClick={() => setRevoking(g)} />
+                                                        <IconButton size="sm" ariaLabel={t('admin_subscriptions.grants_extend', 'Extend expiry')} onClick={() => handleExtend(g.id, g.expiresAt)}><CalendarPlus /></IconButton>
+                                                        <IconButton size="sm" variant="danger" ariaLabel={t('admin_subscriptions.grants_revoke', 'Revoke')} onClick={() => setRevoking(g)}><Trash2 /></IconButton>
                                                     </>
                                                 )}
                                             </div>

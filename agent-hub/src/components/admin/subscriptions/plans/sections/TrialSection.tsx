@@ -18,7 +18,7 @@ export function TrialSection({ form, update }: PlanSectionProps) {
         <div className="space-y-5">
             <div>
                 <h3 className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{t('admin_subscriptions.trial_section_title', 'Trial')}</h3>
-                <p className="text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.trial_section_desc', 'Offer a free trial period that converts to the paid plan when it ends.')}</p>
+                <p className="text-[12px] text-[var(--text-tertiary)]">{t('admin_subscriptions.trial_section_desc', 'Offer a free trial period that converts to the paid plan when it ends.')}</p>
             </div>
 
             <Banner tone="teal" icon={CalendarPlus}>
@@ -36,7 +36,6 @@ export function TrialSection({ form, update }: PlanSectionProps) {
                 disabled={meteredBlocked}
                 onChange={checked => update('trial_days', checked ? (form.trial_days > 0 ? form.trial_days : 14) : 0)}
                 icon={CalendarPlus}
-                iconClass="text-emerald-400"
                 label={t('admin_subscriptions.trial_section_offer', 'Offer a free trial for this plan')}
                 description={meteredBlocked ? t('admin_subscriptions.trial_section_offer_blocked', 'Pay-as-you-go plans cannot offer a trial.') : t('admin_subscriptions.trial_section_offer_desc', 'Stripe will hold off charging until the trial period ends.')}
             />
@@ -65,12 +64,12 @@ export function TrialSection({ form, update }: PlanSectionProps) {
                                 />
                             ))}
                         </StatGrid>
-                        <div className="mt-3 text-[11px] text-[var(--text-muted)]">
+                        <div className="mt-3 text-[11px] text-[var(--text-tertiary)]">
                             {t('admin_subscriptions.trial_section_change', 'To change these, jump to the Pricing section.')}
                         </div>
                     </Card>
 
-                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                    <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
                         {form.plan_type === 'consumer'
                             ? t('admin_subscriptions.trial_section_auto_consumer', 'To auto-grant this trial on every new personal account signup, pick this plan in the Trial offers panel on the Plans list. Each user can only use a trial once.')
                             : t('admin_subscriptions.trial_section_auto_org', 'To auto-grant this trial on every new organization signup, pick this plan in the Trial offers panel on the Plans list. Each org can only use a trial once.')}

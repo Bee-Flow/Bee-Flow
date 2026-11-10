@@ -163,13 +163,16 @@ describe('SupportInboxPanel: list', () => {
         const user = userEvent.setup();
         renderWithClient(<SupportInboxPanel />);
         await screen.findByText('Printer on fire');
-        await user.click(screen.getByRole('button', { name: /AI configuration/ }));
+        expect(screen.getByRole('heading', { level: 2, name: 'Customer Support' })).toBeInTheDocument();
+        expect(screen.getByRole('radio', { name: /^Inbox$/ })).toHaveAttribute('aria-checked', 'true');
+        await user.click(screen.getByRole('radio', { name: /AI configuration/ }));
+        expect(screen.getByRole('radio', { name: /AI configuration/ })).toHaveAttribute('aria-checked', 'true');
         expect(screen.getByTestId('ai-config')).toBeInTheDocument();
         expect(screen.queryByText('Printer on fire')).toBeNull();
         expect(screen.queryByTitle('Refresh')).toBeNull();
-        await user.click(screen.getByRole('button', { name: /Connections/ }));
+        await user.click(screen.getByRole('radio', { name: /Connections/ }));
         expect(screen.getByTestId('connections')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: /^Inbox$/ }));
+        await user.click(screen.getByRole('radio', { name: /^Inbox$/ }));
         expect(await screen.findByText('Printer on fire')).toBeInTheDocument();
     });
 });
@@ -404,7 +407,7 @@ describe('SupportInboxPanel: mailbox', () => {
         renderWithClient(<SupportInboxPanel />);
         expect(await screen.findByText('An email box is feeding this inbox')).toBeInTheDocument();
         expect(screen.getByText(/3 tickets here came in over a connected mailbox \(2 still active\) · last message just now/)).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: /Connections/ }));
+        await user.click(screen.getByRole('radio', { name: /Connections/ }));
         expect(screen.queryByText('An email box is feeding this inbox')).toBeNull();
     });
 

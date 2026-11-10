@@ -11,6 +11,7 @@ import type { BulkGenerateModalProps, BulkOptions, BulkResult, IconCategory, Ico
 import { errorMessage } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
 import { mutate, ApiError } from '@/api/mutate';
+import { ALERT_ERROR, ALERT_SUCCESS, CHIP_SUCCESS, DANGER_BTN, INPUT, PRIMARY_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 
 export const API = `${API_BASE}/api/icons`;
 
@@ -113,7 +114,7 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
     };
 
     if (!pack) {
-        return <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">{t('appearance.icons_editor_loading_pack', 'Loading pack...')}</div>;
+        return <div className="flex-1 flex items-center justify-center text-[var(--text-tertiary)]">{t('appearance.icons_editor_loading_pack', 'Loading pack...')}</div>;
     }
 
     return (
@@ -122,24 +123,24 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
 
             <div className="px-4 py-3 flex items-center gap-3 shrink-0 flex-wrap">
                 <div className="flex-1 min-w-48 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${stats.progress}%`, background: stats.progress >= 100 ? '#22c55e' : 'var(--accent-primary)' }} />
+                    <div className="h-full rounded-full transition-all" style={{ width: `${stats.progress}%`, background: stats.progress >= 100 ? 'var(--success)' : 'var(--accent-primary)' }} />
                 </div>
                 <span className="text-xs font-medium shrink-0 text-[var(--text-secondary)]">
                     {stats.customized} / {stats.total} ({stats.progress}%)
                 </span>
                 <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
                     <input
                         value={search}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                         placeholder={t('appearance.icons_editor_search_icons', 'Search icons...')}
-                        className="pl-7 pr-3 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline:none] w-[180px]"
+                        className="w-[180px] rounded-lg border bg-[var(--bg-primary)] py-1.5 pl-7 pr-3 text-xs border-[var(--border-default)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
                     />
                 </div>
                 <select
                     value={showOnly}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setShowOnly(e.target.value)}
-                    className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline:none]"
+                    className="rounded-lg border bg-[var(--bg-primary)] px-2 py-1.5 text-xs border-[var(--border-default)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
                 >
                     <option value="all">{t('appearance.icons_editor_all_total', 'All ({total})', { total: stats.total })}</option>
                     <option value="customized">{t('appearance.icons_editor_customized_customized', 'Customized ({customized})', { customized: stats.customized })}</option>
@@ -148,10 +149,7 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
             </div>
 
             {bulkResult && (
-                <div className="mx-4 mb-2 px-3 py-2 rounded-lg text-xs flex items-center gap-2" style={{
-                    background: bulkResult.ok ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                    color: bulkResult.ok ? '#22c55e' : '#ef4444',
-                }}>
+                <div className={`mx-4 mb-2 ${bulkResult.ok ? ALERT_SUCCESS : ALERT_ERROR}`}>
                     {bulkResult.ok ? <Check className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
                     {bulkResult.message}
                 </div>
@@ -203,8 +201,8 @@ const IconCell = React.memo(({ entry, custom, onClick }: IconCellProps) => {
             title={entry.label}
             className="relative flex flex-col items-center justify-center p-2 border rounded-lg cursor-pointer transition-colors group"
             style={{
-                background: custom ? 'rgba(59, 130, 246, 0.05)' : 'var(--bg-secondary)',
-                borderColor: custom ? 'rgba(59, 130, 246, 0.4)' : 'var(--border-subtle)',
+                background: custom ? 'color-mix(in srgb, var(--info) 6%, transparent)' : 'var(--bg-secondary)',
+                borderColor: custom ? 'color-mix(in srgb, var(--info) 40%, transparent)' : 'var(--border-subtle)',
             }}
         >
             <div className="h-8 flex items-center justify-center mb-1">{display}</div>
@@ -230,11 +228,11 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }: Bulk
     const titleId = useId();
     return (
         <Modal open onClose={onClose} variant="bare" size="md" labelledBy={titleId}>
-            <div className="w-full rounded-2xl border shadow-2xl p-5 [background:var(--bg-secondary)] [border-color:var(--border-default)]" data-surface="opaque">
+            <div className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-5 shadow-2xl" data-surface="opaque">
                 <div className="flex items-center gap-2 mb-3">
                     <h3 id={titleId} className="text-lg font-semibold text-[var(--text-primary)]">{t('appearance.icons_editor_ai_generate_all_emojis', 'AI Generate All Emojis')}</h3>
                 </div>
-                <p className="text-xs mb-4 text-[var(--text-muted)]">
+                <p className="text-xs mb-4 text-[var(--text-tertiary)]">
                     {t('appearance.icons_editor_generates_an_icon_for_every_entry_in', 'Generates an icon for every entry in the catalog using Nano Banana. Existing custom overrides are kept unless you tick overwrite.')}
                 </p>
 
@@ -243,14 +241,14 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }: Bulk
                     value={style}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setStyle(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 rounded-lg border text-xs mb-3 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline:none]"
+                    className={`${INPUT} mb-3`}
                 />
 
                 <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('appearance.icons_editor_model', 'Model')}</label>
                 <select
                     value={model}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setModel(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border text-xs mb-3 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline:none]"
+                    className={`${INPUT} mb-3`}
                 >
                     <option value="gemini-3.1-flash-image-preview">{t('appearance.icons_editor_nano_banana_2_flash_fast', 'Nano Banana 2 — Flash (fast)')}</option>
                     <option value="gemini-3-pro-image-preview">{t('appearance.icons_editor_nano_banana_pro_quality', 'Nano Banana Pro — Quality')}</option>
@@ -268,7 +266,7 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }: Bulk
                     <button
                         onClick={() => onRun({ style, model, overwrite })}
                         disabled={running}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 flex items-center justify-center gap-2 [background:linear-gradient(135deg,#f59e0b,#ef4444)]"
+                        className={`${PRIMARY_BTN} flex-1 py-2`}
                     >
                         {running && <Loader2 className="w-4 h-4 animate-spin" />}
                         {running ? 'Generating...' : 'Generate'}
@@ -294,7 +292,7 @@ function PackEditorSection2({ categories, search, pack, showOnly, setEditingIcon
             if (filtered.length === 0) return null;
             return (
                 <div key={category.name}>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-muted)]">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-tertiary)]">
                         {category.name}
                     </h4>
                     <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
@@ -318,11 +316,11 @@ function PackEditorSection({ t, pack, isActive, setBulkOpen, onExport, handleRes
             <h3 className="font-semibold text-base truncate text-[var(--text-primary)]">
                 {t('appearance.icons_editor_editing_name', 'Editing "{name}"', { name: pack.name })}
             </h3>
-            <p className="text-xs mt-0.5 flex items-center gap-2 text-[var(--text-muted)]">
+            <p className="text-xs mt-0.5 flex items-center gap-2 text-[var(--text-tertiary)]">
                 <span>{t('appearance.icons_editor_click_any_icon_to_customise_it', 'Click any icon to customise it.')}</span>
                 {isActive && (
                     <span
-                        className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)] [color:var(--accent-primary)]!"
+                        className={CHIP_SUCCESS}
                     >
                         {t('appearance.icons_editor_active_preview', 'Active Preview')}
                     </span>
@@ -333,7 +331,7 @@ function PackEditorSection({ t, pack, isActive, setBulkOpen, onExport, handleRes
         <div className="flex items-center gap-2 flex-wrap">
             <button
                 onClick={() => setBulkOpen(true)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5 transition-opacity [background:linear-gradient(135deg,#f59e0b,#ef4444)]"
+                className={SECONDARY_BTN}
             >
                 {t('appearance.icons_editor_ai_generate_all', 'AI Generate All')}
             </button>
@@ -342,14 +340,14 @@ function PackEditorSection({ t, pack, isActive, setBulkOpen, onExport, handleRes
             </button>
             <button
                 onClick={handleResetAll}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium border hover:text-[var(--danger,#ef4444)] [border-color:var(--border-default)] [color:var(--text-muted)]!"
+                className={DANGER_BTN}
             >
                 {t('appearance.icons_editor_reset_all', 'Reset All')}
             </button>
             {!isActive && (
                 <button
                     onClick={onActivate}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium [background:var(--accent-primary)] [color:var(--accent-primary-fg,#ffffff)]!"
+                    className={PRIMARY_BTN}
                 >
                     {t('appearance.icons_editor_set_as_active_2', 'Set as Active')}
                 </button>

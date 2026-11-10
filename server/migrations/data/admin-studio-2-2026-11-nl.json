@@ -1,0 +1,12 @@
+{
+  "translations": {
+    "appearance.look_nav_access": "Toegang",
+    "appearance.look_nav_advanced": "Geavanceerd",
+    "appearance.look_nav_radius": "Afronding",
+    "appearance.panel_icons": "Iconen",
+    "appearance.panel_sections": "Onderdelen van weergave"
+  },
+  "sameAsEnglish": [
+    "appearance.look_nav_accent"
+  ]
+}

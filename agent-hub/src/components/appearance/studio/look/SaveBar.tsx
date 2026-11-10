@@ -1,6 +1,7 @@
 import { Check, Save, Loader2, AlertCircle } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 
 /**
  * SaveBar — sticky bottom action bar for the Look editor. Status pill on the
@@ -30,7 +31,7 @@ export default function SaveBar({
     return (
         <div
             data-surface="opaque"
-            className="sticky bottom-0 px-6 py-3 border-t flex items-center gap-3 flex-wrap z-10 [background:var(--bg-card)] [border-color:var(--border-default)]!"
+            className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-[var(--border-default)] bg-[var(--bg-card)] px-6 py-3"
         >
             <StatusPill dirty={dirty} saving={saving} error={error} />
             <div className="ml-auto flex items-center gap-2">
@@ -55,7 +56,7 @@ export default function SaveBar({
                     type="button"
                     onClick={onSave}
                     disabled={saving || !dirty}
-                    className="px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 disabled:opacity-40 transition-opacity [background:var(--accent-primary)] [color:var(--accent-primary-fg,#ffffff)]!"
+                    className={PRIMARY_BTN}
                 >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {saving ? 'Saving…' : 'Save as organisation default'}
@@ -70,7 +71,7 @@ function StatusPill({ dirty, saving, error }: Pick<Props, 'dirty' | 'saving' | '
     if (error) {
         return (
             <span
-                className="text-xs inline-flex items-center gap-1.5 [color:var(--danger,#ef4444)]!"
+                className="text-xs inline-flex items-center gap-1.5 text-[var(--error-ink)]"
             >
                 <AlertCircle className="w-3.5 h-3.5" /> {error}
             </span>
@@ -79,7 +80,7 @@ function StatusPill({ dirty, saving, error }: Pick<Props, 'dirty' | 'saving' | '
     if (saving) {
         return (
             <span
-                className="text-xs inline-flex items-center gap-1.5 text-[var(--text-muted)]"
+                className="text-xs inline-flex items-center gap-1.5 text-[var(--text-tertiary)]"
             >
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('appearance.save_bar_saving', 'Saving…')}
             </span>
@@ -88,10 +89,10 @@ function StatusPill({ dirty, saving, error }: Pick<Props, 'dirty' | 'saving' | '
     if (dirty) {
         return (
             <span
-                className="text-xs inline-flex items-center gap-1.5 [color:var(--warning,#f59e0b)]!"
+                className="text-xs inline-flex items-center gap-1.5 text-[var(--warning-ink)]"
             >
                 <span
-                    className="w-1.5 h-1.5 rounded-full [background:var(--warning,#f59e0b)]"
+                    className="w-1.5 h-1.5 rounded-full bg-[var(--warning)]"
                 />
                 {t('appearance.save_bar_unsaved_changes', 'Unsaved changes')}
             </span>
@@ -99,9 +100,9 @@ function StatusPill({ dirty, saving, error }: Pick<Props, 'dirty' | 'saving' | '
     }
     return (
         <span
-            className="text-xs inline-flex items-center gap-1.5 text-[var(--text-muted)]"
+            className="text-xs inline-flex items-center gap-1.5 text-[var(--text-tertiary)]"
         >
-            <Check className="w-3.5 h-3.5 [color:#10b981]" /> {t('appearance.save_bar_all_changes_saved', 'All changes saved')}
+            <Check className="w-3.5 h-3.5 text-[var(--success)]" /> {t('appearance.save_bar_all_changes_saved', 'All changes saved')}
         </span>
     );
 }

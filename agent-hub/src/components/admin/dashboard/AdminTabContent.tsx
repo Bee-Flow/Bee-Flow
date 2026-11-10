@@ -51,7 +51,7 @@ const PANELS: Record<string, Panel> = {
     access: { render: (p) => <AccessPermissionsPanel user={p.user} activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
     monitoring: { render: (p) => <MonitoringPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
     compliance: { render: (p) => <ComplianceHub activeSection={p.adminPath.seg2} focusCheckId={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
-    subscriptions: { render: () => <SubscriptionsPanel /> },
+    subscriptions: { render: (p) => <SubscriptionsPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
     support: { render: (p) => <SupportInboxPanel focusThreadId={p.adminPath.seg2 || null} /> },
     licenses: { render: () => <ServerLicensePanel />, page: true },
     modules: { render: () => <ModulesPanel />, page: true },

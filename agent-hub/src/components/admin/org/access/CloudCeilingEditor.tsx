@@ -1,4 +1,4 @@
-import { Loader2, Check, AlertTriangle, Crown, Pencil, Info } from 'lucide-react';
+import { Info, Loader2, Pencil } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CeilingReadOnly from './CeilingReadOnly';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -6,6 +6,10 @@ import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 import { useResource, apiJson } from '../../subscriptions/hooks/useApi';
 import { PlanEditor } from '../../subscriptions/plans/PlanEditor';
 import type { PlanForm, PlanRecord } from '../../subscriptions/plans/usePlanForm';
+import { AccessStatus } from './AccessParts';
+import { FIELD_INPUT, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import Spinner from '@/components/shared/Spinner';
+import { ALERT_INFO, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 
 /**
  * CloudCeilingEditor — the cloud-mode ceiling. On cloud the ceiling for an org
@@ -14,11 +18,8 @@ import type { PlanForm, PlanRecord } from '../../subscriptions/plans/usePlanForm
  * in place via the existing PlanEditor. Reuses the subscriptions endpoints.
  *
  * Editing a plan changes the ceiling for EVERY org on that plan — surfaced with
- * a warning. Emerald + blue only.
+ * a warning.
  */
-
-const EMERALD = '#10b981';
-const BLUE = '#3b82f6';
 
 /** One org's subscription row: only the plan it is on is read here. */
 interface OrgSubscription {
@@ -90,12 +91,12 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
         } finally { setSavingPlan(false); }
     };
 
-    if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
+    if (loading) return <div className="p-6"><Spinner size="sm" /></div>;
 
     // Full-screen overlay for the (absolute inset-0) PlanEditor.
     if (editing && selectedPlan) {
         return (
-            <div className="fixed inset-0 z-[1500] [background:var(--bg-primary)]">
+            <div className="fixed inset-0 z-[1500] bg-[var(--bg-primary)]">
                 <PlanEditor
                     plan={selectedPlan}
                     isNew={false}
@@ -108,56 +109,46 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
     }
 
     return (
-        <div className="space-y-4">
-            {/* Assignment card */}
-            <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
-                <header className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                        <Crown className="w-5 h-5" style={{ color: BLUE }} />
-                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.ceiling_cloud_title', 'Subscription plan')}</h2>
-                    </div>
-                    {message ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
-                            {message.type === 'ok' ? <Check className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}{message.text}
-                        </span>
-                    ) : null}
-                </header>
-                <p className="text-sm mb-4 [color:var(--text-muted)]! max-w-[720px]">
+        <div className="flex flex-col gap-6">
+            <SettingsGroup
+                title={t('admin_org.ceiling_cloud_title', 'Subscription plan')}
+                description={<>
                     {t('admin_org.ceiling_cloud_intro_a', 'The plan assigned to')} <strong>{orgName || t('admin_org.ceiling_this_org', 'this organisation')}</strong> {t('admin_org.ceiling_cloud_intro_b', 'is its capability ceiling. Pick a plan, then distribute its features to members and groups under')} <strong>{t('admin_org.ceiling_grants', 'Grants')}</strong>.
-                </p>
-
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <label className="text-sm flex-shrink-0 text-[var(--text-secondary)]">{t('admin_org.ceiling_plan', 'Plan')}</label>
-                    <select
-                        value={currentPlanId}
-                        disabled={assigning}
-                        onChange={e => assignPlan(e.target.value)}
-                        className="text-sm rounded-lg px-3 py-2 outline-none flex-1 max-w-sm [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-primary)]!"
-                    >
-                        <option value="">{t('admin_org.ceiling_no_plan', 'No plan (custom / no ceiling)')}</option>
-                        {plans.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}{p.is_default ? ' ★' : ''}</option>
-                        ))}
-                    </select>
-                    {assigning ? <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" /> : null}
-                    {selectedPlan ? (
-                        <button
-                            onClick={() => setEditing(true)}
-                            className="inline-flex items-center gap-1.5 text-sm rounded-lg px-3 py-2 font-medium transition-colors"
-                            style={{ background: `${EMERALD}1a`, color: EMERALD, border: `1px solid ${EMERALD}` }}
-                        >
-                            <Pencil className="w-3.5 h-3.5" /> {t('admin_org.ceiling_edit_plan', 'Edit plan')}
-                        </button>
-                    ) : null}
-                </div>
+                </>}
+                actions={<AccessStatus message={message} />}
+            >
+                <SettingsList>
+                    <SettingRow label={t('admin_org.ceiling_plan', 'Plan')} htmlFor="access-ceiling-plan">
+                        <div className="flex items-center gap-2">
+                            <select
+                                id="access-ceiling-plan"
+                                value={currentPlanId}
+                                disabled={assigning}
+                                onChange={e => assignPlan(e.target.value)}
+                                className={FIELD_INPUT}
+                            >
+                                <option value="">{t('admin_org.ceiling_no_plan', 'No plan (custom / no ceiling)')}</option>
+                                {plans.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}{p.is_default ? ' ★' : ''}</option>
+                                ))}
+                            </select>
+                            {assigning ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--text-tertiary)]" aria-hidden="true" /> : null}
+                            {selectedPlan ? (
+                                <button type="button" onClick={() => setEditing(true)} className={`${SECONDARY_BTN} shrink-0`}>
+                                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_org.ceiling_edit_plan', 'Edit plan')}
+                                </button>
+                            ) : null}
+                        </div>
+                    </SettingRow>
+                </SettingsList>
 
                 {selectedPlan ? (
-                    <div className="mt-3 flex items-start gap-2 text-[12px] rounded-lg px-3 py-2 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-muted)]!">
-                        <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: BLUE }} />
+                    <p className={ALERT_INFO}>
+                        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         <span>{t('admin_org.ceiling_editing_a', 'Editing')} <strong>{selectedPlan.name}</strong> {t('admin_org.ceiling_editing_b', 'changes the ceiling for')} <em>{t('admin_org.ceiling_editing_every', 'every')}</em> {t('admin_org.ceiling_editing_c', 'organisation on this plan.')}</span>
-                    </div>
+                    </p>
                 ) : null}
-            </section>
+            </SettingsGroup>
 
             {/* Resulting ceiling (read-through) */}
             {currentPlanId ? <CeilingReadOnly orgId={orgId} key={`${orgId}:${currentPlanId}`} /> : null}

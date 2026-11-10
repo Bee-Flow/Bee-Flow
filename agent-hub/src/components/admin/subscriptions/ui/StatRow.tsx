@@ -16,9 +16,9 @@ export function StatRow({ label, value, hint, unit = '' }: StatRowProps) {
         : (unit === '€' ? `€${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : `${Number(value).toLocaleString()}${unit}`);
     return (
         <div className="flex items-center justify-between gap-2 text-[12px] py-0.5">
-            <span className="text-[var(--text-muted)] truncate">{label}</span>
+            <span className="text-[var(--text-tertiary)] truncate">{label}</span>
             <span className="text-[var(--text-primary)] font-semibold tabular-nums">{display}</span>
-            {hint && <span className="text-[var(--text-muted)] text-[10.5px]">{hint}</span>}
+            {hint && <span className="text-[var(--text-tertiary)] text-[10.5px]">{hint}</span>}
         </div>
     );
 }

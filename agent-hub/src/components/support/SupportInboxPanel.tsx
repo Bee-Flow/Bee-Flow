@@ -6,6 +6,7 @@ import SupportMailboxBanner from './SupportMailboxBanner';
 import SupportThreadDetail from './SupportThreadDetail';
 import SupportThreadList from './SupportThreadList';
 import useConfirm from '../shared/useConfirm';
+import StudioShell from '../shared/StudioShell';
 import type { SupportInboxPanelProps } from './SupportInboxPanel.types';
 import { useSupportBulk, useSupportReplyComposer, useSupportThreadEdits } from './useSupportInboxActions';
 import { useSupportMailbox } from './useSupportMailbox';
@@ -50,17 +51,15 @@ export default function SupportInboxPanel({ focusThreadId = null }: SupportInbox
                     <SupportAIConfig />
                 </div>
             ) : (
-            <>
-            {/* Inbox view (default) */}
-
-            <div className="flex-1 min-h-0 grid grid-cols-12">
-                {/* Left: thread list */}
-                <SupportThreadList list={list} bulk={bulk} selectedId={selectedId} setSelectedId={setSelectedId} counter={counter} activeTotal={activeTotal} />
-
-                {/* Right: thread detail */}
-                <SupportThreadDetail selected={selected} edits={edits} composer={composer} selectedId={selectedId} fetchThreads={fetchThreads} />
-            </div>
-            </>
+                // Inbox view (default): the Studio pattern, threads in the sidebar, the open one in the main pane.
+                <div className="flex-1 min-h-0">
+                    <StudioShell
+                        sidebarWidthClass="w-80 lg:w-96"
+                        sidebar={<SupportThreadList list={list} bulk={bulk} selectedId={selectedId} setSelectedId={setSelectedId} counter={counter} activeTotal={activeTotal} />}
+                    >
+                        <SupportThreadDetail selected={selected} edits={edits} composer={composer} selectedId={selectedId} fetchThreads={fetchThreads} />
+                    </StudioShell>
+                </div>
             )}
             {confirmDialog}
         </div>

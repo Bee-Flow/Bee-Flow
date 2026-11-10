@@ -26,7 +26,7 @@ export default function CeilingSection({ mode, isSuperAdmin, orgId, orgName, onC
     if (!isSuperAdmin) return <CeilingReadOnly orgId={orgId} />;
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-8">
             {mode === 'self-hosted'
                 ? <SelfHostedCeilingEditor />
                 : <CloudCeilingEditor orgId={orgId} orgName={orgName} onCeilingChanged={onCeilingChanged} />}

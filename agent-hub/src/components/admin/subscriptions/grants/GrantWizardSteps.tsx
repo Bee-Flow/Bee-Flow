@@ -37,7 +37,7 @@ export function ScopeStep({ t, form, update, orgs, isServerScope }: ScopeStepPro
                         />
                         <span className="text-[13px]">
                             <span className="block font-semibold text-[var(--text-primary)]">{t('admin_subscriptions.grants_bind_org', 'Bind to organisation')}</span>
-                            <span className="block text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.grants_bind_org_desc', 'Standard grant for a specific org on this install.')}</span>
+                            <span className="block text-[12px] text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_bind_org_desc', 'Standard grant for a specific org on this install.')}</span>
                         </span>
                     </label>
                     <label className="flex items-start gap-2 cursor-pointer p-2 rounded-md border border-[var(--border-default)] hover:bg-[var(--bg-tertiary)]">
@@ -51,7 +51,7 @@ export function ScopeStep({ t, form, update, orgs, isServerScope }: ScopeStepPro
                         />
                         <span className="text-[13px]">
                             <span className="block font-semibold text-[var(--text-primary)]">{t('admin_subscriptions.grants_server_no_org', 'Server license (no org)')}</span>
-                            <span className="block text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.grants_server_desc', 'Issue an unbound blob to hand to another install: they bind it locally.')}</span>
+                            <span className="block text-[12px] text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_server_desc', 'Issue an unbound blob to hand to another install: they bind it locally.')}</span>
                         </span>
                     </label>
                 </div>
@@ -182,21 +182,21 @@ function AdvancedOverrides({ t, form, update }: { t: TranslateFn; form: GrantFor
 export function GrantReview({ t, form, isServerScope, selectedOrg }: { t: TranslateFn; form: GrantForm; isServerScope: boolean; selectedOrg: GrantOrg | undefined }) {
     return (
         <Card>
-            <div className="text-[12px] uppercase tracking-wider font-bold text-[var(--text-muted)] mb-3">{t('admin_subscriptions.grants_review', 'Review')}</div>
+            <div className="text-[12px] uppercase tracking-wider font-bold text-[var(--text-tertiary)] mb-3">{t('admin_subscriptions.grants_review', 'Review')}</div>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
-                <dt className="text-[var(--text-muted)]">{t('admin_subscriptions.grants_review_scope', 'Scope')}</dt>
+                <dt className="text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_review_scope', 'Scope')}</dt>
                 <dd className="text-[var(--text-primary)] font-semibold">{isServerScope ? t('admin_subscriptions.grants_server_no_org', 'Server license (no org)') : t('admin_subscriptions.grants_review_org', 'Organisation')}</dd>
                 {!isServerScope && (
                     <>
-                        <dt className="text-[var(--text-muted)]">{t('admin_subscriptions.grants_org', 'Organization')}</dt>
+                        <dt className="text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_org', 'Organization')}</dt>
                         <dd className="text-[var(--text-primary)] font-semibold">{selectedOrg?.name}</dd>
                     </>
                 )}
-                <dt className="text-[var(--text-muted)]">{t('admin_subscriptions.grants_tier', 'Tier')}</dt><dd className="text-[var(--text-primary)] font-semibold capitalize">{form.tier}</dd>
-                <dt className="text-[var(--text-muted)]">{t('admin_subscriptions.grants_review_billing', 'Billing')}</dt><dd className="text-[var(--text-primary)] font-semibold capitalize">{form.billingInterval}</dd>
-                <dt className="text-[var(--text-muted)]">{t('admin_subscriptions.grants_review_expires', 'Expires')}</dt><dd className="text-[var(--text-primary)] font-semibold">{new Date(form.expiresAt).toLocaleDateString()}</dd>
-                {form.deliverEmail && (<><dt className="text-[var(--text-muted)]">{t('admin_subscriptions.grants_review_email', 'Email to')}</dt><dd className="text-[var(--text-primary)]">{form.deliverEmail}</dd></>)}
-                {form.notes && (<><dt className="text-[var(--text-muted)]">{t('admin_subscriptions.grants_notes', 'Notes')}</dt><dd className="text-[var(--text-primary)]">{form.notes}</dd></>)}
+                <dt className="text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_tier', 'Tier')}</dt><dd className="text-[var(--text-primary)] font-semibold capitalize">{form.tier}</dd>
+                <dt className="text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_review_billing', 'Billing')}</dt><dd className="text-[var(--text-primary)] font-semibold capitalize">{form.billingInterval}</dd>
+                <dt className="text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_review_expires', 'Expires')}</dt><dd className="text-[var(--text-primary)] font-semibold">{new Date(form.expiresAt).toLocaleDateString()}</dd>
+                {form.deliverEmail && (<><dt className="text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_review_email', 'Email to')}</dt><dd className="text-[var(--text-primary)]">{form.deliverEmail}</dd></>)}
+                {form.notes && (<><dt className="text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_notes', 'Notes')}</dt><dd className="text-[var(--text-primary)]">{form.notes}</dd></>)}
             </dl>
         </Card>
     );
@@ -211,7 +211,7 @@ export function GrantResult({ t, result, onCopy }: { t: TranslateFn; result: { b
                 <Button size="sm" icon={Copy} onClick={onCopy}>{t('admin_subscriptions.grants_copy', 'Copy')}</Button>
             </div>
             {result.delivery && (
-                <div className={`mt-2 text-[11.5px] inline-flex items-center gap-1.5 ${result.delivery.success ? 'text-emerald-300' : 'text-amber-300'}`}>
+                <div className={`mt-2 text-[11.5px] inline-flex items-center gap-1.5 ${result.delivery.success ? 'text-[var(--success-ink)]' : 'text-[var(--warning-ink)]'}`}>
                     <Mail className="w-3.5 h-3.5" />
                     {result.delivery.success
                         ? t('admin_subscriptions.grants_emailed', 'Emailed to customer (message id: {id})', { id: result.delivery.messageId || t('admin_subscriptions.grants_na', 'n/a') })
