@@ -81,7 +81,7 @@ const TOOL_SCHEMAS_PART_2 = [
                                         // filtered or aggregated on it then failed with "is a
                                         // read-time computed field and cannot be queried", from a
                                         // call whose only intent was to edit a different field.
-                                        stored: { type: 'boolean', description: 'true materialises a real column, so the field can be FILTERED, SORTED and AGGREGATED on (a read-time expression can only be read). Adding one to a populated table, or changing its expr, computes it for every row. Without stored the field is read-time: worked out on every read from this table\'s own columns, shown but not filtered or sorted.' },
+                                        stored: { type: 'boolean', description: 'true materialises a real column, so the field can be FILTERED, SORTED and AGGREGATED on (a read-time expression can only be read). Adding one to a populated table, or changing its expr, computes it for every row. Without stored the field is read-time: worked out on every read when its expr names only this table\'s own columns and functions both engines have (the answer says when one reads empty), shown but not filtered or sorted.' },
                                     },
                                     required: ['expr'],
                                 },

@@ -74,15 +74,15 @@ const RECORD_LIST_SPECS = {
             },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
             rowLimit: { type: 'int', min: 1, max: 100, default: 25 },
-            // Server paging of a `records` source (schema 3, written only when set):
-            // 'loadMore' appends the next page, 'prevNext' steps through pages. A
-            // page is the source's `limit` rows; with paging on, rowLimit does not
-            // cut the page. Absent: the one page the source reads, as always.
-            pagination: { type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3 },
             // Look pass.
             look: {
                 type: 'enum', values: ['default', 'striped', 'minimal'], default: 'default',
                 description: 'default = the current ruled table; striped = zebra rows; minimal = borderless, whitespace-separated rows.',
+            },
+            // Added after the base: written only when set (canonicalize/shared.js isLateEntry).
+            pagination: {
+                type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3,
+                description: 'Pages through a records source: loadMore appends, prevNext steps pages. A page is the source\'s limit rows and rowLimit does not cut it. Left out, the table shows the one page the source reads.',
             },
         },
         styleKnobs: ['span', 'size'],
@@ -132,10 +132,6 @@ const RECORD_LIST_SPECS = {
             },
             icon: { type: 'icon', default: null },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
-            // Server paging of a `records` source (schema 3, written only when set):
-            // 'loadMore' appends the next page, 'prevNext' steps through pages. A
-            // page is the source's `limit` rows. Absent: one page, as always.
-            pagination: { type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3 },
             // Look pass. 'rows' names what the list renders today.
             look: {
                 type: 'enum', values: ['rows', 'cards', 'tiles'], default: 'rows',
@@ -195,6 +191,11 @@ const RECORD_LIST_SPECS = {
             // OFF by default: with a peek configured but this false, the badge
             // keeps reading badgeKey exactly as it always has.
             peekBadge: { type: 'boolean', default: false },
+            // Added after the base: written only when set (canonicalize/shared.js isLateEntry).
+            pagination: {
+                type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3,
+                description: 'Pages through a records source: loadMore appends, prevNext steps pages. A page is the source\'s limit rows. Left out, the list shows the one page the source reads.',
+            },
         },
         // A list is the natural sidebar picker, so it needs to be clickable —
         // without an event it could only ever display.

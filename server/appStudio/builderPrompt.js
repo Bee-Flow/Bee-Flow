@@ -579,7 +579,7 @@ function renderAction(id, action, homeless) {
 // ── Data block — the app's data model rendered compact & ID-bearing ──
 
 /** One line per field: `name text required unique options=[a,b] →tbl_x`. */
-function renderDataField(f, withId = false) {
+function renderDataField(f, withId = false, tableFields = []) {
     const bits = [`    ${f.key} ${f.type}`];
     if (withId && typeof f.id === 'string') bits.push(`id=${f.id}`);
     if (f.required) bits.push('required');
@@ -589,7 +589,7 @@ function renderDataField(f, withId = false) {
         bits.push(`options=[${vals.join(',')}]`);
     }
     if (f.type === 'relation' && f.relation) bits.push(`→${f.relation.table || f.relation.tableId || '?'}`);
-    bits.push(...computedBits(f, withId));
+    bits.push(...computedBits(f, withId, tableFields));
     return bits.join(' ');
 }
 
@@ -632,7 +632,7 @@ function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null, op
             linked = ` linked=${t.source.mode || 'read'} (live rows; never seed)`;
         }
         lines.push(`  table ${t.id} ${q(t.name || t.key)} key=${t.key}${rows} access=${t.access?.default || 'app'}${linked}`);
-        for (const f of t.fields || []) lines.push(renderDataField(f, withFieldIds));
+        for (const f of t.fields || []) lines.push(renderDataField(f, withFieldIds, t.fields));
     }
     const dsList = Array.isArray(datasets) ? datasets : [];
     if (dsList.length) {

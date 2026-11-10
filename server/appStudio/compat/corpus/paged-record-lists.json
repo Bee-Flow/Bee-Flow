@@ -79,8 +79,8 @@
                   ],
                   "emptyText": "Nothing to show yet.",
                   "rowLimit": 25,
-                  "pagination": "prevNext",
-                  "look": "default"
+                  "look": "default",
+                  "pagination": "prevNext"
                 },
                 "style": {
                   "span": 12
@@ -123,7 +123,6 @@
                   "groupLabelMap": [],
                   "icon": null,
                   "emptyText": "Nothing to show yet.",
-                  "pagination": "loadMore",
                   "look": "rows",
                   "peekSource": null,
                   "peekMatchKey": null,
@@ -136,7 +135,8 @@
                   "peekLimit": 6,
                   "peekTitle": null,
                   "peekMoreText": null,
-                  "peekBadge": false
+                  "peekBadge": false,
+                  "pagination": "loadMore"
                 },
                 "style": {
                   "span": 6
@@ -163,7 +163,6 @@
                     }
                   ],
                   "pageSize": 25,
-                  "pagination": "loadMore",
                   "selectable": "none",
                   "searchable": false,
                   "rowActions": [],
@@ -179,7 +178,8 @@
                   "activeWhen": null,
                   "zebra": false,
                   "emptyText": "Nothing to show yet.",
-                  "look": "default"
+                  "look": "default",
+                  "pagination": "loadMore"
                 },
                 "style": {
                   "span": 6

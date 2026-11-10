@@ -112,11 +112,6 @@ const ANALYTICS_SPECS = {
                 },
             },
             pageSize: { type: 'int', min: 5, max: 100, default: 25 },
-            // Server paging of a `records` source (schema 3, written only when set).
-            // 'loadMore' adds the next page of the source (its `limit` rows) under
-            // the grid; the grid's own pageSize keeps paging the rows it holds.
-            // Absent: the one page the source reads, as always.
-            pagination: { type: 'enum', values: ['loadMore'], default: null, since: 3 },
             selectable: { type: 'enum', values: ['none', 'single', 'multi'], default: 'none' },
             searchable: { type: 'boolean', default: false },
             rowActions: {
@@ -222,6 +217,11 @@ const ANALYTICS_SPECS = {
             look: {
                 type: 'enum', values: ['default', 'striped', 'minimal', 'cards'], default: 'default',
                 description: 'default = the current ruled grid; striped = zebra rows; minimal = borderless rows; cards = each row rendered as its own card.',
+            },
+            // Added after the base: written only when set (canonicalize/shared.js isLateEntry).
+            pagination: {
+                type: 'enum', values: ['loadMore'], default: null, since: 3,
+                description: 'loadMore adds the next page of a records source under the grid. A page is the source\'s limit rows and pageSize keeps paging the rows the grid holds. Left out, the grid shows the one page the source reads.',
             },
         },
         styleKnobs: ['span', 'size', 'height'],
