@@ -398,6 +398,23 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     });
 });
 
+/**
+ * filter / sort / orderBy of a table page, from the JSON in the query string. Text that is
+ * not JSON is left out; the compiler validates the shapes.
+ * @param {Record<string, unknown>} query
+ */
+function listQueryOf(query) {
+    /** @type {Record<string, unknown>} */
+    const out = { filters: undefined, sort: undefined };
+    for (const [param, field] of [['filter', 'filters'], ['sort', 'sort'], ['orderBy', 'orderBy']]) {
+        const text = query[param];
+        if (typeof text !== 'string' || !text) continue;
+        try { out[field] = JSON.parse(text); } catch (err) { fallback('routes/studioAppPublic:listQueryOf', err); /* compiler validates */ }
+    }
+    if (out.filters !== undefined && !Array.isArray(out.filters)) out.filters = [out.filters];
+    return out;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // Reads — RLS-scoped to this visitor
 // ═══════════════════════════════════════════════════════════════════
@@ -411,17 +428,8 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
         if (!ctx) return undefined;
         if (!rlsGateway.canRead(ctx.table, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
-        let filters;
-        let sort;
-        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { fallback('routes/studioAppPublic:anon#2', err); /* compiler validates */ } }
-        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { fallback('routes/studioAppPublic:anon#3', err); /* compiler validates */ } }
-        if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
-        /** @type {unknown} */
-        let orderBy;
-        if (typeof req.query.orderBy === 'string' && req.query.orderBy) { try { orderBy = JSON.parse(req.query.orderBy); } catch (err) { fallback('routes/studioAppPublic:anon#4', err); /* compiler validates */ } }
-
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            filters, sort, ...(orderBy === undefined ? {} : { orderBy }), cursor: req.query.cursor, limit: req.query.limit,
+            ...listQueryOf(req.query), cursor: req.query.cursor, limit: req.query.limit,
         });
         return res.json(out);
     } catch (err) { return handleErr(res, err, 'records.list'); }
