@@ -30,3 +30,4 @@ decision that changes gets a new record that supersedes the old one.
 | [0015](./per-person-adoption-view.md) | The per-person adoption view is pseudonymous by default, a name reveal is audited and fails closed, and adoption adds no navigation tracking |
 | [0016](./kb-query-log.md) | The knowledge-base search log is opt-in per base, readable by its managers only, sealed under an organisation key, and opened to compliance only behind an open data-subject request |
 | [0017](./connector-no-default-server.md) | The Nextcloud connector has no Bee Flow server until an administrator chooses one; nothing is sent before that choice |
+| [0018](./teams-meeting-import-permissions.md) | Teams meetings are imported per organiser with delegated permissions by default; application permissions are opt-in per organisation, take the tenant only from verified sources and re-check coverage at use |

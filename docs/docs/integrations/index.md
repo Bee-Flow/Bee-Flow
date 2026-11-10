@@ -34,6 +34,7 @@ Available via the [Nextcloud connector](../connector/index.md). The 11 integrati
 |-------------|--------------|
 | [Google Workspace](google.md) | Gmail, Calendar, Drive, Docs, Keep, Contacts, Groups |
 | [Microsoft 365](microsoft.md) | Outlook (RW + RO), MS Calendar, MS Contacts, OneDrive |
+| [Teams meeting notes setup](teams-meeting-notes.md) | Teams meetings into Meeting Notes: permissions, admin consent, Teams settings, built-in tests |
 
 ### DevOps / collab
 

@@ -141,6 +141,23 @@ Requests per minute one signed-in user may make on the routes that spend money o
 | `NOTEBOOK_AI_RPM` | `30` | Notebook generations (summary, quiz, ai-fill). |
 | `TEMPLATE_AI_RPM` | `20` | Template uploads, each of which starts the AI pipeline (context, knowledge base, parameters). |
 
+## Teams meeting notes
+
+Optional; empty means the default. For the limits, `0` means unlimited (for the probe timeout: no
+timeout). See [Teams meeting notes setup](../integrations/teams-meeting-notes.md) for what the
+tests and organisation-wide import do.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `TEAMS_DIAGNOSTICS_MIN_INTERVAL_SECONDS` | `10` | Seconds between two runs of the same Teams test by one person (the app registration test, the member test and the organisation-wide import test each have their own interval). A run within the interval gets a `429`. `0` = unlimited. |
+| `TEAMS_DIAGNOSTICS_PROBE_TIMEOUT_MS` | `15000` | How long one Microsoft request of a Teams test may take before the check says it could not be tested. `0` = no timeout. |
+| `TEAMS_DIAGNOSTICS_MAX_MEMBERS` | `2000` | Members listed in an organisation's Teams member overview; the overview says when there are more. `0` = unlimited. |
+| `TEAMS_APP_IMPORT_MAX_SELECTED_USERS` | `5000` | Members an organisation admin may select for organisation-wide Teams import. `0` = unlimited. |
+| `TEAMS_APP_IMPORT` | `1` | `0` switches organisation-wide Teams import (application permissions) off for the whole server. Not a limit: any other value leaves it available. |
+| `TEAMS_MAX_RECORDING_BYTES` | `6442450944` (6 GiB) | Largest Teams recording video Bee Flow downloads. A bigger one fails as `recording_too_large`. An unset, `0` or non-numeric value means the default; there is no unlimited setting. The extracted audio has its own fixed 500 MB cap. |
+| `MEETING_IMPORT_MAX_CONCURRENT_PER_USER` | `3` | Manual meeting imports (Teams, Google Meet) one user runs at once on one server process; more gets a `429`. `0` = unlimited. |
+| `MEETING_IMPORT_MAX_CONCURRENT_PER_ORG` | `10` | The same per organisation. `0` = unlimited. |
+
 ## Redis
 
 | Variable | Default | Purpose |
