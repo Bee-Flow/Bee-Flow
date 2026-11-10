@@ -409,6 +409,32 @@ test('provision failure: next(HttpError 500 provision_failed), NO response, prob
     assert.ok(rec.warns.some((m) => m.startsWith('[ConnectorJWT] auto-provision failed userId=nc_org1_ann reason=db_error')));
 });
 
+test('the id is taken by another account: 409 nc_user_id_conflict, a response and no next(err), problem + warn', async () => {
+    userStore.createUserWithSeatCheck = async () => ({ created: false, reason: 'duplicate_id' });
+    const out = await run(connectorReq(goodPayload({ sub: 'john-doe' })));
+    assertRejected(out, 409, {
+        error: 'Your Nextcloud account could not be added: a Bee Flow account with the id that belongs to your Nextcloud user id already exists. Reload the page; if this message stays, ask your Bee Flow administrator.',
+        code: 'nc_user_id_conflict',
+    });
+    assert.deepEqual(problemCodes(), ['auth.provision_failed']);
+    assert.deepEqual(rec.problems[0].opts.meta, { reason: 'duplicate_id' });
+    assert.equal(rec.problems[0].opts.orgId, ORG);
+    assert.ok(rec.warns.some((m) => m.startsWith('[ConnectorJWT] auto-provision failed userId=nc_org1_john-doe reason=duplicate_id')));
+});
+
+test('uids that differ only in punctuation are provisioned under different ids, each in the token\'s organisation', async () => {
+    const seen = [];
+    userStore.createUserWithSeatCheck = async (u) => { seen.push(u); return { created: true }; };
+    userStore.getUser = async (id) => ({ id, email: 'x@acme.example', organizationId: ORG });
+    await run(connectorReq({ email: 'john.doe@acme.example', sub: 'john.doe' }));
+    await run(connectorReq({ email: 'john_doe@acme.example', sub: 'john_doe' }));
+    await run(connectorReq({ email: 'john-doe@acme.example', sub: 'john-doe' }));
+    assert.equal(new Set(seen.map((u) => u.id)).size, 3);
+    assert.equal(seen[2].id, 'nc_org1_john-doe');
+    assert.ok(seen.every((u) => u.id.startsWith('nc_org1_') && u.organizationId === ORG));
+    assert.deepEqual(seen.map((u) => u.ncUid), ['john.doe', 'john_doe', 'john-doe']);
+});
+
 test('provision failure without reason: meta.reason "unknown"', async () => {
     userStore.createUserWithSeatCheck = async () => ({ created: false });
     await run(connectorReq(goodPayload()));
@@ -452,7 +478,7 @@ test('auto-provision: default org role honours a valid org override, ignores an 
     await run(connectorReq({ email: 'a@b.c' }));
     assert.equal(seen[0].orgRole, 'org_admin');
     assert.equal(seen[1].orgRole, 'agent_editor');
-    assert.equal(seen[0].id, 'nc_org1_a-b-c');
+    assert.equal(seen[0].id, `nc_org1_a-b-c-${crypto.createHash('sha256').update('a@b.c').digest('hex').slice(0, 8)}`);
     assert.equal(seen[0].ncUid, null);
     assert.equal(seen[0].displayName, 'a@b.c');
 });

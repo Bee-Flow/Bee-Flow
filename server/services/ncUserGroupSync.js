@@ -35,6 +35,7 @@ const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
+const { ncUserId } = require('../utils/ncUserId.mts');
 const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus } = require('./ncAccountState.mts');
 
 /**
@@ -45,11 +46,6 @@ const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, i
  */
 /** @typedef {{ email?: string, displayname?: string, displayName?: string, backend?: string }} NcUserData */
 /** @typedef {import('./ncAccountState.mts').AccountState} AccountState */
-
-/** @param {string} s */
-function slugifyId(s) {
-    return String(s || '').replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 40) || 'user';
-}
 
 // Service-level call to the connector's NC reverse proxy. Used to fetch
 // NC user / group metadata when mirroring. Mirrors the HMAC scheme in
@@ -271,7 +267,7 @@ async function _applyUserCreated(org, ncUid, state) {
     }
     if (skipsNewGuest(org, ncUser, ncGroups)) return { action: 'skip', reason: 'guest' };
     const status = (org.nc_new_user_default_status === 'pending') ? 'pending' : 'active';
-    const userId = `nc_${org.id}_${slugifyId(ncUid)}`;
+    const userId = ncUserId(org.id, ncUid);
     // Map NC group memberships to Bee Flow group ids — relies on mirrorGroups
     // having populated the groups table for this org. NC's `admin` group is
     // intentionally not mirrored, so it gets dropped here.

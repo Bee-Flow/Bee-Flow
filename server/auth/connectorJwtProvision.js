@@ -15,6 +15,7 @@ const { orgHealth } = require('./connector/serviceDeps');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 const { HttpError } = require('../shared/httpErrors');
+const { ncUserId } = require('../utils/ncUserId.mts');
 const {
     reject, fail, ok, _isOrgAdminRequester, _resolveRequesterNcUid,
 } = require('./connectorJwtPhases');
@@ -160,12 +161,12 @@ async function _provisioningGate(req, org, orgId, payload) {
 
 /**
  * Create the user (seat check included). Returns reject (seat cap / pending
- * approval), fail (HttpError 500 provision_failed) or ok(user).
+ * approval / the id is taken), fail (HttpError 500 provision_failed) or ok(user).
  */
 async function _autoProvision(req, org, orgId, payload, reqNcUid) {
     const ncUid = reqNcUid;
     const status = (org.nc_new_user_default_status === 'pending') ? 'pending' : 'active';
-    const userId = `nc_${orgId}_${(ncUid || payload.email).replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 40)}`;
+    const userId = ncUserId(orgId, ncUid || payload.email);
     const defaultOrgRole = resolveDefaultNcUserOrgRole(org);
     const r = await userStore.createUserWithSeatCheck({
         id: userId,
@@ -196,6 +197,13 @@ async function _autoProvision(req, org, orgId, payload, reqNcUid) {
             orgId, source: 'connectorJwt', req,
             meta: { reason: r.reason || 'unknown' },
         });
+        // The id belongs to another account (ids are built by utils/ncUserId.mts).
+        if (r.reason === 'duplicate_id') {
+            return reject(409, {
+                error: 'Your Nextcloud account could not be added: a Bee Flow account with the id that belongs to your Nextcloud user id already exists. Reload the page; if this message stays, ask your Bee Flow administrator.',
+                code: 'nc_user_id_conflict',
+            });
+        }
         return fail(new HttpError(500, 'provision_failed', 'Failed to provision user'));
     }
     const user = await userStore.getUser(userId);

@@ -16,6 +16,7 @@
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { ncUserId } = require('../../utils/ncUserId.mts');
 const userStore = require('../../stores/userStore');
 const configStore = require('../../stores/configStore');
 const { invalidateTenantKeyCache } = require('../connectorJwt');
@@ -213,7 +214,7 @@ async function rotateTenantKey(orgId) {
 async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
     let user = await userStore.getUserByEmail(ncAdminEmail);
     if (!user) {
-        const userId = `nc_${org.id}_${slugify(ncAdminUid)}`;
+        const userId = ncUserId(org.id, ncAdminUid, { lowercase: true, fallback: 'nc' });
         const r = await userStore.createUserWithSeatCheck({
             id: userId,
             username: ncAdminEmail,

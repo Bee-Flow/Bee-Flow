@@ -714,3 +714,36 @@ test('an enabled account activates users of its own organisation only', async ()
     await sync.runFullSync(MIRROR_ALL);
     assert.deepEqual(state.updates.map(u => u.id), [mine.id]);
 });
+
+// ── The Bee Flow id of a new user ───────────────────────────────────────────
+
+test('a plain uid keeps the id nc_<organisation>_<uid>; uids that differ only in punctuation get different ids', async () => {
+    const r1 = await sync.applyUserCreated(MIRROR_ALL, 'alice');
+    const r2 = await sync.applyUserCreated(MIRROR_ALL, 'john.doe');
+    const r3 = await sync.applyUserCreated(MIRROR_ALL, 'john_doe');
+    assert.equal(r1.userId, 'nc_org-1_alice');
+    assert.match(r2.userId, /^nc_org-1_john-doe-[0-9a-f]{8}$/);
+    assert.match(r3.userId, /^nc_org-1_john-doe-[0-9a-f]{8}$/);
+    assert.notEqual(r2.userId, r3.userId);
+    assert.deepEqual(state.creates.map(u => u.id), [r1.userId, r2.userId, r3.userId]);
+});
+
+test('two 64-character uids that share their first 40 characters are both mirrored', async () => {
+    const a = `${'f'.repeat(40)}${'1'.repeat(24)}`;
+    const b = `${'f'.repeat(40)}${'2'.repeat(24)}`;
+    const ra = await sync.applyUserCreated(MIRROR_ALL, a);
+    const rb = await sync.applyUserCreated(MIRROR_ALL, b);
+    assert.equal(ra.action, 'create');
+    assert.equal(rb.action, 'create');
+    assert.notEqual(ra.userId, rb.userId);
+});
+
+test('the same uid in two organisations gets one id per organisation', async () => {
+    const other = { ...MIRROR_ALL, id: 'org-2' };
+    const mine = await sync.applyUserCreated(MIRROR_ALL, 'john.doe');
+    assert.match(mine.userId, /^nc_org-1_/);
+    // org-2 has no tenant key in this file: its sync reads nothing and creates nobody.
+    const theirs = await sync.applyUserCreated(other, 'john.doe');
+    assert.equal(theirs.action, 'error');
+    assert.deepEqual(state.creates.map(u => u.organizationId), ['org-1']);
+});
