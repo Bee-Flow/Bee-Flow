@@ -13,8 +13,10 @@ URL: `/app/studio/apps` · end-users open a published app at `/app/apps/:id`.
 
 **Tier:** Enterprise (GA). App Studio is on by default for Enterprise organisations;
 an org admin can disable it under beta/feature settings. Everyone who opens a
-published app needs the same Enterprise `app_studio` entitlement (apps are only
-shareable inside your organisation).
+published app needs the same Enterprise `app_studio` entitlement. An app is shared
+inside your organisation; an app can also open a limited set of its screens to
+anonymous visitors behind a link (a *public page*), and only those screens and the
+actions wired to them are reachable without signing in.
 
 ## Build with AI
 
@@ -328,8 +330,8 @@ database passes 80% of the size cap.
 | Database size per app | 256 MB |
 | Attachment size | 25 MB |
 | Attachments per app | 5,000 |
-| External connectors per app | 20 |
-| Screens · components · actions | 20 · 500 · 60 |
+| External connectors per app | 50 |
+| Screens · components and sections · actions | 40 · 500 · 200 |
 | App definition size | 512 KB |
 
 **Rate limits** (per user, per app; env-tunable on self-hosted): AI builder 12/min,
