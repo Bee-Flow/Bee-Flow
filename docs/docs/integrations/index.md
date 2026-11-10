@@ -108,10 +108,11 @@ Three ways:
 
 ## How org admins control access
 
-In **Admin → Access → Grants** an admin can:
+In **Settings → Organisation → Integrations** an org admin can:
 
-- Toggle integrations on/off org-wide
-- Override per-group (disable specific tools for specific groups)
-- Lock per-user override settings (so users can't re-enable disabled tools)
+- Grant an integration to the whole organisation or to a group (**Integration access**; the same grants as **Admin → Access → Grants**)
+- For the Nextcloud integrations: switch each one on or off org-wide and disable it for specific Nextcloud groups (**Integration settings**)
+
+Users can only narrow their own Nextcloud access, never re-enable what the organisation switched off.
 
 [Read more →](../admin/nc-integrations.md)

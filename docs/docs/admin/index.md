@@ -98,9 +98,9 @@ the Integrations tab in the rail, then the Transcription section.
 | Task | Where |
 |------|-------|
 | Invite a user | [Users & groups](users-and-groups.md) |
-| Disable Mail integration for the Sales group | [NC integrations](nc-integrations.md) |
+| Turn off Nextcloud Mail for one Nextcloud group | [NC integrations](nc-integrations.md) |
 | Apply a licence key | [Organisation settings](organisation-settings.md) → Licence & usage |
-| Turn on the Notebooks beta | [Beta features](beta-features.md) |
+| Give a beta feature to one group | [Beta features](beta-features.md) |
 | Export the last 30 days of guardrail events | [Audit & compliance](audit-and-compliance.md) |
 | Set up SAML SSO | [Organisation settings](organisation-settings.md) → SSO (Enterprise+) |
 | Configure a custom domain (white-label) | [Organisation settings](organisation-settings.md) → Branding (Full tier) |

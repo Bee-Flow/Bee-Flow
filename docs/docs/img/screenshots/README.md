@@ -52,8 +52,8 @@ Drop a new file in. If the folder ends up with two images, the alphabetically-fi
 | `studio/knowledge-bases-list/` | KB library |
 | `studio/skills-marketplace/` | Skills marketplace |
 | `admin/users-and-groups/` | Admin → Security → Users (the People directory) |
-| `admin/nc-integrations-org/` | Admin → Access → Grants, scope All members |
-| `admin/nc-integrations-per-group/` | Admin → Access → Grants, one group picked as the scope |
+| `admin/nc-integrations-org/` | Settings → Organisation → Integrations → Integration settings, the Nextcloud integrations panel (Org-wide) |
+| `admin/nc-integrations-per-group/` | The same panel, Per-group exceptions with one group opened |
 | `admin/organisation-settings/` | Org settings overview |
 | `admin/beta-features/` | Admin → Access → Grants, the Beta capabilities |
 | `admin/audit-log/` | Guardrail event browser |
