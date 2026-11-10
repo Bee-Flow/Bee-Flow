@@ -145,6 +145,15 @@ function renderStyleKnob(key) {
 }
 
 /**
+ * A type's props without those marked `since` 3 or later: the pinned catalogue
+ * text stays the base vocabulary, the later props are served on demand.
+ * @returns {Array<[string, FieldSpec]>}
+ */
+function baseProps(spec) {
+    return Object.entries(spec.props || {}).filter(([, fs]) => !(typeof fs.since === 'number' && fs.since >= 3));
+}
+
+/**
  * @param {string} type
  */
 function renderComponent(type) {
@@ -155,7 +164,7 @@ function renderComponent(type) {
         spec.events && spec.events.length ? `events: ${spec.events.join(', ')}` : null,
     ].filter(Boolean).join(' · ');
     const lines = [`${type} [${spec.category}]${flags ? ` — ${flags}` : ''} — ${spec.description}`];
-    const props = Object.entries(spec.props);
+    const props = baseProps(spec);
     if (props.length) {
         lines.push(`  props: ${props.map(([k, fs]) => renderPropSpec(k, fs)).join('; ')}`);
     }
@@ -560,7 +569,7 @@ function compactPropType(fs) {
  * VALUES are what a small model cannot guess.
  */
 function pickCompactProps(spec) {
-    const all = Object.entries(spec.props || {});
+    const all = baseProps(spec);
     const wanted = new Set(COMPACT_KEY_PROP_NAMES);
     const picked = all.filter(([k, fs]) => fs.required || fs.type === 'binding' || wanted.has(k));
     return { picked: picked.slice(0, COMPACT_MAX_PROPS), total: all.length };
@@ -737,7 +746,7 @@ module.exports = {
  * One field spec of the spec tables (props, action and step fields): only what the renderers read.
  * @typedef {{ type: string, values?: unknown[], allowIsoDate?: boolean, min?: number|null, max?: number|null,
  *   itemShape?: Record<string, FieldSpec>, maxItems?: number, required?: boolean, nullable?: boolean,
- *   maxLen?: number, default?: unknown, description?: string }} FieldSpec
+ *   maxLen?: number, default?: unknown, description?: string, since?: number }} FieldSpec
  * @typedef {{ optional?: boolean, description?: string, presets?: string[] }} ColorSpec  a theme color entry
  * @typedef {Record<string, { mutatesData?: boolean, fields: Record<string, FieldSpec> }>} KindSpecs
  * @typedef {{ theme: string, design: string, knobs: string, advancedSizing: string, screen: string, components: string,

@@ -285,6 +285,22 @@ const GET_BY_ID_CASES = [
     ['read-time-computed', 'rec_1', undefined, { readTimeComputed: true }],
 ];
 
+/**
+ * Descriptors for compileRecordCount: [name, opts, access?]. The count carries
+ * the list's WHERE and nothing of its page, so a cursor, a sort and a limit
+ * must leave no trace in the SQL.
+ */
+const COUNT_CASES = [
+    ['empty', {}],
+    ['filters', { filters: [{ field: 'title', op: 'contains', value: 'a' }, { field: 'done', op: 'eq', value: true }] }],
+    ['any-group', { filters: [{ any: [{ field: 'region', op: 'eq', value: 'eu' }, { field: 'amount', op: 'gt', value: 5 }] }] }],
+    ['match-any', { filters: [{ field: 'region', op: 'eq', value: 'eu' }, { field: 'region', op: 'eq', value: 'us' }], match: 'any' }],
+    ['page-ignored', { filters: [{ field: 'amount', op: 'gte', value: 1 }], sort: { field: 'amount', dir: 'asc' }, cursor: cursorOf(12, 'rec_3'), limit: 5 }],
+    ['allow', {}, ALLOW],
+    ['err-unknown-field', { filters: [{ field: 'nope', op: 'eq', value: 1 }] }],
+    ['err-no-access', {}, null],
+];
+
 /** [name, keyField, keys, access?] for compileKeyIndex. */
 const KEY_INDEX_CASES = [
     ['text', 'title', ['a', 'b', null, '', undefined, 'c']],
@@ -327,6 +343,6 @@ const CLAMP_CASES = [[undefined], [''], [-5], ['abc'], [NaN], [0], [1], [49.9], 
 
 module.exports = {
     TABLE, ACCESS, ALLOW, cursorOf,
-    LIST_CASES, AGGREGATE_CASES, GET_BY_ID_CASES, KEY_INDEX_CASES,
+    LIST_CASES, AGGREGATE_CASES, GET_BY_ID_CASES, KEY_INDEX_CASES, COUNT_CASES,
     ACCESS_CASES, ACCESS_LIST_OPTS, ACCESS_AGG_OPTS, CLAMP_CASES,
 };

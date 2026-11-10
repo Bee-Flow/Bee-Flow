@@ -5,7 +5,7 @@
 
 'use strict';
 
-const { LIMITS } = require('../componentSpecs');
+const { LIMITS, SCHEMA_VERSION_BASE } = require('../componentSpecs');
 const { isObject, deepCopy, truncate } = require('./shared');
 const { cleanBinding } = require('./bindings');
 
@@ -79,6 +79,25 @@ function cleanPropValue(fs, raw, path, push) {
 }
 
 /**
+ * Whether cleanProps leaves `key` out. A prop marked `since` above the base
+ * version is written only when it is set, so a definition that does not use
+ * it keeps its bytes and its version; it is never filled from its default.
+ * @param {{ since?: unknown, default?: unknown }} fs
+ * @param {Record<string, unknown>} provided
+ * @param {string} key
+ */
+function skipsUnsetLaterProp(fs, provided, key) {
+    if (!(typeof fs.since === 'number' && fs.since > SCHEMA_VERSION_BASE)) return false;
+    const v = provided[key];
+    return v === undefined || (v === null && fs.default == null);
+}
+
+/** The value a missing prop is filled with: its spec default, null when it has none. */
+function defaultOf(fs) {
+    return deepCopy(fs.default === undefined ? null : fs.default);
+}
+
+/**
  * @param {string} path
  * @param {(arg0: string, arg1: string, arg2: string) => void} push
  */
@@ -93,10 +112,11 @@ function cleanProps(node, spec, id, path, push) {
     /** @type {string[]} */
     const filled = [];
     for (const [key, fs] of Object.entries(spec.props)) {
+        if (skipsUnsetLaterProp(fs, provided, key)) continue;
         if (key in provided) {
             props[key] = cleanPropValue(fs, provided[key], `${path}.props.${key}`, push);
         } else {
-            props[key] = deepCopy(fs.default === undefined ? null : fs.default);
+            props[key] = defaultOf(fs);
             filled.push(key);
         }
     }
@@ -122,7 +142,7 @@ module.exports = { cleanPropValue, cleanProps };
 
 /**
  * @typedef {{
- *   type: string, maxLen?: number, itemMaxLen?: number, default?: unknown,
+ *   type: string, maxLen?: number, itemMaxLen?: number, default?: unknown, since?: number,
  *   itemShape?: Record<string, { maxLen?: number }>,
  * }} PropFieldSpec  One entry of a COMPONENT_SPECS `props` table.
  */

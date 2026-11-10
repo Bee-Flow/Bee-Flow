@@ -65,10 +65,14 @@ export const DEMO_TYPES = [
 /** Fields copied onto a type's snapshot entry only when the spec carries them. */
 const OPTIONAL_TYPE_FIELDS = ['since', 'mobile', 'parts'];
 
-/** The spec's per-prop defaults: exactly what canonicalize fills in (absent = null). */
+/**
+ * The spec's per-prop defaults: exactly what canonicalize fills in (absent = null).
+ * A prop marked `since` 3 or later is never filled in, so it is not here either.
+ */
 export function defaultPropsOf(spec) {
     const out = {};
     for (const [key, field] of Object.entries(spec.props || {})) {
+        if (typeof field.since === 'number' && field.since >= 3) continue;
         out[key] = field.default === undefined ? null : field.default;
     }
     return out;

@@ -131,6 +131,23 @@ function compileRecordList(tableMeta, opts = {}, accessFilter) {
 }
 
 /**
+ * How many records a list read matches, for a page that shows a total.
+ *   compileRecordCount(tableMeta, { filters, match, search }, accessFilter)
+ * Returns { sql, params } that select one row `{ total }`. The WHERE is the one
+ * compileRecordList builds from the same descriptor (access filter, client
+ * filters, match, search); the cursor, the order and the limit are left out,
+ * because the total is the size of the whole result, not of one page.
+ */
+function compileRecordCount(tableMeta, opts = {}, accessFilter) {
+    const dialect = resolveDialect(opts);
+    assertTableMeta(tableMeta);
+    const fm = fieldMap(tableMeta);
+    const { where, params } = buildWhere(
+        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search);
+    return { sql: `SELECT COUNT(*) AS ${qi('total')} FROM ${qi(tableMeta.key)} ${where}`, params: [...params] };
+}
+
+/**
  * SELECT one record by id, access-scoped. Hidden rows return 0 rows → 404.
  * `opts.readTimeComputed: true` adds the read-time computed fields, as in
  * compileRecordList.
@@ -183,6 +200,7 @@ function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {})
 
 module.exports = {
     compileRecordList,
+    compileRecordCount,
     compileGetById,
     compileAggregate,
     compileInsert,

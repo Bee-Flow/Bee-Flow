@@ -418,7 +418,7 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
         if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
 
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            filters, sort, cursor: req.query.cursor, limit: req.query.limit,
+            filters, sort, cursor: req.query.cursor, limit: req.query.limit, total: req.query.total === '1',
         });
         return res.json(out);
     } catch (err) { return handleErr(res, err, 'records.list'); }

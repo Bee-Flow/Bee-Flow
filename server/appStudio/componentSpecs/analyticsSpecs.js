@@ -112,6 +112,11 @@ const ANALYTICS_SPECS = {
                 },
             },
             pageSize: { type: 'int', min: 5, max: 100, default: 25 },
+            // Server paging of a `records` source (schema 3, written only when set).
+            // 'loadMore' adds the next page of the source (its `limit` rows) under
+            // the grid; the grid's own pageSize keeps paging the rows it holds.
+            // Absent: the one page the source reads, as always.
+            pagination: { type: 'enum', values: ['loadMore'], default: null, since: 3 },
             selectable: { type: 'enum', values: ['none', 'single', 'multi'], default: 'none' },
             searchable: { type: 'boolean', default: false },
             rowActions: {

@@ -209,7 +209,7 @@ async function applyQueryData(draftWrap, args) {
     }
     const parsed = parseQueryArgs(args);
     if (parsed.error) return { ...parsed, ...(parsed._fixHint ? {} : { _fixHint: tableIdHint(model) }) };
-    const { tableId, datasetId, limit, filter, sort, cursor } = parsed;
+    const { tableId, datasetId, limit, filter, sort, cursor, total } = parsed;
     const studioAppStore = require('../../stores/studioAppStore');
     let app = null;
     try { app = await studioAppStore.getStudioApp(draftWrap.appId); } catch (_) { app = null; }
@@ -249,11 +249,12 @@ async function applyQueryData(draftWrap, args) {
             viewer: { id: draftWrap.userId, role: 'owner' },
             model,
         };
-        const out = await dataReadRunner.runRecordList(ctx, table, { filters: filter, sort, cursor, limit });
+        const out = await dataReadRunner.runRecordList(ctx, table, { filters: filter, sort, cursor, limit, ...(total ? { total: true } : {}) });
         const rows = (Array.isArray(out.records) ? out.records : []).map((r) => shapeTableRow(r, table));
         return {
             rows,
             rowCount: rows.length,
+            ...(typeof out.total === 'number' ? { totalRows: out.total } : {}),
             ...pageMeta({ more: !!out.nextCursor, nextCursor: out.nextCursor }, parsed),
             ...(linked ? { linked: true } : {}),
             ...(out.notes ? { notes: out.notes } : {}),

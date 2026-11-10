@@ -163,3 +163,28 @@ test('a linked table goes through the shared runner and keeps linked:true', asyn
         assert.strictEqual(seen[0].o.limit, 1);
     });
 });
+
+test('total:true adds totalRows from a count with the read\'s WHERE; without it there is no count and no key', async () => {
+    const calls = [];
+    const patches = [
+        [studioAppStore, 'getStudioApp', async () => APP],
+        [studioAppDbStore, 'query', async (owner, appId, sql, params) => {
+            calls.push({ sql, params });
+            return { rows: sql.includes('COUNT(') ? [{ total: '7' }] : [row(1), row(2), row(3)] };
+        }],
+    ];
+    await withPatches(patches, async () => {
+        const plain = await applyQueryData(wrap(), { tableId: 'tbl_task01', limit: 2 });
+        assert.ok(!('totalRows' in plain));
+        assert.ok(!calls.some((c) => c.sql.includes('COUNT(')));
+        const filter = [{ field: 'status', op: 'eq', value: 'todo' }];
+        const counted = await applyQueryData(wrap(), { tableId: 'tbl_task01', limit: 2, total: true, filter });
+        assert.strictEqual(counted.totalRows, 7, 'a Postgres bigint string reads as a number');
+        assert.strictEqual(counted.rowCount, 2);
+        const count = calls.find((c) => c.sql.includes('COUNT('));
+        assert.match(count.sql, /"status" = \?/);
+        assert.ok(!/LIMIT/.test(count.sql), 'the count is not paged');
+        const bad = await applyQueryData(wrap(), { tableId: 'tbl_task01', total: 'yes' });
+        assert.match(bad.error, /total/);
+    });
+});

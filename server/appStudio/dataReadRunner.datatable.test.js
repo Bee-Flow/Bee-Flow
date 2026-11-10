@@ -375,3 +375,40 @@ test('read-time computed: when the engine fails the expression, every read path 
     assert.equal(row.item, 'pen');
     assert.equal(row.total, null);
 }));
+
+// ── Paging: the cursor round-trip and the total ─────────────────────
+// A paged list in the app follows nextCursor page by page and may ask for
+// `total`. Without `total: true` nothing is counted and the answer has no key.
+
+test('paging: a read without total answers exactly as before, with no count query', withLines(async () => {
+    const out = await dataReadRunner.runRecordList(linesCtx('owner', OWNER), LINES, { limit: 1, total: 'yes' });
+    assert.deepEqual(Object.keys(out), ['records', 'nextCursor', 'notes']);
+    assert.equal(appDbCalls.length, 1);
+    assert.ok(!appDbCalls.some((c) => c.sql.includes('COUNT(')));
+}));
+
+test('paging: the cursor walks every visible row once, and total counts the whole read under the row rule', withLines(async () => {
+    const sort = { field: 'item', dir: 'asc' };
+    const first = await dataReadRunner.runRecordList(linesCtx('owner', OWNER), LINES, { sort, limit: 1, total: true });
+    assert.deepEqual(first.records.map((r) => r.item), ['desk']);
+    assert.equal(first.total, 2);
+    assert.equal(typeof first.nextCursor, 'string');
+    const second = await dataReadRunner.runRecordList(linesCtx('owner', OWNER), LINES, { sort, limit: 1, cursor: first.nextCursor, total: true });
+    assert.deepEqual(second.records.map((r) => r.item), ['pen']);
+    assert.equal(second.total, 2, 'the cursor narrows the page, not the total');
+    assert.equal(second.nextCursor, null);
+    const member = await dataReadRunner.runRecordList(linesCtx('member', 'u-member'), LINES, { total: true });
+    assert.equal(member.total, 1, 'a row the member may not read is not counted');
+    const count = appDbCalls.filter((c) => c.sql.includes('COUNT(')).pop();
+    assert.ok(count.sql.includes('"created_by" = ?'), 'the count carries the row rule');
+}));
+
+test('paging: the batch passes cursor and total through; a filter narrows the total', withLines(async () => {
+    const [res] = await dataReadRunner.runBatch(linesCtx('owner', OWNER), [{
+        id: 'p1', kind: 'records', tableId: LINES.id, limit: 1, total: true, filters: [{ field: 'price', op: 'gt', value: 10 }],
+    }]);
+    assert.equal(res.ok, true);
+    assert.deepEqual(res.data.records.map((r) => r.item), ['desk']);
+    assert.equal(res.data.total, 1);
+    assert.equal(res.data.nextCursor, null);
+}));

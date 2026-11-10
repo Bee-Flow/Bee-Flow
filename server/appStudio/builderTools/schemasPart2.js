@@ -301,6 +301,7 @@ const TOOL_SCHEMAS_PART_2 = [
                     sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },
                     limit: { type: 'number', description: `Max rows per call (default 5, max ${MAX_QUERY_LIMIT}; a larger value is clamped and the answer says limitClamped and requestedLimit). Page on with cursor.` },
                     cursor: { type: 'string', description: 'The nextCursor of the previous answer, to read the next page.' },
+                    total: { type: 'boolean', description: 'tableId only: true adds totalRows, how many rows the whole read matches (filter and row rules applied, not just this page).' },
                 },
             },
         },

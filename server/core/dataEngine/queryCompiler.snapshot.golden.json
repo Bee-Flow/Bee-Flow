@@ -4790,5 +4790,133 @@
         ]
       }
     }
+  },
+  "count": {
+    "empty": {
+      "sqlite": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?)",
+        "params": [
+          "viewer-1"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?)",
+        "params": [
+          "viewer-1"
+        ]
+      }
+    },
+    "filters": {
+      "sqlite": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" LIKE ? ESCAPE '\\' AND \"done\" = ?",
+        "params": [
+          "viewer-1",
+          "%a%",
+          1
+        ]
+      },
+      "pg": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" ILIKE ? ESCAPE '\\' AND \"done\" = ?",
+        "params": [
+          "viewer-1",
+          "%a%",
+          true
+        ]
+      }
+    },
+    "any-group": {
+      "sqlite": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND (\"region\" = ? OR \"amount\" > ?)",
+        "params": [
+          "viewer-1",
+          "eu",
+          5
+        ]
+      },
+      "pg": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND (\"region\" = ? OR \"amount\" > ?)",
+        "params": [
+          "viewer-1",
+          "eu",
+          5
+        ]
+      }
+    },
+    "match-any": {
+      "sqlite": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND (\"region\" = ? OR \"region\" = ?)",
+        "params": [
+          "viewer-1",
+          "eu",
+          "us"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND (\"region\" = ? OR \"region\" = ?)",
+        "params": [
+          "viewer-1",
+          "eu",
+          "us"
+        ]
+      }
+    },
+    "page-ignored": {
+      "sqlite": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"amount\" >= ?",
+        "params": [
+          "viewer-1",
+          1
+        ]
+      },
+      "pg": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"amount\" >= ?",
+        "params": [
+          "viewer-1",
+          1
+        ]
+      }
+    },
+    "allow": {
+      "sqlite": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (1=1)",
+        "params": []
+      },
+      "pg": {
+        "sql": "SELECT COUNT(*) AS \"total\" FROM \"tasks\" WHERE (1=1)",
+        "params": []
+      }
+    },
+    "err-unknown-field": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: nope"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: nope"
+        }
+      }
+    },
+    "err-no-access": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "accessFilter {where, params} is required — the query compiler cannot run unscoped"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "accessFilter {where, params} is required — the query compiler cannot run unscoped"
+        }
+      }
+    }
   }
 }

@@ -74,6 +74,11 @@ const RECORD_LIST_SPECS = {
             },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
             rowLimit: { type: 'int', min: 1, max: 100, default: 25 },
+            // Server paging of a `records` source (schema 3, written only when set):
+            // 'loadMore' appends the next page, 'prevNext' steps through pages. A
+            // page is the source's `limit` rows; with paging on, rowLimit does not
+            // cut the page. Absent: the one page the source reads, as always.
+            pagination: { type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3 },
             // Look pass.
             look: {
                 type: 'enum', values: ['default', 'striped', 'minimal'], default: 'default',
@@ -127,6 +132,10 @@ const RECORD_LIST_SPECS = {
             },
             icon: { type: 'icon', default: null },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
+            // Server paging of a `records` source (schema 3, written only when set):
+            // 'loadMore' appends the next page, 'prevNext' steps through pages. A
+            // page is the source's `limit` rows. Absent: one page, as always.
+            pagination: { type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3 },
             // Look pass. 'rows' names what the list renders today.
             look: {
                 type: 'enum', values: ['rows', 'cards', 'tiles'], default: 'rows',
