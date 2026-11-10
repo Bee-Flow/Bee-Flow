@@ -24,7 +24,9 @@
  * call runFullSync directly and never pass through here, so the backoff
  * cannot block them.
  *
- * No-op for non-NC tenants: only iterates orgs with nc_instance_id.
+ * No-op for non-NC tenants: only iterates orgs with nc_instance_id. An org
+ * whose sync mode is not chosen yet is answered `skipped` by runFullSync
+ * (services/ncSyncStart.mts): synchronisation starts once the mode is chosen.
  */
 
 const { bestEffort } = require('../utils/bestEffort');

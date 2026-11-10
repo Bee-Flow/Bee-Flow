@@ -15,8 +15,6 @@ export interface FieldUpdaterDeps {
     setUseGeneralMemory: (value: boolean) => void;
     attachedSkillIds: string[];
     setAttachedSkillIds: (ids: string[]) => void;
-    enabledIntegrations: string[] | null;
-    setEnabledIntegrations: (ids: string[]) => void;
     setKnowledgeBaseIds: (ids: string[]) => void;
     setStrictKnowledge: (value: boolean) => void;
     setIncludeSourceReferences: (value: boolean) => void;
@@ -52,7 +50,7 @@ export interface PublishActionDeps {
 // defined at, and the handlers close over the deps object properties exactly
 // as they closed over the parent scope before. No hooks in this module.
 
-export function createFieldUpdaters({ setName, setInstructions, setAvatar, memoryEnabled, setMemoryEnabled, useGeneralMemory, setUseGeneralMemory, attachedSkillIds, setAttachedSkillIds, enabledIntegrations, setEnabledIntegrations, setKnowledgeBaseIds, setStrictKnowledge, setIncludeSourceReferences, setDescription, setModel, setSelectedTier, setCategoryId, stateRef, dirtyRef, queueSave, patchConfig }: FieldUpdaterDeps) {
+export function createFieldUpdaters({ setName, setInstructions, setAvatar, memoryEnabled, setMemoryEnabled, useGeneralMemory, setUseGeneralMemory, attachedSkillIds, setAttachedSkillIds, setKnowledgeBaseIds, setStrictKnowledge, setIncludeSourceReferences, setDescription, setModel, setSelectedTier, setCategoryId, stateRef, dirtyRef, queueSave, patchConfig }: FieldUpdaterDeps) {
     // Typing: debounced.
     const updateName = (v: string) => { setName(v); stateRef.current.name = v; queueSave(false); };
     const updateInstructions = (v: string) => { setInstructions(v); stateRef.current.systemPrompt = v; queueSave(false); };
@@ -80,15 +78,6 @@ export function createFieldUpdaters({ setName, setInstructions, setAvatar, memor
         setAttachedSkillIds(next);
         patchConfig({ attachedSkillIds: next });
     };
-    const toggleIntegration = (id: string, available: Array<{ id: string }>) => {
-        // null = legacy "all enabled" — materialise the implicit list before toggling.
-        const baseList = Array.isArray(enabledIntegrations)
-            ? enabledIntegrations
-            : available.map(a => a.id);
-        const next = baseList.includes(id) ? baseList.filter(x => x !== id) : [...baseList, id];
-        setEnabledIntegrations(next);
-        patchConfig({ enabledIntegrations: next });
-    };
     const onKnowledgeBaseIdsChange = (next: string[]) => {
         setKnowledgeBaseIds(next);
         patchConfig({ knowledge_base_ids: next });
@@ -110,7 +99,7 @@ export function createFieldUpdaters({ setName, setInstructions, setAvatar, memor
     };
     const updateCategory = (id: string | null) => { setCategoryId(id); stateRef.current.categoryId = id; dirtyRef.current = true; queueSave(true); };
 
-    return { updateName, updateInstructions, updateAvatar, toggleMemory, toggleUseGeneralMemory, toggleSkill, toggleIntegration, onKnowledgeBaseIdsChange, onStrictKnowledgeChange, onIncludeSourceReferencesChange, updateDescription, updateModel, updateCategory };
+    return { updateName, updateInstructions, updateAvatar, toggleMemory, toggleUseGeneralMemory, toggleSkill, onKnowledgeBaseIdsChange, onStrictKnowledgeChange, onIncludeSourceReferencesChange, updateDescription, updateModel, updateCategory };
 }
 
 export function createCategoryActions({ setCategories, updateCategory, bootstrap, stateRef, flush }: CategoryActionDeps) {

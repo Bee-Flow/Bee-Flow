@@ -17,6 +17,7 @@
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { resolveNcUserId } = require('../../utils/ncUserId.mts');
 const userStore = require('../../stores/userStore');
 const { assertStored } = require('../../stores/user/assertStored');
 const configStore = require('../../stores/configStore');
@@ -217,6 +218,61 @@ async function adminEmailBelongsElsewhere(orgId, email) {
     return !!user && user.organizationId !== orgId;
 }
 
+/**
+ * One Nextcloud account has one user per organisation: does a user of this
+ * organisation already hold the uid (under another e-mail address)? Then no
+ * second one is created; the health row says so.
+ * @param {OrgRow} org
+ * @param {string} ncUid
+ */
+async function ncUidIsHeld(org, ncUid) {
+    const holder = ncUid ? await userStore.getUserByNcUid(org.id, ncUid) : null;
+    if (!holder) return false;
+    log.warn(`[connectorBootstrap] NC admin not created for org=${org.id}: user ${holder.id} already holds that Nextcloud uid under another e-mail address`);
+    orgHealth.problem('bootstrap.admin_provision_failed', {
+        orgId: org.id, source: 'connectorBootstrap',
+        meta: { reason: 'nc_uid_taken' },
+    });
+    return true;
+}
+
+/**
+ * Create the NC admin user of an org; null when it cannot be created (the uid
+ * is held by another user, the seat cap, the id is taken).
+ * @param {OrgRow} org
+ * @param {{ ncAdminEmail: string, ncAdminUid: string, ncAdminDisplayName?: string|null }} admin
+ */
+async function createOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
+    if (await ncUidIsHeld(org, ncAdminUid)) return null;
+    const resolved = await resolveNcUserId(
+        { orgId: org.id, ncUid: ncAdminUid, form: 'admin' },
+        { getUser: (id) => userStore.getUser(id) },
+    );
+    const userId = resolved.id;
+    const r = resolved.state !== 'free' ? { created: false, reason: 'duplicate_id' } : await userStore.createUserWithSeatCheck({
+        id: userId,
+        username: ncAdminEmail,
+        email: ncAdminEmail,
+        displayName: ncAdminDisplayName || ncAdminUid,
+        role: 'user',
+        orgRole: 'org_admin',
+        organizationId: org.id,
+        ncUid: ncAdminUid,
+        provider: 'nextcloud_connector',
+        autoProvisioned: true,
+        status: 'active',
+    }, { strict: false });
+    if (!r.created) {
+        log.warn(`[connectorBootstrap] could not create NC admin for org=${org.id} reason=${r.reason}`);
+        orgHealth.problem('bootstrap.admin_provision_failed', {
+            orgId: org.id, source: 'connectorBootstrap',
+            meta: { reason: r.reason },
+        });
+        return null;
+    }
+    return await userStore.getUser(userId);
+}
+
 // Promote / create the NC admin user inside an org. An address without an
 // account gets a new one in this organisation; an existing account is touched
 // only when it is a member of this organisation already: an account joins an
@@ -229,31 +285,7 @@ async function adminEmailBelongsElsewhere(orgId, email) {
  */
 async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
     const user = await userStore.getUserByEmail(ncAdminEmail);
-    if (!user) {
-        const userId = `nc_${org.id}_${slugify(ncAdminUid)}`;
-        const r = await userStore.createUserWithSeatCheck({
-            id: userId,
-            username: ncAdminEmail,
-            email: ncAdminEmail,
-            displayName: ncAdminDisplayName || ncAdminUid,
-            role: 'user',
-            orgRole: 'org_admin',
-            organizationId: org.id,
-            ncUid: ncAdminUid,
-            provider: 'nextcloud_connector',
-            autoProvisioned: true,
-            status: 'active',
-        }, { strict: false });
-        if (!r.created) {
-            log.warn(`[connectorBootstrap] could not create NC admin for org=${org.id} reason=${r.reason}`);
-            orgHealth.problem('bootstrap.admin_provision_failed', {
-                orgId: org.id, source: 'connectorBootstrap',
-                meta: { reason: r.reason },
-            });
-            return null;
-        }
-        return await userStore.getUser(userId);
-    }
+    if (!user) return createOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
     if (!user.organizationId) {
         log.info(`[ConnectorBootstrap] NC admin of org=${org.id} has an account (${user.id}) that is not a member of it; left as it is`);
         return null;

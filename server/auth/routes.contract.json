@@ -1759,6 +1759,9 @@
     "GET /api/cowork/:id/stats": {
       "gate": "auth"
     },
+    "GET /api/cowork/mail-providers": {
+      "gate": "auth"
+    },
     "GET /api/datatables": {
       "gate": "auth"
     },

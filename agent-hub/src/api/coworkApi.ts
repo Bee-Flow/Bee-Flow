@@ -48,6 +48,14 @@ export async function listCowork(): Promise<{ items: CoworkItem[]; maxItems: num
     return { items: data.schedules || [], maxItems: data.maxSchedules || 10 };
 }
 
+/** The mail apps (`gmail`, `msgraph`) the signed-in user has connected: what a mail trigger can watch. */
+export async function listCoworkMailProviders(): Promise<string[]> {
+    const res = await authFetch(`${BASE()}/mail-providers`);
+    if (!res.ok) throw await readError(res, 'Could not read your mail connections');
+    const data = await res.json();
+    return Array.isArray(data.providers) ? data.providers.filter((p: unknown): p is string => typeof p === 'string') : [];
+}
+
 export async function createCowork(payload: CoworkPayload | CoworkTriggerPayload): Promise<CoworkItem> {
     const res = await authFetch(BASE(), {
         method: 'POST',

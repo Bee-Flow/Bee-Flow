@@ -7,7 +7,6 @@ import ModelTierSelector from '@/components/licensing/ModelTierSelector';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { toast } from '@/components/shared/Toast';
 import Toggle from '@/components/shared/Toggle';
-import AppsPicker from '../pickers/AppsPicker';
 import { SchedulesPicker } from '../pickers/SchedulesPicker';
 import MailTriggerModal from '../triggers/MailTriggerModal';
 import SkillPicker from '../pickers/SkillPicker';
@@ -31,8 +30,8 @@ export interface BuilderConfigPanelProps {
     selectedTier?: string;
     updateModel: (tier: string) => void;
     enabledIntegrationCount?: number | null;
-    appsPickerOpen: boolean;
-    setAppsPickerOpen: OpenSetter;
+    /** Opens the tool chooser of the "Can use" tab: the one list of apps this editor has. */
+    onBrowseApps: () => void;
     uploadDocCount?: number | null;
     setKnowledgeOpen: (open: boolean) => void;
     strictKnowledge?: boolean;
@@ -59,9 +58,6 @@ export interface BuilderConfigPanelProps {
     toggleSkill: (id: string) => void;
     setAttachedSkillIds: (ids: string[]) => void;
     patchConfig: (patch: Record<string, unknown>) => void;
-    availableIntegrations: ComponentProps<typeof AppsPicker>['items'];
-    enabledIntegrations?: string[] | null;
-    toggleIntegration: (id: string, items: ComponentProps<typeof AppsPicker>['items']) => void;
     refining?: boolean;
     instructionsEditing?: boolean;
     setInstructionsEditing: (editing: boolean) => void;
@@ -85,7 +81,7 @@ export default function BuilderConfigPanel({
     ro, t, agent,
     flushNow,
     actionBarRef, tiers, selectedTier, updateModel,
-    enabledIntegrationCount, appsPickerOpen, setAppsPickerOpen,
+    enabledIntegrationCount, onBrowseApps,
     uploadDocCount, setKnowledgeOpen,
     strictKnowledge, onStrictKnowledgeChange,
     attachedSkillIds, skillPickerOpen, setSkillPickerOpen,
@@ -94,7 +90,6 @@ export default function BuilderConfigPanel({
     refreshAgentSchedules, setScheduleModal, setScheduleDeleteTarget,
     allSkills, setAllSkills, automations, skillSearch, setSkillSearch, toggleSkill,
     setAttachedSkillIds, patchConfig,
-    availableIntegrations, enabledIntegrations, toggleIntegration,
     refining, instructionsEditing, setInstructionsEditing,
     instructionsTextareaRef, instructions, updateInstructions,
 }: BuilderConfigPanelProps) {
@@ -118,8 +113,13 @@ export default function BuilderConfigPanel({
                     icon={<AppWindow size={14} />}
                     label={t('agent_wizard.builder.browse_apps')}
                     count={enabledIntegrationCount}
-                    onClick={() => setAppsPickerOpen(v => !v)}
-                    active={appsPickerOpen}
+                    // The apps are chosen in ONE place: the tool chooser, which reads the
+                    // server's catalogue (what this installation has and this account may
+                    // use) and writes the app list and the action grants together. The
+                    // popover that used to open here guessed availability in the browser
+                    // and only flipped the app list, so it offered apps nobody had set up
+                    // and left out ones the agent was already using.
+                    onClick={onBrowseApps}
                 />
                 {/* The documents the Files dialog lists, not the number of
                     linked knowledge bases (BFSF-392); see uploadKb.ts. */}
@@ -231,15 +231,6 @@ export default function BuilderConfigPanel({
                                 return null;
                             }
                         }}
-                    />
-                )}
-                {appsPickerOpen && (
-                    <AppsPicker
-                        t={t}
-                        items={availableIntegrations}
-                        enabled={enabledIntegrations}
-                        onClose={() => setAppsPickerOpen(false)}
-                        onToggle={(id) => toggleIntegration(id, availableIntegrations)}
                     />
                 )}
             </div>

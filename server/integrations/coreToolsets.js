@@ -121,6 +121,7 @@ const GROUP_DEPS = {
     memoryTools: () => require('./memoryTools'),
     automationEvolutionTools: () => require('./automationEvolutionToolDefs'),
     nextcloudClient: () => require('./nextcloudClient'),
+    nextcloudCapabilities: () => require('./nextcloudCapabilities.mts'),
 };
 
 module.exports = { TOOLSETS, GROUP_DEPS };

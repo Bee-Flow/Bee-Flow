@@ -13,7 +13,7 @@
  *
  * Sync mode per org (organizations.nc_sync_mode):
  *   - 'mirror_all'        Every NC user gets a Bee Flow account on creation.
- *                         Default for newly bootstrapped orgs.
+ * Synchronisation starts once the sync mode is chosen: ./ncSyncStart.mts.
  *   - 'selective_groups'  Only users in nc_sync_groups[] are mirrored.
  *   - 'manual'            No auto-sync. Org-admin invites users one by one.
  *
@@ -21,6 +21,9 @@
  * regardless of mode. New-user default status (nc_new_user_default_status)
  * controls whether mirrored users land 'active' or 'pending' for admin
  * approval — set to 'pending' for high-trust enterprise orgs.
+ *
+ * An account that is disabled in Nextcloud counts as gone, and a guest gets no
+ * new account unless nc_sync_groups[] names the guests group: ./ncAccountState.mts.
  */
 // @typecheck noImplicitAny
 const userStore = require('../stores/userStore');
@@ -32,6 +35,9 @@ const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
+const { resolveNcUserId } = require('../utils/ncUserId.mts');
+const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, sameGroups, firstSighting, ADMIN_RIGHTS_MISSING, groupsAfterSync: mergedGroups } = require('./ncAccountState.mts');
+const { syncModeChosen, fullSyncHold, SKIP_NOT_CHOSEN } = require('./ncSyncStart.mts');
 
 /**
  * The organisation fields this module reads (an organizations row).
@@ -39,12 +45,8 @@ const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KE
  *   nc_sync_mode?: string, ncSyncExcludedGroups?: string[], ncSyncGroups?: string[],
  *   nc_new_user_default_status?: string, [key: string]: unknown }} NcOrg
  */
-/** @typedef {{ email?: string, displayname?: string, displayName?: string }} NcUserData */
-
-/** @param {string} s */
-function slugifyId(s) {
-    return String(s || '').replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 40) || 'user';
-}
+/** @typedef {{ email?: string, displayname?: string, displayName?: string, backend?: string }} NcUserData */
+/** @typedef {import('./ncAccountState.mts').AccountState} AccountState */
 
 // Service-level call to the connector's NC reverse proxy. Used to fetch
 // NC user / group metadata when mirroring. Mirrors the HMAC scheme in
@@ -166,35 +168,42 @@ async function fetchNcUserGroups(org, ncUid) {
 }
 
 /**
+ * A user that was created or changed in Nextcloud. Without `accountState` (a
+ * user event) the account is read once as the stored admin; the full sync
+ * passes what its own read of the disabled accounts said.
  * @param {NcOrg} org
- * @param {string[]} userGroups
+ * @param {string} ncUid
+ * @param {{ accountState?: AccountState }} [opts]
  */
-function shouldMirrorUser(org, userGroups) {
-    const mode = org.nc_sync_mode || 'mirror_all';
-    if (mode === 'manual') return false;
-    if (org.ncSyncExcludedGroups?.length) {
-        if (userGroups.some(g => org.ncSyncExcludedGroups.includes(g))) return false;
-    }
-    if (mode === 'selective_groups') {
-        if (!org.ncSyncGroups?.length) return false;
-        return userGroups.some(g => org.ncSyncGroups.includes(g));
-    }
-    return true; // mirror_all
+async function applyUserCreated(org, ncUid, opts = {}) {
+    return await _withSyncingUid(org, ncUid, async () => {
+        // An event; the full sync (which passes accountState) has asked already.
+        if (!opts.accountState && !(await syncModeChosen(org))) return SKIP_NOT_CHOSEN;
+        const state = opts.accountState || await fetchAccountState(org, ncUid, ncProxyFetch);
+        return state === 'disabled' ? _applyUserDisabled(org, ncUid) : _applyUserCreated(org, ncUid, state);
+    });
+}
+
+/**
+ * Disabled in Nextcloud: an active user is deactivated, nobody is created.
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ */
+async function _applyUserDisabled(org, ncUid) {
+    const user = await userStore.getUserByNcUid(org.id, ncUid);
+    if (!user) return { action: 'skip', reason: 'nc_disabled' };
+    if (!isActiveStatus(user.status)) return { action: 'noop' };
+    await userStore.updateUser(user.id, { status: 'inactive' });
+    log.info(`[ncSync] Deactivated user ${user.id}: the account is disabled in Nextcloud`);
+    return { action: 'deactivate', userId: user.id, reason: 'nc_disabled' };
 }
 
 /**
  * @param {NcOrg} org
  * @param {string} ncUid
+ * @param {AccountState} state
  */
-async function applyUserCreated(org, ncUid) {
-    return await _withSyncingUid(org, ncUid, () => _applyUserCreated(org, ncUid));
-}
-
-/**
- * @param {NcOrg} org
- * @param {string} ncUid
- */
-async function _applyUserCreated(org, ncUid) {
+async function _applyUserCreated(org, ncUid, state) {
     const existing = await userStore.getUserByNcUid(org.id, ncUid);
     if (existing) {
         /** @type {{ email?: string, displayName?: string, groups?: string[], status?: string }} */
@@ -215,23 +224,14 @@ async function _applyUserCreated(org, ncUid) {
         try {
             ncGroups = await fetchNcUserGroups(org, ncUid);
             const expected = groupsAfterSync(org, existing.groups, ncGroups);
-            const current = Array.isArray(existing.groups) ? existing.groups.slice().sort() : [];
-            const next = expected.slice().sort();
-            if (current.join(',') !== next.join(',')) updates.groups = expected;
+            if (!sameGroups(existing.groups, expected)) updates.groups = expected;
         } catch (err) { fallback('services/ncUserGroupSync:_applyUserCreated#2', err); /* leave groups untouched on transient errors */ }
-        // Reactivate only when the sync mode still admits this user.
-        //
-        // This used to be an unconditional `status = 'active'` at the top of
-        // the branch — before the groups were even fetched, and never
-        // consulting shouldMirrorUser (which only gated the create path). So
-        // every user that applyGroupMemberChange had just deactivated for
-        // falling outside selective_groups / entering an excluded group came
-        // back at the next backstop run, and the one after that: an access
-        // decision quietly undone every six hours.
-        //
-        // A null ncGroups means the OCS read failed: a status UPGRADE must
-        // fail closed, or an excluded user returns whenever Nextcloud hiccups.
+        // Reactivate only when the sync mode still admits this user, decided
+        // on groups that were read: a null ncGroups (the read failed) keeps
+        // the user as they are, and only an account Nextcloud reports as
+        // enabled comes back.
         if (existing.status === 'inactive'
+            && state === 'enabled'
             && ncGroups !== null
             && shouldMirrorUser(org, ncGroups)) {
             updates.status = 'active';
@@ -251,19 +251,23 @@ async function _applyUserCreated(org, ncUid) {
     }
     if (!ncUser?.email) {
         log.warn(`[ncSync] Skipping NC user ${ncUid} — no email`);
+        // The same health row a sign-in without an address opens; once per user.
+        if (firstSighting(`no_email|${org.id}|${ncUid}`)) {
+            orgHealth.problem('auth.missing_email', { orgId: org.id, source: 'ncSync', meta: { sub: ncUid, reason: 'sync_no_email' } });
+        }
         return { action: 'skip', reason: 'no_email' };
     }
-    if (!shouldMirrorUser(org, ncGroups)) {
-        return { action: 'skip', reason: 'sync_mode_excludes' };
-    }
+    if (!shouldMirrorUser(org, ncGroups)) return { action: 'skip', reason: 'sync_mode_excludes' };
+    if (skipsNewGuest(org, ncUser, ncGroups)) return { action: 'skip', reason: 'guest' };
     const status = (org.nc_new_user_default_status === 'pending') ? 'pending' : 'active';
-    const userId = `nc_${org.id}_${slugifyId(ncUid)}`;
+    // The id of a new user row; the rule (and what the address is for) is in utils/ncUserId.mts.
+    const resolved = await resolveNcUserId({ orgId: org.id, ncUid, email: ncUser.email }, { getUser: (id) => userStore.getUser(id) });
+    if (resolved.state !== 'free') return { action: 'skip', reason: 'duplicate_id' };
+    const userId = resolved.id;
     // Map NC group memberships to Bee Flow group ids — relies on mirrorGroups
     // having populated the groups table for this org. NC's `admin` group is
     // intentionally not mirrored, so it gets dropped here.
-    const bfGroupIds = (ncGroups || [])
-        .filter(g => g !== 'admin')
-        .map(g => ncGroupToBfId(org.id, g));
+    const bfGroupIds = (ncGroups || []).filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
     const r = await userStore.createUserWithSeatCheck({
         id: userId,
         username: ncUser.email,
@@ -309,6 +313,7 @@ async function applyUserDeleted(org, ncUid) {
  * @type {(org: NcOrg, ncUid: string, groupId?: string | null) => ReturnType<typeof _applyGroupMemberChange>}
  */
 async function applyGroupMemberChange(org, ncUid /* , groupId */) {
+    if (!(await syncModeChosen(org))) return SKIP_NOT_CHOSEN;
     return await _withSyncingUid(org, ncUid, () => _applyGroupMemberChange(org, ncUid));
 }
 
@@ -329,24 +334,30 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
     if (shouldExist && !user) {
         return applyUserCreated(org, ncUid);
     }
-    const expectedGroups = groupsAfterSync(org, user?.groups, groups);
+    const expectedGroups = groupsAfterSync(org, groupsOf(user), groups);
+    // Manual mode: a group event updates a linked user's groups, never the status.
+    if (org.nc_sync_mode === 'manual') return user ? _writeGroups(user, expectedGroups) : { action: 'noop' };
     if (!shouldExist && user && user.status === 'active') {
         await userStore.updateUser(user.id, { status: 'inactive', groups: expectedGroups });
         return { action: 'deactivate', userId: user.id };
     }
     if (shouldExist && user && user.status === 'inactive') {
+        // Only an account that Nextcloud reports as enabled comes back.
+        if (await fetchAccountState(org, ncUid, ncProxyFetch) !== 'enabled') return { action: 'noop' };
         await userStore.updateUser(user.id, { status: 'active', groups: expectedGroups });
         return { action: 'reactivate', userId: user.id };
     }
-    if (shouldExist && user) {
-        const current = Array.isArray(user.groups) ? user.groups.slice().sort() : [];
-        const next = expectedGroups.slice().sort();
-        if (current.join(',') !== next.join(',')) {
-            await userStore.updateUser(user.id, { groups: expectedGroups });
-            return { action: 'groups_updated', userId: user.id, groups: expectedGroups };
-        }
-    }
-    return { action: 'noop' };
+    return shouldExist && user ? _writeGroups(user, expectedGroups) : { action: 'noop' };
+}
+
+/** @type {(user: { groups?: string[] } | null | undefined) => string[] | undefined} */
+const groupsOf = (user) => user?.groups;
+
+/** @type {(user: { id: string, groups?: string[] }, expectedGroups: string[]) => Promise<object>} Store the groups when they differ. */
+async function _writeGroups(user, expectedGroups) {
+    if (sameGroups(user.groups, expectedGroups)) return { action: 'noop' };
+    await userStore.updateUser(user.id, { groups: expectedGroups });
+    return { action: 'groups_updated', userId: user.id, groups: expectedGroups };
 }
 
 /**
@@ -357,35 +368,11 @@ function ncGroupToBfId(orgId, ncGroupName) {
     return `nc_${orgId}_${String(ncGroupName).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
 }
 
-/**
- * A user's groups after a sync: the groups Nextcloud says they are in, plus
- * every group they hold that did not come from Nextcloud.
- *
- * Where a membership came from is not recorded; where a GROUP came from is.
- * The sync only ever hands out ids of this organisation's mirrored groups
- * (`ncGroupToBfId`: `nc_<orgId>_<slug>`, the rows mirrorGroups creates with
- * source 'nextcloud'), so those are the ones it owns and may take away again
- * when Nextcloud stops listing them. Any other id (a group made and assigned
- * in Bee Flow, or one mirrored for another organisation) is left as it is.
- * The price of the rule: a membership of a MIRRORED group that an admin
- * assigned by hand in Bee Flow is Nextcloud's to decide, and goes at the next
- * sync when Nextcloud does not list it.
- * @param {NcOrg} org
- * @param {unknown} currentGroups  the user's stored group ids
- * @param {string[] | null | undefined} ncGroups  the Nextcloud group names of the user
- * @returns {string[]}
- */
-function groupsAfterSync(org, currentGroups, ncGroups) {
-    const mirrored = `nc_${org.id}_`;
-    const local = (Array.isArray(currentGroups) ? currentGroups : []).filter(g => typeof g === 'string' && !g.startsWith(mirrored));
-    // NC's `admin` group is not mirrored: it must not gate Bee Flow capabilities.
-    const fromNc = (ncGroups || []).filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
-    return [...new Set([...local, ...fromNc])];
-}
+/** @type {(org: NcOrg, currentGroups: unknown, ncGroups: string[] | null | undefined) => string[]} See ncAccountState.groupsAfterSync. */
+const groupsAfterSync = (org, currentGroups, ncGroups) => mergedGroups(org.id, currentGroups, ncGroups, ncGroupToBfId);
 
 /** @param {NcOrg} org */
 async function mirrorGroups(org) {
-    const userStore = require('../stores/userStore');
     let ncGroupNames = [];
     try {
         ncGroupNames = await listNcGroups(org);
@@ -431,9 +418,10 @@ async function mirrorGroups(org) {
 /** @param {NcOrg} org */
 async function runFullSync(org) {
     if (!org?.id) return { error: 'no_org' };
-    if ((org.nc_sync_mode || 'mirror_all') === 'manual') return { skipped: 'manual_mode' };
-    /** @type {{ created: number, deactivated: number, groupsCreated: number, errors: Array<Record<string, string>> }} */
-    const result = { created: 0, deactivated: 0, groupsCreated: 0, errors: [] };
+    const hold = await fullSyncHold(org);
+    if (hold) return { skipped: hold };
+    /** @type {{ created: number, deactivated: number, reactivated: number, groupsCreated: number, errors: Array<Record<string, string>> }} */
+    const result = { created: 0, deactivated: 0, reactivated: 0, groupsCreated: 0, errors: [] };
 
     // 1. Mirror groups first so user-membership sync below can resolve names.
     const groupResult = await mirrorGroups(org);
@@ -455,29 +443,38 @@ async function runFullSync(org) {
         return { error: e.message };
     }
 
+    // Disabled accounts count as gone. null = Nextcloud could not say: then
+    // nobody is deactivated for being disabled and nobody is activated again.
+    const disabled = await fetchDisabledUids(org, ncProxyFetch);
+    if (!disabled) result.errors.push({ stage: 'disabled_accounts', error: 'lookup_failed' });
+    const accountState = disabled ? 'enabled' : 'unknown';
+
     for (const ncUid of ncUsers) {
+        if (disabled?.has(ncUid)) continue;
         try {
-            const r = await applyUserCreated(org, ncUid);
+            const r = await applyUserCreated(org, ncUid, { accountState });
             if (r.action === 'create') result.created++;
+            if ('changed' in r && r.changed.includes('status')) result.reactivated++;
         } catch (e) { result.errors.push({ ncUid, error: e.message }); }
     }
 
-    // Deactivate Bee Flow users whose NC counterpart no longer exists.
+    // Deactivate Bee Flow users whose NC counterpart no longer exists or is
+    // disabled (an account that is not active keeps the status it has).
     const ncSet = new Set(ncUsers);
     const bfUsers = await userStore.getAllUsers();
     for (const u of bfUsers) {
         if (u.organizationId !== org.id) continue;
         if (!u.nc_uid || u.provider !== 'nextcloud_connector') continue;
         if (u.status === 'inactive') continue;
-        if (!ncSet.has(u.nc_uid)) {
+        if (!ncSet.has(u.nc_uid) || (disabled?.has(u.nc_uid) && isActiveStatus(u.status))) {
             try { await userStore.updateUser(u.id, { status: 'inactive' }); result.deactivated++; }
             catch (e) { result.errors.push({ userId: u.id, error: e.message }); }
         }
     }
 
     await userStore.updateOrganization(org.id, { ncLastSyncAt: new Date().toISOString() });
-    await orgHealth.resolve(org.id, [NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE]);
-    log.info(`[ncSync] Full sync for org ${org.id}: created=${result.created} deactivated=${result.deactivated} errors=${result.errors.length}`);
+    await orgHealth.resolve(org.id, [NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE, ...(disabled ? [ADMIN_RIGHTS_MISSING] : [])]); // disabled accounts read = the stored admin has administrator rights
+    log.info(`[ncSync] Full sync for org ${org.id}: created=${result.created} deactivated=${result.deactivated} reactivated=${result.reactivated} errors=${result.errors.length}`);
     return result;
 }
 

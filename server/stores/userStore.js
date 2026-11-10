@@ -13,7 +13,7 @@ require('./user/schema');
 const {
     getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory,
     getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken,
-    createUser, updateUser, deleteUser, getUserByNcUid, findOrgMemberIdByEmail,
+    createUser, updateUser, deleteUser, getUserByNcUid, hasMirroredNcUsers, findOrgMemberIdByEmail,
     createUserWithSeatCheck, SeatCapExceededError, touchLastSeen, replacePasswordHash,
 } = require('./user/users');
 const { completePasswordReset } = require('./user/passwordReset');
@@ -96,7 +96,7 @@ module.exports = {
     getOrgAvailableCapabilities, setOrgAvailableCapabilities,
     getOrgBetaEveryone, setOrgBetaEveryone,
     getOrgEveryoneRevoked, setOrgEveryoneRevoked,
-    getUserByNcUid,
+    getUserByNcUid, hasMirroredNcUsers,
     findOrgMemberIdByEmail,
     createPendingNcBinding, getPendingNcBinding, getPendingNcBindingForOrg,
     createPendingNcVerification, verifyPendingNcCode, resetNcVerificationCode,

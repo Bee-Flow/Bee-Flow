@@ -233,6 +233,19 @@ let _probeFailureLogged = null;
 // answers at that address, and until then the connection in use is left alone.
 /** @type {string | null} */
 let _rejectedSwitch = null;
+// The server that switch was about.
+/** @type {string | null} */
+let _rejectedTarget = null;
+
+/**
+ * The form no longer asks for the switch that did not happen: nothing waits
+ * for that server any more, and the diagnostics stop reporting it.
+ */
+function _withdrawRejectedSwitch() {
+    if (_rejectedTarget) require('./bootstrap').withdrawRejectedSwitch(_rejectedTarget);
+    _rejectedSwitch = null;
+    _rejectedTarget = null;
+}
 
 /**
  * Is the server the form names (`target`, null for none) only noted? Decides
@@ -311,11 +324,14 @@ async function applyStoredValuesIfChanged() {
     // restart.
     const target = _resolveTargetUrl(values);
     if (_isNoted(target)) return;
-    if (!target) return; // "No change", or self-hosted with an empty URL — no-op
-
     const webUrl = _resolveWebUrl(values);
     const mode = values[FIELD_MODE] === 'self-hosted' ? 'self-hosted' : 'cloud';
-    const fingerprint = `${mode}|${target}|${webUrl}`;
+    const fingerprint = target ? `${mode}|${target}|${webUrl}` : null;
+    // The form named a server the connector did not switch to, and names
+    // something else now ("No change", the server in use, another server):
+    // that request is withdrawn.
+    if (_rejectedSwitch && _rejectedSwitch !== fingerprint) _withdrawRejectedSwitch();
+    if (!target) return; // "No change", or self-hosted with an empty URL — no-op
     if (fingerprint === _lastApplied) return;
 
     // A first choice: is there a Bee Flow server at that address? Until one
@@ -385,6 +401,7 @@ async function applyStoredValuesIfChanged() {
         }
         _lastApplied = fingerprint;
         _rejectedSwitch = null;
+        _rejectedTarget = null;
         return;
     }
     // On a failed switch: leave _lastApplied unchanged so a later poll retries.
@@ -395,6 +412,7 @@ async function applyStoredValuesIfChanged() {
         log.warn(`[Settings] the settings form still names ${target}; the switch is tried again once a Bee Flow server answers there.`);
     }
     _rejectedSwitch = fingerprint;
+    _rejectedTarget = target;
 }
 
 /** @type {NodeJS.Timeout | null} */
@@ -436,6 +454,7 @@ function _resetForTests() {
     _baselineWanted = undefined;
     _probeFailureLogged = null;
     _rejectedSwitch = null;
+    _rejectedTarget = null;
 }
 
 module.exports = {

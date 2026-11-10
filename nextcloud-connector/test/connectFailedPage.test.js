@@ -113,6 +113,8 @@ test('a first choice whose connect is refused: the page an administrator opens s
         // Everybody else: the notice, on a page whose script stops before any request.
         const notice = await get('/', { isNcAdmin: false });
         assert.ok(notice.text.includes('<body data-first-run data-connect-failed>'));
+        assert.ok(notice.text.includes('<h1 class="connect-failed-only">Bee Flow is not connected yet</h1>'), 'the notice has the heading of this state');
+        assert.ok(notice.text.includes('<h1 class="not-chosen-only">'), 'and the heading of the other state is one the page hides');
 
         // Only page loads: the app's own calls and the setup routes pass.
         assert.equal((await get('/auth/user', { isNcAdmin: true, headers: XHR })).text, 'the web app');

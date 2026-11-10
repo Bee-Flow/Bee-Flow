@@ -343,6 +343,11 @@ router.delete('/admin/nc-bindings/org/:orgId', requireAuth, async (req, res) => 
         ncProvisionedAt: null,
         connectorCallbackUrl: null,
         ncOnboardingCompletedAt: null,
+        // Who gets an account is asked again for the next Nextcloud this
+        // organisation is bound to (services/ncSyncStart.mts): the mode goes
+        // back to the column default and the last sync is forgotten.
+        ncSyncMode: 'mirror_all',
+        ncLastSyncAt: null,
     };
     if (org.authMethod === 'nextcloud_connector') updates.authMethod = null;
     await userStore.updateOrganization(orgId, updates);

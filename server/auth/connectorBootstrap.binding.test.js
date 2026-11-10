@@ -113,6 +113,7 @@ const userStore = {
 
     getUserByEmail: async (email) => copy([...db.users.values()].find(u => u.email === email)),
     getUser: async (id) => copy(db.users.get(id)),
+    getUserByNcUid: async (orgId, ncUid) => copy([...db.users.values()].find(u => u.organizationId === orgId && (u.ncUid || u.nc_uid) === ncUid)),
     updateUser: async (id, patch) => { Object.assign(db.users.get(id), patch); return true; },
     createUserWithSeatCheck: async (u) => { db.users.set(u.id, { ...u }); return { created: true }; },
 

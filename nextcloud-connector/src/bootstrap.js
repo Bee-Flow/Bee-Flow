@@ -529,6 +529,15 @@ let _rejectedSwitch = null;
 /** @returns {RejectedSwitch | null} */
 function getRejectedSwitch() { return _rejectedSwitch; }
 /**
+ * The switch to that server is no longer asked for: what is kept about it goes.
+ * A record about another server stays.
+ * @param {string} apiBaseUrl
+ */
+function withdrawRejectedSwitch(apiBaseUrl) {
+    const named = String(apiBaseUrl || '').replace(/\/+$/, '');
+    if (_rejectedSwitch && _rejectedSwitch.apiBaseUrl === named) _rejectedSwitch = null;
+}
+/**
  * @returns {BootstrapErrorState | null}
  */
 function getLastErrorState() { return lastErrorState; }
@@ -1447,7 +1456,9 @@ async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
         if (pairingCode) {
             config.pairingCode = pairingCode;
         }
-        log.info('[Bootstrap] Invalidated cached tenant key after setup change — re-bootstrapping');
+        log.info(prev.tenantKey
+            ? '[Bootstrap] Invalidated cached tenant key after setup change — re-bootstrapping'
+            : '[Bootstrap] Connecting after a setup change; no tenant key is held yet');
         // Explicit admin reset must force a fresh provision, not piggy-back on an
         // in-flight one (which may be mid-bind to the old target / without the
         // pairing code).
@@ -1685,6 +1696,7 @@ module.exports = {
     getPendingState,
     getLastErrorState,
     getRejectedSwitch,
+    withdrawRejectedSwitch,
     connectFailed,
     remediationFor,
     remediationShown,

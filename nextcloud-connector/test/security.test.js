@@ -142,6 +142,31 @@ test('a frame on this app\'s own origin is allowed by \'self\' and is not report
     assert.equal(elsewhere.length, 1);
 });
 
+test('without Sec-Fetch-Site (a Nextcloud on plain http) the host the request arrived on tells the app\'s own address', () => {
+    for (const arrived of [{ host: 'nc.customer.example:8080' }, { host: 'connector:23000', 'x-forwarded-host': 'NC.customer.example:8080, proxy.internal' }]) {
+        security._resetOriginLog();
+        const own = { ...arrived, origin: 'http://nc.customer.example:8080', referer: 'http://nc.customer.example:8080/apps/x' };
+        let header = '';
+        const lines = captureWarnings(() => { header = security.frameAncestorsFor({ headers: own }); });
+        assert.deepEqual(lines, [], 'the app\'s own address is not reported');
+        assert.ok(!header.includes('nc.customer.example'), 'and the header is unchanged');
+
+        // Another origin on the same request is reported as before.
+        const other = captureWarnings(() => {
+            security.frameAncestorsFor({ headers: { ...arrived, origin: 'http://elsewhere.example' } });
+        });
+        assert.equal(other.length, 1);
+        assert.ok(other[0].includes('http://elsewhere.example'));
+    }
+
+    // The browser said where the request comes from: its word decides, not the host.
+    security._resetOriginLog();
+    const crossSite = captureWarnings(() => {
+        security.frameAncestorsFor({ headers: { host: 'nc.customer.example', origin: 'https://nc.customer.example', 'sec-fetch-site': 'cross-site' } });
+    });
+    assert.equal(crossSite.length, 1);
+});
+
 test('BEEFLOW_TRUSTED_EMBED_ORIGINS is how a real reverse proxy gets listed', () => {
     const before = process.env.BEEFLOW_TRUSTED_EMBED_ORIGINS;
     process.env.BEEFLOW_TRUSTED_EMBED_ORIGINS = 'https://nc.customer.example, http://localhost:8080';

@@ -41,8 +41,7 @@ export default function useEditorActions({ s, stateRef, dirtyRef, agentIdRef, qu
     const fieldUpdaters = createFieldUpdaters({
         setName: s.setName, setInstructions: s.setInstructions, setAvatar: s.setAvatar, memoryEnabled: s.memoryEnabled,
         setMemoryEnabled: s.setMemoryEnabled, useGeneralMemory: s.useGeneralMemory, setUseGeneralMemory: s.setUseGeneralMemory,
-        attachedSkillIds: s.attachedSkillIds, setAttachedSkillIds: s.setAttachedSkillIds, enabledIntegrations: s.enabledIntegrations,
-        setEnabledIntegrations: s.setEnabledIntegrations, setKnowledgeBaseIds: s.setKnowledgeBaseIds,
+        attachedSkillIds: s.attachedSkillIds, setAttachedSkillIds: s.setAttachedSkillIds, setKnowledgeBaseIds: s.setKnowledgeBaseIds,
         setStrictKnowledge: s.setStrictKnowledge, setIncludeSourceReferences: s.setIncludeSourceReferences,
         setDescription: s.setDescription, setModel: s.setModel, setSelectedTier: s.setSelectedTier, setCategoryId: s.setCategoryId,
         stateRef, dirtyRef, queueSave, patchConfig,

@@ -1,0 +1,26 @@
+{
+  "translations": {
+    "agent_schedules.new_mail_trigger": "Nieuwe e-mailtrigger",
+    "agent_schedules.mail_trigger_title": "Nieuwe e-mailtrigger",
+    "agent_schedules.mail_trigger_intro": "De agent start vanzelf bij elke nieuwe e-mail die past. Wat de agent met de mailbox mag doen, stel je in onder Kan gebruiken.",
+    "agent_schedules.mail_trigger_task": "Wat moet de agent met elke e-mail doen?",
+    "agent_schedules.mail_trigger_task_placeholder": "bijv. Vat de e-mail samen en zet een conceptantwoord klaar",
+    "agent_schedules.mail_trigger_save": "Start met volgen",
+    "cowork.composer.start_watching": "Start met volgen",
+    "cowork.mail_trigger.option": "Als er een nieuwe e-mail binnenkomt…",
+    "cowork.mail_trigger.option_hint": "Gmail of Outlook, afgehandeld door de agent",
+    "cowork.mail_trigger.summary": "Bij nieuwe e-mail · {provider}",
+    "cowork.mail_trigger.provider_aria": "Mail-app",
+    "cowork.mail_trigger.none_connected": "Koppel eerst Gmail of Outlook via Instellingen → Koppelingen.",
+    "cowork.mail_trigger.from": "Afzender bevat (optioneel)",
+    "cowork.mail_trigger.subject": "Onderwerp bevat (optioneel)",
+    "cowork.mail_trigger.label": "Gmail-label-id (optioneel)",
+    "cowork.flash.watching_mail": "Nieuwe e-mail wordt gevolgd.",
+    "cowork.edit.mail_trigger": "Als er een nieuwe e-mail binnenkomt",
+    "cowork.mail_trigger.error_not_connected": "Dat mailaccount is niet gekoppeld. Koppel het via Instellingen → Koppelingen en probeer het opnieuw."
+  },
+  "sameAsEnglish": [
+    "cowork.mail_trigger.provider_gmail",
+    "cowork.mail_trigger.provider_outlook"
+  ]
+}

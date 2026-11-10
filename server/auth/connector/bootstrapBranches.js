@@ -104,7 +104,7 @@ async function redeemPairingCode(ctx) {
         return res.status(401).json({
             error: 'Pairing code is invalid, expired, or already used',
             code: 'pairing_code_invalid',
-            remediation: 'Ask the Bee Flow organisation admin to generate a fresh pairing code from Settings → Organisation → Pair a new Nextcloud, then set it as the BEEFLOW_PAIRING_CODE env var on this connector and reinstall.',
+            remediation: 'Ask the Bee Flow organisation admin to generate a fresh pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page in Nextcloud. A pairing code may also be given at install time (BEEFLOW_PAIRING_CODE).',
         });
     }
     const targetOrg = await userStore.getOrganization(pending.orgId);
@@ -316,7 +316,7 @@ function refuseFreshOrg(ctx) {
     return res.status(403).json({
         error: 'This Bee Flow server does not auto-create organisations for new Nextcloud instances.',
         code: 'pairing_required',
-        remediation: 'Ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud), set it as the BEEFLOW_PAIRING_CODE env var on this connector, and redeploy.',
+        remediation: 'Ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page in Nextcloud. A pairing code may also be given at install time (BEEFLOW_PAIRING_CODE).',
     });
 }
 

@@ -103,7 +103,6 @@ export default function useBuilderState(initialAgent: EditorAgent | null | undef
     const [activeTab, setActiveTab] = useState<string>(AGENT_TAB_IDS.ROLE);
 
     const [skillPickerOpen, setSkillPickerOpen] = useState(false);
-    const [appsPickerOpen, setAppsPickerOpen] = useState(false);
     // The tool chooser of A2 step 4: which ACTIONS of an app this agent may use.
     // `toolChooserAppId` is the app it opens on (the arrow of a row).
     const [toolChooserOpen, setToolChooserOpen] = useState(false);
@@ -139,7 +138,7 @@ export default function useBuilderState(initialAgent: EditorAgent | null | undef
         selectedTier, setSelectedTier, chatTier, setChatTier,
         savingState, setSavingState, savedAt, setSavedAt, dirty, setDirty, saveErrorMsg, setSaveErrorMsg,
         limitWarning, setLimitWarning, baseVersion, setBaseVersion, refining, setRefining,
-        activeTab, setActiveTab, skillPickerOpen, setSkillPickerOpen, appsPickerOpen, setAppsPickerOpen,
+        activeTab, setActiveTab, skillPickerOpen, setSkillPickerOpen,
         toolChooserOpen, setToolChooserOpen, toolChooserAppId, setToolChooserAppId, knowledgeOpen, setKnowledgeOpen,
         schedulesPickerOpen, setSchedulesPickerOpen, scheduleModal, setScheduleModal,
         scheduleDeleteTarget, setScheduleDeleteTarget, scheduleDeleting, setScheduleDeleting,

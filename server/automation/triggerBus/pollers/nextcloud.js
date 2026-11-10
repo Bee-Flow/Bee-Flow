@@ -15,6 +15,7 @@
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 const { normaliseFilePayload, normaliseCalendarPayload } = require('../ncPayload.mts');
+const { classifyActivity, confirmReceivedShares, warnActivityRead } = require('./nextcloudActivityKind.mts');
 
 /**
  * Longest lead time calendar.event.upcoming honours, in minutes. Configurable
@@ -96,6 +97,7 @@ async function _ncFetchActivityRows(ctx, userId, session) {
             const { guardedNcCall } = ctx.ncScopeGuard();
             const result = await guardedNcCall('nextcloud_activity_list', { filter: 'all', limit: 200 }, { userId, session },
                 () => tools.executeNextcloudActivityTool('nextcloud_activity_list', { filter: 'all', limit: 200 }, userId, session));
+            if (result?.error) warnActivityRead(userId, 'activity fetch', result.error);
             if (result?.activities) rows = result.activities;
             return rows;
         } catch (e) {
@@ -118,40 +120,13 @@ async function _ncFetchActivityRows(ctx, userId, session) {
 
 /**
  * Map a raw activity row to the normalised payload our triggers emit, plus
- * `_kind` flags the per-trigger filter uses to route. Activity API type
- * slugs vary by Nextcloud version, so we look at both the `type` field
- * and the human-readable subject as a fallback (documented in the plan).
- */
-/**
- * @param {NcActivityRow} row
- * @param {{ nextcloudUid?: string | null, connectorNcUid?: string | null, automationProviders?: { nextcloud?: { nextcloudUid?: string | null } } } | null | undefined} session
+ * `_kind` flags the per-trigger filter uses to route.
+ * @param {import('./nextcloudActivityKind.mts').NcActivityRow} row
+ * @param {import('./nextcloudActivityKind.mts').NcPollSession} session
  * @returns {Record<string, any>}  the canonical file payload plus the activity-only keys
  */
 function _ncNormaliseActivity(row, session) {
-    const t = String(row.type || '').toLowerCase();
-    const subj = String(row.subject || '').toLowerCase();
-    // file.new = "a file APPEARED in the folder". Covers fresh uploads
-    // (file_created) and restores (file_restored), PLUS a file moved / copied /
-    // renamed INTO the folder. Nextcloud has no dedicated move/copy activity
-    // type — it reports them as `file_changed` with a move/copy/rename subject
-    // (the destination path lands in objectName, which the inFolder filter
-    // already matches). We read the subject (EN + NL, the connector locales) to
-    // tell an arrival from a plain in-place edit, which stays file.changed only.
-    // Without this, an invoice MOVED into /Invoices/test never fired file.new.
-    const ARRIVAL_SUBJECT_RE = /\b(moved|renamed|copied|restored|verplaatst|hernoemd|gekopieerd|teruggezet)\b/;
-    const isFileCreated = t === 'file_created'
-        || t === 'file_restored'
-        || (t === 'files' && subj.includes('created'))
-        || ((t === 'file_changed' || t === 'files') && ARRIVAL_SUBJECT_RE.test(subj));
-    const isFileChanged = t === 'file_changed' || t === 'file_updated' || (t === 'files' && (subj.includes('changed') || subj.includes('updated')));
-    const isShareReceived = t === 'shared_with_you' || t === 'remote_share_received'
-        || ((t === 'shares' || t === 'shared') && subj.includes('shared'));
-
-    const sessionUid = session?.nextcloudUid
-        || session?.automationProviders?.nextcloud?.nextcloudUid
-        || session?.connectorNcUid
-        || null;
-    const isOwnAction = !!(sessionUid && row.actor === sessionUid);
+    const { sessionUid, isOwnAction, isFileCreated, isFileChanged, isShareReceived } = classifyActivity(row, session);
 
     // The canonical file payload (../ncPayload.mts) — the same keys the
     // connector's webhook delivers for the same event — plus the activity-only
@@ -180,8 +155,9 @@ function _ncNormaliseActivity(row, session) {
 }
 
 /** Generic Nextcloud poller body — every Nextcloud channel uses this
- *  with a different `predicate` to pick which rows to emit. */
-async function _ncPollChannel(ctx, { sub, session, predicate }) {
+ *  with a different `predicate` to pick which rows to emit. `resolve` may
+ *  settle flags on the new rows before the predicate reads them. */
+async function _ncPollChannel(ctx, { sub, session, predicate, resolve = null }) {
     const rows = await _ncFetchActivityRows(ctx, sub.userId, session);
     const cursorId = sub.lastCursor ? Number(sub.lastCursor) : 0;
     const fresh = rows.filter(r => Number(r.id || 0) > cursorId);
@@ -198,11 +174,11 @@ async function _ncPollChannel(ctx, { sub, session, predicate }) {
         return [];
     }
 
-    const events = [];
+    const payloads = fresh.map((row) => _ncNormaliseActivity(row, session));
+    if (resolve) await resolve(payloads);
+    const events = payloads.filter((p) => predicate(p));
     let highest = cursorId;
     for (const row of fresh) {
-        const normalised = _ncNormaliseActivity(row, session);
-        if (predicate(normalised)) events.push(normalised);
         if (Number(row.id || 0) > highest) highest = Number(row.id);
     }
     if (highest > cursorId) {
@@ -216,7 +192,10 @@ function createNextcloudPollers(ctx) {
     return {
         'file.new':       (sub, session) => _ncPollChannel(ctx, { sub, session, predicate: r => r._isFileCreated }),
         'file.changed':   (sub, session) => _ncPollChannel(ctx, { sub, session, predicate: r => r._isFileChanged }),
-        'share.received': (sub, session) => _ncPollChannel(ctx, { sub, session, predicate: r => r._isShareReceived }),
+        'share.received': (sub, session) => _ncPollChannel(ctx, {
+            sub, session, predicate: r => r._isShareReceived,
+            resolve: (payloads) => confirmReceivedShares(ctx, sub.userId, session, payloads),
+        }),
         'activity.new':   (sub, session) => _ncPollChannel(ctx, { sub, session, predicate: () => true }),
 
         /**
@@ -371,9 +350,9 @@ function createNextcloudPollers(ctx) {
     };
 }
 
-module.exports = { createNextcloudPollers, _ncFetchActivityRows, _ncNormaliseActivity, upcomingLeadMinutes, upcomingMaxLeadMinutes, upcomingCalendars };
+/** Test seam: forget the cached feed of one user (the warning clock stays). @param {string} userId */
+function _ncActivityCacheReset(userId) {
+    _ncActivityCache.delete(userId);
+}
 
-/**
- * One row of the Nextcloud activity feed.
- * @typedef {{ id?: number, type?: string, subject?: string, message?: string, actor?: string, objectName?: string, objectType?: string, objectId?: number | string, link?: string, datetime?: string }} NcActivityRow
- */
+module.exports = { createNextcloudPollers, _ncFetchActivityRows, _ncNormaliseActivity, _ncActivityCacheReset, upcomingLeadMinutes, upcomingMaxLeadMinutes, upcomingCalendars };

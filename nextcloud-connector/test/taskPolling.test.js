@@ -56,3 +56,43 @@ test('bootstrap arms the poller once the cached tenant key is loaded', async () 
         tp.stopPolling();
     }
 });
+
+test('a round Nextcloud refuses stops at the first provider, and the next rounds wait longer', async () => {
+    const realFetch = globalThis.fetch;
+    const realWarn = console.warn;
+    let status = 401;
+    let asked = 0;
+    globalThis.fetch = async () => { asked += 1; return new Response(status === 204 ? null : '{}', { status }); };
+    console.warn = () => {};
+    tp.stopPolling(); // back to the state of a start
+    try {
+        await tp._pollOnce();
+        assert.equal(asked, 1, 'one request, not one per provider');
+        assert.equal(tp._currentPollDelay(), tp.POLL_REFUSED_MS);
+        for (let i = 0; i < 9; i++) await tp._pollOnce();
+        assert.equal(asked, 10, 'one request per refused round');
+        assert.equal(tp._currentPollDelay(), tp.POLL_IDLE_MS, 'the wait grows up to the idle tick');
+
+        // Limited by Nextcloud counts as refused too.
+        status = 429;
+        await tp._pollOnce();
+        assert.equal(asked, 11);
+
+        // Nextcloud answers again: every provider is asked, at the normal pace.
+        status = 204;
+        asked = 0;
+        await tp._pollOnce();
+        assert.equal(asked, tp.TASK_TYPES.length);
+        assert.equal(tp._currentPollDelay(), tp.POLL_FAST_MS);
+
+        // An error while handling the request is not a refusal: the round goes on.
+        status = 500;
+        asked = 0;
+        await tp._pollOnce();
+        assert.equal(asked, tp.TASK_TYPES.length);
+    } finally {
+        globalThis.fetch = realFetch;
+        console.warn = realWarn;
+        tp.stopPolling();
+    }
+});

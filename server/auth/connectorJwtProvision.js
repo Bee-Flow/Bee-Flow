@@ -15,6 +15,7 @@ const { orgHealth } = require('./connector/serviceDeps');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 const { HttpError } = require('../shared/httpErrors');
+const { resolveNcUserId } = require('../utils/ncUserId.mts');
 const {
     reject, fail, ok, _isOrgAdminRequester, _resolveRequesterNcUid,
 } = require('./connectorJwtPhases');
@@ -159,13 +160,64 @@ async function _provisioningGate(req, org, orgId, payload) {
 }
 
 /**
+ * One Nextcloud account has one Bee Flow user per organisation. The token's
+ * address found no user; when a user of this organisation already holds the
+ * token's uid, that user is the account (its address differs until the sync
+ * brings the new one over) and no second user is created. Returns a reject
+ * outcome, or null to continue.
+ */
+async function _ncUidHolderGate(req, orgId, ncUid) {
+    if (!ncUid) return null;
+    const holder = await userStore.getUserByNcUid(orgId, ncUid);
+    if (!holder) return null;
+    log.warn(`[ConnectorJWT] auto-provision refused for org ${orgId}: user ${holder.id} already holds the Nextcloud uid of this sign-in under another e-mail address`);
+    orgHealth.problem('auth.provision_failed', {
+        orgId, source: 'connectorJwt', req,
+        meta: { lastUserId: holder.id, reason: 'nc_uid_taken' },
+    });
+    return reject(409, {
+        error: 'Your Nextcloud account is already linked to a Bee Flow account under another e-mail address. Try again in a few minutes; if this message stays, ask your Bee Flow administrator.',
+        code: 'nc_user_id_conflict',
+    });
+}
+
+/**
+ * The user was not created, for another reason than the seat cap: the log
+ * line, the health row and the answer. `duplicate_id` (the id belongs to
+ * another account; ids are chosen by utils/ncUserId.mts) is 409
+ * nc_user_id_conflict, anything else 500 provision_failed.
+ */
+function _provisionFailed(req, orgId, userId, reason) {
+    log.warn(`[ConnectorJWT] auto-provision failed userId=${userId} reason=${reason}`);
+    orgHealth.problem('auth.provision_failed', {
+        orgId, source: 'connectorJwt', req,
+        meta: { reason: reason || 'unknown' },
+    });
+    if (reason === 'duplicate_id') {
+        return reject(409, {
+            error: 'Your Nextcloud account could not be added: a Bee Flow account with the id that belongs to your Nextcloud user id already exists. Reload the page; if this message stays, ask your Bee Flow administrator.',
+            code: 'nc_user_id_conflict',
+        });
+    }
+    return fail(new HttpError(500, 'provision_failed', 'Failed to provision user'));
+}
+
+/**
  * Create the user (seat check included). Returns reject (seat cap / pending
- * approval), fail (HttpError 500 provision_failed) or ok(user).
+ * approval / the uid or the id is taken), fail (HttpError 500 provision_failed)
+ * or ok(user).
  */
 async function _autoProvision(req, org, orgId, payload, reqNcUid) {
     const ncUid = reqNcUid;
+    const held = await _ncUidHolderGate(req, orgId, ncUid);
+    if (held) return held;
     const status = (org.nc_new_user_default_status === 'pending') ? 'pending' : 'active';
-    const userId = `nc_${orgId}_${(ncUid || payload.email).replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 40)}`;
+    const resolved = await resolveNcUserId(
+        { orgId, ncUid, source: ncUid || payload.email },
+        { getUser: (id) => userStore.getUser(id) },
+    );
+    const userId = resolved.id;
+    if (resolved.state !== 'free') return _provisionFailed(req, orgId, userId, 'duplicate_id');
     const defaultOrgRole = resolveDefaultNcUserOrgRole(org);
     const r = await userStore.createUserWithSeatCheck({
         id: userId,
@@ -191,12 +243,7 @@ async function _autoProvision(req, org, orgId, payload, reqNcUid) {
                 code: 'seat_cap_exceeded',
             });
         }
-        log.warn(`[ConnectorJWT] auto-provision failed userId=${userId} reason=${r.reason}`);
-        orgHealth.problem('auth.provision_failed', {
-            orgId, source: 'connectorJwt', req,
-            meta: { reason: r.reason || 'unknown' },
-        });
-        return fail(new HttpError(500, 'provision_failed', 'Failed to provision user'));
+        return _provisionFailed(req, orgId, userId, r.reason);
     }
     const user = await userStore.getUser(userId);
     log.info(`[ConnectorJWT] Auto-provisioned user ${userId} (org=${orgId}, status=${status})`);

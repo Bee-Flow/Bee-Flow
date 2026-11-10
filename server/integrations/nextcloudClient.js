@@ -252,6 +252,7 @@ async function resolveUid(session, baseUrl) {
 // sent again: the same rules for every client (core/http/retryAfter.js).
 const { parseRetryAfter, isReplayableBody } = require('../core/http/retryAfter');
 const { fallback } = require('../utils/bestEffort');
+const { hasMaintenanceHeader, downloadFailureMessage } = require('./nextcloudHttpError');
 
 const RETRY_STATUS = new Set([429, 503]);
 const MAX_RETRIES = 2;
@@ -270,11 +271,14 @@ const MAX_BACKOFF_MS = 30_000;
 // Bodies must be replayable. A stream body is consumed by the first attempt,
 // so retrying would silently send an empty payload — return the throttle
 // response instead and let the caller surface it.
+//
+// A 503 that carries Nextcloud's maintenance header is not retried: the
+// maintenance window outlasts any backoff, so the caller gets the answer at once.
 async function retryOnThrottle(initialResponse, doFetch, options = {}) {
     if (!isReplayableBody(options.body)) return initialResponse;
     let response = initialResponse;
     let attempt = 0;
-    while (RETRY_STATUS.has(response.status) && attempt < MAX_RETRIES) {
+    while (RETRY_STATUS.has(response.status) && !hasMaintenanceHeader(response) && attempt < MAX_RETRIES) {
         const retryAfterMs = parseRetryAfter(response.headers.get('Retry-After'));
         const backoffMs = Math.min(
             retryAfterMs ?? (BASE_BACKOFF_MS * Math.pow(2, attempt)),
@@ -633,7 +637,7 @@ async function downloadBinary(session, userId, ncPath, destPath, opts = {}) {
 
     if (res.status === 404) throw new Error(`File not found: ${ncPath}`);
     if (res.status === 401) throw new Error(ctx.authError || 'Nextcloud auth failed');
-    if (!res.ok) throw new Error(`Nextcloud download failed (${res.status})`);
+    if (!res.ok) throw new Error(downloadFailureMessage(res));
 
     if (maxBytes) await refuseDeclaredOversize(res, maxBytes);
     await writeBodyToFile(res, destPath, maxBytes);
