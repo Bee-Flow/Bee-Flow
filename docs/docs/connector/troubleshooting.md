@@ -49,43 +49,46 @@ Fix: **[migrate to HaRP](#migrate-to-harp)**. HaRP routes browser→connector tr
 
 Moving the connector from a `docker-install` / Docker-Socket-Proxy daemon to [HaRP](../getting-started/nextcloud.md#2d-harp) fixes the intermittent-dropped-calls problem above and improves streaming. The connector image is already HaRP-aware — it switches transport automatically when HaRP is in use; this is a **daemon change**, not an app change.
 
-:::warning[Capture your tenant key first]
-The tenant key lives in the connector's container-local `/data/tenant-key.json`. Re-deploying onto a new daemon starts a **fresh container with empty `/data`**, which would try to re-provision and hit `409 instance already provisioned`. Capture the key and re-inject it explicitly so your organisation and all its data are preserved.
-:::
+**What carries the connection over.** The connector keeps its connection (the server that was chosen and the key of your organisation) in its data volume. AppAPI keeps that volume when you remove an app, unless you ask for `--rm-data` (in the admin interface: the "Delete data when removing" checkbox). So the order is: remove the app **without** deleting its data, then install it again on the HaRP daemon. HaRP has to run on the **same Docker engine** as the old daemon, because the volume lives there. This follows the migration steps of the [HaRP README](https://github.com/nextcloud/HaRP#nextcloud-32-migrating-existing-exapps-from-dsp-to-harp); we read the behaviour in the AppAPI source and did not run this migration ourselves.
 
 ```bash
-# 0. Preconditions + capture state
+# 0. Before you start
 sudo -u www-data php occ status | grep versionstring          # 33, 34 or 35
-docker exec nc_app_bee_flow cat /data/tenant-key.json         # save the "tenantKey" value
-sudo -u www-data php occ app_api:daemon:list                  # note the CURRENT daemon (for rollback)
+sudo -u www-data php occ app_api:daemon:list                  # note the CURRENT daemon (for going back)
 
-# 1. Register the HaRP daemon (see Install guide §2d for the full command + UI path)
-#    occ app_api:daemon:register harp1 "HaRP" docker-install http <harp-host>:8780 ... --harp ...
-#    then run "Test deploy" from the daemon's menu under Administration → AppAPI
+# 1. Run HaRP on the same Docker engine, add the /exapps/ rule to your reverse proxy,
+#    and register the daemon (install guide §2d, and "Deploy daemon and reverse proxy").
+#    Then run "Test deploy" from the daemon's menu under Administration → AppAPI.
 
-# 2. Move bee_flow onto HaRP, re-injecting the captured key so bootstrap is a no-op
+# 2. Move bee_flow onto HaRP. No --rm-data: the data volume is kept.
 sudo -u www-data php occ app_api:app:disable bee_flow
-sudo -u www-data php occ app_api:app:unregister bee_flow      # removes the old container
+sudo -u www-data php occ app_api:app:unregister bee_flow
 sudo -u www-data php occ app_api:app:register bee_flow harp1 \
-  --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml \
-  --env "BEEFLOW_TENANT_KEY=<captured-tenant-key>" \
-  --env "BEEFLOW_API_BASE_URL=cloud" \
-  --env "BEEFLOW_NC_PUBLIC_URL=https://cloud.example.com"
-#    BEEFLOW_API_BASE_URL: the word cloud for Bee Flow Cloud, or the URL of your own
-#    Bee Flow server. A value given here fixes the server: it cannot be changed from
-#    inside Nextcloud afterwards. Without it, the key is taken into use when an
-#    administrator chooses the server on the setup page.
-sudo -u www-data php occ app_api:app:enable bee_flow
+  --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml
 
 # 3. Verify
 sudo -u www-data php occ app_api:app:list                                    # → bee_flow (Bee Flow): <version> [enabled]
 docker inspect --format '{{.State.Health.Status}}' nc_app_bee_flow           # → healthy
-docker logs nc_app_bee_flow 2>&1 | grep -i "HaRP mode"                       # confirms socket transport
+docker logs nc_app_bee_flow 2>&1 | grep -i "HaRP mode"                       # the connector listens on its socket
 ```
 
-To prove the bug is fixed: open a chat (keep the stream running) and hard-reload a few times while watching the Network tab — every request should return `200`, even under the concurrent load that previously produced `502`s.
+**Install-time values.** Removing the app also removes the values AppAPI stored for it, so give the ones you used again in the `register` command, each as `--env NAME=VALUE` (for example `BEEFLOW_NC_PUBLIC_URL` or `BEEFLOW_SERVER_CA_CERT`). For `BEEFLOW_API_BASE_URL`:
 
-**Rollback** (symmetric, no data loss — re-use the *same* captured key): `app:disable` → `app:unregister` → `app:register bee_flow <old-daemon>` with the same `--env BEEFLOW_TENANT_KEY=…` → `app:enable`. The HaRP daemon can stay registered (inert) for a later retry.
+- If you chose the server on the setup page, leave it out. The connector finds its server in the data volume.
+- If the server was fixed at install time, give the same value again: the word `cloud` for Bee Flow Cloud, or the URL of your Bee Flow server. A value given here fixes the server; it cannot be changed from inside Nextcloud afterwards.
+
+**If the connection did not come along.** When Bee Flow opens with the setup page, or shows `pairing_required`, the connector started without its data: HaRP runs on another Docker engine, or the data was removed. Nothing is lost on the Bee Flow server. Choose the same server again on the setup page, and when it asks for a pairing code, have a Bee Flow organisation admin generate one (**Settings → Organisation → Pair a new Nextcloud**) and enter it there. The Nextcloud is then joined to the organisation it had.
+
+If you know beforehand that HaRP will run on another Docker engine, you can instead carry the key over yourself: read `tenantKey` from `/data/tenant-key.json` in the old container before you remove it, and register with `--env BEEFLOW_TENANT_KEY=<that key>`. The key is taken into use once the server is known: when an administrator chooses it on the setup page, or at once when you also give `BEEFLOW_API_BASE_URL` (which then fixes the server). Treat that key as a secret.
+
+To see the difference: open a chat and watch the answer arrive word by word, and hard-reload a few times with the Network tab open while a stream runs — the requests no longer wait for each other.
+
+**Going back.** The same steps with the old daemon's name in `register`. The HaRP daemon can stay registered for a later retry.
+
+:::note Nextcloud All-in-One
+- All-in-One's HaRP daemon (`harp_aio`) reaches the connector through Nextcloud's AppAPI proxy path, so moving to it replaces the deprecated daemon but does not change how streams travel. See [Deploy daemon and reverse proxy → Nextcloud All-in-One](deploy-daemon.md#aio).
+- After the move, the old `docker_aio` daemon stays registered, with every other ExApp that is still on it. `occ app_api:daemon:unregister docker_aio` refuses while ExApps are on that daemon. Move those ExApps first, in the same way, and only then remove the daemon and untick the Docker Socket Proxy container.
+:::
 
 ## "Install" button in the App Store does nothing
 
@@ -185,14 +188,13 @@ docker logs nc_app_bee_flow --tail 50
 | `[Bootstrap] capabilities fetch timeout` | Connector can't reach NC | Check `NEXTCLOUD_URL` env. Ping it from inside the container: `docker exec nc_app_bee_flow curl $NEXTCLOUD_URL/status.php`. |
 | `[Bootstrap] admin discovery: no admin found` | NC has no user in the `admin` group | Create one: `occ user:add --group admin alice`. |
 | `[Bootstrap] SaaS responded 401` | Bee Flow service rejected the AppAPI signature | Check clocks (NTP) on both hosts. Verify `BEEFLOW_API_BASE_URL` is reachable. |
-| `[Bootstrap] SaaS responded 409: instance already provisioned` | This NC was bootstrapped before; the tenant-key cache was lost | Ask a Bee Flow organisation admin to generate a pairing code (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page. |
+| The setup page or `/heartbeat` shows `pairing_required` on a Nextcloud that was connected before | The connector no longer holds the key of its organisation, and the server does not hand it out again without one | Ask a Bee Flow organisation admin to generate a pairing code (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page under **Bind to existing organisation**. |
 
-The cache file is at `${APP_PERSISTENT_STORAGE}/tenant-key.json`. If it gets corrupted:
+The connector keeps its key in `${APP_PERSISTENT_STORAGE}/tenant-key.json`. Leave that file in place: the key in it is what proves to the Bee Flow server that this is the same Nextcloud. To connect again:
 
-```bash
-docker exec nc_app_bee_flow rm /data/tenant-key.json
-docker exec nc_app_bee_flow kill -USR1 1   # triggers re-bootstrap, or just restart the container
-```
+- **Clear organisation cache** on the [setup page](setup-picker.md#where-the-setup-page-is) connects again from the start, and puts the previous key back when that fails.
+- A **pairing code** joins the Nextcloud to its organisation when the key is gone.
+- A restart of the container (`docker restart nc_app_bee_flow`) makes the connector try again with what it has.
 
 ## "Setup in progress" never goes away
 
@@ -287,17 +289,17 @@ The connector mints short-lived JWTs (default 300 s) for browser-side calls. If 
 ## Recovery commands cheat sheet
 
 ```bash
-# Stop, remove, redeploy from clean
+# Remove and install again. Without --rm-data the data volume, and with it the
+# connection, is kept. Give your install-time values again with --env NAME=VALUE.
 sudo -u www-data php occ app_api:app:unregister bee_flow
 sudo -u www-data php occ app_api:app:register bee_flow \
   --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml
 
-# Force a fresh tenant-key bootstrap. The connector then connects to the server that
-# was saved on the setup page or fixed at install time; with neither, it has no
-# server and an administrator chooses one again.
-docker exec nc_app_bee_flow rm /data/tenant-key.json
+# Have the connector try again with the server and key it has
 docker restart nc_app_bee_flow
 ```
+
+To connect again from the start, use **Clear organisation cache** on the setup page; when the key of the organisation is gone, use a pairing code. Both are described under [Tenant key bootstrap fails](#tenant-key-bootstrap-fails).
 
 ## Where to ask
 
