@@ -296,7 +296,7 @@ function resolveValue(binding, runState, opts = {}) {
 function evaluateExprBinding(src, safeState) {
     const text = typeof src === 'string' ? src : String(src ?? '');
     let ast;
-    try { ast = parseExpr(text); }
+    try { ast = parseExpr(text, { objects: false }); } // as the validator parses it (refPaths.js tryParseExpr)
     catch (e) {
         if (bindingLogStore.getStore()) noteMiss({ kind: 'expr', path: text, reason: 'syntax', message: e.message || String(e) });
         return undefined;

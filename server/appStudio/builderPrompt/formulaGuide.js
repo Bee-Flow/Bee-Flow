@@ -30,6 +30,14 @@ const FORMULA_WRAP_COLS = 108;
 /** Names the compact catalog leaves out (see the header). */
 const NOT_IN_COMPACT = new Set(['unique', 'regexMatch', 'regexReplace', 'map', 'filter', 'some', 'every']);
 
+/**
+ * Functions that arrived with schema version 3 (`since: 3` on their doc entry:
+ * sort, reverse, slice, groupBy, keys, values, merge, range, reduce). The
+ * catalog text is byte-pinned, so neither rendering prints them; they are
+ * served on demand.
+ */
+const SINCE_3 = new Set(EXPR_FUNCTIONS.filter((f) => /** @type {{ since?: number }} */ (f).since !== undefined).map((f) => f.name));
+
 /** Signatures the compact catalog keeps in their earlier, shorter form. */
 const COMPACT_SIGNATURES = new Map([['sum', 'sum(list)']]);
 
@@ -49,6 +57,7 @@ function renderFormulaFunctions(opts = {}) {
     const lines = [];
     let line = '';
     for (const name of EXPR_FUNCTION_NAMES) {
+        if (SINCE_3.has(name)) continue;
         if (opts.compact && NOT_IN_COMPACT.has(name)) continue;
         const sig = (opts.compact && COMPACT_SIGNATURES.get(name)) || signatureByName.get(name) || `${name}(…)`;
         const next = line ? `${line}, ${sig}` : sig;
@@ -63,4 +72,4 @@ function renderFormulaFunctions(opts = {}) {
     return lines.join('\n');
 }
 
-module.exports = { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT, NOT_IN_COMPACT, COMPACT_SIGNATURES };
+module.exports = { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT, NOT_IN_COMPACT, COMPACT_SIGNATURES, SINCE_3 };

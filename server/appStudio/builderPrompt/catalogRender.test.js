@@ -361,12 +361,15 @@ test('every callable function name in the engine is rendered in the catalog', ()
     assert.ok(text.includes('### Formulas'), 'the formula section exists');
     const section = text.slice(text.indexOf('### Formulas'), text.indexOf('### Variables'));
     assert.ok(EXPR_FUNCTION_NAMES.length > 20, 'sanity: the engine has a real whitelist');
-    for (const name of EXPR_FUNCTION_NAMES) {
+    // Schema version 3 vocabulary (`since: 3`) stays out of the pinned text and is served on demand.
+    const { SINCE_3 } = require('./formulaGuide');
+    assert.deepStrictEqual([...SINCE_3].sort(), ['groupBy', 'keys', 'merge', 'range', 'reduce', 'reverse', 'slice', 'sort', 'values']);
+    for (const name of EXPR_FUNCTION_NAMES.filter((n) => !SINCE_3.has(n))) {
         assert.ok(section.includes(`${name}(`), `formula function ${name} is missing from the catalog`);
     }
     // Signatures, not bare names: arity and argument names are most of the
     // teaching value (substring(text, start, end?) vs "substring").
-    for (const f of EXPR_FUNCTIONS) {
+    for (const f of EXPR_FUNCTIONS.filter((x) => !SINCE_3.has(x.name))) {
         assert.ok(section.includes(f.signature), `signature ${f.signature} rendered verbatim`);
     }
 });
@@ -657,9 +660,9 @@ test('the compact catalog keeps the whole formula vocabulary and the core bindin
     const formulas = text.slice(text.indexOf('### Formulas'), text.indexOf('### Data model'));
     // Every name, except the list functions and the regex pair (2026-11-04): the core prompt
     // budget only goes down, so the compact vocabulary is the one before them (formulaGuide.js).
-    const { NOT_IN_COMPACT, COMPACT_SIGNATURES } = require('./formulaGuide');
-    for (const name of EXPR_FUNCTION_NAMES) assert.strictEqual(formulas.includes(`${name}(`), !NOT_IN_COMPACT.has(name), `formula function ${name} present unless left out on purpose`);
-    for (const f of EXPR_FUNCTIONS.filter((x) => !NOT_IN_COMPACT.has(x.name))) assert.ok(formulas.includes(COMPACT_SIGNATURES.get(f.name) || f.signature), `signature ${f.signature} verbatim`);
+    const { NOT_IN_COMPACT, COMPACT_SIGNATURES, SINCE_3 } = require('./formulaGuide');
+    for (const name of EXPR_FUNCTION_NAMES.filter((n) => !SINCE_3.has(n))) assert.strictEqual(formulas.includes(`${name}(`), !NOT_IN_COMPACT.has(name), `formula function ${name} present unless left out on purpose`);
+    for (const f of EXPR_FUNCTIONS.filter((x) => !NOT_IN_COMPACT.has(x.name) && !SINCE_3.has(x.name))) assert.ok(formulas.includes(COMPACT_SIGNATURES.get(f.name) || f.signature), `signature ${f.signature} verbatim`);
     for (const kind of ['static', 'actionResult', 'formula', 'record', 'records', 'aggregate']) {
         assert.ok(text.includes(`"kind": "${kind}"`), `binding kind ${kind} taught`);
     }
