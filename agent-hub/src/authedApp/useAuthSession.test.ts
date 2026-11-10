@@ -124,4 +124,19 @@ describe('useAuthSession and the home organisation', () => {
         const { s } = await boot(memberSession({ permissions: [] }));
         expect(s.setUser.mock.calls.at(-1)?.[0]).toMatchObject({ isHomeOrgAdmin: false });
     });
+
+    // The admin dashboard names the organisation an organisation admin works on.
+    it('carries the home organisation and its name, and null when the answer has none', async () => {
+        serve({ permissions: [], homeOrganization: { id: 'orgA', name: 'Example Org' } });
+        const s = setters();
+        renderHook(() => useAuthSession(s));
+        await waitFor(() => expect(s.setUser).toHaveBeenCalled());
+        expect(s.setUser.mock.calls.at(-1)?.[0]).toMatchObject({ homeOrganization: { id: 'orgA', name: 'Example Org' } });
+
+        serve({ permissions: [] });
+        const other = setters();
+        renderHook(() => useAuthSession(other));
+        await waitFor(() => expect(other.setUser).toHaveBeenCalled());
+        expect(other.setUser.mock.calls.at(-1)?.[0]).toMatchObject({ homeOrganization: null });
+    });
 });

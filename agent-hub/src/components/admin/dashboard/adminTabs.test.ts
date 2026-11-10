@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_TAB_GROUPS, ADMIN_TABS, adminScopeOf, adminSectionScope, buildAdminRailSections, canOpenAdminTab, groupAdminTabs, isAdminSectionVisible, isAdminSectionVisibleTo, resolveAdminTab, shownAdminScope } from './adminTabs';
+import { ADMIN_TAB_GROUPS, ADMIN_TABS, adminScopeOf, adminSectionScope, buildAdminRailSections, canOpenAdminTab, fixedOrgViewOf, groupAdminTabs, isAdminSectionVisible, isAdminSectionVisibleTo, resolveAdminTab, shownAdminScope } from './adminTabs';
 import type { AdminAccess, AdminTab } from './adminTabs';
 
 const access = (over: Partial<AdminAccess> = {}): AdminAccess => ({
@@ -73,9 +73,24 @@ describe('scope', () => {
         expect(adminSectionScope('nope', 'users')).toBeNull();
     });
 
-    it('Access names no scope: its panel picks the organisation itself', () => {
-        expect(adminScopeOf(tab('access'))).toBeNull();
-        expect(shownAdminScope({ tab: tab('access'), override: null, hasHomeOrg: true })).toBeNull();
+    it('Access follows the dashboard organisation; the server part of its Ceiling is the whole server', () => {
+        expect(adminScopeOf(tab('access'))).toBe('mixed');
+        expect(adminScopeOf(tab('access'), 'ceiling', 'server')).toBe('instance');
+        expect(shownAdminScope({ tab: tab('access'), override: null, hasHomeOrg: true })).toBe('mixed');
+    });
+
+    it('the Users screen: organisations, Nextcloud, roles and permissions are server-wide, users and groups are not', () => {
+        for (const part of ['organizations', 'nextcloud', 'roles', 'permissions']) expect(adminSectionScope('security', 'users', part)).toBe('instance');
+        for (const part of ['users', 'groups']) expect(adminSectionScope('security', 'users', part)).toBe('mixed');
+    });
+
+    it('names the sections that do not follow the organisation picker, most specific first', () => {
+        expect(fixedOrgViewOf('compliance')).toBe('home');
+        expect(fixedOrgViewOf('compliance', 'frameworks', 'x')).toBe('home');
+        expect(fixedOrgViewOf('security', 'guardrails', 'organisations')).toBe('all');
+        expect(fixedOrgViewOf('security', 'guardrails', 'patterns')).toBeNull();
+        expect(fixedOrgViewOf('agents', 'chat')).toBeNull();
+        expect(fixedOrgViewOf('monitoring')).toBeNull();
     });
 
     it('an organisation scope is shown only to a viewer with a home organisation; an override wins', () => {

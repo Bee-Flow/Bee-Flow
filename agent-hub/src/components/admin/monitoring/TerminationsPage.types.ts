@@ -20,7 +20,10 @@ export interface TerminationRow {
     total_tokens?: number;
     source?: string;
     conversation_id?: string;
+    /** On the generic routes; the `/org` routes (one organisation chosen) carry `person` instead. */
     user_id?: string;
+    /** The `/org` routes: the person's pseudonym, or their name when revealed (server core/privacy/personColumn.js). */
+    person?: { id: string; name: string } | null;
     organization_id?: string;
     error_class?: string;
     error_first_line?: string;
@@ -59,6 +62,8 @@ export interface TerminationsPageProps {
     customStart: string;
     customEnd: string;
     refreshKey?: number;
+    /** The admin dashboard's chosen organisation: read through the `/org` routes with `orgId`; null: the generic routes. */
+    orgId?: string | null;
 }
 
 export interface DetailRowProps {

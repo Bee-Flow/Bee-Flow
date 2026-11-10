@@ -94,6 +94,8 @@ export interface AdminCurrentUser {
     isAdmin?: boolean;
     role?: string;
     organizations?: string[];
+    /** The home organisation and its name (/auth/my-permissions, stored by useAuthSession); null without one. */
+    homeOrganization?: { id: string; name: string | null } | null;
     [key: string]: unknown;
 }
 

@@ -18,7 +18,7 @@ import { PAGES, monitoringPageOf } from './monitoring.constants';
 import type { CoveredScope } from './shared.types';
 import { toLocalInput } from './monitoring.helpers';
 import { isAdminSectionVisibleTo } from '@/components/admin/dashboard/adminTabs';
-import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
+import { useAdminOrgIdParam } from '@/components/admin/dashboard/useAdminOrg';
 import { isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAccess';
 
 /** Change against the previous period, in percent (null where the previous period had none). */
@@ -69,12 +69,14 @@ interface PageProps {
     customStart: string;
     customEnd: string;
     refreshKey: number;
+    /** The admin dashboard's chosen organisation, or null. */
+    orgId: string | null;
     onDetail: (detail: DrawerDetail) => void;
     onNavigate?: (path: string) => void;
 }
 
 /** The page the URL names, fed from the shared read. */
-function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey, onDetail, onNavigate }: PageProps) {
+function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey, orgId, onDetail, onNavigate }: PageProps) {
     const { costPerModel, totalCost } = useModelCosts(data);
     const deltas = useMemo(() => usageDeltas(data.summary, data.prevSummary), [data.summary, data.prevSummary]);
     const onSelectModel = (m: DrawerDetail['data']) => onDetail({ type: 'model', data: m });
@@ -94,8 +96,9 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
             return <ActivityPage recent={data.recent} />;
         case 'terminations':
             // The generic route: it needs admin_monitoring (the tab's own permission) and scopes a
-            // caller who is not a platform admin to their own organisation on the server.
-            return <TerminationsPage range={range} customStart={customStart} customEnd={customEnd} refreshKey={refreshKey} />;
+            // caller who is not a platform admin to their own organisation on the server. A platform
+            // admin who chose one organisation reads the `/org` routes for it.
+            return <TerminationsPage range={range} customStart={customStart} customEnd={customEnd} refreshKey={refreshKey} orgId={orgId} />;
         default:
             return (
                 <OverviewPage
@@ -127,12 +130,12 @@ export default function MonitoringPanel({ activeSection = '', onNavigate, user }
     const [customStart, setCustomStart] = useState(defaultStart);
     const [customEnd, setCustomEnd] = useState(() => toLocalInput(new Date()));
     const [detail, setDetail] = useState<DrawerDetail | null>(null);
-    const { data, loading, reload, refreshKey } = useMonitoringData(range, customStart, customEnd);
+    // The dashboard's chosen organisation (a platform admin's), sent as `orgId`; none: the server's default scope.
+    const orgId = useAdminOrgIdParam();
+    const { data, loading, reload, refreshKey } = useMonitoringData(range, customStart, customEnd, orgId);
     const title = t('admin_monitoring.title', 'AI Monitor');
     const { costPerModel } = useModelCosts(data);
     const scopeLine = useScopeLine(data.summary?.scope);
-    // The dashboard's scope chip says what the figures say: one organisation when the answer covers one.
-    useAdminScopeOverride(data.summary?.scope?.organizationId ? 'org' : null);
     const pageDescription = t(meta.descriptionKey, meta.description);
 
     const sidebar = (
@@ -161,7 +164,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate, user }
                         />
                         <MonitoringPage
                             page={page} data={data} range={range} customStart={customStart} customEnd={customEnd}
-                            refreshKey={refreshKey} onDetail={setDetail} onNavigate={onNavigate}
+                            refreshKey={refreshKey} orgId={orgId} onDetail={setDetail} onNavigate={onNavigate}
                         />
                     </div>
                 </div>

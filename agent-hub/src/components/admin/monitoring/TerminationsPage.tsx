@@ -23,28 +23,30 @@ interface TerminationsData {
 }
 
 /** The range's terminations: summary, timeline, the last 200 events and the per-agent counts; read again on `refreshKey`. */
-function useTerminations({ range = '7d', customStart, customEnd, refreshKey }: TerminationsPageProps) {
+function useTerminations({ range = '7d', customStart, customEnd, refreshKey, orgId = null }: TerminationsPageProps) {
     const [data, setData] = useState<TerminationsData>({ summary: null, timeline: [], rows: [], byAgent: [] });
     const [loading, setLoading] = useState(true);
     useAdjustOnChange([range, customStart, customEnd], () => setLoading(true));
     useEffect(() => {
         let cancelled = false;
-        const q = rangeQuery(range, customStart, customEnd);
+        const rangeQ = rangeQuery(range, customStart, customEnd);
+        const q = orgId ? `${rangeQ}${rangeQ ? '&' : '?'}orgId=${encodeURIComponent(orgId)}` : rangeQ;
+        const base = orgId ? `${API}/org` : API;
         const interval = (range === 'today' || (range === 'custom' && customStart && customEnd && (new Date(customEnd).getTime() - new Date(customStart).getTime()) <= 86400000))
             ? 'hour' : 'day';
         const intervalQ = (q ? '&' : '?') + `interval=${interval}`;
         Promise.all([
-            fetchJson(API + '/summary' + q),
-            fetchJson(API + '/timeline' + q + intervalQ),
-            fetchJson(API + q + (q ? '&' : '?') + 'limit=200'),
-            fetchJson(API + '/by-agent' + q),
+            fetchJson(base + '/summary' + q),
+            fetchJson(base + '/timeline' + q + intervalQ),
+            fetchJson(base + q + (q ? '&' : '?') + 'limit=200'),
+            fetchJson(base + '/by-agent' + q),
         ]).then(([sum, tl, list, ag]) => {
             if (cancelled) return;
             setData({ summary: sum, timeline: tl?.rows || [], rows: list?.rows || [], byAgent: ag?.rows || [] });
             setLoading(false);
         });
         return () => { cancelled = true; };
-    }, [range, customStart, customEnd, refreshKey]);
+    }, [range, customStart, customEnd, refreshKey, orgId]);
     return { ...data, loading };
 }
 

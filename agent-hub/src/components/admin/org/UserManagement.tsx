@@ -26,6 +26,13 @@ import { ALERT_ERROR, ALERT_INFO, ALERT_SUCCESS } from '@/components/mcpLibrary/
 import { homeOrgIdOf, isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
 import { OrgIcon } from './userManagement/EntityRows';
 import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
+import { adminSectionScope } from '@/components/admin/dashboard/adminTabs';
+import { ServerWideMark, serverWideLast } from '@/components/admin/dashboard/serverWideNav';
+import { useAdminOrgIdParam } from '@/components/admin/dashboard/useAdminOrg';
+import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
+
+/** Is this tab of the screen about the whole server (adminTabs: security `users/<tab>`)? */
+const isServerWideTab = (key: string) => adminSectionScope('security', 'users', key) === 'instance';
 
 interface UserManagementProps {
     activeSection?: string;
@@ -70,8 +77,12 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const isPlatformAdmin = isPlatformAdminUser(currentUser);
     const userOrgIds = currentUser?.organizations || [];
 
-    // The admin dashboard's lists (`?scope=admin`): an organisation admin's home organisation only.
-    const { users, groups, organizations, roles, permissions, loading, notOrgAdmin, message, setMessage, loadData } = useUserManagementData({ currentUser });
+    // The admin dashboard's lists (`?scope=admin`): an organisation admin's home organisation only,
+    // a platform admin's the organisation chosen in the dashboard (none chosen: every organisation).
+    const orgId = useAdminOrgIdParam();
+    const { users, groups, organizations, roles, permissions, loading, notOrgAdmin, message, setMessage, loadData } = useUserManagementData({ currentUser, orgId });
+    // The dashboard's scope bar follows the open tab: the organisations, Nextcloud, roles and permissions are server-wide.
+    useAdminScopeOverride(isPlatformAdmin ? adminSectionScope('security', 'users', activeSection) : 'org');
     // The controls follow the lists: when the server refused them, it refuses the edits too.
     const mayManageListed = !!canManageUsers && !notOrgAdmin;
 
@@ -95,7 +106,8 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const roleActions = useRoleActions({ loadData, setMessage, askConfirm, t });
     const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg });
 
-    const sections = sectionsFor(isPlatformAdmin, userOrgIds.length > 0);
+    // The server-wide tabs go last, behind a "Whole server" divider, each with the server icon.
+    const sections = serverWideLast(sectionsFor(isPlatformAdmin, userOrgIds.length > 0), s => isPlatformAdmin && isServerWideTab(s.key));
 
     return (
         <div className="h-full flex flex-col">
@@ -105,7 +117,13 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                     ariaLabel={t('admin.sec_users')}
                     value={activeSection}
                     onChange={(key) => { if (onNavigate) onNavigate(`admin/security/users/${key}`); }}
-                    items={sections.map(({ key, labelKey, icon: Icon }) => ({ id: key, label: t(labelKey), icon: <Icon className="h-4 w-4" aria-hidden="true" /> }))}
+                    items={sections.map(({ key, labelKey, icon: Icon, serverWide, startsServerGroup }) => ({
+                        id: key,
+                        label: t(labelKey),
+                        icon: <Icon className="h-4 w-4" aria-hidden="true" />,
+                        mark: serverWide ? <ServerWideMark /> : undefined,
+                        dividerBefore: startsServerGroup ? t('admin.scope_instance', 'Whole server') : undefined,
+                    }))}
                 />
                 {notOrgAdmin && (
                     <div role="status" className={ALERT_INFO}>
@@ -136,6 +154,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                                 canManageUsers={mayManageListed}
                                 viewerIsPlatformAdmin={isPlatformAdmin}
                                 viewerHomeOrgId={homeOrgIdOf(currentUser)}
+                                scopeOrgId={orgId}
                                 onAddUser={userActions.openAddUser}
                                 onEditUser={userActions.openEditUser}
                                 onResetMfa={userActions.handleResetMfa}

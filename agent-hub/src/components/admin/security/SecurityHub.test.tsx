@@ -1,4 +1,4 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
@@ -141,8 +141,25 @@ describe('SecurityHub', () => {
     it('marks the section from the URL as the current page of a named navigation', () => {
         render(<SecurityHub user={fullAdmin} activeSection="sso" />);
         expect(screen.getByRole('navigation', { name: 'admin.tab_security' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'admin.sec_sso' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'admin.sec_sso admin.scope_instance' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('button', { name: 'admin.sec_users' })).not.toHaveAttribute('aria-current');
+    });
+
+    it('lists the server-wide sections last, under a "Whole server" divider, each with the server icon', () => {
+        render(<SecurityHub user={fullAdmin} />);
+        const nav = screen.getByRole('navigation', { name: 'admin.tab_security' });
+        const items = within(nav).getAllByRole('button');
+        expect(items.map(b => b.textContent?.trim())).toEqual(['admin.sec_users', 'admin.sec_guardrails', 'admin.sec_sso', 'admin.sec_email_domains', 'admin.sec_connector_health']);
+        for (const name of ['admin.sec_sso', 'admin.sec_email_domains', 'admin.sec_connector_health']) {
+            const row = items.find(b => b.textContent?.trim() === name) as HTMLElement;
+            expect(within(row).getByRole('img', { name: 'admin.scope_instance' })).toBeInTheDocument();
+        }
+        for (const name of ['admin.sec_users', 'admin.sec_guardrails']) {
+            const row = items.find(b => b.textContent?.trim() === name) as HTMLElement;
+            expect(within(row).queryByRole('img')).not.toBeInTheDocument();
+        }
+        // The divider label sits once, before the first server-wide section.
+        expect(within(nav).getAllByText('admin.scope_instance', { selector: 'div' })).toHaveLength(1);
     });
 
     describe('scope reported to the dashboard', () => {
@@ -157,22 +174,18 @@ describe('SecurityHub', () => {
             expect(lastScope(set)).toBeUndefined();
         });
 
-        it('a section the viewer cannot see falls back to users, and the scope follows what is rendered', () => {
+        // The Users screen knows its open tab (some are server-wide), so it reports the scope itself.
+        it('users, also as the fallback for a section the viewer cannot see, leave the scope to the Users screen', () => {
             const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
             renderIn(set, { user: orgAdmin, activeSection: 'sso' });
             expect(screen.getByTestId('user-management')).toBeInTheDocument();
-            expect(lastScope(set)).toBe('org');
+            expect(lastScope(set)).toBeUndefined();
         });
 
-        // Anyone but a platform admin reads the users and groups of their home organisation only.
-        it('users is one organisation for an organisation admin, and the tab scope for a platform admin', () => {
+        it('a server-wide section reports the whole server', () => {
             const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
-            renderIn(set, { user: { ...orgAdmin, orgRole: 'org_admin', organizationId: 'org-1' }, activeSection: 'users' });
-            expect(lastScope(set)).toBe('org');
-            cleanup();
-            const setPlatform: SetScope = vi.fn<(scope: AdminScope | null) => void>();
-            renderIn(setPlatform, { user: fullAdmin, activeSection: 'users' });
-            expect(lastScope(setPlatform)).toBe('mixed');
+            renderIn(set, { user: fullAdmin, activeSection: 'sso' });
+            expect(lastScope(set)).toBe('instance');
         });
     });
 

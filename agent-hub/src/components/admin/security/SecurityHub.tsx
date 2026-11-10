@@ -14,6 +14,7 @@ import StudioShell from '@/components/shared/StudioShell';
 import { adminSectionScope, isAdminSectionVisible, type AdminScope } from '@/components/admin/dashboard/adminTabs';
 import { homeOrgIdOf, isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAccess';
 import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
+import { ServerWideMark, serverWideLast } from '@/components/admin/dashboard/serverWideNav';
 
 /**
  * SecurityHub — Unified security configuration page
@@ -36,12 +37,12 @@ const SECTIONS = [
 ];
 
 /**
- * The scope of the rendered section, for the dashboard chip. Guardrails reports
- * the scope of its own sub-section. Anyone but a platform admin only sees Users
- * here, whose lists (`?scope=admin`) hold their home organisation.
+ * The scope of the rendered section, for the dashboard's scope bar. Guardrails
+ * and Users report the scope of their own sub-section (GuardrailsHub,
+ * UserManagement), so they answer null here.
  */
 function securityScope(active: string, platformAdmin: boolean): AdminScope | null {
-    if (active === 'guardrails') return null;
+    if (active === 'guardrails' || active === 'users') return null;
     return platformAdmin ? adminSectionScope('security', active) : 'org';
 }
 
@@ -79,7 +80,12 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
             sidebar={(
                 <SectionNav
                     label={t('admin.tab_security')}
-                    items={visibleSections.map(sec => ({ id: sec.id, icon: sec.icon, label: t(sec.labelKey) }))}
+                    items={serverWideLast(visibleSections, sec => adminSectionScope('security', sec.id) === 'instance').map(sec => ({
+                        id: sec.id,
+                        icon: sec.icon,
+                        label: t(sec.labelKey),
+                        ...(sec.serverWide ? { group: t('admin.scope_instance', 'Whole server'), groupDivider: true, mark: <ServerWideMark /> } : {}),
+                    }))}
                     activeId={active}
                     onSelect={(id) => { if (onNavigate) onNavigate(`admin/security/${id}`); }}
                 />

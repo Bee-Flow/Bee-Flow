@@ -23,10 +23,39 @@ interface PeopleDirectoryProps {
     viewerIsPlatformAdmin?: boolean;
     /** The viewer's home organisation: the accounts anyone but a platform admin may act on. */
     viewerHomeOrgId?: string | null;
+    /**
+     * The organisation the admin dashboard narrowed the lists to. The people are
+     * shown under that organisation only, counted as one, and the directory's
+     * own organisation filter is left out: the dashboard bar is the one choice.
+     * `organizations` stays the full list, for the names.
+     */
+    scopeOrgId?: string | null;
     onAddUser: () => void;
     onEditUser?: (user: PeopleUser) => void;
     onResetMfa?: (user: PeopleUser) => void;
     onDeleteUser?: (user: PeopleUser) => void;
+}
+
+/** The directory's heading: the counts (one organisation when the dashboard chose one) and "Add user". */
+function PeopleHeader({ people, orgs, groups, scoped, canManageUsers, onAddUser }: {
+    people: number; orgs: number; groups: number; scoped: boolean; canManageUsers: boolean; onAddUser: () => void;
+}) {
+    const { t } = useTranslation();
+    return (
+        <EntitySectionHeader
+            title={t('admin.sec_people_title', 'People')}
+            description={t('admin.sec_people_summary', '{people} people · {orgs} organisations · {groups} groups', {
+                people,
+                orgs: scoped ? 1 : orgs,
+                groups,
+            })}
+            action={canManageUsers ? (
+                <AddButton onClick={onAddUser} icon={<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />}>
+                    {t('admin.sec_people_add', 'Add user')}
+                </AddButton>
+            ) : undefined}
+        />
+    );
 }
 
 /**
@@ -50,6 +79,7 @@ export default function PeopleDirectory({
     canManageUsers = false,
     viewerIsPlatformAdmin,
     viewerHomeOrgId,
+    scopeOrgId,
     onAddUser,
     onEditUser,
     onResetMfa,
@@ -69,8 +99,8 @@ export default function PeopleDirectory({
         groupBy,
         // Scoping to one org must not drag a two-org person's OTHER org header
         // into the view. ORG_NONE is not an org — the filter already reduced the
-        // list to people who have none.
-        onlyOrgId: filters.org !== 'all' && filters.org !== ORG_NONE ? filters.org : null,
+        // list to people who have none. The dashboard's organisation, when chosen, is the only one.
+        onlyOrgId: scopeOrgId || (filters.org !== 'all' && filters.org !== ORG_NONE ? filters.org : null),
         noOrgTitle: t('admin.sec_people_no_org', 'No organisation'),
         noGroupTitle: t('admin.sec_people_no_group', 'No group'),
         allTitle: t('admin.sec_people_all', 'All people'),
@@ -112,18 +142,13 @@ export default function PeopleDirectory({
 
     return (
         <div>
-            <EntitySectionHeader
-                title={t('admin.sec_people_title', 'People')}
-                description={t('admin.sec_people_summary', '{people} people · {orgs} organisations · {groups} groups', {
-                    people: people.length,
-                    orgs: organizations.length,
-                    groups: groups.length,
-                })}
-                action={canManageUsers ? (
-                    <AddButton onClick={onAddUser} icon={<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />}>
-                        {t('admin.sec_people_add', 'Add user')}
-                    </AddButton>
-                ) : undefined}
+            <PeopleHeader
+                people={people.length}
+                orgs={organizations.length}
+                groups={groups.length}
+                scoped={!!scopeOrgId}
+                canManageUsers={canManageUsers}
+                onAddUser={onAddUser}
             />
 
             <div className="overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)]">
@@ -153,7 +178,7 @@ export default function PeopleDirectory({
                             shownCount={directory.distinctCount}
                             totalCount={people.length}
                             groups={groups}
-                            organizations={organizations}
+                            organizations={scopeOrgId ? null : organizations}
                             showVia
                             countLabel={(shown: number, total: number) =>
                                 t('admin.sec_people_showing', '{count} of {total} people', { count: shown, total })

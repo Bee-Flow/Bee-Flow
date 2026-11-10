@@ -31,6 +31,12 @@ export interface UserManagementDataOptions {
      * server-wide role table only for a platform admin.
      */
     currentUser?: AdminCurrentUser | null;
+    /**
+     * The organisation the admin dashboard shows (a platform admin's choice), sent
+     * as `orgId` with the user and group lists; null or absent sends none. The
+     * organisation list is the server-wide one and stays complete.
+     */
+    orgId?: string | null;
 }
 
 /**
@@ -56,14 +62,16 @@ export default function useUserManagementData(options?: UserManagementDataOption
 
     const adminScoped = options !== undefined;
     const readsRoles = !adminScoped || isPlatformAdmin(options.currentUser);
+    const orgId = adminScoped ? options.orgId ?? null : null;
 
     const loadData = useCallback(async () => {
         const scope = adminScoped ? '?scope=admin' : '';
+        const memberScope = orgId ? `${scope}&orgId=${encodeURIComponent(orgId)}` : scope;
         setLoading(true);
         try {
             const [usersRes, groupsRes, rolesRes, permsRes, orgsRes] = await Promise.all([
-                settled(`${API_BASE}/auth/users${scope}`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/groups${scope}`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/users${memberScope}`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/groups${memberScope}`, undefined, 'empty'),
                 readsRoles ? settled(`${API_BASE}/auth/roles`, undefined, 'empty') : Promise.resolve(null),
                 settled(`${API_BASE}/auth/permissions`, undefined, 'empty'),
                 settled(`${API_BASE}/auth/organizations${scope}`, undefined, 'empty'),
@@ -81,9 +89,9 @@ export default function useUserManagementData(options?: UserManagementDataOption
         } finally {
             setLoading(false);
         }
-    }, [adminScoped, readsRoles]);
+    }, [adminScoped, readsRoles, orgId]);
 
-    // Load data on mount, and again when the caller's platform-admin standing changes.
+    // Load data on mount, and again when the caller's platform-admin standing or the chosen organisation changes.
     useEffect(() => {
         loadData();
     }, [loadData]);
