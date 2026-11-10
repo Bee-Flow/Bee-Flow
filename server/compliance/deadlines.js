@@ -223,8 +223,9 @@ async function incidentItems(orgId, d, nowMs) {
     const out = [];
     for (const r of rows || []) {
         const started = toMs(r.detected_at || r.created_at);
-        const parsed = Array.isArray(r.regimes) ? r.regimes : (typeof r.regimes === 'string' ? safeJson(r.regimes, []) : []);
-        // An unreadable regime list falls back to the column's own default.
+        const stored = typeof r.regimes === 'string' ? safeJson(r.regimes, []) : r.regimes;
+        // An unreadable regime list (stored JSON that is not an array included) falls back to the column's own default.
+        const parsed = Array.isArray(stored) ? stored : [];
         const regimes = parsed.length ? parsed : [r.kind === 'vulnerability' ? 'CRA' : 'GDPR'];
         const isCra = r.kind === 'vulnerability' || regimes.includes('CRA');
         const base = {

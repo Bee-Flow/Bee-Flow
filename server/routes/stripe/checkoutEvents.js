@@ -9,7 +9,7 @@
 
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
-const { getSubscriberType } = require('./webhookShared');
+const { getSubscriberType, storeForTarget } = require('./webhookShared');
 const log = require('../../telemetry/log');
 
 // Local status and payment_status for the Stripe subscription status, the
@@ -96,14 +96,12 @@ async function handleCheckoutCompleted(session, opts = {}) {
             return false;
         }
         log.info(`[Stripe Webhook] Consumer checkout completed for user ${userId}, plan ${planId}`);
-        const success = await userStore.setConsumerSubscription(userId, subData);
-        if (success) {
-            await userStore.logSubscriptionAudit('assign_subscription', 'consumer', userId, 'stripe_webhook', null, { plan_id: planId, stripe_subscription_id: session.subscription, payment_status: subData.payment_status });
-            log.info(`[Stripe Webhook] Consumer subscription assigned to user ${userId}`);
-            await issueLicenseFromPlan({ scope: 'consumer', userId, planId, session });
-        } else {
-            log.error(`[Stripe Webhook] Failed to assign consumer subscription to user ${userId}`);
-        }
+        // A refused write throws: the webhook is delivered again and the
+        // success-page reconcile reports the failure, with nothing done yet.
+        await storeForTarget({ scope: 'consumer', id: userId }, subData);
+        await userStore.logSubscriptionAudit('assign_subscription', 'consumer', userId, 'stripe_webhook', null, { plan_id: planId, stripe_subscription_id: session.subscription, payment_status: subData.payment_status });
+        log.info(`[Stripe Webhook] Consumer subscription assigned to user ${userId}`);
+        await issueLicenseFromPlan({ scope: 'consumer', userId, planId, session });
     } else {
         const metaOrgId = session.metadata?.beeflow_org_id || null;
         const refOrgId = session.client_reference_id || null;
@@ -124,14 +122,10 @@ async function handleCheckoutCompleted(session, opts = {}) {
         log.info(`[Stripe Webhook] Org checkout completed for org ${orgId}, plan ${planId}`);
         // A completed checkout provisions the bought plan: clear stale limit
         // overrides even when the org already had that plan_id (BFSF-249).
-        const success = await userStore.setOrgSubscription(orgId, subData, { resetLimits: true });
-        if (success) {
-            await userStore.logSubscriptionAudit('assign_subscription', 'organization', orgId, 'stripe_webhook', null, { plan_id: planId, stripe_subscription_id: session.subscription, payment_status: subData.payment_status });
-            log.info(`[Stripe Webhook] Subscription assigned to org ${orgId}`);
-            await issueLicenseFromPlan({ scope: 'organization', organizationId: orgId, planId, session });
-        } else {
-            log.error(`[Stripe Webhook] Failed to assign subscription to org ${orgId}`);
-        }
+        await storeForTarget({ scope: 'organization', id: orgId }, subData, { resetLimits: true });
+        await userStore.logSubscriptionAudit('assign_subscription', 'organization', orgId, 'stripe_webhook', null, { plan_id: planId, stripe_subscription_id: session.subscription, payment_status: subData.payment_status });
+        log.info(`[Stripe Webhook] Subscription assigned to org ${orgId}`);
+        await issueLicenseFromPlan({ scope: 'organization', organizationId: orgId, planId, session });
     }
     return true;
 }

@@ -1,7 +1,7 @@
 // Subscriptions → Organizations. Pinned: "Remove subscription" inside the
 // editor asks for confirmation right there (the dialog used to exist only in
 // the list view, so the button did nothing until the admin went back).
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setDemoTransport } from '@/utils/helpers';
@@ -36,6 +36,55 @@ describe('OrgsView', () => {
         const confirm = Array.from(dialog.querySelectorAll('button')).find(b => b.textContent?.includes('Remove subscription'));
         await user.click(confirm as HTMLButtonElement);
         await waitFor(() => expect(calls.some(c => c.startsWith('DELETE ') && c.endsWith('/api/subscriptions/orgs/o1'))).toBe(true));
+    });
+
+    it('shows the subscriptions as a sortable table and a filter without matches inside it', async () => {
+        const user = userEvent.setup();
+        setDemoTransport(async (url: unknown) => {
+            const address = String(url);
+            if (address.endsWith('/auth/organizations')) return json([{ id: 'o1', name: 'Acme' }, { id: 'o2', name: 'Zeta' }]);
+            if (address.endsWith('/api/subscriptions/orgs')) return json([
+                { organization_id: 'o1', org_name: 'Acme', plan_name: 'Team', status: 'active', current_usage: { messages: 10 } },
+                { organization_id: 'o2', org_name: 'Zeta', plan_name: null, status: 'trialing', current_usage: { messages: 500 } },
+            ]);
+            if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Team' }]);
+            return json({ features: [] });
+        });
+        render(<OrgsView />);
+        const table = await screen.findByRole('table', { name: 'Active subscriptions' });
+        const first = () => within(table).getAllByRole('row')[1].textContent;
+        expect(first()).toContain('Acme');
+        await user.click(within(table).getByRole('button', { name: 'Messages' }));
+        expect(first()).toContain('Zeta');
+        expect(first()).toContain('Custom');
+        await user.click(screen.getByRole('button', { name: 'Suspended' }));
+        expect(within(table).getByText('No matches')).toBeInTheDocument();
+    });
+
+    it('labels and filters a subscription whose dunning reached the cap, and keeps that status in its editor', async () => {
+        const user = userEvent.setup();
+        setDemoTransport(async (url: unknown) => {
+            const address = String(url);
+            if (address.endsWith('/auth/organizations')) return json([{ id: 'o1', name: 'Acme' }, { id: 'o2', name: 'Zeta' }]);
+            if (address.endsWith('/api/subscriptions/orgs')) return json([
+                { organization_id: 'o1', org_name: 'Acme', plan_id: 'p1', plan_name: 'Team', status: 'manual_action_required' },
+                { organization_id: 'o2', org_name: 'Zeta', plan_id: 'p1', plan_name: 'Team', status: 'active' },
+            ]);
+            if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Team' }]);
+            return json({ features: [] });
+        });
+        render(<OrgsView />);
+        const table = await screen.findByRole('table', { name: 'Active subscriptions' });
+        expect(within(table).getByText('Action required')).toBeInTheDocument();
+        expect(within(table).queryByText('manual_action_required')).toBeNull();
+
+        await user.click(screen.getByRole('button', { name: 'Action required' }));
+        expect(within(table).getByText('Acme')).toBeInTheDocument();
+        expect(within(table).queryByText('Zeta')).toBeNull();
+
+        await user.click(within(table).getByText('Acme'));
+        const option = await screen.findByRole('option', { name: 'Payment action required' });
+        expect((option as HTMLOptionElement).selected).toBe(true);
     });
 
     it('saves an override that was switched on but left empty as no override, never as a cap of 0', async () => {

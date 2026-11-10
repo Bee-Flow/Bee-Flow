@@ -24,14 +24,14 @@ inside the EU.
 
 1. Create an API key in the [Scaleway console](https://console.scaleway.com/iam/api-keys)
    — Generative APIs uses your **secret key**.
-2. Go to **Admin → AI configuration → API keys** and paste it into the **Scaleway** card.
+2. Go to **Admin → AI Config → API Keys** and paste it into the **Scaleway** card.
 
 That is the whole setup. The provider is created automatically, the live model list is
 read from Scaleway on the next request, and the models become selectable in the chat
 model tiers, in agents, and as a knowledge-base embedding provider.
 
 :::tip One key, two features
-This is the same key as **Admin → Integrations → Transcription (Scaleway)**. A Scaleway
+This is the same key as **Admin → Integrations → Transcription → Scaleway (hybrid)**. A Scaleway
 secret key opens every Scaleway API, so configuring it in either place enables both the
 chat models and Whisper transcription.
 :::

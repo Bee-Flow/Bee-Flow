@@ -19,6 +19,7 @@ const watcherStateStore = require('../stores/watcherStateStore');
 const { executeWorkflow } = require('./executionEngine');
 
 let root;
+let useOdd = false;
 let dirs;
 const origGetPath = componentManager.getComponentPath;
 const origGet = watcherStateStore.getWatcherState;
@@ -43,8 +44,16 @@ process.stdin.resume(); process.stdin.on('data', () => {});
 process.stdin.on('end', () => process.stdout.write(JSON.stringify({ result: { files: [
   { id: 'a', modified: 1 }, { id: 'b', modified: 2 }, { id: 'c', modified: 3 } ] } })));
 `),
+        'trigger-odd': component('trigger-odd', `
+process.stdin.resume(); process.stdin.on('data', () => {});
+process.stdin.on('end', () => process.stdout.write(JSON.stringify({ result: { config: { componentId: 'odd-lister', componentInputs: {} } } })));
+`),
+        'odd-lister': component('odd-lister', `
+process.stdin.resume(); process.stdin.on('data', () => {});
+process.stdin.on('end', () => process.stdout.write('{"result":{"files":[{"id":"constructor","modified":1},{"id":"__proto__","modified":2},{"id":"toString","modified":3}]}}'));
+`),
     };
-    componentManager.getComponentPath = (id) => dirs[id] || null;
+    componentManager.getComponentPath = (id) => dirs[id === 'trigger-watcher' && useOdd ? 'trigger-odd' : id] || null;
 });
 
 after(() => {
@@ -76,4 +85,24 @@ test('unchanged items from a stored (async) previous state are not reported as a
     assert.equal(out.n1.result.hasChanges, false);
     assert.equal(out.n1.result.previousItems.length, 3);
     assert.deepEqual(Object.keys(saved), ['a', 'b', 'c']);
+});
+
+test('an item whose id is a name on Object.prototype is a new item like any other, and is kept in the state', async () => {
+    let saved = null;
+    watcherStateStore.getWatcherState = async () => null;
+    watcherStateStore.saveWatcherState = async (_id, items) => { saved = JSON.parse(JSON.stringify(items)); };
+    useOdd = true;
+    try {
+        const out = await executeWorkflow({ nodes: [{ id: 'n1', type: 'trigger-watcher', data: {} }], edges: [] });
+        assert.deepEqual(out.n1.result.addedItems.map((i) => i.id), ['constructor', '__proto__', 'toString']);
+        assert.deepEqual(out.n1.result.modifiedItems, []);
+        assert.deepEqual(Object.keys(saved), ['constructor', '__proto__', 'toString']);
+    } finally { useOdd = false; }
+});
+
+test('a node without a data object runs with no inputs of its own', async () => {
+    watcherStateStore.getWatcherState = async () => null;
+    watcherStateStore.saveWatcherState = async () => {};
+    const out = await executeWorkflow({ nodes: [{ id: 'n1', type: 'lister' }], edges: [] });
+    assert.equal(out.n1.result.files.length, 3);
 });

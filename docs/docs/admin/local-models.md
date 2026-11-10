@@ -29,7 +29,7 @@ that does the same works under **OpenAI-compatible endpoint**.
 
 ### The quickest path
 
-1. Go to **Admin → AI → Providers**.
+1. Go to **Admin → AI Config → API Keys**.
 2. In the **Local models** card, press **🔍 Find running runtimes**.
 3. Press **Connect** on whatever it found.
 
@@ -109,7 +109,7 @@ calling, and Bee Flow agents need tools.
 ## Assign models to tiers
 
 Connected runtimes feed the same picker as every cloud provider. Under
-**Admin → AI → Chat Models**, each tier gets a model; local ones are grouped under
+**Admin → AI Config → Chat Models**, each tier gets a model; local ones are grouped under
 the runtime's name.
 
 A reasonable starting point on a single 24 GB GPU:
@@ -144,7 +144,7 @@ that genuinely cannot think or call tools is not advertised as if it could.
 
 A local runtime can serve embeddings too. Pull an embedding model
 (`ollama pull nomic-embed-text`), then pick the runtime and the model under
-**Admin → AI → Embeddings**.
+**Admin → AI Config → Embeddings**.
 
 Re-embedding is required if you switch embedding models — vectors from different
 models are not comparable. Existing knowledge-base content must be re-ingested.

@@ -37,7 +37,7 @@ export function OrgInfoScreen() {
     const t = useTranslation();
     const { toast } = useToast();
     const { user } = useAuth();
-    const { orgId, isOrgAdmin, isNcOrg } = useOrgContext();
+    const { orgId, isOrgAdmin, isNcOrg, isSuperAdmin } = useOrgContext();
     const allowed = isOrgAdmin && Boolean(orgId);
     const [countryOpen, setCountryOpen] = useState(false);
 
@@ -88,7 +88,7 @@ export function OrgInfoScreen() {
                         disabled={record.saving}
                         nameError={nameError}
                     />
-                    <DefaultLanguageGroup languages={languages.data} saving={setLanguage.isPending} onPick={onLanguage} />
+                    <DefaultLanguageGroup languages={languages.data} saving={setLanguage.isPending} onPick={onLanguage} canEdit={isSuperAdmin} />
                     <Group>
                         <InfoRow label={t('mobile.org.profile_id', 'Identifier')} value={orgId ?? ''} selectable />
                     </Group>

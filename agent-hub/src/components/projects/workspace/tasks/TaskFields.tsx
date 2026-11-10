@@ -4,6 +4,7 @@
 import { BookOpen, Check, CircleDot, Layers3, Plus, Signal, SignalHigh, User, X } from 'lucide-react';
 import React, { useId, useState } from 'react';
 import type { ChecklistItem, TaskPriority, TaskStatus } from '@/api/queries/projectTasks';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { WorkItemType } from './taskPlanning';
 import { checklistProgress, priorityLabel, priorityTone, statusLabel } from './taskText';
@@ -138,7 +139,7 @@ export function LabelsInput({ value, onChange, disabled, suggestions = [], maxLa
                         aria-label={t('project_tasks.add_label', 'Add a label')}
                         onChange={(e) => (e.target.value.endsWith(',') ? add(e.target.value.slice(0, -1)) : setDraft(e.target.value))}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter') { e.preventDefault(); add(draft); }
+                            if (e.key === 'Enter' && !isImeEnter(e)) { e.preventDefault(); add(draft); }
                             else if (e.key === 'Backspace' && !draft && value.length) onChange(value.slice(0, -1));
                         }}
                         onBlur={() => add(draft)}
@@ -199,7 +200,7 @@ export function ChecklistEditor({ value, onChange, disabled }: { value: Checklis
                     <input value={draft} maxLength={MAX_CHECK_TEXT} onChange={e => setDraft(e.target.value)}
                         className="flex-1 min-w-0 h-8 p-0 bg-transparent border-0 outline-none focus:ring-0 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                         placeholder={t('project_tasks.add_item', 'Add a step')} aria-label={t('project_tasks.add_item', 'Add a step')}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} onBlur={add} />
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !isImeEnter(e)) { e.preventDefault(); add(); } }} onBlur={add} />
                 </div>
             )}
         </div>

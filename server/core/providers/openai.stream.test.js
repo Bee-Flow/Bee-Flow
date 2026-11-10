@@ -258,3 +258,30 @@ test('Completions still drops nameless and unparseable tool calls', async () => 
     assert.strictEqual(calls.length, 1);
     assert.strictEqual(calls[0].name, 'good');
 });
+
+const toolDelta = (finish_reason = null) => ({
+    choices: [{ delta: { tool_calls: [{ index: 0, id: 'call_a', function: { name: 'lookup', arguments: '{"q":"x"}' } }] }, finish_reason }],
+});
+const completions = async (events) => {
+    const provider = new OpenAIProvider();
+    const { seen, onEvent } = collect(provider, events, { responses: false });
+    await provider.stream('k', null, PLAIN_MODEL, [{ role: 'user', content: 'go' }], { useChatCompletions: true }, onEvent);
+    return seen;
+};
+
+test('Completions: a stream that ends without a finish reason still delivers its tool calls', async () => {
+    const seen = await completions([toolDelta()]);
+    assert.deepStrictEqual(seen.filter(e => e.type === 'tool_use').map(c => [c.name, c.input]), [['lookup', { q: 'x' }]]);
+    assert.strictEqual(seen[seen.length - 1].type, 'done', 'the calls come before done');
+});
+
+test('Completions: a finish reason other than tool_calls/stop still delivers the tool calls', async () => {
+    const seen = await completions([toolDelta(), { choices: [{ delta: {}, finish_reason: 'function_call' }] }]);
+    assert.strictEqual(seen.filter(e => e.type === 'tool_use').length, 1);
+    assert.strictEqual(seen.find(e => e.type === 'done').stop_reason, 'function_call');
+});
+
+test('Completions: a tool call is delivered once, however often a finish reason arrives', async () => {
+    const seen = await completions([toolDelta('tool_calls'), { choices: [{ delta: {}, finish_reason: 'tool_calls' }] }]);
+    assert.strictEqual(seen.filter(e => e.type === 'tool_use').length, 1);
+});

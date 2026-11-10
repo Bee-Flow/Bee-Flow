@@ -22,6 +22,8 @@ export interface ParsedPaste {
     header: string[];
     rows: string[][];
     delimiter?: string;
+    /** Each kept row's number in the sheet (the header is 1): blank rows drop, their numbers do not. */
+    lines?: number[];
 }
 
 /** One cell that would not convert, named for the preview. */
@@ -119,8 +121,11 @@ export function parsePasted(text: unknown): ParsedPaste {
     const delimiter = sniffDelimiter(raw);
     const all = parseRows(raw, delimiter);
     const header = (all[0] || []).map((h: string) => h.trim());
-    const rows = all.slice(1).filter((cells: string[]) => cells.some((c: string) => c.trim() !== ''));
-    return { header, rows, delimiter };
+    // Blank rows drop, so a kept row's place in `rows` is not its row in the
+    // sheet: `lines` remembers that (the header is row 1).
+    const kept = all.slice(1).map((cells: string[], i: number) => ({ cells, line: i + 2 }))
+        .filter(({ cells }) => cells.some((c: string) => c.trim() !== ''));
+    return { header, rows: kept.map(k => k.cells), delimiter, lines: kept.map(k => k.line) };
 }
 
 /** Fields a paste can fill — a computed field is worked out, never written. */
@@ -286,7 +291,7 @@ export function coerceCell(raw: unknown, field: ImportField | null | undefined, 
  * can be pointed at. A field left empty is omitted rather than sent as null,
  * which lets the column's own default apply.
  */
-export function buildImportRows({ header = [], rows = [] }: Partial<ParsedPaste> = {}, mapping: string[] = [], fields: ImportField[] = [], t?: TranslateFn | null): ImportRow[] {
+export function buildImportRows({ header = [], rows = [], lines }: Partial<ParsedPaste> = {}, mapping: string[] = [], fields: ImportField[] = [], t?: TranslateFn | null): ImportRow[] {
     const byKey = new Map(importableFields(fields).map((f: ImportField): [string, ImportField] => [f.key, f]));
     return rows.map((cells: string[], index: number) => {
         const values: Record<string, unknown> = {};
@@ -301,6 +306,6 @@ export function buildImportRows({ header = [], rows = [] }: Partial<ParsedPaste>
             }
             if (value !== null) values[key] = value;
         });
-        return { line: index + 2, values, problems };
+        return { line: lines?.[index] ?? index + 2, values, problems };
     });
 }

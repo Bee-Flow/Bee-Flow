@@ -9,6 +9,7 @@ describe('subscriptionStatusLabel', () => {
         expect(subscriptionStatusLabel('active', t)).toBe('Active');
         expect(subscriptionStatusLabel('past_due', t)).toBe('Payment overdue');
         expect(subscriptionStatusLabel('canceled', t)).toBe('Cancelled');
+        expect(subscriptionStatusLabel('manual_action_required', t)).toBe('Payment action required');
     });
 
     it('makes an unknown enum readable instead of printing it raw', () => {

@@ -20,6 +20,8 @@ export interface OrgContext {
     isOrgAdmin: boolean;
     isSelfHosted: boolean;
     isNcOrg: boolean;
+    /** The platform operator (core/access): what a server-wide setting asks for. */
+    isSuperAdmin: boolean;
 }
 
 export function useOrgContext(): OrgContext {
@@ -30,6 +32,7 @@ export function useOrgContext(): OrgContext {
         isOrgAdmin: access.isOrgAdmin,
         isSelfHosted: access.mode === 'self-hosted',
         isNcOrg: Boolean(user?.ncOrg),
+        isSuperAdmin: access.isSuperAdmin,
     };
 }
 

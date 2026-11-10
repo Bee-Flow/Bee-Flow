@@ -19,6 +19,7 @@
  */
 
 import { AGENT } from './common';
+import { demoDate, demoNow } from '../demoClock';
 
 export interface AccessAuditRow {
     id: number;
@@ -46,7 +47,7 @@ const MAX_PAGE = 500;
 const FINGERPRINT = 'v1:f1a9c47b03d2e8a51c6b9f0e7a4d2c18';
 
 /** The seed log, newest first, as the store reads it. `org` is the demo organisation. */
-export function accessAuditSeed(org: string, now: number = Date.now()): AccessAuditRow[] {
+export function accessAuditSeed(org: string, now: number = demoNow()): AccessAuditRow[] {
     const refused = (reason: string) => ({ method: 'password', reason, knownAccount: false, identifierFingerprint: FINGERPRINT, ip: '45.13.xxx.xxx' });
     // [id, action, target_type, target_id, changed_by, ms ago, new_values]
     const rows: [number, string, string, string, string, number, Record<string, unknown>][] = [
@@ -71,7 +72,7 @@ export function accessAuditSeed(org: string, now: number = Date.now()): AccessAu
 export function logAccess(state: AccessState, entry: Omit<AccessAuditRow, 'id' | 'created_at' | 'old_values' | 'organization_id'> & { organization_id?: string }) {
     const id = state.accessAudit.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0) + 1;
     const organization_id = entry.organization_id ?? state.accessAudit[0]?.organization_id ?? '';
-    state.accessAudit = [{ ...entry, organization_id, id, old_values: null, created_at: new Date().toISOString() }, ...state.accessAudit];
+    state.accessAudit = [{ ...entry, organization_id, id, old_values: null, created_at: demoDate().toISOString() }, ...state.accessAudit];
 }
 
 /** listAccessAuditActions: one row per action with its count and newest stamp, newest first. */

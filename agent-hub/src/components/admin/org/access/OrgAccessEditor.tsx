@@ -131,7 +131,7 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
                     label={allowAllLabel}
                     hint={t('admin_org.ceiling_allow_all_hint', 'Turn off to restrict this organisation to a subset.')}
                 >
-                    <div className="flex md:justify-end">
+                    <div className="flex @[40rem]/srow:justify-end">
                         <Toggle size="sm" checked={unrestricted} onChange={setUnrestrictedMode} ariaLabel={allowAllLabel} />
                     </div>
                 </SettingRow>

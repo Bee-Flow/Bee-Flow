@@ -1,4 +1,4 @@
-import { Building2, Plus, AlertTriangle } from 'lucide-react';
+import { Building2, Plus } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { OrgEditor } from './OrgEditor';
 import { QuickAssignDialog } from './QuickAssignDialog';
@@ -10,23 +10,12 @@ import { toast } from '@/components/shared/Toast';
 import { useResource, apiJson } from '../hooks/useApi';
 import type { OrgListPayload } from '../hooks/useApi';
 import type { PlanRecord } from '../plans/usePlanForm';
-import { Badge } from '../ui/Badge';
-import type { BadgeTone } from '../ui/Badge';
+import { SubscriptionsTable, type OrgSubscription } from './SubscriptionsTable';
 import { ConfirmModal } from '../ui/Modal';
 import { SearchInput } from '../ui/SearchInput';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import FilterPills from '@/components/shared/FilterPills';
-
-/** One organization subscription in `GET /api/subscriptions/orgs`. */
-interface OrgSubscription {
-    organization_id: string;
-    org_name?: string;
-    plan_name?: string | null;
-    status: string;
-    current_usage?: { messages?: number; cost?: number } | null;
-    effective_limits?: { max_messages_per_month?: number | null; max_cost_per_month?: number | null } | null;
-}
 
 /** An organization from `GET /auth/organizations`, as the unsubscribed list shows it. */
 interface OrgRow {
@@ -35,12 +24,6 @@ interface OrgRow {
     trial_used_at: string | null;
     total_calls?: number;
     estimated_cost?: number;
-}
-
-const STATUS_TONE: Record<string, BadgeTone> = { active: 'success', trialing: 'info', suspended: 'warning', cancelled: 'danger' };
-
-function StatusBadge({ status }: { status: string }) {
-    return <Badge tone={STATUS_TONE[status] || 'neutral'} size="sm">{status}</Badge>;
 }
 
 export function OrgsView() {
@@ -195,21 +178,24 @@ export function OrgsView() {
                                 { value: 'active', label: t('admin_subscriptions.orgs_status_active', 'Active') },
                                 { value: 'trialing', label: t('admin_subscriptions.orgs_status_trialing', 'Trialing') },
                                 { value: 'suspended', label: t('admin_subscriptions.orgs_status_suspended', 'Suspended') },
+                                { value: 'manual_action_required', label: t('admin_subscriptions.orgs_status_manual_action_required', 'Action required') },
                                 { value: 'cancelled', label: t('admin_subscriptions.orgs_status_cancelled', 'Cancelled') },
                             ]}
                         />
 
-                        {filteredSubs.length === 0 ? (
-                            <EmptyState
-                                icon={<Building2 className="w-6 h-6" />}
-                                title={subs.length === 0 ? t('admin_subscriptions.orgs_empty_title', 'No active subscriptions') : t('admin_subscriptions.orgs_no_matches', 'No matches')}
-                                description={subs.length === 0
-                                    ? t('admin_subscriptions.orgs_empty_desc', 'Assign a plan to an organization to see it here.')
-                                    : t('admin_subscriptions.orgs_no_matches_desc', 'Adjust the search or status filter.')}
-                            />
-                        ) : (
-                            <SubscriptionsTable t={t} subs={filteredSubs} onOpen={setEditing} />
-                        )}
+                        <SubscriptionsTable
+                            subs={filteredSubs}
+                            onOpen={setEditing}
+                            empty={(
+                                <EmptyState
+                                    icon={<Building2 className="w-6 h-6" />}
+                                    title={subs.length === 0 ? t('admin_subscriptions.orgs_empty_title', 'No active subscriptions') : t('admin_subscriptions.orgs_no_matches', 'No matches')}
+                                    description={subs.length === 0
+                                        ? t('admin_subscriptions.orgs_empty_desc', 'Assign a plan to an organization to see it here.')
+                                        : t('admin_subscriptions.orgs_no_matches_desc', 'Adjust the search or status filter.')}
+                                />
+                            )}
+                        />
                     </div>
 
                     {/* Unsubscribed orgs */}
@@ -236,60 +222,6 @@ export function OrgsView() {
             )}
 
             {removeConfirm}
-        </div>
-    );
-}
-
-/** The subscribed organisations: plan, status and this month's usage against its limits (a warning from 80 %). */
-function SubscriptionsTable({ t, subs, onOpen }: { t: TranslateFn; subs: OrgSubscription[]; onOpen: (sub: OrgSubscription) => void }) {
-    return (
-        <div className="rounded-xl border border-[var(--border-default)] overflow-hidden">
-            <table className="w-full text-[13px]">
-                <thead className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                    <tr>
-                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_org', 'Organization')}</th>
-                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_plan', 'Plan')}</th>
-                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_status', 'Status')}</th>
-                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_messages', 'Messages')}</th>
-                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_cost', 'Cost')}</th>
-                        <th className="px-4 py-2.5"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {subs.map(sub => {
-                        const msgLimit  = sub.effective_limits?.max_messages_per_month;
-                        const costLimit = sub.effective_limits?.max_cost_per_month;
-                        const msgPct  = msgLimit  ? Math.round((sub.current_usage?.messages || 0) / msgLimit * 100) : null;
-                        const costPct = costLimit ? Math.round((sub.current_usage?.cost || 0) / costLimit * 100) : null;
-                        return (
-                            <tr
-                                key={sub.organization_id}
-                                onClick={() => onOpen(sub)}
-                                className="cursor-pointer bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border-t border-[var(--border-default)]"
-                            >
-                                <td className="px-4 py-2.5 font-semibold text-[var(--text-primary)]">{sub.org_name}</td>
-                                <td className="px-4 py-2.5 text-[var(--text-secondary)]">{sub.plan_name || t('admin_subscriptions.orgs_custom', 'Custom')}</td>
-                                <td className="px-4 py-2.5"><StatusBadge status={sub.status} /></td>
-                                <td className="px-4 py-2.5 text-[var(--text-secondary)] tabular-nums">
-                                    {(sub.current_usage?.messages || 0).toLocaleString()}{msgLimit ? ` / ${msgLimit.toLocaleString()}` : ''}
-                                    {msgPct != null && msgPct >= 80 && (
-                                        <AlertTriangle className={`inline w-3.5 h-3.5 ml-1 align-middle ${msgPct >= 90 ? 'text-[var(--error-ink)]' : 'text-[var(--warning-ink)]'}`} />
-                                    )}
-                                </td>
-                                <td className="px-4 py-2.5 text-[var(--text-secondary)] tabular-nums">
-                                    €{(sub.current_usage?.cost || 0).toFixed(4)}{costLimit ? ` / €${costLimit.toFixed(2)}` : ''}
-                                    {costPct != null && costPct >= 80 && (
-                                        <AlertTriangle className={`inline w-3.5 h-3.5 ml-1 align-middle ${costPct >= 90 ? 'text-[var(--error-ink)]' : 'text-[var(--warning-ink)]'}`} />
-                                    )}
-                                </td>
-                                <td className="px-4 py-2.5 text-right text-[var(--text-tertiary)]">
-                                    →
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
         </div>
     );
 }

@@ -12,6 +12,7 @@
 import { Notification } from 'electron';
 
 import type { DesktopSettings } from '../shared/types.ts';
+import { readNotifyInput } from './notifyInput.ts';
 
 export interface NotifyInput {
     title: string;
@@ -37,17 +38,16 @@ export class Notifier {
 
     /** Returns whether a notification was actually shown, for the caller's log. */
     show(input: NotifyInput): boolean {
+        // The type is the page's promise; what arrives over IPC is read here.
+        const content = readNotifyInput(input);
+        if (!content) return false;
         const settings = this.options.settings();
         if (!settings.notifications.enabled) return false;
         if (settings.notifications.onlyWhenUnfocused && this.options.isFocused()) return false;
         if (!Notification.isSupported()) return false;
 
-        const notification = new Notification({
-            title: String(input.title ?? 'Bee Flow').slice(0, 200),
-            body: String(input.body ?? '').slice(0, 1000),
-            silent: input.silent === true,
-        });
-        notification.on('click', () => this.options.onActivate(input.deepLink));
+        const notification = new Notification({ title: content.title, body: content.body, silent: content.silent });
+        notification.on('click', () => this.options.onActivate(content.deepLink));
         notification.show();
         return true;
     }

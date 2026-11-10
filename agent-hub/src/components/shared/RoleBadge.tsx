@@ -3,7 +3,11 @@ import { ORG_ROLES } from '../../config/orgRoles';
 
 interface RoleBadgeProps {
     role?: string | null;
+    /** `neutral`: the role's name on a quiet theme chip, without its palette colour (the admin console's Studio look). */
+    tone?: 'role' | 'neutral';
 }
+
+const NEUTRAL_CHIP = 'inline-flex items-center whitespace-nowrap rounded-full border border-[var(--border-default)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]';
 
 /**
  * Colour-coded chip for an organisation role, reading its label and colour from
@@ -26,8 +30,9 @@ interface RoleBadgeProps {
  *
  * Fixing this properly means separating the two columns at the call site first.
  */
-export default function RoleBadge({ role }: RoleBadgeProps) {
+export default function RoleBadge({ role, tone = 'role' }: RoleBadgeProps) {
     const orgRole = ORG_ROLES.find((r) => r.id === role);
+    if (tone === 'neutral') return <span className={NEUTRAL_CHIP}>{orgRole?.name ?? (role || 'user')}</span>;
 
     if (orgRole) {
         return (

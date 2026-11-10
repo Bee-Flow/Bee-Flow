@@ -225,7 +225,7 @@ function AzureGroup(p: ServicesSectionProps) {
             description={t('integ.services_use_azure_ai_document_intelligence_for', 'Use Azure AI Document Intelligence for high-quality document extraction + Azure OpenAI for embeddings.')}
         >
             <SettingsList>
-                <SettingRow
+                <SettingRow inline
                     label={t('integ.services_use_azure_for_knowledge_bases', 'Use Azure for Knowledge Bases')}
                     hint={t('integ.services_all_file_uploads_will_use_azure', 'All file uploads will use Azure Document Intelligence + Azure OpenAI embeddings.')}
                 >

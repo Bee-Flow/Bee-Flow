@@ -131,7 +131,8 @@ function backoffMs(attempt) {
  * Drain pending rows. Optional `targetIdentifier` limits the claim to a
  * single row — used by the hot path's "try once now" fast path.
  *
- * Returns `{ delivered, failed, hardFailed }`.
+ * Returns `{ delivered, failed, hardFailed }`, plus `unstamped` (accepted by
+ * Stripe, `delivered_at` not written) once rows were claimed.
  */
 async function drainOnce(targetIdentifier = null) {
     // Circuit breaker — when Stripe has been failing systemically, return
@@ -197,6 +198,7 @@ async function drainOnce(targetIdentifier = null) {
     let delivered = 0;
     let failed = 0;
     let hardFailed = 0;
+    let unstamped = 0; // accepted by Stripe, delivered_at not written
 
     // Lazy-load stripeService so this module can be required before Stripe
     // configuration has been read at boot. Also avoids the require cycle
@@ -234,9 +236,19 @@ async function drainOnce(targetIdentifier = null) {
                 identifier: row.identifier,
                 eventName: row.event_name,
             });
-            await run(`UPDATE payg_meter_outbox SET delivered_at = NOW(), last_error = NULL WHERE id = $1`, [row.id]);
-            delivered++;
             _recordSuccess();
+            // Stripe has the event from here on. A stamp that fails is OUR
+            // database's failure, not a send failure: no attempt is counted,
+            // no Stripe error is recorded and the breaker is not fed. The row
+            // stays undelivered and the next tick sends it again under the
+            // same idempotency key, then stamps it.
+            try {
+                await run(`UPDATE payg_meter_outbox SET delivered_at = NOW(), last_error = NULL WHERE id = $1`, [row.id]);
+                delivered++;
+            } catch (stampErr) {
+                unstamped++;
+                log.error(`[PaygDrain] Stripe accepted identifier=${row.identifier} but the delivered stamp failed: ${/** @type {Error} */ (stampErr).message}`);
+            }
         } catch (err) {
             failed++;
             _recordFailure();
@@ -258,7 +270,7 @@ async function drainOnce(targetIdentifier = null) {
         }
     }
 
-    return { delivered, failed, hardFailed };
+    return { delivered, failed, hardFailed, unstamped };
 }
 
 /**

@@ -25,6 +25,8 @@ export interface Parsed {
     header: string[];
     rows: string[][];
     delimiter: string;
+    /** Each kept row's number in the file (the header is 1): blank rows drop, their numbers do not. */
+    lines?: number[];
 }
 
 function parseRows(text: string, delimiter: string): string[][] {
@@ -69,8 +71,8 @@ export function parsePasted(text: unknown): Parsed {
     const delimiter = sniffDelimiter(raw);
     const all = parseRows(raw, delimiter);
     const header = (all[0] ?? []).map((h) => h.trim());
-    const rows = all.slice(1).filter((cells) => cells.some((c) => c.trim() !== ''));
-    return { header, rows, delimiter };
+    const kept = all.slice(1).map((cells, i) => ({ cells, line: i + 2 })).filter(({ cells }) => cells.some((c) => c.trim() !== ''));
+    return { header, rows: kept.map((k) => k.cells), delimiter, lines: kept.map((k) => k.line) };
 }
 
 const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -234,6 +236,6 @@ export function buildImportRows(parsed: Parsed, mapping: readonly string[], fiel
             if (error) problems.push({ column: parsed.header[col] || `#${col + 1}`, error });
             else if (value !== null) values[key] = value;
         });
-        return { line: index + 2, values, problems };
+        return { line: parsed.lines?.[index] ?? index + 2, values, problems };
     });
 }

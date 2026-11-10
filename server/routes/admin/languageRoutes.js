@@ -22,7 +22,7 @@ const { hasPermission } = require('../../auth/permissions');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth, getUserPermissions } = require('../../auth/permissions');
+const { requireAuth, getUserPermissions, requireSuperAdmin } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
@@ -156,8 +156,7 @@ router.delete('/:code', requireAdmin, async (req, res) => {
 // `/org/default` at the bottom of this file is a FIXED path, and THIS one is
 // parameterised and registered first — so every `PUT /api/languages/org/default`
 // would land here with code='org' and answer `Locale 'org' not found`, while the
-// org default for new users was never written. An org admin, who is not a
-// platform admin, would get requireAdmin's 403 instead. Hand that one path on.
+// default for new users was never written. Hand that one path on to its own route.
 router.put('/:code/default', (req, res, next) => (req.params.code === 'org' ? next('route') : next()), requireAdmin, async (req, res) => {
     try {
         const locales = await languageStore.setDefaultLocale(req.params.code);
@@ -714,8 +713,9 @@ router.get('/org/default', requireOrgAdmin, async (req, res) => {
     res.json({ defaultLocale, locales });
 });
 
-// PUT /api/languages/org/default — Set the org default locale for new users
-router.put('/org/default', requireOrgAdmin, validate({ body: OrgDefaultBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof OrgDefaultBody>, import('qs').ParsedQs>} */ req, res) => {
+// PUT /api/languages/org/default — Set the default locale for new users. `org_default_locale` is ONE value
+// for the whole install, so a platform super-admin sets it; an org admin reads it (the GET above).
+router.put('/org/default', requireSuperAdmin, validate({ body: OrgDefaultBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof OrgDefaultBody>, import('qs').ParsedQs>} */ req, res) => {
     const { defaultLocale } = req.body;
     // Validate that the locale exists
     const locales = await languageStore.getAvailableLocales();

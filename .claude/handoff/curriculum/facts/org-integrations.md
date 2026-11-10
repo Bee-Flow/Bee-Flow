@@ -164,9 +164,10 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 
 ### 2.5 Admin dashboard (context, mostly NOT the org admin's)
 - **Admin → Integrations** (`admin.tab_integrations`) is **super-admin only**; its sections are
-  **Features / Integrations / MCP / Email / Search / Transcription / Services**. This is where MCP
-  servers are *installed* ("Add Custom MCP Server", transport stdio/http, tabs **featured** and
-  **browse**, search placeholder *"Search thousands of MCP servers…"*).
+  **Features / Integrations / Email / Search / Transcription / Services** (the second column of the
+  dashboard). MCP is no longer one of them: installing MCP servers moved to **Settings → Organisation →
+  MCP library** (a server administrator also gets its **Server-wide** tab there), and an old
+  `admin/integrations/mcp` link lands there.
 - **Admin → Access** (`admin.tab_access`) IS reachable by org admins (`perm: ['admin_security',
   'org_admin', 'manage_users']`). Left rail **Grants / Ceiling**. For a non-super-admin the Grants
   matrix is deliberately narrowed to `kinds={['core','beta']}` — *integrations are handled in

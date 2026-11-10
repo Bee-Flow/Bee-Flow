@@ -5,6 +5,7 @@ import { setDemoTransport } from '../utils/helpers';
 import { createDemoTransport } from './demoTransport';
 import type { DemoRoutes } from './demoTransport';
 import { getDemoFeature, DEMO_FEATURE_IDS } from './registry';
+import useDemoClock from './useDemoClock';
 import { COMMON_ROUTES, DEMO_USER } from './fixtures/common';
 import { EntitlementsProvider } from '../components/licensing/EntitlementsContext';
 import { LicenseProvider } from '../components/licensing/LicenseContext';
@@ -66,6 +67,9 @@ export default function DemoHost({ feature: featureId }: DemoHostProps) {
     });
 
     useEffect(() => () => { setDemoTransport(null); }, []);
+    // A demo is set at a date of its own; the page reads that clock while the
+    // host is mounted, and its own again afterwards (demoClock.ts).
+    useDemoClock(!!feature);
 
     // Swap in the feature's real routes + state once its fixture module lands.
     useEffect(() => {

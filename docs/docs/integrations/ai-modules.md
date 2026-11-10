@@ -42,9 +42,9 @@ Used by [Voice](../features/voice.md). Different from `voice_call` — `tts_spea
 
 | Tool | Backend | Notes |
 |------|---------|-------|
-| `transcribe_audio` | Voxtral (Mistral) / Azure Speech / Azure Whisper / WhisperX self-hosted / local-whisper (whisper.cpp) | Pick under Admin → Integrations → Voice |
+| `transcribe_audio` | Voxtral (Mistral) / Azure Speech / Azure Whisper / WhisperX self-hosted / local-whisper (whisper.cpp) | Pick under Admin → Integrations → Transcription |
 
-The default is **Voxtral** (Mistral cloud) — fast, multilingual, cheapest per minute. Switch in **Admin → Integrations → Voice → Active Provider**.
+The default is **Voxtral** (Mistral cloud) — fast, multilingual, cheapest per minute. Switch in **Admin → Integrations → Transcription** (pick the engine in the list, then **Use this provider**).
 
 For audio capture in the chat UI (voice messages, "press to talk"), the in-process **whisper.cpp** path runs entirely on CPU — no GPU, no API key needed. Toggle via `local_whisper_enabled` config.
 
@@ -58,7 +58,7 @@ For audio capture in the chat UI (voice messages, "press to talk"), the in-proce
 
 | Tool | Backend | Notes |
 |------|---------|-------|
-| `agent_search` | Self-hosted Agent Search service / Cloud-only / Azure Bing | Web search + page fetch + rerank + cleanup. Picked in **Admin → Integrations → Zoeken**. |
+| `agent_search` | Self-hosted Agent Search service / Cloud-only / Azure Bing | Web search + page fetch + rerank + cleanup. Picked in **Admin → Integrations → Search**. |
 | `kb_search` | In-process pgvector / remote search-service | KB-only retrieval. Routed by `kb_provider` admin toggle. |
 
 The cloud-only path runs the entire SERP → fetch → embed → rerank → cleanup loop inside the Node server using your configured providers (Mistral, OpenAI, Azure, Cohere) plus the in-process CPU rerank/embed models — no GPU box required. See [Web search](./web-search.md) for setup and provider comparison.

@@ -34,6 +34,7 @@ const MOCKS = {
         getUserByEmail: async (e) => { touched.push({ what: 'getUserByEmail', args: [e] }); return null; },
         getUserByPasswordResetToken: async (h) => { touched.push({ what: 'getUserByPasswordResetToken', args: [h] }); return null; },
         updateUser: hit('updateUser'),
+        completePasswordReset: async (...args) => { touched.push({ what: 'completePasswordReset', args }); return true; },
     },
     '../passwordPolicy': { validatePasswordAsync: async () => ({ ok: true }) },
     '../loginThrottle': {
@@ -127,7 +128,7 @@ test('a completed reset ends every session the account had', async () => {
     try {
         const res = await dispatch({ method: 'POST', url: '/reset-password', body: { token: 'tok', newPassword: 'Correct-Horse-Battery-9' } });
         assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
-        assert.ok(touched.some((t) => t.what === 'updateUser'));
+        assert.ok(touched.some((t) => t.what === 'completePasswordReset'));
         assert.deepStrictEqual(touched.filter((t) => t.what === 'bustSessionsForUser').map((t) => t.args), [['u1']]);
     } finally { store.getUserByPasswordResetToken = real; }
 });

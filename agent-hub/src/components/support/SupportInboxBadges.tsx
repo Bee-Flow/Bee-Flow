@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { CHIP, CHIP_ERROR, CHIP_SUCCESS, CHIP_WARNING } from '../mcpLibrary/ui';
 import type { CsatStarsProps, SlaBadgeProps, TagChipsProps } from './SupportInboxPanel.types';
 
@@ -52,9 +53,10 @@ export function TagChips({ tags, onRemove }: TagChipsProps) {
 }
 
 export function CsatStars({ score }: CsatStarsProps) {
+    const { t } = useTranslation();
     if (!score) return null;
     return (
-        <span className="inline-flex items-center text-xs text-[var(--warning)]" title={`Customer rated ${score}/5`}>
+        <span className="inline-flex items-center text-xs text-[var(--warning)]" title={t('support.inbox_csat_rated', 'Customer rated {score}/5', { score })}>
             {'★'.repeat(score)}<span className="text-[var(--text-tertiary)]">{'★'.repeat(5 - score)}</span>
         </span>
     );

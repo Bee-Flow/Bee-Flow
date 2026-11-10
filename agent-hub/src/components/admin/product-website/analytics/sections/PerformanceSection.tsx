@@ -141,7 +141,7 @@ export default function PerformanceSection({ scope, onDrill }: PerformanceSectio
                     percentile={percentile} onPercentile={setPercentile} />
             )}
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
                 {graded.map(g => <VitalMeter key={g.id} metric={g} />)}
             </div>
 
@@ -238,9 +238,15 @@ function VitalMeter({ metric }: { metric: GradedMetric }) {
     // Where the value sits across the three bands, capped so a catastrophic
     // outlier still renders a full bar rather than overflowing.
     const pos = measured ? Math.min(1, value / (bands[1] * 1.5)) * 100 : 0;
+    // The three segments as shares of the whole track. Raw thresholds would
+    // not do: CLS's (0.1 / 0.25) sum to less than 1, and a flex-grow total
+    // under 1 hands out only that fraction of the row, so the CLS track
+    // stopped at a third of the tile.
+    const span = bands[1] * 1.5;
+    const share = (v: number) => (v / span) * 100;
 
     return (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl py-3.5 px-4">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl py-3.5 px-4">
             <div className="flex items-baseline justify-between gap-2">
                 <span className="text-[13px] font-semibold text-[var(--text-primary)]">{metric.label}</span>
                 <span
@@ -257,9 +263,9 @@ function VitalMeter({ metric }: { metric: GradedMetric }) {
             {/* Threshold track: good | needs work | poor, with a marker where we sit. */}
             <div className="relative mt-2.5">
                 <div className="flex h-[5px] rounded-full overflow-hidden gap-[1px]">
-                    <div style={{ flex: bands[0], background: tint(GOOD, measured ? 33 : 13) }} />
-                    <div style={{ flex: bands[1] - bands[0], background: tint(MEH, measured ? 33 : 13) }} />
-                    <div style={{ flex: bands[1] * 0.5, background: tint(POOR, measured ? 33 : 13) }} />
+                    <div style={{ flex: share(bands[0]), background: tint(GOOD, measured ? 33 : 13) }} />
+                    <div style={{ flex: share(bands[1] - bands[0]), background: tint(MEH, measured ? 33 : 13) }} />
+                    <div style={{ flex: share(bands[1] * 0.5), background: tint(POOR, measured ? 33 : 13) }} />
                 </div>
                 {measured && (
                     <div className="absolute -top-[3px] h-[11px] w-[3px] -translate-x-1/2 rounded-sm" style={{ left: `${pos}%`, background: inkOf(b.color) }} />

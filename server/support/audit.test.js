@@ -31,9 +31,11 @@ test('emit() resolves staff actor from the request and forwards to recordAuditEv
     const orig = supportStore.recordAuditEvent;
     supportStore.recordAuditEvent = async (ev) => { calls.push(ev); return ev; };
     try {
+        // Express resolved 198.51.100.7 through its trusted proxies; the header's first entry is the client's claim.
         const req = {
             session: { user: { id: 'staff-7' } },
-            headers: { 'user-agent': 'jest', 'x-forwarded-for': '203.0.113.9, 10.0.0.1' },
+            ip: '198.51.100.7',
+            headers: { 'user-agent': 'jest', 'x-forwarded-for': '203.0.113.9, 198.51.100.7, 10.0.0.1' },
         };
         audit.emit(req, { organizationId: 'org-1', inboxId: 'i1', threadId: 't1', action: 'inbox_settings_changed', payload: { changed: ['signature'] } });
         assert.equal(calls.length, 1);
@@ -42,7 +44,7 @@ test('emit() resolves staff actor from the request and forwards to recordAuditEv
         assert.equal(ev.actorUserId, 'staff-7');
         assert.equal(ev.organizationId, 'org-1');
         assert.equal(ev.inboxId, 'i1');
-        assert.equal(ev.ip, '203.0.113.9');
+        assert.equal(ev.ip, '198.51.100.7', 'the trusted-proxy address, not the spoofable leftmost header entry');
         assert.deepEqual(ev.payload, { changed: ['signature'] });
     } finally {
         supportStore.recordAuditEvent = orig;
@@ -71,4 +73,12 @@ test('emit() never throws even if recordAuditEvent rejects', () => {
     } finally {
         supportStore.recordAuditEvent = orig;
     }
+});
+
+test('clientIp never reads X-Forwarded-For: without a resolved address it is the socket peer, or nothing', () => {
+    const spoofed = { 'x-forwarded-for': '203.0.113.9' };
+    assert.equal(audit.clientIp({ headers: spoofed, ip: '198.51.100.7', socket: { remoteAddress: '10.0.0.1' } }), '198.51.100.7');
+    assert.equal(audit.clientIp({ headers: spoofed, socket: { remoteAddress: '10.0.0.1' } }), '10.0.0.1');
+    assert.equal(audit.clientIp({ headers: spoofed }), null);
+    assert.equal(audit.clientIp(null), null);
 });

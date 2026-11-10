@@ -26,10 +26,10 @@ function Stat({ label, value, tone, onClick, title }: StatProps) {
             onClick={onClick}
             title={title}
             className={
-                'flex-1 min-w-[120px] rounded-xl border border-[var(--border-subtle)] '
-                + 'bg-[var(--bg-secondary)] px-4 py-3 text-left '
+                'flex-1 min-w-[120px] rounded-lg border border-[var(--border-default)] '
+                + 'bg-[var(--bg-primary)] px-4 py-3 text-left '
                 + (onClick
-                    ? 'hover:bg-white/5 transition-colors cursor-pointer '
+                    ? 'hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer '
                       + 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]'
                     : '')
             }

@@ -273,9 +273,10 @@ Reply only to the customer's most recent message. If the knowledge base does not
     // (their address/IBAN/order ids legitimately appear in the thread), sent to
     // the org's already-trusted LLM and returned to the data subject. Bypass the
     // PII hard-block so the responder can actually answer — the org-wide block
-    // guard is meant for interactive user→LLM chat, not this flow. (Tokenize is
-    // not used here: non-streaming chatWithAgent doesn't de-tokenize output, so
-    // tokens would leak into the customer reply.)
+    // guard is meant for interactive user→LLM chat, not this flow. (chatWithAgent
+    // restores Privacy Shield tokens in its reply and in tool arguments, so a
+    // tokenising shield would not put placeholders in the customer's mail; the
+    // override is 'allow' because the customer's own data is what the reply is about.)
     // `aiUserId` is synthetic: the KB query log names the requester (null for one without an account), never that id.
     const chatAuth = { userOrgId: thread.organization_id || null, piiActionOverride: 'allow', queryLogCarrier: supportLogs, queryLogAsker: { userId: thread.requester_user_id || null } };
     let actionPolicy = null;

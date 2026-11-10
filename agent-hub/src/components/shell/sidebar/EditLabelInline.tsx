@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface ConvLabel {
@@ -48,6 +49,7 @@ const EditLabelInline = ({ label, onSave, onCancel, t }: EditLabelInlineProps) =
                     value={name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                     onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (isImeEnter(e)) return;
                         if (e.key === 'Enter') handleSave();
                         if (e.key === 'Escape') onCancel();
                     }}

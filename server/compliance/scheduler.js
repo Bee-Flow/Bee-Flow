@@ -73,8 +73,16 @@ async function _acquire(pool) {
  * @param {PoolClient} client
  */
 async function _release(client) {
-    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('compliance/scheduler:_release', err); /* best-effort: the session ends anyway */ }
-    try { client.release(); } catch (err) { bestEffort('compliance/scheduler:_release#2', err); /* already released */ }
+    /** @type {Error | undefined} */
+    let unlockError;
+    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) {
+        unlockError = /** @type {Error} */ (err);
+        bestEffort('compliance/scheduler:_release', err);
+    }
+    // The lock belongs to the session. A client that could not unlock still
+    // holds it: release(err) makes the pool destroy the connection, which ends
+    // the session, instead of lending the lock holder to the next borrower.
+    try { client.release(unlockError); } catch (err) { bestEffort('compliance/scheduler:_release#2', err); /* already released */ }
 }
 
 async function _runAllOrgs(deps = null) {

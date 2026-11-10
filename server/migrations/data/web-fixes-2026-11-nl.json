@@ -1,0 +1,9 @@
+{
+  "translations": {
+    "org.default_language_platform_only": "Dit geldt voor de hele server. Alleen een platformbeheerder kan het wijzigen.",
+    "settings.policy_ack_confirm_wait": "Je kunt bevestigen zodra de tekst van het beleid is geladen.",
+    "settings.policy_ack_load_failed": "Dit beleid kon niet worden geladen.",
+    "vault.delete_failed": "Vergeten is niet gelukt. Er is niets verwijderd. Probeer het opnieuw."
+  },
+  "sameAsEnglish": []
+}

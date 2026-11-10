@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { ProjectTask } from '@/api/queries/projectTasks';
-import { addDays, dependencyEdges, buildWorkTree, monday, moveDates, rangePlacement, rollup, taskRange, timelineRelations, TIMELINE_ROW } from './taskPlanning';
+import { addDays, dependencyEdges, buildWorkTree, monday, moveDates, rangePlacement, rollup, storyPoints, taskRange, timelineRelations, TIMELINE_ROW, withPlanningMeta, workItemType } from './taskPlanning';
 
 describe('Gantt calendar math', () => {
     it('keeps calendar days across DST, leap days and year boundaries', () => {
@@ -190,5 +190,24 @@ describe('timeline relationships', () => {
         const outside = work('outside', { startDate: '2026-09-01', dueDate: '2026-09-02' });
         expect(timelineRelations([a, b, unscheduled, outside], '2026-10-01', 14, 58)).toEqual([]);
         expect(timelineRelations([planned('child', { parentTaskId: 'a' })], '2026-10-01', 14, 58)).toEqual([]);
+    });
+});
+
+describe('withPlanningMeta — sprint labels of a task from before the fields', () => {
+    // Such a task keeps its type and points in labels and nowhere else; the
+    // sprint patch carries labels alone, so what it drops is gone.
+    const legacy = ['urgent', 'bf:type:story', 'bf:points:8'];
+
+    it('keeps the legacy type and points when the task goes into a sprint', () => {
+        const labels = withPlanningMeta(legacy, { sprint: 'Sprint 4', sprintStart: '2026-11-02', sprintEnd: '2026-11-13' });
+        expect(labels).toEqual([...legacy, 'bf:sprint:Sprint 4', 'bf:sprint-start:2026-11-02', 'bf:sprint-end:2026-11-13']);
+        expect(storyPoints({ labels })).toBe(8);
+        expect(workItemType({ labels })).toBe('story');
+    });
+
+    it('replaces the sprint labels on a move and takes all three off on removal', () => {
+        const inSprint = withPlanningMeta(legacy, { sprint: 'Sprint 4', sprintStart: '2026-11-02', sprintEnd: '2026-11-13' });
+        expect(withPlanningMeta(inSprint, { sprint: 'Sprint 5' })).toEqual([...legacy, 'bf:sprint:Sprint 5', 'bf:sprint-start:2026-11-02', 'bf:sprint-end:2026-11-13']);
+        expect(withPlanningMeta(inSprint, { sprint: null })).toEqual(legacy);
     });
 });

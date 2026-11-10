@@ -86,19 +86,52 @@ function toIntOrNull(v) {
     return Number.isFinite(n) ? n : null;
 }
 
+// `metadata.date` is free text in a JSON bag, read as a timestamp. One stored
+// value Postgres cannot cast fails the whole statement, not its row, and
+// Postgres 15 has no cast that answers NULL instead. So there are two forms:
+// the plain cast, which takes every date Postgres does, and a guarded one for
+// the statement that just failed on a stored value. The guard lets a value
+// through only when it is an ISO date (optionally with time and offset) whose
+// day exists in every year, so the cast behind it cannot fail; any other value
+// reads as "no date" (29 February included: the pattern cannot know the year).
+const PLAIN_DATE_SQL = `(metadata->>'date')::timestamptz`;
+const ISO_DAY = '((0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-8])|(0[13-9]|1[0-2])-(29|30)|(0[13578]|1[02])-31)';
+// No `?` in the pattern: buildDocumentFilters marks its parameter with one.
+const ISO_TIME = '([T ]([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9]([.][0-9]{1,6}){0,1}){0,1}(Z|[+-](0[0-9]|1[0-4])(:{0,1}[0-5][0-9]){0,1}){0,1}){0,1}';
+const GUARDED_DATE_SQL = `(CASE WHEN metadata->>'date' ~ '^[1-9][0-9]{3}-${ISO_DAY}${ISO_TIME}$' THEN (metadata->>'date')::timestamptz END)`;
+
+/**
+ * Run a statement that casts `metadata.date`; when Postgres refuses a STORED
+ * date (22007 invalid format, 22008 out of range) run it once more in the
+ * guarded form, so one malformed document costs its own date, not the list.
+ * @template T
+ * @param {(guardedDates: boolean) => Promise<T>} query
+ * @returns {Promise<T>}
+ */
+async function withStoredDateGuard(query) {
+    try {
+        return await query(false);
+    } catch (e) {
+        const code = /** @type {{ code?: string }} */ (e)?.code;
+        if (code !== '22007' && code !== '22008') throw e;
+        return query(true);
+    }
+}
+
 /**
  * WHERE clauses shared by listDocuments / countDocuments. Legacy metadata
  * filters (sender, threadId, …) plus the K1 status/source/pii/q filters.
  */
-function buildDocumentFilters(kbId, filters = {}) {
+function buildDocumentFilters(kbId, filters = {}, { guardedDates = false } = {}) {
+    const dateSql = guardedDates ? GUARDED_DATE_SQL : PLAIN_DATE_SQL;
     const clauses = [`knowledge_base_id = $1`];
     const vals = [kbId];
     const add = (sql, val) => { vals.push(val); clauses.push(sql.replace('?', `$${vals.length}`)); };
     if (filters.sender) add(`metadata->>'from' ILIKE ?`, `%${String(filters.sender).replace(/[%_\\]/g, '\\$&')}%`);
     if (filters.threadId) add(`metadata->>'threadId' = ?`, filters.threadId);
     if (filters.hasAttachment) clauses.push(`(metadata->>'hasAttachments')::boolean = true`);
-    if (filters.dateFrom) add(`(metadata->>'date')::timestamptz >= ?`, filters.dateFrom);
-    if (filters.dateTo) add(`(metadata->>'date')::timestamptz <= ?`, filters.dateTo);
+    if (filters.dateFrom) add(`${dateSql} >= ?`, filters.dateFrom);
+    if (filters.dateTo) add(`${dateSql} <= ?`, filters.dateTo);
     if (filters.sourceType) add(`source_type = ?`, filters.sourceType);
     if (filters.sourceId) add(`source_id = ?`, filters.sourceId);
     // Rows no source owns — those predating the source model, or ingested
@@ -216,7 +249,7 @@ module.exports = {
     DOC_SELECT,
     KB_COUNTS_SELECT,
     toIntOrNull,
-    buildDocumentFilters,
+    buildDocumentFilters, withStoredDateGuard, PLAIN_DATE_SQL, GUARDED_DATE_SQL,
     DOC_CONTENT_COLUMNS,
     KB_UPDATE_COLUMNS,
     kbQueryLogFields,

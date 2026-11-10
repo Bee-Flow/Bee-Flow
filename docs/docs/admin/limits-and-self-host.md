@@ -4,7 +4,7 @@ title: Limits & Self-host
 
 # Limits & Self-host
 
-Admin → AI Configuratie → **Limits & Self-host** is the home for runtime caps and self-hosting routing decisions. Use it to:
+Admin → AI Config → **Limits & Self-host** is the home for runtime caps and self-hosting routing decisions. Use it to:
 
 - Cap how many tool-call rounds a chat turn may consume.
 - Choose between in-process (local) and remote (search-service) knowledge-base storage.

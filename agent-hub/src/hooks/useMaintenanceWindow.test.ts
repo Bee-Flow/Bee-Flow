@@ -25,6 +25,12 @@ describe('secondsUntil', () => {
 });
 
 describe('coarseEta', () => {
+    it('calls the last seconds before a minute a minute, not "about 60 seconds"', () => {
+        expect(coarseEta(54)).toEqual({ unit: 'seconds', value: 50 });
+        for (const s of [55, 57, 59, 59.9]) expect(coarseEta(s)).toEqual({ unit: 'minute', value: 1 });
+        expect(formatEta(58)).toBe('about a minute');
+    });
+
     // The descriptor feeds t() in the banner; formatEta renders the same
     // descriptor in English. One rounding, two renderings.
     it('describes the same coarse buckets formatEta words', () => {

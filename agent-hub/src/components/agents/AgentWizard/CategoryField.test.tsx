@@ -76,6 +76,25 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
         });
     });
 
+    it('the Enter that confirms an IME candidate does not save the rename', async () => {
+        const user = userEvent.setup();
+        const { props } = renderField();
+        await openManage();
+        await user.click(screen.getAllByTitle('Rename')[0]);
+        const input = screen.getByDisplayValue('Sales');
+        await user.clear(input);
+        await user.type(input, '営業');
+
+        // Chrome says isComposing; Safari has ended the composition and says keyCode 229.
+        const left = fireEvent.keyDown(input, { key: 'Enter', isComposing: true, keyCode: 229 });
+        fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 });
+        expect(left).toBe(true);
+        expect(props.onRename).not.toHaveBeenCalled();
+
+        fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+        await waitFor(() => expect(props.onRename).toHaveBeenCalledWith('sales', '営業'));
+    });
+
     it('delete on an in-use category walks the guided flow: unassign', async () => {
         const user = userEvent.setup();
         const onDelete = vi.fn()

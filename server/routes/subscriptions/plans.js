@@ -7,6 +7,7 @@
 const express = require('express');
 const userStore = require('../../stores/userStore');
 const { getAdminId } = require('./shared');
+const { storePlanStripeIds } = require('./storedWrites');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 const { validate } = require('../../core/http/validate');
@@ -159,13 +160,16 @@ router.post('/plans', validate({ body: CreatePlanBody }), async (/** @type {impo
                         updates.stripe_meter_id = result.meterId;
                         updates.stripe_meter_event_name = result.meterEventName;
                     }
-                    await userStore.updatePlan(plan.id, updates);
+                    await storePlanStripeIds(plan.id, updates);
                     Object.assign(plan, updates);
                     log.info(`[Subscriptions] Auto-synced plan ${plan.id} to Stripe: ${result.productId} (${isPayg ? 'metered' : 'fixed'})`);
                 }
             } catch (err) {
                 log.warn(`[Subscriptions] Stripe auto-sync failed for plan ${plan.id}:`, err.message);
-                // Don't fail the plan creation — Stripe sync is optional
+                // Don't fail the plan creation — Stripe sync is optional. That
+                // holds for Stripe ids that could not be stored too: the plan
+                // exists, answering an error would invite creating it twice.
+                // The answer then carries no Stripe ids.
             }
         }
 
@@ -228,17 +232,19 @@ router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (/** @type {i
                         updates.stripe_meter_id = result.meterId;
                         updates.stripe_meter_event_name = result.meterEventName;
                     }
-                    await userStore.updatePlan(updated.id, updates);
+                    await storePlanStripeIds(updated.id, updates);
                     Object.assign(updated, updates);
                     log.info(`[Subscriptions] Auto-synced plan ${updated.id} to Stripe: ${result.productId} (${isPayg ? 'metered' : 'fixed'})`);
                 }
             } catch (err) {
+                if (err instanceof HttpError) throw err; // the sync ran, its ids were not stored
                 log.warn(`[Subscriptions] Stripe auto-sync failed for plan ${updated.id}:`, err.message);
             }
         }
 
         res.json(updated);
     } catch (e) {
+        if (e instanceof HttpError) throw e;
         log.error('[Subscriptions] updatePlan error:', e);
         throw new HttpError(400, 'bad_request', e.message);
     }
@@ -290,7 +296,7 @@ router.post('/plans/:id/sync-stripe', async (/** @type {import('express').Reques
         updates.stripe_meter_id = result.meterId;
         updates.stripe_meter_event_name = result.meterEventName;
     }
-    await userStore.updatePlan(plan.id, updates);
+    await storePlanStripeIds(plan.id, updates);
 
     await userStore.logSubscriptionAudit('update_plan', 'plan', plan.id, getAdminId(req), null, updates);
 

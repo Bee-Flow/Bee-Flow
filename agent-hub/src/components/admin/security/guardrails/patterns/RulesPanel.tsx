@@ -59,7 +59,7 @@ export default function RulesPanel({ rules, setRules, collections, setCollection
                     </p>
                 )}
                 {rules.map(rule => (
-                    <div key={rule.id} className="flex items-center justify-between gap-3 p-3 rounded-lg group bg-[var(--bg-tertiary)] hover:bg-white/5 transition-colors">
+                    <div key={rule.id} className="flex items-center justify-between gap-3 p-3 rounded-md group bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                             <span className="font-medium text-sm text-[var(--text-primary)] whitespace-nowrap">{rule.name}</span>
                             <code className="text-xs px-2 py-1 rounded font-mono truncate bg-[var(--bg-primary)] text-[var(--text-tertiary)]">{rule.pattern}</code>

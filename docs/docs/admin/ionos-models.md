@@ -20,7 +20,7 @@ covers all three jobs of a knowledge base: **chat, embeddings and reranking**.
 
 1. In the IONOS Data Center Designer (DCD), create an API token for the AI Model Hub. See the
    [IONOS documentation](https://docs.ionos.com/cloud/ai/ai-model-hub).
-2. Go to **Admin → AI configuration → API keys** and paste it into the **IONOS** card.
+2. Go to **Admin → AI Config → API Keys** and paste it into the **IONOS** card.
 
 The provider is created automatically and the live model list is read from IONOS on the
 next request. The endpoint is
@@ -52,7 +52,7 @@ shows up in **Admin → Monitoring**.
 
 ## Embeddings
 
-Choose **IONOS** as the embedding provider under **Admin → AI configuration → Embeddings**;
+Choose **IONOS** as the embedding provider under **Admin → AI Config → Embeddings**;
 only the models IONOS flags as embedding models are listed.
 
 Use **`BAAI/bge-m3`** (1024 dimensions). `Qwen3-VL-Embedding-8B` produces more dimensions

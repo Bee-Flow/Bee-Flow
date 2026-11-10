@@ -4,7 +4,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import SupportBulkBar from './SupportBulkBar';
 import { CsatStars, SlaBadge, TagChips } from './SupportInboxBadges';
 import type { SupportThread } from './SupportInboxPanel.types';
-import { PRIORITY_BADGES, STATUS_DOT, STATUS_LABELS, formatRelative, roleLabel } from './supportInboxLabels';
+import { STATUS_DOT, formatRelative, priorityBadges, roleLabel, statusLabels } from './supportInboxLabels';
 import type { useSupportBulk } from './useSupportInboxActions';
 import type { useSupportThreadList } from './useSupportThreadList';
 import FilterPills from '../shared/FilterPills';
@@ -83,14 +83,14 @@ function SupportThreadFilters({ search, setSearch, onSearch, statusFilter, setSt
                     value={statusFilter}
                     onChange={setStatusFilter}
                     options={[
-                        { value: 'active', label: `Active (${activeTotal})` },
+                        { value: 'active', label: t('support.inbox_filter_active', 'Active ({count})', { count: activeTotal }) },
                         ...(counter('followup') || statusFilter === 'followup'
-                            ? [{ value: 'followup', label: `Follow-up (${counter('followup')})` }]
+                            ? [{ value: 'followup', label: t('support.inbox_filter_followup', 'Follow-up ({count})', { count: counter('followup') }) }]
                             : []),
-                        { value: 'awaiting_agent', label: `Awaiting (${counter('awaiting_agent')})` },
-                        { value: 'awaiting_user', label: `Sent (${counter('awaiting_user')})` },
-                        { value: 'resolved', label: `Resolved (${counter('resolved')})` },
-                        { value: 'all', label: 'All' },
+                        { value: 'awaiting_agent', label: t('support.inbox_filter_awaiting', 'Awaiting ({count})', { count: counter('awaiting_agent') }) },
+                        { value: 'awaiting_user', label: t('support.inbox_filter_sent', 'Sent ({count})', { count: counter('awaiting_user') }) },
+                        { value: 'resolved', label: t('support.inbox_filter_resolved', 'Resolved ({count})', { count: counter('resolved') }) },
+                        { value: 'all', label: t('support.inbox_filter_all', 'All') },
                     ]}
                 />
             </div>
@@ -108,7 +108,7 @@ interface SupportThreadRowProps {
 
 function SupportThreadRow({ th, selected, checked, onSelect, onToggle }: SupportThreadRowProps) {
     const { t } = useTranslation();
-    const priority = th.priority !== 'normal' ? PRIORITY_BADGES[th.priority] : undefined;
+    const priority = th.priority !== 'normal' ? priorityBadges(t)[th.priority] : undefined;
     return (
         <div
             className={`flex w-full cursor-pointer items-start gap-2 border-b border-[var(--border-default)] px-3 py-2.5 ${selected ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
@@ -125,7 +125,7 @@ function SupportThreadRow({ th, selected, checked, onSelect, onToggle }: Support
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                     <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[th.status] || 'bg-[var(--text-tertiary)]'}`} />
                     <span className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
-                        {STATUS_LABELS[th.status] || th.status}
+                        {statusLabels(t)[th.status] || th.status}
                     </span>
                     {th.source === 'marketing' && <span className={CHIP_INFO}>{t('support.support_inbox_marketing', 'marketing')}</span>}
                     {priority && <span className={priority.cls}>{priority.label}</span>}
@@ -143,7 +143,7 @@ function SupportThreadRow({ th, selected, checked, onSelect, onToggle }: Support
                 {(th.requester_org_role || th.requester_org_name) && (
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                         <span className="inline-flex items-center gap-1 rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[var(--text-secondary)]">
-                            <Shield className="h-3 w-3" aria-hidden="true" /> {roleLabel(th.requester_org_role)}
+                            <Shield className="h-3 w-3" aria-hidden="true" /> {roleLabel(th.requester_org_role, t)}
                         </span>
                         {th.requester_org_name && <span className="truncate">{th.requester_org_name}</span>}
                     </div>

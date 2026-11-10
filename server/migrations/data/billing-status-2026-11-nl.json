@@ -1,0 +1,8 @@
+{
+  "translations": {
+    "admin_subscriptions.org_editor_status_manual_action_required": "Betaling vereist actie",
+    "admin_subscriptions.orgs_status_manual_action_required": "Actie vereist",
+    "org.sub_status_manual_action_required": "Betaling vereist actie"
+  },
+  "sameAsEnglish": []
+}

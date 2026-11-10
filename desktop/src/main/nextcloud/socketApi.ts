@@ -52,7 +52,6 @@ export const DEFAULT_SOCKET_TIMEOUT_MS = 2_000;
 
 export class NextcloudSocketApi {
     private readonly options: SocketApiOptions;
-    private readonly buffer = new LineBuffer();
     private socket: SocketLike | null = null;
     private pending: PendingStatus[] = [];
     private registered = new Set<string>();
@@ -148,7 +147,6 @@ export class NextcloudSocketApi {
         }
         this.pending = [];
         this.registered.clear();
-        this.buffer.reset();
         this.socket?.destroy();
         this.socket = null;
         this.socketPath = null;
@@ -178,8 +176,17 @@ export class NextcloudSocketApi {
 
             const timer = setTimeout(() => finish(false), this.options.timeoutMs ?? DEFAULT_SOCKET_TIMEOUT_MS);
 
+            // One buffer per candidate. A shared one kept the half line a dead
+            // candidate left behind, and the next candidate's `VERSION:` reply
+            // was glued to it: a client that was running read as absent.
+            const buffer = new LineBuffer();
+            // A candidate that was turned down has nothing more to say here:
+            // not a late line, and not a close that ends the one that was kept.
+            const turnedDown = () => settled && this.socket !== socket;
+
             socket.on('data', (chunk) => {
-                const messages = this.buffer.push(typeof chunk === 'string' ? chunk : chunk.toString('utf8'));
+                if (turnedDown()) return;
+                const messages = buffer.push(typeof chunk === 'string' ? chunk : chunk.toString('utf8'));
                 for (const message of messages) {
                     if (!settled && message.command === 'VERSION') {
                         this.clientVersion = message.args[0] ?? null;
@@ -191,11 +198,13 @@ export class NextcloudSocketApi {
                 }
             });
             socket.on('error', (error) => {
+                if (turnedDown()) return;
                 this.options.onWarning?.(`Nextcloud socket error: ${error.message}`);
                 finish(false);
                 this.handleClose();
             });
             socket.on('close', () => {
+                if (turnedDown()) return;
                 finish(false);
                 this.handleClose();
             });
@@ -233,7 +242,6 @@ export class NextcloudSocketApi {
         this.socket = null;
         this.socketPath = null;
         this.registered.clear();
-        this.buffer.reset();
         for (const entry of this.pending) {
             clearTimeout(entry.timer);
             entry.resolve('UNKNOWN');

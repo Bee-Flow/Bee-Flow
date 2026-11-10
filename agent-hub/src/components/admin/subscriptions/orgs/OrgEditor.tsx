@@ -178,6 +178,7 @@ export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTria
                                 <option value="suspended">{t('admin_subscriptions.org_editor_status_suspended', 'Suspended')}</option>
                                 <option value="cancelled">{t('admin_subscriptions.org_editor_status_cancelled', 'Cancelled')}</option>
                                 {orgSub?.status === 'trialing' && <option value="trialing">{t('admin_subscriptions.org_editor_status_trialing', 'Trialing')}</option>}
+                                {orgSub?.status === 'manual_action_required' && <option value="manual_action_required">{t('admin_subscriptions.org_editor_status_manual_action_required', 'Payment action required')}</option>}
                             </Select>
                         </Field>
                     </div>

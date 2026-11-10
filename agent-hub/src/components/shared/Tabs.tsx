@@ -82,7 +82,7 @@ export default function Tabs<TId extends string = string>({
         <div
             role="tablist"
             aria-label={ariaLabel}
-            className={`flex items-center gap-1 border-b border-[var(--border-subtle)] ${className}`}
+            className={`flex items-center gap-1 overflow-x-auto border-b border-[var(--border-subtle)] [scrollbar-width:none] ${className}`}
         >
             {items.map((item, idx) => {
                 const selected = item.id === value;
@@ -102,11 +102,11 @@ export default function Tabs<TId extends string = string>({
                         onClick={() => onChange(item.id)}
                         onKeyDown={(e) => handleKeyDown(e, idx)}
                         className={
-                            `inline-flex items-center gap-2 rounded-t-md transition-colors ${padding} ` +
+                            `inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-t-md transition-colors ${padding} ` +
                             'disabled:opacity-50 disabled:cursor-not-allowed ' +
                             (selected
-                                ? 'text-[var(--text-primary)] border-b-2 border-[var(--accent-primary)] -mb-px'
-                                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-white/5')
+                                ? 'text-[var(--text-primary)] shadow-[inset_0_-2px_0_var(--accent-primary)]'
+                                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]')
                         }
                     >
                         {item.icon}

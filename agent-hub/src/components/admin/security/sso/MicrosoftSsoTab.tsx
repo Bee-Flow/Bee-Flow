@@ -1,8 +1,9 @@
 import { Fragment, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { Plus, Trash2, Upload, X } from 'lucide-react';
+import { QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import {
-    CARD, CODE, LABEL,
+    CARD, CODE, INPUT, LABEL,
     ClientIdField, ClientSecretField, ProviderActions, ProviderHeader, SetupInstructions,
 } from './SsoFormParts';
 import { newConnectionId } from './useSsoProviders';
@@ -11,7 +12,6 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 const TENANT_ALIASES = ['common', 'organizations', 'consumers'];
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const INPUT = 'w-full px-4 py-2.5 rounded-lg text-sm bg-[var(--bg-tertiary)] border text-[var(--text-primary)]';
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
 /** The same ceiling as the server (auth/oauth/microsoftConnections.mts). */
 export const MAX_LOGO_BYTES = 100 * 1024;
@@ -62,11 +62,11 @@ function TenantIdField({ value, onChange, withHelp, id }: TenantIdFieldProps) {
             <label htmlFor={id} className={LABEL}>
                 {t('admin_security.sso_tenant_id', 'Tenant ID')}
                 {isMultiTenant ? (
-                    <span className="text-[var(--info-ink)] text-xs ml-2">{t('admin_security.sso_multi_tenant', '(multi-tenant)')}</span>
+                    <span className="ml-2 font-normal text-[var(--info-ink)]">{t('admin_security.sso_multi_tenant', '(multi-tenant)')}</span>
                 ) : tenantIdValid ? (
-                    <span className="text-[var(--success-ink)] text-xs ml-2">{t('admin_security.sso_single_tenant', '(single-tenant)')}</span>
+                    <span className="ml-2 font-normal text-[var(--success-ink)]">{t('admin_security.sso_single_tenant', '(single-tenant)')}</span>
                 ) : (
-                    <span className="text-orange-400 text-xs ml-2">{t('admin_security.sso_tenant_invalid', '(invalid format: should be a GUID or "common")')}</span>
+                    <span className="ml-2 font-normal text-[var(--warning-ink)]">{t('admin_security.sso_tenant_invalid', '(invalid format: should be a GUID or "common")')}</span>
                 )}
             </label>
             <input
@@ -75,12 +75,12 @@ function TenantIdField({ value, onChange, withHelp, id }: TenantIdFieldProps) {
                 value={tenantId}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={t('admin_security.sso_tenant_ph', 'common')}
-                className={`${INPUT} font-mono ${tenantIdValid ? 'border-[var(--border-default)]' : 'border-orange-400/50'}`}
+                className={`${INPUT} font-mono ${tenantIdValid ? '' : 'border-[var(--warning)]'}`}
             />
             {withHelp && (
-                <div className="mt-2 p-3 rounded-lg text-xs bg-[var(--bg-tertiary)] border border-[var(--border-default)]">
-                    <p className="text-secondary mb-1"><strong>{t('admin_security.sso_single_app', 'Single-tenant app')}</strong> {t('admin_security.sso_single_app_desc', 'paste your Directory (tenant) ID from Azure Portal → App Overview (e.g.')} <code className="text-muted">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>{t('admin_security.sso_single_app_desc2', '). Required if "Supported account types" is set to "Single tenant".')}</p>
-                    <p className="text-secondary"><strong>{t('admin_security.sso_multi_app', 'Multi-tenant app')}</strong> {t('admin_security.sso_multi_app_use', 'use')} <code className="text-muted">common</code> {t('admin_security.sso_multi_app_any', '(any Microsoft account),')} <code className="text-muted">organizations</code> {t('admin_security.sso_multi_app_work', '(work/school only), or')} <code className="text-muted">consumers</code> {t('admin_security.sso_multi_app_personal', '(personal only).')}</p>
+                <div className="mt-2 rounded-md bg-[var(--bg-secondary)] p-3 text-xs text-[var(--text-secondary)]">
+                    <p className="m-0 mb-1"><strong>{t('admin_security.sso_single_app', 'Single-tenant app')}</strong> {t('admin_security.sso_single_app_desc', 'paste your Directory (tenant) ID from Azure Portal → App Overview (e.g.')} <code className={CODE}>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>{t('admin_security.sso_single_app_desc2', '). Required if "Supported account types" is set to "Single tenant".')}</p>
+                    <p className="m-0"><strong>{t('admin_security.sso_multi_app', 'Multi-tenant app')}</strong> {t('admin_security.sso_multi_app_use', 'use')} <code className={CODE}>common</code> {t('admin_security.sso_multi_app_any', '(any Microsoft account),')} <code className={CODE}>organizations</code> {t('admin_security.sso_multi_app_work', '(work/school only), or')} <code className={CODE}>consumers</code> {t('admin_security.sso_multi_app_personal', '(personal only).')}</p>
                 </div>
             )}
         </div>
@@ -113,22 +113,22 @@ function LogoField({ value, onChange, inputId }: LogoFieldProps) {
         <div>
             <span className={LABEL}>{t('admin_security.sso_ms_logo', 'Logo')}</span>
             <div className="flex items-center gap-3">
-                <div className="h-10 min-w-10 max-w-[160px] px-2 rounded-lg border border-[var(--border-default)] bg-white flex items-center justify-center overflow-hidden">
+                <div className="h-9 min-w-9 max-w-[160px] px-2 rounded-md border border-[var(--border-default)] bg-white flex items-center justify-center overflow-hidden">
                     {value ? <img src={value} alt="" className="h-7 w-auto max-w-[140px] object-contain" /> : <MicrosoftLogo />}
                 </div>
                 <input ref={fileRef} id={inputId} type="file" accept={LOGO_TYPES.join(',')} onChange={onFile} className="sr-only" />
                 <button type="button" onClick={() => fileRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-secondary)]">
-                    <Upload className="w-4 h-4" /> {t('admin_security.sso_ms_logo_choose', 'Choose image')}
+                    className={SECONDARY_BTN}>
+                    <Upload className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_security.sso_ms_logo_choose', 'Choose image')}
                 </button>
                 {value && (
                     <button type="button" onClick={() => { onChange(''); setProblem(null); }}
-                        className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                        <X className="w-3.5 h-3.5" /> {t('admin_security.sso_ms_logo_remove', 'Remove logo')}
+                        className={QUIET_BTN}>
+                        <X className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_security.sso_ms_logo_remove', 'Remove logo')}
                     </button>
                 )}
             </div>
-            <p className={`mt-1.5 text-xs ${problem ? 'text-[var(--warning-ink)]' : 'text-muted'}`}>
+            <p className={`m-0 mt-1.5 text-xs ${problem ? 'text-[var(--warning-ink)]' : 'text-[var(--text-tertiary)]'}`}>
                 {problem === 'size' ? t('admin_security.sso_ms_logo_too_large', 'That image is larger than 100 KB.')
                     : problem === 'type' ? t('admin_security.sso_ms_logo_type', 'Choose a PNG, JPEG, SVG or WebP image.')
                         : t('admin_security.sso_ms_logo_hint', 'PNG, JPEG, SVG or WebP, at most 100 KB.')}
@@ -149,13 +149,13 @@ interface ButtonFieldsProps {
 function LoginButtonFields({ label, logo, onLabel, onLogo, idPrefix }: ButtonFieldsProps) {
     const { t } = useTranslation();
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div>
                 <label htmlFor={`${idPrefix}-label`} className={LABEL}>{t('admin_security.sso_ms_button_label', 'Button text')}</label>
                 <input id={`${idPrefix}-label`} type="text" value={label} maxLength={60}
                     onChange={(e) => onLabel(e.target.value)}
                     placeholder={t('admin_security.sso_ms_button_label_ph', 'Sign in with Microsoft')}
-                    className={`${INPUT} border-[var(--border-default)]`} />
+                    className={INPUT} />
             </div>
             <LogoField value={logo} onChange={onLogo} inputId={`${idPrefix}-logo`} />
             <div className="lg:col-span-2">
@@ -183,34 +183,34 @@ function ConnectionCard({ index, connection, secret, onChange, onSecret, onRemov
     const idPrefix = `ms-connection-${connection.id}`;
     const set = (patch: Partial<MicrosoftConnection>) => onChange({ ...connection, ...patch });
     return (
-        <div className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] space-y-5" data-testid={`ms-connection-${index}`}>
+        <div className="space-y-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4" data-testid={`ms-connection-${index}`}>
             <div className="flex items-center justify-between">
-                <h4 className="font-semibold text-primary">{t('admin_security.sso_ms_connection_n', 'Tenant {n}', { n: index + 1 })}</h4>
+                <h4 className="m-0 text-[13px] font-semibold text-[var(--text-primary)]">{t('admin_security.sso_ms_connection_n', 'Tenant {n}', { n: index + 1 })}</h4>
                 <button type="button" onClick={onRemove}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--error-ink)]">
-                    <Trash2 className="w-3.5 h-3.5" /> {t('admin_security.sso_ms_connection_remove', 'Remove')}
+                    className={`${SECONDARY_BTN} hover:text-[var(--error-ink)]`}>
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_security.sso_ms_connection_remove', 'Remove')}
                 </button>
             </div>
             <LoginButtonFields label={connection.label} logo={connection.logo} idPrefix={idPrefix}
                 onLabel={(label) => set({ label })} onLogo={(logo) => set({ logo })} />
-            <p className="text-xs text-muted -mt-3">{t('admin_security.sso_ms_connection_label_hint', 'Shown on the button, for example the name of the subsidiary.')}</p>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <p className="m-0 -mt-2 text-xs text-[var(--text-tertiary)]">{t('admin_security.sso_ms_connection_label_hint', 'Shown on the button, for example the name of the subsidiary.')}</p>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div>
                     <label htmlFor={`${idPrefix}-client`} className={LABEL}>{t('admin_security.sso_ms_application', 'Application ({label})', { label: t('admin.sso_client_id') })}</label>
                     <input id={`${idPrefix}-client`} type="text" value={connection.clientId}
                         onChange={(e) => set({ clientId: e.target.value })}
                         placeholder={t('admin_security.sso_ms_client_id_ph', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')}
-                        className={`${INPUT} font-mono border-[var(--border-default)]`} />
+                        className={`${INPUT} font-mono`} />
                 </div>
                 <div>
                     <label htmlFor={`${idPrefix}-secret`} className={LABEL}>
-                        {t('admin.sso_client_secret')} {connection.clientSecretSet && <span className="text-[var(--success-ink)] text-xs">{t('admin.sso_secret_configured')}</span>}
+                        {t('admin.sso_client_secret')} {connection.clientSecretSet && <span className="font-normal text-[var(--success-ink)]">{t('admin.sso_secret_configured')}</span>}
                     </label>
                     <input id={`${idPrefix}-secret`} type="password" value={secret}
                         onChange={(e) => onSecret(e.target.value)}
                         // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the placeholder text of the empty secret field, not a secret
                         placeholder={connection.clientSecretSet ? t('admin.sso_secret_empty') : t('admin_security.sso_ms_secret_ph', 'Client Secret Value')}
-                        className={`${INPUT} font-mono border-[var(--border-default)]`} />
+                        className={`${INPUT} font-mono`} />
                 </div>
                 <TenantIdField id={`${idPrefix}-tenant`} value={connection.tenantId} onChange={(tenantId) => set({ tenantId })} />
             </div>
@@ -227,11 +227,11 @@ function ConnectionsCard({ sso }: { sso: SsoProvidersState }) {
     const add = () => setConnections([...connections, { id: newConnectionId(), label: '', logo: '', clientId: '', tenantId: '', clientSecretSet: false }]);
     return (
         <div className={CARD}>
-            <h4 className="font-semibold text-primary mb-1">{t('admin_security.sso_ms_connections_title', 'Additional Microsoft tenants')}</h4>
-            <p className="text-sm text-muted mb-5">{t('admin_security.sso_ms_connections_desc', 'Each additional tenant has its own app registration and its own button on the login page. Register the same redirect URI in every app.')}</p>
+            <h4 className="m-0 mb-1 text-[13px] font-semibold text-[var(--text-primary)]">{t('admin_security.sso_ms_connections_title', 'Additional Microsoft tenants')}</h4>
+            <p className="m-0 mb-4 text-xs text-[var(--text-secondary)]">{t('admin_security.sso_ms_connections_desc', 'Each additional tenant has its own app registration and its own button on the login page. Register the same redirect URI in every app.')}</p>
             <div className="space-y-4">
                 {connections.length === 0 && (
-                    <p className="text-sm text-secondary">{t('admin_security.sso_ms_connections_empty', 'No additional tenants. Everyone signs in through the app registration above.')}</p>
+                    <p className="m-0 text-xs text-[var(--text-tertiary)]">{t('admin_security.sso_ms_connections_empty', 'No additional tenants. Everyone signs in through the app registration above.')}</p>
                 )}
                 {connections.map((connection, index) => (
                     <ConnectionCard key={connection.id} index={index} connection={connection}
@@ -242,8 +242,8 @@ function ConnectionsCard({ sso }: { sso: SsoProvidersState }) {
                 ))}
             </div>
             <button type="button" onClick={add} data-testid="ms-connection-add"
-                className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-primary)] hover:text-[var(--text-primary)]">
-                <Plus className="w-4 h-4" /> {t('admin_security.sso_ms_connection_add', 'Add tenant')}
+                className={`mt-4 ${SECONDARY_BTN}`}>
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_security.sso_ms_connection_add', 'Add tenant')}
             </button>
         </div>
     );
@@ -273,7 +273,7 @@ export default function MicrosoftSsoTab({ sso }: { sso: SsoProvidersState }) {
     const { providers, redirectBase, updateProviderField } = sso;
     const ms = providers.microsoft;
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-4">
             <div className={CARD}>
                 <ProviderHeader
                     logo={<svg className="w-7 h-7" viewBox="0 0 23 23"><path fill="#f35325" d="M1 1h10v10H1z" /><path fill="#81bc06" d="M12 1h10v10H12z" /><path fill="#05a6f0" d="M1 12h10v10H1z" /><path fill="#ffba08" d="M12 12h10v10H12z" /></svg>}
@@ -282,7 +282,7 @@ export default function MicrosoftSsoTab({ sso }: { sso: SsoProvidersState }) {
                     config={ms}
                 />
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <ClientIdField
                         provider="microsoft"
                         sso={sso}
@@ -295,8 +295,8 @@ export default function MicrosoftSsoTab({ sso }: { sso: SsoProvidersState }) {
             </div>
 
             <div className={CARD}>
-                <h4 className="font-semibold text-primary mb-1">{t('admin_security.sso_ms_button_title', 'Login button')}</h4>
-                <p className="text-sm text-muted mb-5">{t('admin_security.sso_ms_button_desc', 'What this app\'s button on the login page shows. Leave the text empty for "Sign in with Microsoft"; without a logo the Microsoft logo is used.')}</p>
+                <h4 className="m-0 mb-1 text-[13px] font-semibold text-[var(--text-primary)]">{t('admin_security.sso_ms_button_title', 'Login button')}</h4>
+                <p className="m-0 mb-4 text-xs text-[var(--text-secondary)]">{t('admin_security.sso_ms_button_desc', 'What this app\'s button on the login page shows. Leave the text empty for "Sign in with Microsoft"; without a logo the Microsoft logo is used.')}</p>
                 <LoginButtonFields label={ms.label || ''} logo={ms.logo || ''} idPrefix="ms-primary"
                     onLabel={(v) => updateProviderField('microsoft', 'label', v)}
                     onLogo={(v) => updateProviderField('microsoft', 'logo', v)} />

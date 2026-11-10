@@ -11,7 +11,7 @@ const { Readable } = require('stream');
 const { ingestVcf } = require('./ingest');
 const blockIndex = require('./blockIndex');
 const rsidIdx = require('./rsidIndex');
-const { queryRegion } = require('./query');
+const { queryRegion, DatasetQueryError } = require('./query');
 
 test('rsid query: an rsID on several lines at one position returns each row once, also across a block boundary', async () => {
     const lines = [
@@ -53,4 +53,19 @@ test('rsid query: an rsID on several lines at one position returns each row once
     assert.deepStrictEqual(r.rows.map((row) => row.alt), ['G', 'T']);
     assert.strictEqual(r.rowCount, 2);
     assert.strictEqual(r.truncated, false);
+});
+
+test('rsid query: a numeric rsid that is not a non-negative integer is a query error, like an unreadable string', async () => {
+    const dataset = {
+        build: 'GRCh38', samples: [],
+        loadIndex: async () => blockIndex.deserialize(blockIndex.serialize([], 0)),
+        readRange: async () => Buffer.alloc(0),
+        readRsidShard: async () => rsidIdx.serializeShard([]),
+    };
+    for (const rsid of [-5, 12.5, NaN, Infinity, 2 ** 60]) {
+        await assert.rejects(queryRegion(dataset, { rsid }), (e) => e instanceof DatasetQueryError && /unreadable rsID/.test(e.message), `rsid ${rsid}`);
+    }
+    const miss = await queryRegion(dataset, { rsid: 777 });
+    assert.strictEqual(miss.rsid, 'rs777');
+    assert.strictEqual(miss.rowCount, 0);
 });

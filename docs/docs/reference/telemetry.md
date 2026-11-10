@@ -14,7 +14,7 @@ Current reality:
 - **Metrics**: implemented and **off by default** (env-gated, no-op unless configured). Two surfaces: an admin-gated `GET /api/admin/metrics` (Prometheus text or JSON) from in-memory counters, and an OpenTelemetry meter exported over OTLP when `OTEL_ENABLED` / `OTEL_EXPORTER_OTLP_ENDPOINT` are set.
 - **Tracing**: implemented — OTLP/HTTP trace exporter + auto-instrumentation, same env gate as metrics.
 - **Usage / ops push**: optional periodic JSON push of usage-cost and ops snapshots to an OpenObserve-style store (`USAGE_PUSH_ENABLED` / `OPS_PUSH_ENABLED`).
-- **Audit log**: real and complete — `guardrail_events`, `admin_audit_events`, `automation_runs` tables in Postgres. See [Admin → Audit & compliance](../admin/audit-and-compliance.md).
+- **Audit log**: real and complete — `guardrail_events`, `admin_audit_events`, `automation_runs` tables in Postgres. See [Admin → Compliance](../admin/audit-and-compliance.md).
 
 Everything metric/trace-related is a no-op until the corresponding env vars are set, so the default self-host footprint is logs-only.
 
@@ -184,33 +184,9 @@ services:
 
 ## Audit log shipping (Enterprise+)
 
-Different mechanism from app logs. Bee Flow can push **guardrail events** in real time to a webhook:
+Different mechanism from app logs, and not shipped yet: Bee Flow has no real-time push of guardrail events (or of the sign-in and access log) to a webhook or SIEM. It is on the [Audit & compliance roadmap](../admin/audit-and-compliance.md#roadmap-not-yet-shipped).
 
-| Setting | Value |
-|---------|-------|
-| URL | Your SIEM ingest endpoint |
-| Shared secret | HMAC-SHA256 secret |
-| Severity filter | `low` / `medium` / `high` |
-| Retry | 3× with exponential backoff |
-
-Configure in **Admin → Audit & compliance → Webhooks**. Format:
-
-```json
-{
-  "id": "ev_abc",
-  "organizationId": "org_123",
-  "userId": "u_alice",
-  "agentId": "asst_xyz",
-  "violationType": "pii",
-  "violationCategories": "email,phone",
-  "direction": "input",
-  "actionTaken": "redact",
-  "model": "claude-opus-4-7",
-  "timestamp": "2026-05-09T13:30:00Z"
-}
-```
-
-Verify the `X-Beeflow-Sig` HMAC on your end before processing.
+What exists today is pull, not push: the sign-in and access-control trail can be downloaded as a JSON export (**Compliance → ISO → Sign-in & access log**), and the Compliance Hub has its own PDF and JSON exports. See [Audit & compliance → What's logged](../admin/audit-and-compliance.md#whats-logged).
 
 ## Metrics
 

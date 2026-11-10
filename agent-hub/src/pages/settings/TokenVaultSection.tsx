@@ -95,6 +95,9 @@ const TokenVaultSection = () => {
         return () => clearTimeout(id);
     }, [search, load]);
 
+    // A refused delete used to say nothing: the row simply stayed.
+    const deleteFailed = t('vault.delete_failed', 'Could not forget that. Nothing was removed. Please try again.');
+
     const removeEntry = async (entry: VaultEntry) => {
         // The catalogue string is one text; its first paragraph is the question.
         const [title, ...rest] = t(
@@ -110,7 +113,9 @@ const TokenVaultSection = () => {
                 throw err;
             });
             if (res) {
-                setState((s: VaultState) => ({ ...s, entries: s.entries.filter((e: VaultEntry) => e.id !== entry.id), total: Math.max(0, s.total - 1) }));
+                setState((s: VaultState) => ({ ...s, error: '', entries: s.entries.filter((e: VaultEntry) => e.id !== entry.id), total: Math.max(0, s.total - 1) }));
+            } else {
+                setState((s: VaultState) => ({ ...s, error: deleteFailed }));
             }
         } finally {
             setBusyId(null);
@@ -135,6 +140,7 @@ const TokenVaultSection = () => {
                 throw err;
             });
             if (res) await load(0, search);
+            else setState((s: VaultState) => ({ ...s, error: deleteFailed }));
         } finally {
             setBusyId(null);
         }
@@ -150,7 +156,7 @@ const TokenVaultSection = () => {
             <TokenVaultSectionSection2 search={search} setSearch={setSearch} t={t} total={total} />
 
             {error && (
-                <div className="flex items-center gap-2 p-3 rounded-lg text-xs bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-[var(--error-ink)]">
+                <div role="alert" className="flex items-center gap-2 p-3 rounded-lg text-xs bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-[var(--error-ink)]">
                     <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
                     {error}
                 </div>

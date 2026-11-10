@@ -2,7 +2,7 @@
 // periods, manual-override handling and the row-locked update wrappers.
 // @typecheck
 const crypto = require('crypto');
-const { run, getOne, getAll, getClient } = require('../../db');
+const { run, getOne, getAll, withTransaction } = require('../../db');
 const { initDB } = require('./schema');
 const { dynamicUpdate, parseJSON } = require('./shared');
 const { getPlan } = require('./plans');
@@ -23,79 +23,102 @@ async function getOrgSubscription(orgId) {
     return { ...s, billing_model: s.plan_billing_model || 'fixed', allowed_features: parseJSON(s.allowed_features, null), allowed_models: parseJSON(s.allowed_models, null), max_messages_by_type: parseJSON(s.max_messages_by_type, null) };
 }
 
-const VALID_SUB_STATUSES = ['active', 'suspended', 'cancelled', 'trialing', 'past_due', 'incomplete', 'paused'];
+// 'manual_action_required' is the end of dunning (routes/stripe/paymentEvents.js):
+// payment failed DUNNING_MAX_ATTEMPTS times. It locks out like 'suspended'.
+const VALID_SUB_STATUSES = ['active', 'suspended', 'cancelled', 'trialing', 'past_due', 'incomplete', 'paused', 'manual_action_required'];
 
-async function setOrgSubscription(orgId, data, { resetLimits = false } = {}) {
-    await initDB();
+function assertValidStatus(data) {
     if (data.status && !VALID_SUB_STATUSES.includes(data.status)) {
         throw new Error(`Invalid subscription status: ${data.status}`);
     }
-    const existing = await getOrgSubscription(orgId);
+}
+
+// The PAYG hot-path cache holds plan / customer / status: drop it after a write.
+function bustPaygCache(orgId, userId) {
+    try { require('../usage/payg').invalidatePaygCache(orgId, userId); } catch (err) { bestEffort('stores/user/subscriptions:bustPaygCache', err); /* circular-load safe */ }
+}
+
+/**
+ * The row write of an org subscription, through `exec`: the pool's `run`, or
+ * the query of a transaction client that holds the row lock. Throws on a
+ * database error.
+ * @param {(sql: string, params: unknown[]) => Promise<unknown>} exec
+ * @param {string} orgId
+ * @param {Record<string, any>} data
+ * @param {{ plan_id?: string|null } | null} existing  the current row, null to insert
+ * @param {{ resetLimits?: boolean }} [opts]  see the limit columns below
+ */
+async function writeOrgSubscription(exec, orgId, data, existing, { resetLimits = false } = {}) {
     const now = new Date().toISOString();
+    if (existing) {
+        const updateMap = {};
+        if (data.plan_id !== undefined) updateMap.plan_id = data.plan_id;
+        if (data.status !== undefined) updateMap.status = data.status;
+        if (data.max_messages_per_month !== undefined) updateMap.max_messages_per_month = data.max_messages_per_month;
+        if (data.max_messages_by_type !== undefined) updateMap.max_messages_by_type = JSON.stringify(data.max_messages_by_type);
+        if (data.max_tokens_per_month !== undefined) updateMap.max_tokens_per_month = data.max_tokens_per_month;
+        if (data.max_cost_per_month !== undefined) updateMap.max_cost_per_month = data.max_cost_per_month;
+        if (data.max_users !== undefined) updateMap.max_users = data.max_users;
+        if (data.max_agents !== undefined) updateMap.max_agents = data.max_agents;
+        if (data.max_knowledge_sources !== undefined) updateMap.max_knowledge_sources = data.max_knowledge_sources;
+        if (data.allowed_features !== undefined) updateMap.allowed_features = JSON.stringify(data.allowed_features);
+        if (data.allowed_models !== undefined) updateMap.allowed_models = JSON.stringify(data.allowed_models);
+        if (data.billing_cycle_start !== undefined) updateMap.billing_cycle_start = data.billing_cycle_start;
+        if (data.notes !== undefined) updateMap.notes = data.notes;
+        if (data.trial_end_date !== undefined) updateMap.trial_end_date = data.trial_end_date;
+        if (data.stripe_customer_id !== undefined) updateMap.stripe_customer_id = data.stripe_customer_id;
+        if (data.stripe_subscription_id !== undefined) updateMap.stripe_subscription_id = data.stripe_subscription_id;
+        if (data.payment_status !== undefined) updateMap.payment_status = data.payment_status;
+        if (data.manual_override_until !== undefined) updateMap.manual_override_until = data.manual_override_until;
+        if (data.manual_override_by !== undefined) updateMap.manual_override_by = data.manual_override_by;
+        if (data.stripe_seat_quantity !== undefined) updateMap.stripe_seat_quantity = data.stripe_seat_quantity;
+        if (data.cancel_at_period_end !== undefined) updateMap.cancel_at_period_end = data.cancel_at_period_end;
+        if (data.cancel_at !== undefined) updateMap.cancel_at = data.cancel_at;
+        if (data.current_period_end !== undefined) updateMap.current_period_end = data.current_period_end;
+        if (data.pending_plan_id !== undefined) updateMap.pending_plan_id = data.pending_plan_id;
+        if (data.pending_plan_effective !== undefined) updateMap.pending_plan_effective = data.pending_plan_effective;
+        if (data.stripe_schedule_id !== undefined) updateMap.stripe_schedule_id = data.stripe_schedule_id;
+        if (data.payment_attempt_count !== undefined) updateMap.payment_attempt_count = data.payment_attempt_count;
+        if (data.last_payment_failure_at !== undefined) updateMap.last_payment_failure_at = data.last_payment_failure_at;
+        if (data.past_due_since !== undefined) updateMap.past_due_since = data.past_due_since;
+        // BFSF-245/249: the max_* columns are *overrides* that getEffectiveLimits
+        // prefers over the plan, so values left from a previous (Free) plan
+        // would cap a paying subscriber (€2 cost cap, 5 agents, 3 KB). On a plan
+        // change, or a deliberate (re)assignment of the same plan (resetLimits:
+        // admin PUT, checkout, trial), every limit the caller does not write is
+        // cleared so the plan governs. Not on any write that carries plan_id:
+        // Stripe's subscription.updated re-sends it and must keep overrides.
+        const LIMIT_OVERRIDE_COLS = ['max_messages_per_month', 'max_messages_by_type', 'max_tokens_per_month', 'max_cost_per_month', 'max_users', 'max_agents', 'max_knowledge_sources'];
+        const planIsChanging = data.plan_id !== undefined && data.plan_id !== existing.plan_id;
+        const resetting = data.plan_id !== undefined && (planIsChanging || resetLimits);
+        for (const c of LIMIT_OVERRIDE_COLS) if (resetting && data[c] === undefined) updateMap[c] = null;
+        updateMap.updated_at = now;
+        const colMap = { plan_id: 'plan_id', status: 'status', max_messages_per_month: 'max_messages_per_month', max_messages_by_type: 'max_messages_by_type', max_tokens_per_month: 'max_tokens_per_month', max_cost_per_month: 'max_cost_per_month', max_users: 'max_users', max_agents: 'max_agents', max_knowledge_sources: 'max_knowledge_sources', allowed_features: 'allowed_features', allowed_models: 'allowed_models', billing_cycle_start: 'billing_cycle_start', notes: 'notes', trial_end_date: 'trial_end_date', stripe_customer_id: 'stripe_customer_id', stripe_subscription_id: 'stripe_subscription_id', payment_status: 'payment_status', manual_override_until: 'manual_override_until', manual_override_by: 'manual_override_by', stripe_seat_quantity: 'stripe_seat_quantity', cancel_at_period_end: 'cancel_at_period_end', cancel_at: 'cancel_at', current_period_end: 'current_period_end', pending_plan_id: 'pending_plan_id', pending_plan_effective: 'pending_plan_effective', stripe_schedule_id: 'stripe_schedule_id', payment_attempt_count: 'payment_attempt_count', last_payment_failure_at: 'last_payment_failure_at', past_due_since: 'past_due_since', updated_at: 'updated_at' };
+        const q = dynamicUpdate('organization_subscriptions', orgId, updateMap, colMap, 'organization_id');
+        if (q) await exec(q.sql, q.params);
+    } else {
+        const id = crypto.randomUUID();
+        await exec(`INSERT INTO organization_subscriptions (id, organization_id, plan_id, status, max_messages_per_month, max_messages_by_type, max_tokens_per_month, max_cost_per_month, max_users, max_agents, max_knowledge_sources, allowed_features, allowed_models, billing_cycle_start, notes, trial_end_date, stripe_customer_id, stripe_subscription_id, payment_status, created_at, updated_at)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+            [id, orgId, data.plan_id || null, data.status || 'active',
+                data.max_messages_per_month ?? null, data.max_messages_by_type ? JSON.stringify(data.max_messages_by_type) : null,
+                data.max_tokens_per_month ?? null, data.max_cost_per_month ?? null, data.max_users ?? null,
+                data.max_agents ?? null, data.max_knowledge_sources ?? null,
+                data.allowed_features ? JSON.stringify(data.allowed_features) : null,
+                data.allowed_models ? JSON.stringify(data.allowed_models) : null,
+                data.billing_cycle_start || now, data.notes || '',
+                data.trial_end_date || null, data.stripe_customer_id || null,
+                data.stripe_subscription_id || null, data.payment_status || 'none', now, now]);
+    }
+}
+
+async function setOrgSubscription(orgId, data, { resetLimits = false } = {}) {
+    await initDB();
+    assertValidStatus(data);
+    const existing = await getOrgSubscription(orgId);
     try {
-        if (existing) {
-            const updateMap = {};
-            if (data.plan_id !== undefined) updateMap.plan_id = data.plan_id;
-            if (data.status !== undefined) updateMap.status = data.status;
-            if (data.max_messages_per_month !== undefined) updateMap.max_messages_per_month = data.max_messages_per_month;
-            if (data.max_messages_by_type !== undefined) updateMap.max_messages_by_type = JSON.stringify(data.max_messages_by_type);
-            if (data.max_tokens_per_month !== undefined) updateMap.max_tokens_per_month = data.max_tokens_per_month;
-            if (data.max_cost_per_month !== undefined) updateMap.max_cost_per_month = data.max_cost_per_month;
-            if (data.max_users !== undefined) updateMap.max_users = data.max_users;
-            if (data.max_agents !== undefined) updateMap.max_agents = data.max_agents;
-            if (data.max_knowledge_sources !== undefined) updateMap.max_knowledge_sources = data.max_knowledge_sources;
-            if (data.allowed_features !== undefined) updateMap.allowed_features = JSON.stringify(data.allowed_features);
-            if (data.allowed_models !== undefined) updateMap.allowed_models = JSON.stringify(data.allowed_models);
-            if (data.billing_cycle_start !== undefined) updateMap.billing_cycle_start = data.billing_cycle_start;
-            if (data.notes !== undefined) updateMap.notes = data.notes;
-            if (data.trial_end_date !== undefined) updateMap.trial_end_date = data.trial_end_date;
-            if (data.stripe_customer_id !== undefined) updateMap.stripe_customer_id = data.stripe_customer_id;
-            if (data.stripe_subscription_id !== undefined) updateMap.stripe_subscription_id = data.stripe_subscription_id;
-            if (data.payment_status !== undefined) updateMap.payment_status = data.payment_status;
-            if (data.manual_override_until !== undefined) updateMap.manual_override_until = data.manual_override_until;
-            if (data.manual_override_by !== undefined) updateMap.manual_override_by = data.manual_override_by;
-            if (data.stripe_seat_quantity !== undefined) updateMap.stripe_seat_quantity = data.stripe_seat_quantity;
-            if (data.cancel_at_period_end !== undefined) updateMap.cancel_at_period_end = data.cancel_at_period_end;
-            if (data.cancel_at !== undefined) updateMap.cancel_at = data.cancel_at;
-            if (data.current_period_end !== undefined) updateMap.current_period_end = data.current_period_end;
-            if (data.pending_plan_id !== undefined) updateMap.pending_plan_id = data.pending_plan_id;
-            if (data.pending_plan_effective !== undefined) updateMap.pending_plan_effective = data.pending_plan_effective;
-            if (data.stripe_schedule_id !== undefined) updateMap.stripe_schedule_id = data.stripe_schedule_id;
-            if (data.payment_attempt_count !== undefined) updateMap.payment_attempt_count = data.payment_attempt_count;
-            if (data.last_payment_failure_at !== undefined) updateMap.last_payment_failure_at = data.last_payment_failure_at;
-            if (data.past_due_since !== undefined) updateMap.past_due_since = data.past_due_since;
-            // BFSF-245/249: the max_* columns are *overrides* that getEffectiveLimits
-            // prefers over the plan, so values left from a previous (Free) plan
-            // would cap a paying subscriber (€2 cost cap, 5 agents, 3 KB). On a plan
-            // change, or a deliberate (re)assignment of the same plan (resetLimits:
-            // admin PUT, checkout, trial), every limit the caller does not write is
-            // cleared so the plan governs. Not on any write that carries plan_id:
-            // Stripe's subscription.updated re-sends it and must keep overrides.
-            const LIMIT_OVERRIDE_COLS = ['max_messages_per_month', 'max_messages_by_type', 'max_tokens_per_month', 'max_cost_per_month', 'max_users', 'max_agents', 'max_knowledge_sources'];
-            const planIsChanging = data.plan_id !== undefined && data.plan_id !== existing.plan_id;
-            const resetting = data.plan_id !== undefined && (planIsChanging || resetLimits);
-            for (const c of LIMIT_OVERRIDE_COLS) if (resetting && data[c] === undefined) updateMap[c] = null;
-            updateMap.updated_at = now;
-            const colMap = { plan_id: 'plan_id', status: 'status', max_messages_per_month: 'max_messages_per_month', max_messages_by_type: 'max_messages_by_type', max_tokens_per_month: 'max_tokens_per_month', max_cost_per_month: 'max_cost_per_month', max_users: 'max_users', max_agents: 'max_agents', max_knowledge_sources: 'max_knowledge_sources', allowed_features: 'allowed_features', allowed_models: 'allowed_models', billing_cycle_start: 'billing_cycle_start', notes: 'notes', trial_end_date: 'trial_end_date', stripe_customer_id: 'stripe_customer_id', stripe_subscription_id: 'stripe_subscription_id', payment_status: 'payment_status', manual_override_until: 'manual_override_until', manual_override_by: 'manual_override_by', stripe_seat_quantity: 'stripe_seat_quantity', cancel_at_period_end: 'cancel_at_period_end', cancel_at: 'cancel_at', current_period_end: 'current_period_end', pending_plan_id: 'pending_plan_id', pending_plan_effective: 'pending_plan_effective', stripe_schedule_id: 'stripe_schedule_id', payment_attempt_count: 'payment_attempt_count', last_payment_failure_at: 'last_payment_failure_at', past_due_since: 'past_due_since', updated_at: 'updated_at' };
-            const q = dynamicUpdate('organization_subscriptions', orgId, updateMap, colMap, 'organization_id');
-            if (q) await run(q.sql, q.params);
-        } else {
-            const id = crypto.randomUUID();
-            await run(`INSERT INTO organization_subscriptions (id, organization_id, plan_id, status, max_messages_per_month, max_messages_by_type, max_tokens_per_month, max_cost_per_month, max_users, max_agents, max_knowledge_sources, allowed_features, allowed_models, billing_cycle_start, notes, trial_end_date, stripe_customer_id, stripe_subscription_id, payment_status, created_at, updated_at)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
-                [id, orgId, data.plan_id || null, data.status || 'active',
-                    data.max_messages_per_month ?? null, data.max_messages_by_type ? JSON.stringify(data.max_messages_by_type) : null,
-                    data.max_tokens_per_month ?? null, data.max_cost_per_month ?? null, data.max_users ?? null,
-                    data.max_agents ?? null, data.max_knowledge_sources ?? null,
-                    data.allowed_features ? JSON.stringify(data.allowed_features) : null,
-                    data.allowed_models ? JSON.stringify(data.allowed_models) : null,
-                    data.billing_cycle_start || now, data.notes || '',
-                    data.trial_end_date || null, data.stripe_customer_id || null,
-                    data.stripe_subscription_id || null, data.payment_status || 'none', now, now]);
-        }
-        // Bust the PAYG hot-path cache so the next usage event sees the new
-        // plan / customer / status immediately instead of waiting for TTL.
-        try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { bestEffort('stores/user/subscriptions:setOrgSubscription', err); /* circular-load safe */ }
+        await writeOrgSubscription(run, orgId, data, existing, { resetLimits });
+        bustPaygCache(orgId, null);
         return true;
     } catch (e) { log.error('[UserStore] setOrgSubscription error:', e); return false; }
 }
@@ -220,42 +243,45 @@ async function getConsumerSubscription(userId) {
     return { ...s, billing_model: s.plan_billing_model || 'fixed' };
 }
 
+/** The consumer counterpart of writeOrgSubscription. */
+async function writeConsumerSubscription(exec, userId, data, existing) {
+    const now = new Date().toISOString();
+    if (existing) {
+        const updateMap = {};
+        if (data.plan_id !== undefined) updateMap.plan_id = data.plan_id;
+        if (data.status !== undefined) updateMap.status = data.status;
+        if (data.stripe_customer_id !== undefined) updateMap.stripe_customer_id = data.stripe_customer_id;
+        if (data.stripe_subscription_id !== undefined) updateMap.stripe_subscription_id = data.stripe_subscription_id;
+        if (data.payment_status !== undefined) updateMap.payment_status = data.payment_status;
+        if (data.billing_cycle_start !== undefined) updateMap.billing_cycle_start = data.billing_cycle_start;
+        if (data.trial_end_date !== undefined) updateMap.trial_end_date = data.trial_end_date;
+        if (data.manual_override_until !== undefined) updateMap.manual_override_until = data.manual_override_until;
+        if (data.manual_override_by !== undefined) updateMap.manual_override_by = data.manual_override_by;
+        if (data.cancel_at_period_end !== undefined) updateMap.cancel_at_period_end = data.cancel_at_period_end;
+        if (data.cancel_at !== undefined) updateMap.cancel_at = data.cancel_at;
+        if (data.current_period_end !== undefined) updateMap.current_period_end = data.current_period_end;
+        updateMap.updated_at = now;
+        const colMap = { plan_id: 'plan_id', status: 'status', stripe_customer_id: 'stripe_customer_id', stripe_subscription_id: 'stripe_subscription_id', payment_status: 'payment_status', billing_cycle_start: 'billing_cycle_start', trial_end_date: 'trial_end_date', manual_override_until: 'manual_override_until', manual_override_by: 'manual_override_by', cancel_at_period_end: 'cancel_at_period_end', cancel_at: 'cancel_at', current_period_end: 'current_period_end', updated_at: 'updated_at' };
+        const q = dynamicUpdate('consumer_subscriptions', userId, updateMap, colMap, 'user_id');
+        if (q) await exec(q.sql, q.params);
+    } else {
+        const id = crypto.randomUUID();
+        await exec(`INSERT INTO consumer_subscriptions (id, user_id, plan_id, status, stripe_customer_id, stripe_subscription_id, payment_status, billing_cycle_start, trial_end_date, created_at, updated_at)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+            [id, userId, data.plan_id || null, data.status || 'active',
+                data.stripe_customer_id || null, data.stripe_subscription_id || null,
+                data.payment_status || 'none', data.billing_cycle_start || now,
+                data.trial_end_date || null, now, now]);
+    }
+}
+
 async function setConsumerSubscription(userId, data) {
     await initDB();
-    if (data.status && !VALID_SUB_STATUSES.includes(data.status)) {
-        throw new Error(`Invalid subscription status: ${data.status}`);
-    }
+    assertValidStatus(data);
     const existing = await getConsumerSubscription(userId);
-    const now = new Date().toISOString();
     try {
-        if (existing) {
-            const updateMap = {};
-            if (data.plan_id !== undefined) updateMap.plan_id = data.plan_id;
-            if (data.status !== undefined) updateMap.status = data.status;
-            if (data.stripe_customer_id !== undefined) updateMap.stripe_customer_id = data.stripe_customer_id;
-            if (data.stripe_subscription_id !== undefined) updateMap.stripe_subscription_id = data.stripe_subscription_id;
-            if (data.payment_status !== undefined) updateMap.payment_status = data.payment_status;
-            if (data.billing_cycle_start !== undefined) updateMap.billing_cycle_start = data.billing_cycle_start;
-            if (data.trial_end_date !== undefined) updateMap.trial_end_date = data.trial_end_date;
-            if (data.manual_override_until !== undefined) updateMap.manual_override_until = data.manual_override_until;
-            if (data.manual_override_by !== undefined) updateMap.manual_override_by = data.manual_override_by;
-            if (data.cancel_at_period_end !== undefined) updateMap.cancel_at_period_end = data.cancel_at_period_end;
-            if (data.cancel_at !== undefined) updateMap.cancel_at = data.cancel_at;
-            if (data.current_period_end !== undefined) updateMap.current_period_end = data.current_period_end;
-            updateMap.updated_at = now;
-            const colMap = { plan_id: 'plan_id', status: 'status', stripe_customer_id: 'stripe_customer_id', stripe_subscription_id: 'stripe_subscription_id', payment_status: 'payment_status', billing_cycle_start: 'billing_cycle_start', trial_end_date: 'trial_end_date', manual_override_until: 'manual_override_until', manual_override_by: 'manual_override_by', cancel_at_period_end: 'cancel_at_period_end', cancel_at: 'cancel_at', current_period_end: 'current_period_end', updated_at: 'updated_at' };
-            const q = dynamicUpdate('consumer_subscriptions', userId, updateMap, colMap, 'user_id');
-            if (q) await run(q.sql, q.params);
-        } else {
-            const id = crypto.randomUUID();
-            await run(`INSERT INTO consumer_subscriptions (id, user_id, plan_id, status, stripe_customer_id, stripe_subscription_id, payment_status, billing_cycle_start, trial_end_date, created_at, updated_at)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-                [id, userId, data.plan_id || null, data.status || 'active',
-                    data.stripe_customer_id || null, data.stripe_subscription_id || null,
-                    data.payment_status || 'none', data.billing_cycle_start || now,
-                    data.trial_end_date || null, now, now]);
-        }
-        try { require('../usage/payg').invalidatePaygCache(null, userId); } catch (err) { bestEffort('stores/user/subscriptions:setConsumerSubscription', err); /* circular-load safe */ }
+        await writeConsumerSubscription(run, userId, data, existing);
+        bustPaygCache(null, userId);
         return true;
     } catch (e) { log.error('[UserStore] setConsumerSubscription error:', e); return false; }
 }
@@ -281,141 +307,89 @@ function isManualOverrideActive(sub) {
     return Number.isFinite(t) && t > Date.now();
 }
 
-// Override-aware atomic update. The naive pattern
-//   const sub = await getOrgSubscription(orgId);
-//   const safe = isManualOverrideActive(sub) ? stripOverridden(data) : data;
-//   await setOrgSubscription(orgId, safe);
-// is a TOCTOU — two concurrent webhooks both see override=false, both write.
-// This wrapper resolves the override decision while the row is row-locked
-// (FOR UPDATE), so concurrent webhooks serialise and the override state
-// they see matches the state at the moment of their write.
-//
-// `fullUpdate`     — the update payload to apply when no override is active.
-// `strippedUpdate` — the update payload to apply when override is active
-//                    (typically the full payload with status / plan_id /
-//                    payment_status removed; the caller knows which fields
-//                    are admin-controlled).
-//
-// Returns { applied: 'full'|'stripped'|'none', overrideActive: bool }.
+const LOCKED = {
+    organization: { sql: 'SELECT * FROM organization_subscriptions WHERE organization_id = $1 FOR UPDATE', write: writeOrgSubscription, bust: (id) => bustPaygCache(id, null) },
+    consumer: { sql: 'SELECT * FROM consumer_subscriptions WHERE user_id = $1 FOR UPDATE', write: writeConsumerSubscription, bust: (id) => bustPaygCache(null, id) },
+};
+
 /**
- * Atomically apply an admin-initiated subscription update. Wraps the
- * read-modify-write in a SELECT … FOR UPDATE so two admins racing on the
- * same org serialise rather than last-write-wins. Returns the pre-image
- * snapshot for the caller's audit row, plus a `displaced` flag set when
- * this write overwrote a still-active override set by a different admin
- * within the last 60 seconds (the loser of the race).
+ * Read-check-write of one subscription row in ONE transaction: the row is
+ * locked (FOR UPDATE), `choose(row)` picks the payload from the locked row,
+ * and the write goes through the same client, so the lock is held until the
+ * write commits and a concurrent caller reads the state this one wrote. A
+ * subscriber without a row cannot be locked: the write is then an INSERT.
+ * A failed write rolls the transaction back and throws.
+ *
+ * @param {'organization'|'consumer'} scope
+ * @param {string} id
+ * @param {(row: Record<string, any> | null) => Record<string, any> | null | undefined} choose
+ * @param {{ resetLimits?: boolean }} [opts]  handed to the row write (organisations only)
+ * @returns {Promise<boolean>} whether a payload was written
+ */
+async function writeUnderRowLock(scope, id, choose, opts) {
+    await initDB();
+    const { sql, write, bust } = LOCKED[scope];
+    const wrote = await withTransaction(async (client) => {
+        const row = (await client.query(sql, [id])).rows[0] || null;
+        const payload = choose(row);
+        // An empty payload (the stripped one removed everything) writes nothing.
+        if (!payload || Object.keys(payload).length === 0) return false;
+        assertValidStatus(payload);
+        await write((text, params) => client.query(text, params), id, payload, row, opts);
+        return true;
+    });
+    if (wrote) bust(id);
+    return wrote;
+}
+
+/**
+ * Apply an admin-initiated subscription update under the row lock, so two
+ * admins racing on the same org serialise. Returns the pre-image snapshot for
+ * the caller's audit row, plus a `displaced` flag set when this write
+ * overwrote a still-active override set by a different admin (the loser of
+ * the race). `ok` is false when the database refused the write.
  *
  * @param {string} orgId
- * @param {Record<string, unknown>} payload  fields to write through to setOrgSubscription
+ * @param {Record<string, unknown>} payload  fields to write
  */
 async function setOrgSubscriptionWithLock(orgId, payload, { resetLimits = false } = {}) {
-    await initDB();
-    const client = await getClient();
+    assertValidStatus(payload);
     let snapshot = null;
     let displaced = false;
+    const choose = (row) => {
+        snapshot = row;
+        const isNewOverrideRequest = Object.prototype.hasOwnProperty.call(payload, 'manual_override_until');
+        displaced = !!(row && isNewOverrideRequest && row.manual_override_by && isManualOverrideActive(row)
+            && row.manual_override_by !== payload.manual_override_by);
+        return payload;
+    };
     try {
-        await client.query('BEGIN');
-        const lockResult = await client.query(
-            'SELECT * FROM organization_subscriptions WHERE organization_id = $1 FOR UPDATE',
-            [orgId]
-        );
-        if (lockResult.rowCount > 0) {
-            snapshot = lockResult.rows[0];
-            // Race detection: if a different admin set an override within the
-            // last 60 seconds and this write changes manual_override_*, the
-            // existing override is being clobbered. Surface that to the
-            // caller so both attempts can be audited.
-            const prevOverrideBy = snapshot.manual_override_by;
-            const prevOverrideUntil = snapshot.manual_override_until;
-            const newOverrideBy = payload.manual_override_by;
-            const isNewOverrideRequest = Object.prototype.hasOwnProperty.call(payload, 'manual_override_until');
-            if (
-                isNewOverrideRequest &&
-                prevOverrideBy &&
-                prevOverrideUntil &&
-                new Date(prevOverrideUntil).getTime() > Date.now() &&
-                prevOverrideBy !== newOverrideBy
-            ) {
-                displaced = true;
-            }
-        }
-        await client.query('COMMIT');
+        await writeUnderRowLock('organization', orgId, choose, { resetLimits });
+        return { ok: true, snapshot, displaced };
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/user/subscriptions:setOrgSubscriptionWithLock', err); /* ignore */ }
-        throw e;
-    } finally {
-        client.release();
+        log.error('[UserStore] setOrgSubscriptionWithLock error:', e);
+        return { ok: false, snapshot, displaced };
     }
-    const ok = await setOrgSubscription(orgId, payload, { resetLimits });
-    return { ok, snapshot, displaced };
 }
 
-async function setOrgSubscriptionRespectingOverride(orgId, fullUpdate, strippedUpdate) {
-    await initDB();
-    const client = await getClient();
+// Override-aware update for the Stripe webhooks: the override decision is
+// taken on the locked row and the write happens under that lock, so two
+// concurrent webhooks serialise and an override set in between is seen.
+// `fullUpdate` applies when no override is active, `strippedUpdate` (the
+// payload without the admin-controlled fields) when one is. A failed write
+// throws, so the webhook is retried.
+// Returns { applied: 'full'|'stripped'|'none', overrideActive: bool }.
+async function writeRespectingOverride(scope, id, fullUpdate, strippedUpdate) {
     let overrideActive = false;
-    try {
-        await client.query('BEGIN');
-        const lockResult = await client.query(
-            'SELECT manual_override_until FROM organization_subscriptions WHERE organization_id = $1 FOR UPDATE',
-            [orgId]
-        );
-        if (lockResult.rowCount === 0) {
-            // No existing row — setOrgSubscription will INSERT. We can't
-            // lock a row that doesn't exist; concurrent inserts will collide
-            // on the org id and the second one will fall through to the
-            // update branch on its retry. Safe to release the txn here.
-            await client.query('COMMIT');
-        } else {
-            const until = lockResult.rows[0].manual_override_until;
-            overrideActive = !!until && new Date(until).getTime() > Date.now();
-            await client.query('COMMIT');
-        }
-    } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/user/subscriptions:setOrgSubscriptionRespectingOverride', err); /* ignore */ }
-        throw e;
-    } finally {
-        client.release();
-    }
-    const payload = overrideActive ? strippedUpdate : fullUpdate;
-    // Empty payload (stripped removed everything) → don't write.
-    if (!payload || Object.keys(payload).length === 0) {
-        return { applied: 'none', overrideActive };
-    }
-    await setOrgSubscription(orgId, payload);
-    return { applied: overrideActive ? 'stripped' : 'full', overrideActive };
+    const wrote = await writeUnderRowLock(scope, id, (row) => {
+        overrideActive = isManualOverrideActive(row);
+        return overrideActive ? strippedUpdate : fullUpdate;
+    });
+    return { applied: !wrote ? 'none' : (overrideActive ? 'stripped' : 'full'), overrideActive };
 }
 
-async function setConsumerSubscriptionRespectingOverride(userId, fullUpdate, strippedUpdate) {
-    await initDB();
-    const client = await getClient();
-    let overrideActive = false;
-    try {
-        await client.query('BEGIN');
-        const lockResult = await client.query(
-            'SELECT manual_override_until FROM consumer_subscriptions WHERE user_id = $1 FOR UPDATE',
-            [userId]
-        );
-        if (lockResult.rowCount === 0) {
-            await client.query('COMMIT');
-        } else {
-            const until = lockResult.rows[0].manual_override_until;
-            overrideActive = !!until && new Date(until).getTime() > Date.now();
-            await client.query('COMMIT');
-        }
-    } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/user/subscriptions:setConsumerSubscriptionRespectingOverride', err); /* ignore */ }
-        throw e;
-    } finally {
-        client.release();
-    }
-    const payload = overrideActive ? strippedUpdate : fullUpdate;
-    if (!payload || Object.keys(payload).length === 0) {
-        return { applied: 'none', overrideActive };
-    }
-    await setConsumerSubscription(userId, payload);
-    return { applied: overrideActive ? 'stripped' : 'full', overrideActive };
-}
+const setOrgSubscriptionRespectingOverride = (orgId, fullUpdate, strippedUpdate) => writeRespectingOverride('organization', orgId, fullUpdate, strippedUpdate);
+const setConsumerSubscriptionRespectingOverride = (userId, fullUpdate, strippedUpdate) => writeRespectingOverride('consumer', userId, fullUpdate, strippedUpdate);
 
 // Locate a subscription row by stripe_customer_id so customer.deleted can
 // null the local mapping. Returns { scope: 'organization'|'consumer', id }

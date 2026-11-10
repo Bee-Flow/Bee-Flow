@@ -111,7 +111,7 @@ See [Audit & compliance](audit-and-compliance.md) for the data model.
 
 ## Integrations (other than NC)
 
-A panel listing every integration the server is configured for (env vars set), with org-level toggles + per-group overrides — same model as the [NC integrations panel](nc-integrations.md).
+**Settings → Organisation → Integrations** has two tabs. **Integration access** grants each integration your subscription includes to the whole organisation or to a group (grant-only: a user has an integration when All members or any of their groups has it). **Integration settings** configures the integrations themselves; for an organisation bound to Nextcloud it holds the [Nextcloud integrations panel](nc-integrations.md), which works differently (org-wide switches with per-group exceptions).
 
 ## Memory
 

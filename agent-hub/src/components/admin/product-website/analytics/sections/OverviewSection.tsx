@@ -112,7 +112,7 @@ export default function OverviewSection({ scope, onDrill }: SectionProps) {
                 />
             )}
 
-            <StatGrid>
+            <StatGrid min={160}>
                 <StatTile icon={Users} label={t('cms_site.analytics.overview.visitors', 'Visitors')} value={fmt(visitors)} color={SERIES.secondary}
                     {...tile(visitors, statVal(cmp.visitors), 'count')} />
                 <StatTile icon={Eye} label={t('cms_site.analytics.overview.pageviews', 'Pageviews')} value={fmt(pageviews)} color={ACCENT}

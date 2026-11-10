@@ -28,7 +28,7 @@ export function SupportEmailFailureBanner({ messages }: { messages: SupportMessa
     const { t } = useTranslation();
     const failed = messages.find(m => m.email_send_status && m.email_send_status.ok === false);
     if (!failed) return null;
-    const err = failed.email_send_status?.error || 'Unknown error';
+    const err = failed.email_send_status?.error || t('support.inbox_unknown_error', 'Unknown error');
     return (
         <div className="px-4 py-2 border-b text-xs flex items-start gap-2 border-[color-mix(in_srgb,var(--warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] text-[var(--warning-ink)]">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />

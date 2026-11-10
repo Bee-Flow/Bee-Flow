@@ -240,16 +240,16 @@ async function _sweepDpia(d, orgId, nowMs) {
             WHERE organization_id = $1
             ORDER BY agent_id, created_at DESC
         `, [orgId]);
-        const expiring = (dpias || []).filter(x => x.expires_at
-            && new Date(x.expires_at).getTime() > nowMs
-            && new Date(x.expires_at).getTime() < nowMs + 30 * DAY_MS);
+        const expiring = [];
+        for (const x of dpias || []) {
+            const exp = x.expires_at ? new Date(x.expires_at).getTime() : NaN;
+            if (!(exp > nowMs && exp < nowMs + 30 * DAY_MS)) continue;
+            // Once per assessment and expiry date: a re-attested DPIA is nudged again when its next expiry nears.
+            if (await _claim(d, orgId, 'dpia', x.agent_id, `expires_30d:${shortDate(exp)}`)) expiring.push(x);
+        }
         if (expiring.length) {
-            await _notifyAdmins(d,
-                orgId,
-                'DPIA re-attestation due',
-                `${expiring.length} impact assessment(s) expire within 30 days. Re-attest them under Compliance → DPIA.`,
-                complianceSectionPath('dpia'),
-            );
+            await _notifyAdmins(d, orgId, 'DPIA re-attestation due',
+                `${expiring.length} impact assessment(s) expire within 30 days. Re-attest them under Compliance → DPIA.`, complianceSectionPath('dpia'));
         }
     } catch (err) { bestEffort('jobs/complianceDeadlineNotifier:_sweepDpia', err); /* table absent on fresh installs */ }
 }

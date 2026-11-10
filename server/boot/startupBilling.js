@@ -39,8 +39,8 @@ function startDunningAndTrialSchedulers() {
                 // a missed Stripe `incomplete_expired` webhook doesn't leave
                 // them stuck. Stripe's own grace window is 14 days.
                 const stale = await userStore.cancelStaleIncompleteSubscriptions(14);
-                if (stale.orgs || stale.consumers) {
-                    log.info(`[IncompleteCleanup] cancelled orgs=${stale.orgs} consumers=${stale.consumers}`);
+                if (stale.orgs || stale.consumers || stale.failed) {
+                    log.info(`[IncompleteCleanup] cancelled orgs=${stale.orgs} consumers=${stale.consumers} failed=${stale.failed}`);
                 }
             } catch (e) { log.error('[TrialExpiry] tick error:', e.message); }
         };

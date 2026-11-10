@@ -170,7 +170,7 @@ export default function ServerLicensePanel() {
     }
 
     const actions = isServerScope ? (
-        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+        <div className="flex flex-wrap items-center gap-2 @[40rem]/srow:justify-end">
             <button type="button" onClick={() => setShowInput((v: boolean) => !v)} className={SECONDARY_BTN} disabled={!!busy}>
                 <Key className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('admin.server_license.replace', 'Replace licence')}
@@ -182,7 +182,7 @@ export default function ServerLicensePanel() {
             </button>
         </div>
     ) : (
-        <div className="flex md:justify-end">
+        <div className="flex @[40rem]/srow:justify-end">
             <button type="button" onClick={() => setShowInput(true)} className={PRIMARY_BTN} disabled={!!busy}>
                 <Key className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('admin.server_license.activate', 'Apply server-wide licence')}

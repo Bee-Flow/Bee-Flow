@@ -4,8 +4,8 @@
  * Privacy Shield gate, connection lending and the dispatch of one tool call.
  *
  * The collaborators in the server's large import cycle come in on the
- * context as `ctx.d` ({ mayLendOwnerConnection, connectionResolution(),
- * toolDispatcher(), toolPiiGate() }, the getters lazy) from ./chatWithAgent,
+ * context as `ctx.d` ({ mayLendOwnerConnection, restoreToolArgs,
+ * connectionResolution(), toolDispatcher(), toolPiiGate() }, the getters lazy) from ./chatWithAgent,
  * so this module stays out of it.
  */
 const { sanitizeToolResult } = require('../../utils/sanitize');
@@ -128,6 +128,11 @@ async function executeChatToolCall(toolCall, ctx) {
         };
     }
 
+    // The model wrote its arguments in the Privacy Shield's tokens (`[email_1]`).
+    // The tool gets the real values, and the block policy below judges those:
+    // the same order as the streaming route (toolRound/piiPolicy.restoreDlpArgs).
+    toolArgs = d.restoreToolArgs(ctx.conversation, toolArgs);
+
     // Get fixed params for this tool if any
     const fixedParams = toolParamsMap[toolName] || null;
 
@@ -168,6 +173,6 @@ async function executeChatToolCall(toolCall, ctx) {
 module.exports = { executeChatToolCall };
 
 /**
- * @typedef {{ mayLendOwnerConnection: typeof import('./toolPolicy').mayLendOwnerConnection, connectionResolution: () => typeof import('../integrations/connectionResolution'), toolDispatcher: () => typeof import('../tools/toolDispatcher'), toolPiiGate: () => typeof import('../privacy/toolPiiGate') }} ToolDeps
+ * @typedef {{ mayLendOwnerConnection: typeof import('./toolPolicy').mayLendOwnerConnection, restoreToolArgs: (conversation: { id?: string } | null | undefined, toolArgs: Record<string, unknown>) => Record<string, unknown>, connectionResolution: () => typeof import('../integrations/connectionResolution'), toolDispatcher: () => typeof import('../tools/toolDispatcher'), toolPiiGate: () => typeof import('../privacy/toolPiiGate') }} ToolDeps
  * @typedef {{ agent: import('./chatStream/turnState').AgentRow, agentId: string, userId: string, userAuth: import('./chatStream/turnState').UserAuth, conversation: import('./chatStream/turnState').ConversationRow, modelToUse: string, queryLogCarrier?: object, toolParamsMap: Record<string, unknown>, orgShield: Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>, logShieldEvent: (fields: Record<string, unknown>) => void, d: ToolDeps }} ChatToolCtx
  */

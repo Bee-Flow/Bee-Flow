@@ -6,7 +6,7 @@
  * stored text. Split out of stores/knowledgeBases.js.
  */
 
-const { UUID_RE, ACTIVE_STATUS_SQL, DOC_SELECT, buildDocumentFilters } = require('./model');
+const { UUID_RE, ACTIVE_STATUS_SQL, DOC_SELECT, buildDocumentFilters, withStoredDateGuard, PLAIN_DATE_SQL, GUARDED_DATE_SQL } = require('./model');
 
 /**
  * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
@@ -131,22 +131,26 @@ function makeDocumentQueryFns(ctx) {
         listDocuments: async (kbId, opts = {}) => {
             await initDB();
             const { limit = 200, offset = 0, filters = {} } = opts;
-            const { clauses, vals } = buildDocumentFilters(kbId, filters);
-            vals.push(limit); const limitIdx = vals.length;
-            vals.push(offset); const offsetIdx = vals.length;
-            return getAll(
-                `SELECT ${DOC_SELECT} FROM documents
+            return withStoredDateGuard((guardedDates) => {
+                const { clauses, vals } = buildDocumentFilters(kbId, filters, { guardedDates });
+                vals.push(limit); const limitIdx = vals.length;
+                vals.push(offset); const offsetIdx = vals.length;
+                return getAll(
+                    `SELECT ${DOC_SELECT} FROM documents
              WHERE ${clauses.join(' AND ')}
              ORDER BY created_at DESC
              LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-                vals
-            );
+                    vals
+                );
+            });
         },
 
         countDocuments: async (kbId, filters = {}) => {
             await initDB();
-            const { clauses, vals } = buildDocumentFilters(kbId, filters);
-            const row = await getOne(`SELECT COUNT(*)::int AS n FROM documents WHERE ${clauses.join(' AND ')}`, vals);
+            const row = await withStoredDateGuard((guardedDates) => {
+                const { clauses, vals } = buildDocumentFilters(kbId, filters, { guardedDates });
+                return getOne(`SELECT COUNT(*)::int AS n FROM documents WHERE ${clauses.join(' AND ')}`, vals);
+            });
             return row?.n || 0;
         },
 
@@ -173,12 +177,12 @@ function makeDocumentQueryFns(ctx) {
 
         listDocumentsByThread: async (kbId, threadId) => {
             await initDB();
-            return getAll(
+            return withStoredDateGuard((guardedDates) => getAll(
                 `SELECT ${DOC_SELECT} FROM documents
              WHERE knowledge_base_id = $1 AND metadata->>'threadId' = $2
-             ORDER BY (metadata->>'date')::timestamptz NULLS LAST, created_at`,
+             ORDER BY ${guardedDates ? GUARDED_DATE_SQL : PLAIN_DATE_SQL} NULLS LAST, created_at`,
                 [kbId, threadId]
-            );
+            ));
         },
 
         /** One document, projected (no original_content). */

@@ -1,5 +1,6 @@
 import { Trash2, Share2, Star, Check, X } from 'lucide-react';
 import { useState } from 'react';
+import { isImeEnter } from '../../components/projects/workspace/chat/ime';
 import useConfirm from '../../components/shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
 import { authFetch } from '../../utils/helpers';
@@ -69,7 +70,7 @@ const SharePanel = ({ connection, grants, onChanged }: SharePanelProps) => {
                     placeholder={t('connections.teammate_email_placeholder', 'teammate@company.com')}
                     aria-label={t('connections.teammate_email_label', 'Teammate email')}
                     className={`flex-1 min-w-[180px] ${inputCls}`} style={inputStyle}
-                    onKeyDown={e => e.key === 'Enter' && email.trim() && share({ granteeType: 'user', granteeEmail: email.trim() })}
+                    onKeyDown={e => e.key === 'Enter' && !isImeEnter(e) && !busy && email.trim() && share({ granteeType: 'user', granteeEmail: email.trim() })}
                 />
                 <select
                     value={expiry} onChange={e => setExpiry(e.target.value)}
@@ -129,23 +130,30 @@ export const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowPr
         setLabel(connection.label);
     }
 
-    const patch = async (body: { makeDefault: boolean } | { label: string }, fallbackMsg: string) => {
+    /** Resolves true when the server took the change. */
+    const patch = async (body: { makeDefault: boolean } | { label: string }, fallbackMsg: string): Promise<boolean> => {
         setBusy(true); setErr(null);
+        let ok = false;
         try {
             const res = await authFetch(`${BASE}/${connection.id}`, {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
             });
-            if (!res.ok) setErr(await errorFrom(res, fallbackMsg));
+            ok = res.ok;
+            if (!ok) setErr(await errorFrom(res, fallbackMsg));
             else onChanged();
         } catch (e) { setErr((e as Error).message); }
         setBusy(false);
+        return ok;
     };
 
     const saveRename = async () => {
         const next = label.trim();
         if (!next || next === connection.label) { setRenaming(false); setLabel(connection.label); return; }
-        await patch({ label: next }, t('connections.rename_failed', 'Could not rename this connection'));
-        setRenaming(false);
+        if (busy) return;
+        // A refused rename keeps the box open on what was typed, next to the
+        // reason: closing it showed the old name with the typed one still in
+        // the box for the next time.
+        if (await patch({ label: next }, t('connections.rename_failed', 'Could not rename this connection'))) setRenaming(false);
     };
 
     // Deleting a credential is destructive and cannot be undone, so it always
@@ -181,12 +189,13 @@ export const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowPr
                             aria-label={t('connections.name_label', 'Connection name')}
                             className={`flex-1 ${inputCls}`} style={inputStyle}
                             onKeyDown={e => {
+                                if (isImeEnter(e)) return;
                                 if (e.key === 'Enter') saveRename();
-                                if (e.key === 'Escape') { setLabel(connection.label); setRenaming(false); }
+                                if (e.key === 'Escape') { setLabel(connection.label); setRenaming(false); setErr(null); }
                             }}
                         />
                         <button onClick={saveRename} disabled={busy} className="p-1" title={t('connections.save', 'Save')}><Check size={14} /></button>
-                        <button onClick={() => { setLabel(connection.label); setRenaming(false); }} className="p-1" title={t('connections.cancel', 'Cancel')}><X size={14} /></button>
+                        <button onClick={() => { setLabel(connection.label); setRenaming(false); setErr(null); }} className="p-1" title={t('connections.cancel', 'Cancel')}><X size={14} /></button>
                     </>
                 ) : (
                     <>

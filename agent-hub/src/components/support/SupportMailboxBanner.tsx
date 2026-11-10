@@ -29,7 +29,7 @@ export default function SupportMailboxBanner({ mailbox, disconnecting, onDisconn
             </div>
             <button type="button" onClick={onDisconnect} disabled={disconnecting} className={`${DANGER_BTN} shrink-0`}>
                 <Unlink className="h-3.5 w-3.5" aria-hidden="true" />
-                {disconnecting ? 'Disconnecting…' : 'Disconnect mailbox'}
+                {disconnecting ? t('support.inbox_mailbox_disconnecting', 'Disconnecting…') : t('support.inbox_mailbox_disconnect', 'Disconnect mailbox')}
             </button>
         </div>
     );

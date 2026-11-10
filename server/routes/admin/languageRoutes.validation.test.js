@@ -67,6 +67,12 @@ mock(path.join(SERVER, 'auth/permissions'), {
     requireAuth: (req, res, next) => next(),
     hasPermission: async () => true,
     getUserPermissions: async () => ['all'],
+    // The decision of the real gate (auth/permissionsOrgGates.js): users.role 'admin', nothing an organisation grants.
+    requireSuperAdmin: (req, res, next) => {
+        if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
+        if (req.session.isAdmin || req.session.user.role === 'admin') return next();
+        return res.status(403).json({ error: 'Operator access required' });
+    },
 });
 // The variables every preview renders with, so the preview can be held to the
 // same links the real letter carries.
@@ -90,14 +96,14 @@ mock(path.join(SERVER, 'i18n/defaults/promptDefaults'), {
 const router = require('./languageRoutes');
 const { terminalErrorHandler } = require(path.join(SERVER, 'core/http/terminalErrorHandler'));
 
-function dispatch({ method, url, body }) {
+function dispatch({ method, url, body, session = { isAdmin: true, user: { id: 'u1', role: 'admin' } } }) {
     return new Promise((resolve, reject) => {
         const [pathname, search = ''] = String(url).split('?');
         const query = {};
         for (const [k, v] of new URLSearchParams(search)) query[k] = v;
         const req = {
             method, url, originalUrl: url, path: pathname, query, body, headers: {},
-            session: { isAdmin: true, user: { id: 'u1', role: 'admin' } }, get() { return undefined; }, setTimeout() {},
+            session, get() { return undefined; }, setTimeout() {},
         };
         const res = {
             statusCode: 200, headersSent: false,
@@ -244,6 +250,18 @@ test('the org default reaches its own route, not the locale-default one above it
     const res = await dispatch({ method: 'PUT', url: '/org/default', body: { defaultLocale: 'nl' } });
     assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
     assert.deepStrictEqual(touched.find((t) => t.what === 'setConfig').args, ['org_default_locale', 'nl']);
+});
+
+test('the instance-wide default for new users is a platform super-admin\'s to set: an org admin reads it and is refused the write', async () => {
+    // Every permission an organisation can grant (the mock answers 'all'), and not users.role 'admin'.
+    const orgAdmin = { user: { id: 'o1', role: 'user', orgRole: 'admin', organizationId: 'org1' } };
+    const refused = await dispatch({ method: 'PUT', url: '/org/default', body: { defaultLocale: 'nl' }, session: orgAdmin });
+    assert.strictEqual(refused.statusCode, 403, JSON.stringify(refused.body));
+    assert.deepStrictEqual(touched, [], 'nothing was written');
+
+    const read = await dispatch({ method: 'GET', url: '/org/default', session: orgAdmin });
+    assert.strictEqual(read.statusCode, 200);
+    assert.strictEqual(read.body.defaultLocale, 'en');
 });
 
 test('a locale default a platform admin sets still goes to the locale list', async () => {

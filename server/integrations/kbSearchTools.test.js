@@ -29,7 +29,7 @@ test('kb_search results carry the chunk id kb_fetch resolves, and the source uri
     assert.strictEqual(fetched.chunks[0].content, CHUNK.content);
 
     const kbQueryCache = require('../core/agentRuntime/kbQueryCache');
-    assert.strictEqual(kbQueryCache.getChunk(ctx.conversationId, CHUNK.id).source_uri, 'handbook.pdf');
+    assert.strictEqual(kbQueryCache.getChunk(kbQueryCache.scopeFor(ctx.conversationId, ctx.userId), CHUNK.id).source_uri, 'handbook.pdf');
 });
 
 test('Z-N3: kb_fetch never reads a chunk id outside this conversation\'s search results', async () => {

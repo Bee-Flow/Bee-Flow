@@ -677,4 +677,4 @@ on.
 - [Studio overview](../studio/index.md) — where automations live in the UI.
 - [Integrations](../integrations/index.md) — every action a step can call.
 - [API → REST reference](../api/rest.md) — programmatic creation.
-- [Admin → Audit & compliance](../admin/audit-and-compliance.md) — exporting run logs.
+- [Admin → Compliance](../admin/audit-and-compliance.md) — exporting run logs.

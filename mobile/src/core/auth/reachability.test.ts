@@ -11,6 +11,12 @@ describe('telling "you are signed out" from "I could not ask"', () => {
         expect(serverAnsweredAboutSession(new ApiError('nope', { status: 403 }))).toBe(true);
     });
 
+    it('does NOT sign the user out on a rate limit or a request timeout — neither is about the session', () => {
+        expect(serverAnsweredAboutSession(new ApiError('slow down', { status: 429 }))).toBe(false);
+        expect(serverAnsweredAboutSession(new ApiError('too slow', { status: 408 }))).toBe(false);
+        expect(serverAnsweredAboutSession(new ApiError('gone', { status: 404 }))).toBe(true);
+    });
+
     it('does NOT sign the user out on a 500 — a deploy is not a logout', () => {
         expect(serverAnsweredAboutSession(new ApiError('boom', { status: 500 }))).toBe(false);
     });

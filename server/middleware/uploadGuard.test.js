@@ -140,6 +140,15 @@ test('an oversize file answers 413', async () => {
     assert.strictEqual(res.statusCode, 413);
 });
 
+test('the 413 names the cap in a unit that is not zero: KB under 1 MB, MB from there', async () => {
+    const big = Buffer.concat([PNG, Buffer.alloc(3 * 1024 * 1024, 1)]);
+    for (const [maxBytes, label] of [[8, '1KB'], [512 * 1024, '512KB'], [1024 * 1024, '1MB'], [2 * 1024 * 1024, '2MB'], [2.5 * 1024 * 1024, '2MB']]) {
+        const { res } = await runGuard(uploadGuard({ maxBytes }), multipartReq({ mime: 'image/png', buffer: big }));
+        assert.strictEqual(res.statusCode, 413);
+        assert.strictEqual(res.body.error, `File exceeds the ${label} limit`);
+    }
+});
+
 test('a docx (zip container) declared as the OOXML type passes', async () => {
     const mw = uploadGuard({ maxBytes: 1024 });
     const { nexted } = await runGuard(mw, multipartReq({ filename: 'a.docx', mime: DOCX, buffer: ZIP }));

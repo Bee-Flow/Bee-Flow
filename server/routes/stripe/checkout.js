@@ -161,7 +161,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
             /** @type {{ stripe_product_id: string, stripe_price_id: string, stripe_meter_id?: string, stripe_meter_event_name?: string }} */
             const updates = { stripe_product_id: result.productId, stripe_price_id: result.priceId };
             if (isPayg) { updates.stripe_meter_id = result.meterId; updates.stripe_meter_event_name = result.meterEventName; }
-            await userStore.updatePlan(p.id, updates);
+            await require('../subscriptions/storedWrites').storePlanStripeIds(p.id, updates);
             return userStore.getPlan(p.id);
         };
         // Wrap session creation so a stale/cross-account price id (Stripe
@@ -181,7 +181,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
 
         if (!plan.stripe_price_id && (plan.billing_model === 'metered' || (plan.price && plan.price > 0))) {
             try { plan = await ensurePlanPrice(plan); }
-            catch (e) { log.error('[Stripe] checkout auto-sync failed:', e.message); }
+            catch (e) { if (e instanceof HttpError) throw e; log.error('[Stripe] checkout auto-sync failed:', e.message); }
         }
         if (!plan.stripe_price_id) {
             return res.status(400).json({ error: 'This plan has not been configured for payment yet. Contact your administrator.' });

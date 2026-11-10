@@ -203,18 +203,15 @@ async function checkSubscriptionLimits(orgId, agentType, userId = null) {
         return 'Your organization does not have an active subscription. Ask an organisation admin to choose a plan in Settings → Organisation → License & Usage.';
     }
 
-    // Suspended or cancelled orgs are fully blocked
-    if (limits.status === 'suspended') {
-        orgHealth.problem('chat.subscription_blocked', {
-            orgId, source: 'limits', meta: { agentType, reason: 'suspended' },
-        });
-        return 'Your organization\'s subscription is suspended. Please contact your administrator.';
-    }
-    if (limits.status === 'cancelled') {
-        orgHealth.problem('chat.subscription_blocked', {
-            orgId, source: 'limits', meta: { agentType, reason: 'cancelled' },
-        });
-        return 'Your organization\'s subscription has been cancelled. Please contact your administrator.';
+    // A suspended, dunning-capped or cancelled subscription is fully blocked.
+    const blocked = {
+        suspended: 'Your organization\'s subscription is suspended. Please contact your administrator.',
+        manual_action_required: 'Your organization\'s subscription is suspended because payment could not be collected. Ask your administrator to update the payment method.',
+        cancelled: 'Your organization\'s subscription has been cancelled. Please contact your administrator.',
+    }[/** @type {string} */ (limits.status)];
+    if (blocked) {
+        orgHealth.problem('chat.subscription_blocked', { orgId, source: 'limits', meta: { agentType, reason: limits.status } });
+        return blocked;
     }
 
     // Get usage for the current billing period (respects billing_cycle_start)

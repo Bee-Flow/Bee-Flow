@@ -2,7 +2,9 @@ import { AlertTriangle, Search, ShieldAlert } from 'lucide-react';
 import { SetStateAction, Dispatch, useCallback, useState } from 'react';
 import StateChip from './IssueStateChip';
 import { authFetch, API_BASE } from '../../utils/helpers';
-import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
+import { useTranslation } from '../../hooks/useTranslation';
+import { FIELD_INPUT } from '@/components/shared/SettingsList';
+import { ALERT_ERROR, PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import { errorMessage } from '../../utils/caughtError';
 import { request, errorBody, RefusedError, mutate } from '../../api/mutate';
 
@@ -143,93 +145,58 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
         }
     };
 
-    const inputStyle = {
-        background: 'var(--bg-card)',
-        borderColor: 'var(--border-default)',
-        color: 'var(--text-primary)',
-    };
-
     return (
-        <div className="mt-2 rounded border p-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
-            <AttachIssuePanelSection query={query} setQuery={setQuery} search={search} t={t} inputStyle={inputStyle} searching={searching} />
+        <div className="mt-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-2.5">
+            <IssueSearchBar query={query} setQuery={setQuery} search={search} searching={searching} />
 
             {error && (
-                <div className="text-xs mt-1.5 flex items-start gap-1.5 [color:#dc2626]!">
-                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span>{error}</span>
+                <div className={`${ALERT_ERROR} mt-2`}>
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /><span>{error}</span>
                 </div>
             )}
 
             {results.length > 0 && (
-                <div className="mt-2 flex flex-col gap-1 max-h-56 overflow-y-auto">
+                <div className="mt-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto">
                     {results.map((r: IssueSearchResult) => (
-                        <label
-                            key={r.id}
-                            className={`flex items-start gap-2 px-1.5 py-1 rounded text-xs ${r.linkedHere ? 'opacity-50' : 'cursor-pointer hover:bg-[var(--bg-tertiary)]'}`}
-                        >
-                            <input
-                                type="checkbox"
-                                className="mt-0.5"
-                                disabled={r.linkedHere}
-                                checked={picked.has(r.id)}
-                                onChange={() => togglePick(r.id)}
-                            />
-                            <span className="font-medium shrink-0 text-[var(--accent-primary)]">{r.id}</span>
-                            <span className="flex-1 min-w-0 truncate text-[var(--text-primary)]">{r.summary}</span>
-                            <StateChip state={r.state} resolved={r.resolved} />
-                            {r.linkedHere && <span className="shrink-0 text-[var(--text-muted)]">{t('support.attach_issue_attached', 'attached')}</span>}
-                            {/* The count is the duplicate-stopper: seeing that four
-                                tickets already report this is what makes an agent
-                                attach instead of file. */}
-                            {!r.linkedHere && r.linkedTicketCount > 0 && (
-                                <span className="shrink-0 text-[var(--text-muted)]" title={t('support.attach_issue_other_tickets_already_report_this', 'Other tickets already report this')}>
-                                    {r.linkedTicketCount === 1 ? t('support.attach_issue_ticket_one', '{count} ticket', { count: 1 }) : t('support.attach_issue_ticket_other', '{count} tickets', { count: r.linkedTicketCount })}
-                                </span>
-                            )}
-                        </label>
+                        <IssueResultRow key={r.id} r={r} checked={picked.has(r.id)} onToggle={() => togglePick(r.id)} />
                     ))}
                 </div>
             )}
 
-            <AttachIssuePanelSection2 setCreating={setCreating} setBlocked={setBlocked} creating={creating} picked={picked} attach={attach} attaching={attaching} />
+            <IssuePanelActions setCreating={setCreating} setBlocked={setBlocked} creating={creating} picked={picked} attach={attach} attaching={attaching} />
 
             {creating && (
-                <div className="mt-2 pt-2 border-t flex flex-col gap-1.5 border-[var(--border-default)]">
+                <div className="mt-2 flex flex-col gap-2 border-t border-[var(--border-default)] pt-2">
                     <input
                         value={summary}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSummary(e.target.value)}
                         placeholder={t('support.attach_issue_issue_title_describe_the_problem_not', 'Issue title — describe the problem, not the customer')}
-                        className="px-2 py-1 rounded border text-xs"
-                        style={inputStyle}
+                        className={`${FIELD_INPUT} text-xs`}
                     />
                     <textarea
                         value={description}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
                         rows={4}
                         placeholder={t('support.attach_issue_what_goes_wrong_in_your_own_words_don', 'What goes wrong, in your own words. Don\'t quote the customer — the ticket reference and a staff-only link are added for you.')}
-                        className="px-2 py-1 rounded border text-xs resize-y"
-                        style={inputStyle}
+                        className={`${FIELD_INPUT} resize-y text-xs`}
                     />
-                    <div className="text-xs flex items-start gap-1.5 text-[var(--text-muted)]">
-                        <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <div className="flex items-start gap-1.5 text-xs text-[var(--text-tertiary)]">
+                        <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         <span>
-                            {t('support.attach_issue_the_customer_s_name_address_and', 'The customer\'s name, address and organisation never reach YouTrack. The issue carries ticket')} <strong>{ticketRef || '—'}</strong> {t('support.attach_issue_and_a_link_only_bee_flow_staff_can', 'and a link only Bee Flow staff can open.')}
+                            {t('support.attach_issue_the_customer_s_name_address_and', 'The customer\'s name, address and organisation never reach YouTrack. The issue carries ticket')} <strong className="text-[var(--text-secondary)]">{ticketRef || '—'}</strong> {t('support.attach_issue_and_a_link_only_bee_flow_staff_can', 'and a link only Bee Flow staff can open.')}
                         </span>
                     </div>
 
                     {blocked && (
-                        <div className="rounded px-2 py-1.5 text-xs flex items-start gap-1.5 [background:rgba(239,68,68,0.1)] [color:#dc2626]!">
-                            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        <div className={ALERT_ERROR}>
+                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                             <span><strong>{blocked.error}</strong> {blocked.detail}</span>
                         </div>
                     )}
 
                     <div className="flex justify-end">
-                        <button
-                            onClick={create}
-                            disabled={submitting || !summary.trim()}
-                            className="px-2.5 py-1 rounded text-xs font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
-                        >
-                            {submitting ? 'Creating…' : 'Create and attach'}
+                        <button type="button" onClick={create} disabled={submitting || !summary.trim()} className={PRIMARY_BTN}>
+                            {submitting ? t('support.attach_issue_creating', 'Creating…') : t('support.attach_issue_create_and_attach', 'Create and attach')}
                         </button>
                     </div>
                 </div>
@@ -238,43 +205,57 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
     );
 }
 
-function AttachIssuePanelSection2({ setCreating, setBlocked, creating, picked, attach, attaching }: { setCreating: Dispatch<SetStateAction<boolean>>; setBlocked: Dispatch<SetStateAction<EgressRefusal | null>>; creating: boolean; picked: Set<string>; attach: () => Promise<void>; attaching: boolean; }) {
-    return <div className="flex items-center justify-between gap-2 mt-2">
-        <button
-            onClick={() => { setCreating((c: boolean) => !c); setBlocked(null); } }
-            className="text-xs hover:underline text-[var(--text-secondary)]"
-        >
-            {creating ? 'Back to search' : 'Nothing matches — create a new issue'}
+/** One search hit: pick it, unless it is already on this ticket. */
+function IssueResultRow({ r, checked, onToggle }: { r: IssueSearchResult; checked: boolean; onToggle: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <label className={`flex items-start gap-2 rounded-md px-1.5 py-1 text-xs ${r.linkedHere ? 'opacity-50' : 'cursor-pointer hover:bg-[var(--bg-tertiary)]'}`}>
+            <input type="checkbox" className="mt-0.5 accent-[var(--accent-primary)]" disabled={r.linkedHere} checked={checked} onChange={onToggle} />
+            <span className="shrink-0 font-medium text-[var(--text-primary)]">{r.id}</span>
+            <span className="min-w-0 flex-1 truncate text-[var(--text-secondary)]">{r.summary}</span>
+            <StateChip state={r.state} resolved={r.resolved} />
+            {r.linkedHere && <span className="shrink-0 text-[var(--text-tertiary)]">{t('support.attach_issue_attached', 'attached')}</span>}
+            {/* The count is the duplicate-stopper: seeing that four
+                tickets already report this is what makes an agent
+                attach instead of file. */}
+            {!r.linkedHere && r.linkedTicketCount > 0 && (
+                <span className="shrink-0 text-[var(--text-tertiary)]" title={t('support.attach_issue_other_tickets_already_report_this', 'Other tickets already report this')}>
+                    {r.linkedTicketCount === 1 ? t('support.attach_issue_ticket_one', '{count} ticket', { count: 1 }) : t('support.attach_issue_ticket_other', '{count} tickets', { count: r.linkedTicketCount })}
+                </span>
+            )}
+        </label>
+    );
+}
+
+function IssuePanelActions({ setCreating, setBlocked, creating, picked, attach, attaching }: { setCreating: Dispatch<SetStateAction<boolean>>; setBlocked: Dispatch<SetStateAction<EgressRefusal | null>>; creating: boolean; picked: Set<string>; attach: () => Promise<void>; attaching: boolean; }) {
+    const { t } = useTranslation();
+    return <div className="mt-2 flex items-center justify-between gap-2">
+        <button type="button" onClick={() => { setCreating((c: boolean) => !c); setBlocked(null); }} className={QUIET_BTN}>
+            {creating ? t('support.attach_issue_back_to_search', 'Back to search') : t('support.attach_issue_nothing_matches_create', 'Nothing matches — create a new issue')}
         </button>
         {picked.size > 0 && (
-            <button
-                onClick={attach}
-                disabled={attaching}
-                className="px-2.5 py-1 rounded text-xs font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
-            >
-                {attaching ? 'Attaching…' : `Attach ${picked.size} issue${picked.size === 1 ? '' : 's'}`}
+            <button type="button" onClick={attach} disabled={attaching} className={PRIMARY_BTN}>
+                {attaching
+                    ? t('support.attach_issue_attaching', 'Attaching…')
+                    : picked.size === 1 ? t('support.attach_issue_attach_one', 'Attach {count} issue', { count: 1 }) : t('support.attach_issue_attach_other', 'Attach {count} issues', { count: picked.size })}
             </button>
         )}
     </div>;
 }
 
-function AttachIssuePanelSection({ query, setQuery, search, t, inputStyle, searching }: { query: string; setQuery: Dispatch<SetStateAction<string>>; search: () => Promise<void>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; inputStyle: { background: string; borderColor: string; color: string; }; searching: boolean; }) {
+function IssueSearchBar({ query, setQuery, search, searching }: { query: string; setQuery: Dispatch<SetStateAction<string>>; search: () => Promise<void>; searching: boolean; }) {
+    const { t } = useTranslation();
     return <div className="flex items-center gap-1.5">
-        <Search className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)]" />
+        <Search className="h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
         <input
             autoFocus
             value={query}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
             onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && search()}
             placeholder={t('support.attach_issue_search_issues_or_paste_an_issue_number', 'Search issues, or paste an issue number like BFSF-441')}
-            className="flex-1 px-2 py-1 rounded border text-xs"
-            style={inputStyle} />
-        <button
-            onClick={search}
-            disabled={searching}
-            className="px-2 py-1 rounded text-xs border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
-        >
-            {searching ? 'Searching…' : 'Search'}
+            className={`${FIELD_INPUT} flex-1 text-xs`} />
+        <button type="button" onClick={search} disabled={searching} className={SECONDARY_BTN}>
+            {searching ? t('support.attach_issue_searching', 'Searching…') : t('support.attach_issue_search', 'Search')}
         </button>
     </div>;
 }

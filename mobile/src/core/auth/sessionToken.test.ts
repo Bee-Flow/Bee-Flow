@@ -249,6 +249,42 @@ describe('refreshSessionToken', () => {
         expect(currentSessionToken()).toBeNull();
     });
 
+    describe('when a new sign-in replaced the token while the request was in flight', () => {
+        const OTHER = 'https://other.example';
+
+        /** A refresh for `tok-old` whose answer arrives after the app moved to OTHER and signed in there. */
+        async function refreshAcrossASignIn(answer: { body: unknown; status: number }) {
+            await adoptSessionToken('tok-old');
+            mockExpoFetch.mockReset();
+            mockExpoFetch.mockImplementationOnce(async () => {
+                await setServerUrl(OTHER);
+                // (The new sign-in's own trade-in finds no network here: the hour-long token stays.)
+                await adoptSessionToken('tok-new');
+                return {
+                    ok: answer.status >= 200 && answer.status < 300,
+                    status: answer.status,
+                    headers: { get: () => 'application/json' },
+                    json: async () => answer.body,
+                };
+            });
+            return refreshSessionToken();
+        }
+
+        it('does not put the old server\'s token over the new one', async () => {
+            await expect(refreshAcrossASignIn({ body: { token: 'tok-old-renewed', expiresIn: 3600 }, status: 200 })).resolves.toBe(false);
+            expect(getSessionToken()).toBe('tok-new');
+            expect(currentSessionToken()).toMatchObject({ token: 'tok-new', server: OTHER });
+        });
+
+        it('does not let the old session\'s 401, or its "no token", end the new sign-in', async () => {
+            await expect(refreshAcrossASignIn({ body: { error: 'unauthorized' }, status: 401 })).resolves.toBe(false);
+            expect(currentSessionToken()).toMatchObject({ token: 'tok-new', server: OTHER });
+            await setServerUrl(SERVER);
+            await expect(refreshAcrossASignIn({ body: {}, status: 200 })).resolves.toBe(false);
+            expect(currentSessionToken()).toMatchObject({ token: 'tok-new', server: OTHER });
+        });
+    });
+
     it('keeps the token through a 500 — a deploy is not a logout', async () => {
         await adoptSessionToken('tok-1');
         mockExpoFetch.mockReset();

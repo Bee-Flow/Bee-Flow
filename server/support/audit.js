@@ -89,8 +89,10 @@ function actorKindFor(action, fallback = 'system') {
  */
 function clientIp(req) {
     if (!req) return null;
-    const xf = req.headers?.['x-forwarded-for'];
-    if (xf) return String(xf).split(',')[0].trim();
+    // `req.ip` is the address Express resolves through the `trust proxy` hop
+    // count (boot/trustProxyHops.js): the last hop our own proxies vouch for.
+    // The leftmost X-Forwarded-For entry is whatever the client typed, so it is
+    // never read here: an audit trail must not record an address its subject chose.
     return req.ip || req.socket?.remoteAddress || null;
 }
 

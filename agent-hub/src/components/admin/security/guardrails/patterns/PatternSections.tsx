@@ -17,7 +17,7 @@ export function StarterSets({ onApply }: { onApply: (set: StarterSet) => void })
     const { t } = useTranslation();
     return (
         <section
-            className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5"
+            className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-4"
             aria-labelledby="gr-starter-heading"
         >
             <h3
@@ -36,7 +36,7 @@ export function StarterSets({ onApply }: { onApply: (set: StarterSet) => void })
                         type="button"
                         onClick={() => onApply(set)}
                         title={set.description}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                     >
                         <Plus size={13} aria-hidden="true" />
                         {set.name}
@@ -119,7 +119,7 @@ export function AiGenerate({ setRules, setCollections, onSaved }: AiGenerateProp
     };
 
     return (
-        <section className="p-5 rounded-xl border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/5">
+        <section className="p-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">
                 ✨ {t('admin.gr_ai_title', 'Generate with AI')}
             </h3>
@@ -134,7 +134,7 @@ export function AiGenerate({ setRules, setCollections, onSaved }: AiGenerateProp
                     placeholder={t('admin.gr_ai_placeholder', 'e.g. Dutch IBAN and passport numbers, EU credit cards…')}
                     aria-label={t('admin.gr_ai_placeholder', 'e.g. Dutch IBAN and passport numbers, EU credit cards…')}
                     disabled={aiGenerating}
-                    className="flex-1 min-w-[240px] px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm disabled:opacity-50"
+                    className="flex-1 min-w-[240px] px-3 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[13px] disabled:opacity-50"
                 />
                 <label className="sr-only" htmlFor="gr-ai-tier">{t('admin.gr_ai_tier', 'Model tier')}</label>
                 <select
@@ -142,7 +142,7 @@ export function AiGenerate({ setRules, setCollections, onSaved }: AiGenerateProp
                     value={aiModelTier}
                     onChange={e => setAiModelTier(e.target.value)}
                     disabled={aiGenerating || tierKeys.length === 0}
-                    className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[13px] disabled:opacity-50"
                 >
                     {tierKeys.map(key => (
                         <option key={key} value={key}>{(TIER_META as Record<string, { label?: string } | undefined>)[key]?.label || key}</option>
@@ -151,7 +151,7 @@ export function AiGenerate({ setRules, setCollections, onSaved }: AiGenerateProp
                 <button
                     onClick={handleGenerateWithAI}
                     disabled={aiGenerating || !aiPrompt.trim()}
-                    className="px-5 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 bg-[var(--accent-primary)] hover:opacity-90 transition-opacity whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                    className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-[var(--accent-primary-fg)] disabled:opacity-50 bg-[var(--accent-primary)] hover:opacity-90 transition-opacity whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                 >
                     {aiGenerating ? t('admin.gr_ai_generating', 'Generating…') : t('admin.gr_ai_generate', 'Generate')}
                 </button>

@@ -18,6 +18,7 @@ import PerItemEditor from './formFields/PerItemEditor';
 import ShowIfEditor from './formFields/ShowIfEditor';
 import { buildPreviewConfig, fillTemplate, isDisplayField, DISPLAY_FIELD_TYPES } from './formPreview';
 import { THEME_PRESETS } from './formStyle/stylePresets';
+import TypedNumberInput from './TypedNumberInput';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { normaliseOptions } from '../../../../forms/formOptions';
 
@@ -618,7 +619,7 @@ function FieldCard({ field, index, count, bindingBase, expanded = true, collapsi
                     </div>
                     <div className="w-24 shrink-0 space-y-0.5">
                         <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.max_mb', 'Max MB')}</div>
-                        <input type="number" min={1} max={25} value={field.maxSizeMb ?? 10} onChange={(e) => onChange({ maxSizeMb: Number(e.target.value) || 10 })} className={denseInputClass('w-full')} />
+                        <TypedNumberInput min={1} max={25} aria-label={t('automations.form_builder_fields.max_mb', 'Max MB')} value={field.maxSizeMb ?? 10} fallback={10} onNumber={(n) => onChange({ maxSizeMb: n })} className={denseInputClass('w-full')} />
                     </div>
                 </div>
             )}
@@ -721,13 +722,13 @@ function AppPickEditor({ field, index, onChange }) {
                 <div className="flex items-center gap-2">
                     <div className="w-24 shrink-0 space-y-0.5">
                         <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.max', 'Max')}</div>
-                        <input
-                            type="number"
+                        <TypedNumberInput
                             min={1}
                             max={10}
                             aria-label={`Question ${index + 1} maximum records`}
                             value={field.maxItems ?? 5}
-                            onChange={(e) => onChange({ maxItems: Number(e.target.value) || 5 })}
+                            fallback={5}
+                            onNumber={(n) => onChange({ maxItems: n })}
                             className={denseInputClass('w-full')}
                         />
                     </div>

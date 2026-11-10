@@ -21,9 +21,11 @@ interface OrgInfoSectionProps {
     setOrgData: Dispatch<SetStateAction<OrgFormData | null>>;
     handleLogoUpload: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
     handleLogoRemove: () => Promise<void>;
+    /** A platform administrator: may set the server-wide default language. */
+    isPlatformAdmin?: boolean;
 }
 
-const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUpload, handleLogoRemove }: OrgInfoSectionProps) => (
+const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUpload, handleLogoRemove, isPlatformAdmin = false }: OrgInfoSectionProps) => (
                     <div className="max-w-3xl space-y-8 animate-fadeIn">
                         <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('settings.org_info', 'Organisation Info')}</h2>
                         {/* NC binding banner — read-only summary of which Nextcloud
@@ -163,7 +165,7 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                         <div className="border-t border-[var(--border-subtle)]" />
 
                         {/* ── Default Language for New Users ── */}
-                        <OrgDefaultLanguage />
+                        <OrgDefaultLanguage canEdit={isPlatformAdmin} />
                         {/* AI usage sharing moved to the License & Usage section. */}
                     </div>
 );

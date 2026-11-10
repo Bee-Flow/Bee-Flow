@@ -1,377 +1,209 @@
-import React from 'react';
-import ModelSelector from '@/components/chat/ModelSelector';
+import type { ReactNode } from 'react';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { FIELD_INPUT, Field, SettingBlock, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import { SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import Toggle from '@/components/shared/Toggle';
 import useCopyToClipboard from '@/hooks/useCopyToClipboard';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DesignerSectionProps } from './sectionProps';
+import { widgetSnippet, type WidgetOptions } from './embedSnippet';
 
-export const BehaviorSection = ({
-  selectedAgent, name, setName, description, setDescription,
-  systemPrompt, setSystemPrompt, avatar, setAvatar,
-  showEmojiPicker, setShowEmojiPicker, emojiCategory, setEmojiCategory, emojiPickerRef,
-  model, setModel, modelTiers, authFetch, API_BASE,
-  activeGuardrailTab, setActiveGuardrailTab, llamaGuardEnabled, setLlamaGuardEnabled,
-  webSearchGuardEnabled, setWebSearchGuardEnabled, regexGuardrailsEnabled, setRegexGuardrailsEnabled,
-  availableCollections, selectedCollections, setSelectedCollections,
-  regexScope, setRegexScope, guardrailAction, setGuardrailAction,
-  enabledIntegrations, setEnabledIntegrations, integrationStatus,
-  availableModels,
-  disableExternalTools, setDisableExternalTools,
+const MONO_INPUT = `${FIELD_INPUT} font-mono text-xs`;
+const RANGE = 'w-full accent-[var(--accent-primary)]';
+const SEGMENT_ON = 'flex-1 rounded-md border border-[var(--accent-primary)] bg-[var(--bg-tertiary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors';
+const SEGMENT_OFF = 'flex-1 rounded-md border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-secondary)]';
+const FONTS: [string, string][] = [
+  ['System Default', 'agent_studio.behavior_system_default'], ['Inter', 'agent_studio.behavior_inter'],
+  ['Roboto', 'agent_studio.behavior_roboto'], ['Open Sans', 'agent_studio.behavior_open_sans'],
+  ['Lato', 'agent_studio.behavior_lato'], ['Poppins', 'agent_studio.behavior_poppins'],
+  ['Nunito', 'agent_studio.behavior_nunito'], ['Georgia', 'agent_studio.behavior_georgia'],
+  ['Courier New', 'agent_studio.behavior_courier_new'],
+];
 
-  CAPABILITIES, checkCapability, toggleCapability,
-  allowCopy, setAllowCopy, embedEnabled, setEmbedEnabled,
-  bubbleColor, setBubbleColor, bubblePosition, setBubblePosition,
-  bubbleSize, setBubbleSize, bubbleIcon, setBubbleIcon,
-  windowWidth, setWindowWidth, windowHeight, setWindowHeight,
-  chatFont, setChatFont, chatFontSize, setChatFontSize,
-  chatLineHeight, setChatLineHeight, userBubbleColor, setUserBubbleColor,
-  assistantBubbleColor, setAssistantBubbleColor, warningText, setWarningText,
-  setPromptDesignerMessages, setPromptDesignerInput, setShowPromptDesigner
-}: DesignerSectionProps) => {
+/** A read-only value with a Copy button next to it (public URL, iframe tag, widget code). */
+function CopyField({ id, value, onCopy, multiline }: { id: string; value: string; onCopy: () => void; multiline?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-start gap-2">
+      {multiline
+        ? <textarea id={id} readOnly rows={3} value={value} className={`${MONO_INPUT} flex-1 resize-none text-[var(--text-secondary)]`} />
+        : <input id={id} readOnly value={value} className={`${MONO_INPUT} flex-1 text-[var(--text-secondary)]`} />}
+      <button type="button" onClick={onCopy} className={SECONDARY_BTN}>{t('agent_studio.behavior_copy', 'Copy')}</button>
+    </div>
+  );
+}
+
+/** A colour picker with the same value as text: the picker shows `fallback` while the value is empty. */
+function ColorField({ id, label, value, fallback, onChange, placeholder }: { id: string; label: string; value: string; fallback?: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <Field label={label} htmlFor={id}>
+      <div className="flex items-center gap-2">
+        <input type="color" aria-label={label} value={value || fallback} onChange={(e) => onChange(e.target.value)} className="h-8 w-8 shrink-0 cursor-pointer rounded-md border border-[var(--border-default)] bg-transparent p-0" />
+        <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={MONO_INPUT} />
+      </div>
+    </Field>
+  );
+}
+
+/** A labelled slider. */
+function RangeField({ id, label, value, onChange, min, max, step }: { id: string; label: ReactNode; value: number; onChange: (v: number) => void; min: number; max: number; step?: number }) {
+  return (
+    <Field label={label} htmlFor={id}>
+      <input id={id} type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className={RANGE} />
+    </Field>
+  );
+}
+
+/** Look and size of the floating bubble and its chat window. */
+function BubbleLookFields(p: DesignerSectionProps) {
+  const { t } = useTranslation();
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <ColorField id="embed-bubble-color" label={t('agent_studio.behavior_bubble_color', 'Bubble Color')} value={p.bubbleColor} onChange={p.setBubbleColor} />
+      <Field label={t('agent_studio.behavior_position', 'Position')}>
+        <div className="flex gap-1">
+          {['left', 'right'].map(pos => (
+            <button key={pos} type="button" aria-pressed={p.bubblePosition === pos} onClick={() => p.setBubblePosition(pos)} className={p.bubblePosition === pos ? SEGMENT_ON : SEGMENT_OFF}>
+              {pos === 'left' ? t('agent_studio.behavior_position_left', '◀ Left') : t('agent_studio.behavior_position_right', 'Right ▶')}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <RangeField id="embed-bubble-size" label={t('agent_studio.behavior_bubble_size_bubble_sizepx', 'Bubble Size: {bubble_size}px', { bubble_size: p.bubbleSize })} value={p.bubbleSize} onChange={p.setBubbleSize} min={40} max={80} />
+      <Field label={t('agent_studio.behavior_icon', 'Icon')}>
+        <div className="flex gap-1">
+          {['🐝', '💬', '🤖', '❓', '👋'].map(icon => (
+            <button
+              key={icon}
+              type="button"
+              aria-pressed={p.bubbleIcon === icon}
+              onClick={() => p.setBubbleIcon(icon)}
+              className={`flex h-8 w-8 items-center justify-center rounded-md text-base transition-colors ${p.bubbleIcon === icon ? 'bg-[var(--bg-tertiary)] ring-2 ring-[var(--accent-primary)]' : 'bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <RangeField id="embed-window-width" label={t('agent_studio.behavior_window_width_window_widthpx', 'Window Width: {window_width}px', { window_width: p.windowWidth })} value={p.windowWidth} onChange={p.setWindowWidth} min={320} max={500} step={10} />
+      <RangeField id="embed-window-height" label={t('agent_studio.behavior_window_height_window_heightpx', 'Window Height: {window_height}px', { window_height: p.windowHeight })} value={p.windowHeight} onChange={p.setWindowHeight} min={400} max={800} step={10} />
+    </div>
+  );
+}
+
+/** Font, colours and disclaimer of the chat window inside the bubble. */
+function ChatLookFields(p: DesignerSectionProps) {
+  const { t } = useTranslation();
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Field label={t('agent_studio.behavior_font_family', 'Font Family')} htmlFor="embed-font">
+        <select id="embed-font" value={p.chatFont} onChange={(e) => p.setChatFont(e.target.value)} className={`${FIELD_INPUT} cursor-pointer text-xs`}>
+          {FONTS.map(([value, key]) => <option key={value} value={value}>{t(key, value)}</option>)}
+        </select>
+      </Field>
+      <RangeField id="embed-font-size" label={t('agent_studio.behavior_font_size_chat_font_sizepx', 'Font Size: {chat_font_size}px', { chat_font_size: p.chatFontSize })} value={p.chatFontSize} onChange={p.setChatFontSize} min={12} max={20} />
+      <RangeField id="embed-line-height" label={t('agent_studio.behavior_line_height', 'Line Height: {value}', { value: p.chatLineHeight })} value={p.chatLineHeight} onChange={p.setChatLineHeight} min={1.2} max={2.0} step={0.1} />
+      <div className="hidden sm:block" />
+      <ColorField id="embed-user-color" label={t('agent_studio.behavior_user_bubble_color', 'User Bubble Color')} value={p.userBubbleColor} fallback="#6366f1" onChange={p.setUserBubbleColor} placeholder={t('agent_studio.behavior_default', 'Default')} />
+      <ColorField id="embed-assistant-color" label={t('agent_studio.behavior_assistant_bubble_color', 'Assistant Bubble Color')} value={p.assistantBubbleColor} fallback="#374151" onChange={p.setAssistantBubbleColor} placeholder={t('agent_studio.behavior_default', 'Default')} />
+      <div className="sm:col-span-2">
+        <Field label={t('agent_studio.behavior_disclaimer_text', 'Disclaimer Text')} htmlFor="embed-disclaimer">
+          <input
+            id="embed-disclaimer"
+            type="text"
+            value={p.warningText}
+            onChange={(e) => p.setWarningText(e.target.value)}
+            placeholder={t('agent_studio.behavior_ai_can_make_mistakes_please_verify', 'AI can make mistakes. Please verify important information.')}
+            className={`${FIELD_INPUT} text-xs`}
+          />
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+/** The public URL, the iframe tag and the chat bubble widget of a published agent. */
+function EmbedSettings(p: DesignerSectionProps & { agentId: string }) {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
+  const origin = window.location.origin;
+  const publicUrl = `${origin}/chat/${p.agentId}`;
+  const iframe = `<iframe src="${publicUrl}" width="400" height="600" style="border:none;border-radius:12px;"></iframe>`;
+  const widget: WidgetOptions = {
+    agentId: p.agentId, origin, bubbleColor: p.bubbleColor, bubblePosition: p.bubblePosition, bubbleSize: p.bubbleSize,
+    bubbleIcon: p.bubbleIcon, windowWidth: p.windowWidth, windowHeight: p.windowHeight, chatFont: p.chatFont,
+    chatFontSize: p.chatFontSize, chatLineHeight: p.chatLineHeight, userBubbleColor: p.userBubbleColor,
+    assistantBubbleColor: p.assistantBubbleColor, warningText: p.warningText,
+  };
+  const previewSize = Math.min(p.bubbleSize, 50);
   return (
-                                                <div className="space-y-6 animate-fadeIn">
-                                                    <h2 className="text-base font-semibold mb-4 text-primary">{t('agent_studio.behavior_behavior_settings', 'Behavior Settings')}</h2>
+    <>
+      <SettingsGroup
+        title={t('agent_studio.behavior_embed_settings', 'Embed Settings')}
+        description={t('agent_studio.behavior_agent_must_be_published_for_the_embed', 'Agent must be Published for the embed link to work.')}
+      >
+        <SettingsList>
+          <SettingBlock htmlFor="embed-public-url" label={t('agent_studio.behavior_public_url', 'Public URL')}>
+            <CopyField id="embed-public-url" value={publicUrl} onCopy={() => copy(publicUrl)} />
+          </SettingBlock>
+          <SettingBlock htmlFor="embed-iframe" label={t('agent_studio.behavior_iframe_embed', 'Iframe Embed')}>
+            <CopyField id="embed-iframe" value={iframe} onCopy={() => copy(iframe)} />
+          </SettingBlock>
+        </SettingsList>
+      </SettingsGroup>
 
-                                                    <div className="space-y-4">
-                                                        <Toggle
-                                                            checked={allowCopy}
-                                                            onChange={setAllowCopy}
-                                                            label="Allow Copying"
-                                                            description="Users can copy message content to clipboard"
-                                                        />
+      <SettingsGroup
+        title={t('agent_studio.behavior_chat_bubble_widget', 'Chat Bubble Widget')}
+        description={t('agent_studio.behavior_a_floating_chat_button_that_opens_the', 'A floating chat button that opens the agent in a popup. Customize and copy the snippet below.')}
+      >
+        <SettingsList>
+          <div className="px-4 py-3"><BubbleLookFields {...p} /></div>
+          <div className="px-4 py-3"><ChatLookFields {...p} /></div>
+          <div className="flex items-center gap-3 bg-[var(--bg-secondary)] px-4 py-3">
+            {/* The bubble in the owner's own colour: data, so an inline style. */}
+            <div
+              className="flex shrink-0 items-center justify-center rounded-full"
+              style={{ width: previewSize, height: previewSize, fontSize: previewSize * 0.45, background: `linear-gradient(135deg, ${p.bubbleColor}, ${p.bubbleColor}dd)`, boxShadow: `0 4px 16px ${p.bubbleColor}66` }}
+            >
+              {p.bubbleIcon}
+            </div>
+            <p className="m-0 text-xs text-[var(--text-tertiary)]">
+              {t('agent_studio.behavior_preview_bubble_sizepx_bubble_position', 'Preview · {bubble_size}px · {bubble_position} · {window_width}×{window_height} window', { bubble_size: p.bubbleSize, bubble_position: p.bubblePosition, window_width: p.windowWidth, window_height: p.windowHeight })}
+            </p>
+          </div>
+          <SettingBlock htmlFor="embed-widget-code" label={t('agent_studio.behavior_generated_code', 'Generated Code')}>
+            <CopyField id="embed-widget-code" multiline value={widgetSnippet(widget, true)} onCopy={() => copy(widgetSnippet(widget))} />
+          </SettingBlock>
+        </SettingsList>
+      </SettingsGroup>
+    </>
+  );
+}
 
-                                                        <Toggle
-                                                            checked={disableExternalTools}
-                                                            onChange={setDisableExternalTools}
-                                                            label="Disable Integrations & Web Search"
-                                                            description="Block all integration tools and web search for this agent"
-                                                            color="amber"
-                                                        />
-
-                                                        <Toggle
-                                                            checked={embedEnabled}
-                                                            onChange={setEmbedEnabled}
-                                                            label="Web Embed"
-                                                            description="Public standalone chat page for embedding"
-                                                        />
-
-                                                        {/* Embed URL Info Card */}
-                                                        {embedEnabled && selectedAgent && (
-                                                            <div className="p-4 rounded-xl border space-y-3 [border-color:var(--accent-primary)] [background:rgba(99,102,241,0.05)]">
-                                                                <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent-primary)]">
-                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                                                                    {t('agent_studio.behavior_embed_settings', 'Embed Settings')}
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-xs text-muted mb-1 block">{t('agent_studio.behavior_public_url', 'Public URL')}</label>
-                                                                    <div className="flex gap-2">
-                                                                        <input
-                                                                            readOnly
-                                                                            value={`${window.location.origin}/chat/${selectedAgent.id}`}
-                                                                            className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                                                        />
-                                                                        <button
-                                                                            onClick={() => copy(`${window.location.origin}/chat/${selectedAgent.id}`)}
-                                                                            className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity bg-[var(--accent-primary)]"
-                                                                        >
-                                                                            {t('agent_studio.behavior_copy', 'Copy')}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-xs text-muted mb-1 block">{t('agent_studio.behavior_iframe_embed', 'Iframe Embed')}</label>
-                                                                    <div className="flex gap-2">
-                                                                        <input
-                                                                            readOnly
-                                                                            value={`<iframe src="${window.location.origin}/chat/${selectedAgent.id}" width="400" height="600" style="border:none;border-radius:12px;"></iframe>`}
-                                                                            className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                                                        />
-                                                                        <button
-                                                                            onClick={() => copy(`<iframe src="${window.location.origin}/chat/${selectedAgent.id}" width="400" height="600" style="border:none;border-radius:12px;"></iframe>`)}
-                                                                            className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity bg-[var(--accent-primary)]"
-                                                                        >
-                                                                            {t('agent_studio.behavior_copy', 'Copy')}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="space-y-3">
-                                                                    <label className="text-xs text-muted mb-1 block font-medium">{t('agent_studio.behavior_chat_bubble_widget', 'Chat Bubble Widget')}</label>
-                                                                    <p className="text-[10px] text-muted">{t('agent_studio.behavior_a_floating_chat_button_that_opens_the', 'A floating chat button that opens the agent in a popup. Customize and copy the snippet below.')}</p>
-
-                                                                    {/* Styling Options Grid */}
-                                                                    <div className="grid grid-cols-2 gap-3">
-                                                                        {/* Bubble Color */}
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_bubble_color', 'Bubble Color')}</label>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <input
-                                                                                    type="color"
-                                                                                    value={bubbleColor}
-                                                                                    onChange={(e) => setBubbleColor(e.target.value)}
-                                                                                    className="w-8 h-8 rounded-lg border-0 cursor-pointer [padding:0]"
-                                                                                />
-                                                                                <input
-                                                                                    type="text"
-                                                                                    value={bubbleColor}
-                                                                                    onChange={(e) => setBubbleColor(e.target.value)}
-                                                                                    className="flex-1 text-xs font-mono px-2 py-1.5 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-
-                                                                        {/* Position */}
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_position', 'Position')}</label>
-                                                                            <div className="flex gap-1">
-                                                                                {['left', 'right'].map(pos => (
-                                                                                    <button
-                                                                                        key={pos}
-                                                                                        onClick={() => setBubblePosition(pos)}
-                                                                                        className={`flex-1 px-3 py-1.5 text-xs rounded-lg border transition-colors capitalize ${bubblePosition === pos
-                                                                                            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-medium'
-                                                                                            : 'border-transparent bg-white/5 text-muted hover:text-primary'
-                                                                                            }`}
-                                                                                    >
-                                                                                        {pos === 'left' ? '◀ Left' : 'Right ▶'}
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
-
-                                                                        {/* Bubble Size */}
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_bubble_size_bubble_sizepx', 'Bubble Size: {bubble_size}px', { bubble_size: bubbleSize })}</label>
-                                                                            <input
-                                                                                type="range"
-                                                                                min={40}
-                                                                                max={80}
-                                                                                value={bubbleSize}
-                                                                                onChange={(e) => setBubbleSize(Number(e.target.value))}
-                                                                                className="w-full accent-[var(--accent-primary)]"
-                                                                            />
-                                                                        </div>
-
-                                                                        {/* Icon */}
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_icon', 'Icon')}</label>
-                                                                            <div className="flex gap-1">
-                                                                                {['🐝', '💬', '🤖', '❓', '👋'].map(icon => (
-                                                                                    <button
-                                                                                        key={icon}
-                                                                                        onClick={() => setBubbleIcon(icon)}
-                                                                                        className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${bubbleIcon === icon
-                                                                                            ? 'ring-2 ring-[var(--accent-primary)] scale-110'
-                                                                                            : 'bg-white/5 hover:bg-white/10'
-                                                                                            }`}
-                                                                                    >
-                                                                                        {icon}
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
-
-                                                                        {/* Window Width */}
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_window_width_window_widthpx', 'Window Width: {window_width}px', { window_width: windowWidth })}</label>
-                                                                            <input
-                                                                                type="range"
-                                                                                min={320}
-                                                                                max={500}
-                                                                                step={10}
-                                                                                value={windowWidth}
-                                                                                onChange={(e) => setWindowWidth(Number(e.target.value))}
-                                                                                className="w-full accent-[var(--accent-primary)]"
-                                                                            />
-                                                                        </div>
-
-                                                                        {/* Window Height */}
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_window_height_window_heightpx', 'Window Height: {window_height}px', { window_height: windowHeight })}</label>
-                                                                            <input
-                                                                                type="range"
-                                                                                min={400}
-                                                                                max={800}
-                                                                                step={10}
-                                                                                value={windowHeight}
-                                                                                onChange={(e) => setWindowHeight(Number(e.target.value))}
-                                                                                className="w-full accent-[var(--accent-primary)]"
-                                                                            />
-                                                                        </div>
-
-                                                                        {/* Font Family */}
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_font_family', 'Font Family')}</label>
-                                                                            <select
-                                                                                value={chatFont}
-                                                                                onChange={(e) => setChatFont(e.target.value)}
-                                                                                className="w-full text-xs px-2 py-1.5 rounded-lg border bg-transparent cursor-pointer [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                                                            >
-                                                                                <option value="System Default">{t('agent_studio.behavior_system_default', 'System Default')}</option>
-                                                                                <option value="Inter">{t('agent_studio.behavior_inter', 'Inter')}</option>
-                                                                                <option value="Roboto">{t('agent_studio.behavior_roboto', 'Roboto')}</option>
-                                                                                <option value="Open Sans">{t('agent_studio.behavior_open_sans', 'Open Sans')}</option>
-                                                                                <option value="Lato">{t('agent_studio.behavior_lato', 'Lato')}</option>
-                                                                                <option value="Poppins">{t('agent_studio.behavior_poppins', 'Poppins')}</option>
-                                                                                <option value="Nunito">{t('agent_studio.behavior_nunito', 'Nunito')}</option>
-                                                                                <option value="Georgia">{t('agent_studio.behavior_georgia', 'Georgia')}</option>
-                                                                                <option value="Courier New">{t('agent_studio.behavior_courier_new', 'Courier New')}</option>
-                                                                            </select>
-                                                                        </div>
-
-                                                                        {/* Font Size */}
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_font_size_chat_font_sizepx', 'Font Size: {chat_font_size}px', { chat_font_size: chatFontSize })}</label>
-                                                                            <input
-                                                                                type="range"
-                                                                                min={12}
-                                                                                max={20}
-                                                                                value={chatFontSize}
-                                                                                onChange={(e) => setChatFontSize(Number(e.target.value))}
-                                                                                className="w-full accent-[var(--accent-primary)]"
-                                                                            />
-                                                                        </div>
-
-                                                                        {/* Line Height */}
-                                                                        <div className="col-span-2">
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_line_height', 'Line Height: {value}', { value: chatLineHeight })}</label>
-                                                                            <input
-                                                                                type="range"
-                                                                                min={1.2}
-                                                                                max={2.0}
-                                                                                step={0.1}
-                                                                                value={chatLineHeight}
-                                                                                onChange={(e) => setChatLineHeight(Number(e.target.value))}
-                                                                                className="w-full accent-[var(--accent-primary)]"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Chat Colors */}
-                                                                    <div className="grid grid-cols-2 gap-3">
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_user_bubble_color', 'User Bubble Color')}</label>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <input
-                                                                                    type="color"
-                                                                                    value={userBubbleColor || '#6366f1'}
-                                                                                    onChange={(e) => setUserBubbleColor(e.target.value)}
-                                                                                    className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
-                                                                                />
-                                                                                <input
-                                                                                    type="text"
-                                                                                    value={userBubbleColor}
-                                                                                    onChange={(e) => setUserBubbleColor(e.target.value)}
-                                                                                    placeholder={t('agent_studio.behavior_default', 'Default')}
-                                                                                    className="flex-1 text-xs px-2 py-1.5 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_assistant_bubble_color', 'Assistant Bubble Color')}</label>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <input
-                                                                                    type="color"
-                                                                                    value={assistantBubbleColor || '#374151'}
-                                                                                    onChange={(e) => setAssistantBubbleColor(e.target.value)}
-                                                                                    className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
-                                                                                />
-                                                                                <input
-                                                                                    type="text"
-                                                                                    value={assistantBubbleColor}
-                                                                                    onChange={(e) => setAssistantBubbleColor(e.target.value)}
-                                                                                    placeholder={t('agent_studio.behavior_default', 'Default')}
-                                                                                    className="flex-1 text-xs px-2 py-1.5 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Warning Text */}
-                                                                    <div>
-                                                                        <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_disclaimer_text', 'Disclaimer Text')}</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            value={warningText}
-                                                                            onChange={(e) => setWarningText(e.target.value)}
-                                                                            placeholder={t('agent_studio.behavior_ai_can_make_mistakes_please_verify', 'AI can make mistakes. Please verify important information.')}
-                                                                            className="w-full text-xs px-2 py-1.5 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                                                        />
-                                                                    </div>
-
-                                                                    {/* Live Preview */}
-                                                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-[var(--border-subtle)]">
-                                                                        <div
-                                                                            style={{
-                                                                                width: `${Math.min(bubbleSize, 50)}px`,
-                                                                                height: `${Math.min(bubbleSize, 50)}px`,
-                                                                                borderRadius: '50%',
-                                                                                background: `linear-gradient(135deg, ${bubbleColor}, ${bubbleColor}dd)`,
-                                                                                display: 'flex',
-                                                                                alignItems: 'center',
-                                                                                justifyContent: 'center',
-                                                                                fontSize: `${Math.min(bubbleSize, 50) * 0.45}px`,
-                                                                                boxShadow: `0 4px 16px ${bubbleColor}66`,
-                                                                                flexShrink: 0
-                                                                            }}
-                                                                        >
-                                                                            {bubbleIcon}
-                                                                        </div>
-                                                                        <div className="text-[10px] text-muted">
-                                                                            {t('agent_studio.behavior_preview_bubble_sizepx_bubble_position', 'Preview · {bubble_size}px · {bubble_position} · {window_width}×{window_height} window', { bubble_size: bubbleSize, bubble_position: bubblePosition, window_width: windowWidth, window_height: windowHeight })}
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Generated Code */}
-                                                                    <div>
-                                                                        <label className="text-[10px] text-muted mb-1 block">{t('agent_studio.behavior_generated_code', 'Generated Code')}</label>
-                                                                        <div className="flex gap-2">
-                                                                            <textarea
-                                                                                readOnly
-                                                                                rows={3}
-                                                                                value={(() => {
-                                                                                    const pos = bubblePosition === 'left' ? 'left:24px' : 'right:24px';
-                                                                                    const fontParams = [];
-                                                                                    if (chatFont !== 'System Default') fontParams.push(`font=${encodeURIComponent(chatFont)}`);
-                                                                                    if (chatFontSize !== 14) fontParams.push(`fontSize=${chatFontSize}`);
-                                                                                    if (chatLineHeight !== 1.5) fontParams.push(`lineHeight=${chatLineHeight}`);
-                                                                                    if (userBubbleColor) fontParams.push(`userColor=${encodeURIComponent(userBubbleColor)}`);
-                                                                                    if (assistantBubbleColor) fontParams.push(`assistantColor=${encodeURIComponent(assistantBubbleColor)}`);
-                                                                                    if (warningText) fontParams.push(`warning=${encodeURIComponent(warningText)}`);
-                                                                                    const paramStr = fontParams.length ? (selectedAgent.id.includes('?') ? '&' : '?') + fontParams.join('&') : '';
-                                                                                    const chatUrl = `${window.location.origin}/chat/${selectedAgent.id}${paramStr}`;
-                                                                                    return `<!-- Bee Flow Chat Widget -->\n<script>\n(function(){\n  var d=document,s=d.createElement('style'),b=d.createElement('div');\n  s.textContent='#bf-bubble{position:fixed;bottom:24px;${pos};width:${bubbleSize}px;height:${bubbleSize}px;border-radius:50%;background:linear-gradient(135deg,${bubbleColor},${bubbleColor}dd);border:none;cursor:pointer;box-shadow:0 4px 20px ${bubbleColor}66;display:flex;align-items:center;justify-content:center;font-size:${Math.round(bubbleSize * 0.45)}px;transition:transform .3s,box-shadow .3s;z-index:10001}#bf-bubble:hover{transform:scale(1.1)}#bf-bubble.open{background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 4px 20px rgba(231,76,60,.4)}#bf-window{position:fixed;bottom:${bubbleSize + 40}px;${pos};width:${windowWidth}px;height:${windowHeight}px;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.15);opacity:0;transform:translateY(20px) scale(.95);pointer-events:none;transition:opacity .3s,transform .3s;z-index:10000}#bf-window.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}#bf-window iframe{width:100%;height:100%;border:none}';\n  d.head.appendChild(s);\n  b.innerHTML='<div id="bf-window"><iframe src="${chatUrl}"><\\/iframe><\\/div><button id="bf-bubble">${bubbleIcon}<\\/button>';\n  d.body.appendChild(b);\n  d.getElementById('bf-bubble').onclick=function(){var w=d.getElementById('bf-window'),t=this;t.classList.toggle('open');w.classList.toggle('open');t.textContent=t.classList.contains('open')?'\\u2715':'${bubbleIcon}'};\n})();\n<\\/script>`;
-                                                                                })()}
-                                                                                className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent resize-none [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                                                            />
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    const pos = bubblePosition === 'left' ? 'left:24px' : 'right:24px';
-                                                                                    const fontParams = [];
-                                                                                    if (chatFont !== 'System Default') fontParams.push(`font=${encodeURIComponent(chatFont)}`);
-                                                                                    if (chatFontSize !== 14) fontParams.push(`fontSize=${chatFontSize}`);
-                                                                                    if (chatLineHeight !== 1.5) fontParams.push(`lineHeight=${chatLineHeight}`);
-                                                                                    if (userBubbleColor) fontParams.push(`userColor=${encodeURIComponent(userBubbleColor)}`);
-                                                                                    if (assistantBubbleColor) fontParams.push(`assistantColor=${encodeURIComponent(assistantBubbleColor)}`);
-                                                                                    if (warningText) fontParams.push(`warning=${encodeURIComponent(warningText)}`);
-                                                                                    const paramStr = fontParams.length ? (selectedAgent.id.includes('?') ? '&' : '?') + fontParams.join('&') : '';
-                                                                                    const chatUrl = `${window.location.origin}/chat/${selectedAgent.id}${paramStr}`;
-                                                                                    const code = `<!-- Bee Flow Chat Widget -->\n<script>\n(function(){\n  var d=document,s=d.createElement('style'),b=d.createElement('div');\n  s.textContent='#bf-bubble{position:fixed;bottom:24px;${pos};width:${bubbleSize}px;height:${bubbleSize}px;border-radius:50%;background:linear-gradient(135deg,${bubbleColor},${bubbleColor}dd);border:none;cursor:pointer;box-shadow:0 4px 20px ${bubbleColor}66;display:flex;align-items:center;justify-content:center;font-size:${Math.round(bubbleSize * 0.45)}px;transition:transform .3s,box-shadow .3s;z-index:10001}#bf-bubble:hover{transform:scale(1.1)}#bf-bubble.open{background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 4px 20px rgba(231,76,60,.4)}#bf-window{position:fixed;bottom:${bubbleSize + 40}px;${pos};width:${windowWidth}px;height:${windowHeight}px;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.15);opacity:0;transform:translateY(20px) scale(.95);pointer-events:none;transition:opacity .3s,transform .3s;z-index:10000}#bf-window.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}#bf-window iframe{width:100%;height:100%;border:none}';\n  d.head.appendChild(s);\n  b.innerHTML='<div id="bf-window"><iframe src="${chatUrl}"><\\/iframe><\\/div><button id="bf-bubble">${bubbleIcon}<\\/button>';\n  d.body.appendChild(b);\n  d.getElementById('bf-bubble').onclick=function(){var w=d.getElementById('bf-window'),t=this;t.classList.toggle('open');w.classList.toggle('open');t.textContent=t.classList.contains('open')?'\\u2715':'${bubbleIcon}'};\n})();\n</script>`;
-                                                                                    copy(code);
-                                                                                }}
-                                                                                className="px-3 py-2 text-xs rounded-lg text-white hover:opacity-90 transition-opacity self-start bg-[var(--accent-primary)]"
-                                                                            >
-                                                                                {t('agent_studio.behavior_copy', 'Copy')}
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <p className="text-[10px] text-muted">{t('agent_studio.behavior_agent_must_be_published_for_the_embed', 'Agent must be Published for the embed link to work.')}</p>
-                                                            </div>
-                                                        )}
-
-                                                    </div>
-                                                </div>
+export const BehaviorSection = (props: DesignerSectionProps) => {
+  const { selectedAgent, allowCopy, setAllowCopy, disableExternalTools, setDisableExternalTools, embedEnabled, setEmbedEnabled } = props;
+  const { t } = useTranslation();
+  const rows = [
+    { id: 'copy', checked: allowCopy, onChange: setAllowCopy, label: t('agent_studio.behavior_allow_copying', 'Allow Copying'), hint: t('agent_studio.behavior_allow_copying_hint', 'Users can copy message content to clipboard') },
+    { id: 'external', checked: disableExternalTools, onChange: setDisableExternalTools, label: t('agent_studio.behavior_disable_external_tools', 'Disable Integrations & Web Search'), hint: t('agent_studio.behavior_disable_external_tools_hint', 'Block all integration tools and web search for this agent') },
+    { id: 'embed', checked: embedEnabled, onChange: setEmbedEnabled, label: t('agent_studio.behavior_web_embed', 'Web Embed'), hint: t('agent_studio.behavior_web_embed_hint', 'Public standalone chat page for embedding') },
+  ];
+  return (
+    <div className="flex max-w-4xl flex-col gap-6 animate-fadeIn">
+      <SectionHeader title={t('agent_studio.behavior_behavior_settings', 'Behavior Settings')} />
+      <SettingsList>
+        {rows.map(r => (
+          // A switch needs no wide control column: label and hint take the width.
+          <div key={r.id} className="flex items-center justify-between gap-4 px-4 py-3">
+            <div className="min-w-0">
+              <h4 className="m-0 text-[13px] font-medium text-[var(--text-primary)]">{r.label}</h4>
+              <p className="m-0 mt-0.5 text-xs text-[var(--text-tertiary)]">{r.hint}</p>
+            </div>
+            <Toggle checked={r.checked} onChange={r.onChange} ariaLabel={r.label} />
+          </div>
+        ))}
+      </SettingsList>
+      {embedEnabled && selectedAgent && <EmbedSettings {...props} agentId={selectedAgent.id} />}
+    </div>
   );
 };

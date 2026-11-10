@@ -7,6 +7,7 @@
 const deps = require('./deps');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+const { assertStored } = require('../../stores/user/assertStored');
 const { getClient, escapeSearchValue } = require('./client');
 const { resolveStripeTaxId, buildStripeAddress } = require('./customer');
 
@@ -131,7 +132,7 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
                 effectiveCustomerId = created.id;
             }
             if (effectiveCustomerId) {
-                try { await userStore.setOrgSubscription(orgId, { stripe_customer_id: effectiveCustomerId }); }
+                try { assertStored(await userStore.setOrgSubscription(orgId, { stripe_customer_id: effectiveCustomerId }), `Stripe customer id of organization ${orgId}`); }
                 catch (e) { bestEffort('stripe/checkout:persistCustomerId', e); }
             }
 

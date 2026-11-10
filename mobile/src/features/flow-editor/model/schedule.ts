@@ -75,7 +75,9 @@ function timedPreset([m, h, dom, mon, dow]: CronFields): SchedulePreset | null {
     if (mon !== '*' || !DIGITS.test(m) || !DIGITS.test(h)) return null;
     const mm = int(m);
     const hh = int(h);
-    if (dom === '*' && dow === '*' && mm <= 59 && hh <= 23) return { mode: 'daily', hour: hh, minute: mm };
+    // Out of range (`75 9 * * 1`) is not a preset: the form would clamp it and write another schedule back.
+    if (mm > 59 || hh > 23) return null;
+    if (dom === '*' && dow === '*') return { mode: 'daily', hour: hh, minute: mm };
     if (dom === '*' && /^[0-7](,[0-7])*$/.test(dow)) {
         const days = dow.split(',').map((d) => (int(d) === 7 ? 0 : int(d)));
         return { mode: 'weekly', hour: hh, minute: mm, days };

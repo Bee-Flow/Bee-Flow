@@ -342,6 +342,7 @@ const now = Math.floor(Date.now() / 1000);
     // ── resolveTierFromSubscription helper edge cases ──────────────────
     assert.strictEqual(license.resolveTierFromSubscription(null), null);
     assert.strictEqual(license.resolveTierFromSubscription({ status: 'suspended', plan_tier: 'pro' }), null);
+    assert.strictEqual(license.resolveTierFromSubscription({ status: 'manual_action_required', plan_tier: 'pro' }), null);
     assert.strictEqual(license.resolveTierFromSubscription({ status: 'past_due', plan_tier: 'pro' }), null);
     assert.strictEqual(license.resolveTierFromSubscription({ status: 'active', plan_tier: 'bogus' }), null);
     assert.strictEqual(

@@ -93,49 +93,90 @@ function rewriteBinding(value: Obj, kind: string, r: Rename): Obj | null {
     return kind === 'ref' ? { ...value, path: next } : { ...value, value: next };
 }
 
-/** A rewritten COPY of any value; a `literal` ships verbatim at run time, so its payload stays. */
-function rewriteDeep(value: unknown, r: Rename): unknown {
-    if (Array.isArray(value)) return value.map((v) => rewriteDeep(v, r));
+/** The plain-string fields that hold an EXPRESSION: a condition's or a switch case's `expr`, a stage's or a step's `when`. */
+const EXPR_KEYS = new Set(['expr', 'when']);
+
+/**
+ * A reference that is not wrapped in a binding (a condition's `expr`, a loop's
+ * `overRef`, a `sourceRef`, the `{{…}}` of a prompt): an expression under an
+ * expression key, a template when it has placeholders, otherwise one whole
+ * reference path. Prose is none of these and is left alone.
+ */
+function renamePlain(text: string, key: string, r: Rename): string {
+    if (EXPR_KEYS.has(key)) return renameInExpr(text, r.base, r.from, r.to);
+    if (text.includes('{{')) return renameInTemplate(text, r.base, r.from, r.to);
+    return renameFieldPath(text, r.base, r.from, r.to) as string;
+}
+
+/**
+ * A rewritten COPY of any value; a `literal` ships verbatim at run time, so its
+ * payload stays. `key` is the field a plain string sits under; null inside a
+ * pinned output, which is data from a run and never a reference.
+ */
+function rewriteDeep(value: unknown, r: Rename, key: string | null): unknown {
+    if (typeof value === 'string' && key !== null) {
+        const next = renamePlain(value, key, r);
+        if (next !== value) r.count += 1;
+        return next;
+    }
+    if (Array.isArray(value)) return value.map((v) => rewriteDeep(v, r, key));
     if (value === null || typeof value !== 'object') return value;
     const obj = value as Obj;
-    const kind = typeof obj.kind === 'string' ? obj.kind : null;
-    if (kind === 'literal') return { ...obj };
-    if (kind === 'ref' || kind === 'template' || kind === 'expr') {
-        const bound = rewriteBinding(obj, kind, r);
-        if (bound) return bound;
-    }
+    const bound = rewriteWrapper(obj, r);
+    if (bound) return bound;
     const out: Obj = {};
-    for (const k of Object.keys(obj)) out[k] = rewriteDeep(obj[k], r);
+    for (const k of Object.keys(obj)) out[k] = rewriteDeep(obj[k], r, key === null || k === 'pinnedOutput' ? null : k);
     return out;
 }
 
-function renameInForm(form: unknown, from: string, to: string): unknown {
+/** A binding wrapper with its payload renamed (a literal: copied as it is), or null when `obj` is not one. */
+function rewriteWrapper(obj: Obj, r: Rename): Obj | null {
+    const kind = typeof obj.kind === 'string' ? obj.kind : null;
+    if (kind === 'literal') return { ...obj };
+    return kind === 'ref' || kind === 'template' || kind === 'expr' ? rewriteBinding(obj, kind, r) : null;
+}
+
+/** The field itself, and the `form.<name>` in the `showIf` of the questions on the same page. */
+function renameInForm(form: unknown, r: Rename): unknown {
     const f = form as { fields?: unknown } | null;
     if (!f || !Array.isArray(f.fields)) return form;
     let hit = false;
     const fields = f.fields.map((q: unknown) => {
         const row = q as Obj | null;
-        if (!row || row.name !== from) return q;
-        hit = true;
-        return { ...row, name: to };
+        if (!row) return q;
+        let next = row;
+        if (row.name === r.from) {
+            hit = true;
+            next = { ...next, name: r.to };
+        }
+        if (typeof row.showIf === 'string') {
+            const showIf = renameInExpr(row.showIf, 'form', r.from, r.to);
+            if (showIf !== row.showIf) {
+                hit = true;
+                r.count += 1;
+                next = { ...next, showIf };
+            }
+        }
+        return next;
     });
     return hit ? { ...f, fields } : form;
 }
 
 /** Every place a form declaration lives: the trigger, and the form_page steps. */
-function mapForms(def: Obj, base: string, from: string, to: string): Obj {
+function mapForms(def: Obj, r: Rename): Obj {
+    const { base } = r;
     const isTriggerBase = base === 'trigger.output';
     const pageId = isTriggerBase ? null : /^steps\.([^.]+)\.output$/.exec(base)?.[1] || null;
     const mapStep = (step: unknown) => {
         const s = step as Obj | null;
         if (!s || typeof s !== 'object') return step;
-        if (pageId && s.id === pageId && s.form) return { ...s, form: renameInForm(s.form, from, to) };
+        if (pageId && s.id === pageId && s.form) return { ...s, form: renameInForm(s.form, r) };
         return step;
     };
     const mapSteps = (steps: unknown) => (Array.isArray(steps) ? steps.map(mapStep) : steps);
     const next: Obj = { ...def };
     const trigger = next.trigger as Obj | null | undefined;
-    if (isTriggerBase && trigger?.form) next.trigger = { ...trigger, form: renameInForm(trigger.form, from, to) };
+    if (isTriggerBase && trigger?.form) next.trigger = { ...trigger, form: renameInForm(trigger.form, r) };
     if (!isTriggerBase) next.steps = mapSteps(next.steps);
     if (next.layers && typeof next.layers === 'object') {
         const layers: Obj = {};
@@ -169,8 +210,8 @@ export function renameFormField<D>(definition: D, { base, from, to }: { base?: s
         return { definition, rewritten: 0, ok: false, error: 'A binding name starts with a letter and holds only letters, digits and underscores.' };
     }
     const r: Rename = { base, from, to, count: 0 };
-    const renamed = mapForms(definition as Obj, base, from, to);
-    const rewritten = rewriteDeep(renamed, r) as D;
+    const renamed = mapForms(definition as Obj, r);
+    const rewritten = rewriteDeep(renamed, r, '') as D;
     return { definition: rewritten, rewritten: r.count, ok: true };
 }
 

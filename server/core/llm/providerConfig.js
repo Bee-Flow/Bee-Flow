@@ -19,6 +19,7 @@ const { LOCAL_RUNTIMES, isLocalProviderType } = require('../providers/localModel
 const { SCALEWAY_BASE_URL } = require('../providers/scalewayModels');
 const { IONOS_BASE_URL } = require('../providers/ionosModels');
 const { ensureIonosProvider } = require('./ionosProvider');
+const { loadAiForWrite } = require('./aiRecord');
 const { EUGPT_BASE_URL, EUGPT_LEGACY_BASE_URL } = require('../providers/eugptModels');
 
 // Self-hosted runtimes are presets too — same shape, derived from the single
@@ -231,7 +232,7 @@ async function saveAIConfig(aiConfig) {
  * This bridges the gap between the legacy single-key config and the provider-based model listing.
  */
 async function ensureDefaultProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const mistralApiKey = await configStore.getSecret('mistral_api_key');
 
     if ((!ai.providers || ai.providers.length === 0) && mistralApiKey) {
@@ -254,7 +255,7 @@ async function ensureDefaultProvider() {
  * This follows the same pattern as ensureOpenAIProvider/ensureClaudeProvider.
  */
 async function ensureMistralProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const mistralApiKey = await configStore.getSecret('mistral_api_key');
 
     if (!mistralApiKey) return;
@@ -284,7 +285,7 @@ async function ensureMistralProvider() {
  * Auto-create or update an OpenAI provider when an OpenAI API key is configured.
  */
 async function ensureOpenAIProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const openaiApiKey = await configStore.getSecret('openai_api_key');
 
     if (!openaiApiKey) return;
@@ -314,7 +315,7 @@ async function ensureOpenAIProvider() {
  * Auto-create or update a Claude provider when a Claude API key is configured.
  */
 async function ensureClaudeProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const claudeApiKey = await configStore.getSecret('claude_api_key');
 
     if (!claudeApiKey) return;
@@ -343,7 +344,7 @@ async function ensureClaudeProvider() {
  * Auto-create or update a Google provider when a Google API key is configured.
  */
 async function ensureGoogleProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const googleApiKey = await configStore.getSecret('google_api_key');
 
     if (!googleApiKey) return;
@@ -372,7 +373,7 @@ async function ensureGoogleProvider() {
  * Auto-create or update a Google Vertex AI provider when project config is set.
  */
 async function ensureGoogleVertexProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const project = await configStore.getConfig('google_vertex_project');
 
     if (!project) return;
@@ -407,7 +408,7 @@ async function ensureGoogleVertexProvider() {
  * Auto-create or update an Azure AI provider when endpoint + key are set.
  */
 async function ensureAzureProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const endpoint = await configStore.getConfig('azure_endpoint');
     const apiKey = await configStore.getSecret('azure_api_key');
 
@@ -448,7 +449,7 @@ async function ensureAzureProvider() {
  * here rather than falling back to the account-wide one.
  */
 async function ensureScalewayProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const apiKey = (await configStore.getSecret('scaleway_api_key')) || process.env.SCALEWAY_API_KEY;
 
     if (!apiKey) return;
@@ -491,7 +492,7 @@ async function ensureScalewayProvider() {
  * into a provider on the next read, without a config write per request.
  */
 async function ensureEuGptProvider() {
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     const apiKey = (await configStore.getSecret('eugpt_api_key')) || process.env.EUGPT_API_KEY;
 
     if (!apiKey) return;
@@ -560,7 +561,7 @@ async function ensureLocalProviders() {
         .filter(d => d.url && isLocalProviderType(d.type));
     if (!declared.length) return;
 
-    const ai = await configStore.getConfig('ai') || {};
+    const ai = await loadAiForWrite();
     if (!ai.providers) ai.providers = [];
     let changed = false;
 
@@ -601,7 +602,7 @@ async function getProviders() {
 
 async function addProvider(provider) {
     try {
-        const ai = await configStore.getConfig('ai') || {};
+        const ai = await loadAiForWrite();
         if (!ai.providers) ai.providers = [];
 
         const id = provider.id || `provider-${Date.now()}`;
@@ -620,10 +621,7 @@ async function addProvider(provider) {
 
         ai.providers.push(newProvider);
 
-        // Set as default if it's the first provider
-        if (ai.providers.length === 1) {
-            ai.defaultProviderId = id;
-        }
+        if (ai.providers.length === 1) ai.defaultProviderId = id; // the first provider is the default
 
         await configStore.setConfig('ai', ai);
         return newProvider;
@@ -635,7 +633,7 @@ async function addProvider(provider) {
 
 async function updateProvider(providerId, updates) {
     try {
-        const ai = await configStore.getConfig('ai') || {};
+        const ai = await loadAiForWrite();
         if (!ai.providers) return false;
 
         const index = ai.providers.findIndex(p => p.id === providerId);
@@ -665,7 +663,7 @@ async function updateProvider(providerId, updates) {
 
 async function deleteProvider(providerId) {
     try {
-        const ai = await configStore.getConfig('ai') || {};
+        const ai = await loadAiForWrite();
         if (!ai.providers) return false;
 
         // An id that is not in the list deletes nothing, so it must not
@@ -690,7 +688,7 @@ async function deleteProvider(providerId) {
 
 async function setDefaultProvider(providerId) {
     try {
-        const ai = await configStore.getConfig('ai') || {};
+        const ai = await loadAiForWrite();
 
         // Verify provider exists
         if (ai.providers && !ai.providers.find(p => p.id === providerId)) {

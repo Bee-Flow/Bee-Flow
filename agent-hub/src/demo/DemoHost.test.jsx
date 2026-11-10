@@ -33,10 +33,11 @@ let missing;
  * caught them under load, so the same assertion flipped with the machine.
  */
 async function networkSettled(spy, { quietChecks = 3, intervalMs = 150, maxMs = 10_000 } = {}) {
-    const started = Date.now();
+    // performance.now(): the host puts the page's Date on the demo's clock mid-wait.
+    const started = performance.now();
     let seen = spy.mock.calls.length;
     let quiet = 0;
-    while (quiet < quietChecks && Date.now() - started < maxMs) {
+    while (quiet < quietChecks && performance.now() - started < maxMs) {
         await new Promise((r) => setTimeout(r, intervalMs));
         const now = spy.mock.calls.length;
         quiet = now === seen ? quiet + 1 : 0;

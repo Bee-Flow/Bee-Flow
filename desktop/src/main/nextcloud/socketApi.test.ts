@@ -75,6 +75,54 @@ describe('NextcloudSocketApi.connectAny', () => {
         });
         assert.equal(await api.connectAny(['/a', '/b', '/c']), false);
     });
+
+    /** A leftover socket that answers with half a line and then nothing, and the real client behind it. */
+    function staleThenGood() {
+        const stale = new FakeSocket({ silent: true });
+        const realWrite = stale.write.bind(stale);
+        stale.write = (data: string) => {
+            queueMicrotask(() => stale.emit('data', 'GARBAGE without a newline'));
+            return realWrite(data);
+        };
+        const good = new FakeSocket();
+        const disconnects: number[] = [];
+        const api = new NextcloudSocketApi({
+            connect: async (path) => (path === '/stale' ? stale : good),
+            timeoutMs: 20,
+            onDisconnect: () => disconnects.push(1),
+        });
+        return { stale, good, api, disconnects };
+    }
+
+    it('reads the next candidate\'s greeting on its own, not glued to what a dead one left behind', async () => {
+        const { stale, api } = staleThenGood();
+
+        // With one buffer for all candidates the reply read as
+        // "GARBAGE without a newlineVERSION:3.18.2:1.1": no VERSION, no client.
+        assert.equal(await api.connectAny(['/stale', '/good']), true);
+        assert.equal(api.socketPath, '/good');
+        assert.equal(api.clientVersion, '3.18.2');
+        assert.equal(stale.destroyed, true);
+    });
+
+    it('is not disconnected, or fed, by a candidate it turned down', async () => {
+        const { stale, good, api, disconnects } = staleThenGood();
+        const seen: string[] = [];
+        assert.equal(await api.connectAny(['/stale', '/good']), true);
+
+        // The destroyed socket's own 'close' (and whatever it still had to say) arrives late.
+        const pending = api.fileStatus('/home/tom/Nextcloud/a.txt');
+        stale.emit('data', '\nSTATUS:ERROR:/home/tom/Nextcloud/a.txt\n');
+        stale.emit('error', new Error('ECONNRESET'));
+        stale.emit('close');
+        assert.equal(api.connected, true);
+        assert.equal(api.socketPath, '/good');
+        assert.deepEqual(disconnects, []);
+
+        good.emit('data', 'STATUS:OK:/home/tom/Nextcloud/a.txt\n');
+        seen.push(await pending);
+        assert.deepEqual(seen, ['OK']);
+    });
 });
 
 describe('NextcloudSocketApi.registerPaths', () => {
