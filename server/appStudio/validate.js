@@ -588,7 +588,7 @@ function validateAppDefinition(def, opts = {}) {
     checkMailboxHooks(opts.dataModel, actionsObj, pushE);
 
     if (isObject(def.publicAccess)) checkPublicAccess(def, pushE, pushW);
-    validateRegisteredKeys(def, pushE, pushW);
+    validateRegisteredKeys(def, pushE, pushW, opts);
 
     return { ok: errors.length === 0, errors, warnings };
 }
@@ -608,5 +608,5 @@ module.exports = {
  * @typedef {import('./validate/shared').Finding} Finding
  * @typedef {import('./validate/shared').ValidationCtx} ValidationCtx
  * @typedef {(finding: Finding) => void} PushFinding
- * @typedef {{ ownedAutomations?: unknown, ownedDocuments?: unknown, knownTables?: unknown, knownDatasets?: unknown, dataModel?: unknown, datasets?: unknown, datatables?: unknown, dataRefsAsWarnings?: boolean }} ValidateOpts
+ * @typedef {{ ownedAutomations?: unknown, ownedDocuments?: unknown, knownTables?: unknown, knownDatasets?: unknown, dataModel?: unknown, datasets?: unknown, datatables?: unknown, dataRefsAsWarnings?: boolean, assetIds?: unknown }} ValidateOpts
  */

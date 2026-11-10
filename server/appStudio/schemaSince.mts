@@ -24,6 +24,9 @@
  *   core/dataEngine/dataModel/vocabularySince.js   a filter operator, an aggregate function,
  *                                                  a date bucket (query vocabulary in a binding)
  *
+ * One VALUE form has a version too: `asset:<id>`, an uploaded file of the app, accepted in
+ * props and design keys that took only an https URL before (appAssets.mts ASSET_REF_SINCE).
+ *
  * An entry without `since` belongs to the base. The walk itself is the pure
  * shared/appDefinition/schemaVersion.mjs; this module builds its index from the
  * live catalogue and binds it.
@@ -41,6 +44,7 @@ import {
     supportedEnvelopeVersions,
 } from '../shared/appDefinition/schemaVersion.mjs';
 import { definitionKeys } from './definitionKeyRegistry.mts';
+import { ASSET_REF_SINCE, hasAssetRef } from './appAssets.mts';
 import type { DefinitionKeyEntry } from './definitionKeyRegistry.mts';
 
 type SinceMap = Record<string, number>;
@@ -218,7 +222,8 @@ function currentIndex(): SinceIndex {
 
 /** The lowest schema version `definition` can be stored as (2 unless it uses something marked since 3 or higher). */
 export function requiredSchemaVersion(definition: unknown): number {
-    return requiredWithIndex(definition, currentIndex());
+    const required = requiredWithIndex(definition, currentIndex());
+    return required >= ASSET_REF_SINCE || !hasAssetRef(definition) ? required : ASSET_REF_SINCE;
 }
 
 /** True when `definition` was written by an install that knows a newer schema than this one. */

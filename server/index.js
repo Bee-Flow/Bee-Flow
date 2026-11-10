@@ -543,7 +543,7 @@ app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio
 app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppsRun'));
 app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppData'));
 app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppConnectors'));
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppFiles'));
+app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppFiles'), require('./routes/studioAppAssets.mts').studioAppAssetsRouter);
 // LARGE datasets (multi-GB genome files): multipart upload + status, on
 // /:id/large-datasets. Not /:id/datasets: that is studioAppData's BI datasets
 // above, and the first match wins (the choice is in the router's header). The
@@ -597,7 +597,7 @@ app.use('/api/public-share', requireModule('webpages'), require('./routes/public
 // app's own definition (appStudio/publicAccess.js). No capability gate: once an
 // owner (whose org IS gated) opens a public page, its visitors are anonymous
 // third parties — the same reasoning as /share below.
-app.use('/api/public-app', requireModule('apps'), require('./routes/studioAppPublic'));
+app.use('/api/public-app', requireModule('apps'), require('./routes/studioAppPublic'), require('./routes/studioAppPublicAssets.mts').publicAppAssetsRouter);
 // Public webpage viewer — unauthenticated `/share/:token` route for external
 // recipients of a published webpage. Has its own rate limiter, strict CSP,
 // HMAC-signed magic links and unlock cookies. License/beta gates do NOT

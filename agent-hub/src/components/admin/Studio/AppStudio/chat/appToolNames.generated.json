@@ -45,5 +45,6 @@
     "app_finalize",
     "app_update_records",
     "app_search_documents",
-    "app_read_document"
+    "app_read_document",
+    "app_list_assets"
 ]

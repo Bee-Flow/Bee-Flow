@@ -28,7 +28,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const { valueTypeOf } = require('./componentSpecs/valueTypes');
+const { valueTypeOf, isAssetRef } = require('./componentSpecs/valueTypes');
 
 // Font PAIRING ids, not raw family names: the closed vocabulary keeps the
 // builder/editor honest and every family on the CMS DESIGN_FONTS allowlist.
@@ -129,7 +129,9 @@ function canonDesignEnum(key, spec, v, push) {
 function canonDesignUrl(key, spec, v, push) {
     if (v === null || v === undefined) return spec.default;
     if (typeof v === 'string' && v.startsWith('https://') && v.length <= spec.maxLen) return v;
-    push('design.value_invalid', `design.${key}`, `design.${key} must be an https:// URL of at most ${spec.maxLen} characters — ${spec.optional ? 'dropped' : 'reset to null'}.`);
+    // An uploaded file of the app (`asset:<id>`, appAssets.mts), e.g. the logo.
+    if (isAssetRef(v)) return v;
+    push('design.value_invalid', `design.${key}`, `design.${key} must be an https:// URL of at most ${spec.maxLen} characters, or asset:<id> of an uploaded file — ${spec.optional ? 'dropped' : 'reset to null'}.`);
     return spec.optional ? undefined : spec.default;
 }
 
