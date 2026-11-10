@@ -99,7 +99,6 @@ const {
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
     MAX_ORDER_BY,
-    BINDING_QUERY_EXTENSIONS,
 } = require('./componentSpecs/bindings');
 const { KEY_MARKS } = require('./componentSpecs/keyMarks');
 const {
@@ -337,7 +336,6 @@ module.exports = {
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
     MAX_ORDER_BY,
-    BINDING_QUERY_EXTENSIONS,
     INPUT_MAPPING_KINDS,
     VARIABLE_TYPES,
     VARIABLE_TYPE_DEFAULTS,

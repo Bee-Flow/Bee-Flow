@@ -77,45 +77,8 @@ const CURRENT_USER_KEYS = ['id', 'name', 'email', 'roleKey', 'isOwner', 'roles']
 // Columns one `orderBy` may name (queryCompilerOrder.MAX_ORDER_BY; bindings.lockstep.test.js holds the two together).
 const MAX_ORDER_BY = 3;
 
-/**
- * Query vocabulary of the record / records / aggregate bindings (and of the
- * step filters that share their grammar) that came after schema version 2.
- * Each is optional and absent from a definition that does not use it:
- *   orderBy            [{ field, dir? }] on up to MAX_ORDER_BY columns; `sort`
- *                      keeps reading its first entry only
- *   filter.all / .not  { all: [entry, …] } and { not: entry } groups, and
- *                      groups inside groups (to filterGroups.MAX_FILTER_DEPTH);
- *                      a flat list and a one-level { any: [clauses] } are the base
- *   filter.otherField  { field, op, otherField }: two columns of one row compared
- * and of the aggregate binding (core/dataEngine/dataModel/vocabulary.js AGG_FNS_EXTENDED):
- *   aggregates.countDistinct  { fn: 'countDistinct', field }
- *   groupBy.binWidth          { field: <number field>, binWidth: <whole number> }
- *   groupBy.relatedField      { field: <relation field>, relatedField }: a column of the related row
- *   groupFilter               [{ field: <aggregate alias>, op, value: <number> }] (SQL HAVING)
- * and of the record / records bindings (vocabulary.js RELATION_READ_LIMITS):
- *   expand                    [{ field: <relation field>, pick?: [<field of the related table>], as? }]:
- *                             the related row of each record, under that table's own row rules
- *   fields                    [<field>]: only these columns (and id) are returned
- *   filter.relationField      { field: '<relation field>.<field of the related table>', op, value }
- */
-const BINDING_QUERY_EXTENSIONS = Object.freeze([
-    Object.freeze({ key: 'orderBy', since: 3 }),
-    Object.freeze({ key: 'filter.all', since: 3 }),
-    Object.freeze({ key: 'filter.not', since: 3 }),
-    Object.freeze({ key: 'filter.nested', since: 3 }),
-    Object.freeze({ key: 'filter.otherField', since: 3 }),
-    Object.freeze({ key: 'aggregates.countDistinct', since: 3 }),
-    Object.freeze({ key: 'groupBy.binWidth', since: 3 }),
-    Object.freeze({ key: 'groupBy.relatedField', since: 3 }),
-    Object.freeze({ key: 'groupFilter', since: 3 }),
-    Object.freeze({ key: 'expand', since: 3 }),
-    Object.freeze({ key: 'fields', since: 3 }),
-    Object.freeze({ key: 'filter.relationField', since: 3 }),
-]);
-
 module.exports = {
     MAX_ORDER_BY,
-    BINDING_QUERY_EXTENSIONS,
     BINDING_KINDS,
     BINDING_KIND_SINCE,
     BINDING_KIND_DOCS,

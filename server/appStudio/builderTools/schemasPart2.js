@@ -7,6 +7,7 @@ const { FIELD_TYPES, ACCESS_MODES } = require('../dataModel');
 // Enums take the whole list; a description names the base words only, so a word added later
 // (vocabularySince.js) moves no pinned text.
 const { BASE_FILTER_OPS: FILTER_OPS, BASE_AGG_FNS: AGG_FNS, BASE_DATE_BUCKETS: DATE_BUCKETS } = require('../../core/dataEngine/dataModel/vocabularySince');
+const { GROUP_FILTER_OPS } = require('../../core/dataEngine/dataModel/vocabulary');
 const { MAX_SEED_RECORDS } = require('./schemaFragments');
 const { MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
@@ -266,9 +267,11 @@ const TOOL_SCHEMAS_PART_2 = [
                         type: 'object',
                         description: `The aggregation: groupBy?: [{field, bucket?}] (bucket for date fields: ${DATE_BUCKETS.join('|')}); aggregates: [{fn: ${AGG_FNS.join('|')}, field?, as}] (count needs no field); filters?: [{field, op, value?}] (ops: ${FILTER_OPS.join(', ')}).`,
                         properties: {
-                            groupBy: { type: 'array', items: { type: 'object' } },
+                            groupBy: { type: 'array', items: { type: 'object' }, description: 'Optional per entry: binWidth (a whole number) folds a number field onto steps (0, 10, 20, …; column <field>_bin); relatedField groups by a column of the row a relation field points at (column <field>_<relatedField>), read under that table\'s row rules.' },
                             aggregates: { type: 'array', items: { type: 'object' } },
                             filters: { type: 'array', items: { type: 'object' } },
+                            orderBy: { type: 'array', items: { type: 'object' }, description: 'Optional: sort the result on up to 3 of its output columns, [{field, dir}].' },
+                            groupFilter: { type: 'array', items: { type: 'object' }, description: `Optional: keep only the groups whose aggregate passes, [{field: <an aggregate's as>, op: ${GROUP_FILTER_OPS.join('|')}, value: <number>}] (SQL HAVING).` },
                         },
                         required: ['aggregates'],
                     },
@@ -302,6 +305,9 @@ const TOOL_SCHEMAS_PART_2 = [
                         items: { type: 'object' },
                     },
                     sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },
+                    orderBy: { type: 'array', items: { type: 'object' }, description: 'Optional [{ field, dir }] on up to 3 columns, instead of sort (tableId only).' },
+                    expand: { type: 'array', items: { type: 'object' }, description: 'Optional (tableId only): take the related row of a relation field along, [{ field: <relation field>, pick?: [<fields of the related table>], as? }]. It lands under <field>_record (or as), read under that table\'s row rules.' },
+                    fields: { type: 'array', items: { type: 'string' }, description: 'Optional (tableId only): return only these field keys (and id).' },
                     limit: { type: 'number', description: `Max rows per call (default 5, max ${MAX_QUERY_LIMIT}; a larger value is clamped and the answer says limitClamped and requestedLimit). Page on with cursor.` },
                     cursor: { type: 'string', description: 'The nextCursor of the previous answer, to read the next page.' },
                 },

@@ -172,11 +172,10 @@ function cleanAggregates(raw, path, push) {
         return undefined;
     }
     const { AGG_FNS } = require('../dataModel');
-    const { AGG_FNS_EXTENDED } = require('../../core/dataEngine/dataModel/vocabulary');
     const out = [];
     for (const a of raw.slice(0, MAX_AGG_FNS)) {
         if (!isObject(a) || typeof a.fn !== 'string') continue;
-        if (!AGG_FNS.includes(a.fn) && !AGG_FNS_EXTENDED.includes(a.fn)) {
+        if (!AGG_FNS.includes(a.fn)) {
             push('binding.aggregate_invalid', `${path}.aggregates`, `Unknown aggregate "${a.fn}" — dropped.`);
             continue;
         }

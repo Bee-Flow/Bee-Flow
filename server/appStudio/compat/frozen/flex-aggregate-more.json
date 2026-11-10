@@ -1,7 +1,7 @@
 {
   "corpus": "flex-aggregate-more",
   "canonical": {
-    "sha256": "611e55cba96feaa2186de0ffbbe9ba179d5976e1861f164c2cf4a9740f5abb90",
+    "sha256": "b95ee23ee5216659b8cba3c734b856b69be168610b2395835d0a6163dabe45a8",
     "bytes": 3166,
     "inputIsCanonical": true,
     "idempotent": true,
@@ -15,7 +15,7 @@
       "homeScreenId"
     ],
     "parts": {
-      "schemaVersion": "d4735e3a265e16ee",
+      "schemaVersion": "4e07408562bedb8b",
       "meta": "964f365ec287da8e",
       "theme": "5d7eeb0111b89897",
       "roles": "4f53cda18c2baa0c",
@@ -24,8 +24,8 @@
     }
   },
   "schemaVersion": {
-    "stored": 2,
-    "canonical": 2
+    "stored": 3,
+    "canonical": 3
   },
   "validation": {
     "strict": {

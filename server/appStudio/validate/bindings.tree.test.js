@@ -14,7 +14,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { validateBinding } = require('./bindings');
 const { canonicalizeAppDefinition } = require('../canonicalize');
-const { MAX_ORDER_BY, BINDING_QUERY_EXTENSIONS } = require('../componentSpecs');
+const { MAX_ORDER_BY } = require('../componentSpecs');
 const queryCompiler = require('../../core/dataEngine/queryCompiler');
 
 function findings(binding) {
@@ -84,12 +84,8 @@ test('orderBy on an aggregate names its output columns; a dynamic shape is check
     assert.deepStrictEqual(agg({ groupBy: { kind: 'formula', expr: 'vars.g' }, orderBy: [{ field: 'spent' }] }), []);
 });
 
-test('the limits and the since markers: the spec and the compiler agree', () => {
+test('the orderBy limit: the spec and the compiler agree', () => {
     assert.strictEqual(MAX_ORDER_BY, queryCompiler.MAX_ORDER_BY);
-    assert.deepStrictEqual(BINDING_QUERY_EXTENSIONS.map((entry) => `${entry.key}:${entry.since}`),
-        ['orderBy:3', 'filter.all:3', 'filter.not:3', 'filter.nested:3', 'filter.otherField:3',
-            'aggregates.countDistinct:3', 'groupBy.binWidth:3', 'groupBy.relatedField:3', 'groupFilter:3',
-            'expand:3', 'fields:3', 'filter.relationField:3']);
 });
 
 test('canonicalize keeps a tree, an otherField and an orderBy; a binding without them gains nothing', () => {

@@ -6,6 +6,8 @@ import { breakdownEntry, groupByColumnName, groupFilterEntries, measureIsNumeric
 import GroupByExtras from './GroupByExtras';
 import GroupFilterField from './GroupFilterField';
 import { buildDescriptor } from './QueryBuilder';
+import { buildQueryDescriptor } from './buildDescriptor';
+import { outputColumnsOf, withSortLimit } from './datasetShape';
 import type { AppTable } from './useAppTables';
 import type { DatasetGroup } from './useDatasets';
 import type { GroupFilterRow } from './aggregateExtras';
@@ -58,6 +60,26 @@ describe('aggregate descriptor parts', () => {
         const out = buildDescriptor('tbl_ord01', ORDER_FIELDS, [{ field: 'channel', bucket: '' }], [{ agg: 'countDistinct', field: 'customer', label: 'Buyers' }], []);
         expect(out.descriptor).toEqual({ groupBy: [{ field: 'channel' }], aggregates: [{ fn: 'countDistinct', field: 'customer', as: 'buyers' }], filters: [] });
         expect(out.valid).toBe(true);
+    });
+
+    it('sort and limit ride on a descriptor with a linked breakdown, a number step, a nested group and a group filter', () => {
+        const { descriptor, valid } = buildQueryDescriptor({
+            tableId: 'tbl_ord01',
+            fields: ORDER_FIELDS,
+            tables: TABLES,
+            groupBy: [{ field: 'customer', relatedField: 'region' }, { field: 'amount', binWidth: 50 }],
+            aggregates: [{ agg: 'count', label: 'Orders' }],
+            filters: [{ any: [{ all: [{ field: 'channel', op: 'eq', value: 'web' }, { field: 'amount', op: 'gt', value: '10' }] }, { field: 'channel', op: 'eq', value: 'shop' }] }],
+            groupFilter: [{ measure: 0, op: 'gte', value: '2' }],
+        });
+        expect(valid).toBe(true);
+        expect(descriptor.filters).toEqual([{ any: [{ all: [{ field: 'channel', op: 'eq', value: 'web' }, { field: 'amount', op: 'gt', value: 10 }] }, { field: 'channel', op: 'eq', value: 'shop' }] }]);
+        // The sort picker offers the columns the compiler names, the linked and stepped ones included.
+        expect(outputColumnsOf(descriptor)).toEqual(['customer_region', 'amount_bin', 'orders']);
+        const shaped = withSortLimit(descriptor, { field: 'amount_bin', dir: 'asc' }, 10);
+        expect(shaped).toEqual({ ...descriptor, sort: [{ field: 'amount_bin', dir: 'asc' }], limit: 10 });
+        expect(shaped.groupFilter).toEqual([{ field: 'orders', op: 'gte', value: 2 }]);
+        expect(withSortLimit(descriptor, null, null)).toEqual(descriptor);
     });
 });
 

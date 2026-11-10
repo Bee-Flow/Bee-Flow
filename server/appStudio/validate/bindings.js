@@ -179,7 +179,6 @@ function validateBinding(key, value, path, ctx) {
     }
     if (value.kind === 'aggregate') {
         const { AGG_FNS, DATE_BUCKETS } = require('../dataModel');
-        const { AGG_FNS_EXTENDED } = require('../../core/dataEngine/dataModel/vocabulary');
         // groupBy/aggregates may be a FORMULA rather than a literal list — a
         // saved report supplying the question at runtime. The expression is
         // parse-compiled here (never executed) and the per-entry field/function
@@ -214,7 +213,7 @@ function validateBinding(key, value, path, ctx) {
         });
         aggregates.forEach((a, i) => {
             if (!isObject(a)) return;
-            if (!AGG_FNS.includes(a.fn) && !AGG_FNS_EXTENDED.includes(a.fn)) {
+            if (!AGG_FNS.includes(a.fn)) {
                 pushE({
                     code: 'binding.aggregate_invalid', severity: 'error', path: `${path}.aggregates[${i}].fn`,
                     message: `Unknown aggregate function ${JSON.stringify(a.fn)}.`,

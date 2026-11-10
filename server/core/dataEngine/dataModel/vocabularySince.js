@@ -43,7 +43,12 @@ const DATA_VOCABULARY_MARKS = Object.freeze({
     fieldTypes: Object.freeze({}),
     fieldOptions: Object.freeze({}),
     filterOps: Object.freeze({}),
-    aggFns: Object.freeze({}),
+    aggFns: Object.freeze({
+        countDistinct: Object.freeze({
+            since: 3,
+            description: 'Counts the different non-empty values of a field. Needs a field: { "fn": "countDistinct", "field": "<field>", "as": "<alias>" }.',
+        }),
+    }),
     dateBuckets: Object.freeze({}),
 });
 

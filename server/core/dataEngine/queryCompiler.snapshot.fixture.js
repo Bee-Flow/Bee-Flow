@@ -319,6 +319,8 @@ const AGGREGATE_CASES = [
     ['err-too-many-before-unknown', { groupBy: Array.from({ length: 9 }, () => ({ field: 'nope' })), aggregates: [{ fn: 'nope' }] }],
     ['err-filter-before-group', { filters: [{ field: 'nope', op: 'eq', value: 1 }], groupBy: [{ field: 'nope2' }] }],
     ['err-no-access', { aggregates: [{ fn: 'count' }] }, null],
+    // Added with the word (vocabularySince.js); queryCompiler.snapshot.fixtureAgg.js holds its other cases.
+    ['count-distinct', { groupBy: [{ field: 'region' }], aggregates: [{ fn: 'countDistinct', field: 'title', as: 'titles' }] }],
 ];
 AGGREGATE_CASES.push(
     ['tree-filters', { filters: [{ any: [{ all: [T('a'), { field: 'due', op: 'gt', otherField: 'created_at' }] }, { not: T('b') }] }], groupBy: [{ field: 'region' }], aggregates: [{ fn: 'count', as: 'n' }] }],

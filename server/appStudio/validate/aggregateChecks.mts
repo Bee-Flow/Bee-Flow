@@ -1,6 +1,6 @@
 /**
  * App Studio validator — the aggregate vocabulary after schema version 2
- * (core/dataEngine/dataModel/vocabulary.js AGG_FNS_EXTENDED): groupBy entries
+ * (core/dataEngine/dataModel/vocabulary.js AGGREGATE_LIMITS): groupBy entries
  * with `binWidth` or `relatedField`, and the binding's `groupFilter`. A binding
  * without them is never looked at here.
  *

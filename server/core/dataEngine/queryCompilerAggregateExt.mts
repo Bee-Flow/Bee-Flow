@@ -1,7 +1,7 @@
 /**
  * The aggregate vocabulary after App Studio schema version 2: countDistinct,
  * numeric bins, group by a column of a related row, and a filter on the
- * aggregated groups (`groupFilter`, SQL HAVING). See AGG_FNS_EXTENDED in
+ * aggregated groups (`groupFilter`, SQL HAVING). See AGGREGATE_LIMITS in
  * dataModel/vocabulary.js.
  *
  * Every part is reached only when the descriptor uses it, so a descriptor

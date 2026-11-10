@@ -49,9 +49,8 @@ const core = nodeRequire('./queryCompilerCore') as {
     resolveColumn(tableMeta: TableMeta, fieldName: unknown, fm?: FieldMap): string;
     clampLimit(limit: unknown, max?: number): number;
 };
-const { AGG_FNS, AGG_FNS_EXTENDED, PERCENTILE_FNS, DATE_BUCKETS } = nodeRequire('./dataModel/vocabulary') as {
+const { AGG_FNS, PERCENTILE_FNS, DATE_BUCKETS } = nodeRequire('./dataModel/vocabulary') as {
     AGG_FNS: readonly string[];
-    AGG_FNS_EXTENDED: readonly string[];
     PERCENTILE_FNS: Readonly<Record<string, number>>;
     DATE_BUCKETS: readonly string[];
 };
@@ -135,7 +134,7 @@ function addPercentile(tableMeta: TableMeta, fm: FieldMap, a: Entry, alias: stri
 function addAggregate(tableMeta: TableMeta, fm: FieldMap, entry: unknown, dialect: string, state: AggState): void {
     if (!entry || typeof entry !== 'object') throw new CompileError('aggregate entry must be an object');
     const a = entry as Entry;
-    if (!AGG_FNS.includes(a.fn as string) && !AGG_FNS_EXTENDED.includes(a.fn as string)) throw new CompileError(`unknown aggregate fn: ${a.fn}`);
+    if (!AGG_FNS.includes(a.fn as string)) throw new CompileError(`unknown aggregate fn: ${a.fn}`);
     const fn = a.fn as string;
     const alias = safeAlias(a.as || `${fn}_${a.field && a.field !== '*' ? a.field : 'all'}`);
     if (PERCENTILE_FNS[fn] !== undefined) {

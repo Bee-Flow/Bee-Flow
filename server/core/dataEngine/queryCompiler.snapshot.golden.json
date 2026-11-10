@@ -4250,6 +4250,22 @@
         }
       }
     },
+    "count-distinct": {
+      "sqlite": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(DISTINCT \"title\") AS \"titles\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(DISTINCT \"title\") AS \"titles\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
     "tree-filters": {
       "sqlite": {
         "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? AND \"due\" > \"created_at\") OR NOT COALESCE((\"title\" = ?), 0)) GROUP BY \"region\" LIMIT ?",

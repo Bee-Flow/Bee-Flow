@@ -5,7 +5,7 @@
     "captured": "2026-11-10"
   },
   "definition": {
-    "schemaVersion": 2,
+    "schemaVersion": 3,
     "meta": {
       "name": "More aggregation",
       "description": "Totals per region of the customer, amount bands, distinct buyers and a group filter.",

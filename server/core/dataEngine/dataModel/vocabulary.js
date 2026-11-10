@@ -57,7 +57,8 @@ const RESERVED_DATASET_IDS = Object.freeze(['sys_org_members']);
 // than a SQLite aggregate (there isn't one). They exist because "median first
 // response" is the number an operations dashboard actually reports — an average
 // is skewed by one forgotten ticket.
-const AGG_FNS = Object.freeze(['count', 'sum', 'avg', 'min', 'max', 'p50', 'p90']);
+// countDistinct (COUNT(DISTINCT field)) came after the base: it is appended and marked in vocabularySince.js.
+const AGG_FNS = Object.freeze(['count', 'sum', 'avg', 'min', 'max', 'p50', 'p90', 'countDistinct']);
 const PERCENTILE_FNS = Object.freeze({ p50: 0.5, p90: 0.9 });
 
 // 'hour' makes a busiest-hours histogram expressible; without it the finest
@@ -65,11 +66,8 @@ const PERCENTILE_FNS = Object.freeze({ p50: 0.5, p90: 0.9 });
 const DATE_BUCKETS = Object.freeze(['hour', 'day', 'week', 'month', 'quarter', 'year']);
 
 /**
- * Aggregate vocabulary that came after App Studio schema version 2. Kept apart
- * from AGG_FNS on purpose: AGG_FNS is printed into the AI builder's pinned
- * catalogue text, and everything here is optional and absent from a descriptor
- * that does not use it.
- *   countDistinct          COUNT(DISTINCT field)
+ * Aggregate descriptor keys that came after App Studio schema version 2. Each is
+ * optional and absent from a descriptor that does not use it.
  *   groupBy[].binWidth     a number column folded onto steps of this width
  *   groupBy[].relatedField group by a column of the row a relation field points
  *                          at, read under that table's own row rules
@@ -78,7 +76,6 @@ const DATE_BUCKETS = Object.freeze(['hour', 'day', 'week', 'month', 'quarter', '
  *                          Not called `having`: a stored descriptor carrying a
  *                          `having` key has always been read without it.
  */
-const AGG_FNS_EXTENDED = Object.freeze(['countDistinct']);
 const GROUP_FILTER_OPS = Object.freeze(['eq', 'neq', 'gt', 'gte', 'lt', 'lte']);
 // Validity limits of a descriptor (not runtime budgets).
 const AGGREGATE_LIMITS = Object.freeze({
@@ -273,7 +270,6 @@ module.exports = {
     AGG_FNS,
     PERCENTILE_FNS,
     DATE_BUCKETS,
-    AGG_FNS_EXTENDED,
     GROUP_FILTER_OPS,
     AGGREGATE_LIMITS,
     RELATION_READ_LIMITS,
