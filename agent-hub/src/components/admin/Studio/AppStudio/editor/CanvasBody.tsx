@@ -10,6 +10,7 @@ import GhostCell from './GhostCell';
 import { projectGhostCell } from './ghostCellDraft';
 import useBuildFollow from './useBuildFollow';
 import EditorNodeWrapper from './EditorNodeWrapper';
+import DeviceFrame from './DeviceFrame';
 import Marquee from './Marquee';
 import toast from '@/components/shared/Toast';
 import AppCustomCss from '../runtime/AppCustomCss';
@@ -103,18 +104,19 @@ function useSectionElements(definition: EditorState['definition'], screenId: Edi
 type CanvasPreviewProps = Pick<CanvasBodyProps,
     'appId' | 'onNavigate' | 'actionState' | 'dataState' | 'runAction' | 'vars' | 'setVar'
     | 'forms' | 'screenParams' | 'registerFormValue' | 'confirmDialog'>
-    & Pick<EditorState, 'definition' | 'screenId' | 'previewRole' | 'previewUser'>;
+    & Pick<EditorState, 'definition' | 'screenId' | 'previewRole' | 'previewUser' | 'previewDevice'>;
 
 /**
  * Preview == production: the same AppShell, with the preview user standing
  * in for the viewer (UserMenu hides when there is none) and no onExit (the
- * "Alle apps" link is a run-view affordance).
+ * "Alle apps" link is a run-view affordance). With a device picked, the same
+ * tree renders inside a DeviceFrame of that width; 'fit' renders it as always.
  */
 function CanvasPreview({
-    definition, screenId, previewRole, previewUser, appId, onNavigate, actionState, dataState, runAction,
+    definition, screenId, previewRole, previewUser, previewDevice, appId, onNavigate, actionState, dataState, runAction,
     vars, setVar, forms, screenParams, registerFormValue, confirmDialog,
 }: CanvasPreviewProps) {
-    return (
+    const preview = (
         <div className="h-full min-h-0">
             <AppFontLoader definition={definition} />
             <AppShell
@@ -143,6 +145,9 @@ function CanvasPreview({
             {confirmDialog}
         </div>
     );
+    return previewDevice && previewDevice !== 'fit'
+        ? <DeviceFrame device={previewDevice}>{preview}</DeviceFrame>
+        : preview;
 }
 
 export function CanvasBody({
@@ -152,7 +157,7 @@ export function CanvasBody({
 }: CanvasBodyProps) {
     const {
         definition, screenId, selectedNodeId, selectedNodeIds, mode, streamLock, recentlyAddedIds,
-        previewRole, previewUser, dispatch,
+        previewRole, previewUser, previewDevice, dispatch,
     } = useAppEditor();
     const { t } = useTranslation();
 
@@ -314,7 +319,7 @@ export function CanvasBody({
                 </div>
             ) : (
                 <CanvasPreview
-                    definition={definition} screenId={screenId} previewRole={previewRole} previewUser={previewUser}
+                    definition={definition} screenId={screenId} previewRole={previewRole} previewUser={previewUser} previewDevice={previewDevice}
                     appId={appId} onNavigate={onNavigate} actionState={actionState} dataState={dataState} runAction={runAction}
                     vars={vars} setVar={setVar} forms={forms} screenParams={screenParams} registerFormValue={registerFormValue}
                     confirmDialog={confirmDialog}

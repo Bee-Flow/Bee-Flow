@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import AppIcon from '@/components/icons/AppIcon';
 import Modal from '@/components/shared/Modal';
+import { usePortalDocument } from '@/components/shared/portalRoot';
 import type { NavModel, NavScreen } from './navModel';
 import type { NavigateFn } from '../actionRunner/runnerContext';
 
@@ -35,15 +36,16 @@ interface MobileNavProps {
 
 export default function MobileNav({ model, activeScreen, onNavigate, variant = 'inline', brand = null }: MobileNavProps) {
     const [open, setOpen] = useState(false);
+    const doc = usePortalDocument();
 
     useEffect(() => {
         if (!open) return undefined;
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false);
         };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [open]);
+        doc.addEventListener('keydown', onKey);
+        return () => doc.removeEventListener('keydown', onKey);
+    }, [open, doc]);
 
     const pick = (id: string) => {
         setOpen(false);

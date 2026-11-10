@@ -31,7 +31,11 @@ export function useCellPeek() {
         const text = (box.innerText || '').trim();
         if (!text) return;
         const r = e.currentTarget.getBoundingClientRect();
-        setPeek({ text, top: r.bottom, bottom: r.top, left: r.left, above: r.bottom > window.innerHeight - 200 });
+        const view = e.currentTarget.ownerDocument.defaultView ?? window;
+        setPeek({
+            text, top: r.bottom, bottom: r.top, left: r.left, above: r.bottom > view.innerHeight - 200,
+            ...(view === window ? {} : { view }),
+        });
     };
     const hidePeek = () => setPeek(null);
 
@@ -41,8 +45,9 @@ export function useCellPeek() {
     useEffect(() => {
         if (!peek) return undefined;
         const off = () => setPeek(null);
-        window.addEventListener('scroll', off, true);
-        return () => window.removeEventListener('scroll', off, true);
+        const view = peek.view ?? window;
+        view.addEventListener('scroll', off, true);
+        return () => view.removeEventListener('scroll', off, true);
     }, [peek]);
 
     return { peek, showPeek, hidePeek };

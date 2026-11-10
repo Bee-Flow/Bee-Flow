@@ -5,6 +5,7 @@ import useTranslation from '@/hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { entryHref, entryName } from './AppInputFile';
 import Modal from '@/components/shared/Modal';
+import { usePortalDocument } from '@/components/shared/portalRoot';
 import { request, RefusedError } from '@/api/mutate';
 
 /**
@@ -165,6 +166,7 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
     // part it is — but counting holes on a 5 mm strip needs the real pixels.
     const [zoom, setZoom] = useState<'fit' | 'full'>('fit');
     const urlRef = useRef<string | null>(null);
+    const doc = usePortalDocument();
 
     // `entry` is parsed afresh every render, so the fetch is keyed on the file
     // id and reads the current descriptor through an Effect Event.
@@ -217,9 +219,9 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
             // Escape taught you it responds to one.
             if (e.key === ' ') { e.preventDefault(); setZoom((z) => (z === 'fit' ? 'full' : 'fit')); }
         };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [open]);
+        doc.addEventListener('keydown', onKey);
+        return () => doc.removeEventListener('keydown', onKey);
+    }, [open, doc]);
 
     if (!drawable) return <span className="text-[var(--text-muted)]">—</span>;
     if (state === 'loading' || state === 'idle') {
