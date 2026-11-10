@@ -242,6 +242,9 @@ export default function EditorHeader({
                     // the canvas holds, so a blocker's path resolves against it.
                     definition={definition}
                     onRevealNode={reveal}
+                    // The public page tab edits the draft; Apply saves it first.
+                    onCommit={onCommit}
+                    onFlush={onFlush}
                 />
             ) : null}
 

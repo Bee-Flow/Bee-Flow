@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import AudiencePicker from './AudiencePicker';
 import dryRunIssues, { type DryRunIssue } from './dryRunIssues';
 import type { Findings, IssueTarget, PublishModalProps, PublishPayload } from './PublishModal.types';
@@ -12,6 +13,8 @@ import { studioAppsApi } from '../studioAppsApi';
 import { audienceOf, sharedGroupsOf, formatWhen, resolveIssueTarget, asIssueList, resolveNodeScreen, ncMenuToast } from './PublishModal.helpers';
 import { BlockerList } from './BlockerList';
 import { CheckPanel, NcMenuOption, PublishFooter, PublishModalSection } from './PublishModalParts';
+import Tabs from '@/components/shared/Tabs';
+import PublicPageTab from './publicPage/PublicPageTab';
 export { resolveIssueTarget } from './PublishModal.helpers';
 /**
  * Publish modal — the three-way audience picker for an App Studio app.
@@ -79,6 +82,20 @@ function publishedToast(t: TranslateFn, isPublished: boolean, audience: string) 
 }
 
 /**
+ * An edit made in this modal (the public page tab) can still be in the
+ * autosave queue, and publishing freezes what the server has: save first, and
+ * publish nothing when that failed.
+ */
+async function savedFirst(onFlush: PublishModalProps['onFlush'], t: TranslateFn): Promise<boolean> {
+    const flushed = await onFlush?.();
+    if (flushed && flushed.ok === false) {
+        toast.error(flushed.error || t('app_studio.header.save_failed', 'Saving failed'));
+        return false;
+    }
+    return true;
+}
+
+/**
  * Where "Show me" goes for one issue. The dry run names the COMPONENT it
  * executed, not a validator path — so it has to work from an id as well as
  * from a path.
@@ -92,7 +109,52 @@ function issueTargetFor(resolveAgainst: Parameters<typeof resolveIssueTarget>[0]
     return (target && (target.nodeId || target.screenId)) ? target : null;
 }
 
-export default function PublishModal({ open, onClose, app, onPublished, definition, onRevealNode, managed = false }: PublishModalProps) {
+interface AudienceTabProps {
+    t: TranslateFn;
+    check: ReactNode;
+    status: ReactNode;
+    picker: ReactNode;
+    audience: string;
+    ncMenu: boolean;
+    onNcMenu: (on: boolean) => void;
+}
+
+/** The Audience tab: the pre-flight check, the current status, the picker and the Nextcloud menu option. */
+function AudienceTab({ t, check, status, picker, audience, ncMenu, onNcMenu }: AudienceTabProps) {
+    return (
+        <>
+            {/*
+              * Try it before anyone else has to. The publish gate only
+              * refuses what it can prove statically; this actually runs the
+              * app's data reads, so an empty list, a screen that is blank
+              * for everyone but the owner, or a save step writing a column
+              * that was renamed all surface here rather than in front of a
+              * colleague. Not for a managed app: there is no draft to change.
+              */}
+            {check}
+
+            {/* Current status */}
+            {status}
+
+            {/* Audience picker, the group list it needs, and what the choice shares */}
+            {picker}
+
+            {/*
+              * Nextcloud app menu — only meaningful for a published app,
+              * so the section hides under "Private". The entry's ICON is
+              * visible to everyone on the connected Nextcloud: AppAPI's
+              * top-menu entries are instance-wide (admin-only is the only
+              * gate it offers), so a group-scoped audience cannot hide the
+              * icon. Opening the app still enforces the audience above;
+              * an org member outside it gets the "shared with specific
+              * groups" screen. The copy says exactly that.
+              */}
+            {audience !== PRIVATE ? <NcMenuOption t={t} checked={ncMenu} onChange={onNcMenu} /> : null}
+        </>
+    );
+}
+
+export default function PublishModal({ open, onClose, app, onPublished, definition, onRevealNode, managed = false, onCommit, onFlush }: PublishModalProps) {
     const { t } = useTranslation();
     // `managed`: a Solution stage manages the app, so its deploys publish it
     // and the stage's operator decides only WHO opens it. Audience only: no
@@ -113,6 +175,8 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
     // The pre-flight check: null = never run, then { errors, warnings }.
     const [checking, setChecking] = useState(false);
     const [checkResult, setCheckResult] = useState<Findings | null>(null);
+    // Audience (the picker below) or the public page tab.
+    const [tab, setTab] = useState<'audience' | 'public'>('audience');
 
     // Reset the draft each time the modal opens so a re-open starts from the
     // app's real, current audience.
@@ -178,6 +242,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
         setBusy(true);
         setBlockers(null);
         try {
+            if (!(await savedFirst(onFlush, t))) return;
             const res = await studioAppsApi.publish(app.id, payload);
             const nextPublished = res?.isPublished ?? payload.isPublished;
             const nextGroups = res?.sharedGroups ?? payload.sharedGroups ?? [];
@@ -242,6 +307,16 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
             footer={<PublishFooter t={t} busy={busy} canApply={canApply} onCancel={() => onClose?.()} onApply={doApply} />}
         >
             <div className="space-y-4">
+                <Tabs
+                    value={tab}
+                    onChange={setTab}
+                    size="sm"
+                    ariaLabel={t('studio_apps_public.tabs_aria', 'Publish settings')}
+                    items={[
+                        { id: 'audience', label: t('studio_apps_public.tab_audience', 'Audience') },
+                        { id: 'public', label: t('studio_apps_public.tab_public', 'Public page') },
+                    ]}
+                />
                 {/* What the server refused to publish, and why */}
                 {blockers ? (
                     <BlockerList
@@ -252,41 +327,19 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                     />
                 ) : null}
 
-                {/*
-                  * Try it before anyone else has to. The publish gate only
-                  * refuses what it can prove statically; this actually runs the
-                  * app's data reads, so an empty list, a screen that is blank
-                  * for everyone but the owner, or a save step writing a column
-                  * that was renamed all surface here rather than in front of a
-                  * colleague.
-                  */}
-                {!managed && <CheckPanel t={t} checking={checking} canCheck={!!app?.id} onCheck={doCheck} checkResult={checkResult} revealTarget={revealTarget} onReveal={doReveal} />}
-
-                {/* Current status */}
-                <PublishModalSection t={t} currentAudience={currentAudience} currentGroups={currentGroups} isPublished={isPublished} publishedAt={publishedAt} liveHref={liveHref} />
-
-                {/* Audience picker, the group list it needs, and what the choice shares */}
-                <AudiencePicker
-                    open={open}
-                    appId={app?.id}
-                    audience={audience}
-                    onChoose={chooseAudience}
-                    selectedGroups={selectedGroups}
-                    onToggleGroup={toggleGroup}
-                    incomplete={groupsIncomplete}
-                />
-
-                {/*
-                  * Nextcloud app menu — only meaningful for a published app,
-                  * so the section hides under "Private". The entry's ICON is
-                  * visible to everyone on the connected Nextcloud: AppAPI's
-                  * top-menu entries are instance-wide (admin-only is the only
-                  * gate it offers), so a group-scoped audience cannot hide the
-                  * icon. Opening the app still enforces the audience above;
-                  * an org member outside it gets the "shared with specific
-                  * groups" screen. The copy says exactly that.
-                  */}
-                {audience !== PRIVATE ? <NcMenuOption t={t} checked={ncMenu} onChange={setNcMenu} /> : null}
+                {tab === 'public' ? (
+                    <PublicPageTab appId={app?.id} definition={resolveAgainst} onCommit={onCommit} readOnly={managed} audience={audience} />
+                ) : (
+                    <AudienceTab
+                        t={t}
+                        check={managed ? null : <CheckPanel t={t} checking={checking} canCheck={!!app?.id} onCheck={doCheck} checkResult={checkResult} revealTarget={revealTarget} onReveal={doReveal} />}
+                        status={<PublishModalSection t={t} currentAudience={currentAudience} currentGroups={currentGroups} isPublished={isPublished} publishedAt={publishedAt} liveHref={liveHref} />}
+                        picker={<AudiencePicker open={open} appId={app?.id} audience={audience} onChoose={chooseAudience} selectedGroups={selectedGroups} onToggleGroup={toggleGroup} incomplete={groupsIncomplete} />}
+                        audience={audience}
+                        ncMenu={ncMenu}
+                        onNcMenu={setNcMenu}
+                    />
+                )}
             </div>
         </Modal>
     );
