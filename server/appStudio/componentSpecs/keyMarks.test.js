@@ -72,7 +72,7 @@ test('refuses a mark that is incomplete or sits in the wrong place, and says wha
         [{ 'nav/footer.js': { valuesSince: { a: 3 }, shape: 's', description: 'd.' } }, /not a base key of its family, so it needs its own "since"/],
         [{ 'nav/style.js': { valuesSince: {}, shape: 's', description: 'd.' } }, /"valuesSince" is \{ <value>: <since> \}/],
         [{ 'nav/style.js': { valuesSince: { dock: 2 }, shape: 's', description: 'd.' } }, /value dock\).*3 or more/],
-        [{ 'widgets/title.js': title }, /keys\/widgets\/ is not a family \(section, sectionStyle, node, nav, navGroup\)/],
+        [{ 'widgets/title.js': title }, /keys\/widgets\/ is not a family \(section, sectionStyle, node, nav, navGroup, binding, queryShape\)/],
         [{ 'section/my-title.js': title }, /named after the key/],
         [{ 'section/title.js': 'module.exports = null;\n' }, /must export an object/],
     ];
