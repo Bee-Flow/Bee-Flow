@@ -1,0 +1,1028 @@
+{
+  "corpus": "template-support-desk",
+  "canonical": {
+    "sha256": "84ecb283a01974b9306587b6437c4aa3a2084fb7cf03510ce42fd5838729cff0",
+    "bytes": 30439,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "eae8fb294a663738",
+      "theme": "5d7eeb0111b89897",
+      "roles": "f042097175a9f1e6",
+      "screens[0] scr_sdinbox": "5d6c720153a2c42d",
+      "screens[1] scr_sdmine": "7b4196c31602db88",
+      "screens[2] scr_sdcust": "f50fbeea244d7b7a",
+      "screens[3] scr_sdstats": "5dbda2d91263f3c1",
+      "screens[4] scr_sdset": "7b9c6e304fef85f2",
+      "actions.act_sdpick": "fca1bd6b02dff619",
+      "actions.act_sdfilter": "627e21d0d911bf7d",
+      "actions.act_sdopenfiles": "5e51219daad8420e",
+      "actions.act_sdstatus": "364676597cc0bd17",
+      "actions.act_sdpriority": "e2e6902dee417b04",
+      "actions.act_sdtags": "b81558a1a1e4070c",
+      "actions.act_sdassign": "a1ba53c8a4f59095",
+      "actions.act_sddraft": "3a01fb22c46d348b",
+      "actions.act_sdsend": "6b0cefd9e227cf73",
+      "actions.act_sdpickatt": "45b9430d10977f35",
+      "actions.act_sdextract": "f8e661d4d3c6d478",
+      "actions.act_sdsummarise": "ae69b169931496cb",
+      "actions.act_sdaddcan": "4c8a544660f7764a",
+      "homeScreenId": "e7558aa8caa30eec"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_sdpick": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable",
+        "4 set_variable",
+        "5 set_variable",
+        "6 set_variable",
+        "7 set_variable",
+        "8 set_variable",
+        "9 set_variable",
+        "10 set_variable",
+        "11 navigate"
+      ],
+      "act_sdfilter": [
+        "0 set_variable"
+      ],
+      "act_sdopenfiles": [
+        "0 open_modal"
+      ],
+      "act_sdstatus": [
+        "0 update_record",
+        "1 set_variable",
+        "2 create_record",
+        "3 refresh"
+      ],
+      "act_sdpriority": [
+        "0 update_record",
+        "1 set_variable",
+        "2 create_record",
+        "3 refresh"
+      ],
+      "act_sdtags": [
+        "0 update_record",
+        "1 set_variable",
+        "2 refresh"
+      ],
+      "act_sdassign": [
+        "0 update_record",
+        "1 create_record",
+        "2 toast",
+        "3 refresh"
+      ],
+      "act_sddraft": [
+        "0 ai_generate",
+        "1 set_variable"
+      ],
+      "act_sdsend": [
+        "0 send_email",
+        "1 update_record",
+        "2 create_record",
+        "3 set_variable",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_sdpickatt": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable"
+      ],
+      "act_sdextract": [
+        "0 ai_extract",
+        "1 refresh",
+        "2 create_record",
+        "3 toast"
+      ],
+      "act_sdsummarise": [
+        "0 ai_generate",
+        "1 set_variable"
+      ],
+      "act_sdaddcan": [
+        "0 create_record",
+        "1 refresh",
+        "2 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "997e73a78737d2e26b8083b6887a5bb031ae6ce8b9bfe029898b2d5da375a7cf",
+    "afterResave": "997e73a78737d2e26b8083b6887a5bb031ae6ce8b9bfe029898b2d5da375a7cf"
+  },
+  "reads": [
+    {
+      "at": "cmp_sdpills.source",
+      "kind": "aggregate",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "agent": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "agent": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdlist.source",
+      "kind": "records",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdthread.source",
+      "kind": "records",
+      "table": "tbl_sdmsg",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"messages\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"messages\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"messages\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"messages\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"messages\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"messages\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdthread.attachmentsSource",
+      "kind": "records",
+      "table": "tbl_sdatt",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdbody.snippets",
+      "kind": "records",
+      "table": "tbl_sdcan",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdattl.source",
+      "kind": "records",
+      "table": "tbl_sdatt",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            0,
+            21
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            0,
+            21
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            0,
+            21
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            false,
+            21
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            false,
+            21
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"attachments\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            false,
+            21
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdminegrid.source",
+      "kind": "records",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"assignee\" = ? ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_owner",
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"assignee\" = ? ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_admin",
+            201
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"assignee\" = ? ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_agent",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"assignee\" = ? ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_owner",
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"assignee\" = ? ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_admin",
+            201
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"assignee\" = ? ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_agent",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdcustlist.source",
+      "kind": "records",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdcustact.source",
+      "kind": "records",
+      "table": "tbl_sdact",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdt1.value",
+      "kind": "aggregate",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "agent": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "agent": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdt2.value",
+      "kind": "aggregate",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "WITH __src AS (SELECT \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER () AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"median\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "admin": {
+          "sql": "WITH __src AS (SELECT \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER () AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"median\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "agent": {
+          "sql": "WITH __src AS (SELECT \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER () AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"median\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"median\" FROM \"tickets\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"median\" FROM \"tickets\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "agent": {
+          "sql": "SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"median\" FROM \"tickets\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdt3.value",
+      "kind": "aggregate",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "WITH __src AS (SELECT \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER () AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.9 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"p90\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "admin": {
+          "sql": "WITH __src AS (SELECT \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER () AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.9 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"p90\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "agent": {
+          "sql": "WITH __src AS (SELECT \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER () AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.9 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"p90\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"p90\" FROM \"tickets\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"p90\" FROM \"tickets\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "agent": {
+          "sql": "SELECT PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"p90\" FROM \"tickets\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdt4.value",
+      "kind": "aggregate",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"has_unread\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"has_unread\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        },
+        "agent": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"has_unread\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"has_unread\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"has_unread\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        },
+        "agent": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) AND \"has_unread\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdbyst.source",
+      "kind": "aggregate",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "agent": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "agent": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdbyhr.source",
+      "kind": "aggregate",
+      "table": "tbl_sdmsg",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%H', \"received_at\") AS \"hour\", COUNT(*) AS \"count\" FROM \"messages\" WHERE (1=1) AND \"direction\" = ? GROUP BY strftime('%H', \"received_at\") ORDER BY \"hour\" ASC LIMIT ?",
+          "params": [
+            "inbound",
+            24
+          ]
+        },
+        "admin": {
+          "sql": "SELECT strftime('%H', \"received_at\") AS \"hour\", COUNT(*) AS \"count\" FROM \"messages\" WHERE (1=1) AND \"direction\" = ? GROUP BY strftime('%H', \"received_at\") ORDER BY \"hour\" ASC LIMIT ?",
+          "params": [
+            "inbound",
+            24
+          ]
+        },
+        "agent": {
+          "sql": "SELECT strftime('%H', \"received_at\") AS \"hour\", COUNT(*) AS \"count\" FROM \"messages\" WHERE (1=1) AND \"direction\" = ? GROUP BY strftime('%H', \"received_at\") ORDER BY \"hour\" ASC LIMIT ?",
+          "params": [
+            "inbound",
+            24
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"received_at\"::timestamptz, 'HH24') AS \"hour\", COUNT(*) AS \"count\" FROM \"messages\" WHERE (1=1) AND \"direction\" = ? GROUP BY to_char(\"received_at\"::timestamptz, 'HH24') ORDER BY \"hour\" ASC LIMIT ?",
+          "params": [
+            "inbound",
+            24
+          ]
+        },
+        "admin": {
+          "sql": "SELECT to_char(\"received_at\"::timestamptz, 'HH24') AS \"hour\", COUNT(*) AS \"count\" FROM \"messages\" WHERE (1=1) AND \"direction\" = ? GROUP BY to_char(\"received_at\"::timestamptz, 'HH24') ORDER BY \"hour\" ASC LIMIT ?",
+          "params": [
+            "inbound",
+            24
+          ]
+        },
+        "agent": {
+          "sql": "SELECT to_char(\"received_at\"::timestamptz, 'HH24') AS \"hour\", COUNT(*) AS \"count\" FROM \"messages\" WHERE (1=1) AND \"direction\" = ? GROUP BY to_char(\"received_at\"::timestamptz, 'HH24') ORDER BY \"hour\" ASC LIMIT ?",
+          "params": [
+            "inbound",
+            24
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdvol.source",
+      "kind": "aggregate",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%Y-%m-%d', \"last_message_at\") AS \"day\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY strftime('%Y-%m-%d', \"last_message_at\") ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        },
+        "admin": {
+          "sql": "SELECT strftime('%Y-%m-%d', \"last_message_at\") AS \"day\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY strftime('%Y-%m-%d', \"last_message_at\") ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        },
+        "agent": {
+          "sql": "SELECT strftime('%Y-%m-%d', \"last_message_at\") AS \"day\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY strftime('%Y-%m-%d', \"last_message_at\") ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') AS \"day\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        },
+        "admin": {
+          "sql": "SELECT to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') AS \"day\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        },
+        "agent": {
+          "sql": "SELECT to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') AS \"day\", COUNT(*) AS \"count\" FROM \"tickets\" WHERE (1=1) GROUP BY to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdlead.source",
+      "kind": "aggregate",
+      "table": "tbl_sdthr",
+      "sqlite": {
+        "owner": {
+          "sql": "WITH __src AS (SELECT \"assignee_name\" AS \"assignee_name\", \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY \"assignee_name\" ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER (PARTITION BY \"assignee_name\" ) AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT \"assignee_name\", COUNT(*) AS \"tickets\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"median_response\" FROM __src GROUP BY \"assignee_name\" ORDER BY \"tickets\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "admin": {
+          "sql": "WITH __src AS (SELECT \"assignee_name\" AS \"assignee_name\", \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY \"assignee_name\" ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER (PARTITION BY \"assignee_name\" ) AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT \"assignee_name\", COUNT(*) AS \"tickets\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"median_response\" FROM __src GROUP BY \"assignee_name\" ORDER BY \"tickets\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "agent": {
+          "sql": "WITH __src AS (SELECT \"assignee_name\" AS \"assignee_name\", \"first_response_secs\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY \"assignee_name\" ORDER BY (CASE WHEN \"first_response_secs\" IS NULL THEN 1 ELSE 0 END), \"first_response_secs\") AS \"__rn_0\", COUNT(\"first_response_secs\") OVER (PARTITION BY \"assignee_name\" ) AS \"__cn_0\" FROM \"tickets\" WHERE (1=1)) SELECT \"assignee_name\", COUNT(*) AS \"tickets\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"median_response\" FROM __src GROUP BY \"assignee_name\" ORDER BY \"tickets\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"tickets\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"median_response\" FROM \"tickets\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"tickets\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"tickets\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"median_response\" FROM \"tickets\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"tickets\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "agent": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"tickets\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"first_response_secs\") AS \"median_response\" FROM \"tickets\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"tickets\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdcang.source",
+      "kind": "records",
+      "table": "tbl_sdcan",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"canned_replies\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdactg.source",
+      "kind": "records",
+      "table": "tbl_sdact",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"activity\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    }
+  ]
+}

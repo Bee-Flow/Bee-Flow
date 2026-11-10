@@ -1,0 +1,458 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-ticket-tracker\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-ticket-tracker"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Ticket tracker",
+      "description": "Collect and triage tickets.",
+      "icon": "Ticket"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_tknew",
+        "name": "New ticket",
+        "icon": "Plus",
+        "showInNav": true,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_tknewf",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_tkh1",
+                "type": "heading",
+                "props": {
+                  "text": "Log a ticket",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tkform",
+                "type": "form",
+                "props": {
+                  "name": "ticket",
+                  "submitLabel": "Create ticket",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_tksubmit",
+                "children": [
+                  {
+                    "id": "cmp_tksubj",
+                    "type": "input_text",
+                    "props": {
+                      "name": "subject",
+                      "label": "Subject",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_tkprio",
+                    "type": "input_select",
+                    "props": {
+                      "name": "priority",
+                      "label": "Priority",
+                      "options": [
+                        {
+                          "value": "low",
+                          "label": "Low"
+                        },
+                        {
+                          "value": "medium",
+                          "label": "Medium"
+                        },
+                        {
+                          "value": "high",
+                          "label": "High"
+                        }
+                      ],
+                      "required": false,
+                      "defaultValue": null,
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_tkdet",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "details",
+                      "label": "Details",
+                      "placeholder": null,
+                      "required": false,
+                      "rows": 4,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_tkboard",
+        "name": "Board",
+        "icon": "Columns3",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_tkboard",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_tkh2",
+                "type": "heading",
+                "props": {
+                  "text": "All tickets",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tkkan",
+                "type": "kanban",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_tktik"
+                  },
+                  "groupByField": "status",
+                  "columns": [
+                    {
+                      "value": "open",
+                      "label": "Open",
+                      "color": "info"
+                    },
+                    {
+                      "value": "in_progress",
+                      "label": "In progress",
+                      "color": "warning"
+                    },
+                    {
+                      "value": "done",
+                      "label": "Done",
+                      "color": "success"
+                    }
+                  ],
+                  "columnsSource": null,
+                  "swimlaneField": null,
+                  "swimlanes": [],
+                  "swimlanesSource": null,
+                  "titleKey": "subject",
+                  "subtitleKey": "priority",
+                  "badgeKey": null,
+                  "cardFields": [],
+                  "rankKey": null,
+                  "colorKey": null,
+                  "cardColorMap": [],
+                  "collapsible": false,
+                  "emptyText": null,
+                  "badgeToneMap": [],
+                  "allowDrag": false,
+                  "cardLook": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_tkmine",
+        "name": "My tickets",
+        "icon": "UserCheck",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_tkmine",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_tkh3",
+                "type": "heading",
+                "props": {
+                  "text": "Tickets I raised",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tkgrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_tktik",
+                    "filter": [
+                      {
+                        "field": "created_by",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "currentUser.id"
+                        }
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "created_at",
+                        "dir": "desc"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "subject",
+                      "label": "Subject",
+                      "format": "text"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "priority",
+                      "label": "Priority",
+                      "format": "badge"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "You have not raised any tickets yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_tksubmit": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_tktik",
+            "values": {
+              "subject": {
+                "kind": "formula",
+                "expr": "form.subject"
+              },
+              "priority": {
+                "kind": "formula",
+                "expr": "form.priority"
+              },
+              "details": {
+                "kind": "formula",
+                "expr": "form.details"
+              },
+              "status": {
+                "kind": "static",
+                "value": "open"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Ticket created.",
+            "tone": "success"
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_tkboard"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_tknew"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_tktik",
+        "key": "tickets",
+        "name": "Tickets",
+        "icon": "Ticket",
+        "fields": [
+          {
+            "id": "fld_tksubj",
+            "key": "subject",
+            "name": "Subject",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_tkstat",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              {
+                "value": "open",
+                "label": "Open"
+              },
+              {
+                "value": "in_progress",
+                "label": "In progress"
+              },
+              {
+                "value": "done",
+                "label": "Done"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkprio",
+            "key": "priority",
+            "name": "Priority",
+            "type": "select",
+            "options": [
+              {
+                "value": "low",
+                "label": "Low"
+              },
+              {
+                "value": "medium",
+                "label": "Medium"
+              },
+              {
+                "value": "high",
+                "label": "High"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkdet",
+            "key": "details",
+            "name": "Details",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

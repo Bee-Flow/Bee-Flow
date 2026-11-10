@@ -1,0 +1,79 @@
+{
+  "corpus": "template-event-planner",
+  "canonical": {
+    "sha256": "015dee50028fbaccd9b44eb5f40a5e8fe6c28c81dfd9a8065c5f0a83062e58fe",
+    "bytes": 2884,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "6d74e42d948918c0",
+      "theme": "0a016f574b05dad5",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_evcal": "857ebdcde63a74d0",
+      "screens[1] scr_evnew": "0bed2ae70f6f31e7",
+      "actions.act_evsubmit": "85611e924ae947cf",
+      "homeScreenId": "bb6053ad0753b860"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_evsubmit": [
+        "0 create_record",
+        "1 toast",
+        "2 navigate"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "11a7fba57b721e87a0107fe4a3914200c0aa68f7d57752a107eea399930f3670",
+    "afterResave": "11a7fba57b721e87a0107fe4a3914200c0aa68f7d57752a107eea399930f3670"
+  },
+  "reads": [
+    {
+      "at": "cmp_evcal.source",
+      "kind": "records",
+      "table": "tbl_evevt",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"events\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"events\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

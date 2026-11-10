@@ -1,0 +1,123 @@
+{
+  "corpus": "template-asset-inventory",
+  "canonical": {
+    "sha256": "d4cb15debc4e2827ae50179fa3e1a40dc0f4acc123abc4d69ef0127da116a2ee",
+    "bytes": 2775,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "dd48c171ab2825d3",
+      "theme": "7afba09c49ee47f7",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_asinv": "e3706b81eb4471a0",
+      "screens[1] scr_asdet": "0774d0935c1ceb13",
+      "actions.act_asopen": "860de16cc463bc75",
+      "actions.act_asback": "35480385d478946a",
+      "homeScreenId": "5c6fdd85fe59c013"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_asopen": [
+        "0 navigate"
+      ],
+      "act_asback": [
+        "0 navigate"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "2e7c8cd2b6afcf059122d71318f17612a0848ba85597ee21f3271562b83b85a7",
+    "afterResave": "2e7c8cd2b6afcf059122d71318f17612a0848ba85597ee21f3271562b83b85a7"
+  },
+  "reads": [
+    {
+      "at": "cmp_asgrid.source",
+      "kind": "records",
+      "table": "tbl_asast",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"assets\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"assets\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_asbadge.source",
+      "kind": "records",
+      "table": "tbl_asast",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"assets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"assets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_asrd.source",
+      "kind": "record",
+      "table": "tbl_asast",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"assets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"assets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "about": {
+    "source": "hand-made old shape: a schemaVersion 1 definition with the least the code still reads: no roles, design, nav, variables or actions keys, screens without icon/showInNav/maxWidth, a section without style, nodes without visible/style, a string visibleWhen and a legacy whole-filter formula string on a records binding; stored as written (not canonical)",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 1,
+    "meta": {
+      "name": "Bare v1 app"
+    },
+    "homeScreenId": "scr_bare01",
+    "screens": [
+      {
+        "id": "scr_bare01",
+        "name": "Home",
+        "sections": [
+          {
+            "id": "sec_bare01",
+            "children": [
+              {
+                "id": "cmp_bareh1",
+                "type": "heading",
+                "props": {
+                  "text": "Hello"
+                }
+              },
+              {
+                "id": "cmp_baret1",
+                "type": "text",
+                "visibleWhen": "currentUser != null",
+                "props": {
+                  "text": "Signed in."
+                }
+              },
+              {
+                "id": "cmp_bares1",
+                "type": "stat",
+                "props": {
+                  "label": "Count",
+                  "value": {
+                    "kind": "static",
+                    "value": "3"
+                  }
+                }
+              },
+              {
+                "id": "cmp_barel1",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_bare01",
+                    "filter": "record.owner == currentUser.id"
+                  },
+                  "titleKey": "name"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_bare02",
+        "name": "Second",
+        "sections": [
+          {
+            "id": "sec_bare02",
+            "children": [
+              {
+                "id": "cmp_bareh2",
+                "type": "heading",
+                "visibleWhen": "vars.show == true",
+                "props": {
+                  "text": "Second screen",
+                  "level": 2
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_bare01",
+        "key": "people",
+        "name": "People",
+        "fields": [
+          {
+            "id": "fld_bare01",
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_bare02",
+            "key": "owner",
+            "name": "Owner",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "owner",
+          "roles": {},
+          "rowFilters": {}
+        },
+        "icon": null
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

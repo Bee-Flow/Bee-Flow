@@ -1,0 +1,44 @@
+{
+  "about": {
+    "source": "componentSpecs.emptyDefinition('Untitled app') (routes/studioApps/crud.js blank create), ids as minted at capture",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Untitled app",
+      "description": "",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "homeScreenId": "scr_6x27gi",
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_6x27gi",
+        "name": "Home",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_tpg9hr",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": []
+          }
+        ]
+      }
+    ],
+    "actions": {}
+  }
+}

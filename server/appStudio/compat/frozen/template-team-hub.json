@@ -1,0 +1,64 @@
+{
+  "corpus": "template-team-hub",
+  "canonical": {
+    "sha256": "1e9b5023fc149d78822a45b3a52d8e1cf74a51d9ed7eb50c3cf67e5a63b4757a",
+    "bytes": 3639,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "a0619c3db3f96a36",
+      "theme": "81870a1ca6aa47aa",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_hubhome": "b278cb3f04aac89c",
+      "screens[1] scr_hubcontact": "c267f407e754f5d0",
+      "actions.act_hubguide": "2a7c041f683b2f4d",
+      "actions.act_hubcontact": "497f9fa49def1840",
+      "design": "281985cd66b63f07",
+      "homeScreenId": "a61708f23b61bb7d"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_hubcontact.automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_hubcontact.automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_hubguide": [
+        "0 open_url"
+      ],
+      "act_hubcontact": [
+        "0 run_automation"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "3ae326bb6d19eeb73b284d283924bad29164c75c25862f680d33b2d7b72f9e6c",
+    "afterResave": "3ae326bb6d19eeb73b284d283924bad29164c75c25862f680d33b2d7b72f9e6c"
+  }
+}

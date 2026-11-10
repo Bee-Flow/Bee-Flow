@@ -1,0 +1,300 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-team-directory\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-team-directory"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Team directory",
+      "description": "Find people across the team.",
+      "icon": "Contact"
+    },
+    "theme": {
+      "primary": "#0891B2",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_tmdir",
+        "name": "Directory",
+        "icon": "Contact",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_tmhead",
+            "style": {
+              "padding": 4,
+              "gap": 2,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_tmh1",
+                "type": "heading",
+                "props": {
+                  "text": "Team directory",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tmfil",
+                "type": "filter_bar",
+                "props": {
+                  "fields": [
+                    {
+                      "name": "q",
+                      "label": "Search by name",
+                      "type": "search"
+                    },
+                    {
+                      "name": "dept",
+                      "label": "Department",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "engineering",
+                          "label": "Engineering"
+                        },
+                        {
+                          "value": "sales",
+                          "label": "Sales"
+                        },
+                        {
+                          "value": "design",
+                          "label": "Design"
+                        },
+                        {
+                          "value": "ops",
+                          "label": "Ops"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_tmbody",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_tmlist",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_tmppl",
+                    "filter": [
+                      {
+                        "field": "name",
+                        "op": "contains",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.filters.q"
+                        }
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "name",
+                        "dir": "asc"
+                      }
+                    ]
+                  },
+                  "titleKey": "name",
+                  "subtitleKey": "role",
+                  "metaKey": null,
+                  "timestampKey": null,
+                  "badgeKey": null,
+                  "tagsKey": null,
+                  "badgeToneMap": [],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": "User",
+                  "emptyText": "No people match your search.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 7
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tmrd",
+                "type": "record_detail",
+                "props": {
+                  "source": {
+                    "kind": "record",
+                    "tableId": "tbl_tmppl",
+                    "sort": [
+                      {
+                        "field": "name",
+                        "dir": "asc"
+                      }
+                    ]
+                  },
+                  "fields": [
+                    {
+                      "key": "name",
+                      "label": "Name",
+                      "format": "text"
+                    },
+                    {
+                      "key": "role",
+                      "label": "Role",
+                      "format": "text"
+                    },
+                    {
+                      "key": "email",
+                      "label": "Email",
+                      "format": "link"
+                    },
+                    {
+                      "key": "department",
+                      "label": "Department",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "location",
+                      "label": "Location",
+                      "format": "text"
+                    }
+                  ],
+                  "columns": 1,
+                  "emptyText": "No record selected.",
+                  "layout": "stacked"
+                },
+                "style": {
+                  "span": 5
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_tmdir"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_tmppl",
+        "key": "people",
+        "name": "People",
+        "icon": "Users",
+        "fields": [
+          {
+            "id": "fld_tmname",
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_tmrole",
+            "key": "role",
+            "name": "Role",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tmmail",
+            "key": "email",
+            "name": "Email",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tmdept",
+            "key": "department",
+            "name": "Department",
+            "type": "select",
+            "options": [
+              {
+                "value": "engineering",
+                "label": "Engineering"
+              },
+              {
+                "value": "sales",
+                "label": "Sales"
+              },
+              {
+                "value": "design",
+                "label": "Design"
+              },
+              {
+                "value": "ops",
+                "label": "Ops"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tmloc",
+            "key": "location",
+            "name": "Location",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

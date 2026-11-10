@@ -1,0 +1,63 @@
+{
+  "corpus": "template-approval-inbox",
+  "canonical": {
+    "sha256": "5d971e3d51aaa80f97f18fe9c4989a01c931cdfd5bc8426214e4d65f59db234c",
+    "bytes": 3414,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "8a0757ae32ddd9e7",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_apprhome": "f32490ea9072a077",
+      "actions.act_apprload": "3cfe023baf6a5a94",
+      "actions.act_apprdecide": "806634a967fa0bb8",
+      "homeScreenId": "7abaa30783854eb3"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_apprdecide.automationId",
+        "action.automation_unset @ actions.act_apprload.automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_apprdecide.automationId",
+        "action.automation_unset @ actions.act_apprload.automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_apprload": [
+        "0 run_automation"
+      ],
+      "act_apprdecide": [
+        "0 run_automation"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "7e23bcd2e2eb635eff91b34700c88df594c673e09c1f7f9650cb3ea37ab587ff",
+    "afterResave": "7e23bcd2e2eb635eff91b34700c88df594c673e09c1f7f9650cb3ea37ab587ff"
+  }
+}

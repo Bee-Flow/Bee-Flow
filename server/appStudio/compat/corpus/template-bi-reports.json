@@ -1,0 +1,4694 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-bi-reports\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-bi-reports"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "BI reports",
+      "description": "A small relational warehouse, a report designer with live preview, and a slot dashboard.",
+      "icon": "BarChart3"
+    },
+    "theme": {
+      "primary": "#0891B2",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [
+      {
+        "id": "analyst",
+        "name": "Analyst"
+      },
+      {
+        "id": "viewer",
+        "name": "Viewer"
+      }
+    ],
+    "variables": [
+      {
+        "name": "slot1",
+        "label": "Dashboard slot 1",
+        "type": "record",
+        "default": {
+          "name": "Amount by category",
+          "chart_type": "bar",
+          "group_field": "category_key",
+          "measure_fn": "sum",
+          "measure_field": "amount",
+          "since": null,
+          "slot": 1
+        },
+        "description": "The report shape slot 1 renders. Defaults to the seeded slot-1 report; rewritten by saving a report into slot 1 or by “Show saved reports”."
+      },
+      {
+        "name": "slot2",
+        "label": "Dashboard slot 2",
+        "type": "record",
+        "default": {
+          "name": "Monthly amount trend",
+          "chart_type": "line",
+          "group_field": "month",
+          "measure_fn": "sum",
+          "measure_field": "amount",
+          "since": null,
+          "slot": 2
+        },
+        "description": "The report shape slot 2 renders."
+      },
+      {
+        "name": "slot3",
+        "label": "Dashboard slot 3",
+        "type": "record",
+        "default": {
+          "name": "Quantity by entity",
+          "chart_type": "donut",
+          "group_field": "entity_key",
+          "measure_fn": "sum",
+          "measure_field": "quantity",
+          "since": null,
+          "slot": 3
+        },
+        "description": "The report shape slot 3 renders."
+      },
+      {
+        "name": "slot4",
+        "label": "Dashboard slot 4",
+        "type": "record",
+        "default": {},
+        "description": "Empty until a report is saved into slot 4."
+      },
+      {
+        "name": "slot5",
+        "label": "Dashboard slot 5",
+        "type": "record",
+        "default": {},
+        "description": "Empty until a report is saved into slot 5."
+      },
+      {
+        "name": "slot6",
+        "label": "Dashboard slot 6",
+        "type": "record",
+        "default": {},
+        "description": "Empty until a report is saved into slot 6."
+      },
+      {
+        "name": "staged",
+        "label": "Pending staging rows",
+        "type": "list",
+        "default": [],
+        "description": "Snapshot of the pending staging rows the load action is moving — taken before the loop so mid-loop updates cannot shrink it."
+      },
+      {
+        "name": "run",
+        "label": "Current load run",
+        "type": "record",
+        "default": {},
+        "description": "The load_runs row the load action just created; its id stamps every fact row of that load."
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_bidash",
+        "name": "Dashboard",
+        "icon": "LayoutDashboard",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "refreshInterval": 60,
+        "kind": "dashboard",
+        "description": "Six slots showing the reports your team saved, plus the warehouse vitals.",
+        "sections": [
+          {
+            "id": "sec_bidtop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bidhdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Dashboard",
+                  "subtitle": "Slots 1–6 render saved reports. Build new ones in the designer; a slot updates the moment a report is saved into it.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "LayoutDashboard",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bidsync",
+                    "type": "button",
+                    "props": {
+                      "label": "Show saved reports",
+                      "variant": "secondary",
+                      "iconLeft": "RefreshCw",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3,
+                      "size": "md",
+                      "align": "start"
+                    },
+                    "visible": true,
+                    "onClick": "act_bidsync"
+                  },
+                  {
+                    "id": "cmp_bidnew",
+                    "type": "button",
+                    "props": {
+                      "label": "New report",
+                      "variant": "primary",
+                      "iconLeft": "Plus",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3,
+                      "size": "md",
+                      "align": "start"
+                    },
+                    "visible": true,
+                    "onClick": "act_bigodsg"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_bidkpi1",
+                "type": "stat",
+                "props": {
+                  "label": "Warehouse rows",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_bifact1",
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": "facts in the warehouse",
+                  "captionSegments": [],
+                  "icon": "Database",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md",
+                  "align": "start",
+                  "color": null
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_bidkpi2",
+                "type": "stat",
+                "props": {
+                  "label": "Total amount",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_bifact1",
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "sum",
+                        "field": "amount",
+                        "as": "total"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "total"
+                    }
+                  },
+                  "caption": "summed over every fact row",
+                  "captionSegments": [],
+                  "icon": "Sigma",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md",
+                  "align": "start",
+                  "color": null
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_bidkpi3",
+                "type": "stat",
+                "props": {
+                  "label": "Staged, waiting",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_bistg01",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "pending"
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": "rows ready to load",
+                  "captionSegments": [],
+                  "icon": "Inbox",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md",
+                  "align": "start",
+                  "color": null
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_bidkpi4",
+                "type": "stat",
+                "props": {
+                  "label": "Load runs",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_biload1",
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": "loads into the warehouse",
+                  "captionSegments": [],
+                  "icon": "History",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md",
+                  "align": "start",
+                  "color": null
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_bidrow1",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bislot1",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bisch1",
+                    "type": "chart",
+                    "props": {
+                      "chartType": "bar",
+                      "orientation": "vertical",
+                      "source": {
+                        "kind": "aggregate",
+                        "tableId": "tbl_bifact1",
+                        "filter": [
+                          {
+                            "field": "record_date",
+                            "op": "gte",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.slot1.group_field ? (vars.slot1.since ? vars.slot1.since : '1970-01-01') : null"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "label",
+                            "dir": "asc"
+                          }
+                        ],
+                        "limit": 24,
+                        "groupBy": {
+                          "kind": "formula",
+                          "expr": "vars.slot1.group_field == 'month' ? parseJson('[{\"field\":\"record_date\",\"bucket\":\"month\",\"as\":\"label\"}]') : parseJson(concat('[{\"field\":\"', vars.slot1.group_field, '\",\"as\":\"label\"}]'))"
+                        },
+                        "aggregates": {
+                          "kind": "formula",
+                          "expr": "vars.slot1.measure_fn == 'count' ? parseJson('[{\"fn\":\"count\",\"field\":\"*\",\"as\":\"value\"}]') : parseJson(concat('[{\"fn\":\"', vars.slot1.measure_fn, '\",\"field\":\"', coalesce(vars.slot1.measure_field, 'amount'), '\",\"as\":\"value\"}]'))"
+                        }
+                      },
+                      "title": "Slot 1",
+                      "xKey": "label",
+                      "xType": "category",
+                      "series": [
+                        {
+                          "key": "value",
+                          "label": "Value",
+                          "color": "primary"
+                        }
+                      ],
+                      "stacked": false,
+                      "showLegend": false,
+                      "showGrid": true,
+                      "valueFormat": "number",
+                      "yMin": null,
+                      "yMax": null,
+                      "referenceLines": [],
+                      "referenceBands": [],
+                      "unitLabel": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "height": "md"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "vars.slot1.group_field"
+                    },
+                    "computed": {
+                      "chartType": {
+                        "kind": "formula",
+                        "expr": "vars.slot1.chart_type ? vars.slot1.chart_type : 'bar'"
+                      },
+                      "title": {
+                        "kind": "formula",
+                        "expr": "vars.slot1.name ? vars.slot1.name : 'Slot 1'"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cmp_bishint1",
+                    "type": "text",
+                    "props": {
+                      "text": "Slot 1 is empty. Save a report with dashboard slot 1, or press “Show saved reports”.",
+                      "muted": true
+                    },
+                    "style": {
+                      "span": 12,
+                      "align": "start",
+                      "color": null,
+                      "weight": "regular",
+                      "size": "sm"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "!vars.slot1.group_field"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_bislot2",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bisch2",
+                    "type": "chart",
+                    "props": {
+                      "chartType": "bar",
+                      "orientation": "vertical",
+                      "source": {
+                        "kind": "aggregate",
+                        "tableId": "tbl_bifact1",
+                        "filter": [
+                          {
+                            "field": "record_date",
+                            "op": "gte",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.slot2.group_field ? (vars.slot2.since ? vars.slot2.since : '1970-01-01') : null"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "label",
+                            "dir": "asc"
+                          }
+                        ],
+                        "limit": 24,
+                        "groupBy": {
+                          "kind": "formula",
+                          "expr": "vars.slot2.group_field == 'month' ? parseJson('[{\"field\":\"record_date\",\"bucket\":\"month\",\"as\":\"label\"}]') : parseJson(concat('[{\"field\":\"', vars.slot2.group_field, '\",\"as\":\"label\"}]'))"
+                        },
+                        "aggregates": {
+                          "kind": "formula",
+                          "expr": "vars.slot2.measure_fn == 'count' ? parseJson('[{\"fn\":\"count\",\"field\":\"*\",\"as\":\"value\"}]') : parseJson(concat('[{\"fn\":\"', vars.slot2.measure_fn, '\",\"field\":\"', coalesce(vars.slot2.measure_field, 'amount'), '\",\"as\":\"value\"}]'))"
+                        }
+                      },
+                      "title": "Slot 2",
+                      "xKey": "label",
+                      "xType": "category",
+                      "series": [
+                        {
+                          "key": "value",
+                          "label": "Value",
+                          "color": "primary"
+                        }
+                      ],
+                      "stacked": false,
+                      "showLegend": false,
+                      "showGrid": true,
+                      "valueFormat": "number",
+                      "yMin": null,
+                      "yMax": null,
+                      "referenceLines": [],
+                      "referenceBands": [],
+                      "unitLabel": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "height": "md"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "vars.slot2.group_field"
+                    },
+                    "computed": {
+                      "chartType": {
+                        "kind": "formula",
+                        "expr": "vars.slot2.chart_type ? vars.slot2.chart_type : 'bar'"
+                      },
+                      "title": {
+                        "kind": "formula",
+                        "expr": "vars.slot2.name ? vars.slot2.name : 'Slot 2'"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cmp_bishint2",
+                    "type": "text",
+                    "props": {
+                      "text": "Slot 2 is empty. Save a report with dashboard slot 2, or press “Show saved reports”.",
+                      "muted": true
+                    },
+                    "style": {
+                      "span": 12,
+                      "align": "start",
+                      "color": null,
+                      "weight": "regular",
+                      "size": "sm"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "!vars.slot2.group_field"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_bislot3",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bisch3",
+                    "type": "chart",
+                    "props": {
+                      "chartType": "bar",
+                      "orientation": "vertical",
+                      "source": {
+                        "kind": "aggregate",
+                        "tableId": "tbl_bifact1",
+                        "filter": [
+                          {
+                            "field": "record_date",
+                            "op": "gte",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.slot3.group_field ? (vars.slot3.since ? vars.slot3.since : '1970-01-01') : null"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "label",
+                            "dir": "asc"
+                          }
+                        ],
+                        "limit": 24,
+                        "groupBy": {
+                          "kind": "formula",
+                          "expr": "vars.slot3.group_field == 'month' ? parseJson('[{\"field\":\"record_date\",\"bucket\":\"month\",\"as\":\"label\"}]') : parseJson(concat('[{\"field\":\"', vars.slot3.group_field, '\",\"as\":\"label\"}]'))"
+                        },
+                        "aggregates": {
+                          "kind": "formula",
+                          "expr": "vars.slot3.measure_fn == 'count' ? parseJson('[{\"fn\":\"count\",\"field\":\"*\",\"as\":\"value\"}]') : parseJson(concat('[{\"fn\":\"', vars.slot3.measure_fn, '\",\"field\":\"', coalesce(vars.slot3.measure_field, 'amount'), '\",\"as\":\"value\"}]'))"
+                        }
+                      },
+                      "title": "Slot 3",
+                      "xKey": "label",
+                      "xType": "category",
+                      "series": [
+                        {
+                          "key": "value",
+                          "label": "Value",
+                          "color": "primary"
+                        }
+                      ],
+                      "stacked": false,
+                      "showLegend": false,
+                      "showGrid": true,
+                      "valueFormat": "number",
+                      "yMin": null,
+                      "yMax": null,
+                      "referenceLines": [],
+                      "referenceBands": [],
+                      "unitLabel": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "height": "md"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "vars.slot3.group_field"
+                    },
+                    "computed": {
+                      "chartType": {
+                        "kind": "formula",
+                        "expr": "vars.slot3.chart_type ? vars.slot3.chart_type : 'bar'"
+                      },
+                      "title": {
+                        "kind": "formula",
+                        "expr": "vars.slot3.name ? vars.slot3.name : 'Slot 3'"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cmp_bishint3",
+                    "type": "text",
+                    "props": {
+                      "text": "Slot 3 is empty. Save a report with dashboard slot 3, or press “Show saved reports”.",
+                      "muted": true
+                    },
+                    "style": {
+                      "span": 12,
+                      "align": "start",
+                      "color": null,
+                      "weight": "regular",
+                      "size": "sm"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "!vars.slot3.group_field"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sec_bidrow2",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bislot4",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bisch4",
+                    "type": "chart",
+                    "props": {
+                      "chartType": "bar",
+                      "orientation": "vertical",
+                      "source": {
+                        "kind": "aggregate",
+                        "tableId": "tbl_bifact1",
+                        "filter": [
+                          {
+                            "field": "record_date",
+                            "op": "gte",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.slot4.group_field ? (vars.slot4.since ? vars.slot4.since : '1970-01-01') : null"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "label",
+                            "dir": "asc"
+                          }
+                        ],
+                        "limit": 24,
+                        "groupBy": {
+                          "kind": "formula",
+                          "expr": "vars.slot4.group_field == 'month' ? parseJson('[{\"field\":\"record_date\",\"bucket\":\"month\",\"as\":\"label\"}]') : parseJson(concat('[{\"field\":\"', vars.slot4.group_field, '\",\"as\":\"label\"}]'))"
+                        },
+                        "aggregates": {
+                          "kind": "formula",
+                          "expr": "vars.slot4.measure_fn == 'count' ? parseJson('[{\"fn\":\"count\",\"field\":\"*\",\"as\":\"value\"}]') : parseJson(concat('[{\"fn\":\"', vars.slot4.measure_fn, '\",\"field\":\"', coalesce(vars.slot4.measure_field, 'amount'), '\",\"as\":\"value\"}]'))"
+                        }
+                      },
+                      "title": "Slot 4",
+                      "xKey": "label",
+                      "xType": "category",
+                      "series": [
+                        {
+                          "key": "value",
+                          "label": "Value",
+                          "color": "primary"
+                        }
+                      ],
+                      "stacked": false,
+                      "showLegend": false,
+                      "showGrid": true,
+                      "valueFormat": "number",
+                      "yMin": null,
+                      "yMax": null,
+                      "referenceLines": [],
+                      "referenceBands": [],
+                      "unitLabel": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "height": "md"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "vars.slot4.group_field"
+                    },
+                    "computed": {
+                      "chartType": {
+                        "kind": "formula",
+                        "expr": "vars.slot4.chart_type ? vars.slot4.chart_type : 'bar'"
+                      },
+                      "title": {
+                        "kind": "formula",
+                        "expr": "vars.slot4.name ? vars.slot4.name : 'Slot 4'"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cmp_bishint4",
+                    "type": "text",
+                    "props": {
+                      "text": "Slot 4 is empty. Save a report with dashboard slot 4, or press “Show saved reports”.",
+                      "muted": true
+                    },
+                    "style": {
+                      "span": 12,
+                      "align": "start",
+                      "color": null,
+                      "weight": "regular",
+                      "size": "sm"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "!vars.slot4.group_field"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_bislot5",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bisch5",
+                    "type": "chart",
+                    "props": {
+                      "chartType": "bar",
+                      "orientation": "vertical",
+                      "source": {
+                        "kind": "aggregate",
+                        "tableId": "tbl_bifact1",
+                        "filter": [
+                          {
+                            "field": "record_date",
+                            "op": "gte",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.slot5.group_field ? (vars.slot5.since ? vars.slot5.since : '1970-01-01') : null"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "label",
+                            "dir": "asc"
+                          }
+                        ],
+                        "limit": 24,
+                        "groupBy": {
+                          "kind": "formula",
+                          "expr": "vars.slot5.group_field == 'month' ? parseJson('[{\"field\":\"record_date\",\"bucket\":\"month\",\"as\":\"label\"}]') : parseJson(concat('[{\"field\":\"', vars.slot5.group_field, '\",\"as\":\"label\"}]'))"
+                        },
+                        "aggregates": {
+                          "kind": "formula",
+                          "expr": "vars.slot5.measure_fn == 'count' ? parseJson('[{\"fn\":\"count\",\"field\":\"*\",\"as\":\"value\"}]') : parseJson(concat('[{\"fn\":\"', vars.slot5.measure_fn, '\",\"field\":\"', coalesce(vars.slot5.measure_field, 'amount'), '\",\"as\":\"value\"}]'))"
+                        }
+                      },
+                      "title": "Slot 5",
+                      "xKey": "label",
+                      "xType": "category",
+                      "series": [
+                        {
+                          "key": "value",
+                          "label": "Value",
+                          "color": "primary"
+                        }
+                      ],
+                      "stacked": false,
+                      "showLegend": false,
+                      "showGrid": true,
+                      "valueFormat": "number",
+                      "yMin": null,
+                      "yMax": null,
+                      "referenceLines": [],
+                      "referenceBands": [],
+                      "unitLabel": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "height": "md"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "vars.slot5.group_field"
+                    },
+                    "computed": {
+                      "chartType": {
+                        "kind": "formula",
+                        "expr": "vars.slot5.chart_type ? vars.slot5.chart_type : 'bar'"
+                      },
+                      "title": {
+                        "kind": "formula",
+                        "expr": "vars.slot5.name ? vars.slot5.name : 'Slot 5'"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cmp_bishint5",
+                    "type": "text",
+                    "props": {
+                      "text": "Slot 5 is empty. Save a report with dashboard slot 5, or press “Show saved reports”.",
+                      "muted": true
+                    },
+                    "style": {
+                      "span": 12,
+                      "align": "start",
+                      "color": null,
+                      "weight": "regular",
+                      "size": "sm"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "!vars.slot5.group_field"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_bislot6",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bisch6",
+                    "type": "chart",
+                    "props": {
+                      "chartType": "bar",
+                      "orientation": "vertical",
+                      "source": {
+                        "kind": "aggregate",
+                        "tableId": "tbl_bifact1",
+                        "filter": [
+                          {
+                            "field": "record_date",
+                            "op": "gte",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.slot6.group_field ? (vars.slot6.since ? vars.slot6.since : '1970-01-01') : null"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "label",
+                            "dir": "asc"
+                          }
+                        ],
+                        "limit": 24,
+                        "groupBy": {
+                          "kind": "formula",
+                          "expr": "vars.slot6.group_field == 'month' ? parseJson('[{\"field\":\"record_date\",\"bucket\":\"month\",\"as\":\"label\"}]') : parseJson(concat('[{\"field\":\"', vars.slot6.group_field, '\",\"as\":\"label\"}]'))"
+                        },
+                        "aggregates": {
+                          "kind": "formula",
+                          "expr": "vars.slot6.measure_fn == 'count' ? parseJson('[{\"fn\":\"count\",\"field\":\"*\",\"as\":\"value\"}]') : parseJson(concat('[{\"fn\":\"', vars.slot6.measure_fn, '\",\"field\":\"', coalesce(vars.slot6.measure_field, 'amount'), '\",\"as\":\"value\"}]'))"
+                        }
+                      },
+                      "title": "Slot 6",
+                      "xKey": "label",
+                      "xType": "category",
+                      "series": [
+                        {
+                          "key": "value",
+                          "label": "Value",
+                          "color": "primary"
+                        }
+                      ],
+                      "stacked": false,
+                      "showLegend": false,
+                      "showGrid": true,
+                      "valueFormat": "number",
+                      "yMin": null,
+                      "yMax": null,
+                      "referenceLines": [],
+                      "referenceBands": [],
+                      "unitLabel": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "height": "md"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "vars.slot6.group_field"
+                    },
+                    "computed": {
+                      "chartType": {
+                        "kind": "formula",
+                        "expr": "vars.slot6.chart_type ? vars.slot6.chart_type : 'bar'"
+                      },
+                      "title": {
+                        "kind": "formula",
+                        "expr": "vars.slot6.name ? vars.slot6.name : 'Slot 6'"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cmp_bishint6",
+                    "type": "text",
+                    "props": {
+                      "text": "Slot 6 is empty. Save a report with dashboard slot 6, or press “Show saved reports”.",
+                      "muted": true
+                    },
+                    "style": {
+                      "span": 12,
+                      "align": "start",
+                      "color": null,
+                      "weight": "regular",
+                      "size": "sm"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "!vars.slot6.group_field"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sec_bidlib",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "surface"
+            },
+            "children": [
+              {
+                "id": "cmp_bidlib",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_birep01",
+                    "sort": [
+                      {
+                        "field": "slot",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "titleKey": "name",
+                  "subtitleKey": "description",
+                  "metaKey": "slot",
+                  "timestampKey": null,
+                  "badgeKey": "chart_type",
+                  "tagsKey": null,
+                  "badgeToneMap": [
+                    {
+                      "value": "bar",
+                      "label": "Bar",
+                      "tone": "primary"
+                    },
+                    {
+                      "value": "line",
+                      "label": "Line",
+                      "tone": "info"
+                    },
+                    {
+                      "value": "area",
+                      "label": "Area",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "pie",
+                      "label": "Pie",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "donut",
+                      "label": "Donut",
+                      "tone": "neutral"
+                    }
+                  ],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": "BarChart3",
+                  "emptyText": "No saved reports yet — build the first one in the designer.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 12,
+                  "size": "md",
+                  "height": "auto"
+                },
+                "visible": true,
+                "onRowClick": "act_bidapply"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_bidsg",
+        "name": "Report designer",
+        "icon": "PencilRuler",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "description": "Pick a group-by, a measure and a chart type — the preview answers live, Save keeps it.",
+        "sections": [
+          {
+            "id": "sec_bigtop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bighdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Report designer",
+                  "subtitle": "The preview runs the exact query the saved report will run — same table, same fields, same access rules.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "PencilRuler",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "sec_bigmain",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bigform",
+                "type": "form",
+                "props": {
+                  "name": "designer",
+                  "submitLabel": "Save report",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 7,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_birepsave",
+                "children": [
+                  {
+                    "id": "cmp_bigf1",
+                    "type": "input_text",
+                    "props": {
+                      "name": "name",
+                      "label": "Report name",
+                      "placeholder": "e.g. Amount by category",
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 8,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bigf2",
+                    "type": "input_select",
+                    "props": {
+                      "name": "slot",
+                      "label": "Dashboard slot",
+                      "options": [
+                        {
+                          "value": "0",
+                          "label": "Not on the dashboard"
+                        },
+                        {
+                          "value": "1",
+                          "label": "Dashboard slot 1"
+                        },
+                        {
+                          "value": "2",
+                          "label": "Dashboard slot 2"
+                        },
+                        {
+                          "value": "3",
+                          "label": "Dashboard slot 3"
+                        },
+                        {
+                          "value": "4",
+                          "label": "Dashboard slot 4"
+                        },
+                        {
+                          "value": "5",
+                          "label": "Dashboard slot 5"
+                        },
+                        {
+                          "value": "6",
+                          "label": "Dashboard slot 6"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": "0",
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 4,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bigf3",
+                    "type": "input_select",
+                    "props": {
+                      "name": "group_field",
+                      "label": "Group by",
+                      "options": [
+                        {
+                          "value": "category_key",
+                          "label": "Category"
+                        },
+                        {
+                          "value": "entity_key",
+                          "label": "Entity"
+                        },
+                        {
+                          "value": "source",
+                          "label": "Source system"
+                        },
+                        {
+                          "value": "month",
+                          "label": "Month (record date)"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": "category_key",
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 4,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bigf4",
+                    "type": "input_select",
+                    "props": {
+                      "name": "measure_fn",
+                      "label": "Measure",
+                      "options": [
+                        {
+                          "value": "sum",
+                          "label": "Sum"
+                        },
+                        {
+                          "value": "avg",
+                          "label": "Average"
+                        },
+                        {
+                          "value": "count",
+                          "label": "Row count"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": "sum",
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 4,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bigf5",
+                    "type": "input_select",
+                    "props": {
+                      "name": "measure_field",
+                      "label": "Of field",
+                      "options": [
+                        {
+                          "value": "amount",
+                          "label": "Amount"
+                        },
+                        {
+                          "value": "quantity",
+                          "label": "Quantity"
+                        }
+                      ],
+                      "required": false,
+                      "defaultValue": "amount",
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 4,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bigf6",
+                    "type": "input_select",
+                    "props": {
+                      "name": "chart_type",
+                      "label": "Chart type",
+                      "options": [
+                        {
+                          "value": "bar",
+                          "label": "Bar"
+                        },
+                        {
+                          "value": "line",
+                          "label": "Line"
+                        },
+                        {
+                          "value": "area",
+                          "label": "Area"
+                        },
+                        {
+                          "value": "pie",
+                          "label": "Pie"
+                        },
+                        {
+                          "value": "donut",
+                          "label": "Donut"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": "bar",
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 4,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bigf7",
+                    "type": "input_date",
+                    "props": {
+                      "name": "since",
+                      "label": "Only rows since (optional)",
+                      "required": false,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 4,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bigf8",
+                    "type": "input_text",
+                    "props": {
+                      "name": "description",
+                      "label": "Description",
+                      "placeholder": "What question does this answer?",
+                      "required": false,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 8,
+                      "size": "md"
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_bigprev",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 5,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bigchart",
+                    "type": "chart",
+                    "props": {
+                      "chartType": "bar",
+                      "orientation": "vertical",
+                      "source": {
+                        "kind": "aggregate",
+                        "tableId": "tbl_bifact1",
+                        "filter": [
+                          {
+                            "field": "record_date",
+                            "op": "gte",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "forms.designer.group_field ? (forms.designer.since ? forms.designer.since : '1970-01-01') : null"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "label",
+                            "dir": "asc"
+                          }
+                        ],
+                        "limit": 24,
+                        "groupBy": {
+                          "kind": "formula",
+                          "expr": "forms.designer.group_field == 'month' ? parseJson('[{\"field\":\"record_date\",\"bucket\":\"month\",\"as\":\"label\"}]') : parseJson(concat('[{\"field\":\"', forms.designer.group_field, '\",\"as\":\"label\"}]'))"
+                        },
+                        "aggregates": {
+                          "kind": "formula",
+                          "expr": "forms.designer.measure_fn == 'count' ? parseJson('[{\"fn\":\"count\",\"field\":\"*\",\"as\":\"value\"}]') : parseJson(concat('[{\"fn\":\"', forms.designer.measure_fn, '\",\"field\":\"', coalesce(forms.designer.measure_field, 'amount'), '\",\"as\":\"value\"}]'))"
+                        }
+                      },
+                      "title": "Live preview",
+                      "xKey": "label",
+                      "xType": "category",
+                      "series": [
+                        {
+                          "key": "value",
+                          "label": "Value",
+                          "color": "primary"
+                        }
+                      ],
+                      "stacked": false,
+                      "showLegend": false,
+                      "showGrid": true,
+                      "valueFormat": "number",
+                      "yMin": null,
+                      "yMax": null,
+                      "referenceLines": [],
+                      "referenceBands": [],
+                      "unitLabel": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "height": "lg"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "forms.designer.group_field"
+                    },
+                    "computed": {
+                      "chartType": {
+                        "kind": "formula",
+                        "expr": "forms.designer.chart_type ? forms.designer.chart_type : 'bar'"
+                      },
+                      "title": {
+                        "kind": "formula",
+                        "expr": "forms.designer.name ? forms.designer.name : 'Live preview'"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cmp_bighint",
+                    "type": "text",
+                    "props": {
+                      "text": "Pick a group-by on the left and the preview answers immediately.",
+                      "muted": true
+                    },
+                    "style": {
+                      "span": 12,
+                      "align": "start",
+                      "color": null,
+                      "weight": "regular",
+                      "size": "sm"
+                    },
+                    "visible": {
+                      "kind": "formula",
+                      "expr": "!forms.designer.group_field"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sec_biglib",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_biggrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_birep01",
+                    "sort": [
+                      {
+                        "field": "slot",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "columns": [
+                    {
+                      "key": "name",
+                      "label": "Report",
+                      "format": "text",
+                      "width": 240,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "chart_type",
+                      "label": "Chart",
+                      "format": "badge",
+                      "width": 100,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "group_field",
+                      "label": "Group by",
+                      "format": "badge",
+                      "width": 130,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "measure_fn",
+                      "label": "Measure",
+                      "format": "badge",
+                      "width": 110,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "measure_field",
+                      "label": "Of",
+                      "format": "text",
+                      "width": 100,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "slot",
+                      "label": "Slot",
+                      "format": "number",
+                      "width": 80,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "description",
+                      "label": "Description",
+                      "format": "text",
+                      "width": 300,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": false
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": true,
+                  "rowActions": [
+                    {
+                      "label": "To dashboard",
+                      "actionId": "act_bidapply"
+                    },
+                    {
+                      "label": "Delete",
+                      "actionId": "act_birepdel"
+                    }
+                  ],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "compact",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": true,
+                  "emptyText": "Nothing saved yet — compose a report above and press Save.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12,
+                  "size": "md",
+                  "height": "fill"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_biload",
+        "name": "Load data",
+        "icon": "DownloadCloud",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "description": "Rows your connector staged, waiting to be loaded into the warehouse — with a logged run per load.",
+        "sections": [
+          {
+            "id": "sec_biltop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bilhdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Load data",
+                  "subtitle": "Staging is the landing zone: connectors write here, and “Load staged rows” moves everything pending into the fact table.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "DownloadCloud",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bilrun",
+                    "type": "button",
+                    "props": {
+                      "label": "Load staged rows",
+                      "variant": "primary",
+                      "iconLeft": "DownloadCloud",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3,
+                      "size": "md",
+                      "align": "start"
+                    },
+                    "visible": true,
+                    "onClick": "act_biload"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_bilhow",
+                "type": "callout",
+                "props": {
+                  "title": "Wire your connector here",
+                  "text": "This app ships without a connector on purpose — connectors are yours. Open the app’s **Data panel → Connectors**, create one (or pick an existing one), and point its sync at the **Staging rows** table: date → `record_date`, description → `label`, your two dimension values → `category_key` / `entity_key`, numbers → `amount` / `quantity`, and let `status` default to `pending`. Every synced row appears below; **Load staged rows** moves it into the warehouse and logs a load run. No connector yet? The manual form below feeds the exact same flow.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_bilmain",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_bilstg",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_bistg01",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "pending"
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "record_date",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 100
+                  },
+                  "columns": [
+                    {
+                      "key": "record_date",
+                      "label": "Date",
+                      "format": "date",
+                      "width": 110,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "label",
+                      "label": "Label",
+                      "format": "text",
+                      "width": 240,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "category_key",
+                      "label": "Category",
+                      "format": "badge",
+                      "width": 120,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "entity_key",
+                      "label": "Entity",
+                      "format": "badge",
+                      "width": 110,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount",
+                      "format": "number",
+                      "width": 100,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "quantity",
+                      "label": "Qty",
+                      "format": "number",
+                      "width": 80,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "source",
+                      "label": "Source",
+                      "format": "text",
+                      "width": 130,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": true,
+                  "rowActions": [
+                    {
+                      "label": "Delete",
+                      "actionId": "act_bistgdel"
+                    }
+                  ],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "compact",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": true,
+                  "emptyText": "Nothing pending. Sync your connector into Staging rows, or add a row with the form below.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 7,
+                  "size": "md",
+                  "height": "fill"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_bilruns",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_biload1",
+                    "sort": [
+                      {
+                        "field": "ran_at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "titleKey": "note",
+                  "subtitleKey": "source",
+                  "metaKey": "rows_loaded",
+                  "timestampKey": "ran_at",
+                  "badgeKey": "status",
+                  "tagsKey": null,
+                  "badgeToneMap": [
+                    {
+                      "value": "done",
+                      "label": "Done",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "running",
+                      "label": "Running",
+                      "tone": "warning"
+                    }
+                  ],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": "History",
+                  "emptyText": "No loads yet — the first run appears here with its row count.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 5,
+                  "size": "md",
+                  "height": "fill"
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_bilform",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "surface"
+            },
+            "children": [
+              {
+                "id": "cmp_bilform",
+                "type": "form",
+                "props": {
+                  "name": "stagerow",
+                  "submitLabel": "Stage row",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_bistgadd",
+                "children": [
+                  {
+                    "id": "cmp_bilf1",
+                    "type": "input_date",
+                    "props": {
+                      "name": "record_date",
+                      "label": "Date",
+                      "required": true,
+                      "defaultValue": "today",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 2,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bilf2",
+                    "type": "input_text",
+                    "props": {
+                      "name": "label",
+                      "label": "Label",
+                      "placeholder": "What is this row?",
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 4,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bilf3",
+                    "type": "input_select",
+                    "props": {
+                      "name": "category_key",
+                      "label": "Category",
+                      "options": [
+                        {
+                          "value": "hardware",
+                          "label": "Hardware"
+                        },
+                        {
+                          "value": "software",
+                          "label": "Software"
+                        },
+                        {
+                          "value": "services",
+                          "label": "Services"
+                        },
+                        {
+                          "value": "support",
+                          "label": "Support"
+                        },
+                        {
+                          "value": "training",
+                          "label": "Training"
+                        },
+                        {
+                          "value": "licenses",
+                          "label": "Licenses"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": "hardware",
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 2,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bilf4",
+                    "type": "input_select",
+                    "props": {
+                      "name": "entity_key",
+                      "label": "Entity",
+                      "options": [
+                        {
+                          "value": "north",
+                          "label": "North"
+                        },
+                        {
+                          "value": "south",
+                          "label": "South"
+                        },
+                        {
+                          "value": "east",
+                          "label": "East"
+                        },
+                        {
+                          "value": "west",
+                          "label": "West"
+                        },
+                        {
+                          "value": "online",
+                          "label": "Online"
+                        },
+                        {
+                          "value": "partner",
+                          "label": "Partner"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": "north",
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 2,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bilf5",
+                    "type": "input_number",
+                    "props": {
+                      "name": "amount",
+                      "label": "Amount",
+                      "min": 0,
+                      "max": 1000000,
+                      "step": 0.01,
+                      "required": false,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 1,
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_bilf6",
+                    "type": "input_number",
+                    "props": {
+                      "name": "quantity",
+                      "label": "Qty",
+                      "min": 0,
+                      "max": 100000,
+                      "step": 1,
+                      "required": false,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 1,
+                      "size": "md"
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_biwh",
+        "name": "Warehouse",
+        "icon": "Database",
+        "showInNav": true,
+        "maxWidth": "full",
+        "description": "Browse the fact table with filters, follow its relations, and audit the load history.",
+        "sections": [
+          {
+            "id": "sec_biwtop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_biwhdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Warehouse",
+                  "subtitle": "One fact table, two dimensions, one load log. Amounts and labels are editable inline — click a cell.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "Database",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_biwfilt",
+                "type": "filter_bar",
+                "props": {
+                  "fields": [
+                    {
+                      "name": "q",
+                      "label": "Search label",
+                      "type": "search",
+                      "options": []
+                    },
+                    {
+                      "name": "category",
+                      "label": "Category",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "hardware",
+                          "label": "Hardware"
+                        },
+                        {
+                          "value": "software",
+                          "label": "Software"
+                        },
+                        {
+                          "value": "services",
+                          "label": "Services"
+                        },
+                        {
+                          "value": "support",
+                          "label": "Support"
+                        },
+                        {
+                          "value": "training",
+                          "label": "Training"
+                        },
+                        {
+                          "value": "licenses",
+                          "label": "Licenses"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "entity",
+                      "label": "Entity",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "north",
+                          "label": "North"
+                        },
+                        {
+                          "value": "south",
+                          "label": "South"
+                        },
+                        {
+                          "value": "east",
+                          "label": "East"
+                        },
+                        {
+                          "value": "west",
+                          "label": "West"
+                        },
+                        {
+                          "value": "online",
+                          "label": "Online"
+                        },
+                        {
+                          "value": "partner",
+                          "label": "Partner"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "style": {
+                  "span": 12,
+                  "size": "md",
+                  "gap": 3
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_biwmain",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_biwtabs",
+                "type": "tabs",
+                "props": {
+                  "look": "underline"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_biwtab1",
+                    "type": "tab",
+                    "props": {
+                      "label": "Fact records",
+                      "icon": "Database",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_biwfacts",
+                        "type": "data_grid",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_bifact1",
+                            "filter": [
+                              {
+                                "field": "label",
+                                "op": "contains",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.filters.q"
+                                },
+                                "required": false
+                              },
+                              {
+                                "field": "category_key",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.filters.category"
+                                },
+                                "required": false
+                              },
+                              {
+                                "field": "entity_key",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.filters.entity"
+                                },
+                                "required": false
+                              }
+                            ],
+                            "sort": [
+                              {
+                                "field": "record_date",
+                                "dir": "desc"
+                              }
+                            ],
+                            "limit": 400
+                          },
+                          "columns": [
+                            {
+                              "key": "record_date",
+                              "label": "Date",
+                              "format": "date",
+                              "width": 110,
+                              "sortable": true,
+                              "filterable": false,
+                              "editable": false
+                            },
+                            {
+                              "key": "label",
+                              "label": "Label",
+                              "format": "text",
+                              "width": 260,
+                              "sortable": true,
+                              "filterable": true,
+                              "editable": true
+                            },
+                            {
+                              "key": "category_key",
+                              "label": "Category",
+                              "format": "badge",
+                              "width": 120,
+                              "sortable": true,
+                              "filterable": true,
+                              "editable": false
+                            },
+                            {
+                              "key": "entity_key",
+                              "label": "Entity",
+                              "format": "badge",
+                              "width": 110,
+                              "sortable": true,
+                              "filterable": true,
+                              "editable": false
+                            },
+                            {
+                              "key": "category_id",
+                              "label": "Category →",
+                              "format": "relation",
+                              "width": 140,
+                              "sortable": false,
+                              "filterable": false,
+                              "editable": false
+                            },
+                            {
+                              "key": "entity_id",
+                              "label": "Entity →",
+                              "format": "relation",
+                              "width": 130,
+                              "sortable": false,
+                              "filterable": false,
+                              "editable": false
+                            },
+                            {
+                              "key": "amount",
+                              "label": "Amount",
+                              "format": "number",
+                              "width": 100,
+                              "sortable": true,
+                              "filterable": false,
+                              "editable": true
+                            },
+                            {
+                              "key": "quantity",
+                              "label": "Qty",
+                              "format": "number",
+                              "width": 80,
+                              "sortable": true,
+                              "filterable": false,
+                              "editable": true
+                            },
+                            {
+                              "key": "source",
+                              "label": "Source",
+                              "format": "text",
+                              "width": 120,
+                              "sortable": true,
+                              "filterable": true,
+                              "editable": false
+                            },
+                            {
+                              "key": "load_run_id",
+                              "label": "Load →",
+                              "format": "relation",
+                              "width": 130,
+                              "sortable": false,
+                              "filterable": false,
+                              "editable": false
+                            }
+                          ],
+                          "pageSize": 50,
+                          "selectable": "none",
+                          "searchable": false,
+                          "rowActions": [
+                            {
+                              "label": "Delete",
+                              "actionId": "act_bifactdel"
+                            }
+                          ],
+                          "toolbarActions": [],
+                          "addRowLabel": null,
+                          "addRowActionId": null,
+                          "bulkActions": [],
+                          "density": "compact",
+                          "clamp": "off",
+                          "rowTone": [],
+                          "groupBy": null,
+                          "groupOrder": [],
+                          "activeWhen": null,
+                          "zebra": true,
+                          "emptyText": "The warehouse is empty — load staged rows on the Load data screen.",
+                          "look": "default"
+                        },
+                        "style": {
+                          "span": 12,
+                          "size": "md",
+                          "height": "fill"
+                        },
+                        "visible": true,
+                        "onRowSelect": "act_bifactsave"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_biwtab2",
+                    "type": "tab",
+                    "props": {
+                      "label": "Load runs",
+                      "icon": "History",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_biwloads",
+                        "type": "data_grid",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_biload1",
+                            "sort": [
+                              {
+                                "field": "ran_at",
+                                "dir": "desc"
+                              }
+                            ],
+                            "limit": 50
+                          },
+                          "columns": [
+                            {
+                              "key": "ran_at",
+                              "label": "Ran",
+                              "format": "date",
+                              "width": 130,
+                              "sortable": true,
+                              "filterable": false,
+                              "editable": false
+                            },
+                            {
+                              "key": "source",
+                              "label": "Source",
+                              "format": "text",
+                              "width": 140,
+                              "sortable": true,
+                              "filterable": true,
+                              "editable": false
+                            },
+                            {
+                              "key": "rows_loaded",
+                              "label": "Rows",
+                              "format": "number",
+                              "width": 90,
+                              "sortable": true,
+                              "filterable": false,
+                              "editable": false
+                            },
+                            {
+                              "key": "status",
+                              "label": "Status",
+                              "format": "badge",
+                              "width": 110,
+                              "sortable": true,
+                              "filterable": true,
+                              "editable": false
+                            },
+                            {
+                              "key": "note",
+                              "label": "Note",
+                              "format": "text",
+                              "width": 320,
+                              "sortable": false,
+                              "filterable": false,
+                              "editable": false
+                            }
+                          ],
+                          "pageSize": 25,
+                          "selectable": "none",
+                          "searchable": false,
+                          "rowActions": [],
+                          "toolbarActions": [],
+                          "addRowLabel": null,
+                          "addRowActionId": null,
+                          "bulkActions": [],
+                          "density": "compact",
+                          "clamp": "off",
+                          "rowTone": [],
+                          "groupBy": null,
+                          "groupOrder": [],
+                          "activeWhen": null,
+                          "zebra": true,
+                          "emptyText": "No load runs yet.",
+                          "look": "default"
+                        },
+                        "style": {
+                          "span": 12,
+                          "size": "md",
+                          "height": "fill"
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_bisetup",
+        "name": "Setup",
+        "icon": "Settings2",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "description": "What the warehouse is, and the two dimensions you rename to make it yours.",
+        "sections": [
+          {
+            "id": "sec_bistop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bishdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Setup",
+                  "subtitle": "Rename the dimensions to whatever your data really splits by — the model does not care what they are called.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "Settings2",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_bisdoc",
+                "type": "markdown",
+                "props": {
+                  "content": "## How this warehouse works\n\nIt is a small **star schema** — one fact table with two dimensions and a load log:\n\n- **Fact records** — one row per thing that happened: a date, an amount, a quantity, and two dimension keys.\n- **Dimension: categories** and **Dimension: entities** — the two axes reports group by. They are deliberately generic: product lines and regions, cost centres and teams, projects and customers — rename the rows here and the meaning follows.\n- **Load runs** — every load is logged with a timestamp and a row count, so “where did these numbers come from?” always has an answer.\n\nBecause every query reads **one table** (no joins), each fact row carries a text copy of its dimension keys (`category_key`, `entity_key`) next to the real relations — the copies are what reports group by, the relations are what makes the model relational.\n\nOne seam to know about: the **dropdowns** in the staging form and the warehouse filter bar are fixed lists in the app design. A dimension row added below shows up in reports and grids immediately, but an editor has to add it to those dropdowns.",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  }
+                },
+                "style": {
+                  "span": 12,
+                  "color": null
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_bisdims",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bisdim1",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_bidimc1",
+                    "sort": [
+                      {
+                        "field": "position",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "columns": [
+                    {
+                      "key": "position",
+                      "label": "Order",
+                      "format": "number",
+                      "width": 80,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "key",
+                      "label": "Key",
+                      "format": "text",
+                      "width": 130,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "name",
+                      "label": "Name",
+                      "format": "text",
+                      "width": 160,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "description",
+                      "label": "Description",
+                      "format": "text",
+                      "width": 260,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [
+                    {
+                      "label": "Delete",
+                      "actionId": "act_bidim1del"
+                    }
+                  ],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "compact",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": true,
+                  "emptyText": "No categories yet — add the first below.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6,
+                  "size": "md",
+                  "height": "auto"
+                },
+                "visible": true,
+                "onRowSelect": "act_bidim1save"
+              },
+              {
+                "id": "cmp_bisdim2",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_bidime1",
+                    "sort": [
+                      {
+                        "field": "position",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "columns": [
+                    {
+                      "key": "position",
+                      "label": "Order",
+                      "format": "number",
+                      "width": 80,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "key",
+                      "label": "Key",
+                      "format": "text",
+                      "width": 130,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "name",
+                      "label": "Name",
+                      "format": "text",
+                      "width": 160,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "description",
+                      "label": "Description",
+                      "format": "text",
+                      "width": 260,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [
+                    {
+                      "label": "Delete",
+                      "actionId": "act_bidim2del"
+                    }
+                  ],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "compact",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": true,
+                  "emptyText": "No entities yet — add the first below.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6,
+                  "size": "md",
+                  "height": "auto"
+                },
+                "visible": true,
+                "onRowSelect": "act_bidim2save"
+              },
+              {
+                "id": "cmp_bisadd1",
+                "type": "button",
+                "props": {
+                  "label": "Add category",
+                  "variant": "primary",
+                  "iconLeft": "Plus",
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md",
+                  "align": "start"
+                },
+                "visible": true,
+                "onClick": "act_bidim1open"
+              },
+              {
+                "id": "cmp_bisadd2",
+                "type": "button",
+                "props": {
+                  "label": "Add entity",
+                  "variant": "primary",
+                  "iconLeft": "Plus",
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md",
+                  "align": "start"
+                },
+                "visible": true,
+                "onClick": "act_bidim2open"
+              }
+            ]
+          },
+          {
+            "id": "sec_bisdlg",
+            "style": {
+              "padding": 0,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_bidm1mod",
+                "type": "modal",
+                "props": {
+                  "title": "Add category",
+                  "size": "md",
+                  "placement": "center",
+                  "triggerLabel": null
+                },
+                "style": {
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bidm1frm",
+                    "type": "form",
+                    "props": {
+                      "name": "newdim1",
+                      "submitLabel": "Add category",
+                      "showReset": false,
+                      "showSubmit": true,
+                      "resetKey": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "onSubmit": "act_bidim1add",
+                    "children": [
+                      {
+                        "id": "cmp_bidm1f1",
+                        "type": "input_text",
+                        "props": {
+                          "name": "key",
+                          "label": "Key (what a fact row stores, e.g. consulting)",
+                          "placeholder": null,
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 8,
+                          "size": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_bidm1f2",
+                        "type": "input_number",
+                        "props": {
+                          "name": "position",
+                          "label": "Order",
+                          "min": 1,
+                          "max": 99,
+                          "step": 1,
+                          "required": false,
+                          "defaultValue": 1,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 4,
+                          "size": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_bidm1f3",
+                        "type": "input_text",
+                        "props": {
+                          "name": "name",
+                          "label": "Name",
+                          "placeholder": null,
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6,
+                          "size": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_bidm1f4",
+                        "type": "input_text",
+                        "props": {
+                          "name": "description",
+                          "label": "Description",
+                          "placeholder": null,
+                          "required": false,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6,
+                          "size": "md"
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cmp_bidm2mod",
+                "type": "modal",
+                "props": {
+                  "title": "Add entity",
+                  "size": "md",
+                  "placement": "center",
+                  "triggerLabel": null
+                },
+                "style": {
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_bidm2frm",
+                    "type": "form",
+                    "props": {
+                      "name": "newdim2",
+                      "submitLabel": "Add entity",
+                      "showReset": false,
+                      "showSubmit": true,
+                      "resetKey": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "onSubmit": "act_bidim2add",
+                    "children": [
+                      {
+                        "id": "cmp_bidm2f1",
+                        "type": "input_text",
+                        "props": {
+                          "name": "key",
+                          "label": "Key (what a fact row stores, e.g. berlin)",
+                          "placeholder": null,
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 8,
+                          "size": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_bidm2f2",
+                        "type": "input_number",
+                        "props": {
+                          "name": "position",
+                          "label": "Order",
+                          "min": 1,
+                          "max": 99,
+                          "step": 1,
+                          "required": false,
+                          "defaultValue": 1,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 4,
+                          "size": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_bidm2f3",
+                        "type": "input_text",
+                        "props": {
+                          "name": "name",
+                          "label": "Name",
+                          "placeholder": null,
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6,
+                          "size": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_bidm2f4",
+                        "type": "input_text",
+                        "props": {
+                          "name": "description",
+                          "label": "Description",
+                          "placeholder": null,
+                          "required": false,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6,
+                          "size": "md"
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_bidsync": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "loop",
+            "source": {
+              "kind": "records",
+              "tableId": "tbl_birep01",
+              "sort": [
+                {
+                  "field": "slot",
+                  "dir": "asc"
+                }
+              ],
+              "limit": 50
+            },
+            "itemVar": "report",
+            "indexVar": "reportIndex",
+            "maxIterations": 50,
+            "steps": [
+              {
+                "kind": "condition",
+                "expr": "item.slot == 1",
+                "then": [
+                  {
+                    "kind": "set_variable",
+                    "name": "slot1",
+                    "value": {
+                      "kind": "formula",
+                      "expr": "item"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "condition",
+                "expr": "item.slot == 2",
+                "then": [
+                  {
+                    "kind": "set_variable",
+                    "name": "slot2",
+                    "value": {
+                      "kind": "formula",
+                      "expr": "item"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "condition",
+                "expr": "item.slot == 3",
+                "then": [
+                  {
+                    "kind": "set_variable",
+                    "name": "slot3",
+                    "value": {
+                      "kind": "formula",
+                      "expr": "item"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "condition",
+                "expr": "item.slot == 4",
+                "then": [
+                  {
+                    "kind": "set_variable",
+                    "name": "slot4",
+                    "value": {
+                      "kind": "formula",
+                      "expr": "item"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "condition",
+                "expr": "item.slot == 5",
+                "then": [
+                  {
+                    "kind": "set_variable",
+                    "name": "slot5",
+                    "value": {
+                      "kind": "formula",
+                      "expr": "item"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "condition",
+                "expr": "item.slot == 6",
+                "then": [
+                  {
+                    "kind": "set_variable",
+                    "name": "slot6",
+                    "value": {
+                      "kind": "formula",
+                      "expr": "item"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "toast",
+            "message": "Dashboard slots now follow the saved reports.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_bidapply": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "item.slot == 1",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot1",
+                "value": {
+                  "kind": "formula",
+                  "expr": "item"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "item.slot == 2",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot2",
+                "value": {
+                  "kind": "formula",
+                  "expr": "item"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "item.slot == 3",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot3",
+                "value": {
+                  "kind": "formula",
+                  "expr": "item"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "item.slot == 4",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot4",
+                "value": {
+                  "kind": "formula",
+                  "expr": "item"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "item.slot == 5",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot5",
+                "value": {
+                  "kind": "formula",
+                  "expr": "item"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "item.slot == 6",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot6",
+                "value": {
+                  "kind": "formula",
+                  "expr": "item"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "!(item.slot >= 1 && item.slot <= 6)",
+            "then": [
+              {
+                "kind": "toast",
+                "message": "This report has no dashboard slot — give it slot 1–6 in the designer and save.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_bigodsg": {
+        "kind": "navigate",
+        "screenId": "scr_bidsg"
+      },
+      "act_birepsave": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_birep01",
+            "values": {
+              "name": {
+                "kind": "formula",
+                "expr": "form.name"
+              },
+              "description": {
+                "kind": "formula",
+                "expr": "form.description"
+              },
+              "chart_type": {
+                "kind": "formula",
+                "expr": "form.chart_type"
+              },
+              "group_field": {
+                "kind": "formula",
+                "expr": "form.group_field"
+              },
+              "measure_fn": {
+                "kind": "formula",
+                "expr": "form.measure_fn"
+              },
+              "measure_field": {
+                "kind": "formula",
+                "expr": "form.measure_field"
+              },
+              "since": {
+                "kind": "formula",
+                "expr": "form.since ? form.since : null"
+              },
+              "slot": {
+                "kind": "formula",
+                "expr": "number(form.slot)"
+              }
+            },
+            "resultVar": "savedReport"
+          },
+          {
+            "kind": "condition",
+            "expr": "form.slot == 1",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot1",
+                "value": {
+                  "kind": "formula",
+                  "expr": "form"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "form.slot == 2",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot2",
+                "value": {
+                  "kind": "formula",
+                  "expr": "form"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "form.slot == 3",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot3",
+                "value": {
+                  "kind": "formula",
+                  "expr": "form"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "form.slot == 4",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot4",
+                "value": {
+                  "kind": "formula",
+                  "expr": "form"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "form.slot == 5",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot5",
+                "value": {
+                  "kind": "formula",
+                  "expr": "form"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "condition",
+            "expr": "form.slot == 6",
+            "then": [
+              {
+                "kind": "set_variable",
+                "name": "slot6",
+                "value": {
+                  "kind": "formula",
+                  "expr": "form"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_birep01"
+          },
+          {
+            "kind": "toast",
+            "message": "Report saved.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_birepdel": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "message": "Delete this report? A dashboard slot showing it keeps its current chart until the slots are synced again.",
+            "title": "Delete report"
+          },
+          {
+            "kind": "delete_record",
+            "tableId": "tbl_birep01",
+            "recordId": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_birep01"
+          }
+        ]
+      },
+      "act_biload": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "staged",
+            "value": {
+              "kind": "records",
+              "tableId": "tbl_bistg01",
+              "filter": [
+                {
+                  "field": "status",
+                  "op": "eq",
+                  "value": "pending"
+                }
+              ],
+              "sort": [
+                {
+                  "field": "record_date",
+                  "dir": "asc"
+                }
+              ],
+              "limit": 100
+            }
+          },
+          {
+            "kind": "condition",
+            "expr": "len(vars.staged) > 0",
+            "then": [
+              {
+                "kind": "create_record",
+                "tableId": "tbl_biload1",
+                "values": {
+                  "ran_at": {
+                    "kind": "formula",
+                    "expr": "now"
+                  },
+                  "source": {
+                    "kind": "static",
+                    "value": "staging"
+                  },
+                  "rows_loaded": {
+                    "kind": "formula",
+                    "expr": "len(vars.staged)"
+                  },
+                  "status": {
+                    "kind": "static",
+                    "value": "running"
+                  },
+                  "note": {
+                    "kind": "formula",
+                    "expr": "concat('Loaded by ', currentUser.name)"
+                  }
+                },
+                "resultVar": "run"
+              },
+              {
+                "kind": "loop",
+                "source": {
+                  "kind": "formula",
+                  "expr": "vars.staged"
+                },
+                "itemVar": "stagedRow",
+                "indexVar": "stagedIndex",
+                "maxIterations": 100,
+                "steps": [
+                  {
+                    "kind": "create_record",
+                    "tableId": "tbl_bifact1",
+                    "values": {
+                      "record_date": {
+                        "kind": "formula",
+                        "expr": "item.record_date"
+                      },
+                      "label": {
+                        "kind": "formula",
+                        "expr": "item.label"
+                      },
+                      "category_key": {
+                        "kind": "formula",
+                        "expr": "item.category_key"
+                      },
+                      "entity_key": {
+                        "kind": "formula",
+                        "expr": "item.entity_key"
+                      },
+                      "amount": {
+                        "kind": "formula",
+                        "expr": "item.amount"
+                      },
+                      "quantity": {
+                        "kind": "formula",
+                        "expr": "item.quantity"
+                      },
+                      "source": {
+                        "kind": "formula",
+                        "expr": "coalesce(item.source, 'staging')"
+                      },
+                      "load_run_id": {
+                        "kind": "formula",
+                        "expr": "vars.run.id"
+                      }
+                    }
+                  },
+                  {
+                    "kind": "update_record",
+                    "tableId": "tbl_bistg01",
+                    "recordId": {
+                      "kind": "formula",
+                      "expr": "item.id"
+                    },
+                    "values": {
+                      "status": {
+                        "kind": "static",
+                        "value": "loaded"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "update_record",
+                "tableId": "tbl_biload1",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.run.id"
+                },
+                "values": {
+                  "status": {
+                    "kind": "static",
+                    "value": "done"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bifact1"
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bistg01"
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_biload1"
+              },
+              {
+                "kind": "toast",
+                "message": "Staged rows are in the warehouse — the dashboard reads them already.",
+                "tone": "success"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Nothing to load — every staged row is already in the warehouse.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_bistgadd": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_bistg01",
+            "values": {
+              "record_date": {
+                "kind": "formula",
+                "expr": "form.record_date"
+              },
+              "label": {
+                "kind": "formula",
+                "expr": "form.label"
+              },
+              "category_key": {
+                "kind": "formula",
+                "expr": "form.category_key"
+              },
+              "entity_key": {
+                "kind": "formula",
+                "expr": "form.entity_key"
+              },
+              "amount": {
+                "kind": "formula",
+                "expr": "form.amount"
+              },
+              "quantity": {
+                "kind": "formula",
+                "expr": "form.quantity"
+              },
+              "source": {
+                "kind": "static",
+                "value": "manual"
+              },
+              "status": {
+                "kind": "static",
+                "value": "pending"
+              }
+            }
+          },
+          {
+            "kind": "reset_form",
+            "form": "stagerow"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bistg01"
+          },
+          {
+            "kind": "toast",
+            "message": "Row staged — press “Load staged rows” to move it into the warehouse.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_bistgdel": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "message": "Delete this staged row? It will not be loaded into the warehouse.",
+            "title": "Delete staged row"
+          },
+          {
+            "kind": "delete_record",
+            "tableId": "tbl_bistg01",
+            "recordId": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bistg01"
+          }
+        ]
+      },
+      "act_bifactsave": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_bifact1",
+            "recordId": {
+              "kind": "formula",
+              "expr": "form.id"
+            },
+            "values": {
+              "label": {
+                "kind": "formula",
+                "expr": "form.label"
+              },
+              "amount": {
+                "kind": "formula",
+                "expr": "form.amount === '' ? null : form.amount"
+              },
+              "quantity": {
+                "kind": "formula",
+                "expr": "form.quantity === '' ? null : form.quantity"
+              }
+            },
+            "expectedUpdatedAt": {
+              "kind": "formula",
+              "expr": "form.updated_at"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bifact1"
+          }
+        ]
+      },
+      "act_bifactdel": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "message": "Delete this fact row? Reports recompute without it immediately.",
+            "title": "Delete fact row"
+          },
+          {
+            "kind": "delete_record",
+            "tableId": "tbl_bifact1",
+            "recordId": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bifact1"
+          }
+        ]
+      },
+      "act_bidim1open": {
+        "kind": "open_modal",
+        "modalId": "cmp_bidm1mod"
+      },
+      "act_bidim1add": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_bidimc1",
+            "values": {
+              "key": {
+                "kind": "formula",
+                "expr": "form.key"
+              },
+              "name": {
+                "kind": "formula",
+                "expr": "form.name"
+              },
+              "description": {
+                "kind": "formula",
+                "expr": "form.description"
+              },
+              "position": {
+                "kind": "formula",
+                "expr": "form.position"
+              }
+            }
+          },
+          {
+            "kind": "close_modal",
+            "modalId": "cmp_bidm1mod"
+          },
+          {
+            "kind": "reset_form",
+            "form": "newdim1"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bidimc1"
+          },
+          {
+            "kind": "toast",
+            "message": "Category added. Facts using its key group under it straight away.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_bidim1save": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_bidimc1",
+            "recordId": {
+              "kind": "formula",
+              "expr": "form.id"
+            },
+            "values": {
+              "position": {
+                "kind": "formula",
+                "expr": "form.position"
+              },
+              "name": {
+                "kind": "formula",
+                "expr": "form.name"
+              },
+              "description": {
+                "kind": "formula",
+                "expr": "form.description"
+              }
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bidimc1"
+          }
+        ]
+      },
+      "act_bidim1del": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "message": "Delete this category? Fact rows keep their text key, so nothing breaks — the key just stops resolving to a dimension row.",
+            "title": "Delete category"
+          },
+          {
+            "kind": "delete_record",
+            "tableId": "tbl_bidimc1",
+            "recordId": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bidimc1"
+          }
+        ]
+      },
+      "act_bidim2open": {
+        "kind": "open_modal",
+        "modalId": "cmp_bidm2mod"
+      },
+      "act_bidim2add": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_bidime1",
+            "values": {
+              "key": {
+                "kind": "formula",
+                "expr": "form.key"
+              },
+              "name": {
+                "kind": "formula",
+                "expr": "form.name"
+              },
+              "description": {
+                "kind": "formula",
+                "expr": "form.description"
+              },
+              "position": {
+                "kind": "formula",
+                "expr": "form.position"
+              }
+            }
+          },
+          {
+            "kind": "close_modal",
+            "modalId": "cmp_bidm2mod"
+          },
+          {
+            "kind": "reset_form",
+            "form": "newdim2"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bidime1"
+          },
+          {
+            "kind": "toast",
+            "message": "Entity added.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_bidim2save": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_bidime1",
+            "recordId": {
+              "kind": "formula",
+              "expr": "form.id"
+            },
+            "values": {
+              "position": {
+                "kind": "formula",
+                "expr": "form.position"
+              },
+              "name": {
+                "kind": "formula",
+                "expr": "form.name"
+              },
+              "description": {
+                "kind": "formula",
+                "expr": "form.description"
+              }
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bidime1"
+          }
+        ]
+      },
+      "act_bidim2del": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "message": "Delete this entity? Fact rows keep their text key.",
+            "title": "Delete entity"
+          },
+          {
+            "kind": "delete_record",
+            "tableId": "tbl_bidime1",
+            "recordId": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bidime1"
+          }
+        ]
+      }
+    },
+    "design": {
+      "preset": "custom",
+      "font": "satoshi",
+      "surface": "soft",
+      "motion": "subtle",
+      "chartPalette": "brand",
+      "accentEdge": "bar",
+      "logoUrl": null
+    },
+    "nav": {
+      "style": "sidebar"
+    },
+    "homeScreenId": "scr_bidash"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_bidimc1",
+        "key": "dim_categories",
+        "name": "Dimension: categories",
+        "icon": "Tags",
+        "access": {
+          "default": "role",
+          "roles": {
+            "analyst": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "viewer": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_bidck01",
+            "key": "key",
+            "type": "text",
+            "required": true,
+            "unique": true,
+            "name": "key"
+          },
+          {
+            "id": "fld_bidcn01",
+            "key": "name",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "name": "name"
+          },
+          {
+            "id": "fld_bidcd01",
+            "key": "description",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "description"
+          },
+          {
+            "id": "fld_bidcp01",
+            "key": "position",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false,
+            "default": 1,
+            "name": "position"
+          }
+        ]
+      },
+      {
+        "id": "tbl_bidime1",
+        "key": "dim_entities",
+        "name": "Dimension: entities",
+        "icon": "Boxes",
+        "access": {
+          "default": "role",
+          "roles": {
+            "analyst": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "viewer": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_bidek01",
+            "key": "key",
+            "type": "text",
+            "required": true,
+            "unique": true,
+            "name": "key"
+          },
+          {
+            "id": "fld_biden01",
+            "key": "name",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "name": "name"
+          },
+          {
+            "id": "fld_bided01",
+            "key": "description",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "description"
+          },
+          {
+            "id": "fld_bidep01",
+            "key": "position",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false,
+            "default": 1,
+            "name": "position"
+          }
+        ]
+      },
+      {
+        "id": "tbl_biload1",
+        "key": "load_runs",
+        "name": "Load runs",
+        "icon": "History",
+        "access": {
+          "default": "role",
+          "roles": {
+            "analyst": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "viewer": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_bildt01",
+            "key": "ran_at",
+            "type": "datetime",
+            "required": false,
+            "unique": false,
+            "name": "ran_at"
+          },
+          {
+            "id": "fld_bilsr01",
+            "key": "source",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "source"
+          },
+          {
+            "id": "fld_biln001",
+            "key": "rows_loaded",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false,
+            "default": 0,
+            "name": "rows_loaded"
+          },
+          {
+            "id": "fld_bilst01",
+            "key": "status",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              {
+                "value": "running",
+                "label": "Running"
+              },
+              {
+                "value": "done",
+                "label": "Done"
+              }
+            ],
+            "default": "done",
+            "name": "status"
+          },
+          {
+            "id": "fld_bilnt01",
+            "key": "note",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "note"
+          }
+        ]
+      },
+      {
+        "id": "tbl_bifact1",
+        "key": "fact_records",
+        "name": "Fact records",
+        "icon": "Database",
+        "access": {
+          "default": "role",
+          "roles": {
+            "analyst": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "viewer": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_bifdt01",
+            "key": "record_date",
+            "type": "date",
+            "required": true,
+            "unique": false,
+            "name": "record_date"
+          },
+          {
+            "id": "fld_biflb01",
+            "key": "label",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "label"
+          },
+          {
+            "id": "fld_bifck01",
+            "key": "category_key",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "category_key"
+          },
+          {
+            "id": "fld_bifek01",
+            "key": "entity_key",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "entity_key"
+          },
+          {
+            "id": "fld_bifci01",
+            "key": "category_id",
+            "type": "relation",
+            "required": false,
+            "unique": false,
+            "relation": {
+              "table": "tbl_bidimc1"
+            },
+            "name": "category_id"
+          },
+          {
+            "id": "fld_bifei01",
+            "key": "entity_id",
+            "type": "relation",
+            "required": false,
+            "unique": false,
+            "relation": {
+              "table": "tbl_bidime1"
+            },
+            "name": "entity_id"
+          },
+          {
+            "id": "fld_bifam01",
+            "key": "amount",
+            "type": "number",
+            "required": false,
+            "unique": false,
+            "name": "amount"
+          },
+          {
+            "id": "fld_bifqt01",
+            "key": "quantity",
+            "type": "number",
+            "required": false,
+            "unique": false,
+            "name": "quantity"
+          },
+          {
+            "id": "fld_bifsr01",
+            "key": "source",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "default": "manual",
+            "name": "source"
+          },
+          {
+            "id": "fld_biflr01",
+            "key": "load_run_id",
+            "type": "relation",
+            "required": false,
+            "unique": false,
+            "relation": {
+              "table": "tbl_biload1"
+            },
+            "name": "load_run_id"
+          }
+        ]
+      },
+      {
+        "id": "tbl_bistg01",
+        "key": "staging_rows",
+        "name": "Staging rows",
+        "icon": "Inbox",
+        "access": {
+          "default": "role",
+          "roles": {
+            "analyst": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "viewer": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_bisdt01",
+            "key": "record_date",
+            "type": "date",
+            "required": false,
+            "unique": false,
+            "name": "record_date"
+          },
+          {
+            "id": "fld_bislb01",
+            "key": "label",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "label"
+          },
+          {
+            "id": "fld_bisck01",
+            "key": "category_key",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "category_key"
+          },
+          {
+            "id": "fld_bisek01",
+            "key": "entity_key",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "entity_key"
+          },
+          {
+            "id": "fld_bisam01",
+            "key": "amount",
+            "type": "number",
+            "required": false,
+            "unique": false,
+            "name": "amount"
+          },
+          {
+            "id": "fld_bisqt01",
+            "key": "quantity",
+            "type": "number",
+            "required": false,
+            "unique": false,
+            "name": "quantity"
+          },
+          {
+            "id": "fld_bissr01",
+            "key": "source",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "default": "connector",
+            "name": "source"
+          },
+          {
+            "id": "fld_bisst01",
+            "key": "status",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              {
+                "value": "pending",
+                "label": "Pending"
+              },
+              {
+                "value": "loaded",
+                "label": "Loaded"
+              }
+            ],
+            "default": "pending",
+            "name": "status"
+          }
+        ]
+      },
+      {
+        "id": "tbl_birep01",
+        "key": "reports",
+        "name": "Reports",
+        "icon": "BarChart3",
+        "access": {
+          "default": "role",
+          "roles": {
+            "analyst": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "viewer": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_birnm01",
+            "key": "name",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "name": "name"
+          },
+          {
+            "id": "fld_birds01",
+            "key": "description",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "description"
+          },
+          {
+            "id": "fld_birct01",
+            "key": "chart_type",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              {
+                "value": "bar",
+                "label": "Bar"
+              },
+              {
+                "value": "line",
+                "label": "Line"
+              },
+              {
+                "value": "area",
+                "label": "Area"
+              },
+              {
+                "value": "pie",
+                "label": "Pie"
+              },
+              {
+                "value": "donut",
+                "label": "Donut"
+              }
+            ],
+            "default": "bar",
+            "name": "chart_type"
+          },
+          {
+            "id": "fld_birgf01",
+            "key": "group_field",
+            "type": "select",
+            "required": true,
+            "unique": false,
+            "options": [
+              {
+                "value": "category_key",
+                "label": "Category"
+              },
+              {
+                "value": "entity_key",
+                "label": "Entity"
+              },
+              {
+                "value": "source",
+                "label": "Source system"
+              },
+              {
+                "value": "month",
+                "label": "Month (record date)"
+              }
+            ],
+            "default": "category_key",
+            "name": "group_field"
+          },
+          {
+            "id": "fld_birmf01",
+            "key": "measure_fn",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              {
+                "value": "sum",
+                "label": "Sum"
+              },
+              {
+                "value": "avg",
+                "label": "Average"
+              },
+              {
+                "value": "count",
+                "label": "Row count"
+              }
+            ],
+            "default": "sum",
+            "name": "measure_fn"
+          },
+          {
+            "id": "fld_birmc01",
+            "key": "measure_field",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              {
+                "value": "amount",
+                "label": "Amount"
+              },
+              {
+                "value": "quantity",
+                "label": "Quantity"
+              }
+            ],
+            "default": "amount",
+            "name": "measure_field"
+          },
+          {
+            "id": "fld_birsn01",
+            "key": "since",
+            "type": "date",
+            "required": false,
+            "unique": false,
+            "name": "since"
+          },
+          {
+            "id": "fld_birsl01",
+            "key": "slot",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false,
+            "default": 0,
+            "name": "slot"
+          }
+        ]
+      }
+    ],
+    "roles": [
+      {
+        "key": "analyst",
+        "label": "Analyst"
+      },
+      {
+        "key": "viewer",
+        "label": "Viewer"
+      }
+    ],
+    "roleMapping": {
+      "default": "viewer",
+      "byGroup": {}
+    }
+  }
+}

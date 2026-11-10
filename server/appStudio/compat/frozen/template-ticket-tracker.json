@@ -1,0 +1,103 @@
+{
+  "corpus": "template-ticket-tracker",
+  "canonical": {
+    "sha256": "96f89d845677ce368d2f1b1c31d9d2c0690c8ec8a20a991e3ee5b5543f158b3e",
+    "bytes": 4227,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "0d1083156a14c8cf",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_tknew": "b05007d3e3c8ce63",
+      "screens[1] scr_tkboard": "8bba8032b6db3305",
+      "screens[2] scr_tkmine": "dcaee6e4f1e69939",
+      "actions.act_tksubmit": "2a67b6fa381e9d44",
+      "homeScreenId": "f98fbb9855243ab4"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_tksubmit": [
+        "0 create_record",
+        "1 toast",
+        "2 navigate"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "ad4943bab71f9e4fe775ebbfa09cfa0262d6e76e825740d3046a60ba1cb676da",
+    "afterResave": "ad4943bab71f9e4fe775ebbfa09cfa0262d6e76e825740d3046a60ba1cb676da"
+  },
+  "reads": [
+    {
+      "at": "cmp_tkkan.source",
+      "kind": "records",
+      "table": "tbl_tktik",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_tkgrid.source",
+      "kind": "records",
+      "table": "tbl_tktik",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"created_by\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_owner",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"created_by\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_owner",
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

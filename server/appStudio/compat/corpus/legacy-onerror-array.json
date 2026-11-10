@@ -1,0 +1,303 @@
+{
+  "about": {
+    "source": "hand-made old shape: the legacy onError: [...] array form on server steps (shared/appDefinition/stepFlow.mjs), a bare v1 run_automation action with an onError toast event, no design, nav or variables keys; stored as written (not canonical)",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Legacy handlers",
+      "description": "",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "homeScreenId": "scr_lgh001",
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_lgh001",
+        "name": "Tasks",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_lgh001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_lghfrm",
+                "type": "form",
+                "visible": true,
+                "onSubmit": "act_lghsav",
+                "props": {
+                  "name": "task",
+                  "submitLabel": "Add",
+                  "showReset": false
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "children": [
+                  {
+                    "id": "cmp_lghttl",
+                    "type": "input_text",
+                    "visible": true,
+                    "props": {
+                      "name": "title",
+                      "label": "Title",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text"
+                    },
+                    "style": {
+                      "span": 12,
+                      "size": "md"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_lghbtn",
+                "type": "button",
+                "visible": true,
+                "onClick": "act_lghblk",
+                "props": {
+                  "label": "Close open tasks",
+                  "variant": "secondary",
+                  "iconLeft": null,
+                  "role": "button"
+                },
+                "style": {
+                  "span": 4,
+                  "size": "md",
+                  "align": "start"
+                }
+              },
+              {
+                "id": "cmp_lghrun",
+                "type": "button",
+                "visible": true,
+                "onClick": "act_lghaut",
+                "props": {
+                  "label": "Sync",
+                  "variant": "ghost",
+                  "iconLeft": null,
+                  "role": "button"
+                },
+                "style": {
+                  "span": 4,
+                  "size": "md",
+                  "align": "start"
+                }
+              },
+              {
+                "id": "cmp_lghtbl",
+                "type": "table",
+                "visible": true,
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_lghtsk",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "open"
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "created_at",
+                        "dir": "desc"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "title",
+                      "label": "Title",
+                      "format": "text"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge"
+                    }
+                  ],
+                  "emptyText": "Nothing open.",
+                  "rowLimit": 25
+                },
+                "style": {
+                  "span": 12,
+                  "size": "md"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_lghsav": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_lghtsk",
+            "values": {
+              "title": {
+                "kind": "formula",
+                "expr": "form.title"
+              },
+              "status": {
+                "kind": "static",
+                "value": "open"
+              }
+            },
+            "onError": [
+              {
+                "kind": "toast",
+                "message": "Could not save the task.",
+                "tone": "danger"
+              }
+            ]
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_lghtsk"
+          },
+          {
+            "kind": "toast",
+            "message": "Task added.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_lghblk": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "currentUser != null",
+            "then": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_lghtsk",
+                "filter": [
+                  {
+                    "field": "status",
+                    "op": "eq",
+                    "value": "open"
+                  }
+                ],
+                "limit": 10,
+                "values": {
+                  "status": {
+                    "kind": "static",
+                    "value": "done"
+                  }
+                },
+                "onError": [
+                  {
+                    "kind": "toast",
+                    "message": "Closing failed.",
+                    "tone": "danger"
+                  },
+                  {
+                    "kind": "navigate",
+                    "screenId": "scr_lgh001"
+                  }
+                ]
+              },
+              {
+                "kind": "toast",
+                "message": "Closed.",
+                "tone": "success"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Sign in first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_lghaut": {
+        "kind": "run_automation",
+        "automationId": null,
+        "onError": {
+          "toast": {
+            "message": "The sync failed.",
+            "tone": "danger"
+          }
+        }
+      }
+    }
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_lghtsk",
+        "key": "tasks",
+        "name": "Tasks",
+        "icon": "ListTodo",
+        "fields": [
+          {
+            "id": "fld_lghttl",
+            "key": "title",
+            "name": "Title",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_lghsts",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              {
+                "value": "open",
+                "label": "Open"
+              },
+              {
+                "value": "done",
+                "label": "Done"
+              }
+            ],
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

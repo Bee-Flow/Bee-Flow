@@ -1,0 +1,57 @@
+{
+  "corpus": "template-lookup-console",
+  "canonical": {
+    "sha256": "7f0514e9a715650434afe9fc7be99c4db9d4addd7309a978ce5facdf943379b9",
+    "bytes": 2120,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "130b19102a4e8adb",
+      "theme": "8717f796b3ef5b45",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_lookup": "861c1cc0ef1bc544",
+      "actions.act_looksearch": "b79aad88767f44d4",
+      "homeScreenId": "0a9d4b7017b3a21c"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_looksearch.automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_looksearch.automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_looksearch": [
+        "0 run_automation"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "c415d23df6af0fd39b799ac59c24b48c664370638ec1586bab4972ff26d11630",
+    "afterResave": "c415d23df6af0fd39b799ac59c24b48c664370638ec1586bab4972ff26d11630"
+  }
+}

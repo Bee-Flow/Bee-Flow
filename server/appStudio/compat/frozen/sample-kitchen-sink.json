@@ -1,0 +1,72 @@
+{
+  "corpus": "sample-kitchen-sink",
+  "canonical": {
+    "sha256": "7cd0cd36c09e865ef5cd492c451cbe7bbf9c09b47135678b17b393e704eb1150",
+    "bytes": 8263,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "2936d6d0fef6cc71",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_dash01": "f6ae4f20fb17c8ca",
+      "screens[1] scr_form01": "c6c787247b28c1ad",
+      "actions.act_fetch1": "c922ca820b310d6f",
+      "actions.act_submit": "99bba79a844b643d",
+      "actions.act_gonav1": "6117e14d03d830b7",
+      "actions.act_docs01": "c9a5ff5a9b1a5da5",
+      "actions.act_toast1": "6c03fa3927ae356e",
+      "homeScreenId": "f2613405e40efb5e"
+    }
+  },
+  "schemaVersion": {
+    "stored": 1,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_fetch1.automationId",
+        "action.automation_unset @ actions.act_submit.automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_fetch1.automationId",
+        "action.automation_unset @ actions.act_submit.automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_fetch1": [
+        "0 run_automation"
+      ],
+      "act_submit": [
+        "0 run_automation"
+      ],
+      "act_gonav1": [
+        "0 navigate"
+      ],
+      "act_docs01": [
+        "0 open_url"
+      ],
+      "act_toast1": [
+        "0 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

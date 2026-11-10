@@ -1,0 +1,1569 @@
+{
+  "corpus": "template-ai-act-register",
+  "canonical": {
+    "sha256": "952aac96b1577ce9dd78e16432cf6c66af36f2e27b71ea6cc379480d98394a78",
+    "bytes": 62211,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "4ebc679f9dd679b9",
+      "theme": "5c0f0591a395a354",
+      "roles": "86196b65a291d489",
+      "variables": "1e6721d19db89c8c",
+      "screens[0] scr_register": "2ba8c7a6308037d5",
+      "screens[1] scr_triage": "7f674c236120d751",
+      "screens[2] scr_system": "f5fb75dc62235132",
+      "screens[3] scr_incident": "9fc25ac3cc72fa3c",
+      "screens[4] scr_setup": "89e4937d15c7720f",
+      "actions.act_regopen": "13911022aae8ae6e",
+      "actions.act_regcreate": "4f23ded2bc814f6f",
+      "actions.act_regsave": "29bb0b4f6763e16f",
+      "actions.act_regrow": "72b3fbd8e4e3c3e5",
+      "actions.act_regremind": "7cfbb39d501001b2",
+      "actions.act_trpick": "8156e3a14d99b759",
+      "actions.act_trmove": "efff0b18f5fe7e30",
+      "actions.act_trcard": "72b3fbd8e4e3c3e5",
+      "actions.act_sysback": "1c85743ea0a29512",
+      "actions.act_syscase": "e7dfed7e102e9bd5",
+      "actions.act_sysovadd": "070f41c2d4649220",
+      "actions.act_sysovsave": "7817afdab6ade48f",
+      "actions.act_sysinadd": "39a0c4e25ac385ea",
+      "actions.act_sysinsave": "24ccd2c58002efce",
+      "actions.act_sysasadd": "0e018b832949c1e1",
+      "actions.act_sysassave": "159e5f326f656093",
+      "actions.act_inopen": "5a9d3b6e830831dd",
+      "actions.act_inreport": "c3c17ba346014525",
+      "actions.act_inrepdlg": "37e9e21760f97645",
+      "actions.act_insave": "356ce5664bafa72a",
+      "actions.act_sutier": "5727572920e11f62",
+      "actions.act_sutsave": "5f088af4e8040d58",
+      "actions.act_sucase": "354590b0c2933bd7",
+      "actions.act_sucsave": "9f717f20ee694789",
+      "design": "80da56bebfdec1ae",
+      "nav": "d2d5d2e29b26fa69",
+      "homeScreenId": "d7041c4cb2fdd9bc"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_regremind.steps[0].automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_regremind.steps[0].automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_regopen": [
+        "0 open_modal"
+      ],
+      "act_regcreate": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_regsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_regrow": [
+        "0 set_variable",
+        "1 navigate"
+      ],
+      "act_regremind": [
+        "0 run_automation",
+        "1 toast"
+      ],
+      "act_trpick": [
+        "0 set_variable"
+      ],
+      "act_trmove": [
+        "0 update_record",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_trcard": [
+        "0 set_variable",
+        "1 navigate"
+      ],
+      "act_sysback": [
+        "0 navigate"
+      ],
+      "act_syscase": [
+        "0 update_record",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_sysovadd": [
+        "0 create_record",
+        "1 reset_form",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_sysovsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sysinadd": [
+        "0 create_record",
+        "1 reset_form",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_sysinsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sysasadd": [
+        "0 create_record",
+        "1 update_record",
+        "2 reset_form",
+        "3 refresh",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_sysassave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_inopen": [
+        "0 set_variable",
+        "1 open_modal"
+      ],
+      "act_inreport": [
+        "0 update_record",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_inrepdlg": [
+        "0 update_record",
+        "1 close_modal",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_insave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sutier": [
+        "0 create_record",
+        "1 reset_form",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_sutsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sucase": [
+        "0 create_record",
+        "1 reset_form",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_sucsave": [
+        "0 update_record",
+        "1 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "24dd5a9cfc7df2e4cf73f739f30be324787cfdd2b875872643c6f4558e8cb9d7",
+    "afterResave": "24dd5a9cfc7df2e4cf73f739f30be324787cfdd2b875872643c6f4558e8cb9d7"
+  },
+  "reads": [
+    {
+      "at": "cmp_regs1.value",
+      "kind": "aggregate",
+      "table": "tbl_aisys01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_regs2.value",
+      "kind": "aggregate",
+      "table": "tbl_aisys01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "high",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "high",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "high",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "high",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "high",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "high",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "high",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "high",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_regs3.value",
+      "kind": "aggregate",
+      "table": "tbl_aisys01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_regs4.value",
+      "kind": "aggregate",
+      "table": "tbl_aisys01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"next_review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"next_review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"next_review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"next_review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"next_review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"next_review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"next_review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"next_review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_reggrid.source",
+      "kind": "records",
+      "table": "tbl_aisys01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_trstat.value",
+      "kind": "aggregate",
+      "table": "tbl_aisys01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"ai_systems\" WHERE (1=1) AND \"risk_tier\" = ? LIMIT ?",
+          "params": [
+            "unclassified",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_trtiers.source",
+      "kind": "records",
+      "table": "tbl_tiers01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_trboard.source",
+      "kind": "records",
+      "table": "tbl_aisys01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_trboard.columnsSource",
+      "kind": "records",
+      "table": "tbl_tiers01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_trobl.source",
+      "kind": "record",
+      "table": "tbl_tiers01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sysdet.source",
+      "kind": "record",
+      "table": "tbl_aisys01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"ai_systems\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_syscase.source",
+      "kind": "records",
+      "table": "tbl_usecase1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sysovg.source",
+      "kind": "records",
+      "table": "tbl_overs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"human_oversight\" WHERE (1=1) ORDER BY \"reviewer\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"human_oversight\" WHERE (1=1) ORDER BY \"reviewer\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"human_oversight\" WHERE (1=1) ORDER BY \"reviewer\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"human_oversight\" WHERE (1=1) ORDER BY \"reviewer\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"human_oversight\" WHERE (1=1) ORDER BY \"reviewer\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"human_oversight\" WHERE (1=1) ORDER BY \"reviewer\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"human_oversight\" WHERE (1=1) ORDER BY \"reviewer\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"human_oversight\" WHERE (1=1) ORDER BY \"reviewer\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sysing.source",
+      "kind": "records",
+      "table": "tbl_incid01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sysasg.source",
+      "kind": "records",
+      "table": "tbl_asmnt01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"assessments\" WHERE (1=1) ORDER BY \"performed_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"assessments\" WHERE (1=1) ORDER BY \"performed_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"assessments\" WHERE (1=1) ORDER BY \"performed_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"assessments\" WHERE (1=1) ORDER BY \"performed_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"assessments\" WHERE (1=1) ORDER BY \"performed_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"assessments\" WHERE (1=1) ORDER BY \"performed_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"assessments\" WHERE (1=1) ORDER BY \"performed_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"assessments\" WHERE (1=1) ORDER BY \"performed_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ins1.value",
+      "kind": "aggregate",
+      "table": "tbl_incid01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "open",
+            "investigating",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "open",
+            "investigating",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "open",
+            "investigating",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "open",
+            "investigating",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "open",
+            "investigating",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "open",
+            "investigating",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "open",
+            "investigating",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "open",
+            "investigating",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ins2.value",
+      "kind": "aggregate",
+      "table": "tbl_incid01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" IS NOT NULL AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" IS NOT NULL AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" IS NOT NULL AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" IS NOT NULL AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" IS NOT NULL AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" IS NOT NULL AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" IS NOT NULL AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" IS NOT NULL AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ins3.value",
+      "kind": "aggregate",
+      "table": "tbl_incid01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" < ? AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" < ? AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" < ? AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" < ? AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" < ? AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "officer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" < ? AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" < ? AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"incidents\" WHERE (1=1) AND \"report_due_on\" < ? AND \"reported_on\" IS NULL LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ingrid.source",
+      "kind": "records",
+      "table": "tbl_incid01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"became_aware_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_inchart.source",
+      "kind": "aggregate",
+      "table": "tbl_incid01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"system_name\" AS \"system\", COUNT(*) AS \"incidents\" FROM \"incidents\" WHERE (1=1) GROUP BY \"system_name\" ORDER BY \"incidents\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "officer": {
+          "sql": "SELECT \"system_name\" AS \"system\", COUNT(*) AS \"incidents\" FROM \"incidents\" WHERE (1=1) GROUP BY \"system_name\" ORDER BY \"incidents\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT \"system_name\" AS \"system\", COUNT(*) AS \"incidents\" FROM \"incidents\" WHERE (1=1) GROUP BY \"system_name\" ORDER BY \"incidents\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT \"system_name\" AS \"system\", COUNT(*) AS \"incidents\" FROM \"incidents\" WHERE (1=1) GROUP BY \"system_name\" ORDER BY \"incidents\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"system_name\" AS \"system\", COUNT(*) AS \"incidents\" FROM \"incidents\" WHERE (1=1) GROUP BY \"system_name\" ORDER BY \"incidents\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "officer": {
+          "sql": "SELECT \"system_name\" AS \"system\", COUNT(*) AS \"incidents\" FROM \"incidents\" WHERE (1=1) GROUP BY \"system_name\" ORDER BY \"incidents\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT \"system_name\" AS \"system\", COUNT(*) AS \"incidents\" FROM \"incidents\" WHERE (1=1) GROUP BY \"system_name\" ORDER BY \"incidents\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT \"system_name\" AS \"system\", COUNT(*) AS \"incidents\" FROM \"incidents\" WHERE (1=1) GROUP BY \"system_name\" ORDER BY \"incidents\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_indet.source",
+      "kind": "record",
+      "table": "tbl_incid01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"incidents\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sutiers.source",
+      "kind": "records",
+      "table": "tbl_tiers01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"risk_tiers\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sucases.source",
+      "kind": "records",
+      "table": "tbl_usecase1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "officer": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"use_cases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            61
+          ]
+        }
+      }
+    }
+  ]
+}

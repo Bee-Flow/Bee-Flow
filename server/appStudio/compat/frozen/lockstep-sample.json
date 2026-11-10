@@ -1,0 +1,109 @@
+{
+  "corpus": "lockstep-sample",
+  "canonical": {
+    "sha256": "dd12b425fb1d95ea17ebc70fa1f11a0797f8bcdfef35fccdfd517a781ac89639",
+    "bytes": 3312,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "67f854d24682846c",
+      "theme": "6b2f26a4b890502e",
+      "roles": "523e153dda41a4cd",
+      "variables": "9e7a60bef463d0bb",
+      "screens[0] scr_home01": "18eb62703b3d194b",
+      "screens[1] scr_detl01": "752c89c292b21c92",
+      "actions.act_save01": "bda0bf6519ed984e",
+      "actions.act_open01": "7f8b3ab050cd003c",
+      "actions.act_nav001": "9c5138392a13acae",
+      "actions.act_del001": "7df8b1dfdb979864",
+      "actions.act_omod01": "ca4346375b58f0ca",
+      "actions.act_seq001": "e54bba7805dbc909",
+      "design": "90849d1b177531af",
+      "nav": "c1503681bc1a6d4a",
+      "homeScreenId": "1b32229958ec3c41"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [
+        "action.kind_invalid @ actions.act_del001.kind",
+        "action.kind_invalid @ actions.act_save01.kind",
+        "action.step_field_required @ actions.act_seq001.steps[1].expr",
+        "action.step_field_required @ actions.act_seq001.steps[2].expr",
+        "event.not_supported @ screens[0].sections[0].children[1].onRowClick",
+        "event.not_supported @ screens[0].sections[0].children[2].children[1].onSubmit",
+        "prop.item_required @ screens[0].sections[0].children[1].props.columns[0].key",
+        "prop.item_required @ screens[0].sections[0].children[1].props.columns[1].key"
+      ],
+      "warnings": [
+        "action.unreachable @ actions.act_seq001",
+        "prop.item_unknown_key @ screens[0].sections[0].children[1].props.columns[0]",
+        "prop.item_unknown_key @ screens[0].sections[0].children[1].props.columns[1]",
+        "variable.unused @ variables"
+      ]
+    },
+    "save": {
+      "errors": [
+        "action.kind_invalid @ actions.act_del001.kind",
+        "action.kind_invalid @ actions.act_save01.kind",
+        "action.step_field_required @ actions.act_seq001.steps[1].expr",
+        "action.step_field_required @ actions.act_seq001.steps[2].expr",
+        "event.not_supported @ screens[0].sections[0].children[1].onRowClick",
+        "event.not_supported @ screens[0].sections[0].children[2].children[1].onSubmit",
+        "prop.item_required @ screens[0].sections[0].children[1].props.columns[0].key",
+        "prop.item_required @ screens[0].sections[0].children[1].props.columns[1].key"
+      ],
+      "warnings": [
+        "action.unreachable @ actions.act_seq001",
+        "prop.item_unknown_key @ screens[0].sections[0].children[1].props.columns[0]",
+        "prop.item_unknown_key @ screens[0].sections[0].children[1].props.columns[1]",
+        "variable.unused @ variables"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_save01": [
+        "0 save_record"
+      ],
+      "act_open01": [
+        "0 navigate"
+      ],
+      "act_nav001": [
+        "0 navigate"
+      ],
+      "act_del001": [
+        "0 delete_record"
+      ],
+      "act_omod01": [
+        "0 open_modal"
+      ],
+      "act_seq001": [
+        "0 navigate",
+        "1 condition",
+        "2 close_modal",
+        "3 switch",
+        "4 navigate",
+        "5 open_modal"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

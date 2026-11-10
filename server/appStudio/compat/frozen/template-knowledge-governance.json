@@ -1,0 +1,2912 @@
+{
+  "corpus": "template-knowledge-governance",
+  "canonical": {
+    "sha256": "1675a61fe826df79ad1be051fa78d80064486e31f825a4f736c208ee7797df54",
+    "bytes": 87502,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "cb4e195ae8521df1",
+      "theme": "2d5255ce187b3473",
+      "roles": "97bb323fe64d3789",
+      "variables": "ee90a3d37231df37",
+      "screens[0] scr_register": "7e199bfa0042a80e",
+      "screens[1] scr_sources": "56a37b22cc979037",
+      "screens[2] scr_source": "4defbd7ef587b713",
+      "screens[3] scr_queue": "7fbdabf347b30cab",
+      "screens[4] scr_reten": "fe28a4702aeee0a9",
+      "screens[5] scr_findings": "4a441124b5d1064e",
+      "screens[6] scr_access": "8e61868bfacf6352",
+      "screens[7] scr_retire": "0f767a50871fc824",
+      "screens[8] scr_setup": "3de4e2f4ddd1e68a",
+      "actions.act_pickbase": "fa9eebfec50a4b7d",
+      "actions.act_clearbase": "44d182db07b72c08",
+      "actions.act_opensource": "53065b1931cf1d34",
+      "actions.act_gosources": "ffa0fe43d4fe3924",
+      "actions.act_scopen": "8dc8142f64621acb",
+      "actions.act_sccreate": "8d21b74045ef583d",
+      "actions.act_scsave": "0e6ebc53b708704e",
+      "actions.act_setstate": "52bcd29272fc681f",
+      "actions.act_reqretire": "6b034a21848e7f89",
+      "actions.act_soretire": "447d30f84f51a10a",
+      "actions.act_confirmrm": "26a9cee40bf45d01",
+      "actions.act_runscan": "d3bbf54eccb4e22c",
+      "actions.act_pisave": "1f433246e8a495f0",
+      "actions.act_pifcreate": "69ce6e01bf48c2a3",
+      "actions.act_agopen": "0ba7e7b28de426e5",
+      "actions.act_agcreate": "f336ed24a8524a6c",
+      "actions.act_agsave": "723a2ffb5b5b1050",
+      "actions.act_agrevoke": "bb04ecd7d790516b",
+      "actions.act_sukbsave": "0ec29fa90635937b",
+      "actions.act_surssave": "13681494899e29bb",
+      "actions.act_sulbsave": "addb857e9019f991",
+      "actions.act_sukbopen": "05db114034cc0928",
+      "actions.act_sukbadd": "edc027de99ca7a54",
+      "actions.act_sursopen": "44dcf0ecbf277186",
+      "actions.act_sursadd": "3c3b6579bbe5f5c4",
+      "actions.act_sursdel": "1303929c9eb9a11b",
+      "actions.act_sulbopen": "de62b672fcaa0247",
+      "actions.act_sulbadd": "8beea7b5e0eacf0a",
+      "actions.act_sulbdel": "7bb4c3cb5d611192",
+      "design": "8540bd44835d7d8d",
+      "nav": "3154303db71ec157",
+      "homeScreenId": "d7041c4cb2fdd9bc"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_runscan.steps[0].automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_runscan.steps[0].automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_pickbase": [
+        "0 set_variable"
+      ],
+      "act_clearbase": [
+        "0 set_variable"
+      ],
+      "act_opensource": [
+        "0 set_variable",
+        "1 navigate"
+      ],
+      "act_gosources": [
+        "0 navigate"
+      ],
+      "act_scopen": [
+        "0 open_modal"
+      ],
+      "act_sccreate": [
+        "0 condition",
+        "1 create_record",
+        "2 close_modal",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast",
+        "6 toast"
+      ],
+      "act_scsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_setstate": [
+        "0 condition",
+        "1 update_record",
+        "2 update_record",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_reqretire": [
+        "0 create_record",
+        "1 update_record",
+        "2 refresh",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_soretire": [
+        "0 create_record",
+        "1 update_record",
+        "2 reset_form",
+        "3 refresh",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_confirmrm": [
+        "0 update_record",
+        "1 update_record",
+        "2 refresh",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_runscan": [
+        "0 run_automation",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_pisave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_pifcreate": [
+        "0 condition",
+        "1 create_record",
+        "2 create_record",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_agopen": [
+        "0 open_modal"
+      ],
+      "act_agcreate": [
+        "0 condition",
+        "1 create_record",
+        "2 close_modal",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast",
+        "6 toast"
+      ],
+      "act_agsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_agrevoke": [
+        "0 confirm",
+        "1 update_record",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_sukbsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_surssave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sulbsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sukbopen": [
+        "0 open_modal"
+      ],
+      "act_sukbadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_sursopen": [
+        "0 open_modal"
+      ],
+      "act_sursadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_sursdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_sulbopen": [
+        "0 open_modal"
+      ],
+      "act_sulbadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_sulbdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "0825162b5ccebc081f47586c2e95a1580ba4e092f15ef1fa04a6a03f45f78c22",
+    "afterResave": "0825162b5ccebc081f47586c2e95a1580ba4e092f15ef1fa04a6a03f45f78c22"
+  },
+  "reads": [
+    {
+      "at": "cmp_rgstat1.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rgstat2.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rgstat3.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rgstat4.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rgbases.source",
+      "kind": "records",
+      "table": "tbl_kbases1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rggrid.source",
+      "kind": "records",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            201
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            201
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            201
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            201
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_scbases.source",
+      "kind": "records",
+      "table": "tbl_kbases1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_scgrid.source",
+      "kind": "records",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sostat1.value",
+      "kind": "aggregate",
+      "table": "tbl_finds01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sostat2.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "live",
+            "indexed",
+            "2026-01-15",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sostat3.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sodet.source",
+      "kind": "records",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sostates.source",
+      "kind": "records",
+      "table": "tbl_rstate1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sofinds.source",
+      "kind": "records",
+      "table": "tbl_finds01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"detected_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"detected_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"detected_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"detected_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"detected_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"detected_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"detected_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"detected_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sohist.source",
+      "kind": "records",
+      "table": "tbl_retire1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"requested_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"requested_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"requested_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"requested_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"requested_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"requested_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"requested_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"requested_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qustat1.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qustat2.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qustat3.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"legal_basis\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"legal_basis\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"legal_basis\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"legal_basis\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"legal_basis\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"legal_basis\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"legal_basis\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"legal_basis\" IS NULL LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qugrid.source",
+      "kind": "records",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            201
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            201
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            201
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            201
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_quunsc.source",
+      "kind": "records",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            101
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            101
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            101
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            101
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_stage\" IN (?, ?) AND \"scanned_on\" IS NULL ORDER BY \"added_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "intake",
+            "in_review",
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rtstat1.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rtstat2.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rtstat3.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rtcal.source",
+      "kind": "records",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NOT NULL ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NOT NULL ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NOT NULL ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NOT NULL ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NOT NULL ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NOT NULL ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NOT NULL ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" IS NOT NULL ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rtover.source",
+      "kind": "records",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "2026-01-15",
+            101
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "2026-01-15",
+            101
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "2026-01-15",
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "2026-01-15",
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "2026-01-15",
+            101
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "2026-01-15",
+            101
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "2026-01-15",
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"sources\" WHERE (1=1) AND \"review_due\" < ? ORDER BY \"review_due\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "2026-01-15",
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_pistat1.value",
+      "kind": "aggregate",
+      "table": "tbl_finds01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"decision\" = ? LIMIT ?",
+          "params": [
+            "open",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_pistat2.value",
+      "kind": "aggregate",
+      "table": "tbl_finds01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"is_special_category\" = ? AND \"decision\" = ? LIMIT ?",
+          "params": [
+            1,
+            "open",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"is_special_category\" = ? AND \"decision\" = ? LIMIT ?",
+          "params": [
+            1,
+            "open",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"is_special_category\" = ? AND \"decision\" = ? LIMIT ?",
+          "params": [
+            1,
+            "open",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"is_special_category\" = ? AND \"decision\" = ? LIMIT ?",
+          "params": [
+            1,
+            "open",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"is_special_category\" = ? AND \"decision\" = ? LIMIT ?",
+          "params": [
+            true,
+            "open",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"is_special_category\" = ? AND \"decision\" = ? LIMIT ?",
+          "params": [
+            true,
+            "open",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"is_special_category\" = ? AND \"decision\" = ? LIMIT ?",
+          "params": [
+            true,
+            "open",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"pii_findings\" WHERE (1=1) AND \"is_special_category\" = ? AND \"decision\" = ? LIMIT ?",
+          "params": [
+            true,
+            "open",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_pistat3.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"index_state\" = ? AND \"scanned_on\" IS NULL LIMIT ?",
+          "params": [
+            "indexed",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_pigrid.source",
+      "kind": "records",
+      "table": "tbl_finds01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"decision\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"decision\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"decision\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"decision\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"decision\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"decision\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"decision\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"pii_findings\" WHERE (1=1) ORDER BY \"decision\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_acstat1.value",
+      "kind": "aggregate",
+      "table": "tbl_grant01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_acstat2.value",
+      "kind": "aggregate",
+      "table": "tbl_grant01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"expires_on\" < ? LIMIT ?",
+          "params": [
+            1,
+            "2026-01-15",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"expires_on\" < ? LIMIT ?",
+          "params": [
+            1,
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"expires_on\" < ? LIMIT ?",
+          "params": [
+            1,
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"expires_on\" < ? LIMIT ?",
+          "params": [
+            1,
+            "2026-01-15",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"expires_on\" < ? LIMIT ?",
+          "params": [
+            true,
+            "2026-01-15",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"expires_on\" < ? LIMIT ?",
+          "params": [
+            true,
+            "2026-01-15",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"expires_on\" < ? LIMIT ?",
+          "params": [
+            true,
+            "2026-01-15",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"expires_on\" < ? LIMIT ?",
+          "params": [
+            true,
+            "2026-01-15",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_acstat3.value",
+      "kind": "aggregate",
+      "table": "tbl_grant01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"can_export\" = ? LIMIT ?",
+          "params": [
+            1,
+            1,
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"can_export\" = ? LIMIT ?",
+          "params": [
+            1,
+            1,
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"can_export\" = ? LIMIT ?",
+          "params": [
+            1,
+            1,
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"can_export\" = ? LIMIT ?",
+          "params": [
+            1,
+            1,
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"can_export\" = ? LIMIT ?",
+          "params": [
+            true,
+            true,
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"can_export\" = ? LIMIT ?",
+          "params": [
+            true,
+            true,
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"can_export\" = ? LIMIT ?",
+          "params": [
+            true,
+            true,
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"access_grants\" WHERE (1=1) AND \"is_active\" = ? AND \"can_export\" = ? LIMIT ?",
+          "params": [
+            true,
+            true,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_acbases.source",
+      "kind": "records",
+      "table": "tbl_kbases1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_acgrid.source",
+      "kind": "records",
+      "table": "tbl_grant01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"access_grants\" WHERE (1=1) ORDER BY \"expires_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"access_grants\" WHERE (1=1) ORDER BY \"expires_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"access_grants\" WHERE (1=1) ORDER BY \"expires_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"access_grants\" WHERE (1=1) ORDER BY \"expires_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"access_grants\" WHERE (1=1) ORDER BY \"expires_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"access_grants\" WHERE (1=1) ORDER BY \"expires_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"access_grants\" WHERE (1=1) ORDER BY \"expires_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"access_grants\" WHERE (1=1) ORDER BY \"expires_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rrstat1.value",
+      "kind": "aggregate",
+      "table": "tbl_retire1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            0,
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            0,
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            0,
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            0,
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            false,
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            false,
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            false,
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            false,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rrstat2.value",
+      "kind": "aggregate",
+      "table": "tbl_retire1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            1,
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"retirements\" WHERE (1=1) AND \"index_removed\" = ? LIMIT ?",
+          "params": [
+            true,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rrstat3.value",
+      "kind": "aggregate",
+      "table": "tbl_source1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "steward": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"sources\" WHERE (1=1) AND \"review_stage\" = ? AND \"index_state\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            "indexed",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rrgrid.source",
+      "kind": "records",
+      "table": "tbl_retire1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"index_removed\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"index_removed\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"index_removed\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"index_removed\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"index_removed\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"index_removed\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"index_removed\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"retirements\" WHERE (1=1) ORDER BY \"index_removed\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sukb.source",
+      "kind": "records",
+      "table": "tbl_kbases1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"knowledge_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_surs.source",
+      "kind": "records",
+      "table": "tbl_rstate1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"review_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sulb.source",
+      "kind": "records",
+      "table": "tbl_lbasis1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"legal_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"legal_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"legal_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"legal_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"legal_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "steward": {
+          "sql": "SELECT * FROM \"legal_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "contributor": {
+          "sql": "SELECT * FROM \"legal_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"legal_bases\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

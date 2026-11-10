@@ -1,0 +1,433 @@
+{
+  "about": {
+    "source": "server/appStudio/builderTools/traces/2026-09-13-invoice-tracker.json calls 1, 2, 7 and 8 (parentId pointed at the Suppliers section), replayed with applyToolCall against the two tables the model meant (as traces.replay.test.js builds them); ids as minted at capture",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Invoice Tracker",
+      "description": "Track and manage incoming supplier invoices.",
+      "icon": "Receipt"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_qrtfpm",
+        "name": "Suppliers",
+        "icon": "Truck",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "description": "List of registered suppliers.",
+        "sections": [
+          {
+            "id": "sec_2k8qqe",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_7g3ss4",
+                "type": "card",
+                "props": {
+                  "title": "Add New Supplier",
+                  "description": null,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_vuqre9",
+                    "type": "form",
+                    "props": {
+                      "name": "supplier_form",
+                      "submitLabel": "Save Supplier",
+                      "showReset": false,
+                      "showSubmit": true,
+                      "resetKey": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_6bc9i7",
+                        "type": "input_text",
+                        "props": {
+                          "name": "name",
+                          "label": "Supplier Name",
+                          "placeholder": null,
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_vc8rlj",
+                        "type": "input_text",
+                        "props": {
+                          "name": "email",
+                          "label": "Contact Email",
+                          "placeholder": null,
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_d9howb",
+                        "type": "input_select",
+                        "props": {
+                          "name": "category",
+                          "label": "Category",
+                          "options": [
+                            {
+                              "label": "Utilities",
+                              "value": "utilities"
+                            },
+                            {
+                              "label": "Hardware",
+                              "value": "hardware"
+                            },
+                            {
+                              "label": "Software",
+                              "value": "software"
+                            },
+                            {
+                              "label": "Services",
+                              "value": "services"
+                            }
+                          ],
+                          "required": false,
+                          "defaultValue": null,
+                          "placeholder": null,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "optionsFrom": null,
+                          "optionValueKey": null,
+                          "optionLabelKey": null
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cmp_o5ooh7",
+                "type": "card",
+                "props": {
+                  "title": "New Invoice Entry",
+                  "description": null,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_ii5mty",
+                    "type": "form",
+                    "props": {
+                      "name": "inv_form",
+                      "submitLabel": "Register Invoice",
+                      "showReset": false,
+                      "showSubmit": true,
+                      "resetKey": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_xkg0df",
+                        "type": "input_relation",
+                        "props": {
+                          "name": "supplier_id",
+                          "label": "Supplier",
+                          "tableId": "tbl_0b6d44",
+                          "displayField": null,
+                          "multiple": false,
+                          "required": true,
+                          "filter": null
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_smu84y",
+                        "type": "input_text",
+                        "props": {
+                          "name": "invoice_no",
+                          "label": "Invoice Number",
+                          "placeholder": null,
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_f2wnfy",
+                        "type": "input_number",
+                        "props": {
+                          "name": "amount",
+                          "label": "Amount",
+                          "min": null,
+                          "max": null,
+                          "step": 1,
+                          "required": true,
+                          "defaultValue": null,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_mid2xj",
+                        "type": "input_date",
+                        "props": {
+                          "name": "due_date",
+                          "label": "Due Date",
+                          "required": true,
+                          "defaultValue": null,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_q3wldj",
+                        "type": "input_file",
+                        "props": {
+                          "name": "file",
+                          "label": "Attachment",
+                          "accept": null,
+                          "multiple": false,
+                          "required": false,
+                          "buttonLabel": null
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_bh1ok6": {
+        "kind": "create_record",
+        "tableId": "tbl_0b6d44",
+        "values": {
+          "category": {
+            "kind": "formula",
+            "expr": "form.category"
+          },
+          "email": {
+            "kind": "formula",
+            "expr": "form.email"
+          },
+          "name": {
+            "kind": "formula",
+            "expr": "form.name"
+          }
+        },
+        "resultVar": "sup_res"
+      },
+      "act_20bns1": {
+        "kind": "create_record",
+        "tableId": "tbl_cbbd1d",
+        "values": {
+          "amount": {
+            "kind": "formula",
+            "expr": "form.amount"
+          },
+          "due_date": {
+            "kind": "formula",
+            "expr": "form.due_date"
+          },
+          "invoice_no": {
+            "kind": "formula",
+            "expr": "form.invoice_no"
+          },
+          "supplier_id": {
+            "kind": "formula",
+            "expr": "form.supplier_id"
+          }
+        },
+        "resultVar": "inv_res"
+      }
+    },
+    "homeScreenId": "scr_qrtfpm"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_0b6d44",
+        "key": "suppliers",
+        "name": "Suppliers",
+        "icon": null,
+        "fields": [
+          {
+            "id": "fld_9aed42",
+            "key": "name",
+            "name": "name",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_703b16",
+            "key": "email",
+            "name": "email",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_3c7c34",
+            "key": "category",
+            "name": "category",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              "utilities",
+              "hardware",
+              "software",
+              "services"
+            ]
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_cbbd1d",
+        "key": "invoices",
+        "name": "Invoices",
+        "icon": null,
+        "fields": [
+          {
+            "id": "fld_f3bf14",
+            "key": "supplier_id",
+            "name": "supplier_id",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_66d4d0",
+            "key": "invoice_no",
+            "name": "invoice_no",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_bad851",
+            "key": "amount",
+            "name": "amount",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_3588fe",
+            "key": "due_date",
+            "name": "due_date",
+            "type": "date",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

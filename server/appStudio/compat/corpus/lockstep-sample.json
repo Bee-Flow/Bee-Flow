@@ -1,0 +1,257 @@
+{
+  "about": {
+    "source": "server/shared/appDefinition/lockstep.fixture.mjs SAMPLE_DEFINITION, verbatim (not canonical)",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Orders",
+      "description": "Sample"
+    },
+    "theme": {
+      "primary": "#0ea5e9",
+      "appearance": "light"
+    },
+    "design": {
+      "preset": "classic",
+      "corners": "soft"
+    },
+    "nav": {
+      "style": "sidebar"
+    },
+    "homeScreenId": "scr_home01",
+    "screens": [
+      {
+        "id": "scr_home01",
+        "name": "Home",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_top001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_title1",
+                "type": "heading",
+                "props": {
+                  "text": "Orders"
+                },
+                "style": {
+                  "align": "left"
+                }
+              },
+              {
+                "id": "cmp_table1",
+                "type": "table",
+                "props": {
+                  "rowActions": [
+                    {
+                      "label": "Open",
+                      "actionId": "act_open01"
+                    },
+                    {
+                      "label": "Del",
+                      "actionId": "act_del001"
+                    }
+                  ],
+                  "addRowActionId": "act_del001",
+                  "columns": [
+                    {
+                      "field": "name",
+                      "actionId": "act_del001"
+                    },
+                    {
+                      "field": "total"
+                    }
+                  ],
+                  "result": {
+                    "kind": "actionResult",
+                    "actionId": "act_save01"
+                  }
+                },
+                "onRowClick": "act_open01"
+              },
+              {
+                "id": "cmp_box001",
+                "type": "container",
+                "props": {},
+                "children": [
+                  {
+                    "id": "cmp_btn001",
+                    "type": "button",
+                    "props": {
+                      "label": "Save"
+                    },
+                    "onClick": "act_save01"
+                  },
+                  {
+                    "id": "cmp_btn002",
+                    "type": "button",
+                    "props": {
+                      "label": "Go"
+                    },
+                    "onClick": "act_nav001",
+                    "onSubmit": "act_del001"
+                  },
+                  {
+                    "id": "cmp_inner1",
+                    "type": "container",
+                    "props": {},
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sec_bot001",
+            "style": {
+              "padding": 2
+            },
+            "children": [
+              {
+                "id": "cmp_modal1",
+                "type": "modal",
+                "props": {
+                  "title": "Edit"
+                },
+                "children": [
+                  {
+                    "id": "cmp_mtext1",
+                    "type": "text",
+                    "props": {
+                      "text": "Hi"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_btn003",
+                "type": "button",
+                "props": {
+                  "label": "Edit"
+                },
+                "onClick": "act_omod01"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_detl01",
+        "name": "Detail",
+        "icon": "file",
+        "showInNav": false,
+        "maxWidth": "wide",
+        "visibleToRoles": [
+          "manager"
+        ],
+        "sections": [
+          {
+            "id": "sec_det001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_dtext1",
+                "type": "text",
+                "props": {
+                  "text": "Detail"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_save01": {
+        "kind": "save_record",
+        "table": "orders",
+        "onSuccess": {
+          "navigateTo": "scr_detl01",
+          "toast": "ok"
+        }
+      },
+      "act_open01": {
+        "kind": "navigate",
+        "screenId": "scr_detl01"
+      },
+      "act_nav001": {
+        "kind": "navigate",
+        "screenId": "scr_home01"
+      },
+      "act_del001": {
+        "kind": "delete_record",
+        "table": "orders"
+      },
+      "act_omod01": {
+        "kind": "open_modal",
+        "modalId": "cmp_modal1"
+      },
+      "act_seq001": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "navigate",
+            "screenId": "scr_detl01"
+          },
+          {
+            "kind": "condition",
+            "when": "true",
+            "then": [
+              {
+                "kind": "close_modal",
+                "modalId": "cmp_modal1"
+              }
+            ],
+            "else": []
+          },
+          {
+            "kind": "switch",
+            "cases": [
+              {
+                "when": "1",
+                "steps": [
+                  {
+                    "kind": "navigate",
+                    "screenId": "scr_detl01"
+                  }
+                ]
+              }
+            ],
+            "default": [
+              {
+                "kind": "open_modal",
+                "modalId": "cmp_modal1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "roles": [
+      {
+        "id": "manager",
+        "name": "Manager"
+      }
+    ],
+    "variables": [
+      {
+        "name": "status",
+        "type": "text",
+        "default": "new"
+      }
+    ]
+  }
+}
