@@ -351,10 +351,10 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     if (refusal) return res.status(refusal.status).json({ error: refusal.error });
 
     // Budget by kind, before any work. A model call gets its own bucket —
-    // an action legitimately repeats one per uploaded photo.
+    // an action legitimately repeats one per uploaded photo. A code step also spends its sandbox bucket.
     // Awaited: the Redis-backed limiter decides asynchronously.
     const budget = AI_STEP_KINDS.includes(step.kind) ? aiStepLimiter : stepLimiter;
-    if (!(await budget.check(req, res))) return undefined;
+    if (!(await budget.check(req, res)) || !(await require('./studioAppCodeStepLimit.mts').checkPublicCodeBudget(step.kind, req, res))) return undefined;
 
     const ctx = await publicDataContext(found, req, res);
     if (!ctx || await require('./studioAppBackground').refusePublicLocked(req, res, found, ctx, actionId)) return undefined; // a held lockKey refuses the visitor's foreground walk (#590)

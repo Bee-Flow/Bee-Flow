@@ -141,6 +141,10 @@ function cleanStep(raw, path, depth, push) {
             if (v !== undefined) out[field] = cleanCallParams(v, p, push);
         } else if (fs.type === 'tierChoice') {
             if (v !== undefined) { const t = cleanTierChoice(v, fs.maxLen || LIMITS.MAX_STRING, p, push); if (t !== undefined) out[field] = t; }
+        } else if (fs.type === 'code') {
+            // Source text, kept whole: a cut would leave broken code; validate refuses past maxLen.
+            if (typeof v === 'string') out[field] = v;
+            else if (v !== undefined) push('step.field_invalid', p, `${field} must be a string of JavaScript — dropped.`);
         } else if (fs.type === 'errorHandler' || fs.type === 'retry') {
             if (v !== undefined) { const e = cleanEnvelopeField(fs.type, v, p, depth, push); if (e !== undefined) out[field] = e; }
         }

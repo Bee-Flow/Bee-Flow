@@ -1,0 +1,324 @@
+{
+  "corpus": "v3-code-step-quote",
+  "canonical": {
+    "sha256": "2abb59d6487ab27429037b32742a3a946edb62defd3f705bc29952880622498e",
+    "bytes": 4422,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "publicAccess"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "073be2321be656c4",
+      "theme": "2ef89f9bb1579ca6",
+      "roles": "d639c6234614bbd2",
+      "screens[0] scr_cqform": "98dd61cfa7b064ec",
+      "screens[1] scr_cqdone": "b3a34e9afa2d193f",
+      "screens[2] scr_cqback": "86ecb084cfe4ce9f",
+      "actions.act_cqquote": "0783b30977da40f1",
+      "homeScreenId": "65bfad8127af60f4",
+      "publicAccess": "c4737ff7e203829f"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_cqquote": [
+        "0 code",
+        "1 condition",
+        "2 create_record",
+        "3 navigate",
+        "4 toast",
+        "5 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "publicDefinition": {
+    "actionIds": [
+      "act_cqquote"
+    ],
+    "sha256": "5f921278f9d91cb8663c6ee530e098107d79c0abf6d44b12f0c7da92a4d2ff30",
+    "definition": {
+      "schemaVersion": 3,
+      "meta": {
+        "name": "Get a quote",
+        "description": "",
+        "icon": "Calculator"
+      },
+      "theme": {
+        "primary": "#0F766E",
+        "radius": "md",
+        "density": "comfortable",
+        "fontScale": "md",
+        "appearance": "light"
+      },
+      "homeScreenId": "scr_cqform",
+      "roles": [],
+      "screens": [
+        {
+          "id": "scr_cqform",
+          "name": "Quote",
+          "icon": null,
+          "showInNav": false,
+          "maxWidth": "narrow",
+          "sections": [
+            {
+              "id": "sec_cqform",
+              "style": {
+                "padding": 4,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_cqhead",
+                  "type": "heading",
+                  "props": {
+                    "text": "Get a quote",
+                    "level": 1,
+                    "accent": "none"
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                },
+                {
+                  "id": "cmp_cqform",
+                  "type": "form",
+                  "props": {
+                    "name": "quote",
+                    "submitLabel": "Work it out",
+                    "showReset": false,
+                    "showSubmit": true,
+                    "resetKey": null
+                  },
+                  "style": {
+                    "span": 6,
+                    "gap": 3,
+                    "padding": 0
+                  },
+                  "visible": true,
+                  "onSubmit": "act_cqquote",
+                  "children": [
+                    {
+                      "id": "cmp_cqcust",
+                      "type": "input_text",
+                      "props": {
+                        "name": "customer",
+                        "label": "Your company",
+                        "placeholder": null,
+                        "required": true,
+                        "defaultValue": null,
+                        "inputType": "text",
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_cqprod",
+                      "type": "input_text",
+                      "props": {
+                        "name": "product",
+                        "label": "Product",
+                        "placeholder": null,
+                        "required": true,
+                        "defaultValue": null,
+                        "inputType": "text",
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_cqqty",
+                      "type": "input_number",
+                      "props": {
+                        "name": "qty",
+                        "label": "Quantity",
+                        "min": null,
+                        "max": null,
+                        "step": 1,
+                        "required": true,
+                        "defaultValue": null,
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 6
+                      },
+                      "visible": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "scr_cqdone",
+          "name": "Your quote",
+          "icon": null,
+          "showInNav": false,
+          "maxWidth": "narrow",
+          "sections": [
+            {
+              "id": "sec_cqdone",
+              "style": {
+                "padding": 4,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_cqres",
+                  "type": "callout",
+                  "props": {
+                    "title": "Your quote",
+                    "text": "Thank you, we saved your quote.",
+                    "textFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "tone": "success",
+                    "toneFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "meta": null,
+                    "metaFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "collapsible": false
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "actions": {
+        "act_cqquote": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "code",
+              "resultVar": "quote",
+              "onError": {
+                "steps": [
+                  {
+                    "kind": "toast",
+                    "message": "The quote could not be worked out.",
+                    "tone": "danger"
+                  }
+                ],
+                "stop": true
+              }
+            },
+            {
+              "kind": "condition",
+              "expr": "vars.quote.ok == true",
+              "then": [
+                {
+                  "kind": "create_record"
+                },
+                {
+                  "kind": "navigate",
+                  "screenId": "scr_cqdone"
+                }
+              ],
+              "else": [
+                {
+                  "kind": "toast",
+                  "message": "We do not know that product.",
+                  "tone": "warning"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "reads": [
+    {
+      "at": "cmp_cqgrid.source",
+      "kind": "records",
+      "table": "tbl_cqquote",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"quotes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "sales": {
+          "sql": "SELECT * FROM \"quotes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"quotes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "sales": {
+          "sql": "SELECT * FROM \"quotes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      }
+    }
+  ]
+}

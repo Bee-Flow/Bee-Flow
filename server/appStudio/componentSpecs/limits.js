@@ -99,6 +99,9 @@ const LIMITS = {
     MAX_VARIABLE_DEFAULT_BYTES: 2048,  // one seeded record/list. Exists so the
                                        // error can name the variable instead of
                                        // "your app is too big" at 512KB.
+    // The code step (schema 3): its source and its named inputs.
+    MAX_CODE_STEP_CHARS: 20000,        // code: the JavaScript source
+    MAX_CODE_STEP_INPUTS: 20,          // inputs: named bindings
 };
 
 module.exports = {

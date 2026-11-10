@@ -52,7 +52,9 @@
         "MAX_FILTER_BAR_FIELDS": 8,
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
-        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048,
+        "MAX_CODE_STEP_CHARS": 20000,
+        "MAX_CODE_STEP_INPUTS": 20
     },
     "theme": {
         "primary": {
@@ -2661,7 +2663,8 @@
             "loop",
             "switch",
             "call_action",
-            "transaction"
+            "transaction",
+            "code"
         ],
         "stepSpecs": {
             "navigate": {
@@ -3840,6 +3843,38 @@
                         "envelope": true
                     }
                 }
+            },
+            "code": {
+                "mutatesData": true,
+                "fields": {
+                    "code": {
+                        "type": "code",
+                        "required": true,
+                        "maxLen": 20000
+                    },
+                    "inputs": {
+                        "type": "recordValues"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "timeoutMs": {
+                        "type": "int",
+                        "min": 100,
+                        "max": 30000
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
             }
         },
         "clientStepKinds": [
@@ -3878,7 +3913,8 @@
             "copy_document",
             "kb_log_query",
             "kb_log_review",
-            "transaction"
+            "transaction",
+            "code"
         ]
     },
     "bindings": {

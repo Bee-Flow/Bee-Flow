@@ -364,6 +364,8 @@ const KIND_CHECKS = {
     ai_browse: checkAiBrowse,
     copy_document: checkCopyDocument,
     call_action: checkCallAction,
+    // Registry kinds (componentSpecs/steps/<kind>.js) whose fields need more than their types.
+    code: require('./codeStepChecks.mts').checkCodeStep,
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS };
