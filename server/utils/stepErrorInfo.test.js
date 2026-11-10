@@ -37,7 +37,7 @@ test('Nextcloud no access: "Bee may not open this folder", rings the connection,
     );
     assert.strictEqual(info.code, 'nextcloud_no_access');
     assert.strictEqual(info.title, 'Bee may not open this folder');
-    assert.match(info.cause, /cannot open \/Invoices\/2026\. Share the folder/);
+    assert.match(info.cause, /cannot open or change \/Invoices\/2026\. Share the folder/);
     assert.strictEqual(info.settingKey, 'connection');
     assert.deepStrictEqual(fixIds(info), ['share_folder', 'switch_account']);
     assert.deepStrictEqual(info.fixes[0].params, { folder: '/Invoices/2026' });
@@ -233,6 +233,48 @@ test('legacy rows: classified from the message, the step type and the recorded i
     assert.strictEqual(info.params.folder, '/HR');
     assert.strictEqual(legacyStepErrorInfo('', 'ai_step', null), null);
     assert.strictEqual(legacyStepErrorInfo('Could not resolve model for tier fast', 'ai_step', null).code, 'model_unavailable');
+});
+
+test('Nextcloud maintenance, unavailable, a proxy answer, a locked file and a full quota each get their own card', () => {
+    const step = { type: 'integration_action', tool: 'nextcloud_upload_file', inputs: { path: '/Docs/report.docx' } };
+    const cases = [
+        ['Nextcloud is in maintenance mode (503) during upload. Try again when the maintenance or upgrade is finished.', 'nextcloud_maintenance'],
+        ['Nextcloud download failed (503)', 'nextcloud_unavailable'],
+        ['Upload failed (429): Too Many Requests', 'rate_limited'],
+        ['A proxy in front of Nextcloud answered instead of Nextcloud (403) during upload: it blocked the request (a firewall or bot rule).', 'nextcloud_proxy_answered'],
+        ['/Docs/report.docx is locked in Nextcloud (423): it is open in an editor or locked by another user.', 'nextcloud_file_locked'],
+        ['Not enough storage in Nextcloud for /Docs/report.docx (507): the quota of the account or the folder is used up.', 'nextcloud_quota_exceeded'],
+    ];
+    for (const [message, code] of cases) {
+        const info = describeStepError(message, { step });
+        assert.strictEqual(info.code, code, message);
+        assert.strictEqual(info.titleKey, `automations.step_error.${code}.title`);
+        assert.deepStrictEqual(info.fixes.map((f) => f.id), ['retry'], code);
+        assert.strictEqual(info.settingKey, null, code);
+        assert.doesNotMatch(`${info.title} ${info.cause}`, /\{\w+\}/, `${code}: every param is filled`);
+    }
+    const locked = describeStepError(cases[4][0], { step });
+    assert.strictEqual(locked.causeKey, 'automations.step_error.nextcloud_file_locked.cause');
+    assert.match(locked.cause, /^\/Docs\/report\.docx is open in an editor/);
+    const noTarget = describeStepError('Delete failed (423)', { step: { type: 'integration_action', tool: 'nextcloud_delete' } });
+    assert.strictEqual(noTarget.causeKey, 'automations.step_error.nextcloud_file_locked.cause_generic');
+    // A row written before error_info existed: recognised from its text alone.
+    assert.strictEqual(legacyStepErrorInfo('Nextcloud PROPFIND failed (503): System is in maintenance mode.', 'integration_action', null).code, 'nextcloud_maintenance');
+    assert.strictEqual(legacyStepErrorInfo('Nextcloud PROPFIND failed (503)', 'integration_action', null).code, 'nextcloud_unavailable');
+});
+
+test('the Files "no access" card names more causes than a folder that is not shared', () => {
+    const info = describeStepError('Permission denied in Nextcloud for /HR/a.pdf (403): the account may not change this file or folder.', {
+        step: { type: 'integration_action', tool: 'nextcloud_upload_file', inputs: { path: '/HR/a.pdf' } },
+    });
+    assert.strictEqual(info.code, 'nextcloud_no_access');
+    assert.match(info.cause, /read-only share, a team folder permission or an access rule/);
+    assert.match(info.cause, /\/HR/);
+});
+
+test('the English dictionary holds exactly the texts of this module', () => {
+    const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+    for (const [key, value] of Object.entries(stepErrorI18nDefaults())) assert.strictEqual(GUI_DEFAULTS[key], value, key);
 });
 
 test('every English text is dash-free punctuation and has an i18n key', () => {

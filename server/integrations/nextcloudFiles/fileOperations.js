@@ -8,6 +8,7 @@
 const { PROPFIND_BODY, joinDavPath, parsePropfind } = require('./webdav');
 const { readNextcloudFile } = require('./readFile');
 const { uploadNextcloudFile } = require('./uploadFile');
+const { davStatusError } = require('./davStatusError.mts');
 
 /**
  * The arguments of the file tools, as the model sent them.
@@ -185,7 +186,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
             if (res.status === 401) return { error: authError };
             if (res.status === 405) return { error: `Folder already exists: ${args.path}` };
             if (res.status === 409) return { error: `Parent folder for ${args.path} does not exist.` };
-            if (!res.ok) return { error: `Folder creation failed (${res.status})` };
+            if (!res.ok) return { error: davStatusError(res.status, args.path) || `Folder creation failed (${res.status})` };
             return { success: true, path: args.path };
         }
 
@@ -195,7 +196,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
             const res = await ncFetch(url, { method: 'DELETE' });
             if (res.status === 404) return { error: `Not found: ${args.path}` };
             if (res.status === 401) return { error: authError };
-            if (!res.ok && res.status !== 204) return { error: `Delete failed (${res.status})` };
+            if (!res.ok && res.status !== 204) return { error: davStatusError(res.status, args.path) || `Delete failed (${res.status})` };
             return { success: true, path: args.path };
         }
 
@@ -217,6 +218,9 @@ async function executeFileOperationTool(toolName, args, ctx) {
             if (res.status === 409) return { error: `Destination parent folder doesn't exist: ${args.destination}. Create it first.` };
             if (res.status === 412) return { error: `Destination already exists: ${args.destination}. Pass overwrite=true to replace it.` };
             if (!res.ok && res.status !== 201 && res.status !== 204) {
+                // A lock or a denial can sit on either end; a full quota is the destination's.
+                const plain = davStatusError(res.status, res.status === 507 ? args.destination : `${args.source} or ${args.destination}`);
+                if (plain) return { error: plain };
                 const text = await res.text().catch(() => '');
                 return { error: `${method} failed (${res.status}): ${text.slice(0, 200)}` };
             }

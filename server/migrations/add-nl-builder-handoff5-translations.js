@@ -49,7 +49,7 @@ const DATA = require(path.join(__dirname, 'data', 'builder-handoff5-nl.json'));
  * install that already ran this migration. Pinning the data's hash here makes
  * every data change a change to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = '678b120f01e04affdd2deaae60fe4352346bb5202ac1eacb50b180043b0df754';
+const DATA_SHA256 = '74ed128d05f689fbce1f54402c314d7d12de337afbb7f997bb836bd1743314d4';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 
@@ -57,35 +57,60 @@ const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 const SAME_AS_ENGLISH = Object.freeze([...DATA.sameAsEnglish]);
 
 /**
+ * Keys whose English was reworded: replaced only while a workspace still has
+ * the Dutch that shipped before (`was`), so an admin's own wording stays. The
+ * new Dutch is the one in the data file.
+ * The "no access" step error names more causes than a folder that is not shared.
+ * @type {Readonly<Record<string, { was: string }>>}
+ */
+const NL_REWORDED = Object.freeze({
+    'automations.step_error.nextcloud_no_access.cause': {
+        was: 'Het account dat deze stap gebruikt kan {folder} niet openen. Deel de map met dat account, of kies een account dat hem wel kan openen.',
+    },
+    'automations.step_error.nextcloud_no_access.cause_generic': {
+        was: 'Het account dat deze stap gebruikt kan dit bestand of deze map niet openen. Deel het met dat account, of kies een account dat het wel kan openen.',
+    },
+});
+
+/**
  * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
  * @param {Record<string, string>} merged
  */
 function applyNl(merged) {
     let added = 0;
+    let reworded = 0;
     for (const [key, value] of Object.entries(NL_TRANSLATIONS)) {
         if (!merged[key]) {
             merged[key] = value;
             added++;
         }
     }
-    return { merged, added };
+    for (const [key, { was }] of Object.entries(NL_REWORDED)) {
+        if (merged[key] === was && NL_TRANSLATIONS[key]) {
+            merged[key] = NL_TRANSLATIONS[key];
+            reworded++;
+        }
+    }
+    return { merged, added, reworded };
 }
 
 async function up() {
     const languageStore = require('../stores/languageStore');
     let added = 0;
+    let reworded = 0;
     await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current);
         added = result.added;
+        reworded = result.reworded;
         return result.merged;
     });
-    if (added > 0) {
-        console.log(`[Migration] add-nl-builder-handoff5-translations applied (+${added} keys)`);
+    if (added > 0 || reworded > 0) {
+        console.log(`[Migration] add-nl-builder-handoff5-translations applied (+${added} keys, ${reworded} reworded)`);
     }
-    return { added };
+    return { added, reworded };
 }
 
-module.exports = { up, applyNl, NL_TRANSLATIONS, SAME_AS_ENGLISH, DATA_SHA256 };
+module.exports = { up, applyNl, NL_TRANSLATIONS, NL_REWORDED, SAME_AS_ENGLISH, DATA_SHA256 };
 
 if (require.main === module) {
     up().then(() => process.exit(0)).catch((e) => {

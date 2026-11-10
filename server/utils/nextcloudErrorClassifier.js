@@ -35,6 +35,23 @@ function extractHttpStatus(text) {
     return null;
 }
 
+/**
+ * The status only where the text states it plainly: "(423)" or "failed: 423".
+ * No bare-number guess, so "/Invoices/507/a.pdf" is not a status.
+ * @param {string} text
+ */
+function statedHttpStatus(text) {
+    const s = String(text || '');
+    const paren = s.match(/\((\d{3})\)/);
+    if (paren) return Number(paren[1]);
+    const failed = s.match(/failed:\s*(\d{3})\b/i);
+    return failed ? Number(failed[1]) : null;
+}
+
+// Wording of a locked file and of a full quota (Sabre's own, and the file tools').
+const FILE_LOCKED_RE = /\bis locked\b|exception\\locked|filelocked/i;
+const QUOTA_RE = /insufficient storage|quota (is |has been )?exceeded|not enough (storage|quota|free space)/i;
+
 // A WebDAV / file operation, told apart from an app API (Deck, Talk, ...).
 const FILE_OP_RE = /propfind|webdav|remote\.php\/dav|download|upload|\bread\b|\bfile\b|\bfolder\b|\bpath\b|\bcopy\b|\bmove\b/i;
 // An app that is off, or needs an app password: the whole app, not one item.
@@ -114,10 +131,44 @@ function classifyNextcloudError(input, opts) {
             'The Bee Flow connector could not reach Nextcloud.',
             'Make sure the Bee Flow ExApp is enabled and Nextcloud is reachable, then retry.');
     }
-    if (status === 429 || status === 503 || /rate limit|too many requests/i.test(lower)) {
+    // The answer came from a proxy or CDN in front of Nextcloud (nextcloudHttpError's wording).
+    if (/proxy in front of nextcloud/i.test(lower)) {
+        return make('PROXY_ANSWERED', 'connector', 'IntegrationError',
+            'A proxy in front of Nextcloud answered instead of Nextcloud.',
+            'Ask your Nextcloud admin to check the proxy or CDN in front of Nextcloud: its firewall rules and upload limit must let the Bee Flow calls through.');
+    }
+    if (/maintenance mode/i.test(lower)) {
+        return make('NEXTCLOUD_MAINTENANCE', 'transient', 'TransientError',
+            'Nextcloud is in maintenance mode.',
+            'Try again when the maintenance or upgrade is finished.');
+    }
+    if (status === 429 || /rate limit|too many requests/i.test(lower)) {
         return make('THROTTLED', 'transient', 'TransientError',
             'Nextcloud is rate-limiting requests.',
             'This is temporary — the automation will retry automatically.');
+    }
+    // A 503 without the maintenance marker: maintenance, an upgrade, a busy
+    // server or the connector's own back-pressure. Not a rate limit.
+    if (status === 503) {
+        return make('TEMPORARILY_UNAVAILABLE', 'transient', 'TransientError',
+            'Nextcloud is temporarily unavailable.',
+            'This can be maintenance, an upgrade or a busy server. Try again shortly.');
+    }
+    // A locked file (WebDAV 423) and a full quota (507). Keyed on the status the
+    // client states plainly, or on the wording inside a file operation, so a
+    // number in a path or another app's "locked" never lands here. Neither is
+    // retried: a lock has no expiry by default.
+    const stated = statedHttpStatus(text);
+    const fileOp = FILE_OP_RE.test(lower) || (!!(opts && opts.tool) && nextcloudAppOf(String(opts.tool)) === 'Files');
+    if (stated === 423 || (stated == null && fileOp && FILE_LOCKED_RE.test(lower))) {
+        return make('FILE_LOCKED', 'precondition', 'IntegrationError',
+            'The file or folder is locked in Nextcloud.',
+            'It is open in an editor or locked by another user. Try again later, or ask them to unlock it.');
+    }
+    if (stated === 507 || (stated == null && fileOp && QUOTA_RE.test(lower))) {
+        return make('QUOTA_EXCEEDED', 'precondition', 'IntegrationError',
+            'There is not enough storage in Nextcloud for this file.',
+            'Free up space, or ask your Nextcloud admin to raise the quota of the account or the team folder.');
     }
     // A Mail tool's own wording ("Permission denied for mail read ..."): the
     // Files advice (share the folder) does not apply to a mail account or message.
@@ -173,7 +224,7 @@ function classifyNextcloudError(input, opts) {
         }
         return make('NO_ACCESS', 'permission', 'PermissionError',
             'The account this step uses has no access to this file or folder.',
-            'Share the folder with that account, or use an account that can open it.');
+            'Share the folder with that account (with edit rights when the step writes), or use an account that can open it. A read-only share, a team folder permission or a file access control rule in Nextcloud can also block it: ask your Nextcloud admin.');
     }
     if (status === 403 || /not enabled|permission|forbidden|cors/i.test(lower)) {
         return make('APP_DISABLED', 'permission', 'PermissionError',

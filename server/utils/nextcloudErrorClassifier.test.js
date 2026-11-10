@@ -24,6 +24,25 @@ const cases = [
     ['SESSION_EXPIRED', 'Nextcloud download failed (401)'],
     ['CONNECTOR_UNREACHABLE', 'Could not reach Nextcloud through the ExApp'],
     ['THROTTLED', 'Nextcloud PROPFIND failed (429): Too Many Requests'],
+    ['THROTTLED', 'Deck request failed (503): rate limit reached'],
+    ['NEXTCLOUD_MAINTENANCE', 'Nextcloud is in maintenance mode (503) during board list. Try again when the maintenance or upgrade is finished.'],
+    ['NEXTCLOUD_MAINTENANCE', 'Nextcloud PROPFIND failed (503): <s:exception>OCA\\DAV\\Connector\\Sabre\\Exception\\ServerMaintenanceMode</s:exception><s:message>System is in maintenance mode.</s:message>'],
+    ['TEMPORARILY_UNAVAILABLE', 'Nextcloud download failed (503)'],
+    ['TEMPORARILY_UNAVAILABLE', 'Nextcloud could not be reached or is temporarily unavailable (503) during team lookup. Try again shortly.'],
+    ['PROXY_ANSWERED', 'A proxy in front of Nextcloud answered instead of Nextcloud (403) during team list: it blocked the request (a firewall or bot rule). Ask the Nextcloud admin to let the Bee Flow calls through.'],
+    ['PROXY_ANSWERED', 'A proxy in front of Nextcloud answered instead of Nextcloud (522) during download: the proxy got no answer from Nextcloud. Check that Nextcloud is up and reachable from the proxy.'],
+    ['FILE_LOCKED', '/Docs/report.docx is locked in Nextcloud (423): it is open in an editor or locked by another user. Try again later, or ask them to unlock it.'],
+    ['FILE_LOCKED', 'MOVE failed (423): <s:exception>OCA\\DAV\\Connector\\Sabre\\Exception\\FileLocked</s:exception><s:message>"a.docx" is locked</s:message>'],
+    ['FILE_LOCKED', 'Delete failed (423)'],
+    ['FILE_LOCKED', 'Could not write the file: "a.docx" is locked'],
+    ['QUOTA_EXCEEDED', 'Not enough storage in Nextcloud for /Docs/big.zip (507): the quota of the account or the folder is used up.'],
+    ['QUOTA_EXCEEDED', 'Upload failed (507): <s:exception>Sabre\\DAV\\Exception\\InsufficientStorage</s:exception><s:message>Insufficient space in /Docs</s:message>'],
+    ['QUOTA_EXCEEDED', 'Upload of the file stopped: Insufficient storage'],
+    ['NO_ACCESS', 'Permission denied in Nextcloud for /HR/a.pdf (403): the account may not change this file or folder. A read-only share, a team folder permission or a file access control rule can block it.'],
+    ['NO_ACCESS', 'Upload failed (403): <s:exception>Sabre\\DAV\\Exception\\Forbidden</s:exception><s:message>Access denied by a file access control rule</s:message>'],
+    ['NOT_FOUND', 'File not found: /Invoices/507/a.pdf'],
+    ['NOT_FOUND', 'File not found: /Rooms/423/plan.pdf'],
+    ['NO_ACCESS', 'Upload failed (403): the folder is locked down, quota exceeded elsewhere'],
     ['TIMEOUT', 'The request timed out'],
     ['ALREADY_EXISTS', 'Folder already exists: /Invoices'],
     ['PARENT_MISSING', 'Parent folder for /Invoices/2026/a.pdf does not exist. Create it first with nextcloud_create_folder.'],
@@ -89,7 +108,29 @@ test('"no access" is app-aware: Files text only for file tools, the app name for
         const c = classifyNextcloudError('Permission denied for read of /A/b.txt', { tool });
         assert.match(c.message, /file or folder/, String(tool));
         assert.match(c.remediation, /Share the folder/, String(tool));
+        assert.match(c.remediation, /read-only share, a team folder permission or a file access control rule/, String(tool));
     }
+});
+
+test('a 503 is a rate limit only when the answer says so; maintenance and unavailable are transient, a lock and a full quota are not', () => {
+    const maintenance = classifyNextcloudError('Nextcloud is in maintenance mode (503) during x.');
+    assert.strictEqual(maintenance.errorClass, 'TransientError');
+    assert.doesNotMatch(`${maintenance.message} ${maintenance.remediation}`, /rate/i);
+    const unavailable = classifyNextcloudError('Nextcloud download failed (503)');
+    assert.strictEqual(unavailable.message, 'Nextcloud is temporarily unavailable.');
+    assert.strictEqual(unavailable.errorClass, 'TransientError');
+    assert.strictEqual(classifyNextcloudError('request failed: 429').message, 'Nextcloud is rate-limiting requests.');
+    for (const text of ['Delete failed (423)', 'Upload failed (507): Insufficient storage']) {
+        const c = classifyNextcloudError(text);
+        assert.strictEqual(c.category, 'precondition', text);
+        assert.strictEqual(c.errorClass, 'IntegrationError', text);
+    }
+});
+
+test('"locked" and "quota" from another app are not a file lock or a full quota', () => {
+    assert.notStrictEqual(classifyNextcloudError('This Talk room is locked', { tool: 'nextcloud_talk_send_message' }).code, 'FILE_LOCKED');
+    assert.notStrictEqual(classifyNextcloudError('Mail quota exceeded for the account', { tool: 'nextcloud_mail_send' }).code, 'QUOTA_EXCEEDED');
+    assert.strictEqual(classifyNextcloudError('"a.docx" is locked', { tool: 'nextcloud_delete' }).code, 'FILE_LOCKED');
 });
 
 test('the runner passes the tool name: a non-Files permission error is worded for its own app', () => {

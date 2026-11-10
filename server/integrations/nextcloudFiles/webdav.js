@@ -7,6 +7,7 @@
 const ncClient = require('../nextcloudClient');
 const { XMLParser } = require('fast-xml-parser');
 const { bestEffort } = require('../../utils/bestEffort');
+const { davStatusError } = require('./davStatusError.mts');
 
 /**
  * What nextcloudTools.js hands every file-family handler.
@@ -162,6 +163,8 @@ async function uploadBinaryFile(ncFetch, root, path, buffer, contentType, authEr
     });
     if (res.status === 401) return { error: authError };
     if (!res.ok && res.status !== 201 && res.status !== 204) {
+        const plain = davStatusError(res.status, path);
+        if (plain) return { error: plain };
         const text = await res.text().catch(() => '');
         return { error: `Upload failed (${res.status}): ${text.slice(0, 200)}` };
     }

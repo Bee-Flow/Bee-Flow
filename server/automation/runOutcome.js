@@ -243,7 +243,7 @@ const REASONS = Object.freeze({
 const NC_REASON = Object.freeze({
     NOT_CONNECTED: 'not_connected',
     SESSION_EXPIRED: 'session_expired',
-    CONNECTOR_UNREACHABLE: 'unreachable',
+    CONNECTOR_UNREACHABLE: 'unreachable', PROXY_ANSWERED: 'unreachable',
     THROTTLED: 'rate_limited',
     TIMEOUT: 'timed_out',
     PARENT_MISSING: 'target_conflict',

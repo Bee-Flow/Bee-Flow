@@ -81,3 +81,18 @@ test('the pinned data hash matches the data file, so a data change re-runs the m
         'data/builder-handoff5-nl.json changed: set DATA_SHA256 in add-nl-builder-handoff5-translations.js to ' + actual
         + ' so installs that already ran this migration run it again');
 });
+
+test('a reworded key replaces the Dutch that shipped before, and only that Dutch', () => {
+    const { NL_REWORDED } = require('./add-nl-builder-handoff5-translations');
+    for (const [key, { was }] of Object.entries(NL_REWORDED)) {
+        assert.ok(NL_TRANSLATIONS[key], `${key} has current Dutch`);
+        assert.notStrictEqual(NL_TRANSLATIONS[key], was, `${key}: the data file holds the new wording`);
+        const shipped = applyNl({ [key]: was });
+        assert.strictEqual(shipped.merged[key], NL_TRANSLATIONS[key], key);
+        const own = applyNl({ [key]: 'Eigen tekst van de werkruimte' });
+        assert.strictEqual(own.merged[key], 'Eigen tekst van de werkruimte', key);
+    }
+    const all = Object.fromEntries(Object.entries(NL_REWORDED).map(([k, v]) => [k, v.was]));
+    assert.strictEqual(applyNl({ ...all }).reworded, Object.keys(NL_REWORDED).length);
+    assert.strictEqual(applyNl(applyNl({ ...all }).merged).reworded, 0, 'a second run rewords nothing');
+});

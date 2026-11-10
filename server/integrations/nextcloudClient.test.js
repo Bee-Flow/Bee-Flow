@@ -439,3 +439,27 @@ test('downloadBinary: a file under the cap, or with no cap, downloads whole', as
         fsDl.rmSync(dest, { force: true });
     }
 });
+
+// ── Maintenance mode and an answer from a proxy ─────────────────────────────
+
+test('a 503 with the maintenance header is answered at once: one request, and the error says maintenance', async () => {
+    seedBoundUser({ organizationId: null });
+    state.appPasswords.set(USER, { username: 'tom', password: 'app-pass', url: 'https://cloud.example.com' });
+    let calls = 0;
+    const started = Date.now();
+    const err = await withFetch(async () => {
+        calls += 1;
+        return new Response('', { status: 503, headers: { 'X-Nextcloud-Maintenance-Mode': '1', 'Retry-After': '120' } });
+    }, () => ncClient.downloadBinary(standaloneSession(), USER, '/a/rec.mp4', path.join(osDl.tmpdir(), `nc-dl-${process.pid}-maint.mp4`))
+        .then(() => null, (e) => e));
+    assert.equal(calls, 1, 'no retry');
+    assert.ok(Date.now() - started < 400, 'no backoff sleep');
+    assert.match(err.message, /maintenance mode \(503\)/);
+});
+
+test('downloadBinary: a status only a proxy sends is worded as the proxy, any other failure keeps its status line', async () => {
+    const proxied = await download(new Response('<html>error</html>', { status: 522, headers: { 'content-type': 'text/html' } }));
+    assert.match(proxied.err.message, /proxy in front of Nextcloud answered instead of Nextcloud \(522\)/);
+    const plain = await download(new Response('', { status: 500 }));
+    assert.equal(plain.err.message, 'Nextcloud download failed (500)');
+});

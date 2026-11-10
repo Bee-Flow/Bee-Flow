@@ -9,6 +9,7 @@
 'use strict';
 
 const { joinDavPath, ensureParentFolders } = require('./webdav');
+const { davStatusError } = require('./davStatusError.mts');
 
 /**
  * @typedef {import('./fileOperations').FileOpArgs} FileOpArgs
@@ -143,6 +144,8 @@ async function putFile(path, body, contentType, ctx) {
     if (res.status === 401) return { error: authError };
     if (res.status === 409 || (retried && res.status === 404)) return { error: `Parent folder for ${path} does not exist and could not be created.` };
     if (!res.ok && res.status !== 201 && res.status !== 204) {
+        const plain = davStatusError(res.status, path);
+        if (plain) return { error: plain };
         const text = await res.text().catch(() => '');
         return { error: `Upload failed (${res.status}): ${text.slice(0, 200)}` };
     }
