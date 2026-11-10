@@ -267,7 +267,7 @@ const TOOL_SCHEMAS_PART_2 = [
                         type: 'object',
                         description: `The aggregation: groupBy?: [{field, bucket?}] (bucket for date fields: ${DATE_BUCKETS.join('|')}); aggregates: [{fn: ${AGG_FNS.join('|')}, field?, as}] (count needs no field); filters?: [{field, op, value?}] (ops: ${FILTER_OPS.join(', ')}).`,
                         properties: {
-                            groupBy: { type: 'array', items: { type: 'object' }, description: 'Optional per entry: binWidth (a whole number) folds a number field onto steps (0, 10, 20, …; column <field>_bin); relatedField groups by a column of the row a relation field points at (column <field>_<relatedField>), read under that table\'s row rules.' },
+                            groupBy: { type: 'array', items: { type: 'object' } },
                             aggregates: { type: 'array', items: { type: 'object' } },
                             filters: { type: 'array', items: { type: 'object' } },
                             orderBy: { type: 'array', items: { type: 'object' }, description: 'Optional: sort the result on up to 3 of its output columns, [{field, dir}].' },
