@@ -1,7 +1,7 @@
 import type React from 'react';
 import { GHOST_BTN } from '../admin/Studio/SupportStudio/supportStyles';
 import { useTranslation } from '../../hooks/useTranslation';
-import { PRIORITY_BADGES } from './supportInboxLabels';
+import { priorityBadges } from './supportInboxLabels';
 import type { useSupportBulk } from './useSupportInboxActions';
 
 /** The bar above the thread rows once something is ticked: resolve, set a priority or add a tag to all of them. */
@@ -15,7 +15,7 @@ export default function SupportBulkBar({ bulk }: { bulk: ReturnType<typeof useSu
             <button disabled={bulkBusy} onClick={() => runBulk('resolve')} className={GHOST_BTN}>{t('support.support_inbox_resolve', 'Resolve')}</button>
             <select disabled={bulkBusy} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { if (e.target.value) { runBulk('priority', { priority: e.target.value }); e.target.value = ''; } }} className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-1.5 py-1 text-[var(--text-secondary)]" defaultValue="">
                 <option value="">{t('support.support_inbox_set_priority', 'Set priority…')}</option>
-                {Object.entries(PRIORITY_BADGES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                {Object.entries(priorityBadges(t)).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
             <input
                 placeholder={t('support.support_inbox_add_tag_enter', 'Add tag + Enter')}

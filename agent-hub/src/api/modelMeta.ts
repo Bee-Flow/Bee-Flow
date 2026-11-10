@@ -39,7 +39,7 @@ const asObjectMap = <T,>(v: unknown) => (v && typeof v === 'object' && !Array.is
 const readDeviceMap = <T,>(key: string) => readDeviceJSON<Record<string, T>>(key, {}, asObjectMap);
 
 // Human-readable metadata for Mistral models (prices in $ per million tokens unless noted)
-export const MISTRAL_MODEL_META: Record<string, ModelMeta> = {
+const MISTRAL_MODEL_META: Record<string, ModelMeta> = {
     // --- Frontier: Generalist ---
     // The -latest aliases describe the model they point to today; prices match
     // server/core/providers/mistralModels.js (docs.mistral.ai/inference/pricing).

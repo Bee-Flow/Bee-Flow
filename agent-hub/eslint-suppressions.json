@@ -3820,7 +3820,7 @@
   },
   "src/components/admin/subscriptions/orgs/OrgsView.tsx": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -3935,21 +3935,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/components/agents/AgentDesigner/sections/BehaviorSection.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/agents/AgentDesigner/sections/IdentitySection.tsx": {
-    "max-lines-per-function": {
-      "count": 3
-    }
-  },
-  "src/components/agents/AgentDesigner/sections/ToolsSection.tsx": {
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -6141,14 +6126,6 @@
   },
   "src/components/chat/MessageItem/toolConfirmStatus.ts": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/chat/ModelSelector.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },

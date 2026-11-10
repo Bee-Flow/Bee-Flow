@@ -1,4 +1,4 @@
-import { SetStateAction, Dispatch, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Save, Sparkles, AlertTriangle, Send } from 'lucide-react';
 import AgentEditorUI from '../agents/AgentEditorUI';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
@@ -14,15 +14,10 @@ import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { SupportAgentRow, SupportAgentData, PreviewReply } from './SupportAIConfig.types';
 import { useConfigTiersForUser } from '../../api/queries/configModels';
 import { request, errorBody, RefusedError, mutate } from '../../api/mutate';
-
-const CONFIG_TABS = [
-    { id: 'agent', label: 'Agent' },
-    { id: 'behaviour', label: 'AI behaviour' },
-    { id: 'sla', label: 'SLA' },
-    { id: 'canned', label: 'Templates' },
-    { id: 'tags', label: 'Tags' },
-    { id: 'insights', label: 'Insights' },
-];
+import StudioShell from '@/components/shared/StudioShell';
+import SectionNav from '@/components/shared/SectionNav';
+import { FIELD_INPUT } from '@/components/shared/SettingsList';
+import { ALERT_ERROR, CARD, CHIP, CHIP_WARNING, EYEBROW, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 
 function deriveAgentData(agent: SupportAgentRow | null | undefined): SupportAgentData | null {
     if (!agent) return null;
@@ -186,175 +181,182 @@ export default function SupportAIConfig() {
         }
     }, [previewInput, previewing]);
 
+    const tabs = [
+        { id: 'agent', label: t('support.ai_config_tab_agent', 'Agent') },
+        { id: 'behaviour', label: t('support.ai_config_tab_behaviour', 'AI behaviour') },
+        { id: 'sla', label: t('support.ai_config_tab_sla', 'SLA') },
+        { id: 'canned', label: t('support.ai_config_tab_templates', 'Templates') },
+        { id: 'tags', label: t('support.ai_config_tab_tags', 'Tags') },
+        { id: 'insights', label: t('support.ai_config_tab_insights', 'Insights') },
+    ];
+
     return (
-        <div className="h-full flex flex-col bg-[var(--bg-primary)]">
-            {/* Sub-tab bar */}
-            <SupportAIConfigSection setTab={setTab} tab={tab} />
+        <StudioShell
+            responsive
+            sidebar={<SectionNav label={t('support.ai_config_sections', 'AI configuration')} items={tabs} activeId={tab} onSelect={setTab} />}
+        >
+            <div className="flex h-full flex-col">
+                {tab === 'behaviour' && <div className="flex-1 overflow-auto"><SupportToolsTab /></div>}
+                {tab === 'sla' && <div className="flex-1 overflow-auto"><SupportSlaPoliciesTab /></div>}
+                {tab === 'canned' && <div className="flex-1 overflow-auto"><SupportCannedResponsesTab /></div>}
+                {tab === 'tags' && <div className="flex-1 overflow-auto"><SupportTagsTab /></div>}
+                {tab === 'insights' && <div className="flex-1 overflow-auto"><SupportInsightsTab /></div>}
 
-            {tab === 'behaviour' && <div className="flex-1 overflow-auto"><SupportToolsTab /></div>}
-            {tab === 'sla' && <div className="flex-1 overflow-auto"><SupportSlaPoliciesTab /></div>}
-            {tab === 'canned' && <div className="flex-1 overflow-auto"><SupportCannedResponsesTab /></div>}
-            {tab === 'tags' && <div className="flex-1 overflow-auto"><SupportTagsTab /></div>}
-            {tab === 'insights' && <div className="flex-1 overflow-auto"><SupportInsightsTab /></div>}
-
-            {tab === 'agent' && loading && (
-                <div className="p-8 text-sm text-[var(--text-muted)]">{t('support.support_aiconfig_loading_bee_flow_support_agent', 'Loading Bee Flow Support agent…')}</div>
-            )}
-            {tab === 'agent' && !loading && !data && (
-                <div className="p-8 text-sm text-[var(--text-muted)]">
-                    {saveError || 'Bee Flow Support agent is not seeded yet. Restart the server.'}
-                </div>
-            )}
-            {tab === 'agent' && !loading && data && (
-            <>
-            {/* Sticky save bar */}
-            <div className="px-4 py-2 border-b flex items-center justify-between border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                    <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                    <span>{t('support.support_aiconfig_singleton_agent_same_editor_as_agent', 'Singleton agent · same editor as Agent Studio')}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    {saveError && (
-                        <span className="text-xs flex items-center gap-1 [color:#dc2626]!">
-                            <AlertTriangle className="w-3 h-3" /> {saveError}
-                        </span>
-                    )}
-                    {dirty && !saveError && (
-                        <span className="text-xs text-[var(--text-muted)]">{t('support.support_aiconfig_unsaved_changes', 'Unsaved changes')}</span>
-                    )}
-                    <button
-                        onClick={handleSave}
-                        disabled={!dirty || saving}
-                        className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
-                    >
-                        <Save className="w-3.5 h-3.5" /> {saving ? 'Saving…' : 'Save'}
-                    </button>
-                </div>
-            </div>
-
-            <div className="flex-1 overflow-auto">
-                {/* Inline sanity check: if the chosen tier has no modelId in
-                    this environment, every customer thread will escalate with
-                    a "model not found" error. We surface that immediately
-                    instead of letting the admin discover it via a failed reply. */}
-                {(() => {
-                    if (!data?.model || !data.model.startsWith('tier:')) return null;
-                    const tierKey = data.model.slice(5);
-                    if (tierKey === 'auto') return null;
-                    const tier = tiers[tierKey];
-                    if (tier && tier.modelId) {
-                        return (
-                            <div className="max-w-2xl mx-auto px-4 pt-3 text-xs text-[var(--text-muted)]">
-                                {t('support.support_aiconfig_current_tier', 'Current tier')} <strong>{tierKey}</strong> {t('support.support_aiconfig_resolves_to_model', 'resolves to model')} <code>{tier.modelId}</code>.
-                            </div>
-                        );
-                    }
-                    return (
-                        <div className="max-w-2xl mx-auto px-4 pt-3">
-                            <div className="rounded-lg border p-3 text-xs flex items-start gap-2 [background:rgba(239,68,68,0.08)] [border-color:rgba(239,68,68,0.35)] [color:#991b1b]!">
-                                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                                <div>
-                                    <div className="font-medium">{t('support.support_aiconfig_tier', 'Tier')} <code>{tierKey}</code> {t('support.support_aiconfig_has_no_model_configured', 'has no model configured.')}</div>
-                                    <div className="opacity-80">{t('support.support_aiconfig_every_customer_thread_will_escalate_to', 'Every customer thread will escalate to staff until you either pick a different tier above or set')} <code>{tierKey}</code> {t('support.support_aiconfig_in_admin_ai_config_model_tiers', 'in Admin → AI Config → Model tiers.')}</div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })()}
-
-                {/* Reuse the same editor the Studio uses */}
-                <AgentEditorUI
-                    data={data}
-                    onChange={handleChange}
-                    isSystem={true}
-                    hasKnowledge={true}
-                    hasSkills={false}
-                    agentId={agent?.id}
-                    API_BASE={API_BASE}
-                    categories={[]}
-                    modelTiers={tiers}
-                />
-
-                {/* Preview pane — mirrors how MessageItem assistant replies
-                    look in the real chat, using MarkdownRenderer (same
-                    component MessageItem uses internally). */}
-                <div className="max-w-2xl mx-auto p-4 pt-2 mb-6">
-                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)]">
-                        <div className="px-4 py-2 border-b text-xs font-semibold uppercase tracking-wide border-[var(--border-default)] text-[var(--text-muted)]">
-                            {t('support.support_aiconfig_preview', 'Preview')}
-                        </div>
-                        <div className="p-4 space-y-3">
-                            <p className="text-xs text-[var(--text-muted)]">
-                                {t('support.support_aiconfig_test_the_support_ai_without_creating_a', 'Test the support AI without creating a real thread. No emails, no notifications, no DB writes.')}
-                            </p>
-                            <textarea
-                                value={previewInput}
-                                onChange={e => setPreviewInput(e.target.value)}
-                                rows={3}
-                                placeholder={t('support.support_aiconfig_type_a_question_as_if_you_were_a', 'Type a question as if you were a customer…')}
-                                className="w-full px-3 py-2 rounded-lg border text-sm resize-y [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
-                            />
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={runPreview}
-                                    disabled={previewing || !previewInput.trim()}
-                                    className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
-                                >
-                                    <Send className="w-3.5 h-3.5" /> {previewing ? 'Asking…' : 'Test reply'}
-                                </button>
-                            </div>
-
-                            {previewError && (
-                                <div className="text-xs px-3 py-2 rounded-md [background:rgba(220,38,38,0.08)] [color:#dc2626]!">
-                                    {previewError}
-                                </div>
-                            )}
-
-                            {previewReply && (
-                                <div className="rounded-lg p-3 text-sm border [background:rgba(14,165,233,0.06)] [border-color:var(--border-default)] [color:var(--text-primary)]!">
-                                    <div className="flex items-center gap-2 mb-2 text-xs text-[var(--text-muted)]">
-                                        <span className="font-medium">{t('support.support_aiconfig_bee_flow_support_ai', 'Bee Flow Support (AI)')}</span>
-                                        {previewReply.modelTier && (
-                                            <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                                                {tierLabel(previewReply.modelTier.replace(/^tier:/, '')) || previewReply.modelTier}
-                                            </span>
-                                        )}
-                                        {previewReply.escalated && (
-                                            <span className="px-1.5 py-0.5 rounded [background:rgba(245,158,11,0.18)] [color:#b45309]">
-                                                {t('support.support_aiconfig_would_escalate', 'would escalate')}{previewReply.escalateReason ? `: ${previewReply.escalateReason}` : ''}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {/* Reuse the same Markdown renderer the chat surface uses */}
-                                    <MarkdownRenderer content={previewReply.content || ''} />
-                                    {Array.isArray(previewReply.citations) && previewReply.citations.length > 0 && (
-                                        <div className="mt-2 pt-2 border-t text-xs border-[var(--border-default)] text-[var(--text-muted)]">
-                                            Cited: {previewReply.citations.map(c => c.title).filter(Boolean).join(' · ')}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                {tab === 'agent' && loading && (
+                    <div className="p-6 text-sm text-[var(--text-tertiary)]">{t('support.support_aiconfig_loading_bee_flow_support_agent', 'Loading Bee Flow Support agent…')}</div>
+                )}
+                {tab === 'agent' && !loading && !data && (
+                    <div className="p-6 text-sm text-[var(--text-tertiary)]">
+                        {saveError || t('support.ai_config_not_seeded', 'Bee Flow Support agent is not seeded yet. Restart the server.')}
                     </div>
-                </div>
+                )}
+                {tab === 'agent' && !loading && data && (
+                    <>
+                        <AgentSaveBar saveError={saveError} dirty={dirty} saving={saving} onSave={handleSave} />
+                        <div className="flex-1 overflow-auto">
+                            <TierCheck model={data.model} tiers={tiers} />
+                            {/* Reuse the same editor the Studio uses */}
+                            <AgentEditorUI
+                                data={data}
+                                onChange={handleChange}
+                                isSystem={true}
+                                hasKnowledge={true}
+                                hasSkills={false}
+                                agentId={agent?.id}
+                                API_BASE={API_BASE}
+                                categories={[]}
+                                modelTiers={tiers}
+                            />
+                            <PreviewPane input={previewInput} setInput={setPreviewInput} previewing={previewing} onRun={runPreview} error={previewError} reply={previewReply} />
+                        </div>
+                    </>
+                )}
             </div>
-            </>
-            )}
+        </StudioShell>
+    );
+}
+
+/** The bar above the editor: what this is, the save state and Save. */
+function AgentSaveBar({ saveError, dirty, saving, onSave }: { saveError: string | null; dirty: boolean; saving: boolean; onSave: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-default)] px-4 py-2">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                <Sparkles className="h-3.5 w-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
+                <span>{t('support.support_aiconfig_singleton_agent_same_editor_as_agent', 'Singleton agent · same editor as Agent Studio')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+                {saveError && (
+                    <span className="flex items-center gap-1 text-xs text-[var(--error-ink)]">
+                        <AlertTriangle className="h-3 w-3" aria-hidden="true" /> {saveError}
+                    </span>
+                )}
+                {dirty && !saveError && (
+                    <span className="text-xs text-[var(--text-tertiary)]">{t('support.support_aiconfig_unsaved_changes', 'Unsaved changes')}</span>
+                )}
+                <button type="button" onClick={onSave} disabled={!dirty || saving} className={PRIMARY_BTN}>
+                    <Save className="h-3.5 w-3.5" aria-hidden="true" /> {saving ? t('support.ai_config_saving', 'Saving…') : t('support.ai_config_save', 'Save')}
+                </button>
+            </div>
         </div>
     );
 }
 
-function SupportAIConfigSection({ setTab, tab }: { setTab: Dispatch<SetStateAction<string>>; tab: string; }) {
-    return <div className="px-4 pt-2 border-b flex items-center gap-1 overflow-x-auto border-[var(--border-default)] bg-[var(--bg-secondary)]">
-        {CONFIG_TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-                className="px-3 py-1.5 text-sm font-medium rounded-t-md whitespace-nowrap"
-                style={{
-                    color: tab === t.id ? 'var(--text-primary)' : 'var(--text-muted)',
-                    borderBottom: tab === t.id ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                }}>
-                {t.label}
-            </button>
-        ))}
-    </div>;
+/**
+ * Inline sanity check: if the chosen tier has no modelId in this environment,
+ * every customer thread will escalate with a "model not found" error. We
+ * surface that immediately instead of letting the admin discover it via a
+ * failed reply.
+ */
+function TierCheck({ model, tiers }: { model?: string; tiers: ModelTierMap }) {
+    const { t } = useTranslation();
+    if (!model || !model.startsWith('tier:')) return null;
+    const tierKey = model.slice(5);
+    if (tierKey === 'auto') return null;
+    const tier = tiers[tierKey];
+    if (tier && tier.modelId) {
+        return (
+            <div className="max-w-4xl px-4 pt-3 text-xs text-[var(--text-tertiary)]">
+                {t('support.support_aiconfig_current_tier', 'Current tier')} <strong className="text-[var(--text-secondary)]">{tierKey}</strong> {t('support.support_aiconfig_resolves_to_model', 'resolves to model')} <code>{tier.modelId}</code>.
+            </div>
+        );
+    }
+    return (
+        <div className="max-w-4xl px-4 pt-3">
+            <div className={ALERT_ERROR}>
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <div>
+                    <div className="font-medium">{t('support.support_aiconfig_tier', 'Tier')} <code>{tierKey}</code> {t('support.support_aiconfig_has_no_model_configured', 'has no model configured.')}</div>
+                    <div className="opacity-80">{t('support.support_aiconfig_every_customer_thread_will_escalate_to', 'Every customer thread will escalate to staff until you either pick a different tier above or set')} <code>{tierKey}</code> {t('support.support_aiconfig_in_admin_ai_config_model_tiers', 'in Admin → AI Config → Model tiers.')}</div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+interface PreviewPaneProps {
+    input: string;
+    setInput: (v: string) => void;
+    previewing: boolean;
+    onRun: () => void;
+    error: string | null;
+    reply: PreviewReply | null;
+}
+
+/**
+ * Preview pane — mirrors how MessageItem assistant replies look in the real
+ * chat, using MarkdownRenderer (same component MessageItem uses internally).
+ */
+function PreviewPane({ input, setInput, previewing, onRun, error, reply }: PreviewPaneProps) {
+    const { t } = useTranslation();
+    return (
+        <div className="mb-6 max-w-4xl p-4 pt-2">
+            <div className={CARD}>
+                <div className={EYEBROW}>{t('support.support_aiconfig_preview', 'Preview')}</div>
+                <p className="m-0 text-xs text-[var(--text-tertiary)]">
+                    {t('support.support_aiconfig_test_the_support_ai_without_creating_a', 'Test the support AI without creating a real thread. No emails, no notifications, no DB writes.')}
+                </p>
+                <textarea
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    rows={3}
+                    placeholder={t('support.support_aiconfig_type_a_question_as_if_you_were_a', 'Type a question as if you were a customer…')}
+                    className={`${FIELD_INPUT} resize-y`}
+                />
+                <div className="flex justify-end">
+                    <button type="button" onClick={onRun} disabled={previewing || !input.trim()} className={PRIMARY_BTN}>
+                        <Send className="h-3.5 w-3.5" aria-hidden="true" /> {previewing ? t('support.ai_config_asking', 'Asking…') : t('support.ai_config_test_reply', 'Test reply')}
+                    </button>
+                </div>
+                {error && <div className={ALERT_ERROR}>{error}</div>}
+                {reply && <PreviewReplyCard reply={reply} />}
+            </div>
+        </div>
+    );
+}
+
+function PreviewReplyCard({ reply }: { reply: PreviewReply }) {
+    const { t } = useTranslation();
+    return (
+        <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 text-sm text-[var(--text-primary)]">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-[var(--text-tertiary)]">
+                <span className="font-medium text-[var(--text-secondary)]">{t('support.support_aiconfig_bee_flow_support_ai', 'Bee Flow Support (AI)')}</span>
+                {reply.modelTier && (
+                    <span className={CHIP}>{tierLabel(reply.modelTier.replace(/^tier:/, '')) || reply.modelTier}</span>
+                )}
+                {reply.escalated && (
+                    <span className={CHIP_WARNING}>
+                        {t('support.support_aiconfig_would_escalate', 'would escalate')}{reply.escalateReason ? `: ${reply.escalateReason}` : ''}
+                    </span>
+                )}
+            </div>
+            {/* Reuse the same Markdown renderer the chat surface uses */}
+            <MarkdownRenderer content={reply.content || ''} />
+            {Array.isArray(reply.citations) && reply.citations.length > 0 && (
+                <div className="mt-2 border-t border-[var(--border-default)] pt-2 text-xs text-[var(--text-tertiary)]">
+                    {t('support.ai_config_cited', 'Cited: {sources}', { sources: reply.citations.map(c => c.title).filter(Boolean).join(' · ') })}
+                </div>
+            )}
+        </div>
+    );
 }

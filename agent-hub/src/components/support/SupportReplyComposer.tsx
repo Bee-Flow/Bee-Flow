@@ -31,7 +31,7 @@ export default function SupportReplyComposer({ composer }: { composer: ReturnTyp
                     if (e.key === '/' && !reply.trim()) setShowCanned(true);
                     if (e.key === 'Escape') setShowCanned(false);
                 }}
-                placeholder={internalNote ? 'Internal note (only visible to staff)…' : 'Reply to the customer…  (type / for templates)'}
+                placeholder={internalNote ? t('support.inbox_composer_note_placeholder', 'Internal note (only visible to staff)…') : t('support.inbox_composer_reply_placeholder', 'Reply to the customer…  (type / for templates)')}
                 className={`${INPUT_FIELD} resize-y`}
             />
             <div className="mt-2 flex items-center justify-between">
@@ -49,7 +49,7 @@ export default function SupportReplyComposer({ composer }: { composer: ReturnTyp
                     disabled={sending || !reply.trim()}
                     className={PRIMARY_BTN}
                 >
-                    <Send className="w-3.5 h-3.5" /> {sending ? 'Sending…' : (internalNote ? 'Save note' : 'Send reply')}
+                    <Send className="w-3.5 h-3.5" /> {sending ? t('support.inbox_composer_sending', 'Sending…') : (internalNote ? t('support.inbox_composer_save_note', 'Save note') : t('support.inbox_composer_send_reply', 'Send reply'))}
                 </button>
             </div>
         </div>

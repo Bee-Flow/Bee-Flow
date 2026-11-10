@@ -5,7 +5,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import type { SortableColumn, SortableTableProps } from '../shared.types';
 import { Empty } from './SvgAreaChart';
 
-type SortDir = 'asc' | 'desc';
+export type SortDir = 'asc' | 'desc';
 
 function compareBy(key: string, dir: SortDir) {
     return (a: object, b: object) => {
@@ -16,7 +16,7 @@ function compareBy(key: string, dir: SortDir) {
     };
 }
 
-function SortHeader({ label, active, dir, onSort }: { label: ReactNode; active: boolean; dir: SortDir; onSort: () => void }) {
+export function SortHeader({ label, active, dir, onSort }: { label: ReactNode; active: boolean; dir: SortDir; onSort: () => void }) {
     const Arrow = dir === 'desc' ? ArrowDown : ArrowUp;
     return (
         <button type="button" onClick={onSort} className="inline-flex items-center gap-1 uppercase hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]">

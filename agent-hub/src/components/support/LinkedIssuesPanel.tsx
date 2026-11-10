@@ -7,7 +7,8 @@ import { linkedIssuesKey, useLinkedIssuesQuery, useYouTrackStatusQuery } from '.
 import { useQueryClient } from '@tanstack/react-query';
 import type { YouTrackStatus } from '../../api/queries/supportPanels';
 import useConfirm from '../shared/useConfirm';
-import { useTranslation } from '../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
+import { ALERT_ERROR, ALERT_WARNING, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import { errorMessage } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
 import { mutate, ApiError, request, RefusedError, errorBody } from '../../api/mutate';
@@ -47,14 +48,14 @@ interface ReverseThread {
     status?: string;
 }
 
-function relative(iso?: string | null): string {
+function relative(iso: string | null | undefined, t: TranslateFn): string {
     if (!iso) return '';
     const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m}m ago`;
+    if (m < 1) return t('support.linked_issues_just_now', 'just now');
+    if (m < 60) return t('support.linked_issues_minutes_ago', '{count}m ago', { count: m });
     const h = Math.round(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.round(h / 24)}d ago`;
+    if (h < 24) return t('support.linked_issues_hours_ago', '{count}h ago', { count: h });
+    return t('support.linked_issues_days_ago', '{count}d ago', { count: Math.round(h / 24) });
 }
 
 function ConnectionNotice({ status }: { status: YouTrackStatus | null }) {
@@ -62,15 +63,15 @@ function ConnectionNotice({ status }: { status: YouTrackStatus | null }) {
     if (!status) return null;
     if (!status.configured) {
         return (
-            <div className="text-xs mb-2 text-[var(--text-muted)]">
+            <div className="mb-2 text-xs text-[var(--text-tertiary)]">
                 {t('support.linked_issues_youtrack_is_not_connected_yet_an_admin', 'YouTrack is not connected yet. An admin can set it up in the Connections tab.')}
             </div>
         );
     }
     if (!status.ok) {
         return (
-            <div className="text-xs mb-2 flex items-start gap-1.5 [color:#b45309]!">
-                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <div className={`${ALERT_WARNING} mb-2`}>
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>{t('support.linked_issues_can_t_reach_youtrack_host', 'Can\'t reach YouTrack ({host}):', { host: status.host })} {status.error}</span>
             </div>
         );
@@ -80,12 +81,13 @@ function ConnectionNotice({ status }: { status: YouTrackStatus | null }) {
 
 /** Why this row's data might be behind, in words an agent can act on. */
 function SyncNote({ issue }: { issue: LinkedIssue }) {
+    const { t } = useTranslation();
     if (!issue.syncError) return null;
     const gone = issue.syncError.includes('not found');
     return (
-        <span className="[color:#b45309]">
-            · {gone ? 'no longer in YouTrack' : 'couldn’t refresh'}
-            {!gone && issue.syncedAt ? ` — showing ${relative(issue.syncedAt)}` : ''}
+        <span className="text-[var(--warning-ink)]">
+            · {gone ? t('support.linked_issues_no_longer_in_youtrack', 'no longer in YouTrack') : t('support.linked_issues_couldnt_refresh', 'couldn’t refresh')}
+            {!gone && issue.syncedAt ? t('support.linked_issues_showing_when', ' — showing {when}', { when: relative(issue.syncedAt, t) }) : ''}
         </span>
     );
 }
@@ -102,48 +104,48 @@ interface IssueRowProps {
 function IssueRow({ issue, threadId, onDetach, onShowReverse, reverseOpen, reverseThreads }: IssueRowProps) {
     const { t } = useTranslation();
     return (
-        <div className="rounded border px-2 py-1.5 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+        <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-2">
             <div className="flex items-start gap-2">
                 <a
                     href={issue.url || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-medium shrink-0 inline-flex items-center gap-1 text-[var(--accent-primary)]"
+                    className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--text-primary)] underline-offset-2 hover:underline"
                 >
-                    {issue.issueId} <ExternalLink className="w-3 h-3" />
+                    {issue.issueId} <ExternalLink className="h-3 w-3 text-[var(--text-tertiary)]" aria-hidden="true" />
                 </a>
-                <span className="text-xs flex-1 min-w-0 truncate text-[var(--text-primary)]">
+                <span className="min-w-0 flex-1 truncate text-xs text-[var(--text-secondary)]">
                     {issue.summary || '—'}
                 </span>
                 <StateChip state={issue.state} resolved={issue.resolved} />
                 <button
                     onClick={() => onDetach(issue.issueId)}
                     title={t('support.linked_issues_detach_from_this_ticket', 'Detach from this ticket')}
-                    className="opacity-50 hover:opacity-100 shrink-0 text-[var(--text-muted)]"
+                    className="shrink-0 rounded p-0.5 text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
                 >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
             </div>
 
             {issue.lastComment && (
-                <div className="text-xs mt-1 pl-1 border-l-2 border-[var(--border-default)] text-[var(--text-secondary)]">
-                    <span className="text-[var(--text-muted)]">
-                        {issue.lastComment.author || 'Someone'} · {relative(issue.lastComment.at)}:
+                <div className="mt-1 border-l-2 border-[var(--border-default)] pl-1.5 text-xs text-[var(--text-secondary)]">
+                    <span className="text-[var(--text-tertiary)]">
+                        {issue.lastComment.author || t('support.linked_issues_someone', 'Someone')} · {relative(issue.lastComment.at, t)}:
                     </span>{' '}
                     {String(issue.lastComment.text).slice(0, 220)}
                     {String(issue.lastComment.text).length > 220 ? '…' : ''}
                 </div>
             )}
 
-            <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-muted)]">
-                {issue.kind !== 'linked' && <span>{issue.kind === 'created' ? 'created here' : 'escalated'}</span>}
+            <div className="mt-1 flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
+                {issue.kind !== 'linked' && <span>{issue.kind === 'created' ? t('support.linked_issues_created_here', 'created here') : t('support.linked_issues_escalated', 'escalated')}</span>}
                 {issue.reason && <span className="truncate">· {issue.reason}</span>}
                 {issue.otherTicketCount > 0 && (
                     <button
                         onClick={() => onShowReverse(issue.issueId)}
                         className="inline-flex items-center gap-1 hover:underline text-[var(--text-secondary)]"
                     >
-                        <Users className="w-3 h-3" />
+                        <Users className="h-3 w-3" aria-hidden="true" />
                         {issue.otherTicketCount === 1 ? t('support.linked_issues_other_ticket_one', '{count} other ticket', { count: 1 }) : t('support.linked_issues_other_ticket_other', '{count} other tickets', { count: issue.otherTicketCount })}
                     </button>
                 )}
@@ -151,9 +153,9 @@ function IssueRow({ issue, threadId, onDetach, onShowReverse, reverseOpen, rever
             </div>
 
             {reverseOpen && (
-                <div className="mt-1.5 pl-1 border-l-2 flex flex-col gap-0.5 border-[var(--border-default)]">
+                <div className="mt-1.5 flex flex-col gap-0.5 border-l-2 border-[var(--border-default)] pl-1.5">
                     {reverseThreads.length === 0 && (
-                        <span className="text-xs text-[var(--text-muted)]">{t('support.linked_issues_loading', 'Loading…')}</span>
+                        <span className="text-xs text-[var(--text-tertiary)]">{t('support.linked_issues_loading', 'Loading…')}</span>
                     )}
                     {reverseThreads.filter((t: ReverseThread) => t.id !== threadId).map((t: ReverseThread) => (
                         <a
@@ -162,7 +164,7 @@ function IssueRow({ issue, threadId, onDetach, onShowReverse, reverseOpen, rever
                             className="text-xs truncate hover:underline text-[var(--text-secondary)]"
                         >
                             {t.ref || t.id.slice(0, 8)} · {t.subject}{' '}
-                            <span className="text-[var(--text-muted)]">({t.status})</span>
+                            <span className="text-[var(--text-tertiary)]">({t.status})</span>
                         </a>
                     ))}
                 </div>
@@ -205,7 +207,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
     }, [threadId]);
 
     const detach = async (issueId: string) => {
-        if (!(await confirm({ title: `Detach ${issueId} from this ticket?`, description: 'The issue itself stays in YouTrack.', confirmLabel: 'Detach', destructive: true }))) return;
+        if (!(await confirm({ title: t('support.linked_issues_detach_title', 'Detach {id} from this ticket?', { id: issueId }), description: t('support.linked_issues_detach_description', 'The issue itself stays in YouTrack.'), confirmLabel: t('support.linked_issues_detach', 'Detach'), destructive: true }))) return;
         try {
             const res = await mutate(`${API_BASE}/api/support/threads/${threadId}/issues/${issueId}`, { method: 'DELETE' }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
@@ -264,12 +266,12 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
         <div className="px-4 py-3 border-b border-[var(--border-default)]">
             <div className="flex items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
-                    <Link2 className="w-3.5 h-3.5" />
+                    <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                     {t('support.linked_issues_development_issues', 'Development issues')}
                     {issues.length > 0 && (
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)]">{issues.length}</span>
+                        <span className="rounded-full bg-[var(--bg-tertiary)] px-1.5 py-px text-[11px]">{issues.length}</span>
                     )}
-                    {oldestSync && <span className="text-[var(--text-muted)]">{t('support.linked_issues_updated', '· updated {when}', { when: relative(oldestSync) })}</span>}
+                    {oldestSync && <span className="font-normal text-[var(--text-tertiary)]">{t('support.linked_issues_updated', '· updated {when}', { when: relative(oldestSync, t) })}</span>}
                 </div>
                 <div className="flex items-center gap-1.5">
                     {issues.length > 0 && (
@@ -277,18 +279,18 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
                             onClick={refresh}
                             disabled={refreshing}
                             title={t('support.linked_issues_pull_the_latest_state_from_youtrack', 'Pull the latest state from YouTrack')}
-                            className="p-1 rounded hover:bg-[var(--bg-tertiary)] disabled:opacity-50 text-[var(--text-muted)]"
+                            className={QUIET_BTN}
                         >
-                            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
                         </button>
                     )}
                     <button
                         onClick={() => setOpen((o: boolean) => !o)}
                         disabled={!connected}
-                        title={connected ? 'Attach an existing issue' : 'YouTrack is not connected'}
-                        className="px-2 py-1 rounded text-xs flex items-center gap-1 border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
+                        title={connected ? t('support.linked_issues_attach_existing', 'Attach an existing issue') : t('support.linked_issues_not_connected', 'YouTrack is not connected')}
+                        className={SECONDARY_BTN}
                     >
-                        <Plus className="w-3 h-3" /> {t('support.linked_issues_attach_issue', 'Attach issue')}
+                        <Plus className="h-3 w-3" aria-hidden="true" /> {t('support.linked_issues_attach_issue', 'Attach issue')}
                     </button>
                 </div>
             </div>
@@ -296,13 +298,13 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
             <ConnectionNotice status={status} />
 
             {error && (
-                <div className="text-xs mb-2 flex items-start gap-1.5 [color:#dc2626]!">
-                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span>{error}</span>
+                <div className={`${ALERT_ERROR} mb-2`}>
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /><span>{error}</span>
                 </div>
             )}
 
             {issues.length === 0 && !loading && !open && (
-                <div className="text-xs text-[var(--text-muted)]">
+                <div className="text-xs text-[var(--text-tertiary)]">
                     {t('support.linked_issues_no_issues_attached_search_before', 'No issues attached. Search before creating one — the bug may already be filed.')}
                 </div>
             )}

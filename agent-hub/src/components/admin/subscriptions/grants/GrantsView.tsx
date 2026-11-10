@@ -1,4 +1,4 @@
-import { KeyRound, Plus, Upload, Copy, CalendarPlus, Trash2 } from 'lucide-react';
+import { KeyRound, Plus, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { GrantWizard } from './GrantWizard';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -7,28 +7,10 @@ import EmptyState from '@/components/shared/EmptyState';
 import { toast } from '@/components/shared/Toast';
 import { TIER_PRESETS } from '../constants';
 import { useResource, apiJson } from '../hooks/useApi';
-import { Badge, type BadgeTone } from '../ui/Badge';
-import { Card } from '../ui/Card';
-import IconButton from '@/components/shared/IconButton';
+import { GrantsTable, type Grant } from './GrantsTable';
 import { ConfirmModal } from '../ui/Modal';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
-
-/** One issued license, as the admin list endpoint sends it. */
-interface Grant {
-    id: string;
-    scope?: string;
-    organizationId?: string | null;
-    organizationName?: string | null;
-    tier?: string;
-    refreshStatus: string;
-    issuedAt?: string | number | Date;
-    expiresAt?: string | number | Date;
-    metadata?: { admin_notes?: string } | null;
-    blob: string;
-}
-
-const STATUS_TONE: Record<string, BadgeTone> = { active: 'success', pending: 'success', grace: 'warning', expired: 'neutral', revoked: 'danger' };
 
 /** What the wizard offers as an organization. */
 interface GrantOrg {
@@ -111,8 +93,6 @@ export function GrantsView() {
         } catch (e) { toast.error((e as Error).message || t('admin_subscriptions.grants_import_failed', 'Import failed')); }
     };
 
-    const fmtDate = (s: string | number | Date | undefined) => s ? new Date(s).toLocaleDateString() : '—';
-
     if (issuing) {
         return (
             <GrantWizard
@@ -149,54 +129,7 @@ export function GrantsView() {
                     action={<Button icon={Plus} onClick={() => setIssuing(true)}>{t('admin_subscriptions.grants_issue', 'Issue license')}</Button>}
                 />
             ) : (
-                <Card padded={false}>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-[13px]">
-                            <thead className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-left">
-                                <tr>
-                                    <th className="font-semibold px-4 py-2.5">{t('admin_subscriptions.grants_col_org', 'Organization')}</th>
-                                    <th className="font-semibold px-4 py-2.5">{t('admin_subscriptions.grants_col_tier', 'Tier')}</th>
-                                    <th className="font-semibold px-4 py-2.5">{t('admin_subscriptions.grants_col_status', 'Status')}</th>
-                                    <th className="font-semibold px-4 py-2.5">{t('admin_subscriptions.grants_col_issued', 'Issued')}</th>
-                                    <th className="font-semibold px-4 py-2.5">{t('admin_subscriptions.grants_col_expires', 'Expires')}</th>
-                                    <th className="font-semibold px-4 py-2.5">{t('admin_subscriptions.grants_col_notes', 'Notes')}</th>
-                                    <th className="font-semibold px-4 py-2.5 text-right">{t('admin_subscriptions.grants_col_actions', 'Actions')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {grants.map((g) => (
-                                    <tr key={g.id} className="border-t border-[var(--border-default)]">
-                                        <td className="px-4 py-2.5 text-[var(--text-primary)]">
-                                            {g.scope === 'server' || (!g.organizationId && !g.organizationName)
-                                                ? <span className="italic text-[var(--text-tertiary)]">{t('admin_subscriptions.grants_server_license', 'Server license')}</span>
-                                                : (g.organizationName || g.organizationId)}
-                                        </td>
-                                        <td className="px-4 py-2.5 capitalize text-[var(--text-secondary)]">{g.tier}</td>
-                                        <td className="px-4 py-2.5">
-                                            <Badge tone={STATUS_TONE[g.refreshStatus] || 'neutral'} size="sm">{g.refreshStatus}</Badge>
-                                        </td>
-                                        <td className="px-4 py-2.5 text-[var(--text-tertiary)]">{fmtDate(g.issuedAt)}</td>
-                                        <td className="px-4 py-2.5 text-[var(--text-tertiary)]">{fmtDate(g.expiresAt)}</td>
-                                        <td className="px-4 py-2.5 max-w-[200px] truncate text-[var(--text-secondary)]" title={g.metadata?.admin_notes || ''}>
-                                            {g.metadata?.admin_notes || '—'}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                                            <div className="inline-flex items-center gap-1">
-                                                {g.blob && <IconButton size="sm" ariaLabel={t('admin_subscriptions.grants_copy_blob', 'Copy blob')} onClick={() => copyBlob(g.blob)}><Copy /></IconButton>}
-                                                {g.refreshStatus !== 'revoked' && (
-                                                    <>
-                                                        <IconButton size="sm" ariaLabel={t('admin_subscriptions.grants_extend', 'Extend expiry')} onClick={() => handleExtend(g.id, g.expiresAt)}><CalendarPlus /></IconButton>
-                                                        <IconButton size="sm" variant="danger" ariaLabel={t('admin_subscriptions.grants_revoke', 'Revoke')} onClick={() => setRevoking(g)}><Trash2 /></IconButton>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
+                <GrantsTable grants={grants} onCopy={copyBlob} onExtend={handleExtend} onRevoke={setRevoking} />
             )}
 
             <ConfirmModal
