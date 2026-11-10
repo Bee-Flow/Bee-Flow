@@ -27,8 +27,8 @@ The connector serves a strict allow-list of paths declared in [`appinfo/info.xml
 | `^heartbeat$` | GET | PUBLIC | AppAPI liveness probe |
 | `^init$` | POST | ADMIN | AppAPI lifecycle install hook |
 | `^enabled$` | PUT | ADMIN | AppAPI lifecycle enable/disable hook |
-| `^setup/?$` | GET / POST | ADMIN | Setup picker UI + form submit (Bee Flow Cloud vs self-hosted). |
-| `^setup/(status\|test)$` | GET / POST | ADMIN | Setup picker status + connectivity test endpoints. |
+| `^setup/?$` | GET / POST | ADMIN | The setup page and its save: where Bee Flow runs (Bee Flow Cloud or your own server). See [Choose where Bee Flow runs](setup-picker.md). |
+| `^setup/(status\|test\|diagnostics\|…)$` | GET / POST | ADMIN | Status, connection test, diagnostics and the administrator actions of the setup page. |
 | `^hooks/` | POST | PUBLIC (brute-force protected) | Deliveries from Nextcloud's `webhook_listeners` app and from Talk. No user session; the connector checks a secret on each delivery. |
 | `^webhook/` | POST | ADMIN | Legacy user/group sync bridge. Nothing in Nextcloud delivers to it today. |
 | `^nc/` | GET / POST / PUT / DELETE / PATCH / PROPFIND / REPORT / MKCOL / MOVE / COPY | PUBLIC | HMAC-signed reverse proxy back to NC. Nextcloud's PHP proxy only forwards GET, POST, PUT and DELETE, so the Bee Flow service sends every verb except GET and POST as `POST` with `X-HTTP-Method-Override`; the connector restores the real verb. |
@@ -57,14 +57,14 @@ Authenticated: AppAPI sends the shared secret with an empty user id, and a call 
 1. Returns `{"status":"ok"}` within ~50 ms.
 2. Schedules `runInitInBackground()` via `setImmediate`.
 3. Background work in three phases:
-   - **25%** — bootstrap (provision tenant key if `BEEFLOW_TENANT_KEY=auto`).
+   - **25%** — connect to the chosen Bee Flow server (get a tenant key if `BEEFLOW_TENANT_KEY=auto`). While no server is chosen this step does nothing: no request, no file.
    - **60%** — register top-bar entry, embed script, the admin settings form and the Studio app menu entries (parallel).
-   - **100%** — register the Talk bot and, once a tenant key exists, the Task Processing providers, the Files actions and the `webhook_listeners` rows.
+   - **100%** — register the Talk bot once a Bee Flow server is known and, once a tenant key exists, the Task Processing providers, the Files actions and the `webhook_listeners` rows. Init reaches 100 also while no server is chosen.
 4. Errors during background setup → `reportInitProgress(0, errorMessage)` so the AppAPI deploy log surfaces them.
 
 ### `/heartbeat`
 
-Unauthenticated, returns `{status:'ok'}`. Nextcloud requires the connector to respond within 10 minutes of startup. Zero side effects.
+Unauthenticated, returns `{status:'ok'}`. Nextcloud requires the connector to respond within 10 minutes of startup. Zero side effects. While no Bee Flow server is chosen it answers `{status:'ok', bootstrap:'server_not_chosen'}`: the connector is healthy and waits for an administrator.
 
 ### `/enabled?enabled={0|1}`
 
@@ -122,27 +122,41 @@ Verification (server side):
 
 ### Tenant key source
 
+No server means no tenant key in memory, whatever the sources below hold.
+
 | Source | Priority |
 |--------|----------|
-| `BEEFLOW_TENANT_KEY` env var | 1 (highest) — used if not literal `auto` |
-| `${APP_PERSISTENT_STORAGE}/tenant-key.json` | 2 — cached after first bootstrap, file mode `0600` |
-| Bootstrap call to SaaS | 3 — issued on first `/init` |
+| `BEEFLOW_TENANT_KEY` install-time value | 1 (highest) — used if not literal `auto`, once a server is known |
+| `${APP_PERSISTENT_STORAGE}/tenant-key.json` | 2 — written when the chosen server issues the key, file mode `0600` |
+| Bootstrap call to the chosen server | 3 — made when an administrator chooses the server |
+
+## Which Bee Flow server
+
+The connector has no Bee Flow server until an administrator chooses one. At every start the server is worked out once, read-only (`src/serverChoice.js`); the first match wins:
+
+1. **Install-time value** — `BEEFLOW_API_BASE_URL` holds the word `cloud` or the URL of a server. Fixed: it cannot be changed from inside Nextcloud. The address `https://server.beeflow.nl` there is not a choice by itself, and an invalid value is logged and ignored.
+2. **Existing binding** — `tenant-key.json` holds a key (with `BEEFLOW_TENANT_KEY=auto`): the server that issued it (`boundApiBaseUrl`). A file without that field resolves to the saved choice, else Bee Flow Cloud, and gets the field written at that start.
+3. **Saved choice** — `setup-config.json`, written by the setup page or the settings form.
+4. **Key for Cloud** — an explicit `BEEFLOW_TENANT_KEY` next to the address `https://server.beeflow.nl`.
+5. **None** — the connector waits.
+
+While none is chosen, the connector's own embed script and menu icon are served, a page load gets the setup page (the picker for an administrator, a notice for everybody else), and everything else is answered `503` with code `server_not_chosen`: nothing is proxied and no part of the web app is fetched. The setup actions that need a server (`rotate-tenant-key`, `clear-cache`, `apply-pairing-code`, the e-mail code routes, `diagnose`) answer `409` with the same code. `noServerChosen.test.js` proves that no request leaves for a Bee Flow host and no file is written in this state; see the [decision record](../contributing/decisions/connector-no-default-server.md).
 
 ## Bootstrap flow
 
-Triggered on startup and again on `/init` if no cache is found.
+Runs once a server is chosen: when an administrator chooses it, and at every start after that until the connector holds a key.
 
-1. **Skip if explicit** — if `BEEFLOW_TENANT_KEY` is not `auto`, use that key directly.
+1. **Skip if explicit** — if `BEEFLOW_TENANT_KEY` is not `auto`, that key is taken into use directly; no request is made.
 2. **Cache check** — read the persistent file at `APP_PERSISTENT_STORAGE/tenant-key.json`.
 3. **Gather metadata** — anonymous OCS call to fetch the NC version and theming name. Nextcloud publishes no instance id in its capabilities, so the connector derives one from the host of the public Nextcloud URL (`nc-host:<host>`) and keeps it in the tenant-key cache.
 4. **Discover admin**:
    - **Fast path** — `GET /ocs/v2.php/cloud/groups/admin/users`, single round-trip.
    - **Fallback** — walk `/ocs/v2.php/cloud/users` in parallel batches of 5, looking for first user in the `admin` group.
-5. **Call SaaS bootstrap** — `POST {apiBaseUrl}/auth/connector/bootstrap` with NC instance metadata in headers.
-6. **Anti-spoofing** — the SaaS independently re-fetches NC capabilities to confirm the metadata matches.
-7. **Persist** — store the returned `{tenantKey, organizationId, organizationName}` in the cache file.
+5. **Call the server's bootstrap** — `POST {apiBaseUrl}/auth/connector/bootstrap` with the Nextcloud's address, instance id and version, and the administrators' names and e-mail addresses.
+6. **Anti-spoofing** — the server independently re-fetches the Nextcloud's capabilities to confirm the metadata matches.
+7. **Persist** — store the returned `{tenantKey, organizationId, organizationName}` in the cache file, with the server that issued it (`boundApiBaseUrl`).
 
-If any step fails, the connector logs the error and continues; the admin sees "ExApp unhealthy" in NC, which surfaces the misconfiguration.
+If a step fails, the connector records the failure with a category and a remediation text; `/heartbeat`, `GET setup/diagnostics` and the setup page show it.
 
 ## Event subscriptions
 
@@ -157,7 +171,7 @@ Real-time events go through Nextcloud's bundled `webhook_listeners` app (`occ ap
 | Tables (if installed) | `OCA\Tables\Event\Row{Added,Updated,Deleted}Event` | `tables.row.added`, `.updated`, `.deleted` |
 | Deck (if installed) | `OCA\Deck\Event\Card{Created,Updated,Deleted}Event` | `deck.card.created`, `.changed`, `.deleted` |
 
-Each row points at `<public Nextcloud URL>/index.php/apps/app_api/proxy/bee_flow/hooks/nextcloud` and carries a secret header (`X-Beeflow-Hook-Secret`, derived from the tenant key) that the connector checks on delivery. Registration is idempotent: existing rows are updated in place, rows left under an old public URL and duplicates are removed. If `webhook_listeners` is not enabled the connector logs a warning and retries every minute.
+Each row has the relative uri `/hooks/nextcloud` and carries a secret header (`X-Beeflow-Hook-Secret`, derived from the tenant key) that the connector checks on delivery. Nextcloud delivers a row with a relative uri through AppAPI to the connector (directly, or through HaRP), so Nextcloud does not call its own public address and `allow_local_remote_servers` is not needed for push triggers. AppAPI waits 3 seconds for the answer; the connector answers within 2 and finishes forwarding to the Bee Flow server afterwards. Registration is idempotent: existing rows are updated in place, rows registered with an absolute address are rewritten, and duplicates are removed. `GET setup/diagnostics` reports under `webhooks` whether the rows are registered, how many deliveries arrived since the connector started and when the last one came in. If `webhook_listeners` is not enabled the connector logs a warning and retries every minute.
 
 Nextcloud dispatches these deliveries from background jobs, so out of the box the delay is the cron interval (5 minutes). For near-real-time delivery run a dedicated worker:
 
@@ -185,14 +199,26 @@ Set by AppAPI / Dockerfile (you don't normally touch these):
 | `APP_PERSISTENT_STORAGE` | `/data` | Tenant-key cache directory |
 | `NEXTCLOUD_URL` | (required) | Base URL of the NC instance |
 
-Admin-configurable via `occ app_api:app:setenv`:
+Install-time values, declared in `appinfo/info.xml`. Give them in the advanced deploy options at install, or with `occ app_api:app:register bee_flow <daemon> --env NAME=VALUE`. AppAPI stores them and passes them again on every update; to change one, run `occ app_api:app:unregister bee_flow` (without `--rm-data` the data volume is kept) and register again with the new values. A variable left blank is not passed at all, and the connector's default applies.
 
 | Var | Default | Purpose |
 |-----|---------|---------|
-| `BEEFLOW_TENANT_KEY` | `auto` | Tenant key, or literal `auto` for one-click install |
-| `BEEFLOW_API_BASE_URL` | `https://server.beeflow.nl` | Bee Flow service URL — override for staging / on-prem |
-| `BEEFLOW_JWT_TTL_SECONDS` | `300` | JWT expiry (short on purpose) |
-| `BEEFLOW_SIG_SKEW_SECONDS` | `300` | HMAC clock-skew tolerance (±5 min) |
+| `BEEFLOW_TENANT_KEY` | `auto` | Tenant key, or literal `auto`: the chosen server issues one |
+| `BEEFLOW_API_BASE_URL` | (none) | Empty: an administrator chooses after installing. The word `cloud` or a server URL fixes the server |
+| `BEEFLOW_EMBED_BASE_URL` | (none) | Empty: the web app follows the chosen server. A URL forces one web app host |
+| `BEEFLOW_NC_PUBLIC_URL` | (none) | Address at which the Bee Flow server reaches this Nextcloud, when that is not its main URL |
+| `BEEFLOW_PAIRING_CODE` | (none) | One-time code that joins this Nextcloud to an existing organisation |
+| `BEEFLOW_TRUSTED_EMBED_ORIGINS` | (none) | Extra origins that may frame the app |
+| `BEEFLOW_NC_CA_CERT`, `BEEFLOW_NC_TLS_PIN` | (none), `auto` | Trust for a Nextcloud certificate that is self-signed or from an internal CA |
+| `BEEFLOW_SERVER_CA_CERT` | (none) | PEM certificate (or a path to one in the container) of the certificate authority of a self-hosted Bee Flow server. Added to the default authorities, used for the Bee Flow server only; verification stays on |
+| `HTTPS_PROXY`, `NO_PROXY` | (none) | Outbound forward proxy for https connections to the Bee Flow server, and the hosts reached without it. Nextcloud is always reached directly |
+| `BEEFLOW_NC_PROXY_MAX_BODY_MB` | `100` | Largest body of one request from the Bee Flow server into Nextcloud. 0 = no cap |
+| `BEEFLOW_NC_PROXY_MAX_INFLIGHT_MB` | `512` | Upload data all such requests together may hold in memory. 0 = no cap |
+| `BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS` | `60000` | How long the Bee Flow server may take to start answering. 0 = off |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error` |
+| `BEEFLOW_SIG_SKEW_SECONDS` | `300` | HMAC clock-skew tolerance, between 30 and 900 |
+
+Not declared in `info.xml`, so settable only where you start the container yourself (a `manual-install` daemon or `docker run`): `BEEFLOW_RUN_AS`, `BEEFLOW_NC_TLS_PROBE_BUDGET_MS`, `BEEFLOW_UPSTREAM_MAX_SOCKETS`, `BEEFLOW_BOOTSTRAP_RETRY_MS`, `BEEFLOW_STUDIO_MENU_SYNC_SECONDS` and `BEEFLOW_JWT_TTL_SECONDS` (default 300, kept between 30 and 900).
 
 ## Why returning 200 immediately matters
 

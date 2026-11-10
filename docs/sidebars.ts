@@ -312,6 +312,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/assistant-sees-what-the-canvas-shows',
             'contributing/decisions/per-person-adoption-view',
             'contributing/decisions/kb-query-log',
+            'contributing/decisions/connector-no-default-server',
           ],
         },
       ],

@@ -4,13 +4,49 @@ title: "Privacy & data flow"
 
 # Privacy & data flow
 
-When you act on a Nextcloud item, the connector sends the item to the Bee Flow service over TLS. This page is the authoritative description of what's sent, when, and what is **never** sent.
+The connector sends data to one place only: the Bee Flow server a Nextcloud administrator chose, which is Bee Flow Cloud or your own server. This page is the authoritative description of what's sent, when, and what is **never** sent.
 
-## Always sent (on first install + on every login)
+## Before a server is chosen: nothing
 
-- Your Nextcloud user ID, email, display name
-- Group memberships (used to identify your tenant and apply group-based permissions)
-- The NC instance ID and version (used by the SaaS to detect spoofing)
+After installing, the connector has no Bee Flow server. Until an administrator
+[chooses one](setup-picker.md):
+
+- nothing is sent to any Bee Flow server, and no part of the web app is loaded from one;
+- no organisation is created anywhere;
+- the connector does not read the list of administrators, and stores nothing unless an
+  administrator saves something on the setup page.
+
+The connector talks to your own Nextcloud only (its lifecycle calls and registrations, such as the
+top-bar entry and the settings form). An administrator who opens Bee Flow gets the setup page, which the
+connector serves itself; everybody else gets a short notice.
+
+An install-time value in `BEEFLOW_API_BASE_URL` (a server URL, or the word `cloud`) is such a choice,
+made by whoever installs the app.
+
+## Sent when the server is chosen
+
+The setup page shows this before the administrator presses **Connect**, with the host it goes to:
+
+- the names and e-mail addresses of this Nextcloud's administrators;
+- the address of this Nextcloud, its instance id and its version (the server uses them to check that
+  the request comes from that Nextcloud).
+
+The chosen server creates an organisation for this Nextcloud, or joins it to an existing one when a
+pairing code is given, and hands the connector its tenant key. Before any of this, the connector
+asks the chosen address for `/api/health`; when no Bee Flow server answers there, nothing is saved
+and nothing is sent.
+
+A connector that was given a tenant key at install sends no such request: it takes the key into use
+for the chosen server.
+
+## Synchronised after the choice
+
+- Users and groups: user id, e-mail address, display name and group memberships of the Nextcloud
+  accounts, read by the Bee Flow server through the connector. The organisation's administrator sets
+  which groups are synchronised in the onboarding wizard and later under
+  **Settings → Organisation**.
+- On every sign-in: your Nextcloud user id, e-mail address, display name and group memberships (used
+  to identify your organisation and apply group-based permissions).
 
 ## Sent on demand (per user action)
 
@@ -90,7 +126,8 @@ Default detection covers email addresses, phone numbers, IBANs, BSNs (NL), credi
 | Layer | Retention |
 |-------|-----------|
 | Connector RAM | Per-request only — no on-disk caching of fetched items |
-| Connector tenant-key cache | `${APP_PERSISTENT_STORAGE}/tenant-key.json`, mode `0600`. Persists across restarts. Contains: `tenantKey`, `organizationId`, `organizationName`, `cachedAt`. |
+| Connector tenant-key cache | `${APP_PERSISTENT_STORAGE}/tenant-key.json`, mode `0600`. Persists across restarts. Contains: `tenantKey`, `organizationId`, `organizationName`, `boundApiBaseUrl` (the server that issued the key), `cachedAt`. Written only after a server is chosen. |
+| Connector setup choice | `${APP_PERSISTENT_STORAGE}/setup-config.json`, mode `0600`. The chosen server, its web app URL and the public Nextcloud URL, as saved on the setup page. |
 | Bee Flow service (chat history) | As long as the conversation exists (deletable by the user) |
 | Bee Flow service (raw file bodies) | Held only for the duration of the LLM turn unless explicitly indexed into a Knowledge Base |
 | Audit log | 90 days by default; configurable per-org (Enterprise+) |

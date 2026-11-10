@@ -6,6 +6,26 @@ title: Troubleshooting
 
 A reference of common problems with the connector. For each: symptom → cause → fix.
 
+## "Bee Flow is not set up yet" (`server_not_chosen`)
+
+Symptom: users who open Bee Flow read *"Bee Flow is not set up yet. Ask your Nextcloud administrator to open Bee Flow and choose where it runs."* The heartbeat answers `{"status":"ok","bootstrap":"server_not_chosen"}`, calls of the web app answer `503` with the code `server_not_chosen`, and some setup actions answer `409` with the same code.
+
+Cause: this is not a failure. The connector has no Bee Flow server until a Nextcloud administrator chooses one, and it sends nothing before that choice. It is the state of every new install, and of an install that never finished connecting before it was updated to 2.0.0.
+
+Fix: open **Bee Flow** from the top bar as a Nextcloud administrator and choose Bee Flow Cloud or your own server. See [Choose where Bee Flow runs](setup-picker.md).
+
+| Also seen in this state | Why |
+|---|---|
+| `BEEFLOW_API_BASE_URL` holds `https://server.beeflow.nl` and the page says that this address is not a choice | Choose Bee Flow Cloud on the page, or register the app again with the word `cloud` to fix Bee Flow Cloud at install time. |
+| Connect answers "server unreachable" and nothing is saved | The address did not answer `/api/health` from the connector container. Use **Test connection**; from the container: `docker exec nc_app_bee_flow curl -s <your-url>/api/health`. |
+| Connect answers "certificate not trusted" | The server's certificate does not verify. Use a certificate from a public certificate authority, or register the app again with `--env BEEFLOW_SERVER_CA_CERT=<PEM or path>`. Verification cannot be switched off. |
+| A tenant key was given at install but Bee Flow is "not set up yet" | The key came without a server address. Choose the server on the setup page; the key is then taken into use as it is. |
+| A code that was e-mailed before the update is refused | Choose the server; a new code is sent. |
+
+## "Your Nextcloud account has no e-mail address"
+
+Bee Flow needs an e-mail address for every user. An account without one gets this page instead of the app (calls of the web app answer `403` with the code `no_email`). Add an address under **Personal settings** in Nextcloud, or have an administrator set one. Setup, diagnostics and the administrator pages work without an address.
+
 ## Some API calls intermittently stall or fail (only under load)
 
 Symptom: the app mostly works, but **some** requests randomly hang or return `502` — often on page load (when the app fires many requests at once) or while a chat is streaming. Reloading sometimes helps. The connector logs look clean; in the browser **Network** tab a handful of `…/apps/app_api/proxy/bee_flow/…` requests sit in **(pending)** or come back `502`, frequently while a `…/stream` request is open. It "should work exactly the same" for every call — and the connector does treat them identically.
@@ -49,8 +69,12 @@ sudo -u www-data php occ app_api:app:unregister bee_flow      # removes the old 
 sudo -u www-data php occ app_api:app:register bee_flow harp1 \
   --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml \
   --env "BEEFLOW_TENANT_KEY=<captured-tenant-key>" \
-  --env "BEEFLOW_API_BASE_URL=https://server.beeflow.nl" \
+  --env "BEEFLOW_API_BASE_URL=cloud" \
   --env "BEEFLOW_NC_PUBLIC_URL=https://cloud.example.com"
+#    BEEFLOW_API_BASE_URL: the word cloud for Bee Flow Cloud, or the URL of your own
+#    Bee Flow server. A value given here fixes the server: it cannot be changed from
+#    inside Nextcloud afterwards. Without it, the key is taken into use when an
+#    administrator chooses the server on the setup page.
 sudo -u www-data php occ app_api:app:enable bee_flow
 
 # 3. Verify
@@ -86,15 +110,11 @@ After registering, click **Install** in the App Store again — it'll succeed th
 
 Symptom: bee icon shows up, chat works, but a yellow banner appears: *"User sync degraded: SaaS cannot reach this Nextcloud."* Or webhooks are silently never delivered.
 
-Cause: Bee Flow Cloud can't reach your Nextcloud at the URL it was told to use. Common with reverse-proxied or NAT'd instances where `NEXTCLOUD_URL` is an internal hostname.
+Cause: your Bee Flow server can't reach your Nextcloud at the URL it was told to use. Common with reverse-proxied or NAT'd instances where `NEXTCLOUD_URL` is an internal hostname.
 
-Fix: set `BEEFLOW_NC_PUBLIC_URL` to your **public** Nextcloud URL:
+Fix: enter your **public** Nextcloud URL under **Public Nextcloud URL** on the [setup page](setup-picker.md#where-the-setup-page-is). To give it at install time instead, register the app with `--env BEEFLOW_NC_PUBLIC_URL=https://cloud.example.com`.
 
-```bash
-sudo -u www-data php occ app_api:app:setenv bee_flow \
-  BEEFLOW_NC_PUBLIC_URL "https://cloud.example.com"
-sudo -u www-data php occ app_api:app:redeploy bee_flow
-```
+Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly or through a tunnel. A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it.
 
 Verify from outside (your laptop / a phone on cellular):
 
@@ -114,9 +134,12 @@ docker exec nc_app_bee_flow curl -s http://127.0.0.1:23000/heartbeat
 
 | Category | Meaning | Fix |
 |---|---|---|
-| `saas_unreachable` | Connector can't reach the Bee Flow server | Test `curl https://server.beeflow.nl/api/health` from inside the container. Whitelist that hostname in your egress firewall. |
-| `nc_not_publicly_reachable` | SaaS bootstrap check couldn't reach your NC | Set `BEEFLOW_NC_PUBLIC_URL` (see section above), or switch to self-hosted Bee Flow via the setup picker. |
-| `admin_lookup_failed` | No admin user found in NC's `admin` group | `occ user:add --group admin <uid>` then `occ app_api:app:redeploy bee_flow`. |
+| `saas_unreachable` | Connector can't reach the Bee Flow server that was chosen | Test `curl <your Bee Flow server>/api/health` from inside the container (the remediation text names the address). Allow that hostname in your egress firewall; behind a forward proxy, register the app with `--env HTTPS_PROXY=…`. |
+| `saas_cert_untrusted` | The certificate of the Bee Flow server does not verify | A certificate from a public certificate authority, or the install-time value `BEEFLOW_SERVER_CA_CERT` with your own authority's PEM certificate. |
+| `nc_not_publicly_reachable` | The Bee Flow server couldn't reach your Nextcloud (also shown for the server answer `invalid_callback_url`) | Set the public Nextcloud URL (see section above). A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it. |
+| `pairing_required` | The server does not create an organisation by itself | Generate a pairing code in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page. |
+| `version_mismatch` | The server and the connector do not work together in these versions, or the address is the web app's instead of the server's | Update both; check the address. |
+| `admin_lookup_failed` | No admin user found in NC's `admin` group | `occ user:add --group admin <uid>`, then restart the connector container. |
 | `appstore_signature_invalid` | Downloaded tarball signature mismatch (rare) | Uninstall and reinstall from the App Store. |
 
 The next retry is scheduled automatically; you don't need to redeploy unless you've changed the underlying problem.
@@ -152,7 +175,7 @@ sudo -u www-data php occ app_api:app:heartbeat bee_flow
 | `[Bootstrap] capabilities fetch timeout` | Connector can't reach NC | Check `NEXTCLOUD_URL` env. Ping it from inside the container: `docker exec nc_app_bee_flow curl $NEXTCLOUD_URL/status.php`. |
 | `[Bootstrap] admin discovery: no admin found` | NC has no user in the `admin` group | Create one: `occ user:add --group admin alice`. |
 | `[Bootstrap] SaaS responded 401` | Bee Flow service rejected the AppAPI signature | Check clocks (NTP) on both hosts. Verify `BEEFLOW_API_BASE_URL` is reachable. |
-| `[Bootstrap] SaaS responded 409: instance already provisioned` | This NC was bootstrapped before; the tenant-key cache was lost | Recover the key from the SaaS admin UI (or contact support), set `BEEFLOW_TENANT_KEY=<key>` via `occ app_api:app:setenv`. |
+| `[Bootstrap] SaaS responded 409: instance already provisioned` | This NC was bootstrapped before; the tenant-key cache was lost | Ask a Bee Flow organisation admin to generate a pairing code (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page. |
 
 The cache file is at `${APP_PERSISTENT_STORAGE}/tenant-key.json`. If it gets corrupted:
 
@@ -168,7 +191,7 @@ Other users see this until the org admin completes the wizard. If you are the ad
 1. Reload the page (Cmd/Ctrl+Shift+R).
 2. Check **Administration → AppAPI** — Bee Flow should show **Enabled**.
 3. Check the connector logs: `docker logs nc_app_bee_flow --tail 100`.
-4. Hit the SaaS health endpoint: `curl https://server.beeflow.nl/api/health` (or your self-hosted URL).
+4. Hit the health endpoint of the Bee Flow server the connector is on (the setup page shows it): `curl <your Bee Flow server>/api/health`.
 
 If the SaaS health is fine but the wizard still shows "Setup in progress", the tenant-key bootstrap probably ran but the SaaS didn't finish creating the org row. Restart the connector to force re-bootstrap.
 
@@ -194,6 +217,10 @@ File, tag, calendar, Forms, Tables and Deck triggers are delivered by Nextcloud'
 
 Fix: `occ app:enable webhook_listeners`. The connector retries the registration every minute, so no restart is needed. A healthy registration logs `[Webhooks] N registered, M skipped (optional apps), 0 failed`; "skipped" rows belong to apps that are not installed (Forms, Tables, Deck).
 
+Nextcloud delivers these events to the connector through AppAPI, so it does not have to reach its own public address and `allow_local_remote_servers` is not needed for them. A delivery that fails shows in `nextcloud.log` as `Webhook(<id>) call failed`. `GET setup/diagnostics` reports under `webhooks` whether the rows are registered and when the last delivery arrived (counted since the connector started).
+
+If automations fire twice after going back to connector 1.7.0: that version does not recognise the rows 2.0.0 registered and adds a second set. Update the connector again.
+
 If events arrive, but minutes late: Nextcloud sends them from background jobs, so the delay is the cron interval. Run a dedicated worker for near-real-time delivery:
 
 ```
@@ -217,11 +244,14 @@ sudo timedatectl set-ntp true
 sudo systemctl restart systemd-timesyncd
 ```
 
-To loosen the window temporarily (not recommended for prod):
+To loosen the window (not recommended for production), register the app again with the install-time value `BEEFLOW_SIG_SKEW_SECONDS` (30 to 900):
 
 ```bash
-sudo -u www-data php occ app_api:app:setenv bee_flow BEEFLOW_SIG_SKEW_SECONDS 600
+sudo -u www-data php occ app_api:app:unregister bee_flow        # without --rm-data: the data is kept
+sudo -u www-data php occ app_api:app:register bee_flow <daemon> --env BEEFLOW_SIG_SKEW_SECONDS=600
 ```
+
+Give the other install-time values you use in the same command.
 
 ## JWT TTL expired
 
@@ -231,13 +261,7 @@ The connector mints short-lived JWTs (default 300 s) for browser-side calls. If 
 401 Unauthorized: token expired
 ```
 
-…the SPA's token wasn't refreshed in time. The frontend usually auto-refreshes; if it doesn't, hard-reload the page. If it still fails, raise the TTL temporarily:
-
-```bash
-sudo -u www-data php occ app_api:app:setenv bee_flow BEEFLOW_JWT_TTL_SECONDS 600
-```
-
-(The short default is intentional — leaked-token containment.)
+…the SPA's token wasn't refreshed in time. The frontend usually auto-refreshes; if it doesn't, hard-reload the page. The short default is intentional (leaked-token containment). `BEEFLOW_JWT_TTL_SECONDS` (30 to 900) is not an install-time option; it can only be set where you start the connector container yourself.
 
 ## Where to look
 
@@ -258,7 +282,9 @@ sudo -u www-data php occ app_api:app:unregister bee_flow
 sudo -u www-data php occ app_api:app:register bee_flow \
   --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml
 
-# Force a fresh tenant-key bootstrap
+# Force a fresh tenant-key bootstrap. The connector then connects to the server that
+# was saved on the setup page or fixed at install time; with neither, it has no
+# server and an administrator chooses one again.
 docker exec nc_app_bee_flow rm /data/tenant-key.json
 docker restart nc_app_bee_flow
 

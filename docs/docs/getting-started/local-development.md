@@ -112,6 +112,11 @@ To point at a different URL:
 API_BASE_URL=http://host.docker.internal:9000 ./scripts/local-sandbox.sh up
 ```
 
+Without a local server (`WITH_SERVER=0`) and without `API_BASE_URL`, the connector starts with no
+Bee Flow server, exactly like a new install: open Bee Flow as `admin` and the setup page asks where
+it runs. `./scripts/local-sandbox.sh up --cloud` fixes the connector on Bee Flow Cloud instead (it
+passes `BEEFLOW_API_BASE_URL=cloud`) and starts a public tunnel.
+
 ---
 
 ## Path B — manual setup
@@ -270,16 +275,18 @@ If that hangs, your Docker network setup doesn't have `host-gateway` mapping. Th
 
 ### Stuck "Setup in progress" forever
 
-The SPA polls `/api/...` against the configured `BEEFLOW_API_BASE_URL`. With the default `http://host.docker.internal:3101` and no Bee Flow server running, it'll never resolve.
+The SPA polls `/api/...` against the Bee Flow server the connector is on. When that is a local address and no Bee Flow server is running there, it'll never resolve.
 
-Fix: either run the Bee Flow server locally on `:3101`, or override:
+Fix: run the Bee Flow server locally, or register the app again with another server. `BEEFLOW_API_BASE_URL` is an install-time value: AppAPI stores it and passes it again on every update, so it is changed by registering again.
 
 ```bash
+docker exec -u www-data bee-flow-nc-sandbox php occ app_api:app:unregister bee_flow
 docker exec -u www-data bee-flow-nc-sandbox php occ \
-    app_api:app:setenv bee_flow BEEFLOW_API_BASE_URL https://server.beeflow.nl
+    app_api:app:register bee_flow manual_dev --info-xml /tmp/info.xml \
+    --env "BEEFLOW_API_BASE_URL=cloud"        # or the URL of a Bee Flow server
 ```
 
-…and restart the connector container.
+Leave `BEEFLOW_API_BASE_URL` out to choose on the setup page instead. With the sandbox script: `API_BASE_URL=<url> FORCE=1 ./scripts/local-sandbox.sh up`.
 
 ### Wiped sandbox after testing
 
@@ -299,21 +306,17 @@ docker rmi  bee-flow-connector:dev
 
 ## Pointing at a real Bee Flow server
 
-Once you have the local install working, swap the dummy tenant key for the bootstrap flow against a real Bee Flow service:
+Once you have the local install working, register the app again without the dummy tenant key, so the server you choose issues a real one:
 
 ```bash
-# Remove the dummy key, switch to "auto"
-docker exec -u www-data bee-flow-nc-sandbox php occ \
-    app_api:app:setenv bee_flow BEEFLOW_TENANT_KEY auto
+docker exec -u www-data bee-flow-nc-sandbox php occ app_api:app:unregister bee_flow --rm-data
 
-# Point at server.beeflow.nl (or your self-hosted server)
+# No BEEFLOW_TENANT_KEY (it defaults to "auto") and no BEEFLOW_API_BASE_URL:
 docker exec -u www-data bee-flow-nc-sandbox php occ \
-    app_api:app:setenv bee_flow BEEFLOW_API_BASE_URL https://server.beeflow.nl
-
-docker restart nc_app_bee_flow
+    app_api:app:register bee_flow manual_dev --info-xml /tmp/info.xml
 ```
 
-The connector now bootstraps a real tenant key against the SaaS on next start. Watch the logs:
+Open Bee Flow as `admin` and choose Bee Flow Cloud or your own server on the setup page. Nothing is sent before that choice; after it the connector gets its tenant key from the chosen server. (To fix the server at install time instead, add `--env "BEEFLOW_API_BASE_URL=cloud"` or `--env "BEEFLOW_API_BASE_URL=<your server URL>"`.) Watch the logs:
 
 ```bash
 docker logs nc_app_bee_flow -f | grep -i bootstrap

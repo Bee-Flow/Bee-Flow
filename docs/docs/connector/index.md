@@ -4,7 +4,11 @@ title: Nextcloud connector
 
 # Nextcloud connector
 
-The connector is the Nextcloud ExApp that bridges your Nextcloud to the Bee Flow service. It runs as a Docker container next to your Nextcloud, deployed and managed by [AppAPI](https://apps.nextcloud.com/apps/app_api).
+The connector is the Nextcloud ExApp that bridges your Nextcloud to a Bee Flow server. It runs as a Docker container next to your Nextcloud, deployed and managed by [AppAPI](https://apps.nextcloud.com/apps/app_api).
+
+It requires AppAPI with a Docker deploy daemon; [HaRP](../getting-started/nextcloud.md#2d-harp-recommended-for-nextcloud-32) is recommended. It cannot be installed on managed or shared hosting without Docker.
+
+**The connector has no Bee Flow server until an administrator chooses one.** After installing, a Nextcloud administrator opens Bee Flow and [chooses where it runs](setup-picker.md): Bee Flow Cloud or your own server. Until then nothing is sent to any Bee Flow server.
 
 - **Source**: [github.com/Bee-Flow/connector](https://github.com/Bee-Flow/connector)
 - **License**: AGPL-3.0-or-later
@@ -49,13 +53,13 @@ The connector is the Nextcloud ExApp that bridges your Nextcloud to the Bee Flow
                     │                 │
                     ▼                 ▼
         ┌────────────────────┐  ┌──────────────────┐
-        │  Bee Flow service  │  │  Nextcloud APIs  │
-        │  server.beeflow.nl or │  │  Files / Mail /  │
-        │  self-hosted       │  │  Calendar / ...  │
+        │  Bee Flow server   │  │  Nextcloud APIs  │
+        │  the one chosen:   │  │  Files / Mail /  │
+        │  Cloud or your own │  │  Calendar / ...  │
         └────────────────────┘  └──────────────────┘
 ```
 
-The connector and Nextcloud always sit on the same network. The connector talks to the Bee Flow service over the public internet (or a private network if you self-host both).
+The connector and Nextcloud always sit on the same network. The connector talks to the chosen Bee Flow server over the public internet (or a private network if you self-host both). While no server is chosen, the lower-left box does not exist: the connector serves its own setup page and talks to Nextcloud only.
 
 ## Supported Nextcloud versions
 
@@ -75,10 +79,11 @@ The supported range is declared in [`appinfo/info.xml`](https://github.com/Bee-F
 
 ## Trust model in one paragraph
 
-The connector trusts AppAPI's shared secret on every inbound `/init`, `/enabled`, `/api/*`, `/auth/*`, `/setup/*`, `/webhook/*` request; `/heartbeat` is the one route it answers without it, and there it discloses only liveness and a coarse setup state. It trusts an HMAC signed with the tenant key on every inbound `/nc/*` request from the Bee Flow service. It trusts no other input. Outbound, it signs every request to the Bee Flow service with the same tenant-key HMAC, and signs every NC OCS / DAV call with AppAPI's user-impersonation header. There is no shared secret beyond the AppAPI app secret (set by Nextcloud) and the tenant key (provisioned at first install).
+The connector trusts AppAPI's shared secret on every inbound `/init`, `/enabled`, `/api/*`, `/auth/*`, `/setup/*`, `/webhook/*` request; `/heartbeat` is the one route it answers without it, and there it discloses only liveness and a coarse setup state. It trusts an HMAC signed with the tenant key on every inbound `/nc/*` request from the Bee Flow service. It trusts no other input. Outbound, it signs every request to the Bee Flow service with the same tenant-key HMAC, and signs every NC OCS / DAV call with AppAPI's user-impersonation header. There is no shared secret beyond the AppAPI app secret (set by Nextcloud) and the tenant key (issued by the Bee Flow server an administrator chose, when the connector connects to it).
 
 ## Deeper reading
 
+- [Choose where Bee Flow runs](setup-picker.md) — the setup page, the install-time value, and how the server is resolved.
 - [Architecture](architecture.md) — full request-flow diagrams, lifecycle, HMAC spec.
 - [Permissions & scopes](permissions.md) — exactly what data leaves your tenant.
 - [Privacy & data flow](privacy.md) — what's sent to the Bee Flow service and when.

@@ -2,9 +2,11 @@
 
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
 
-ExApp / AppAPI connector that lets a Nextcloud instance host the Bee Flow workspace UI and forward authenticated requests to the Bee Flow SaaS.
+ExApp / AppAPI connector that lets a Nextcloud instance host the Bee Flow workspace UI and forward authenticated requests to a Bee Flow server: Bee Flow Cloud or your own.
 
-App ID: `bee_flow` · Compatible with Nextcloud 33–35 · Requires the AppAPI shipped with those releases.
+App ID: `bee_flow` · Compatible with Nextcloud 33–35 · Requires the AppAPI shipped with those releases, with a Docker deploy daemon (HaRP recommended). Not installable on managed or shared hosting without Docker.
+
+**The connector has no Bee Flow server until an administrator chooses one.** After installing, a Nextcloud administrator opens Bee Flow and chooses where it runs. Until then nothing is sent to any Bee Flow server.
 
 > AppAPI stopped publishing standalone versions after 3.2.0 and now versions in
 > lockstep with the Nextcloud major (32.0.0, 33.0.0, …), so "AppAPI ≥ 3.2" no
@@ -14,13 +16,13 @@ App ID: `bee_flow` · Compatible with Nextcloud 33–35 · Requires the AppAPI s
 ## Architecture
 
 ```
-Customer Nextcloud  ──► bee-flow-connector (this) ──► server.beeflow.nl
-   (AppAPI signed                JWT (5 min,
-    request, OCS user           HS256, signed
-    lookup)                     with tenant key)
+Your Nextcloud  ──► bee-flow-connector (this) ──► the Bee Flow server
+   (AppAPI signed                JWT (5 min,          an administrator chose
+    request, OCS user           HS256, signed         (Bee Flow Cloud or
+    lookup)                     with tenant key)       your own)
 ```
 
-The connector is the only thing the Nextcloud App Store sees. The hosted SaaS at `server.beeflow.nl` stays proprietary and is reached only via the JWT-bearer proxy.
+The connector is the only thing the Nextcloud App Store sees. The Bee Flow server is reached only via the JWT-bearer proxy, and only once it has been chosen.
 
 ## Local development
 
@@ -40,14 +42,16 @@ HARP=1 ./scripts/local-sandbox.sh up      # or: ./scripts/local-sandbox.sh up --
 
 The default sandbox reaches the connector through Nextcloud's AppAPI PHP proxy, which buffers every response until the ExApp is done (Nextcloud builds Guzzle with the synchronous `CurlHandler`), so SSE streams — chat, the builder — land in one burst at the end. `HARP=1` reproduces the production shape instead: a [HaRP](#deployment-modes-harp-vs-docker-socket-proxy) container (`bee-flow-harp`) plus an nginx front door (`bee-flow-nc-front`) on `:8080` that sends `/exapps/` to HaRP and everything else to Nextcloud, while the connector dials out over the FRP tunnel and publishes no port. What changes: Nextcloud stops publishing the host port (an existing sandbox is migrated onto the same volume), a `bee_flow_harp` daemon replaces `manual_dev`, the shared key lives in `.sandbox/harp.key` (gitignored), and the tenant key is cached in the `bee-flow-connector-data` volume so recreates don't re-provision an org. A plain `up` switches back. `clean` keeps the two volumes unless `FULL_CLEAN=1`. Both modes now also run a `bee-flow-nc-worker` sidecar (webhook + cron jobs) and set `allow_local_remote_servers`, without which Nextcloud refuses to call the connector at all ("violates local access rules").
 
-## Switching between Bee Flow Cloud and a self-hosted server
+## Choosing Bee Flow Cloud or a self-hosted server
 
-The connector ships with a small built-in picker page where an admin chooses where API traffic goes. Two big cards: **Bee Flow Cloud** (recommended) or **Self-hosted server** (paste your own URL, test it, save).
+A new install is connected to nothing. The first time a Nextcloud administrator opens **Bee Flow** from the top bar, the connector's own setup page asks where Bee Flow runs. Two cards, nothing preselected: **Bee Flow Cloud** or **Self-hosted server** (your own URL, optionally a pairing code). Everybody else reads "Bee Flow is not set up yet" until then.
 
-Reach the picker at:
+Before **Connect** the page shows what connecting sends and to which host: the names and e-mail addresses of the Nextcloud's administrators, its address, instance id and version. On a first choice the connector asks the address for `/api/health` first; when no Bee Flow server answers, nothing is saved and nothing is sent.
 
-- Embedded inside Nextcloud: `http://<your-nc>/index.php/apps/app_api/embedded/bee_flow/setup`
-- Direct to the connector: `http://localhost:23000/setup` (host-only)
+After the choice, an administrator reaches the page at:
+
+- HaRP: `https://<your-nc>/exapps/bee_flow/setup`
+- Other deploy daemons: `https://<your-nc>/index.php/apps/app_api/proxy/bee_flow/setup`
 
 To fix the server at install time instead, give it as an install-time value:
 
@@ -56,7 +60,7 @@ sudo -u www-data php occ app_api:app:register bee_flow <daemon> \
     --env BEEFLOW_API_BASE_URL=<your Bee Flow server URL>     # or the word: cloud
 ```
 
-An install-time value takes precedence over the picker and cannot be changed from inside Nextcloud — useful for IaC / GitOps lockdown. To change it, register the app again (`occ app_api:app:unregister bee_flow` without `--rm-data` keeps the data). See [the docs](https://bee-flow.github.io/docs/connector/setup-picker/) for the full flow.
+Left empty, the administrator chooses. An install-time value takes precedence over the setup page and cannot be changed from inside Nextcloud — useful for IaC / GitOps lockdown. For Bee Flow Cloud use the word `cloud`; the address `https://server.beeflow.nl` in that variable is not a choice by itself. To change the value, register the app again (`occ app_api:app:unregister bee_flow` without `--rm-data` keeps the data). An install that is already connected keeps its server across updates. See [the docs](https://docs.beeflow.ai/connector/setup-picker) for the full flow.
 
 Subcommands:
 
@@ -100,12 +104,15 @@ inbound port), binds a unix socket instead of TCP, and — the part that matters
 operationally — clients reach it on `/exapps/<app_id>/`, **bypassing Nextcloud's
 PHP entirely**.
 
-That bypass is not a micro-optimisation. AppAPI's PHP proxy streams responses
-with `RequestOptions::TIMEOUT => 0` and `fpassthru`, so **every open SSE chat
-stream occupies one PHP-FPM worker for its whole lifetime**. A few dozen
-concurrent chats can exhaust the pool and take the entire Nextcloud instance
-down with them — not just Bee Flow. WebSockets are not supported through the PHP
-proxy at all.
+That bypass is not a micro-optimisation. AppAPI's PHP proxy keeps each request
+open without a timeout (`RequestOptions::TIMEOUT => 0`) until the ExApp is done
+and only then passes the body on. So on a Docker Socket Proxy or
+`manual-install` daemon two things hold at once: a streamed answer (chat, the
+builder) reaches the browser in one burst at the end, and **every open stream
+occupies one PHP-FPM worker for its whole lifetime**. A few dozen concurrent
+chats can exhaust the pool and take the entire Nextcloud instance down with
+them — not just Bee Flow. WebSockets are not supported through the PHP proxy at
+all. This is the reason to move such an install to HaRP.
 
 ### Reverse-proxy settings HaRP needs
 

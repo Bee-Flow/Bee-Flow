@@ -10,9 +10,11 @@ This page walks an admin through installing the Bee Flow connector via the Nextc
 
 - Nextcloud 33, 34 or 35
 - [AppAPI](https://apps.nextcloud.com/apps/app_api) installed and enabled
-- A deployment daemon configured (HaRP **or** `manual-install`)
+- A Docker deploy daemon configured (HaRP recommended). Bee Flow cannot be installed on managed or
+  shared hosting without Docker
 - Admin permissions on the Nextcloud instance
-- Outbound HTTPS to `ghcr.io` (image pull) and `server.beeflow.nl` (or your self-hosted Bee Flow server)
+- Outbound HTTPS to `ghcr.io` (image pull) and to the Bee Flow server you choose after installing:
+  `server.beeflow.nl` for Bee Flow Cloud, or your own server
 - Nextcloud served over HTTPS: the embedded Bee Flow sign-in uses the browser's Web Crypto API, which
   browsers offer only on secure pages
 
@@ -98,14 +100,17 @@ sudo docker exec --user www-data nextcloud-aio-nextcloud \
 
 ### 2c. Behind reverse proxy or NAT
 
-If your Nextcloud is reached via a public URL (e.g. `https://cloud.example.com`) but lives on a private network, Bee Flow Cloud needs a publicly resolvable callback URL for user-sync webhooks. Set `BEEFLOW_NC_PUBLIC_URL` on the ExApp **before** the install so the bootstrap handshake registers the right callback:
+If your Nextcloud is reached via a public URL (e.g. `https://cloud.example.com`) but lives on a private network, the Bee Flow server needs that public URL to call your Nextcloud back. Give it in one of two ways:
 
-```bash
-sudo -u www-data php occ app_api:app:setenv bee_flow \
-  BEEFLOW_NC_PUBLIC_URL "https://cloud.example.com"
-```
+- On the setup page, under **Public Nextcloud URL**, before or after you choose the server. A value saved before the choice is used when the server is chosen.
+- As an install-time value (the advanced deploy options, or on the command line):
 
-If you forget this, the install still completes but user-sync webhooks fail silently and Bee Flow shows a yellow "user sync degraded" banner. You can set it any time after the install and run `app_api:app:redeploy bee_flow` to apply.
+  ```bash
+  sudo -u www-data php occ app_api:app:register bee_flow <daemon> \
+    --env BEEFLOW_NC_PUBLIC_URL=https://cloud.example.com
+  ```
+
+Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly or through a tunnel. A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it.
 
 ### 2d. HaRP (recommended for Nextcloud 32+)
 
@@ -156,6 +161,8 @@ sudo -u www-data php occ app_api:app:register \
 
 AppAPI pulls the connector image from `ghcr.io/bee-flow/connector:latest` and starts a container next to your Nextcloud. The first install typically takes **30–60 seconds** end-to-end on a stock VPS.
 
+The install connects to nothing. The deploy options have a field **Bee Flow server (optional)**: leave it empty, and an administrator chooses after installing (step 5). Fill it in only to fix the server at install time: the URL of your own Bee Flow server, or the word `cloud` for Bee Flow Cloud (on the command line: `--env BEEFLOW_API_BASE_URL=cloud`). A value given there cannot be changed from inside Nextcloud.
+
 ![App Store listing](../img/screenshots/getting-started/nextcloud-app-store/)
 
 ## 4. Verify the install
@@ -165,19 +172,19 @@ After AppAPI reports the install as successful:
 ```bash
 # Heartbeat from Nextcloud's perspective
 sudo -u www-data php occ app_api:app:heartbeat bee_flow
-# → {"status":"ok"}
+# → {"status":"ok","bootstrap":"server_not_chosen"}   until an administrator chooses a server
+# → {"status":"ok"}                                   once connected
 
 # Direct heartbeat from the host (if reachable)
 curl http://localhost:23000/heartbeat
-# → {"status":"ok"}
 
 # Container logs
 docker logs nc_app_bee_flow --tail 50
-# → [Webhooks] 12 registered, 4 skipped (optional apps), 0 failed
+# → [ServerChoice] No Bee Flow server chosen; nothing is sent until an administrator chooses one
 # → [Init] Background setup completed in 4210ms
 ```
 
-A **bee icon** should now appear in your Nextcloud top bar.
+A **bee icon** should now appear in your Nextcloud top bar. The webhook rows of step 4a are registered once Bee Flow is connected (step 5).
 
 ![Top-bar icon](../img/screenshots/getting-started/nextcloud-topbar/)
 
@@ -198,7 +205,7 @@ app being enabled. Check them with:
 sudo -u www-data php occ webhook_listeners:list
 ```
 
-You should see rows pointing at `.../apps/app_api/proxy/bee_flow/hooks/nextcloud`.
+You should see rows with the uri `/hooks/nextcloud`, once Bee Flow is connected. Nextcloud delivers them to the connector through AppAPI; it does not call its own public address for them.
 
 ### Make delivery fast
 
@@ -314,11 +321,24 @@ it and the feature would break. Use the Bee Flow meeting-notes pipeline for
 recordings in the meantime.
 :::
 
-## 5. First-time consent
+## 5. Choose where Bee Flow runs
+
+Open **Bee Flow** from the top bar as a Nextcloud administrator. The setup page offers two cards:
+**Bee Flow Cloud** (hosted by Bee Flow B.V. in the Netherlands) or **Self-hosted server** (the URL of
+[your own Bee Flow server](../self-hosting/docker-compose.md), with an optional pairing code).
+
+Before you press **Connect**, the page shows what connecting sends and to which host: the names and
+e-mail addresses of the Nextcloud's administrators, its address, instance id and version. Nothing is
+sent before that. Until an administrator has chosen, everybody else reads "Bee Flow is not set up
+yet."
+
+More in [Choose where Bee Flow runs](../connector/setup-picker.md).
+
+## 6. First-time consent
 
 The first time **each user** opens Bee Flow they see a privacy-disclosure modal. Read, then **I agree — start Bee Flow**. Acceptance is recorded server-side so the modal never reappears for that user (unless the consent text version changes).
 
-## 6. First-time admin wizard
+## 7. First-time admin wizard
 
 The first time the **organisation admin** opens Bee Flow, a 4-step wizard runs covering user-sync mode, default integrations, privacy shield level, and an optional licence key. Other users see a "Setup in progress" screen until the admin finishes.
 
@@ -345,7 +365,7 @@ sudo -u www-data php occ app_api:app:update bee_flow
 sudo -u www-data php occ app_api:app:unregister bee_flow
 ```
 
-This stops the container, removes it, and cleans up the AppAPI registration. The Bee Flow tenant is **not** deleted automatically — your data on the Bee Flow server (or hosted SaaS) stays until you delete the organisation explicitly via **Settings → Organisation → Danger zone**.
+This stops the container, removes it, and cleans up the AppAPI registration. Without `--rm-data` the connector's data volume is kept, so installing again finds the same server and binding; with `--rm-data` the connector starts again without a Bee Flow server. The organisation is **not** deleted either way — your data stays on the Bee Flow server that was chosen until you delete the organisation explicitly via **Settings → Organisation → Danger zone**.
 
 ## Troubleshooting
 
