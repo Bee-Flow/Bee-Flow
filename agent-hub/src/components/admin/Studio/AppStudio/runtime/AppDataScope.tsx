@@ -6,7 +6,7 @@ import { DataProvider, useDataState } from './DataContext';
 import type { DataState } from './DataContext';
 import { dataCacheKey, resolveBinding, resolveBindingFilters, resolveBindingParams, resolveBindingShape } from './resolveBinding';
 import type { BindingInput, ConnectorBinding, DataBinding as RecordsBinding } from './resolveBinding.types';
-import useAppDataSource from './useAppDataSource';
+import useAppDataSource, { MIN_REFRESH_MS } from './useAppDataSource';
 
 /**
  * App Studio runtime — the live-data scope.
@@ -168,6 +168,16 @@ export function collectDataBindings(definition: ScopeDefinition | null | undefin
 }
 
 /**
+ * A component's `liveSeconds` as a polling interval. The spec offers 2, 5, 10
+ * and 30, but the read budget (see MIN_REFRESH_MS) makes anything faster than
+ * the floor unusable, and the data hook ignores such an interval altogether:
+ * those values used to mean "never refresh". They poll at the floor instead.
+ */
+export function liveIntervalMs(seconds: number) {
+    return Math.max(seconds * 1000, MIN_REFRESH_MS);
+}
+
+/**
  * One hidden fetcher per binding — mirrors its react-query lifecycle into the
  * store. Dynamic filter values resolve against the live scope HERE (the
  * fetcher layer), so collectDataBindings stays static and useAppDataSource
@@ -191,9 +201,10 @@ function BindingFetcher({ binding, sample, scope, refreshMs, live }: {
     // whether it runs at all — re-evaluated on every render, so the polling
     // stops the moment the thing it was watching finishes.
     const ownMs = useMemo(() => {
-        if (!live || !live.seconds) return 0;
-        if (live.when == null) return live.seconds * 1000;
-        return resolveBinding(live.when, { scope }).value ? live.seconds * 1000 : 0;
+        // Only a positive interval polls: a stray negative value never did and still does not.
+        if (!live || !(live.seconds > 0)) return 0;
+        if (live.when != null && !resolveBinding(live.when, { scope }).value) return 0;
+        return liveIntervalMs(live.seconds);
     }, [live, scope]);
     useAppDataSource(resolved, { sample, refreshMs: ownMs || refreshMs });
     return null;

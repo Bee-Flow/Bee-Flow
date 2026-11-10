@@ -1,15 +1,16 @@
-import { tryEvaluate } from '@shared/expr/engine.mjs';
 import React, { useEffect, useEffectEvent, useState } from 'react';
 import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import AppIcon from '@/components/icons/AppIcon';
 import { useFormContext } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
+import { evalVisibility } from '../nodeVisibility';
 import { useRuntime, type ExpressionScope } from '../RuntimeContext';
 import { roleTextColor } from '../styleResolver';
 import { isFill } from '../styleResolver.helpers';
 import { ROLE_COLORS } from '../styleResolver.constants';
-import type { BindingInput, FormulaBinding } from '../resolveBinding.types';
+import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
+import type { FlagInput } from '../AppRenderer.types';
 import { ActionState } from '../actionRunner/core';
 import { DataState } from '../DataContext';
 
@@ -27,8 +28,8 @@ interface TabDef {
     id?: string;
     props?: TabProps;
     children?: TabDef[];
-    visible?: boolean | FormulaBinding;
-    visibleWhen?: unknown;
+    visible?: FlagInput;
+    visibleWhen?: FlagInput;
     visibleToRoles?: unknown;
 }
 
@@ -95,18 +96,9 @@ export function tabBadgeContent(raw: unknown) {
     return String(raw);
 }
 
-/** Mirror of AppRenderer's evalVisibility — visibleWhen wins over `visible`. */
+/** The same visibility read AppRenderer applies to the panel (visibleWhen wins over `visible`). */
 function isHidden(tab: TabDef, scope: Partial<ExpressionScope>) {
-    if (typeof tab.visibleWhen === 'string' && tab.visibleWhen.trim()) {
-        return !tryEvaluate(tab.visibleWhen, scope).value;
-    }
-    const v = tab.visible;
-    if (v === false) return true;
-    if (v && typeof v === 'object') {
-        const expr = v.expr ?? v.value;
-        if (typeof expr === 'string' && expr.trim()) return !tryEvaluate(expr, scope).value;
-    }
-    return false;
+    return evalVisibility(tab, scope as ExpressionScope).hidden;
 }
 
 export default function AppTabs({ node, children }: NodeProps<TabProps>) {

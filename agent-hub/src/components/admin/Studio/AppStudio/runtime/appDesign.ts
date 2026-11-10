@@ -78,6 +78,9 @@ export function appDesignProps(definition?: { design?: AppDesign; [key: string]:
         // Only the non-default is stamped, so an app that never chose keeps a
         // byte-identical root and the CSS below never matches.
         if (d.accentEdge === 'none') classes.push('app-design--edge-none');
+        // 'subtle' is the base motion. 'full' is stored by two presets and kept
+        // valid, but no CSS rule reads .app-motion--full: it behaves exactly
+        // like 'subtle' (the class is only a hook for a future, richer value).
         if (d.motion === 'none') classes.push('app-motion--none');
         else if (d.motion === 'full') classes.push('app-motion--full');
         const stack = FONT_STACKS[d.font];
