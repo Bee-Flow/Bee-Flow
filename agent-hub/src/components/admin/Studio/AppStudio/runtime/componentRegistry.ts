@@ -47,7 +47,8 @@ import {
 } from 'lucide-react';
 import type { NodeStyle } from '../inspector/appDefinition';
 import { types as catalogTypes } from './catalogSnapshot.generated.json';
-import type { ComponentRenderer, RegistryEntry } from './componentRegistry.types';
+import { COMPONENT_EXTENSION_MODULES, collectComponentExtensions } from './componentExtensions';
+import type { ComponentRenderer, ComponentExtension, RegistryEntry } from './componentRegistry.types';
 import AppAiChat from './components/AppAiChat';
 import AppApprovalList from './components/AppApprovalList';
 import AppBadgeList from './components/AppBadgeList';
@@ -119,6 +120,7 @@ interface CatalogType {
     category: string;
     container?: boolean;
     isInput?: boolean;
+    since?: number;
     defaultProps: Record<string, unknown>;
     defaultStyle: NodeStyle;
 }
@@ -191,7 +193,12 @@ const RENDERERS: Record<string, ComponentRenderer> = {
     ...DOCUMENT_COMPONENT_TYPES,
 };
 
-function registryEntry(renderer: ComponentRenderer, spec: CatalogType): RegistryEntry {
+/** Types added after the base (components/registry/<type>.ts), after the base in file-name order. */
+const EXTENSIONS: Record<string, ComponentExtension> = collectComponentExtensions(
+    COMPONENT_EXTENSION_MODULES, CATALOG, Object.keys(RENDERERS),
+);
+
+function registryEntry(renderer: ComponentRenderer | ComponentExtension, spec: CatalogType): RegistryEntry {
     return {
         Component: renderer.Component,
         label: spec.label,
@@ -201,11 +208,12 @@ function registryEntry(renderer: ComponentRenderer, spec: CatalogType): Registry
         ...(spec.isInput ? { isInput: true } : {}),
         defaultProps: spec.defaultProps,
         defaultStyle: spec.defaultStyle,
+        ...('sample' in renderer ? { sample: renderer.sample } : {}),
     };
 }
 
 export const APP_COMPONENT_TYPES: Record<string, RegistryEntry | undefined> = Object.fromEntries(
-    Object.entries(RENDERERS).flatMap(([type, renderer]) => {
+    Object.entries({ ...RENDERERS, ...EXTENSIONS }).flatMap(([type, renderer]) => {
         const spec = CATALOG[type];
         return spec ? [[type, registryEntry(renderer, spec)]] : [];
     }),

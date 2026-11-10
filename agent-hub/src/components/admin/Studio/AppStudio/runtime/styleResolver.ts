@@ -16,6 +16,7 @@
 import type { InlineStyle, ResolvedNodeStyle, StyleKnobs, StyledNode } from './styleResolver.types';
 import { SPACE_STEP_PX, ROLE_COLORS, HEX_RE, RADIUS_VALUES, ALIGN_VALUES, WEIGHT_VALUES, SIZE_FONT, HEIGHT_PX, FLEX_FILL, SOFT_PRIMARY_GRADIENT, HIDE_BANDS } from './styleResolver.constants';
 import { sizeNumber, resolveHeightCss } from './styleResolver.helpers';
+import { STYLE_KNOB_HANDLERS, applyStyleKnobHandlers } from './styleKnobHandlers';
 export { isFill, fillRowTemplate, resolveHeightCss } from './styleResolver.helpers';
 export { SPACE_STEP_PX, ROLE_COLORS, HEIGHT_PX, FLEX_FILL, SOFT_PRIMARY_GRADIENT } from './styleResolver.constants';
 
@@ -281,9 +282,12 @@ export function resolveNodeStyle(node?: StyledNode | null): ResolvedNodeStyle {
     // responsive move available to runtime.css was the all-or-nothing phone
     // stack: between 640px and a full desktop every span stayed literal and a
     // quarter-width column was 180px of squeezed text.
+    // Knob groups added after the base (styleKnobHandlers.ts) come last and only run for
+    // a style that sets one of their knobs.
     const className = `app-node min-w-0 app-span-${clampSpan(s.span)}`
         + hideClasses(s)
-        + (background === 'var(--bg-card)' ? ' app-surface' : '');
+        + (background === 'var(--bg-card)' ? ' app-surface' : '')
+        + applyStyleKnobHandlers(STYLE_KNOB_HANDLERS, s, style, 'node');
     return { className, style };
 }
 
@@ -339,6 +343,7 @@ export function resolveSectionStyle(section?: StyledNode | null): ResolvedNodeSt
         className += ' app-surface';
         style.boxShadow = 'var(--app-shadow-1, none)';
     }
+    className += applyStyleKnobHandlers(STYLE_KNOB_HANDLERS, s, style, 'section');
     return { className, style };
 }
 
