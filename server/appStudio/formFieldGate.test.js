@@ -101,6 +101,33 @@ test('an action the form reaches through call_action is covered too, at any dept
     assert.equal(gatedFormFieldNames(def, 'act_alone', as('member')).size, 0);
 });
 
+test('an action a component outside the forms also starts keeps its bag (a row may share a field name)', () => {
+    const gatedForm = form([input('title'), input('approvedBy', { visibleToRoles: ['admin'] })]);
+    const row = { id: 'r1', title: 'Laptop', approvedBy: 'someone' };
+    const grid = { id: 'grid', type: 'data_grid', props: { rowActions: [{ label: 'Save', actionId: 'act_save' }] } };
+    assert.equal(visibleFormValues(defOf([gatedForm, grid]), 'act_save', 'member', row), row, 'rowActions');
+    const list = { id: 'lst', type: 'list', props: {}, onRowClick: 'act_save' };
+    assert.equal(visibleFormValues(defOf([gatedForm, list]), 'act_save', 'member', row), row, 'onRowClick');
+    const loose = { id: 'sel', type: 'input_select', props: { name: 'approvedBy' }, onChange: 'act_save' };
+    assert.equal(visibleFormValues(defOf([gatedForm, loose]), 'act_save', 'member', row), row, 'a field outside any form');
+    const inner = form([input('approvedBy', { visibleToRoles: ['admin'] }), { ...grid, id: 'grid_in' }]);
+    assert.equal(visibleFormValues(defOf([inner]), 'act_save', 'member', row), row, 'a row component inside the form');
+    const actions = {
+        act_row: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'act_save', params: {} }] },
+        act_save: { kind: 'sequence', steps: [] },
+    };
+    const viaCall = { ...grid, props: { rowActions: [{ label: 'Save', actionId: 'act_row' }] } };
+    assert.equal(visibleFormValues(defOf([gatedForm, viaCall], actions), 'act_save', 'member', row), row, 'through call_action');
+});
+
+test('a button (empty bag) does not lift the gate, inside or outside the form', () => {
+    const def = defOf([
+        form([input('title'), input('approvedBy', { visibleToRoles: ['admin'] }), { id: 'b_in', type: 'button', props: {}, onClick: 'act_save' }]),
+        { id: 'b_out', type: 'button', props: {}, onClick: 'act_save' },
+    ]);
+    assert.deepEqual(visibleFormValues(def, 'act_save', 'member', VALUES), { title: 'Laptop', amount: 1200 });
+});
+
 test('a bag that is not a plain object, or that holds no gated name, comes back as it is', () => {
     const def = defOf([form([input('approvedBy', { visibleToRoles: ['admin'] })])]);
     const clean = { title: 'x' };

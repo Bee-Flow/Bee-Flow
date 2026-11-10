@@ -14,9 +14,13 @@
  * a visible field in none. Two variants of one field, one per role, therefore keep their value
  * for both roles.
  *
+ * Only actions that forms alone start are read. When a component outside the forms also starts
+ * the action (a grid, list or kanban sends a row; a field outside a form sends its own value;
+ * also through call_action), that bag may hold a key with the name of a gated field, and the
+ * request does not say which component sent it, so the values pass as they are.
+ *
  * Only gates INSIDE the form count. A form on a screen the viewer cannot open is the action
- * gate's concern (routes/studioAppRunGate.js); reading it here would also strip the same names
- * from another component that runs the same action with a row.
+ * gate's concern (routes/studioAppRunGate.js).
  *
  * `visibleWhen` and `enabledWhen` are not read. They are formulas over the page's scope (other
  * forms, screen parameters, loaded data, action results), which a request does not carry, and
@@ -39,6 +43,12 @@ export type Allows = (node: unknown) => boolean;
 /** One form: the actions wired on it or inside it, and its field names split by the role gate. */
 type FormSeen = { runs: Set<string>; shown: Set<string>; gated: Set<string> };
 
+/** The forms, plus the actions a component that is not a form starts with a bag of its own. */
+type Seen = { forms: FormSeen[]; others: Set<string> };
+
+/** A button sends an empty bag (AppButton), so it never carries a field value of its own. */
+const EMPTY_BAG_TYPES = new Set(['button']);
+
 function isObject(v: unknown): v is Obj {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
@@ -49,9 +59,25 @@ function fieldNameOf(node: Obj): string | null {
     return typeof name === 'string' && name ? name : null;
 }
 
+/**
+ * Where an action a node starts goes. To its form: the form's own events, the onChange of a named
+ * field in it (useInputChange sends the form's values) and a button in it. Nowhere: a button
+ * outside a form (an empty bag). To `others`: everything else (a grid, list or kanban sends a
+ * row, a field outside a form sends its own value).
+ */
+function addRefs(node: Obj, within: FormSeen | null, seen: Seen): void {
+    const emptyBag = EMPTY_BAG_TYPES.has(String(node.type));
+    const field = fieldNameOf(node) !== null;
+    for (const ref of nodeActionRefs(node)) {
+        const formValues = node.type === 'form' || emptyBag || (field && ref.via === 'onChange');
+        if (within && formValues) within.runs.add(ref.actionId);
+        else if (!emptyBag) seen.others.add(ref.actionId);
+    }
+}
+
 /** Every form of the definition. A form starts its own count: the gates around it are not field gates. */
-function readForms(def: unknown, allows: Allows): FormSeen[] {
-    const forms: FormSeen[] = [];
+function readForms(def: unknown, allows: Allows): Seen {
+    const seen: Seen = { forms: [], others: new Set() };
     const walk = (nodes: unknown, visible: boolean, form: FormSeen | null): void => {
         for (const node of (Array.isArray(nodes) ? nodes : [])) {
             if (!isObject(node)) continue;
@@ -59,13 +85,13 @@ function readForms(def: unknown, allows: Allows): FormSeen[] {
             let nodeVisible = true;
             if (node.type === 'form') {
                 within = { runs: new Set(), shown: new Set(), gated: new Set() };
-                forms.push(within);
+                seen.forms.push(within);
             } else if (within) {
                 nodeVisible = visible && allows(node);
                 const name = fieldNameOf(node);
                 if (name) (nodeVisible ? within.shown : within.gated).add(name);
             }
-            if (within) for (const ref of nodeActionRefs(node)) within.runs.add(ref.actionId);
+            addRefs(node, within, seen);
             walk(node.children, nodeVisible, within);
         }
     };
@@ -74,7 +100,7 @@ function readForms(def: unknown, allows: Allows): FormSeen[] {
         const sections = isObject(screen) && Array.isArray(screen.sections) ? screen.sections : [];
         for (const section of sections) walk(isObject(section) ? section.children : null, true, null);
     }
-    return forms;
+    return seen;
 }
 
 /** Does the form run `actionId`: wired there, or called (call_action, any depth) by an action wired there? */
@@ -89,10 +115,13 @@ function formRuns(form: FormSeen, actions: unknown, actionId: string): boolean {
  */
 export function gatedFormFieldNames(def: unknown, actionId: string, allows: Allows): Set<string> {
     const out = new Set<string>();
-    const forms = readForms(def, allows);
+    const { forms, others } = readForms(def, allows);
     // No gated field in any form: nothing to read further (every definition before this rule mattered).
     if (!forms.some((f) => f.gated.size > 0)) return out;
     const actions = isObject(def) ? def.actions : null;
+    // A component outside the forms also starts the action with a bag of its own (a row, a
+    // single value): its keys may share a name with a gated field, so the bag is left as it is.
+    if (others.size > 0 && closeOverCalls(actions, others).has(actionId)) return out;
     const running = forms.filter((f) => formRuns(f, actions, actionId));
     for (const form of running) for (const name of form.gated) out.add(name);
     for (const form of running) for (const name of form.shown) out.delete(name);
