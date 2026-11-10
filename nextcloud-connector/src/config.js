@@ -29,6 +29,17 @@ function required(name) {
 }
 
 /**
+ * An install-time value as a log line shows it: without the user and password
+ * a URL may carry, and no longer than a line can hold.
+ * @param {unknown} raw
+ * @returns {string}
+ */
+function shownValue(raw) {
+    const value = String(raw || '').trim().replace(/\/\/[^/@\s]*@/, '//');
+    return value.length > 120 ? `${value.slice(0, 120)}…` : value;
+}
+
+/**
  * BEEFLOW_EMBED_BASE_URL as a shell host: the URL without a trailing slash, or
  * '' when it is blank or not a URL this connector fetches from.
  * @param {unknown} raw
@@ -40,7 +51,7 @@ function usableEmbedBaseUrl(raw) {
     try {
         parseAllowedUrl(value, { label: 'BEEFLOW_EMBED_BASE_URL' });
     } catch (err) {
-        log.warn(`[Config] ignoring BEEFLOW_EMBED_BASE_URL: ${err instanceof Error ? err.message : String(err)}`);
+        log.warn(`[Config] ignoring BEEFLOW_EMBED_BASE_URL (${shownValue(value)}): ${err instanceof Error ? err.message : String(err)}`);
         return '';
     }
     return value;
@@ -63,7 +74,7 @@ function usablePublicNcUrl(raw) {
         if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('it must start with http:// or https://');
     } catch (err) {
         const why = err instanceof Error && /must start/.test(err.message) ? err.message : 'it is not a URL';
-        log.warn(`[Config] ignoring BEEFLOW_NC_PUBLIC_URL (${value}): ${why}. The public Nextcloud URL of the setup page, or NEXTCLOUD_URL, is used.`);
+        log.warn(`[Config] ignoring BEEFLOW_NC_PUBLIC_URL (${shownValue(value)}): ${why}. The public Nextcloud URL of the setup page, or NEXTCLOUD_URL, is used.`);
         return null;
     }
     return value;
@@ -82,7 +93,7 @@ const rawTenantKey = process.env.BEEFLOW_TENANT_KEY || 'auto';
 // lock and by itself not a choice.
 const serverLock = envLock(process.env.BEEFLOW_API_BASE_URL);
 if (serverLock.invalid) {
-    log.warn(`[Config] ignoring BEEFLOW_API_BASE_URL: ${serverLock.invalid}`);
+    log.warn(`[Config] ignoring BEEFLOW_API_BASE_URL (${shownValue(process.env.BEEFLOW_API_BASE_URL)}): ${serverLock.invalid}`);
 }
 // Bee Flow Cloud's frontend, where the embedded SPA shell comes from while the
 // connector talks to Cloud. Same value as setupConfig.CLOUD_EMBED_URL. That

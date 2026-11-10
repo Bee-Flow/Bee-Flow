@@ -31,7 +31,7 @@ const { securityHeaders, rejectCrossSiteWrites } = require('./security');
 const { registerLifecycle } = require('./heartbeat');
 const { buildApiProxy, buildEmbedProxy, isSpaShellPath, RUNTIME_SETTINGS_PATH } = require('./proxy');
 const log = require('./log');
-const { errMessage } = require('./errors');
+const { errMessage, withoutFinalStop } = require('./errors');
 const { withNonceRoom } = require('./htmlPadding');
 
 // Apply the Nextcloud TLS posture decided at boot (scripts/ncTlsTrust.js) BEFORE
@@ -406,7 +406,7 @@ bootstrapIfNeeded().catch(err => {
     const where = require('./bootstrap').getLastErrorState()?.phase === 'capabilities'
         ? 'The line above names the cause; what to do is in bootstrap-last-error.json on the data volume and in the heartbeat Nextcloud asks for.'
         : 'The Bee Flow setup page has the cause and what to do.';
-    log.error(`[Bootstrap] Failed: ${errMessage(err)}. ${where}`);
+    log.error(`[Bootstrap] Failed: ${withoutFinalStop(errMessage(err))}. ${where}`);
 });
 
 // NC admin settings panel (Cloud vs self-hosted) — poll for changes every

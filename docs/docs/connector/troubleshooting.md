@@ -272,9 +272,50 @@ If you are the administrator and do not get the wizard:
 
 A restart of the connector does not connect again when it holds a key. To connect again from the start, use **Clear organisation cache** on the setup page.
 
+## Where you start the container yourself (`manual-install` daemon) {#manual-install}
+
+On a `manual-install` daemon Nextcloud neither starts nor stops the connector container; you do. Two things then have an order. On a Docker deploy daemon (HaRP, Docker Socket Proxy) Nextcloud starts and stops the container itself and this section does not apply.
+
+**Updating.** Stop the old container, run the update, start the new container:
+
+```bash
+docker stop <connector container>
+sudo -u www-data php occ app_api:app:update bee_flow \
+  --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml --wait-finish
+# while that command waits, in a second terminal: start the container of the new version,
+# with the same data volume, the same APP_SECRET and the same install-time values
+```
+
+The update command reads the routes of the new version, with their access levels, and then waits for the new container. When a newer container reaches Nextcloud before the command has run, Nextcloud notes the new version by itself, the command answers `already updated`, and the routes of the previous version stay. After an update from 1.x that shows as follows: somebody who is not an administrator gets Nextcloud's "Page not found" for `setup/diagnostics`, where this version answers `{"canConfigure":false}`. The connection is not affected: the tenant key and the organisation stay. To get the routes of the new version, register the app again as below.
+
+**Registering again** (to change an install-time value, or to rotate the app secret). Stop the container before `unregister`, and start it again when you register, with the secret of the new registration:
+
+```bash
+docker stop <connector container>
+sudo -u www-data php occ app_api:app:unregister bee_flow        # without --rm-data: the data is kept
+sudo -u www-data php occ app_api:app:register bee_flow <daemon> --env NAME=VALUE ...
+# start the container again with the new APP_SECRET
+```
+
+Unregistering removes the app's webhook rows and the Talk bot. The rows, the Assistant providers and the Files menu entries are registered again at the next start; add the bot to your conversations again.
+
+While the app is not registered, Nextcloud refuses every request a running connector makes and counts each one against the connector's address. Past ten of them, Nextcloud's brute-force protection answers that address with HTTP 429 for a while, also after the app is registered again. The connector asks less while it is refused (one request per poll, with longer waits), which leaves room for a short pause between the two commands, not for a long one.
+
+**The connector log repeats `HTTP 429` or `OCS 429 ... Reached maximum delay`, and users get `502 {"error":"User lookup failed"}`.** Nextcloud is limiting the connector's address. Stop the container, clear the count for that address and register again with the container stopped:
+
+```bash
+docker stop <connector container>
+sudo -u www-data php occ security:bruteforce:reset <IP address of the connector container>
+sudo -u www-data php occ app_api:app:unregister bee_flow
+sudo -u www-data php occ app_api:app:register bee_flow <daemon> --env NAME=VALUE ...
+# start the container
+```
+
+The tenant key and the organisation are on the data volume and are not touched by any of this.
+
 ## A reverse proxy logs "upstream sent more data than specified in Content-Length"
 
-Seen on the **manual-install / Docker-Socket-Proxy daemons** for the app's `index.html`, uncompressed. Nextcloud's AppAPI proxy adds a nonce to the script tags of an `.html` page it passes on and keeps the length the connector announced; the connector ends such a page with spaces so the page itself arrives whole. What is left over are a few hundred spaces after the announced length. Browsers, curl and nginx drop that connection and open a new one, so nothing is lost; a client that reuses the connection without that check would read the spaces before the next answer. It does not occur with compression on the web server, nor on HaRP.
+Seen on the **manual-install / Docker-Socket-Proxy daemons** for the app's `index.html`, uncompressed. Nextcloud's AppAPI proxy adds a nonce to the script tags of an `.html` page it passes on and keeps the length the connector announced; the connector ends such a page with spaces so the page itself arrives whole. What is left over are a few hundred spaces after the announced length. Browsers, curl, nginx and clients built on `fetch` notice the extra bytes, drop that connection and open a new one: they get the page whole. A client that parses strictly reports an error for the page itself (Node's `http` module answers with a parse error such as `HPE_INVALID_CONSTANT`), and a client that reuses the connection without a check reads the spaces before the next answer. For a monitoring tool or a proxy of that kind, turn on compression on the web server or use HaRP: neither has the spaces.
 
 ## `ERR_INVALID_CHUNKED_ENCODING` on SSE responses
 
@@ -332,7 +373,7 @@ sudo -u www-data php occ app_api:app:unregister bee_flow        # without --rm-d
 sudo -u www-data php occ app_api:app:register bee_flow <daemon> --env BEEFLOW_SIG_SKEW_SECONDS=600
 ```
 
-Give the other install-time values you use in the same command.
+Give the other install-time values you use in the same command. On a `manual-install` daemon stop the container first: see [Where you start the container yourself](#manual-install).
 
 ## JWT TTL expired
 
@@ -360,6 +401,7 @@ The connector mints short-lived JWTs (default 300 s) for browser-side calls. If 
 ```bash
 # Remove and install again. Without --rm-data the data volume, and with it the
 # connection, is kept. Give your install-time values again with --env NAME=VALUE.
+# On a manual-install daemon: stop the container first, start it when you register.
 sudo -u www-data php occ app_api:app:unregister bee_flow
 sudo -u www-data php occ app_api:app:register bee_flow \
   --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml

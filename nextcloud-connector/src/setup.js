@@ -292,7 +292,9 @@ router.get('/status', firstRunStatusForNonAdmin, requireNcAdmin, (req, res) => {
     res.json({
         canConfigure: true,
         envOverridden: config.apiBaseUrlLocked,
-        envApiBaseUrl: process.env.BEEFLOW_API_BASE_URL || null,
+        // The install-time value when it fixes the server; a value that fixes
+        // nothing (blank, not a server address) is not reported as one.
+        envApiBaseUrl: config.apiBaseUrlLocked ? (process.env.BEEFLOW_API_BASE_URL || null) : null,
         // null: no Bee Flow server is chosen yet.
         active: config.apiBaseUrl,
         // Is a Bee Flow server chosen, and where the choice came from
