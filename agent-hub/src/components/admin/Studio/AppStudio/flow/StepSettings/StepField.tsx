@@ -29,12 +29,12 @@ function humanize(key: string) {
 }
 
 export function StepField({
-    fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, fieldControls, onStepChange,
+    fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, fieldControls, onStepChange, text,
 }: StepFieldProps) {
     const { t } = useTranslation();
-    const labelEntry = FIELD_LABELS[fieldKey];
+    const labelEntry = text?.label ?? FIELD_LABELS[fieldKey];
     const label = labelEntry ? t(labelEntry[0], labelEntry[1]) : humanize(fieldKey);
-    const hintEntry = HINTS[fieldKey];
+    const hintEntry = text?.hint ?? HINTS[fieldKey];
     const hint = hintEntry ? t(hintEntry[0], hintEntry[1]) : undefined;
     const required = !!fs.required;
 

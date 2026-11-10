@@ -56,7 +56,8 @@
         "MAX_VARIABLE_DEFAULT_BYTES": 2048,
         "MAX_PARALLEL_BRANCHES": 8,
         "MAX_CODE_STEP_CHARS": 20000,
-        "MAX_CODE_STEP_INPUTS": 20
+        "MAX_CODE_STEP_INPUTS": 20,
+        "MAX_HTTP_STEP_ENTRIES": 30
     },
     "theme": {
         "primary": {
@@ -2746,6 +2747,7 @@
             "break",
             "code",
             "continue",
+            "http_request",
             "parallel",
             "raise_error",
             "return",
@@ -4012,6 +4014,84 @@
                 "since": 3,
                 "retrySafe": true
             },
+            "http_request": {
+                "mutatesData": true,
+                "fields": {
+                    "connectorId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80,
+                        "description": "The id of a `rest` connector of this app (app_list_connectors lists them). It fixes the host and the credential."
+                    },
+                    "method": {
+                        "type": "enum",
+                        "values": [
+                            "GET",
+                            "POST",
+                            "PUT",
+                            "PATCH",
+                            "DELETE"
+                        ],
+                        "default": "GET",
+                        "description": "GET reads. POST, PUT, PATCH and DELETE change something on the other side."
+                    },
+                    "path": {
+                        "type": "string",
+                        "maxLen": 500,
+                        "description": "The path on the connector's host, starting with \"/\". {{form.x}}, {{vars.x}}, {{item.x}} and {{params.x}} are filled in URL-encoded. No \"?\" or \"#\" (use `query`)."
+                    },
+                    "query": {
+                        "type": "recordValues",
+                        "description": "Query parameters: { <name>: binding }. A list sends the name once per item, an empty value is left out."
+                    },
+                    "headers": {
+                        "type": "recordValues",
+                        "description": "Extra request headers: { <name>: binding }. Authorization, Cookie and the headers the connector sets are refused."
+                    },
+                    "body": {
+                        "type": "binding",
+                        "description": "The request body of a POST, PUT, PATCH or DELETE. A static value is a template: a record, list or JSON text whose text values may hold {{form.x}}, {{vars.x}}, {{item.x}}, {{params.x}} (a value that is exactly one placeholder keeps its type). A formula or field binding is sent as the value it yields."
+                    },
+                    "bodyFormat": {
+                        "type": "enum",
+                        "values": [
+                            "json",
+                            "form",
+                            "text"
+                        ],
+                        "default": "json",
+                        "description": "How `body` is sent: json (application/json), form (application/x-www-form-urlencoded) or text (text/plain)."
+                    },
+                    "expect": {
+                        "type": "enum",
+                        "values": [
+                            "json",
+                            "text"
+                        ],
+                        "default": "json",
+                        "description": "How the answer is read: json (parsed, an empty answer is null) or text."
+                    },
+                    "idempotencyKey": {
+                        "type": "binding",
+                        "description": "A value that names this one write (an order id, a uuid from an earlier step). Sent as the Idempotency-Key header, and what makes `retry` allowed on a write."
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60,
+                        "description": "The variable that gets { status, body }."
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
             "parallel": {
                 "mutatesData": false,
                 "fields": {
@@ -4145,7 +4225,8 @@
             "kb_log_query",
             "kb_log_review",
             "transaction",
-            "code"
+            "code",
+            "http_request"
         ]
     },
     "bindings": {

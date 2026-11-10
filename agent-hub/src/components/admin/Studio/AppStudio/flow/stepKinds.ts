@@ -26,6 +26,19 @@ export interface StepKindModule {
     meta: StepMeta;
     /** A fresh step of this kind, valid the moment it lands (every required field present). */
     newStep: (opts: NewStepOptions) => ActionStep;
+    /** What a field of this kind says and offers where the defaults of the settings panel do not fit. */
+    fields?: Record<string, StepFieldDress>;
+}
+
+/** A [translation key, English text] pair. */
+type TextPair = [string, string];
+
+/** One field of a registry kind in the settings panel (StepSettings). */
+interface StepFieldDress {
+    label?: TextPair;
+    hint?: TextPair;
+    /** The reference list a picker field offers instead of its default one (a key of useStepReferences' options). */
+    options?: string;
 }
 
 export interface StepKindCatalog {

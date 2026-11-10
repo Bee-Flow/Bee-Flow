@@ -52,7 +52,8 @@
         "MAX_VARIABLE_DEFAULT_BYTES": 2048,
         "MAX_PARALLEL_BRANCHES": 8,
         "MAX_CODE_STEP_CHARS": 20000,
-        "MAX_CODE_STEP_INPUTS": 20
+        "MAX_CODE_STEP_INPUTS": 20,
+        "MAX_HTTP_STEP_ENTRIES": 30
     },
     "colorRoles": [
         "primary",
@@ -517,6 +518,11 @@
         "continue": {
             "client": true,
             "mutatesData": false,
+            "since": 3
+        },
+        "http_request": {
+            "client": false,
+            "mutatesData": true,
             "since": 3
         },
         "parallel": {

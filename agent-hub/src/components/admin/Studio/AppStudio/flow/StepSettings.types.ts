@@ -57,6 +57,8 @@ export interface StepFieldProps {
      * its own field.
      */
     onStepChange?: (next: AppAction) => void;
+    /** The label and hint a registry step kind gives this field ([key, English]); absent: the panel's own. */
+    text?: { label?: [string, string]; hint?: [string, string] };
     /** Controls by field type, in place of the registered ones (fieldTypes.ts). Left out everywhere but in tests. */
     fieldControls?: Record<string, ComponentType<StepFieldProps & { label: string; hint?: string; required: boolean }>>;
 }

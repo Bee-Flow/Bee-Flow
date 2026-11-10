@@ -102,6 +102,8 @@ export default function useStepReferences(definition: AppDefinition | null | und
             dataset: datasetOptions(datasetQuery.data),
             automation: automationOptions(automationQuery.data),
             connector: connectorOptions(connectors),
+            // http_request: only a REST connection gives a step its host.
+            restConnector: connectorOptions(connectors.filter((c) => c.kind === 'rest')),
             document: documentOptions(documentQuery.data, t),
             // call_action: the other actions of this app (never the one being edited).
             action: actionRefOptions(definition?.actions, actionId),

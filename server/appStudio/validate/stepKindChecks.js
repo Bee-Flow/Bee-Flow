@@ -378,6 +378,7 @@ const KIND_CHECKS = {
     parallel: checkParallel,
     // Registry kinds (componentSpecs/steps/<kind>.js) whose fields need more than their types.
     code: require('./codeStepChecks.mts').checkCodeStep,
+    http_request: require('./httpRequestChecks.mts').checkHttpRequest,
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS, validateStepBranches };

@@ -203,17 +203,10 @@ function buildConnectorIds(dataModel) {
     return set;
 }
 
-// The subset that can actually send mail. A send_email step pointed at a REST connector would validate
-// against dataConnectors and then fail at runtime with nothing an author could act on.
-function buildMailboxConnectorIds(dataModel) {
-    if (dataModel === undefined) return null;
-    const set = new Set();
-    const connectors = isObject(dataModel) && Array.isArray(dataModel.connectors) ? dataModel.connectors : [];
-    for (const c of connectors) {
-        if (isObject(c) && c.kind === 'mailbox' && typeof c.id === 'string' && c.id) set.add(c.id);
-    }
-    return set;
-}
+// The subset of one kind (httpRequestChecks.mts). A send_email step pointed at a REST connector would validate
+// against dataConnectors and then fail at runtime with nothing an author could act on; an http_request step
+// pointed at anything but a REST connector likewise.
+const { connectorIdsOfKind } = require('./validate/httpRequestChecks.mts');
 
 // def.roles → a Set of role ids, validating the { id, name } shape.
 /**
@@ -437,7 +430,8 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         // the publish gate — which already passes opts.dataModel — verifies them
         // with no extra plumbing. binding.unknown_connector mirrors dataset.
         dataConnectors: buildConnectorIds(opts.dataModel),
-        dataMailboxConnectors: buildMailboxConnectorIds(opts.dataModel),
+        dataMailboxConnectors: connectorIdsOfKind(opts.dataModel, 'mailbox'),
+        dataRestConnectors: connectorIdsOfKind(opts.dataModel, 'rest'),
         dataRefsAsWarnings: !!opts.dataRefsAsWarnings,
         // The per-app AI-browsing opt-in (HUMAN-set — see canonicalize).
         // Consulted per ai_browse step: a step in an app whose flag is off is

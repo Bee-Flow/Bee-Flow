@@ -106,6 +106,7 @@ const LIMITS = {
     // The code step (schema 3): its source and its named inputs.
     MAX_CODE_STEP_CHARS: 20000,        // code: the JavaScript source
     MAX_CODE_STEP_INPUTS: 20,          // inputs: named bindings
+    MAX_HTTP_STEP_ENTRIES: 30,         // http_request: entries in `query`, and in `headers`
 };
 
 module.exports = {

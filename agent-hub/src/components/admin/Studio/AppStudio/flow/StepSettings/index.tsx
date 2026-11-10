@@ -1,5 +1,5 @@
-import { stepMeta } from '../stepKinds';
-import { type RefOption, type ReferenceKind } from '../stepReferences';
+import { EXTENSION_STEP_KINDS, stepMeta } from '../stepKinds';
+import { REFERENCE_FIELDS, type RefOption, type ReferenceKind } from '../stepReferences';
 import useStepReferences from '../useStepReferences';
 import DocumentFillFields from '../DocumentFillFields';
 import useTranslation from '@/hooks/useTranslation';
@@ -74,6 +74,9 @@ export default function StepSettings({ step, onChange, definition, node = null, 
         ? { ...references.options, screen: screens.filter((s): s is AppScreen & { id: string } => !!s?.id).map((s) => ({ id: s.id, label: s.name || s.id })) }
         : references.options;
 
+    // A registry kind's own words and pick lists for its fields (flow/steps/<kind>.ts).
+    const kindFields = Object.hasOwn(EXTENSION_STEP_KINDS, step.kind) ? EXTENSION_STEP_KINDS[step.kind].fields : undefined;
+
     return (
         <div className="flex flex-col gap-3" data-step-settings={step.kind}>
             <p className="text-xs text-[var(--text-secondary)]">{meta.blurb}</p>
@@ -93,7 +96,8 @@ export default function StepSettings({ step, onChange, definition, node = null, 
                     onStepChange={onChange}
                     definition={definition}
                     node={node}
-                    options={options}
+                    options={optionsFor(options, key, kindFields?.[key]?.options)}
+                    text={kindFields?.[key]}
                     references={references}
                     formFields={formFields}
                     disabled={disabled}
@@ -109,3 +113,9 @@ export default function StepSettings({ step, onChange, definition, node = null, 
     );
 }
 
+
+/** The pick lists of one field: a field whose step kind names another list gets that one in place of its default. */
+function optionsFor(options: Record<string, RefOption[]>, fieldKey: string, list: string | undefined): Record<string, RefOption[]> {
+    const kind: ReferenceKind | undefined = REFERENCE_FIELDS[fieldKey];
+    return list && kind ? { ...options, [kind]: options[list] ?? [] } : options;
+}
