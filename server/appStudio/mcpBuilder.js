@@ -238,9 +238,9 @@ async function loadDraft(appId, userId) {
 async function runGetGuide() {
     const { buildSystemPrompt } = require('./builderPrompt');
     const { MCP_GUIDE_SECTIONS } = require('./mcpGuide/appendix.mts');
-    // toolset 'full' is the same menu this endpoint advertises, so the guide never names a tool
-    // the caller does not have. MCP-only sections come after it: the in-product prompt is unchanged.
-    return { guide: [buildSystemPrompt({ toolset: 'full' }), ...MCP_GUIDE_SECTIONS].join('\n\n') };
+    // The preamble says where this surface differs; toolset 'full' is the menu this endpoint
+    // advertises; MCP-only sections come last. The in-product prompt itself is unchanged.
+    return { guide: [require('./mcpGuide/preamble.mts').MCP_GUIDE_PREAMBLE, buildSystemPrompt({ toolset: 'full' }), ...MCP_GUIDE_SECTIONS].join('\n\n') };
 }
 
 const { runListApps } = require('./mcpListApps.mts');

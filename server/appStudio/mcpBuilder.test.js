@@ -123,8 +123,30 @@ test('the guide is the same one the in-product builder gets', async () => {
     assert.match(result.guide, /app_add_components/);
     // This channel has no per-turn user message, so the guide must send the
     // agent to the list tools — never to an OWNER CONTEXT note it will not get.
-    assert.ok(!result.guide.includes('OWNER CONTEXT'), 'the guide never points at the note');
+    assert.ok(!result.guide.includes('listed in the OWNER CONTEXT note'), 'the guide never points at the note');
     assert.match(result.guide, /call `app_list_automations` for the owner's automations/);
+});
+
+test('the guide opens with what differs over MCP: no injected draft state, no plan tools, its own screenshot budget', async () => {
+    const { result } = await mcpBuilder.callTool('studio_get_guide', {}, { userId: 'u1' });
+    const { MCP_GUIDE_PREAMBLE } = require('./mcpGuide/preamble.mts');
+    assert.ok(result.guide.startsWith('## Reading this guide over MCP\n') && result.guide.startsWith(MCP_GUIDE_PREAMBLE));
+    // The claims of the in-product prompt that do not hold here are each answered.
+    const inProduct = require('./builderPrompt').buildSystemPrompt({ toolset: 'full' });
+    assert.match(inProduct, /is injected into the conversation each turn/);
+    assert.match(MCP_GUIDE_PREAMBLE, /NO DRAFT STATE IS SENT TO YOU.*call app_get_draft/);
+    assert.match(inProduct, /bundle app_set_plan\(\{todos\}\)/);
+    assert.match(MCP_GUIDE_PREAMBLE, /app_set_plan is accepted and does nothing/);
+    assert.match(MCP_GUIDE_PREAMBLE, /app_propose_plan and app_mark_phase do not exist here/);
+    const { SHOT_MAX_PER_WINDOW } = mcpBuilder._test;
+    assert.ok(MCP_GUIDE_PREAMBLE.includes(`the budget is ${SHOT_MAX_PER_WINDOW} per 10 minutes`));
+    // It names only tools this surface serves.
+    const served = new Set(mcpBuilder.TOOL_NAMES);
+    for (const tool of MCP_GUIDE_PREAMBLE.match(/\bapp_[a-z_]+/g)) {
+        assert.ok(served.has(tool) || ['app_propose_plan', 'app_mark_phase'].includes(tool), `${tool} is served over MCP`);
+    }
+    // The in-product prompt does not carry it.
+    assert.ok(!inProduct.includes('Reading this guide over MCP'));
 });
 
 test('the guide appends the MCP-only sections; the in-product prompt does not carry them', async () => {
@@ -132,7 +154,7 @@ test('the guide appends the MCP-only sections; the in-product prompt does not ca
     const { result } = await mcpBuilder.callTool('studio_get_guide', {}, { userId: 'u1' });
     const inProduct = buildSystemPrompt({ toolset: 'full' });
     assert.match(result.guide, /## Testing actions \(MCP\)/);
-    assert.ok(result.guide.startsWith(inProduct), 'the builder prompt comes first, unchanged');
+    assert.ok(result.guide.includes(`\n\n${inProduct}\n\n## Testing actions (MCP)`), 'the builder prompt is in it, unchanged, before the MCP sections');
     assert.equal(inProduct.includes('Testing actions'), false);
     assert.equal(buildSystemPrompt().includes('Testing actions'), false);
     assert.match(result.guide, /app_save_test/);

@@ -406,7 +406,7 @@ test('the MCP guide carries the same index as the in-product prompt', async () =
     const uninstall = installExtensionFixtures();
     try {
         const { guide } = (await mcpBuilder.callTool('studio_get_guide', {}, { userId: 'u1' })).result;
-        assert.ok(guide.startsWith(buildSystemPrompt({ toolset: 'full' })));
+        assert.ok(guide.includes(`\n\n${buildSystemPrompt({ toolset: 'full' })}\n\n`));
         assert.ok(guide.includes(renderExtensionIndex()) && renderExtensionIndex().startsWith(HEADING));
         assert.match(guide, /## Testing actions \(MCP\)/);
     } finally {

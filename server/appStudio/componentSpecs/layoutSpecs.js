@@ -130,7 +130,7 @@ const LAYOUT_SPECS = {
             // generated apps stop opening identically.
             look: {
                 type: 'enum', values: ['plain', 'banner', 'hero', 'split'], default: 'plain',
-                description: 'plain = the current title row; banner = a full-width soft primary band; hero = a tall centered primary-gradient opening; split = title left, actions right on a panel surface.',
+                description: 'plain = the current title row; banner = a full-width soft primary band; hero = a tall centered primary-gradient opening; split = title left, subtitle right-aligned and muted, a hairline below.',
             },
         },
         styleKnobs: ['span', 'padding', 'gap'],

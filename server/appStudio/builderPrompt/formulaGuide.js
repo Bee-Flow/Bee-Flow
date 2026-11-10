@@ -41,7 +41,8 @@ const ANY_GROUP_TEXT = ' OR: an entry {"any":[<entries>]} matches when ONE of th
 
 /**
  * The callable names a formula may use, wrapped.
- * @param {{ compact?: boolean }} [opts]
+ * `skip` leaves names out (catalogDiet.mts names those without a signature).
+ * @param {{ compact?: boolean, skip?: ReadonlySet<string> }} [opts]
  */
 function renderFormulaFunctions(opts = {}) {
     const signatureByName = new Map(EXPR_FUNCTIONS.map((f) => [f.name, f.signature]));
@@ -49,7 +50,7 @@ function renderFormulaFunctions(opts = {}) {
     const lines = [];
     let line = '';
     for (const name of EXPR_FUNCTION_NAMES) {
-        if (opts.compact && NOT_IN_COMPACT.has(name)) continue;
+        if ((opts.compact && NOT_IN_COMPACT.has(name)) || (opts.skip && opts.skip.has(name))) continue;
         const sig = (opts.compact && COMPACT_SIGNATURES.get(name)) || signatureByName.get(name) || `${name}(…)`;
         const next = line ? `${line}, ${sig}` : sig;
         if (line && next.length > FORMULA_WRAP_COLS) {
