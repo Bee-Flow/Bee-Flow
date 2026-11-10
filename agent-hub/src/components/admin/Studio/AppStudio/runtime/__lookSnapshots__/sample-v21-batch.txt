@@ -491,6 +491,3 @@
                     "Mailbox"
                   <span class="block mt-0.5 text-[var(--text-tertiary)] text-xs">
                     "Preview: the real account and the last check show here once the app runs."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"

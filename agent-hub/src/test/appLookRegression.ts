@@ -276,9 +276,16 @@ export function crashedNodes(root: Element): string[] {
     return Array.from(root.querySelectorAll('[data-app-node-error]')).map((el) => el.getAttribute('data-app-node-error') || 'unknown');
 }
 
+/**
+ * Body nodes that are not a portal of the screen: recharts appends one hidden span to measure
+ * text the first time ANY chart renders and keeps it for the rest of the process, so whether it
+ * is there depends on which app ran earlier in the same file, not on the app being described.
+ */
+const NOT_A_PORTAL_IDS: ReadonlySet<string> = new Set(['recharts_measurement_span']);
+
 /** Portals (open dialogs, live regions) land on document.body, outside the container. */
 function strayBodyNodes(container: Element): Element[] {
-    return Array.from(document.body.children).filter((el) => el !== container);
+    return Array.from(document.body.children).filter((el) => el !== container && !NOT_A_PORTAL_IDS.has(el.id));
 }
 
 /** The snapshot text for one corpus app: every screen in definition order. */

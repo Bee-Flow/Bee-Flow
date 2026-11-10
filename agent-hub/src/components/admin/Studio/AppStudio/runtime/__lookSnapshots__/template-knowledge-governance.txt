@@ -98,9 +98,6 @@
                   "Nothing here yet"
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "Nothing is answering past its review date. That is the state this register is for."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_sources (Sources)
 <div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -182,9 +179,6 @@
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "No sources match. Clear the filters, or add the first source to this base."
         <section class="app-grid" data-section-id="sec_scdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_source (Source)
 <div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -383,9 +377,6 @@
               <strong>
                 "Scanned"
               "on the Sources screen once it has."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_queue (Review queue)
 <div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -466,9 +457,6 @@
                 "Nothing here yet"
               <span class="max-w-xs text-[var(--text-muted)] text-sm">
                 "Everything in the queue has been scanned."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_reten (Review calendar)
 <div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -532,9 +520,6 @@
                 "Nothing here yet"
               <span class="max-w-xs text-[var(--text-muted)] text-sm">
                 "Nothing is overdue."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_findings (Personal data)
 <div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -659,9 +644,6 @@
                   "Nothing here yet"
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "No findings recorded. That is either good news or nobody has scanned anything — the third number above tells you which."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_access (Access)
 <div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -738,9 +720,6 @@
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "Nobody has been granted access to this base yet."
         <section class="app-grid" data-section-id="sec_acdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_retire (Retirements)
 <div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -816,9 +795,6 @@
                   "Nothing here yet"
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "Nothing has been proposed for removal. Propose one from a source, or from the Register."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_setup (Setup)
 <div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -916,6 +892,3 @@
                         <span>
                           "Add legal basis"
         <section class="app-grid" data-section-id="sec_sudlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"

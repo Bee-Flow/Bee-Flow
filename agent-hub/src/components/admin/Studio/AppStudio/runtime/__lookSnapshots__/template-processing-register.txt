@@ -171,9 +171,6 @@
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "No entries match these filters. Clear them, or record the first activity."
         <section class="app-grid" data-section-id="sec_rgdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_activity (Register entry)
 <div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(87, 83, 78, 0.1); --app-accent: #57534E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(87, 83, 78, 0.1); --app-primary: #57534E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -443,9 +440,6 @@
                         <span class="max-w-xs text-[var(--text-muted)] text-sm">
                           "No review has been recorded for this entry yet. Nobody may edit this log once it is written."
         <section class="app-grid" data-section-id="sec_actdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_reviews (Reviews)
 <div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(87, 83, 78, 0.1); --app-accent: #57534E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(87, 83, 78, 0.1); --app-primary: #57534E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -525,9 +519,6 @@
                   "Nothing here yet"
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "Nothing is overdue."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_procs (Processors)
 <div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(87, 83, 78, 0.1); --app-accent: #57534E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(87, 83, 78, 0.1); --app-primary: #57534E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -610,9 +601,6 @@
                           <span class="max-w-xs text-[var(--text-muted)] text-sm">
                             "Pick a processor on the left to see which register entries depend on it."
         <section class="app-grid" data-section-id="sec_prdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_transfer (Transfers)
 <div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(87, 83, 78, 0.1); --app-accent: #57534E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(87, 83, 78, 0.1); --app-primary: #57534E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -649,9 +637,6 @@
           <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_trchart" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
             <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
               "No chart data yet."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_dpia (DPIA)
 <div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(87, 83, 78, 0.1); --app-accent: #57534E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(87, 83, 78, 0.1); --app-primary: #57534E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -722,9 +707,6 @@
                   "Nothing here yet"
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "No impact assessments started yet."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_setup (Vocabularies)
 <div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(87, 83, 78, 0.1); --app-accent: #57534E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(87, 83, 78, 0.1); --app-primary: #57534E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -895,6 +877,3 @@
                           <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
                             <span>
                               "Add department"
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"

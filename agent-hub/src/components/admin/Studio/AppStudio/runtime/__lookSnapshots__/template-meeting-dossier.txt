@@ -157,9 +157,6 @@
                   <span class="text-[var(--text-muted)]">
                     "—"
         <section class="app-grid" data-section-id="sec_mmdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_dossier (Dossier)
 <div class="app-design--surface-flat app-motion--none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(51, 65, 85, 0.1); --app-accent: #334155; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(51, 65, 85, 0.1); --app-primary: #334155; --app-radius: 4px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Cabinet Grotesk", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -243,9 +240,6 @@
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "WhisperX labels speakers SPEAKER_00, SPEAKER_01 and so on. Say who those are here and the extraction will use their names instead of the labels."
         <section class="app-grid" data-section-id="sec_mddlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_review (Review)
 <div class="app-design--surface-flat app-motion--none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(51, 65, 85, 0.1); --app-accent: #334155; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(51, 65, 85, 0.1); --app-primary: #334155; --app-radius: 4px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Cabinet Grotesk", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -296,9 +290,6 @@
                 <span class="max-w-xs text-[var(--text-muted)] text-sm">
                   "No actions waiting for an owner."
         <section class="app-grid" data-section-id="sec_rvdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_actions (Actions)
 <div class="app-design--surface-flat app-motion--none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(51, 65, 85, 0.1); --app-accent: #334155; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(51, 65, 85, 0.1); --app-primary: #334155; --app-radius: 4px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Cabinet Grotesk", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -338,9 +329,6 @@
             <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
               "Nothing confirmed yet. Anything waiting is on the Review screen."
         <section class="app-grid" data-section-id="sec_acdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_decisions (Decision log)
 <div class="app-design--surface-flat app-motion--none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(51, 65, 85, 0.1); --app-accent: #334155; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(51, 65, 85, 0.1); --app-primary: #334155; --app-radius: 4px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Cabinet Grotesk", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -443,9 +431,6 @@
                   <span class="text-[var(--text-muted)]">
                     "—"
         <section class="app-grid" data-section-id="sec_dcdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_setup (Setup)
 <div class="app-design--surface-flat app-motion--none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(51, 65, 85, 0.1); --app-accent: #334155; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(51, 65, 85, 0.1); --app-primary: #334155; --app-radius: 4px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Cabinet Grotesk", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -555,6 +540,3 @@
                         <span>
                           "Add person"
         <section class="app-grid" data-section-id="sec_stdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"

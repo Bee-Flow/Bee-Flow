@@ -195,6 +195,3 @@
                         <span class="recharts-legend-item-text" style="color: rgb(59, 130, 246); overflow-wrap: break-word; white-space: normal">
                           "Amount"
                   <svg class="recharts-surface" height="200" role="application" tabindex="0" viewBox="0 0 600 200" width="600" style="display: block; height: 100%; width: 100%">
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "$0.0"

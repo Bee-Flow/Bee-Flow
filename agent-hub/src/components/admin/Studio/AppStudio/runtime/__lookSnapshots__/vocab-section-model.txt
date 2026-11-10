@@ -33,9 +33,6 @@
           <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_secmod05" style="grid-column: span 12 / span 12">
             <p class="break-words leading-relaxed text-sm">
               "Always shown."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
 ## screen scr_secmod02 (Board)
 <div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(37, 99, 235, 0.1); --app-accent: #2563EB; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(37, 99, 235, 0.1); --app-primary: #2563EB; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">
@@ -48,6 +45,3 @@
           <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_secmod06" style="grid-column: span 12 / span 12">
             <p class="break-words leading-relaxed text-sm">
               "A full-height section with a title."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"

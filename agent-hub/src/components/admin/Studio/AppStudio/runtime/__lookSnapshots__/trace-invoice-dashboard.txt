@@ -87,6 +87,3 @@
                             "Nothing here yet"
                           <span class="max-w-xs text-[var(--text-muted)] text-sm">
                             "Geen facturen gevonden."
-### outside the screen (portal)
-<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
-  "0"
