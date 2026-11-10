@@ -7,7 +7,7 @@
 
 const {
     BG_POSITIONS, BG_REPEATS, BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, MOTIFS, MOTIF_SIDES, DECORS, CARD_FILLS, LABEL_STYLES,
-    BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize,
+    BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize, isCssColor, COLOR_FUNCTIONS,
 } = require('../i18n/defaults/blockStyleEnums');
 
 function isPlainObject(v) {
@@ -80,6 +80,8 @@ function validateStylePatch(patch) {
                 const token = Object.hasOwn(COLOR_TOKEN_ALIASES, tok) ? COLOR_TOKEN_ALIASES[/** @type {keyof typeof COLOR_TOKEN_ALIASES} */ (tok)] : tok;
                 if (!COLOR_TOKENS.includes(token)) { hints.push(`colorOverrides.${tok}: unknown token, dropped. Valid tokens: ${COLOR_TOKENS.join(', ')}.`); continue; }
                 if (typeof col !== 'string') { hints.push(`colorOverrides.${tok}: must be a color string, dropped.`); continue; }
+                // '' clears an override; anything else is a colour in one of the stored forms.
+                if (col !== '' && !isCssColor(col)) { hints.push(`colorOverrides.${tok}: not a color, dropped. Use "#rrggbb" (also #rgb, #rrggbbaa), ${COLOR_FUNCTIONS.join('() / ')}() with plain numbers, var(--name) or a color keyword.`); continue; }
                 colors[token] = col;
             }
             out.colorOverrides = colors;
