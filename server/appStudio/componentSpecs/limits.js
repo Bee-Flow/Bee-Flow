@@ -99,6 +99,12 @@ const LIMITS = {
     MAX_VARIABLE_DEFAULT_BYTES: 2048,  // one seeded record/list. Exists so the
                                        // error can name the variable instead of
                                        // "your app is too big" at 512KB.
+    // Value formatting (schema 3): definition.format and formatOptions. The cleaner is
+    // server/shared/format/formatClean.mjs (FORMAT_LIMITS); formatLimits.test.js holds both equal.
+    MAX_FORMAT_DECIMALS: 10,           // decimals / currencyDecimals
+    MAX_FORMAT_PATTERN_LEN: 40,        // a date pattern ("dd-MM-yyyy")
+    MAX_FORMAT_LANGUAGE_LEN: 35,       // a BCP 47 language tag
+    MAX_FORMAT_TIME_ZONE_LEN: 64,      // an IANA time zone name
 };
 
 module.exports = {

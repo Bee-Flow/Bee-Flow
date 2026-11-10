@@ -8,6 +8,7 @@
 
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
+const { formatOptionsSpec } = require('./objectShapes');
 
 const RECORD_LIST_SPECS = {
     table: {
@@ -70,6 +71,11 @@ const RECORD_LIST_SPECS = {
                     // the row as `item` and as form values, exactly like a row
                     // action does.
                     actionId: { type: 'string', maxLen: 20 },
+                    // Schema 3: how this column writes its numbers and dates.
+                    formatOptions: formatOptionsSpec(
+                        'How this column writes its numbers, amounts and dates.',
+                        'It applies to the number, currency, percent, progress, date, datetime and relative formats of the column.',
+                    ),
                 },
             },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },

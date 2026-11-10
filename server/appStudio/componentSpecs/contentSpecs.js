@@ -9,6 +9,7 @@
 const { LIMITS } = require('./limits');
 const { TOAST_TONES } = require('./actionSpecs');
 const { COLOR_ROLES } = require('./styleKnobs');
+const { formatOptionsSpec } = require('./objectShapes');
 
 const CONTENT_SPECS = {
     heading: {
@@ -195,6 +196,11 @@ const CONTENT_SPECS = {
                 type: 'enum', values: ['plain', 'tile', 'tinted', 'accent', 'gradient'], default: 'plain',
                 description: 'plain = label and value only; tile = on its own card surface; tinted = soft primary wash; accent = tile with a primary edge bar; gradient = soft primary gradient wash, value in the primary color.',
             },
+            // Schema 3: how the tile writes a numeric value and its delta.
+            formatOptions: formatOptionsSpec(
+                'How the tile writes its value and its delta when they are numbers.',
+                'A numeric value is written as an amount when currency is set (or as a percentage when percentScale is set), as a number otherwise; text values are shown as they are. The delta follows deltaFormat and takes decimals and compact.',
+            ),
         },
         styleKnobs: ['span', 'size', 'align', 'color'],
         defaultStyle: { span: 3 },
