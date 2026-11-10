@@ -131,7 +131,7 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
                 filters,
                 limit: Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),
                 dialect: plan.dialect,
-            }), accessFilter, relatedForAggregate(model, plan.tableMeta, binding.groupBy, plan, filters));
+            }), accessFilter, relatedForAggregate(datatableSource.isDatatableBacked(table) ? null : model, plan.tableMeta, binding.groupBy, plan, filters));
         } else {
             compiled = queryCompiler.compileRecordList(plan.tableMeta, recordListDescriptor(binding, {
                 filters,
