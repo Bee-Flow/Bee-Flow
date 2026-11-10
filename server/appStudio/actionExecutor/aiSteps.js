@@ -15,6 +15,7 @@ const { writeRecord, writeRecordBatch } = require('./records');
 // and this .mts module imports its siblings with their .mts extension.
 const WRITE_TO_ROWS = './writeToRows.mts';
 const REPLACE_RECORDS = './replaceRecords.mts';
+const AI_DATASET_TOOLS = './aiDatasetTools.mts';
 /**
  * What this file uses of writeToRows.mts and replaceRecords.mts, spelled out (a type import would
  * pull the .mts files into agent-hub's typecheck).
@@ -38,7 +39,7 @@ const { redeemEach, newReport, assertSomethingRead } = require('../aiDocumentRea
 const { resolveStepModel, notesWith } = require('./modelTierChoice.mts');
 const { replaceTemplate, parsePath, walkTokens, tryEvaluate } = require('../../shared/expr/index.mjs');
 const { readAppReliability, withStepTemperature } = require('../aiReliability.mts');
-const { checkedAnswer } = require('./aiChecks.mts');
+const { answerStructured, answerText, checkExtractRows } = require('./aiChecks.mts');
 const { handleOf, trackAnswer } = require('../../core/kb/queryLog/hook.mts');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
@@ -234,85 +235,8 @@ function resolveWriteConstants(constants, table, ctx, scope) {
     return out;
 }
 
-// ── AI-step dataset tools ─────────────────────────────────────────────────────
-//
-// When an AI step's `datasets` binding names LARGE datasets (genome files),
-// the model gets ONE closed-over tool that queries bounded slices of exactly
-// those datasets — pre-authorized here: owner-scoped in the store, and
-// uploader-scoped against the person the step runs as (ctx.viewerId), so a
-// member's step can only hand the model her own file (appStudio/
-// datasetAccess.js). No dispatcher, no catalog: the closure IS the
-// authorization. The file itself never enters the prompt.
-const MAX_AI_STEP_DATASETS = 4;
-
-async function buildDatasetTools(app, step, ctx, scope) {
-    if (step.datasets === undefined || step.datasets === null) return { tools: [], promptLine: '' };
-    const { resolveReadyDataset, datasetAdapter } = require('../datasetQueryStep');
-    const { queryRegion, DatasetQueryError } = require('../../core/datasets/query');
-
-    const raw = resolveBinding(step.datasets, ctx, scope);
-    const list = (Array.isArray(raw) ? raw : (raw ? [raw] : [])).slice(0, MAX_AI_STEP_DATASETS);
-    if (!list.length) return { tools: [], promptLine: '' };
-
-    const manifests = [];
-    for (const entry of list) manifests.push(await resolveReadyDataset(app, entry, ctx.viewerId));
-
-    const byKey = new Map();
-    for (const ds of manifests) {
-        byKey.set(ds.id, ds);
-        if (!byKey.has(ds.name)) byKey.set(ds.name, ds);
-    }
-    const describe = manifests
-        .map((ds) => `"${ds.name}" (${ds.metadata?.build || 'unknown build'}, ${ds.variantCount ?? '?'} variants)`)
-        .join('; ');
-
-    const def = {
-        type: 'function',
-        function: {
-            name: 'query_genome_dataset',
-            description: `Read a bounded slice of the user's genome dataset(s): ${describe}. Exactly ONE of gene, region or rsid selects the slice. Results are capped — narrow the span rather than paging.`,
-            parameters: {
-                type: 'object',
-                properties: {
-                    dataset: { type: 'string', description: 'Dataset name or id. Optional when only one dataset is available.' },
-                    gene: { type: 'string', description: 'Gene symbol, e.g. "BRCA1".' },
-                    region: { type: 'string', description: 'Region "chrom:start-end", e.g. "chr17:43044295-43125364".' },
-                    rsid: { type: 'string', description: 'dbSNP id, e.g. "rs1801133".' },
-                    filterPass: { type: 'boolean', description: 'Only rows with FILTER=PASS.' },
-                    minQual: { type: 'number', description: 'Minimum QUAL.' },
-                    limit: { type: 'number', description: 'Max rows (≤200, default 50).' },
-                },
-                additionalProperties: false,
-            },
-        },
-    };
-    const execute = async (args = {}) => {
-        const ds = args.dataset ? byKey.get(String(args.dataset)) : manifests[0];
-        if (!ds) return { error: `Unknown dataset "${args.dataset}". Available: ${manifests.map((m) => m.name).join(', ')}` };
-        try {
-            const r = await queryRegion(datasetAdapter(ds), {
-                gene: args.gene || undefined,
-                region: args.region || undefined,
-                rsid: args.rsid || undefined,
-                filterPass: args.filterPass === true,
-                minQual: typeof args.minQual === 'number' ? args.minQual : undefined,
-                limit: typeof args.limit === 'number' ? args.limit : undefined,
-            });
-            return {
-                rows: r.rows, rowCount: r.rowCount, truncated: r.truncated, notes: r.notes,
-                gene: r.gene, region: r.region, build: r.build,
-            };
-        } catch (e) {
-            if (e instanceof DatasetQueryError || e.status === 400) return { error: /** @type {Error} */ (e).message };
-            throw e;
-        }
-    };
-
-    return {
-        tools: [{ def, execute }],
-        promptLine: `\n\nGenome datasets available through the query_genome_dataset tool: ${describe}. Query only the slices you need.`,
-    };
-}
+// ── AI-step dataset tools: aiDatasetTools.mts ─────────────────────────────────
+const buildDatasetTools = (app, step, ctx, scope) => require(AI_DATASET_TOOLS).buildDatasetTools(app, step, ctx, (b) => resolveBinding(b, ctx, scope));
 
 /**
  * The query-log option of a Studio step: the person asking is the viewer, not the app's owner.
@@ -398,14 +322,9 @@ async function aiExtractStep(app, model, step, ctx) {
 
     // temperature / checks / repairRounds (aiReliability.mts): absent, the model and the call are as before.
     const rel = readAppReliability(step);
-    const callModel = withStepTemperature(aiModel, rel);
-    /** @param {Array<{ role: string, content: unknown }> | null} [followUp] a repair round (no tools) */
-    const ask = (followUp) => aiRuntime.runStructuredWithTools(app, callModel, {
-        system, user, parameters, tools: followUp ? [] : datasetTools.tools,
-        toolName: 'record_output', toolDescription: 'Return the extracted records as rows.',
-        ...(followUp ? { followUp } : {}),
-    });
-    const run = () => ask(null);
+    const base = { system, user, parameters, toolName: 'record_output', toolDescription: 'Return the extracted records as rows.' };
+    const call = { rt: aiRuntime, app, model: withStepTemperature(aiModel, rel), rel, scope };
+    const run = () => aiRuntime.runStructuredWithTools(app, call.model, { ...base, tools: datasetTools.tools });
 
     // A model that answers without `rows` must not look like a
     // document with nothing in it: ok:true, written:0, green toast. That is the
@@ -423,28 +342,12 @@ async function aiExtractStep(app, model, step, ctx) {
         structured = (await run()).structured;
         if (!Array.isArray(structured.rows)) throw noRowsError(aiModel);
     }
-    /** @param {{ rows?: unknown }} s */
-    const rowsOf = (s) => (Array.isArray(s.rows)
-        ? s.rows.slice(0, aiRuntime.MAX_EXTRACT_ROWS).map((r) => aiRuntime.coerceRowToFields(r, fields))
-        : undefined);
-    let rows = /** @type {Record<string, unknown>[]} */ (rowsOf(structured));
-    // The step's checks read the answer as { rows } ("rows[].category"); a repair round's answer
-    // without a rows list is the same "no records" failure as a first answer without one.
-    /** @type {Record<string, unknown> | undefined} */
-    let checkReport;
-    if (rel.active) {
-        const checked = await checkedAnswer(rel, scope, {
-            first: structured,
-            ask: async (followUp) => {
-                const s = (await ask(followUp)).structured;
-                if (!Array.isArray(s.rows)) throw noRowsError(aiModel);
-                return s;
-            },
-            view: (s) => ({ output: { rows: rowsOf(s) }, modelOutput: { rows: s.rows }, prior: { rows: s.rows } }),
-        });
-        rows = /** @type {{ rows: Record<string, unknown>[] }} */ (checked.output).rows;
-        checkReport = checked.checkReport;
-    }
+    let rows = structured.rows
+        .slice(0, aiRuntime.MAX_EXTRACT_ROWS)
+        .map((r) => aiRuntime.coerceRowToFields(r, fields));
+    // The step's checks, with repair rounds: the rows are checked as { rows } (aiChecks.mts).
+    const checked = rel.active ? await checkExtractRows(call, base, fields, structured, () => noRowsError(aiModel)) : null;
+    if (checked) rows = checked.rows;
 
     // `required` in the schema is advisory to the provider and never re-checked:
     // coerceRowToFields fills a missing field with null. Counting them is what
@@ -509,7 +412,7 @@ async function aiExtractStep(app, model, step, ctx) {
             tier: aiModel.tierName,
         },
         // Only for a step with checks: whether they passed first time or after a repair round.
-        ...(checkReport ? { checkReport } : {}),
+        ...(checked ? { checkReport: checked.checkReport } : {}),
     };
 }
 
@@ -611,33 +514,21 @@ async function aiGenerateStep(app, model, step, ctx) {
     const notes = notesWith(report.notes, tierNote);
     const user = docBlocks.length ? [{ type: 'text', text: fullPrompt }, ...docBlocks] : fullPrompt;
 
-    // temperature / checks / repairRounds (aiReliability.mts): absent, checkedAnswer makes the one
-    // call the step always made, with the same model and arguments, and returns its output.
+    // temperature / checks / repairRounds (aiReliability.mts, aiChecks.mts): absent, the one call the
+    // step always made, with the same model and arguments, and its output.
     const rel = readAppReliability(step);
-    const callModel = withStepTemperature(aiModel, rel);
-    /** @param {Array<{ role: string, content: unknown }> | null} followUp a repair round (no tools) */
-    const callArgs = (followUp) => ({ system, user, tools: followUp ? [] : datasetTools.tools, ...(followUp ? { followUp } : {}) });
+    const call = { rt: aiRuntime, app, model: withStepTemperature(aiModel, rel), rel, scope };
+    const tracked = { model: aiModel.modelId, citationsOf: () => ground.chunks };
     if (step.output === 'structured') {
         const fields = aiRuntime.normalizeSchemaFields(step.schema);
         if (!fields.length) { const e = new Error('Structured output needs at least one field'); e.status = 400; throw e; }
         const parameters = aiRuntime.fieldsToObjectSchema(fields);
-        const { output, checkReport } = await trackAnswer(queryLogHandle, {
-            model: aiModel.modelId,
-            answerOf: (r) => JSON.stringify(r.answer.structured ?? null),
-            citationsOf: () => ground.chunks,
-        }, () => checkedAnswer(rel, scope, {
-            ask: (followUp) => aiRuntime.runStructuredWithTools(app, callModel, { ...callArgs(followUp), parameters }),
-            view: (r) => ({ output: aiRuntime.coerceRowToFields(r.structured, fields), modelOutput: r.structured, prior: r.structured }),
-        }));
+        const { output, checkReport } = await trackAnswer(queryLogHandle, { ...tracked, answerOf: (r) => JSON.stringify(r.answer.structured ?? null) },
+            () => answerStructured(call, { system, user, parameters }, datasetTools.tools, fields));
         return { ok: true, ...notes, result: output, ...(checkReport ? { checkReport } : {}) };
     }
-    // A text answer is checked as { text } (a check's field is "text").
-    const { output, checkReport } = await trackAnswer(queryLogHandle, {
-        model: aiModel.modelId, answerOf: (r) => r.output.text, citationsOf: () => ground.chunks,
-    }, () => checkedAnswer(rel, scope, {
-        ask: (followUp) => aiRuntime.runTextWithTools(app, callModel, callArgs(followUp)),
-        view: (r) => ({ output: { text: r.text }, modelOutput: { text: r.text }, prior: r.text }),
-    }));
+    const { output, checkReport } = await trackAnswer(queryLogHandle, { ...tracked, answerOf: (r) => /** @type {{ text: string }} */ (r.output).text },
+        () => answerText(call, { system, user }, datasetTools.tools));
     const { text } = /** @type {{ text: string }} */ (output);
     // Citations travel as titles/scores only. The chunk BODIES are already in
     // the prompt; echoing them into a client-visible result would hand KB

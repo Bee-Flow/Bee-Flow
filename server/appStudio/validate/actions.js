@@ -37,7 +37,6 @@ const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
 const { checkCallAction, validateCallParams } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { validateTierChoice } = require('./tierChoice.mts');
-const { aiChecksFindings, numberFieldFinding } = require('../aiReliability.mts');
 const { validateEnvelopeField } = require('./stepEnvelope.mts');
 const { validateAiWriteToKey, validateAiWriteToReplace } = require('./writeToKeyChecks.mts');
 const { DATASET_QUERY_OUTPUTS, KIND_CHECKS: DATA_KIND_CHECKS } = require('./stepDataChecks');
@@ -322,11 +321,6 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
                 pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` must be an integer${fs.min !== undefined ? ` ${fs.min}..${fs.max}` : ''}.`, hint: field === 'maxIterations' ? `Loops are capped at ${LIMITS.MAX_ACTION_LOOP_ITERATIONS} iterations.` : 'Pass an integer.' });
             }
             return;
-        // temperature, and an AI step's answer checks (aiReliability.mts: the automation ai_step's rules).
-        case 'number': { const f = numberFieldFinding(field, fs, value, path); if (f) pushE(f); return; }
-        case 'aiChecks':
-            for (const f of aiChecksFindings(field, value, path, { draft: !!ctx.dataRefsAsWarnings })) (f.severity === 'error' ? pushE : ctx.pushW)(f);
-            return;
         case 'formula':
             validateFormula(value, path, ctx, FORMULA_SCOPE_ROOTS);
             return;
@@ -378,8 +372,8 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         case 'callParams': validateCallParams(field, value, path, ctx); return;
         case 'tierChoice': validateTierChoice(field, fs, value, path, ctx); return;
         case 'errorHandler': case 'retry': validateEnvelopeField(fs.type, value, path, { depth, counter, ctx, validateActionSteps }); return;
-        default:
-            return;
+        // temperature and an AI step's answer checks (schema v3): aiReliability.mts, the automation ai_step's rules.
+        default: require('../aiReliability.mts').validateReliabilityField(field, fs, value, path, ctx);
     }
 }
 

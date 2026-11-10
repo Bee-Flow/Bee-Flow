@@ -96,3 +96,55 @@ export async function checkedAnswer<A>(rel: AppReliability, scope: Obj, io: Chec
     if (errors.length) throw checkFailure(errors, rounds, report);
     return { answer, output, checkReport: report };
 }
+
+// ── The two steps (aiSteps.js) ────────────────────────────────────────────────
+// `rt` is appStudio/aiRuntime (passed in: aiSteps requires it lazily, tests hand a fake one).
+
+type Fields = Array<{ name: string }>;
+export type Runtime = {
+    runStructuredWithTools: (app: unknown, model: unknown, args: Obj) => Promise<{ structured: Obj }>;
+    runTextWithTools: (app: unknown, model: unknown, args: Obj) => Promise<{ text: string }>;
+    coerceRowToFields: (row: unknown, fields: Fields) => Obj;
+    MAX_EXTRACT_ROWS: number;
+};
+/** One step's model call: the runtime, the app, the resolved model (with the step's temperature), the checks and the scope. */
+export type StepCall = { rt: Runtime; app: unknown; model: unknown; rel: AppReliability; scope: Obj };
+
+/** The arguments of one ask: the first with the step's tools, a repair round with none and its messages. */
+export function callArgs(base: Obj, tools: unknown[], followUp: Message[] | null): Obj {
+    return { ...base, tools: followUp ? [] : tools, ...(followUp ? { followUp } : {}) };
+}
+
+/** ai_generate, structured: the coerced object, checked as is ("category"). */
+export function answerStructured(c: StepCall, base: Obj, tools: unknown[], fields: Fields) {
+    return checkedAnswer(c.rel, c.scope, {
+        ask: (followUp) => c.rt.runStructuredWithTools(c.app, c.model, callArgs(base, tools, followUp)),
+        view: (r) => ({ output: c.rt.coerceRowToFields(r.structured, fields), modelOutput: r.structured, prior: r.structured }),
+    });
+}
+
+/** ai_generate, text: checked as { text } (a check's field is "text"). */
+export function answerText(c: StepCall, base: Obj, tools: unknown[]) {
+    return checkedAnswer(c.rel, c.scope, {
+        ask: (followUp) => c.rt.runTextWithTools(c.app, c.model, callArgs(base, tools, followUp)),
+        view: (r) => ({ output: { text: r.text }, modelOutput: { text: r.text }, prior: r.text }),
+    });
+}
+
+/**
+ * ai_extract, after its own first answer (and its no-rows retry): the rows checked as { rows }
+ * ("rows[].category"). A repair answer without a rows list is the step's no-records failure.
+ */
+export async function checkExtractRows(c: StepCall, base: Obj, fields: Fields, first: Obj, noRows: () => Error) {
+    const rowsOf = (s: Obj) => (s.rows as unknown[]).slice(0, c.rt.MAX_EXTRACT_ROWS).map((r) => c.rt.coerceRowToFields(r, fields));
+    const checked = await checkedAnswer<Obj>(c.rel, c.scope, {
+        first,
+        ask: async (followUp) => {
+            const { structured } = await c.rt.runStructuredWithTools(c.app, c.model, callArgs(base, [], followUp));
+            if (!Array.isArray(structured.rows)) throw noRows();
+            return structured;
+        },
+        view: (s) => ({ output: { rows: rowsOf(s) }, modelOutput: { rows: s.rows }, prior: { rows: s.rows } }),
+    });
+    return { rows: (checked.output as { rows: Obj[] }).rows, checkReport: checked.checkReport };
+}

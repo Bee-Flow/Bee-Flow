@@ -97,6 +97,21 @@ export function numberFieldFinding(field: string, fs: { min?: number; max?: numb
     return { code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` must be a number${range}.`, hint: field === 'temperature' ? 'Lower answers vary less between runs. Leave it out to use the model tier\'s setting.' : 'Pass a number.' };
 }
 
+type ValidationCtx = { pushE: (f: Finding) => void; pushW: (f: Finding) => void; dataRefsAsWarnings?: boolean };
+
+/**
+ * validate/actions.js validateStepField for the field types this file owns (`number`,
+ * `aiChecks`); any other type is not checked here, as before.
+ */
+export function validateReliabilityField(field: string, fs: { type: string; min?: number; max?: number }, value: unknown, path: string, ctx: ValidationCtx): void {
+    if (fs.type === 'number') {
+        const f = numberFieldFinding(field, fs, value, path);
+        if (f) ctx.pushE(f);
+    } else if (fs.type === 'aiChecks') {
+        for (const f of aiChecksFindings(field, value, path, { draft: !!ctx.dataRefsAsWarnings })) (f.severity === 'error' ? ctx.pushE : ctx.pushW)(f);
+    }
+}
+
 // ── Runner ────────────────────────────────────────────────────────────────────
 
 export type AppReliability = {
