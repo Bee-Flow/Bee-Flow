@@ -10310,3 +10310,42 @@ exports[`compat corpus: what the phone plans for every stored app trace-invoice-
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app viewer-row-rules 1`] = `
+{
+  "defaultScreen": "scr_tasks01",
+  "navigable": [
+    "scr_tasks01",
+  ],
+  "screens": [
+    {
+      "id": "scr_tasks01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_taskh1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tasks of my groups",
+              },
+            ],
+            "screen": "scr_tasks01",
+            "unsupported": [
+              "stat",
+              "list",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "member",
+            "lead",
+            "auditor",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

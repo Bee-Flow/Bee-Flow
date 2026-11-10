@@ -193,7 +193,8 @@ function appRoleGrade(table, role) {
 /**
  * The row rule that the author attached to THIS app role for THIS model table.
  *
- * Only a non-empty string or an AST counts; anything else is not a rule. It is not validated
+ * Only a non-empty string, an AST or a rule per operation (`{ read, update, delete }`, an
+ * object like an AST and passed on as it is) counts; anything else is not a rule. It is not validated
  * here: `PUT /api/studio-apps/:id/schema` checks every rowFilter with
  * `rlsGateway.validateRowFilter` before saving, and a rule that got past that anyway makes
  * `rowFilterToSql` fail on the read path — a refusal, never a wider read.

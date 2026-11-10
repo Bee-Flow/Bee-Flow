@@ -128,9 +128,9 @@ async function putSchema(req, res) {
             const rf = t && t.access && typeof t.access.rowFilters === 'object' ? t.access.rowFilters : null;
             if (!rf) continue;
             for (const roleKey of Object.keys(rf)) {
-                const { ok, errors: rfErr, warnings: rfWarn } = rlsGateway.validateRowFilter(rf[roleKey], t);
+                const { ok, errors: rfErr } = rlsGateway.validateRowFilter(rf[roleKey], t);
                 if (!ok) rowFilterErrors.push(`table "${t.key}" role "${roleKey}": ${rfErr.join('; ')}`);
-                for (const w of rfWarn) rowFilterWarnings.push(`table "${t.key}" role "${roleKey}": ${w}`);
+                for (const w of rlsGateway.rowFilterWarnings(rf[roleKey], t)) rowFilterWarnings.push(`table "${t.key}" role "${roleKey}": ${w}`);
             }
         }
         const allErrors = [...errors, ...rowFilterErrors];

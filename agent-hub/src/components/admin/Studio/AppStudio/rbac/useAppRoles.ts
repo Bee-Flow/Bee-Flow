@@ -64,18 +64,21 @@ export interface DataModel {
     [key: string]: unknown;
 }
 
+/** One role's row rule: one rule for seeing, changing and deleting, or a rule per action. */
+export type StoredRowRule = string | { read?: string; update?: string; delete?: string };
+
 /** A table's access block: the default mode, per-role entries, per-role row filters. */
 export interface AccessBlock {
     default?: string;
     roles?: Record<string, Record<string, AccessPerm>>;
-    rowFilters?: Record<string, string>;
+    rowFilters?: Record<string, StoredRowRule>;
 }
 
 /** An access change: a `null` role entry or row filter removes that key. */
 export interface AccessPatch {
     default?: string;
     roles?: Record<string, Record<string, AccessPerm> | null>;
-    rowFilters?: Record<string, string | null>;
+    rowFilters?: Record<string, StoredRowRule | null>;
 }
 
 /** A person who holds a role in the app. */

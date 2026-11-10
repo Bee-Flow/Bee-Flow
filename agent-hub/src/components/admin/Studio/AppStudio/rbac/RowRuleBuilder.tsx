@@ -1,7 +1,6 @@
 import { Plus, Trash2, Wand2 } from 'lucide-react';
 import React from 'react';
-import { blankCondition, conditionProblem, findRuleField, hasEmptyCheck, operatorsForField, ownRowsCondition, retypeCondition, ruleFields, valueKindOf } from './rowRuleModel';
-import { COMPARE_SOURCES } from './rowRuleModel.constants';
+import { blankCondition, conditionProblem, findRuleField, hasEmptyCheck, operatorsForField, ownRowsCondition, retypeCondition, ruleFields, sourcesForCondition, valueKindOf, withSource } from './rowRuleModel';
 import useTranslation from '@/hooks/useTranslation';
 import { optionPairs } from '../tables/rowValues';
 import type { RuleTable, RuleCondition, RuleField } from './rowRuleModel.types';
@@ -180,13 +179,13 @@ function ConditionRow({ table, fields, condition, index, disabled, onPatch, onRe
                 {needsValue ? (
                     <select
                         value={condition.source}
-                        onChange={(e) => onPatch({ source: e.target.value })}
+                        onChange={(e) => onPatch(withSource(condition, e.target.value))}
                         disabled={disabled}
                         aria-label={t('studio_apps_edit.rule_builder.compare_aria', 'Compare with, condition {n}', { n: num })}
                         className={selectClass}
                         style={selectStyle}
                     >
-                        {COMPARE_SOURCES.map((s) => <option key={s.id} value={s.id}>{t(s.labelKey, s.label)}</option>)}
+                        {sourcesForCondition(condition).map((s) => <option key={s.id} value={s.id}>{t(s.labelKey, s.label)}</option>)}
                     </select>
                 ) : null}
                 {needsValue && condition.source === 'value' ? (

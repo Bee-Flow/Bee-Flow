@@ -12,13 +12,33 @@ export const SYSTEM_FIELDS: Array<{ key: string; name: string; nameKey: string; 
     { key: 'id', name: 'Row id', nameKey: 'studio_apps_edit.row_rule.sys_id', type: 'text' },
 ];
 
-/** The runtime values a rule may compare against, named the way a person says them. */
-export const COMPARE_SOURCES: Array<{ id: string; label: string; labelKey: string }> = [
+/**
+ * The runtime values a rule may compare against, named the way a person says them.
+ *
+ * `legacy`: still read and shown on a rule that uses it, no longer offered for a new
+ * condition. viewer.organizationId is not the same value on every path (the session's
+ * organisation on data reads, the app's in server steps, nothing on a public page);
+ * viewer.orgId is, so that is the one the picker offers.
+ * `list`: a list of the person; a column is tested against it with `in`.
+ */
+export const COMPARE_SOURCES: Array<{ id: string; label: string; labelKey: string; legacy?: boolean; list?: boolean }> = [
     { id: 'value', label: 'a value I type', labelKey: 'studio_apps_edit.row_rule.src_value' },
     { id: 'viewer.id', label: 'the person opening the app', labelKey: 'studio_apps_edit.row_rule.src_viewer_id' },
-    { id: 'viewer.organizationId', label: 'their organisation', labelKey: 'studio_apps_edit.row_rule.src_viewer_org' },
+    { id: 'viewer.email', label: 'their e-mail address', labelKey: 'studio_apps_rowrules.src_viewer_email' },
+    { id: 'viewer.groups', label: 'one of their groups', labelKey: 'studio_apps_rowrules.src_viewer_groups', list: true },
+    { id: 'viewer.orgId', label: 'the organisation of their account', labelKey: 'studio_apps_rowrules.src_viewer_org_id' },
+    { id: 'viewer.organizationId', label: 'their organisation', labelKey: 'studio_apps_edit.row_rule.src_viewer_org', legacy: true },
     { id: 'viewer.role', label: 'their role', labelKey: 'studio_apps_edit.row_rule.src_viewer_role' },
 ];
+
+/** The sources that are a list of the person (tested with `in`). */
+export const LIST_SOURCES = new Set(COMPARE_SOURCES.filter((s) => s.list).map((s) => s.id));
+
+/** The operator of a condition on a list source. */
+export const MEMBERSHIP_OP = 'in';
+
+/** Column types a list of text can be tested against; the server refuses the rest. */
+export const MEMBERSHIP_TYPES = new Set(['text', 'richtext', 'select']);
 
 export const SOURCE_LABEL = new Map(COMPARE_SOURCES.map((s): [string, string] => [s.id, s.label]));
 
@@ -61,6 +81,8 @@ export const OP_LABELS: Record<string, [string, string]> = {
     // filled in is NULL, and NULL compares to nothing here. "blank", not "empty".
     empty: ['studio_apps_edit.row_rule.op_blank', 'is blank'],
     notEmpty: ['studio_apps_edit.row_rule.op_not_blank', 'is not blank'],
+    // `record.team in viewer.groups` reads "Team is one of their groups": the source carries "one of".
+    in: ['studio_apps_rowrules.op_in', 'is'],
 };
 
 export const DATE_OP_LABELS: Record<string, [string, string]> = {

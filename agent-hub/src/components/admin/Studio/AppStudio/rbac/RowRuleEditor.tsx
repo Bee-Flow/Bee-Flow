@@ -2,10 +2,15 @@ import { AlertTriangle, Database, Loader2 } from 'lucide-react';
 import { SetStateAction, Dispatch, useEffect, useMemo, useRef, useState } from 'react';
 import { validateRowFilterExpr } from './rowFilterSubset';
 import RowRuleBuilder from './RowRuleBuilder';
-import { buildRowRule, compareSourceLabel, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, parseRowRule, resolveAccessEntry, ruleFields, scopeToEntry } from './rowRuleModel';
+import RowRuleScope, { ruleActionLabel } from './RowRuleScope';
+import { compareSourceLabel, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, parseRowRule, resolveAccessEntry, ruleFields, scopeToEntry } from './rowRuleModel';
 import { BASE_SCOPES } from './rowRuleModel.constants';
+import { activeSlots, draftToRule, seedDraft, seedRuleSet, storedRule, withPerAction } from './rowRuleSet';
+import type { RuleAction, RuleSet, RuleSlot } from './rowRuleSet';
+import { describeActionRules } from './rowRuleSetWords';
 import useAppRoles from './useAppRoles';
 import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { insertAtCursor } from '@/utils/bindingHelpers';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import EmptyState from '@/components/shared/EmptyState';
@@ -29,7 +34,9 @@ import useAdjustOnChange from '@/hooks/useAdjustOnChange';
  *                     the owner picks a preset — saving a rule must never widen
  *                     what a role may do.
  *   • Row rule      — access.rowFilters[role]: one expression ANDed onto the
- *                     base access, narrowing WHICH rows the role may touch.
+ *                     base access, narrowing WHICH rows the role may touch, or
+ *                     a rule per action (seeing / changing / deleting): see
+ *                     rowRuleSet.ts for how the stored value maps to drafts.
  *
  * The rule is authored with pickers (RowRuleBuilder over rowRuleModel), which
  * generate the same bounded expression the gateway accepts. "Write it myself"
@@ -39,7 +46,10 @@ import useAdjustOnChange from '@/hooks/useAdjustOnChange';
  * server subset before the owner can save.
  */
 
-const VIEWER_CHIPS = ['viewer.id', 'viewer.organizationId', 'viewer.role'];
+// viewer.orgId, not viewer.organizationId: the latter is not the same value on every path.
+const VIEWER_CHIPS = ['viewer.id', 'viewer.email', 'viewer.orgId', 'viewer.role'];
+// A list of the person is not one value: its chip inserts the whole test.
+const MEMBERSHIP_CHIP = 'in viewer.groups';
 
 function findTable(tables: DataModelTable[], id: string) {
     return (tables || []).find((t) => t && (t.id === id || t.key === id)) || null;
@@ -50,20 +60,40 @@ function sameAccess(a: AccessEntry, b: AccessEntry) {
         && a.update === b.update && a.delete === b.delete;
 }
 
-function currentRule(table: DataModelTable, role: string) {
+/** What is stored for this role: one rule (text), a rule per action (an object), or nothing. */
+function currentRule(table: DataModelTable, role: string): unknown {
     const rf = table?.access?.rowFilters;
-    return (rf && typeof rf === 'object' && typeof rf[role] === 'string') ? rf[role] : '';
+    return (rf && typeof rf === 'object') ? rf[role] : null;
 }
 
-function seedDraft(rule: string, table: RuleTable | null): RuleDraft {
-    const parsed = parseRowRule(rule, table);
-    return parsed.ok
-        ? { mode: 'build', join: parsed.join, conditions: parsed.conditions, raw: rule }
-        : { mode: 'raw', join: 'and', conditions: [], raw: rule };
+/** What a rule set would store, as one comparable text (the unsaved-changes check). */
+function ruleKey(set: RuleSet) {
+    const stored = storedRule(set);
+    return stored === undefined ? 'kept' : JSON.stringify(stored);
 }
 
-function draftToRule(draft: RuleDraft) {
-    return draft.mode === 'raw' ? draft.raw : buildRowRule(draft);
+/** Why a rule cannot be saved, named by its action when there is a rule per action. */
+function invalidRuleMessage(invalid: { slot: RuleSlot; validation: { error: string | null | undefined } }, t: TranslateFn) {
+    const problem = invalid.validation.error || t('studio_apps_edit.rule_editor.fix_rule', 'Fix the rule first.');
+    return invalid.slot === 'all'
+        ? problem
+        : t('studio_apps_rowrules.problem_in_action', '{action}: {problem}', { action: ruleActionLabel(invalid.slot, t), problem });
+}
+
+/** Every draft that will be saved, with what still stands in its way. */
+function checkRuleSet(set: RuleSet, table: RuleTable | null, t: TranslateFn) {
+    return activeSlots(set).map((slot) => {
+        const draft = set[slot];
+        const text = draftToRule(draft);
+        return {
+            slot,
+            text,
+            validation: validateRowFilterExpr(text, table, t),
+            // A half-filled condition is dropped by buildRowRule, which would silently save a
+            // WIDER rule than the screen shows — block instead.
+            unfinished: draft.mode === 'build' && draft.conditions.some((c) => conditionProblem(c, table, t)),
+        };
+    });
 }
 
 export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEditorProps) {
@@ -73,8 +103,10 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
     const [tableId, setTableId] = useState('');
     const [roleKey, setRoleKey] = useState('');
     const [access, setAccess] = useState(() => scopeToEntry('all'));
-    const [draft, setDraft] = useState<RuleDraft>({ mode: 'build', join: 'and', conditions: [], raw: '' });
-    const [saved, setSaved] = useState(() => ({ access: scopeToEntry('all'), rule: '' }));
+    const [ruleSet, setRuleSet] = useState<RuleSet>(() => seedRuleSet(null, null));
+    // With a rule per action: the action whose rule is on screen.
+    const [action, setAction] = useState<RuleAction>('read');
+    const [saved, setSaved] = useState(() => ({ access: scopeToEntry('all'), rule: 'null' }));
     const [pendingSwitch, setPendingSwitch] = useState<{ tableId: string; } | { roleKey: string; } | null>(null);
 
     // Default the pickers once data is present (during render: no extra pass).
@@ -87,17 +119,25 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
     useAdjustOnChange([table, roleKey], () => {
         if (!table || !roleKey) return;
         const nextAccess = resolveAccessEntry(table, roleKey);
-        const next = seedDraft(currentRule(table, roleKey), table);
+        const next = seedRuleSet(currentRule(table, roleKey), table);
         setAccess(nextAccess);
-        setDraft(next);
+        setRuleSet(next);
+        setAction('read');
         // Reading a hand-typed rule back normalises it (=== → ==, column first),
         // so the baseline is what the pickers WOULD write — otherwise the editor
         // would claim unsaved changes the moment it opened.
-        setSaved({ access: nextAccess, rule: draftToRule(next) });
+        setSaved({ access: nextAccess, rule: ruleKey(next) });
     });
 
+    // The draft on screen: the one rule, or the rule of the picked action.
+    const slot: RuleSlot = ruleSet.perAction ? action : 'all';
+    const draft = ruleSet[slot];
+    const setDraft: Dispatch<SetStateAction<RuleDraft>> = (update) => setRuleSet((prev) => {
+        const at: RuleSlot = prev.perAction ? action : 'all';
+        return { ...prev, [at]: typeof update === 'function' ? update(prev[at]) : update };
+    });
     const rule = draftToRule(draft);
-    const dirty = !sameAccess(access, saved.access) || rule.trim() !== saved.rule.trim();
+    const dirty = !sameAccess(access, saved.access) || ruleKey(ruleSet) !== saved.rule;
 
     // The host (the Roles & access tabs) blocks closing while there is unsaved work.
     const dirtyChangeRef = useRef(onDirtyChange);
@@ -117,12 +157,11 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
         else applySwitch(patch);
     };
 
-    const validation = useMemo(() => validateRowFilterExpr(rule, table, t), [rule, table, t]);
-    // A half-filled condition is dropped by buildRowRule, which would silently save a
-    // WIDER rule than the screen shows — block instead.
-    const unfinished = draft.mode === 'build'
-        ? draft.conditions.some((c) => conditionProblem(c, table, t))
-        : false;
+    const checks = useMemo(() => checkRuleSet(ruleSet, table, t), [ruleSet, table, t]);
+    const validation = checks.find((c) => c.slot === slot)?.validation || { ok: true, error: null };
+    const unfinished = checks.some((c) => c.unfinished);
+    // The first rule that would not save, named by its action when there is a rule per action.
+    const invalid = checks.find((c) => c.text.trim() && !c.validation.ok);
     const canSwitchToBuilder = useMemo(
         () => draft.mode === 'raw' && parseRowRule(draft.raw, table).ok,
         [draft.mode, draft.raw, table],
@@ -135,25 +174,30 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
 
     const roleLabel = roles.find((r) => r.key === roleKey)?.label || roleKey || t('studio_apps_edit.rule_editor.this_role', 'This role');
     const tableName = table?.name || table?.key || t('studio_apps_edit.rule_editor.this_table', 'this table');
+    // Seeing follows the rule for seeing; changing and deleting get their own sentences below.
+    const readDraft = ruleSet.perAction ? ruleSet.read : ruleSet.all;
     const outcome = describeAccessOutcome({
         entry: access,
         roleLabel,
         tableName,
-        hasRule: !!rule.trim(),
-        ruleSummary: draft.mode === 'build' ? describeRowRule(draft, table, t) : '',
+        hasRule: ruleSet.kept || !!draftToRule(readDraft).trim(),
+        ruleSummary: readDraft.mode === 'build' ? describeRowRule(readDraft, table, t) : '',
         t,
     });
+    const actionLines = describeActionRules(ruleSet, access, table, t);
 
     const doSave = async () => {
         if (!table || !roleKey) return;
         if (unfinished) { toast.error(t('studio_apps_edit.rule_editor.finish_conditions', 'Finish every condition of the rule first.')); return; }
-        if (!validation.ok) { toast.error(validation.error || t('studio_apps_edit.rule_editor.fix_rule', 'Fix the rule first.')); return; }
+        if (invalid) { toast.error(invalidRuleMessage(invalid, t)); return; }
         try {
+            // undefined: a stored rule this screen cannot show stays exactly as it is.
+            const stored = storedRule(ruleSet);
             await saveTableAccess(table.id as string, {
                 roles: { [roleKey]: access },
-                rowFilters: { [roleKey]: rule.trim() || null },
+                ...(stored === undefined ? {} : { rowFilters: { [roleKey]: stored } }),
             });
-            setSaved({ access, rule });
+            setSaved({ access, rule: ruleKey(ruleSet) });
             toast.success(t('studio_apps_edit.rule_editor.saved', 'Row access saved.'));
         } catch (err) {
             const errBody = (err as { body?: { errors?: unknown } } | null)?.body;
@@ -203,7 +247,22 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
                 )}
             </div>
 
-            <RowRuleEditorSection t={t} draft={draft} setDraft={setDraft} noAccess={noAccess} table={table} canSwitchToBuilder={canSwitchToBuilder} rule={rule} validation={validation} />
+            <RowRuleScope
+                t={t}
+                ruleSet={ruleSet}
+                action={action}
+                disabled={noAccess}
+                onPerAction={(perAction) => setRuleSet((prev) => withPerAction(prev, perAction, table, action))}
+                onAction={setAction}
+            />
+
+            {ruleSet.kept ? (
+                <span data-testid="row-rule-kept" className="text-[11px] text-[var(--text-tertiary)]">
+                    {t('studio_apps_rowrules.kept_as_is', 'The rule stored for this role is in a form this screen cannot show. It stays exactly as it is; saving here changes only the access above.')}
+                </span>
+            ) : (
+                <RowRuleEditorSection t={t} draft={draft} setDraft={setDraft} noAccess={noAccess} table={table} canSwitchToBuilder={canSwitchToBuilder} rule={rule} validation={validation} />
+            )}
 
             <div
                 data-testid="row-rule-outcome"
@@ -213,6 +272,9 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
                 {outcome.writes ? (
                     <p className="mt-1 text-[var(--text-secondary)]">{outcome.writes}</p>
                 ) : null}
+                {actionLines.map((line) => (
+                    <p key={line} className="mt-1 text-[var(--text-secondary)]">{line}</p>
+                ))}
                 <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{outcome.owner}</p>
             </div>
 
@@ -220,7 +282,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
                 <button
                     type="button"
                     onClick={doSave}
-                    disabled={savingAccess || unfinished || (!!rule.trim() && !validation.ok)}
+                    disabled={savingAccess || unfinished || !!invalid}
                     className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {savingAccess ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
@@ -269,7 +331,7 @@ function RowRuleEditorSection2({ t, tableId, requestSwitch, tables, roleKey, rol
     </div>;
 }
 
-function RowRuleEditorSection({ t, draft, setDraft, noAccess, table, canSwitchToBuilder, rule, validation }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: RuleDraft; setDraft: Dispatch<SetStateAction<RuleDraft>>; noAccess: boolean; table: DataModelTable | null; canSwitchToBuilder: boolean; rule: string; validation: { ok: boolean; error: string | null | undefined; }; }) {
+function RowRuleEditorSection({ t, draft, setDraft, noAccess, table, canSwitchToBuilder, rule, validation }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: RuleDraft; setDraft: Dispatch<SetStateAction<RuleDraft>>; noAccess: boolean; table: DataModelTable | null; canSwitchToBuilder: boolean; rule: string; validation: { ok: boolean; error: string | null | undefined; warning?: string; }; }) {
     return <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="text-xs font-medium text-[var(--text-secondary)]">
@@ -319,6 +381,14 @@ function RowRuleEditorSection({ t, draft, setDraft, noAccess, table, canSwitchTo
                     onChange={(raw) => setDraft((prev) => ({ ...prev, raw }))} />
             </>
         )}
+        {rule.includes('viewer.groups') ? (
+            <span className="text-[11px] text-[var(--text-tertiary)]">
+                {t('studio_apps_rowrules.groups_hint', 'Groups are compared by their id, so the column has to hold a group id.')}
+            </span>
+        ) : null}
+        {validation.ok && validation.warning ? (
+            <span data-testid="row-rule-advice" className="text-[11px] text-amber-600 dark:text-amber-400">{validation.warning}</span>
+        ) : null}
     </div>;
 }
 
@@ -368,6 +438,15 @@ function RawRuleBox({ table, value, onChange, disabled, error }: RawRuleBoxProps
                         {path}
                     </button>
                 ))}
+                <button
+                    type="button"
+                    onClick={() => insert(MEMBERSHIP_CHIP)}
+                    disabled={disabled}
+                    title={compareSourceLabel('viewer.groups', t)}
+                    className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-secondary)]"
+                >
+                    {MEMBERSHIP_CHIP}
+                </button>
             </div>
             {error ? (
                 <div className="inline-flex items-start gap-1.5 text-[11px] text-rose-500 dark:text-rose-400" data-rule-error="true">

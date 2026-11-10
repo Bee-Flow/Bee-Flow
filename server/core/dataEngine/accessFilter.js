@@ -10,7 +10,8 @@
  *   compileAccessFilter(tableMeta, role, viewer, action, opts?) → { where, params }
  *   assertCanWrite(tableMeta, role, action) → scope | throws {status:403}
  *   rowFilterToSql(astOrExpr, viewer, tableMeta, opts?) → { sql, params }
- *   validateRowFilter(ruleOrPerOperation, tableMeta) → { ok, errors, warnings }
+ *   validateRowFilter(ruleOrPerOperation, tableMeta) → { ok, errors }
+ *   rowFilterWarnings(ruleOrPerOperation, tableMeta) → string[] (advice, never a refusal)
  *
  * ── SCOPES ──────────────────────────────────────────────────────────
  * A (role, action) resolves to a scope:
@@ -392,16 +393,11 @@ function rowFilterForAction(entry, action) {
 }
 
 /**
- * Validate a `rowFilters[role]` entry at data-model save time: one rule, or a
- * rule per operation. Returns { ok, errors, warnings }; the save path rejects
- * a model whose entries do not all pass, and may show the warnings. Structural
- * only (an empty probe viewer); it never executes.
+ * Errors and warnings of a `rowFilters[role]` entry: one rule, or a rule per
+ * operation (each message then starts with its operation).
  */
-function validateRowFilter(entry, tableMeta) {
-    if (!isPerOperation(entry)) {
-        const one = validateOneRule(entry, tableMeta);
-        return { ok: one.errors.length === 0, errors: one.errors, warnings: one.warnings };
-    }
+function checkRowFilter(entry, tableMeta) {
+    if (!isPerOperation(entry)) return validateOneRule(entry, tableMeta);
     /** @type {string[]} */
     const errors = [];
     /** @type {string[]} */
@@ -417,7 +413,28 @@ function validateRowFilter(entry, tableMeta) {
         errors.push(...one.errors.map((m) => `${key}: ${m}`));
         warnings.push(...one.warnings.map((m) => `${key}: ${m}`));
     }
-    return { ok: errors.length === 0, errors, warnings };
+    return { errors, warnings };
+}
+
+/**
+ * Validate a `rowFilters[role]` entry at data-model save time: one rule, or a
+ * rule per operation. Returns { ok, errors }; the save path rejects a model
+ * whose entries do not all pass. Structural only (an empty probe viewer); it
+ * never executes.
+ */
+function validateRowFilter(entry, tableMeta) {
+    const { errors } = checkRowFilter(entry, tableMeta);
+    return { ok: errors.length === 0, errors };
+}
+
+/**
+ * Advice about an entry that may well be valid (viewer.orgId over
+ * viewer.organizationId, an attribute the viewer does not have): for the save
+ * path to show, never a reason to refuse.
+ * @returns {string[]}
+ */
+function rowFilterWarnings(entry, tableMeta) {
+    return checkRowFilter(entry, tableMeta).warnings;
 }
 
 // ── Access filter compilation ───────────────────────────────────────
@@ -489,6 +506,7 @@ module.exports = {
     assertCanWrite,
     rowFilterToSql,
     validateRowFilter,
+    rowFilterWarnings,
     rowFilterForAction,
     AccessError,
 };

@@ -152,21 +152,22 @@ test('a list used as one value is an error at save time and matches nothing at r
 // ── advice ──────────────────────────────────────────────────────────
 
 test('viewer.organizationId is accepted with a recommendation for viewer.orgId', () => {
-    const check = accessFilter.validateRowFilter('record.org_id == viewer.organizationId', tableWith());
-    assert.equal(check.ok, true);
-    assert.deepEqual(check.errors, []);
-    assert.equal(check.warnings.length, 1);
-    assert.match(check.warnings[0], /use viewer\.orgId in a new rule/);
-    assert.deepEqual(accessFilter.validateRowFilter('record.org_id == viewer.orgId', tableWith()).warnings, []);
+    const rule = 'record.org_id == viewer.organizationId';
+    assert.deepEqual(accessFilter.validateRowFilter(rule, tableWith()), { ok: true, errors: [] });
+    const warnings = accessFilter.rowFilterWarnings(rule, tableWith());
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /use viewer\.orgId in a new rule/);
+    assert.deepEqual(accessFilter.rowFilterWarnings('record.org_id == viewer.orgId', tableWith()), []);
 });
 
 test('an attribute the viewer does not have is a warning, as it only ever matched nothing', () => {
-    const check = accessFilter.validateRowFilter('record.team == viewer.region', tableWith());
-    assert.equal(check.ok, true);
-    assert.match(check.warnings[0], /viewer\.region is not something a row rule knows/);
+    assert.equal(accessFilter.validateRowFilter('record.team == viewer.region', tableWith()).ok, true);
+    assert.match(accessFilter.rowFilterWarnings('record.team == viewer.region', tableWith())[0], /viewer\.region is not something a row rule knows/);
     for (const known of ['id', 'role', 'email']) {
-        assert.deepEqual(accessFilter.validateRowFilter(`record.team == viewer.${known}`, tableWith()).warnings, [], known);
+        assert.deepEqual(accessFilter.rowFilterWarnings(`record.team == viewer.${known}`, tableWith()), [], known);
     }
+    // A rule that does not translate has errors, and no advice on top of them.
+    assert.deepEqual(accessFilter.rowFilterWarnings('upper(record.team) == "X"', tableWith()), []);
 });
 
 // ── 3. a rule per operation ─────────────────────────────────────────
@@ -213,15 +214,16 @@ test('a malformed per-operation entry is refused, at save time and at read time'
 });
 
 test('errors and warnings of a per-operation entry name their operation', () => {
-    const check = accessFilter.validateRowFilter({
+    const entry = {
         read: 'record.org_id == viewer.organizationId',
         update: 'record.amount in viewer.groups',
         delete: 'record.team in viewer.groups',
-    }, tableWith());
+    };
+    const check = accessFilter.validateRowFilter(entry, tableWith());
     assert.equal(check.ok, false);
     assert.equal(check.errors.length, 1);
     assert.match(check.errors[0], /^update: field "amount" cannot be tested with "in"/);
-    assert.match(check.warnings[0], /^read: viewer\.organizationId/);
+    assert.match(accessFilter.rowFilterWarnings(entry, tableWith())[0], /^read: viewer\.organizationId/);
 });
 
 // ── vocabulary ──────────────────────────────────────────────────────

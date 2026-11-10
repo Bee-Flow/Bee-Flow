@@ -203,7 +203,7 @@ async function applyUpsertTable(draftWrap, args) {
     }
     // Row filters are the only free-form expressions a data model carries — the
     // AI write passes the SAME save-time gate as the human PUT /:id/schema path.
-    const { validateRowFilter } = require('../rlsGateway');
+    const { validateRowFilter, rowFilterWarnings: warningsOf } = require('../rlsGateway');
     const canonTable = findModelTable(canonical, merged.table.id) || merged.table;
     const rowFilters = (canonTable.access && typeof canonTable.access.rowFilters === 'object') ? canonTable.access.rowFilters : null;
     /** @type {string[]} */
@@ -211,9 +211,9 @@ async function applyUpsertTable(draftWrap, args) {
     /** @type {string[]} */
     const rowFilterWarnings = [];
     for (const roleKey of Object.keys(rowFilters || {})) {
-        const { ok, errors, warnings } = validateRowFilter(rowFilters[roleKey], canonTable);
+        const { ok, errors } = validateRowFilter(rowFilters[roleKey], canonTable);
         if (!ok) rowFilterErrors.push(`role "${roleKey}": ${errors.join('; ')}`);
-        for (const w of warnings) rowFilterWarnings.push(`access.rowFilters role "${roleKey}": ${w}`);
+        for (const w of warningsOf(rowFilters[roleKey], canonTable)) rowFilterWarnings.push(`access.rowFilters role "${roleKey}": ${w}`);
     }
     if (rowFilterErrors.length) {
         return {
