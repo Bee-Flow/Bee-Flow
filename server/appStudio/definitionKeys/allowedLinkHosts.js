@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 /**
@@ -18,17 +19,23 @@ const MAX_HOST_LEN = 253;
 const HOST_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789.-';
 
 /** True for a name made only of host characters, with no empty label and no dash at a label's edge. */
+/** @param {string} host */
 function isBareHost(host) {
     if (!host || host.length > MAX_HOST_LEN) return false;
     for (const ch of host) if (!HOST_CHARS.includes(ch)) return false;
-    return host.split('.').every((label) => label !== '' && !label.startsWith('-') && !label.endsWith('-'));
+    return host.split('.').every((/** @type {string} */ label) => label !== '' && !label.startsWith('-') && !label.endsWith('-'));
 }
 
+/**
+ * @param {unknown} value
+ * @param {(code: string, path: string, message: string) => void} push
+ */
 function canon(value, push) {
     if (!Array.isArray(value)) {
         push('allowedLinkHosts.invalid', 'allowedLinkHosts', 'allowedLinkHosts must be a list of host names — dropped.');
         return undefined;
     }
+    /** @type {string[]} */
     const hosts = [];
     value.forEach((entry, i) => {
         const host = typeof entry === 'string' ? entry.trim().toLowerCase() : '';
@@ -43,6 +50,10 @@ function canon(value, push) {
     return hosts.length ? hosts : undefined;
 }
 
+/**
+ * @param {unknown} value
+ * @param {{ pushE: (finding: Record<string, string>) => void }} ctx
+ */
 function validate(value, { pushE }) {
     const ok = Array.isArray(value) && value.length <= LIMITS.MAX_ALLOWED_LINK_HOSTS && value.every((h) => typeof h === 'string' && isBareHost(h));
     if (!ok) {

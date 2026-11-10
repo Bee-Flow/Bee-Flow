@@ -23,8 +23,7 @@
  *     stepFields:        { [kind]: { [field]: n } },             a field added to an existing step kind
  *     stepFieldValues:   { [kind]: { [field]: { [value]: n } } }, an enum value added to a step field
  *     actionFields / actionFieldValues                          the same for an action kind
- *     stepItemKeys:      { [kind]: { [field]: { [key]: n } } },   a key added to the items of a list field of a base step
- *                                                                 (a switch case's `when`)
+ *     stepItemKeys:      { [kind]: { [field]: { [key]: n } } },   a key on the items of a base step's list field (a case's `whenExpr`)
  *     itemShapes:     { [type]: { [prop]: ShapeMarks } },      keys and enum values added to the items of a list prop
  *     typeNodeKeys:   { [type]: { [key]: n } },                a node key an existing type newly takes (an event)
  *     keys:           { [family]: { [key]: n } },               a key added to one of the fixed objects below
@@ -183,11 +182,7 @@ function shapeSince(list, marks) {
     return max;
 }
 
-/**
- * The highest `since` of the keys on the items of a list field of this step (`stepItemKeys`).
- * @param {Record<string, unknown>} step
- * @param {SinceIndex} index
- */
+/** The highest `since` of the keys on the items of a list field of this step (`stepItemKeys`). @param {Record<string, unknown>} step @param {SinceIndex} index */
 function stepItemsSince(step, index) {
     let max = 0;
     for (const [field, keys] of Object.entries(own(index.stepItemKeys, step.kind) || {})) {

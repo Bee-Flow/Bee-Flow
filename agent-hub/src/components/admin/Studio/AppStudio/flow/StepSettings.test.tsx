@@ -28,6 +28,13 @@ const STEP_SPECS_STUB = {
         },
     },
     open_modal: { fields: { modalId: { type: 'string', required: true } } },
+    toast: { fields: {
+        message: { type: 'string', required: true, maxLen: 500 },
+        tone: { type: 'enum', values: ['info', 'success'], default: 'info' },
+        messageExpr: { type: 'formula', since: 3 },
+    } },
+    open_url: { fields: { url: { type: 'url', required: true }, newTab: { type: 'boolean', default: true }, urlExpr: { type: 'formula', since: 3 } } },
+    switch: { fields: { expr: { type: 'formula', required: true }, cases: { type: 'switchCases', required: true }, default: { type: 'steps' } } },
     delete_record: {
         fields: {
             tableId: { type: 'string', required: true },
@@ -406,5 +413,51 @@ describe('StepSettings — update/delete_record: one row or rows matching a filt
         expect((limit as HTMLInputElement).value).toBe('20');
         await user.click(screen.getByRole('radio', { name: 'One row' }));
         expect(last()).toEqual({ kind: 'delete_record', tableId: 'tbl_inv' });
+    });
+});
+
+describe('StepSettings: formula fields of the dynamic-text additions', () => {
+    it('shows a toast message formula with its own label, beside the literal message', async () => {
+        renderStep({ kind: 'toast', message: 'plain', tone: 'info' });
+        expect(await screen.findByLabelText('Message (formula)')).toBeTruthy();
+        expect(screen.getByLabelText('Message')).toBeTruthy();
+    });
+
+    it('writes the formula into the step and leaves the rest of it alone', async () => {
+        const user = userEvent.setup();
+        const { last } = renderStep({ kind: 'toast', message: 'plain', tone: 'info' });
+        const box = await screen.findByLabelText('Message (formula)');
+        await user.type(box, 'x');
+        expect(last()).toMatchObject({ kind: 'toast', message: 'plain', tone: 'info', messageExpr: 'x' });
+    });
+
+    it('labels the open_url address formula and says which hosts it can open', async () => {
+        renderStep({ kind: 'open_url', url: 'https://example.com', newTab: true });
+        expect(await screen.findByLabelText('Address (formula)')).toBeTruthy();
+        expect(screen.getByText(/Links from formulas/)).toBeTruthy();
+    });
+});
+
+describe('StepSettings: a switch case picked by a formula', () => {
+    const base = { kind: 'switch', expr: 'vars.n', cases: [{ value: 'a', steps: [] }, { value: 'b', steps: [] }], default: [] };
+
+    it('offers a formula input per case', async () => {
+        renderStep(base);
+        expect(await screen.findByLabelText('Case 1 formula')).toBeTruthy();
+        expect(screen.getByLabelText('Case 2 formula')).toBeTruthy();
+    });
+
+    it('setting a formula drops the value of that case only', async () => {
+        const user = userEvent.setup();
+        const { last } = renderStep(base);
+        await user.type(await screen.findByLabelText('Case 2 formula'), 'q');
+        expect(last().cases).toEqual([{ value: 'a', steps: [] }, { whenExpr: 'q', steps: [] }]);
+    });
+
+    it('clearing the formula removes the key, so the case is as it was', async () => {
+        const user = userEvent.setup();
+        const { last } = renderStep({ ...base, cases: [{ whenExpr: 'z', steps: [] }] });
+        await user.clear(await screen.findByLabelText('Case 1 formula'));
+        expect(last().cases).toEqual([{ steps: [] }]);
     });
 });
