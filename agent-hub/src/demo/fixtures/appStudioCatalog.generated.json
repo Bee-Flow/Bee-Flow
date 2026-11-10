@@ -1,0 +1,4230 @@
+{
+    "schemaVersion": 2,
+    "acceptedSchemaVersions": [
+        1,
+        2,
+        3
+    ],
+    "limits": {
+        "MAX_SCREENS": 40,
+        "MAX_SECTIONS_PER_SCREEN": 40,
+        "MAX_TOTAL_NODES": 500,
+        "MAX_ACTIONS": 200,
+        "MAX_DEPTH": 8,
+        "MAX_STRING": 5000,
+        "MAX_DEFINITION_BYTES": 524288,
+        "MAX_SELECT_OPTIONS": 100,
+        "MAX_TABLE_COLUMNS": 12,
+        "MAX_KEYVALUE_FIELDS": 20,
+        "MAX_STATIC_ROWS": 200,
+        "MAX_NAME_LEN": 80,
+        "MAX_FORMULA_LEN": 2000,
+        "MAX_VALIDATIONS_PER_FIELD": 10,
+        "MAX_ACTION_STEPS": 120,
+        "MAX_ACTION_DEPTH": 8,
+        "MAX_ACTION_LOOP_ITERATIONS": 200,
+        "MAX_CALL_DEPTH": 3,
+        "MAX_CALL_PARAMS": 20,
+        "MAX_STEP_RETRY_TIMES": 3,
+        "MAX_STEP_RETRY_DELAY_MS": 30000,
+        "DEFAULT_STEP_RETRY_DELAY_MS": 1000,
+        "MAX_TRANSACTION_STEPS": 50,
+        "MAX_LOCK_KEY_LEN": 200,
+        "MAX_PROGRESS_TEXT_LEN": 200,
+        "MAX_DEFERRED_EFFECTS": 10,
+        "MAX_BULK_WRITE_ROWS": 500,
+        "MAX_WRITE_FILTER_CLAUSES": 20,
+        "MAX_UPSERT_KEY_COLUMNS": 5,
+        "MAX_DATA_GRID_COLUMNS": 20,
+        "MAX_AI_PROMPT_LEN": 32000,
+        "MAX_AI_SCHEMA_FIELDS": 40,
+        "MAX_AI_SCHEMA_FIELD_DESC": 2000,
+        "MAX_CONTEXT_SOURCES": 12,
+        "MAX_CONTEXT_SOURCE_LABEL": 120,
+        "MAX_CHART_SERIES": 12,
+        "MAX_CHART_REFERENCES": 8,
+        "MAX_ROLES": 20,
+        "MAX_NAVIGATE_PARAMS": 20,
+        "MAX_KANBAN_COLUMNS": 12,
+        "MAX_KANBAN_SWIMLANES": 12,
+        "MAX_KANBAN_CARD_FIELDS": 6,
+        "MAX_RECORD_DETAIL_FIELDS": 30,
+        "MAX_FILTER_BAR_FIELDS": 8,
+        "MAX_STEPPER_STEPS": 10,
+        "MAX_VARIABLES": 30,
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+    },
+    "theme": {
+        "primary": {
+            "type": "color",
+            "default": "#0F766E",
+            "presets": [
+                "#0F766E",
+                "#0369A1",
+                "#1D4ED8",
+                "#0891B2",
+                "#047857",
+                "#4D7C0F",
+                "#B45309",
+                "#C2410C",
+                "#B91C1C",
+                "#BE185D",
+                "#334155",
+                "#57534E"
+            ]
+        },
+        "accent": {
+            "type": "color",
+            "optional": true,
+            "default": null,
+            "presets": [
+                "#0F766E",
+                "#0369A1",
+                "#1D4ED8",
+                "#0891B2",
+                "#047857",
+                "#4D7C0F",
+                "#B45309",
+                "#C2410C",
+                "#B91C1C",
+                "#BE185D",
+                "#334155",
+                "#57534E"
+            ],
+            "description": "call-to-action colour (primary buttons, form submits); unset = the primary."
+        },
+        "canvas": {
+            "type": "color",
+            "optional": true,
+            "default": null,
+            "presets": [],
+            "description": "page ground behind the sections; unset = the platform ground."
+        },
+        "radius": {
+            "type": "enum",
+            "values": [
+                "none",
+                "sm",
+                "md",
+                "lg",
+                "xl"
+            ],
+            "default": "md"
+        },
+        "density": {
+            "type": "enum",
+            "values": [
+                "compact",
+                "comfortable",
+                "spacious"
+            ],
+            "default": "comfortable"
+        },
+        "fontScale": {
+            "type": "enum",
+            "values": [
+                "sm",
+                "md",
+                "lg"
+            ],
+            "default": "md"
+        },
+        "appearance": {
+            "type": "enum",
+            "values": [
+                "light",
+                "dark",
+                "auto"
+            ],
+            "default": "auto"
+        }
+    },
+    "styleKnobs": {
+        "span": {
+            "type": "int",
+            "min": 1,
+            "max": 12,
+            "step": 1,
+            "default": 12
+        },
+        "size": {
+            "type": "enum",
+            "values": [
+                "sm",
+                "md",
+                "lg"
+            ],
+            "default": "md"
+        },
+        "align": {
+            "type": "enum",
+            "values": [
+                "start",
+                "center",
+                "end"
+            ],
+            "default": "start"
+        },
+        "color": {
+            "type": "colorOrRole",
+            "roles": [
+                "primary",
+                "neutral",
+                "success",
+                "warning",
+                "danger",
+                "info"
+            ],
+            "default": null
+        },
+        "radius": {
+            "type": "enum",
+            "values": [
+                null,
+                "none",
+                "sm",
+                "md",
+                "lg",
+                "full"
+            ],
+            "default": null
+        },
+        "padding": {
+            "type": "int",
+            "min": 0,
+            "max": 6,
+            "step": 1,
+            "default": 0
+        },
+        "gap": {
+            "type": "int",
+            "min": 0,
+            "max": 6,
+            "step": 1,
+            "default": 3
+        },
+        "weight": {
+            "type": "enum",
+            "values": [
+                "regular",
+                "medium",
+                "semibold"
+            ],
+            "default": "regular"
+        },
+        "height": {
+            "type": "enum",
+            "values": [
+                "auto",
+                "sm",
+                "md",
+                "lg",
+                "xl",
+                "fill"
+            ],
+            "default": "auto"
+        },
+        "background": {
+            "type": "enum",
+            "values": [
+                "none",
+                "surface",
+                "tint",
+                "panel",
+                "gradient"
+            ],
+            "default": "none"
+        },
+        "border": {
+            "type": "enum",
+            "values": [
+                "none",
+                "subtle",
+                "default"
+            ],
+            "default": "none"
+        },
+        "hideBelow": {
+            "type": "enum",
+            "values": [
+                "none",
+                "sm",
+                "md",
+                "lg"
+            ],
+            "default": "none"
+        },
+        "hideAbove": {
+            "type": "enum",
+            "values": [
+                "none",
+                "sm",
+                "md",
+                "lg"
+            ],
+            "default": "none"
+        },
+        "widthMode": {
+            "type": "enum",
+            "values": [
+                "span",
+                "px",
+                "pct"
+            ],
+            "default": "span"
+        },
+        "widthValue": {
+            "type": "unitInt",
+            "modeKnob": "widthMode",
+            "default": null,
+            "units": {
+                "px": {
+                    "min": 40,
+                    "max": 2000,
+                    "step": 10,
+                    "default": 320
+                },
+                "pct": {
+                    "min": 5,
+                    "max": 100,
+                    "step": 5,
+                    "default": 50
+                }
+            }
+        },
+        "heightMode": {
+            "type": "enum",
+            "values": [
+                "preset",
+                "px",
+                "pct",
+                "vh"
+            ],
+            "default": "preset"
+        },
+        "heightValue": {
+            "type": "unitInt",
+            "modeKnob": "heightMode",
+            "default": null,
+            "units": {
+                "px": {
+                    "min": 24,
+                    "max": 4000,
+                    "step": 10,
+                    "default": 240
+                },
+                "pct": {
+                    "min": 5,
+                    "max": 100,
+                    "step": 5,
+                    "default": 50
+                },
+                "vh": {
+                    "min": 5,
+                    "max": 100,
+                    "step": 5,
+                    "default": 50
+                }
+            }
+        }
+    },
+    "colorRoles": [
+        "primary",
+        "neutral",
+        "success",
+        "warning",
+        "danger",
+        "info"
+    ],
+    "screen": {
+        "name": {
+            "type": "string",
+            "required": true,
+            "maxLen": 60,
+            "default": "Screen"
+        },
+        "icon": {
+            "type": "icon",
+            "default": null
+        },
+        "showInNav": {
+            "type": "boolean",
+            "default": true
+        },
+        "maxWidth": {
+            "type": "enum",
+            "values": [
+                "narrow",
+                "medium",
+                "wide",
+                "full"
+            ],
+            "default": "medium"
+        },
+        "kind": {
+            "type": "enum",
+            "values": [
+                null,
+                "dashboard"
+            ],
+            "default": null
+        },
+        "description": {
+            "type": "string",
+            "maxLen": 120,
+            "default": null
+        },
+        "refreshInterval": {
+            "type": "enum",
+            "values": [
+                0,
+                15,
+                30,
+                60,
+                300
+            ],
+            "default": 0
+        }
+    },
+    "section": {
+        "styleKnobs": [
+            "padding",
+            "gap",
+            "background",
+            "height"
+        ],
+        "defaultStyle": {
+            "padding": 4,
+            "gap": 3,
+            "background": "none"
+        }
+    },
+    "components": {
+        "heading": {
+            "label": "Heading",
+            "category": "Content",
+            "description": "A section or page title.",
+            "props": {
+                "text": {
+                    "type": "string",
+                    "required": true,
+                    "maxLen": 200,
+                    "default": "Heading"
+                },
+                "level": {
+                    "type": "int",
+                    "min": 1,
+                    "max": 3,
+                    "default": 2
+                },
+                "accent": {
+                    "type": "enum",
+                    "values": [
+                        "none",
+                        "bar",
+                        "tinted"
+                    ],
+                    "default": "none",
+                    "description": "none = plain title; bar = a short primary accent bar beside the title; tinted = the title set in the app primary color."
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "align",
+                "color"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "text": {
+            "label": "Text",
+            "category": "Content",
+            "description": "A paragraph of text. Supports a small markdown subset (bold, italic, links).",
+            "props": {
+                "text": {
+                    "type": "markdown",
+                    "required": true,
+                    "default": "Text"
+                },
+                "muted": {
+                    "type": "boolean",
+                    "default": false
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "align",
+                "color",
+                "weight",
+                "size"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "filter_bar": {
+            "label": "Filter bar",
+            "category": "Data",
+            "description": "A row of filter controls (search, select, toggle, date). Each control writes vars.filters.<name>, for use in records-binding filter formulas.",
+            "props": {
+                "fields": {
+                    "type": "list",
+                    "maxItems": 8,
+                    "default": [],
+                    "itemShape": {
+                        "name": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 60
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "type": {
+                            "type": "enum",
+                            "values": [
+                                "search",
+                                "select",
+                                "toggle",
+                                "date"
+                            ],
+                            "default": "search"
+                        },
+                        "options": {
+                            "type": "list",
+                            "maxItems": 100,
+                            "default": [],
+                            "itemShape": {
+                                "value": {
+                                    "type": "string",
+                                    "required": true,
+                                    "maxLen": 200
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "maxLen": 200
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "size",
+                "gap"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "kanban": {
+            "label": "Kanban",
+            "category": "Data",
+            "description": "A kanban board over an array of objects, grouped into columns by groupByField and optionally into swimlanes by swimlaneField. Columns and swimlanes may be PINNED as literals or BOUND to a table (columnsSource/swimlanesSource) so the people using the app configure the board without opening the builder. Dragging a card fires onCardMove with { item, value, lane, index, beforeId, afterId } — enough to write both the new column and a new rank.",
+            "events": [
+                "onRowClick",
+                "onCardMove"
+            ],
+            "props": {
+                "source": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": []
+                    }
+                },
+                "groupByField": {
+                    "type": "string",
+                    "required": true,
+                    "maxLen": 120,
+                    "default": "status"
+                },
+                "columns": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "color": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        },
+                        "wipLimit": {
+                            "type": "int",
+                            "min": 0,
+                            "max": 999,
+                            "default": null
+                        }
+                    }
+                },
+                "columnsSource": {
+                    "type": "binding",
+                    "default": null
+                },
+                "swimlaneField": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "swimlanes": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "color": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        }
+                    }
+                },
+                "swimlanesSource": {
+                    "type": "binding",
+                    "default": null
+                },
+                "titleKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": "title"
+                },
+                "subtitleKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "badgeKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "cardFields": {
+                    "type": "list",
+                    "maxItems": 6,
+                    "default": [],
+                    "itemShape": {
+                        "key": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 120
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 80
+                        },
+                        "slot": {
+                            "type": "enum",
+                            "values": [
+                                "meta",
+                                "chip"
+                            ],
+                            "default": "meta"
+                        },
+                        "format": {
+                            "type": "enum",
+                            "values": [
+                                "text",
+                                "number",
+                                "date"
+                            ],
+                            "default": "text"
+                        }
+                    }
+                },
+                "rankKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "colorKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "cardColorMap": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 80
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        }
+                    }
+                },
+                "collapsible": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "emptyText": {
+                    "type": "string",
+                    "maxLen": 200,
+                    "default": null
+                },
+                "badgeToneMap": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 80
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        }
+                    }
+                },
+                "allowDrag": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "cardLook": {
+                    "type": "enum",
+                    "values": [
+                        "default",
+                        "tinted",
+                        "raised"
+                    ],
+                    "default": "default",
+                    "description": "default = the current flat card; tinted = soft primary wash on every card; raised = cards with shadow elevation."
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "size",
+                "height"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "record_detail": {
+            "label": "Record detail",
+            "category": "Data",
+            "description": "Labeled fields of ONE record — typically a {kind:\"record\"} binding whose filter uses screen.params (pairs with navigate params).",
+            "props": {
+                "source": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": null
+                    }
+                },
+                "fields": {
+                    "type": "list",
+                    "maxItems": 30,
+                    "default": [],
+                    "itemShape": {
+                        "key": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 120
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "format": {
+                            "type": "enum",
+                            "values": [
+                                "text",
+                                "number",
+                                "date",
+                                "datetime",
+                                "badge",
+                                "link",
+                                "markdown",
+                                "document",
+                                "cad"
+                            ],
+                            "default": "text"
+                        },
+                        "group": {
+                            "type": "string",
+                            "maxLen": 80
+                        }
+                    }
+                },
+                "columns": {
+                    "type": "int",
+                    "min": 1,
+                    "max": 3,
+                    "default": 2
+                },
+                "emptyText": {
+                    "type": "string",
+                    "maxLen": 200,
+                    "default": "No record selected."
+                },
+                "layout": {
+                    "type": "enum",
+                    "values": [
+                        "stacked",
+                        "rows"
+                    ],
+                    "default": "stacked"
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "padding",
+                "background",
+                "radius",
+                "border",
+                "height"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "button": {
+            "label": "Button",
+            "category": "Basics",
+            "description": "A clickable button. Wire its onClick to an action; role \"submit\" submits the enclosing form.",
+            "events": [
+                "onClick"
+            ],
+            "props": {
+                "label": {
+                    "type": "string",
+                    "required": true,
+                    "maxLen": 80,
+                    "default": "Button"
+                },
+                "variant": {
+                    "type": "enum",
+                    "values": [
+                        "primary",
+                        "secondary",
+                        "ghost",
+                        "danger",
+                        "outline",
+                        "soft"
+                    ],
+                    "default": "primary",
+                    "description": "outline = transparent with a primary border and primary text; soft = filled with the soft primary tint, primary text."
+                },
+                "iconLeft": {
+                    "type": "icon",
+                    "default": null
+                },
+                "role": {
+                    "type": "enum",
+                    "values": [
+                        "button",
+                        "submit"
+                    ],
+                    "default": "button"
+                },
+                "disabledWhen": {
+                    "type": "formula",
+                    "default": null,
+                    "description": "Truthy disables the button and blocks its action."
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "size",
+                "align"
+            ],
+            "defaultStyle": {
+                "span": 3
+            }
+        },
+        "callout": {
+            "label": "Callout",
+            "category": "Content",
+            "description": "A highlighted note with a tone (info, success, warning, danger).",
+            "props": {
+                "title": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "text": {
+                    "type": "markdown",
+                    "default": "Something worth highlighting."
+                },
+                "textFrom": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": null
+                    },
+                    "description": "Wins over `text` when it resolves to text."
+                },
+                "tone": {
+                    "type": "enum",
+                    "values": [
+                        "info",
+                        "success",
+                        "warning",
+                        "danger"
+                    ],
+                    "default": "info"
+                },
+                "toneFrom": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": null
+                    },
+                    "description": "Data-driven tone; a value outside the tone vocabulary falls back to `tone`."
+                },
+                "meta": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null,
+                    "description": "Right-aligned muted metadata line (owner, date)."
+                },
+                "metaFrom": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": null
+                    }
+                },
+                "collapsible": {
+                    "type": "boolean",
+                    "default": false
+                }
+            },
+            "styleKnobs": [
+                "span"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "stat": {
+            "label": "Stat",
+            "category": "Data",
+            "description": "A KPI tile: a label and a big value. The value can bind to an action result. v2 adds an optional delta/trend row.",
+            "props": {
+                "label": {
+                    "type": "string",
+                    "required": true,
+                    "maxLen": 80,
+                    "default": "Metric"
+                },
+                "value": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": "0"
+                    }
+                },
+                "caption": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "captionSegments": {
+                    "type": "list",
+                    "maxItems": 6,
+                    "default": [],
+                    "itemShape": {
+                        "text": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 120
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "muted",
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "muted"
+                        }
+                    },
+                    "description": "Replaces caption: parts of one line, each colored by its tone."
+                },
+                "icon": {
+                    "type": "icon",
+                    "default": null
+                },
+                "delta": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": null
+                    }
+                },
+                "deltaFormat": {
+                    "type": "enum",
+                    "values": [
+                        "number",
+                        "percent"
+                    ],
+                    "default": "number"
+                },
+                "trend": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": null
+                    }
+                },
+                "positiveIsGood": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "look": {
+                    "type": "enum",
+                    "values": [
+                        "plain",
+                        "tile",
+                        "tinted",
+                        "accent",
+                        "gradient"
+                    ],
+                    "default": "plain",
+                    "description": "plain = label and value only; tile = on its own card surface; tinted = soft primary wash; accent = tile with a primary edge bar; gradient = soft primary gradient wash, value in the primary color."
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "size",
+                "align",
+                "color"
+            ],
+            "defaultStyle": {
+                "span": 3
+            }
+        },
+        "table": {
+            "label": "Table",
+            "category": "Data",
+            "description": "A table over an array of objects — usually an automation result. Missing keys render as “—”.",
+            "props": {
+                "source": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": []
+                    }
+                },
+                "columns": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "key": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 120
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "format": {
+                            "type": "enum",
+                            "values": [
+                                "text",
+                                "number",
+                                "date",
+                                "badge",
+                                "link",
+                                "boolean",
+                                "relation",
+                                "currency",
+                                "percent",
+                                "datetime",
+                                "relative",
+                                "check",
+                                "tags",
+                                "progress",
+                                "user",
+                                "breakdown",
+                                "cad",
+                                "document"
+                            ],
+                            "default": "text"
+                        },
+                        "align": {
+                            "type": "enum",
+                            "values": [
+                                "auto",
+                                "left",
+                                "right",
+                                "center"
+                            ],
+                            "default": "auto"
+                        },
+                        "truncate": {
+                            "type": "boolean"
+                        },
+                        "hidden": {
+                            "type": "boolean"
+                        },
+                        "toneFrom": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "labelFrom": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "toneMap": {
+                            "type": "list",
+                            "maxItems": 16,
+                            "itemShape": {
+                                "value": {
+                                    "type": "string",
+                                    "required": true,
+                                    "maxLen": 200
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "maxLen": 80
+                                },
+                                "tone": {
+                                    "type": "enum",
+                                    "values": [
+                                        "primary",
+                                        "neutral",
+                                        "success",
+                                        "warning",
+                                        "danger",
+                                        "info"
+                                    ],
+                                    "default": "neutral"
+                                }
+                            }
+                        },
+                        "help": {
+                            "type": "string",
+                            "maxLen": 200
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "maxLen": 20
+                        }
+                    }
+                },
+                "emptyText": {
+                    "type": "string",
+                    "maxLen": 200,
+                    "default": "Nothing to show yet."
+                },
+                "rowLimit": {
+                    "type": "int",
+                    "min": 1,
+                    "max": 100,
+                    "default": 25
+                },
+                "look": {
+                    "type": "enum",
+                    "values": [
+                        "default",
+                        "striped",
+                        "minimal"
+                    ],
+                    "default": "default",
+                    "description": "default = the current ruled table; striped = zebra rows; minimal = borderless, whitespace-separated rows."
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "size"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "data_grid": {
+            "label": "Data grid",
+            "category": "Data",
+            "description": "A powerful table over an array of objects: sortable/filterable columns, paging, selection, search and row actions.",
+            "events": [
+                "onRowClick",
+                "onRowSelect"
+            ],
+            "props": {
+                "source": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": []
+                    }
+                },
+                "columns": {
+                    "type": "list",
+                    "maxItems": 20,
+                    "default": [],
+                    "itemShape": {
+                        "key": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 120
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "format": {
+                            "type": "enum",
+                            "values": [
+                                "text",
+                                "number",
+                                "date",
+                                "badge",
+                                "link",
+                                "boolean",
+                                "relation",
+                                "currency",
+                                "percent",
+                                "datetime",
+                                "relative",
+                                "check",
+                                "tags",
+                                "progress",
+                                "user",
+                                "breakdown",
+                                "cad",
+                                "document"
+                            ],
+                            "default": "text"
+                        },
+                        "width": {
+                            "type": "int",
+                            "min": 40,
+                            "max": 800
+                        },
+                        "sortable": {
+                            "type": "boolean"
+                        },
+                        "filterable": {
+                            "type": "boolean"
+                        },
+                        "editable": {
+                            "type": "boolean"
+                        },
+                        "align": {
+                            "type": "enum",
+                            "values": [
+                                "auto",
+                                "left",
+                                "right",
+                                "center"
+                            ],
+                            "default": "auto"
+                        },
+                        "truncate": {
+                            "type": "boolean"
+                        },
+                        "hidden": {
+                            "type": "boolean"
+                        },
+                        "toneFrom": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "labelFrom": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "subtextFrom": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "subtextToneFrom": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "badgeStyle": {
+                            "type": "enum",
+                            "values": [
+                                "pill",
+                                "dot"
+                            ],
+                            "default": "pill"
+                        },
+                        "flagFrom": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "flagTone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "warning"
+                        },
+                        "emptyTone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": null
+                        },
+                        "toneMap": {
+                            "type": "list",
+                            "maxItems": 16,
+                            "itemShape": {
+                                "value": {
+                                    "type": "string",
+                                    "required": true,
+                                    "maxLen": 200
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "maxLen": 80
+                                },
+                                "tone": {
+                                    "type": "enum",
+                                    "values": [
+                                        "primary",
+                                        "neutral",
+                                        "success",
+                                        "warning",
+                                        "danger",
+                                        "info"
+                                    ],
+                                    "default": "neutral"
+                                }
+                            }
+                        },
+                        "help": {
+                            "type": "string",
+                            "maxLen": 200
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "maxLen": 20
+                        }
+                    }
+                },
+                "pageSize": {
+                    "type": "int",
+                    "min": 5,
+                    "max": 100,
+                    "default": 25
+                },
+                "selectable": {
+                    "type": "enum",
+                    "values": [
+                        "none",
+                        "single",
+                        "multi"
+                    ],
+                    "default": "none"
+                },
+                "searchable": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "rowActions": {
+                    "type": "list",
+                    "maxItems": 8,
+                    "default": [],
+                    "itemShape": {
+                        "label": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 80
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "maxLen": 20
+                        }
+                    }
+                },
+                "toolbarActions": {
+                    "type": "list",
+                    "maxItems": 4,
+                    "default": [],
+                    "itemShape": {
+                        "label": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 80
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "maxLen": 20
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        }
+                    }
+                },
+                "addRowLabel": {
+                    "type": "string",
+                    "maxLen": 80
+                },
+                "addRowActionId": {
+                    "type": "string",
+                    "maxLen": 20
+                },
+                "bulkActions": {
+                    "type": "list",
+                    "maxItems": 4,
+                    "default": [],
+                    "itemShape": {
+                        "label": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 80
+                        },
+                        "actionId": {
+                            "type": "string",
+                            "maxLen": 20
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        }
+                    }
+                },
+                "density": {
+                    "type": "enum",
+                    "values": [
+                        "compact",
+                        "comfortable",
+                        "spacious"
+                    ],
+                    "default": "comfortable"
+                },
+                "clamp": {
+                    "type": "enum",
+                    "values": [
+                        "1",
+                        "2",
+                        "3",
+                        "off"
+                    ],
+                    "default": "off"
+                },
+                "rowTone": {
+                    "type": "list",
+                    "maxItems": 8,
+                    "default": [],
+                    "itemShape": {
+                        "field": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 100
+                        },
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        }
+                    }
+                },
+                "groupBy": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null,
+                    "description": "Column key to group rows under collapsible header rows."
+                },
+                "groupOrder": {
+                    "type": "list",
+                    "maxItems": 8,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 80
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        },
+                        "collapsed": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    },
+                    "description": "Group order; unlisted values follow in data order. collapsed:true starts a group closed."
+                },
+                "activeWhen": {
+                    "type": "formula",
+                    "default": null,
+                    "description": "Formula per row (item, index in scope); a match highlights the row as active."
+                },
+                "zebra": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "emptyText": {
+                    "type": "string",
+                    "maxLen": 200,
+                    "default": "Nothing to show yet."
+                },
+                "look": {
+                    "type": "enum",
+                    "values": [
+                        "default",
+                        "striped",
+                        "minimal",
+                        "cards"
+                    ],
+                    "default": "default",
+                    "description": "default = the current ruled grid; striped = zebra rows; minimal = borderless rows; cards = each row rendered as its own card."
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "size",
+                "height"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "chart": {
+            "label": "Chart",
+            "category": "Data",
+            "description": "A bar/line/area/pie/donut chart over an array of objects. x-axis from xKey, one or more series by key. xType:\"time\" spaces points by date rather than evenly, so a gap in the data reads as a gap. referenceLines/referenceBands draw a target or healthy range behind the series; unitLabel suffixes the axis and tooltip. onRowClick fires with the clicked row.",
+            "props": {
+                "chartType": {
+                    "type": "enum",
+                    "values": [
+                        "bar",
+                        "line",
+                        "area",
+                        "pie",
+                        "donut"
+                    ],
+                    "default": "bar"
+                },
+                "orientation": {
+                    "type": "enum",
+                    "values": [
+                        "vertical",
+                        "horizontal"
+                    ],
+                    "default": "vertical",
+                    "description": "bar only: horizontal = categories on the Y axis, value labels right of the bars."
+                },
+                "source": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": []
+                    }
+                },
+                "title": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "xKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": "label"
+                },
+                "xType": {
+                    "type": "enum",
+                    "values": [
+                        "category",
+                        "time"
+                    ],
+                    "default": "category"
+                },
+                "series": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "key": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 120
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 120
+                        },
+                        "color": {
+                            "type": "string",
+                            "maxLen": 40
+                        }
+                    }
+                },
+                "stacked": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "showLegend": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "showGrid": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "valueFormat": {
+                    "type": "enum",
+                    "values": [
+                        "number",
+                        "percent",
+                        "currency"
+                    ],
+                    "default": "number"
+                },
+                "yMin": {
+                    "type": "number",
+                    "default": null
+                },
+                "yMax": {
+                    "type": "number",
+                    "default": null
+                },
+                "referenceLines": {
+                    "type": "list",
+                    "maxItems": 8,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "number",
+                            "required": true
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 60
+                        },
+                        "color": {
+                            "type": "string",
+                            "maxLen": 40
+                        }
+                    }
+                },
+                "referenceBands": {
+                    "type": "list",
+                    "maxItems": 8,
+                    "default": [],
+                    "itemShape": {
+                        "from": {
+                            "type": "number",
+                            "required": true
+                        },
+                        "to": {
+                            "type": "number",
+                            "required": true
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 60
+                        },
+                        "color": {
+                            "type": "string",
+                            "maxLen": 40
+                        }
+                    }
+                },
+                "unitLabel": {
+                    "type": "string",
+                    "maxLen": 20,
+                    "default": null
+                }
+            },
+            "events": [
+                "onRowClick"
+            ],
+            "styleKnobs": [
+                "span",
+                "height"
+            ],
+            "defaultStyle": {
+                "span": 6,
+                "height": "md"
+            }
+        },
+        "list": {
+            "label": "List",
+            "category": "Data",
+            "description": "A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.",
+            "props": {
+                "source": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": []
+                    }
+                },
+                "titleKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": "title"
+                },
+                "subtitleKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "metaKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "timestampKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "badgeKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "tagsKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "badgeToneMap": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 80
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": "neutral"
+                        }
+                    }
+                },
+                "unreadKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "badgePlacement": {
+                    "type": "enum",
+                    "values": [
+                        "meta",
+                        "subtitle"
+                    ],
+                    "default": "meta"
+                },
+                "selectedWhen": {
+                    "type": "formula",
+                    "default": null
+                },
+                "selectedDetailKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "groupKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "groupOrder": {
+                    "type": "stringList",
+                    "maxItems": 24,
+                    "itemMaxLen": 200,
+                    "default": []
+                },
+                "groupLabelMap": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 80
+                        }
+                    }
+                },
+                "icon": {
+                    "type": "icon",
+                    "default": null
+                },
+                "emptyText": {
+                    "type": "string",
+                    "maxLen": 200,
+                    "default": "Nothing to show yet."
+                },
+                "look": {
+                    "type": "enum",
+                    "values": [
+                        "rows",
+                        "cards",
+                        "tiles"
+                    ],
+                    "default": "rows",
+                    "description": "rows = the current flat row list; cards = each item on its own card surface; tiles = a compact multi-column tile grid."
+                },
+                "peekSource": {
+                    "type": "binding",
+                    "default": null,
+                    "description": "Rows related to the list rows — joined per row on peekMatchKey. An aggregate keeps it small on a long table."
+                },
+                "peekMatchKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "peekRowKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "peekTitleKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "peekTextKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "peekGroupKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "peekGroupLabelMap": {
+                    "type": "list",
+                    "maxItems": 12,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 80
+                        },
+                        "tone": {
+                            "type": "enum",
+                            "values": [
+                                "primary",
+                                "neutral",
+                                "success",
+                                "warning",
+                                "danger",
+                                "info"
+                            ],
+                            "default": null
+                        }
+                    }
+                },
+                "peekCountKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "peekLimit": {
+                    "type": "int",
+                    "min": 1,
+                    "max": 20,
+                    "default": 6
+                },
+                "peekTitle": {
+                    "type": "string",
+                    "maxLen": 80,
+                    "default": null
+                },
+                "peekMoreText": {
+                    "type": "string",
+                    "maxLen": 80,
+                    "default": null
+                },
+                "peekBadge": {
+                    "type": "boolean",
+                    "default": false
+                }
+            },
+            "events": [
+                "onRowClick"
+            ],
+            "styleKnobs": [
+                "span",
+                "size",
+                "height"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "card": {
+            "label": "Card",
+            "category": "Layout",
+            "description": "A surface that groups other components. Children lay out on the card’s own 12-column grid.",
+            "container": true,
+            "props": {
+                "title": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "description": {
+                    "type": "string",
+                    "maxLen": 300,
+                    "default": null
+                },
+                "look": {
+                    "type": "enum",
+                    "values": [
+                        "default",
+                        "flat",
+                        "raised",
+                        "tinted",
+                        "accent",
+                        "gradient",
+                        "solid"
+                    ],
+                    "default": "default",
+                    "description": "default = the current card surface; flat = flush and borderless; raised = shadow elevation; tinted = soft primary wash; accent = a primary edge bar; gradient = soft primary gradient surface; solid = filled with the primary colour, contents in its contrast colour (title colour: heading color knob)."
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "padding",
+                "gap",
+                "radius",
+                "background",
+                "height",
+                "border"
+            ],
+            "defaultStyle": {
+                "span": 6,
+                "padding": 3,
+                "gap": 3,
+                "background": "surface"
+            }
+        },
+        "form": {
+            "label": "Form",
+            "category": "Input",
+            "description": "Groups inputs and submits them to an action. Renders one built-in submit button; set showSubmit false for a form whose fields save on change.",
+            "container": true,
+            "events": [
+                "onSubmit"
+            ],
+            "props": {
+                "name": {
+                    "type": "string",
+                    "maxLen": 60,
+                    "default": null
+                },
+                "submitLabel": {
+                    "type": "string",
+                    "maxLen": 80,
+                    "default": "Submit"
+                },
+                "showReset": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "showSubmit": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "resetKey": {
+                    "type": "formula",
+                    "default": null
+                },
+                "validateOn": {
+                    "type": "enum",
+                    "values": [
+                        "submit",
+                        "blur",
+                        "change"
+                    ],
+                    "since": 3,
+                    "description": "When field errors show. Default is on submit; blur checks a field when it loses focus, change on every edit."
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "gap",
+                "padding",
+                "background",
+                "radius",
+                "border"
+            ],
+            "defaultStyle": {
+                "span": 6,
+                "gap": 3,
+                "padding": 0
+            }
+        },
+        "input_text": {
+            "label": "Text input",
+            "category": "Input",
+            "isInput": true,
+            "description": "A single-line text field.",
+            "props": {
+                "name": {
+                    "type": "string",
+                    "required": true,
+                    "maxLen": 60,
+                    "default": "field"
+                },
+                "label": {
+                    "type": "string",
+                    "required": true,
+                    "maxLen": 120,
+                    "default": "Text"
+                },
+                "placeholder": {
+                    "type": "string",
+                    "maxLen": 200,
+                    "default": null
+                },
+                "required": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "defaultValue": {
+                    "type": "string",
+                    "maxLen": 1000,
+                    "default": null
+                },
+                "inputType": {
+                    "type": "enum",
+                    "values": [
+                        "text",
+                        "email",
+                        "url"
+                    ],
+                    "default": "text"
+                },
+                "valueFrom": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": null
+                    }
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "size"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        },
+        "input_select": {
+            "label": "Select",
+            "category": "Input",
+            "isInput": true,
+            "description": "A dropdown with fixed options.",
+            "events": [
+                "onChange"
+            ],
+            "props": {
+                "name": {
+                    "type": "string",
+                    "required": true,
+                    "maxLen": 60,
+                    "default": "choice"
+                },
+                "label": {
+                    "type": "string",
+                    "required": true,
+                    "maxLen": 120,
+                    "default": "Choice"
+                },
+                "options": {
+                    "type": "list",
+                    "maxItems": 100,
+                    "default": [],
+                    "itemShape": {
+                        "value": {
+                            "type": "string",
+                            "required": true,
+                            "maxLen": 200
+                        },
+                        "label": {
+                            "type": "string",
+                            "maxLen": 200
+                        }
+                    }
+                },
+                "required": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "defaultValue": {
+                    "type": "string",
+                    "maxLen": 200,
+                    "default": null
+                },
+                "placeholder": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "valueFrom": {
+                    "type": "binding",
+                    "default": {
+                        "kind": "static",
+                        "value": null
+                    }
+                },
+                "optionsFrom": {
+                    "type": "binding",
+                    "default": null
+                },
+                "optionValueKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                },
+                "optionLabelKey": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": null
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "size"
+            ],
+            "defaultStyle": {
+                "span": 6
+            }
+        },
+        "ai_chat": {
+            "label": "AI chat",
+            "category": "AI",
+            "description": "A chat surface the app's viewers can talk to. Runs on the app OWNER's model tier (acts-as-owner) and can be grounded in the owner's knowledge bases. `mode:\"assistant\"` answers one question at a time instead of keeping a conversation.",
+            "props": {
+                "systemPrompt": {
+                    "type": "string",
+                    "maxLen": 4000,
+                    "default": ""
+                },
+                "modelTier": {
+                    "type": "string",
+                    "maxLen": 60,
+                    "default": "auto"
+                },
+                "knowledgeBaseIds": {
+                    "type": "stringList",
+                    "maxItems": 10,
+                    "itemMaxLen": 80,
+                    "default": []
+                },
+                "greeting": {
+                    "type": "string",
+                    "maxLen": 500,
+                    "default": ""
+                },
+                "placeholder": {
+                    "type": "string",
+                    "maxLen": 120,
+                    "default": "Ask a question…"
+                },
+                "starters": {
+                    "type": "stringList",
+                    "maxItems": 6,
+                    "itemMaxLen": 200,
+                    "default": []
+                },
+                "mode": {
+                    "type": "enum",
+                    "values": [
+                        "chat",
+                        "assistant"
+                    ],
+                    "default": "chat"
+                }
+            },
+            "styleKnobs": [
+                "span",
+                "height"
+            ],
+            "defaultStyle": {
+                "span": 12
+            }
+        }
+    },
+    "events": [
+        "onClick",
+        "onSubmit",
+        "onRowClick",
+        "onRowSelect",
+        "onCardMove",
+        "onChange",
+        "onDecided",
+        "onAttachmentClick"
+    ],
+    "actions": {
+        "kinds": [
+            "run_automation",
+            "ai_extract",
+            "ai_generate",
+            "kb_query",
+            "send_email",
+            "create_record",
+            "navigate",
+            "toast",
+            "open_url",
+            "open_modal",
+            "close_modal",
+            "call_action",
+            "sequence"
+        ],
+        "specs": {
+            "run_automation": {
+                "fields": {
+                    "automationId": {
+                        "type": "string",
+                        "nullable": true,
+                        "required": true
+                    },
+                    "inputMapping": {
+                        "type": "inputMapping",
+                        "required": false
+                    },
+                    "onSuccess": {
+                        "type": "effects",
+                        "required": false
+                    },
+                    "onError": {
+                        "type": "effects",
+                        "required": false
+                    }
+                }
+            },
+            "ai_extract": {
+                "fields": {
+                    "source": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "schema": {
+                        "type": "aiSchema",
+                        "required": true
+                    },
+                    "promptContext": {
+                        "type": "binding"
+                    },
+                    "contextSources": {
+                        "type": "contextSources"
+                    },
+                    "documentMode": {
+                        "type": "enum",
+                        "values": [
+                            "auto",
+                            "text",
+                            "images"
+                        ],
+                        "default": "auto"
+                    },
+                    "modelTier": {
+                        "type": "tierChoice",
+                        "maxLen": 60
+                    },
+                    "knowledgeBaseIds": {
+                        "type": "stringList"
+                    },
+                    "datasets": {
+                        "type": "binding"
+                    },
+                    "writeTo": {
+                        "type": "aiWriteTo"
+                    },
+                    "resultDetail": {
+                        "type": "enum",
+                        "values": [
+                            "full",
+                            "summary"
+                        ],
+                        "default": "full"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    }
+                }
+            },
+            "ai_generate": {
+                "fields": {
+                    "prompt": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 32000
+                    },
+                    "promptContext": {
+                        "type": "binding"
+                    },
+                    "contextSources": {
+                        "type": "contextSources"
+                    },
+                    "attachments": {
+                        "type": "binding"
+                    },
+                    "documentMode": {
+                        "type": "enum",
+                        "values": [
+                            "auto",
+                            "text",
+                            "images"
+                        ],
+                        "default": "auto"
+                    },
+                    "output": {
+                        "type": "enum",
+                        "values": [
+                            "text",
+                            "structured"
+                        ],
+                        "default": "text"
+                    },
+                    "markdownToHtml": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "schema": {
+                        "type": "aiSchema"
+                    },
+                    "modelTier": {
+                        "type": "tierChoice",
+                        "maxLen": 60
+                    },
+                    "knowledgeBaseIds": {
+                        "type": "stringList"
+                    },
+                    "datasets": {
+                        "type": "binding"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    }
+                }
+            },
+            "kb_query": {
+                "fields": {
+                    "query": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "knowledgeBaseIds": {
+                        "type": "stringList",
+                        "required": true
+                    },
+                    "topK": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 20
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    }
+                }
+            },
+            "send_email": {
+                "fields": {
+                    "connectorId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "to": {
+                        "type": "binding"
+                    },
+                    "cc": {
+                        "type": "binding"
+                    },
+                    "subject": {
+                        "type": "binding"
+                    },
+                    "body": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "bodyFormat": {
+                        "type": "enum",
+                        "values": [
+                            "markdown",
+                            "text",
+                            "html"
+                        ],
+                        "default": "markdown"
+                    },
+                    "replyToRecordId": {
+                        "type": "binding"
+                    },
+                    "replyToThreadKey": {
+                        "type": "binding"
+                    },
+                    "attachments": {
+                        "type": "binding"
+                    },
+                    "mode": {
+                        "type": "enum",
+                        "values": [
+                            "send",
+                            "draft"
+                        ],
+                        "default": "send"
+                    },
+                    "recordOutbound": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    }
+                }
+            },
+            "create_record": {
+                "fields": {
+                    "tableId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "values": {
+                        "type": "recordValues",
+                        "required": true
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    }
+                }
+            },
+            "navigate": {
+                "fields": {
+                    "screenId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "params": {
+                        "type": "navParams"
+                    }
+                }
+            },
+            "toast": {
+                "fields": {
+                    "message": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 500
+                    },
+                    "tone": {
+                        "type": "enum",
+                        "values": [
+                            "info",
+                            "success",
+                            "warning",
+                            "danger"
+                        ],
+                        "default": "info"
+                    }
+                }
+            },
+            "open_url": {
+                "fields": {
+                    "url": {
+                        "type": "url",
+                        "required": true
+                    },
+                    "newTab": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                }
+            },
+            "open_modal": {
+                "fields": {
+                    "modalId": {
+                        "type": "string",
+                        "required": true
+                    }
+                }
+            },
+            "close_modal": {
+                "fields": {
+                    "modalId": {
+                        "type": "string",
+                        "required": true
+                    }
+                }
+            },
+            "call_action": {
+                "fields": {
+                    "actionId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80
+                    },
+                    "params": {
+                        "type": "callParams"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    }
+                }
+            },
+            "sequence": {
+                "fields": {
+                    "steps": {
+                        "type": "steps",
+                        "required": true
+                    },
+                    "background": {
+                        "type": "boolean"
+                    },
+                    "lockKey": {
+                        "type": "binding"
+                    },
+                    "progressVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    }
+                }
+            }
+        },
+        "toastTones": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+        ],
+        "stepKinds": [
+            "navigate",
+            "toast",
+            "open_url",
+            "open_modal",
+            "close_modal",
+            "reset_form",
+            "download_file",
+            "confirm",
+            "set_variable",
+            "refresh",
+            "run_automation",
+            "create_record",
+            "update_record",
+            "delete_record",
+            "request_approval",
+            "ai_extract",
+            "ai_generate",
+            "kb_query",
+            "send_email",
+            "generate_file",
+            "fill_document",
+            "generate_presentation",
+            "redact_pdf",
+            "file_intake",
+            "dataset_query",
+            "ai_browse",
+            "copy_document",
+            "kb_log_query",
+            "kb_log_review",
+            "condition",
+            "loop",
+            "switch",
+            "call_action",
+            "transaction"
+        ],
+        "stepSpecs": {
+            "navigate": {
+                "mutatesData": false,
+                "fields": {
+                    "screenId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "params": {
+                        "type": "navParams"
+                    }
+                }
+            },
+            "toast": {
+                "mutatesData": false,
+                "fields": {
+                    "message": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 500
+                    },
+                    "tone": {
+                        "type": "enum",
+                        "values": [
+                            "info",
+                            "success",
+                            "warning",
+                            "danger"
+                        ],
+                        "default": "info"
+                    }
+                }
+            },
+            "open_url": {
+                "mutatesData": false,
+                "fields": {
+                    "url": {
+                        "type": "url",
+                        "required": true
+                    },
+                    "newTab": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                }
+            },
+            "open_modal": {
+                "mutatesData": false,
+                "fields": {
+                    "modalId": {
+                        "type": "string",
+                        "required": true
+                    }
+                }
+            },
+            "close_modal": {
+                "mutatesData": false,
+                "fields": {
+                    "modalId": {
+                        "type": "string",
+                        "required": true
+                    }
+                }
+            },
+            "reset_form": {
+                "mutatesData": false,
+                "fields": {
+                    "form": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 100
+                    }
+                }
+            },
+            "download_file": {
+                "mutatesData": false,
+                "fields": {
+                    "file": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "fileName": {
+                        "type": "binding"
+                    }
+                }
+            },
+            "confirm": {
+                "mutatesData": false,
+                "fields": {
+                    "message": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 500
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLen": 120
+                    },
+                    "confirmLabel": {
+                        "type": "string",
+                        "maxLen": 80
+                    },
+                    "cancelLabel": {
+                        "type": "string",
+                        "maxLen": 80
+                    }
+                }
+            },
+            "set_variable": {
+                "mutatesData": false,
+                "fields": {
+                    "name": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "value": {
+                        "type": "binding",
+                        "required": true
+                    }
+                }
+            },
+            "refresh": {
+                "mutatesData": false,
+                "fields": {
+                    "tableId": {
+                        "type": "string"
+                    },
+                    "datasetId": {
+                        "type": "string"
+                    },
+                    "actionId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "run_automation": {
+                "mutatesData": true,
+                "fields": {
+                    "automationId": {
+                        "type": "string",
+                        "nullable": true,
+                        "required": true
+                    },
+                    "inputMapping": {
+                        "type": "inputMapping"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "create_record": {
+                "mutatesData": true,
+                "fields": {
+                    "tableId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "values": {
+                        "type": "recordValues",
+                        "required": true
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "update_record": {
+                "mutatesData": true,
+                "fields": {
+                    "tableId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "recordId": {
+                        "type": "binding"
+                    },
+                    "filter": {
+                        "type": "recordFilter"
+                    },
+                    "limit": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 500
+                    },
+                    "values": {
+                        "type": "recordValues",
+                        "required": true
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "expectedUpdatedAt": {
+                        "type": "binding"
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "delete_record": {
+                "mutatesData": true,
+                "fields": {
+                    "tableId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "recordId": {
+                        "type": "binding"
+                    },
+                    "filter": {
+                        "type": "recordFilter"
+                    },
+                    "limit": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 500
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "request_approval": {
+                "mutatesData": true,
+                "fields": {
+                    "prompt": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "details": {
+                        "type": "binding"
+                    },
+                    "fields": {
+                        "type": "approvalQuestions"
+                    },
+                    "assigneeUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "assigneeGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "approverUserIds": {
+                        "type": "stringList"
+                    },
+                    "approverGroupIds": {
+                        "type": "stringList"
+                    },
+                    "rule": {
+                        "type": "enum",
+                        "values": [
+                            "all",
+                            "first",
+                            "quorum"
+                        ],
+                        "default": "all"
+                    },
+                    "quorumCount": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 10
+                    },
+                    "finalApproverUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "finalApproverGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "stages": {
+                        "type": "approvalStages"
+                    },
+                    "expiresInHours": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 720
+                    },
+                    "remindAfterHours": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 720
+                    },
+                    "escalateToUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "escalateToGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "escalateAfterHours": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 720
+                    },
+                    "attachments": {
+                        "type": "binding"
+                    },
+                    "context": {
+                        "type": "recordValues"
+                    },
+                    "onDecided": {
+                        "type": "approvalOnDecided"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "ai_extract": {
+                "mutatesData": true,
+                "fields": {
+                    "source": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "schema": {
+                        "type": "aiSchema",
+                        "required": true
+                    },
+                    "promptContext": {
+                        "type": "binding"
+                    },
+                    "contextSources": {
+                        "type": "contextSources"
+                    },
+                    "documentMode": {
+                        "type": "enum",
+                        "values": [
+                            "auto",
+                            "text",
+                            "images"
+                        ],
+                        "default": "auto"
+                    },
+                    "modelTier": {
+                        "type": "tierChoice",
+                        "maxLen": 60
+                    },
+                    "knowledgeBaseIds": {
+                        "type": "stringList"
+                    },
+                    "datasets": {
+                        "type": "binding"
+                    },
+                    "writeTo": {
+                        "type": "aiWriteTo"
+                    },
+                    "resultDetail": {
+                        "type": "enum",
+                        "values": [
+                            "full",
+                            "summary"
+                        ],
+                        "default": "full"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "ai_generate": {
+                "mutatesData": true,
+                "fields": {
+                    "prompt": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 32000
+                    },
+                    "promptContext": {
+                        "type": "binding"
+                    },
+                    "contextSources": {
+                        "type": "contextSources"
+                    },
+                    "attachments": {
+                        "type": "binding"
+                    },
+                    "documentMode": {
+                        "type": "enum",
+                        "values": [
+                            "auto",
+                            "text",
+                            "images"
+                        ],
+                        "default": "auto"
+                    },
+                    "output": {
+                        "type": "enum",
+                        "values": [
+                            "text",
+                            "structured"
+                        ],
+                        "default": "text"
+                    },
+                    "markdownToHtml": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "schema": {
+                        "type": "aiSchema"
+                    },
+                    "modelTier": {
+                        "type": "tierChoice",
+                        "maxLen": 60
+                    },
+                    "knowledgeBaseIds": {
+                        "type": "stringList"
+                    },
+                    "datasets": {
+                        "type": "binding"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "kb_query": {
+                "mutatesData": true,
+                "fields": {
+                    "query": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "knowledgeBaseIds": {
+                        "type": "stringList",
+                        "required": true
+                    },
+                    "topK": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 20
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "send_email": {
+                "mutatesData": true,
+                "fields": {
+                    "connectorId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "to": {
+                        "type": "binding"
+                    },
+                    "cc": {
+                        "type": "binding"
+                    },
+                    "subject": {
+                        "type": "binding"
+                    },
+                    "body": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "bodyFormat": {
+                        "type": "enum",
+                        "values": [
+                            "markdown",
+                            "text",
+                            "html"
+                        ],
+                        "default": "markdown"
+                    },
+                    "replyToRecordId": {
+                        "type": "binding"
+                    },
+                    "replyToThreadKey": {
+                        "type": "binding"
+                    },
+                    "attachments": {
+                        "type": "binding"
+                    },
+                    "mode": {
+                        "type": "enum",
+                        "values": [
+                            "send",
+                            "draft"
+                        ],
+                        "default": "send"
+                    },
+                    "recordOutbound": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "generate_file": {
+                "mutatesData": true,
+                "fields": {
+                    "rows": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "columns": {
+                        "type": "binding"
+                    },
+                    "format": {
+                        "type": "enum",
+                        "values": [
+                            "csv",
+                            "xlsx",
+                            "ods"
+                        ],
+                        "default": "csv"
+                    },
+                    "fileName": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "delimiter": {
+                        "type": "enum",
+                        "values": [
+                            ";",
+                            ",",
+                            "\t"
+                        ],
+                        "default": ";"
+                    },
+                    "includeHeader": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "bom": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "sheetName": {
+                        "type": "string",
+                        "maxLen": 31
+                    },
+                    "attachToRecordId": {
+                        "type": "binding"
+                    },
+                    "attachToFieldKey": {
+                        "type": "string",
+                        "maxLen": 100
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "fill_document": {
+                "mutatesData": true,
+                "fields": {
+                    "documentVersionId": {
+                        "type": "string",
+                        "maxLen": 100
+                    },
+                    "sectionOverrides": {
+                        "type": "recordValues"
+                    },
+                    "documentId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 100
+                    },
+                    "values": {
+                        "type": "recordValues"
+                    },
+                    "fileName": {
+                        "type": "binding"
+                    },
+                    "format": {
+                        "type": "enum",
+                        "values": [
+                            "",
+                            "pptx",
+                            "pdf"
+                        ],
+                        "default": ""
+                    },
+                    "attachToRecordId": {
+                        "type": "binding"
+                    },
+                    "attachToFieldKey": {
+                        "type": "string",
+                        "maxLen": 100
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "generate_presentation": {
+                "mutatesData": true,
+                "fields": {
+                    "slides": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "title": {
+                        "type": "binding"
+                    },
+                    "subtitle": {
+                        "type": "binding"
+                    },
+                    "format": {
+                        "type": "enum",
+                        "values": [
+                            "pptx",
+                            "pdf"
+                        ],
+                        "default": "pptx"
+                    },
+                    "fileName": {
+                        "type": "binding"
+                    },
+                    "houseStyle": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "preset": {
+                        "type": "enum",
+                        "values": [
+                            "",
+                            "band",
+                            "clean",
+                            "bold",
+                            "dark"
+                        ],
+                        "default": ""
+                    },
+                    "accent": {
+                        "type": "binding"
+                    },
+                    "font": {
+                        "type": "enum",
+                        "values": [
+                            "",
+                            "Calibri",
+                            "Arial",
+                            "Helvetica",
+                            "Verdana",
+                            "Segoe UI",
+                            "Trebuchet MS",
+                            "Century Gothic",
+                            "Georgia",
+                            "Cambria",
+                            "Times New Roman",
+                            "Garamond",
+                            "Consolas"
+                        ],
+                        "default": ""
+                    },
+                    "coverStyle": {
+                        "type": "enum",
+                        "values": [
+                            "",
+                            "accent",
+                            "light",
+                            "split"
+                        ],
+                        "default": ""
+                    },
+                    "tableStyle": {
+                        "type": "enum",
+                        "values": [
+                            "",
+                            "banded",
+                            "lines",
+                            "minimal"
+                        ],
+                        "default": ""
+                    },
+                    "logoPlacement": {
+                        "type": "enum",
+                        "values": [
+                            "",
+                            "footer",
+                            "corner",
+                            "cover",
+                            "none"
+                        ],
+                        "default": ""
+                    },
+                    "background": {
+                        "type": "binding"
+                    },
+                    "footerText": {
+                        "type": "binding"
+                    },
+                    "attachToRecordId": {
+                        "type": "binding"
+                    },
+                    "attachToFieldKey": {
+                        "type": "string",
+                        "maxLen": 100
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "redact_pdf": {
+                "mutatesData": true,
+                "fields": {
+                    "source": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "terms": {
+                        "type": "binding"
+                    },
+                    "useAi": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "fileName": {
+                        "type": "binding"
+                    },
+                    "attachToRecordId": {
+                        "type": "binding"
+                    },
+                    "attachToFieldKey": {
+                        "type": "string",
+                        "maxLen": 100
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "file_intake": {
+                "mutatesData": true,
+                "fields": {
+                    "connectorId": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "threadKey": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "poPattern": {
+                        "type": "string",
+                        "maxLen": 200
+                    },
+                    "cadPreferred": {
+                        "type": "enum",
+                        "values": [
+                            "step",
+                            "dxf"
+                        ],
+                        "default": "step"
+                    },
+                    "resultDetail": {
+                        "type": "enum",
+                        "values": [
+                            "full",
+                            "summary"
+                        ],
+                        "default": "full"
+                    },
+                    "writeTo": {
+                        "type": "aiWriteTo"
+                    },
+                    "allowEmpty": {
+                        "type": "boolean"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "dataset_query": {
+                "mutatesData": true,
+                "fields": {
+                    "dataset": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "gene": {
+                        "type": "binding"
+                    },
+                    "region": {
+                        "type": "binding"
+                    },
+                    "rsid": {
+                        "type": "binding"
+                    },
+                    "filterPass": {
+                        "type": "boolean"
+                    },
+                    "minQual": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 100000
+                    },
+                    "limit": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 200
+                    },
+                    "includeGenotypes": {
+                        "type": "boolean"
+                    },
+                    "writeTo": {
+                        "type": "aiWriteTo"
+                    },
+                    "resultDetail": {
+                        "type": "enum",
+                        "values": [
+                            "full",
+                            "summary"
+                        ],
+                        "default": "full"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "ai_browse": {
+                "mutatesData": true,
+                "fields": {
+                    "task": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "url": {
+                        "type": "binding"
+                    },
+                    "allowedDomains": {
+                        "type": "stringList"
+                    },
+                    "maxSteps": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 20
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "copy_document": {
+                "mutatesData": true,
+                "fields": {
+                    "source": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "templateDocumentId": {
+                        "type": "string",
+                        "maxLen": 100
+                    },
+                    "name": {
+                        "type": "binding"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "kb_log_query": {
+                "mutatesData": true,
+                "fields": {
+                    "kbId": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "filters": {
+                        "type": "recordValues"
+                    },
+                    "limit": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 200
+                    },
+                    "resultDetail": {
+                        "type": "enum",
+                        "values": [
+                            "full",
+                            "summary"
+                        ],
+                        "default": "summary"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "kb_log_review": {
+                "mutatesData": true,
+                "fields": {
+                    "kbId": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "entryId": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "status": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "note": {
+                        "type": "binding"
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "condition": {
+                "mutatesData": false,
+                "fields": {
+                    "expr": {
+                        "type": "formula",
+                        "required": true
+                    },
+                    "then": {
+                        "type": "steps",
+                        "required": true
+                    },
+                    "else": {
+                        "type": "steps"
+                    }
+                }
+            },
+            "loop": {
+                "mutatesData": false,
+                "fields": {
+                    "source": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "itemVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "indexVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "maxIterations": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 200
+                    },
+                    "steps": {
+                        "type": "steps",
+                        "required": true
+                    }
+                }
+            },
+            "switch": {
+                "mutatesData": false,
+                "fields": {
+                    "expr": {
+                        "type": "formula",
+                        "required": true
+                    },
+                    "cases": {
+                        "type": "switchCases",
+                        "required": true
+                    },
+                    "default": {
+                        "type": "steps"
+                    }
+                }
+            },
+            "call_action": {
+                "mutatesData": false,
+                "fields": {
+                    "actionId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80
+                    },
+                    "params": {
+                        "type": "callParams"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            },
+            "transaction": {
+                "mutatesData": true,
+                "fields": {
+                    "steps": {
+                        "type": "steps",
+                        "required": true
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60
+                    },
+                    "retry": {
+                        "type": "retry",
+                        "envelope": true
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    }
+                }
+            }
+        },
+        "clientStepKinds": [
+            "navigate",
+            "toast",
+            "open_url",
+            "open_modal",
+            "close_modal",
+            "reset_form",
+            "download_file",
+            "confirm",
+            "set_variable",
+            "refresh",
+            "condition",
+            "loop",
+            "switch",
+            "call_action"
+        ],
+        "dataMutatingStepKinds": [
+            "run_automation",
+            "create_record",
+            "update_record",
+            "delete_record",
+            "request_approval",
+            "ai_extract",
+            "ai_generate",
+            "kb_query",
+            "send_email",
+            "generate_file",
+            "fill_document",
+            "generate_presentation",
+            "redact_pdf",
+            "file_intake",
+            "dataset_query",
+            "ai_browse",
+            "copy_document",
+            "kb_log_query",
+            "kb_log_review",
+            "transaction"
+        ]
+    },
+    "bindings": {
+        "kinds": [
+            "static",
+            "actionResult",
+            "formula",
+            "record",
+            "records",
+            "dataset",
+            "connector",
+            "aggregate"
+        ],
+        "inputMappingKinds": [
+            "static",
+            "field"
+        ],
+        "formulaScopeRoots": [
+            "actions",
+            "form",
+            "forms",
+            "screen",
+            "vars",
+            "item",
+            "index",
+            "value",
+            "params",
+            "error",
+            "currentUser",
+            "records",
+            "datasets",
+            "connectors",
+            "now",
+            "today"
+        ]
+    },
+    "variables": {
+        "spec": {
+            "name": {
+                "type": "string",
+                "required": true,
+                "maxLen": 60
+            },
+            "label": {
+                "type": "string",
+                "maxLen": 80,
+                "default": ""
+            },
+            "type": {
+                "type": "enum",
+                "values": [
+                    "text",
+                    "number",
+                    "yesno",
+                    "date",
+                    "record",
+                    "list",
+                    "any"
+                ],
+                "default": "any"
+            },
+            "default": {
+                "type": "json"
+            },
+            "description": {
+                "type": "string",
+                "maxLen": 500,
+                "default": ""
+            }
+        },
+        "types": [
+            "text",
+            "number",
+            "yesno",
+            "date",
+            "record",
+            "list",
+            "any"
+        ],
+        "typeDefaults": {
+            "text": "",
+            "number": 0,
+            "yesno": false,
+            "date": null,
+            "record": {},
+            "list": [],
+            "any": null
+        },
+        "reserved": [
+            "filters",
+            "true",
+            "false",
+            "null"
+        ],
+        "namePattern": "^[A-Za-z_][A-Za-z0-9_]{0,59}$",
+        "max": 30
+    },
+    "mailboxTables": {
+        "message": {
+            "name": "Messages",
+            "icon": "mail",
+            "fields": [
+                {
+                    "key": "provider_message_id",
+                    "name": "Message id",
+                    "type": "text",
+                    "unique": true,
+                    "required": true
+                },
+                {
+                    "key": "thread_key",
+                    "name": "Thread",
+                    "type": "text"
+                },
+                {
+                    "key": "provider_thread_id",
+                    "name": "Provider thread id",
+                    "type": "text"
+                },
+                {
+                    "key": "rfc822_message_id",
+                    "name": "RFC822 message id",
+                    "type": "text"
+                },
+                {
+                    "key": "in_reply_to",
+                    "name": "In reply to",
+                    "type": "text"
+                },
+                {
+                    "key": "references",
+                    "name": "References",
+                    "type": "text"
+                },
+                {
+                    "key": "direction",
+                    "name": "Direction",
+                    "type": "select",
+                    "options": [
+                        "inbound",
+                        "outbound",
+                        "draft"
+                    ]
+                },
+                {
+                    "key": "from_email",
+                    "name": "From",
+                    "type": "text"
+                },
+                {
+                    "key": "from_name",
+                    "name": "From name",
+                    "type": "text"
+                },
+                {
+                    "key": "to_emails",
+                    "name": "To",
+                    "type": "text"
+                },
+                {
+                    "key": "cc_emails",
+                    "name": "Cc",
+                    "type": "text"
+                },
+                {
+                    "key": "subject",
+                    "name": "Subject",
+                    "type": "text"
+                },
+                {
+                    "key": "subject_normalized",
+                    "name": "Subject (normalised)",
+                    "type": "text"
+                },
+                {
+                    "key": "snippet",
+                    "name": "Snippet",
+                    "type": "text"
+                },
+                {
+                    "key": "body_text",
+                    "name": "Body",
+                    "type": "richtext"
+                },
+                {
+                    "key": "body_html",
+                    "name": "Body (HTML)",
+                    "type": "richtext"
+                },
+                {
+                    "key": "received_at",
+                    "name": "Received",
+                    "type": "datetime"
+                },
+                {
+                    "key": "is_read",
+                    "name": "Read",
+                    "type": "bool"
+                },
+                {
+                    "key": "has_attachments",
+                    "name": "Has attachments",
+                    "type": "bool"
+                },
+                {
+                    "key": "is_auto_or_bulk",
+                    "name": "Auto/bulk",
+                    "type": "bool"
+                },
+                {
+                    "key": "labels",
+                    "name": "Labels",
+                    "type": "text"
+                },
+                {
+                    "key": "mailbox_address",
+                    "name": "Mailbox",
+                    "type": "text"
+                },
+                {
+                    "key": "provider",
+                    "name": "Provider",
+                    "type": "text"
+                },
+                {
+                    "key": "raw_size",
+                    "name": "Size",
+                    "type": "number"
+                }
+            ]
+        },
+        "thread": {
+            "name": "Conversations",
+            "icon": "inbox",
+            "fields": [
+                {
+                    "key": "thread_key",
+                    "name": "Conversation",
+                    "type": "text",
+                    "unique": true,
+                    "required": true
+                },
+                {
+                    "key": "subject",
+                    "name": "Subject",
+                    "type": "text"
+                },
+                {
+                    "key": "requester_email",
+                    "name": "Customer",
+                    "type": "text"
+                },
+                {
+                    "key": "requester_name",
+                    "name": "Customer name",
+                    "type": "text"
+                },
+                {
+                    "key": "last_message_at",
+                    "name": "Last message",
+                    "type": "datetime"
+                },
+                {
+                    "key": "message_count",
+                    "name": "Messages",
+                    "type": "number"
+                },
+                {
+                    "key": "has_unread",
+                    "name": "Unread",
+                    "type": "bool"
+                },
+                {
+                    "key": "labels",
+                    "name": "Labels",
+                    "type": "text"
+                },
+                {
+                    "key": "mailbox_address",
+                    "name": "Mailbox",
+                    "type": "text"
+                },
+                {
+                    "key": "provider",
+                    "name": "Provider",
+                    "type": "text"
+                }
+            ]
+        },
+        "attachment": {
+            "name": "Attachments",
+            "icon": "paperclip",
+            "fields": [
+                {
+                    "key": "provider_attachment_id",
+                    "name": "Attachment id",
+                    "type": "text",
+                    "unique": true,
+                    "required": true
+                },
+                {
+                    "key": "provider_message_id",
+                    "name": "Message id",
+                    "type": "text"
+                },
+                {
+                    "key": "filename",
+                    "name": "Filename",
+                    "type": "text"
+                },
+                {
+                    "key": "mime_type",
+                    "name": "Type",
+                    "type": "text"
+                },
+                {
+                    "key": "size",
+                    "name": "Size",
+                    "type": "number"
+                },
+                {
+                    "key": "is_inline",
+                    "name": "Inline",
+                    "type": "bool"
+                },
+                {
+                    "key": "content_id",
+                    "name": "Content-ID",
+                    "type": "text"
+                },
+                {
+                    "key": "file",
+                    "name": "File",
+                    "type": "file"
+                }
+            ]
+        }
+    }
+}

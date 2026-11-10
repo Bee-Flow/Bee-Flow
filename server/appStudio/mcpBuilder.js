@@ -193,9 +193,10 @@ async function loadDraft(appId, userId) {
         return { error: `App "${appId}" not found, or this token's user cannot edit it. Call studio_list_apps for the ids you own.` };
     }
 
-    const { def } = canonicalizeAppDefinition(
+    const { def, refused } = canonicalizeAppDefinition(
         app.definition && Object.keys(app.definition).length ? app.definition : emptyDefinition(app.name),
     );
+    if (refused) return { error: require('./schemaSince.mts').schemaNewerMessage(app.definition) };
 
     const draftWrap = {
         userId,

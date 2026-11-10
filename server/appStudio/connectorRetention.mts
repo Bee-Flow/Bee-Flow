@@ -21,6 +21,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { isAppAssetRow } from './appAssets.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -270,7 +271,7 @@ export async function runRetention(opts: {
 }
 
 type AttachmentDeps = {
-    listAttachments: (appId: string, ownerId: string) => Promise<Array<{ id: string; sha256: string }> | null | undefined>;
+    listAttachments: (appId: string, ownerId: string) => Promise<Array<{ id: string; sha256: string; fieldKey?: string | null }> | null | undefined>;
     deleteAttachment: (id: string, appId: string, ownerId: string) => Promise<unknown>;
     deleteFile: (key: string) => Promise<unknown>;
     buildAttachmentKey: (ownerId: string, appId: string, sha: string) => string;
@@ -290,7 +291,8 @@ export async function purgeAttachments(app: App, fileIds: string[], deps: Attach
     const shas = new Set<string>();
     for (const id of fileIds) {
         const row = byId.get(id);
-        if (!row) continue;
+        // An app asset (appAssets.mts) is no record's file, whatever a row's file column names.
+        if (!row || isAppAssetRow(row)) continue;
         shas.add(row.sha256);
         await deps.deleteAttachment(id, app.id, app.userId);
     }

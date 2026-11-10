@@ -5,7 +5,7 @@ import type { NodeProps } from './appNode.types';
 export default function AppDivider({ node }: Partial<NodeProps<{ orientation?: string }>> = {}) {
     // 'vertical': a 1px upright rule for flex rows (a page_header's action
     // area, a horizontal pane). The wrapper cell is the flex item, so
-    // runtime.css stretches it (align-self) and this hr fills it; min-height
+    // css/layout.css stretches it (align-self) and this hr fills it; min-height
     // keeps the rule visible where nothing stretches. Horizontal — and any
     // unknown value — is the identity path: the exact original <hr>.
     if (node?.props?.orientation === 'vertical') {

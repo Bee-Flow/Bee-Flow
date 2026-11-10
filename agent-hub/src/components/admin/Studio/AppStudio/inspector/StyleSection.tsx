@@ -12,6 +12,7 @@ import {
     knobLabel,
     valueLabel,
 } from './styleKnobMeta';
+import { STYLE_VALUE_CONTROLS, isBaseValueType } from './styleValueControls';
 import TokenColorField from './TokenColorField';
 import Disclosure from '@/components/shared/Disclosure';
 import FormField from '@/components/shared/FormField';
@@ -236,7 +237,7 @@ function AdvancedSizing({ knobs, style, isSection, patch, disabled }: AdvancedSi
  * Responsive visibility — hideBelow/hideAbove, derived from `span` exactly
  * like the width pair (a type without a grid cell has nothing to hide). Bands
  * are the runtime breakpoints: sm=640, md=1024, lg=1280. On the editor canvas
- * a hidden node stays visible (runtime.css guards on data-app-edit), so these
+ * a hidden node stays visible (css/layout.css guards on data-app-edit), so these
  * knobs only change the RUN view — hence a disclosure, not a primary control.
  */
 interface ResponsiveVisibilityProps {
@@ -321,6 +322,13 @@ export default function StyleSection({
             {knobs.map((knob) => {
                 const spec = STYLE_KNOBS[knob];
                 if (!spec) return null;
+
+                // A value type added after the base ones: its registered control (styleValueControls.ts), or nothing.
+                if (!isBaseValueType(spec.type)) {
+                    const Control = STYLE_VALUE_CONTROLS[spec.type];
+                    if (!Control) return null;
+                    return <Control key={knob} knob={knob} spec={spec} value={style[knob]} onChange={(v) => patch({ [knob]: v })} definition={definition} disabled={disabled} />;
+                }
 
                 if (spec.type === 'int') {
                     return (

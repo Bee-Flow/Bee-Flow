@@ -7,7 +7,7 @@ const { canonicalizeAppDefinition } = require('./canonicalize');
 // One test asserts the canonicalizer's OUTPUT passes the validator — the two
 // have to agree, or the AI is handed a definition it cannot finalize.
 const { validateAppDefinition } = require('./validate');
-const { ID_RE, LIMITS, SECTION_STYLE_DEFAULTS, THEME_SPEC, SCHEMA_VERSION_CURRENT, emptyDefinition, COMPONENT_SPECS } = require('./componentSpecs');
+const { ID_RE, LIMITS, SECTION_STYLE_DEFAULTS, THEME_SPEC, SCHEMA_VERSION_BASE, emptyDefinition, COMPONENT_SPECS } = require('./componentSpecs');
 
 const codes = (repairs) => new Set(repairs.map((r) => r.code));
 
@@ -43,7 +43,7 @@ test('non-object input → empty shell with shape.not_object', () => {
     for (const bad of [null, 42, 'x', [1]]) {
         const { def, repairs } = canonicalizeAppDefinition(bad);
         assert.ok(codes(repairs).has('shape.not_object'));
-        assert.equal(def.schemaVersion, SCHEMA_VERSION_CURRENT); // v2
+        assert.equal(def.schemaVersion, SCHEMA_VERSION_BASE); // v2
         assert.deepEqual(def.roles, []);
         assert.deepEqual(def.screens, []);
         assert.deepEqual(def.actions, {});
@@ -148,7 +148,7 @@ test('binding prop with a null spec default: null round-trips as null (kanban co
 
 test('schemaVersion / meta / theme repaired to spec defaults', () => {
     const { def, repairs } = canonicalizeAppDefinition({
-        schemaVersion: 9,   // neither 1 nor 2 → normalized to current with a repair
+        schemaVersion: 'nine',   // not a version → normalized to the base with a repair (a NEWER number is refused: schemaVersion.test.js)
         meta: 'nope',
         theme: { primary: 'teal', radius: 'round', density: 'compact' },
         screens: 'nope',
@@ -158,7 +158,7 @@ test('schemaVersion / meta / theme repaired to spec defaults', () => {
     assert.ok(c.has('meta.invalid'));
     assert.ok(c.has('theme.value_invalid'));
     assert.ok(c.has('screens.invalid'));
-    assert.equal(def.schemaVersion, SCHEMA_VERSION_CURRENT); // v2
+    assert.equal(def.schemaVersion, SCHEMA_VERSION_BASE); // v2
     assert.equal(def.meta.name, 'Untitled app');
     assert.equal(def.theme.primary, THEME_SPEC.primary.default); // bad hex → default
     assert.equal(def.theme.radius, 'md');                        // bad enum → default
@@ -582,7 +582,7 @@ test('repair records carry {code, path, message}', () => {
 
 test('v1 input migrates to v2 silently, roles seeded []', () => {
     const { def, repairs } = canonicalizeAppDefinition(wrap([], { schemaVersion: 1 }));
-    assert.equal(def.schemaVersion, SCHEMA_VERSION_CURRENT);
+    assert.equal(def.schemaVersion, SCHEMA_VERSION_BASE);
     assert.deepEqual(def.roles, []);
     assert.ok(!codes(repairs).has('shape.schema_version'), 'migration is not a repair');
 });

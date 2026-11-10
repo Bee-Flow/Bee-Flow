@@ -67,6 +67,11 @@ const CONTENT_SPECS = {
             src: { type: 'url', default: null },
             alt: { type: 'string', maxLen: 200, default: '' },
             fit: { type: 'enum', values: ['cover', 'contain'], default: 'cover' },
+            // Added after the base: written only when bound (canonicalize/props.js).
+            srcFrom: {
+                type: 'binding', default: null, since: 3,
+                description: 'Shows the image a binding resolves to (an https URL or asset:<id>), e.g. a column of picture links; src stays the fallback. An uploaded file of the app is asset:<id> (app_list_assets), also accepted in src and design.logoUrl.',
+            },
         },
         styleKnobs: ['span', 'height', 'radius', 'align'],
         defaultStyle: { span: 6, height: 'md' },

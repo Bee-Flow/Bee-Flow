@@ -41,8 +41,8 @@
 const FORMAT = 'beeflow.blueprint';
 // 2 adds `solution.slots` and `solution.variables` (pipeline releases). A
 // version-1 file still reads: neither section is required.
-const SCHEMA_VERSION = 2;
-const SUPPORTED_VERSIONS = [1, 2];
+const SCHEMA_VERSION = 2; // one higher per App Studio schema version a carried app needs (schemaVersion.mjs)
+const SUPPORTED_VERSIONS = require('../../shared/appDefinition/schemaVersion.mjs').supportedEnvelopeVersions([1, 2], SCHEMA_VERSION);
 
 /** Bundle-local reference prefixes, one per entity kind. */
 /** @type {Record<string, string>} */
@@ -241,7 +241,7 @@ function buildManifest({
     const p = project || {};
     const manifest = {
         format: FORMAT,
-        schemaVersion: SCHEMA_VERSION,
+        schemaVersion: require('../../shared/appDefinition/schemaVersion.mjs').envelopeVersionForStored(SCHEMA_VERSION, (Array.isArray(entities.apps) ? entities.apps : []).map((a) => a && a.definition)),
         exportedAt: exportedAt || null,
         source: readSource({ source }),
         solution: {

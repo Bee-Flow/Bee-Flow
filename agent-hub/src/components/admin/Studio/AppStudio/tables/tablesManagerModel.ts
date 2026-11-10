@@ -16,7 +16,7 @@ export interface ModelField {
     unique?: boolean;
     default?: string | number | null;
     options?: unknown[];
-    relation?: { table?: string } | null;
+    relation?: { table?: string; displayField?: string; fk?: boolean } | null;
     computed?: { expr?: string; stored?: boolean; type?: string } | null;
     [key: string]: unknown;
 }

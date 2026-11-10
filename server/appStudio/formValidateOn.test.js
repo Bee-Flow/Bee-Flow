@@ -45,3 +45,22 @@ test('validator accepts the legal values and rejects others', () => {
     const bad = canonicalizeAppDefinition(defWith({ name: 'frm_a', validateOn: 'bogus' })).def;
     assert.ok(JSON.stringify(validateAppDefinition(bad)).includes('validateOn'));
 });
+
+const since = require('./schemaSince.mts');
+const { renderExtensionIndex } = require('./builderPrompt/extensionIndex.mts');
+const { applyInspectCatalog } = require('./builderTools/inspectionTools');
+
+test('a form using validateOn is stamped schemaVersion 3, one without keeps 2', () => {
+    const used = canonicalizeAppDefinition(defWith({ name: 'frm_a', validateOn: 'blur' })).def;
+    const plain = canonicalizeAppDefinition(defWith({ name: 'frm_a' })).def;
+    assert.strictEqual(used.schemaVersion, 3);
+    assert.strictEqual(since.requiredSchemaVersion(used), 3);
+    assert.strictEqual(plain.schemaVersion, 2);
+});
+
+test('validateOn is in the extension index and served by app_inspect_catalog', () => {
+    assert.ok(renderExtensionIndex().includes('form.validateOn'));
+    const res = applyInspectCatalog({ extensions: ['form.validateOn'] });
+    assert.ok(JSON.stringify(res.extensions || {}).includes('validateOn'), JSON.stringify(res).slice(0, 300));
+    assert.ok(!res.unknown || res.unknown.length === 0);
+});

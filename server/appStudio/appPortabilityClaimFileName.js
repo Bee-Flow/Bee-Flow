@@ -1,16 +1,20 @@
 // @typecheck strict
 
 const { isObject, deepClone, claimText } = require('./portabilityClaims');
+const { supportedEnvelopeVersions } = require('./schemaSince.mts');
 
 const APP_FORMAT = 'beeflow.app';
 
+// The version of an archive whose definition is of the base schema; one higher
+// per schema version the definition needs (schemaSince.envelopeVersionFor), as
+// for a template file.
 const APP_SCHEMA_VERSION = 1;
 
 /**
  * Every version this server can still READ, newest last. See templatePortability.
  * @type {readonly unknown[]}
  */
-const APP_SUPPORTED_VERSIONS = [1];
+const APP_SUPPORTED_VERSIONS = supportedEnvelopeVersions([1], APP_SCHEMA_VERSION);
 
 /**
  * The archive's own ceilings.

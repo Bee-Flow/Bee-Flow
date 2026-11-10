@@ -380,8 +380,8 @@ const STEP_SPECS = {
     },
 };
 
-// Every server step (and call_action) also takes the error-handling envelope (stepEnvelope.js).
-withErrorEnvelope(STEP_SPECS);
+// Every server step (and call_action) also takes the error-handling envelope (stepEnvelope.js); the registry's kinds (steps/<kind>.js) join first.
+withErrorEnvelope(Object.assign(STEP_SPECS, require('./stepRegistry').EXTENSION_STEP_SPECS));
 
 module.exports = {
     ACTION_KINDS,

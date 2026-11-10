@@ -14,6 +14,9 @@ import type { AppDefinition, AppScreen } from './appDefinition';
 import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, ScreenSettingsProps, ThemePanelProps } from './ThemePanel.types';
 import { designFields, fontLabels, widthLabels, refreshLabels, navStyleLabels, options, themeFields } from './ThemePanel.helpers';
 import { SectionTitle, AiBrowsingSettings } from './AiBrowsingSettings';
+import { THEME_SECTIONS } from './themeSections';
+import AssetRefField from './assets/AssetRefField';
+import { useEditorChrome } from '../editor/EditorChromeContext';
 
 /**
  * ThemePanel — shown when nothing is selected: the whole-app knobs.
@@ -126,6 +129,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
     const meta = definition?.meta || {};
     const design = definition?.design || {};
     const screen = (definition?.screens || []).find((s) => s.id === screenId) || null;
+    const appId = useEditorChrome()?.appId ?? null;
 
     const commitTheme = (patch: Record<string, unknown>) => {
         const next = updateTheme(definition, patch);
@@ -213,10 +217,12 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                             />
                         </FormField>
                     ))}
-                    <TextField
+                    <AssetRefField
                         label={t('studio_apps_insp.theme.logo_url', 'Logo URL')}
                         value={design.logoUrl || ''}
-                        onChange={(v) => commitDesign({ logoUrl: v && v.trim() ? v.trim() : null })}
+                        onChange={(v) => commitDesign({ logoUrl: v })}
+                        appId={appId}
+                        definition={definition}
                         placeholder={t('studio_apps_insp.theme.url_placeholder', 'https://…')}
                         disabled={disabled}
                     />
@@ -242,6 +248,10 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                     </FormField>
                 </div>
             </div>
+
+            {THEME_SECTIONS.map(({ name, Section }) => (
+                <Section key={name} definition={definition} onCommit={onCommit} disabled={disabled} screenId={screenId} />
+            ))}
 
             <div>
                 <SectionTitle>{t('studio_apps_insp.theme.app', 'App')}</SectionTitle>

@@ -202,7 +202,7 @@ const DISCUSS_REFUSAL = 'Discuss mode (just advise): the app stays unchanged, so
 // is not named here (a new one, an unknown name) is refused.
 export const DISCUSS_READ_TOOLS: ReadonlySet<string> = new Set([
     'app_get_draft', 'app_get_node', 'app_get_action', 'app_find_nodes', 'app_inspect_catalog',
-    'app_get_data_model', 'app_query_data', 'app_list_connectors', 'app_list_documents',
+    'app_get_data_model', 'app_query_data', 'app_list_connectors', 'app_list_documents', 'app_list_assets',
     'app_search_documents', 'app_read_document', 'app_list_automations', 'app_inspect_automation',
     'app_list_templates', 'app_dry_run', 'app_screenshot',
 ]);

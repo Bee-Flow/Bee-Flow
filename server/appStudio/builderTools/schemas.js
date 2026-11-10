@@ -39,6 +39,8 @@ const TOOL_SCHEMAS = [
 ];
 
 TOOL_SCHEMAS.push(...require('../../core/documents/documentDiscovery').schemas('app'));
+// The app's uploaded files (builderTools/assetTools.mts), after every captured tool.
+TOOL_SCHEMAS.push(...require('./assetTools.mts').ASSET_TOOL_SCHEMAS);
 
 module.exports = {
     TOOL_SCHEMAS,
