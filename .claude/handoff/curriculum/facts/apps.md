@@ -566,7 +566,7 @@ in the trigger payload as `_viewerUserId` for audit only — never used to scope
 8. **Publishing an automation that is inactive.** Blocked at publish, allowed on a draft save.
 9. **Rotating a public URL by minting a new one and forgetting to revoke the old.** Up to 3 live
    URLs exist simultaneously; the old link keeps working until you delete it.
-10. **Hitting the action-step caps and blaming the builder.** 60 steps / depth 6 per action.
+10. **Hitting the action-step caps and blaming the builder.** 120 steps / depth 8 per action; 200 actions per app.
     Raising a LIMIT constant requires a server rebuild.
 11. **Assuming `/usage-counts` counts app opens.** It counts *action runs* (`unit: 'action_runs'`)
     — an app that writes records another way counts 0 while it runs daily.

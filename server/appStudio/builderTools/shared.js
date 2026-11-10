@@ -25,7 +25,7 @@ const NODE_LOGIC_FIELDS = ['visibleWhen', 'enabledWhen', 'readOnly', 'visibleToR
 
 // The two node fields that are NOT a boolean-or-formula flag: `computed` maps
 // prop keys to formulas (making ANY prop live — the only escape hatch for the
-// 22 component types with no binding-typed prop), `validations` attaches input
+// component types with no binding-typed prop), `validations` attaches input
 // rules. Same story as readOnly: canonicalized, validated and RENDERED, but
 // unreachable from the tool layer, so the model could only conclude that live
 // text on a heading was architecturally impossible. It never was.

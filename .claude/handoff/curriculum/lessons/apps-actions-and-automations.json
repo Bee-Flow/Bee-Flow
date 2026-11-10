@@ -173,20 +173,20 @@
       "choices": [
         {
           "id": "a",
-          "label": "The five steps inside the For each count towards the 60 steps allowed in that one sequence, nesting may go six levels deep, and a For each runs at most 200 iterations.",
+          "label": "The five steps inside the For each count towards the 120 steps allowed in that one sequence, nesting may go eight levels deep, and a For each runs at most 200 iterations.",
           "correct": true
         },
         {
           "id": "b",
-          "label": "Only top-level steps count towards the 60; steps inside a For each or an If… are free.",
+          "label": "Only top-level steps count towards the 120; steps inside a For each or an If… are free.",
           "correct": false,
           "feedback": "The step count is recursive — everything inside a For each, an If… or a Depending on… branch counts. That is what stops one clever button from becoming an unreadable program."
         },
         {
           "id": "c",
-          "label": "Sixty is the ceiling for every action in the app added together, so a long flow leaves no room for other buttons.",
+          "label": "Two hundred is the ceiling for every action in the app added together, so a long flow leaves no room for other buttons.",
           "correct": false,
-          "feedback": "Two separate ceilings that happen to share a number: 60 actions per app, and 60 steps inside one sequence."
+          "feedback": "Two separate ceilings that happen to differ in size: 200 actions per app, and 120 steps inside one sequence."
         },
         {
           "id": "d",
@@ -195,7 +195,7 @@
           "feedback": "There is a hard ceiling of 200 iterations, whatever you put in Max iterations. A list longer than that is work for an automation, which is built for volume."
         }
       ],
-      "explanation": "A control that needs more than 60 steps or more than six levels of nesting is telling you the logic belongs in an automation. Wire the button to that automation instead."
+      "explanation": "A control that needs more than 120 steps or more than eight levels of nesting is telling you the logic belongs in an automation. Wire the button to that automation instead."
     },
     {
       "type": "slide",
@@ -281,7 +281,7 @@
       "An input mapping is either field (a value from a named form field) or static (a fixed value); with no mapping, a Studio App trigger takes the form field of the same name.",
       "Make an automation for this app creates an automation that already carries a Studio App trigger, seeded with inputs matching the form the button sits in.",
       "Publish refuses an app whose action points at an automation the app owner does not own or that is not active; draft saves still go through.",
-      "One action sequence may hold 60 steps counted recursively, nest six levels deep, and a For each step tops out at 200 iterations; an app may hold 60 actions in total.",
+      "One action sequence may hold 120 steps counted recursively, nest eight levels deep, and a For each step tops out at 200 iterations; an app may hold 200 actions in total.",
       "Test with what is on screen makes a real run with the values standing in the form and opens it in the automation builder; file inputs are skipped in that test."
     ]
   },
