@@ -22,6 +22,9 @@ vi.mock('../../licensing/LicenseContext', () => ({ useLicenseContext: () => ({ h
 vi.mock('./guardrails/GuardrailsHub', () => ({
     default: ({ section }: { section?: string }) => <div data-testid="guardrails-panel" data-section={section || ''} />,
 }));
+vi.mock('./guardrails/OrgGuardrails', () => ({
+    default: ({ orgId }: { orgId: string | null }) => <div data-testid="org-guardrails-panel" data-org={orgId || ''} />,
+}));
 vi.mock('./SSOConfigPanel', () => ({ default: () => <div data-testid="sso-panel" /> }));
 vi.mock('../org/UserManagement', () => ({ default: () => <div data-testid="user-management" /> }));
 vi.mock('../../integrations/health/ConnectorHealthPanel', () => ({
@@ -148,10 +151,10 @@ describe('SecurityHub', () => {
             <AdminScopeOverrideProvider value={set}><SecurityHub {...props} /></AdminScopeOverrideProvider>,
         );
 
-        it('guardrails are server-wide for whoever opens them', () => {
+        it('guardrails leave the scope to the console, which knows the open sub-section', () => {
             const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
-            renderIn(set, { user: orgAdmin, activeSection: 'guardrails' });
-            expect(lastScope(set)).toBe('instance');
+            renderIn(set, { user: fullAdmin, activeSection: 'guardrails' });
+            expect(lastScope(set)).toBeUndefined();
         });
 
         it('a section the viewer cannot see falls back to users, and the scope follows what is rendered', () => {
@@ -159,6 +162,34 @@ describe('SecurityHub', () => {
             renderIn(set, { user: orgAdmin, activeSection: 'sso' });
             expect(screen.getByTestId('user-management')).toBeInTheDocument();
             expect(lastScope(set)).toBe('mixed');
+        });
+    });
+
+    describe('for an organisation admin', () => {
+        const orgAdminOfOrg = { ...orgAdmin, orgRole: 'org_admin', organizationId: 'org-1' };
+
+        it('lists only the sections that are not about the whole server', () => {
+            render(<SecurityHub user={orgAdminOfOrg} />);
+            const items = screen.getAllByRole('button').map(b => b.textContent);
+            expect(items).toEqual(['admin.sec_users', 'admin.sec_guardrails']);
+        });
+
+        it('shows the guardrails of the own organisation instead of the server console', () => {
+            render(<SecurityHub user={orgAdminOfOrg} activeSection="guardrails" userSection="patterns" />);
+            expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-1');
+            expect(screen.queryByTestId('guardrails-panel')).not.toBeInTheDocument();
+        });
+
+        it('drops guardrails for an organisation admin without a home organisation', () => {
+            render(<SecurityHub user={{ permissions: ['admin_security'], isAdmin: false }} activeSection="guardrails" />);
+            expect(screen.queryByText('admin.sec_guardrails')).not.toBeInTheDocument();
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+        });
+
+        it('a user holding only the all permission is not a platform admin', () => {
+            render(<SecurityHub user={{ permissions: ['all'], isAdmin: false }} activeSection="email-domains" />);
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+            expect(screen.queryByText('admin.sec_email_domains')).not.toBeInTheDocument();
         });
     });
 });

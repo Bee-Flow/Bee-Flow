@@ -16,6 +16,8 @@ import type { DrawerDetail } from './drawer/drawerTypes';
 import type { MonitoringPanelProps } from './index.types';
 import { PAGES, monitoringPageOf } from './monitoring.constants';
 import { toLocalInput } from './monitoring.helpers';
+import { isAdminSectionVisible } from '@/components/admin/dashboard/adminTabs';
+import { isPlatformAdmin } from '@/utils/adminAccess';
 
 /** Change against the previous period, in percent (null where the previous period had none). */
 function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | null): UsageDeltas {
@@ -100,10 +102,14 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
  * per URL (admin/monitoring/<page>; bare admin/monitoring is Overview), with
  * the period chosen once for all of them in the page header.
  */
-export default function MonitoringPanel({ activeSection = '', onNavigate }: MonitoringPanelProps) {
+export default function MonitoringPanel({ activeSection = '', onNavigate, user }: MonitoringPanelProps) {
     const { t } = useTranslation();
-    const page = monitoringPageOf(activeSection);
-    const meta = PAGES.find(p => p.id === page) ?? PAGES[0];
+    // A server-wide page (Feedback) is for the platform admin only; a hidden one falls back to Overview.
+    const platformAdmin = isPlatformAdmin(user);
+    const pages = PAGES.filter(p => isAdminSectionVisible('monitoring', platformAdmin, p.id));
+    const requested = monitoringPageOf(activeSection);
+    const page = pages.some(p => p.id === requested) ? requested : 'overview';
+    const meta = pages.find(p => p.id === page) ?? pages[0];
     const [range, setRange] = useState('7d');
     const [customStart, setCustomStart] = useState(defaultStart);
     const [customEnd, setCustomEnd] = useState(() => toLocalInput(new Date()));
@@ -115,7 +121,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
     const sidebar = (
         <SectionNav
             label={title}
-            items={PAGES.map(p => ({ id: p.id, icon: p.icon, label: t(p.labelKey) }))}
+            items={pages.map(p => ({ id: p.id, icon: p.icon, label: t(p.labelKey) }))}
             activeId={page}
             onSelect={(id) => onNavigate?.(`admin/monitoring/${id}`)}
         />

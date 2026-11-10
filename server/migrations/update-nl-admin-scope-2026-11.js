@@ -26,6 +26,7 @@ const NL_TRANSLATIONS = Object.freeze({
     'admin.scope_instance': 'Hele server',
     'admin.scope_instance_hint': 'Geldt voor alle organisaties op deze server',
     'admin.scope_org': 'Jouw organisatie',
+    'admin.rail_group_orgs': 'Organisaties',
     'admin.scope_org_named': 'Organisatie: {name}',
     'admin.scope_org_hint': 'Geldt alleen voor jouw organisatie',
     'admin.scope_org_view_hint': 'Toont alleen jouw organisatie',

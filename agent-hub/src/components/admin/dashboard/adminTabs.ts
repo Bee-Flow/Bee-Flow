@@ -30,7 +30,7 @@ export interface AdminTab {
     perm: string[];
     /** The scope of the whole tab; `sections` overrides it for the sub-sections that differ. `null`: the panel picks its own organisation, so no single scope fits. */
     scope: AdminScope | null;
-    /** Sub-section (the second URL segment) to the scope where it differs from `scope`. */
+    /** Sub-section (the second URL segment) to the scope where it differs from `scope`; `section/part` names a part inside a sub-section. */
     sections?: Readonly<Record<string, AdminScope>>;
     superAdminOnly?: boolean;
     minTier?: string;
@@ -63,10 +63,28 @@ export const ADMIN_TAB_GROUPS: readonly { id: AdminTabGroupId; labelKey: string;
 // already cloudOnly, so it never surfaces on a self-hosted Community install
 // and intentionally carries no minTier (keeps the cloud operator console
 // reachable regardless of the operator org's own tier).
+// Security's sub-sections: the operator ones are the whole server. Guardrails
+// mixes both: the pattern library, the sensitive-term libraries, the PII and DLP
+// profiles, the presets and the Direct chat binding are server-wide; only the
+// per-organisation shield is the viewer's own organisation.
+const SECURITY_SCOPES: Readonly<Record<string, AdminScope>> = {
+    sso: 'instance',
+    'email-domains': 'instance',
+    'connector-health': 'instance',
+    guardrails: 'mixed',
+    'guardrails/presets': 'instance',
+    'guardrails/patterns': 'instance',
+    'guardrails/terms': 'instance',
+    'guardrails/pii': 'instance',
+    'guardrails/dlp': 'instance',
+    'guardrails/directchat': 'instance',
+    'guardrails/organisations': 'mixed',
+};
+
 export const ADMIN_TABS: readonly AdminTab[] = [
     { id: 'agents', labelKey: 'admin.tab_agents', icon: Bot, group: 'ai', perm: ['admin_agents', 'admin_agents_chat', 'admin_agents_system'], scope: 'mixed', sections: { system: 'instance' }, superAdminOnly: false, minTier: 'enterprise' },
     { id: 'ai-config', labelKey: 'admin.tab_ai_config', icon: Sparkles, group: 'ai', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true },
-    { id: 'security', labelKey: 'admin.tab_security', icon: Shield, group: 'security', perm: ['admin_security'], scope: 'mixed', sections: { sso: 'instance', guardrails: 'instance', 'email-domains': 'instance', 'connector-health': 'instance' }, superAdminOnly: false },
+    { id: 'security', labelKey: 'admin.tab_security', icon: Shield, group: 'security', perm: ['admin_security'], scope: 'mixed', sections: SECURITY_SCOPES, superAdminOnly: false },
     { id: 'integrations', labelKey: 'admin.tab_integrations', icon: Plug, group: 'platform', perm: ['admin_security'], scope: 'instance', superAdminOnly: true },
     // Access & Permissions — grant features/integrations to All members or
     // per group, within the plan/license ceiling. Available to org-admins
@@ -120,6 +138,11 @@ export interface AdminAccess {
     hasPermission: (perm: string) => boolean;
 }
 
+/** A tab flagged for the super-admin, or about the whole server, is for the platform admin whatever permissions the viewer holds. */
+function isForPlatformAdmin(tab: AdminTab): boolean {
+    return !!tab.superAdminOnly || tab.scope === 'instance';
+}
+
 /** May this user open this tab? An unknown tab is not refused here (the content just renders nothing). */
 export function canOpenAdminTab(tab: AdminTab | undefined, access: AdminAccess): boolean {
     if (!tab) return true;
@@ -134,20 +157,26 @@ export function canOpenAdminTab(tab: AdminTab | undefined, access: AdminAccess):
     // Server-wide licence active → no per-org subscriptions to manage.
     if (tab.id === 'subscriptions' && access.serverOverride) return false;
     if (tab.selfHostedOnly && !access.isSelfHosted) return false;
-    if (tab.superAdminOnly && !access.isSuperAdmin) return false;
+    if (!access.isSuperAdmin && isForPlatformAdmin(tab)) return false;
     return tab.perm.some((p) => access.hasPermission(p));
 }
 
-/** The scope of a tab, or of one of its sub-sections when that differs. */
-export function adminScopeOf(tab: AdminTab, section?: string): AdminScope | null {
-    const own = section && tab.sections && Object.hasOwn(tab.sections, section) ? tab.sections[section] : undefined;
-    return own ?? tab.scope;
+/** The scope of a tab, of one of its sub-sections when that differs, or of a part inside a sub-section. */
+export function adminScopeOf(tab: AdminTab, section?: string, part?: string): AdminScope | null {
+    const own = (key: string) => (tab.sections && Object.hasOwn(tab.sections, key) ? tab.sections[key] : undefined);
+    const partScope = section && part ? own(`${section}/${part}`) : undefined;
+    return partScope ?? (section ? own(section) : undefined) ?? tab.scope;
 }
 
 /** The scope of a section of a tab by the tab's id; a panel reports the section it really renders with this. */
-export function adminSectionScope(tabId: string, section?: string): AdminScope | null {
+export function adminSectionScope(tabId: string, section?: string, part?: string): AdminScope | null {
     const tab = ADMIN_TABS.find(t => t.id === tabId);
-    return tab ? adminScopeOf(tab, section) : null;
+    return tab ? adminScopeOf(tab, section, part) : null;
+}
+
+/** May this viewer see a section (or a part of one)? A server-wide one is for the platform admin only. */
+export function isAdminSectionVisible(tabId: string, isPlatformAdmin: boolean, section?: string, part?: string): boolean {
+    return isPlatformAdmin || adminSectionScope(tabId, section, part) !== 'instance';
 }
 
 export interface ShownScopeInput {
@@ -197,8 +226,29 @@ export function resolveAdminTab(adminPath: { seg1?: string; seg2?: string }, all
     return { activeTab, agentSection, firstAllowedTab, isTabAllowed: allowed(ADMIN_TABS.find(tab => tab.id === activeTab)) };
 }
 
+/** The two top-level groups of the rail: the viewer's organisation, and the whole server (platform admin only). */
+export interface AdminRailSection<T extends AdminTab = AdminTab> {
+    id: 'org' | 'instance';
+    groups: { id: AdminTabGroupId; labelKey: string; labelFallback: string; tabs: T[] }[];
+}
+
+/**
+ * Splits the tabs a viewer may open into the rail's two top-level groups by
+ * scope: instance tabs are the whole server, everything else (org, mixed, user,
+ * or a panel that picks its own organisation) is the viewer's organisation. The
+ * whole-server group is left out for anyone but a platform admin. Empty groups
+ * are left out.
+ */
+export function buildAdminRailSections<T extends AdminTab>(tabs: readonly T[], isPlatformAdmin: boolean): AdminRailSection<T>[] {
+    const sections: AdminRailSection<T>[] = [
+        { id: 'org', groups: groupAdminTabs(tabs.filter(tab => tab.scope !== 'instance')) },
+    ];
+    if (isPlatformAdmin) sections.push({ id: 'instance', groups: groupAdminTabs(tabs.filter(tab => tab.scope === 'instance')) });
+    return sections.filter(section => section.groups.length > 0);
+}
+
 /** The tabs a user may open, grouped in rail order; empty groups are left out. */
-export function groupAdminTabs(tabs: readonly AdminTab[]) {
+export function groupAdminTabs<T extends AdminTab>(tabs: readonly T[]) {
     return ADMIN_TAB_GROUPS
         .map(group => ({ ...group, tabs: tabs.filter(tab => tab.group === group.id) }))
         .filter(group => group.tabs.length > 0);

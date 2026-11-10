@@ -14,7 +14,7 @@ export const AdminScopeOverrideProvider = AdminScopeOverrideContext.Provider;
 export function useAdminScopeOverride(scope: AdminScope | null) {
     const set = useContext(AdminScopeOverrideContext);
     useEffect(() => {
-        if (!set) return undefined;
+        if (!set || scope === null) return undefined;
         set(scope);
         return () => set(null);
     }, [set, scope]);

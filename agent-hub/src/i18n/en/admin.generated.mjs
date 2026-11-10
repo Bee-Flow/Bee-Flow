@@ -11,6 +11,7 @@ export default {
     "admin.scope_instance": "Whole server",
     "admin.scope_instance_hint": "Applies to every organisation on this server",
     "admin.scope_org": "Your organisation",
+    "admin.rail_group_orgs": "Organisations",
     "admin.scope_org_named": "Organisation: {name}",
     "admin.scope_org_hint": "Applies to your organisation only",
     "admin.scope_org_view_hint": "Shows your organisation only",
