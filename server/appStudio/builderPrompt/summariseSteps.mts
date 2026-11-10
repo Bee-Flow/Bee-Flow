@@ -3,19 +3,22 @@
  * per action: `steps[3]{confirm → create_record(tbl_x)↻2!onError → toast}`.
  * `↻n` = the step is retried up to n times, `!onError` = it has an error handler,
  * `transaction{n}` = n record writes saved all or none.
+ *
+ * How a kind reads is its `summary` in the step catalogue (componentSpecs/stepMeta.js, or the
+ * kind's own registry file); a kind without one reads as its name.
  */
+
+import { createRequire } from 'node:module';
 
 type Step = Record<string, unknown>;
 
+const { stepMetaOf } = createRequire(import.meta.url)('../componentSpecs/stepRegistry.js') as {
+    stepMetaOf: (kind: unknown) => { summary?: (step: Step) => string } | null;
+};
+
 function base(s: Step): string {
-    if (s.kind === 'create_record' || s.kind === 'update_record' || s.kind === 'delete_record') {
-        return `${String(s.kind)}(${String(s.tableId || '?')})`;
-    }
-    if (s.kind === 'navigate') return `navigate→${String(s.screenId)}`;
-    if (s.kind === 'run_automation') return `run_automation(${String(s.automationId ?? 'null')})`;
-    if (s.kind === 'call_action') return `call_action→${String(s.actionId)}`;
-    if (s.kind === 'condition' || s.kind === 'loop' || s.kind === 'switch') return `${s.kind}{…}`;
-    if (s.kind === 'transaction') return `transaction{${Array.isArray(s.steps) ? s.steps.length : 0}}`;
+    const summary = stepMetaOf(s.kind)?.summary;
+    if (summary) return summary(s);
     return typeof s.kind === 'string' && s.kind ? s.kind : '?';
 }
 

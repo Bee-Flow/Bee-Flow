@@ -62,7 +62,7 @@ function sanitizeHistory(history) {
 
 // Tools that legitimately take NO arguments — empty args must not be treated
 // as a truncated call.
-const PARAMLESS_TOOLS = new Set(['app_get_draft', 'app_list_automations', 'app_get_data_model', 'app_list_connectors', 'app_list_templates', 'app_finalize']);
+const PARAMLESS_TOOLS = new Set(['app_get_draft', 'app_list_automations', 'app_get_data_model', 'app_list_connectors', 'app_list_templates', 'app_list_assets', 'app_finalize']);
 
 /**
  * Parse a tool call's `arguments` defensively → { args, truncated } (core/llm/toolLoop).

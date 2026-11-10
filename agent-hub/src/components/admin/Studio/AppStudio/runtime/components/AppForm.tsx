@@ -9,7 +9,7 @@ import { FormContext, registerFormReset } from '../formContext';
 import type { FormFieldMeta } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { spaceSteps } from '../styleResolver';
+import { gridTemplate, spaceSteps } from '../styleResolver';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -290,7 +290,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
             <form onSubmit={handleSubmit} noValidate className="flex flex-col" style={{ gap: spaceSteps(gap) }}>
                 <div
                     className="app-grid"
-                    style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: spaceSteps(gap) }}
+                    style={{ gridTemplateColumns: gridTemplate(), gap: spaceSteps(gap) }}
                 >
                     {children}
                 </div>

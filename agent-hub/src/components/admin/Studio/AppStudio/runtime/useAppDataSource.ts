@@ -102,7 +102,6 @@ function batchDescriptor(id: string, binding: FetchBinding, limit: unknown) {
             kind: 'aggregate',
             tableId: binding.tableId,
             filters: binding.filter ?? undefined,
-            match: binding.match ?? undefined,
             groupBy: binding.groupBy ?? undefined,
             aggregates: binding.aggregates ?? undefined,
             sort: binding.sort ?? undefined,
@@ -116,8 +115,6 @@ function batchDescriptor(id: string, binding: FetchBinding, limit: unknown) {
         kind: 'records',
         tableId: binding.tableId,
         filters: binding.filter ?? undefined,
-        match: binding.match ?? undefined,
-        search: binding.search ?? undefined,
         sort: binding.sort ?? undefined,
         limit,
     };
@@ -213,7 +210,6 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
             body: JSON.stringify({
                 tableId: binding.tableId,
                 filters: binding.filter ?? undefined,
-                match: binding.match ?? undefined,
                 groupBy: binding.groupBy ?? undefined,
                 aggregates: binding.aggregates ?? undefined,
                 sort: binding.sort ?? undefined,
@@ -244,8 +240,6 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
     const table = encodeURIComponent(binding.tableId ?? '');
     const query = qs({
         filter: binding.filter,
-        match: binding.match,
-        search: binding.search,
         sort: binding.sort,
         limit,
         sample: sample ? 1 : undefined,

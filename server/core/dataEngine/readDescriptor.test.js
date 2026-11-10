@@ -8,11 +8,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { recordListDescriptor, aggregateDescriptor, resolveSearch } = require('./readDescriptor.mts');
+const { recordListDescriptor, aggregateDescriptor } = require('./readDescriptor.mts');
 
 const BINDING = {
     kind: 'records', tableId: 'tbl_1', filters: [{ field: 'a', op: 'eq', value: 1 }], sort: [{ field: 'a' }],
-    groupBy: [{ field: 'g' }], aggregates: [{ fn: 'count' }], cursor: 'c', limit: 9,
+    groupBy: [{ field: 'g' }], aggregates: [{ fn: 'count' }], cursor: 'c', limit: 9, match: 'any', search: { value: 'x' },
 };
 
 test('a record list picks filters and sort, then the caller\'s own fields', () => {
@@ -39,7 +39,7 @@ test('the caller\'s own value wins and keeps the picked position', () => {
 test('fields the compiler does not take from a read are not passed on', () => {
     const list = recordListDescriptor(BINDING);
     const agg = aggregateDescriptor(BINDING);
-    for (const key of ['kind', 'tableId', 'cursor', 'limit']) {
+    for (const key of ['kind', 'tableId', 'cursor', 'limit', 'match', 'search']) {
         assert.ok(!(key in list), `record list leaves ${key} to the caller`);
         assert.ok(!(key in agg), `aggregate leaves ${key} to the caller`);
     }
@@ -48,25 +48,4 @@ test('fields the compiler does not take from a read are not passed on', () => {
 test('a missing field stays a present key holding undefined, as the hand-built objects had it', () => {
     const out = aggregateDescriptor({}, { limit: undefined });
     assert.deepStrictEqual(out, { filters: undefined, groupBy: undefined, aggregates: undefined, sort: undefined, limit: undefined });
-});
-
-test('match and search travel only when the read carries them; an aggregate takes match alone', () => {
-    const asked = { ...BINDING, match: 'any', search: { value: 'x', fields: ['a'] } };
-    const list = recordListDescriptor(asked, { limit: 1 });
-    assert.deepStrictEqual(Object.keys(list), ['filters', 'sort', 'match', 'search', 'limit']);
-    assert.deepStrictEqual(Object.keys(aggregateDescriptor(asked)), ['filters', 'groupBy', 'aggregates', 'sort', 'match']);
-    assert.deepStrictEqual(Object.keys(recordListDescriptor({ ...BINDING, match: null, search: null })), ['filters', 'sort']);
-});
-
-test('a search value is made literal, or the search is left out when it holds no text', () => {
-    const fields = ['a'];
-    const formula = { value: { kind: 'formula', expr: 'vars.q' }, fields };
-    assert.deepStrictEqual(resolveSearch({ value: 'abc', fields }), { value: 'abc', fields });
-    assert.deepStrictEqual(resolveSearch(formula, () => 'xyz'), { value: 'xyz', fields });
-    assert.deepStrictEqual(resolveSearch({ value: 7, fields }), { value: '7', fields });
-    assert.strictEqual(resolveSearch(formula, () => undefined), null);
-    assert.strictEqual(resolveSearch(formula, () => '  '), null);
-    assert.strictEqual(resolveSearch(formula), null);
-    assert.strictEqual(resolveSearch('x'), null);
-    assert.strictEqual(resolveSearch(undefined), null);
 });

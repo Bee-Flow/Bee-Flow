@@ -47,10 +47,10 @@
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { getRelativePath } from '@shared/expr/path.mjs';
-import { resolveFilterList } from '@shared/expr/filterGroups.mjs';
-import type { Binding, BindingInput, DataBinding, DataMap, FilterValue, ResolveResult, Scope } from './resolveBinding.types';
-import { AGGREGATE_SHAPE_FIELDS } from './resolveBinding.constants';
-import { isRelativePath, stableStringify, resolveFilterValue, normalizeBag, fromDataEntry, applyPick } from './resolveBinding.helpers';
+import { CLIENT_PLAN, planFilters, planParams, planShape } from '@shared/appDefinition/bindingPlan.mjs';
+import type { BindingPlan } from '@shared/appDefinition/bindingPlan.mjs';
+import type { Binding, BindingInput, DataMap, ResolveResult, Scope } from './resolveBinding.types';
+import { isRelativePath, stableStringify, normalizeBag, fromDataEntry, applyPick } from './resolveBinding.helpers';
 
 /**
  * Safe path walk with the ONE path grammar the automation runtime and the
@@ -72,14 +72,6 @@ export function walkPath(value: unknown, path?: unknown): unknown {
         : undefined;
 }
 
-/** `match` and `search` belong to the cache key only when the binding sets them, so every other key is what it was. */
-function readExtras(binding: DataBinding): { match?: string; search?: unknown } {
-    return {
-        ...(binding.match ? { match: binding.match } : {}),
-        ...(binding.search && binding.kind !== 'aggregate' ? { search: binding.search } : {}),
-    };
-}
-
 /**
  * Stable cache key for a record/records/dataset binding — the SAME key the
  * DataContext fetch hook stores results under. record/records key on the
@@ -96,7 +88,6 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             filter: binding.filter ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
-            ...readExtras(binding),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -107,7 +98,6 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             aggregates: binding.aggregates ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
-            ...readExtras(binding),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }
@@ -120,6 +110,14 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
 }
 
 /**
+ * The fetch decision for one binding lives in the shared binding planner
+ * (@shared/appDefinition/bindingPlan.mjs), the same code the screenshot render
+ * and the dry run use with their own option sets. These three are the client's
+ * steps of it, kept as functions because the fetch layer (AppDataScope) and the
+ * read path below must apply the same steps in the same order.
+ */
+
+/**
  * Resolve an aggregate binding's descriptor fields against the live scope.
  * A field authored as { kind:'formula', expr } is evaluated; anything else is
  * left exactly as it is. A formula that resolves to undefined/null leaves the
@@ -127,61 +125,19 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
  * half-configured report is a normal state, not an error.
  */
 export function resolveBindingShape(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
-    if (!binding || typeof binding !== 'object' || binding.kind !== 'aggregate') return binding;
-    let changed = false;
-    const out: DataBinding = { ...binding };
-    for (const field of AGGREGATE_SHAPE_FIELDS) {
-        const raw = binding[field];
-        if (!raw || typeof raw !== 'object' || raw.kind !== 'formula') continue;
-        changed = true;
-        const value = resolveFilterValue(raw, scope);
-        if (value === undefined || value === null) delete out[field];
-        else out[field] = value;
-    }
-    return changed ? out : binding;
-}
-
-export function resolveBindingFilters(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
-    return resolveBindingSearch(resolveFilterClauses(binding, scope), scope);
+    return clientBinding(planShape(binding, scope, CLIENT_PLAN));
 }
 
 /**
- * A records binding's `search.value` made literal (it may be a formula: a search box). A value that
- * resolves to no text leaves the search out, as an unset filter value is left out, so an empty box
- * shows every row. A binding without a search comes back as it is.
+ * Resolve a record/records/aggregate binding's dynamic filter values. An
+ * unresolved filter is normally OMITTED, which is right for an optional one (a
+ * filter_bar field nobody filled in). It is exactly wrong for a filter that
+ * SCOPES a component to a selection: drop "belongs to the open ticket" and the
+ * component lists every row in the table. `required` says so out loud: no
+ * value, no query, no rows (null here).
  */
-function resolveBindingSearch(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
-    if (!binding || typeof binding !== 'object' || (binding.kind !== 'record' && binding.kind !== 'records')) return binding;
-    const search = binding.search;
-    if (!search) return binding;
-    const value = resolveFilterValue(search.value as FilterValue, scope);
-    const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
-    if (text === search.value) return binding;
-    const { search: _old, ...rest } = binding;
-    return typeof text === 'string' && text.trim() !== '' ? { ...rest, search: { ...search, value: text } } : rest;
-}
-
-function resolveFilterClauses(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
-    if (!binding || typeof binding !== 'object') return binding;
-    if (binding.kind !== 'record' && binding.kind !== 'records' && binding.kind !== 'aggregate') return binding;
-    if (!Array.isArray(binding.filter) || binding.filter.length === 0) return binding;
-
-    // An unresolved filter is normally OMITTED, which is right for an
-    // optional one (a filter_bar field nobody filled in). It is exactly
-    // wrong for a filter that SCOPES a component to a selection: drop
-    // "belongs to the open ticket" and the component cheerfully lists
-    // every row in the table. `required` says so out loud — no value,
-    // no query, no rows. An `{ any: [...] }` group drops its unresolved
-    // clauses and is dropped itself when none is left (unless required).
-    // The loop is shared with the phone and the server (filterGroups.mjs).
-    const res = resolveFilterList(binding.filter, (value) => resolveFilterValue(value as FilterValue, scope));
-    if (res.status !== 'ok') return null;
-    if (!res.changed) return binding;
-    if (res.filters.length === 0) {
-        const { filter: _dropped, ...rest } = binding;
-        return rest;
-    }
-    return { ...binding, filter: res.filters };
+export function resolveBindingFilters(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
+    return clientBinding(planFilters(binding, scope, CLIENT_PLAN));
 }
 
 /**
@@ -195,20 +151,12 @@ function resolveFilterClauses(binding: Binding | null | undefined, scope: Scope)
  * connector kinds and non-object params pass through. Never throws.
  */
 export function resolveBindingParams(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
-    if (!binding || typeof binding !== 'object' || binding.kind !== 'connector') return binding;
-    const params = binding.params;
-    if (!params || typeof params !== 'object' || Array.isArray(params)) return binding;
+    return clientBinding(planParams(binding, scope, CLIENT_PLAN));
+}
 
-    let changed = false;
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(params)) {
-        const value = resolveFilterValue(v, scope);
-        if (value === undefined) { changed = true; continue; } // omit unresolved
-        if (value !== v) changed = true;
-        out[k] = value;
-    }
-    if (!changed) return binding;
-    return { ...binding, params: out };
+/** A planner step as the client always answered it: the binding to fetch, or null for no query. */
+function clientBinding(step: BindingPlan): Binding | null | undefined {
+    return step.plan === 'fetch' ? (step.binding as Binding | null | undefined) : null;
 }
 
 /**

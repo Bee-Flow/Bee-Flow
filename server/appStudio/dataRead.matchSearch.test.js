@@ -1,8 +1,10 @@
 /**
  * The read features the query compiler had and the App Studio read path did not pass on:
  * `match: 'any'`, a free `search` over several columns and a case-insensitive `eq` (`ci`).
- * They travel from the binding or the request to the SQL, and a read without them compiles to
- * what it always did.
+ * `match` and `search` are REQUEST options (the records routes, app_query_data), not binding
+ * keys: a binding that carries them keeps the base canonical form. `ci` on a filter clause is
+ * base behaviour (the compiler always honoured it), so a definition using it, or the base
+ * operators, measures and buckets the editor now offers, keeps schema version 2.
  *
  * Run: node --test appStudio/dataRead.matchSearch.test.js
  */
@@ -16,11 +18,10 @@ const { applyQueryData } = require('./builderTools/dataTools');
 const { parseQueryArgs } = require('./builderTools/queryDataArgs');
 const { resolveDataBinding } = require('./stepDataSource');
 const { canonicalizeAppDefinition } = require('./canonicalize');
-const { validateAppDefinition } = require('./validate');
+const { requiredSchemaVersion } = require('./schemaSince.mts');
 const studioAppStore = require('../stores/studioAppStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const { optionalListQuery } = require('../routes/studio/appDataContext');
-const { BINDING_READ_EXTRAS } = require('./componentSpecs');
 
 const USER = 'user-1';
 const APP = { id: 'app1', userId: USER };
@@ -74,23 +75,12 @@ test('app_query_data refuses a bad match or search with a hint', () => {
     assert.deepStrictEqual(parseQueryArgs({ tableId: 't', match: 'any', search: { value: 'x', fields: ['a'], extra: 1 } }).search, { value: 'x', fields: ['a'] });
 });
 
-test('a server step read resolves a search formula; an empty box leaves the search out', async () => {
-    const calls = [];
-    const viewer = { id: USER, role: 'owner' };
-    const binding = { kind: 'records', tableId: 'tbl_task01', match: 'any', search: { value: { kind: 'formula', expr: 'q' }, fields: ['title'] } };
-    await withDb(calls, async () => {
-        await resolveDataBinding(APP, model, binding, { viewer, role: 'owner', resolveValue: () => 'needle' });
-        await resolveDataBinding(APP, model, binding, { viewer, role: 'owner', resolveValue: () => '' });
-    });
-    assert.ok(calls[0].params.includes('%needle%'));
-    assert.ok(!calls[1].params.some((p) => typeof p === 'string' && p.includes('%')), 'no search when nothing was typed');
-});
-
 test('the list route query: match and search are read only when sent', () => {
     assert.deepStrictEqual(optionalListQuery({}), {});
     assert.deepStrictEqual(optionalListQuery({ match: 'any', search: '{"value":"a","fields":["t"]}' }), { match: 'any', search: { value: 'a', fields: ['t'] } });
     assert.deepStrictEqual(optionalListQuery({ search: 'not json' }), {});
 });
+
 
 const def = (source) => ({
     schemaVersion: 2,
@@ -100,33 +90,40 @@ const def = (source) => ({
 });
 const sourceOf = (d) => d.screens[0].sections[0].children[0].props.source;
 
-test('canonicalize keeps match, search and ci on a records binding; an aggregate drops the search', () => {
-    const source = {
-        kind: 'records', tableId: 'tbl_task01', match: 'any',
-        filter: [{ field: 'status', op: 'eq', value: 'x', ci: true }],
-        search: { value: { kind: 'formula', expr: 'vars.filters.q' }, fields: ['title', 'note'] },
+test('ci and the base words the editor now offers keep a definition at schema version 2', () => {
+    const records = {
+        kind: 'records', tableId: 'tbl_task01',
+        filter: [
+            { field: 'status', op: 'eq', value: 'x', ci: true },
+            { field: 'title', op: 'endsWith', value: 'a' },
+            { field: 'note', op: 'notContains', value: 'b' },
+            { field: 'status', op: 'notIn', value: ['c'] },
+        ],
     };
-    const kept = sourceOf(canonicalizeAppDefinition(def(source)).def);
-    assert.strictEqual(kept.match, 'any');
-    assert.strictEqual(kept.filter[0].ci, true);
-    assert.deepStrictEqual(kept.search.fields, ['title', 'note']);
-    const agg = sourceOf(canonicalizeAppDefinition(def({ kind: 'aggregate', tableId: 'tbl_task01', search: { value: 'x', fields: ['title'] }, match: 'any' })).def);
-    assert.strictEqual(agg.search, undefined);
-    assert.strictEqual(agg.match, 'any');
-    assert.deepStrictEqual(BINDING_READ_EXTRAS.match.values, ['all', 'any']);
+    const aggregate = {
+        kind: 'aggregate', tableId: 'tbl_task01',
+        groupBy: [{ field: 'created_at', bucket: 'hour' }],
+        aggregates: [{ fn: 'p50', field: 'title' }, { fn: 'p90', field: 'title' }],
+    };
+    for (const source of [records, aggregate]) {
+        const out = canonicalizeAppDefinition(def(source)).def;
+        assert.strictEqual(out.schemaVersion, 2);
+        assert.strictEqual(requiredSchemaVersion(out), 2);
+    }
+    assert.strictEqual(sourceOf(canonicalizeAppDefinition(def(records)).def).filter[0].ci, true, 'canonicalize keeps ci as it always did');
 });
 
-test('a binding without the new fields canonicalizes to a source with none of those keys', () => {
-    const plain = sourceOf(canonicalizeAppDefinition(def({ kind: 'records', tableId: 'tbl_task01', filter: [{ field: 'status', op: 'eq', value: 'x' }] })).def);
-    assert.deepStrictEqual(Object.keys(plain), ['kind', 'tableId', 'filter']);
-});
+test('match and search on a binding stay out of the canonical form and out of a step read', async () => {
+    const plain = { kind: 'records', tableId: 'tbl_task01', filter: [{ field: 'status', op: 'eq', value: 'x' }] };
+    const extra = { ...plain, match: 'any', search: { value: 'needle', fields: ['title'] } };
+    const out = canonicalizeAppDefinition(def(extra)).def;
+    assert.deepStrictEqual(Object.keys(sourceOf(out)), ['kind', 'tableId', 'filter']);
+    assert.strictEqual(out.schemaVersion, 2);
 
-test('the validator accepts a good search and names the bad ones', () => {
-    const run = (source) => validateAppDefinition(canonicalizeAppDefinition(def(source)).def, { dataModel: model }).errors.map((e) => e.code);
-    const good = { kind: 'records', tableId: 'tbl_task01', match: 'any', search: { value: 'x', fields: ['title'] } };
-    assert.deepStrictEqual(run(good).filter((c) => c.startsWith('binding.')), []);
-    assert.ok(run({ ...good, match: 'some' }).includes('binding.match_invalid'));
-    assert.ok(run({ ...good, search: { value: 'x', fields: [] } }).includes('binding.search_invalid'));
-    assert.ok(run({ ...good, search: { value: 'x', fields: ['nope'] } }).includes('binding.unknown_field'));
-    assert.ok(run({ ...good, filter: [{ field: 'title', op: 'eq', value: 'a', ci: 'yes' }] }).includes('binding.filter_invalid'));
+    const viewer = { id: USER, role: 'owner' };
+    const plainCalls = [];
+    const extraCalls = [];
+    await withDb(plainCalls, () => resolveDataBinding(APP, model, plain, { viewer, role: 'owner' }));
+    await withDb(extraCalls, () => resolveDataBinding(APP, model, extra, { viewer, role: 'owner' }));
+    assert.deepStrictEqual(extraCalls, plainCalls);
 });

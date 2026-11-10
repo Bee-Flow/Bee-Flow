@@ -16,13 +16,7 @@ type Binding = Record<string, unknown> & { kind?: unknown };
 type Scope = Record<string, unknown> | null | undefined;
 
 const shapeOf = (b: Binding, keys: readonly string[]) =>
-    stableStringify({ ...Object.fromEntries(keys.map((k) => [k, b[k] ?? null])), ...readExtras(b) });
-
-/** `match` and `search` belong to the key only when the binding sets them (a search only on record/records). */
-const readExtras = (b: Binding): Record<string, unknown> => ({
-    ...(b.match ? { match: b.match } : {}),
-    ...(b.search && b.kind !== 'aggregate' ? { search: b.search } : {}),
-});
+    stableStringify(Object.fromEntries(keys.map((k) => [k, b[k] ?? null])));
 
 /**
  * The cache key a record/records/aggregate/dataset/connector binding's result
@@ -87,27 +81,6 @@ const FILTERED_KINDS = new Set(['record', 'records', 'aggregate']);
  * when none is left (null when it is required). Same loop as the web.
  */
 export function resolveBindingFilters<B>(binding: B, scope: Scope): B | null {
-    const filtered = resolveFilterClauses(binding, scope);
-    return filtered === null ? null : resolveBindingSearch(filtered, scope);
-}
-
-/**
- * A record/records binding's `search.value` made literal; a value that is no text leaves the
- * search out (an empty search box shows every row). Same rule as the web.
- */
-function resolveBindingSearch<B>(binding: B, scope: Scope): B {
-    if (!binding || typeof binding !== 'object') return binding;
-    const b = binding as Binding;
-    const search = b.search as { value?: unknown } | undefined;
-    if ((b.kind !== 'record' && b.kind !== 'records') || !search || typeof search !== 'object') return binding;
-    const value = resolveFilterValue(search.value, scope);
-    const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
-    if (text === search.value) return binding;
-    const { search: _old, ...rest } = b;
-    return (typeof text === 'string' && text.trim() !== '' ? { ...rest, search: { ...search, value: text } } : rest) as B;
-}
-
-function resolveFilterClauses<B>(binding: B, scope: Scope): B | null {
     if (!binding || typeof binding !== 'object') return binding;
     const b = binding as Binding;
     if (!FILTERED_KINDS.has(b.kind as string)) return binding;

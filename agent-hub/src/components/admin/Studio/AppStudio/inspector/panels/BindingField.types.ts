@@ -27,8 +27,6 @@ export interface BindingDraft {
     actionId?: string | null;
     path?: string;
     filter?: unknown;
-    match?: 'all' | 'any';
-    search?: { value?: string | { kind: string; expr?: string }; fields?: string[] };
     sort?: unknown;
     limit?: number;
     groupBy?: Array<DatasetGroup | null>;

@@ -5,18 +5,9 @@
     "studio_apps_dataread.bucket_hour": "Per uur",
     "studio_apps_dataread.ignore_case": "Hoofdletters en kleine letters negeren",
     "studio_apps_dataread.ignore_case_aria": "Hoofdletters en kleine letters negeren voor dit filter",
-    "studio_apps_dataread.match_all": "Toon een rij als elk filter klopt",
-    "studio_apps_dataread.match_any": "Toon een rij als één van de filters klopt",
-    "studio_apps_dataread.match_label": "Hoe de filters samenwerken",
     "studio_apps_dataread.op_ends_with": "eindigt op",
     "studio_apps_dataread.op_not_contains": "bevat niet",
-    "studio_apps_dataread.op_not_in": "is niet een van",
-    "studio_apps_dataread.search_aria": "Zoeken in een aantal kolommen",
-    "studio_apps_dataread.search_desc": "Toont de rijen waarin een van de gekozen kolommen de tekst bevat. Bij een lege tekst zie je alle rijen.",
-    "studio_apps_dataread.search_in": "Zoek in deze kolommen",
-    "studio_apps_dataread.search_label": "Zoeken in een aantal kolommen",
-    "studio_apps_dataread.search_placeholder": "bijv. vars.filters.q",
-    "studio_apps_dataread.search_text": "Tekst om naar te zoeken"
+    "studio_apps_dataread.op_not_in": "is niet een van"
   },
   "sameAsEnglish": []
 }

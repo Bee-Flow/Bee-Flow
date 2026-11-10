@@ -1,69 +1,46 @@
 /**
- * App Studio inspector — client mirror of the style-knob vocabulary.
+ * App Studio inspector: the style-knob vocabulary.
  *
  * server/appStudio/componentSpecs.js is AUTHORITATIVE for everything in this
  * file (STYLE_KNOBS ranges, per-type styleKnobs lists, section knobs, theme
- * spec, action kinds, toast tones, input types, events). The values below are
- * mirrored verbatim so the inspector can render offline; keep them in
- * lockstep with the server file.
+ * spec, toast tones, input types, events). The values come from
+ * runtime/catalogSnapshot.generated.json, written from that spec by
+ * scripts/gen-app-catalog.mjs (`npm run gen:shared`), so the inspector renders
+ * offline without a hand mirror. Only the labels are kept here.
  */
 
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { KIND_OPTIONS } from './actionKindCatalog';
 import type { StyleKnobTable, UnitRange } from './styleKnobMeta.types';
+import { STYLE_KNOB_LABELS } from '../runtime/styleKnobHandlers';
+import {
+    advancedHeightKnobs,
+    advancedWidthKnobs,
+    colorRoles,
+    formulaScopeRoots,
+    inputTypes,
+    responsiveVisibilityKnobs,
+    screenDefaults,
+    screenEnums,
+    styleKnobs,
+    themeEnums,
+    toastTones,
+    typeStyleKnobs,
+} from '../runtime/catalogSnapshot.generated.json';
 
-// Mirror of COLOR_ROLES (componentSpecs.js).
-export const COLOR_ROLES: string[] = ['primary', 'neutral', 'success', 'warning', 'danger', 'info'];
+export const COLOR_ROLES: string[] = colorRoles;
 
-// Mirror of STYLE_KNOBS (componentSpecs.js) — the closed visual vocabulary.
-// Sliders take min/max/step from here; enum knobs render their `values`.
-export const STYLE_KNOBS: StyleKnobTable = {
-    span:       { type: 'int', min: 1, max: 12, step: 1, default: 12 },
-    size:       { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' },
-    align:      { type: 'enum', values: ['start', 'center', 'end'], default: 'start' },
-    color:      { type: 'colorOrRole', roles: COLOR_ROLES, default: null },
-    radius:     { type: 'enum', values: [null, 'none', 'sm', 'md', 'lg', 'full'], default: null },
-    padding:    { type: 'int', min: 0, max: 6, step: 1, default: 0 },
-    gap:        { type: 'int', min: 0, max: 6, step: 1, default: 3 },
-    weight:     { type: 'enum', values: ['regular', 'medium', 'semibold'], default: 'regular' },
-    height:     { type: 'enum', values: ['auto', 'sm', 'md', 'lg', 'xl', 'fill'], default: 'auto' },
-    background: { type: 'enum', values: ['none', 'surface', 'tint', 'panel', 'gradient'], default: 'none' },
-    border:     { type: 'enum', values: ['none', 'subtle', 'default'], default: 'none' },
-    // Responsive visibility — CSS-only hide per viewport band; bands mirror
-    // runtime.css (sm=640, md=1024, lg=1280). hideBelow 'md' = hidden under
-    // 1024px, hideAbove 'md' = hidden at 1024px and wider.
-    hideBelow:  { type: 'enum', values: ['none', 'sm', 'md', 'lg'], default: 'none' },
-    hideAbove:  { type: 'enum', values: ['none', 'sm', 'md', 'lg'], default: 'none' },
-    // Advanced sizing — the grid owns placement, these own the box.
-    widthMode:  { type: 'enum', values: ['span', 'px', 'pct'], default: 'span' },
-    widthValue: {
-        type: 'unitInt', modeKnob: 'widthMode', default: null,
-        units: {
-            px:  { min: 40, max: 2000, step: 10, default: 320 },
-            pct: { min: 5,  max: 100,  step: 5,  default: 50 },
-        },
-    },
-    heightMode: { type: 'enum', values: ['preset', 'px', 'pct', 'vh'], default: 'preset' },
-    heightValue: {
-        type: 'unitInt', modeKnob: 'heightMode', default: null,
-        units: {
-            px:  { min: 24, max: 4000, step: 10, default: 240 },
-            pct: { min: 5,  max: 100,  step: 5,  default: 50 },
-            vh:  { min: 5,  max: 100,  step: 5,  default: 50 },
-        },
-    },
-};
+// The closed visual vocabulary. Sliders take min/max/step from here; enum
+// knobs render their `values`.
+export const STYLE_KNOBS = styleKnobs as StyleKnobTable;
 
-// Mirror of ADVANCED_WIDTH_KNOBS / ADVANCED_HEIGHT_KNOBS (componentSpecs.js).
 // These four are DERIVED, never listed in a type's styleKnobs: a type gets the
-// width pair when it has `span` and the height pair when it has `height`, so
-// TYPE_STYLE_KNOBS below stays a verbatim mirror and the lockstep test keeps
-// its meaning.
-const ADVANCED_WIDTH_KNOBS = ['widthMode', 'widthValue'];
-const ADVANCED_HEIGHT_KNOBS = ['heightMode', 'heightValue'];
-// Mirror of RESPONSIVE_VISIBILITY_KNOBS (componentSpecs.js) — derived from
-// span, like the width pair: a type without a grid cell has nothing to hide.
-const RESPONSIVE_VISIBILITY_KNOBS = ['hideBelow', 'hideAbove'];
+// width pair when it has `span` and the height pair when it has `height`; the
+// responsive-visibility pair is derived from span too (a type without a grid
+// cell has nothing to hide).
+const ADVANCED_WIDTH_KNOBS: string[] = advancedWidthKnobs;
+const ADVANCED_HEIGHT_KNOBS: string[] = advancedHeightKnobs;
+const RESPONSIVE_VISIBILITY_KNOBS: string[] = responsiveVisibilityKnobs;
 
 /**
  * What each knob is CALLED in the inspector.
@@ -75,7 +52,7 @@ const RESPONSIVE_VISIBILITY_KNOBS = ['hideBelow', 'hideAbove'];
  * the literal string "undefined". knobLabel() falls back to the key, so the
  * next knob added to STYLE_KNOBS shows its own name rather than nothing.
  */
-const KNOB_KEYS: Record<string, [string, string]> = {
+const BASE_KNOB_KEYS: Record<string, [string, string]> = {
     span: ['studio_apps_insp.knobs.span', 'Width'],
     size: ['studio_apps_insp.knobs.size', 'Size'],
     align: ['studio_apps_insp.knobs.align', 'Align'],
@@ -94,6 +71,9 @@ const KNOB_KEYS: Record<string, [string, string]> = {
     hideBelow: ['studio_apps_insp.knobs.hide_below', 'Hide below'],
     hideAbove: ['studio_apps_insp.knobs.hide_above', 'Hide from'],
 };
+
+// The knobs of a group added after the base are named by the group's own file (runtime/styleKnobs/<group>.ts `labels`).
+const KNOB_KEYS: Record<string, [string, string]> = { ...STYLE_KNOB_LABELS, ...BASE_KNOB_KEYS };
 
 export const KNOB_LABELS: Record<string, string> = Object.fromEntries(Object.entries(KNOB_KEYS).map(([k, [, en]]) => [k, en]));
 
@@ -137,99 +117,32 @@ export function valueLabel(v: string | number, t: TranslateFn | null = null): st
     return String(v).charAt(0).toUpperCase() + String(v).slice(1);
 }
 
-// Mirror of each type's `styleKnobs` list in COMPONENT_SPECS (componentSpecs.js).
-// EVERY catalog type appears here — runtime/catalogLockstep.test.js fails the
-// build when this map drifts from the server spec.
-export const TYPE_STYLE_KNOBS: Record<string, string[]> = {
-    heading:        ['span', 'align', 'color'],
-    text:           ['span', 'align', 'color', 'weight', 'size'],
-    button:         ['span', 'size', 'align'],
-    image:          ['span', 'height', 'radius', 'align'],
-    file_preview:   ['span', 'height', 'radius'],
-    pdf_compare:    ['span', 'height', 'radius'],
-    document_viewer:  ['span', 'height', 'radius'],
-    document_compare: ['span', 'height', 'radius'],
-    browser_view:   ['span'],
-    divider:        ['span'],
-    spacer:         ['span'],
-    callout:        ['span'],
-    stat:           ['span', 'size', 'align', 'color'],
-    keyValue:       ['span', 'size'],
-    table:          ['span', 'size'],
-    list:           ['span', 'size', 'height'],
-    card:           ['span', 'padding', 'gap', 'radius', 'background', 'height', 'border'],
-    form:           ['span', 'gap', 'padding', 'background', 'radius', 'border'],
-    input_text:     ['span', 'size'],
-    input_textarea: ['span'],
-    input_number:   ['span', 'size'],
-    input_select:   ['span', 'size'],
-    input_checkbox: ['span'],
-    input_date:     ['span', 'size'],
-    // v2 data & visualization
-    data_grid:      ['span', 'size', 'height'],
-    chart:          ['span', 'height'],
-    pivot:          ['span', 'size'],
-    // v2 rich inputs
-    input_file:        ['span', 'size'],
-    input_dataset:     ['span'],
-    input_richtext:    ['span'],
-    input_html:        ['span'],
-    input_datetime:    ['span', 'size'],
-    input_relation:    ['span', 'size'],
-    input_person:      ['span', 'size'],
-    input_multiselect: ['span', 'size'],
-    input_document:    ['span', 'size'],
-    // v2 containers
-    tabs:     ['span', 'gap', 'padding', 'height'],
-    tab:      ['gap', 'padding', 'height'],
-    modal:    ['gap', 'padding'],
-    repeater: ['span', 'gap', 'padding'],
-    // v2.1 batch
-    container:     ['span', 'padding', 'gap', 'background', 'radius', 'height', 'border'],
-    pane:          ['span', 'padding', 'gap', 'background', 'radius', 'height', 'border'],
-    page_header:   ['span', 'padding', 'gap'],
-    markdown:      ['span', 'color'],
-    badge_list:    ['span', 'size', 'align'],
-    progress:      ['span', 'size'],
-    stepper:       ['span', 'size', 'align'],
-    file_gallery:  ['span', 'size', 'height'],
-    connector_status: ['span', 'padding', 'background', 'radius', 'border'],
-    timeline:      ['span', 'size', 'height'],
-    message_thread: ['span', 'size', 'height'],
-    record_detail: ['span', 'padding', 'background', 'radius', 'border', 'height'],
-    filter_bar:    ['span', 'size', 'gap'],
-    kanban:        ['span', 'size', 'height'],
-    calendar:      ['span', 'height'],
-    // AI
-    ai_chat:       ['span', 'height'],
-    // v2 approvals
-    approval_list: ['span', 'size', 'height'],
-};
+// Each type's `styleKnobs` list in COMPONENT_SPECS; EVERY catalog type appears.
+export const TYPE_STYLE_KNOBS: Record<string, string[]> = typeStyleKnobs;
 
 // Shared with the server catalog (server/shared/appDefinition/sectionStyle.mjs).
 export { SECTION_STYLE_KNOBS, SECTION_STYLE_DEFAULTS } from '@shared/appDefinition/sectionStyle.mjs';
 
-// Mirror of THEME_SPEC enums (componentSpecs.js); the preset hex list lives
-// in runtime/themeVars.js (APP_COLOR_PRESETS) — import it from there.
-export const THEME_ENUMS: Record<string, string[]> = {
-    radius:     ['none', 'sm', 'md', 'lg', 'xl'],
-    density:    ['compact', 'comfortable', 'spacious'],
-    fontScale:  ['sm', 'md', 'lg'],
-    appearance: ['light', 'dark', 'auto'],
-};
+// The enum-valued THEME_SPEC fields; the preset hex list lives in
+// runtime/themeVars.js (APP_COLOR_PRESETS): import it from there.
+export const THEME_ENUMS: Record<string, string[]> = themeEnums;
 
-// Mirror of the enum-valued SCREEN_SPEC fields (componentSpecs.js).
+// The enum-valued SCREEN_SPEC fields the screen settings offer.
 //
 // These were AI-builder-only for a long time: updateScreen has always accepted
 // the whole patch, but the only caller passed { name }. So an app defaulted to
-// maxWidth 'medium' (960px) and there was no hand-editable way out of it — on a
+// maxWidth 'medium' (960px) and there was no hand-editable way out of it: on a
 // wide monitor the app used a third of the screen and the author could do
-// nothing about it. catalogLockstep pins these against the server spec.
+// nothing about it.
 export const SCREEN_ENUMS = {
-    maxWidth:        ['narrow', 'medium', 'wide', 'full'],
-    refreshInterval: [0, 15, 30, 60, 300],
+    maxWidth: screenEnums.maxWidth,
+    refreshInterval: screenEnums.refreshInterval,
 };
-export const SCREEN_DEFAULTS = { maxWidth: 'medium', refreshInterval: 0, showInNav: true };
+export const SCREEN_DEFAULTS = {
+    maxWidth: screenDefaults.maxWidth,
+    refreshInterval: screenDefaults.refreshInterval,
+    showInNav: screenDefaults.showInNav,
+};
 
 // The action kinds the inspector can wire, DERIVED from the one catalog rather
 // than typed out again.
@@ -241,7 +154,7 @@ export const SCREEN_DEFAULTS = { maxWidth: 'medium', refreshInterval: 0, showInN
 // three answers. actionKinds.lockstep.test.js now pins all of them, and this
 // one cannot drift because it is computed.
 export const ACTION_KINDS = KIND_OPTIONS.map((o) => o.value);
-export const TOAST_TONES: string[] = ['info', 'success', 'warning', 'danger'];
+export const TOAST_TONES: string[] = toastTones;
 
 export { TYPE_EVENT_LISTS } from './typeEventLists';
 
@@ -252,29 +165,19 @@ export { TYPE_EVENT_LISTS } from './typeEventLists';
 export const TYPE_EVENTS: Record<string, string> = { button: 'onClick', form: 'onSubmit' };
 
 /**
- * Mirror of FORMULA_SCOPE_ROOTS (componentSpecs.js) — every root a formula may
- * start with. The expression editor's inline autocomplete completes exactly
- * these, so what it offers is what the engine accepts.
+ * Every root a formula may start with. The expression editor's inline
+ * autocomplete completes exactly these, so what it offers is what the engine
+ * accepts.
  *
- * A mirror rather than a catalog read on purpose: the catalog arrives through
- * react-query, and requiring a QueryClientProvider around every field that
- * happens to hold a formula would push a network concern into leaf components.
- * The lockstep test pins this against the server list, so drift fails CI
- * instead of quietly changing what autocompletes.
+ * Bundled rather than read from the catalog response on purpose: the catalog
+ * arrives through react-query, and requiring a QueryClientProvider around every
+ * field that happens to hold a formula would push a network concern into leaf
+ * components.
  */
-export const FORMULA_SCOPE_ROOTS: string[] = [
-    'actions', 'form', 'forms', 'screen', 'vars', 'item', 'index', 'value', 'params', 'error',
-    'currentUser', 'records', 'datasets', 'connectors', 'now', 'today',
-];
+export const FORMULA_SCOPE_ROOTS: string[] = formulaScopeRoots;
 
-// Mirror of INPUT_TYPES (componentSpecs.js) — types that collect a form value.
-export const INPUT_TYPES: string[] = [
-    'input_text', 'input_textarea', 'input_number',
-    'input_select', 'input_checkbox', 'input_date',
-    'input_file', 'input_dataset', 'input_richtext', 'input_html', 'input_datetime',
-    'input_relation', 'input_person', 'input_multiselect',
-    'input_document',
-];
+// Types that collect a form value (the spec's isInput classification).
+export const INPUT_TYPES: string[] = inputTypes;
 
 export const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -284,8 +187,8 @@ export function getKnobsForType(type?: string | null): string[] {
 }
 
 /**
- * The advanced sizing knobs a knob list earns — mirror of expandStyleKnobs()
- * in componentSpecs.js. Width refines `span`, height refines `height`, so a
+ * The advanced sizing knobs a knob list earns, as expandStyleKnobs() in
+ * componentSpecs.js derives them. Width refines `span`, height refines `height`, so a
  * type that cannot express the basic knob never offers the advanced one
  * (a `tab` has neither; a section has height but no span).
  */

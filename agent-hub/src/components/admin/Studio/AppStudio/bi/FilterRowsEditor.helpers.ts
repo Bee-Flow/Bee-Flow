@@ -43,7 +43,7 @@ const DEFAULT_OPS = ['eq', 'neq', 'contains', 'notContains', 'startsWith', 'ends
 /** Columns whose `eq` is a text comparison, where upper/lower case can be ignored (`ci`). */
 const CASE_TYPES = new Set(['text', 'long_text', 'email', 'url', 'phone']);
 
-export function canIgnoreCase(field: FilterField | null) {
+function canIgnoreCase(field: FilterField | null) {
     return !field?.type || CASE_TYPES.has(field.type);
 }
 

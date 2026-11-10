@@ -1,7 +1,7 @@
 /** Types of the App Studio binding resolver (resolveBinding.ts). */
 
 /** A filter / aggregate-shape value: a literal, or `{ kind: 'formula', expr }` resolved against the scope. */
-export type FilterValue = FormulaValue | string | number | boolean | null | undefined | (unknown[] & { kind?: undefined; expr?: undefined });
+type FilterValue = FormulaValue | string | number | boolean | null | undefined | (unknown[] & { kind?: undefined; expr?: undefined });
 
 interface FormulaValue {
     kind?: string;
@@ -35,10 +35,6 @@ export interface DataBinding {
     tableId?: string | null;
     datasetId?: string | null;
     filter?: unknown;
-    /** How the top-level filters join: every one (default) or any one. */
-    match?: 'all' | 'any';
-    /** A free search over some columns; `value` may be a formula (a search box). Records bindings only. */
-    search?: { value?: FilterValue; fields?: string[] };
     sort?: FilterValue;
     limit?: FilterValue;
     groupBy?: FilterValue;

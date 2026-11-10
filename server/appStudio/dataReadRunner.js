@@ -136,6 +136,18 @@ function readPlan(ctx, table) {
 }
 
 /**
+ * The optional read options of a record-list request, only those it carries.
+ * @param {{ match?: unknown, search?: unknown }} opts
+ */
+function requestReadOptions(opts) {
+    /** @type {{ match?: unknown, search?: unknown }} */
+    const out = {};
+    if (opts.match !== undefined && opts.match !== null) out.match = opts.match;
+    if (opts.search !== undefined && opts.search !== null) out.search = opts.search;
+    return out;
+}
+
+/**
  * A page of records, keyset-paginated.
  *
  * The compiler asks for limit+1 rows so "is there a next page" needs no second
@@ -143,13 +155,17 @@ function readPlan(ctx, table) {
  * and must not be copied into each router.
  *
  * `opts` is a read descriptor; recordListDescriptor picks the query fields the
- * compiler takes, so a caller may hand over a whole batch read.
+ * compiler takes, so a caller may hand over a whole batch read. `match` (how the
+ * filters join) and `search` (a free search over some columns) travel only when
+ * the request carries them, so a read without them compiles as it always did.
+ * A data binding never reaches here with them: they are request options, not
+ * binding keys.
  */
 async function runRecordList(ctx, table, opts = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
     const compiled = queryCompiler.compileRecordList(plan.tableMeta,
-        recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect }), accessFilter);
+        recordListDescriptor(opts, { ...requestReadOptions(opts), cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect }), accessFilter);
     const { rows } = await plan.query(compiled.sql, compiled.params);
 
     /** @type {string | null} */

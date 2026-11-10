@@ -6,7 +6,7 @@
 
 'use strict';
 
-const { BINDING_KINDS, FORMULA_SCOPE_ROOTS, BINDING_READ_EXTRAS } = require('../componentSpecs');
+const { BINDING_KINDS, FORMULA_SCOPE_ROOTS } = require('../componentSpecs');
 const { pickClosestId } = require('../../automation/validate/helpers');
 const { relativePathTokens, suggestRelativeSpelling } = require('../../core/automationModel/refPaths');
 const { FILTER_OPS } = require('../dataModel');
@@ -150,46 +150,7 @@ function validateFilterClause(entry, p, ctx, tableId, label) {
     if (entry.required !== undefined && typeof entry.required !== 'boolean') {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until this value exists.' });
     }
-    if (entry.ci !== undefined && typeof entry.ci !== 'boolean') {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.ci`, message: '`ci` must be true or false.', hint: 'Set ci:true on an `eq` clause to compare text without regard to upper/lower case.' });
-    }
     validateFilterValue(entry.value, `${p}.value`, ctx);
-}
-
-/**
- * `match` (how the filters join) and `search` (a free search over some columns) of a
- * record/records/aggregate binding. A search is the compiler's records-only group.
- * @param {string} path
- * @param {string} label
- */
-function validateReadExtras(value, path, ctx, label) {
-    const { pushE } = ctx;
-    if (value.match !== undefined && value.match !== null && !BINDING_READ_EXTRAS.match.values.includes(value.match)) {
-        pushE({ code: 'binding.match_invalid', severity: 'error', path: `${path}.match`, message: `${label} match must be "all" or "any".`, hint: '"any" shows a row when ONE of the top-level filters matches; "all" (the default) needs every one.' });
-    }
-    if (value.search === undefined || value.search === null) return;
-    const sp = `${path}.search`;
-    if (value.kind === 'aggregate') {
-        pushE({ code: 'binding.search_invalid', severity: 'error', path: sp, message: 'An aggregate has no search.', hint: 'Narrow the rows with `filter`; a search belongs on a records binding.' });
-        return;
-    }
-    const search = value.search;
-    if (!isObject(search)) {
-        pushE({ code: 'binding.search_invalid', severity: 'error', path: sp, message: `${label} search must be { value, fields }.`, hint: '{ "value": { "kind": "formula", "expr": "vars.filters.q" }, "fields": ["name", "email"] }' });
-        return;
-    }
-    if (isObject(search.value) && search.value.kind === 'formula') validateFormula(search.value.expr, `${sp}.value.expr`, ctx, FORMULA_SCOPE_ROOTS);
-    else if (typeof search.value !== 'string' || !search.value) {
-        pushE({ code: 'binding.search_invalid', severity: 'error', path: `${sp}.value`, message: 'The search value must be text or a formula.', hint: 'Use a non-empty string, or {kind:"formula", expr} (a search box).' });
-    }
-    if (!Array.isArray(search.fields) || search.fields.length === 0 || search.fields.length > MAX_FILTERS) {
-        pushE({ code: 'binding.search_invalid', severity: 'error', path: `${sp}.fields`, message: `The search needs 1 to ${MAX_FILTERS} field keys to look in.`, hint: 'List the text columns to search, e.g. ["name", "email"].' });
-        return;
-    }
-    search.fields.forEach((f, i) => {
-        if (typeof f !== 'string' || !f) pushE({ code: 'binding.search_invalid', severity: 'error', path: `${sp}.fields[${i}]`, message: 'Each search field is a field key.', hint: 'Use a field key from the bound table.' });
-        else checkFieldRef(value.tableId, f, `${sp}.fields[${i}]`, ctx, `${label} search`);
-    });
 }
 
 /**
@@ -274,7 +235,6 @@ function validateBinding(key, value, path, ctx) {
         // through undisturbed.
         checkTableSource(value.tableId, `${path}.tableId`, ctx, label);
         if (value.filter !== undefined && value.filter !== null) validateBindingFilter(value.filter, `${path}.filter`, ctx, value.tableId, label);
-        validateReadExtras(value, path, ctx, label);
         // An aggregate may sort by the columns it produces, which is what the
         // compiler does too.
         const aggAliases = value.kind === 'aggregate' ? aggregateAliases(value) : null;

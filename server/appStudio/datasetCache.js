@@ -180,7 +180,7 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
 
     // Miss / forced refresh / inline → compile (scoped) and run live.
     const { sql, params } = queryCompiler.compileAggregate(table,
-        aggregateDescriptor(descriptor, { limit: descriptor.limit, match: undefined }), accessFilter);
+        aggregateDescriptor(descriptor, { limit: descriptor.limit }), accessFilter);
 
     const out = await studioAppDbStore.query(app.userId, app.id, sql, params);
     const result = {
