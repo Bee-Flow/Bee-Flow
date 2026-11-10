@@ -222,7 +222,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
                 groupBy: binding.groupBy ?? undefined,
                 aggregates: binding.aggregates ?? undefined,
                 sort: binding.sort ?? undefined,
-            orderBy: binding.orderBy ?? undefined,
+                orderBy: binding.orderBy ?? undefined,
                 groupFilter: binding.groupFilter ?? undefined,
                 limit: binding.limit ?? undefined,
             }),

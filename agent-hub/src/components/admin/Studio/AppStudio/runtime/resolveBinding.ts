@@ -49,7 +49,7 @@ import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { getRelativePath } from '@shared/expr/path.mjs';
 import { CLIENT_PLAN, planFilters, planParams, planShape } from '@shared/appDefinition/bindingPlan.mjs';
 import type { BindingPlan } from '@shared/appDefinition/bindingPlan.mjs';
-import type { Binding, BindingInput, DataMap, ResolveResult, Scope } from './resolveBinding.types';
+import type { Binding, BindingInput, DataBinding, DataMap, ResolveResult, Scope } from './resolveBinding.types';
 import { isRelativePath, stableStringify, normalizeBag, fromDataEntry, applyPick } from './resolveBinding.helpers';
 
 /**
