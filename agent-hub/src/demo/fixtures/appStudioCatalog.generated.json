@@ -52,7 +52,8 @@
         "MAX_FILTER_BAR_FIELDS": 8,
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
-        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048,
+        "MAX_PARALLEL_BRANCHES": 8
     },
     "theme": {
         "primary": {
@@ -2664,6 +2665,7 @@
             "transaction",
             "break",
             "continue",
+            "parallel",
             "raise_error",
             "return",
             "try",
@@ -3859,6 +3861,22 @@
                 "since": 3,
                 "retrySafe": true
             },
+            "parallel": {
+                "mutatesData": false,
+                "fields": {
+                    "branches": {
+                        "type": "stepBranches",
+                        "required": true,
+                        "description": "The branches, 1 to 8: [{ steps: [...] }, { steps: [...] }]. Each branch is its own list of steps."
+                    },
+                    "failFast": {
+                        "type": "boolean",
+                        "description": "true: when one branch fails, the other branches stop before their next step. Left out or false: every branch runs to its end first."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
             "raise_error": {
                 "mutatesData": false,
                 "fields": {
@@ -3949,6 +3967,7 @@
             "call_action",
             "break",
             "continue",
+            "parallel",
             "raise_error",
             "return",
             "try",

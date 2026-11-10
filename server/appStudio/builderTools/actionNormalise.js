@@ -267,10 +267,9 @@ function walkSteps(list, at, notes, ctx, depth) {
         if (step.kind === 'navigate') repairNavigate(step, notes);
         // steps / then / else, and the plain child lists a registry container adds (a try's catch and finally).
         for (const f of ['steps', 'then', 'else', ...extraChildSlots(step).filter((sl) => sl.each === undefined).map((sl) => sl.field)]) if (Array.isArray(step[f])) step[f] = walkSteps(step[f], `${stepAt}.${f}`, notes, ctx, depth + 1);
-        if (Array.isArray(step.cases)) {
-            step.cases = step.cases.map((c, j) => (isObject(c) && Array.isArray(c.steps)
-                ? { ...c, steps: walkSteps(c.steps, `${stepAt}.cases[${j}].steps`, notes, ctx, depth + 1) }
-                : c));
+        // Switch cases, and the entry lists a registry container adds (the branches of a parallel).
+        for (const f of new Set(['cases', ...extraChildSlots(step).filter((sl) => sl.each === 'steps').map((sl) => sl.field)])) {
+            if (Array.isArray(step[f])) step[f] = step[f].map((c, j) => (isObject(c) && Array.isArray(c.steps) ? { ...c, steps: walkSteps(c.steps, `${stepAt}.${f}[${j}].steps`, notes, ctx, depth + 1) } : c));
         }
         out.push(step);
     }

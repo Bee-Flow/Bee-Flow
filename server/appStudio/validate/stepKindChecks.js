@@ -9,6 +9,7 @@
 const { isObject, pushDataRef } = require('./shared');
 const { checkCallAction } = require('./callChecks.mts');
 const { checkLoopExit, checkWhile, checkTry } = require('./controlFlowChecks.mts');
+const { checkParallel, validateStepBranches } = require('./parallelChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS, extraChildLists } = require('../../shared/appDefinition/stepFlow.mjs');
 const { STEP_META, EXTENSION_STEP_ENTRIES } = require('../componentSpecs/stepRegistry');
@@ -374,8 +375,9 @@ const KIND_CHECKS = {
     continue: checkLoopExit,
     while: (step, path, ctx) => { checkWhile(step, path, ctx); checkLoopCosts(step, path, ctx); },
     try: checkTry,
+    parallel: checkParallel,
 };
 
-module.exports = { containsSendEmail, KIND_CHECKS };
+module.exports = { containsSendEmail, KIND_CHECKS, validateStepBranches };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */

@@ -71,6 +71,27 @@ function cleanSwitchCases(raw, path, depth, push) {
 }
 
 /**
+ * The branches of a parallel step: `[{ steps }]`. A branch keeps only its steps.
+ *
+ * @param {string} path
+ * @param {number} depth
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function cleanStepBranches(raw, path, depth, push) {
+    if (!Array.isArray(raw)) {
+        push('steps.invalid', path, 'branches must be an array of { steps } — reset to [].');
+        return [];
+    }
+    return raw.map((b, i) => {
+        if (!isObject(b)) {
+            push('step.invalid', `${path}[${i}]`, 'Each branch must be an object { steps } — kept for the validator.');
+            return deepCopy(b);
+        }
+        return { steps: cleanSteps(b.steps, `${path}[${i}].steps`, depth, push) };
+    });
+}
+
+/**
  * @param {string} path
  * @param {number} depth
  * @param {(arg0: string, arg1: string, arg2: string) => void} push
@@ -121,6 +142,8 @@ function cleanStep(raw, path, depth, push) {
             if (v !== undefined) out[field] = cleanSteps(v, p, depth + 1, push);
         } else if (fs.type === 'switchCases') {
             if (v !== undefined) out[field] = cleanSwitchCases(v, p, depth + 1, push);
+        } else if (fs.type === 'stepBranches') {
+            if (v !== undefined) out[field] = cleanStepBranches(v, p, depth + 1, push);
         } else if (fs.type === 'navParams') {
             if (v !== undefined) { const m = cleanNavParams(v, p, push); if (m !== undefined) out[field] = m; }
         } else if (fs.type === 'stringList') {

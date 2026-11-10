@@ -33,7 +33,7 @@ const {
 } = require('./refs');
 const { validateBinding } = require('./bindings');
 const { validateContextSources } = require('./contextSources.mts');
-const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
+const { containsSendEmail, KIND_CHECKS, validateStepBranches } = require('./stepKindChecks');
 const { checkCallAction, validateCallParams } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { validateTierChoice } = require('./tierChoice.mts');
@@ -346,6 +346,7 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
             });
             return;
         }
+        case 'stepBranches': validateStepBranches(value, path, (list, at) => validateActionSteps(list, at, depth + 1, counter, ctx), ctx); return;
         case 'navParams':
             validateNavigateParams(label, value, path, ctx);
             return;

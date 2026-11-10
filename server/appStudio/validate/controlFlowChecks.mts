@@ -4,6 +4,8 @@
  *   checkLoopExit  a break or continue sits inside the steps of a loop or while of its
  *                  own action (a condition, switch, try or handler in between is fine).
  *                  A call_action is a boundary: the called action is checked on its own.
+ *                  So is a branch of a parallel step: a loop INSIDE the branch counts,
+ *                  one around the parallel step does not.
  *   checkWhile     a while is a loop: no send_email inside it, directly or through a call.
  *                  (What a loop holding a costly kind is told comes from stepKindChecks.)
  *   checkTry       a try that can never do anything a plain list would not.
@@ -45,7 +47,9 @@ function collectInside(list: unknown, inLoop: boolean, depth: number, out: WeakS
         for (const slot of childStepSlots(step)) {
             // A handler of a loop step is not one of its rounds.
             const body = loops && slot.suffix !== '.onError.steps';
-            collectInside(slot.steps, inLoop || body, depth + 1, out);
+            // A branch of a parallel step runs beside the others: a loop around the step is not one it can leave.
+            const branch = step.kind === 'parallel' && slot.suffix.startsWith('.branches[');
+            collectInside(slot.steps, !branch && (inLoop || body), depth + 1, out);
         }
     }
 }

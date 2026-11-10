@@ -73,6 +73,8 @@ export type WalkHost = {
     onStepEnd?(e: StepEndEvent): void | Promise<void>;
     onVar?(name: string, value: unknown): void;
     shouldStop?(w: WalkState): string | null;
+    /** Set: the branches of a `parallel` step are walked one after another, and this text says so in a note (the dry run). */
+    sequentialBranches?: string;
     resolveCallee?(actionId: string): Obj | null;
     sleep(ms: number): Promise<void>;
     now(): number;

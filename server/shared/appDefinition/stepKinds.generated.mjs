@@ -21,6 +21,16 @@ export const EXTENSION_STEP_KINDS = Object.freeze({
         "retrySafe": true,
         "server": false
     },
+    "parallel": {
+        "childSlots": [
+            {
+                "field": "branches",
+                "each": "steps"
+            }
+        ],
+        "retrySafe": true,
+        "server": false
+    },
     "raise_error": {
         "childSlots": [],
         "retrySafe": true,

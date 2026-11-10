@@ -34,15 +34,17 @@
  * Ordinals are flattenSteps(normalizeSequence(action)) positions, mapped by object identity,
  * so a walker path and a browser stepIndex always name the same step.
  *
- * The control kinds of the step registry (return, break, continue, while, raise_error, try)
- * are walked by sequenceWalkFlow.mts; its header says how leaving early (`w.signal`) and
- * try/catch/finally work. Their paths: a while body `.steps[i]`, a try `.steps[i]`,
- * `.catch[i]`, `.finally[i]`. A registry control kind this walker does not know fails its
+ * The control kinds of the step registry (return, break, continue, while, raise_error, try,
+ * parallel) are walked by sequenceWalkFlow.mts; its header says how leaving early (`w.signal`)
+ * and try/catch/finally work, sequenceWalkParallel.mts how the branches of a parallel step run
+ * on forks of the walk state. Their paths: a while body `.steps[i]`, a try `.steps[i]`,
+ * `.catch[i]`, `.finally[i]`, a parallel branch `.branches[k].steps[i]`. A registry control kind this walker does not know fails its
  * step: it never falls through to the host as if it were a browser step.
  */
 
 import { createRequire } from 'node:module';
 import { childStepSlots, errorHandlerOf } from '../shared/appDefinition/stepFlow.mjs';
+import { parallelRefusal } from '../shared/appDefinition/parallelRules.mjs';
 import { calleeTop, ordinalMap, stepPaths, topOf } from './sequencePaths.mts';
 import { attemptStep, errorScopeOf } from './stepErrorFlow.mts';
 import { FLOW_KINDS, walkFlowStep, walkLoop } from './sequenceWalkFlow.mts';
@@ -93,6 +95,8 @@ export type Frame = {
     loop: { index: number; count: number } | null; depth: number;
     /** Inside the body of a loop or while of the SAME action: where break and continue work. */
     breakable: boolean;
+    /** Under a branch of a `parallel` step: in the action that holds it (`branch`) or in one it calls (`called`). */
+    parallel?: 'branch' | 'called';
 };
 
 function eventOf(fr: Frame, step: unknown, path: string, kind: string): StepEvent {
@@ -178,6 +182,9 @@ async function walkStep(fr: Frame, step: Step, path: string): Promise<void> {
     await fr.host.onStepStart?.(ev);
     if (fr.depth > MAX_WALK_DEPTH) {
         return fail(fr, ev, { error: `Steps are nested deeper than ${MAX_WALK_DEPTH - 1} levels` }, startedAt);
+    }
+    if (fr.parallel && parallelRefusal(kind, fr.parallel === 'branch')) {
+        return fail(fr, ev, { error: `A ${kind} step cannot run inside a branch of a parallel step`, code: 'not_in_parallel' }, startedAt);
     }
     if (kind === 'set_variable') return setVariable(fr, step, ev, startedAt);
     if (kind === 'call_action') return walkCall(fr, step, ev, startedAt);
@@ -336,7 +343,7 @@ async function walkCall(fr: Frame, step: Step, ev: StepEvent, startedAt: number)
     Object.assign(w, { params: got.value, item: undefined, index: undefined, value: undefined, lastResult: NO_RESULT, callChain: [...w.callChain, id] });
     const { list, base } = calleeTop(callee, `${ev.path}.call.steps`);
     try {
-        await walkList({ ...fr, ordinals: ordinalMap(callee), ownerActionId: id, depth: 1, breakable: false }, list, base);
+        await walkList({ ...fr, ordinals: ordinalMap(callee), ownerActionId: id, depth: 1, breakable: false, ...(fr.parallel ? { parallel: 'called' as const } : {}) }, list, base);
     } finally {
         // A return ends the called action only: the caller goes on.
         if (w.signal) w.signal = null;

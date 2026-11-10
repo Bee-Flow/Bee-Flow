@@ -9,6 +9,8 @@
 // The step error-handling bounds live with the step-tree helpers (mirrored to
 // the editor), so the browser coordinator and the server read one number.
 const { STEP_RETRY, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
+// The parallel rules are shared with the browser coordinator the same way.
+const { MAX_PARALLEL_BRANCHES } = require('../../shared/appDefinition/parallelRules.mjs');
 
 // ---------------------------------------------------------------------------
 // Hard ceilings (abuse guards; far above any real app)
@@ -99,6 +101,7 @@ const LIMITS = {
     MAX_VARIABLE_DEFAULT_BYTES: 2048,  // one seeded record/list. Exists so the
                                        // error can name the variable instead of
                                        // "your app is too big" at 512KB.
+    MAX_PARALLEL_BRANCHES,             // branches of one parallel step
 };
 
 module.exports = {

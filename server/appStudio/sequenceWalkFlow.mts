@@ -20,6 +20,8 @@
  *                set, the walk goes on. `finally` then runs whatever happened (a failure, a
  *                signal), except after a budget stop, and what was pending is put back unless
  *                `finally` itself failed or signalled. Recorded once, when it ends.
+ *   parallel     walks its branches side by side on forks of the walk state and joins them
+ *                (sequenceWalkParallel.mts). Recorded once, when every branch ended.
  *
  * A step inside `try.steps` keeps its own retry and onError: both are done by the leaf walk
  * before the failure ever reaches the try. A transaction is one leaf, so it is caught whole.
@@ -27,6 +29,7 @@
 
 import { createRequire } from 'node:module';
 import { errorScopeOf } from './stepErrorFlow.mts';
+import { walkParallel } from './sequenceWalkParallel.mts';
 import type { Ended, Frame } from './sequenceWalk.mts';
 import type { Obj, Step, StepEvent, WalkState } from './sequenceWalkTypes.mts';
 
@@ -197,6 +200,7 @@ const walkTry: FlowWalk = async (api, fr, step, ev, startedAt) => {
 
 const FLOW_WALKS: Readonly<Record<string, FlowWalk>> = Object.freeze({
     return: walkReturn, break: walkLoopExit, continue: walkLoopExit, while: walkWhile, raise_error: walkRaise, try: walkTry,
+    parallel: walkParallel,
 });
 
 /** The registry control kinds this walker runs itself. */
