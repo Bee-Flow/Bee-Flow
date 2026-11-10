@@ -26,4 +26,9 @@ COPY bundle/ /bundle/
 COPY entrypoint.sh /usr/local/bin/beeflow-installer
 RUN chmod 0555 /usr/local/bin/beeflow-installer /bundle/beeflow-install.sh /bundle/selfhost.sh
 
+# Runs as root on purpose: its one job is to drive the host's Docker through the
+# mounted socket (owned by root, with a group id that differs per host), and it
+# writes the settings file with the secrets readable by root only. It listens
+# on nothing and exits when the install is done.
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint -- needs the root-owned Docker socket of the host; no service, no port
 ENTRYPOINT ["/usr/local/bin/beeflow-installer"]
