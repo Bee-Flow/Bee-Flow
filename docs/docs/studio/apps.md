@@ -182,6 +182,16 @@ relations, and set **access**:
 - **Row-level rules** per role — a bounded expression over `record.*` and `viewer.*`
   (e.g. `record.created_by == viewer.id`). These compile to parameterised SQL on the
   server; there is no way for an app to run raw SQL.
+  - About the person opening the app a rule knows `viewer.id`, `viewer.role`,
+    `viewer.email`, `viewer.orgId` (the organisation of their own account) and the list
+    `viewer.groups` (the ids of the groups they are a member of). A list is tested with
+    `in`: `record.team in viewer.groups`. All of these are read from the person's
+    account on the server at the moment of the query.
+  - A rule narrows seeing, changing and deleting alike. To give each its own rule, pick
+    **A rule per action** in the rule editor (stored as `{ read, update, delete }`).
+    Changing or deleting without a rule of its own follows the rule for seeing, so it is
+    never wider than seeing because a rule is missing; the rule `true` gives one action
+    every row.
 
 Every app gets its own private database. Records are created with the acting user
 stamped in `created_by`, and all reads/writes are filtered by the role rules — so a

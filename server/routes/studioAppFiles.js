@@ -69,6 +69,7 @@ const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { resolveAudienceContext } = require('../auth/audience');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
+const { withViewerAttributes } = require('../appStudio/viewerAttributes.mts');
 
 // ── Auth ────────────────────────────────────────────────────────────
 // requireAuth is the canonical gate from auth/permissions (verifies the
@@ -287,10 +288,8 @@ async function viewerMayReadAttachment(req, app, attachment) {
     if (app.userId === viewerId) return true;
     const { model, role } = await viewerRoleFor(req, app);
     return attachmentAccess.viewerMayReadAttachment(app, attachment, {
-        id: viewerId,
-        role,
+        ...await withViewerAttributes({ id: viewerId, role, organizationId: req.session.user.organizationId || null }, model),
         model,
-        organizationId: req.session.user.organizationId || null,
     });
 }
 
@@ -518,13 +517,13 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
             attachmentId,
             tableId: tableId ?? undefined,
             recordId: recordId ?? undefined, inline: inline === true,
-            viewer: {
+            viewer: await withViewerAttributes({
                 id: req.session.user.id,
                 // The owner writes as the owner; anyone else keeps their role so
                 // the RLS read is real.
                 role: app.userId === req.session.user.id ? 'owner' : role,
                 organizationId: req.session.user.organizationId || null,
-            },
+            }, model),
         });
 
         res.json({ success: true, attachment: descriptor });

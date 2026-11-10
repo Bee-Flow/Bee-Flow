@@ -10,7 +10,8 @@
  *                                          newly allowed on sections (keyMarks.js)
  *   NAV_STYLES, SECTION_STYLE_KNOBS        lists whose late entries those key files mark
  *   the data vocabulary                    field types, field options, filter operators,
- *                                          aggregate functions and date buckets, marked in
+ *                                          aggregate functions, date buckets and the words
+ *                                          of a row rule (`rowRule`), marked in
  *                                          core/dataEngine/dataModel/vocabularySince.js
  *   keys/binding, keys/queryShape          a key a data binding newly takes, a form the value
  *                                          under a key of a read newly takes (queryMarks.js):
@@ -33,6 +34,7 @@ export const DATA_FAMILIES = Object.freeze([
     { family: 'filterOps', table: 'FILTER_OPS', prefix: 'filterOp' },
     { family: 'aggFns', table: 'AGG_FNS', prefix: 'aggFn' },
     { family: 'dateBuckets', table: 'DATE_BUCKETS', prefix: 'dateBucket' },
+    { family: 'rowRule', table: null, prefix: 'rowRule' },
 ] as const);
 type DataListName = 'FIELD_TYPES' | 'FILTER_OPS' | 'AGG_FNS' | 'DATE_BUCKETS';
 

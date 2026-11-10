@@ -34,7 +34,7 @@ const withNote = (line: string, note: string): string => (note ? `${line} — ${
 
 /** How each key-mark family and data family words its entry. */
 const KEY_PREFIX: Readonly<Record<string, string>> = Object.freeze({ section: 'section.', node: 'node.', nav: 'nav.', navGroup: 'nav.groups[].', binding: 'binding.', queryShape: '' });
-const DATA_LABEL: Readonly<Record<string, string>> = Object.freeze({ fieldTypes: 'field type', filterOps: 'filter op', aggFns: 'aggregate fn', dateBuckets: 'date bucket' });
+const DATA_LABEL: Readonly<Record<string, string>> = Object.freeze({ fieldTypes: 'field type', filterOps: 'filter op', aggFns: 'aggregate fn', dateBuckets: 'date bucket', rowRule: 'row rule' });
 
 /** One theme or design key: its values, its default when it has one, its own description. */
 function lookKey(prefix: string, key: string, spec: FieldSpec): string {

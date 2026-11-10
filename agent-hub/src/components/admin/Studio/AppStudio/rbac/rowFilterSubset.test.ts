@@ -77,3 +77,33 @@ describe('validateRowFilterExpr — the message says what is wrong', () => {
             .toMatch(/^This rule could not be read — /);
     });
 });
+
+describe('validateRowFilterExpr — a list of the person', () => {
+    const teams = { fields: [{ key: 'team', type: 'text' }, { key: 'status', type: 'select' }, { key: 'amount', type: 'number' }, { key: 'tags', type: 'multiselect' }] };
+
+    it('accepts record.<text column> in viewer.groups, alone and combined', () => {
+        expect(validateRowFilterExpr('record.team in viewer.groups', teams)).toEqual({ ok: true, error: null });
+        expect(validateRowFilterExpr('record.status in viewer.groups || record.team == viewer.email', teams).ok).toBe(true);
+        expect(validateRowFilterExpr('!(record.created_by in viewer.groups) && record.org_id == viewer.orgId', teams).ok).toBe(true);
+    });
+
+    it('says what is wrong with any other shape', () => {
+        expect(validateRowFilterExpr('record.amount in viewer.groups', teams).error)
+            .toBe('The column "amount" cannot be tested with "in". Only a text or choice column can.');
+        expect(validateRowFilterExpr('record.tags in viewer.groups', teams).ok).toBe(false);
+        expect(validateRowFilterExpr('record.created_at in viewer.groups', teams).ok).toBe(false);
+        expect(validateRowFilterExpr('record.team in viewer.email', teams).error)
+            .toBe('Only a list of the person can stand on the right of "in": viewer.groups.');
+        expect(validateRowFilterExpr('"x" in viewer.groups', teams).error).toBe('Put record.<column> on the left of "in".');
+        expect(validateRowFilterExpr('record.nope in viewer.groups', teams).error).toBe('This table has no column called "nope".');
+        expect(validateRowFilterExpr('record.team == viewer.groups', teams).error)
+            .toBe('viewer.groups is a list. Write record.<column> in viewer.groups.');
+    });
+
+    it('advises viewer.orgId over viewer.organizationId without refusing the rule', () => {
+        const check = validateRowFilterExpr('record.org_id == viewer.organizationId', teams);
+        expect(check.ok).toBe(true);
+        expect(check.warning).toMatch(/Use viewer\.orgId in a new rule/);
+        expect(validateRowFilterExpr('record.org_id == viewer.orgId', teams).warning).toBeUndefined();
+    });
+});

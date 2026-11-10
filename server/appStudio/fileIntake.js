@@ -65,6 +65,7 @@ async function fileIntakeStep(app, model, step, ctx, helpers) {
 
     const scope = buildServerScope(ctx);
     const viewer = {
+        ...require('./viewerAttributes.mts').viewerAttributesOf(ctx.viewer),
         id: ctx.viewerId ?? null,
         role: ctx.role ?? null,
         organizationId: app.organizationId || null,

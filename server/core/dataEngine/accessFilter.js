@@ -10,7 +10,8 @@
  *   compileAccessFilter(tableMeta, role, viewer, action, opts?) → { where, params }
  *   assertCanWrite(tableMeta, role, action) → scope | throws {status:403}
  *   rowFilterToSql(astOrExpr, viewer, tableMeta, opts?) → { sql, params }
- *   validateRowFilter(astOrExpr, tableMeta) → { ok, errors }
+ *   validateRowFilter(ruleOrPerOperation, tableMeta) → { ok, errors }
+ *   rowFilterWarnings(ruleOrPerOperation, tableMeta) → string[] (advice, never a refusal)
  *
  * ── SCOPES ──────────────────────────────────────────────────────────
  * A (role, action) resolves to a scope:
@@ -19,6 +20,11 @@
  * translated to a base WHERE fragment:
  *   none → 1=0 (deny), own → created_by = ?viewer, all → 1=1
  * PLUS `AND (rowFilterSql)` when the table declares access.rowFilters[role].
+ * That entry is ONE rule (a string or an AST) for read, update and delete alike,
+ * or an object `{ read?, update?, delete? }` with a rule per operation; an
+ * operation it leaves out follows the rule for read (never broader than read
+ * by omission), and `true` is the rule for every row. One rule compiles
+ * exactly as before.
  * The app OWNER is always 'all' and skips row filters (full access).
  * `create` has no rows to filter, so compileAccessFilter THROWS on it; the
  * create permission is answered by assertCanWrite alone.
@@ -32,6 +38,15 @@
  *   record.<field>                          →  the quoted real column (via tableMeta)
  *   viewer.<attr>                           →  a BOUND ? param from the viewer object
  *   literals     string / number / bool     →  BOUND ? params
+ *   record.<field> in viewer.<list>         →  column IN (?, ?, …), every item BOUND
+ *       (the list attributes are in dataModel/vocabulary VIEWER_ATTRIBUTES)
+ *
+ * THREE ANSWERS, NOT TWO. A viewer attribute the caller did not supply is
+ * UNKNOWN, and unknown must never become "yes" by way of a `!`. A missing
+ * scalar binds NULL (`x = NULL` is neither true nor false, and neither is its
+ * negation). A missing list compiles to `column IN (NULL)`, unknown the same
+ * way. Only a list that WAS supplied and is empty is a plain false (`1=0`):
+ * someone in no group is in none of them, and "not in any of mine" is then true.
  * ANYTHING else — function calls, arithmetic (+ - * / %), bracket/computed
  * access, unknown roots, ternaries, null — is REJECTED (validateRowFilter at
  * save time; a defensive throw at compile time). No value is ever emitted
@@ -56,6 +71,11 @@
  * own test matrix; until then, never remove a gradeAtLeast on the grounds that
  * "the filter covers it".
  *
+ * ── FILES ───────────────────────────────────────────────────────────
+ * The translation of a rule lives in rowFilterSql.mts, the save-time checks and
+ * the choice of a rule per operation in rowFilterCheck.mts. This module holds
+ * the scopes and the access predicate, and exports all of it.
+ *
  * ── LAYER ───────────────────────────────────────────────────────────
  * core/. Everything here is a pure function of a table descriptor, a role, a
  * viewer object and an action — it has no idea what an "app" is. App Studio and
@@ -68,36 +88,9 @@
 
 'use strict';
 
-const { SYSTEM_COLUMNS, PUBLIC_ROLE_KEY } = require('./dataModel/vocabulary');
-// Dialect (sqlite | pg) for the emitted predicates. The ONLY dialect-sensitive
-// spots here are the two boolean BINDS below (sqlite stores bools as 0/1 and
-// better-sqlite3 refuses raw booleans; pg's BOOLEAN columns want true/false).
-// The '1=1' / '1=0' scope fragments are valid Postgres as-is and stay.
-const { resolveDialect } = require('./engineFlag');
-// The shared, isomorphic expression engine — required directly rather than
-// through automation/expr.js, which is only a CommonJS re-export of it.
-// shared/ is platform, so this edge points downward.
-const { parseExpr } = require('../../shared/expr/index.mjs');
-
-/** A 403-style (or 400 validation) access failure. */
-class AccessError extends Error {
-    /**
-     * @param {string} message
-     * @param {number} [status]
-     */
-    constructor(message, status = 403) {
-        super(message);
-        this.name = 'AccessError';
-        this.status = status;
-    }
-}
-
-/**
- * @param {string} name
- */
-function qi(name) {
-    return '"' + String(name).replace(/"/g, '""') + '"';
-}
+const { PUBLIC_ROLE_KEY } = require('./dataModel/vocabulary');
+const { AccessError, qi, rowFilterToSql } = require('./rowFilterSql.mts');
+const { validateRowFilter, rowFilterWarnings, rowFilterForAction } = require('./rowFilterCheck.mts');
 
 // ── Scope resolution ────────────────────────────────────────────────
 
@@ -151,132 +144,6 @@ function canRead(tableMeta, role) {
     return resolveScope(tableMeta, role, 'read') !== 'none';
 }
 
-// ── Row filter → parameterised SQL ──────────────────────────────────
-
-/** @type {Record<string, string>} */
-const CMP = { '==': '=', '===': '=', '!=': '!=', '!==': '!=', '<': '<', '<=': '<=', '>': '>', '>=': '>=' };
-/** @type {Record<string, string>} */
-const LOGIC = { '&&': 'AND', '||': 'OR' };
-
-/**
- * @param {string} message
- */
-function reject(message) {
-    return new AccessError(message, 400);
-}
-
-function normalizeAst(x) {
-    if (typeof x === 'string') return parseExpr(x); // ExprError on bad grammar
-    if (x && typeof x === 'object' && typeof x.kind === 'string') return x;
-    throw reject('row filter must be an expression string or AST');
-}
-
-function resolveRowFilterColumn(tableMeta, fieldName) {
-    if (SYSTEM_COLUMNS.includes(fieldName)) return qi(fieldName);
-    const fields = Array.isArray(tableMeta && tableMeta.fields) ? tableMeta.fields : [];
-    const f = fields.find((x) => x && x.key === fieldName);
-    if (!f) throw reject(`unknown field "${fieldName}" in row filter`);
-    if (f.type === 'computed' && !(f.computed && f.computed.stored === true)) {
-        throw reject(`read-time computed field "${fieldName}" cannot be used in a row filter`);
-    }
-    return qi(f.key);
-}
-
-function bindViewerValue(val, dialect) {
-    if (val === null || val === undefined) return null;
-    const t = typeof val;
-    if (t === 'string' || t === 'number') return val;
-    if (t === 'boolean') return dialect === 'pg' ? val : (val ? 1 : 0);
-    throw reject('viewer attribute must be a scalar');
-}
-
-// A record.<field> or viewer.<attr> path — exactly two plain name segments.
-function translatePath(node, viewer, tableMeta, params, dialect) {
-    const segs = node.segments;
-    if (!Array.isArray(segs) || segs.length !== 2) {
-        throw reject('row filter paths must be record.<field> or viewer.<attr>');
-    }
-    const [root, leaf] = segs;
-    if (root.kind !== 'name' || leaf.kind !== 'name') {
-        throw reject('computed / bracket access is not allowed in a row filter');
-    }
-    if (root.v === 'record') return resolveRowFilterColumn(tableMeta, leaf.v);
-    if (root.v === 'viewer') {
-        const val = (viewer && Object.hasOwn(viewer, leaf.v)) ? viewer[leaf.v] : null;
-        params.push(bindViewerValue(val, dialect));
-        return '?';
-    }
-    throw reject(`unknown root "${root.v}" in row filter (only record.* and viewer.* are allowed)`);
-}
-
-// An operand: a column ref, a bound viewer param, or a bound literal.
-function translateOperand(node, viewer, tableMeta, params, dialect) {
-    if (!node || typeof node !== 'object') throw reject('bad row filter operand');
-    switch (node.kind) {
-        case 'num': params.push(node.v); return '?';
-        case 'str': params.push(node.v); return '?';
-        case 'bool': params.push(dialect === 'pg' ? node.v : (node.v ? 1 : 0)); return '?';
-        case 'path': return translatePath(node, viewer, tableMeta, params, dialect);
-        default: throw reject(`"${node.kind}" is not allowed as a row filter operand`);
-    }
-}
-
-// A boolean sub-expression: comparison, &&/||, ! or a bare truthy column/literal.
-function translate(node, viewer, tableMeta, params, dialect) {
-    if (!node || typeof node !== 'object') throw reject('empty row filter node');
-    switch (node.kind) {
-        case 'binop': {
-            if (Object.hasOwn(LOGIC, node.op)) {
-                const a = translate(node.a, viewer, tableMeta, params, dialect);
-                const b = translate(node.b, viewer, tableMeta, params, dialect);
-                return `(${a} ${LOGIC[node.op]} ${b})`;
-            }
-            if (Object.hasOwn(CMP, node.op)) {
-                const a = translateOperand(node.a, viewer, tableMeta, params, dialect);
-                const b = translateOperand(node.b, viewer, tableMeta, params, dialect);
-                return `(${a} ${CMP[node.op]} ${b})`;
-            }
-            throw reject(`operator "${node.op}" is not allowed in a row filter`);
-        }
-        case 'unop':
-            if (node.op === '!') return `(NOT ${translate(node.a, viewer, tableMeta, params, dialect)})`;
-            throw reject(`unary "${node.op}" is not allowed in a row filter`);
-        case 'path':
-        case 'num':
-        case 'str':
-        case 'bool':
-            return translateOperand(node, viewer, tableMeta, params, dialect);
-        default:
-            throw reject(`"${node.kind}" is not allowed in a row filter`);
-    }
-}
-
-/**
- * Translate a row filter (shared-expr AST or string) into bounded, parameterised
- * SQL. Throws AccessError on any node outside the supported subset.
- */
-function rowFilterToSql(astOrExpr, viewer, tableMeta, opts = {}) {
-    const dialect = resolveDialect(opts);
-    const ast = normalizeAst(astOrExpr);
-    const params = [];
-    const sql = translate(ast, viewer || {}, tableMeta, params, dialect);
-    return { sql, params };
-}
-
-/**
- * Validate a row filter at data-model save time. Returns { ok, errors } — the
- * save path should reject a model whose rowFilters don't all pass. Structural
- * only (an empty probe viewer); it never executes.
- */
-function validateRowFilter(astOrExpr, tableMeta) {
-    try {
-        rowFilterToSql(astOrExpr, {}, tableMeta);
-        return { ok: true, errors: [] };
-    } catch (e) {
-        return { ok: false, errors: [e instanceof Error ? /** @type {Error} */ (e).message : String(e)] };
-    }
-}
-
 // ── Access filter compilation ───────────────────────────────────────
 
 /**
@@ -314,7 +181,7 @@ function compileAccessFilter(tableMeta, role, viewer, action, opts = {}) {
     if (role !== 'owner' && scope !== 'none') {
         const rowFilters = (tableMeta && tableMeta.access && typeof tableMeta.access.rowFilters === 'object')
             ? tableMeta.access.rowFilters : null;
-        const ast = rowFilters && role && Object.hasOwn(rowFilters, role) ? rowFilters[role] : null;
+        const ast = rowFilters && role && Object.hasOwn(rowFilters, role) ? rowFilterForAction(rowFilters[role], action) : null;
         if (ast) {
             const rf = rowFilterToSql(ast, viewer || {}, tableMeta, opts);
             where = `(${where}) AND (${rf.sql})`;
@@ -346,12 +213,14 @@ module.exports = {
     assertCanWrite,
     rowFilterToSql,
     validateRowFilter,
+    rowFilterWarnings,
+    rowFilterForAction,
     AccessError,
 };
 
 /**
  * The parts of a table descriptor this module reads.
- * @typedef {{ default?: string, roles?: Record<string, Record<string, string | boolean>>, rowFilters?: Record<string, string | RowFilterNode> }} TableAccess
+ * @typedef {{ default?: string, roles?: Record<string, Record<string, string | boolean>>, rowFilters?: Record<string, string | RowFilterNode | { read?: string | RowFilterNode, update?: string | RowFilterNode, delete?: string | RowFilterNode }> }} TableAccess
  * @typedef {{ access?: TableAccess, fields?: { key?: string, type?: string, computed?: { stored?: boolean } }[] }} AccessTableMeta
  * A shared-expr AST node, as far as the row-filter subset reads it.
  * @typedef {{ kind: string, op?: string, v?: unknown, a?: RowFilterNode, b?: RowFilterNode, segments?: { kind: string, v?: string }[] }} RowFilterNode

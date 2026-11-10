@@ -72,7 +72,7 @@ function checkCallArgs(tk, args) {
 }
 
 // ── Parser (recursive descent) ─────────────────────────
-function parse(tokens, host) {
+function parse(tokens, host, membership = false) {
     let pos = 0;
     // > 0 while parsing the second argument of map/filter/some/every: `it` is the item there.
     let eachDepth = 0;
@@ -121,6 +121,9 @@ function parse(tokens, host) {
             else if (accept(TOKEN.GTE)) n = { kind: 'binop', op: '>=', a: n, b: additive() };
             else if (accept(TOKEN.LT)) n = { kind: 'binop', op: '<', a: n, b: additive() };
             else if (accept(TOKEN.GT)) n = { kind: 'binop', op: '>', a: n, b: additive() };
+            // `a in list`: only for a caller that asked for it (opts.membership, the row
+            // rule compiler). Everywhere else two names in a row stay the parse error they were.
+            else if (membership && peek().t === TOKEN.IDENT && peek().v === 'in') { pos++; n = { kind: 'binop', op: 'in', a: n, b: additive() }; }
             else break;
         }
         return n;
@@ -455,10 +458,13 @@ function newEnv(host) {
 //
 // `opts.host` (optional) is the host-function table described in the header.
 // Without it every function below behaves exactly as it always has.
+// `opts.membership` (optional, parse only) adds the comparison `a in list` as a
+// `{ kind: 'binop', op: 'in' }` node. The evaluator does not know it: it exists for
+// the row rule compiler (core/dataEngine/accessFilter.js), which turns it into SQL.
 
 /** Parse an expression string → AST. Throws ExprError on bad grammar. */
 export function parseExpr(src, opts) {
-    return parse(tokenize(src), opts?.host || null);
+    return parse(tokenize(src), opts?.host || null, opts?.membership === true);
 }
 
 /** Parse + collect referenced roots WITHOUT executing. Throws on bad grammar. */

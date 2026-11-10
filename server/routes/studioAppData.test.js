@@ -42,6 +42,7 @@ const rowBumps = [];              // bumpRowCount calls
 let dbSize = 0;                   // sizeBytes (byte-quota reads)
 const directoryCalls = [];        // getOrgMembersForDirectory calls (org-scope audit)
 let directoryRows = [];           // what the directory returns
+const userRows = new Map();       // userId → { email, groups, organizationId } of the user row
 
 // One shared in-memory engine, per-app-namespaced by a `tasks` table.
 const memdb = new Database(':memory:');
@@ -136,7 +137,7 @@ stub('../stores/studioAppDbStore', {
 stub('../stores/userStore', {
     // requireAuth confirms the session's user still exists; without this the
     // suite only passed because that check used to fail open on an error.
-    getUser: async (id) => ({ id }),
+    getUser: async (id) => ({ id, ...(userRows.get(id) || {}) }),
     getOrgMembersForDirectory: async (orgId, limit) => {
         directoryCalls.push({ orgId, limit });
         return directoryRows;
@@ -975,4 +976,38 @@ test('a platform dataset is refused loudly in a batch, never degraded to empty',
     assert.strictEqual(r.statusCode, 200);
     assert.strictEqual(r.body.results[0].status, 400);
     assert.strictEqual(directoryCalls.length, 0, 'and the directory is never read through this door');
+});
+
+// ── Row rules on the viewer's groups, and a rule per operation ──────
+
+test('a rule on viewer.groups reads the groups of the user row, never the session; a rule per operation narrows each on its own', async () => {
+    const model = baseModel();
+    model.tables[0].access.roles.member = { read: 'all', create: true, update: 'all', delete: 'all' };
+    model.tables[0].access.rowFilters = { member: { read: 'record.region in viewer.groups', update: 'record.title == viewer.email', delete: 'record.region in viewer.groups && record.amount >= 50' } };
+    const app = makeApp({ model });
+    userRows.set('alice', { email: 'alice@example.org', groups: ['g_eu'], organizationId: ORG });
+    seedRow({ id: 'r_eu', by: 'bob', region: 'g_eu', title: 'alice@example.org', amount: 10 });
+    seedRow({ id: 'r_us', by: 'bob', region: 'g_us', title: 'alice@example.org', amount: 90 });
+    seedRow({ id: 'r_eu2', by: 'bob', region: 'g_eu', title: 'bob@example.org', amount: 90 });
+    const as = (user, extra = {}) => ({ user, orgIds: [ORG], ...extra });
+    const records = `/${app.id}/data/tables/tbl_tasks0/records`;
+
+    const list = await dispatch({ url: records, ...as('alice', { groups: ['g_us', 'g_forged'] }) });
+    assert.deepStrictEqual(list.body.records.map((x) => x.id).sort(), ['r_eu', 'r_eu2'], 'the session groups play no part');
+    // Update follows its own rule: r_us is hers by e-mail though she cannot read it; r_eu2 is not.
+    const patch = (id) => dispatch({ method: 'PATCH', url: `${records}/${id}`, ...as('alice'), body: { values: { amount: 1 } } });
+    assert.strictEqual((await patch('r_us')).statusCode, 200);
+    assert.strictEqual((await patch('r_eu2')).statusCode, 404);
+    const del = (id) => dispatch({ method: 'DELETE', url: `${records}/${id}`, ...as('alice') });
+    assert.strictEqual((await del('r_eu')).statusCode, 404, 'in her group, but under the amount');
+    assert.strictEqual((await del('r_eu2')).statusCode, 200);
+    // Someone in no group reads nothing through the same rule.
+    assert.deepStrictEqual((await dispatch({ url: records, ...as('carol') })).body.records, []);
+
+    const saved = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model } });
+    assert.strictEqual(saved.statusCode, 200);
+    assert.strictEqual(saved.body.warnings, undefined);
+    model.tables[0].access.rowFilters.member = 'record.org_id == viewer.organizationId';
+    const advised = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model } });
+    assert.match(advised.body.warnings[0], /table "tasks" role "member": viewer\.organizationId .* use viewer\.orgId/);
 });

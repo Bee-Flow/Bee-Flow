@@ -13,6 +13,7 @@ import { errorMessage } from '@/utils/caughtError';
  *   logic        && ||
  *   unary        !
  *   operands     record.<field> · viewer.<attr> · string/number/bool literal
+ *   membership   record.<text field> in viewer.<list>   (the lists: viewer.groups)
  *
  * Everything else — function calls, arithmetic (+ - * / %), ternaries, null,
  * bracket/computed access, unknown roots — is rejected. This validator walks the
@@ -25,6 +26,20 @@ import { errorMessage } from '@/utils/caughtError';
 const SYSTEM_COLUMNS = ['id', 'created_at', 'updated_at', 'created_by', 'org_id'];
 const CMP = new Set(['==', '===', '!=', '!==', '<', '<=', '>', '>=']);
 const LOGIC = new Set(['&&', '||']);
+// Mirror the server's vocabulary (VIEWER_ATTRIBUTES with `list`) and what the
+// access filter lets stand left of `in`; rowRuleModel.test.ts holds both to the server.
+export const VIEWER_LISTS = new Set(['groups']);
+const MEMBERSHIP_FIELD_TYPES = new Set(['text', 'richtext', 'select']);
+const MEMBERSHIP_SYSTEM_COLUMNS = new Set(['id', 'created_by', 'org_id']);
+
+/** What one walk over a rule knows and collects. */
+interface CheckContext {
+    table: RowFilterTable | null | undefined;
+    fieldKeys: Set<string>;
+    t: TranslateFn | null | undefined;
+    /** Advice about a rule that is valid (the first one found). */
+    warning: string | null;
+}
 
 /**
  * Translate with `t` when the caller has one; otherwise the English default
@@ -57,6 +72,11 @@ export interface ExprNode {
     segments?: PathSegment[];
 }
 
+/** A row rule as the server parses it: the expression grammar plus `a in list`. */
+export function parseRowFilter(src: string): ExprNode {
+    return parseExpr(src, { membership: true });
+}
+
 function fieldKeySet(table: RowFilterTable | null | undefined): Set<string> {
     const set = new Set(SYSTEM_COLUMNS);
     const fields = Array.isArray(table?.fields) ? table.fields : [];
@@ -69,7 +89,8 @@ function fieldKeySet(table: RowFilterTable | null | undefined): Set<string> {
     return set;
 }
 
-function checkPath(node: ExprNode, fieldKeys: Set<string>, t: TranslateFn | null | undefined) {
+function checkPath(node: ExprNode, ctx: CheckContext) {
+    const { fieldKeys, t } = ctx;
     const segs = node.segments;
     if (!Array.isArray(segs) || segs.length !== 2) {
         throw new Error(tr(t, 'studio_apps_edit.row_filter.path_shape', 'Write record.<column> for the row, or viewer.id / viewer.role / viewer.organizationId for the person opening the app.'));
@@ -82,11 +103,38 @@ function checkPath(node: ExprNode, fieldKeys: Set<string>, t: TranslateFn | null
         if (!fieldKeys.has(leaf.v)) throw new Error(tr(t, 'studio_apps_edit.row_filter.no_column', 'This table has no column called "{name}".', { name: leaf.v }));
         return;
     }
-    if (root.v === 'viewer') return; // viewer.<attr> — bound at query time
+    if (root.v === 'viewer') { // viewer.<attr> — bound at query time
+        if (VIEWER_LISTS.has(leaf.v)) throw new Error(tr(t, 'studio_apps_rowrules.list_needs_in', 'viewer.{name} is a list. Write record.<column> in viewer.{name}.', { name: leaf.v }));
+        if (leaf.v === 'organizationId' && !ctx.warning) ctx.warning = tr(t, 'studio_apps_rowrules.org_advice', 'viewer.organizationId is not the same value everywhere in an app. Use viewer.orgId in a new rule.');
+        return;
+    }
     throw new Error(tr(t, 'studio_apps_edit.row_filter.unknown_root', 'There is nothing called "{name}" here — a row rule can only use record.<column> and viewer.<attribute>.', { name: root.v }));
 }
 
-function checkOperand(node: ExprNode | null | undefined, fieldKeys: Set<string>, t: TranslateFn | null | undefined) {
+/** The two plain names of a `root.leaf` path, or null. */
+function plainPath(node: ExprNode | null | undefined): { root: string; leaf: string } | null {
+    const segs = node && node.kind === 'path' ? node.segments : null;
+    if (!Array.isArray(segs) || segs.length !== 2 || segs[0].kind !== 'name' || segs[1].kind !== 'name') return null;
+    return { root: segs[0].v, leaf: segs[1].v };
+}
+
+/** `record.<text column> in viewer.<list>`: the one shape membership has. */
+function checkMembership(node: ExprNode, ctx: CheckContext) {
+    const { t } = ctx;
+    const right = plainPath(node.b);
+    if (!right || right.root !== 'viewer' || !VIEWER_LISTS.has(right.leaf)) {
+        throw new Error(tr(t, 'studio_apps_rowrules.in_right', 'Only a list of the person can stand on the right of "in": viewer.groups.'));
+    }
+    const left = plainPath(node.a);
+    if (!left || left.root !== 'record') throw new Error(tr(t, 'studio_apps_rowrules.in_left', 'Put record.<column> on the left of "in".'));
+    if (!ctx.fieldKeys.has(left.leaf)) throw new Error(tr(t, 'studio_apps_edit.row_filter.no_column', 'This table has no column called "{name}".', { name: left.leaf }));
+    const own = (Array.isArray(ctx.table?.fields) ? ctx.table.fields : []).find((f) => f && f.key === left.leaf);
+    const holdsText = own ? MEMBERSHIP_FIELD_TYPES.has(String(own.type)) : MEMBERSHIP_SYSTEM_COLUMNS.has(left.leaf);
+    if (!holdsText) throw new Error(tr(t, 'studio_apps_rowrules.in_column_type', 'The column "{name}" cannot be tested with "in". Only a text or choice column can.', { name: left.leaf }));
+}
+
+function checkOperand(node: ExprNode | null | undefined, ctx: CheckContext) {
+    const { t } = ctx;
     if (!node || typeof node !== 'object') throw new Error(tr(t, 'studio_apps_edit.row_filter.operand_missing', 'Something is missing on one side of a comparison.'));
     switch (node.kind) {
         case 'num':
@@ -94,35 +142,37 @@ function checkOperand(node: ExprNode | null | undefined, fieldKeys: Set<string>,
         case 'bool':
             return;
         case 'path':
-            return checkPath(node, fieldKeys, t);
+            return checkPath(node, ctx);
         default:
             throw new Error(tr(t, 'studio_apps_edit.row_filter.kind_not_value', 'A {kind} is not allowed as a value here.', { kind: describeKind(node.kind, t) }));
     }
 }
 
-function checkNode(node: ExprNode | null | undefined, fieldKeys: Set<string>, t: TranslateFn | null | undefined) {
+function checkNode(node: ExprNode | null | undefined, ctx: CheckContext) {
+    const { t } = ctx;
     if (!node || typeof node !== 'object') throw new Error(tr(t, 'studio_apps_edit.row_filter.rule_empty', 'This rule is empty.'));
     switch (node.kind) {
         case 'binop':
             if (LOGIC.has(node.op)) {
-                checkNode(node.a, fieldKeys, t);
-                checkNode(node.b, fieldKeys, t);
+                checkNode(node.a, ctx);
+                checkNode(node.b, ctx);
                 return;
             }
+            if (node.op === 'in') { checkMembership(node, ctx); return; }
             if (CMP.has(node.op)) {
-                checkOperand(node.a, fieldKeys, t);
-                checkOperand(node.b, fieldKeys, t);
+                checkOperand(node.a, ctx);
+                checkOperand(node.b, ctx);
                 return;
             }
             throw new Error(tr(t, 'studio_apps_edit.row_filter.operator_not_allowed', 'Operator "{op}" is not allowed in a row rule.', { op: node.op }));
         case 'unop':
-            if (node.op === '!') { checkNode(node.a, fieldKeys, t); return; }
+            if (node.op === '!') { checkNode(node.a, ctx); return; }
             throw new Error(tr(t, 'studio_apps_edit.row_filter.unary_not_allowed', 'Unary "{op}" is not allowed in a row rule.', { op: node.op }));
         case 'path':
         case 'num':
         case 'str':
         case 'bool':
-            return checkOperand(node, fieldKeys, t);
+            return checkOperand(node, ctx);
         default:
             throw new Error(tr(t, 'studio_apps_edit.row_filter.kind_not_allowed', 'A {kind} is not allowed in a row rule.', { kind: describeKind(node.kind, t) }));
     }
@@ -142,19 +192,21 @@ function describeKind(kind: string, t: TranslateFn | null | undefined): string {
  * Validate a row-filter expression string against the supported subset.
  * @param expr the raw expression (empty = "no rule", always valid)
  * @param table the data-model table (for record.<field> resolution)
+ * @returns `warning` is advice about a rule that is valid, present only when there is some
  */
-export function validateRowFilterExpr(expr: unknown, table?: RowFilterTable | null, t: TranslateFn | null = null): { ok: boolean; error: string | null | undefined } {
+export function validateRowFilterExpr(expr: unknown, table?: RowFilterTable | null, t: TranslateFn | null = null): { ok: boolean; error: string | null | undefined; warning?: string } {
     const src = String(expr ?? '').trim();
     if (!src) return { ok: true, error: null };
     let ast;
     try {
-        ast = parseExpr(src);
+        ast = parseRowFilter(src);
     } catch (e) {
         return { ok: false, error: tr(t, 'studio_apps_edit.row_filter.unreadable', 'This rule could not be read — {detail}', { detail: errorMessage(e) || tr(t, 'studio_apps_edit.row_filter.unreadable_hint', 'check the spelling and the brackets.') }) };
     }
     try {
-        checkNode(ast, fieldKeySet(table), t);
-        return { ok: true, error: null };
+        const ctx: CheckContext = { table, fieldKeys: fieldKeySet(table), t, warning: null };
+        checkNode(ast, ctx);
+        return ctx.warning ? { ok: true, error: null, warning: ctx.warning } : { ok: true, error: null };
     } catch (e) {
         return { ok: false, error: errorMessage(e) };
     }

@@ -107,7 +107,7 @@ export function mergedTables(current: AccessTable[] | null | undefined, plan: Ac
         const mine = rules.filter((r: AccessTableRule) => r && r.tableId === t.id && r.roleKey && r.expr);
         if (!mine.length) return t;
         const access: AccessBlock = (t.access && typeof t.access === 'object') ? t.access : {};
-        const rowFilters: Record<string, string> = { ...(access.rowFilters || {}) };
+        const rowFilters: NonNullable<AccessBlock['rowFilters']> = { ...(access.rowFilters || {}) };
         for (const r of mine) rowFilters[r.roleKey] = r.expr;
         return { ...t, access: { ...access, rowFilters } };
     });

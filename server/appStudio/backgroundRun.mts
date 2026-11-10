@@ -28,6 +28,7 @@ import { createRequire } from 'node:module';
 import { newWalkState, outcomeView, walkAction } from './sequenceWalk.mts';
 import type { Obj, Step, StepEvent, StepResult, WalkHost, WalkState } from './sequenceWalk.mts';
 import { resolveRunBinding } from './runBindings.mts';
+import { withViewerAttributes } from './viewerAttributes.mts';
 import { NOOP_RECORDER, startRun, withRunLog } from './runLog/recorder.mts';
 import { ownAction } from './actionCalls.mts';
 import {
@@ -84,12 +85,14 @@ function baseCtx(input: StartInput, w: WalkState, ownerActionId: string): Obj {
     };
 }
 
-function resolveWith(input: StartInput, deps: RunnerDeps, binding: unknown, ctx: Obj, scope: unknown, where = ''): Promise<unknown> {
+async function resolveWith(input: StartInput, deps: RunnerDeps, binding: unknown, ctx: Obj, scope: unknown, where = ''): Promise<unknown> {
     const { app, model, viewer, role } = input;
+    // email / groups / orgId for the row rules, read again for every binding: a job can run long.
+    const reader = await withViewerAttributes({ id: viewer.id, role: role || null, organizationId: viewer.organizationId || null }, model);
     return resolveRunBinding(binding, {
         app, model, ctx, scope, maxRows: LOOP_ROWS, where,
         readData: deps.readData, resolveBinding: deps.resolveBinding,
-        reader: { viewer: { id: viewer.id, role: role || null, organizationId: viewer.organizationId || null }, role },
+        reader: { viewer: reader, role },
     });
 }
 

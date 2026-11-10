@@ -215,3 +215,16 @@ test('split with an empty separator splits by code point', () => {
     assert.deepEqual(evaluate('split(t, "")', { t: '😀日本' }), ['😀', '日', '本']);
     assert.deepEqual(evaluate('split("a,b", ",")', {}), ['a', 'b']);
 });
+
+test('`a in list` parses only for a caller that asks for it', () => {
+    assert.throws(() => parseExpr('record.team in viewer.groups'), /Trailing tokens/);
+    const ast = parseExpr('record.team in viewer.groups && record.done == true', { membership: true });
+    assert.equal(ast.op, '&&');
+    assert.equal(ast.a.op, 'in');
+    assert.deepEqual(ast.a.b.segments.map((s) => s.v), ['viewer', 'groups']);
+    // A name that happens to be `in` is still a name, with or without the option.
+    assert.deepEqual(parseExpr('in.x == 1', { membership: true }), parseExpr('in.x == 1'));
+    assert.deepEqual(parseExpr('record.in == 1', { membership: true }), parseExpr('record.in == 1'));
+    // The evaluator has no `in`: an AST that carries one is refused, never guessed.
+    assert.throws(() => evaluate(ast, {}), /Unknown operator: in/);
+});

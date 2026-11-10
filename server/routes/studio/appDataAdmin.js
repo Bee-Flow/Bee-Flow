@@ -136,12 +136,17 @@ async function putSchema(req, res) {
         const { errors } = validateDataModel(model);
         /** @type {string[]} */
         const rowFilterErrors = [];
+        // Advice about a rule that is valid (viewer.orgId over viewer.organizationId): sent back
+        // with the save, never a reason to refuse it.
+        /** @type {string[]} */
+        const rowFilterWarnings = [];
         for (const t of (Array.isArray(model.tables) ? model.tables : [])) {
             const rf = t && t.access && typeof t.access.rowFilters === 'object' ? t.access.rowFilters : null;
             if (!rf) continue;
             for (const roleKey of Object.keys(rf)) {
                 const { ok, errors: rfErr } = rlsGateway.validateRowFilter(rf[roleKey], t);
                 if (!ok) rowFilterErrors.push(`table "${t.key}" role "${roleKey}": ${rfErr.join('; ')}`);
+                for (const w of rlsGateway.rowFilterWarnings(rf[roleKey], t)) rowFilterWarnings.push(`table "${t.key}" role "${roleKey}": ${w}`);
             }
         }
         const allErrors = [...errors, ...rowFilterErrors];
@@ -187,7 +192,7 @@ async function putSchema(req, res) {
             log.warn(`[StudioAppData] sync scheduling failed for app ${app.id}: ${/** @type {Error} */ (e).message}`);
         }
 
-        res.json({ success: true, version: result.version, report: result.report });
+        res.json({ success: true, version: result.version, report: result.report, ...(rowFilterWarnings.length ? { warnings: rowFilterWarnings } : {}) });
     } catch (err) { handleErr(res, err, 'schema.put'); }
 }
 

@@ -155,6 +155,53 @@ const DATATABLE_ID_RE = /^tbl_[a-z0-9]{4,}$/;
 // role explicitly, per action, or it grants nothing.
 const PUBLIC_ROLE_KEY = 'public';
 
+/**
+ * What a row rule can say about the person reading: `viewer.<key>`.
+ *
+ * `list: true` is a list of text values and only stands on the right of `in`
+ * (`record.team in viewer.groups`); every other attribute is one value and
+ * compares with `==` and friends. `resolved: true` is read from the user's own
+ * row at use (appStudio/viewerAttributes.mts), never from the request; a path
+ * that did not resolve it leaves it out and the rule then matches no row.
+ * The attributes added after the frozen base are marked in vocabularySince.js
+ * (family `rowRule`), which is how the App Studio builder learns of them.
+ *
+ *   id               the person's user id (an anonymous visitor: the visitor id)
+ *   role             their role in this app
+ *   organizationId   kept as it is: the session's organisation on the data
+ *                    routes, the app's in server steps, null on a public page
+ *   orgId            the organisation of the person's own account, the same on
+ *                    every path; null for an anonymous visitor
+ *   email            the address of the person's account
+ *   groups           the ids of the groups the person is a member of (the keys
+ *                    roleMapping.byGroup uses)
+ */
+const VIEWER_ATTRIBUTES = Object.freeze([
+    Object.freeze({ key: 'id' }),
+    Object.freeze({ key: 'role' }),
+    Object.freeze({ key: 'organizationId' }),
+    Object.freeze({ key: 'orgId', resolved: true }),
+    Object.freeze({ key: 'email', resolved: true }),
+    Object.freeze({ key: 'groups', resolved: true, list: true }),
+]);
+
+/**
+ * The keys of a per-operation row rule: `rowFilters[role]` as `{ read, update, delete }`
+ * instead of one rule. An operation that is left out follows the rule for `read`, so an
+ * entry is never broader than its read rule by omission; `true` is the rule for "every row".
+ */
+const ROW_FILTER_OPERATIONS = Object.freeze(['read', 'update', 'delete']);
+
+/**
+ * The words of a row rule beyond comparisons of `record.<field>` and literals: every
+ * `viewer.<attribute>`, then the forms added after the frozen base. The base words come
+ * first; a word after them is marked in vocabularySince.js (family `rowRule`).
+ *
+ *   in             `record.<text field> in viewer.<list attribute>`
+ *   perOperation   `rowFilters[role]` as `{ read, update, delete }` (ROW_FILTER_OPERATIONS)
+ */
+const ROW_RULE_WORDS = Object.freeze([...VIEWER_ATTRIBUTES.map((spec) => `viewer.${spec.key}`), 'in', 'perOperation']);
+
 const DATA_LIMITS = Object.freeze({
     MAX_TABLES_PER_APP: 50,
     // One connector = one action (the picker bulk-creates them from a
@@ -312,6 +359,9 @@ module.exports = {
     TABLE_SOURCE_KEYS,
     DATATABLE_ID_RE,
     PUBLIC_ROLE_KEY,
+    VIEWER_ATTRIBUTES,
+    ROW_FILTER_OPERATIONS,
+    ROW_RULE_WORDS,
     DATA_LIMITS,
     FIELD_VALIDATION,
     DYNAMIC_DEFAULTS,

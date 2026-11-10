@@ -1,0 +1,39 @@
+{
+  "translations": {
+    "studio_apps_rowrules.src_viewer_org_id": "de organisatie van hun account",
+    "studio_apps_rowrules.src_viewer_email": "hun e-mailadres",
+    "studio_apps_rowrules.src_viewer_groups": "een van hun groepen",
+    "studio_apps_rowrules.problem_groups_column": "Alleen een tekst- of keuzekolom kan met hun groepen worden vergeleken.",
+    "studio_apps_rowrules.groups_hint": "Groepen worden op hun id vergeleken, dus de kolom moet een groeps-id bevatten.",
+    "studio_apps_rowrules.list_needs_in": "viewer.{name} is een lijst. Schrijf record.<kolom> in viewer.{name}.",
+    "studio_apps_rowrules.in_left": "Zet record.<kolom> links van \"in\".",
+    "studio_apps_rowrules.in_right": "Rechts van \"in\" kan alleen een lijst van de persoon staan: viewer.groups.",
+    "studio_apps_rowrules.in_column_type": "De kolom \"{name}\" kan niet met \"in\" worden getest. Dat kan alleen met een tekst- of keuzekolom.",
+    "studio_apps_rowrules.org_advice": "viewer.organizationId heeft niet overal in een app dezelfde waarde. Gebruik viewer.orgId in een nieuwe regel.",
+    "studio_apps_rowrules.applies_label": "De regel geldt voor",
+    "studio_apps_rowrules.applies_all": "Zien, wijzigen en verwijderen",
+    "studio_apps_rowrules.applies_each": "Een regel per actie",
+    "studio_apps_rowrules.action_label": "Regel voor",
+    "studio_apps_rowrules.action_read": "Zien",
+    "studio_apps_rowrules.action_update": "Wijzigen",
+    "studio_apps_rowrules.action_delete": "Verwijderen",
+    "studio_apps_rowrules.action_with_rule": "{action} (regel ingesteld)",
+    "studio_apps_rowrules.each_hint": "Elke actie kan een eigen regel hebben. Wijzigen of verwijderen zonder eigen regel volgt de regel voor zien.",
+    "studio_apps_rowrules.outcome_update_where": "Ze kunnen alleen de rijen wijzigen waarvoor geldt: {summary}.",
+    "studio_apps_rowrules.outcome_update_rule": "Ze kunnen alleen de rijen wijzigen die voldoen aan de regel die voor wijzigen is geschreven.",
+    "studio_apps_rowrules.outcome_update_free": "Geen rijregel beperkt welke rijen ze kunnen wijzigen.",
+    "studio_apps_rowrules.outcome_delete_where": "Ze kunnen alleen de rijen verwijderen waarvoor geldt: {summary}.",
+    "studio_apps_rowrules.outcome_delete_rule": "Ze kunnen alleen de rijen verwijderen die voldoen aan de regel die voor verwijderen is geschreven.",
+    "studio_apps_rowrules.outcome_delete_free": "Geen rijregel beperkt welke rijen ze kunnen verwijderen.",
+    "studio_apps_rowrules.outcome_update_same": "Ze kunnen alleen de rijen wijzigen die de regel voor zien doorlaat.",
+    "studio_apps_rowrules.outcome_delete_same": "Ze kunnen alleen de rijen verwijderen die de regel voor zien doorlaat.",
+    "studio_apps_rowrules.follows_read": "Geen eigen regel: deze actie volgt de regel voor zien.",
+    "studio_apps_rowrules.every_row": "Elke rij, wat de regel voor zien ook zegt",
+    "studio_apps_rowrules.every_row_set": "Geschreven als true: geen rijregel beperkt deze actie. Maak het veld leeg om de regel voor zien weer te volgen.",
+    "studio_apps_rowrules.kept_as_is": "De regel die voor deze rol is opgeslagen heeft een vorm die dit scherm niet kan tonen. Hij blijft precies zoals hij is; opslaan wijzigt hier alleen de toegang hierboven."
+  },
+  "sameAsEnglish": [
+    "studio_apps_rowrules.op_in",
+    "studio_apps_rowrules.problem_in_action"
+  ]
+}
