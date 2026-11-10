@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+// @typecheck strict
+/**
+ * Dutch for the new-email trigger: the "when a new email arrives" option and its
+ * settings in Cowork, and the mail trigger dialog of an agent. Data in
+ * data/mail-trigger-2026-11-nl.json. SAME_AS_ENGLISH lists keys whose Dutch is
+ * the English text itself (the product names Gmail and Outlook); they are not seeded.
+ *
+ * Idempotent: only fills missing keys. Auto-runs from server boot
+ * (boot/bootMigrations.js).
+ */
+
+const path = require('node:path');
+
+const DATA = require(path.join(__dirname, 'data', 'mail-trigger-2026-11-nl.json'));
+
+/**
+ * sha256 of data/mail-trigger-2026-11-nl.json. The boot ledger re-runs a
+ * migration when THIS FILE's checksum changes and knows nothing about the data
+ * file, so the data's hash is pinned here; the test fails until it is updated.
+ */
+const DATA_SHA256 = '65826505dc0421a42813e8f143ae1e9e4bf48b7374cb9896199ce44f6953740c';
+
+const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
+
+/** Keys whose Dutch is the English text itself; deliberately not seeded. */
+const SAME_AS_ENGLISH = Object.freeze([...DATA.sameAsEnglish]);
+
+/**
+ * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
+ * @param {Record<string, string>} merged
+ */
+function applyNl(merged) {
+    let added = 0;
+    for (const [key, value] of Object.entries(NL_TRANSLATIONS)) {
+        if (!merged[key]) {
+            merged[key] = value;
+            added++;
+        }
+    }
+    return { merged, added };
+}
+
+async function up() {
+    const languageStore = require('../stores/languageStore');
+    let added = 0;
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
+        const result = applyNl(current);
+        added = result.added;
+        return result.merged;
+    });
+    if (added > 0) {
+        console.log(`[Migration] add-nl-mail-trigger-2026-11-translations applied (+${added} keys)`);
+    }
+    return { added };
+}
+
+module.exports = { up, applyNl, NL_TRANSLATIONS, SAME_AS_ENGLISH, DATA_SHA256 };
+
+if (require.main === module) {
+    up().then(() => process.exit(0)).catch((e) => {
+        console.error('Migration failed:', e);
+        process.exit(1);
+    });
+}

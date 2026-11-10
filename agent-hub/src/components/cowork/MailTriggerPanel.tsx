@@ -8,7 +8,7 @@
  * the trigger and this edits it.
  */
 import React, { useEffect } from 'react';
-import { useTriggerProvidersQuery } from '@/api/queries/automation/settings';
+import { useCoworkMailProvidersQuery } from '@/api/queries/coworkReads';
 import { useTranslation } from '@/hooks/useTranslation';
 import OutlookMailboxPicker from '@/components/automation/Builder/flow/settings/outlookMailbox/OutlookMailboxPicker';
 import { MAIL_PROVIDERS, defaultMailTrigger, mailProviderLabel } from './mailTrigger';
@@ -25,10 +25,12 @@ const LABEL = 'block text-[11px] mb-1 text-[var(--text-tertiary)]';
 
 export default function MailTriggerPanel({ value, onChange, disabled = false }: MailTriggerPanelProps) {
     const { t } = useTranslation();
-    const providers = useTriggerProvidersQuery();
-    const available: MailProvider[] = MAIL_PROVIDERS.filter(id => (providers.data || []).some(
-        p => p.id === id && (p.events.length === 0 || p.events.includes('mail.new')),
-    ));
+    const providers = useCoworkMailProvidersQuery();
+    // Which mail apps to offer: the connected ones. When the read fails, both: the
+    // save still refuses an account that is not connected, with its own sentence.
+    const available: MailProvider[] = providers.isError
+        ? [...MAIL_PROVIDERS]
+        : MAIL_PROVIDERS.filter(id => (providers.data || []).includes(id));
     const loaded = providers.isSuccess;
     const provider = value.provider;
     const filter: MailTriggerFilter = value.filter || {};
@@ -53,6 +55,12 @@ export default function MailTriggerPanel({ value, onChange, disabled = false }: 
                 {t('cowork.mail_trigger.none_connected', 'Connect Gmail or Outlook in Settings → Connections first.')}
             </div>
         );
+    }
+
+    // Until the connections are known (or while the trigger still moves to the connected
+    // app), show no fields: Gmail's would be the wrong ones for an Outlook account.
+    if (providers.isPending || needsSnap) {
+        return <div aria-busy="true" data-testid="mail-trigger-loading" className="px-3 py-2 h-8" />;
     }
 
     return (
@@ -84,6 +92,15 @@ export default function MailTriggerPanel({ value, onChange, disabled = false }: 
             <FilterFields provider={provider} filter={filter} disabled={disabled} setFilter={setFilter} />
         </div>
     );
+}
+
+/**
+ * Hands its child the first connected mail app (undefined while unknown), so the
+ * place that starts a trigger starts it on the app the user has, not on the Gmail default.
+ */
+export function FirstConnectedMailApp({ children }: { children: (first: MailProvider | undefined) => React.ReactNode }) {
+    const connected = useCoworkMailProvidersQuery().data;
+    return <>{children(MAIL_PROVIDERS.find(id => connected?.includes(id)))}</>;
 }
 
 interface FilterFieldsProps {
