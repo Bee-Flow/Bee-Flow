@@ -9,6 +9,9 @@ The Nextcloud App Store reads the entry whose heading matches `<version>` in `ap
 
 ## [Unreleased]
 
+### Changed
+- **Supported Nextcloud versions are now 33 to 35.** Nextcloud 32 reached end of life in September 2026 (last release 32.0.15), so listing it promised support that could not be honoured. An installation on Nextcloud 32 keeps the connector version it has and gets no newer one until Nextcloud is upgraded.
+
 ### Security
 - **The install and enable hooks now require Nextcloud's shared secret.** `/init` and `/enabled` used to answer a caller without it, limited to three calls per fifteen minutes, so another container on the Nextcloud docker network could make the connector re-run its registrations against your Nextcloud. Nextcloud signs both calls on every supported version (32 to 35), so they are now refused with a 401 otherwise. If Nextcloud and the container hold different secrets, the install now fails with that error instead of appearing to succeed.
 

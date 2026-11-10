@@ -102,7 +102,7 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
              support we could not honour. 35 is the next major (ships
              2026-09-16); its external API froze on 2026-08-07, so it is
              testable now. -->
-        <nextcloud min-version="32" max-version="35"/>
+        <nextcloud min-version="33" max-version="35"/>
     </dependencies>
     <!--
         Push triggers (new file, tag assigned, calendar change, Forms

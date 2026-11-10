@@ -8,7 +8,7 @@ This page walks an admin through installing the Bee Flow connector via the Nextc
 
 :::info[Requirements]
 
-- Nextcloud 32, 33, 34 or 35
+- Nextcloud 33, 34 or 35
 - [AppAPI](https://apps.nextcloud.com/apps/app_api) installed and enabled
 - A deployment daemon configured (HaRP **or** `manual-install`)
 - Admin permissions on the Nextcloud instance

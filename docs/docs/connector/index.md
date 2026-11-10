@@ -61,7 +61,6 @@ The connector and Nextcloud always sit on the same network. The connector talks 
 
 | NC | Status |
 |----|:------:|
-| 32 | ✅ |
 | 33 | ✅ |
 | 34 | ✅ |
 | 35 | ✅ |
@@ -70,7 +69,7 @@ The supported range is declared in [`appinfo/info.xml`](https://github.com/Bee-F
 
 ```xml
 <dependencies>
-  <nextcloud min-version="32" max-version="35"/>
+  <nextcloud min-version="33" max-version="35"/>
 </dependencies>
 ```
 
