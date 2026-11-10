@@ -46,6 +46,64 @@ exports[`compat corpus: what the phone plans for every stored app asset-refs 1`]
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app design-preset-ember 1`] = `
+{
+  "defaultScreen": "scr_p1yp7d",
+  "navigable": [
+    "scr_p1yp7d",
+  ],
+  "screens": [
+    {
+      "id": "scr_p1yp7d",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": true,
+                "id": "cmp_8dufjm",
+                "kind": "page_header",
+                "subtitle": "What waits today",
+                "title": "Repairs",
+              },
+              {
+                "id": "cmp_3eubai",
+                "kind": "stat",
+                "label": "Waiting",
+                "value": "0",
+              },
+              {
+                "id": "cmp_jmxqkg",
+                "kind": "stat",
+                "label": "Planned",
+                "value": "0",
+              },
+              {
+                "id": "cmp_xunx18",
+                "kind": "stat",
+                "label": "Done",
+                "value": "0",
+              },
+              {
+                "id": "cmp_4y25tl",
+                "kind": "text",
+                "muted": false,
+                "text": "Nothing planned yet.",
+              },
+            ],
+            "screen": "scr_p1yp7d",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app empty-definition 1`] = `
 {
   "defaultScreen": "scr_6x27gi",

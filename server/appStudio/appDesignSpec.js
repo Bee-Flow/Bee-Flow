@@ -51,7 +51,7 @@ const FONT_FAMILIES = Object.freeze({
  * before the key existed keeps its bytes. A base key is always written (its default when
  * absent). A key added later is optional and may use a value type of
  * componentSpecs/valueTypes.js as its `type`.
- * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean } | { type: 'url', default: string | null, maxLen: number, optional?: boolean }} DesignSpecEntry
+ * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean, valuesSince?: Record<string, number>, description?: string } | { type: 'url', default: string | null, maxLen: number, optional?: boolean }} DesignSpecEntry
  */
 
 const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry>} */ ({
@@ -59,7 +59,13 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
     // design / nav (themePresets.js precedent) — this field just remembers
     // which gallery card the owner started from, so the editor can show it as
     // selected and "custom" the moment they diverge.
-    preset: { type: 'enum', values: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono'], default: 'custom' },
+    preset: {
+        type: 'enum',
+        values: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono', 'grove', 'ember', 'signal', 'bloom', 'ledger', 'nocturne'],
+        default: 'custom',
+        valuesSince: { grove: 3, ember: 3, signal: 3, bloom: 3, ledger: 3, nocturne: 3 },
+        description: 'The design preset the look started from. Apply one with app_set_theme {preset:"<id>"}, which accepts every id here even where its own list shows fewer: grove (fresh green, rounded, sidebar), ember (warm orange, lifted cards, tabs), signal (dark square control room, icon rail), bloom (soft pink, round and roomy, tabs), ledger (sober stone, square hairlines, sidebar), nocturne (dark product look, lifted cards, mega menu).',
+    },
     font: { type: 'enum', values: Object.keys(FONT_FAMILIES), default: 'system' },
     // ONE surface knob (presets-over-knobs), mapping to semantic elevation
     // tokens --app-shadow-1/2/3 that the high-contrast host theme re-declares

@@ -1,0 +1,50 @@
+{
+  "corpus": "design-preset-ember",
+  "canonical": {
+    "sha256": "25f2bc664f41d9806341fdbc42399adaefe162364667dec8fb16fe7b5691f2bd",
+    "bytes": 2362,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "4227d78ace87c237",
+      "theme": "3266a58aba0593f7",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_p1yp7d": "320f34a392a490f9",
+      "design": "0f68664840da4ee1",
+      "homeScreenId": "6e6a669837a40c4d"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[0].children[0]"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[0].children[0]"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

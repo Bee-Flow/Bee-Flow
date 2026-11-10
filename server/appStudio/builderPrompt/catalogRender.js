@@ -11,7 +11,9 @@
  * byte-stability and a prompt budget (see catalogRender.test.js).
  *
  * Two renderings share every section builder:
- *   renderCatalogText()        — the FULL catalog (cloud models, ~50k chars);
+ *   renderCatalogText()        — the catalog of the cloud bands: every section, with rare
+ *                                material named in one line and served on request
+ *                                (catalogDiet.mts picks, catalogTopics.mts serves);
  *   renderCompactCatalogText() — the small-band catalog: every type on ONE
  *                                line, the common step kinds only, no theme /
  *                                design / variables sections (~20k chars).
@@ -54,6 +56,7 @@ const { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT } = require('./f
 // tool schemas — so the catalog and the tool surface cannot teach two lists.
 const { NODE_VALIDATION_TYPES } = require('../builderTools/schemas');
 const { baseCatalogue, fullCatalogue, catalogueGeneration } = require('../catalogTiers.mts');
+const { renderBaseCatalog, renderBaseSteps, renderBaseFormulas, TOPIC_INDEX_COMPACT } = require('./catalogDiet.mts');
 
 // The tables that have two tiers (catalogTiers.mts): the BASE while a prompt text renders, so
 // an entry marked `since: 3` never moves those bytes, and the whole catalogue while ONE entry
@@ -108,7 +111,9 @@ function renderPropSpec(key, fs) {
         bits.push(fs.type + (fs.min !== undefined && fs.min !== null && fs.max !== undefined && fs.max !== null ? ` ${fs.min}..${fs.max}` : ''));
     } else if (fs.type === 'list') {
         const shape = Object.entries(fs.itemShape || {}).map(([ik, ifs]) => {
-            const t = ifs.type === 'enum' ? ifs.values.join('|') : ifs.type;
+            // A list inside a list shows its item keys: `key:list` alone leaves the shape to guesswork.
+            const t = ifs.type === 'enum' ? ifs.values.join('|')
+                : (ifs.type === 'list' && ifs.itemShape ? `[{${Object.entries(ifs.itemShape).map(([nk, nfs]) => `${nk}${nfs.required ? '!' : ''}`).join(', ')}}]` : ifs.type);
             return `${ik}:${t}${ifs.required ? '!' : ''}`;
         }).join(', ');
         bits.push(`list of {${shape}}${fs.maxItems ? ` (max ${fs.maxItems})` : ''}`);
@@ -416,6 +421,7 @@ function buildCatalogSections() {
         // that ARE the contract (bindings, node logic) and drops the lines
         // that name a tool or a kind the core menu cannot reach.
         _nodeLogicLines: nodeLogicLines, _bindingLines: bindingLines, _stepsLead: stepsLead,
+        _stepNotes: [...errorHandlingLines(), ...bulkWriteLines()], // what the step section says beside its kinds
     };
     return _sections;
 }
@@ -424,56 +430,22 @@ function buildCatalogSections() {
 let _cached = null;
 
 /**
- * The full catalog text injected into the static system prompt. Computed
- * once per process (the spec is immutable) — byte-stable by construction.
+ * The catalog text injected into the static system prompt of the cloud bands: every section,
+ * with the rare material on request (catalogDiet.mts). Computed once per process (the spec is
+ * immutable) — byte-stable by construction.
  */
 function renderCatalogText() {
     syncTier();
     if (_cached) return _cached;
-    const s = buildCatalogSections();
-
-    _cached = `### Theme (app_set_theme)
-${s.theme}
-
-### Design & navigation (app_set_theme — the whole-look layer)
-${s.design}
-
-### Style knobs (closed vocabulary — the only legal style keys, per component below)
-${s.knobs}
-color roles: ${COLOR_ROLES.join(', ')}
-${s.advancedSizing}
-
-### Screens (app_add_screen / app_update_screen)
-${s.screen}
-Sections: style knobs ${T.SECTION_STYLE_KNOBS.join(', ')} (defaults ${JSON.stringify(SECTION_STYLE_DEFAULTS)}).
-
-### Components (${Object.keys(T.COMPONENT_SPECS).length} types — the ONLY legal types)
-A prop with no (default …) note is simply empty/off until set — everywhere in this catalog.
-${s.components}
-
-### Node logic (computed / gating / validations — on ANY component, beside props+style)
-${s.nodeLogic}
-
-### Actions (app_set_action)
-${s.actions}
-
-### Sequence steps
-${s.steps}
-
-### Bindings
-${s.bindings}
-
-### Formulas (the expression language — every formula expr and formula-typed field)
-${s.formulas}
-
-### Variables (app_set_variables)
-${s.variables}
-
-### Data model (the app's own database)
-${s.dataModel}\n${s.dataModelChanges}
-
-### Limits
-${s.limits}`;
+    _cached = renderBaseCatalog({
+        sections: buildCatalogSections(),
+        componentTypes: Object.keys(T.COMPONENT_SPECS),
+        stepKinds: T.STEP_KINDS,
+        serverKinds: T.DATA_MUTATING_STEP_KINDS,
+        colorRoles: COLOR_ROLES,
+        sectionsLine: `Sections: style knobs ${T.SECTION_STYLE_KNOBS.join(', ')} (defaults ${JSON.stringify(SECTION_STYLE_DEFAULTS)}).`,
+        renderComponent, renderComponentLine: renderComponentCompact, renderStep: renderStepKind,
+    });
     return _cached;
 }
 
@@ -603,13 +575,9 @@ const COMPACT_STEP_KINDS = [
     'condition', 'switch', 'loop',
 ];
 
+/** The compact step section: the lead, the common kinds in full, the rest named by side. */
 function renderStepKindCompact() {
-    const full = COMPACT_STEP_KINDS.filter((k) => T.STEP_SPECS[k]).map(renderStepKindCompactLine);
-    const rest = T.STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
-    return [
-        ...full,
-        `Other step kinds (full shape via app_inspect_catalog {steps:[…]}): ${rest.join(', ')}.`,
-    ].join('\n');
+    return renderBaseSteps(COMPACT_STEP_KINDS, { stepKinds: T.STEP_KINDS, serverKinds: T.DATA_MUTATING_STEP_KINDS }, renderStepKindCompactLine);
 }
 
 /** @type {string | null} */
@@ -618,8 +586,9 @@ let _compact = null;
 /**
  * The small-band catalog. Same sources, same determinism, ~20k chars: every
  * component type present on one line, the common step kinds in full, the
- * binding shapes the core menu can wire, and the formula vocabulary whole
- * (a name a small model cannot see is a name it will not use).
+ * binding shapes the core menu can wire, and every formula function by name
+ * (a name a small model cannot see is a name it will not use; the long tail's
+ * signatures are a topic, catalogDiet.mts).
  */
 function renderCompactCatalogText() {
     syncTier();
@@ -648,15 +617,16 @@ function renderCompactCatalogText() {
     // app_upsert_dataset and connector needs app_list_connectors — neither is
     // on the menu, and a shape the model cannot fulfil is one it invents ids for.
     const bindings = s._bindingLines.filter((l) => !/"kind": "(dataset|connector)"/.test(l)).join('\n').replace(ANY_GROUP_TEXT, '');
-    const steps = [...s._stepsLead, renderStepKindCompact()].join('\n');
+    const steps = renderStepKindCompact();
     // Actions: the full section renders nine kinds as pointers to their step
     // twin; the compact step list does not carry four of those twins, so the
     // rule is stated once instead. Derived from the same specs (renderActionKind
     // decides inline-vs-twin), so a kind that stops being a twin renders inline.
-    const twinKinds = T.ACTION_KINDS.filter((k) => T.STEP_SPECS[k] && JSON.stringify(T.STEP_SPECS[k].fields) === JSON.stringify(T.ACTION_SPECS[k].fields));
+    // A twin is compared on its OWN fields (the onError / retry envelope is the step's alone), as renderActionKind does.
+    const twinKinds = T.ACTION_KINDS.filter((k) => T.STEP_SPECS[k] && JSON.stringify(ownFields(T.STEP_SPECS[k].fields)) === JSON.stringify(T.ACTION_SPECS[k].fields));
     const ownKinds = T.ACTION_KINDS.filter((k) => !twinKinds.includes(k));
     const actions = [
-        `Kinds: ${T.ACTION_KINDS.join(' | ')}. The actions map key IS the action id (act_…); \`kind\` is the discriminator. ${twinKinds.join(', ')} take exactly the fields of the step of the same name (### Sequence steps).`,
+        `Kinds: ${T.ACTION_KINDS.join(' | ')}. The actions map key IS the action id (act_…); \`kind\` is the discriminator. Every kind but ${ownKinds.join(' and ')} takes exactly the fields of the step of the same name (### Sequence steps; a kind only named there: app_inspect_catalog {steps:[…]} first).`,
         ...ownKinds.map((kind) => `${kind}: { ${renderSpecFields(kind === 'sequence' ? { steps: T.ACTION_SPECS.sequence.fields.steps } : T.ACTION_SPECS[kind].fields)} }`), // a sequence without its run options (budget)
         `Effects (bounded, never chain): { toast?: {message ≤500, tone ${TOAST_TONES.join('|')}}, navigateTo?: <screenId>|null }`,
         `open_modal/close_modal target a \`modal\` component's cmp_… id — end a save sequence with close_modal. A sequence runs its steps in order (max ${LIMITS.MAX_ACTION_STEPS} steps, nesting ≤${LIMITS.MAX_ACTION_DEPTH}).`,
@@ -670,10 +640,10 @@ function renderCompactCatalogText() {
         .join('; ');
     // Formulas: the TOTALITY line is the core prompt's guard bullet, said once there.
     // The compact vocabulary and prose stay as they were before the list functions (formulaGuide.js).
-    const formulas = s.formulas.replace(renderFormulaFunctions(), renderFormulaFunctions({ compact: true })).replace(LIST_FORMS_TEXT, '')
-        .split('\n').filter((l) => !l.startsWith('TOTALITY')).join('\n');
+    // The long tail is named without its signature (catalogDiet.mts).
+    const formulas = renderBaseFormulas(s.formulas, { compact: true });
 
-    _compact = `### Style knobs (closed vocabulary — the only legal style keys; each type lists its own below)
+    _compact = `### Style knobs (each type takes only the keys on its own line below)
 ${knobs}
 color roles: ${COLOR_ROLES.join(', ')}
 Exact sizing (widthMode/widthValue/heightMode/heightValue) is not for this menu — layout is spans.
@@ -681,7 +651,7 @@ Exact sizing (widthMode/widthValue/heightMode/heightValue) is not for this menu 
 ### Screens (app_add_screen)
 ${screen}
 
-### Components (${Object.keys(T.COMPONENT_SPECS).length} types — the ONLY legal types; one line each)
+### Components (${Object.keys(T.COMPONENT_SPECS).length} types; one line each)
 Line grammar: type [category] CONTAINER|input events:… — what it is. props: name*:type (* = required; +N = more props not shown — fetch them with app_inspect_catalog {components:[…]} BEFORE using a type's rarer props) style: knob=default,knob. A prop with no default is empty/off until set.
 ${components}
 
@@ -703,6 +673,7 @@ ${formulas}
 
 ### Data model (the app's own database)
 ${s.dataModel}
+${TOPIC_INDEX_COMPACT}
 
 ### Limits
 ${s.limits}`;
