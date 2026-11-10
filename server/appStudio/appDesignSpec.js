@@ -60,6 +60,7 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
     surface: { type: 'enum', values: ['hairline', 'flat', 'soft', 'elevated'], default: 'hairline' },
     // 'subtle' is identity: the universal-polish baseline motion. 'none'
     // stamps .app-motion--none; prefers-reduced-motion always wins in CSS.
+    // 'full' is accepted and stored but renders exactly like 'subtle'.
     motion: { type: 'enum', values: ['none', 'subtle', 'full'], default: 'subtle' },
     chartPalette: { type: 'enum', values: ['classic', 'brand'], default: 'classic' },
     // The coloured 3px edge that marks a callout's tone, a toned table row, a
